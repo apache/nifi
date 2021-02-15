@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.snmp.processors;
+package org.apache.nifi.snmp.utils;
 
 import static org.junit.Assert.assertEquals;
 
@@ -23,6 +23,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.snmp.processors.GetSNMP;
 import org.apache.nifi.util.MockProcessSession;
 import org.apache.nifi.util.SharedSessionState;
 import org.junit.Test;
@@ -70,7 +71,7 @@ public class SNMPUtilsTest {
      * @return instance of SNMP
      * @throws IOException IO Exception
      */
-    protected static Snmp createSnmp() throws IOException {
+    public static Snmp createSnmp() throws IOException {
         DefaultUdpTransportMapping transportMapping = new DefaultUdpTransportMapping();
         transportMapping.listen();
         return new Snmp(transportMapping);
@@ -83,7 +84,7 @@ public class SNMPUtilsTest {
      * @param version SNMP version
      * @return community target
      */
-    protected static CommunityTarget createCommTarget(String community, String address, int version) {
+    public static CommunityTarget createCommTarget(String community, String address, int version) {
         CommunityTarget target = new CommunityTarget();
         target.setVersion(version);
         target.setCommunity(new OctetString(community));
@@ -100,7 +101,7 @@ public class SNMPUtilsTest {
      * @param securityName security name
      * @return user target
      */
-    private static UserTarget createUserTarget(String address, int securityLevel, String securityName) {
+    public static UserTarget createUserTarget(String address, int securityLevel, String securityName) {
         UserTarget target = new UserTarget();
         target.setVersion(SnmpConstants.version3);
         target.setSecurityLevel(securityLevel);
@@ -123,7 +124,7 @@ public class SNMPUtilsTest {
      * @param privPwd private password
      * @return user target
      */
-    protected static UserTarget prepareUser(Snmp snmp, String address, int securityLevel, String securityName, OID auth, OID priv, String authPwd, String privPwd) {
+    public static UserTarget prepareUser(Snmp snmp, String address, int securityLevel, String securityName, OID auth, OID priv, String authPwd, String privPwd) {
         snmp.getUSM().removeAllUsers();
         OctetString aPwd = authPwd != null ? new OctetString(authPwd) : null;
         OctetString pPwd = privPwd != null ? new OctetString(privPwd) : null;

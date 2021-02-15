@@ -16,30 +16,34 @@
  */
 package org.apache.nifi.snmp.processors;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.snmp.operations.SNMPGetter;
+import org.apache.nifi.snmp.utils.SNMPUtils;
 import org.snmp4j.PDU;
 import org.snmp4j.event.ResponseEvent;
 import org.snmp4j.smi.OID;
 import org.snmp4j.util.TreeEvent;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 /**
  * Retrieving data from configured SNMP agent which, upon each invocation of
@@ -47,27 +51,27 @@ import org.snmp4j.util.TreeEvent;
  * {@link FlowFile} containing in its properties the information retrieved.
  * The output {@link FlowFile} won't have any content.
  */
-@Tags({ "snmp", "get", "oid", "walk" })
+@Tags({"snmp", "get", "oid", "walk"})
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @CapabilityDescription("Retrieves information from SNMP Agent and outputs a FlowFile with information in attributes and without any content")
 @WritesAttributes({
-    @WritesAttribute(attribute=SNMPUtils.SNMP_PROP_PREFIX + "*", description="Attributes retrieved from the SNMP response. It may include:"
-            + " snmp$errorIndex, snmp$errorStatus, snmp$errorStatusText, snmp$nonRepeaters, snmp$requestID, snmp$type, snmp$variableBindings"),
-    @WritesAttribute(attribute=SNMPUtils.SNMP_PROP_PREFIX + "textualOid", description="This attribute will exist if and only if the strategy"
-            + " is GET and will be equal to the value given in Textual Oid property.")
+        @WritesAttribute(attribute = SNMPUtils.SNMP_PROP_PREFIX + "*", description = "Attributes retrieved from the SNMP response. It may include:"
+                + " snmp$errorIndex, snmp$errorStatus, snmp$errorStatusText, snmp$nonRepeaters, snmp$requestID, snmp$type, snmp$variableBindings"),
+        @WritesAttribute(attribute = SNMPUtils.SNMP_PROP_PREFIX + "textualOid", description = "This attribute will exist if and only if the strategy"
+                + " is GET and will be equal to the value given in Textual Oid property.")
 })
-public class GetSNMP extends AbstractSNMPProcessor<SNMPGetter> {
+public class GetSNMP extends AbstractSNMPProcessor {
 
-    /** OID to request (if walk, it is the root ID of the request) */
+    // OID to request (if walk, it is the root ID of the request).
     public static final PropertyDescriptor OID = new PropertyDescriptor.Builder()
             .name("snmp-oid")
             .displayName("OID")
             .description("The OID to request")
             .required(true)
-            .addValidator(SNMPUtils.SNMP_OID_VALIDATOR)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
-    /** Textual OID to request */
+    // Textual OID to request.
     public static final PropertyDescriptor TEXTUAL_OID = new PropertyDescriptor.Builder()
             .name("snmp-textual-oid")
             .displayName("Textual OID")
@@ -77,7 +81,7 @@ public class GetSNMP extends AbstractSNMPProcessor<SNMPGetter> {
             .defaultValue(null)
             .build();
 
-    /** SNMP strategy for SNMP Get processor : simple get or walk */
+    // SNMP strategy for SNMP Get processor: GET or WALK.
     public static final PropertyDescriptor SNMP_STRATEGY = new PropertyDescriptor.Builder()
             .name("snmp-strategy")
             .displayName("SNMP strategy (GET/WALK)")
@@ -87,40 +91,31 @@ public class GetSNMP extends AbstractSNMPProcessor<SNMPGetter> {
             .defaultValue("GET")
             .build();
 
-    /** relationship for success */
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("All FlowFiles that are received from the SNMP agent are routed to this relationship")
             .build();
 
-    /** relationship for failure */
     public static final Relationship REL_FAILURE = new Relationship.Builder()
             .name("failure")
             .description("All FlowFiles that cannot received from the SNMP agent are routed to this relationship")
             .build();
 
-    /** list of property descriptors */
-    private final static List<PropertyDescriptor> propertyDescriptors;
+    private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = createPropertyList();
 
-    /** list of relationships */
-    private final static Set<Relationship> relationships;
+    private static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
+            REL_SUCCESS,
+            REL_FAILURE
+    )));
 
-    /*
-     * Will ensure that the list of property descriptors is build only once.
-     * Will also create a Set of relationships
-     */
-    static {
-        List<PropertyDescriptor> _propertyDescriptors = new ArrayList<>();
-        _propertyDescriptors.add(OID);
-        _propertyDescriptors.add(TEXTUAL_OID);
-        _propertyDescriptors.add(SNMP_STRATEGY);
-        _propertyDescriptors.addAll(descriptors);
-        propertyDescriptors = Collections.unmodifiableList(_propertyDescriptors);
+    private SNMPGetter snmpGetter;
 
-        Set<Relationship> _relationships = new HashSet<>();
-        _relationships.add(REL_SUCCESS);
-        _relationships.add(REL_FAILURE);
-        relationships = Collections.unmodifiableSet(_relationships);
+    @OnScheduled
+    @Override
+    public void initSnmpClient(ProcessContext context) {
+        super.initSnmpClient(context);
+        String oid = context.getProperty(OID).getValue();
+        snmpGetter = new SNMPGetter(snmpContext.getSnmp(), snmpContext.getTarget(), new OID(oid));
     }
 
     /**
@@ -128,72 +123,78 @@ public class GetSNMP extends AbstractSNMPProcessor<SNMPGetter> {
      * {@link #onTrigger(ProcessContext, ProcessSession)}. It is implemented by
      * sub-classes to perform {@link Processor} specific functionality.
      *
-     * @param context
-     *            instance of {@link ProcessContext}
-     * @param processSession
-     *            instance of {@link ProcessSession}
+     * @param context        instance of {@link ProcessContext}
+     * @param processSession instance of {@link ProcessSession}
      * @throws ProcessException Process exception
      */
     @Override
-    protected void onTriggerSnmp(ProcessContext context, ProcessSession processSession) throws ProcessException {
-        if("GET".equals(context.getProperty(SNMP_STRATEGY).getValue())) {
-            final ResponseEvent response = this.targetResource.get();
-            if (response.getResponse() != null){
-                FlowFile flowFile = processSession.create();
+    public void onTrigger(ProcessContext context, ProcessSession processSession) {
+        final String targetUri = snmpContext.getTarget().getAddress().toString();
+        final String snmpStrategy = context.getProperty(SNMP_STRATEGY).getValue();
+        final String oid = context.getProperty(OID).getValue();
+
+        if ("GET".equals(snmpStrategy)) {
+            final ResponseEvent response = snmpGetter.get();
+            if (response.getResponse() != null) {
                 PDU pdu = response.getResponse();
-                flowFile = SNMPUtils.updateFlowFileAttributesWithPduProperties(pdu, flowFile, processSession);
-                flowFile = SNMPUtils.addAttribute(SNMPUtils.SNMP_PROP_PREFIX + "textualOid",
-                        context.getProperty(TEXTUAL_OID).getValue(), flowFile, processSession);
-                processSession.getProvenanceReporter().receive(flowFile,
-                        this.snmpTarget.getAddress().toString() + "/" + context.getProperty(OID).getValue());
-                if(pdu.getErrorStatus() == PDU.noError) {
+                FlowFile flowFile = createFlowFile(context, processSession, pdu);
+                processSession.getProvenanceReporter().receive(flowFile, targetUri + "/" + oid);
+                if (pdu.getErrorStatus() == PDU.noError) {
                     processSession.transfer(flowFile, REL_SUCCESS);
                 } else {
                     processSession.transfer(flowFile, REL_FAILURE);
                 }
             } else {
-                this.getLogger().error("Get request timed out or parameters are incorrect.");
+                getLogger().error("Get request timed out or parameters are incorrect.");
                 context.yield();
             }
-        } else if("WALK".equals(context.getProperty(SNMP_STRATEGY).getValue())) {
-            final List<TreeEvent> events = this.targetResource.walk();
-            if((events != null) && !events.isEmpty() && (events.get(0).getVariableBindings() != null)) {
+        } else if ("WALK".equals(snmpStrategy)) {
+            final List<TreeEvent> events = snmpGetter.walk();
+            if (areValidEvents(events)) {
                 FlowFile flowFile = processSession.create();
                 for (TreeEvent treeEvent : events) {
                     flowFile = SNMPUtils.updateFlowFileAttributesWithTreeEventProperties(treeEvent, flowFile, processSession);
                 }
-                processSession.getProvenanceReporter().receive(flowFile,
-                        this.snmpTarget.getAddress().toString() + "/" + context.getProperty(OID).getValue());
+                processSession.getProvenanceReporter().receive(flowFile, targetUri + "/" + oid);
                 processSession.transfer(flowFile, REL_SUCCESS);
             } else {
-                this.getLogger().error("Get request timed out or parameters are incorrect.");
+                getLogger().error("Get request timed out or parameters are incorrect.");
                 context.yield();
             }
         }
     }
 
-    /**
-     * Will create an instance of {@link SNMPGetter}
-     */
-    @Override
-    protected SNMPGetter finishBuildingTargetResource(ProcessContext context) {
-        String oid = context.getProperty(OID).getValue();
-        return new SNMPGetter(this.snmp, this.snmpTarget, new OID(oid));
-    }
-
-    /**
-     * get list of supported property descriptors
-     */
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return propertyDescriptors;
+        return PROPERTY_DESCRIPTORS;
+    }
+
+    @Override
+    public Set<Relationship> getRelationships() {
+        return RELATIONSHIPS;
     }
 
     /**
-     * get list of relationships
+     * Creates a list of the base class' and the current properties.
+     *
+     * @return a list of properties
      */
-    @Override
-    public Set<Relationship> getRelationships() {
-        return relationships;
+    private static List<PropertyDescriptor> createPropertyList() {
+        List<PropertyDescriptor> propertyDescriptors = new ArrayList<>();
+        propertyDescriptors.addAll(BASIC_PROPERTIES);
+        propertyDescriptors.addAll(Arrays.asList(OID, TEXTUAL_OID, SNMP_STRATEGY));
+        return Collections.unmodifiableList(propertyDescriptors);
+    }
+
+    private FlowFile createFlowFile(ProcessContext context, ProcessSession processSession, PDU pdu) {
+        FlowFile flowFile = processSession.create();
+        flowFile = SNMPUtils.updateFlowFileAttributesWithPduProperties(pdu, flowFile, processSession);
+        flowFile = SNMPUtils.addAttribute(SNMPUtils.SNMP_PROP_PREFIX + "textualOid", context.getProperty(TEXTUAL_OID).getValue(),
+                flowFile, processSession);
+        return flowFile;
+    }
+
+    private boolean areValidEvents(List<TreeEvent> events) {
+        return (events != null) && !events.isEmpty() && (events.get(0).getVariableBindings() != null);
     }
 }

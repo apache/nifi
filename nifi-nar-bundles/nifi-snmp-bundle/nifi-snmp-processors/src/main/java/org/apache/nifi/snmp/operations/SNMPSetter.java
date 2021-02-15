@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.snmp.processors;
+package org.apache.nifi.snmp.operations;
 
 import java.io.IOException;
 
@@ -26,31 +26,30 @@ import org.snmp4j.Snmp;
 import org.snmp4j.event.ResponseEvent;
 
 /**
- * Extension of {@link SNMPWorker} to perform SNMP Set requests
+ * Extension of {@link SNMPWorker} to perform SNMP Set requests.
  */
-final class SNMPSetter extends SNMPWorker {
+public final class SNMPSetter extends SNMPWorker {
 
-    /** logger */
-    private final static Logger logger = LoggerFactory.getLogger(SNMPSetter.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(SNMPSetter.class);
 
     /**
-     * Creates an instance of this setter
+     * Creates an instance of this setter.
      * @param snmp instance of {@link Snmp}
      * @param target instance of {@link AbstractTarget} to request
      */
-    SNMPSetter(Snmp snmp, AbstractTarget target) {
+    public SNMPSetter(Snmp snmp, AbstractTarget target) {
         super(snmp, target);
-        logger.info("Successfully initialized SNMP Setter");
+        LOGGER.info("Successfully initialized SNMP Setter");
     }
 
     /**
-     * Executes the SNMP set request and returns the response
+     * Executes the SNMP set request and returns the response.
      * @param pdu PDU to send
      * @return Response event
      * @throws IOException IO Exception
      */
     public ResponseEvent set(PDU pdu) throws IOException {
-        return this.snmp.set(pdu, this.target);
+        return snmp.set(pdu, target);
     }
 
 }
