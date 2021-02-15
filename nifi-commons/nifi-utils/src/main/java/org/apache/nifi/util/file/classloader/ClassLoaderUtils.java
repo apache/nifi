@@ -137,17 +137,20 @@ public class ClassLoaderUtils {
         return additionalClasspath.toArray(new URL[additionalClasspath.size()]);
     }
 
+    /**
+     * Generate fingerprint from URLs associated with classpath resources
+     *
+     * @param urls URLs used for generating fingerprint string
+     * @return Fingerprint string from provided URLs
+     */
     public static String generateAdditionalUrlsFingerprint(final Set<URL> urls) {
-        final StringBuilder fingerprintBuilder = new StringBuilder();
+        final StringBuilder formattedUrls = new StringBuilder();
 
-        //Sorting so that the order is maintained for generating the fingerprint
-        final List<String> sortedUrls = urls.stream().map(Object::toString).collect(Collectors.toList());
-        Collections.sort(sortedUrls);
-        sortedUrls.forEach(url -> fingerprintBuilder.append(url).append("-").append(getLastModified(url)).append(";"));
-        final byte[] fingerprintBytes = fingerprintBuilder.toString().getBytes(StandardCharsets.UTF_8);
-        final byte[] fingerprintDigest = MessageDigestUtils.getDigest(fingerprintBytes);
+        final List<String> sortedUrls = urls.stream().map(Object::toString).sorted().collect(Collectors.toList());
+        sortedUrls.forEach(url -> formattedUrls.append(url).append("-").append(getLastModified(url)).append(";"));
+        final byte[] formattedUrlsBinary = formattedUrls.toString().getBytes(StandardCharsets.UTF_8);
 
-        return DatatypeConverter.printHexBinary(fingerprintDigest);
+        return DatatypeConverter.printHexBinary(MessageDigestUtils.getDigest(formattedUrlsBinary));
     }
 
     private static long getLastModified(String url) {
