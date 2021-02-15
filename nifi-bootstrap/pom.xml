@@ -53,12 +53,12 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>com.squareup.okhttp3</groupId>
             <artifactId>okhttp</artifactId>
-            <version>3.6.0</version>
+            <version>${okhttp.version}</version>
         </dependency>
         <dependency>
             <groupId>com.squareup.okhttp3</groupId>
             <artifactId>mockwebserver</artifactId>
-            <version>3.6.0</version>
+            <version>${okhttp.version}</version>
             <scope>test</scope>
         </dependency>
         <!-- This needs to be here because it is relied upon by the nifi-runtime which starts NiFi.  It uses this bootstrap module

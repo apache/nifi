@@ -21,7 +21,7 @@ language governing permissions and limitations under the License. -->
     <artifactId>nifi-toolkit-api</artifactId>
 
     <properties>
-        <okhttp-version>2.7.5</okhttp-version>
+        <okhttp.version>2.7.5</okhttp.version>
     </properties>
 
     <dependencies>
@@ -44,12 +44,12 @@ language governing permissions and limitations under the License. -->
         <dependency>
             <groupId>com.squareup.okhttp</groupId>
             <artifactId>okhttp</artifactId>
-            <version>${okhttp-version}</version>
+            <version>${okhttp.version}</version>
         </dependency>
         <dependency>
             <groupId>com.squareup.okhttp</groupId>
             <artifactId>logging-interceptor</artifactId>
-            <version>${okhttp-version}</version>
+            <version>${okhttp.version}</version>
         </dependency>
         <dependency>
             <groupId>com.google.code.gson</groupId>
