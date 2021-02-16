@@ -79,22 +79,21 @@ public class LoggingRecordSink extends AbstractControllerService implements Reco
 
     @Override
     public WriteResult sendData(RecordSet recordSet, Map<String, String> attributes, boolean sendZeroResults) throws IOException {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
         WriteResult writeResult;
-        try {
+        try (final ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
             ComponentLog log = getLogger();
-            final RecordSetWriter writer = writerFactory.createWriter(getLogger(), recordSet.getSchema(), baos, attributes);
-            writer.beginRecordSet();
-            Record r;
-            while ((r = recordSet.next()) != null) {
-                baos.reset();
-                writer.write(r);
+            try (final RecordSetWriter writer = writerFactory.createWriter(getLogger(), recordSet.getSchema(), baos, attributes)) {
+                writer.beginRecordSet();
+                Record r;
+                while ((r = recordSet.next()) != null) {
+                    baos.reset();
+                    writer.write(r);
+                    writer.flush();
+                    log.log(logLevel, baos.toString());
+                }
+                writeResult = writer.finishRecordSet();
                 writer.flush();
-                log.log(logLevel, baos.toString());
             }
-            writeResult = writer.finishRecordSet();
-            writer.flush();
-            writer.close();
 
         } catch (SchemaNotFoundException e) {
             throw new IOException(e);
