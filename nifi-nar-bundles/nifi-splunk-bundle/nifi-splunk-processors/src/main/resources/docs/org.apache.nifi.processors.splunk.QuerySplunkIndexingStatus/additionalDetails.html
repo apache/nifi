@@ -46,8 +46,9 @@
     includes unsuccessful or ongoing indexing and unknown acknowledgement identifiers. In order to avoid infinite tries,
     QuerySplunkIndexingStatus gives user the possibility to set a "Maximum waiting time". Results with value of false from Splunk
     within the specified waiting time will be handled as "undetermined" and are transferred to the "undetermined" relationship.
-    Flow files outside of this time range will be transferred to the "unacknowledged" relationship next time the processor is
-    triggered. In order to determine if the indexing of a given event is within the waiting time, the Unix Epoch of the original
+    Flow files outside of this time range will be queried as well and be transferred to either "acknowledged" or "unacknowledged"
+    relationship determined by the Splunk response.
+    In order to determine if the indexing of a given event is within the waiting time, the Unix Epoch of the original
     Splunk response is stored in the attribute "splunk.responded.at". Setting "Maximum waiting time" too low might
     result some false negative result as in case under higher load, Splunk server might index slower than it is expected.
 </p>
