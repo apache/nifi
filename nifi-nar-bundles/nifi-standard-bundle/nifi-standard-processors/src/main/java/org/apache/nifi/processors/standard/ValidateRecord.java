@@ -180,6 +180,19 @@ public class ValidateRecord extends AbstractProcessor {
         .defaultValue("true")
         .required(true)
         .build();
+    static final PropertyDescriptor COERCE_TYPES = new PropertyDescriptor.Builder()
+            .name("coerce-types")
+            .displayName("Force Types From Schema")
+            .description("If enabled, the processor will coerce every field to the type specified in the schema. "
+                + "If the value of the field cannot be coerced to the type, the field will be skipped and will not "
+                + "appear in the output. "
+                + "If not enabled, then every field will appear in the output but their types may differ from what is "
+                + "specified in the schema. For details please see the Additional Details page of the processor's Help.")
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .required(true)
+            .build();
     static final PropertyDescriptor VALIDATION_DETAILS_ATTRIBUTE_NAME = new PropertyDescriptor.Builder()
         .name("validation-details-attribute-name")
         .displayName("Validation Details Attribute Name")
@@ -227,6 +240,7 @@ public class ValidateRecord extends AbstractProcessor {
         properties.add(SCHEMA_TEXT);
         properties.add(ALLOW_EXTRA_FIELDS);
         properties.add(STRICT_TYPE_CHECKING);
+        properties.add(COERCE_TYPES);
         properties.add(VALIDATION_DETAILS_ATTRIBUTE_NAME);
         properties.add(MAX_VALIDATION_DETAILS_LENGTH);
         return properties;
@@ -282,6 +296,7 @@ public class ValidateRecord extends AbstractProcessor {
 
         final boolean allowExtraFields = context.getProperty(ALLOW_EXTRA_FIELDS).asBoolean();
         final boolean strictTypeChecking = context.getProperty(STRICT_TYPE_CHECKING).asBoolean();
+        final boolean coerceTypes = context.getProperty(COERCE_TYPES).asBoolean();
 
         RecordSetWriter validWriter = null;
         RecordSetWriter invalidWriter = null;
@@ -306,7 +321,7 @@ public class ValidateRecord extends AbstractProcessor {
 
             try {
                 Record record;
-                while ((record = reader.nextRecord(false, false)) != null) {
+                while ((record = reader.nextRecord(coerceTypes, false)) != null) {
                     final SchemaValidationResult result = validator.validate(record);
                     recordCount++;
 
