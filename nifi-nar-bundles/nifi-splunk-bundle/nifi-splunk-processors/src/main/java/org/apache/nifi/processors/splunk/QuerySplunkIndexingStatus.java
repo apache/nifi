@@ -167,8 +167,6 @@ public class QuerySplunkIndexingStatus extends SplunkAPICall {
                 getLogger().error("Flow file ({}) attributes {} and {} are expected to be set using 64-bit integer values!",
                         new Object[]{flowFile.getId(), SplunkAPICall.RESPONDED_AT_ATTRIBUTE, SplunkAPICall.ACKNOWLEDGEMENT_ID_ATTRIBUTE});
                 session.transfer(flowFile, RELATIONSHIP_FAILURE);
-            } else if (sentAt.get() + ttl < currentTime) {
-                session.transfer(flowFile, RELATIONSHIP_UNACKNOWLEDGED);
             } else {
                 undetermined.put(ackId.get(), flowFile);
             }
@@ -193,14 +191,18 @@ public class QuerySplunkIndexingStatus extends SplunkAPICall {
             if (responseMessage.getStatus() == 200) {
                 final EventIndexStatusResponse splunkResponse = unmarshallResult(responseMessage.getContent(), EventIndexStatusResponse.class);
 
-                splunkResponse.getAcks().entrySet().forEach(result -> {
-                    final FlowFile toTransfer = undetermined.get(result.getKey());
-
-                    if (result.getValue()) {
+                splunkResponse.getAcks().forEach((flowFileId, isAcknowledged) -> {
+                    final FlowFile toTransfer = undetermined.get(flowFileId);
+                    if (isAcknowledged) {
                         session.transfer(toTransfer, RELATIONSHIP_ACKNOWLEDGED);
                     } else {
-                        session.penalize(toTransfer);
-                        session.transfer(toTransfer, RELATIONSHIP_UNDETERMINED);
+                        final Long sentAt = extractLong(toTransfer.getAttribute(SplunkAPICall.RESPONDED_AT_ATTRIBUTE)).get();
+                        if (sentAt + ttl < currentTime) {
+                            session.transfer(toTransfer, RELATIONSHIP_UNACKNOWLEDGED);
+                        } else {
+                            session.penalize(toTransfer);
+                            session.transfer(toTransfer, RELATIONSHIP_UNDETERMINED);
+                        }
                     }
                 });
             } else {

@@ -39,7 +39,6 @@ import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -118,17 +117,6 @@ public class TestQuerySplunkIndexingStatus {
         Assert.assertEquals("{\"acks\":[1,2]}", request.getValue().getContent());
         Assert.assertEquals(1, testRunner.getQueueSize().getObjectCount());
         testRunner.assertAllFlowFilesTransferred(QuerySplunkIndexingStatus.RELATIONSHIP_ACKNOWLEDGED, 2);
-    }
-
-    @Test
-    public void testTimedOutEvents() throws Exception {
-        // when
-        testRunner.enqueue(givenFlowFile(1, System.currentTimeMillis() - TimeUnit.HOURS.toMillis(2)));
-        testRunner.run();
-
-        // then
-        Mockito.verify(service, Mockito.never()).send(Mockito.anyString(), Mockito.any(RequestMessage.class));
-        testRunner.assertAllFlowFilesTransferred(QuerySplunkIndexingStatus.RELATIONSHIP_UNACKNOWLEDGED, 1);
     }
 
     @Test
