@@ -44,6 +44,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -57,6 +58,7 @@ import java.util.concurrent.TimeUnit;
 @SeeAlso(PutSplunkHTTP.class)
 public class QuerySplunkIndexingStatus extends SplunkAPICall {
     private static final String ENDPOINT = "/services/collector/ack";
+    private static final String ACKCHECKED_ATTRIBUTE = "ack.checked";
 
     static final Relationship RELATIONSHIP_ACKNOWLEDGED = new Relationship.Builder()
             .name("success")
@@ -162,12 +164,13 @@ public class QuerySplunkIndexingStatus extends SplunkAPICall {
         for (final FlowFile flowFile : flowFiles)  {
             final Optional<Long> sentAt = extractLong(flowFile.getAttribute(SplunkAPICall.RESPONDED_AT_ATTRIBUTE));
             final Optional<Long> ackId = extractLong(flowFile.getAttribute(SplunkAPICall.ACKNOWLEDGEMENT_ID_ATTRIBUTE));
+            final Optional<Boolean> ackChecked = extractBoolean(flowFile.getAttribute(ACKCHECKED_ATTRIBUTE));
 
             if (!sentAt.isPresent() || !ackId.isPresent()) {
                 getLogger().error("Flow file ({}) attributes {} and {} are expected to be set using 64-bit integer values!",
                         new Object[]{flowFile.getId(), SplunkAPICall.RESPONDED_AT_ATTRIBUTE, SplunkAPICall.ACKNOWLEDGEMENT_ID_ATTRIBUTE});
                 session.transfer(flowFile, RELATIONSHIP_FAILURE);
-            } else if (sentAt.get() + ttl < currentTime) {
+            } else if (ackChecked.orElse(Boolean.FALSE) && sentAt.get() + ttl < currentTime) {
                 session.transfer(flowFile, RELATIONSHIP_UNACKNOWLEDGED);
             } else {
                 undetermined.put(ackId.get(), flowFile);
@@ -194,7 +197,11 @@ public class QuerySplunkIndexingStatus extends SplunkAPICall {
                 final EventIndexStatusResponse splunkResponse = unmarshallResult(responseMessage.getContent(), EventIndexStatusResponse.class);
 
                 splunkResponse.getAcks().entrySet().forEach(result -> {
-                    final FlowFile toTransfer = undetermined.get(result.getKey());
+                    FlowFile toTransfer = undetermined.get(result.getKey());
+                    if (!extractBoolean(toTransfer.getAttribute(ACKCHECKED_ATTRIBUTE)).orElse(Boolean.FALSE)) {
+                        toTransfer = setAckCheckedToTrue(session, toTransfer);
+                        session.getProvenanceReporter().modifyAttributes(toTransfer, "ackChecked attribute has been modified to true.");
+                    }
 
                     if (result.getValue()) {
                         session.transfer(toTransfer, RELATIONSHIP_ACKNOWLEDGED);
@@ -233,5 +240,15 @@ public class QuerySplunkIndexingStatus extends SplunkAPICall {
         } catch (final NumberFormatException e) {
             return Optional.empty();
         }
+    }
+
+    private static Optional<Boolean> extractBoolean(final String value) {
+        return Objects.nonNull(value) ? Optional.of(value).map(Boolean::valueOf) : Optional.empty();
+    }
+
+    private FlowFile setAckCheckedToTrue(final ProcessSession session, final FlowFile flowFile) {
+        final Map<String, String> attributes = new HashMap<>(flowFile.getAttributes());
+        attributes.put( ACKCHECKED_ATTRIBUTE, String.valueOf(Boolean.TRUE));
+        return session.putAllAttributes(flowFile, attributes);
     }
 }
