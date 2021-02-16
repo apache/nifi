@@ -44,7 +44,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -58,7 +57,7 @@ import java.util.concurrent.TimeUnit;
 @SeeAlso(PutSplunkHTTP.class)
 public class QuerySplunkIndexingStatus extends SplunkAPICall {
     private static final String ENDPOINT = "/services/collector/ack";
-    private static final String ACKCHECKED_ATTRIBUTE = "ack.checked";
+    private static final String ACK_CHECKED_ATTRIBUTE = "ack.checked.at.splunk";
 
     static final Relationship RELATIONSHIP_ACKNOWLEDGED = new Relationship.Builder()
             .name("success")
@@ -164,13 +163,13 @@ public class QuerySplunkIndexingStatus extends SplunkAPICall {
         for (final FlowFile flowFile : flowFiles)  {
             final Optional<Long> sentAt = extractLong(flowFile.getAttribute(SplunkAPICall.RESPONDED_AT_ATTRIBUTE));
             final Optional<Long> ackId = extractLong(flowFile.getAttribute(SplunkAPICall.ACKNOWLEDGEMENT_ID_ATTRIBUTE));
-            final Optional<Boolean> ackChecked = extractBoolean(flowFile.getAttribute(ACKCHECKED_ATTRIBUTE));
+            final boolean ackChecked = isAlreadyChecked(flowFile);
 
             if (!sentAt.isPresent() || !ackId.isPresent()) {
                 getLogger().error("Flow file ({}) attributes {} and {} are expected to be set using 64-bit integer values!",
                         new Object[]{flowFile.getId(), SplunkAPICall.RESPONDED_AT_ATTRIBUTE, SplunkAPICall.ACKNOWLEDGEMENT_ID_ATTRIBUTE});
                 session.transfer(flowFile, RELATIONSHIP_FAILURE);
-            } else if (ackChecked.orElse(Boolean.FALSE) && sentAt.get() + ttl < currentTime) {
+            } else if (ackChecked && sentAt.get() + ttl < currentTime) {
                 session.transfer(flowFile, RELATIONSHIP_UNACKNOWLEDGED);
             } else {
                 undetermined.put(ackId.get(), flowFile);
@@ -197,10 +196,9 @@ public class QuerySplunkIndexingStatus extends SplunkAPICall {
                 final EventIndexStatusResponse splunkResponse = unmarshallResult(responseMessage.getContent(), EventIndexStatusResponse.class);
 
                 splunkResponse.getAcks().entrySet().forEach(result -> {
-                    FlowFile toTransfer = undetermined.get(result.getKey());
-                    if (!extractBoolean(toTransfer.getAttribute(ACKCHECKED_ATTRIBUTE)).orElse(Boolean.FALSE)) {
-                        toTransfer = setAckCheckedToTrue(session, toTransfer);
-                        session.getProvenanceReporter().modifyAttributes(toTransfer, "ackChecked attribute has been modified to true.");
+                    final FlowFile toTransfer = undetermined.get(result.getKey());
+                    if (!isAlreadyChecked(toTransfer)) {
+                        setAckCheckedToTrue(session, toTransfer);
                     }
 
                     if (result.getValue()) {
@@ -242,13 +240,17 @@ public class QuerySplunkIndexingStatus extends SplunkAPICall {
         }
     }
 
-    private static Optional<Boolean> extractBoolean(final String value) {
-        return Objects.nonNull(value) ? Optional.of(value).map(Boolean::valueOf) : Optional.empty();
+    private static boolean isAlreadyChecked(FlowFile flowFile) {
+        return extractBoolean(flowFile.getAttribute(ACK_CHECKED_ATTRIBUTE));
     }
 
-    private FlowFile setAckCheckedToTrue(final ProcessSession session, final FlowFile flowFile) {
+    private static boolean extractBoolean(final String value) {
+        return Boolean.parseBoolean(value);
+    }
+
+    private void setAckCheckedToTrue(final ProcessSession session, final FlowFile flowFile) {
         final Map<String, String> attributes = new HashMap<>(flowFile.getAttributes());
-        attributes.put( ACKCHECKED_ATTRIBUTE, String.valueOf(Boolean.TRUE));
-        return session.putAllAttributes(flowFile, attributes);
+        attributes.put(ACK_CHECKED_ATTRIBUTE, String.valueOf(Boolean.TRUE));
+        session.putAllAttributes(flowFile, attributes);
     }
 }

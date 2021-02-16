@@ -36,6 +36,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -133,10 +134,10 @@ public class TestQuerySplunkIndexingStatus {
 
     @Test
     public void testAckCheckedIsFalseAndTimedOutEventFlowFileWithAcknowledgeResponse() throws Exception {
+        // given
+        givenSplunkReturns(Collections.singletonMap(1, true));
+
         // when
-        final Map<Integer, Boolean> acks = new HashMap<>();
-        acks.put(1, true);
-        givenSplunkReturns(acks);
         testRunner.enqueue(givenFlowFile(1, System.currentTimeMillis() - TimeUnit.HOURS.toMillis(2), false));
         testRunner.run();
 
@@ -147,10 +148,10 @@ public class TestQuerySplunkIndexingStatus {
 
     @Test
     public void testAckCheckedIsFalseAndTimedOutEventFlowFileWithoutAcknowledgeResponse() throws Exception {
+        // given
+        givenSplunkReturns(Collections.singletonMap(1, false));
+
         // when
-        final Map<Integer, Boolean> acks = new HashMap<>();
-        acks.put(1, false);
-        givenSplunkReturns(acks);
         testRunner.enqueue(givenFlowFile(1, System.currentTimeMillis() - TimeUnit.HOURS.toMillis(2), false));
         testRunner.run();
 
@@ -211,7 +212,7 @@ public class TestQuerySplunkIndexingStatus {
     private MockFlowFile givenFlowFile(final int ackId, final long sentAt, final boolean ackChecked) throws UnsupportedEncodingException {
         final MockFlowFile result = givenFlowFile(ackId, sentAt);
         Map<String, String> attributes = new HashMap<>(result.getAttributes());
-        attributes.put("ack.checked", String.valueOf(ackChecked));
+        attributes.put("ack.checked.at.splunk", String.valueOf(ackChecked));
         result.putAttributes(attributes);
         return result;
     }
