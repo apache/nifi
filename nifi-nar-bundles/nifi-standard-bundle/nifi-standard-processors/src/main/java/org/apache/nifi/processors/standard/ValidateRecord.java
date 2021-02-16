@@ -172,14 +172,29 @@ public class ValidateRecord extends AbstractProcessor {
     static final PropertyDescriptor STRICT_TYPE_CHECKING = new PropertyDescriptor.Builder()
         .name("strict-type-checking")
         .displayName("Strict Type Checking")
-        .description("If the incoming data has a Record where a field is not of the correct type, this property determine whether how to handle the Record. "
-            + "If true, the Record will still be considered invalid. If false, the Record will be considered valid and the field will be coerced into the "
-            + "correct type (if possible, according to the type coercion supported by the Record Writer).")
+        .description("If the incoming data has a Record where a field is not of the correct type, this property determines how to handle the Record. "
+            + "If true, the Record will be considered invalid. If false, the Record will be considered valid and the field will be coerced into the "
+            + "correct type (if possible, according to the type coercion supported by the Record Writer). "
+            + "This property controls how the data is validated against the validation schema.")
         .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .allowableValues("true", "false")
         .defaultValue("true")
         .required(true)
         .build();
+    static final PropertyDescriptor COERCE_TYPES = new PropertyDescriptor.Builder()
+            .name("coerce-types")
+            .displayName("Force Types From Reader's Schema")
+            .description("If enabled, the processor will coerce every field to the type specified in the Reader's schema. "
+                + "If the value of a field cannot be coerced to the type, the field will be skipped (will not be read from the input data), "
+                + "thus will not appear in the output. "
+                + "If not enabled, then every field will appear in the output but their types may differ from what is "
+                + "specified in the schema. For details please see the Additional Details page of the processor's Help. "
+                + "This property controls how the data is read by the specified Record Reader.")
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .required(true)
+            .build();
     static final PropertyDescriptor VALIDATION_DETAILS_ATTRIBUTE_NAME = new PropertyDescriptor.Builder()
         .name("validation-details-attribute-name")
         .displayName("Validation Details Attribute Name")
@@ -227,6 +242,7 @@ public class ValidateRecord extends AbstractProcessor {
         properties.add(SCHEMA_TEXT);
         properties.add(ALLOW_EXTRA_FIELDS);
         properties.add(STRICT_TYPE_CHECKING);
+        properties.add(COERCE_TYPES);
         properties.add(VALIDATION_DETAILS_ATTRIBUTE_NAME);
         properties.add(MAX_VALIDATION_DETAILS_LENGTH);
         return properties;
@@ -282,6 +298,7 @@ public class ValidateRecord extends AbstractProcessor {
 
         final boolean allowExtraFields = context.getProperty(ALLOW_EXTRA_FIELDS).asBoolean();
         final boolean strictTypeChecking = context.getProperty(STRICT_TYPE_CHECKING).asBoolean();
+        final boolean coerceTypes = context.getProperty(COERCE_TYPES).asBoolean();
 
         RecordSetWriter validWriter = null;
         RecordSetWriter invalidWriter = null;
@@ -306,7 +323,7 @@ public class ValidateRecord extends AbstractProcessor {
 
             try {
                 Record record;
-                while ((record = reader.nextRecord(false, false)) != null) {
+                while ((record = reader.nextRecord(coerceTypes, false)) != null) {
                     final SchemaValidationResult result = validator.validate(record);
                     recordCount++;
 
