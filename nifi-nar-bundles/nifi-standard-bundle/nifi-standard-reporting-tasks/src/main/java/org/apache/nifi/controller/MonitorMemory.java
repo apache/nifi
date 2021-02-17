@@ -104,14 +104,17 @@ public class MonitorMemory extends AbstractReportingTask {
     public static final PropertyDescriptor MEMORY_POOL_PROPERTY = new PropertyDescriptor.Builder()
             .name("Memory Pool")
             .displayName("Memory Pool")
-            .description("The name of the JVM Memory Pool to monitor")
+            .description("The name of the JVM Memory Pool to monitor. The allowed values for Memory Pools are platform and JVM"
+                    + " dependent and may vary for different versions of Java and from published documentation. This reporting"
+                    + " task will become invalidated if configured to use a Memory Pool that is not available on the currently"
+                    + " running host platform and JVM")
             .required(true)
             .allowableValues(memPoolAllowableValues)
             .build();
     public static final PropertyDescriptor THRESHOLD_PROPERTY = new PropertyDescriptor.Builder()
             .name("Usage Threshold")
             .displayName("Usage Threshold")
-            .description("Indicates the threshold at which warnings should be generated")
+            .description("Indicates the threshold at which warnings should be generated. This can be a percentage or a Data Size")
             .required(true)
             .addValidator(new ThresholdValidator())
             .defaultValue("65%")
