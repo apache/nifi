@@ -18,9 +18,7 @@ package org.apache.nifi.processors.splunk;
 
 import com.splunk.RequestMessage;
 import com.splunk.ResponseMessage;
-import org.apache.nifi.annotation.behavior.InputRequirement;
-import org.apache.nifi.annotation.behavior.ReadsAttribute;
-import org.apache.nifi.annotation.behavior.ReadsAttributes;
+import org.apache.nifi.annotation.behavior.*;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -54,6 +52,9 @@ import java.util.concurrent.TimeUnit;
 @ReadsAttributes({
         @ReadsAttribute(attribute = "splunk.acknowledgement.id", description = "The indexing acknowledgement id provided by Splunk."),
         @ReadsAttribute(attribute = "splunk.responded.at", description = "The time of the response of put request for Splunk.")})
+@WritesAttributes({
+        @WritesAttribute(attribute = "ack.checked.at.splunk", description = "Identifying whether Splunk acknowledgement check has happened.")
+})
 @SeeAlso(PutSplunkHTTP.class)
 public class QuerySplunkIndexingStatus extends SplunkAPICall {
     private static final String ENDPOINT = "/services/collector/ack";
