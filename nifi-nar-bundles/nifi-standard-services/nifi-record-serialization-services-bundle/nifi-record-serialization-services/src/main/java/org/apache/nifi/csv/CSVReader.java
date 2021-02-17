@@ -110,6 +110,7 @@ public class CSVReader extends SchemaRegistryService implements RecordReaderFact
         properties.add(CSVUtils.NULL_STRING);
         properties.add(CSVUtils.TRIM_FIELDS);
         properties.add(CSVUtils.CHARSET);
+        properties.add(CSVUtils.ALLOW_DUPLICATE_HEADER_NAMES);
         return properties;
     }
 
@@ -146,17 +147,17 @@ public class CSVReader extends SchemaRegistryService implements RecordReaderFact
         final RecordSchema schema = getSchema(variables, new NonCloseableInputStream(in), null);
         in.reset();
 
-        CSVFormat csvFormat;
+        final CSVFormat format;
         if (this.csvFormat != null) {
-            csvFormat = this.csvFormat;
+            format = this.csvFormat;
         } else {
-            csvFormat = CSVUtils.createCSVFormat(context, variables);
+            format = CSVUtils.createCSVFormat(context, variables);
         }
 
-        if(APACHE_COMMONS_CSV.getValue().equals(csvParser)) {
-            return new CSVRecordReader(in, logger, schema, csvFormat, firstLineIsHeader, ignoreHeader, dateFormat, timeFormat, timestampFormat, charSet);
-        } else if(JACKSON_CSV.getValue().equals(csvParser)) {
-            return new JacksonCSVRecordReader(in, logger, schema, csvFormat, firstLineIsHeader, ignoreHeader, dateFormat, timeFormat, timestampFormat, charSet);
+        if (APACHE_COMMONS_CSV.getValue().equals(csvParser)) {
+            return new CSVRecordReader(in, logger, schema, format, firstLineIsHeader, ignoreHeader, dateFormat, timeFormat, timestampFormat, charSet);
+        } else if (JACKSON_CSV.getValue().equals(csvParser)) {
+            return new JacksonCSVRecordReader(in, logger, schema, format, firstLineIsHeader, ignoreHeader, dateFormat, timeFormat, timestampFormat, charSet);
         } else {
             throw new IOException("Parser not supported");
         }

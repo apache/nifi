@@ -33,7 +33,7 @@ import java.util.Map;
 
 public class CSVUtils {
 
-    private static Logger LOG = LoggerFactory.getLogger(CSVUtils.class);
+    private static final Logger LOG = LoggerFactory.getLogger(CSVUtils.class);
 
     public static final AllowableValue CUSTOM = new AllowableValue("custom", "Custom Format",
         "The format of the CSV is configured by using the properties of this Controller Service, such as Value Separator");
@@ -136,6 +136,20 @@ public class CSVUtils {
         .defaultValue("UTF-8")
         .required(true)
         .build();
+    public static final PropertyDescriptor ALLOW_DUPLICATE_HEADER_NAMES = new PropertyDescriptor.Builder()
+        .name("csvutils-allow-duplicate-header-names")
+        .displayName("Allow Duplicate Header Names")
+        .description("Whether duplicate header names are allowed. Header names are case-sensitive, for example \"name\" and \"Name\" are treated as separate fields. " +
+                "Handling of duplicate header names is CSV Parser specific (where applicable):\n" +
+                "* Apache Commons CSV - duplicate headers will result in column data \"shifting\" right with new fields " +
+                "created for \"unknown_field_index_X\" where \"X\" is the CSV column index number\n" +
+                "* Jackson CSV - duplicate headers will be de-duplicated with the field value being that of the right-most " +
+                "duplicate CSV column")
+        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+        .allowableValues("true", "false")
+        .defaultValue("true")
+        .required(false)
+        .build();
 
     // CSV Format fields for writers only
     public static final AllowableValue QUOTE_ALL = new AllowableValue("ALL", "Quote All Values", "All values will be quoted using the configured quote character.");
@@ -177,6 +191,10 @@ public class CSVUtils {
         .required(true)
         .build();
 
+    private CSVUtils() {
+        // intentionally blank, prevents instantiation
+    }
+
     public static boolean isDynamicCSVFormat(final PropertyContext context) {
         final String formatName = context.getProperty(CSV_FORMAT).getValue();
         return formatName.equalsIgnoreCase(CUSTOM.getValue())
@@ -208,8 +226,8 @@ public class CSVUtils {
         }
     }
 
-    private static Character getCharUnescapedJava(final PropertyContext context, final PropertyDescriptor property, final Map<String, String> variables) {
-        String value = context.getProperty(property).evaluateAttributeExpressions(variables).getValue();
+    private static Character getValueSeparatorCharUnescapedJava(final PropertyContext context, final Map<String, String> variables) {
+        String value = context.getProperty(VALUE_SEPARATOR).evaluateAttributeExpressions(variables).getValue();
 
         if (value != null) {
             String unescaped = unescapeJava(value);
@@ -218,13 +236,9 @@ public class CSVUtils {
             }
         }
 
-        LOG.warn("'{}' property evaluated to an invalid value: \"{}\". It must be a single character. The property value will be ignored.", property.getName(), value);
+        LOG.warn("'{}' property evaluated to an invalid value: \"{}\". It must be a single character. The property value will be ignored.", VALUE_SEPARATOR.getName(), value);
 
-        if (property.getDefaultValue() != null) {
-            return property.getDefaultValue().charAt(0);
-        } else {
-            return null;
-        }
+        return VALUE_SEPARATOR.getDefaultValue().charAt(0);
     }
 
     private static Character getCharUnescaped(final PropertyContext context, final PropertyDescriptor property, final Map<String, String> variables) {
@@ -247,7 +261,7 @@ public class CSVUtils {
     }
 
     private static CSVFormat buildCustomFormat(final PropertyContext context, final Map<String, String> variables) {
-        final Character valueSeparator = getCharUnescapedJava(context, VALUE_SEPARATOR, variables);
+        final Character valueSeparator = getValueSeparatorCharUnescapedJava(context, variables);
         CSVFormat format = CSVFormat.newFormat(valueSeparator)
             .withAllowMissingColumnNames()
             .withIgnoreEmptyLines();
@@ -293,6 +307,11 @@ public class CSVUtils {
             format = format.withRecordSeparator(separator);
         }
 
+        final PropertyValue allowDuplicateHeaderNames = context.getProperty(ALLOW_DUPLICATE_HEADER_NAMES);
+        if (allowDuplicateHeaderNames != null && allowDuplicateHeaderNames.isSet()) {
+            format = format.withAllowDuplicateHeaderNames(allowDuplicateHeaderNames.asBoolean());
+        }
+
         return format;
     }
 
@@ -306,7 +325,7 @@ public class CSVUtils {
 
     public static String unescape(final String input) {
         if (input == null) {
-            return input;
+            return null;
         }
 
         return input.replace("\\t", "\t")
