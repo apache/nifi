@@ -70,7 +70,6 @@ import javax.xml.bind.DatatypeConverter;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -264,7 +263,7 @@ public class PutAccumuloRecord extends BaseAccumuloProcessor {
 
     @Override
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
-        Collection<ValidationResult> set = Collections.emptySet();
+        Collection<ValidationResult> set = new HashSet<>();
         if (!validationContext.getProperty(COLUMN_FAMILY).isSet() && !validationContext.getProperty(COLUMN_FAMILY_FIELD).isSet())
             set.add(new ValidationResult.Builder().explanation("Column Family OR Column family field name must be defined").build());
         else if (validationContext.getProperty(COLUMN_FAMILY).isSet() && validationContext.getProperty(COLUMN_FAMILY_FIELD).isSet())
