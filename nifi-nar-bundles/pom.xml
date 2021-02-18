@@ -105,6 +105,7 @@
         <module>nifi-hazelcast-bundle</module>
 	    <module>nifi-accumulo-bundle</module>
 	    <module>nifi-asn1-bundle</module>
+        <module>nifi-pgp-bundle</module>
     </modules>
 
     <build>
