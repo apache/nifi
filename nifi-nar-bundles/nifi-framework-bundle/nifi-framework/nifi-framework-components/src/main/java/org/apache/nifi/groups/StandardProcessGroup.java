@@ -3604,6 +3604,8 @@ public final class StandardProcessGroup implements ProcessGroup {
                 childCopy.setName(childGroup.getName());
                 childCopy.setPosition(childGroup.getPosition());
                 childCopy.setVersionedFlowCoordinates(childGroup.getVersionedFlowCoordinates());
+                childCopy.setFlowFileConcurrency(childGroup.getFlowFileConcurrency());
+                childCopy.setFlowFileOutboundPolicy(childGroup.getFlowFileOutboundPolicy());
 
                 copyChildren.add(childCopy);
             }
