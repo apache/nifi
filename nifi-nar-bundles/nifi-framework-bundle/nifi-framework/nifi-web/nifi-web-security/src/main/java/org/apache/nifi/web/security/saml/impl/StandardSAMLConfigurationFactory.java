@@ -66,6 +66,7 @@ import org.springframework.security.saml.processor.HTTPSOAP11Binding;
 import org.springframework.security.saml.processor.SAMLBinding;
 import org.springframework.security.saml.processor.SAMLProcessor;
 import org.springframework.security.saml.processor.SAMLProcessorImpl;
+import org.springframework.security.saml.storage.EmptyStorageFactory;
 import org.springframework.security.saml.util.VelocityFactory;
 import org.springframework.security.saml.websso.ArtifactResolutionProfileImpl;
 import org.springframework.security.saml.websso.SingleLogoutProfile;
@@ -291,6 +292,13 @@ public class StandardSAMLConfigurationFactory implements SAMLConfigurationFactor
         final NiFiSAMLContextProviderImpl contextProvider = new NiFiSAMLContextProviderImpl();
         contextProvider.setMetadata(metadataManager);
         contextProvider.setKeyManager(keyManager);
+
+        // Note - the default is HttpSessionStorageFactory, but since we don't use HttpSessions we can't rely on that,
+        // setting this to the EmptyStorageFactory simply disables checking of the InResponseTo field, if we ever want
+        // to bring that back we could possibly implement our own in-memory storage factory
+        // https://docs.spring.io/spring-security-saml/docs/current/reference/html/chapter-troubleshooting.html#d5e1935
+        contextProvider.setStorageFactory(new EmptyStorageFactory());
+
         contextProvider.afterPropertiesSet();
         return contextProvider;
     }
