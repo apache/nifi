@@ -49,16 +49,14 @@
 </p>
 
 <p>
-    Acknowledgment status of flow files being in the "undetermined" relationship are checked with Splunk and regardless of the result
-    an "ack.checked.at.splunk" attribute with true value will be put on them ensuring at least one acknowledgment check is happening
-    even outside of "Maximum waiting time".
-    Flow files having both their "ack.checked.at.splunk" attribute equals to true and being outside of the time range will be
-    transferred to the "unacknowledged" relationship next time the processor is triggered.
+    After receiving a successful response from Splunk server, the requested flow files will be extended with "ack.checked.at.splunk"
+    attribute if not already set. Flow files are reaching the "Maximum waiting time" will be transferred to “unacknowledged” relationship.
+    Flow files are timed out but not having the “ack.checked.at.splunk” set, or set with false value are prevented from being transferred
+    to the “unacknowledged” relationship but instead will be handled as “undetermined”.
 </p>
 
 <p>
-    In order to determine if the indexing of
-    a given event is within the waiting time, the Unix Epoch of the original Splunk response is stored in the attribute "splunk.responded.at".
+    The arrival time of the original Splunk response is stored in the attribute "splunk.responded.at" in Unix Epoch format.
     Setting "Maximum waiting time" too low might result some false negative result as in case under higher load, Splunk server
     might index slower than it is expected.
 </p>
@@ -86,13 +84,13 @@
 <h2>Example</h2>
 
 The following table represents four flow files being batch processed by the processor. For simplicity reasons "splunk.responded.at" time
-will be provided in HH:MM:SS format instead of Epoch time. The "Maximum waiting time" (referred as TTL from now on) is set for 3 minutes
-and the processor is scheduled to run every minute. The files are penalized for 30 seconds. "Undetermined" relationship is loop backed to the processor.
+will be presented in HH:MM:SS format instead of Epoch time. The "Maximum waiting time" (referred as TTL from now on) is set for 3 minutes
+and the processor is scheduled to run every minute. The files are penalized for 30 seconds. "Undetermined" relationship is looped back to the processor.
 
 <table>
     <tbody>
     <tr>
-        <th>Flow file id</th>
+        <th>Flow file</th>
         <th>Splunk acknowledgement id</th>
         <th>Splunk responded at</th>
         <th>Ack checked at Splunk</th>
@@ -100,7 +98,7 @@ and the processor is scheduled to run every minute. The files are penalized for 
     </tr>
     <tr>
         <td>flow file 1</td>
-        <td>null</td>
+        <td>No value set</td>
         <td>10:46:02</td>
         <td>No value set</td>
     </tr>
@@ -127,16 +125,16 @@ and the processor is scheduled to run every minute. The files are penalized for 
 
 <h4>First iteration</h4>
 
-The current time is 10:48:05 so all of our files are within TTL. Flow file 1 does not have a correct "splunk.acknowledgment.id"
+The current time is 10:48:05 so all of our files are within TTL. <i>Flow file 1</i> does not have a correct "splunk.acknowledgment.id"
 so will be directed to the "Failure" relationship. The remaining files will be sent for Splunk ack check.
 
-With the following Splunk response "acks:{[0:true, 1:false, 2:false]}" flow file 2 will be directed to "Success" relationship
+With the following Splunk response "acks:{[0:true, 1:false, 2:false]}" <i>flow file 2</i> will be directed to "Success" relationship
 and the rest of the files to the "Undetermined" relationship and penalized for 30 seconds.
 
 <table>
     <tbody>
     <tr>
-        <th>Flow file id</th>
+        <th>Flow file</th>
         <th>Splunk acknowledgement id</th>
         <th>Splunk responded at</th>
         <th>Ack checked at Splunk</th>
@@ -144,7 +142,7 @@ and the rest of the files to the "Undetermined" relationship and penalized for 3
     </tr>
     <tr>
         <td>flow file 1</td>
-        <td>null</td>
+        <td>No value set</td>
         <td>10:46:02</td>
         <td>No value set</td>
         <td>Failure</td>
@@ -176,35 +174,19 @@ and the rest of the files to the "Undetermined" relationship and penalized for 3
 
 <h4>Second iteration</h4>
 
-The current time is 10:49:18 so both flow file 3 and flow file 4 are within TTL and they will be sent for Splunk ack check.
+The current time is 10:49:18 so both <i>flow file 3</i> and <i>flow file 4</i> are within TTL and they will be sent for Splunk ack check.
 
-With the following Splunk response "acks:{[1:false, 2:true]}" flow file 4 will be directed to "Success" relationship and
-flow file 3 to the "Undetermined" relationship and penalized for 30 seconds.
-In the meantime flow file 1 missing "Splunk acknowledgment id" has been corrected.
+With the following Splunk response "acks:{[1:false, 2:true]}" <i>flow file 4</i> will be directed to "Success" relationship and
+<i>flow file 3</i> to the "Undetermined" relationship and penalized for 30 seconds.
 
 <table>
     <tbody>
     <tr>
-        <th>Flow file id</th>
+        <th>Flow file</th>
         <th>Splunk acknowledgement id</th>
         <th>Splunk responded at</th>
         <th>Ack checked at Splunk</th>
         <th>Relationship</th>
-    </tr>
-    <tr>
-        <td>flow file 1</td>
-        <td>3</td>
-        <td>10:46:02</td>
-        <td>No value set</td>
-        <td>Queued</td>
-    </tr>
-    <tr>
-        <td>flow file 2</td>
-        <td>0</td>
-        <td>10:46:18</td>
-        <td>true</td>
-        <td>Success</td>
-
     </tr>
     <tr>
         <td>flow file 3</td>
@@ -225,36 +207,19 @@ In the meantime flow file 1 missing "Splunk acknowledgment id" has been correcte
 
 <h4>Final iteration</h4>
 
-The current time is 10:50:52 so flow file 1 and flow file 3 are out of TTL. As flow file 3 "Ack checked at Splunk" attribute is true,
-the file will be directed to "Unacknowledged" relationship. Flow file 1 however will be sent for Splunk ack check.
-
-With the following Splunk response "acks:{[3:true]}" flow file 1 will be directed to "Success" relationship.
+The current time is 10:50:52 so <i>flow file 3</i> is out of TTL. As <i>flow file 3</i> "Ack checked at Splunk" attribute is true,
+the file will be directed to "Unacknowledged" relationship.
 
 The final state will be the following:
 
 <table>
     <tbody>
     <tr>
-        <th>Flow file id</th>
+        <th>Flow file</th>
         <th>Splunk acknowledgement id</th>
         <th>Splunk responded at</th>
         <th>Ack checked at Splunk</th>
         <th>Relationship</th>
-    </tr>
-    <tr>
-        <td>flow file 1</td>
-        <td>3</td>
-        <td>10:46:02</td>
-        <td>true</td>
-        <td>Success</td>
-    </tr>
-    <tr>
-        <td>flow file 2</td>
-        <td>0</td>
-        <td>10:46:18</td>
-        <td>true</td>
-        <td>Success</td>
-
     </tr>
     <tr>
         <td>flow file 3</td>
@@ -262,13 +227,6 @@ The final state will be the following:
         <td>10:47:04</td>
         <td>true</td>
         <td>Unacknowledged</td>
-    </tr>
-    <tr>
-        <td>flow file 4</td>
-        <td>2</td>
-        <td>10:47:23</td>
-        <td>true</td>
-        <td>Success</td>
     </tr>
     </tbody>
 </table>

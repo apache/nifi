@@ -57,7 +57,7 @@ import java.util.concurrent.TimeUnit;
         @ReadsAttribute(attribute = "splunk.acknowledgement.id", description = "The indexing acknowledgement id provided by Splunk."),
         @ReadsAttribute(attribute = "splunk.responded.at", description = "The time of the response of put request for Splunk.")})
 @WritesAttributes({
-        @WritesAttribute(attribute = "ack.checked.at.splunk", description = "Identifying whether Splunk acknowledgement check has happened.")
+        @WritesAttribute(attribute = "ack.checked.at.splunk", description = "Contains a boolean value representing whether Splunk acknowledgement check has happened. If not set considered as false.")
 })
 @SeeAlso(PutSplunkHTTP.class)
 public class QuerySplunkIndexingStatus extends SplunkAPICall {
