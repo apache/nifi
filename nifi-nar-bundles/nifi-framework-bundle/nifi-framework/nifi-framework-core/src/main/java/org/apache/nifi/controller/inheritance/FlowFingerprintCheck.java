@@ -21,6 +21,7 @@ import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.fingerprint.FingerprintFactory;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.security.util.crypto.SecureHasherFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,7 +40,7 @@ public class FlowFingerprintCheck implements FlowInheritabilityCheck {
         final StringEncryptor encryptor = flowController.getEncryptor();
         final ExtensionManager extensionManager = flowController.getExtensionManager();
 
-        final FingerprintFactory fingerprintFactory = new FingerprintFactory(encryptor, extensionManager);
+        final FingerprintFactory fingerprintFactory = new FingerprintFactory(encryptor, extensionManager, SecureHasherFactory.getSecureHasher());
         final String existingFlowFingerprintBeforeHash = fingerprintFactory.createFingerprint(existingFlowBytes, flowController);
         if (existingFlowFingerprintBeforeHash.trim().isEmpty()) {
             return null;  // no existing flow, so equivalent to proposed flow

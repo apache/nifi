@@ -332,6 +332,7 @@ public abstract class NiFiProperties {
     public static final String DEFAULT_SECURITY_USER_SAML_HTTP_CLIENT_CONNECT_TIMEOUT = "30 secs";
     public static final String DEFAULT_SECURITY_USER_SAML_HTTP_CLIENT_READ_TIMEOUT = "30 secs";
     public static final String DEFAULT_WEB_SHOULD_SEND_SERVER_VERSION = "true";
+    public static final String DEFAULT_SENSITIVE_PROPS_ALGORITHM = "NIFI_ARGON2_AES_GCM_128";
 
     // cluster common defaults
     public static final String DEFAULT_CLUSTER_PROTOCOL_HEARTBEAT_INTERVAL = "5 sec";

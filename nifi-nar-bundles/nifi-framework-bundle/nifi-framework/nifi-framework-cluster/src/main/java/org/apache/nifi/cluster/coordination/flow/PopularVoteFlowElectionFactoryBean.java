@@ -21,6 +21,8 @@ import java.util.concurrent.TimeUnit;
 import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.fingerprint.FingerprintFactory;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.security.util.crypto.SecureHasher;
+import org.apache.nifi.security.util.crypto.SecureHasherFactory;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
@@ -49,7 +51,8 @@ public class PopularVoteFlowElectionFactoryBean implements FactoryBean<PopularVo
         final String provider =  properties.getProperty(NiFiProperties.SENSITIVE_PROPS_PROVIDER);
         final String password =  properties.getProperty(NiFiProperties.SENSITIVE_PROPS_KEY);
         final StringEncryptor encryptor = StringEncryptor.createEncryptor(algorithm, provider, password);
-        final FingerprintFactory fingerprintFactory = new FingerprintFactory(encryptor, extensionManager);
+        final SecureHasher secureHasher = SecureHasherFactory.getSecureHasher(algorithm);
+        final FingerprintFactory fingerprintFactory = new FingerprintFactory(encryptor, extensionManager, secureHasher);
         return new PopularVoteFlowElection(maxWaitMillis, TimeUnit.MILLISECONDS, maxNodes, fingerprintFactory);
     }
 

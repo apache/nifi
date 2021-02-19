@@ -20,6 +20,7 @@ import org.apache.nifi.encrypt.StringEncryptor
 import org.apache.nifi.nar.ExtensionManager
 import org.apache.nifi.nar.StandardExtensionDiscoveringManager
 import org.apache.nifi.util.NiFiProperties
+import org.apache.nifi.security.util.crypto.SecureHasherFactory
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.junit.After
 import org.junit.AfterClass
@@ -84,7 +85,7 @@ class FingerprintFactoryGroovyTest extends GroovyTestCase {
         logger.info("Read initial flow: ${initialFlowXML[0..<100]}...")
 
         // Create the FingerprintFactory with collaborators
-        FingerprintFactory fingerprintFactory = new FingerprintFactory(mockEncryptor, extensionManager)
+        FingerprintFactory fingerprintFactory = new FingerprintFactory(mockEncryptor, extensionManager, SecureHasherFactory.getSecureHasher())
 
         // Act
 

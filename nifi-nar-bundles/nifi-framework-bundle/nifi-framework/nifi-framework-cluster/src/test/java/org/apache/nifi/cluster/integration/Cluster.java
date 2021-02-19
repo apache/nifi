@@ -29,6 +29,8 @@ import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.fingerprint.FingerprintFactory;
 import org.apache.nifi.nar.ExtensionDiscoveringManager;
 import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
+import org.apache.nifi.security.util.crypto.SecureHasher;
+import org.apache.nifi.security.util.crypto.SecureHasherFactory;
 import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -138,7 +140,8 @@ public class Cluster {
         final String password = nifiProperties.getProperty(NiFiProperties.SENSITIVE_PROPS_KEY);
         final StringEncryptor encryptor = StringEncryptor.createEncryptor(algorithm, provider, password);
         final ExtensionDiscoveringManager extensionManager = new StandardExtensionDiscoveringManager();
-        final FingerprintFactory fingerprintFactory = new FingerprintFactory(encryptor, extensionManager);
+        final SecureHasher secureHasher = SecureHasherFactory.getSecureHasher(algorithm);
+        final FingerprintFactory fingerprintFactory = new FingerprintFactory(encryptor, extensionManager, secureHasher);
         final FlowElection flowElection = new PopularVoteFlowElection(flowElectionTimeoutMillis, TimeUnit.MILLISECONDS, flowElectionMaxNodes, fingerprintFactory);
 
         final Node node = new Node(nifiProperties, extensionManager, flowElection);

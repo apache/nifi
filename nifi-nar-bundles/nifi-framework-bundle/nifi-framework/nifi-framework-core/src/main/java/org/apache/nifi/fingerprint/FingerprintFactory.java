@@ -46,7 +46,8 @@ import org.apache.nifi.controller.serialization.FlowFromDOMFactory;
 import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.properties.NiFiPropertiesLoader;
-import org.apache.nifi.security.util.crypto.Argon2SecureHasher;
+import org.apache.nifi.security.util.crypto.SecureHasher;
+import org.apache.nifi.security.util.crypto.SecureHasherFactory;
 import org.apache.nifi.security.xml.XmlUtils;
 import org.apache.nifi.util.BundleUtils;
 import org.apache.nifi.util.DomUtils;
@@ -93,13 +94,16 @@ public class FingerprintFactory {
     private final DocumentBuilder flowConfigDocBuilder;
     private final ExtensionManager extensionManager;
 
+    private SecureHasher secureHasher;
+
     private byte[] sensitivePropertyKeyBytes;
 
     private static final Logger logger = LoggerFactory.getLogger(FingerprintFactory.class);
 
-    public FingerprintFactory(final StringEncryptor encryptor, final ExtensionManager extensionManager) {
+    public FingerprintFactory(final StringEncryptor encryptor, final ExtensionManager extensionManager, final SecureHasher secureHasher) {
         this.encryptor = encryptor;
         this.extensionManager = extensionManager;
+        this.secureHasher = secureHasher;
 
         final SchemaFactory schemaFactory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
         final Schema schema;
@@ -120,6 +124,7 @@ public class FingerprintFactory {
         this.encryptor = encryptor;
         this.flowConfigDocBuilder = docBuilder;
         this.extensionManager = extensionManager;
+        this.secureHasher = SecureHasherFactory.getSecureHasher(NiFiProperties.DEFAULT_SENSITIVE_PROPS_ALGORITHM);
     }
 
     /**
@@ -565,14 +570,13 @@ public class FingerprintFactory {
 
     private void initializeSensitivePropertyKeyBytes() {
         if (sensitivePropertyKeyBytes == null || sensitivePropertyKeyBytes.length == 0) {
-            Argon2SecureHasher a2sh = new Argon2SecureHasher();
-
             // Derive the reusable HMAC key from the nifi.sensitive.props.key to ensure deterministic output across nodes
             try {
+                NiFiPropertiesLoader.loadDefaultWithKeyFromBootstrap().getProperty(NiFiProperties.SENSITIVE_PROPS_ALGORITHM);
                 String npsk = NiFiPropertiesLoader.loadDefaultWithKeyFromBootstrap().getProperty(NiFiProperties.SENSITIVE_PROPS_KEY);
 
                 // The output will be 32B (256b)
-                sensitivePropertyKeyBytes = a2sh.hashRaw(npsk.getBytes(StandardCharsets.UTF_8));
+                sensitivePropertyKeyBytes = secureHasher.hashRaw(npsk.getBytes(StandardCharsets.UTF_8));
             } catch (IOException e) {
                 logger.error("Encountered an error loading NiFi properties while fingerprinting flow: ", e);
             }

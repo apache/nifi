@@ -55,6 +55,7 @@ import org.apache.nifi.properties.NiFiPropertiesLoader;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.security.util.crypto.Argon2SecureHasher;
+import org.apache.nifi.security.util.crypto.SecureHasherFactory;
 import org.apache.nifi.security.xml.XmlUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.junit.AfterClass;
@@ -81,7 +82,7 @@ public class FingerprintFactoryTest {
     public void setup() {
         encryptor = new StringEncryptor("PBEWITHMD5AND256BITAES-CBC-OPENSSL", "BC", "nififtw!");
         extensionManager = new StandardExtensionDiscoveringManager();
-        fingerprinter = new FingerprintFactory(encryptor, extensionManager);
+        fingerprinter = new FingerprintFactory(encryptor, extensionManager, SecureHasherFactory.getSecureHasher());
     }
 
     @AfterClass
