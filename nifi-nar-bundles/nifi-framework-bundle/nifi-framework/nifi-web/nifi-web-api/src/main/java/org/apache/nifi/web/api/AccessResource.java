@@ -1611,11 +1611,13 @@ public class AccessResource extends ApplicationResource {
     private String getNiFiUri() {
         final String nifiApiUrl = generateResourceUri();
         final String baseUrl = StringUtils.substringBeforeLast(nifiApiUrl, "/nifi-api");
-        return baseUrl + "/nifi";
+        // Note: if the URL does not end with a / then Jetty will end up doing a redirect which can cause
+        // a problem when being behind a proxy b/c Jetty's redirect doesn't consider proxy headers
+        return baseUrl + "/nifi/";
     }
 
     private String getNiFiLogoutCompleteUri() {
-        return getNiFiUri() + "/logout-complete";
+        return getNiFiUri() + "logout-complete";
     }
 
     private void removeOidcRequestCookie(final HttpServletResponse httpServletResponse) {
