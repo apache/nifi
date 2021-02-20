@@ -24,10 +24,6 @@
     <artifactId>nifi-kudu-processors</artifactId>
     <packaging>jar</packaging>
 
-    <properties>
-        <exclude.tests>None</exclude.tests>
-        <kudu.version>1.14.0</kudu.version>
-    </properties>
     <build>
         <extensions>
             <!-- Used to find the right kudu-binary artifact with the Maven

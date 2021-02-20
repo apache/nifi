@@ -158,8 +158,6 @@ class OkHttpReplicationClientTest extends GroovyTestCase {
 
         // Assert
         assert client.isTLSConfigured()
-        assert client.okHttpClient.sslSocketFactory
-        assert client.okHttpClient.sslSocketFactory.context.getX509KeyManager().credentialsMap["nifi-key"]
     }
 
     @Test
@@ -183,8 +181,6 @@ class OkHttpReplicationClientTest extends GroovyTestCase {
 
         // Assert
         assert client.isTLSConfigured()
-        assert client.okHttpClient.sslSocketFactory
-        assert client.okHttpClient.sslSocketFactory.context.getX509KeyManager().credentialsMap["nifi-key"]
     }
 
     @Test
