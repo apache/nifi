@@ -852,11 +852,11 @@
         /**
          * Shows the logout link if appropriate.
          */
-        showLogoutLink: function () {
-            if (nfStorage.getItem('jwt') === null) {
-                $('#user-logout-container').css('display', 'none');
-            } else {
+        updateLogoutLink: function () {
+            if (nfStorage.getItem('jwt') !== null) {
                 $('#user-logout-container').css('display', 'block');
+            } else {
+                $('#user-logout-container').css('display', 'none');
             }
         },
 

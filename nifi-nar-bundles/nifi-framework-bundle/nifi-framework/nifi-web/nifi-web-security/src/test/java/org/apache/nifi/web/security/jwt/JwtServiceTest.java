@@ -599,38 +599,6 @@ public class JwtServiceTest {
     }
 
     @Test
-    public void testShouldLogOutUserUsingAuthHeader() throws Exception {
-        // Arrange
-        expectedException.expect(JwtException.class);
-        expectedException.expectMessage("Unable to validate the access token.");
-
-        // Token expires in 60 seconds
-        final int EXPIRATION_MILLIS = 60000;
-        LoginAuthenticationToken loginAuthenticationToken = new LoginAuthenticationToken(DEFAULT_IDENTITY,
-                EXPIRATION_MILLIS,
-                "MockIdentityProvider");
-        logger.info("Generating token for " + loginAuthenticationToken);
-
-        // Act
-        String token = jwtService.generateSignedToken(loginAuthenticationToken);
-
-        logger.info("Generated JWT: " + token);
-        logger.info("Validating token...");
-        String authID = jwtService.getAuthenticationFromToken(token);
-        assertEquals(DEFAULT_IDENTITY, authID);
-        logger.info("Token was valid");
-        logger.info("Logging out user: " + authID);
-        String header = "Bearer " + token;
-        jwtService.logOutUsingAuthHeader(header);
-        logger.info("Logged out user: " + authID);
-        logger.info("Checking that token is now invalid...");
-        jwtService.getAuthenticationFromToken(token);
-
-        // Assert
-        // Should throw exception when user is not found
-    }
-
-    @Test
     public void testLogoutWhenAuthTokenIsEmptyShouldThrowError() throws Exception {
         // Arrange
         expectedException.expect(JwtException.class);
