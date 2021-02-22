@@ -17,5 +17,16 @@
 package org.apache.nifi.atlas.provenance;
 
 public enum FilesystemPathsLevel {
-    File, Directory
+    FILE("File"),
+    DIRECTORY("Directory");
+
+    private final String displayName;
+
+    FilesystemPathsLevel(String displayName) {
+        this.displayName = displayName;
+    }
+
+    public String getDisplayName() {
+        return displayName;
+    }
 }

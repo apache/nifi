@@ -40,7 +40,7 @@ public class TestFilePath {
     @Test
     public void testFilePathWithFileLevel() {
         final String transitUri = "file:/user/nifi/fileA";
-        final FilesystemPathsLevel filesystemPathsLevel = FilesystemPathsLevel.File;
+        final FilesystemPathsLevel filesystemPathsLevel = FilesystemPathsLevel.FILE;
         final String expectedPath = "/user/nifi/fileA";
         testFilePath(transitUri, filesystemPathsLevel, expectedPath);
     }
@@ -48,7 +48,7 @@ public class TestFilePath {
     @Test
     public void testFilePathWithDirectoryLevel() {
         final String transitUri = "file:/user/nifi/fileA";
-        final FilesystemPathsLevel filesystemPathsLevel = FilesystemPathsLevel.Directory;
+        final FilesystemPathsLevel filesystemPathsLevel = FilesystemPathsLevel.DIRECTORY;
         final String expectedPath = "/user/nifi";
         testFilePath(transitUri, filesystemPathsLevel, expectedPath);
     }
@@ -56,7 +56,7 @@ public class TestFilePath {
     @Test
     public void testFilePathRootDirWithFileLevel() {
         final String transitUri = "file:/fileA";
-        final FilesystemPathsLevel filesystemPathsLevel = FilesystemPathsLevel.File;
+        final FilesystemPathsLevel filesystemPathsLevel = FilesystemPathsLevel.FILE;
         final String expectedPath = "/fileA";
         testFilePath(transitUri, filesystemPathsLevel, expectedPath);
     }
@@ -64,7 +64,7 @@ public class TestFilePath {
     @Test
     public void testFilePathRootDirWithDirectoryLevel() {
         final String transitUri = "file:/fileA";
-        final FilesystemPathsLevel filesystemPathsLevel = FilesystemPathsLevel.Directory;
+        final FilesystemPathsLevel filesystemPathsLevel = FilesystemPathsLevel.DIRECTORY;
         final String expectedPath = "/";
         testFilePath(transitUri, filesystemPathsLevel, expectedPath);
     }

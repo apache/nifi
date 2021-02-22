@@ -17,11 +17,8 @@
 package org.apache.nifi.atlas.provenance.analyzer;
 
 import org.apache.atlas.v1.model.instance.Referenceable;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.atlas.provenance.AbstractNiFiProvenanceEventAnalyzer;
 import org.apache.nifi.atlas.provenance.AnalysisContext;
 import org.apache.nifi.atlas.provenance.DataSetRefs;
-import org.apache.nifi.atlas.provenance.FilesystemPathsLevel;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 
 import java.net.URI;
@@ -33,15 +30,13 @@ import static org.apache.nifi.atlas.NiFiTypes.ATTR_PATH;
 import static org.apache.nifi.atlas.NiFiTypes.ATTR_QUALIFIED_NAME;
 
 /**
- * Analyze a transit URI as a HDFS path.
- * <li>qualifiedName=/path/fileName@namespace (example: /app/warehouse/hive/db/default@ns1)
- * <li>name=/path/fileName (example: /app/warehouse/hive/db/default)
+ * Analyze a transit URI as a HDFS path. Return file or directory path depending on FilesystemPathsLevel setting.
+ * <li>qualifiedName=/path[/fileName]@namespace (example: /app/warehouse/hive/db/default[/datafile]@ns1)
+ * <li>name=/path[/fileName] (example: /app/warehouse/hive/db/default[/datafile])
  */
-public class HDFSPath extends AbstractNiFiProvenanceEventAnalyzer {
+public class HDFSPath extends AbstractFileSystemPathAnalyzer {
 
     private static final String TYPE = "hdfs_path";
-
-    private static final String PATH_SEPARATOR = "/";
 
     @Override
     public DataSetRefs analyze(AnalysisContext context, ProvenanceEventRecord event) {
@@ -49,13 +44,7 @@ public class HDFSPath extends AbstractNiFiProvenanceEventAnalyzer {
         final URI uri = parseUri(event.getTransitUri());
         final String namespace = context.getNamespaceResolver().fromHostNames(uri.getHost());
 
-        final String path;
-        if (context.getFilesystemPathsLevel() == FilesystemPathsLevel.Directory) {
-            final String dirPath = StringUtils.substringBeforeLast(uri.getPath(), PATH_SEPARATOR);
-            path = dirPath.isEmpty() ? PATH_SEPARATOR : dirPath;
-        } else {
-            path = uri.getPath();
-        }
+        final String path = getPath(context, uri);
 
         ref.set(ATTR_NAME, path);
         ref.set(ATTR_PATH, path);

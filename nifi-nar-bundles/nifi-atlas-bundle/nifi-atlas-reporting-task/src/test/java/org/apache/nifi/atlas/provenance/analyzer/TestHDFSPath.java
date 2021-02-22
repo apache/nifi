@@ -41,7 +41,7 @@ public class TestHDFSPath {
     public void testHDFSPathWithFileLevel() {
         // TODO: what if with HA namenode?
         final String transitUri = "hdfs://0.example.com:8020/user/nifi/fileA";
-        final FilesystemPathsLevel filesystemPathsLevel = FilesystemPathsLevel.File;
+        final FilesystemPathsLevel filesystemPathsLevel = FilesystemPathsLevel.FILE;
         final String expectedPath = "/user/nifi/fileA";
         testHDFSPath(transitUri, filesystemPathsLevel, expectedPath);
     }
@@ -49,7 +49,7 @@ public class TestHDFSPath {
     @Test
     public void testHDFSPathWithDirectoryLevel() {
         final String transitUri = "hdfs://0.example.com:8020/user/nifi/fileA";
-        final FilesystemPathsLevel filesystemPathsLevel = FilesystemPathsLevel.Directory;
+        final FilesystemPathsLevel filesystemPathsLevel = FilesystemPathsLevel.DIRECTORY;
         final String expectedPath = "/user/nifi";
         testHDFSPath(transitUri, filesystemPathsLevel, expectedPath);
     }
@@ -57,7 +57,7 @@ public class TestHDFSPath {
     @Test
     public void testHDFSPathRootDirWithFileLevel() {
         final String transitUri = "hdfs://0.example.com:8020/fileA";
-        final FilesystemPathsLevel filesystemPathsLevel = FilesystemPathsLevel.File;
+        final FilesystemPathsLevel filesystemPathsLevel = FilesystemPathsLevel.FILE;
         final String expectedPath = "/fileA";
         testHDFSPath(transitUri, filesystemPathsLevel, expectedPath);
     }
@@ -65,7 +65,7 @@ public class TestHDFSPath {
     @Test
     public void testHDFSPathRootDirWithDirectoryLevel() {
         final String transitUri = "hdfs://0.example.com:8020/fileA";
-        final FilesystemPathsLevel filesystemPathsLevel = FilesystemPathsLevel.Directory;
+        final FilesystemPathsLevel filesystemPathsLevel = FilesystemPathsLevel.DIRECTORY;
         final String expectedPath = "/";
         testHDFSPath(transitUri, filesystemPathsLevel, expectedPath);
     }

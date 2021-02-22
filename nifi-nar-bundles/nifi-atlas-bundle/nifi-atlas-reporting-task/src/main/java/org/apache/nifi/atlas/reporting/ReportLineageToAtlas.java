@@ -344,9 +344,9 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
             .defaultValue(AWS_S3_MODEL_VERSION_V2.getValue())
             .build();
 
-    static final AllowableValue FILESYSTEM_PATHS_LEVEL_FILE = new AllowableValue(FilesystemPathsLevel.File.name(), FilesystemPathsLevel.File.name(),
+    static final AllowableValue FILESYSTEM_PATHS_LEVEL_FILE = new AllowableValue(FilesystemPathsLevel.FILE.name(), FilesystemPathsLevel.FILE.getDisplayName(),
             "Creates File level paths.");
-    static final AllowableValue FILESYSTEM_PATHS_LEVEL_DIRECTORY = new AllowableValue(FilesystemPathsLevel.Directory.name(), FilesystemPathsLevel.Directory.name(),
+    static final AllowableValue FILESYSTEM_PATHS_LEVEL_DIRECTORY = new AllowableValue(FilesystemPathsLevel.DIRECTORY.name(), FilesystemPathsLevel.DIRECTORY.getDisplayName(),
             "Creates Directory level paths.");
 
     static final PropertyDescriptor FILESYSTEM_PATHS_LEVEL = new PropertyDescriptor.Builder()
