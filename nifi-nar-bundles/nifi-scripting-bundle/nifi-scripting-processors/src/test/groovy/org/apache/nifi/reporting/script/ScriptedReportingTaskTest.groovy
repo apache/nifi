@@ -18,42 +18,29 @@ package org.apache.nifi.reporting.script
 
 import org.apache.commons.io.FileUtils
 import org.apache.nifi.components.PropertyDescriptor
-import org.apache.nifi.components.PropertyValue
 import org.apache.nifi.controller.ConfigurationContext
 import org.apache.nifi.logging.ComponentLog
 import org.apache.nifi.processors.script.AccessibleScriptingComponentHelper
+import org.apache.nifi.provenance.ProvenanceEventRecord
+import org.apache.nifi.registry.VariableRegistry
+import org.apache.nifi.reporting.ReportingInitializationContext
 import org.apache.nifi.script.ScriptingComponentHelper
 import org.apache.nifi.script.ScriptingComponentUtils
-import org.apache.nifi.provenance.ProvenanceEventBuilder
-import org.apache.nifi.provenance.ProvenanceEventRecord
-import org.apache.nifi.provenance.ProvenanceEventRepository
-import org.apache.nifi.provenance.ProvenanceEventType
-import org.apache.nifi.provenance.StandardProvenanceEventRecord
-import org.apache.nifi.reporting.EventAccess
-import org.apache.nifi.reporting.ReportingContext
-import org.apache.nifi.reporting.ReportingInitializationContext
-import org.apache.nifi.state.MockStateManager
-import org.apache.nifi.util.MockFlowFile
-import org.apache.nifi.util.MockPropertyValue
+import org.apache.nifi.util.MockConfigurationContext
+import org.apache.nifi.util.MockEventAccess
+import org.apache.nifi.util.MockReportingContext
 import org.apache.nifi.util.TestRunners
 import org.junit.Before
 import org.junit.BeforeClass
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
-import org.mockito.Mockito
-import org.mockito.stubbing.Answer
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
 import static org.junit.Assert.assertEquals
 import static org.junit.Assert.assertTrue
-import static org.mockito.Mockito.any
-import static org.mockito.Mockito.doAnswer
-import static org.mockito.Mockito.mock
-import static org.mockito.Mockito.when
-
-
+import static org.mockito.Mockito.*
 /**
  * Unit tests for ScriptedReportingTask.
  */
@@ -82,58 +69,20 @@ class ScriptedReportingTaskTest {
 
     @Test
     void testProvenanceGroovyScript() {
-        def uuid = "10000000-0000-0000-0000-000000000000"
-        def attributes = ['abc': 'xyz', 'xyz': 'abc', 'filename': 'file-' + uuid, 'uuid': uuid]
-        def prevAttrs = ['filename': '1234.xyz']
+        final Map<PropertyDescriptor, String> properties = new HashMap<>();
+        properties.put(new PropertyDescriptor.Builder().name("Script Engine").build(), "Groovy");
+        properties.put(ScriptingComponentUtils.SCRIPT_FILE, 'target/test/resources/groovy/test_log_provenance_events.groovy');
 
-        def flowFile = new MockFlowFile(3L)
-        flowFile.putAttributes(attributes)
-        final ProvenanceEventBuilder builder = new StandardProvenanceEventRecord.Builder();
-        builder.eventTime = System.currentTimeMillis()
-        builder.eventType = ProvenanceEventType.RECEIVE
-        builder.transitUri = 'nifi://unit-test'
-        builder.setAttributes(prevAttrs, attributes)
-        builder.componentId = '1234'
-        builder.componentType = 'dummy processor'
-        builder.fromFlowFile(flowFile)
-        final ProvenanceEventRecord event = builder.build()
+        final ConfigurationContext configurationContext = new MockConfigurationContext(properties, null)
 
-        def properties = task.supportedPropertyDescriptors.collectEntries { descriptor ->
-            [descriptor: descriptor.getDefaultValue()]
+        final MockReportingContext context = new MockReportingContext([:], null, VariableRegistry.EMPTY_REGISTRY)
+        context.setProperty("Script Engine", "Groovy")
+        context.setProperty(ScriptingComponentUtils.SCRIPT_FILE.name, 'target/test/resources/groovy/test_log_provenance_events.groovy');
+
+        final MockEventAccess eventAccess = context.getEventAccess();
+        4.times { i ->
+            eventAccess.addProvenanceEvent(createProvenanceEvent(i))
         }
-
-        // Mock the ConfigurationContext for setup(...)
-        def configurationContext = mock(ConfigurationContext)
-        when(configurationContext.getProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE))
-                .thenReturn(new MockPropertyValue('Groovy'))
-        when(configurationContext.getProperty(ScriptingComponentUtils.SCRIPT_FILE))
-                .thenReturn(new MockPropertyValue('target/test/resources/groovy/test_log_provenance_events.groovy'))
-        when(configurationContext.getProperty(ScriptingComponentUtils.SCRIPT_BODY))
-                .thenReturn(new MockPropertyValue(null))
-        when(configurationContext.getProperty(ScriptingComponentUtils.MODULES))
-                .thenReturn(new MockPropertyValue(null))
-
-        // Set up ReportingContext
-        def context = mock(ReportingContext)
-        when(context.getStateManager()).thenReturn(new MockStateManager(task))
-        doAnswer({ invocation ->
-            def descriptor = invocation.getArgumentAt(0, PropertyDescriptor)
-            return new MockPropertyValue(properties[descriptor])
-        } as Answer<PropertyValue>
-        ).when(context).getProperty(any(PropertyDescriptor))
-
-
-        def eventAccess = mock(EventAccess)
-        // Return 3 events for the test
-        doAnswer({ invocation -> return [event, event, event] } as Answer<List<ProvenanceEventRecord>>
-        ).when(eventAccess).getProvenanceEvents(Mockito.anyLong(), Mockito.anyInt())
-
-        def provenanceRepository = mock(ProvenanceEventRepository.class)
-        doAnswer({ invocation -> return 3 } as Answer<Long>
-        ).when(provenanceRepository).getMaxEventId()
-
-        when(context.getEventAccess()).thenReturn(eventAccess);
-        when(eventAccess.getProvenanceRepository()).thenReturn(provenanceRepository)
 
         def logger = mock(ComponentLog)
         def initContext = mock(ReportingInitializationContext)
@@ -141,6 +90,8 @@ class ScriptedReportingTaskTest {
         when(initContext.getLogger()).thenReturn(logger)
 
         task.initialize initContext
+        task.getSupportedPropertyDescriptors()
+
         task.setup configurationContext
         task.onTrigger context
 
@@ -150,37 +101,28 @@ class ScriptedReportingTaskTest {
         assertEquals '1234', se.e.componentId
         assertEquals 'xyz', se.e.attributes.abc
         task.offerScriptEngine(se)
-
     }
+
+    private ProvenanceEventRecord createProvenanceEvent(final long id) {
+        final ProvenanceEventRecord event = mock(ProvenanceEventRecord.class)
+        doReturn(id).when(event).getEventId()
+        doReturn('1234').when(event).getComponentId()
+        doReturn(['abc': 'xyz']).when(event).getAttributes()
+        return event;
+    }
+
 
     @Test
     void testVMEventsGroovyScript() {
+        final Map<PropertyDescriptor, String> properties = new HashMap<>();
+        properties.put(new PropertyDescriptor.Builder().name("Script Engine").build(), "Groovy");
+        properties.put(ScriptingComponentUtils.SCRIPT_FILE, 'target/test/resources/groovy/test_log_vm_stats.groovy');
 
-        def properties = [:] as Map<PropertyDescriptor, String>
-        task.getSupportedPropertyDescriptors().each { PropertyDescriptor descriptor ->
-            properties.put(descriptor, descriptor.getDefaultValue())
-        }
+        final ConfigurationContext configurationContext = new MockConfigurationContext(properties, null)
 
-        // Mock the ConfigurationContext for setup(...)
-        def configurationContext = mock(ConfigurationContext)
-        when(configurationContext.getProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE))
-                .thenReturn(new MockPropertyValue('Groovy'))
-        when(configurationContext.getProperty(ScriptingComponentUtils.SCRIPT_FILE))
-                .thenReturn(new MockPropertyValue('target/test/resources/groovy/test_log_vm_stats.groovy'))
-        when(configurationContext.getProperty(ScriptingComponentUtils.SCRIPT_BODY))
-                .thenReturn(new MockPropertyValue(null))
-        when(configurationContext.getProperty(ScriptingComponentUtils.MODULES))
-                .thenReturn(new MockPropertyValue(null))
-
-        // Set up ReportingContext
-        def context = mock(ReportingContext)
-        when(context.getStateManager()).thenReturn(new MockStateManager(task))
-        doAnswer({ invocation ->
-            PropertyDescriptor descriptor = invocation.getArgumentAt(0, PropertyDescriptor)
-            return new MockPropertyValue(properties[descriptor])
-        } as Answer<PropertyValue>
-        ).when(context).getProperty(any(PropertyDescriptor))
-
+        final MockReportingContext context = new MockReportingContext([:], null, VariableRegistry.EMPTY_REGISTRY)
+        context.setProperty("Script Engine", "Groovy")
+        context.setProperty(ScriptingComponentUtils.SCRIPT_FILE.name, 'target/test/resources/groovy/test_log_vm_stats.groovy');
 
         def logger = mock(ComponentLog)
         def initContext = mock(ReportingInitializationContext)
@@ -188,6 +130,8 @@ class ScriptedReportingTaskTest {
         when(initContext.getLogger()).thenReturn(logger)
 
         task.initialize initContext
+        task.getSupportedPropertyDescriptors()
+
         task.setup configurationContext
         task.onTrigger context
         def se = task.scriptEngine
@@ -199,32 +143,15 @@ class ScriptedReportingTaskTest {
 
     @Test
     void testVMEventsJythonScript() {
+        final Map<PropertyDescriptor, String> properties = new HashMap<>();
+        properties.put(new PropertyDescriptor.Builder().name("Script Engine").build(), "Groovy");
+        properties.put(ScriptingComponentUtils.SCRIPT_FILE, 'target/test/resources/groovy/test_log_vm_stats.groovy');
 
-        def properties = [:] as Map<PropertyDescriptor, String>
-        task.getSupportedPropertyDescriptors().each { PropertyDescriptor descriptor ->
-            properties.put(descriptor, descriptor.getDefaultValue())
-        }
+        final ConfigurationContext configurationContext = new MockConfigurationContext(properties, null)
 
-        // Mock the ConfigurationContext for setup(...)
-        def configurationContext = mock(ConfigurationContext)
-        when(configurationContext.getProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE))
-                .thenReturn(new MockPropertyValue('python'))
-        when(configurationContext.getProperty(ScriptingComponentUtils.SCRIPT_FILE))
-                .thenReturn(new MockPropertyValue('target/test/resources/jython/test_log_vm_stats.py'))
-        when(configurationContext.getProperty(ScriptingComponentUtils.SCRIPT_BODY))
-                .thenReturn(new MockPropertyValue(null))
-        when(configurationContext.getProperty(ScriptingComponentUtils.MODULES))
-                .thenReturn(new MockPropertyValue(null))
-
-        // Set up ReportingContext
-        def context = mock(ReportingContext)
-        when(context.getStateManager()).thenReturn(new MockStateManager(task))
-        doAnswer({ invocation ->
-            PropertyDescriptor descriptor = invocation.getArgumentAt(0, PropertyDescriptor)
-            return new MockPropertyValue(properties[descriptor])
-        } as Answer<PropertyValue>
-        ).when(context).getProperty(any(PropertyDescriptor))
-
+        final MockReportingContext context = new MockReportingContext([:], null, VariableRegistry.EMPTY_REGISTRY)
+        context.setProperty("Script Engine", "Groovy")
+        context.setProperty(ScriptingComponentUtils.SCRIPT_FILE.name, 'target/test/resources/groovy/test_log_vm_stats.groovy');
 
         def logger = mock(ComponentLog)
         def initContext = mock(ReportingInitializationContext)
@@ -232,6 +159,8 @@ class ScriptedReportingTaskTest {
         when(initContext.getLogger()).thenReturn(logger)
 
         task.initialize initContext
+        task.getSupportedPropertyDescriptors()
+
         task.setup configurationContext
         task.onTrigger context
         def se = task.scriptEngine

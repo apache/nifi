@@ -44,6 +44,8 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.resource.ResourceCardinality;
+import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -295,32 +297,35 @@ public class MergeContent extends BinFiles {
     public static final PropertyDescriptor HEADER = new PropertyDescriptor.Builder()
             .name("Header File")
             .displayName("Header")
-            .description("Filename specifying the header to use. If not specified, no header is supplied. This property is valid only when using the "
-                    + "binary-concatenation merge strategy; otherwise, it is ignored.")
+            .description("Filename or text specifying the header to use. If not specified, no header is supplied.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .dependsOn(DELIMITER_STRATEGY, DELIMITER_STRATEGY_FILENAME, DELIMITER_STRATEGY_TEXT)
+            .dependsOn(MERGE_FORMAT, MERGE_FORMAT_CONCAT)
+            .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE, ResourceType.TEXT)
             .build();
     public static final PropertyDescriptor FOOTER = new PropertyDescriptor.Builder()
             .name("Footer File")
             .displayName("Footer")
-            .description("Filename specifying the footer to use. If not specified, no footer is supplied. This property is valid only when using the "
-                    + "binary-concatenation merge strategy; otherwise, it is ignored.")
+            .description("Filename or text specifying the footer to use. If not specified, no footer is supplied.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .dependsOn(DELIMITER_STRATEGY, DELIMITER_STRATEGY_FILENAME, DELIMITER_STRATEGY_TEXT)
+            .dependsOn(MERGE_FORMAT, MERGE_FORMAT_CONCAT)
+            .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE, ResourceType.TEXT)
             .build();
     public static final PropertyDescriptor DEMARCATOR = new PropertyDescriptor.Builder()
             .name("Demarcator File")
             .displayName("Demarcator")
-            .description("Filename specifying the demarcator to use. If not specified, no demarcator is supplied. This property is valid only when "
-                    + "using the binary-concatenation merge strategy; otherwise, it is ignored.")
+            .description("Filename or text specifying the demarcator to use. If not specified, no demarcator is supplied.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .dependsOn(DELIMITER_STRATEGY, DELIMITER_STRATEGY_FILENAME, DELIMITER_STRATEGY_TEXT)
+            .dependsOn(MERGE_FORMAT, MERGE_FORMAT_CONCAT)
+            .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE, ResourceType.TEXT)
             .build();
     public static final PropertyDescriptor COMPRESSION_LEVEL = new PropertyDescriptor.Builder()
             .name("Compression Level")
@@ -707,8 +712,7 @@ public class MergeContent extends BinFiles {
             return property;
         }
 
-        private byte[] getDelimiterTextContent(final ProcessContext context, final List<FlowFile> flowFiles, final PropertyDescriptor descriptor)
-                throws IOException {
+        private byte[] getDelimiterTextContent(final ProcessContext context, final List<FlowFile> flowFiles, final PropertyDescriptor descriptor) {
             byte[] property = null;
             if (flowFiles != null && flowFiles.size() > 0) {
                 final FlowFile flowFile = flowFiles.get(0);

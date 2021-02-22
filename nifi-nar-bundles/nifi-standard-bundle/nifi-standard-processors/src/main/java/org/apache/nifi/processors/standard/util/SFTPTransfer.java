@@ -44,12 +44,14 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.resource.ResourceCardinality;
+import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.context.PropertyContext;
-import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.proxy.ProxyConfiguration;
@@ -86,7 +88,7 @@ public class SFTPTransfer implements FileTransfer {
         .name("Private Key Path")
         .description("The fully qualified path to the Private Key file")
         .required(false)
-        .addValidator(new StandardValidators.FileExistsValidator(true,true))
+        .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE)
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .build();
     public static final PropertyDescriptor PRIVATE_KEY_PASSPHRASE = new PropertyDescriptor.Builder()
@@ -103,7 +105,7 @@ public class SFTPTransfer implements FileTransfer {
                 " otherwise, if 'Strict Host Key Checking' property is applied (set to true)" +
                 " then uses the 'known_hosts' and 'known_hosts2' files from ~/.ssh directory" +
                 " else no host key file will be used")
-        .addValidator(new StandardValidators.FileExistsValidator(true,true))
+        .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE)
         .required(false)
         .build();
     public static final PropertyDescriptor STRICT_HOST_KEY_CHECKING = new PropertyDescriptor.Builder()

@@ -22,6 +22,9 @@ import org.apache.nifi.attribute.expression.language.Query.Range;
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.components.resource.ResourceContext;
+import org.apache.nifi.components.resource.StandardResourceContext;
+import org.apache.nifi.components.resource.StandardResourceReferenceFactory;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.ControllerService;
@@ -92,16 +95,18 @@ public class StandardProcessContext implements ProcessContext, ControllerService
     public PropertyValue getProperty(final PropertyDescriptor descriptor) {
         verifyTaskActive();
 
+        final ResourceContext resourceContext = new StandardResourceContext(new StandardResourceReferenceFactory(), descriptor);
+
         final String setPropertyValue = properties.get(descriptor);
         if (setPropertyValue != null) {
-            return new StandardPropertyValue(setPropertyValue, this, procNode.getParameterLookup(), preparedQueries.get(descriptor), procNode.getVariableRegistry());
+            return new StandardPropertyValue(resourceContext, setPropertyValue, this, procNode.getParameterLookup(), preparedQueries.get(descriptor), procNode.getVariableRegistry());
         }
 
         // Get the "canonical" Property Descriptor from the Processor
         final PropertyDescriptor canonicalDescriptor = procNode.getProcessor().getPropertyDescriptor(descriptor.getName());
         final String defaultValue = canonicalDescriptor.getDefaultValue();
 
-        return new StandardPropertyValue(defaultValue, this, procNode.getParameterLookup(), preparedQueries.get(descriptor), procNode.getVariableRegistry());
+        return new StandardPropertyValue(resourceContext, defaultValue, this, procNode.getParameterLookup(), preparedQueries.get(descriptor), procNode.getVariableRegistry());
     }
 
     /**
@@ -120,14 +125,15 @@ public class StandardProcessContext implements ProcessContext, ControllerService
 
         final String setPropertyValue = properties.get(descriptor);
         final String propValue = (setPropertyValue == null) ? descriptor.getDefaultValue() : setPropertyValue;
-
-        return new StandardPropertyValue(propValue, this, procNode.getParameterLookup(), preparedQueries.get(descriptor), procNode.getVariableRegistry());
+        final ResourceContext resourceContext = new StandardResourceContext(new StandardResourceReferenceFactory(), descriptor);
+        return new StandardPropertyValue(resourceContext, propValue, this, procNode.getParameterLookup(), preparedQueries.get(descriptor), procNode.getVariableRegistry());
     }
 
     @Override
     public PropertyValue newPropertyValue(final String rawValue) {
         verifyTaskActive();
-        return new StandardPropertyValue(rawValue, this, procNode.getParameterLookup(), Query.prepareWithParametersPreEvaluated(rawValue), procNode.getVariableRegistry());
+        final ResourceContext resourceContext = new StandardResourceContext(new StandardResourceReferenceFactory(), null);
+        return new StandardPropertyValue(resourceContext, rawValue, this, procNode.getParameterLookup(), Query.prepareWithParametersPreEvaluated(rawValue), procNode.getVariableRegistry());
     }
 
     @Override

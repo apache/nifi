@@ -215,7 +215,11 @@ public class ADLSCredentialsControllerService extends AbstractControllerService 
 
         if (property.isSet()) {
             if (propertyDescriptor.isExpressionLanguageSupported()) {
-                property = property.evaluateAttributeExpressions(attributes);
+                if (propertyDescriptor.getExpressionLanguageScope() == ExpressionLanguageScope.FLOWFILE_ATTRIBUTES) {
+                    property = property.evaluateAttributeExpressions(attributes);
+                } else {
+                    property = property.evaluateAttributeExpressions();
+                }
             }
             T value = getPropertyValue.apply(property);
             setBuilderValue.accept(credentialsBuilder, value);

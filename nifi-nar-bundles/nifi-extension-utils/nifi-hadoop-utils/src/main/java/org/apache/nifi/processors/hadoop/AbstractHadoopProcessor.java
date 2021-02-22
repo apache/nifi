@@ -17,7 +17,6 @@
 package org.apache.nifi.processors.hadoop;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -31,6 +30,9 @@ import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.resource.ResourceCardinality;
+import org.apache.nifi.components.resource.ResourceReferences;
+import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.hadoop.KerberosProperties;
 import org.apache.nifi.hadoop.SecurityUtil;
@@ -93,7 +95,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
                     + "will search the classpath for a 'core-site.xml' and 'hdfs-site.xml' file or will revert to a default configuration. "
                     + "To use swebhdfs, see 'Additional Details' section of PutHDFS's documentation.")
             .required(false)
-            .addValidator(HadoopValidators.ONE_OR_MORE_FILE_EXISTS_VALIDATOR)
+            .identifiesExternalResource(ResourceCardinality.MULTIPLE, ResourceType.FILE)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
@@ -131,7 +133,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
             .description("A comma-separated list of paths to files and/or directories that will be added to the classpath and used for loading native libraries. " +
                     "When specifying a directory, all files with in the directory will be added to the classpath, but further sub-directories will not be included.")
             .required(false)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .identifiesExternalResource(ResourceCardinality.MULTIPLE, ResourceType.FILE, ResourceType.DIRECTORY)
             .dynamicallyModifiesClasspath(true)
             .build();
 
@@ -188,7 +190,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
 
     @Override
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
-        final String configResources = validationContext.getProperty(HADOOP_CONFIGURATION_RESOURCES).evaluateAttributeExpressions().getValue();
+        final ResourceReferences configResources = validationContext.getProperty(HADOOP_CONFIGURATION_RESOURCES).evaluateAttributeExpressions().asResources();
         final String explicitPrincipal = validationContext.getProperty(kerberosProperties.getKerberosPrincipal()).evaluateAttributeExpressions().getValue();
         final String explicitKeytab = validationContext.getProperty(kerberosProperties.getKerberosKeytab()).evaluateAttributeExpressions().getValue();
         final String explicitPassword = validationContext.getProperty(kerberosProperties.getKerberosPassword()).getValue();
@@ -206,7 +208,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
 
         final List<ValidationResult> results = new ArrayList<>();
 
-        if (StringUtils.isBlank(configResources)) {
+        if (configResources.getCount() == 0) {
             return results;
         }
 
@@ -273,7 +275,7 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
             // properties this processor sets. TODO: re-work ListHDFS to utilize Kerberos
             HdfsResources resources = hdfsResources.get();
             if (resources.getConfiguration() == null) {
-                final String configResources = context.getProperty(HADOOP_CONFIGURATION_RESOURCES).evaluateAttributeExpressions().getValue();
+                final ResourceReferences configResources = context.getProperty(HADOOP_CONFIGURATION_RESOURCES).evaluateAttributeExpressions().asResources();
                 resources = resetHDFSResources(configResources, context);
                 hdfsResources.set(resources);
             }
@@ -346,17 +348,14 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
         }
     }
 
-    private static Configuration getConfigurationFromResources(final Configuration config, String configResources) throws IOException {
-        boolean foundResources = false;
-        if (null != configResources) {
-            String[] resources = configResources.split(",");
-            for (String resource : resources) {
+    private static Configuration getConfigurationFromResources(final Configuration config, final ResourceReferences resourceReferences) throws IOException {
+        boolean foundResources = resourceReferences.getCount() > 0;
+        if (foundResources) {
+            final List<String> locations = resourceReferences.asLocations();
+            for (String resource : locations) {
                 config.addResource(new Path(resource.trim()));
-                foundResources = true;
             }
-        }
-
-        if (!foundResources) {
+        } else {
             // check that at least 1 non-default resource is available on the classpath
             String configStr = config.toString();
             for (String resource : configStr.substring(configStr.indexOf(":") + 1).split(",")) {
@@ -376,11 +375,11 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
     /*
      * Reset Hadoop Configuration and FileSystem based on the supplied configuration resources.
      */
-    HdfsResources resetHDFSResources(String configResources, ProcessContext context) throws IOException {
+    HdfsResources resetHDFSResources(final ResourceReferences resourceReferences, ProcessContext context) throws IOException {
         Configuration config = new ExtendedConfiguration(getLogger());
         config.setClassLoader(Thread.currentThread().getContextClassLoader());
 
-        getConfigurationFromResources(config, configResources);
+        getConfigurationFromResources(config, resourceReferences);
 
         // give sub-classes a chance to process configuration
         preProcessConfiguration(config, context);
@@ -624,15 +623,15 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
     }
 
     static protected class ValidationResources {
-        private final String configResources;
+        private final ResourceReferences configResources;
         private final Configuration configuration;
 
-        public ValidationResources(String configResources, Configuration configuration) {
+        public ValidationResources(final ResourceReferences configResources, Configuration configuration) {
             this.configResources = configResources;
             this.configuration = configuration;
         }
 
-        public String getConfigResources() {
+        public ResourceReferences getConfigResources() {
             return configResources;
         }
 
