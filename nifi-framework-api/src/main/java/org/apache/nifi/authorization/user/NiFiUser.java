@@ -61,4 +61,9 @@ public interface NiFiUser {
      */
     String getClientAddress();
 
+    /**
+     * @return <code>true</code> if the user can use the log out button
+     */
+    boolean canLogOut();
+
 }

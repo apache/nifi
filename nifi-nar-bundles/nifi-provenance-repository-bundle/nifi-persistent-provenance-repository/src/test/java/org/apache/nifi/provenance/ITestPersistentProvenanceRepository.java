@@ -2136,6 +2136,11 @@ public class ITestPersistentProvenanceRepository {
                 return null;
             }
 
+            @Override
+            public boolean canLogOut() {
+                return true;
+            }
+
         };
     }
 

@@ -31,6 +31,7 @@ public class CurrentUserEntity extends Entity {
 
     private String identity;
     private boolean anonymous;
+    private boolean canLogOut;
 
     private PermissionsDTO provenancePermissions;
     private PermissionsDTO countersPermissions;
@@ -66,6 +67,15 @@ public class CurrentUserEntity extends Entity {
 
     public void setAnonymous(boolean anonymous) {
         this.anonymous = anonymous;
+    }
+
+    @ApiModelProperty("Whether the user can log out with the Log Out button.")
+    public boolean isCanLogOut() {
+        return canLogOut;
+    }
+
+    public void setCanLogOut(boolean canLogOut) {
+        this.canLogOut = canLogOut;
     }
 
     /**

@@ -91,7 +91,7 @@
         });
 
         // shows the logout link in the message-pane when appropriate and schedule token refresh
-        if (nfStorage.getItem('jwt') !== null) {
+        if (nfCommon.canLogOut()) {
             $('#user-logout-container').css('display', 'block');
             nfCommon.scheduleTokenRefresh();
         }
@@ -102,7 +102,6 @@
                 type: 'DELETE',
                 url: '../nifi-api/access/logout',
             }).done(function () {
-                nfStorage.removeItem("jwt");
                 window.location = '../nifi/logout';
             }).fail(nfErrorHandler.handleAjaxError);
         });
@@ -505,7 +504,7 @@
             var interval = nfCommon.MILLIS_PER_MINUTE;
 
             var checkExpiration = function () {
-                var expiration = nfStorage.getItemExpiration('jwt');
+                var expiration = nfStorage.getItemExpiration('loggedIn');
 
                 // ensure there is an expiration and token present
                 if (expiration !== null) {
@@ -853,10 +852,21 @@
          * Shows the logout link if appropriate.
          */
         showLogoutLink: function () {
-            if (nfStorage.getItem('jwt') === null) {
-                $('#user-logout-container').css('display', 'none');
-            } else {
+            if (nfCommon.canLogOut()) {
                 $('#user-logout-container').css('display', 'block');
+            } else {
+                $('#user-logout-container').css('display', 'none');
+            }
+        },
+
+        /**
+         * Determines whether the current user can version flows.
+         */
+        canLogOut: function () {
+            if (nfCommon.isDefinedAndNotNull(nfCommon.currentUser)) {
+                return nfCommon.currentUser.canLogOut === true;
+            } else {
+                return false;
             }
         },
 

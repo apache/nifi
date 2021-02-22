@@ -4182,6 +4182,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final CurrentUserEntity entity = new CurrentUserEntity();
         entity.setIdentity(user.getIdentity());
         entity.setAnonymous(user.isAnonymous());
+        entity.setCanLogOut(user.canLogOut());
         entity.setProvenancePermissions(dtoFactory.createPermissionsDto(authorizableLookup.getProvenance()));
         entity.setCountersPermissions(dtoFactory.createPermissionsDto(authorizableLookup.getCounters()));
         entity.setTenantsPermissions(dtoFactory.createPermissionsDto(authorizableLookup.getTenant()));

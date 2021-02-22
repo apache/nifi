@@ -60,6 +60,7 @@ import org.apache.nifi.web.api.dto.AccessStatusDTO;
 import org.apache.nifi.web.api.entity.AccessConfigurationEntity;
 import org.apache.nifi.web.api.entity.AccessStatusEntity;
 import org.apache.nifi.web.security.InvalidAuthenticationException;
+import org.apache.nifi.web.security.LogoutException;
 import org.apache.nifi.web.security.ProxiedEntitiesUtils;
 import org.apache.nifi.web.security.UntrustedProxyException;
 import org.apache.nifi.web.security.jwt.JwtAuthenticationFilter;
@@ -82,6 +83,8 @@ import org.apache.nifi.web.security.token.OtpAuthenticationToken;
 import org.apache.nifi.web.security.x509.X509AuthenticationProvider;
 import org.apache.nifi.web.security.x509.X509AuthenticationRequestToken;
 import org.apache.nifi.web.security.x509.X509CertificateExtractor;
+import org.eclipse.jetty.http.HttpCookie;
+import org.eclipse.jetty.http.HttpHeader;
 import org.opensaml.saml2.metadata.provider.MetadataProviderException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -143,6 +146,7 @@ public class AccessResource extends ApplicationResource {
     private static final Pattern REVOKE_ACCESS_TOKEN_LOGOUT_FORMAT = Pattern.compile("(\\.google\\.com)");
     private static final Pattern ID_TOKEN_LOGOUT_FORMAT = Pattern.compile("(\\.okta)");
     private static final int msTimeout = 30_000;
+    private static final int TWELVE_HOURS = 43200;
 
     private static final String SAML_REQUEST_IDENTIFIER = "saml-request-identifier";
     private static final String SAML_METADATA_MEDIA_TYPE = "application/samlmetadata+xml";
@@ -785,7 +789,6 @@ public class AccessResource extends ApplicationResource {
 
                 // store the NiFi token
                 oidcService.storeJwt(oidcRequestIdentifier, nifiJwt);
-
             } catch (final Exception e) {
                 logger.error(OIDC_ID_TOKEN_AUTHN_ERROR + e.getMessage(), e);
 
@@ -847,8 +850,10 @@ public class AccessResource extends ApplicationResource {
             throw new IllegalArgumentException("A JWT for this login request identifier could not be found. Unable to continue.");
         }
 
+        HttpCookie jwtCookie = new HttpCookie(JwtAuthenticationFilter.JWT_COOKIE_NAME, jwt, null, "/", TWELVE_HOURS, true, true, null, 0, HttpCookie.SameSite.STRICT);
+
         // generate the response
-        return generateOkResponse(jwt).build();
+        return generateOkResponse(jwt).header(HttpHeader.SET_COOKIE.asString(), jwtCookie.getRFC6265SetCookie()).build();
     }
 
     @GET
@@ -867,6 +872,10 @@ public class AccessResource extends ApplicationResource {
         if (!oidcService.isOidcEnabled()) {
             throw new IllegalStateException(OPEN_ID_CONNECT_SUPPORT_IS_NOT_CONFIGURED_MSG);
         }
+
+        final String mappedUserIdentity = NiFiUserUtils.getNiFiUserIdentity();
+        removeCookie(httpServletResponse, JwtAuthenticationFilter.JWT_COOKIE_NAME);
+        logger.info("Successfully invalidated JWT for " + mappedUserIdentity);
 
         // Get the oidc discovery url
         String oidcDiscoveryUrl = properties.getOidcDiscoveryUrl();
@@ -1164,8 +1173,8 @@ public class AccessResource extends ApplicationResource {
 
             // if there is not certificate, consider a token
             if (certificates == null) {
-                // look for an authorization token
-                final String authorization = httpServletRequest.getHeader(JwtAuthenticationFilter.AUTHORIZATION);
+                // look for an authorization token in header or cookie
+                final String authorization = getJwtFromRequest(httpServletRequest);
 
                 // if there is no authorization header, we don't know the user
                 if (authorization == null) {
@@ -1173,10 +1182,8 @@ public class AccessResource extends ApplicationResource {
                     accessStatus.setMessage("No credentials supplied, unknown user.");
                 } else {
                     try {
-                        // Extract the Base64 encoded token from the Authorization header
-                        final String token = StringUtils.substringAfterLast(authorization, " ");
-
-                        final JwtAuthenticationRequestToken jwtRequest = new JwtAuthenticationRequestToken(token, httpServletRequest.getRemoteAddr());
+                        // authenticate the token
+                        final JwtAuthenticationRequestToken jwtRequest = new JwtAuthenticationRequestToken(authorization, httpServletRequest.getRemoteAddr());
                         final NiFiAuthenticationToken authenticationResponse = (NiFiAuthenticationToken) jwtAuthenticationProvider.authenticate(jwtRequest);
                         final NiFiUser nifiUser = ((NiFiUserDetails) authenticationResponse.getDetails()).getNiFiUser();
 
@@ -1328,7 +1335,7 @@ public class AccessResource extends ApplicationResource {
             value = "Creates a token for accessing the REST API via Kerberos ticket exchange / SPNEGO negotiation",
             notes = "The token returned is formatted as a JSON Web Token (JWT). The token is base64 encoded and comprised of three parts. The header, " +
                     "the body, and the signature. The expiration of the token is a contained within the body. The token can be used in the Authorization header " +
-                    "in the format 'Authorization: Bearer <token>'.",
+                    "in the format 'Authorization: Bearer <token>'. It is also stored in the browser as a cookie.",
             response = String.class
     )
     @ApiResponses(
@@ -1380,10 +1387,11 @@ public class AccessResource extends ApplicationResource {
 
                 // generate JWT for response
                 final String token = jwtService.generateSignedToken(loginAuthenticationToken);
+                HttpCookie jwtCookie = new HttpCookie(JwtAuthenticationFilter.JWT_COOKIE_NAME, token, null, "/", TWELVE_HOURS, true, true, null, 0, HttpCookie.SameSite.STRICT);
 
                 // build the response
                 final URI uri = URI.create(generateResourceUri("access", "kerberos"));
-                return generateCreatedResponse(uri, token).build();
+                return generateCreatedResponse(uri, token).header(HttpHeader.SET_COOKIE.asString(), jwtCookie.getRFC6265SetCookie()).build();
             } catch (final AuthenticationException e) {
                 throw new AccessDeniedException(e.getMessage(), e);
             }
@@ -1391,12 +1399,12 @@ public class AccessResource extends ApplicationResource {
     }
 
     /**
-     * Creates a token for accessing the REST API via username/password.
+     * Creates a token for accessing the REST API via username/password stored as a cookie in the browser.
      *
      * @param httpServletRequest the servlet request
      * @param username           the username
      * @param password           the password
-     * @return A JWT (string)
+     * @return A JWT (string) in a cookie and as the body
      */
     @POST
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
@@ -1405,8 +1413,8 @@ public class AccessResource extends ApplicationResource {
     @ApiOperation(
             value = "Creates a token for accessing the REST API via username/password",
             notes = "The token returned is formatted as a JSON Web Token (JWT). The token is base64 encoded and comprised of three parts. The header, " +
-                    "the body, and the signature. The expiration of the token is a contained within the body. The token can be used in the Authorization header " +
-                    "in the format 'Authorization: Bearer <token>'.",
+                    "the body, and the signature. The expiration of the token is a contained within the body. It is stored in the browser as a cookie, but also returned in" +
+                    "the response body to be stored/used by third party client scripts.",
             response = String.class
     )
     @ApiResponses(
@@ -1456,10 +1464,12 @@ public class AccessResource extends ApplicationResource {
 
         // generate JWT for response
         final String token = jwtService.generateSignedToken(loginAuthenticationToken);
+        // currently there is no way to use javax.servlet-api to set SameSite=Strict, so we do this using Jetty
+        HttpCookie jwtCookie = new HttpCookie(JwtAuthenticationFilter.JWT_COOKIE_NAME, token, null, "/", TWELVE_HOURS, true, true, null, 0, HttpCookie.SameSite.STRICT);
 
         // build the response
         final URI uri = URI.create(generateResourceUri("access", "token"));
-        return generateCreatedResponse(uri, token).build();
+        return generateCreatedResponse(uri, token).header(HttpHeader.SET_COOKIE.asString(), jwtCookie.getRFC6265SetCookie()).build();
     }
 
     @DELETE
@@ -1490,7 +1500,8 @@ public class AccessResource extends ApplicationResource {
 
         try {
             logger.info("Logging out " + mappedUserIdentity);
-            jwtService.logOutUsingAuthHeader(httpServletRequest.getHeader(JwtAuthenticationFilter.AUTHORIZATION));
+            logOutUser(httpServletRequest);
+            removeCookie(httpServletResponse, JwtAuthenticationFilter.JWT_COOKIE_NAME);
             logger.info("Successfully invalidated JWT for " + mappedUserIdentity);
 
             // create a LogoutRequest and tell the LogoutRequestManager about it for later retrieval
@@ -1507,7 +1518,10 @@ public class AccessResource extends ApplicationResource {
 
             return generateOkResponse().build();
         } catch (final JwtException e) {
-            logger.error("Logout of user " + mappedUserIdentity + " failed due to: " + e.getMessage(), e);
+            logger.error("There was a problem with [" + mappedUserIdentity + "]'s JWT, failed due to: " + e.getMessage(), e);
+            return Response.serverError().build();
+        } catch (final LogoutException e) {
+            logger.error("There was a problem logging out user [%s] due to: ", mappedUserIdentity, e);
             return Response.serverError().build();
         }
     }
@@ -1812,4 +1826,25 @@ public class AccessResource extends ApplicationResource {
         this.logoutRequestManager = logoutRequestManager;
     }
 
+    private void logOutUser(HttpServletRequest httpServletRequest) throws LogoutException {
+        final String jwt = getJwtFromRequest(httpServletRequest);
+        jwtService.logOut(jwt);
+    }
+
+    private String getJwtFromRequest(HttpServletRequest httpServletRequest) {
+        final String authCookie = getCookieValue(httpServletRequest.getCookies(), JwtAuthenticationFilter.JWT_COOKIE_NAME);
+        final String authHeader = httpServletRequest.getHeader(httpServletRequest.getHeader(JwtAuthenticationFilter.AUTHORIZATION));
+
+        String jwt = null;
+
+        if (authCookie != null && !authCookie.isEmpty()) {
+            jwt = authCookie;
+        }
+
+        if (authHeader != null && !authHeader.isEmpty()) {
+            jwt = JwtAuthenticationFilter.getTokenFromHeader(authHeader);
+        }
+
+        return jwt;
+    }
 }

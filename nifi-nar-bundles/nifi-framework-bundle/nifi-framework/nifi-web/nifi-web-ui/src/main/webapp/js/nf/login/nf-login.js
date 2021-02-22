@@ -99,7 +99,7 @@
                 'password': $('#password').val()
             }
         }).done(function (jwt) {
-            // get the payload and store the token with the appropirate expiration
+            // Get the payload and store the token with the appropriate expiration. JWT is also stored automatically in a cookie.
             var token = nfCommon.getJwtPayload(jwt);
             var expiration = parseInt(token['exp'], 10) * nfCommon.MILLIS_PER_SECOND;
             nfStorage.setItem('jwt', jwt, expiration);
@@ -111,9 +111,6 @@
                 dataType: 'json'
             }).done(function (response) {
                 var accessStatus = response.accessStatus;
-
-                // update the logout link appropriately
-                showLogoutLink();
 
                 // update according to the access status
                 if (accessStatus.status === 'ACTIVE') {
@@ -155,20 +152,12 @@
         });
     };
 
-    var showLogoutLink = function () {
-        nfCommon.showLogoutLink();
-    };
-
     var nfLogin = {
         /**
          * Initializes the login page.
          */
         init: function () {
             nfStorage.init();
-
-            if (nfStorage.getItem('jwt') !== null) {
-                showLogoutLink();
-            }
 
             // supporting logging in via enter press
             $('#username, #password').on('keyup', function (e) {
@@ -234,6 +223,10 @@
                     initializeSubmission();
                 }
             });
+
+            if (nfCommon.canLogOut()) {
+                nfCommon.showLogoutLink();
+            }
         }
     };
 
