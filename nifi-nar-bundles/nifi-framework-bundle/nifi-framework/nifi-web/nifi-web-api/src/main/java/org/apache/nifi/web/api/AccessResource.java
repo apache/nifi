@@ -60,12 +60,13 @@ import org.apache.nifi.web.api.dto.AccessStatusDTO;
 import org.apache.nifi.web.api.entity.AccessConfigurationEntity;
 import org.apache.nifi.web.api.entity.AccessStatusEntity;
 import org.apache.nifi.web.security.InvalidAuthenticationException;
+import org.apache.nifi.web.security.LogoutException;
 import org.apache.nifi.web.security.ProxiedEntitiesUtils;
 import org.apache.nifi.web.security.UntrustedProxyException;
-import org.apache.nifi.web.security.jwt.JwtAuthenticationFilter;
 import org.apache.nifi.web.security.jwt.JwtAuthenticationProvider;
 import org.apache.nifi.web.security.jwt.JwtAuthenticationRequestToken;
 import org.apache.nifi.web.security.jwt.JwtService;
+import org.apache.nifi.web.security.jwt.NiFiBearerTokenResolver;
 import org.apache.nifi.web.security.kerberos.KerberosService;
 import org.apache.nifi.web.security.knox.KnoxService;
 import org.apache.nifi.web.security.logout.LogoutRequest;
@@ -82,6 +83,8 @@ import org.apache.nifi.web.security.token.OtpAuthenticationToken;
 import org.apache.nifi.web.security.x509.X509AuthenticationProvider;
 import org.apache.nifi.web.security.x509.X509AuthenticationRequestToken;
 import org.apache.nifi.web.security.x509.X509CertificateExtractor;
+import org.eclipse.jetty.http.HttpCookie;
+import org.eclipse.jetty.http.HttpHeader;
 import org.opensaml.saml2.metadata.provider.MetadataProviderException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -90,6 +93,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.saml.SAMLCredential;
 import org.springframework.security.web.authentication.preauth.x509.X509PrincipalExtractor;
+import org.springframework.web.util.WebUtils;
 
 import javax.servlet.ServletContext;
 import javax.servlet.http.Cookie;
@@ -106,6 +110,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.ResponseBuilder;
 import javax.ws.rs.core.UriBuilder;
 import javax.ws.rs.core.UriInfo;
 import java.io.IOException;
@@ -143,6 +148,7 @@ public class AccessResource extends ApplicationResource {
     private static final Pattern REVOKE_ACCESS_TOKEN_LOGOUT_FORMAT = Pattern.compile("(\\.google\\.com)");
     private static final Pattern ID_TOKEN_LOGOUT_FORMAT = Pattern.compile("(\\.okta)");
     private static final int msTimeout = 30_000;
+    private static final int VALID_FOR_SESSION_ONLY = -1;
 
     private static final String SAML_REQUEST_IDENTIFIER = "saml-request-identifier";
     private static final String SAML_METADATA_MEDIA_TYPE = "application/samlmetadata+xml";
@@ -342,7 +348,7 @@ public class AccessResource extends ApplicationResource {
         initializeSamlServiceProvider();
 
         // ensure the request has the cookie with the request id
-        final String samlRequestIdentifier = getCookieValue(httpServletRequest.getCookies(), SAML_REQUEST_IDENTIFIER);
+        final String samlRequestIdentifier = WebUtils.getCookie(httpServletRequest, SAML_REQUEST_IDENTIFIER).getValue();
         if (samlRequestIdentifier == null) {
             forwardToLoginMessagePage(httpServletRequest, httpServletResponse, "The login request identifier was not found in the request. Unable to continue.");
             return;
@@ -435,7 +441,7 @@ public class AccessResource extends ApplicationResource {
         initializeSamlServiceProvider();
 
         // ensure the request has the cookie with the request identifier
-        final String samlRequestIdentifier = getCookieValue(httpServletRequest.getCookies(), SAML_REQUEST_IDENTIFIER);
+        final String samlRequestIdentifier = WebUtils.getCookie(httpServletRequest, SAML_REQUEST_IDENTIFIER).getValue();
         if (samlRequestIdentifier == null) {
             final String message = "The login request identifier was not found in the request. Unable to continue.";
             logger.warn(message);
@@ -479,7 +485,7 @@ public class AccessResource extends ApplicationResource {
         }
 
         // ensure the logout request identifier is present
-        final String logoutRequestIdentifier = getCookieValue(httpServletRequest.getCookies(), LOGOUT_REQUEST_IDENTIFIER);
+        final String logoutRequestIdentifier = WebUtils.getCookie(httpServletRequest, LOGOUT_REQUEST_IDENTIFIER).getValue();
         if (StringUtils.isBlank(logoutRequestIdentifier)) {
             forwardToLogoutMessagePage(httpServletRequest, httpServletResponse, LOGOUT_REQUEST_IDENTIFIER_NOT_FOUND);
             return;
@@ -585,7 +591,7 @@ public class AccessResource extends ApplicationResource {
         initializeSamlServiceProvider();
 
         // ensure the logout request identifier is present
-        final String logoutRequestIdentifier = getCookieValue(httpServletRequest.getCookies(), LOGOUT_REQUEST_IDENTIFIER);
+        final String logoutRequestIdentifier = WebUtils.getCookie(httpServletRequest, LOGOUT_REQUEST_IDENTIFIER).getValue();
         if (StringUtils.isBlank(logoutRequestIdentifier)) {
             forwardToLogoutMessagePage(httpServletRequest, httpServletResponse, LOGOUT_REQUEST_IDENTIFIER_NOT_FOUND);
             return;
@@ -732,7 +738,7 @@ public class AccessResource extends ApplicationResource {
             return;
         }
 
-        final String oidcRequestIdentifier = getCookieValue(httpServletRequest.getCookies(), OIDC_REQUEST_IDENTIFIER);
+        final String oidcRequestIdentifier = WebUtils.getCookie(httpServletRequest, OIDC_REQUEST_IDENTIFIER).getValue();
         if (oidcRequestIdentifier == null) {
             forwardToLoginMessagePage(httpServletRequest, httpServletResponse, "The login request identifier was " +
                     "not found in the request. Unable to continue.");
@@ -785,7 +791,6 @@ public class AccessResource extends ApplicationResource {
 
                 // store the NiFi token
                 oidcService.storeJwt(oidcRequestIdentifier, nifiJwt);
-
             } catch (final Exception e) {
                 logger.error(OIDC_ID_TOKEN_AUTHN_ERROR + e.getMessage(), e);
 
@@ -831,7 +836,7 @@ public class AccessResource extends ApplicationResource {
             return Response.status(Response.Status.CONFLICT).entity(OPEN_ID_CONNECT_SUPPORT_IS_NOT_CONFIGURED_MSG).build();
         }
 
-        final String oidcRequestIdentifier = getCookieValue(httpServletRequest.getCookies(), OIDC_REQUEST_IDENTIFIER);
+        final String oidcRequestIdentifier = WebUtils.getCookie(httpServletRequest, OIDC_REQUEST_IDENTIFIER).getValue();
         if (oidcRequestIdentifier == null) {
             final String message = "The login request identifier was not found in the request. Unable to continue.";
             logger.warn(message);
@@ -847,8 +852,7 @@ public class AccessResource extends ApplicationResource {
             throw new IllegalArgumentException("A JWT for this login request identifier could not be found. Unable to continue.");
         }
 
-        // generate the response
-        return generateOkResponse(jwt).build();
+        return generateTokenResponse(generateOkResponse(jwt), jwt);
     }
 
     @GET
@@ -867,6 +871,10 @@ public class AccessResource extends ApplicationResource {
         if (!oidcService.isOidcEnabled()) {
             throw new IllegalStateException(OPEN_ID_CONNECT_SUPPORT_IS_NOT_CONFIGURED_MSG);
         }
+
+        final String mappedUserIdentity = NiFiUserUtils.getNiFiUserIdentity();
+        removeCookie(httpServletResponse, NiFiBearerTokenResolver.JWT_COOKIE_NAME);
+        logger.debug("Invalidated JWT for user [{}]", mappedUserIdentity);
 
         // Get the oidc discovery url
         String oidcDiscoveryUrl = properties.getOidcDiscoveryUrl();
@@ -920,7 +928,7 @@ public class AccessResource extends ApplicationResource {
             return;
         }
 
-        final String oidcRequestIdentifier = getCookieValue(httpServletRequest.getCookies(), OIDC_REQUEST_IDENTIFIER);
+        final String oidcRequestIdentifier = WebUtils.getCookie(httpServletRequest, OIDC_REQUEST_IDENTIFIER).getValue();
         if (oidcRequestIdentifier == null) {
             forwardToLogoutMessagePage(httpServletRequest, httpServletResponse, "The login request identifier was " +
                     "not found in the request. Unable to continue.");
@@ -1164,8 +1172,8 @@ public class AccessResource extends ApplicationResource {
 
             // if there is not certificate, consider a token
             if (certificates == null) {
-                // look for an authorization token
-                final String authorization = httpServletRequest.getHeader(JwtAuthenticationFilter.AUTHORIZATION);
+                // look for an authorization token in header or cookie
+                final String authorization = new NiFiBearerTokenResolver().resolve(httpServletRequest);
 
                 // if there is no authorization header, we don't know the user
                 if (authorization == null) {
@@ -1173,10 +1181,8 @@ public class AccessResource extends ApplicationResource {
                     accessStatus.setMessage("No credentials supplied, unknown user.");
                 } else {
                     try {
-                        // Extract the Base64 encoded token from the Authorization header
-                        final String token = StringUtils.substringAfterLast(authorization, " ");
-
-                        final JwtAuthenticationRequestToken jwtRequest = new JwtAuthenticationRequestToken(token, httpServletRequest.getRemoteAddr());
+                        // authenticate the token
+                        final JwtAuthenticationRequestToken jwtRequest = new JwtAuthenticationRequestToken(authorization, httpServletRequest.getRemoteAddr());
                         final NiFiAuthenticationToken authenticationResponse = (NiFiAuthenticationToken) jwtAuthenticationProvider.authenticate(jwtRequest);
                         final NiFiUser nifiUser = ((NiFiUserDetails) authenticationResponse.getDetails()).getNiFiUser();
 
@@ -1328,7 +1334,7 @@ public class AccessResource extends ApplicationResource {
             value = "Creates a token for accessing the REST API via Kerberos ticket exchange / SPNEGO negotiation",
             notes = "The token returned is formatted as a JSON Web Token (JWT). The token is base64 encoded and comprised of three parts. The header, " +
                     "the body, and the signature. The expiration of the token is a contained within the body. The token can be used in the Authorization header " +
-                    "in the format 'Authorization: Bearer <token>'.",
+                    "in the format 'Authorization: Bearer <token>'. It is also stored in the browser as a cookie.",
             response = String.class
     )
     @ApiResponses(
@@ -1383,7 +1389,7 @@ public class AccessResource extends ApplicationResource {
 
                 // build the response
                 final URI uri = URI.create(generateResourceUri("access", "kerberos"));
-                return generateCreatedResponse(uri, token).build();
+                return generateTokenResponse(generateCreatedResponse(uri, token), token);
             } catch (final AuthenticationException e) {
                 throw new AccessDeniedException(e.getMessage(), e);
             }
@@ -1391,12 +1397,12 @@ public class AccessResource extends ApplicationResource {
     }
 
     /**
-     * Creates a token for accessing the REST API via username/password.
+     * Creates a token for accessing the REST API via username/password stored as a cookie in the browser.
      *
      * @param httpServletRequest the servlet request
      * @param username           the username
      * @param password           the password
-     * @return A JWT (string)
+     * @return A JWT (string) in a cookie and as the body
      */
     @POST
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
@@ -1405,8 +1411,8 @@ public class AccessResource extends ApplicationResource {
     @ApiOperation(
             value = "Creates a token for accessing the REST API via username/password",
             notes = "The token returned is formatted as a JSON Web Token (JWT). The token is base64 encoded and comprised of three parts. The header, " +
-                    "the body, and the signature. The expiration of the token is a contained within the body. The token can be used in the Authorization header " +
-                    "in the format 'Authorization: Bearer <token>'.",
+                    "the body, and the signature. The expiration of the token is a contained within the body. It is stored in the browser as a cookie, but also returned in" +
+                    "the response body to be stored/used by third party client scripts.",
             response = String.class
     )
     @ApiResponses(
@@ -1459,7 +1465,7 @@ public class AccessResource extends ApplicationResource {
 
         // build the response
         final URI uri = URI.create(generateResourceUri("access", "token"));
-        return generateCreatedResponse(uri, token).build();
+        return generateTokenResponse(generateCreatedResponse(uri, token), token);
     }
 
     @DELETE
@@ -1490,8 +1496,9 @@ public class AccessResource extends ApplicationResource {
 
         try {
             logger.info("Logging out " + mappedUserIdentity);
-            jwtService.logOutUsingAuthHeader(httpServletRequest.getHeader(JwtAuthenticationFilter.AUTHORIZATION));
-            logger.info("Successfully invalidated JWT for " + mappedUserIdentity);
+            logOutUser(httpServletRequest);
+            removeCookie(httpServletResponse, NiFiBearerTokenResolver.JWT_COOKIE_NAME);
+            logger.debug("Invalidated JWT for user [{}]", mappedUserIdentity);
 
             // create a LogoutRequest and tell the LogoutRequestManager about it for later retrieval
             final LogoutRequest logoutRequest = new LogoutRequest(UUID.randomUUID().toString(), mappedUserIdentity);
@@ -1507,7 +1514,10 @@ public class AccessResource extends ApplicationResource {
 
             return generateOkResponse().build();
         } catch (final JwtException e) {
-            logger.error("Logout of user " + mappedUserIdentity + " failed due to: " + e.getMessage(), e);
+            logger.error("JWT processing failed for [{}], due to: ", mappedUserIdentity, e.getMessage(), e);
+            return Response.serverError().build();
+        } catch (final LogoutException e) {
+            logger.error("Logout failed for user [{}] due to: ", mappedUserIdentity, e.getMessage(), e);
             return Response.serverError().build();
         }
     }
@@ -1543,7 +1553,7 @@ public class AccessResource extends ApplicationResource {
         LogoutRequest logoutRequest = null;
 
         // check if a logout request identifier is present and if so complete the request
-        final String logoutRequestIdentifier = getCookieValue(httpServletRequest.getCookies(), LOGOUT_REQUEST_IDENTIFIER);
+        final String logoutRequestIdentifier = WebUtils.getCookie(httpServletRequest, LOGOUT_REQUEST_IDENTIFIER).getValue();
         if (logoutRequestIdentifier != null) {
             logoutRequest = logoutRequestManager.complete(logoutRequestIdentifier);
         }
@@ -1575,25 +1585,6 @@ public class AccessResource extends ApplicationResource {
         }
 
         return proposedTokenExpiration;
-    }
-
-    /**
-     * Gets the value of a cookie matching the specified name. If no cookie with that name exists, null is returned.
-     *
-     * @param cookies the cookies
-     * @param name    the name of the cookie
-     * @return the value of the corresponding cookie, or null if the cookie does not exist
-     */
-    private String getCookieValue(final Cookie[] cookies, final String name) {
-        if (cookies != null) {
-            for (final Cookie cookie : cookies) {
-                if (name.equals(cookie.getName())) {
-                    return cookie.getValue();
-                }
-            }
-        }
-
-        return null;
     }
 
     private String getOidcCallback() {
@@ -1812,4 +1803,14 @@ public class AccessResource extends ApplicationResource {
         this.logoutRequestManager = logoutRequestManager;
     }
 
+    private void logOutUser(HttpServletRequest httpServletRequest) {
+        final String jwt = new NiFiBearerTokenResolver().resolve(httpServletRequest);
+        jwtService.logOut(jwt);
+    }
+
+    private Response generateTokenResponse(ResponseBuilder builder, String token) {
+        // currently there is no way to use javax.servlet-api to set SameSite=Strict, so we do this using Jetty
+        HttpCookie jwtCookie = new HttpCookie(NiFiBearerTokenResolver.JWT_COOKIE_NAME, token, null, "/", VALID_FOR_SESSION_ONLY, true, true, null, 0, HttpCookie.SameSite.STRICT);
+        return builder.header(HttpHeader.SET_COOKIE.asString(), jwtCookie.getRFC6265SetCookie()).build();
+    }
 }
