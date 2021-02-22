@@ -590,12 +590,12 @@ public class TestCSVRecordReader {
         final List<RecordField> fields = getDefaultFields();
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
-        final String headerLine = "id, id, name, balance, address, city, state, zipCode, country";
-        final String inputRecord = "1, Another ID, John, 40.80, 123 My Street, My City, MS, 11111, USA";
+        final String headerLine = "id, id, name, name, balance, BALANCE, address, city, state, zipCode, country";
+        final String inputRecord = "1, Another ID, John, Smith, 40.80, 10.20, 123 My Street, My City, MS, 11111, USA";
         final String csvData = headerLine + "\n" + inputRecord;
         final byte[] inputData = csvData.getBytes();
 
-        // test nextRecord has shifted data columns right by 1 after the duplicate "id" header name
+        // test nextRecord has shifted data columns right by 1 after the duplicate "id" & "name" header names
         try (final InputStream bais = new ByteArrayInputStream(inputData);
              final CSVRecordReader reader = createReader(bais, schema, format)) {
 
@@ -605,11 +605,14 @@ public class TestCSVRecordReader {
             assertEquals("1", record.getValue("id"));
             assertEquals("Another ID", record.getValue("name"));
             assertEquals("John", record.getValue("balance"));
+            assertEquals("Smith", record.getValue("BALANCE"));
             assertEquals("40.80", record.getValue("address"));
-            assertEquals("123 My Street", record.getValue("city"));
-            assertEquals("My City", record.getValue("state"));
-            assertEquals("MS", record.getValue("zipCode"));
-            assertEquals("11111", record.getValue("country"));
+            assertEquals("10.20", record.getValue("city"));
+            assertEquals("123 My Street", record.getValue("state"));
+            assertEquals("My City", record.getValue("zipCode"));
+            assertEquals("MS", record.getValue("country"));
+            assertEquals("11111", record.getValue("unknown_field_index_9"));
+            assertEquals("USA", record.getValue("unknown_field_index_10"));
 
             assertNull(reader.nextRecord(false, false));
         }
@@ -619,7 +622,7 @@ public class TestCSVRecordReader {
         try (final InputStream bais = new ByteArrayInputStream(inputData)) {
             final IllegalArgumentException iae = assertThrows(IllegalArgumentException.class, () -> createReader(bais, schema, disallowDuplicateHeadersFormat));
             assertEquals(
-                    "The header contains a duplicate name: \"id\" in [id, id, name, balance, address, city, state, zipCode, country]. " +
+                    "The header contains a duplicate name: \"id\" in [id, id, name, name, balance, BALANCE, address, city, state, zipCode, country]. " +
                             "If this is valid then use CSVFormat.withAllowDuplicateHeaderNames().",
                     iae.getMessage()
             );

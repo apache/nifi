@@ -371,12 +371,12 @@ public class TestJacksonCSVRecordReader {
         final List<RecordField> fields = getDefaultFields();
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
-        final String headerLine = "id, id, name, balance, address, city, state, zipCode, country";
-        final String inputRecord = "1, Another ID, John, 40.80, 123 My Street, My City, MS, 11111, USA";
+        final String headerLine = "id, id, name, name, balance, BALANCE, address, city, state, zipCode, country";
+        final String inputRecord = "1, Another ID, John, Smith, 40.80, 10.20, 123 My Street, My City, MS, 11111, USA";
         final String csvData = headerLine + "\n" + inputRecord;
         final byte[] inputData = csvData.getBytes();
 
-        // test nextRecord has ignored the first "id" column
+        // test nextRecord has ignored the first "id" and "name" columns
         try (final InputStream bais = new ByteArrayInputStream(inputData);
              final JacksonCSVRecordReader reader = createReader(bais, schema, format)) {
 
@@ -384,7 +384,7 @@ public class TestJacksonCSVRecordReader {
             assertNotNull(record);
 
             assertEquals("Another ID", record.getValue("id"));
-            assertEquals("John", record.getValue("name"));
+            assertEquals("Smith", record.getValue("name"));
             assertEquals("40.80", record.getValue("balance"));
             assertEquals("123 My Street", record.getValue("address"));
             assertEquals("My City", record.getValue("city"));
@@ -401,7 +401,7 @@ public class TestJacksonCSVRecordReader {
              final JacksonCSVRecordReader reader = createReader(bais, schema, disallowDuplicateHeadersFormat)) {
             final IllegalArgumentException iae = assertThrows(IllegalArgumentException.class, () -> reader.nextRecord(false, false));
             assertEquals(
-                    "The header contains a duplicate name: \"id\" in [id, id, name, balance, address, city, state, zipCode, country]. " +
+                    "The header contains a duplicate name: \"id\" in [id, id, name, name, balance, BALANCE, address, city, state, zipCode, country]. " +
                             "If this is valid then use CSVFormat.withAllowDuplicateHeaderNames().",
                     iae.getMessage()
             );

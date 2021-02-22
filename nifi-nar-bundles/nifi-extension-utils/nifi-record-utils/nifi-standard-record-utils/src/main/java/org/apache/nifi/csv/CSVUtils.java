@@ -139,7 +139,12 @@ public class CSVUtils {
     public static final PropertyDescriptor ALLOW_DUPLICATE_HEADER_NAMES = new PropertyDescriptor.Builder()
         .name("csvutils-allow-duplicate-header-names")
         .displayName("Allow Duplicate Header Names")
-        .description("Whether duplicate header names are allowed")
+        .description("Whether duplicate header names are allowed. Header names are case-sensitive, for example \"name\" and \"Name\" are treated as separate fields. " +
+                "Handling of duplicate header names is CSV Parser specific (where applicable):\n" +
+                "* Apache Commons CSV - duplicate headers will result in column data \"shifting\" right with new fields " +
+                "created for \"unknown_field_index_X\" where \"X\" is the CSV column index number\n" +
+                "* Jackson CSV - duplicate headers will be de-duplicated with the field value being that of the right-most " +
+                "duplicate CSV column")
         .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .allowableValues("true", "false")
         .defaultValue("true")
