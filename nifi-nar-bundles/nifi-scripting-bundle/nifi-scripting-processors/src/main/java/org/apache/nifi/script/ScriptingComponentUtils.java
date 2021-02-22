@@ -20,16 +20,18 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.Validator;
+import org.apache.nifi.components.resource.ResourceCardinality;
+import org.apache.nifi.components.resource.ResourceReference;
+import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.search.SearchContext;
 import org.apache.nifi.search.SearchResult;
 
 import javax.script.ScriptEngineFactory;
 import javax.script.ScriptEngineManager;
-import java.io.FileInputStream;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -59,7 +61,7 @@ public class ScriptingComponentUtils {
             .name("Script File")
             .required(false)
             .description("Path to script file to execute. Only one of Script File or Script Body may be used")
-            .addValidator(new StandardValidators.FileExistsValidator(true))
+            .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
@@ -78,7 +80,7 @@ public class ScriptingComponentUtils {
             .description("Comma-separated list of paths to files and/or directories which contain modules required by the script.")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .identifiesExternalResource(ResourceCardinality.MULTIPLE, ResourceType.FILE, ResourceType.DIRECTORY)
             .build();
 
     public static Collection<SearchResult> search(final SearchContext context, final ComponentLog logger) {
@@ -86,14 +88,14 @@ public class ScriptingComponentUtils {
 
         final String term = context.getSearchTerm();
 
-        final String scriptFile = context.getProperty(ScriptingComponentUtils.SCRIPT_FILE).evaluateAttributeExpressions().getValue();
+        final ResourceReference scriptFile = context.getProperty(ScriptingComponentUtils.SCRIPT_FILE).evaluateAttributeExpressions().asResource();
         String script = context.getProperty(ScriptingComponentUtils.SCRIPT_BODY).getValue();
 
-        if (StringUtils.isBlank(script) && StringUtils.isBlank(scriptFile)) {
+        if (StringUtils.isBlank(script) && scriptFile == null) {
             return results;
         } else if (StringUtils.isBlank(script)) {
-            try {
-                script = IOUtils.toString(new FileInputStream(scriptFile), StandardCharsets.UTF_8);
+            try (final InputStream in = scriptFile.read()) {
+                script = IOUtils.toString(in, StandardCharsets.UTF_8);
             } catch (Exception e) {
                 logger.error(String.format("Could not read from path %s", scriptFile), e);
                 return results;

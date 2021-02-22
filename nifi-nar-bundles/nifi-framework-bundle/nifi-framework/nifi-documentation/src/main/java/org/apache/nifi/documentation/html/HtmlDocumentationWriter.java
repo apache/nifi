@@ -34,6 +34,9 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDependency;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.resource.ResourceCardinality;
+import org.apache.nifi.components.resource.ResourceDefinition;
+import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.documentation.DocumentationWriter;
 import org.apache.nifi.expression.ExpressionLanguageScope;
@@ -528,6 +531,32 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
                 if (property.isSensitive()) {
                     xmlStreamWriter.writeEmptyElement("br");
                     writeSimpleElement(xmlStreamWriter, "strong", "Sensitive Property: true");
+                }
+
+                final ResourceDefinition resourceDefinition = property.getResourceDefinition();
+                if (resourceDefinition != null) {
+                    xmlStreamWriter.writeEmptyElement("br");
+                    xmlStreamWriter.writeEmptyElement("br");
+
+                    final ResourceCardinality cardinality = resourceDefinition.getCardinality();
+                    final Set<ResourceType> resourceTypes = resourceDefinition.getResourceTypes();
+                    if (cardinality == ResourceCardinality.MULTIPLE) {
+                        if (resourceTypes.size() == 1) {
+                            xmlStreamWriter.writeCharacters("This property expects a comma-separated list of " + resourceTypes.iterator().next() + " resources");
+                        } else {
+                            xmlStreamWriter.writeCharacters("This property expects a comma-separated list of resources. Each of the resources may be of any of the following types: " +
+                                StringUtils.join(resourceDefinition.getResourceTypes(), ", "));
+                        }
+                    } else {
+                        if (resourceTypes.size() == 1) {
+                            xmlStreamWriter.writeCharacters("This property requires exactly one " + resourceTypes.iterator().next() + " to be provided.");
+                        } else {
+                            xmlStreamWriter.writeCharacters("This property requires exactly one resource to be provided. That resource may be any of the following types: " +
+                                StringUtils.join(resourceDefinition.getResourceTypes(), ", "));
+                        }
+                    }
+
+                    xmlStreamWriter.writeCharacters(".");
                 }
 
                 if (property.isExpressionLanguageSupported()) {

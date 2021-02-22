@@ -27,14 +27,14 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.File;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Arrays;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 public class TestInvokeJython extends BaseScriptTest {
 
@@ -109,13 +109,10 @@ public class TestInvokeJython extends BaseScriptTest {
     public void testUpdateAttributeFromProcessorModulePaths() throws Exception {
         // Prepare a set of easily identified paths for the Module Directory property
         final String moduleDirectoryTestPrefix = "test";
-        final String[] testModuleDirectoryValues = { "abc","\\a\\b\\c","\\123","\\d\"e" };
+        final String[] testModuleDirectoryValues = { "src/test/resources/jython/modules#0# with \"quotes\"" };
         final int numTestValues = testModuleDirectoryValues.length;
         // Prepend each module directory value with a simple prefix and an identifying number so we can identify it later.
-        final List<String> testModuleDirectoryFullValues = IntStream.range(0,numTestValues)
-                .boxed()
-                .map(i -> String.format("%s#%s#%s",moduleDirectoryTestPrefix,i,testModuleDirectoryValues[i]))
-                .collect(Collectors.toList());
+        final List<String> testModuleDirectoryFullValues = Arrays.asList(testModuleDirectoryValues);
         final String testModuleDirectoryCombined = String.join(",",testModuleDirectoryFullValues);
 
         // Run the script that captures the system path resulting from the Module Directory property
@@ -140,12 +137,12 @@ public class TestInvokeJython extends BaseScriptTest {
         final String[] effectivePaths = result.get(0).getAttribute("from-path").split(","); // Extract the comma-delimited paths from the script-produced attribute
         Assert.assertTrue(effectivePaths.length >= numTestValues); // we should have our test values, plus defaults
         // Isolate only the paths with our identified prefix
-        final List<String> relevantPaths = Arrays.stream(effectivePaths).filter(path -> path.startsWith(moduleDirectoryTestPrefix)).collect(Collectors.toList());
+        final List<String> relevantPaths = Arrays.stream(effectivePaths).filter(path -> path.contains(moduleDirectoryTestPrefix)).collect(Collectors.toList());
         Assert.assertEquals(testModuleDirectoryFullValues.size(), relevantPaths.size());
         relevantPaths.forEach(path -> {
             final int resultIx = Integer.valueOf(StringUtils.substringBetween(path,"#")); // extract the index so we can relate it to the sources, despite potential mangling
             final String expectedValue = testModuleDirectoryFullValues.get(resultIx);
-            Assert.assertEquals(expectedValue, path); // Ensure our path was passed through without mangling
+            Assert.assertEquals(new File(expectedValue).getAbsolutePath(), new File(path).getAbsolutePath()); // Ensure our path was passed through without mangling
         });
     }
 

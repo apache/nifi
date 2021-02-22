@@ -693,7 +693,7 @@ public class StandardProcessorTestRunner implements TestRunner {
         }
 
         // ensure controller service is valid before enabling
-        final ValidationContext validationContext = new MockValidationContext(context).getControllerServiceValidationContext(service);
+        final ValidationContext validationContext = new MockValidationContext(context, null, variableRegistry).getControllerServiceValidationContext(service);
         final Collection<ValidationResult> results = context.getControllerService(service.getIdentifier()).validate(validationContext);
 
         for (final ValidationResult result : results) {
@@ -703,7 +703,7 @@ public class StandardProcessorTestRunner implements TestRunner {
         }
 
         try {
-            final ConfigurationContext configContext = new MockConfigurationContext(service, configuration.getProperties(), context,variableRegistry);
+            final ConfigurationContext configContext = new MockConfigurationContext(service, configuration.getProperties(), context, variableRegistry);
             ReflectionUtils.invokeMethodsWithAnnotation(OnEnabled.class, service, configContext);
         } catch (final InvocationTargetException ite) {
             ite.getCause().printStackTrace();

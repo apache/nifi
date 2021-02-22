@@ -20,6 +20,8 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
+import org.apache.nifi.components.resource.ResourceCardinality;
+import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.ssl.SSLContextService;
@@ -50,7 +52,7 @@ public class JMSConnectionFactoryProperties {
                     + "to the classpath (defined as a comma separated list of values). Such resources typically represent target JMS client libraries "
                     + "for the ConnectionFactory implementation.")
             .required(false)
-            .addValidator(StandardValidators.createListValidator(true, true, StandardValidators.createURLorFileValidator()))
+            .identifiesExternalResource(ResourceCardinality.MULTIPLE, ResourceType.FILE, ResourceType.DIRECTORY, ResourceType.URL)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .dynamicallyModifiesClasspath(true)
             .build();

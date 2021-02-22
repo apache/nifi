@@ -33,6 +33,8 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.RequiredPermission;
+import org.apache.nifi.components.resource.ResourceCardinality;
+import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.DataUnit;
@@ -44,7 +46,6 @@ import org.apache.nifi.processors.hadoop.record.HDFSRecordWriter;
 import org.apache.nifi.processors.orc.record.ORCHDFSRecordWriter;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.record.RecordSchema;
-import org.apache.nifi.util.hive.HiveUtils;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -79,7 +80,9 @@ public class PutORC extends AbstractPutHDFSRecord {
             .displayName("ORC Configuration Resources")
             .description("A file or comma separated list of files which contains the ORC configuration (hive-site.xml, e.g.). Without this, Hadoop "
                     + "will search the classpath for a 'hive-site.xml' file or will revert to a default configuration. Please see the ORC documentation for more details.")
-            .required(false).addValidator(HiveUtils.createMultipleFilesExistValidator()).build();
+            .required(false)
+            .identifiesExternalResource(ResourceCardinality.MULTIPLE, ResourceType.FILE)
+            .build();
 
     public static final PropertyDescriptor STRIPE_SIZE = new PropertyDescriptor.Builder()
             .name("putorc-stripe-size")

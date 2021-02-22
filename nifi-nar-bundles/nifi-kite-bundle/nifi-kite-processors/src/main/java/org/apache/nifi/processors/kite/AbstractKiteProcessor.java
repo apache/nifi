@@ -21,11 +21,6 @@ package org.apache.nifi.processors.kite;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.Resources;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.List;
 import org.apache.avro.Schema;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -35,10 +30,11 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
+import org.apache.nifi.components.resource.ResourceCardinality;
+import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processors.hadoop.HadoopValidators;
 import org.apache.nifi.util.StringUtils;
 import org.kitesdk.data.DatasetNotFoundException;
 import org.kitesdk.data.Datasets;
@@ -46,18 +42,23 @@ import org.kitesdk.data.SchemaNotFoundException;
 import org.kitesdk.data.URIBuilder;
 import org.kitesdk.data.spi.DefaultConfiguration;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.List;
+
 abstract class AbstractKiteProcessor extends AbstractProcessor {
 
     private static final Splitter COMMA = Splitter.on(',').trimResults();
 
-    protected static final PropertyDescriptor CONF_XML_FILES
-            = new PropertyDescriptor.Builder()
+    protected static final PropertyDescriptor CONF_XML_FILES = new PropertyDescriptor.Builder()
             .name("Hadoop configuration files")
             .displayName("Hadoop configuration Resources")
             .description("A file or comma separated list of files which contains the Hadoop file system configuration. Without this, Hadoop "
                     + "will search the classpath for a 'core-site.xml' and 'hdfs-site.xml' file or will revert to a default configuration.")
             .required(false)
-            .addValidator(HadoopValidators.ONE_OR_MORE_FILE_EXISTS_VALIDATOR)
+            .identifiesExternalResource(ResourceCardinality.MULTIPLE, ResourceType.FILE)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 

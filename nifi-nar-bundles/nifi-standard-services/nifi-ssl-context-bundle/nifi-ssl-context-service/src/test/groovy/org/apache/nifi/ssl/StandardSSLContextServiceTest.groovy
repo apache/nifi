@@ -16,23 +16,13 @@
  */
 package org.apache.nifi.ssl
 
-import org.apache.nifi.components.ValidationContext
-import org.apache.nifi.components.ValidationResult
-import org.apache.nifi.components.Validator
+
 import org.apache.nifi.security.util.ClientAuth
-import org.apache.nifi.state.MockStateManager
 import org.apache.nifi.util.MockProcessContext
-import org.apache.nifi.util.MockValidationContext
-import org.apache.nifi.util.MockVariableRegistry
 import org.apache.nifi.util.TestRunner
 import org.apache.nifi.util.TestRunners
 import org.bouncycastle.jce.provider.BouncyCastleProvider
-import org.junit.After
-import org.junit.AfterClass
-import org.junit.Before
-import org.junit.BeforeClass
-import org.junit.Rule
-import org.junit.Test
+import org.junit.*
 import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
@@ -221,42 +211,7 @@ class StandardSSLContextServiceTest {
         }
 
         // Assert
-        assert msg =~ "Cannot enable Controller Service SSLContextService.* because it is in an invalid state: 'Truststore Filename'.* is invalid because File.* does not exist or cannot be read"
         runner.assertNotValid(sslContextService)
-    }
-
-    @Test
-    void testShouldNotEvaluateExpressionLanguageInFileValidator() {
-        // Arrange
-        final String VALID_TRUSTSTORE_PATH_WITH_EL = "\${literal(''):trim()}${TRUSTSTORE_PATH}"
-
-        TestRunner runner = TestRunners.newTestRunner(TestProcessor.class)
-        String controllerServiceId = "ssl-context"
-        final SSLContextService sslContextService = new StandardSSLContextService()
-        runner.addControllerService(controllerServiceId, sslContextService)
-        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE, VALID_TRUSTSTORE_PATH_WITH_EL)
-        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_PASSWORD, TRUSTSTORE_PASSWORD)
-        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_TYPE, TRUSTSTORE_TYPE)
-
-        // The verifySslConfig and customValidate methods correctly do not evaluate EL, but the custom file validator does, so extract it alone and validate
-        Validator fileValidator = StandardSSLContextService.createFileExistsAndReadableValidator()
-        final ValidationContext mockValidationContext = new MockValidationContext(
-                runner.getProcessContext() as MockProcessContext,
-                new MockStateManager(sslContextService),
-                new MockVariableRegistry())
-
-        // Act
-        ValidationResult vr = fileValidator.validate(StandardSSLContextService.TRUSTSTORE.name, VALID_TRUSTSTORE_PATH_WITH_EL, mockValidationContext)
-        logger.info("Custom file validation result: ${vr}")
-
-        // Assert
-        final MockProcessContext processContext = (MockProcessContext) runner.getProcessContext()
-
-        // If the EL was evaluated, the paths would be identical
-        assert processContext.getControllerServiceProperties(sslContextService).get(StandardSSLContextService.TRUSTSTORE, "") != TRUSTSTORE_PATH
-
-        // If the EL was evaluated, the path would be valid
-        assert !vr.isValid()
     }
 
     /**

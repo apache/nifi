@@ -16,16 +16,16 @@
  */
 package org.apache.nifi.util;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.attribute.expression.language.Query;
 import org.apache.nifi.attribute.expression.language.Query.Range;
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.components.resource.ResourceReference;
+import org.apache.nifi.components.resource.ResourceReferenceFactory;
+import org.apache.nifi.components.resource.ResourceReferences;
+import org.apache.nifi.components.resource.StandardResourceReferences;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.expression.AttributeValueDecorator;
@@ -35,6 +35,13 @@ import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.registry.VariableRegistry;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 public class MockPropertyValue implements PropertyValue {
     private final String rawValue;
@@ -270,6 +277,49 @@ public class MockPropertyValue implements PropertyValue {
             return serviceType.cast(service);
         }
         throw new IllegalArgumentException("Controller Service with identifier " + rawValue + " is of type " + service.getClass() + " and cannot be cast to " + serviceType);
+    }
+
+    @Override
+    public ResourceReference asResource() {
+        if (rawValue == null) {
+            return null;
+        }
+
+        final List<String> resourceLocations = parseResourceLocations();
+        if (resourceLocations.size() == 1) {
+            return ResourceReferenceFactory.createResourceReference(resourceLocations.get(0));
+        }
+
+        return null;
+    }
+
+    @Override
+    public ResourceReferences asResources() {
+        final List<ResourceReference> references;
+        if (rawValue == null) {
+            references = Collections.emptyList();
+        } else {
+            final List<String> locations = parseResourceLocations();
+            references = new ArrayList<>(locations.size());
+            locations.forEach(location -> references.add(ResourceReferenceFactory.createResourceReference(location)));
+        }
+
+        return new StandardResourceReferences(references);
+    }
+
+    private List<String> parseResourceLocations() {
+        final List<String> resourceLocations = new ArrayList<>();
+        final String[] splits = rawValue.split(",");
+        for (final String split : splits) {
+            final String trimmed = split.trim();
+            if (trimmed.isEmpty()) {
+                continue;
+            }
+
+            resourceLocations.add(trimmed);
+        }
+
+        return resourceLocations;
     }
 
     @Override
