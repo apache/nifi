@@ -24,6 +24,10 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.resource.ResourceContext;
+import org.apache.nifi.components.resource.ResourceReferenceFactory;
+import org.apache.nifi.components.resource.StandardResourceContext;
+import org.apache.nifi.components.resource.StandardResourceReferenceFactory;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateManagerProvider;
@@ -219,9 +223,12 @@ public class StandardStateManagerProvider implements StateManagerProvider {
         final ParameterParser parser = new ExpressionLanguageAwareParameterParser();
         final Map<PropertyDescriptor, PropertyValue> propertyMap = new HashMap<>();
         final Map<PropertyDescriptor, PropertyConfiguration> propertyStringMap = new HashMap<>();
+
+        final ResourceReferenceFactory resourceReferenceFactory = new StandardResourceReferenceFactory();
         //set default configuration
         for (final PropertyDescriptor descriptor : provider.getPropertyDescriptors()) {
-            propertyMap.put(descriptor, new StandardPropertyValue(descriptor.getDefaultValue(),null, parameterLookup, variableRegistry));
+            final ResourceContext resourceContext = new StandardResourceContext(resourceReferenceFactory, descriptor);
+            propertyMap.put(descriptor, new StandardPropertyValue(resourceContext, descriptor.getDefaultValue(),null, parameterLookup, variableRegistry));
 
             final ParameterTokenList references = parser.parseTokens(descriptor.getDefaultValue());
             final PropertyConfiguration configuration = new PropertyConfiguration(descriptor.getDefaultValue(), references, references.toReferenceList());
@@ -237,7 +244,8 @@ public class StandardStateManagerProvider implements StateManagerProvider {
             final PropertyConfiguration configuration = new PropertyConfiguration(entry.getValue(), references, references.toReferenceList());
 
             propertyStringMap.put(descriptor, configuration);
-            propertyMap.put(descriptor, new StandardPropertyValue(entry.getValue(),null, parameterLookup, variableRegistry));
+            final ResourceContext resourceContext = new StandardResourceContext(resourceReferenceFactory, descriptor);
+            propertyMap.put(descriptor, new StandardPropertyValue(resourceContext, entry.getValue(),null, parameterLookup, variableRegistry));
         }
 
         final ComponentLog logger = new SimpleProcessLogger(providerId, provider);

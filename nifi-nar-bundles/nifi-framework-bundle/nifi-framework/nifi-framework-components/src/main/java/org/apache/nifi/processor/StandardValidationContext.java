@@ -17,7 +17,6 @@
  */
 package org.apache.nifi.processor;
 
-import org.apache.nifi.components.validation.AbstractValidationContext;
 import org.apache.nifi.attribute.expression.language.PreparedQuery;
 import org.apache.nifi.attribute.expression.language.Query;
 import org.apache.nifi.attribute.expression.language.Query.Range;
@@ -26,6 +25,10 @@ import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.resource.ResourceContext;
+import org.apache.nifi.components.resource.StandardResourceContext;
+import org.apache.nifi.components.resource.StandardResourceReferenceFactory;
+import org.apache.nifi.components.validation.AbstractValidationContext;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.controller.PropertyConfiguration;
@@ -103,7 +106,8 @@ public class StandardValidationContext extends AbstractValidationContext impleme
 
     @Override
     public PropertyValue newPropertyValue(final String rawValue) {
-        return new StandardPropertyValue(rawValue, controllerServiceProvider, parameterContext, Query.prepareWithParametersPreEvaluated(rawValue), variableRegistry);
+        final ResourceContext resourceContext = new StandardResourceContext(new StandardResourceReferenceFactory(), null);
+        return new StandardPropertyValue(resourceContext, rawValue, controllerServiceProvider, parameterContext, Query.prepareWithParametersPreEvaluated(rawValue), variableRegistry);
     }
 
     @Override
@@ -124,7 +128,8 @@ public class StandardValidationContext extends AbstractValidationContext impleme
     public PropertyValue getProperty(final PropertyDescriptor property) {
         final PropertyConfiguration configuredValue = properties.get(property);
         final String effectiveValue = configuredValue == null ? property.getDefaultValue() : configuredValue.getEffectiveValue(parameterContext);
-        return new StandardPropertyValue(effectiveValue, controllerServiceProvider, parameterContext, preparedQueries.get(property), variableRegistry);
+        final ResourceContext resourceContext = new StandardResourceContext(new StandardResourceReferenceFactory(), property);
+        return new StandardPropertyValue(resourceContext, effectiveValue, controllerServiceProvider, parameterContext, preparedQueries.get(property), variableRegistry);
     }
 
     @Override

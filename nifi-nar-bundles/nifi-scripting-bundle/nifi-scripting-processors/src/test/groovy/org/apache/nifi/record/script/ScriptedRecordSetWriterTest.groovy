@@ -17,10 +17,10 @@
 package org.apache.nifi.record.script
 
 import org.apache.commons.io.FileUtils
-import org.apache.nifi.components.PropertyDescriptor
-import org.apache.nifi.controller.ConfigurationContext
-import org.apache.nifi.controller.ControllerServiceInitializationContext
-import org.apache.nifi.logging.ComponentLog
+import org.apache.nifi.processor.AbstractProcessor
+import org.apache.nifi.processor.ProcessContext
+import org.apache.nifi.processor.ProcessSession
+import org.apache.nifi.processor.exception.ProcessException
 import org.apache.nifi.processors.script.AccessibleScriptingComponentHelper
 import org.apache.nifi.script.ScriptingComponentHelper
 import org.apache.nifi.script.ScriptingComponentUtils
@@ -30,7 +30,8 @@ import org.apache.nifi.serialization.record.MapRecord
 import org.apache.nifi.serialization.record.RecordField
 import org.apache.nifi.serialization.record.RecordFieldType
 import org.apache.nifi.serialization.record.RecordSet
-import org.apache.nifi.util.MockPropertyValue
+import org.apache.nifi.util.MockComponentLog
+import org.apache.nifi.util.TestRunner
 import org.apache.nifi.util.TestRunners
 import org.junit.Before
 import org.junit.BeforeClass
@@ -40,10 +41,8 @@ import org.junit.runners.JUnit4
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
-import static org.junit.Assert.assertNotNull
 import static org.junit.Assert.assertEquals
-import static org.mockito.Mockito.mock
-import static org.mockito.Mockito.when
+import static org.junit.Assert.assertNotNull
 
 /**
  * Unit tests for the ScriptedReader class
@@ -74,35 +73,23 @@ class ScriptedRecordSetWriterTest {
 
     @Test
     void testRecordWriterGroovyScript() {
+        final TestRunner runner = TestRunners.newTestRunner(new AbstractProcessor() {
+            @Override
+            public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+            }
+        });
 
-        def properties = [:] as Map<PropertyDescriptor, String>
-        recordSetWriterFactory.getSupportedPropertyDescriptors().each {PropertyDescriptor descriptor ->
-            properties.put(descriptor, descriptor.getDefaultValue())
-        }
-
-        // Mock the ConfigurationContext for setup(...)
-        def configurationContext = mock(ConfigurationContext)
-        when(configurationContext.getProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE))
-                .thenReturn(new MockPropertyValue('Groovy'))
-        when(configurationContext.getProperty(ScriptingComponentUtils.SCRIPT_FILE))
-                .thenReturn(new MockPropertyValue('target/test/resources/groovy/test_record_writer_inline.groovy'))
-        when(configurationContext.getProperty(ScriptingComponentUtils.SCRIPT_BODY))
-                .thenReturn(new MockPropertyValue(null))
-        when(configurationContext.getProperty(ScriptingComponentUtils.MODULES))
-                .thenReturn(new MockPropertyValue(null))
-
-        def logger = mock(ComponentLog)
-        def initContext = mock(ControllerServiceInitializationContext)
-        when(initContext.getIdentifier()).thenReturn(UUID.randomUUID().toString())
-        when(initContext.getLogger()).thenReturn(logger)
-
-        recordSetWriterFactory.initialize initContext
-        recordSetWriterFactory.onEnabled configurationContext
+        runner.addControllerService("writer", recordSetWriterFactory);
+        runner.setProperty(recordSetWriterFactory, "Script Engine", "Groovy");
+        runner.setProperty(recordSetWriterFactory, ScriptingComponentUtils.SCRIPT_FILE, 'target/test/resources/groovy/test_record_writer_inline.groovy');
+        runner.setProperty(recordSetWriterFactory, ScriptingComponentUtils.SCRIPT_BODY, (String) null);
+        runner.setProperty(recordSetWriterFactory, ScriptingComponentUtils.MODULES, (String) null);
+        runner.enableControllerService(recordSetWriterFactory);
 
 		def schema = recordSetWriterFactory.getSchema(Collections.emptyMap(), null)
-        
+
 		ByteArrayOutputStream outputStream = new ByteArrayOutputStream()
-        RecordSetWriter recordSetWriter = recordSetWriterFactory.createWriter(logger, schema, outputStream, Collections.emptyMap())
+        RecordSetWriter recordSetWriter = recordSetWriterFactory.createWriter(new MockComponentLog('id', recordSetWriterFactory), schema, outputStream, Collections.emptyMap())
         assertNotNull(recordSetWriter)
 
         def recordSchema = new SimpleRecordSchema(

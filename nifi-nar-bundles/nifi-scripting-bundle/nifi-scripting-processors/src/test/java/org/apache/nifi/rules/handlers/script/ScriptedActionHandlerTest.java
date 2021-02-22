@@ -16,11 +16,10 @@
  */
 package org.apache.nifi.rules.handlers.script;
 
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.state.StateManager;
-import org.apache.nifi.controller.ConfigurationContext;
-import org.apache.nifi.controller.ControllerServiceInitializationContext;
-import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processor.AbstractProcessor;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processors.script.AccessibleScriptingComponentHelper;
 import org.apache.nifi.reporting.Bulletin;
 import org.apache.nifi.reporting.BulletinFactory;
@@ -31,10 +30,8 @@ import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.rules.Action;
 import org.apache.nifi.script.ScriptingComponentHelper;
 import org.apache.nifi.script.ScriptingComponentUtils;
-import org.apache.nifi.state.MockStateManager;
+import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.util.MockBulletinRepository;
-import org.apache.nifi.util.MockControllerServiceInitializationContext;
-import org.apache.nifi.util.MockPropertyValue;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Before;
@@ -46,14 +43,12 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import static junit.framework.TestCase.assertTrue;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -61,7 +56,6 @@ import static org.mockito.Mockito.when;
 
 public class ScriptedActionHandlerTest {
 
-    private ConfigurationContext context;
     private TestRunner runner;
     private ReportingContext reportingContext;
     private MockScriptedActionHandler actionHandler;
@@ -81,7 +75,6 @@ public class ScriptedActionHandlerTest {
     @Test
     public void testActions() throws InitializationException {
         actionHandler = initTask("src/test/resources/groovy/test_action_handler.groovy");
-        actionHandler.onEnabled(context);
         List<Action> actions = Arrays.asList(new Action("LOG", attrs), new Action("ALERT", attrs));
         actions.forEach((action) -> actionHandler.execute(action, facts));
         // Verify a fact was added (not the intended operation of ActionHandler, but testable)
@@ -96,7 +89,6 @@ public class ScriptedActionHandlerTest {
         when(reportingContext.getBulletinRepository()).thenReturn(mockScriptedBulletinRepository);
         when(reportingContext.createBulletin(anyString(), Mockito.any(Severity.class), anyString()))
                 .thenAnswer(invocation -> BulletinFactory.createBulletin(invocation.getArgument(0), invocation.getArgument(1).toString(), invocation.getArgument(2)));
-        actionHandler.onEnabled(context);
         List<Action> actions = Arrays.asList(new Action("LOG", attrs), new Action("ALERT", attrs));
         actions.forEach(action -> actionHandler.execute(reportingContext, action, facts));
 
@@ -113,7 +105,6 @@ public class ScriptedActionHandlerTest {
         when(reportingContext.getBulletinRepository()).thenReturn(mockScriptedBulletinRepository);
         when(reportingContext.createBulletin(anyString(), Mockito.any(Severity.class), anyString()))
                 .thenAnswer(invocation -> BulletinFactory.createBulletin(invocation.getArgument(0), invocation.getArgument(1).toString(), invocation.getArgument(2)));
-        actionHandler.onEnabled(context);
         List<Action> actions = Arrays.asList(new Action("LOG", attrs), new Action("ALERT", attrs));
         actions.forEach(action -> actionHandler.execute(reportingContext, action, facts));
 
@@ -201,39 +192,24 @@ public class ScriptedActionHandlerTest {
     }
 
     private MockScriptedActionHandler initTask(String scriptFile) throws InitializationException {
+        final TestRunner runner = TestRunners.newTestRunner(new AbstractProcessor() {
+            @Override
+            public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+            }
+        });
+
+        final MockRecordWriter writer = new MockRecordWriter(null, false); // No header, don"t quote values
+        runner.addControllerService("writer", writer);
+        runner.enableControllerService(writer);
 
         final MockScriptedActionHandler actionHandler = new MockScriptedActionHandler();
-        context = mock(ConfigurationContext.class);
-        StateManager stateManager = new MockStateManager(actionHandler);
+        runner.addControllerService("actionHandler", actionHandler);
+        runner.setProperty(actionHandler, "Script Engine", "Groovy");
+        runner.setProperty(actionHandler, ScriptingComponentUtils.SCRIPT_FILE, scriptFile);
+        runner.setProperty(actionHandler, ScriptingComponentUtils.SCRIPT_BODY, (String) null);
+        runner.setProperty(actionHandler, ScriptingComponentUtils.MODULES, (String) null);
+        runner.enableControllerService(actionHandler);
 
-        final ComponentLog logger = mock(ComponentLog.class);
-        final ControllerServiceInitializationContext initContext = new MockControllerServiceInitializationContext(actionHandler, UUID.randomUUID().toString(), logger, stateManager);
-        actionHandler.initialize(initContext);
-
-        // Call something that sets up the ScriptingComponentHelper, so we can mock it
-        actionHandler.getSupportedPropertyDescriptors();
-
-        Map<PropertyDescriptor, String> properties = new HashMap<>();
-        properties.put(actionHandler.getScriptingComponentHelper().SCRIPT_ENGINE, actionHandler.getScriptingComponentHelper().SCRIPT_ENGINE.getName());
-        properties.put(ScriptingComponentUtils.SCRIPT_FILE, ScriptingComponentUtils.SCRIPT_FILE.getName());
-        properties.put(ScriptingComponentUtils.SCRIPT_BODY, ScriptingComponentUtils.SCRIPT_BODY.getName());
-        properties.put(ScriptingComponentUtils.MODULES, ScriptingComponentUtils.MODULES.getName());
-        when(context.getProperties()).thenReturn(properties);
-
-        when(context.getProperty(actionHandler.getScriptingComponentHelper().SCRIPT_ENGINE))
-                .thenReturn(new MockPropertyValue("Groovy"));
-        when(context.getProperty(ScriptingComponentUtils.SCRIPT_FILE))
-                .thenReturn(new MockPropertyValue(scriptFile));
-        when(context.getProperty(ScriptingComponentUtils.SCRIPT_BODY))
-                .thenReturn(new MockPropertyValue(null));
-        when(context.getProperty(ScriptingComponentUtils.MODULES))
-                .thenReturn(new MockPropertyValue(null));
-        try {
-            actionHandler.onEnabled(context);
-        } catch (Exception e) {
-            e.printStackTrace();
-            fail("onEnabled error: " + e.getMessage());
-        }
         return actionHandler;
     }
 

@@ -17,17 +17,16 @@
 package org.apache.nifi.record.script
 
 import org.apache.commons.io.FileUtils
-import org.apache.nifi.components.PropertyDescriptor
-import org.apache.nifi.controller.ConfigurationContext
-import org.apache.nifi.controller.ControllerServiceInitializationContext
-import org.apache.nifi.logging.ComponentLog
-import org.apache.nifi.processor.util.StandardValidators
+import org.apache.nifi.processor.AbstractProcessor
+import org.apache.nifi.processor.ProcessContext
+import org.apache.nifi.processor.ProcessSession
+import org.apache.nifi.processor.exception.ProcessException
 import org.apache.nifi.processors.script.AccessibleScriptingComponentHelper
 import org.apache.nifi.script.ScriptingComponentHelper
 import org.apache.nifi.script.ScriptingComponentUtils
 import org.apache.nifi.serialization.RecordReader
 import org.apache.nifi.util.MockComponentLog
-import org.apache.nifi.util.MockPropertyValue
+import org.apache.nifi.util.TestRunner
 import org.apache.nifi.util.TestRunners
 import org.junit.Before
 import org.junit.BeforeClass
@@ -38,12 +37,7 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
 import static junit.framework.TestCase.assertEquals
-import static org.junit.Assert.assertNotNull
-import static org.junit.Assert.assertNull
-import static org.junit.Assert.fail
-import static org.mockito.Mockito.mock
-import static org.mockito.Mockito.when
-
+import static org.junit.Assert.*
 /**
  * Unit tests for the ScriptedReader class
  */
@@ -73,35 +67,24 @@ class ScriptedReaderTest {
 
     @Test
     void testRecordReaderGroovyScript() {
+        final TestRunner runner = TestRunners.newTestRunner(new AbstractProcessor() {
+            @Override
+            public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+            }
+        });
 
-        def properties = [:] as Map<PropertyDescriptor, String>
-        recordReaderFactory.getSupportedPropertyDescriptors().each {PropertyDescriptor descriptor ->
-            properties.put(descriptor, descriptor.getDefaultValue())
-        }
-
-        // Mock the ConfigurationContext for setup(...)
-        def configurationContext = mock(ConfigurationContext)
-        when(configurationContext.getProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE))
-                .thenReturn(new MockPropertyValue('Groovy'))
-        when(configurationContext.getProperty(ScriptingComponentUtils.SCRIPT_FILE))
-                .thenReturn(new MockPropertyValue('target/test/resources/groovy/test_record_reader_inline.groovy'))
-        when(configurationContext.getProperty(ScriptingComponentUtils.SCRIPT_BODY))
-                .thenReturn(new MockPropertyValue(null))
-        when(configurationContext.getProperty(ScriptingComponentUtils.MODULES))
-                .thenReturn(new MockPropertyValue(null))
-
-        def logger = mock(ComponentLog)
-        def initContext = mock(ControllerServiceInitializationContext)
-        when(initContext.getIdentifier()).thenReturn(UUID.randomUUID().toString())
-        when(initContext.getLogger()).thenReturn(logger)
-
-        recordReaderFactory.initialize initContext
-        recordReaderFactory.onEnabled configurationContext
+        runner.addControllerService("reader", recordReaderFactory);
+        runner.setProperty(recordReaderFactory, "Script Engine", "Groovy");
+        runner.setProperty(recordReaderFactory, ScriptingComponentUtils.SCRIPT_FILE, 'target/test/resources/groovy/test_record_reader_inline.groovy');
+        runner.setProperty(recordReaderFactory, ScriptingComponentUtils.SCRIPT_BODY, (String) null);
+        runner.setProperty(recordReaderFactory, ScriptingComponentUtils.MODULES, (String) null);
+        runner.enableControllerService(recordReaderFactory);
 
         byte[] contentBytes = 'Flow file content not used'.bytes
         InputStream inStream = new ByteArrayInputStream(contentBytes)
 
-        RecordReader recordReader = recordReaderFactory.createRecordReader(Collections.emptyMap(), inStream, contentBytes.length, logger)
+        RecordReader recordReader = recordReaderFactory.createRecordReader(Collections.emptyMap(), inStream, contentBytes.length,
+                new MockComponentLog("id", recordReaderFactory))
         assertNotNull(recordReader)
 
         3.times {
@@ -114,18 +97,17 @@ class ScriptedReaderTest {
 
     @Test
     void testXmlRecordReaderGroovyScript() {
+        final TestRunner runner = TestRunners.newTestRunner(new AbstractProcessor() {
+            @Override
+            public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+            }
+        });
 
-        def properties = [:] as Map<PropertyDescriptor, String>
-        recordReaderFactory.getSupportedPropertyDescriptors().each {PropertyDescriptor descriptor ->
-            properties.put(descriptor, descriptor.getDefaultValue())
-        }
-
-        // Test dynamic property descriptor
-        PropertyDescriptor SCHEMA_TEXT = new PropertyDescriptor.Builder()
-                .name('schema.text')
-                .dynamic(true)
-                .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-                .build()
+        runner.addControllerService("reader", recordReaderFactory);
+        runner.setProperty(recordReaderFactory, "Script Engine", "Groovy");
+        runner.setProperty(recordReaderFactory, ScriptingComponentUtils.SCRIPT_FILE, 'target/test/resources/groovy/test_record_reader_xml.groovy');
+        runner.setProperty(recordReaderFactory, ScriptingComponentUtils.SCRIPT_BODY, (String) null);
+        runner.setProperty(recordReaderFactory, ScriptingComponentUtils.MODULES, (String) null);
 
         def schemaText = '''
                 [
@@ -134,28 +116,10 @@ class ScriptedReaderTest {
                   {"code": "int"}
                 ]
             '''
-        properties.put(SCHEMA_TEXT, schemaText)
-
-        // Mock the ConfigurationContext for setup(...)
-        def configurationContext = mock(ConfigurationContext)
-        when(configurationContext.getProperties()).thenReturn(properties)
-        when(configurationContext.getProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE))
-                .thenReturn(new MockPropertyValue('Groovy'))
-        when(configurationContext.getProperty(ScriptingComponentUtils.SCRIPT_FILE))
-                .thenReturn(new MockPropertyValue('target/test/resources/groovy/test_record_reader_xml.groovy'))
-        when(configurationContext.getProperty(ScriptingComponentUtils.SCRIPT_BODY))
-                .thenReturn(new MockPropertyValue(null))
-        when(configurationContext.getProperty(ScriptingComponentUtils.MODULES))
-                .thenReturn(new MockPropertyValue(null))
-        when(configurationContext.getProperty(SCHEMA_TEXT)).thenReturn(new MockPropertyValue(schemaText))
+        runner.setProperty(recordReaderFactory, 'schema.text', schemaText)
 
         def logger = new MockComponentLog('ScriptedReader', '')
-        def initContext = mock(ControllerServiceInitializationContext)
-        when(initContext.getIdentifier()).thenReturn(UUID.randomUUID().toString())
-        when(initContext.getLogger()).thenReturn(logger)
-
-        recordReaderFactory.initialize initContext
-        recordReaderFactory.onEnabled configurationContext
+        runner.enableControllerService(recordReaderFactory)
 
         Map<String, String> schemaVariables = ['record.tag': 'myRecord']
 
@@ -194,51 +158,35 @@ class ScriptedReaderTest {
 
     @Test
     void testRecordReaderGroovyScriptChangeModuleDirectory() {
+        final TestRunner runner = TestRunners.newTestRunner(new AbstractProcessor() {
+            @Override
+            public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+            }
+        });
 
-        def properties = [:] as Map<PropertyDescriptor, String>
-        recordReaderFactory.getSupportedPropertyDescriptors().each {PropertyDescriptor descriptor ->
-            properties.put(descriptor, descriptor.getDefaultValue())
-        }
+        runner.addControllerService("reader", recordReaderFactory);
+        runner.setProperty(recordReaderFactory, "Script Engine", "Groovy");
+        runner.setProperty(recordReaderFactory, ScriptingComponentUtils.SCRIPT_FILE, 'target/test/resources/groovy/test_record_reader_load_module.groovy');
+        runner.setProperty(recordReaderFactory, ScriptingComponentUtils.SCRIPT_BODY, (String) null);
+        runner.setProperty(recordReaderFactory, ScriptingComponentUtils.MODULES, (String) null);
 
-        // Mock the ConfigurationContext for setup(...)
-        def configurationContext = mock(ConfigurationContext)
-        when(configurationContext.getProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE))
-                .thenReturn(new MockPropertyValue('Groovy'))
-        when(configurationContext.getProperty(ScriptingComponentUtils.SCRIPT_FILE))
-                .thenReturn(new MockPropertyValue('target/test/resources/groovy/test_record_reader_load_module.groovy'))
-        when(configurationContext.getProperty(ScriptingComponentUtils.SCRIPT_BODY))
-                .thenReturn(new MockPropertyValue(null))
-        when(configurationContext.getProperty(ScriptingComponentUtils.MODULES))
-                .thenReturn(new MockPropertyValue(null))
-
-        def logger = mock(ComponentLog)
-        def initContext = mock(ControllerServiceInitializationContext)
-        when(initContext.getIdentifier()).thenReturn(UUID.randomUUID().toString())
-        when(initContext.getLogger()).thenReturn(logger)
-
-        recordReaderFactory.initialize initContext
+        boolean enableFailed;
         try {
-            recordReaderFactory.onEnabled configurationContext
-            fail('Expected exception in onEnabled when script is loaded with no Module Directory set')
-        } catch(e) {
-            // Do nothing, the exception is expected as the needed class is not in the Module Directory property
+            runner.enableControllerService(recordReaderFactory);
+            enableFailed = false;
+        } catch (final Throwable t) {
+            enableFailed = true;
+            // Expected
         }
+        assertTrue(enableFailed)
+
+        runner.setProperty(recordReaderFactory, "Module Directory", 'target/test/resources/jar/test.jar');
+        runner.enableControllerService(recordReaderFactory)
 
         byte[] contentBytes = 'Flow file content not used'.bytes
         InputStream inStream = new ByteArrayInputStream(contentBytes)
 
-        def recordReader = recordReaderFactory.createRecordReader(Collections.emptyMap(), inStream, contentBytes.length, logger)
-        // This one is supposed to be null as the factory should fail on initialize
-        assertNull(recordReader)
-
-        when(configurationContext.getProperty(ScriptingComponentUtils.MODULES))
-                .thenReturn(new MockPropertyValue('target/test/resources/jar/test.jar'))
-
-        recordReaderFactory.onPropertyModified(ScriptingComponentUtils.MODULES, '', 'target/test/resources/jar/test.jar')
-
-        recordReaderFactory.initialize initContext
-        recordReaderFactory.onEnabled configurationContext
-        recordReader = recordReaderFactory.createRecordReader(Collections.emptyMap(), inStream, contentBytes.length, logger)
+        def recordReader = recordReaderFactory.createRecordReader(Collections.emptyMap(), inStream, contentBytes.length, new MockComponentLog("id", recordReaderFactory))
         assertNotNull(recordReader)
     }
 

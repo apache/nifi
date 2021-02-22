@@ -16,6 +16,21 @@
  */
 package org.apache.nifi.lookup;
 
+import org.apache.commons.csv.CSVFormat;
+import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.resource.ResourceCardinality;
+import org.apache.nifi.components.resource.ResourceType;
+import org.apache.nifi.controller.AbstractControllerService;
+import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.controller.ControllerServiceInitializationContext;
+import org.apache.nifi.csv.CSVUtils;
+import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.util.file.monitor.LastModifiedMonitor;
+import org.apache.nifi.util.file.monitor.SynchronousFileWatcher;
+
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -23,20 +38,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Stream;
-
-import org.apache.commons.csv.CSVFormat;
-
-import org.apache.nifi.components.AllowableValue;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.controller.AbstractControllerService;
-import org.apache.nifi.controller.ControllerServiceInitializationContext;
-import org.apache.nifi.csv.CSVUtils;
-import org.apache.nifi.expression.ExpressionLanguageScope;
-import org.apache.nifi.controller.ConfigurationContext;
-import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.util.file.monitor.LastModifiedMonitor;
-import org.apache.nifi.util.file.monitor.SynchronousFileWatcher;
 
 public abstract class AbstractCSVLookupService extends AbstractControllerService {
 
@@ -52,13 +53,14 @@ public abstract class AbstractCSVLookupService extends AbstractControllerService
                     .displayName("CSV File")
                     .description("Path to a CSV File in which the key value pairs can be looked up.")
                     .required(true)
-                    .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
+                    .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE)
                     .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
                     .build();
 
     public static final PropertyDescriptor CHARSET =
             new PropertyDescriptor.Builder()
                     .fromPropertyDescriptor(CSVUtils.CHARSET)
+                    .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
                     .name("Character Set")
                     .description("The Character Encoding that is used to decode the CSV file.")
                     .build();

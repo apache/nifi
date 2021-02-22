@@ -55,6 +55,8 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.resource.ResourceCardinality;
+import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.controller.ConfigurationContext;
@@ -189,7 +191,7 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
                     " then, 'atlas-application.properties' file under root classpath is used.")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.DIRECTORY)
             // Atlas generates ssl-client.xml in this directory and then loads it from classpath
             .dynamicallyModifiesClasspath(true)
             .build();
@@ -280,7 +282,7 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
                     " If not set, it is expected to set a JAAS configuration file in the JVM properties defined in the bootstrap.conf file." +
                     " This principal will be set into 'sasl.jaas.config' Kafka's property.")
             .required(false)
-            .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
+            .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
     public static final PropertyDescriptor KERBEROS_CREDENTIALS_SERVICE = new PropertyDescriptor.Builder()

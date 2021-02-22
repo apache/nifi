@@ -17,6 +17,8 @@
 package org.apache.nifi.processors.elasticsearch;
 
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.resource.ResourceCardinality;
+import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
@@ -74,7 +76,7 @@ abstract class AbstractElasticsearch5TransportClientProcessor extends AbstractEl
                     + "JARs must also be available to this processor. Note: Do NOT place the X-Pack JARs into NiFi's "
                     + "lib/ directory, doing so will prevent the X-Pack Transport JARs from being loaded.")
             .required(false)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .identifiesExternalResource(ResourceCardinality.MULTIPLE, ResourceType.FILE, ResourceType.DIRECTORY)
             .dynamicallyModifiesClasspath(true)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();

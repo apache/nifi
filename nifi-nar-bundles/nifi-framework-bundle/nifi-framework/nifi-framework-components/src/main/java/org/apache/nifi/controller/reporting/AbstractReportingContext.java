@@ -22,6 +22,9 @@ import org.apache.nifi.attribute.expression.language.Query;
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.components.resource.ResourceContext;
+import org.apache.nifi.components.resource.StandardResourceContext;
+import org.apache.nifi.components.resource.StandardResourceReferenceFactory;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.controller.flow.FlowManager;
@@ -104,7 +107,9 @@ public abstract class AbstractReportingContext implements ReportingContext {
         }
 
         final String configuredValue = properties.get(property);
-        return new StandardPropertyValue(configuredValue == null ? descriptor.getDefaultValue() : configuredValue, serviceProvider, parameterLookup, preparedQueries.get(property), variableRegistry);
+        final ResourceContext resourceContext = new StandardResourceContext(new StandardResourceReferenceFactory(), descriptor);
+        return new StandardPropertyValue(resourceContext, configuredValue == null ? descriptor.getDefaultValue() : configuredValue, serviceProvider, parameterLookup, preparedQueries.get(property),
+            variableRegistry);
     }
 
     @Override

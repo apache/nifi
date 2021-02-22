@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.dbcp.hive;
 
-import java.io.File;
-
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.apache.hadoop.conf.Configuration;
@@ -32,8 +30,11 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.resource.ResourceCardinality;
+import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.controller.ControllerServiceInitializationContext;
 import org.apache.nifi.dbcp.DBCPValidator;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.hadoop.KerberosProperties;
@@ -48,9 +49,10 @@ import org.apache.nifi.security.krb.KerberosPasswordUser;
 import org.apache.nifi.security.krb.KerberosUser;
 import org.apache.nifi.util.hive.AuthenticationFailedException;
 import org.apache.nifi.util.hive.HiveConfigurator;
-import org.apache.nifi.util.hive.HiveUtils;
 import org.apache.nifi.util.hive.ValidationResources;
 
+import javax.security.auth.login.LoginException;
+import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.UndeclaredThrowableException;
 import java.security.PrivilegedExceptionAction;
@@ -62,10 +64,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-
-import org.apache.nifi.controller.ControllerServiceInitializationContext;
-
-import javax.security.auth.login.LoginException;
 
 /**
  * Implementation for Database Connection Pooling Service used for Apache Hive
@@ -121,7 +119,7 @@ public class Hive3ConnectionPool extends AbstractControllerService implements Hi
                     + "will search the classpath for a 'hive-site.xml' file or will revert to a default configuration. Note that to enable authentication "
                     + "with Kerberos e.g., the appropriate properties must be set in the configuration files. Please see the Hive documentation for more details.")
             .required(false)
-            .addValidator(HiveUtils.createMultipleFilesExistValidator())
+            .identifiesExternalResource(ResourceCardinality.MULTIPLE, ResourceType.FILE)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 

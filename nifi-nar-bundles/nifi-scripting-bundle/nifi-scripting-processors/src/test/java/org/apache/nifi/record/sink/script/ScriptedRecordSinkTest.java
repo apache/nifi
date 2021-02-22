@@ -16,18 +16,15 @@
  */
 package org.apache.nifi.record.sink.script;
 
-import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
-import org.apache.nifi.components.PropertyValue;
-import org.apache.nifi.components.state.StateManager;
-import org.apache.nifi.controller.ConfigurationContext;
-import org.apache.nifi.controller.ControllerServiceInitializationContext;
-import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.processor.AbstractProcessor;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processors.script.AccessibleScriptingComponentHelper;
-import org.apache.nifi.record.sink.RecordSinkService;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.script.ScriptingComponentHelper;
 import org.apache.nifi.script.ScriptingComponentUtils;
-import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.ListRecordSet;
@@ -37,9 +34,8 @@ import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.RecordSet;
-import org.apache.nifi.state.MockStateManager;
-import org.apache.nifi.util.MockControllerServiceInitializationContext;
-import org.apache.nifi.util.MockPropertyValue;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -47,12 +43,8 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 
 public class ScriptedRecordSinkTest {
@@ -87,38 +79,24 @@ public class ScriptedRecordSinkTest {
     }
 
     private MockScriptedRecordSink initTask() throws InitializationException {
+        final TestRunner runner = TestRunners.newTestRunner(new AbstractProcessor() {
+            @Override
+            public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+            }
+        });
+
+        final MockRecordWriter writer = new MockRecordWriter(null, false); // No header, don"t quote values
+        runner.addControllerService("writer", writer);
+        runner.enableControllerService(writer);
 
         final MockScriptedRecordSink recordSink = new MockScriptedRecordSink();
-        ConfigurationContext context = mock(ConfigurationContext.class);
-        StateManager stateManager = new MockStateManager(recordSink);
+        runner.addControllerService("sink", recordSink);
+        runner.setProperty(recordSink, "Script Engine", "Groovy");
+        runner.setProperty(recordSink, ScriptingComponentUtils.SCRIPT_FILE, "src/test/resources/groovy/test_record_sink.groovy");
+        runner.setProperty(recordSink, ScriptingComponentUtils.SCRIPT_BODY, (String) null);
+        runner.setProperty(recordSink, ScriptingComponentUtils.MODULES, (String) null);
+        runner.enableControllerService(recordSink);
 
-        final PropertyValue pValue = mock(StandardPropertyValue.class);
-        MockRecordWriter writer = new MockRecordWriter(null, false); // No header, don"t quote values
-        when(context.getProperty(RecordSinkService.RECORD_WRITER_FACTORY)).thenReturn(pValue);
-        when(pValue.asControllerService(RecordSetWriterFactory.class)).thenReturn(writer);
-
-
-        final ComponentLog logger = mock(ComponentLog.class);
-        final ControllerServiceInitializationContext initContext = new MockControllerServiceInitializationContext(writer, UUID.randomUUID().toString(), logger, stateManager);
-        recordSink.initialize(initContext);
-
-        // Call something that sets up the ScriptingComponentHelper, so we can mock it
-        recordSink.getSupportedPropertyDescriptors();
-
-        when(context.getProperty(recordSink.getScriptingComponentHelper().SCRIPT_ENGINE))
-                .thenReturn(new MockPropertyValue("Groovy"));
-        when(context.getProperty(ScriptingComponentUtils.SCRIPT_FILE))
-                .thenReturn(new MockPropertyValue("src/test/resources/groovy/test_record_sink.groovy"));
-        when(context.getProperty(ScriptingComponentUtils.SCRIPT_BODY))
-                .thenReturn(new MockPropertyValue(null));
-        when(context.getProperty(ScriptingComponentUtils.MODULES))
-                .thenReturn(new MockPropertyValue(null));
-        try {
-            recordSink.onEnabled(context);
-        } catch (Exception e) {
-            e.printStackTrace();
-            fail("onEnabled error: " + e.getMessage());
-        }
         return recordSink;
     }
 
@@ -127,6 +105,11 @@ public class ScriptedRecordSinkTest {
         @Override
         public ScriptingComponentHelper getScriptingComponentHelper() {
             return this.scriptingComponentHelper;
+        }
+
+        @Override
+        protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+            return super.getSupportedPropertyDescriptors();
         }
     }
 }

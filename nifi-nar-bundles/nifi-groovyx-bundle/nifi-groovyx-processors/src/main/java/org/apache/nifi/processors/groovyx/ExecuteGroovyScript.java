@@ -27,12 +27,14 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
-import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
+import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.resource.ResourceCardinality;
+import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.expression.ExpressionLanguageScope;
@@ -46,7 +48,6 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.groovyx.flow.GroovyProcessSessionWrap;
 import org.apache.nifi.processors.groovyx.sql.OSql;
 import org.apache.nifi.processors.groovyx.util.Files;
-import org.apache.nifi.processors.groovyx.util.Validators;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.codehaus.groovy.control.CompilerConfiguration;
@@ -98,7 +99,7 @@ public class ExecuteGroovyScript extends AbstractProcessor {
             .displayName("Script File")
             .required(false)
             .description("Path to script file to execute. Only one of Script File or Script Body may be used")
-            .addValidator(Validators.createFileExistsAndReadableValidator())
+            .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 

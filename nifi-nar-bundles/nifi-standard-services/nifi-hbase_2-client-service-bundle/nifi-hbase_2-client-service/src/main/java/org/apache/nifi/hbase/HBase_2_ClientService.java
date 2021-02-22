@@ -49,6 +49,8 @@ import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.resource.ResourceCardinality;
+import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
@@ -60,7 +62,6 @@ import org.apache.nifi.hbase.put.PutFlowFile;
 import org.apache.nifi.hbase.scan.Column;
 import org.apache.nifi.hbase.scan.ResultCell;
 import org.apache.nifi.hbase.scan.ResultHandler;
-import org.apache.nifi.hbase.validate.ConfigFilesValidator;
 import org.apache.nifi.kerberos.KerberosCredentialsService;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
@@ -109,7 +110,7 @@ public class HBase_2_ClientService extends AbstractControllerService implements 
         .description("Comma-separated list of Hadoop Configuration files," +
             " such as hbase-site.xml and core-site.xml for kerberos, " +
             "including full paths to the files.")
-        .addValidator(new ConfigFilesValidator())
+        .identifiesExternalResource(ResourceCardinality.MULTIPLE, ResourceType.FILE, ResourceType.DIRECTORY)
         .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .build();
 
@@ -142,10 +143,11 @@ public class HBase_2_ClientService extends AbstractControllerService implements 
         .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .build();
 
+    // This property is never referenced directly but is necessary so that the classpath will be dynamically modified.
     static final PropertyDescriptor PHOENIX_CLIENT_JAR_LOCATION = new PropertyDescriptor.Builder()
         .name("Phoenix Client JAR Location")
         .description("The full path to the Phoenix client JAR. Required if Phoenix is installed on top of HBase.")
-        .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
+        .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE, ResourceType.DIRECTORY, ResourceType.URL)
         .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .dynamicallyModifiesClasspath(true)
         .build();

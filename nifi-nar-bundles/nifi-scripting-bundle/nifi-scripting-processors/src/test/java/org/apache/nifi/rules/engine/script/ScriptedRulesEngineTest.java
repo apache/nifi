@@ -16,18 +16,18 @@
  */
 package org.apache.nifi.rules.engine.script;
 
-import org.apache.nifi.components.state.StateManager;
-import org.apache.nifi.controller.ConfigurationContext;
-import org.apache.nifi.controller.ControllerServiceInitializationContext;
-import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processor.AbstractProcessor;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processors.script.AccessibleScriptingComponentHelper;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.rules.Action;
 import org.apache.nifi.script.ScriptingComponentHelper;
 import org.apache.nifi.script.ScriptingComponentUtils;
-import org.apache.nifi.state.MockStateManager;
-import org.apache.nifi.util.MockControllerServiceInitializationContext;
-import org.apache.nifi.util.MockPropertyValue;
+import org.apache.nifi.serialization.record.MockRecordWriter;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -35,12 +35,8 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 
 public class ScriptedRulesEngineTest {
@@ -65,32 +61,24 @@ public class ScriptedRulesEngineTest {
     }
 
     private MockScriptedRulesEngine initTask() throws InitializationException {
+        final TestRunner runner = TestRunners.newTestRunner(new AbstractProcessor() {
+            @Override
+            public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+            }
+        });
+
+        final MockRecordWriter writer = new MockRecordWriter(null, false); // No header, don"t quote values
+        runner.addControllerService("writer", writer);
+        runner.enableControllerService(writer);
 
         final MockScriptedRulesEngine rulesEngine = new MockScriptedRulesEngine();
-        ConfigurationContext context = mock(ConfigurationContext.class);
-        StateManager stateManager = new MockStateManager(rulesEngine);
+        runner.addControllerService("rulesEngine", rulesEngine);
+        runner.setProperty(rulesEngine, "Script Engine", "Groovy");
+        runner.setProperty(rulesEngine, ScriptingComponentUtils.SCRIPT_FILE, "src/test/resources/groovy/test_rules_engine.groovy");
+        runner.setProperty(rulesEngine, ScriptingComponentUtils.SCRIPT_BODY, (String) null);
+        runner.setProperty(rulesEngine, ScriptingComponentUtils.MODULES, (String) null);
+        runner.enableControllerService(rulesEngine);
 
-        final ComponentLog logger = mock(ComponentLog.class);
-        final ControllerServiceInitializationContext initContext = new MockControllerServiceInitializationContext(rulesEngine, UUID.randomUUID().toString(), logger, stateManager);
-        rulesEngine.initialize(initContext);
-
-        // Call something that sets up the ScriptingComponentHelper, so we can mock it
-        rulesEngine.getSupportedPropertyDescriptors();
-
-        when(context.getProperty(rulesEngine.getScriptingComponentHelper().SCRIPT_ENGINE))
-                .thenReturn(new MockPropertyValue("Groovy"));
-        when(context.getProperty(ScriptingComponentUtils.SCRIPT_FILE))
-                .thenReturn(new MockPropertyValue("src/test/resources/groovy/test_rules_engine.groovy"));
-        when(context.getProperty(ScriptingComponentUtils.SCRIPT_BODY))
-                .thenReturn(new MockPropertyValue(null));
-        when(context.getProperty(ScriptingComponentUtils.MODULES))
-                .thenReturn(new MockPropertyValue(null));
-        try {
-            rulesEngine.onEnabled(context);
-        } catch (Exception e) {
-            e.printStackTrace();
-            fail("onEnabled error: " + e.getMessage());
-        }
         return rulesEngine;
     }
 

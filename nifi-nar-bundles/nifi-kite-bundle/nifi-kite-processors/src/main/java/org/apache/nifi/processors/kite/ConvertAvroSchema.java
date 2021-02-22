@@ -18,18 +18,10 @@
  */
 package org.apache.nifi.processors.kite;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.regex.Pattern;
-
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 import org.apache.avro.Schema;
 import org.apache.avro.file.DataFileStream;
 import org.apache.avro.file.DataFileWriter;
@@ -60,10 +52,17 @@ import org.kitesdk.data.DatasetIOException;
 import org.kitesdk.data.SchemaNotFoundException;
 import org.kitesdk.data.spi.DefaultConfiguration;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.regex.Pattern;
 
 @Tags({ "avro", "convert", "kite" })
 @CapabilityDescription("Convert records from one Avro schema to another, including support for flattening and simple type conversions")
@@ -183,6 +182,7 @@ public class ConvertAvroSchema extends AbstractKiteConvertProcessor {
             .add(OUTPUT_SCHEMA)
             .add(LOCALE)
             .add(COMPRESSION_TYPE)
+            .add(CONF_XML_FILES)
             .build();
 
     private static final Set<Relationship> RELATIONSHIPS = ImmutableSet

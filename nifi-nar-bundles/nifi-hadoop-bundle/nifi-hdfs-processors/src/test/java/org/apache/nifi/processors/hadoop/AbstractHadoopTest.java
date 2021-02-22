@@ -18,6 +18,10 @@ package org.apache.nifi.processors.hadoop;
 
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.resource.FileResourceReference;
+import org.apache.nifi.components.resource.ResourceReference;
+import org.apache.nifi.components.resource.ResourceReferences;
+import org.apache.nifi.components.resource.StandardResourceReferences;
 import org.apache.nifi.hadoop.KerberosProperties;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.util.MockProcessContext;
@@ -36,6 +40,7 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Optional;
 
@@ -95,9 +100,6 @@ public class AbstractHadoopTest {
             results = ((MockProcessContext) pc).validate();
         }
         Assert.assertEquals(1, results.size());
-        for (ValidationResult vr : results) {
-            Assert.assertTrue(vr.toString().contains("is invalid because File target" + File.separator + "classes does not exist or is not a file"));
-        }
 
         results = new HashSet<>();
         runner.setProperty(AbstractHadoopProcessor.HADOOP_CONFIGURATION_RESOURCES, "target/doesnotexist");
@@ -107,9 +109,6 @@ public class AbstractHadoopTest {
             results = ((MockProcessContext) pc).validate();
         }
         Assert.assertEquals(1, results.size());
-        for (ValidationResult vr : results) {
-            Assert.assertTrue(vr.toString().contains("is invalid because File target" + File.separator + "doesnotexist does not exist or is not a file"));
-        }
     }
 
     @Test
@@ -117,7 +116,10 @@ public class AbstractHadoopTest {
         SimpleHadoopProcessor processor = new SimpleHadoopProcessor(kerberosProperties);
         TestRunner runner = TestRunners.newTestRunner(processor);
         try {
-            processor.resetHDFSResources("src/test/resources/core-site-broken.xml", runner.getProcessContext());
+            final File brokenCoreSite = new File("src/test/resources/core-site-broken.xml");
+            final ResourceReference brokenCoreSiteReference = new FileResourceReference(brokenCoreSite);
+            final ResourceReferences references = new StandardResourceReferences(Collections.singletonList(brokenCoreSiteReference));
+            processor.resetHDFSResources(references, runner.getProcessContext());
             Assert.fail("Should have thrown SocketTimeoutException");
         } catch (IOException e) {
         }

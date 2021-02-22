@@ -16,6 +16,28 @@
  */
 package org.apache.nifi.lookup.configuration2;
 
+import org.apache.commons.configuration2.Configuration;
+import org.apache.commons.configuration2.FileBasedConfiguration;
+import org.apache.commons.configuration2.builder.ConfigurationBuilderEvent;
+import org.apache.commons.configuration2.builder.ReloadingFileBasedConfigurationBuilder;
+import org.apache.commons.configuration2.builder.fluent.FileBasedBuilderParameters;
+import org.apache.commons.configuration2.builder.fluent.Parameters;
+import org.apache.commons.configuration2.event.EventListener;
+import org.apache.commons.configuration2.ex.ConfigurationException;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.annotation.lifecycle.OnEnabled;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.resource.ResourceCardinality;
+import org.apache.nifi.components.resource.ResourceType;
+import org.apache.nifi.controller.AbstractControllerService;
+import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.controller.ControllerServiceInitializationContext;
+import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.lookup.LookupFailureException;
+import org.apache.nifi.lookup.StringLookupService;
+import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.security.xml.XXEValidator;
+
 import java.io.File;
 import java.lang.reflect.ParameterizedType;
 import java.util.ArrayList;
@@ -26,28 +48,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-import org.apache.commons.configuration2.Configuration;
-import org.apache.commons.configuration2.FileBasedConfiguration;
-import org.apache.commons.configuration2.builder.ConfigurationBuilderEvent;
-import org.apache.commons.configuration2.builder.ReloadingFileBasedConfigurationBuilder;
-import org.apache.commons.configuration2.builder.fluent.FileBasedBuilderParameters;
-import org.apache.commons.configuration2.builder.fluent.Parameters;
-import org.apache.commons.configuration2.event.EventListener;
-import org.apache.commons.configuration2.ex.ConfigurationException;
-import org.apache.commons.lang3.StringUtils;
-
-import org.apache.nifi.annotation.lifecycle.OnEnabled;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.controller.AbstractControllerService;
-import org.apache.nifi.controller.ControllerServiceInitializationContext;
-import org.apache.nifi.expression.ExpressionLanguageScope;
-import org.apache.nifi.controller.ConfigurationContext;
-import org.apache.nifi.lookup.LookupFailureException;
-import org.apache.nifi.lookup.StringLookupService;
-import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.security.xml.XXEValidator;
 
 /**
  * This abstract class defines a generic {@link LookupService} backed by an
@@ -66,7 +66,7 @@ public abstract class CommonsConfigurationLookupService<T extends FileBasedConfi
             .displayName("Configuration File")
             .description("A configuration file")
             .required(true)
-            .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
+            .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE)
             .addValidator(new XXEValidator())
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();

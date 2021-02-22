@@ -19,6 +19,8 @@ package org.apache.nifi.jms.cf;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyDescriptor.Builder;
 import org.apache.nifi.components.Validator;
+import org.apache.nifi.components.resource.ResourceCardinality;
+import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
 
@@ -59,10 +61,11 @@ public class JndiJmsConnectionFactoryProperties {
     public static final PropertyDescriptor JNDI_CLIENT_LIBRARIES = new Builder()
             .name("naming.factory.libraries")
             .displayName("JNDI / JMS Client Libraries")
-            .description("Specifies jar files and/or directories (defined as a comma separated list) to add to the ClassPath " +
-                    "in order to load the JNDI / JMS client libraries.")
+            .description("Specifies jar files and/or directories to add to the ClassPath " +
+                    "in order to load the JNDI / JMS client libraries. This should be a comma-separated list of files, directories, and/or URLs. If a directory is given, any files in that directory" +
+                    " will be included, but subdirectories will not be included (i.e., it is not recursive).")
             .required(false)
-            .addValidator(StandardValidators.createListValidator(true, true, StandardValidators.createURLorFileValidator()))
+            .identifiesExternalResource(ResourceCardinality.MULTIPLE, ResourceType.FILE, ResourceType.DIRECTORY, ResourceType.URL)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .dynamicallyModifiesClasspath(true)
             .build();

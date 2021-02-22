@@ -21,8 +21,12 @@ import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processor.AbstractProcessor;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.schema.access.SchemaAccessUtils;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.RecordSetWriter;
@@ -32,7 +36,8 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.SchemaIdentifier;
 import org.apache.nifi.util.MockComponentLog;
-import org.apache.nifi.util.MockConfigurationContext;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
 import org.apache.parquet.avro.AvroParquetReader;
 import org.apache.parquet.hadoop.ParquetReader;
 import org.apache.parquet.hadoop.util.HadoopInputFile;
@@ -62,7 +67,7 @@ public class TestParquetRecordSetWriter {
     }
 
     @Test
-    public void testWriteUsers() throws IOException, SchemaNotFoundException {
+    public void testWriteUsers() throws IOException, SchemaNotFoundException, InitializationException {
         initRecordSetWriter("src/test/resources/avro/user.avsc");
 
         // get the schema from the writer factory
@@ -80,7 +85,7 @@ public class TestParquetRecordSetWriter {
     }
 
     @Test
-    public void testWriteUsersWhenSchemaFormatNotAvro() throws IOException, SchemaNotFoundException {
+    public void testWriteUsersWhenSchemaFormatNotAvro() throws IOException, SchemaNotFoundException, InitializationException {
         initRecordSetWriter("src/test/resources/avro/user.avsc");
 
         // get the schema from the writer factory
@@ -98,13 +103,20 @@ public class TestParquetRecordSetWriter {
         verifyParquetRecords(parquetFile, numUsers);
     }
 
-    private void initRecordSetWriter(final String schemaFile) throws IOException {
-        final ConfigurationContext configurationContext = getConfigurationContextWithSchema(schemaFile);
+    private void initRecordSetWriter(final String schemaPath) throws IOException, InitializationException {
+        final TestRunner runner = TestRunners.newTestRunner(new AbstractProcessor() {
+            @Override
+            public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+            }
+        });
 
-        // simulate enabling the service
-        recordSetWriterFactory.onEnabled(configurationContext);
-        recordSetWriterFactory.storeSchemaWriteStrategy(configurationContext);
-        recordSetWriterFactory.storeSchemaAccessStrategy(configurationContext);
+        runner.addControllerService("writer", recordSetWriterFactory);
+
+        final File schemaFile = new File(schemaPath);
+        final Map<PropertyDescriptor, String> properties = createPropertiesWithSchema(schemaFile);
+        properties.forEach((k, v) -> runner.setProperty(recordSetWriterFactory, k, v));
+
+        runner.enableControllerService(recordSetWriterFactory);
     }
 
     private void writeUsers(final RecordSchema writeSchema, final File parquetFile, final int numUsers) throws IOException {
@@ -138,12 +150,6 @@ public class TestParquetRecordSetWriter {
             }
             assertEquals(expectedRecordCount, recordCount);
         }
-    }
-
-    private ConfigurationContext getConfigurationContextWithSchema(String schemaPath) throws IOException {
-        final File schemaFile = new File(schemaPath);
-        final Map<PropertyDescriptor, String> properties = createPropertiesWithSchema(schemaFile);
-        return new MockConfigurationContext(properties, null);
     }
 
     private Map<PropertyDescriptor,String> createPropertiesWithSchema(final File schemaFile) throws IOException {

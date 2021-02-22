@@ -82,6 +82,9 @@ import static org.mockito.Mockito.when
  * Unit test(s) for MySQL CDC
  */
 class CaptureChangeMySQLTest {
+    // Use an http-based URL driver location because we don't have the driver available in the unit test, and we don't want the processor to
+    // be invalid due to a missing file. By specifying an HTTP based URL address, we won't validate whether or not the file exists
+    private static final String DRIVER_LOCATION = "http://mysql-driver.com/driver.jar"
     CaptureChangeMySQL processor
     TestRunner testRunner
     MockBinlogClient client
@@ -153,7 +156,7 @@ class CaptureChangeMySQLTest {
 
     @Test
     void testConnectionFailures() throws Exception {
-        testRunner.setProperty(CaptureChangeMySQL.DRIVER_LOCATION, 'file:///path/to/mysql-connector-java-5.1.38-bin.jar')
+        testRunner.setProperty(CaptureChangeMySQL.DRIVER_LOCATION, DRIVER_LOCATION)
         testRunner.setProperty(CaptureChangeMySQL.HOSTS, 'localhost:3306')
         testRunner.setProperty(CaptureChangeMySQL.USERNAME, 'root')
         client.connectionError = true
@@ -185,7 +188,7 @@ class CaptureChangeMySQLTest {
 
     @Test
     void testBeginCommitTransaction() throws Exception {
-        testRunner.setProperty(CaptureChangeMySQL.DRIVER_LOCATION, 'file:///path/to/mysql-connector-java-5.1.38-bin.jar')
+        testRunner.setProperty(CaptureChangeMySQL.DRIVER_LOCATION, DRIVER_LOCATION)
         testRunner.setProperty(CaptureChangeMySQL.HOSTS, 'localhost:3306')
         testRunner.setProperty(CaptureChangeMySQL.USERNAME, 'root')
         testRunner.setProperty(CaptureChangeMySQL.CONNECT_TIMEOUT, '2 seconds')
@@ -219,7 +222,7 @@ class CaptureChangeMySQLTest {
 
     @Test
     void testBeginCommitTransactionFiltered() throws Exception {
-        testRunner.setProperty(CaptureChangeMySQL.DRIVER_LOCATION, 'file:///path/to/mysql-connector-java-5.1.38-bin.jar')
+        testRunner.setProperty(CaptureChangeMySQL.DRIVER_LOCATION, DRIVER_LOCATION)
         testRunner.setProperty(CaptureChangeMySQL.HOSTS, 'localhost:3306')
         testRunner.setProperty(CaptureChangeMySQL.USERNAME, 'root')
         testRunner.setProperty(CaptureChangeMySQL.CONNECT_TIMEOUT, '2 seconds')
@@ -268,7 +271,7 @@ class CaptureChangeMySQLTest {
 
     @Test
     void testInitialSequenceIdIgnoredWhenStatePresent() throws Exception {
-        testRunner.setProperty(CaptureChangeMySQL.DRIVER_LOCATION, 'file:///path/to/mysql-connector-java-5.1.38-bin.jar')
+        testRunner.setProperty(CaptureChangeMySQL.DRIVER_LOCATION, DRIVER_LOCATION)
         testRunner.setProperty(CaptureChangeMySQL.HOSTS, 'localhost:3306')
         testRunner.setProperty(CaptureChangeMySQL.USERNAME, 'root')
         testRunner.setProperty(CaptureChangeMySQL.PASSWORD, 'password')
@@ -309,7 +312,7 @@ class CaptureChangeMySQLTest {
 
     @Test
     void testInitialSequenceIdNoStatePresent() throws Exception {
-        testRunner.setProperty(CaptureChangeMySQL.DRIVER_LOCATION, 'file:///path/to/mysql-connector-java-5.1.38-bin.jar')
+        testRunner.setProperty(CaptureChangeMySQL.DRIVER_LOCATION, DRIVER_LOCATION)
         testRunner.setProperty(CaptureChangeMySQL.HOSTS, 'localhost:3306')
         testRunner.setProperty(CaptureChangeMySQL.USERNAME, 'root')
         testRunner.setProperty(CaptureChangeMySQL.PASSWORD, 'password')
@@ -347,7 +350,7 @@ class CaptureChangeMySQLTest {
 
     @Test(expected = AssertionError.class)
     void testCommitWithoutBegin() throws Exception {
-        testRunner.setProperty(CaptureChangeMySQL.DRIVER_LOCATION, 'file:///path/to/mysql-connector-java-5.1.38-bin.jar')
+        testRunner.setProperty(CaptureChangeMySQL.DRIVER_LOCATION, DRIVER_LOCATION)
         testRunner.setProperty(CaptureChangeMySQL.HOSTS, 'localhost:3306')
         testRunner.setProperty(CaptureChangeMySQL.USERNAME, 'root')
         testRunner.setProperty(CaptureChangeMySQL.PASSWORD, 'password')
@@ -366,7 +369,7 @@ class CaptureChangeMySQLTest {
 
     @Test
     void testExtendedTransaction() throws Exception {
-        testRunner.setProperty(CaptureChangeMySQL.DRIVER_LOCATION, 'file:///path/to/mysql-connector-java-5.1.38-bin.jar')
+        testRunner.setProperty(CaptureChangeMySQL.DRIVER_LOCATION, DRIVER_LOCATION)
         testRunner.setProperty(CaptureChangeMySQL.HOSTS, 'localhost:3306')
         testRunner.setProperty(CaptureChangeMySQL.USERNAME, 'root')
         testRunner.setProperty(CaptureChangeMySQL.PASSWORD, 'password')
@@ -518,7 +521,7 @@ class CaptureChangeMySQLTest {
 
     @Test
     void testExcludeSchemaChanges() throws Exception {
-        testRunner.setProperty(CaptureChangeMySQL.DRIVER_LOCATION, 'file:///path/to/mysql-connector-java-5.1.38-bin.jar')
+        testRunner.setProperty(CaptureChangeMySQL.DRIVER_LOCATION, DRIVER_LOCATION)
         testRunner.setProperty(CaptureChangeMySQL.HOSTS, 'localhost:3306')
         testRunner.setProperty(CaptureChangeMySQL.USERNAME, 'root')
         testRunner.setProperty(CaptureChangeMySQL.PASSWORD, 'password')
@@ -592,7 +595,7 @@ class CaptureChangeMySQLTest {
 
     @Test(expected = AssertionError.class)
     void testNoTableInformationAvailable() throws Exception {
-        testRunner.setProperty(CaptureChangeMySQL.DRIVER_LOCATION, 'file:///path/to/mysql-connector-java-5.1.38-bin.jar')
+        testRunner.setProperty(CaptureChangeMySQL.DRIVER_LOCATION, DRIVER_LOCATION)
         testRunner.setProperty(CaptureChangeMySQL.HOSTS, 'localhost:3306')
         testRunner.setProperty(CaptureChangeMySQL.USERNAME, 'root')
         testRunner.setProperty(CaptureChangeMySQL.PASSWORD, 'password')
@@ -636,7 +639,7 @@ class CaptureChangeMySQLTest {
 
     @Test
     void testSkipTable() throws Exception {
-        testRunner.setProperty(CaptureChangeMySQL.DRIVER_LOCATION, 'file:///path/to/mysql-connector-java-5.1.38-bin.jar')
+        testRunner.setProperty(CaptureChangeMySQL.DRIVER_LOCATION, DRIVER_LOCATION)
         testRunner.setProperty(CaptureChangeMySQL.HOSTS, 'localhost:3306')
         testRunner.setProperty(CaptureChangeMySQL.USERNAME, 'root')
         testRunner.setProperty(CaptureChangeMySQL.PASSWORD, 'password')
@@ -735,7 +738,7 @@ class CaptureChangeMySQLTest {
 
     @Test
     void testFilterDatabase() throws Exception {
-        testRunner.setProperty(CaptureChangeMySQL.DRIVER_LOCATION, 'file:///path/to/mysql-connector-java-5.1.38-bin.jar')
+        testRunner.setProperty(CaptureChangeMySQL.DRIVER_LOCATION, DRIVER_LOCATION)
         testRunner.setProperty(CaptureChangeMySQL.HOSTS, 'localhost:3306')
         testRunner.setProperty(CaptureChangeMySQL.USERNAME, 'root')
         testRunner.setProperty(CaptureChangeMySQL.PASSWORD, 'password')
@@ -805,7 +808,7 @@ class CaptureChangeMySQLTest {
 
     @Test
     void testTransactionAcrossMultipleProcessorExecutions() throws Exception {
-        testRunner.setProperty(CaptureChangeMySQL.DRIVER_LOCATION, 'file:///path/to/mysql-connector-java-5.1.38-bin.jar')
+        testRunner.setProperty(CaptureChangeMySQL.DRIVER_LOCATION, DRIVER_LOCATION)
         testRunner.setProperty(CaptureChangeMySQL.HOSTS, 'localhost:3306')
         testRunner.setProperty(CaptureChangeMySQL.USERNAME, 'root')
         testRunner.setProperty(CaptureChangeMySQL.PASSWORD, 'password')
@@ -866,7 +869,7 @@ class CaptureChangeMySQLTest {
 
     @Test
     void testUpdateState() throws Exception {
-        testRunner.setProperty(CaptureChangeMySQL.DRIVER_LOCATION, 'file:///path/to/mysql-connector-java-5.1.38-bin.jar')
+        testRunner.setProperty(CaptureChangeMySQL.DRIVER_LOCATION, DRIVER_LOCATION)
         testRunner.setProperty(CaptureChangeMySQL.HOSTS, 'localhost:3306')
         testRunner.setProperty(CaptureChangeMySQL.USERNAME, 'root')
         testRunner.setProperty(CaptureChangeMySQL.PASSWORD, 'password')
@@ -928,7 +931,7 @@ class CaptureChangeMySQLTest {
 
     @Test
     void testUpdateStateUseGtid() throws Exception {
-        testRunner.setProperty(CaptureChangeMySQL.DRIVER_LOCATION, 'file:///path/to/mysql-connector-java-5.1.38-bin.jar')
+        testRunner.setProperty(CaptureChangeMySQL.DRIVER_LOCATION, DRIVER_LOCATION)
         testRunner.setProperty(CaptureChangeMySQL.HOSTS, 'localhost:3306')
         testRunner.setProperty(CaptureChangeMySQL.USERNAME, 'root')
         testRunner.setProperty(CaptureChangeMySQL.PASSWORD, 'password')
@@ -1022,7 +1025,7 @@ class CaptureChangeMySQLTest {
 
     @Test
     void testDDLOutsideTransaction() throws Exception {
-        testRunner.setProperty(CaptureChangeMySQL.DRIVER_LOCATION, 'file:///path/to/mysql-connector-java-5.1.38-bin.jar')
+        testRunner.setProperty(CaptureChangeMySQL.DRIVER_LOCATION, DRIVER_LOCATION)
         testRunner.setProperty(CaptureChangeMySQL.HOSTS, 'localhost:3306')
         testRunner.setProperty(CaptureChangeMySQL.USERNAME, 'root')
         testRunner.setProperty(CaptureChangeMySQL.PASSWORD, 'password')
@@ -1049,7 +1052,7 @@ class CaptureChangeMySQLTest {
 
     @Test
     void testRenameTable() throws Exception {
-        testRunner.setProperty(CaptureChangeMySQL.DRIVER_LOCATION, 'file:///path/to/mysql-connector-java-5.1.38-bin.jar')
+        testRunner.setProperty(CaptureChangeMySQL.DRIVER_LOCATION, DRIVER_LOCATION)
         testRunner.setProperty(CaptureChangeMySQL.HOSTS, 'localhost:3306')
         testRunner.setProperty(CaptureChangeMySQL.USERNAME, 'root')
         testRunner.setProperty(CaptureChangeMySQL.CONNECT_TIMEOUT, '2 seconds')
@@ -1089,7 +1092,7 @@ class CaptureChangeMySQLTest {
 
     @Test
     void testInitialGtidIgnoredWhenStatePresent() throws Exception {
-        testRunner.setProperty(CaptureChangeMySQL.DRIVER_LOCATION, 'file:///path/to/mysql-connector-java-5.1.38-bin.jar')
+        testRunner.setProperty(CaptureChangeMySQL.DRIVER_LOCATION, DRIVER_LOCATION)
         testRunner.setProperty(CaptureChangeMySQL.HOSTS, 'localhost:3306')
         testRunner.setProperty(CaptureChangeMySQL.USERNAME, 'root')
         testRunner.setProperty(CaptureChangeMySQL.CONNECT_TIMEOUT, '2 seconds')
@@ -1136,7 +1139,7 @@ class CaptureChangeMySQLTest {
 
     @Test
     void testInitialGtidNoStatePresent() throws Exception {
-        testRunner.setProperty(CaptureChangeMySQL.DRIVER_LOCATION, 'file:///path/to/mysql-connector-java-5.1.38-bin.jar')
+        testRunner.setProperty(CaptureChangeMySQL.DRIVER_LOCATION, DRIVER_LOCATION)
         testRunner.setProperty(CaptureChangeMySQL.HOSTS, 'localhost:3306')
         testRunner.setProperty(CaptureChangeMySQL.USERNAME, 'root')
         testRunner.setProperty(CaptureChangeMySQL.PASSWORD, 'password')

@@ -26,9 +26,10 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.resource.ResourceCardinality;
+import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
@@ -46,11 +47,12 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 
 
 @EventDriven
@@ -80,10 +82,10 @@ public class CompareFuzzyHash extends AbstractFuzzyHashProcessor {
 
     public static final PropertyDescriptor HASH_LIST_FILE = new PropertyDescriptor.Builder()
             .name("HASH_LIST_FILE")
-            .displayName("Hash List source file")
+            .displayName("Hash List Source File")
             .description("Path to the file containing hashes to be validated against")
             .required(true)
-            .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
+            .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE)
             .build();
 
     // Note we add a PropertyDescriptor HASH_ALGORITHM and ATTRIBUTE_NAME from parent class
@@ -93,7 +95,7 @@ public class CompareFuzzyHash extends AbstractFuzzyHashProcessor {
             // The rationale behind being the expectation that other algorithms thatmay return double values
             // may be added to the processor later on.
             .name("MATCH_THRESHOLD")
-            .displayName("Match threshold")
+            .displayName("Match Threshold")
             .description("The similarity score must exceed or be equal to in order for" +
                     "match to be considered true. Refer to Additional Information for differences between TLSH " +
                     "and SSDEEP scores and how they relate to this property.")
@@ -103,7 +105,7 @@ public class CompareFuzzyHash extends AbstractFuzzyHashProcessor {
 
     public static final PropertyDescriptor MATCHING_MODE = new PropertyDescriptor.Builder()
             .name("MATCHING_MODE")
-            .displayName("Matching mode")
+            .displayName("Matching Mode")
             .description("Defines if the Processor should try to match as many entries as possible (" + multiMatch.getDisplayName() +
                     ") or if it should stop after the first match (" + singleMatch.getDisplayName() + ")")
             .required(true)
@@ -154,9 +156,6 @@ public class CompareFuzzyHash extends AbstractFuzzyHashProcessor {
         return descriptors;
     }
 
-    @OnScheduled
-    public void onScheduled(final ProcessContext context) {
-    }
 
     @Override
     public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
@@ -179,7 +178,7 @@ public class CompareFuzzyHash extends AbstractFuzzyHashProcessor {
             return;
         }
 
-        FuzzyHashMatcher fuzzyHashMatcher = null;
+        final FuzzyHashMatcher fuzzyHashMatcher;
 
         switch (algorithm) {
             case tlsh:
@@ -195,12 +194,11 @@ public class CompareFuzzyHash extends AbstractFuzzyHashProcessor {
                 return;
         }
 
-        if (fuzzyHashMatcher.isValidHash(inputHash) == false) {
+        if (!fuzzyHashMatcher.isValidHash(inputHash)) {
             // and if that is the case we log
-            logger.error("Invalid hash provided. Sending to failure");
+            logger.error("Invalid hash provided for {}. Sending to failure", flowFile);
             //  and send to failure
             session.transfer(flowFile, REL_FAILURE);
-            session.commit();
             return;
         }
 
@@ -208,14 +206,12 @@ public class CompareFuzzyHash extends AbstractFuzzyHashProcessor {
         double matchThreshold = context.getProperty(MATCH_THRESHOLD).asDouble();
 
         try {
-            Map<String, Double> matched = new ConcurrentHashMap<String, Double>();
+            Map<String, Double> matched = new HashMap<>();
 
-            BufferedReader reader = fuzzyHashMatcher.getReader(context.getProperty(HASH_LIST_FILE).getValue());
+            try (BufferedReader reader = fuzzyHashMatcher.getReader(context.getProperty(HASH_LIST_FILE).getValue())) {
+                String line = null;
 
-            String line = null;
-
-            iterateFile: while ((line = reader.readLine()) != null) {
-                if (line != null) {
+                while ((line = reader.readLine()) != null) {
                     similarity = fuzzyHashMatcher.getSimilarity(inputHash, line);
 
                     if (fuzzyHashMatcher.matchExceedsThreshold(similarity, matchThreshold)) {
@@ -227,48 +223,44 @@ public class CompareFuzzyHash extends AbstractFuzzyHashProcessor {
                         } else {
                             logger.error("Found a match against a malformed entry '{}'. Please inspect the contents of" +
                                     "the {} file and ensure they are properly formatted",
-                                    new Object[]{line, HASH_LIST_FILE.getDisplayName()});
+                                new Object[]{line, HASH_LIST_FILE.getDisplayName()});
                         }
                     }
-                }
 
-                // Check if single match is desired and if a match has been made
-                if (context.getProperty(MATCHING_MODE).getValue() == singleMatch.getValue() && (matched.size() > 0)) {
-                    // and save time by breaking the outer loop
-                    break iterateFile;
+                    // Check if single match is desired and if a match has been made
+                    if (Objects.equals(context.getProperty(MATCHING_MODE).getValue(), singleMatch.getValue()) && (matched.size() > 0)) {
+                        // and save time by breaking the outer loop
+                        break;
+                    }
                 }
             }
-            // no matter if the break was called or not, Continue processing
-            // First by creating a new map to hold attributes
-            Map<String, String> attributes = new ConcurrentHashMap<String, String>();
 
             // Then by iterating over the hashmap of matches
             if (matched.size() > 0) {
+                // no matter if the break was called or not, Continue processing
+                // First by creating a new map to hold attributes
+                final Map<String, String> attributes = new HashMap<>();
+
                 int x = 0;
                 for (Map.Entry<String, Double> entry : matched.entrySet()) {
                     // defining attributes accordingly
-                    attributes.put(
-                            attributeName + "." + x + ".match",
-                            entry.getKey());
-                    attributes.put(
-                            attributeName + "." + x + ".similarity",
-                            String.valueOf(entry.getValue()));
+                    attributes.put(attributeName + "." + x + ".match", entry.getKey());
+                    attributes.put(attributeName + "." + x + ".similarity", String.valueOf(entry.getValue()));
                     x++;
                 }
+
                 // Finally, append the attributes to the flowfile and sent to match
                 flowFile = session.putAllAttributes(flowFile, attributes);
                 session.transfer(flowFile, REL_FOUND);
                 session.commit();
-                return;
             } else {
                 // Otherwise send it to non-match
                 session.transfer(flowFile, REL_NOT_FOUND);
                 session.commit();
-                return;
             }
-        } catch (IOException e) {
-            logger.error("Error while reading the hash input source" );
-            context.yield();
+        } catch (final IOException e) {
+            logger.error("Error while reading the hash input source for {}", flowFile, e);
+            session.transfer(flowFile, REL_FAILURE);
         }
     }
 

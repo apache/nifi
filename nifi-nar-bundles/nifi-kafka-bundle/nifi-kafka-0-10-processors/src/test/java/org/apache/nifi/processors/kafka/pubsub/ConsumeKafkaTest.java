@@ -16,16 +16,16 @@
  */
 package org.apache.nifi.processors.kafka.pubsub;
 
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.mockito.Mockito.mock;
-
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Before;
 import org.junit.Test;
+
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
 
 public class ConsumeKafkaTest {
 
@@ -120,7 +120,7 @@ public class ConsumeKafkaTest {
         runner.setVariable("principal", "nifi@APACHE.COM");
         runner.setVariable("service", "kafka");
         runner.setProperty(KafkaProcessorUtils.USER_PRINCIPAL, "${principal}");
-        runner.setProperty(KafkaProcessorUtils.USER_KEYTAB, "${keytab}s");
+        runner.setProperty(KafkaProcessorUtils.USER_KEYTAB, "${keytab}");
         runner.setProperty(KafkaProcessorUtils.JAAS_SERVICE_NAME, "${service}");
         runner.assertValid();
     }

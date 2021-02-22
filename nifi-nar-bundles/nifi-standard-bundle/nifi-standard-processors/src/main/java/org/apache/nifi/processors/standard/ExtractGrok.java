@@ -34,6 +34,8 @@ import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.resource.ResourceCardinality;
+import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -90,7 +92,7 @@ public class ExtractGrok extends AbstractProcessor {
     public static final PropertyDescriptor GROK_EXPRESSION = new PropertyDescriptor.Builder()
         .name("Grok Expression")
         .description("Grok expression. If other Grok expressions are referenced in this expression, they must be provided "
-        + "in the Grok Pattern File if set or exist in the default Grok patterns")
+            + "in the Grok Pattern File if set or exist in the default Grok patterns")
         .required(true)
         .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
         .build();
@@ -98,9 +100,9 @@ public class ExtractGrok extends AbstractProcessor {
     public static final PropertyDescriptor GROK_PATTERN_FILE = new PropertyDescriptor.Builder()
         .name("Grok Pattern file")
         .description("Grok Pattern file definition.  This file will be loaded after the default Grok "
-        + "patterns file.  If not set, then only the Grok Expression and the default Grok patterns will be used.")
+            + "patterns file.  If not set, then only the Grok Expression and the default Grok patterns will be used.")
         .required(false)
-        .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
+        .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE)
         .build();
 
     public static final PropertyDescriptor KEEP_EMPTY_CAPTURES = new PropertyDescriptor.Builder()
@@ -225,7 +227,7 @@ public class ExtractGrok extends AbstractProcessor {
             }
 
             if (validationContext.getProperty(GROK_PATTERN_FILE).isSet()) {
-                try (final InputStream in = new FileInputStream(new File(validationContext.getProperty(GROK_PATTERN_FILE).getValue()));
+                try (final InputStream in = validationContext.getProperty(GROK_PATTERN_FILE).asResource().read();
                      final Reader reader = new InputStreamReader(in)) {
                     grokCompiler.register(reader);
                 }

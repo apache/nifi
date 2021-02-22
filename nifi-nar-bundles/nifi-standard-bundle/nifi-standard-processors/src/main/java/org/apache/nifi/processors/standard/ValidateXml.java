@@ -16,23 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
-
-import javax.xml.transform.stream.StreamSource;
-import javax.xml.validation.Schema;
-import javax.xml.validation.SchemaFactory;
-import javax.xml.validation.Validator;
-
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -44,8 +27,10 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.components.resource.ResourceCardinality;
+import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -53,8 +38,22 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.io.InputStreamCallback;
-import org.apache.nifi.processor.util.StandardValidators;
 import org.xml.sax.SAXException;
+
+import javax.xml.transform.stream.StreamSource;
+import javax.xml.validation.Schema;
+import javax.xml.validation.SchemaFactory;
+import javax.xml.validation.Validator;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 @EventDriven
 @SideEffectFree
@@ -75,7 +74,7 @@ public class ValidateXml extends AbstractProcessor {
             .description("The path to the Schema file that is to be used for validation")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
+            .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE, ResourceType.URL)
             .build();
 
     public static final Relationship REL_VALID = new Relationship.Builder()
@@ -116,15 +115,11 @@ public class ValidateXml extends AbstractProcessor {
     }
 
     @OnScheduled
-    public void parseSchema(final ProcessContext context) throws IOException, SAXException {
+    public void parseSchema(final ProcessContext context) throws SAXException {
         try {
-            final File file = new File(context.getProperty(SCHEMA_FILE).evaluateAttributeExpressions().getValue());
-            // Ensure the file exists
-            if (!file.exists()) {
-                throw new FileNotFoundException("Schema file not found at specified location: " + file.getAbsolutePath());
-            }
+            final URL url = context.getProperty(SCHEMA_FILE).evaluateAttributeExpressions().asResource().asURL();
             final SchemaFactory schemaFactory = SchemaFactory.newInstance(SCHEMA_LANGUAGE);
-            final Schema schema = schemaFactory.newSchema(file);
+            final Schema schema = schemaFactory.newSchema(url);
             this.schemaRef.set(schema);
         } catch (final SAXException e) {
             throw e;

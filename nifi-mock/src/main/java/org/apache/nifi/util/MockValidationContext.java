@@ -54,6 +54,7 @@ public class MockValidationContext extends MockControllerServiceLookup implement
     private final StateManager stateManager;
     private final VariableRegistry variableRegistry;
     private final Map<PropertyDescriptor, PropertyConfiguration> properties;
+    private volatile boolean validateExpressions = true;
 
     public MockValidationContext(final MockProcessContext processContext) {
         this(processContext, null, VariableRegistry.EMPTY_REGISTRY);
@@ -87,6 +88,9 @@ public class MockValidationContext extends MockControllerServiceLookup implement
         return configurationMap;
     }
 
+    public void setValidateExpressions(final boolean validate) {
+        this.validateExpressions = validate;
+    }
 
     @Override
     public ControllerService getControllerService(final String identifier) {
@@ -95,7 +99,7 @@ public class MockValidationContext extends MockControllerServiceLookup implement
 
     @Override
     public PropertyValue newPropertyValue(final String rawValue) {
-        return new MockPropertyValue(rawValue, this, variableRegistry);
+        return new MockPropertyValue(rawValue, this, null, true, variableRegistry);
     }
 
     @Override
@@ -106,12 +110,14 @@ public class MockValidationContext extends MockControllerServiceLookup implement
     @Override
     public ValidationContext getControllerServiceValidationContext(final ControllerService controllerService) {
         final MockProcessContext serviceProcessContext = new MockProcessContext(controllerService, context, stateManager, variableRegistry);
-        return new MockValidationContext(serviceProcessContext, stateManager, variableRegistry);
+        final MockValidationContext serviceValidationContext =  new MockValidationContext(serviceProcessContext, stateManager, variableRegistry);
+        serviceValidationContext.setValidateExpressions(validateExpressions);
+        return serviceValidationContext;
     }
 
     @Override
     public PropertyValue getProperty(final PropertyDescriptor property) {
-        return context.getProperty(property);
+        return context.getPropertyWithoutValidatingExpressions(property);
     }
 
     @Override
