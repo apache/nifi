@@ -75,6 +75,7 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
+
 public class DataTypeUtils {
     private static final Logger logger = LoggerFactory.getLogger(DataTypeUtils.class);
 
@@ -1963,6 +1964,12 @@ public class DataTypeUtils {
             case Types.SMALLINT:
                 return RecordFieldType.SHORT.getDataType();
             case Types.VARCHAR:
+            case Types.LONGNVARCHAR:
+            case Types.LONGVARCHAR:
+            case Types.NCHAR:
+            case Types.NVARCHAR:
+            case Types.OTHER:
+            case Types.SQLXML:
                 return RecordFieldType.STRING.getDataType();
             case Types.TIME:
                 return RecordFieldType.TIME.getDataType();
