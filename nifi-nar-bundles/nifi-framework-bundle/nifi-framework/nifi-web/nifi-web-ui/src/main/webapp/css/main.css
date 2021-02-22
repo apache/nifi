@@ -259,21 +259,25 @@ span.details-title {
 
 /* new template */
 
-#new-template-description {
+#new-template-description,
+#new-file-description {
     height: 210px;
 }
 
 /* upload */
 
-#select-template-container {
+#select-template-container,
+#select-file-container {
 }
 
-#template-browse-container {
+#template-browse-container,
+#file-browse-container {
     display: block;
     height: 20px;
 }
 
-#select-template-label {
+#select-template-label,
+#select-file-label {
     font-weight: bold;
     font-size: 14px;
     line-height: 28px;
@@ -286,12 +290,38 @@ span.details-title {
     height: 28px;
 }
 
-#template-file-field {
+#select-file-button button {
+    position: absolute;
+    float: right;
+    right: 4px;
+    top: 22px;
+    font-size: 18px;
+    color: #004849;
+    border: none;
+    background-color: transparent;
+}
+
+#select-file-button i {
+    position: absolute;
+    float: right;
+    right: 7px;
+    top: 7px;
+    color: #004849;
+}
+
+#template-file-field,
+#upload-file-field {
     display: none;
 }
 
 #submit-template-container {
     margin-top: 20px;
+}
+
+#submit-file-container {
+    position: absolute;
+    float: left;
+    max-width: 90%;
 }
 
 #selected-template-name {
@@ -300,7 +330,16 @@ span.details-title {
     font-size: 13px;
 }
 
-#upload-template-status {
+#selected-file-name {
+    font-weight: bold;
+    font-family: Roboto;
+    font-size: 13px;
+    color: #775331;
+    word-break: break-all;
+}
+
+#upload-template-status,
+#upload-file-status {
     margin-top: 10px;
     font-weight: bold;
     font-family: Roboto;
@@ -308,23 +347,64 @@ span.details-title {
     color: #ba554a;
 }
 
-#upload-template-container button {
+#upload-template-container button,
+#upload-file-container button {
     float: right;
     font-size: 16px;
     line-height: 14px;
     margin-left: 1px;
 }
 
-#upload-template-button {
+#upload-template-button,
+#upload-file-button {
     color: #004849;
     font-size: 16px;
     cursor: pointer;
 }
 
-#template-file-upload {
+#template-file-upload,
+#file-upload {
     position: absolute;
     top: 0;
     left: 0;
     height: 22px;
     width: 300px;
+}
+
+span#import-process-group-link.link:focus {
+    outline: none;
+}
+
+span#import-process-group-link.link {
+    position: relative;
+    top: 164px;
+    left: 20px;
+    color: #004849; /*link-color*/
+    font-weight: normal;
+    display: inline-block;
+    border-bottom: 1px solid #CCDADB;
+    font-size: 13px;
+    font-family: Roboto;
+    z-index: 1;
+}
+
+span#import-process-group-link.link-over {
+    border-bottom: 1px solid #004849;
+}
+
+span#import-process-group-link.link-bold {
+    font-weight: bold;
+    border-bottom: none;
+}
+
+#file-cancel-button {
+    position: absolute;
+    width: 0px;
+    height: 0px;
+    right: 13px;
+    z-index: 1;
+    border: none;
+    background-color: transparent;
+    padding: 0px;
+    margin-top: 16px;
 }
