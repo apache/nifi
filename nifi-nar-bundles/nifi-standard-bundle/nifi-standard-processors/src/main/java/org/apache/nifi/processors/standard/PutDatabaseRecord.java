@@ -704,10 +704,13 @@ public class PutDatabaseRecord extends AbstractProcessor {
                         // Convert (if necessary) from field data type to column data type
                         if (fieldSqlType != sqlType) {
                             try {
-                                currentValue = DataTypeUtils.convertType(
-                                        currentValue,
-                                        DataTypeUtils.getDataTypeFromSQLTypeValue(sqlType),
-                                        currentRecord.getSchema().getField(currentFieldIndex).getFieldName());
+                                DataType targetDataType = DataTypeUtils.getDataTypeFromSQLTypeValue(sqlType);
+                                if (targetDataType != null) {
+                                    currentValue = DataTypeUtils.convertType(
+                                            currentValue,
+                                            targetDataType,
+                                            currentRecord.getSchema().getField(currentFieldIndex).getFieldName());
+                                }
                             } catch (IllegalTypeConversionException itce) {
                                 // If the field and column types don't match or the value can't otherwise be converted to the column datatype,
                                 // try with the original object and field datatype

@@ -45,7 +45,6 @@ import java.sql.PreparedStatement
 import java.sql.ResultSet
 import java.sql.SQLDataException
 import java.sql.SQLException
-import java.sql.SQLFeatureNotSupportedException
 import java.sql.SQLNonTransientConnectionException
 import java.sql.Statement
 import java.time.LocalDate
@@ -58,7 +57,6 @@ import static org.junit.Assert.assertNotNull
 import static org.junit.Assert.assertNull
 import static org.junit.Assert.assertTrue
 import static org.junit.Assert.fail
-
 import static org.mockito.ArgumentMatchers.anyMap
 import static org.mockito.Mockito.doAnswer
 import static org.mockito.Mockito.spy
@@ -1295,6 +1293,48 @@ class TestPutDatabaseRecord {
         // A SQLFeatureNotSupportedException exception is expected from Derby when you try to put the data as an ARRAY
         runner.assertTransferCount(PutDatabaseRecord.REL_SUCCESS, 0)
         runner.assertTransferCount(PutDatabaseRecord.REL_FAILURE, 1)
+    }
 
+    @Test
+    void testLongVarchar() throws InitializationException, ProcessException, SQLException, IOException {
+        // Manually create and drop the tables and schemas
+        def conn = dbcp.connection
+        def stmt = conn.createStatement()
+        try {
+            stmt.execute('DROP TABLE TEMP')
+        } catch(ex) {
+            // Do nothing, table may not exist
+        }
+        stmt.execute('CREATE TABLE TEMP (id integer primary key, name long varchar)')
+
+        final MockRecordParser parser = new MockRecordParser()
+        runner.addControllerService("parser", parser)
+        runner.enableControllerService(parser)
+
+        parser.addSchemaField("id", RecordFieldType.INT)
+        parser.addSchemaField("name", RecordFieldType.STRING)
+
+        parser.addRecord(1, 'rec1')
+        parser.addRecord(2, 'rec2')
+
+        runner.setProperty(PutDatabaseRecord.RECORD_READER_FACTORY, 'parser')
+        runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE, PutDatabaseRecord.INSERT_TYPE)
+        runner.setProperty(PutDatabaseRecord.TABLE_NAME, 'TEMP')
+
+        runner.enqueue(new byte[0])
+        runner.run()
+
+        runner.assertTransferCount(PutDatabaseRecord.REL_SUCCESS, 1)
+        ResultSet rs = stmt.executeQuery('SELECT * FROM TEMP')
+        assertTrue(rs.next())
+        assertEquals(1, rs.getInt(1))
+        assertEquals('rec1', rs.getString(2))
+        assertTrue(rs.next())
+        assertEquals(2, rs.getInt(1))
+        assertEquals('rec2', rs.getString(2))
+        assertFalse(rs.next())
+
+        stmt.close()
+        conn.close()
     }
 }
