@@ -16,6 +16,10 @@
  */
 package org.apache.nifi.web.api;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.module.jaxb.JaxbAnnotationIntrospector;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiImplicitParam;
 import io.swagger.annotations.ApiImplicitParams;
@@ -24,6 +28,56 @@ import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
 import io.swagger.annotations.Authorization;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
+import javax.ws.rs.DefaultValue;
+import javax.ws.rs.GET;
+import javax.ws.rs.HttpMethod;
+import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.HttpHeaders;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.MultivaluedHashMap;
+import javax.ws.rs.core.MultivaluedMap;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
+import javax.ws.rs.core.UriBuilder;
+import javax.ws.rs.core.UriInfo;
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBElement;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Unmarshaller;
+import javax.xml.stream.XMLStreamReader;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.text.StringEscapeUtils;
 import org.apache.nifi.authorization.AuthorizableLookup;
@@ -105,6 +159,7 @@ import org.apache.nifi.web.api.entity.PortEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupImportEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupReplaceRequestEntity;
+import org.apache.nifi.web.api.entity.ProcessGroupUploadEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupsEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.ProcessorsEntity;
@@ -123,57 +178,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.DELETE;
-import javax.ws.rs.DefaultValue;
-import javax.ws.rs.GET;
-import javax.ws.rs.HttpMethod;
-import javax.ws.rs.POST;
-import javax.ws.rs.PUT;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.HttpHeaders;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.MultivaluedHashMap;
-import javax.ws.rs.core.MultivaluedMap;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
-import javax.ws.rs.core.UriBuilder;
-import javax.ws.rs.core.UriInfo;
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBElement;
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Unmarshaller;
-import javax.xml.stream.XMLStreamReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 /**
  * RESTful endpoint for managing a Group.
@@ -211,6 +215,13 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
                 return thread;
             }
         });
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+    static {
+        MAPPER.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+        MAPPER.setDefaultPropertyInclusion(JsonInclude.Value.construct(JsonInclude.Include.NON_NULL, JsonInclude.Include.NON_NULL));
+        MAPPER.setAnnotationIntrospector(new JaxbAnnotationIntrospector(MAPPER.getTypeFactory()));
+        MAPPER.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+    }
 
     /**
      * Populates the remaining fields in the specified process groups.
@@ -2011,33 +2022,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
         return withWriteLock(
                 serviceFacade,
                 requestProcessGroupEntity,
-                lookup -> {
-                    final NiFiUser user = NiFiUserUtils.getNiFiUser();
-                    final Authorizable processGroup = lookup.getProcessGroup(groupId).getAuthorizable();
-                    processGroup.authorize(authorizer, RequestAction.WRITE, user);
-
-                    // If request specifies a Parameter Context, need to authorize that user has READ policy for the Parameter Context.
-                    final ParameterContextReferenceEntity referencedParamContext = requestProcessGroupEntity.getComponent().getParameterContext();
-                    if (referencedParamContext != null && referencedParamContext.getId() != null) {
-                        lookup.getParameterContext(referencedParamContext.getId()).authorize(authorizer, RequestAction.READ, user);
-                    }
-
-                    // Step 5: If any of the components is a Restricted Component, then we must authorize the user
-                    // for write access to the RestrictedComponents resource
-                    final VersionedFlowSnapshot versionedFlowSnapshot = requestProcessGroupEntity.getVersionedFlowSnapshot();
-                    if (versionedFlowSnapshot != null) {
-                        final Set<ConfigurableComponent> restrictedComponents = FlowRegistryUtils.getRestrictedComponents(versionedFlowSnapshot.getFlowContents(), serviceFacade);
-                        restrictedComponents.forEach(restrictedComponent -> {
-                            final ComponentAuthorizable restrictedComponentAuthorizable = lookup.getConfigurableComponent(restrictedComponent);
-                            authorizeRestrictions(authorizer, restrictedComponentAuthorizable);
-                        });
-
-                        final Map<String, VersionedParameterContext> parameterContexts = versionedFlowSnapshot.getParameterContexts();
-                        if (parameterContexts != null) {
-                            parameterContexts.values().forEach(context -> AuthorizeParameterReference.authorizeParameterContextAddition(context, serviceFacade, authorizer, lookup, user));
-                        }
-                    }
-                },
+                lookup -> authorizeAccess(groupId, requestProcessGroupEntity, lookup),
                 () -> {
                     final VersionedFlowSnapshot versionedFlowSnapshot = requestProcessGroupEntity.getVersionedFlowSnapshot();
                     if (versionedFlowSnapshot != null) {
@@ -4174,6 +4159,264 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
     }
 
     /**
+     * Uploads the specified versioned flow definition and adds it to a new process group.
+     *
+     * @param in The flow definition stream
+     * @return A processGroupEntity
+     * @throws IOException if there is an error during deserialization of the InputStream
+     */
+    @POST
+    @Consumes(MediaType.MULTIPART_FORM_DATA)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{id}/process-groups/upload")
+    @ApiOperation(
+            value = "Uploads a versioned flow definition and creates a process group",
+            response = ProcessGroupEntity.class,
+            authorizations = {
+                    @Authorization(value = "Write - /process-groups/{uuid}")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
+    public Response uploadProcessGroup(
+            @ApiParam(
+                    value = "The process group id.",
+                    required = true
+            )
+            @PathParam("id") final String groupId,
+            @ApiParam(
+                    value = "The process group name.",
+                    required = true
+            )
+            @FormDataParam("groupName") final String groupName,
+            @ApiParam(
+                    value = "The process group X position.",
+                    required = true
+            )
+            @FormDataParam("positionX") final Double positionX,
+            @ApiParam(
+                    value = "The process group Y position.",
+                    required = true
+            )
+            @FormDataParam("positionY") final Double positionY,
+            @ApiParam(
+                    value = "The client id.",
+                    required = true
+            )
+            @FormDataParam("clientId") final String clientId,
+            @ApiParam(
+                    value = "Acknowledges that this node is disconnected to allow for mutable requests to proceed.",
+                    required = false
+            )
+            @FormDataParam(DISCONNECTED_NODE_ACKNOWLEDGED) @DefaultValue("false") final Boolean disconnectedNodeAcknowledged,
+            @FormDataParam("file") final InputStream in) throws InterruptedException {
+
+        // ensure the group name is specified
+        if (StringUtils.isBlank(groupName)) {
+            throw new IllegalArgumentException("The process group name is required.");
+        }
+
+        if (StringUtils.isBlank(groupId)) {
+            throw new IllegalArgumentException("The parent process group id is required");
+        }
+
+        if (positionX == null) {
+            throw new IllegalArgumentException("The x coordinate of the proposed position must be specified.");
+        }
+
+        if (positionY == null) {
+            throw new IllegalArgumentException("The y coordinate of the proposed position must be specified.");
+        }
+
+        if (StringUtils.isBlank(clientId)) {
+            throw new IllegalArgumentException("The client id must be specified");
+        }
+
+        // deserialize InputStream to a VersionedFlowSnapshot
+        VersionedFlowSnapshot deserializedSnapshot;
+
+        try {
+            deserializedSnapshot = MAPPER.readValue(in, VersionedFlowSnapshot.class);
+        } catch (IOException e) {
+            logger.warn("Deserialization of uploaded JSON failed", e);
+            throw new IllegalArgumentException("Deserialization of uploaded JSON failed", e);
+        }
+
+        // clear Registry info
+        sanitizeRegistryInfo(deserializedSnapshot.getFlowContents());
+
+        // resolve Bundle info
+        serviceFacade.discoverCompatibleBundles(deserializedSnapshot.getFlowContents());
+
+        // if there are any Controller Services referenced that are inherited from the parent group,
+        // resolve those to point to the appropriate Controller Service, if we are able to.
+        serviceFacade.resolveInheritedControllerServices(deserializedSnapshot, groupId, NiFiUserUtils.getNiFiUser());
+
+        if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(disconnectedNodeAcknowledged);
+        }
+
+        // create a PositionDTO
+        final PositionDTO positionDTO = new PositionDTO();
+        positionDTO.setX(positionX);
+        positionDTO.setY(positionY);
+
+        // create a RevisionDTO
+        RevisionDTO revisionDTO = new RevisionDTO();
+        revisionDTO.setClientId(clientId);
+        revisionDTO.setVersion((long) 0);
+
+        // build the response entity for a replicate request
+        ProcessGroupUploadEntity pgUploadEntity = new ProcessGroupUploadEntity();
+        pgUploadEntity.setGroupId(groupId);
+        pgUploadEntity.setGroupName(groupName);
+        pgUploadEntity.setDisconnectedNodeAcknowledged(disconnectedNodeAcknowledged);
+        pgUploadEntity.setFlowSnapshot(deserializedSnapshot);
+        pgUploadEntity.setPositionDTO(positionDTO);
+        pgUploadEntity.setRevisionDTO(revisionDTO);
+
+        // replicate the request
+        if (isReplicateRequest()) {
+            // convert request accordingly
+            final UriBuilder uriBuilder = uriInfo.getBaseUriBuilder();
+            uriBuilder.segment("process-groups", groupId, "process-groups", "import");
+            final URI importUri = uriBuilder.build();
+
+            final Map<String, String> headersToOverride = new HashMap<>();
+            headersToOverride.put("content-type", MediaType.APPLICATION_JSON);
+
+            // Determine whether we should replicate only to the cluster coordinator, or if we should replicate directly
+            // to the cluster nodes themselves.
+            if (getReplicationTarget() == ReplicationTarget.CLUSTER_NODES) {
+                return getRequestReplicator().replicate(HttpMethod.POST, importUri, pgUploadEntity, getHeaders(headersToOverride)).awaitMergedResponse().getResponse();
+            } else {
+                return getRequestReplicator().forwardToCoordinator(
+                        getClusterCoordinatorNode(), HttpMethod.POST, importUri, pgUploadEntity, getHeaders(headersToOverride)).awaitMergedResponse().getResponse();
+            }
+        }
+
+        // otherwise import the process group locally
+        return importProcessGroup(groupId, pgUploadEntity);
+    }
+
+    /**
+     * Imports the specified process group.
+     *
+     * @param processGroupUploadEntity     A ProcessGroupUploadEntity.
+     * @return A processGroupEntity.
+     */
+    @POST
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{id}/process-groups/import")
+    @ApiOperation(
+            value = "Imports a specified process group",
+            response = ProcessGroupEntity.class,
+            authorizations = {
+                    @Authorization(value = "Write - /process-groups/{uuid}")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
+    public Response importProcessGroup(
+            @ApiParam(
+                    value = "The process group id.",
+                    required = true
+            )
+            @PathParam("id") final String groupId,
+            final ProcessGroupUploadEntity processGroupUploadEntity) {
+
+        // verify the process group was specified
+        if (processGroupUploadEntity == null || processGroupUploadEntity.getFlowSnapshot() == null) {
+            throw new IllegalArgumentException("Process group details must be specified.");
+        }
+
+        final VersionedFlowSnapshot versionedFlowSnapshot = processGroupUploadEntity.getFlowSnapshot();
+
+        // clear Registry info
+        sanitizeRegistryInfo(versionedFlowSnapshot.getFlowContents());
+
+        // resolve Bundle info
+        serviceFacade.discoverCompatibleBundles(versionedFlowSnapshot.getFlowContents());
+
+        // if there are any Controller Services referenced that are inherited from the parent group,
+        // resolve those to point to the appropriate Controller Service, if we are able to.
+        serviceFacade.resolveInheritedControllerServices(versionedFlowSnapshot, groupId, NiFiUserUtils.getNiFiUser());
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.POST, processGroupUploadEntity);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(processGroupUploadEntity.getDisconnectedNodeAcknowledged());
+        }
+
+        // create a new ProcessGroupEntity
+        final ProcessGroupEntity newProcessGroupEntity = createProcessGroupEntity(groupId, processGroupUploadEntity.getGroupName(), processGroupUploadEntity.getPositionDTO(), versionedFlowSnapshot);
+
+        return withWriteLock(
+                serviceFacade,
+                newProcessGroupEntity,
+                lookup -> authorizeAccess(groupId, newProcessGroupEntity, lookup),
+                () -> {
+                    final VersionedFlowSnapshot newVersionedFlowSnapshot = newProcessGroupEntity.getVersionedFlowSnapshot();
+                    if (newVersionedFlowSnapshot != null) {
+                        serviceFacade.verifyComponentTypes(newVersionedFlowSnapshot.getFlowContents());
+                    }
+                },
+                processGroupEntity -> {
+                    final ProcessGroupDTO processGroup = processGroupEntity.getComponent();
+
+                    // set the processor id as appropriate
+                    processGroup.setId(generateUuid());
+
+                    // get the versioned flow
+                    final VersionedFlowSnapshot flowSnapshot = processGroupEntity.getVersionedFlowSnapshot();
+
+                    // create the process group contents
+                    final Revision revision = new Revision((long) 0, processGroupUploadEntity.getRevisionDTO().getClientId(), processGroup.getId());
+
+                    ProcessGroupEntity entity = serviceFacade.createProcessGroup(revision, groupId, processGroup);
+
+                    if (flowSnapshot != null) {
+                        final RevisionDTO revisionDto = entity.getRevision();
+                        final String newGroupId = entity.getComponent().getId();
+                        final Revision newGroupRevision = new Revision(revisionDto.getVersion(), revisionDto.getClientId(), newGroupId);
+
+                        // We don't want the Process Group's position to be updated because we want to keep the position where the user
+                        // placed the Process Group. We do not want to use the name of the Process Group that is in the Flow Contents.
+                        // To accomplish this, we call updateProcessGroupContents() passing 'false' for the updateSettings flag, set
+                        // the Process Group name, and null out the position.
+                        flowSnapshot.getFlowContents().setPosition(null);
+                        flowSnapshot.getFlowContents().setName(processGroupUploadEntity.getGroupName());
+
+                        entity = serviceFacade.updateProcessGroupContents(newGroupRevision, newGroupId, null, flowSnapshot,
+                                getIdGenerationSeed().orElse(null), false, false, true);
+                    }
+
+                    populateRemainingProcessGroupEntityContent(entity);
+
+                    // generate a 201 created response
+                    String uri = entity.getUri();
+                    return generateCreatedResponse(URI.create(uri), entity).build();
+                }
+        );
+
+    }
+
+
+    /**
      * Replace the Process Group contents with the given ID with the specified Process Group contents.
      *
      * This is the endpoint used in a cluster update replication scenario.
@@ -4398,6 +4641,70 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
 
         public VariableRegistryEntity getVariableRegistryEntity() {
             return variableRegistryEntity;
+        }
+    }
+
+    /**
+     * Creates a new ProcessGroupEntity with the specified VersionedFlowSnapshot.
+     *
+     * @param groupId               the group id string
+     * @param groupName             the process group name string
+     * @param positionDTO           the process group PositionDTO
+     * @param deserializedSnapshot  the deserialized snapshot
+     *
+     * @return a new ProcessGroupEntity
+     */
+    private ProcessGroupEntity createProcessGroupEntity(
+            String groupId, String groupName, PositionDTO positionDTO, VersionedFlowSnapshot deserializedSnapshot) {
+
+        final ProcessGroupEntity processGroupEntity = new ProcessGroupEntity();
+
+        // create a ProcessGroupDTO
+        final ProcessGroupDTO processGroupDTO = new ProcessGroupDTO();
+        processGroupDTO.setParentGroupId(groupId);
+        processGroupDTO.setName(groupName);
+
+        processGroupEntity.setComponent(processGroupDTO);
+        processGroupEntity.setVersionedFlowSnapshot(deserializedSnapshot);
+
+        // set the ProcessGroupEntity position
+        processGroupEntity.getComponent().setPosition(positionDTO);
+
+        return processGroupEntity;
+    }
+
+    /**
+     * Authorizes access to a Parameter Context and RestrictedComponents resource.
+     *
+     * @param groupId               the group id string
+     * @param processGroupEntity    the ProcessGroupEntity
+     * @param lookup                the lookup
+     */
+    private void authorizeAccess(String groupId, ProcessGroupEntity processGroupEntity, AuthorizableLookup lookup) {
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+        final Authorizable processGroup = lookup.getProcessGroup(groupId).getAuthorizable();
+        processGroup.authorize(authorizer, RequestAction.WRITE, user);
+
+        // if request specifies a Parameter Context, need to authorize that user has READ policy for the Parameter Context.
+        final ParameterContextReferenceEntity referencedParamContext = processGroupEntity.getComponent().getParameterContext();
+        if (referencedParamContext != null && referencedParamContext.getId() != null) {
+            lookup.getParameterContext(referencedParamContext.getId()).authorize(authorizer, RequestAction.READ, user);
+        }
+
+        // if any of the components is a Restricted Component, then we must authorize the user
+        // for write access to the RestrictedComponents resource
+        final VersionedFlowSnapshot versionedFlowSnapshot = processGroupEntity.getVersionedFlowSnapshot();
+        if (versionedFlowSnapshot != null) {
+            final Set<ConfigurableComponent> restrictedComponents = FlowRegistryUtils.getRestrictedComponents(versionedFlowSnapshot.getFlowContents(), serviceFacade);
+            restrictedComponents.forEach(restrictedComponent -> {
+                final ComponentAuthorizable restrictedComponentAuthorizable = lookup.getConfigurableComponent(restrictedComponent);
+                authorizeRestrictions(authorizer, restrictedComponentAuthorizable);
+            });
+
+            final Map<String, VersionedParameterContext> parameterContexts = versionedFlowSnapshot.getParameterContexts();
+            if (parameterContexts != null) {
+                parameterContexts.values().forEach(context -> AuthorizeParameterReference.authorizeParameterContextAddition(context, serviceFacade, authorizer, lookup, user));
+            }
         }
     }
 

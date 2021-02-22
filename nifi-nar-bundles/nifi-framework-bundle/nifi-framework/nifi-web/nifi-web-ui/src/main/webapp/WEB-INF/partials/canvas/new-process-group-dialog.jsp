@@ -15,19 +15,40 @@
   limitations under the License.
 --%>
 <%@ page contentType="text/html" pageEncoding="UTF-8" session="false" %>
-<div id="new-process-group-dialog" class="hidden small-dialog">
+<div id="new-process-group-dialog" class="hidden medium-short-dialog">
     <div class="dialog-content">
         <div class="setting">
             <div class="setting-name">Process group name</div>
             <div class="setting-field">
-                <input id="new-process-group-name" type="text"/>
+                <div id="select-file-button">
+                    <button class="icon icon-template-import" id="upload-file-field-button" title="Browse"></button>
+                    <form id="file-upload-form" enctype="multipart/form-data" method="post">
+                        <input type="file" name="file" id="upload-file-field"/>
+                    </form>
+                </div>
+                <input id="new-process-group-name" type="text" placeholder="Enter a name or select a file to upload"/>
             </div>
         </div>
-        <div class="setting">
-            <span id="import-process-group-link" class="link" title="Import a flow from a registry">
-                <i class="fa fa-cloud-download" aria-hidden="true" style="margin-left: 5px; margin-right: 5px;"></i>
-                Import...
-            </span>
+        <div id="file-cancel-button-container">
+            <button class="icon" id="file-cancel-button" aria-hidden="true" title="Cancel the selected file">
+                <i class="fa fa-times"></i>
+            </button>
         </div>
+        <div class="setting">
+            <div id="submit-file-container">
+                <div class="setting-name">
+                    <span id="file-to-upload" title="File to upload">
+                        File to Upload:
+                    </span>
+                </div>
+                <div id="selected-file-name"></div>
+            </div>
+        </div>
+    </div>
+    <div class="setting">
+        <span id="import-process-group-link" class="link" title="Import a flow from a registry">
+            <i class="fa fa-cloud-download" aria-hidden="true" style="margin-left: 5px; margin-right: 5px;"></i>
+            Import from Registry...
+        </span>
     </div>
 </div>

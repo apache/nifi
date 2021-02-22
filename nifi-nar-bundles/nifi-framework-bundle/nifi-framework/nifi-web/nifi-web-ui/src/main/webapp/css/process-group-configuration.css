@@ -104,3 +104,7 @@
 #process-group-controller-services-tab-content {
     top: 32px;
 }
+
+#upload-process-group-link {
+    float: right;
+}
