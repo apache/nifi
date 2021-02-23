@@ -36,6 +36,7 @@ import org.junit.Test;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
@@ -183,6 +184,11 @@ public class TestGetKinesisStream {
         mockGetKinesisStreamRuner.setProperty(GetKinesisStream.ACCESS_KEY, "test-access");
         mockGetKinesisStreamRuner.setProperty(GetKinesisStream.SECRET_KEY, "test-secret");
         mockGetKinesisStreamRuner.setProperty(GetKinesisStream.REGION, Regions.EU_WEST_2.getName());
+
+        // speed up init process for the unit test (And show use of dynamic properties to configure KCL)
+        mockGetKinesisStreamRuner.setProperty("maxInitializationAttempts", "1");
+        mockGetKinesisStreamRuner.setProperty("parentShardPollIntervalMillis", "1");
+
         mockGetKinesisStreamRuner.assertValid();
 
         mockGetKinesisStreamRuner.run();
@@ -214,6 +220,122 @@ public class TestGetKinesisStream {
         assertThat(mockGetKinesisStreamRuner.getLogger().getErrorMessages().isEmpty(), is(true));
     }
 
+    @Test
+    public void testInvalidDynamicKCLProperties() {
+        // blank properties
+        runner.setProperty("", "empty");
+        runner.setProperty(" ", "blank");
+
+        // invalid property names
+        runner.setProperty("withPrefixNotAllowed", "a-value");
+        runner.setProperty("UpperCaseLeadingCharacterNotAllowed", "another-value");
+        runner.setProperty("unknownProperty", "a-third-value");
+        runner.setProperty("toString", "cannot-call");
+
+        // invalid property names (cannot use nested/indexed/mapped properties via BeanUtils)
+        runner.setProperty("no.allowed", "no-.");
+        runner.setProperty("no[allowed", "no-[");
+        runner.setProperty("no]allowed", "no-]");
+        runner.setProperty("no(allowed", "no-(");
+        runner.setProperty("no)allowed", "no-)");
+
+        // can't override static properties
+        runner.setProperty("regionName", Regions.AF_SOUTH_1.getName());
+        runner.setProperty("timestampAtInitialPositionInStream", "2021-01-01 00:00:00");
+        runner.setProperty("initialPositionInStream", "AT_TIMESTAMP");
+        runner.setProperty("dynamoDBEndpoint", "http://localhost:4566/dynamodb");
+        runner.setProperty("kinesisEndpoint", "http://localhost:4566/kinesis");
+
+        // invalid parameter conversions
+        runner.setProperty("dynamoDBClientConfig", "too-complex");
+        runner.setProperty("shutdownGraceMillis", "not-long");
+
+        final AssertionError ae = assertThrows(AssertionError.class, runner::assertValid);
+        assertThat(ae.getMessage(), startsWith("Processor has 18 validation failures:\n"));
+
+        // blank properties
+        assertThat(ae.getMessage(), containsString("'Property Name' validated against '' is invalid because Invalid attribute key: <Empty String>\n"));
+        assertThat(ae.getMessage(), containsString("'Property Name' validated against ' ' is invalid because Invalid attribute key: <Empty String>\n"));
+
+        // invalid property names
+        assertThat(ae.getMessage(), containsString(
+                "'withPrefixNotAllowed' validated against 'a-value' is invalid because Property name must not have a prefix of \"with\", " +
+                "must start with a lowercase letter and contain only letters, numbers or underscores\n"
+        ));
+        assertThat(ae.getMessage(), containsString(
+                "'UpperCaseLeadingCharacterNotAllowed' validated against 'another-value' is invalid because Property name must not have a prefix of \"with\", " +
+                "must start with a lowercase letter and contain only letters, numbers or underscores\n"
+        ));
+        assertThat(ae.getMessage(), containsString(
+                "'unknownProperty' validated against 'a-third-value' is invalid because Kinesis Client Library Configuration property with name " +
+                "withUnknownProperty does not exist or is not writable\n"
+        ));
+        assertThat(ae.getMessage(), containsString(
+                "'toString' validated against 'cannot-call' is invalid because Kinesis Client Library Configuration property with name " +
+                "withToString does not exist or is not writable\n"
+        ));
+
+        // invalid property names (cannot use nested/indexed/mapped properties via BeanUtils)
+        assertThat(ae.getMessage(), containsString(
+                "'no.allowed' validated against 'no-.' is invalid because Property name must not have a prefix of \"with\", " +
+                "must start with a lowercase letter and contain only letters, numbers or underscores\n"
+        ));
+        assertThat(ae.getMessage(), containsString(
+                "'no[allowed' validated against 'no-[' is invalid because Property name must not have a prefix of \"with\", " +
+                "must start with a lowercase letter and contain only letters, numbers or underscores\n"
+        ));
+        assertThat(ae.getMessage(), containsString(
+                "'no]allowed' validated against 'no-]' is invalid because Property name must not have a prefix of \"with\", " +
+                "must start with a lowercase letter and contain only letters, numbers or underscores\n"
+        ));
+        assertThat(ae.getMessage(), containsString(
+                "'no(allowed' validated against 'no-(' is invalid because Property name must not have a prefix of \"with\", " +
+                "must start with a lowercase letter and contain only letters, numbers or underscores\n"
+        ));
+        assertThat(ae.getMessage(), containsString(
+                "'no)allowed' validated against 'no-)' is invalid because Property name must not have a prefix of \"with\", " +
+                "must start with a lowercase letter and contain only letters, numbers or underscores\n"
+        ));
+
+        // can't override static properties
+        assertThat(ae.getMessage(), containsString("'regionName' validated against 'af-south-1' is invalid because Use \"Region\" instead of a dynamic property\n"));
+        assertThat(ae.getMessage(), containsString(
+                "'timestampAtInitialPositionInStream' validated against '2021-01-01 00:00:00' is invalid because Use \"Stream Position Timestamp\" instead of a dynamic property\n"
+        ));
+        assertThat(ae.getMessage(), containsString(
+                "'initialPositionInStream' validated against 'AT_TIMESTAMP' is invalid because Use \"Initial Stream Position\" instead of a dynamic property\n"
+        ));
+        assertThat(ae.getMessage(), containsString(
+                "'dynamoDBEndpoint' validated against 'http://localhost:4566/dynamodb' is invalid because Use \"DynamoDB Override\" instead of a dynamic property\n"
+        ));
+        assertThat(ae.getMessage(), containsString(
+                "'kinesisEndpoint' validated against 'http://localhost:4566/kinesis' is invalid because Use \"Amazon Kinesis Stream Name\" instead of a dynamic property\n"
+        ));
+
+        // invalid parameter conversions
+        assertThat(ae.getMessage(), containsString(
+                "'dynamoDBClientConfig' validated against 'too-complex' is invalid because Kinesis Client Library Configuration property " +
+                "with name withDynamoDBClientConfig cannot be used with value \"too-complex\" : " +
+                "Cannot invoke com.amazonaws.services.kinesis.clientlibrary.lib.worker.KinesisClientLibConfiguration.withDynamoDBClientConfig on bean class " +
+                "'class com.amazonaws.services.kinesis.clientlibrary.lib.worker.KinesisClientLibConfiguration' - argument type mismatch - " +
+                "had objects of type \"java.lang.String\" but expected signature \"com.amazonaws.ClientConfiguration\"\n"
+        ));
+        assertThat(ae.getMessage(), containsString("'shutdownGraceMillis' validated against 'not-long' is invalid because " +
+                "Kinesis Client Library Configuration property with name withShutdownGraceMillis " +
+                "cannot be used with value \"not-long\" : Value of ShutdownGraceMillis should be positive, but current value is 0\n"));
+    }
+
+    @Test
+    public void testValidDynamicKCLProperties() {
+        runner.setProperty("billingMode", "PROVISIONED"); // enum
+        runner.setProperty("leaseCleanupIntervalMillis", "1000"); // long
+        runner.setProperty("cleanupLeasesUponShardCompletion", "true"); // boolean
+        runner.setProperty("maxInitializationAttempts", "1"); // int
+        runner.setProperty("dataFetchingStrategy", "DEFAULT"); // String
+
+        runner.assertValid();
+    }
+
     private void assertKinesisClientLibConfiguration(final KinesisClientLibConfiguration kinesisClientLibConfiguration, final String hostname) {
         assertThat(kinesisClientLibConfiguration.getWorkerIdentifier(), startsWith(hostname));
         assertThat(kinesisClientLibConfiguration.getApplicationName(), equalTo("test-application"));
@@ -234,6 +356,9 @@ public class TestGetKinesisStream {
         assertThat(kinesisClientLibConfiguration.getKinesisClientConfiguration(), instanceOf(ClientConfiguration.class));
         assertThat(kinesisClientLibConfiguration.getDynamoDBClientConfiguration(), instanceOf(ClientConfiguration.class));
         assertThat(kinesisClientLibConfiguration.getCloudWatchClientConfiguration(), instanceOf(ClientConfiguration.class));
+
+        assertThat(kinesisClientLibConfiguration.getMaxInitializationAttempts(), equalTo(1));
+        assertThat(kinesisClientLibConfiguration.getParentShardPollIntervalMillis(), equalTo(1L));
     }
 
     public static class MockGetKinesisStream extends GetKinesisStream {
@@ -252,16 +377,6 @@ public class TestGetKinesisStream {
                                                                            final String streamName, final String workerId) {
             kinesisClientLibConfiguration =
                     super.prepareKinesisClientLibConfiguration(context, appName, streamName, workerId);
-
-            // check "real" config settings before changing
-            assertThat(kinesisClientLibConfiguration.getMaxInitializationAttempts(),
-                    equalTo(context.getProperty(GetKinesisStream.NUM_RETRIES).asInteger()));
-            assertThat(kinesisClientLibConfiguration.getParentShardPollIntervalMillis(),
-                    equalTo(KinesisClientLibConfiguration.DEFAULT_PARENT_SHARD_POLL_INTERVAL_MILLIS));
-
-            // reduce the time spent initialising to speed up unit tests
-            kinesisClientLibConfiguration.withMaxInitializationAttempts(1);
-            kinesisClientLibConfiguration.withParentShardPollIntervalMillis(1L);
 
             return kinesisClientLibConfiguration;
         }

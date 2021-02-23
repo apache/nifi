@@ -26,7 +26,13 @@ import com.amazonaws.services.kinesis.clientlibrary.lib.worker.InitialPositionIn
 import com.amazonaws.services.kinesis.clientlibrary.lib.worker.KinesisClientLibConfiguration;
 import com.amazonaws.services.kinesis.clientlibrary.lib.worker.Worker;
 import com.amazonaws.services.kinesis.metrics.impl.NullMetricsFactory;
+import org.apache.commons.beanutils.BeanUtilsBean;
+import org.apache.commons.beanutils.ConvertUtilsBean2;
+import org.apache.commons.beanutils.FluentPropertyBeanIntrospector;
+import org.apache.commons.beanutils.PropertyUtilsBean;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.annotation.behavior.DynamicProperties;
+import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SystemResource;
 import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
@@ -52,6 +58,7 @@ import org.apache.nifi.processors.aws.kinesis.stream.record.KinesisRecordProcess
 import org.apache.nifi.serialization.record.RecordFieldType;
 
 import javax.annotation.Nonnull;
+import java.lang.reflect.InvocationTargetException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.time.LocalDateTime;
@@ -62,6 +69,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -74,8 +82,10 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+@InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
 @Tags({"amazon", "aws", "kinesis", "get", "stream"})
 @CapabilityDescription("Reads data from the specified AWS Kinesis stream and outputs a FlowFile for every processed Record. " +
         "At-least-once delivery of all Kinesis Records within the Stream while the processor is running. " +
@@ -88,8 +98,14 @@ import java.util.stream.Stream;
         @WritesAttribute(attribute = KinesisRecordProcessor.AWS_KINESIS_SHARD_ID, description = "Shard ID from which the Kinesis Record was read"),
         @WritesAttribute(attribute = KinesisRecordProcessor.AWS_KINESIS_APPROXIMATE_ARRIVAL_TIMESTAMP, description = "Approximate arrival timestamp of the Record in the Kinesis stream")
 })
-@SeeAlso(PutKinesisStream.class)
-@InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
+@DynamicProperties({
+        @DynamicProperty(name="Kinesis Client Library (KCL) Configuration property name",
+                description="Override default KCL Configuration properties with required values. Supports setting of values via the \"with\" " +
+                        "methods on the KCL Configuration class. Specify the property to be set without the leading prefix, e.g. \"maxInitialisationAttempts\" " +
+                        "will call \"withMaxInitialisationAttempts\" and set the provided value. Only supports setting of simple property values, e.g. String, " +
+                        "int, long and boolean. Does not allow override of KCL Configuration settings handled by non-dynamic processor properties.",
+                expressionLanguageScope = ExpressionLanguageScope.NONE, value="Value to set in the KCL Configuration property")
+})
 @SystemResourceConsideration(resource = SystemResource.CPU, description = "Kinesis Client Library is used to create a Worker thread for consumption of Kinesis Records. " +
         "The Worker is initialised and started when this Processor has been triggered. It runs continually, spawning Kinesis Record Processors as required " +
         "to fetch Kinesis Records. The Worker Thread (and any child Record Processor threads) is not released until this processor is stopped. " +
@@ -97,6 +113,7 @@ import java.util.stream.Stream;
         "that are not controlled by the normal NiFi scheduler.")
 @SystemResourceConsideration(resource = SystemResource.NETWORK, description = "Kinesis Client Library will continually poll for new Records, " +
         "requesting up to a maximum number of Records/bytes per call. This can result in sustained network usage.")
+@SeeAlso(PutKinesisStream.class)
 @SuppressWarnings("java:S110")
 public class GetKinesisStream extends AbstractKinesisStreamProcessor {
     static final AllowableValue TRIM_HORIZON = new AllowableValue(
@@ -171,7 +188,7 @@ public class GetKinesisStream extends AbstractKinesisStreamProcessor {
     public static final PropertyDescriptor NUM_RETRIES = new PropertyDescriptor.Builder()
             .displayName("Retry Count")
             .name("amazon-kinesis-stream-retry-count")
-            .description("Number of times to retry a Kinesis operation (initialise, process record, checkpoint, shutdown)")
+            .description("Number of times to retry a Kinesis operation (process record, checkpoint, shutdown)")
             .addValidator(StandardValidators.INTEGER_VALIDATOR)
             .defaultValue("10")
             .required(true).build();
@@ -212,6 +229,14 @@ public class GetKinesisStream extends AbstractKinesisStreamProcessor {
             )
     );
 
+    private static final Map<String, PropertyDescriptor> DISALLOWED_DYNAMIC_KCL_PROPERTIES = new HashMap<String, PropertyDescriptor>(){{
+        put("regionName", REGION);
+        put("timestampAtInitialPositionInStream", STREAM_POSITION_TIMESTAMP);
+        put("initialPositionInStream", INITIAL_STREAM_POSITION);
+        put("dynamoDBEndpoint", DYNAMODB_ENDPOINT_OVERRIDE);
+        put("kinesisEndpoint", KINESIS_STREAM_NAME);
+    }};
+
     private long retryWaitMillis;
     private int numRetries;
     private InitialPositionInStream initialPositionInStream;
@@ -222,6 +247,28 @@ public class GetKinesisStream extends AbstractKinesisStreamProcessor {
     private volatile ExecutorService executorService;
     private Map<Worker, Future<?>> workers;
 
+    private final PropertyUtilsBean propertyUtilsBean;
+    private final BeanUtilsBean beanUtilsBean;
+
+    public GetKinesisStream() {
+        propertyUtilsBean = new PropertyUtilsBean();
+        propertyUtilsBean.addBeanIntrospector(new FluentPropertyBeanIntrospector("with"));
+
+        final ConvertUtilsBean2 convertUtilsBean2 = new ConvertUtilsBean2() {
+            @SuppressWarnings("unchecked") // generic Enum conversion from String property values
+            @Override
+            public Object convert(final String value, final Class clazz) {
+                if (clazz.isEnum()) {
+                    return Enum.valueOf(clazz, value);
+                }else{
+                    return super.convert(value, clazz);
+                }
+            }
+        };
+
+        beanUtilsBean = new BeanUtilsBean(convertUtilsBean2, propertyUtilsBean);
+    }
+
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return properties;
@@ -230,6 +277,66 @@ public class GetKinesisStream extends AbstractKinesisStreamProcessor {
     @Override
     public Set<Relationship> getRelationships() {
         return Collections.singleton(REL_SUCCESS);
+    }
+
+    @Override
+    protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
+        final PropertyDescriptor.Builder builder = new PropertyDescriptor.Builder()
+                .name(propertyDescriptorName)
+                .required(false)
+                .dynamic(true)
+                .addValidator(StandardValidators.ATTRIBUTE_KEY_PROPERTY_NAME_VALIDATOR)
+                .addValidator(this::validateDynamicKCLConfigProperty)
+                .expressionLanguageSupported(ExpressionLanguageScope.NONE);
+
+        return builder.build();
+    }
+
+    private ValidationResult validateDynamicKCLConfigProperty(final String subject, final String input, final ValidationContext context) {
+        final ValidationResult.Builder validationResult = new ValidationResult.Builder().subject(subject).input(input);
+
+        if (!subject.matches("^(?!with)[a-z]\\w*$")) {
+            return validationResult
+                    .explanation("Property name must not have a prefix of \"with\", must start with a lowercase letter and contain only letters, numbers or underscores")
+                    .valid(false).build();
+        }
+
+        if (DISALLOWED_DYNAMIC_KCL_PROPERTIES.keySet().stream().anyMatch(k -> k.equalsIgnoreCase(subject))) {
+            return validationResult
+                    .explanation(String.format("Use \"%s\" instead of a dynamic property", DISALLOWED_DYNAMIC_KCL_PROPERTIES.get(subject).getDisplayName()))
+                    .valid(false).build();
+        }
+
+        @SuppressWarnings("java:S1874")
+        final KinesisClientLibConfiguration kclTemp = new KinesisClientLibConfiguration("validate", "validate", null, "validate");
+        try {
+            if (!propertyUtilsBean.isWriteable(kclTemp, subject)) {
+                return validationResult
+                        .explanation(String.format("Kinesis Client Library Configuration property with name with%s does not exist or is not writable", StringUtils.capitalize(subject)))
+                        .valid(false).build();
+            }
+            beanUtilsBean.setProperty(kclTemp, subject, input);
+        } catch (IllegalAccessException e) {
+            return validationResult
+                    .explanation(String.format("Kinesis Client Library Configuration property with name with%s is not accessible", StringUtils.capitalize(subject)))
+                    .valid(false).build();
+        } catch (InvocationTargetException e) {
+            return buildDynamicPropertyBeanValidationResult(validationResult, subject, input, e.getTargetException().getLocalizedMessage());
+        } catch (IllegalArgumentException e) {
+            return buildDynamicPropertyBeanValidationResult(validationResult, subject, input, e.getLocalizedMessage());
+        }
+
+        return validationResult.valid(true).build();
+    }
+
+    private ValidationResult buildDynamicPropertyBeanValidationResult(final ValidationResult.Builder validationResult,
+                                                                      final String subject, final String input, final String message) {
+        return validationResult
+                .explanation(
+                        String.format("Kinesis Client Library Configuration property with name with%s cannot be used with value \"%s\" : %s",
+                                StringUtils.capitalize(subject), input, message)
+                )
+                .valid(false).build();
     }
 
     @Override
@@ -368,18 +475,20 @@ public class GetKinesisStream extends AbstractKinesisStreamProcessor {
         return workerBuilder.build();
     }
 
+    /*
+     *  Developer note: if setting KCL configuration explicitly from processor properties, be sure to add them to the
+     *  DISALLOWED_DYNAMIC_KCL_PROPERTIES list so Dynamic Properties can't be used to override the static properties
+     */
     KinesisClientLibConfiguration prepareKinesisClientLibConfiguration(final ProcessContext context, final String appName,
                                                                        final String streamName, final String workerId) {
         final AWSCredentialsProvider credentialsProvider = new AWSStaticCredentialsProvider(awsCredentials);
 
-        @SuppressWarnings({"deprecated", "java:S1874"})
-        // use most of the defaults in the constructor chain rather than the mammoth constructor here
+        @SuppressWarnings({"deprecated", "java:S1874"}) // use most of the defaults in the constructor chain rather than the mammoth constructor here
         final KinesisClientLibConfiguration kinesisClientLibConfiguration =
                 new KinesisClientLibConfiguration(appName, streamName, credentialsProvider, workerId)
                         .withCommonClientConfig(getClient().getClientConfiguration());
 
-        kinesisClientLibConfiguration.withRegionName(getRegion().getName())
-                .withMaxInitializationAttempts(numRetries);
+        kinesisClientLibConfiguration.withRegionName(getRegion().getName());
         if (InitialPositionInStream.AT_TIMESTAMP == initialPositionInStream) {
             kinesisClientLibConfiguration.withTimestampAtInitialPositionInStream(startStreamPositionTimestamp);
         } else {
@@ -387,6 +496,27 @@ public class GetKinesisStream extends AbstractKinesisStreamProcessor {
         }
         getDynamoDBOverride(context).ifPresent(kinesisClientLibConfiguration::withDynamoDBEndpoint);
         getKinesisOverride(context).ifPresent(kinesisClientLibConfiguration::withKinesisEndpoint);
+
+        final List<PropertyDescriptor> dynamicProperties = context.getProperties()
+                .keySet()
+                .stream()
+                .filter(PropertyDescriptor::isDynamic)
+                .collect(Collectors.toList());
+
+        final AtomicBoolean dynamicPropertyFailure = new AtomicBoolean(false);
+        dynamicProperties.forEach(descriptor -> {
+            final String name = descriptor.getName();
+            final String value = context.getProperty(descriptor).getValue();
+            try {
+                beanUtilsBean.setProperty(kinesisClientLibConfiguration, name, value);
+            } catch (IllegalAccessException | InvocationTargetException e) {
+                getLogger().error("Unable to set Kinesis Client Library Configuration property for {} with value {}", name, value, e);
+                dynamicPropertyFailure.set(true);
+            }
+        });
+        if (dynamicPropertyFailure.get()) {
+            throw new ProcessException("Failed to set dynamic properties for the Kinesis Client Library (see logs for more details)");
+        }
 
         return kinesisClientLibConfiguration;
     }
