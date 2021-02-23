@@ -29,8 +29,8 @@ import java.util.stream.Stream;
 
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
-import org.apache.nifi.controller.status.history.ComponentStatusRepository;
 import org.apache.nifi.controller.status.history.StatusHistory;
+import org.apache.nifi.controller.status.history.StatusHistoryRepository;
 import org.apache.nifi.controller.status.history.StatusSnapshot;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.util.Tuple;
@@ -47,7 +47,7 @@ public abstract class TestStatusAnalyticsEngine {
     static final String DEFAULT_SCORE_NAME = "rSquared";
     static final double DEFAULT_SCORE_THRESHOLD = .9;
 
-    protected ComponentStatusRepository statusRepository;
+    protected StatusHistoryRepository statusRepository;
     protected FlowManager flowManager;
     protected FlowFileEventRepository flowFileEventRepository;
     protected  StatusAnalyticsModelMapFactory statusAnalyticsModelMapFactory;
@@ -55,7 +55,7 @@ public abstract class TestStatusAnalyticsEngine {
     @Before
     public void setup() {
 
-        statusRepository = Mockito.mock(ComponentStatusRepository.class);
+        statusRepository = Mockito.mock(StatusHistoryRepository.class);
         flowManager = Mockito.mock(FlowManager.class);
         statusAnalyticsModelMapFactory = Mockito.mock(StatusAnalyticsModelMapFactory.class);
 
@@ -99,7 +99,7 @@ public abstract class TestStatusAnalyticsEngine {
     }
 
     public abstract StatusAnalyticsEngine getStatusAnalyticsEngine(FlowManager flowManager,
-                                                                   ComponentStatusRepository componentStatusRepository, StatusAnalyticsModelMapFactory statusAnalyticsModelMapFactory,
+                                                                   StatusHistoryRepository componentStatusRepository, StatusAnalyticsModelMapFactory statusAnalyticsModelMapFactory,
                                                                     long predictIntervalMillis, long queryIntervalMillis, String scoreName, double scoreThreshold);
 
 }

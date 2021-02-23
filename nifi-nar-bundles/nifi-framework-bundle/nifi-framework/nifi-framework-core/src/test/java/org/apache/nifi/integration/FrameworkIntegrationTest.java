@@ -64,7 +64,7 @@ import org.apache.nifi.controller.serialization.FlowSynchronizer;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.state.manager.StandardStateManagerProvider;
 import org.apache.nifi.controller.state.providers.local.WriteAheadLocalStateProvider;
-import org.apache.nifi.controller.status.history.ComponentStatusRepository;
+import org.apache.nifi.controller.status.history.StatusHistoryRepository;
 import org.apache.nifi.controller.status.history.VolatileComponentStatusRepository;
 import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.engine.FlowEngine;
@@ -216,7 +216,7 @@ public class FrameworkIntegrationTest {
         extensionManager.injectExtensionType(ContentRepository.class, FileSystemRepository.class);
         extensionManager.injectExtensionType(ProvenanceRepository.class, WriteAheadProvenanceRepository.class);
         extensionManager.injectExtensionType(StateProvider.class, WriteAheadLocalStateProvider.class);
-        extensionManager.injectExtensionType(ComponentStatusRepository.class, VolatileComponentStatusRepository.class);
+        extensionManager.injectExtensionType(StatusHistoryRepository.class, VolatileComponentStatusRepository.class);
         extensionManager.injectExtensionType(FlowFileSwapManager.class, FileSystemSwapManager.class);
 
         extensionManager.injectExtensionType(Processor.class, BiConsumerProcessor.class);

@@ -111,8 +111,11 @@ public enum ProcessGroupStatusDescriptor {
         return descriptor;
     }
 
-
     private static long calculateTaskMillis(final ProcessGroupStatus status) {
+        return TimeUnit.MILLISECONDS.convert(calculateTaskNanos(status), TimeUnit.NANOSECONDS);
+    }
+
+    private static long calculateTaskNanos(final ProcessGroupStatus status) {
         long nanos = 0L;
 
         for (final ProcessorStatus procStatus : status.getProcessorStatus()) {
@@ -120,9 +123,9 @@ public enum ProcessGroupStatusDescriptor {
         }
 
         for (final ProcessGroupStatus childStatus : status.getProcessGroupStatus()) {
-            nanos += calculateTaskMillis(childStatus);
+            nanos += calculateTaskNanos(childStatus);
         }
 
-        return TimeUnit.MILLISECONDS.convert(nanos, TimeUnit.NANOSECONDS);
+        return nanos;
     }
 }

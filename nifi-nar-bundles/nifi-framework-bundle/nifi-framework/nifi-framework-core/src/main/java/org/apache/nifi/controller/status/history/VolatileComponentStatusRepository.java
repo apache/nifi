@@ -28,7 +28,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -39,7 +38,8 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
-public class VolatileComponentStatusRepository implements ComponentStatusRepository {
+public class VolatileComponentStatusRepository implements StatusHistoryRepository {
+
     private static final Logger logger = LoggerFactory.getLogger(VolatileComponentStatusRepository.class);
 
     private static final Set<MetricDescriptor<?>> DEFAULT_PROCESSOR_METRICS = Arrays.stream(ProcessorStatusDescriptor.values())
@@ -93,11 +93,6 @@ public class VolatileComponentStatusRepository implements ComponentStatusReposit
         gcStatuses = new RingBuffer<>(numDataPoints);
         timestamps = new RingBuffer<>(numDataPoints);
         nodeStatuses = new RingBuffer<>(numDataPoints);
-    }
-
-    @Override
-    public void capture(final NodeStatus nodeStatus, final ProcessGroupStatus rootGroupStatus, final List<GarbageCollectionStatus> gcStatus) {
-        capture(nodeStatus, rootGroupStatus, gcStatus, new Date());
     }
 
     @Override
@@ -156,12 +151,6 @@ public class VolatileComponentStatusRepository implements ComponentStatusReposit
         procHistory.update(statusSnapshot, componentDetails);
     }
 
-
-    @Override
-    public Date getLastCaptureDate() {
-        return new Date(lastCaptureTime);
-    }
-
     @Override
     public StatusHistory getProcessorStatusHistory(final String processorId, final Date start, final Date end, final int preferredDataPoints, final boolean includeCounters) {
         return getStatusHistory(processorId, includeCounters, DEFAULT_PROCESSOR_METRICS, start, end, preferredDataPoints);
@@ -183,7 +172,7 @@ public class VolatileComponentStatusRepository implements ComponentStatusReposit
     }
 
     @Override
-    public StatusHistory getNodeStatusHistory() {
+    public StatusHistory getNodeStatusHistory(final Date start, final Date end) {
         final List<NodeStatus> nodeStatusList = nodeStatuses.asList();
         final List<List<GarbageCollectionStatus>> gcStatusList = gcStatuses.asList();
         final LinkedList<StatusSnapshot> snapshots = new LinkedList<>();
@@ -358,7 +347,7 @@ public class VolatileComponentStatusRepository implements ComponentStatusReposit
         final Date start, final Date end, final int preferredDataPoints) {
         final ComponentStatusHistory history = componentStatusHistories.get(componentId);
         if (history == null) {
-            return createEmptyStatusHistory();
+            return new EmptyStatusHistory();
         }
         final List<Date> dates = filterDates(start, end, preferredDataPoints);
         return history.toStatusHistory(dates, includeCounters, defaultMetricDescriptors);
@@ -378,28 +367,6 @@ public class VolatileComponentStatusRepository implements ComponentStatusReposit
 
         // if preferredDataPoints != Integer.MAX_VALUE, Dates returned will be reduced further
         return filteredDates.subList(Math.max(filteredDates.size() - preferredDataPoints, 0), filteredDates.size());
-    }
-
-
-    private StatusHistory createEmptyStatusHistory() {
-        final Date dateGenerated = new Date();
-
-        return new StatusHistory() {
-            @Override
-            public Date getDateGenerated() {
-                return dateGenerated;
-            }
-
-            @Override
-            public Map<String, String> getComponentDetails() {
-                return Collections.emptyMap();
-            }
-
-            @Override
-            public List<StatusSnapshot> getStatusSnapshots() {
-                return Collections.emptyList();
-            }
-        };
     }
 
 
@@ -423,5 +390,15 @@ public class VolatileComponentStatusRepository implements ComponentStatusReposit
         });
 
         return history;
+    }
+
+    @Override
+    public void start() {
+        // Nothing to do
+    }
+
+    @Override
+    public void shutdown() {
+        // Nothing to do
     }
 }

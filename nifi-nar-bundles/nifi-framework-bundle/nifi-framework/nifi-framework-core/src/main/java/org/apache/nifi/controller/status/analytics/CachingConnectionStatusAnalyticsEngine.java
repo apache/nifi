@@ -19,7 +19,7 @@ package org.apache.nifi.controller.status.analytics;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.nifi.controller.flow.FlowManager;
-import org.apache.nifi.controller.status.history.ComponentStatusRepository;
+import org.apache.nifi.controller.status.history.StatusHistoryRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,7 +35,7 @@ public class CachingConnectionStatusAnalyticsEngine extends ConnectionStatusAnal
     private volatile Cache<String, StatusAnalytics> cache;
     private static final Logger LOG = LoggerFactory.getLogger(CachingConnectionStatusAnalyticsEngine.class);
 
-    public CachingConnectionStatusAnalyticsEngine(FlowManager flowManager, ComponentStatusRepository statusRepository,
+    public CachingConnectionStatusAnalyticsEngine(FlowManager flowManager, StatusHistoryRepository statusRepository,
             StatusAnalyticsModelMapFactory statusAnalyticsModelMapFactory,
             long predictionIntervalMillis, long queryIntervalMillis, String scoreName, double scoreThreshold) {
 

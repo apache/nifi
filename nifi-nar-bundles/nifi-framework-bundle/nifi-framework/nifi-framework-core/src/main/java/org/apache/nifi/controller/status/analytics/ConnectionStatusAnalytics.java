@@ -30,8 +30,8 @@ import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.repository.FlowFileEvent;
 import org.apache.nifi.controller.repository.RepositoryStatusReport;
-import org.apache.nifi.controller.status.history.ComponentStatusRepository;
 import org.apache.nifi.controller.status.history.StatusHistory;
+import org.apache.nifi.controller.status.history.StatusHistoryRepository;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.util.Tuple;
 import org.slf4j.Logger;
@@ -48,7 +48,7 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
     private static final Logger LOG = LoggerFactory.getLogger(ConnectionStatusAnalytics.class);
     private final Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> modelMap;
     private QueryWindow queryWindow;
-    private final ComponentStatusRepository componentStatusRepository;
+    private final StatusHistoryRepository statusHistoryRepository;
     private final String connectionIdentifier;
     private final FlowManager flowManager;
     private final Boolean supportOnlineLearning;
@@ -67,9 +67,9 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
     private static String NEXT_INTERVAL_PERCENTAGE_USE_BYTES = "nextIntervalPercentageUseBytes";
     private static String INTERVAL_TIME_MILLIS = "intervalTimeMillis";
 
-    public ConnectionStatusAnalytics(ComponentStatusRepository componentStatusRepository, FlowManager flowManager,
+    public ConnectionStatusAnalytics(StatusHistoryRepository statusHistoryRepository, FlowManager flowManager,
                                      Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> modelMap, String connectionIdentifier, Boolean supportOnlineLearning) {
-        this.componentStatusRepository = componentStatusRepository;
+        this.statusHistoryRepository = statusHistoryRepository;
         this.flowManager = flowManager;
         this.modelMap = modelMap;
         this.connectionIdentifier = connectionIdentifier;
@@ -93,7 +93,7 @@ public class ConnectionStatusAnalytics implements StatusAnalytics {
 
             StatusAnalyticsModel model = modelFunction.getKey();
             StatusMetricExtractFunction extract = modelFunction.getValue();
-            StatusHistory statusHistory = componentStatusRepository.getConnectionStatusHistory(connectionIdentifier, queryWindow.getStartDateTime(), queryWindow.getEndDateTime(), Integer.MAX_VALUE);
+            StatusHistory statusHistory = statusHistoryRepository.getConnectionStatusHistory(connectionIdentifier, queryWindow.getStartDateTime(), queryWindow.getEndDateTime(), Integer.MAX_VALUE);
             Tuple<Stream<Double[]>, Stream<Double>> modelData = extract.extractMetric(metric, statusHistory);
             Double[][] features = modelData.getKey().toArray(size -> new Double[size][1]);
             Double[] values = modelData.getValue().toArray(size -> new Double[size]);

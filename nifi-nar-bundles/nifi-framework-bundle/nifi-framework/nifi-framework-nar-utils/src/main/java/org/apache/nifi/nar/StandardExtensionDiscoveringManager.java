@@ -16,6 +16,33 @@
  */
 package org.apache.nifi.nar;
 
+import org.apache.nifi.annotation.behavior.RequiresInstanceClassLoading;
+import org.apache.nifi.authentication.LoginIdentityProvider;
+import org.apache.nifi.authorization.AccessPolicyProvider;
+import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.UserGroupProvider;
+import org.apache.nifi.bundle.Bundle;
+import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.components.ConfigurableComponent;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.state.StateProvider;
+import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.controller.repository.ContentRepository;
+import org.apache.nifi.controller.repository.FlowFileRepository;
+import org.apache.nifi.controller.repository.FlowFileSwapManager;
+import org.apache.nifi.controller.status.analytics.StatusAnalyticsModel;
+import org.apache.nifi.controller.status.history.StatusHistoryRepository;
+import org.apache.nifi.flowfile.FlowFilePrioritizer;
+import org.apache.nifi.init.ConfigurableComponentInitializer;
+import org.apache.nifi.init.ConfigurableComponentInitializerFactory;
+import org.apache.nifi.processor.Processor;
+import org.apache.nifi.provenance.ProvenanceRepository;
+import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.reporting.ReportingTask;
+import org.apache.nifi.util.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
@@ -32,33 +59,6 @@ import java.util.ServiceLoader;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
-
-import org.apache.nifi.annotation.behavior.RequiresInstanceClassLoading;
-import org.apache.nifi.authentication.LoginIdentityProvider;
-import org.apache.nifi.authorization.AccessPolicyProvider;
-import org.apache.nifi.authorization.Authorizer;
-import org.apache.nifi.authorization.UserGroupProvider;
-import org.apache.nifi.bundle.Bundle;
-import org.apache.nifi.bundle.BundleCoordinate;
-import org.apache.nifi.components.ConfigurableComponent;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.state.StateProvider;
-import org.apache.nifi.controller.ControllerService;
-import org.apache.nifi.controller.repository.ContentRepository;
-import org.apache.nifi.controller.repository.FlowFileRepository;
-import org.apache.nifi.controller.repository.FlowFileSwapManager;
-import org.apache.nifi.controller.status.analytics.StatusAnalyticsModel;
-import org.apache.nifi.controller.status.history.ComponentStatusRepository;
-import org.apache.nifi.flowfile.FlowFilePrioritizer;
-import org.apache.nifi.init.ConfigurableComponentInitializer;
-import org.apache.nifi.init.ConfigurableComponentInitializerFactory;
-import org.apache.nifi.processor.Processor;
-import org.apache.nifi.provenance.ProvenanceRepository;
-import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.reporting.ReportingTask;
-import org.apache.nifi.util.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Scans through the classpath to load all FlowFileProcessors, FlowFileComparators, and ReportingTasks using the service provider API and running through all classloaders (root, NARs).
@@ -92,7 +92,7 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
         definitionMap.put(AccessPolicyProvider.class, new HashSet<>());
         definitionMap.put(LoginIdentityProvider.class, new HashSet<>());
         definitionMap.put(ProvenanceRepository.class, new HashSet<>());
-        definitionMap.put(ComponentStatusRepository.class, new HashSet<>());
+        definitionMap.put(StatusHistoryRepository.class, new HashSet<>());
         definitionMap.put(FlowFileRepository.class, new HashSet<>());
         definitionMap.put(FlowFileSwapManager.class, new HashSet<>());
         definitionMap.put(ContentRepository.class, new HashSet<>());

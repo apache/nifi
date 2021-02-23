@@ -106,18 +106,18 @@ public class ComponentDetails {
     }
 
     /**
-     * Returns a {@Link Map} whose keys are those values defined by {@link ComponentStatusRepository#COMPONENT_DETAIL_GROUP_ID ComponentStatusRepository.COMPONENT_DETAIL_*}
+     * Returns a {@Link Map} whose keys are those values defined by {@link StatusHistoryRepository#COMPONENT_DETAIL_GROUP_ID ComponentStatusRepository.COMPONENT_DETAIL_*}
      * and values are the values that are populated for this ComponentDetails object.
      */
     public Map<String, String> toMap() {
         final Map<String, String> map = new HashMap<>();
-        addToMap(map, ComponentStatusRepository.COMPONENT_DETAIL_ID, componentId);
-        addToMap(map, ComponentStatusRepository.COMPONENT_DETAIL_GROUP_ID, groupId);
-        addToMap(map, ComponentStatusRepository.COMPONENT_DETAIL_NAME, componentName);
-        addToMap(map, ComponentStatusRepository.COMPONENT_DETAIL_TYPE, componentType);
-        addToMap(map, ComponentStatusRepository.COMPONENT_DETAIL_SOURCE_NAME, sourceName);
-        addToMap(map, ComponentStatusRepository.COMPONENT_DETAIL_DESTINATION_NAME, destinationName);
-        addToMap(map, ComponentStatusRepository.COMPONENT_DETAIL_URI, targetUri);
+        addToMap(map, StatusHistoryRepository.COMPONENT_DETAIL_ID, componentId);
+        addToMap(map, StatusHistoryRepository.COMPONENT_DETAIL_GROUP_ID, groupId);
+        addToMap(map, StatusHistoryRepository.COMPONENT_DETAIL_NAME, componentName);
+        addToMap(map, StatusHistoryRepository.COMPONENT_DETAIL_TYPE, componentType);
+        addToMap(map, StatusHistoryRepository.COMPONENT_DETAIL_SOURCE_NAME, sourceName);
+        addToMap(map, StatusHistoryRepository.COMPONENT_DETAIL_DESTINATION_NAME, destinationName);
+        addToMap(map, StatusHistoryRepository.COMPONENT_DETAIL_URI, targetUri);
         return map;
     }
 
