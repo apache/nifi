@@ -47,7 +47,7 @@ public class MockSessionFactory implements ProcessSessionFactory {
         return session;
     }
 
-    Set<MockProcessSession> getCreatedSessions() {
+    public Set<MockProcessSession> getCreatedSessions() {
         return Collections.unmodifiableSet(createdSessions);
     }
 }
