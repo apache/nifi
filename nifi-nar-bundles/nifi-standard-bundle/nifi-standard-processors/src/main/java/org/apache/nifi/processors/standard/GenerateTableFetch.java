@@ -554,6 +554,9 @@ public class GenerateTableFetch extends AbstractDatabaseFetchProcessor {
                 logger.error("{} failed to update State Manager, observed maximum values will not be recorded. "
                                 + "Also, any generated SQL statements may be duplicated.", this, ioe);
             }
+
+            session.commit();
+
         } catch (final ProcessException pe) {
             // Log the cause of the ProcessException if it is available
             Throwable t = (pe.getCause() == null ? pe : pe.getCause());
