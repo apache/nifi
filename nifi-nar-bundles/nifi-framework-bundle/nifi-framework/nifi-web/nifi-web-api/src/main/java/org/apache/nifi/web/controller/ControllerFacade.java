@@ -59,7 +59,7 @@ import org.apache.nifi.controller.status.ProcessorStatus;
 import org.apache.nifi.controller.status.RemoteProcessGroupStatus;
 import org.apache.nifi.controller.status.analytics.StatusAnalytics;
 import org.apache.nifi.controller.status.analytics.StatusAnalyticsEngine;
-import org.apache.nifi.controller.status.history.ComponentStatusRepository;
+import org.apache.nifi.controller.status.history.StatusHistoryRepository;
 import org.apache.nifi.diagnostics.SystemDiagnostics;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -290,7 +290,7 @@ public class ControllerFacade implements Authorizable {
         final StatusHistoryDTO statusHistory = flowController.getNodeStatusHistory();
 
         if (!authorized)  {
-            statusHistory.getComponentDetails().put(ComponentStatusRepository.COMPONENT_DETAIL_TYPE, "Node");
+            statusHistory.getComponentDetails().put(StatusHistoryRepository.COMPONENT_DETAIL_TYPE, "Node");
         }
 
         return statusHistory;
@@ -317,8 +317,8 @@ public class ControllerFacade implements Authorizable {
 
         // if not authorized
         if (!authorized) {
-            statusHistory.getComponentDetails().put(ComponentStatusRepository.COMPONENT_DETAIL_NAME, processorId);
-            statusHistory.getComponentDetails().put(ComponentStatusRepository.COMPONENT_DETAIL_TYPE, "Processor");
+            statusHistory.getComponentDetails().put(StatusHistoryRepository.COMPONENT_DETAIL_NAME, processorId);
+            statusHistory.getComponentDetails().put(StatusHistoryRepository.COMPONENT_DETAIL_TYPE, "Processor");
         }
 
         return statusHistory;
@@ -343,9 +343,9 @@ public class ControllerFacade implements Authorizable {
 
         // if not authorized
         if (!connection.isAuthorized(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser())) {
-            statusHistory.getComponentDetails().put(ComponentStatusRepository.COMPONENT_DETAIL_NAME, connectionId);
-            statusHistory.getComponentDetails().put(ComponentStatusRepository.COMPONENT_DETAIL_SOURCE_NAME, connection.getSource().getIdentifier());
-            statusHistory.getComponentDetails().put(ComponentStatusRepository.COMPONENT_DETAIL_DESTINATION_NAME, connection.getDestination().getIdentifier());
+            statusHistory.getComponentDetails().put(StatusHistoryRepository.COMPONENT_DETAIL_NAME, connectionId);
+            statusHistory.getComponentDetails().put(StatusHistoryRepository.COMPONENT_DETAIL_SOURCE_NAME, connection.getSource().getIdentifier());
+            statusHistory.getComponentDetails().put(StatusHistoryRepository.COMPONENT_DETAIL_DESTINATION_NAME, connection.getDestination().getIdentifier());
         }
 
         return statusHistory;
@@ -373,7 +373,7 @@ public class ControllerFacade implements Authorizable {
 
         // if not authorized
         if (!group.isAuthorized(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser())) {
-            statusHistory.getComponentDetails().put(ComponentStatusRepository.COMPONENT_DETAIL_NAME, groupId);
+            statusHistory.getComponentDetails().put(StatusHistoryRepository.COMPONENT_DETAIL_NAME, groupId);
         }
 
         return statusHistory;
@@ -398,8 +398,8 @@ public class ControllerFacade implements Authorizable {
 
         // if not authorized
         if (!remoteProcessGroup.isAuthorized(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser())) {
-            statusHistory.getComponentDetails().put(ComponentStatusRepository.COMPONENT_DETAIL_NAME, remoteProcessGroupId);
-            statusHistory.getComponentDetails().remove(ComponentStatusRepository.COMPONENT_DETAIL_URI);
+            statusHistory.getComponentDetails().put(StatusHistoryRepository.COMPONENT_DETAIL_NAME, remoteProcessGroupId);
+            statusHistory.getComponentDetails().remove(StatusHistoryRepository.COMPONENT_DETAIL_URI);
         }
 
         return statusHistory;

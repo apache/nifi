@@ -1956,6 +1956,11 @@ The following binary components are provided under the Apache Software License v
       Zip4j 2.6.3.
       Copyright 2020 Srikanth Reddy Lingala
 
+  (ASLv2) QuestDB (org.questdb:core:core-4.2.1.jar - https://github.com/questdb/questdb)
+    The following NOTICE information applies:
+      Copyright (c) 2014-2019 Appsicle
+      Copyright (c) 2019-2020 QuestDB
+
 ************************
 Common Development and Distribution License 1.1
 ************************

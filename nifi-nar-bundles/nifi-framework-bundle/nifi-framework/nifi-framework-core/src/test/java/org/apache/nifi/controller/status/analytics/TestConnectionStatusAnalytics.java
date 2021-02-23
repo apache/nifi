@@ -42,10 +42,10 @@ import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.repository.FlowFileEvent;
 import org.apache.nifi.controller.repository.RepositoryStatusReport;
-import org.apache.nifi.controller.status.history.ComponentStatusRepository;
 import org.apache.nifi.controller.status.history.ConnectionStatusDescriptor;
 import org.apache.nifi.controller.status.history.MetricDescriptor;
 import org.apache.nifi.controller.status.history.StatusHistory;
+import org.apache.nifi.controller.status.history.StatusHistoryRepository;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
 import org.apache.nifi.nar.SystemBundle;
@@ -68,7 +68,7 @@ public class TestConnectionStatusAnalytics {
 
     protected ConnectionStatusAnalytics getConnectionStatusAnalytics(Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> modelMap) {
 
-        ComponentStatusRepository statusRepository = Mockito.mock(ComponentStatusRepository.class);
+        StatusHistoryRepository statusRepository = Mockito.mock(StatusHistoryRepository.class);
         FlowManager flowManager;
         flowManager = Mockito.mock(FlowManager.class);
         final Map<String, String> otherProps = new HashMap<>();

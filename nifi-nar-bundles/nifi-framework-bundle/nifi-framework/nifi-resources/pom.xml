@@ -125,6 +125,11 @@
         <nifi.components.status.repository.buffer.size>1440</nifi.components.status.repository.buffer.size>
         <nifi.components.status.snapshot.frequency>1 min</nifi.components.status.snapshot.frequency>
 
+        <!-- QuestDb status repository properties -->
+        <nifi.status.repository.questdb.persist.node.days>14</nifi.status.repository.questdb.persist.node.days>
+        <nifi.status.repository.questdb.persist.component.days>3</nifi.status.repository.questdb.persist.component.days>
+        <nifi.status.repository.questdb.persist.location>./status_repository</nifi.status.repository.questdb.persist.location>
+
         <!-- nifi.properties: web properties -->
         <nifi.web.http.host>127.0.0.1</nifi.web.http.host>
         <nifi.web.http.port>8080</nifi.web.http.port>

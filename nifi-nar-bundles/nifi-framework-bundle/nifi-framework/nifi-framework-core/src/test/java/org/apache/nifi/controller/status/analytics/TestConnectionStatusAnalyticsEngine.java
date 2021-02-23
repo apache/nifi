@@ -17,12 +17,12 @@
 package org.apache.nifi.controller.status.analytics;
 
 import org.apache.nifi.controller.flow.FlowManager;
-import org.apache.nifi.controller.status.history.ComponentStatusRepository;
+import org.apache.nifi.controller.status.history.StatusHistoryRepository;
 
 public class TestConnectionStatusAnalyticsEngine extends TestStatusAnalyticsEngine {
 
     @Override
-    public StatusAnalyticsEngine getStatusAnalyticsEngine(FlowManager flowManager,  ComponentStatusRepository statusRepository,
+    public StatusAnalyticsEngine getStatusAnalyticsEngine(FlowManager flowManager, StatusHistoryRepository statusRepository,
                                                           StatusAnalyticsModelMapFactory statusAnalyticsModelMapFactory,
                                                           long predictIntervalMillis, long queryIntervalMillis, String scoreName, double scoreThreshold) {
         return new ConnectionStatusAnalyticsEngine(flowManager, statusRepository, statusAnalyticsModelMapFactory,
