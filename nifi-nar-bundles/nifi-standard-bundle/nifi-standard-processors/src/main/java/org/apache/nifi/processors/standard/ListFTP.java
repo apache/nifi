@@ -101,6 +101,7 @@ public class ListFTP extends ListFileTransfer {
         properties.add(ListedEntityTracker.TRACKING_STATE_CACHE);
         properties.add(ListedEntityTracker.TRACKING_TIME_WINDOW);
         properties.add(ListedEntityTracker.INITIAL_LISTING_TARGET);
+        properties.add(FTPTransfer.UTF8_ENCODING);
         return properties;
     }
 
