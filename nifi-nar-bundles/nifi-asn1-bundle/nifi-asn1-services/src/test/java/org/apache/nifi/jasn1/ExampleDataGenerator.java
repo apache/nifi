@@ -75,6 +75,7 @@ public class ExampleDataGenerator {
             child.setB(new BerBoolean(true));
             child.setI(new BerInteger(789));
             child.setOctStr(new BerOctetString(new byte[]{1, 2, 3, 4, 5}));
+            child.setUtf8Str(new BerUTF8String("Some UTF-8 String. こんにちは世界。"));
 
             composite.setChild(child);
 
@@ -85,6 +86,7 @@ public class ExampleDataGenerator {
                 child.setB(new BerBoolean(i % 2 == 0));
                 child.setI(new BerInteger(i));
                 child.setOctStr(new BerOctetString(new byte[]{(byte) i, (byte) i, (byte) i}));
+                child.setUtf8Str(new BerUTF8String("Some UTF-8 String. こんにちは世界。"));
                 children.getBasicTypes().add(child);
             }
 
@@ -100,6 +102,7 @@ public class ExampleDataGenerator {
                 child.setB(new BerBoolean(i % 2 == 0));
                 child.setI(new BerInteger(i));
                 child.setOctStr(new BerOctetString(new byte[]{(byte) i, (byte) i, (byte) i}));
+                child.setUtf8Str(new BerUTF8String("Some UTF-8 String. こんにちは世界。"));
                 unordered.getBasicTypes().add(child);
             }
 
