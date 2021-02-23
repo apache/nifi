@@ -16,17 +16,17 @@
  */
 package org.apache.nifi.controller.status.history;
 
-import java.util.Date;
-import java.util.List;
-
 import org.apache.nifi.controller.status.NodeStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 
+import java.util.Date;
+import java.util.List;
+
 /**
- * A repository for storing and retrieving components' historical status
+ * A repository for storing and retrieving node and components' historical status
  * information
  */
-public interface ComponentStatusRepository {
+public interface StatusHistoryRepository {
 
     String COMPONENT_DETAIL_ID = "Id";
     String COMPONENT_DETAIL_GROUP_ID = "Group Id";
@@ -35,15 +35,6 @@ public interface ComponentStatusRepository {
     String COMPONENT_DETAIL_SOURCE_NAME = "Source Name";
     String COMPONENT_DETAIL_DESTINATION_NAME = "Destination Name";
     String COMPONENT_DETAIL_URI = "Uri";
-
-    /**
-     * Captures the status information provided in the given report
-     *
-     * @param nodeStatus status of the node
-     * @param rootGroupStatus status of root group and it's content
-     * @param garbageCollectionStatus status of garbage collection
-     */
-    void capture(NodeStatus nodeStatus, ProcessGroupStatus rootGroupStatus, List<GarbageCollectionStatus> garbageCollectionStatus);
 
     /**
      * Captures the status information provided in the given report, providing a
@@ -56,11 +47,6 @@ public interface ComponentStatusRepository {
      * @param garbageCollectionStatus status of garbage collection
      */
     void capture(NodeStatus nodeStatus, ProcessGroupStatus rootGroupStatus, List<GarbageCollectionStatus> garbageCollectionStatus, Date timestamp);
-
-    /**
-     * @return the Date at which the latest capture was performed
-     */
-    Date getLastCaptureDate();
 
     /**
      * @param connectionId the ID of the Connection for which the Status is
@@ -135,12 +121,42 @@ public interface ComponentStatusRepository {
     StatusHistory getRemoteProcessGroupStatusHistory(String remoteGroupId, Date start, Date end, int preferredDataPoints);
 
     /**
-     * Returns the status history of the actual node
+     * Returns the status history of the actual node.
+     *
+     * @param start the earliest date for which status information should be
+     * returned; if <code>null</code>, the start date should be assumed to be
+     * the beginning of time
+     * @param end the latest date for which status information should be
+     * returned; if <code>null</code>, the end date should be assumed to be the
+     * current time
      *
      * @return a {@link StatusHistory} that provides the status information
-     * about the NiFi node from the period stored in the status repository.
+     * about the NiFi node within the specified time range.
      */
-    StatusHistory getNodeStatusHistory();
+    StatusHistory getNodeStatusHistory(Date start, Date end);
 
+    /**
+     * Returns the status history of the garbage collection.
+     *
+     * @param start the earliest date for which status information should be
+     * returned; if <code>null</code>, the start date should be assumed to be
+     * the beginning of time
+     * @param end the latest date for which status information should be
+     * returned; if <code>null</code>, the end date should be assumed to be the
+     * current time
+     *
+     * @return a {@link GarbageCollectionHistory} that provides the status information
+     * about the garbage collection of the given node within the specified time range
+     */
     GarbageCollectionHistory getGarbageCollectionHistory(Date start, Date end);
+
+    /**
+     * Starts necessary resources needed for the repository.
+     */
+    void start();
+
+    /**
+     * Stops the resources used by the repository.
+     */
+    void shutdown();
 }
