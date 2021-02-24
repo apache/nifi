@@ -261,11 +261,6 @@ public class GetHDFSFileInfo extends AbstractHadoopProcessor {
     }
 
     @Override
-    public void onPropertyModified(PropertyDescriptor descriptor, String oldValue, String newValue) {
-        super.onPropertyModified(descriptor, oldValue, newValue);
-    }
-
-    @Override
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
         final List<ValidationResult> validationResults = new ArrayList<>(super.customValidate(validationContext));
 
@@ -643,7 +638,7 @@ public class GetHDFSFileInfo extends AbstractHadoopProcessor {
      * Keeps all request details in single object.
      */
     static class HDFSFileInfoRequest {
-        protected enum Grouping {
+         enum Grouping {
             ALL(GROUP_ALL.getValue()),
             DIR(GROUP_PARENT_DIR.getValue()),
             NONE(GROUP_NONE.getValue());
