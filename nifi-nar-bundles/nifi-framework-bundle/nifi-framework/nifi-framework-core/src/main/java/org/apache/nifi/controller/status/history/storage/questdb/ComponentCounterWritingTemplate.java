@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.controller.status.history.storage;
+package org.apache.nifi.controller.status.history.storage.questdb;
 
 import io.questdb.cairo.TableWriter;
 import org.apache.commons.math3.util.Pair;
@@ -41,9 +41,9 @@ class ComponentCounterWritingTemplate extends QuestDbWritingTemplate<Pair<Date, 
                 for (final Map.Entry<String, Long> counter : counters.entrySet()) {
                     final long measuredAt = TimeUnit.MILLISECONDS.toMicros(entry.getFirst().getTime());
                     final TableWriter.Row counterRow = tableWriter.newRow(measuredAt);
-                    counterRow.putSym(1,  entry.getSecond().getId());
-                    counterRow.putSym(2,  counter.getKey());
-                    counterRow.putLong(3,  counter.getValue());
+                    counterRow.putSym(1, entry.getSecond().getId());
+                    counterRow.putSym(2, counter.getKey());
+                    counterRow.putLong(3, counter.getValue());
                     counterRow.append();
                 }
             }

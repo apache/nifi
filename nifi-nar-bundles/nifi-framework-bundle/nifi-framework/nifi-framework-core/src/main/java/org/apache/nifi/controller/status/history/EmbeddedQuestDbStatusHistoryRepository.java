@@ -35,12 +35,12 @@ import org.apache.nifi.controller.status.history.storage.ComponentStatusStorage;
 import org.apache.nifi.controller.status.history.storage.GarbageCollectionStatusStorage;
 import org.apache.nifi.controller.status.history.storage.NodeStatusStorage;
 import org.apache.nifi.controller.status.history.storage.ProcessorStatusStorage;
-import org.apache.nifi.controller.status.history.storage.QuestDbConnectionStatusStorage;
-import org.apache.nifi.controller.status.history.storage.QuestDbGarbageCollectionStatusStorage;
-import org.apache.nifi.controller.status.history.storage.QuestDbNodeStatusStorage;
-import org.apache.nifi.controller.status.history.storage.QuestDbProcessGroupStatusStorage;
-import org.apache.nifi.controller.status.history.storage.QuestDbProcessorStatusStorage;
-import org.apache.nifi.controller.status.history.storage.QuestDbRemoteProcessGroupStatusStorage;
+import org.apache.nifi.controller.status.history.storage.questdb.QuestDbConnectionStatusStorage;
+import org.apache.nifi.controller.status.history.storage.questdb.QuestDbGarbageCollectionStatusStorage;
+import org.apache.nifi.controller.status.history.storage.questdb.QuestDbNodeStatusStorage;
+import org.apache.nifi.controller.status.history.storage.questdb.QuestDbProcessGroupStatusStorage;
+import org.apache.nifi.controller.status.history.storage.questdb.QuestDbProcessorStatusStorage;
+import org.apache.nifi.controller.status.history.storage.questdb.QuestDbRemoteProcessGroupStatusStorage;
 import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -162,9 +162,10 @@ public class EmbeddedQuestDbStatusHistoryRepository implements StatusHistoryRepo
 
     @Override
     public void shutdown() {
-        LOGGER.debug("Component status repository is shutting down");
+        LOGGER.debug("Status history repository started to shut down");
         scheduledExecutorService.shutdown();
         dbContext.close();
+        LOGGER.debug("Status history repository has been shut down");
     }
 
     @Override

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.controller.status.history.storage;
+package org.apache.nifi.controller.status.history.storage.questdb;
 
 import io.questdb.cairo.TableWriter;
 import org.apache.commons.math3.util.Pair;

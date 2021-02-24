@@ -34,7 +34,7 @@ public class BufferedWriterFlushWorker implements Runnable {
     @Override
     public void run() {
         try {
-            bufferedWriterList.forEach(statusRepository -> statusRepository.flush());
+            bufferedWriterList.forEach(bufferedWriter -> bufferedWriter.flush());
         } catch (final Exception e) {
             LOGGER.error("Error happened during calling flush.", e);
         }

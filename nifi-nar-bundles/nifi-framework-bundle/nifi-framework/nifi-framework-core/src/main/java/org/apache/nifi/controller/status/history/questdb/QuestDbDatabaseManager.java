@@ -43,7 +43,7 @@ public final class QuestDbDatabaseManager {
         HEALTHY, NON_EXISTING, CORRUPTED;
     }
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(QuestDbQueries.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(QuestDbDatabaseManager.class);
     private static final Set<String> COMPONENT_TABLES = new HashSet<>();
     private static final Set<String> NODE_TABLES = new HashSet<>();
 

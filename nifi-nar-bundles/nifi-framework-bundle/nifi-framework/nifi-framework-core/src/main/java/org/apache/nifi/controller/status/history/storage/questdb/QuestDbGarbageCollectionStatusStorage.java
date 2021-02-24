@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.controller.status.history.storage;
+package org.apache.nifi.controller.status.history.storage.questdb;
 
 import org.apache.commons.lang3.time.DateUtils;
 import org.apache.commons.lang3.time.FastDateFormat;
@@ -26,6 +26,8 @@ import org.apache.nifi.controller.status.history.StandardGarbageCollectionStatus
 import org.apache.nifi.controller.status.history.questdb.QuestDbContext;
 import org.apache.nifi.controller.status.history.questdb.QuestDbEntityReadingTemplate;
 import org.apache.nifi.controller.status.history.questdb.QuestDbEntityWritingTemplate;
+import org.apache.nifi.controller.status.history.storage.GarbageCollectionStatusStorage;
+import org.apache.nifi.controller.status.history.storage.StatusStorage;
 
 import java.util.Arrays;
 import java.util.Date;

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.controller.status.history.storage;
+package org.apache.nifi.controller.status.history.storage.questdb;
 
 import io.questdb.cairo.sql.Record;
 import io.questdb.cairo.sql.RecordCursor;
@@ -22,6 +22,7 @@ import org.apache.nifi.controller.status.NodeStatus;
 import org.apache.nifi.controller.status.history.MetricDescriptor;
 import org.apache.nifi.controller.status.history.StandardMetricDescriptor;
 import org.apache.nifi.controller.status.history.questdb.QuestDbReadingTemplate;
+import org.apache.nifi.controller.status.history.storage.StatusStorage;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -77,8 +78,7 @@ public class StorageStatusReadingTemplate extends QuestDbReadingTemplate<Map<Lon
     }
 
     private StandardMetricDescriptor<NodeStatus> getDescriptor(final int ordinal, final String field, final String label, final String description) {
-        return new StandardMetricDescriptor<>(() -> ordinal, field, label, STORAGE_FREE_DESCRIPTION, MetricDescriptor.Formatter.DATA_SIZE, v -> 0L
-        );
+        return new StandardMetricDescriptor<>(() -> ordinal, field, label, STORAGE_FREE_DESCRIPTION, MetricDescriptor.Formatter.DATA_SIZE, v -> 0L);
     }
 
     private String getField(final int type, final int storageNumber, final StorageMetric storageMetric) {
