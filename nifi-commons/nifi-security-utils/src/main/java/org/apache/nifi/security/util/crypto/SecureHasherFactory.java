@@ -20,61 +20,57 @@ import org.apache.nifi.security.util.KeyDerivationFunction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.naming.ConfigurationException;
-import java.util.Arrays;
+import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
+/**
+ * <p> Provides a factory for SecureHasher implementations. Will return Argon2 by default if no algorithm parameter is given.
+ * Algorithm parameter should align with the below registered secure hasher names (PBKDF2, BCRYPT, SCRYPT, ARGON2).
+ */
 public class SecureHasherFactory {
     private static final Logger LOGGER = LoggerFactory.getLogger(SecureHasherFactory.class);
 
-    private static Map<String, Class<? extends SecureHasher>> registeredSecureHashers;
-    private static final String DEFAULT_HASHER = KeyDerivationFunction.ARGON2.getKdfName().toUpperCase();
+    private static Map<KeyDerivationFunction, Class<? extends SecureHasher>> registeredSecureHashers;
+    private static final KeyDerivationFunction DEFAULT_HASHER = KeyDerivationFunction.ARGON2;
 
     static {
         registeredSecureHashers = new HashMap<>();
-        registeredSecureHashers.put(KeyDerivationFunction.PBKDF2.getKdfName().toUpperCase(), PBKDF2SecureHasher.class);
-        registeredSecureHashers.put(KeyDerivationFunction.BCRYPT.getKdfName().toUpperCase(), BcryptSecureHasher.class);
-        registeredSecureHashers.put(KeyDerivationFunction.SCRYPT.getKdfName().toUpperCase(), ScryptSecureHasher.class);
-        registeredSecureHashers.put(KeyDerivationFunction.ARGON2.getKdfName().toUpperCase(), Argon2SecureHasher.class);
+        registeredSecureHashers.put(KeyDerivationFunction.PBKDF2, PBKDF2SecureHasher.class);
+        registeredSecureHashers.put(KeyDerivationFunction.BCRYPT, BcryptSecureHasher.class);
+        registeredSecureHashers.put(KeyDerivationFunction.SCRYPT, ScryptSecureHasher.class);
+        registeredSecureHashers.put(KeyDerivationFunction.ARGON2, Argon2SecureHasher.class);
     }
 
     public static SecureHasher getSecureHasher() {
         return getSecureHasher(DEFAULT_HASHER);
     }
 
+    public static SecureHasher getSecureHasher(final KeyDerivationFunction kdf) {
+        return getSecureHasher(kdf.getKdfName());
+    }
+
     public static SecureHasher getSecureHasher(final String algorithm) {
+        String hasherAlgorithm = algorithm;
+
         try {
-            String hasherName = getHasherAlgorithm(algorithm);
-            Class<? extends SecureHasher> clazz = registeredSecureHashers.get(hasherName);
-            LOGGER.debug("Initializing secure hasher {}", clazz.getCanonicalName());
-            return clazz.getDeclaredConstructor().newInstance();
+            for(KeyDerivationFunction hashingFunction : registeredSecureHashers.keySet()) {
+                if (hasherAlgorithm.toUpperCase().contains(hashingFunction.getKdfName().toUpperCase())) {
+                    return instantiateHasher(hashingFunction, hasherAlgorithm);
+                }
+            }
+
+            hasherAlgorithm = DEFAULT_HASHER.getKdfName();
+            LOGGER.error("Failed to instantiate SecureHasher for algorithm [{}]. Trying [{}] instead", algorithm, hasherAlgorithm);
+            return instantiateHasher(DEFAULT_HASHER, DEFAULT_HASHER.getKdfName());
         } catch (Exception e) {
-            throw new SecureHasherException("Could not instantiate a valid SecureHasher implementation.");
+            throw new SecureHasherException(String.format("SecureHasher instantiation failed for algorithm [%s]", hasherAlgorithm), e);
         }
     }
 
-    private static String getHasherAlgorithm(final String algorithm) throws ConfigurationException {
-        final String hashingName = getHashingName(algorithm);
-
-        Optional<String> chosenKdf = registeredSecureHashers.keySet().stream().filter(keyDerivationFunction -> keyDerivationFunction.equals(hashingName)).findFirst();
-
-        if(chosenKdf.isPresent()) {
-            return chosenKdf.get();
-        } else {
-            // Default to Argon2
-            LOGGER.debug("Secure hasher implementation for {} not found, defaulting secure hasher to {}", algorithm, DEFAULT_HASHER);
-            return DEFAULT_HASHER;
-        }
+    private static SecureHasher instantiateHasher(KeyDerivationFunction hashingFunction, String hasherAlgorithm) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException {
+        Class<? extends SecureHasher> clazz = registeredSecureHashers.get(hashingFunction);
+        LOGGER.debug("Instantiating SecureHasher [{}] for algorithm [{}]", clazz.getCanonicalName(), hasherAlgorithm);
+        return clazz.getDeclaredConstructor().newInstance();
     }
-
-    private static String getHashingName(final String algorithm) {
-        List<String> algorithmParts = Arrays.asList(algorithm.split("_"));
-        Optional<String> algoName = algorithmParts.stream().filter(item -> registeredSecureHashers.containsKey(item.toUpperCase())).findFirst();
-
-        return algoName.isPresent() ? algoName.get() : null;
-    }
-
 }

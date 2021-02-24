@@ -19,8 +19,9 @@ package org.apache.nifi.security.util.crypto;
 /**
  * Exception indicating an error occurred instantiating a SecureHasher.
  */
-@SuppressWarnings("serial")
 public class SecureHasherException extends RuntimeException {
+
+    private static final long serialVersionUID = 1L;
 
     public SecureHasherException(String message) {
         super(message);

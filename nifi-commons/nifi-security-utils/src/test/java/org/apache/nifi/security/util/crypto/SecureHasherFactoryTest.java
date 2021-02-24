@@ -16,69 +16,89 @@
  */
 package org.apache.nifi.security.util.crypto;
 
+import org.apache.nifi.security.util.KeyDerivationFunction;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
+
+import static org.junit.Assert.assertEquals;
 
 public class SecureHasherFactoryTest {
 
     private static final Argon2SecureHasher DEFAULT_HASHER = new Argon2SecureHasher();
 
+    @Rule
+    public ExpectedException exceptionRule = ExpectedException.none();
+
     @Test
     public void testSecureHasherFactoryArgon2() {
         SecureHasher hasher = SecureHasherFactory.getSecureHasher("NIFI_ARGON2_AES_GCM_128");
-        assert(hasher instanceof Argon2SecureHasher);
+        assertEquals(Argon2SecureHasher.class, hasher.getClass());
     }
 
     @Test
     public void testSecureHasherFactoryPBKDF2() {
         SecureHasher hasher = SecureHasherFactory.getSecureHasher("NIFI_PBKDF2_AES_GCM_128");
-        assert(hasher instanceof PBKDF2SecureHasher);
+        assertEquals(PBKDF2SecureHasher.class, hasher.getClass());
     }
 
     @Test
     public void testSecureHasherFactoryBCrypt() {
         SecureHasher hasher = SecureHasherFactory.getSecureHasher("NIFI_BCRYPT_AES_GCM_128");
-        assert(hasher instanceof BcryptSecureHasher);
+        assertEquals(BcryptSecureHasher.class, hasher.getClass());
     }
 
     @Test
     public void testSecureHasherFactorySCrypt() {
         SecureHasher hasher = SecureHasherFactory.getSecureHasher("NIFI_SCRYPT_AES_GCM_128");
-        assert(hasher instanceof ScryptSecureHasher);
+        assertEquals(ScryptSecureHasher.class, hasher.getClass());
     }
 
     @Test
     public void testSecureHasherFactoryArgon2ShortName() {
         SecureHasher hasher = SecureHasherFactory.getSecureHasher("ARGON2");
-        assert(hasher instanceof Argon2SecureHasher);
+        assertEquals(Argon2SecureHasher.class, hasher.getClass());
     }
 
     @Test
     public void testSecureHasherFactorySCryptShortName() {
         SecureHasher hasher = SecureHasherFactory.getSecureHasher("SCRYPT");
-        assert(hasher instanceof ScryptSecureHasher);
+        assertEquals(ScryptSecureHasher.class, hasher.getClass());
+    }
+
+    @Test
+    public void testSecureHasherFactoryLowerCaseName() {
+        SecureHasher hasher = SecureHasherFactory.getSecureHasher("scrypt");
+        assertEquals(ScryptSecureHasher.class, hasher.getClass());
     }
 
     @Test
     public void testSecureHasherFactoryArgon2SimilarName() {
         SecureHasher hasher = SecureHasherFactory.getSecureHasher("ARGON_2");
-        assert(hasher.getClass().isInstance(DEFAULT_HASHER));
+        assertEquals(Argon2SecureHasher.class, hasher.getClass());
     }
 
     @Test
-    public void testSecureHasherFactorySCrypt3() {
-        SecureHasher hasher = SecureHasherFactory.getSecureHasher("SCRYPTA");
-        assert(hasher.getClass().isInstance(DEFAULT_HASHER));
-    }
-
-    @Test
-    public void testSecureHasherBadAlgorithmName() {
+    public void testSecureHasherFactoryFailsUnknownAlgorithmName() {
         SecureHasher hasher = SecureHasherFactory.getSecureHasher("wrongString");
-        assert(hasher.getClass().isInstance(DEFAULT_HASHER));
+        assertEquals(Argon2SecureHasher.class, hasher.getClass());
     }
 
     @Test
-    public void testSecureHasherFactoryFailsWithUnknownAlgorithm() {
+    public void testSecureHasherFactoryDefaultsToArgon2IfLongUnknownAlgorithmName() {
         SecureHasher hasher = SecureHasherFactory.getSecureHasher("NIFI_UNKNONWN_AES_GCM_256");
-        assert(hasher.getClass().isInstance(DEFAULT_HASHER));
+        assertEquals(Argon2SecureHasher.class, hasher.getClass());
+    }
+
+    @Test
+    public void testSecureHasherFactoryNoParams() {
+        SecureHasher hasher = SecureHasherFactory.getSecureHasher();
+        assertEquals(DEFAULT_HASHER.getClass(), hasher.getClass());
+    }
+
+    @Test
+    public void testSecureHasherFactoryKeyDerivationFunction() {
+        SecureHasher hasher = SecureHasherFactory.getSecureHasher(KeyDerivationFunction.BCRYPT);
+        assertEquals(BcryptSecureHasher.class, hasher.getClass());
     }
 }

@@ -124,7 +124,7 @@ public class FingerprintFactory {
         this.encryptor = encryptor;
         this.flowConfigDocBuilder = docBuilder;
         this.extensionManager = extensionManager;
-        this.secureHasher = SecureHasherFactory.getSecureHasher(NiFiProperties.DEFAULT_SENSITIVE_PROPS_ALGORITHM);
+        this.secureHasher = SecureHasherFactory.getSecureHasher();
     }
 
     /**
@@ -572,7 +572,6 @@ public class FingerprintFactory {
         if (sensitivePropertyKeyBytes == null || sensitivePropertyKeyBytes.length == 0) {
             // Derive the reusable HMAC key from the nifi.sensitive.props.key to ensure deterministic output across nodes
             try {
-                NiFiPropertiesLoader.loadDefaultWithKeyFromBootstrap().getProperty(NiFiProperties.SENSITIVE_PROPS_ALGORITHM);
                 String npsk = NiFiPropertiesLoader.loadDefaultWithKeyFromBootstrap().getProperty(NiFiProperties.SENSITIVE_PROPS_KEY);
 
                 // The output will be 32B (256b)
