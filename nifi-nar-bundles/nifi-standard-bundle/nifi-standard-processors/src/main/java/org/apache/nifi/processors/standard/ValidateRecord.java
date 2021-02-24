@@ -172,9 +172,10 @@ public class ValidateRecord extends AbstractProcessor {
     static final PropertyDescriptor STRICT_TYPE_CHECKING = new PropertyDescriptor.Builder()
         .name("strict-type-checking")
         .displayName("Strict Type Checking")
-        .description("If the incoming data has a Record where a field is not of the correct type, this property determine whether how to handle the Record. "
-            + "If true, the Record will still be considered invalid. If false, the Record will be considered valid and the field will be coerced into the "
-            + "correct type (if possible, according to the type coercion supported by the Record Writer).")
+        .description("If the incoming data has a Record where a field is not of the correct type, this property determines how to handle the Record. "
+            + "If true, the Record will be considered invalid. If false, the Record will be considered valid and the field will be coerced into the "
+            + "correct type (if possible, according to the type coercion supported by the Record Writer). "
+            + "This property controls how the data is validated against the validation schema.")
         .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .allowableValues("true", "false")
         .defaultValue("true")
@@ -182,12 +183,13 @@ public class ValidateRecord extends AbstractProcessor {
         .build();
     static final PropertyDescriptor COERCE_TYPES = new PropertyDescriptor.Builder()
             .name("coerce-types")
-            .displayName("Force Types From Schema")
-            .description("If enabled, the processor will coerce every field to the type specified in the schema. "
-                + "If the value of the field cannot be coerced to the type, the field will be skipped and will not "
-                + "appear in the output. "
+            .displayName("Force Types From Reader's Schema")
+            .description("If enabled, the processor will coerce every field to the type specified in the Reader's schema. "
+                + "If the value of a field cannot be coerced to the type, the field will be skipped (will not be read from the input data), "
+                + "thus will not appear in the output. "
                 + "If not enabled, then every field will appear in the output but their types may differ from what is "
-                + "specified in the schema. For details please see the Additional Details page of the processor's Help.")
+                + "specified in the schema. For details please see the Additional Details page of the processor's Help."
+                + "This property controls how the data is read by the specified Record Reader.")
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .allowableValues("true", "false")
             .defaultValue("false")

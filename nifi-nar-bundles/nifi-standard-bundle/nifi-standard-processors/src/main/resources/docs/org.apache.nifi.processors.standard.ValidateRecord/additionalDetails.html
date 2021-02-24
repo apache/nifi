@@ -29,13 +29,23 @@
 <h2>Examples for the effect of Force Types From Schema property</h2>
 
 <p>
-    The value of the Force Types From Schema property has an effect on what
+    The processor first reads the data from the incoming FlowFile using the specified Record Reader,
+    which uses a schema. Then, depending on the value of the Schema Access Strategy property, the processor
+    can either use the reader's schema, or a different schema to validate the data against.
+    After that, the processor writes the data into the outgoing FlowFile using the specified
+    Record Writer. If the data is valid, the validation schema is used by the writer.
+    If the data is invalid, the writer uses the reader's schema.
+    The  <b>Force Types From Schema</b> property affects the first step:
+    how strictly the reader's schema should be applied when reading the data from the incoming FlowFile.
+    By affecting how the data is read, the value of the Force Types From Schema property also has an effect on what
     the output of the ValidateRecord processor is,
     and also whether the output is forwarded to the <b>valid</b> or the <b>invalid</b> relationship.
     Below are two examples where the value of this property affects the output significantly.
 </p>
+
 <p>
-    In both examples, the input is in XML format and the output is in JSON.
+    In both examples the input is in XML format and the output is in JSON.
+    In the examples we assume that the same schema is used for reading, validation and writing.
 </p>
 
 <h3>Example 1</h3>
