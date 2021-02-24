@@ -19,6 +19,7 @@ package org.apache.nifi.encrypt;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.security.util.KeyDerivationFunction;
 import org.apache.nifi.security.util.crypto.Argon2SecureHasher;
+import org.apache.nifi.security.util.crypto.KeyDerivationBcryptSecureHasher;
 import org.apache.nifi.security.util.crypto.PBKDF2SecureHasher;
 import org.apache.nifi.security.util.crypto.ScryptSecureHasher;
 import org.apache.nifi.security.util.crypto.SecureHasher;
@@ -76,6 +77,8 @@ class StandardPropertySecretKeyProvider implements PropertySecretKeyProvider {
 
         if (KeyDerivationFunction.ARGON2.equals(keyDerivationFunction)) {
             return new Argon2SecureHasher(hashLength);
+        } else if (KeyDerivationFunction.BCRYPT.equals(keyDerivationFunction)) {
+            return new KeyDerivationBcryptSecureHasher(hashLength);
         } else if (KeyDerivationFunction.PBKDF2.equals(keyDerivationFunction)) {
             return new PBKDF2SecureHasher(hashLength);
         } else if (KeyDerivationFunction.SCRYPT.equals(keyDerivationFunction)) {

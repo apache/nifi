@@ -1629,6 +1629,8 @@ The following strong encryption methods can be configured in the `nifi.sensitive
 
 * `NIFI_ARGON2_AES_GCM_128`
 * `NIFI_ARGON2_AES_GCM_256`
+* `NIFI_BCRYPT_AES_GCM_128`
+* `NIFI_BCRYPT_AES_GCM_256`
 * `NIFI_PBKDF2_AES_GCM_128`
 * `NIFI_PBKDF2_AES_GCM_256`
 * `NIFI_SCRYPT_AES_GCM_128`
@@ -1640,6 +1642,10 @@ Each Key Derivation Function uses the following default parameters:
 ** Iterations: 5
 ** Memory: 65536 KB
 ** Parallelism: 8
+
+* Bcrypt
+** Cost: 12
+** Derived Key Digest Algorithm: SHA-512
 
 * PBKDF2
 ** Iterations: 160,000

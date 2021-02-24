@@ -27,6 +27,10 @@ enum PropertyEncryptionMethod {
 
     NIFI_ARGON2_AES_GCM_256(KeyDerivationFunction.ARGON2, EncryptionMethod.AES_GCM, 256),
 
+    NIFI_BCRYPT_AES_GCM_128(KeyDerivationFunction.BCRYPT, EncryptionMethod.AES_GCM, 128),
+
+    NIFI_BCRYPT_AES_GCM_256(KeyDerivationFunction.BCRYPT, EncryptionMethod.AES_GCM, 256),
+
     NIFI_PBKDF2_AES_GCM_128(KeyDerivationFunction.PBKDF2, EncryptionMethod.AES_GCM, 128),
 
     NIFI_PBKDF2_AES_GCM_256(KeyDerivationFunction.PBKDF2, EncryptionMethod.AES_GCM, 256),
