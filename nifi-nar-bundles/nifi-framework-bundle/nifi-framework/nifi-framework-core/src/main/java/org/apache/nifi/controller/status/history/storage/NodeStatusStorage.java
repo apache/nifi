@@ -19,7 +19,7 @@ package org.apache.nifi.controller.status.history.storage;
 import org.apache.nifi.controller.status.NodeStatus;
 import org.apache.nifi.controller.status.history.StatusHistory;
 
-import java.util.Date;
+import java.time.Instant;
 
 /**
  * Readable status storage for the node status entries.
@@ -34,5 +34,5 @@ public interface NodeStatusStorage extends StatusStorage<NodeStatus> {
      *
      * @return Status history.
      */
-    StatusHistory read(Date start, Date end);
+    StatusHistory read(Instant start, Instant end);
 }

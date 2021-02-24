@@ -35,6 +35,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -48,7 +50,7 @@ public class EmbeddedQuestDbRolloverHandlerTest {
     private static final String PATH_BASE = "target/questdb";
     private String CREATE_TABLE = "CREATE TABLE measurements (capturedAt TIMESTAMP, value INT) TIMESTAMP(capturedAt) PARTITION BY DAY";
 
-    final long now = System.currentTimeMillis();
+    final Instant now = Instant.now();
 
     private String path;
     private QuestDbContext dbContext;
@@ -166,7 +168,7 @@ public class EmbeddedQuestDbRolloverHandlerTest {
         final List<Long> result = new LinkedList<>();
 
         for (final Integer day : daysBack) {
-            result.add(now - TimeUnit.DAYS.toMillis(day));
+            result.add(now.minus(day, ChronoUnit.DAYS).toEpochMilli());
         }
 
         result.sort((l1, l2) -> l1.compareTo(l2));
@@ -181,7 +183,7 @@ public class EmbeddedQuestDbRolloverHandlerTest {
         final List<String> expectedPartitions = new ArrayList<>(expectedDays.size());
 
         for (final Integer expectedDay : expectedDays) {
-            expectedPartitions.add(EmbeddedQuestDbRolloverHandler.DATE_FORMAT.format(now - TimeUnit.DAYS.toMillis(expectedDay)));
+            expectedPartitions.add(EmbeddedQuestDbRolloverHandler.DATE_FORMATTER.format(now.minus(expectedDay, ChronoUnit.DAYS)));
         }
 
         final SqlExecutionContext executionContext = dbContext.getSqlExecutionContext();

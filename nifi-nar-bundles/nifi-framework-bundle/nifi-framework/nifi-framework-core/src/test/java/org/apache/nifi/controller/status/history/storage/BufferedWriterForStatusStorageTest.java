@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.controller.status.history.storage;
 
-import org.apache.commons.math3.util.Pair;
+import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.nifi.controller.status.NodeStatus;
 import org.junit.Assert;
 import org.junit.Test;
@@ -26,7 +26,7 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
-import java.util.Date;
+import java.time.Instant;
 import java.util.List;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -45,7 +45,7 @@ public class BufferedWriterForStatusStorageTest {
 
         // when
         for (int i = 0; i <= 5; i++) {
-            testSubject.collect(new Pair<>(new Date(), new NodeStatus()));
+            testSubject.collect(new ImmutablePair<>(Instant.now(), new NodeStatus()));
         }
 
         // then

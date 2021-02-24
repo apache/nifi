@@ -21,7 +21,7 @@ import io.questdb.cairo.CairoConfiguration;
 import io.questdb.cairo.CairoEngine;
 import io.questdb.cairo.DefaultCairoConfiguration;
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
-import org.apache.commons.math3.util.Pair;
+import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.nifi.controller.status.ConnectionStatus;
 import org.apache.nifi.controller.status.NodeStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
@@ -46,6 +46,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.file.Path;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
@@ -175,25 +177,25 @@ public class EmbeddedQuestDbStatusHistoryRepository implements StatusHistoryRepo
         final List<GarbageCollectionStatus> garbageCollectionStatus,
         final Date capturedAt
     ) {
-        captureNodeLevelStatus(nodeStatus, garbageCollectionStatus, capturedAt);
-        captureComponentLevelStatus(rootGroupStatus, capturedAt);
+        captureNodeLevelStatus(nodeStatus, garbageCollectionStatus, capturedAt.toInstant());
+        captureComponentLevelStatus(rootGroupStatus, capturedAt.toInstant());
     }
 
-    private void captureComponentLevelStatus(final ProcessGroupStatus rootGroupStatus, final Date capturedAt) {
+    private void captureComponentLevelStatus(final ProcessGroupStatus rootGroupStatus, final Instant capturedAt) {
         captureComponents(rootGroupStatus, capturedAt);
         updateComponentDetails(rootGroupStatus);
     }
 
-    private void captureNodeLevelStatus(final NodeStatus nodeStatus, final List<GarbageCollectionStatus> garbageCollectionStatus, final Date capturedAt) {
-        nodeStatusWriter.collect(new Pair<>(capturedAt, nodeStatus));
-        garbageCollectionStatus.forEach(s -> garbageCollectionStatusWriter.collect(new Pair<>(capturedAt, s)));
+    private void captureNodeLevelStatus(final NodeStatus nodeStatus, final List<GarbageCollectionStatus> garbageCollectionStatus, final Instant capturedAt) {
+        nodeStatusWriter.collect(new ImmutablePair<>(capturedAt, nodeStatus));
+        garbageCollectionStatus.forEach(s -> garbageCollectionStatusWriter.collect(new ImmutablePair<>(capturedAt, s)));
     }
 
-    private void captureComponents(final ProcessGroupStatus groupStatus, final Date capturedAt) {
-        processGroupStatusWriter.collect(new Pair<>(capturedAt, groupStatus));
-        groupStatus.getConnectionStatus().forEach(s -> connectionStatusWriter.collect(new Pair<>(capturedAt, s)));
-        groupStatus.getRemoteProcessGroupStatus().forEach(s -> remoteProcessGroupStatusWriter.collect(new Pair<>(capturedAt, s)));
-        groupStatus.getProcessorStatus().forEach(s -> processorStatusWriter.collect(new Pair<>(capturedAt, s)));
+    private void captureComponents(final ProcessGroupStatus groupStatus, final Instant capturedAt) {
+        processGroupStatusWriter.collect(new ImmutablePair<>(capturedAt, groupStatus));
+        groupStatus.getConnectionStatus().forEach(s -> connectionStatusWriter.collect(new ImmutablePair<>(capturedAt, s)));
+        groupStatus.getRemoteProcessGroupStatus().forEach(s -> remoteProcessGroupStatusWriter.collect(new ImmutablePair<>(capturedAt, s)));
+        groupStatus.getProcessorStatus().forEach(s -> processorStatusWriter.collect(new ImmutablePair<>(capturedAt, s)));
         groupStatus.getProcessGroupStatus().forEach(childGroupStatus -> captureComponents(childGroupStatus, capturedAt));
     }
 
@@ -220,34 +222,34 @@ public class EmbeddedQuestDbStatusHistoryRepository implements StatusHistoryRepo
 
     @Override
     public StatusHistory getConnectionStatusHistory(final String connectionId, final Date start, final Date end, final int preferredDataPoints) {
-        return connectionStatusStorage.read(connectionId, start, end, preferredDataPoints);
+        return connectionStatusStorage.read(connectionId, getStartTime(start), getEndTime(end), preferredDataPoints);
     }
 
     @Override
     public StatusHistory getProcessGroupStatusHistory(final String processGroupId, final Date start, final Date end, final int preferredDataPoints) {
-        return processGroupStatusStorage.read(processGroupId, start, end, preferredDataPoints);
+        return processGroupStatusStorage.read(processGroupId, getStartTime(start), getEndTime(end), preferredDataPoints);
     }
 
     @Override
     public StatusHistory getProcessorStatusHistory(final String processorId, final Date start, final Date end, final int preferredDataPoints, final boolean includeCounters) {
         return includeCounters
-                ? processorStatusStorage.readWithCounter(processorId, start, end, preferredDataPoints)
-                : processorStatusStorage.read(processorId, start, end, preferredDataPoints);
+                ? processorStatusStorage.readWithCounter(processorId, getStartTime(start), getEndTime(end), preferredDataPoints)
+                : processorStatusStorage.read(processorId, getStartTime(start), getEndTime(end), preferredDataPoints);
     }
 
     @Override
     public StatusHistory getRemoteProcessGroupStatusHistory(final String remoteGroupId, final Date start, final Date end, final int preferredDataPoints) {
-        return remoteProcessGroupStatusStorage.read(remoteGroupId, start, end, preferredDataPoints);
+        return remoteProcessGroupStatusStorage.read(remoteGroupId, getStartTime(start), getEndTime(end), preferredDataPoints);
     }
 
     @Override
     public GarbageCollectionHistory getGarbageCollectionHistory(final Date start, final Date end) {
-        return garbageCollectionStatusStorage.read(start, end);
+        return garbageCollectionStatusStorage.read(getStartTime(start), getEndTime(end));
     }
 
     @Override
     public StatusHistory getNodeStatusHistory(final Date start, final Date end) {
-        return nodeStatusStorage.read(start, end);
+        return nodeStatusStorage.read(getStartTime(start), getEndTime(end));
     }
 
     private Integer getDaysToKeepNodeData(final NiFiProperties niFiProperties) {
@@ -260,5 +262,17 @@ public class EmbeddedQuestDbStatusHistoryRepository implements StatusHistoryRepo
         return niFiProperties.getIntegerProperty(
                 NiFiProperties.STATUS_REPOSITORY_QUESTDB_PERSIST_COMPONENT_DAYS,
                 NiFiProperties.DEFAULT_COMPONENT_STATUS_REPOSITORY_PERSIST_COMPONENT_DAYS);
+    }
+
+    private Instant getStartTime(final Date start) {
+        if (start == null) {
+            return Instant.now().minus(1, ChronoUnit.DAYS);
+        } else {
+            return start.toInstant();
+        }
+    }
+
+    private Instant getEndTime(final Date end) {
+        return (end == null) ? Instant.now() : end.toInstant();
     }
 }

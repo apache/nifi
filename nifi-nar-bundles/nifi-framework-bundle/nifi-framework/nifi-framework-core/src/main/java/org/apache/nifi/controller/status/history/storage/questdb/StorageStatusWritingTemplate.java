@@ -17,28 +17,28 @@
 package org.apache.nifi.controller.status.history.storage.questdb;
 
 import io.questdb.cairo.TableWriter;
-import org.apache.commons.math3.util.Pair;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.nifi.controller.status.NodeStatus;
 import org.apache.nifi.controller.status.StorageStatus;
 import org.apache.nifi.controller.status.history.questdb.QuestDbWritingTemplate;
 
+import java.time.Instant;
 import java.util.Collection;
-import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
-class StorageStatusWritingTemplate extends QuestDbWritingTemplate<Pair<Date, NodeStatus>> {
+class StorageStatusWritingTemplate extends QuestDbWritingTemplate<Pair<Instant, NodeStatus>> {
 
     public StorageStatusWritingTemplate() {
         super("storageStatus");
     }
 
     @Override
-    protected void addRows(final TableWriter tableWriter, final Collection<Pair<Date, NodeStatus>> entries) {
-        for (final Pair<Date, NodeStatus> entry : entries) {
-            for (final StorageStatus contentRepository : entry.getSecond().getContentRepositories()) {
-                final long measuredAt = TimeUnit.MILLISECONDS.toMicros(entry.getFirst().getTime());
-                final TableWriter.Row row = tableWriter.newRow(measuredAt);
-                row.putTimestamp(0, measuredAt);
+    protected void addRows(final TableWriter tableWriter, final Collection<Pair<Instant, NodeStatus>> entries) {
+        for (final Pair<Instant, NodeStatus> entry : entries) {
+            for (final StorageStatus contentRepository : entry.getRight().getContentRepositories()) {
+                final long capturedAt = TimeUnit.MILLISECONDS.toMicros(entry.getLeft().toEpochMilli());
+                final TableWriter.Row row = tableWriter.newRow(capturedAt);
+                row.putTimestamp(0, capturedAt);
                 row.putSym(1, contentRepository.getName());
                 row.putShort(2, Integer.valueOf(0).shortValue());
                 row.putLong(3, contentRepository.getFreeSpace());
@@ -46,10 +46,10 @@ class StorageStatusWritingTemplate extends QuestDbWritingTemplate<Pair<Date, Nod
                 row.append();
             }
 
-            for (final StorageStatus provenanceRepository : entry.getSecond().getProvenanceRepositories()) {
-                final long measuredAt = TimeUnit.MILLISECONDS.toMicros(entry.getFirst().getTime());
-                final TableWriter.Row row = tableWriter.newRow(measuredAt);
-                row.putTimestamp(0, measuredAt);
+            for (final StorageStatus provenanceRepository : entry.getRight().getProvenanceRepositories()) {
+                final long capturedAt = TimeUnit.MILLISECONDS.toMicros(entry.getLeft().toEpochMilli());
+                final TableWriter.Row row = tableWriter.newRow(capturedAt);
+                row.putTimestamp(0, capturedAt);
                 row.putSym(1, provenanceRepository.getName());
                 row.putShort(2, Integer.valueOf(1).shortValue());
                 row.putLong(3, provenanceRepository.getFreeSpace());

@@ -18,7 +18,7 @@ package org.apache.nifi.controller.status.history.storage;
 
 import org.apache.nifi.controller.status.history.StatusHistory;
 
-import java.util.Date;
+import java.time.Instant;
 
 /**
  * Readable status storage for the specified component status entry type.
@@ -52,5 +52,5 @@ public interface ComponentStatusStorage<T> extends StatusStorage<T> {
      *
      * @return Status history. In case the component does not exist, the result {@link StatusHistory} will be empty.
      */
-    StatusHistory read(String componentId, Date start, Date end, int preferredDataPoints);
+    StatusHistory read(String componentId, Instant start, Instant end, int preferredDataPoints);
 }

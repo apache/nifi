@@ -16,9 +16,7 @@
  */
 package org.apache.nifi.controller.status.history.storage.questdb;
 
-import org.apache.commons.lang3.time.DateUtils;
-import org.apache.commons.lang3.time.FastDateFormat;
-import org.apache.commons.math3.util.Pair;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.nifi.controller.status.history.GarbageCollectionHistory;
 import org.apache.nifi.controller.status.history.GarbageCollectionStatus;
 import org.apache.nifi.controller.status.history.StandardGarbageCollectionHistory;
@@ -29,13 +27,12 @@ import org.apache.nifi.controller.status.history.questdb.QuestDbEntityWritingTem
 import org.apache.nifi.controller.status.history.storage.GarbageCollectionStatusStorage;
 import org.apache.nifi.controller.status.history.storage.StatusStorage;
 
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
-import java.util.Optional;
 
 public class QuestDbGarbageCollectionStatusStorage implements GarbageCollectionStatusStorage {
-    private static final FastDateFormat DATE_FORMAT = FastDateFormat.getInstance(StatusStorage.CAPTURE_DATE_FORMAT);
     private static final String TABLE_NAME = "garbageCollectionStatus";
 
     private static final String QUERY =
@@ -72,14 +69,12 @@ public class QuestDbGarbageCollectionStatusStorage implements GarbageCollectionS
     }
 
     @Override
-    public GarbageCollectionHistory read(final Date start, final Date end) {
-        final String formattedStart = DATE_FORMAT.format(Optional.ofNullable(start).orElse(DateUtils.addDays(new Date(), -1)));
-        final String formattedEnd = DATE_FORMAT.format(Optional.ofNullable(end).orElse(new Date()));
-        return READING_TEMPLATE.read(context.getEngine(), context.getSqlExecutionContext(), Arrays.asList(formattedStart, formattedEnd));
+    public GarbageCollectionHistory read(final Instant start, final Instant end) {
+        return READING_TEMPLATE.read(context.getEngine(), context.getSqlExecutionContext(), Arrays.asList(DATE_FORMATTER.format(start), DATE_FORMATTER.format(end)));
     }
 
     @Override
-    public void store(final List<Pair<Date, GarbageCollectionStatus>> statusEntries) {
+    public void store(final List<Pair<Instant, GarbageCollectionStatus>> statusEntries) {
         WRITING_TEMPLATE.insert(context.getEngine(), context.getSqlExecutionContext(), statusEntries);
     }
 }

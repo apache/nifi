@@ -19,7 +19,7 @@ package org.apache.nifi.controller.status.history.storage;
 import org.apache.nifi.controller.status.ProcessorStatus;
 import org.apache.nifi.controller.status.history.StatusHistory;
 
-import java.util.Date;
+import java.time.Instant;
 
 public interface ProcessorStatusStorage extends ComponentStatusStorage<ProcessorStatus> {
     /**
@@ -37,5 +37,5 @@ public interface ProcessorStatusStorage extends ComponentStatusStorage<Processor
      *
      * @return Status history. In case the component does not exist, the result {@link StatusHistory} will be empty.
      */
-    StatusHistory readWithCounter(String componentId, Date start, Date end, int preferredDataPoints);
+    StatusHistory readWithCounter(String componentId, Instant start, Instant end, int preferredDataPoints);
 }

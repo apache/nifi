@@ -17,9 +17,7 @@
 package org.apache.nifi.controller.status.history.storage.questdb;
 
 import io.questdb.cairo.sql.Record;
-import org.apache.commons.lang3.time.DateUtils;
-import org.apache.commons.lang3.time.FastDateFormat;
-import org.apache.commons.math3.util.Pair;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.nifi.controller.status.history.ComponentDetailsStorage;
 import org.apache.nifi.controller.status.history.MetricDescriptor;
 import org.apache.nifi.controller.status.history.StandardStatusHistory;
@@ -30,14 +28,13 @@ import org.apache.nifi.controller.status.history.questdb.QuestDbEntityReadingTem
 import org.apache.nifi.controller.status.history.questdb.QuestDbEntityWritingTemplate;
 import org.apache.nifi.controller.status.history.questdb.QuestDbStatusSnapshotMapper;
 import org.apache.nifi.controller.status.history.storage.ComponentStatusStorage;
-import org.apache.nifi.controller.status.history.storage.StatusStorage;
 
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.function.Function;
 
 /**
@@ -46,7 +43,6 @@ import java.util.function.Function;
  * @param <T> Component status entry type.
  */
 abstract class QuestDbComponentStatusStorage<T> implements ComponentStatusStorage<T> {
-    private static final FastDateFormat DATE_FORMAT = FastDateFormat.getInstance(StatusStorage.CAPTURE_DATE_FORMAT);
 
     /**
      * In case of component status entries the first two columns are fixed (measurement time and component id) and all
@@ -96,13 +92,11 @@ abstract class QuestDbComponentStatusStorage<T> implements ComponentStatusStorag
     abstract protected String getTableName();
 
     @Override
-    public StatusHistory read(final String componentId, final Date start, final Date end, final int preferredDataPoints) {
-        final String formattedStart = DATE_FORMAT.format(Optional.ofNullable(start).orElse(DateUtils.addDays(new Date(), -1)));
-        final String formattedEnd = DATE_FORMAT.format(Optional.ofNullable(end).orElse(new Date()));
+    public StatusHistory read(final String componentId, final Instant start, final Instant end, final int preferredDataPoints) {
         final List<StatusSnapshot> snapshots = readingTemplate.read(
                 dbContext.getEngine(),
                 dbContext.getSqlExecutionContext(),
-                Arrays.asList(getTableName(), componentId, formattedStart, formattedEnd));
+                Arrays.asList(getTableName(), componentId, DATE_FORMATTER.format(start), DATE_FORMATTER.format(end)));
         return new StandardStatusHistory(
                 snapshots.subList(Math.max(snapshots.size() - preferredDataPoints, 0), snapshots.size()),
                 componentDetailsStorage.getDetails(componentId),
@@ -111,7 +105,7 @@ abstract class QuestDbComponentStatusStorage<T> implements ComponentStatusStorag
     }
 
     @Override
-    public void store(final List<Pair<Date, T>> statusEntries) {
+    public void store(final List<Pair<Instant, T>> statusEntries) {
         writingTemplate.insert(dbContext.getEngine(), dbContext.getSqlExecutionContext(), statusEntries);
     }
 }

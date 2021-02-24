@@ -16,15 +16,15 @@
  */
 package org.apache.nifi.controller.status.history.storage;
 
-import org.apache.commons.math3.util.Pair;
+import org.apache.commons.lang3.tuple.Pair;
 
+import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
-public class BufferedWriterForStatusStorage<T> implements BufferedWriter<Pair<Date, T>> {
-    private final BlockingQueue<Pair<Date, T>> queue = new LinkedBlockingQueue<>();
+public class BufferedWriterForStatusStorage<T> implements BufferedWriter<Pair<Instant, T>> {
+    private final BlockingQueue<Pair<Instant, T>> queue = new LinkedBlockingQueue<>();
     private final StatusStorage<T> statusStorage;
     private final int batchSize;
 
@@ -34,13 +34,13 @@ public class BufferedWriterForStatusStorage<T> implements BufferedWriter<Pair<Da
     }
 
     @Override
-    public void collect(final Pair<Date, T> entryToStore) {
+    public void collect(final Pair<Instant, T> entryToStore) {
         queue.add(entryToStore);
     }
 
     @Override
     public void flush() {
-        final ArrayList<Pair<Date, T>> entries = new ArrayList<>(batchSize);
+        final ArrayList<Pair<Instant, T>> entries = new ArrayList<>(batchSize);
         queue.drainTo(entries, batchSize);
 
         if (!entries.isEmpty()) {

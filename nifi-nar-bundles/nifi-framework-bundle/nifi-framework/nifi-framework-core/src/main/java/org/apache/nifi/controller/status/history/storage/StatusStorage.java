@@ -16,9 +16,11 @@
  */
 package org.apache.nifi.controller.status.history.storage;
 
-import org.apache.commons.math3.util.Pair;
+import org.apache.commons.lang3.tuple.Pair;
 
-import java.util.Date;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 /**
@@ -33,9 +35,14 @@ public interface StatusStorage<T> {
     String CAPTURE_DATE_FORMAT = "yyyy-MM-dd:HH:mm:ss Z";
 
     /**
+     * Date formatter for the database fields.
+     */
+    DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern(CAPTURE_DATE_FORMAT).withZone(ZoneId.systemDefault());
+
+    /**
      * Stores multiple entries.
      *
      * @param statusEntries A list of pair constructs. Every pair consists of the capture time (first) and the status entry (second).
      */
-    void store(List<Pair<Date, T>> statusEntries);
+    void store(List<Pair<Instant, T>> statusEntries);
 }

@@ -17,10 +17,10 @@
 package org.apache.nifi.controller.status.history.questdb;
 
 import io.questdb.cairo.TableWriter;
-import org.apache.commons.math3.util.Pair;
+import org.apache.commons.lang3.tuple.Pair;
 
+import java.time.Instant;
 import java.util.Collection;
-import java.util.Date;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 
@@ -29,7 +29,7 @@ import java.util.function.BiConsumer;
  *
  * @param <E> Entry type.
  */
-public class QuestDbEntityWritingTemplate<E> extends QuestDbWritingTemplate<Pair<Date, E>> {
+public class QuestDbEntityWritingTemplate<E> extends QuestDbWritingTemplate<Pair<Instant, E>> {
     private final BiConsumer<E, TableWriter.Row> fillRow;
 
     /**
@@ -42,11 +42,11 @@ public class QuestDbEntityWritingTemplate<E> extends QuestDbWritingTemplate<Pair
     }
 
     @Override
-    protected void addRows(final TableWriter tableWriter, final Collection<Pair<Date, E>> entries) {
+    protected void addRows(final TableWriter tableWriter, final Collection<Pair<Instant, E>> entries) {
         entries.forEach(statusEntry -> {
-            final long measuredAt = TimeUnit.MILLISECONDS.toMicros(statusEntry.getFirst().getTime());
-            final TableWriter.Row row = tableWriter.newRow(measuredAt);
-            fillRow.accept(statusEntry.getSecond(), row);
+            final long capturedAt = TimeUnit.MILLISECONDS.toMicros(statusEntry.getLeft().toEpochMilli());
+            final TableWriter.Row row = tableWriter.newRow(capturedAt);
+            fillRow.accept(statusEntry.getRight(), row);
             row.append();
         });
     }

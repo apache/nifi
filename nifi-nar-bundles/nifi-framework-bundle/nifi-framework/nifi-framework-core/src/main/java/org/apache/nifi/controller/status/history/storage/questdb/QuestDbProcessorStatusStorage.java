@@ -19,9 +19,7 @@ package org.apache.nifi.controller.status.history.storage.questdb;
 import io.questdb.cairo.sql.Record;
 import io.questdb.cairo.sql.RecordCursor;
 import io.questdb.griffin.SqlExecutionContext;
-import org.apache.commons.lang3.time.DateUtils;
-import org.apache.commons.lang3.time.FastDateFormat;
-import org.apache.commons.math3.util.Pair;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.nifi.controller.status.ProcessorStatus;
 import org.apache.nifi.controller.status.history.ComponentDetailsStorage;
 import org.apache.nifi.controller.status.history.CounterMetricDescriptor;
@@ -38,8 +36,8 @@ import org.apache.nifi.controller.status.history.questdb.QuestDbReadingTemplate;
 import org.apache.nifi.controller.status.history.questdb.QuestDbStatusSnapshotMapper;
 import org.apache.nifi.controller.status.history.questdb.QuestDbWritingTemplate;
 import org.apache.nifi.controller.status.history.storage.ProcessorStatusStorage;
-import org.apache.nifi.controller.status.history.storage.StatusStorage;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -47,14 +45,12 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class QuestDbProcessorStatusStorage implements ProcessorStatusStorage {
     private static final String TABLE_NAME = "processorStatus";
-    private static final FastDateFormat DATE_FORMAT = FastDateFormat.getInstance(StatusStorage.CAPTURE_DATE_FORMAT);
     private static final Map<Integer, MetricDescriptor<ProcessorStatus>> METRICS = new HashMap<>();
 
     static {
@@ -84,7 +80,7 @@ public class QuestDbProcessorStatusStorage implements ProcessorStatusStorage {
                 METRICS.keySet().forEach(ordinal -> row.putLong(ordinal, METRICS.get(ordinal).getValueFunction().getValue(statusEntry)));
             });
 
-    private static final QuestDbWritingTemplate<Pair<Date, ProcessorStatus>> counterWritingTemplate = new ComponentCounterWritingTemplate();
+    private static final QuestDbWritingTemplate<Pair<Instant, ProcessorStatus>> counterWritingTemplate = new ComponentCounterWritingTemplate();
 
     private final Function<Record, StandardStatusSnapshot> statusSnapshotMapper = new QuestDbStatusSnapshotMapper(METRICS);
 
@@ -100,13 +96,11 @@ public class QuestDbProcessorStatusStorage implements ProcessorStatusStorage {
     }
 
     @Override
-    public StatusHistory read(final String componentId, final Date start, final Date end, final int preferredDataPoints) {
-        final String formattedStart = DATE_FORMAT.format(Optional.ofNullable(start).orElse(DateUtils.addDays(new Date(), -1)));
-        final String formattedEnd = DATE_FORMAT.format(Optional.ofNullable(end).orElse(new Date()));
+    public StatusHistory read(final String componentId, final Instant start, final Instant end, final int preferredDataPoints) {
         final List<StandardStatusSnapshot> snapshots = readingTemplate.read(
                 dbContext.getEngine(),
                 dbContext.getSqlExecutionContext(),
-                Arrays.asList(TABLE_NAME, componentId, formattedStart, formattedEnd));
+                Arrays.asList(TABLE_NAME, componentId, DATE_FORMATTER.format(start), DATE_FORMATTER.format(end)));
         return new StandardStatusHistory(
                 new ArrayList<>(snapshots.subList(Math.max(snapshots.size() - preferredDataPoints, 0), snapshots.size())),
                 componentDetailsStorage.getDetails(componentId),
@@ -115,17 +109,17 @@ public class QuestDbProcessorStatusStorage implements ProcessorStatusStorage {
     }
 
     @Override
-    public StatusHistory readWithCounter(final String componentId, final Date start, final Date end, final int preferredDataPoints) {
-        final String formattedStart = DATE_FORMAT.format(Optional.ofNullable(start).orElse(DateUtils.addDays(new Date(), -1)));
-        final String formattedEnd = DATE_FORMAT.format(Optional.ofNullable(end).orElse(new Date()));
+    public StatusHistory readWithCounter(final String componentId, final Instant start, final Instant end, final int preferredDataPoints) {
         final SqlExecutionContext executionContext = dbContext.getSqlExecutionContext();
         final List<StandardStatusSnapshot> snapshots = readingTemplate.read(
                 dbContext.getEngine(),
                 executionContext,
-                Arrays.asList(TABLE_NAME, componentId, formattedStart, formattedEnd));
+                Arrays.asList(TABLE_NAME, componentId, DATE_FORMATTER.format(start), DATE_FORMATTER.format(end)));
         final CounterReadingTemplate counterReadingTemplate = new CounterReadingTemplate(snapshots);
-        final List<StatusSnapshot> enrichedSnapshots =
-                new ArrayList<>(counterReadingTemplate.read(dbContext.getEngine(), executionContext, Arrays.asList("componentCounter", componentId, formattedStart, formattedEnd)));
+        final List<StatusSnapshot> enrichedSnapshots = new ArrayList<>(counterReadingTemplate.read(
+                dbContext.getEngine(),
+                executionContext,
+                Arrays.asList("componentCounter", componentId, DATE_FORMATTER.format(start), DATE_FORMATTER.format(end))));
         return new StandardStatusHistory(
                 enrichedSnapshots.subList(Math.max(snapshots.size() - preferredDataPoints, 0), snapshots.size()),
                 componentDetailsStorage.getDetails(componentId),
@@ -134,7 +128,7 @@ public class QuestDbProcessorStatusStorage implements ProcessorStatusStorage {
     }
 
     @Override
-    public void store(final List<Pair<Date, ProcessorStatus>> statusEntries) {
+    public void store(final List<Pair<Instant, ProcessorStatus>> statusEntries) {
         final SqlExecutionContext executionContext = dbContext.getSqlExecutionContext();
         writingTemplate.insert(dbContext.getEngine(), executionContext, statusEntries);
         counterWritingTemplate.insert(dbContext.getEngine(), executionContext, statusEntries);

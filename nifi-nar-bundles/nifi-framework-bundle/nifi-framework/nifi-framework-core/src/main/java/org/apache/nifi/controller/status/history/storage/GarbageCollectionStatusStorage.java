@@ -19,7 +19,7 @@ package org.apache.nifi.controller.status.history.storage;
 import org.apache.nifi.controller.status.history.GarbageCollectionHistory;
 import org.apache.nifi.controller.status.history.GarbageCollectionStatus;
 
-import java.util.Date;
+import java.time.Instant;
 
 /**
  * Readable status storage for garbage collection status entries.
@@ -34,5 +34,5 @@ public interface GarbageCollectionStatusStorage extends StatusStorage<GarbageCol
      *
      * @return Status history.
      */
-    GarbageCollectionHistory read(Date start, Date end);
+    GarbageCollectionHistory read(Instant start, Instant end);
 }

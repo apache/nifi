@@ -19,9 +19,7 @@ package org.apache.nifi.controller.status.history.storage.questdb;
 import io.questdb.cairo.sql.Record;
 import io.questdb.cairo.sql.RecordCursor;
 import io.questdb.griffin.SqlExecutionContext;
-import org.apache.commons.lang3.time.DateUtils;
-import org.apache.commons.lang3.time.FastDateFormat;
-import org.apache.commons.math3.util.Pair;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.nifi.controller.status.NodeStatus;
 import org.apache.nifi.controller.status.history.MetricDescriptor;
 import org.apache.nifi.controller.status.history.NodeStatusDescriptor;
@@ -37,6 +35,7 @@ import org.apache.nifi.controller.status.history.questdb.QuestDbWritingTemplate;
 import org.apache.nifi.controller.status.history.storage.NodeStatusStorage;
 import org.apache.nifi.controller.status.history.storage.StatusStorage;
 
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
@@ -45,12 +44,10 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 public class QuestDbNodeStatusStorage implements NodeStatusStorage {
-    private static final FastDateFormat DATE_FORMAT = FastDateFormat.getInstance(StatusStorage.CAPTURE_DATE_FORMAT);
     private static final String TABLE_NAME = "nodeStatus";
 
     private static final String READING_QUERY =
@@ -81,27 +78,25 @@ public class QuestDbNodeStatusStorage implements NodeStatusStorage {
 
     private static final StorageStatusReadingTemplate STORAGE_READING_TEMPLATE = new StorageStatusReadingTemplate();
 
-    private static final QuestDbWritingTemplate<Pair<Date, NodeStatus>> STORAGE_WRITING_TEMPLATE = new StorageStatusWritingTemplate();
+    private static final QuestDbWritingTemplate<Pair<Instant, NodeStatus>> STORAGE_WRITING_TEMPLATE = new StorageStatusWritingTemplate();
 
     public QuestDbNodeStatusStorage(final QuestDbContext dbContext) {
         this.dbContext = dbContext;
     }
 
     @Override
-    public StatusHistory read(final Date start, final Date end) {
+    public StatusHistory read(final Instant start, final Instant end) {
         final SqlExecutionContext executionContext = dbContext.getSqlExecutionContext();
-        final String formattedStart = DATE_FORMAT.format(Optional.ofNullable(start).orElse(DateUtils.addDays(new Date(), -1)));
-        final String formattedEnd = DATE_FORMAT.format(Optional.ofNullable(end).orElse(new Date()));
         final Map<Long, Map<StandardMetricDescriptor<NodeStatus>, Long>> storageMetrics = STORAGE_READING_TEMPLATE
-                .read(dbContext.getEngine(), executionContext, Arrays.asList(formattedStart, formattedEnd));
+                .read(dbContext.getEngine(), executionContext, Arrays.asList(DATE_FORMATTER.format(start), DATE_FORMATTER.format(end)));
         final NodeStatusReadingTemplate nodeStatusReadingTemplate = new NodeStatusReadingTemplate(storageMetrics);
         final List<StatusSnapshot> snapshots = nodeStatusReadingTemplate
-                .read(dbContext.getEngine(), executionContext, Arrays.asList(formattedStart, formattedEnd));
+                .read(dbContext.getEngine(), executionContext, Arrays.asList(DATE_FORMATTER.format(start), DATE_FORMATTER.format(end)));
         return new StandardStatusHistory(snapshots, new HashMap<>(), new Date());
     }
 
     @Override
-    public void store(final List<Pair<Date, NodeStatus>> statusEntries) {
+    public void store(final List<Pair<Instant, NodeStatus>> statusEntries) {
         final SqlExecutionContext executionContext = dbContext.getSqlExecutionContext();
         WRITING_TEMPLATE.insert(dbContext.getEngine(), executionContext, statusEntries);
         STORAGE_WRITING_TEMPLATE.insert(dbContext.getEngine(), executionContext, statusEntries);
