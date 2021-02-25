@@ -67,6 +67,8 @@ import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.util.thread.ThreadPool;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -403,6 +405,68 @@ public class TestListenHTTP {
         sslSocket.setEnabledProtocols(new String[]{TLS_1_2});
 
         assertThrows(SSLHandshakeException.class, sslSocket::startHandshake);
+    }
+
+    @Test
+    public void testMaxThreadPoolSizeTooLow() {
+        // GIVEN, WHEN
+        runner.setProperty(ListenHTTP.PORT, Integer.toString(availablePort));
+        runner.setProperty(ListenHTTP.BASE_PATH, HTTP_BASE_PATH);
+        runner.setProperty(ListenHTTP.MAX_THREAD_POOL_SIZE, "7");
+
+        // THEN
+        runner.assertNotValid();
+    }
+
+    @Test
+    public void testMaxThreadPoolSizeTooHigh() {
+        // GIVEN, WHEN
+        runner.setProperty(ListenHTTP.PORT, Integer.toString(availablePort));
+        runner.setProperty(ListenHTTP.BASE_PATH, HTTP_BASE_PATH);
+        runner.setProperty(ListenHTTP.MAX_THREAD_POOL_SIZE, "1001");
+
+        // THEN
+        runner.assertNotValid();
+    }
+
+    @Test
+    public void testMaxThreadPoolSizeOkLowerBound() {
+        // GIVEN, WHEN
+        runner.setProperty(ListenHTTP.PORT, Integer.toString(availablePort));
+        runner.setProperty(ListenHTTP.BASE_PATH, HTTP_BASE_PATH);
+        runner.setProperty(ListenHTTP.MAX_THREAD_POOL_SIZE, "8");
+
+        // THEN
+        runner.assertValid();
+    }
+
+    @Test
+    public void testMaxThreadPoolSizeOkUpperBound() {
+        // GIVEN, WHEN
+        runner.setProperty(ListenHTTP.PORT, Integer.toString(availablePort));
+        runner.setProperty(ListenHTTP.BASE_PATH, HTTP_BASE_PATH);
+        runner.setProperty(ListenHTTP.MAX_THREAD_POOL_SIZE, "1000");
+
+        // THEN
+        runner.assertValid();
+    }
+
+    @Test
+    public void testMaxThreadPoolSizeSpecifiedInThePropertyIsSetInTheServerInstance() {
+        // GIVEN
+        int maxThreadPoolSize = 201;
+        runner.setProperty(ListenHTTP.PORT, Integer.toString(availablePort));
+        runner.setProperty(ListenHTTP.BASE_PATH, HTTP_BASE_PATH);
+        runner.setProperty(ListenHTTP.MAX_THREAD_POOL_SIZE, Integer.toString(maxThreadPoolSize));
+
+        // WHEN
+        startWebServer();
+
+        // THEN
+        Server server = proc.getServer();
+        ThreadPool threadPool = server.getThreadPool();
+        ThreadPool.SizedThreadPool sizedThreadPool = (ThreadPool.SizedThreadPool) threadPool;
+        assertEquals(maxThreadPoolSize, sizedThreadPool.getMaxThreads());
     }
 
     private void startSecureServer() {
