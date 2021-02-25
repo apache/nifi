@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.services.azure.storage;
 
-import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
+import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.TestRunner;
@@ -39,7 +39,10 @@ public class TestADLSCredentialsControllerService {
     private static final String ACCOUNT_NAME_VALUE = "AccountName";
     private static final String ACCOUNT_KEY_VALUE = "AccountKey";
     private static final String SAS_TOKEN_VALUE = "SasToken";
-    public static final String END_POINT_SUFFIX_VALUE = "end.point.suffix";
+    private static final String END_POINT_SUFFIX_VALUE = "end.point.suffix";
+    private static final String SERVICE_PRINCIPAL_TENANT_ID_VALUE = "ServicePrincipalTenantID";
+    private static final String SERVICE_PRINCIPAL_CLIENT_ID_VALUE = "ServicePrincipalClientID";
+    private static final String SERVICE_PRINCIPAL_CLIENT_SECRET_VALUE = "ServicePrincipalClientSecret";
 
     private TestRunner runner;
     private ADLSCredentialsControllerService credentialsService;
@@ -86,6 +89,36 @@ public class TestADLSCredentialsControllerService {
     }
 
     @Test
+    public void testNotValidBecauseBothAccountKeyAndServicePrincipalTenantIdSpecified() {
+        configureAccountName();
+
+        configureAccountKey();
+        configureServicePrincipalTenantId();
+
+        runner.assertNotValid(credentialsService);
+    }
+
+    @Test
+    public void testNotValidBecauseBothAccountKeyAndServicePrincipalClientIdSpecified() {
+        configureAccountName();
+
+        configureAccountKey();
+        configureServicePrincipalClientId();
+
+        runner.assertNotValid(credentialsService);
+    }
+
+    @Test
+    public void testNotValidBecauseBothAccountKeyAndServicePrincipalClientSecretSpecified() {
+        configureAccountName();
+
+        configureAccountKey();
+        configureServicePrincipalClientSecret();
+
+        runner.assertNotValid(credentialsService);
+    }
+
+    @Test
     public void testNotValidBecauseBothSasTokenAndUseManagedIdentitySpecified() {
         configureAccountName();
 
@@ -96,12 +129,75 @@ public class TestADLSCredentialsControllerService {
     }
 
     @Test
-    public void testNotValidBecauseAllCredentialsSpecified() {
+    public void testNotValidBecauseBothSasTokenAndServicePrincipalTenantIdSpecified() {
+        configureAccountName();
+
+        configureSasToken();
+        configureServicePrincipalTenantId();
+
+        runner.assertNotValid(credentialsService);
+    }
+
+    @Test
+    public void testNotValidBecauseBothSasTokenAndServicePrincipalClientIdSpecified() {
+        configureAccountName();
+
+        configureSasToken();
+        configureServicePrincipalClientId();
+
+        runner.assertNotValid(credentialsService);
+    }
+
+    @Test
+    public void testNotValidBecauseBothSasTokenAndServicePrincipalClientSecretSpecified() {
+        configureAccountName();
+
+        configureSasToken();
+        configureServicePrincipalClientSecret();
+
+        runner.assertNotValid(credentialsService);
+    }
+
+    @Test
+    public void testNotValidBecauseBothUseManagedIdentityAndServicePrincipalTenantIdSpecified() {
+        configureAccountName();
+
+        configureUseManagedIdentity();
+        configureServicePrincipalTenantId();
+
+        runner.assertNotValid(credentialsService);
+    }
+
+    @Test
+    public void testNotValidBecauseBothUseManagedIdentityAndServicePrincipalClientIdSpecified() {
+        configureAccountName();
+
+        configureUseManagedIdentity();
+        configureServicePrincipalClientId();
+
+        runner.assertNotValid(credentialsService);
+    }
+
+    @Test
+    public void testNotValidBecauseBothUseManagedIdentityAndServicePrincipalClientSecretSpecified() {
+        configureAccountName();
+
+        configureUseManagedIdentity();
+        configureServicePrincipalClientSecret();
+
+        runner.assertNotValid(credentialsService);
+    }
+
+    @Test
+    public void testNotValidBecauseAllCredentialsSpecified() throws Exception {
         configureAccountName();
 
         configureAccountKey();
         configureSasToken();
         configureUseManagedIdentity();
+        configureServicePrincipalTenantId();
+        configureServicePrincipalClientId();
+        configureServicePrincipalClientSecret();
 
         runner.assertNotValid(credentialsService);
     }
@@ -148,6 +244,46 @@ public class TestADLSCredentialsControllerService {
     }
 
     @Test
+    public void testValidWithAccountNameAndServicePrincipalWithClientSecret() {
+        configureAccountName();
+        configureServicePrincipalTenantId();
+        configureServicePrincipalClientId();
+        configureServicePrincipalClientSecret();
+
+        runner.assertValid(credentialsService);
+    }
+
+    @Test
+    public void testNotValidBecauseNoTenantIdSpecifiedForServicePrincipal() {
+        configureAccountName();
+
+        configureServicePrincipalClientId();
+        configureServicePrincipalClientSecret();
+
+        runner.assertNotValid(credentialsService);
+    }
+
+    @Test
+    public void testNotValidBecauseNoClientIdSpecifiedForServicePrincipal() {
+        configureAccountName();
+
+        configureServicePrincipalTenantId();
+        configureServicePrincipalClientSecret();
+
+        runner.assertNotValid(credentialsService);
+    }
+
+    @Test
+    public void testNotValidBecauseNoClientSecretSpecifiedForServicePrincipal() {
+        configureAccountName();
+
+        configureServicePrincipalTenantId();
+        configureServicePrincipalClientId();
+
+        runner.assertNotValid(credentialsService);
+    }
+
+    @Test
     public void testGetCredentialsDetailsWithAccountKey() throws Exception {
         // GIVEN
         configureAccountName();
@@ -164,6 +300,9 @@ public class TestADLSCredentialsControllerService {
         assertNull(actual.getSasToken());
         assertFalse(actual.getUseManagedIdentity());
         assertNotNull(actual.getEndpointSuffix());
+        assertNull(actual.getServicePrincipalTenantId());
+        assertNull(actual.getServicePrincipalClientId());
+        assertNull(actual.getServicePrincipalClientSecret());
     }
 
     @Test
@@ -183,6 +322,9 @@ public class TestADLSCredentialsControllerService {
         assertNull(actual.getAccountKey());
         assertFalse(actual.getUseManagedIdentity());
         assertNotNull(actual.getEndpointSuffix());
+        assertNull(actual.getServicePrincipalTenantId());
+        assertNull(actual.getServicePrincipalClientId());
+        assertNull(actual.getServicePrincipalClientSecret());
     }
 
     @Test
@@ -202,6 +344,33 @@ public class TestADLSCredentialsControllerService {
         assertNull(actual.getAccountKey());
         assertNull(actual.getSasToken());
         assertNotNull(actual.getEndpointSuffix());
+        assertNull(actual.getServicePrincipalTenantId());
+        assertNull(actual.getServicePrincipalClientId());
+        assertNull(actual.getServicePrincipalClientSecret());
+    }
+
+    @Test
+    public void testGetCredentialsDetailsWithServicePrincipalWithClientSecret() throws Exception {
+        // GIVEN
+        configureAccountName();
+        configureServicePrincipalTenantId();
+        configureServicePrincipalClientId();
+        configureServicePrincipalClientSecret();
+
+        runner.enableControllerService(credentialsService);
+
+        // WHEN
+        ADLSCredentialsDetails actual = credentialsService.getCredentialsDetails(new HashMap<>());
+
+        // THEN
+        assertEquals(ACCOUNT_NAME_VALUE, actual.getAccountName());
+        assertNull(actual.getAccountKey());
+        assertNull(actual.getSasToken());
+        assertFalse(actual.getUseManagedIdentity());
+        assertNotNull(actual.getEndpointSuffix());
+        assertEquals(SERVICE_PRINCIPAL_TENANT_ID_VALUE, actual.getServicePrincipalTenantId());
+        assertEquals(SERVICE_PRINCIPAL_CLIENT_ID_VALUE, actual.getServicePrincipalClientId());
+        assertEquals(SERVICE_PRINCIPAL_CLIENT_SECRET_VALUE, actual.getServicePrincipalClientSecret());
     }
 
     @Test
@@ -220,16 +389,32 @@ public class TestADLSCredentialsControllerService {
         assertEquals(END_POINT_SUFFIX_VALUE, actual.getEndpointSuffix());
     }
 
+    @Test
+    public void testGetCredentialsDetailsWithSetEndpointSuffixUsingEL() throws Exception {
+        // GIVEN
+        configureAccountName();
+        configureAccountKey();
+        configureEndpointSuffixUsingEL();
+
+        runner.enableControllerService(credentialsService);
+
+        // WHEN
+        ADLSCredentialsDetails actual = credentialsService.getCredentialsDetails(new HashMap<>());
+
+        // THEN
+        assertEquals(END_POINT_SUFFIX_VALUE, actual.getEndpointSuffix());
+    }
+
     private void configureAccountName() {
         runner.setProperty(credentialsService, ADLSCredentialsControllerService.ACCOUNT_NAME, ACCOUNT_NAME_VALUE);
     }
 
     private void configureAccountKey() {
-        runner.setProperty(credentialsService, AzureStorageUtils.ACCOUNT_KEY, ACCOUNT_KEY_VALUE);
+        runner.setProperty(credentialsService, ADLSCredentialsControllerService.ACCOUNT_KEY, ACCOUNT_KEY_VALUE);
     }
 
     private void configureSasToken() {
-        runner.setProperty(credentialsService, AzureStorageUtils.PROP_SAS_TOKEN, SAS_TOKEN_VALUE);
+        runner.setProperty(credentialsService, ADLSCredentialsControllerService.SAS_TOKEN, SAS_TOKEN_VALUE);
     }
 
     private void configureUseManagedIdentity() {
@@ -238,5 +423,27 @@ public class TestADLSCredentialsControllerService {
 
     private void configureEndpointSuffix() {
         runner.setProperty(credentialsService, ADLSCredentialsControllerService.ENDPOINT_SUFFIX, END_POINT_SUFFIX_VALUE);
+    }
+
+    private void configureEndpointSuffixUsingEL() {
+        String variableName = "endpoint.suffix";
+        configurePropertyUsingEL(ADLSCredentialsControllerService.ENDPOINT_SUFFIX, variableName, END_POINT_SUFFIX_VALUE);
+    }
+
+    private void configureServicePrincipalTenantId() {
+        runner.setProperty(credentialsService, ADLSCredentialsControllerService.SERVICE_PRINCIPAL_TENANT_ID, SERVICE_PRINCIPAL_TENANT_ID_VALUE);
+    }
+
+    private void configureServicePrincipalClientId() {
+        runner.setProperty(credentialsService, ADLSCredentialsControllerService.SERVICE_PRINCIPAL_CLIENT_ID, SERVICE_PRINCIPAL_CLIENT_ID_VALUE);
+    }
+
+    private void configureServicePrincipalClientSecret() {
+        runner.setProperty(credentialsService, ADLSCredentialsControllerService.SERVICE_PRINCIPAL_CLIENT_SECRET, SERVICE_PRINCIPAL_CLIENT_SECRET_VALUE);
+    }
+
+    private void configurePropertyUsingEL(PropertyDescriptor propertyDescriptor, String variableName, String variableValue) {
+        runner.setProperty(credentialsService, propertyDescriptor, String.format("${%s}", variableName));
+        runner.setVariable(variableName, variableValue);
     }
 }
