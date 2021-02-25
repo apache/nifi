@@ -30,7 +30,7 @@
             </div>
         </div>
         <div id="file-cancel-button-container">
-            <button class="icon" id="file-cancel-button" aria-hidden="true">
+            <button class="icon" id="file-cancel-button" aria-hidden="true" title="Cancel the selected file">
                 <i class="fa fa-times"></i>
             </button>
         </div>

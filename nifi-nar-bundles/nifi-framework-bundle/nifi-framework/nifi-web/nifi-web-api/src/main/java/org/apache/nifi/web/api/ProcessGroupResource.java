@@ -4367,11 +4367,8 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
                     // set the processor id as appropriate
                     processGroup.setId(generateUuid());
 
-                    // ensure the group name comes from the versioned flow
+                    // get the versioned flow
                     final VersionedFlowSnapshot flowSnapshot = processGroupEntity.getVersionedFlowSnapshot();
-                    if (flowSnapshot != null) {
-                        processGroupEntity.getVersionedFlowSnapshot().getSnapshotMetadata().setVersion(0);
-                    }
 
                     // create the process group contents
                     final Revision revision = new Revision((long) 0, clientId, processGroup.getId());
