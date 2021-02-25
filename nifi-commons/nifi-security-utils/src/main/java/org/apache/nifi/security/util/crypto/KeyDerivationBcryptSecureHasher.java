@@ -24,7 +24,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 
 /**
- * Extension of Bcrypt Secure Hasher used for Key Derivation support specified of Derived Key Length
+ * Extension of Bcrypt Secure Hasher used for Key Derivation support. Allows specifying a Derived Key Length in bytes.
  */
 public class KeyDerivationBcryptSecureHasher extends BcryptSecureHasher {
     private static final Logger LOGGER = LoggerFactory.getLogger(KeyDerivationBcryptSecureHasher.class);
@@ -40,7 +40,7 @@ public class KeyDerivationBcryptSecureHasher extends BcryptSecureHasher {
     /**
      * Key Deriviation Bcrypt Secure Hasher with specified Derived Key Length
      *
-     * @param derivedKeyLength Derived Key Length
+     * @param derivedKeyLength Derived Key Length in bytes
      */
     public KeyDerivationBcryptSecureHasher(final int derivedKeyLength) {
         this.derivedKeyLength = derivedKeyLength;
@@ -50,7 +50,7 @@ public class KeyDerivationBcryptSecureHasher extends BcryptSecureHasher {
     /**
      * Key Deriviation Bcrypt Secure Hasher with specified Derived Key Length and Cost Parameters
      *
-     * @param derivedKeyLength Derived Key Length
+     * @param derivedKeyLength Derived Key Length in bytes
      * @param cost Cost Parameter for calculation
      * @param digestBcryptHash Enable to disable digesting of bcrypt hash to support legacy derivation functions
      */
@@ -69,16 +69,16 @@ public class KeyDerivationBcryptSecureHasher extends BcryptSecureHasher {
      */
     @Override
     byte[] hash(final byte[] input, final byte[] rawSalt) {
-        final byte[] bcryptHash = super.hash(input, rawSalt);
+        final byte[] costSaltBcryptHash = super.hash(input, rawSalt);
 
         final MessageDigest messageDigest = getMessageDigest();
         byte[] digest;
         if (digestBcryptHash) {
-            LOGGER.warn("Using Legacy Key Derivation based on digested bcrypt hash including algorithm parameters");
-            digest = messageDigest.digest(bcryptHash);
+            LOGGER.warn("Using Legacy Key Derivation on bcrypt hash including cost and salt");
+            digest = messageDigest.digest(costSaltBcryptHash);
         } else {
-            // Truncate bcrypt hash and remove algorithm parameters
-            byte[] hash = Arrays.copyOfRange(bcryptHash, HASH_START_INDEX, bcryptHash.length);
+            // Remove cost and salt from bcrypt function results and retain bcrypt hash
+            byte[] hash = Arrays.copyOfRange(costSaltBcryptHash, HASH_START_INDEX, costSaltBcryptHash.length);
             digest = messageDigest.digest(hash);
         }
 
