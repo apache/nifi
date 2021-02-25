@@ -142,6 +142,7 @@ import org.apache.nifi.registry.flow.diff.StandardFlowComparator;
 import org.apache.nifi.registry.flow.diff.StaticDifferenceDescriptor;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedComponent;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedControllerService;
+import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedPort;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedProcessGroup;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedProcessor;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedRemoteGroupPort;
@@ -4769,12 +4770,22 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                         state = processorDAO.getProcessor(processorId).getPhysicalScheduledState().name();
                         break;
                     case REMOTE_INPUT_PORT:
-                        final InstantiatedVersionedRemoteGroupPort inputPort = (InstantiatedVersionedRemoteGroupPort) localComponent;
-                        state = remoteProcessGroupDAO.getRemoteProcessGroup(inputPort.getInstanceGroupId()).getInputPort(inputPort.getInstanceId()).getScheduledState().name();
+                        final InstantiatedVersionedRemoteGroupPort remoteInputPort = (InstantiatedVersionedRemoteGroupPort) localComponent;
+                        state = remoteProcessGroupDAO.getRemoteProcessGroup(remoteInputPort.getInstanceGroupId()).getInputPort(remoteInputPort.getInstanceId()).getScheduledState().name();
                         break;
                     case REMOTE_OUTPUT_PORT:
-                        final InstantiatedVersionedRemoteGroupPort outputPort = (InstantiatedVersionedRemoteGroupPort) localComponent;
-                        state = remoteProcessGroupDAO.getRemoteProcessGroup(outputPort.getInstanceGroupId()).getOutputPort(outputPort.getInstanceId()).getScheduledState().name();
+                        final InstantiatedVersionedRemoteGroupPort remoteOutputPort = (InstantiatedVersionedRemoteGroupPort) localComponent;
+                        state = remoteProcessGroupDAO.getRemoteProcessGroup(remoteOutputPort.getInstanceGroupId()).getOutputPort(remoteOutputPort.getInstanceId()).getScheduledState().name();
+                        break;
+                    case INPUT_PORT:
+                        final InstantiatedVersionedPort versionedInputPort = (InstantiatedVersionedPort) localComponent;
+                        final Port inputPort = getInputPort(versionedInputPort);
+                        state = inputPort == null ? null : inputPort.getScheduledState().name();
+                        break;
+                    case OUTPUT_PORT:
+                        final InstantiatedVersionedPort versionedOutputPort = (InstantiatedVersionedPort) localComponent;
+                        final Port outputPort = getOutputPort(versionedOutputPort);
+                        state = outputPort == null ? null : outputPort.getScheduledState().name();
                         break;
                     default:
                         state = null;
@@ -4906,6 +4917,24 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         }
 
         return affectedComponents;
+    }
+
+    private Port getInputPort(final InstantiatedVersionedPort port) {
+        final ProcessGroup processGroup = processGroupDAO.getProcessGroup(port.getInstanceGroupId());
+        if (processGroup == null) {
+            return null;
+        }
+
+        return processGroup.getInputPort(port.getInstanceId());
+    }
+
+    private Port getOutputPort(final InstantiatedVersionedPort port) {
+        final ProcessGroup processGroup = processGroupDAO.getProcessGroup(port.getInstanceGroupId());
+        if (processGroup == null) {
+            return null;
+        }
+
+        return processGroup.getOutputPort(port.getInstanceId());
     }
 
     private void mapToConnectableId(final Collection<? extends Connectable> connectables, final Map<String, List<Connectable>> destination) {
