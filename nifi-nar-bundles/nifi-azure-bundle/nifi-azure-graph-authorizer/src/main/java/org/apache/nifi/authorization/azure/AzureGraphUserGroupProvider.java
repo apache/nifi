@@ -26,10 +26,12 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
+import com.azure.identity.AzureAuthorityHosts;
 import com.google.gson.JsonObject;
 import com.microsoft.graph.core.ClientException;
 import com.microsoft.graph.models.extensions.DirectoryObject;
@@ -70,33 +72,34 @@ public class AzureGraphUserGroupProvider implements UserGroupProvider {
     private int pageSize;
     private String claimForUserName;
 
-    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
+    private ScheduledExecutorService scheduler;
 
-    public static final String REFRESH_DELAY_PROPERTY = "REFRESH_DELAY";
+    public static final String REFRESH_DELAY_PROPERTY = "Refresh Delay";
     private static final long MINIMUM_SYNC_INTERVAL_MILLISECONDS = 10_000;
-    public static final String AUTHORITY_ENDPOINT_PROPERTY = "AUTHORITY_ENDPOINT";
-    public static final String TENANT_ID_PROPERTY = "TENANT_ID";
-    public static final String APP_REG_CLIENT_ID_PROPERTY = "APP_REG_CLIENT_ID";
-    public static final String APP_REG_CLIENT_SECRET_PROPERTY = "APP_REG_CLIENT_SECRET";
-    // comma separate list of group names to search from AAD
-    public static final String GROUP_FILTER_LIST_PROPERTY = "GROUP_FILTER_LIST_INCLUSION";
+    public static final String AUTHORITY_ENDPOINT_PROPERTY = "Authority Endpoint";
+    public static final String TENANT_ID_PROPERTY = "Tenant Id";
+    public static final String APP_REG_CLIENT_ID_PROPERTY = "App Reg Client Id";
+    public static final String APP_REG_CLIENT_SECRET_PROPERTY = "App Reg Client Secret";
+    // comma separated list of group names to search from AAD
+    public static final String GROUP_FILTER_LIST_PROPERTY = "Group Filter List Inclusion";
     // group filter with startswith
-    public static final String GROUP_FILTER_PREFIX_PROPERTY = "GROUP_FILTER_PREFIX";
-    // client side group filter 'endswith' operator, due to support limiation of
-    // azure graph rest-api
-    public static final String GROUP_FILTER_SUFFIX_PROPERTY = "GROUP_FILTER_SUFFIX";
-    // client side group filter 'contains' operator, due to support limiation of
-    // azure graph rest-api
-    public static final String GROUP_FILTER_SUBSTRING_PROPERTY = "GROUP_FILTER_SUBSTRING";
-    public static final String PAGE_SIZE_PROPERTY = "PAGE_SIZE";
-    // default: upn (or userPrincipalName). possilbe choices ['upn', 'email']
+    public static final String GROUP_FILTER_PREFIX_PROPERTY = "Group Filter Prefix";
+    // client side group filter 'endswith' operator, due to support limiation of azure graph rest-api
+    public static final String GROUP_FILTER_SUFFIX_PROPERTY = "Group Filter Suffix";
+    // client side group filter 'contains' operator, due to support limiation of azure graph rest-api
+    public static final String GROUP_FILTER_SUBSTRING_PROPERTY = "Group Filter Substring";
+    public static final String PAGE_SIZE_PROPERTY = "Page Size";
+    // default: upn (or userPrincipalName). possible choices ['upn', 'email']
     // this should be matched with oidc configuration in nifi.properties
-    public static final String CLAIM_FOR_USERNAME = "CLAIM_FOR_USERNAME";
-    public static final String DEFAULT_AAD_AUTHORITY_ENDPOINT = "https://login.microsoftonline.com";
+    public static final String CLAIM_FOR_USERNAME = "Claim For Username";
+    public static final String DEFAULT_REFRESH_DELAY = "5 mins";
+    public static final String DEFAULT_PAGE_SIZE = "50";
+    public static final String DEFAULT_CLAIM_FOR_USERNAME = "upn";
+    public static final int MAX_PAGE_SIZE = 999;
 
     private ClientCredentialAuthProvider authProvider;
     private IGraphServiceClient graphClient;
-    private AtomicReference<ImmutableAzureGraphUserGroup> azureGraphUserGroupRef = new AtomicReference<ImmutableAzureGraphUserGroup>();
+    private final AtomicReference<ImmutableAzureGraphUserGroup> azureGraphUserGroupRef = new AtomicReference<ImmutableAzureGraphUserGroup>();
 
     @Override
     public Group getGroup(String identifier) throws AuthorizationAccessException {
@@ -131,9 +134,14 @@ public class AzureGraphUserGroupProvider implements UserGroupProvider {
     @Override
     public void initialize(UserGroupProviderInitializationContext initializationContext)
             throws AuthorizerCreationException {
-        if (logger.isDebugEnabled()) {
-            logger.debug("calling AzureGraphUserGroupProvder.initialize");
-        }
+        this.scheduler = Executors.newSingleThreadScheduledExecutor(new ThreadFactory() {
+            @Override
+            public Thread newThread(Runnable r) {
+                final Thread thread = Executors.defaultThreadFactory().newThread(r);
+                thread.setName(String.format("%s (%s) - UserGroup Refresh", getClass().getSimpleName(), initializationContext.getIdentifier()));
+                return thread;
+            }
+        });
     }
 
     private String getProperty(AuthorizerConfigurationContext authContext, String propertyName, String defaultValue) {
@@ -148,52 +156,44 @@ public class AzureGraphUserGroupProvider implements UserGroupProvider {
         return value;
     }
 
-    private long getDelayProperty(AuthorizerConfigurationContext authContext, String propertyName,
-            String defaultValue) {
+    private long getDelayProperty(AuthorizerConfigurationContext authContext, String propertyName, String defaultValue) {
         final String propertyValue = getProperty(authContext, propertyName, defaultValue);
         final long syncInterval;
         try {
             syncInterval = Math.round(FormatUtils.getPreciseTimeDuration(propertyValue, TimeUnit.MILLISECONDS));
         } catch (final IllegalArgumentException ignored) {
-            throw new AuthorizerCreationException(
-                    String.format("The %s '%s' is not a valid time interval.", propertyName, propertyValue));
+            throw new AuthorizerCreationException(String.format("The %s '%s' is not a valid time interval.", propertyName, propertyValue));
         }
 
         if (syncInterval < MINIMUM_SYNC_INTERVAL_MILLISECONDS) {
-            throw new AuthorizerCreationException(String.format("The %s '%s' is below the minimum value of '%d ms'",
-                    propertyName, propertyValue, MINIMUM_SYNC_INTERVAL_MILLISECONDS));
+            throw new AuthorizerCreationException(String.format("The %s '%s' is below the minimum value of '%d ms'", propertyName, propertyValue, MINIMUM_SYNC_INTERVAL_MILLISECONDS));
         }
         return syncInterval;
     }
 
     @Override
     public void onConfigured(AuthorizerConfigurationContext configurationContext) throws AuthorizerCreationException {
-        if (logger.isDebugEnabled()) {
-            logger.debug("calling AzureGraphUserGroupProvder.onConfigured");
-        }
-        long fixedDelay = getDelayProperty(configurationContext, REFRESH_DELAY_PROPERTY, "5 mins");
-        final String authorityEndpoint = getProperty(configurationContext, AUTHORITY_ENDPOINT_PROPERTY,
-                DEFAULT_AAD_AUTHORITY_ENDPOINT);
+        long fixedDelay = getDelayProperty(configurationContext, REFRESH_DELAY_PROPERTY, DEFAULT_REFRESH_DELAY);
+        final String authorityEndpoint = getProperty(configurationContext, AUTHORITY_ENDPOINT_PROPERTY, AzureAuthorityHosts.AZURE_PUBLIC_CLOUD);
         final String tenantId = getProperty(configurationContext, TENANT_ID_PROPERTY, null);
         final String clientId = getProperty(configurationContext, APP_REG_CLIENT_ID_PROPERTY, null);
         final String clientSecret = getProperty(configurationContext, APP_REG_CLIENT_SECRET_PROPERTY, null);
-        this.pageSize = Integer.parseInt(getProperty(configurationContext, PAGE_SIZE_PROPERTY, "50"));
-        this.claimForUserName = getProperty(configurationContext, CLAIM_FOR_USERNAME, "upn");
-
+        this.pageSize = Integer.parseInt(getProperty(configurationContext, PAGE_SIZE_PROPERTY, DEFAULT_PAGE_SIZE));
+        this.claimForUserName = getProperty(configurationContext, CLAIM_FOR_USERNAME, DEFAULT_CLAIM_FOR_USERNAME);
+        final String providerClassName = getClass().getSimpleName();
         if (StringUtils.isBlank(tenantId)) {
             throw new AuthorizerCreationException(
-                    String.format("%s is a required field for AzureGraphUserGroupProvder", TENANT_ID_PROPERTY));
+                    String.format("%s is a required field for %s", TENANT_ID_PROPERTY, providerClassName));
         }
         if (StringUtils.isBlank(clientId)) {
             throw new AuthorizerCreationException(
-                    String.format("%s is a required field for AzureGraphUserGroupProvder", APP_REG_CLIENT_ID_PROPERTY));
+                    String.format("%s is a required field for %s", APP_REG_CLIENT_ID_PROPERTY, providerClassName));
         }
         if (StringUtils.isBlank(clientSecret)) {
-            throw new AuthorizerCreationException(String.format("%s is a required field for AzureGraphUserGroupProvder",
-                    APP_REG_CLIENT_SECRET_PROPERTY));
+            throw new AuthorizerCreationException(String.format("%s is a required field for %s", APP_REG_CLIENT_SECRET_PROPERTY, providerClassName));
         }
-        if (this.pageSize > 999) {
-            throw new AuthorizerCreationException("Max page size for graph rest api call is 999.");
+        if (this.pageSize > MAX_PAGE_SIZE) {
+            throw new AuthorizerCreationException(String.format("Max page size for Microsoft Graph is %d.", MAX_PAGE_SIZE));
         }
 
         try {
@@ -204,8 +204,8 @@ public class AzureGraphUserGroupProvider implements UserGroupProvider {
                 .clientSecret(clientSecret)
                 .build();
             graphClient = GraphServiceClient.builder().authenticationProvider(authProvider).buildClient();
-        } catch (ClientException ep) {
-            throw new AuthorizerCreationException("Failed to create a GraphServiceClient", ep);
+        } catch (final ClientException e) {
+            throw new AuthorizerCreationException(String.format("Failed to create a GraphServiceClient due to %s", e.getMessage()), e);
         }
 
         // first, load list of group name if there is any prefix, suffix, substring

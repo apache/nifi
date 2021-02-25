@@ -18,6 +18,9 @@
 package org.apache.nifi.authorization.azure;
 
 import java.net.MalformedURLException;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Collections;
 import java.util.Date;
 import java.util.Objects;
@@ -36,14 +39,14 @@ import org.slf4j.LoggerFactory;
 
 public class ClientCredentialAuthProvider implements IAuthenticationProvider {
 
-    final private String authorityEndpoint; // { "Global", "https://login.microsoftonline.com/", "UsGovernment", "https://login.microsoftonline.us/" }
-    final private String tenantId;
-    final private String clientId;
-    final private String clientSecret;
-    private Date tokenExpiresOnDate;
+    private final String authorityEndpoint;
+    private final String tenantId;
+    private final String clientId;
+    private final String clientSecret;
+    private LocalDateTime tokenExpiresOnDate;
     private String lastAcessToken;
-    private final static String GRAPH_DEFAULT_SCOPE = "https://graph.microsoft.com/.default";
-    private final static Logger logger = LoggerFactory.getLogger(ClientCredentialAuthProvider.class);
+    private static final String GRAPH_DEFAULT_SCOPE = "https://graph.microsoft.com/.default";
+    private static final Logger logger = LoggerFactory.getLogger(ClientCredentialAuthProvider.class);
 
     private ClientCredentialAuthProvider(final Builder builder){
         this.authorityEndpoint = builder.getAuthorityEndpoint();
@@ -67,10 +70,6 @@ public class ClientCredentialAuthProvider implements IAuthenticationProvider {
             "}";
     }
 
-    public Date getLastAccessTokenExpirationDate(){
-        return tokenExpiresOnDate;
-    }
-
     private IAuthenticationResult getAccessTokenByClientCredentialGrant()
         throws MalformedURLException, ExecutionException, InterruptedException {
 
@@ -79,9 +78,6 @@ public class ClientCredentialAuthProvider implements IAuthenticationProvider {
                 ClientCredentialFactory.createFromSecret(this.clientSecret))
                 .authority(String.format("%s/%s", authorityEndpoint, tenantId))
                 .build();
-
-        // With client credentials flows the scope is ALWAYS of the shape "resource/.default", as the
-        // application permissions need to be set statically (in the portal), and then granted by a tenant administrator
         ClientCredentialParameters clientCredentialParam = ClientCredentialParameters.builder(
                 Collections.singleton(GRAPH_DEFAULT_SCOPE))
                 .build();
@@ -90,22 +86,25 @@ public class ClientCredentialAuthProvider implements IAuthenticationProvider {
         return future.get();
     }
 
+    private LocalDateTime convertToLocalDateTime(Date dateToConvert) {
+        return Instant.ofEpochMilli(dateToConvert.getTime())
+          .atZone(ZoneId.systemDefault())
+          .toLocalDateTime();
+    }
+
     private String getAccessToken() {
-        Date now = new Date();
-        if ((lastAcessToken != null) && (tokenExpiresOnDate != null) && (tokenExpiresOnDate.getTime() -now.getTime() > 60000)) {
+        if ((lastAcessToken != null) && (tokenExpiresOnDate != null) && (tokenExpiresOnDate.isAfter(LocalDateTime.now().plusMinutes(1)))) {
             return lastAcessToken;
         } else {
             try {
                 IAuthenticationResult result = getAccessTokenByClientCredentialGrant();
-                tokenExpiresOnDate = result.expiresOnDate(); // store this for token expiration checking
+                tokenExpiresOnDate = convertToLocalDateTime(result.expiresOnDate());
                 lastAcessToken = result.accessToken();
-            } catch(Exception ex) {
-                logger.error("Failed to get access token", ex);
+            } catch(final Exception e) {
+                logger.error("Failed to get access token due to {}", e.getMessage(), e);
             }
             return lastAcessToken;
         }
-
-
     }
 
     @Override
@@ -114,7 +113,6 @@ public class ClientCredentialAuthProvider implements IAuthenticationProvider {
         if (accessToken != null) {
             request.addHeader("Authorization", "Bearer " + accessToken);
         }
-
     }
 
     public static class Builder {
@@ -181,6 +179,5 @@ public class ClientCredentialAuthProvider implements IAuthenticationProvider {
         public ClientCredentialAuthProvider build() {
             return new ClientCredentialAuthProvider(this);
         }
-
     }
 }

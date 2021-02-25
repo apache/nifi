@@ -69,11 +69,13 @@ public class ImmutableAzureGraphUserGroup {
     public User getUserByPrincipalName(final String principalName) {
         return usersByPrincipalName.get(principalName);
     }
+
     public UserAndGroups getUserAndGroupsByUserObjectId(final String objectId) {
         return usersAndGroupsByUserObjectId.get(objectId);
     }
+
     public UserAndGroups getUserAndGroups(final String principalName) {
-        User user = getUserByPrincipalName(principalName);
+        final User user = getUserByPrincipalName(principalName);
         if (user != null) {
             final String objectId = user.getIdentifier();
             return getUserAndGroupsByUserObjectId(objectId);

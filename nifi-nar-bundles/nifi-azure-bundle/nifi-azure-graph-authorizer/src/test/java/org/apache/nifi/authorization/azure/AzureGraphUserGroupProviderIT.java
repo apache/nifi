@@ -65,19 +65,19 @@ public class AzureGraphUserGroupProviderIT {
     }
 
     protected static String getAuthorityEndpoint() {
-        return CONFIG.getProperty(AzureGraphUserGroupProvider.AUTHORITY_ENDPOINT_PROPERTY);
+        return CONFIG.getProperty("AUTHORITY_ENDPOINT");
     }
 
     protected static String getTenantId() {
-        return CONFIG.getProperty(AzureGraphUserGroupProvider.TENANT_ID_PROPERTY);
+        return CONFIG.getProperty("TENANT_ID");
     }
 
     protected static String getAppRegClientId() {
-        return CONFIG.getProperty(AzureGraphUserGroupProvider.APP_REG_CLIENT_ID_PROPERTY);
+        return CONFIG.getProperty("APP_REG_CLIENT_ID");
     }
 
     protected static String getAppRegClientSecret() {
-        return CONFIG.getProperty(AzureGraphUserGroupProvider.APP_REG_CLIENT_SECRET_PROPERTY);
+        return CONFIG.getProperty("APP_REG_CLIENT_SECRET");
     }
 
     protected static String getKnownTestUserName() {
@@ -90,7 +90,7 @@ public class AzureGraphUserGroupProviderIT {
     }
 
     protected static String getGroupListInclusion() {
-        return CONFIG.getProperty(AzureGraphUserGroupProvider.GROUP_FILTER_LIST_PROPERTY);
+        return CONFIG.getProperty("GROUP_FILTER_LIST_INCLUSION");
     }
 
     private AuthorizerConfigurationContext authContext = Mockito.mock(AuthorizerConfigurationContext.class);
