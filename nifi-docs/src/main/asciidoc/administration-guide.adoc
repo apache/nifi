@@ -3096,18 +3096,20 @@ the User Interface. The following properties govern how these tools work.
 
 |====
 |*Property*|*Description*
-|`nifi.components.status.repository.implementation`|The Status History Repository implementation. The default value is `VolatileComponentStatusRepository`. `EmbeddedQuestDbStatusHistoryRepository` is also supported.
-|`nifi.components.status.snapshot.frequency`|This value indicates how often to present a snapshot of the components' status history. The default value is `1 min`.
+|`nifi.components.status.repository.implementation`|The Status History Repository implementation. The default value is `org.apache.nifi.controller.status.history.VolatileComponentStatusRepository`,
+which stores status history in memory. `org.apache.nifi.controller.status.history.EmbeddedQuestDbStatusHistoryRepository` is also supported and stores status history information on disk so that it is
+available across restarts and can be stored for much longer periods of time.
+|`nifi.components.status.snapshot.frequency`|This value indicates how often to capture a snapshot of the components' status history. The default value is `1 min`.
 |====
 
 ==== In memory repository
 
-In case the value of the property `nifi.components.status.repository.implementation` is `VolatileComponentStatusRepository`, the
-status history data will be stored in memory. In case the application stops, all gathered information will be lost.
+If the value of the property `nifi.components.status.repository.implementation` is `VolatileComponentStatusRepository`, the
+status history data will be stored in memory. If the application stops, all gathered information will be lost.
 
-The `buffer.size` and `snapshot.frequency` work together to determine the amount of historical data to retain. As an example to
-configure two days worth of historical data with a data point snapshot occurring every 5 minutes you would configure
-`snapshot.frequency` to be "5 mins" and the buffer.size to be "576". To further explain this example for every 60 minutes there
+The `buffer.size` and `snapshot.frequency` work together to determine the amount of historical data to retain. As an example, to
+configure two days' worth of historical data with a data point snapshot occurring every 5 minutes you would configure
+`snapshot.frequency` to be "5 mins" and the buffer.size to be "576". To further explain this example, for every 60 minutes there
 are 12 (60 / 5) snapshot windows for that time period. To keep that data for 48 hours (12 * 48) you end up with a buffer size
 of 576.
 
@@ -3118,13 +3120,14 @@ of 576.
 
 ==== Persistent repository
 
-In case the value of the property `nifi.components.status.repository.implementation` is `EmbeddedQuestDbStatusHistoryRepository`, the
+If the value of the property `nifi.components.status.repository.implementation` is `EmbeddedQuestDbStatusHistoryRepository`, the
 status history data will be stored to the disk in a persistent manner. Data will be kept between restarts.
 
 |====
 |*Property*|*Description*
-|`nifi.status.repository.questdb.persist.node.days`|The number of days the node status data will be kept. The default values is `14`.
-|`nifi.status.repository.questdb.persist.component.days`|The number of days the component status data will be kept. The default value is `3`.
+|`nifi.status.repository.questdb.persist.node.days`|The number of days the node status data (such as Repository disk space free, garbage collection information, etc.) will be kept. The default values
+is `14`.
+|`nifi.status.repository.questdb.persist.component.days`|The number of days the component status data (i.e., stats for each Processor, Connection, etc.) will be kept. The default value is `3`.
 |`nifi.status.repository.questdb.persist.location`|The location of the persistent Status History Repository. The default value is `./status_repository`.
 |====
 
