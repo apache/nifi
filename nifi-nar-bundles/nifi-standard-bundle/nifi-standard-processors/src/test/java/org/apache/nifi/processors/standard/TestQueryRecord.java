@@ -17,9 +17,12 @@
 package org.apache.nifi.processors.standard;
 
 import org.apache.nifi.controller.AbstractControllerService;
+import org.apache.nifi.csv.CSVReader;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.schema.access.SchemaAccessUtils;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
+import org.apache.nifi.schema.inference.SchemaInferenceUtil;
 import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.SimpleRecordSchema;
@@ -929,6 +932,34 @@ public class TestQueryRecord {
         final MockFlowFile out = runner.getFlowFilesForRelationship(REL_NAME).get(0);
         System.out.println(new String(out.toByteArray()));
         out.assertContentEquals("\"name\",\"points\"\n\"Tom\",\"49\"\n");
+    }
+
+    @Test
+    public void testNoRecordsInput() throws InitializationException, IOException, SQLException {
+        TestRunner runner = getRunner();
+
+        CSVReader csvReader = new CSVReader();
+        runner.addControllerService("csv-reader", csvReader);
+        runner.setProperty(csvReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaInferenceUtil.INFER_SCHEMA);
+
+        final MockRecordWriter writer = new MockRecordWriter("\"name\",\"age\"");
+
+        runner.addControllerService("csv-reader", csvReader);
+        runner.addControllerService("writer", writer);
+        runner.enableControllerService(csvReader);
+        runner.enableControllerService(writer);
+
+        runner.setProperty(REL_NAME, "select name from FLOWFILE WHERE age > 23");
+        runner.setProperty(QueryRecord.RECORD_READER_FACTORY, "csv-reader");
+        runner.setProperty(QueryRecord.RECORD_WRITER_FACTORY, "writer");
+        runner.setProperty(QueryRecord.INCLUDE_ZERO_RECORD_FLOWFILES, "true");
+
+        runner.enqueue("name,age\n");
+        runner.run();
+        runner.assertTransferCount(REL_NAME, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(REL_NAME).get(0);
+        System.out.println(new String(out.toByteArray()));
+        out.assertContentEquals("\"name\",\"age\"\n");
     }
 
 
