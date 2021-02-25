@@ -19,7 +19,7 @@ package org.apache.nifi.controller.status.history.storage;
 /**
  * Wraps a writer object in order to buffer incoming store requests and dispatch the incoming store requests in batches.
  */
-public interface BufferedWriter<T> {
+public interface BufferedEntryWriter<T> {
 
     /**
      * Collects an entity to write into the internal buffer.

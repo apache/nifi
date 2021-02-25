@@ -19,7 +19,7 @@ package org.apache.nifi.controller.status.history;
 import java.util.Map;
 
 /**
- * Stores and returns with the details of a given component. Implementations are expected to be thread safe.
+ * Stores and returns the details of a given component. Implementations are expected to be thread safe.
  */
 public interface ComponentDetailsStorage {
 

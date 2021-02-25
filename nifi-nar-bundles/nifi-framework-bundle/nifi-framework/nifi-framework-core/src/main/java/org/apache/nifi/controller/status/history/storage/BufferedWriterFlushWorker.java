@@ -25,9 +25,9 @@ import java.util.List;
 public class BufferedWriterFlushWorker implements Runnable {
     private static final Logger LOGGER = LoggerFactory.getLogger(BufferedWriterFlushWorker.class);
 
-    private final List<BufferedWriter<?>> bufferedWriterList = new ArrayList<>();
+    private final List<BufferedEntryWriter<?>> bufferedWriterList = new ArrayList<>();
 
-    public BufferedWriterFlushWorker(final List<BufferedWriter<?>> bufferedWriterList) {
+    public BufferedWriterFlushWorker(final List<BufferedEntryWriter<?>> bufferedWriterList) {
         this.bufferedWriterList.addAll(bufferedWriterList);
     }
 

@@ -23,7 +23,7 @@ import java.util.ArrayList;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
-public class BufferedWriterForStatusStorage<T> implements BufferedWriter<Pair<Instant, T>> {
+public class BufferedWriterForStatusStorage<T> implements BufferedEntryWriter<Pair<Instant, T>> {
     private final BlockingQueue<Pair<Instant, T>> queue = new LinkedBlockingQueue<>();
     private final StatusStorage<T> statusStorage;
     private final int batchSize;
