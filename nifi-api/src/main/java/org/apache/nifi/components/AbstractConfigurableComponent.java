@@ -90,40 +90,39 @@ public abstract class AbstractConfigurableComponent implements ConfigurableCompo
 
     @Override
     public final Collection<ValidationResult> validate(final ValidationContext context) {
-        // goes through supported properties
+        // goes through context properties, should match supported properties + supported dynamic properties
         final Collection<ValidationResult> results = new ArrayList<>();
+        final Set<PropertyDescriptor> contextDescriptors = context.getProperties().keySet();
         final List<PropertyDescriptor> supportedDescriptors = getSupportedPropertyDescriptors();
 
-        if (null != supportedDescriptors) {
-            for (final PropertyDescriptor descriptor : supportedDescriptors) {
-                // If the property descriptor's dependency is not satisfied, the property does not need to be considered, as it's not relevant to the
-                // component's functionality.
-                final boolean dependencySatisfied = context.isDependencySatisfied(descriptor, this::getPropertyDescriptor);
-                if (!dependencySatisfied) {
-                    continue;
-                }
+        for (final PropertyDescriptor descriptor : contextDescriptors) {
+            // If the property descriptor's dependency is not satisfied, the property does not need to be considered, as it's not relevant to the
+            // component's functionality.
+            final boolean dependencySatisfied = context.isDependencySatisfied(descriptor, this::getPropertyDescriptor);
+            if (!dependencySatisfied) {
+                continue;
+            }
 
-                validateDependencies(descriptor, context, results);
+            validateDependencies(descriptor, context, results);
 
-                String value = context.getProperty(descriptor).getValue();
-                if (value == null) {
-                    value = descriptor.getDefaultValue();
-                }
+            String value = context.getProperty(descriptor).getValue();
+            if (value == null) {
+                value = descriptor.getDefaultValue();
+            }
 
-                if (value == null && descriptor.isRequired()) {
-                    String displayName = descriptor.getDisplayName();
-                    ValidationResult.Builder builder = new ValidationResult.Builder().valid(false).input(null).subject(displayName != null ? displayName : descriptor.getName());
-                    builder = (displayName != null) ? builder.explanation(displayName + " is required") : builder.explanation(descriptor.getName() + " is required");
-                    results.add(builder.build());
-                    continue;
-                } else if (value == null) {
-                    continue;
-                }
+            if (value == null && descriptor.isRequired()) {
+                String displayName = descriptor.getDisplayName();
+                ValidationResult.Builder builder = new ValidationResult.Builder().valid(false).input(null).subject(displayName != null ? displayName : descriptor.getName());
+                builder = (displayName != null) ? builder.explanation(displayName + " is required") : builder.explanation(descriptor.getName() + " is required");
+                results.add(builder.build());
+                continue;
+            } else if (value == null) {
+                continue;
+            }
 
-                final ValidationResult result = descriptor.validate(value, context);
-                if (!result.isValid()) {
-                    results.add(result);
-                }
+            final ValidationResult result = descriptor.validate(value, context);
+            if (!result.isValid()) {
+                results.add(result);
             }
         }
 
