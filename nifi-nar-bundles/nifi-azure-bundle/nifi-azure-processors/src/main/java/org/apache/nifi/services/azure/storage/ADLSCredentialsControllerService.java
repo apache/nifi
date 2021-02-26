@@ -29,7 +29,6 @@ import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
-import org.apache.nifi.ssl.SSLContextService;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -50,30 +49,41 @@ import java.util.function.Function;
 public class ADLSCredentialsControllerService extends AbstractControllerService implements ADLSCredentialsService {
 
     public static final PropertyDescriptor ACCOUNT_NAME = new PropertyDescriptor.Builder()
-        .fromPropertyDescriptor(AzureStorageUtils.ACCOUNT_NAME)
-        .description(AzureStorageUtils.ACCOUNT_NAME_BASE_DESCRIPTION)
-        .required(true)
-        .build();
+            .fromPropertyDescriptor(AzureStorageUtils.ACCOUNT_NAME)
+            .description(AzureStorageUtils.ACCOUNT_NAME_BASE_DESCRIPTION)
+            .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .build();
 
     public static final PropertyDescriptor ENDPOINT_SUFFIX = new PropertyDescriptor.Builder()
-        .fromPropertyDescriptor(AzureStorageUtils.ENDPOINT_SUFFIX)
-        .displayName("Endpoint Suffix")
-        .description(
-            "Storage accounts in public Azure always use a common FQDN suffix. " +
-                "Override this endpoint suffix with a different suffix in certain circumstances (like Azure Stack or non-public Azure regions).")
-        .required(true)
-        .defaultValue("dfs.core.windows.net")
-        .build();
+            .fromPropertyDescriptor(AzureStorageUtils.ENDPOINT_SUFFIX)
+            .displayName("Endpoint Suffix")
+            .description("Storage accounts in public Azure always use a common FQDN suffix. " +
+                    "Override this endpoint suffix with a different suffix in certain circumstances (like Azure Stack or non-public Azure regions).")
+            .required(true)
+            .defaultValue("dfs.core.windows.net")
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
+
+    public static final PropertyDescriptor ACCOUNT_KEY = new PropertyDescriptor.Builder()
+            .fromPropertyDescriptor(AzureStorageUtils.ACCOUNT_KEY)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .build();
+
+    public static final PropertyDescriptor SAS_TOKEN = new PropertyDescriptor.Builder()
+            .fromPropertyDescriptor(AzureStorageUtils.PROP_SAS_TOKEN)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .build();
 
     public static final PropertyDescriptor USE_MANAGED_IDENTITY = new PropertyDescriptor.Builder()
-        .name("storage-use-managed-identity")
-        .displayName("Use Azure Managed Identity")
-        .description("Choose whether or not to use the managed identity of Azure VM/VMSS ")
-        .required(false)
-        .defaultValue("false")
-        .allowableValues("true", "false")
-        .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
-        .build();
+            .name("storage-use-managed-identity")
+            .displayName("Use Azure Managed Identity")
+            .description("Choose whether or not to use the managed identity of Azure VM/VMSS ")
+            .required(false)
+            .defaultValue("false")
+            .allowableValues("true", "false")
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .build();
 
     public static final PropertyDescriptor SERVICE_PRINCIPAL_TENANT_ID = new PropertyDescriptor.Builder()
             .name("service-principal-tenant-id")
@@ -82,49 +92,38 @@ public class ADLSCredentialsControllerService extends AbstractControllerService 
             .sensitive(true)
             .required(false)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
 
     public static final PropertyDescriptor SERVICE_PRINCIPAL_CLIENT_ID = new PropertyDescriptor.Builder()
             .name("service-principal-client-id")
             .displayName("Service Principal Client ID")
-            .description("Client ID (or Application ID) of the Client/Application having the Service Principal. The property is required when Service Principal authentication is used. " +
-                    "Also 'Service Principal Client Secret' or 'Service Principal Client Certificate' must be specified in this case.")
+            .description("Client ID (or Application ID) of the Client/Application having the Service Principal. The property is required when Service Principal authentication is used.")
             .sensitive(true)
             .required(false)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
 
     public static final PropertyDescriptor SERVICE_PRINCIPAL_CLIENT_SECRET = new PropertyDescriptor.Builder()
-            .name("service-principal-client-Secret")
+            .name("service-principal-client-secret")
             .displayName("Service Principal Client Secret")
-            .description("Password of the Client/Application.")
+            .description("Password of the Client/Application. The property is required when Service Principal authentication is used.")
             .sensitive(true)
             .required(false)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .build();
-
-    public static final PropertyDescriptor SERVICE_PRINCIPAL_CLIENT_CERTIFICATE = new PropertyDescriptor.Builder()
-            .name("service-principal-client-certificate")
-            .displayName("Service Principal Client Certificate")
-            .description("SSL Context Service referencing the keystore with the client certificate of the Client/Application. Only PKCS12 (.pfx) keystore type is supported. " +
-                    "The keystore must contain a single key and the password of the keystore and the key must be the same.")
-            .identifiesControllerService(SSLContextService.class)
-            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
 
     private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
             ACCOUNT_NAME,
             ENDPOINT_SUFFIX,
-            AzureStorageUtils.ACCOUNT_KEY,
-            AzureStorageUtils.PROP_SAS_TOKEN,
+            ACCOUNT_KEY,
+            SAS_TOKEN,
             USE_MANAGED_IDENTITY,
             SERVICE_PRINCIPAL_TENANT_ID,
             SERVICE_PRINCIPAL_CLIENT_ID,
-            SERVICE_PRINCIPAL_CLIENT_SECRET,
-            SERVICE_PRINCIPAL_CLIENT_CERTIFICATE
+            SERVICE_PRINCIPAL_CLIENT_SECRET
     ));
 
     private ConfigurationContext context;
@@ -138,16 +137,15 @@ public class ADLSCredentialsControllerService extends AbstractControllerService 
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
         final List<ValidationResult> results = new ArrayList<>();
 
-        boolean accountKeySet = StringUtils.isNotBlank(validationContext.getProperty(AzureStorageUtils.ACCOUNT_KEY).getValue());
-        boolean sasTokenSet = StringUtils.isNotBlank(validationContext.getProperty(AzureStorageUtils.PROP_SAS_TOKEN).getValue());
+        boolean accountKeySet = StringUtils.isNotBlank(validationContext.getProperty(ACCOUNT_KEY).getValue());
+        boolean sasTokenSet = StringUtils.isNotBlank(validationContext.getProperty(SAS_TOKEN).getValue());
         boolean useManagedIdentitySet = validationContext.getProperty(USE_MANAGED_IDENTITY).asBoolean();
 
         boolean servicePrincipalTenantIdSet = StringUtils.isNotBlank(validationContext.getProperty(SERVICE_PRINCIPAL_TENANT_ID).getValue());
         boolean servicePrincipalClientIdSet = StringUtils.isNotBlank(validationContext.getProperty(SERVICE_PRINCIPAL_CLIENT_ID).getValue());
         boolean servicePrincipalClientSecretSet = StringUtils.isNotBlank(validationContext.getProperty(SERVICE_PRINCIPAL_CLIENT_SECRET).getValue());
-        boolean servicePrincipalClientCertificateSet = validationContext.getProperty(SERVICE_PRINCIPAL_CLIENT_CERTIFICATE).isSet();
 
-        boolean servicePrincipalSet = servicePrincipalTenantIdSet || servicePrincipalClientIdSet || servicePrincipalClientSecretSet || servicePrincipalClientCertificateSet;
+        boolean servicePrincipalSet = servicePrincipalTenantIdSet || servicePrincipalClientIdSet || servicePrincipalClientSecretSet;
 
         if (!onlyOneSet(accountKeySet, sasTokenSet, useManagedIdentitySet, servicePrincipalSet)) {
             results.add(new ValidationResult.Builder().subject(this.getClass().getSimpleName())
@@ -155,23 +153,23 @@ public class ADLSCredentialsControllerService extends AbstractControllerService 
                 .explanation("one and only one authentication method of [Account Key, SAS Token, Managed Identity, Service Principal] should be used")
                 .build());
         } else if (servicePrincipalSet) {
+            String template = "'%s' must be set when Service Principal authentication is being configured";
             if (!servicePrincipalTenantIdSet) {
                 results.add(new ValidationResult.Builder().subject(this.getClass().getSimpleName())
                         .valid(false)
-                        .explanation(String.format("'%s' must be set when Service Principal authentication is being configured", SERVICE_PRINCIPAL_TENANT_ID.getDisplayName()))
+                        .explanation(String.format(template, SERVICE_PRINCIPAL_TENANT_ID.getDisplayName()))
                         .build());
             }
             if (!servicePrincipalClientIdSet) {
                 results.add(new ValidationResult.Builder().subject(this.getClass().getSimpleName())
                         .valid(false)
-                        .explanation(String.format("'%s' must be set when Service Principal authentication is being configured", SERVICE_PRINCIPAL_CLIENT_ID.getDisplayName()))
+                        .explanation(String.format(template, SERVICE_PRINCIPAL_CLIENT_ID.getDisplayName()))
                         .build());
             }
-            if (!onlyOneSet(servicePrincipalClientSecretSet, servicePrincipalClientCertificateSet)) {
+            if (!servicePrincipalClientSecretSet) {
                 results.add(new ValidationResult.Builder().subject(this.getClass().getSimpleName())
                         .valid(false)
-                        .explanation(String.format("eiter '%s' or '%s' (but not both) must be set when Service Principal authentication is being configured",
-                                SERVICE_PRINCIPAL_CLIENT_SECRET.getDisplayName(), SERVICE_PRINCIPAL_CLIENT_CERTIFICATE.getDisplayName()))
+                        .explanation(String.format(template, SERVICE_PRINCIPAL_CLIENT_SECRET.getDisplayName()))
                         .build());
             }
         }
@@ -197,30 +195,26 @@ public class ADLSCredentialsControllerService extends AbstractControllerService 
         ADLSCredentialsDetails.Builder credentialsBuilder = ADLSCredentialsDetails.Builder.newBuilder();
 
         setValue(credentialsBuilder, ACCOUNT_NAME, PropertyValue::getValue, ADLSCredentialsDetails.Builder::setAccountName, attributes);
-        setValue(credentialsBuilder, AzureStorageUtils.ACCOUNT_KEY, PropertyValue::getValue, ADLSCredentialsDetails.Builder::setAccountKey, attributes);
-        setValue(credentialsBuilder, AzureStorageUtils.PROP_SAS_TOKEN, PropertyValue::getValue, ADLSCredentialsDetails.Builder::setSasToken, attributes);
+        setValue(credentialsBuilder, ACCOUNT_KEY, PropertyValue::getValue, ADLSCredentialsDetails.Builder::setAccountKey, attributes);
+        setValue(credentialsBuilder, SAS_TOKEN, PropertyValue::getValue, ADLSCredentialsDetails.Builder::setSasToken, attributes);
         setValue(credentialsBuilder, ENDPOINT_SUFFIX, PropertyValue::getValue, ADLSCredentialsDetails.Builder::setEndpointSuffix, attributes);
         setValue(credentialsBuilder, USE_MANAGED_IDENTITY, PropertyValue::asBoolean, ADLSCredentialsDetails.Builder::setUseManagedIdentity, attributes);
         setValue(credentialsBuilder, SERVICE_PRINCIPAL_TENANT_ID, PropertyValue::getValue, ADLSCredentialsDetails.Builder::setServicePrincipalTenantId, attributes);
         setValue(credentialsBuilder, SERVICE_PRINCIPAL_CLIENT_ID, PropertyValue::getValue, ADLSCredentialsDetails.Builder::setServicePrincipalClientId, attributes);
         setValue(credentialsBuilder, SERVICE_PRINCIPAL_CLIENT_SECRET, PropertyValue::getValue, ADLSCredentialsDetails.Builder::setServicePrincipalClientSecret, attributes);
-        setValue(credentialsBuilder, SERVICE_PRINCIPAL_CLIENT_CERTIFICATE, pv -> pv.asControllerService(SSLContextService.class).getKeyStoreFile(),
-                ADLSCredentialsDetails.Builder::setServicePrincipalClientCertificatePath, attributes);
-        setValue(credentialsBuilder, SERVICE_PRINCIPAL_CLIENT_CERTIFICATE, pv -> pv.asControllerService(SSLContextService.class).getKeyStorePassword(),
-                ADLSCredentialsDetails.Builder::setServicePrincipalClientCertificatePassword, attributes);
 
         return credentialsBuilder.build();
     }
 
     private <T> void setValue(
-        ADLSCredentialsDetails.Builder credentialsBuilder,
-        PropertyDescriptor propertyDescriptor, Function<PropertyValue, T> getPropertyValue,
-        BiConsumer<ADLSCredentialsDetails.Builder, T> setBuilderValue, Map<String, String> attributes
+            ADLSCredentialsDetails.Builder credentialsBuilder,
+            PropertyDescriptor propertyDescriptor, Function<PropertyValue, T> getPropertyValue,
+            BiConsumer<ADLSCredentialsDetails.Builder, T> setBuilderValue, Map<String, String> attributes
     ) {
         PropertyValue property = context.getProperty(propertyDescriptor);
 
         if (property.isSet()) {
-            if (property.isExpressionLanguagePresent()) {
+            if (propertyDescriptor.isExpressionLanguageSupported()) {
                 property = property.evaluateAttributeExpressions(attributes);
             }
             T value = getPropertyValue.apply(property);
