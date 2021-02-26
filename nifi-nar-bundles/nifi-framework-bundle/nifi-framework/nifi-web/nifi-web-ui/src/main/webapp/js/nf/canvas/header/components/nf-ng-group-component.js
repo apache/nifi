@@ -105,6 +105,24 @@
             }).fail(nfErrorHandler.handleConfigurationUpdateAjaxError);
         };
 
+        /**
+         * Extracts the filename from the file path.
+         *
+         * @argument {string} filepath The selected file path.
+         */
+        var getFilename = function(filepath) {
+            return filepath.replace(/^.*[\\\/]/, '');
+        };
+
+        /**
+         * Extracts the filename without the file extension from the file path.
+         *
+         * @argument {string} filepath The selected file path.
+         */
+        var getFilenameNoExtension = function (filepath) {
+            return filepath.replace(/^.*[\\\/]/, '').replace(/\..*/, '');
+        };
+
         function GroupComponent() {
 
             this.icon = 'icon icon-group';
@@ -162,6 +180,11 @@
                         }
                     });
 
+                    $('#new-process-group-name').on('input', function () {
+                        // update the buttons to the enabled stated
+                        $('#new-process-group-dialog').modal('refreshButtons');
+                    });
+
                     $('#upload-file-field-button').on('click', function (e) {
                         $('#upload-file-field').click();
                     });
@@ -170,15 +193,18 @@
                         $('#upload-file-field-button').hide();
 
                         self.fileToBeUploaded = e.target;
-                        var filename = $(this).val();
-                        var filenameExtension;
-                        if (!nfCommon.isBlank(filename)) {
-                            filenameExtension = filename.replace(/^.*[\\\/]/, '');
-                            filename = filename.replace(/^.*[\\\/]/, '').replace(/\..*/, '');
+
+                        // extract the filenames
+                        var filename;
+                        var filenameNoExtension;
+
+                        if (!nfCommon.isBlank($(this).val())) {
+                            filename = getFilename($(this).val());
+                            filenameNoExtension = getFilenameNoExtension($(this).val());
                         }
 
-                        // show the selected file name
-                        $('#selected-file-name').text(filenameExtension);
+                        // show the selected filename
+                        $('#selected-file-name').text(filename);
 
                         // determine if the 'File to Upload' title should show
                         if ($('#selected-file-name').val) {
@@ -187,7 +213,9 @@
 
                         // set the filename
                         if (!$('#new-process-group-name').val()) {
-                            $('#new-process-group-name').val(filename);
+                            $('#new-process-group-name').val(filenameNoExtension);
+                            // update the buttons to the enabled stated
+                            $('#new-process-group-dialog').modal('refreshButtons');
                         }
 
                         $('#file-cancel-button').show();
@@ -204,6 +232,9 @@
 
                         $('#file-cancel-button').hide();
                         $('#upload-file-field-button').show();
+
+                        // update the buttons to the disabled stated
+                        $('#new-process-group-dialog').modal('refreshButtons');
                     })
                 },
 
@@ -409,6 +440,13 @@
                             base: '#728E9B',
                             hover: '#004849',
                             text: '#ffffff'
+                        },
+                        disabled: function () {
+                            if (nfCommon.isBlank($('#new-process-group-name').val())) {
+                                return true;
+                            } else {
+                                return false;
+                            }
                         },
                         handler: {
                             click: addGroup

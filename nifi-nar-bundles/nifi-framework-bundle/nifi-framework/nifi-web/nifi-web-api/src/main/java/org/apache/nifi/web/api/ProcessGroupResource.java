@@ -217,6 +217,14 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
                 return thread;
             }
         });
+    private static final String INVALID_JSON_RESPONSE = "The specified file is not a valid JSON format.";
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+    static {
+        MAPPER.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+        MAPPER.setDefaultPropertyInclusion(JsonInclude.Value.construct(JsonInclude.Include.NON_NULL, JsonInclude.Include.NON_NULL));
+        MAPPER.setAnnotationIntrospector(new JaxbAnnotationIntrospector(MAPPER.getTypeFactory()));
+        MAPPER.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+    }
 
     /**
      * Populates the remaining fields in the specified process groups.
@@ -4180,10 +4188,10 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
     }
 
     /**
-     * Uploads the specified versioned flow file and adds it to a new process group.
+     * Uploads the specified versioned flow definition and adds it to a new process group.
      *
      * @param httpServletRequest request
-     * @param in The flow file stream
+     * @param in The flow definition stream
      * @return A processGroupEntity
      * @throws IOException if there is an error during deserialization of the InputStream
      */
@@ -4192,7 +4200,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
     @Produces(MediaType.APPLICATION_JSON)
     @Path("{id}/process-groups/upload")
     @ApiOperation(
-            value = "Uploads a versioned flow file and creates a process group",
+            value = "Uploads a versioned flow definition and creates a process group",
             response = ProcessGroupEntity.class,
             authorizations = {
                     @Authorization(value = "Write - /process-groups/{uuid}")
@@ -4247,7 +4255,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
         }
 
         if (StringUtils.isBlank(groupId)) {
-            throw new IllegalArgumentException("The parent process group id must be the same as specified in the URI.");
+            throw new IllegalArgumentException("The parent process group id is required");
         }
 
         if (positionX == null) {
@@ -4262,61 +4270,39 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
             throw new IllegalArgumentException("The client id must be specified");
         }
 
-        // create a new process group
-        final ProcessGroupEntity newProcessGroupEntity = new ProcessGroupEntity();
-
         // get the contents of the InputStream as a String
-        String stringContent = null;
+        String stringContent;
         if (in != null) {
-            stringContent = IOUtils.toString(in, StandardCharsets.UTF_8);
+            try {
+                stringContent = IOUtils.toString(in, StandardCharsets.UTF_8);
+            } catch (IOException e) {
+                throw new IOException("Unable to read the InputStream", e);
+            }
+        } else {
+            logger.warn("The InputStream is null");
+            throw new NullPointerException("The InputStream is null");
         }
 
         // deserialize content to a VersionedFlowSnapshot
-        VersionedFlowSnapshot deserializedSnapshot = null;
-        final ObjectMapper mapper = new ObjectMapper();
+        VersionedFlowSnapshot deserializedSnapshot;
 
         if (stringContent.length() > 0) {
             try {
-                mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
-                mapper.setDefaultPropertyInclusion(JsonInclude.Value.construct(JsonInclude.Include.NON_NULL, JsonInclude.Include.NON_NULL));
-                mapper.setAnnotationIntrospector(new JaxbAnnotationIntrospector(mapper.getTypeFactory()));
-                mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-
-                deserializedSnapshot = mapper.readValue(stringContent, VersionedFlowSnapshot.class);
+                deserializedSnapshot = MAPPER.readValue(stringContent, VersionedFlowSnapshot.class);
             } catch (JsonParseException jpe) {
-                logger.warn("The file uploaded is not a valid JSON format: ", jpe);
-                String responseJson = "The specified file is not a valid JSON format.";
-                return Response.status(Response.Status.OK).entity(responseJson).type("application/json").build();
+                logger.warn("Parsing uploaded JSON failed", jpe);
+                return Response.status(Response.Status.OK).entity(INVALID_JSON_RESPONSE).type("application/json").build();
             } catch (IOException e) {
-                logger.warn("An error occurred while deserializing the flow version.", e);
+                logger.warn("Deserialization of uploaded JSON failed", e);
+                throw new IOException("Deserialization of uploaded JSON failed", e);
             }
         } else {
             logger.warn("The uploaded file was empty");
             throw new IOException("The uploaded file was empty.");
         }
 
-        sanitizeRegistryInfo(deserializedSnapshot.getFlowContents());
-
-        // resolve Bundle info
-        serviceFacade.discoverCompatibleBundles(deserializedSnapshot.getFlowContents());
-
-        // if there are any Controller Services referenced that are inherited from the parent group, resolve those to point to the appropriate Controller Service, if we are able to.
-        serviceFacade.resolveInheritedControllerServices(deserializedSnapshot, groupId, NiFiUserUtils.getNiFiUser());
-
-        // create a new ProcessGroupDTO
-        ProcessGroupDTO processGroupDTO = new ProcessGroupDTO();
-
-        processGroupDTO.setParentGroupId(groupId);
-        processGroupDTO.setName(groupName);
-
-        newProcessGroupEntity.setComponent(processGroupDTO);
-        newProcessGroupEntity.setVersionedFlowSnapshot(deserializedSnapshot);
-
-        // create a PositionDTO
-        PositionDTO positionDTO = new PositionDTO();
-        positionDTO.setX(positionX);
-        positionDTO.setY(positionY);
-        newProcessGroupEntity.getComponent().setPosition(positionDTO);
+        // create a new ProcessGroupEntity
+        final ProcessGroupEntity newProcessGroupEntity = createProcessGroupEntity(groupId, groupName, positionX, positionY, deserializedSnapshot);
 
         // replicate the request or call serviceFacade.updateProcessGroup
         if (isReplicateRequest()) {
@@ -4626,6 +4612,49 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
         public VariableRegistryEntity getVariableRegistryEntity() {
             return variableRegistryEntity;
         }
+    }
+
+    /**
+     * Creates a new ProcessGroupEntity with the specified VersionedFlowSnapshot and removes Registry info.
+     *
+     * @param groupId     the group id string
+     * @param groupName   the process group name string
+     * @param positionX   the x-position of the group
+     * @param positionY   the y-position of the group
+     * @param deserializedSnapshot   the deserialized snapshot
+     *
+     * @return a new ProcessGroupEntity
+     */
+    private ProcessGroupEntity createProcessGroupEntity(
+            String groupId, String groupName, Double positionX, Double positionY, VersionedFlowSnapshot deserializedSnapshot) {
+
+        final ProcessGroupEntity processGroupEntity = new ProcessGroupEntity();
+
+        // clear Registry info
+        sanitizeRegistryInfo(deserializedSnapshot.getFlowContents());
+
+        // resolve Bundle info
+        serviceFacade.discoverCompatibleBundles(deserializedSnapshot.getFlowContents());
+
+        // if there are any Controller Services referenced that are inherited from the parent group,
+        // resolve those to point to the appropriate Controller Service, if we are able to.
+        serviceFacade.resolveInheritedControllerServices(deserializedSnapshot, groupId, NiFiUserUtils.getNiFiUser());
+
+        // create a ProcessGroupDTO
+        final ProcessGroupDTO processGroupDTO = new ProcessGroupDTO();
+        processGroupDTO.setParentGroupId(groupId);
+        processGroupDTO.setName(groupName);
+
+        processGroupEntity.setComponent(processGroupDTO);
+        processGroupEntity.setVersionedFlowSnapshot(deserializedSnapshot);
+
+        // create a PositionDTO
+        final PositionDTO positionDTO = new PositionDTO();
+        positionDTO.setX(positionX);
+        positionDTO.setY(positionY);
+        processGroupEntity.getComponent().setPosition(positionDTO);
+
+        return processGroupEntity;
     }
 
     // setters

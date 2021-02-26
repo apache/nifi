@@ -3765,7 +3765,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                            final boolean updateDescendantVersionedFlows) {
         writeLock.lock();
         try {
-             verifyCanUpdate(proposedSnapshot, true, verifyNotDirty);
+            verifyCanUpdate(proposedSnapshot, true, verifyNotDirty);
 
             final NiFiRegistryFlowMapper mapper = new NiFiRegistryFlowMapper(extensionManager);
             final VersionedProcessGroup versionedGroup = mapper.mapProcessGroup(this, controllerServiceProvider, flowRegistryClient, true);

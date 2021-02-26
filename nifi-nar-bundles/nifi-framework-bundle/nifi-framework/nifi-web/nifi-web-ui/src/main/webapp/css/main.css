@@ -301,10 +301,6 @@ span.details-title {
     background-color: transparent;
 }
 
-/*#select-file-button button:hover {*/
-/*    color: #CCDADB; !*link-color*!*/
-/*}*/
-
 #select-file-button i {
     position: absolute;
     float: right;
@@ -381,7 +377,7 @@ span#import-process-group-link.link:focus {
 
 span#import-process-group-link.link {
     position: relative;
-    top: 161px;
+    top: 164px;
     left: 20px;
     color: #004849; /*link-color*/
     font-weight: normal;
