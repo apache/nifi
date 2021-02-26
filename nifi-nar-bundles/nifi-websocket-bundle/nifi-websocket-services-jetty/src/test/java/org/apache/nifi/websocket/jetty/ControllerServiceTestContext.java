@@ -23,6 +23,8 @@ import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.util.MockControllerServiceInitializationContext;
 import org.apache.nifi.util.MockPropertyValue;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.function.Function;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -44,7 +46,14 @@ public class ControllerServiceTestContext {
         doAnswer(invocation -> configurationContext.getProperty(invocation.getArgument(0)))
                 .when(validationContext).getProperty(any(PropertyDescriptor.class));
         doReturn(true).when(validationContext).isDependencySatisfied(any(PropertyDescriptor.class), any(Function.class));
-        controllerService.getPropertyDescriptors().forEach(prop -> setDefaultValue(prop));
+        // Return the service's properties as the context's
+        final Map<PropertyDescriptor,String> propDescriptors = new HashMap<>();
+        controllerService.getPropertyDescriptors().forEach(prop -> {
+            setDefaultValue(prop);
+            propDescriptors.put(prop, prop.getName());
+        });
+
+        doReturn(propDescriptors).when(validationContext).getProperties();
     }
 
     public MockControllerServiceInitializationContext getInitializationContext() {
