@@ -87,8 +87,8 @@ public class CaptureChangeMSSQLTest {
 
                 "version int,\n" +
                 "capture_instance varchar(128),\n" +
-                "start_lsn int,\n" +
-                "end_lsn int,\n" +
+                "start_lsn char(10) FOR BIT DATA,\n" +
+                "end_lsn char(10) FOR BIT DATA,\n" +
                 "supports_net_changes BOOLEAN,\n" +
                 "has_drop_pending BOOLEAN,\n" +
                 "role_name varchar(128),\n" +
@@ -98,10 +98,10 @@ public class CaptureChangeMSSQLTest {
                 "partition_switch BOOLEAN)");
 
         stmt.execute("CREATE TABLE cdc.lsn_time_mapping(\n" +
-                "start_lsn int,\n" +
+                "start_lsn char(10) FOR BIT DATA,\n" +
                 "tran_begin_time TIMESTAMP,\n" +
                 "tran_end_time TIMESTAMP,\n" +
-                "tran_id int,\n" +
+                "tran_id char(10) FOR BIT DATA,\n" +
                 "tran_begin_lsn int)");
 
         stmt.execute("CREATE TABLE cdc.index_columns(\n" +
@@ -657,6 +657,64 @@ public class CaptureChangeMSSQLTest {
         Assert.assertEquals("2017-03-03 01:01:01.123", stateMap.get("names"));
     }
 
+    @Test
+    public void testVeryLargeLSN() throws SQLException, IOException {
+        setupNamesTable();
+
+        runner.setIncomingConnection(false);
+
+        runner.setProperty(CaptureChangeMSSQL.CDC_TABLES, "Names");
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(CaptureChangeMSSQL.REL_SUCCESS, 1);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(CaptureChangeMSSQL.REL_SUCCESS).get(0);
+
+        Map<String,String> attributes = flowFile.getAttributes();
+
+        Assert.assertTrue("Tablename attribute", attributes.containsKey("tablename"));
+        Assert.assertTrue("CDC row count attribute", attributes.containsKey("mssqlcdc.row.count"));
+        Assert.assertTrue("Maximum Transacation End Time attribute", attributes.containsKey("maxvalue.tran_end_time"));
+
+        Assert.assertEquals("Names", attributes.get("tablename"));
+        Assert.assertEquals("4", attributes.get("mssqlcdc.row.count"));
+        Assert.assertEquals("2017-01-01 02:03:06.567", attributes.get("maxvalue.tran_end_time"));
+        Assert.assertEquals("false", attributes.get("fullsnapshot"));
+
+        StateMap stateMap = runner.getStateManager().getState(Scope.CLUSTER);
+        Assert.assertEquals("2017-01-01 02:03:06.567", stateMap.get("names"));
+
+        //Add rows, check again
+        final Connection con = ((DBCPService) runner.getControllerService("dbcp")).getConnection();
+        Statement stmt = con.createStatement();
+
+        stmt.execute("insert into cdc.lsn_time_mapping (start_lsn, tran_begin_time, tran_end_time, tran_id, tran_begin_lsn) VALUES (12350, '2017-01-01 03:04:05.123', "
+                + "'2017-01-01 03:04:06.123', 10030, 12350)");
+        stmt.execute("insert into dbo.\"Names\" (\"ID\", \"FirstName\", \"LastName\") VALUES (2000, 'Chris', 'Stone')");
+        stmt.execute("insert into cdc.\"dbo_Names_CT\" (\"__$start_lsn\", \"__$end_lsn\", \"__$seqval\", \"__$operation\", \"__$update_mask\", "
+                + "\"ID\", \"FirstName\", \"LastName\") VALUES (12350, 12350, 1, 1, 0, 2000, 'Chris', 'Stone')");
+
+        runner.clearTransferState();
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(CaptureChangeMSSQL.REL_SUCCESS, 1);
+        flowFile = runner.getFlowFilesForRelationship(CaptureChangeMSSQL.REL_SUCCESS).get(0);
+
+        attributes = flowFile.getAttributes();
+
+        Assert.assertTrue("Tablename attribute", attributes.containsKey("tablename"));
+        Assert.assertTrue("CDC row count attribute", attributes.containsKey("mssqlcdc.row.count"));
+        Assert.assertTrue("Maximum Transacation End Time attribute", attributes.containsKey("maxvalue.tran_end_time"));
+
+        Assert.assertEquals("Names", attributes.get("tablename"));
+        Assert.assertEquals("1", attributes.get("mssqlcdc.row.count"));
+        Assert.assertEquals("2017-01-01 03:04:06.123", attributes.get("maxvalue.tran_end_time"));
+        Assert.assertEquals("false", attributes.get("fullsnapshot"));
+
+        stateMap = runner.getStateManager().getState(Scope.CLUSTER);
+        Assert.assertEquals("2017-01-01 03:04:06.123", stateMap.get("names"));
+    }
 
     private void setupNamesTable() throws SQLException {
         // load test data to database
@@ -688,9 +746,9 @@ public class CaptureChangeMSSQLTest {
         }
 
         stmt.execute("CREATE TABLE cdc.\"dbo_Names_CT\"(\n" +
-                "\"__$start_lsn\" int,\n" +
-                "\"__$end_lsn\" int,\n" +
-                "\"__$seqval\" int,\n" +
+                "\"__$start_lsn\" CHAR(10) FOR BIT DATA,\n" +
+                "\"__$end_lsn\" CHAR(10) FOR BIT DATA,\n" +
+                "\"__$seqval\" CHAR(10) FOR BIT DATA,\n" +
                 "\"__$operation\" int,\n" +
                 "\"__$update_mask\" int," +
                 "\"ID\" int,\n" +
