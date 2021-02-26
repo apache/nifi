@@ -336,6 +336,14 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         shutdownHttpServer(toShutdown);
     }
 
+    protected QueuedThreadPool createQueuedThreadPool(int maxThreadPoolSize) {
+        return new QueuedThreadPool(maxThreadPoolSize);
+    }
+
+    protected Server createServer(QueuedThreadPool threadPool) {
+        return new Server(threadPool);
+    }
+
     private void shutdownHttpServer(Server toShutdown) {
         try {
             toShutdown.stop();
@@ -367,11 +375,11 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         final ClientAuthentication clientAuthentication = getClientAuthentication(sslContextService, clientAuthenticationProperty);
 
         // thread pool for the jetty instance
-        final QueuedThreadPool threadPool = new QueuedThreadPool(maxThreadPoolSize);
+        final QueuedThreadPool threadPool = createQueuedThreadPool(maxThreadPoolSize);
         threadPool.setName(String.format("%s (%s) Web Server", getClass().getSimpleName(), getIdentifier()));
 
         // create the server instance
-        final Server server = new Server(threadPool);
+        final Server server = createServer(threadPool);
 
         // get the configured port
         final int port = context.getProperty(PORT).evaluateAttributeExpressions().asInteger();
