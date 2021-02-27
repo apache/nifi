@@ -49,8 +49,7 @@ public class PropertyEncryptorFactoryTest {
         properties.setProperty(NiFiProperties.SENSITIVE_PROPS_KEY, StringUtils.EMPTY);
         final NiFiProperties niFiProperties = NiFiProperties.createBasicNiFiProperties(null, properties);
 
-        final PropertyEncryptor encryptor = PropertyEncryptorFactory.getPropertyEncryptor(niFiProperties);
-        assertNotNull(encryptor);
+        assertThrows(IllegalArgumentException.class, () -> PropertyEncryptorFactory.getPropertyEncryptor(niFiProperties));
     }
 
     @Test

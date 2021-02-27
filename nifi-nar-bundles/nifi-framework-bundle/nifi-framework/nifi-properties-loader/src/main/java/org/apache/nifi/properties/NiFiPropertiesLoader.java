@@ -21,12 +21,19 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UncheckedIOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.security.Security;
+import java.util.Base64;
+import java.util.List;
 import java.util.Properties;
+import java.util.stream.Collectors;
 import java.util.Set;
 import javax.crypto.Cipher;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.security.kms.CryptoUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
@@ -36,7 +43,13 @@ import org.slf4j.LoggerFactory;
 public class NiFiPropertiesLoader {
 
     private static final Logger logger = LoggerFactory.getLogger(NiFiPropertiesLoader.class);
+    private static final Base64.Encoder KEY_ENCODER = Base64.getEncoder().withoutPadding();
+    private static final int SENSITIVE_PROPERTIES_KEY_LENGTH = 24;
+    private static final String EMPTY_SENSITIVE_PROPERTIES_KEY = String.format("%s=", NiFiProperties.SENSITIVE_PROPS_KEY);
+    private static final String MIGRATION_INSTRUCTIONS = "See Admin Guide section [Updating the Sensitive Properties Key]";
+    private static final String PROPERTIES_KEY_MESSAGE = String.format("Sensitive Properties Key [%s] not found: %s", NiFiProperties.SENSITIVE_PROPS_KEY, MIGRATION_INSTRUCTIONS);
 
+    private final String defaultPropertiesFilePath = CryptoUtils.getDefaultFilePath();
     private NiFiProperties instance;
     private String keyHex;
 
@@ -132,7 +145,7 @@ public class NiFiPropertiesLoader {
     }
 
     private NiFiProperties loadDefault() {
-        return load(CryptoUtils.getDefaultFilePath());
+        return load(defaultPropertiesFilePath);
     }
 
     static String getDefaultProviderKey() {
@@ -168,36 +181,22 @@ public class NiFiPropertiesLoader {
             throw new IllegalArgumentException("NiFi properties file missing or unreadable");
         }
 
-        Properties rawProperties = new Properties();
-
-        InputStream inStream = null;
-        try {
-            inStream = new BufferedInputStream(new FileInputStream(file));
-            rawProperties.load(inStream);
+        final Properties rawProperties = new Properties();
+        try (final InputStream inputStream = new BufferedInputStream(new FileInputStream(file))) {
+            rawProperties.load(inputStream);
             logger.info("Loaded {} properties from {}", rawProperties.size(), file.getAbsolutePath());
 
-            Set<String> keys = rawProperties.stringPropertyNames();
+            final Set<String> keys = rawProperties.stringPropertyNames();
             for (final String key : keys) {
-                String prop = rawProperties.getProperty(key);
-                rawProperties.setProperty(key, StringUtils.stripEnd(prop, null));
+                final String property = rawProperties.getProperty(key);
+                rawProperties.setProperty(key, property.trim());
             }
 
-            ProtectedNiFiProperties protectedNiFiProperties = new ProtectedNiFiProperties(rawProperties);
-            return protectedNiFiProperties;
+            return new ProtectedNiFiProperties(rawProperties);
         } catch (final Exception ex) {
-            logger.error("Cannot load properties file due to " + ex.getLocalizedMessage());
+            logger.error("Cannot load properties file due to {}", ex.getLocalizedMessage());
             throw new RuntimeException("Cannot load properties file due to "
                     + ex.getLocalizedMessage(), ex);
-        } finally {
-            if (null != inStream) {
-                try {
-                    inStream.close();
-                } catch (final Exception ex) {
-                    /**
-                     * do nothing *
-                     */
-                }
-            }
         }
     }
 
@@ -249,9 +248,58 @@ public class NiFiPropertiesLoader {
      */
     public NiFiProperties get() {
         if (instance == null) {
-            instance = loadDefault();
+            instance = getDefaultProperties();
         }
 
         return instance;
+    }
+
+    private NiFiProperties getDefaultProperties() {
+        NiFiProperties defaultProperties = loadDefault();
+        if (isKeyGenerationRequired(defaultProperties)) {
+            if (defaultProperties.isClustered()) {
+                logger.error("Clustered Configuration Found: Shared Sensitive Properties Key [{}] required for cluster nodes", NiFiProperties.SENSITIVE_PROPS_KEY);
+                throw new SensitivePropertyProtectionException(PROPERTIES_KEY_MESSAGE);
+            }
+
+            final File flowConfiguration = defaultProperties.getFlowConfigurationFile();
+            if (flowConfiguration.exists()) {
+                logger.error("Flow Configuration [{}] Found: Migration Required for blank Sensitive Properties Key [{}]", flowConfiguration, NiFiProperties.SENSITIVE_PROPS_KEY);
+                throw new SensitivePropertyProtectionException(PROPERTIES_KEY_MESSAGE);
+            }
+            setSensitivePropertiesKey();
+            defaultProperties = loadDefault();
+        }
+        return defaultProperties;
+    }
+
+    private void setSensitivePropertiesKey() {
+        logger.warn("Generating Random Sensitive Properties Key [{}]", NiFiProperties.SENSITIVE_PROPS_KEY);
+        final SecureRandom secureRandom = new SecureRandom();
+        final byte[] sensitivePropertiesKeyBinary = new byte[SENSITIVE_PROPERTIES_KEY_LENGTH];
+        secureRandom.nextBytes(sensitivePropertiesKeyBinary);
+        final String sensitivePropertiesKey = KEY_ENCODER.encodeToString(sensitivePropertiesKeyBinary);
+        try {
+            final File niFiPropertiesFile = new File(defaultPropertiesFilePath);
+            final Path niFiPropertiesPath = Paths.get(niFiPropertiesFile.toURI());
+            final List<String> lines = Files.readAllLines(niFiPropertiesPath);
+            final List<String> updatedLines = lines.stream().map(line -> {
+                if (line.equals(EMPTY_SENSITIVE_PROPERTIES_KEY)) {
+                    return line + sensitivePropertiesKey;
+                } else {
+                    return line;
+                }
+            }).collect(Collectors.toList());
+            Files.write(niFiPropertiesPath, updatedLines);
+
+            logger.info("NiFi Properties [{}] updated with Sensitive Properties Key", niFiPropertiesPath);
+        } catch (final IOException e) {
+            throw new UncheckedIOException("Failed to set Sensitive Properties Key", e);
+        }
+    }
+
+    private static boolean isKeyGenerationRequired(final NiFiProperties properties) {
+        final String configuredSensitivePropertiesKey = properties.getProperty(NiFiProperties.SENSITIVE_PROPS_KEY);
+        return (configuredSensitivePropertiesKey == null || configuredSensitivePropertiesKey.length() == 0);
     }
 }

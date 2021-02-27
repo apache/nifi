@@ -27,6 +27,10 @@ import org.apache.commons.cli.Option
 import org.apache.commons.cli.Options
 import org.apache.commons.cli.ParseException
 import org.apache.commons.codec.binary.Hex
+import org.apache.nifi.encrypt.PropertyEncryptor
+import org.apache.nifi.encrypt.PropertyEncryptorFactory
+import org.apache.nifi.flow.encryptor.FlowEncryptor
+import org.apache.nifi.flow.encryptor.StandardFlowEncryptor
 import org.apache.nifi.security.kms.CryptoUtils
 import org.apache.nifi.toolkit.tls.commandLine.CommandLineParseException
 import org.apache.nifi.toolkit.tls.commandLine.ExitCode
@@ -41,22 +45,17 @@ import org.xml.sax.SAXException
 
 import javax.crypto.BadPaddingException
 import javax.crypto.Cipher
-import javax.crypto.SecretKey
-import javax.crypto.SecretKeyFactory
-import javax.crypto.spec.PBEKeySpec
-import javax.crypto.spec.PBEParameterSpec
 import java.nio.charset.StandardCharsets
 import java.nio.file.Path
 import java.nio.file.Paths
-import java.nio.file.StandardCopyOption;
+import java.nio.file.StandardCopyOption
 import java.security.KeyException
-import java.security.SecureRandom
 import java.security.Security
 import java.util.regex.Matcher
 import java.util.zip.GZIPInputStream
 import java.util.zip.GZIPOutputStream
 import java.util.zip.ZipException
-import java.nio.file.Files;
+import java.nio.file.Files
 
 class ConfigEncryptionTool {
     private static final Logger logger = LoggerFactory.getLogger(ConfigEncryptionTool.class)
@@ -69,7 +68,7 @@ class ConfigEncryptionTool {
     public String authorizersPath
     public String outputAuthorizersPath
     public static flowXmlPath
-    public outputFlowXmlPath
+    public String outputFlowXmlPath
 
     private String keyHex
     private String migrationKeyHex
@@ -124,7 +123,7 @@ class ConfigEncryptionTool {
     // Static holder to avoid re-generating the options object multiple times in an invocation
     private static Options staticOptions
 
-    // Hard-coded fallback value from {@link org.apache.nifi.encrypt.PropertyEncryptorFactory}
+    // Hard-coded fallback value from historical defaults
     private static final String DEFAULT_NIFI_SENSITIVE_PROPS_KEY = "nififtw!"
     private static final int MIN_PASSWORD_LENGTH = 12
 
@@ -133,11 +132,6 @@ class ConfigEncryptionTool {
     private static final int SCRYPT_N = 2**16
     private static final int SCRYPT_R = 8
     private static final int SCRYPT_P = 1
-    static final String CURRENT_SCRYPT_VERSION = "s0"
-
-    // Hard-coded values from StandardPBEByteEncryptor which will be removed during refactor of all flow encryption code in NIFI-1465
-    private static final int DEFAULT_KDF_ITERATIONS = 1000
-    private static final int DEFAULT_SALT_SIZE_BYTES = 16
 
     private static
     final String BOOTSTRAP_KEY_COMMENT = "# Root key in hexadecimal format for encrypted sensitive configuration values"
@@ -191,7 +185,6 @@ class ConfigEncryptionTool {
     private static final String XML_DECLARATION_REGEX = /<\?xml version="1.0" encoding="UTF-8"\?>/
     private static final String WRAPPED_FLOW_XML_CIPHER_TEXT_REGEX = /enc\{[a-fA-F0-9]+?\}/
 
-    private static final String DEFAULT_PROVIDER = BouncyCastleProvider.PROVIDER_NAME
     private static final String DEFAULT_FLOW_ALGORITHM = "PBEWITHMD5AND256BITAES-CBC-OPENSSL"
 
     private static final Map<String, String> PROPERTY_KEY_MAP = [
@@ -683,113 +676,6 @@ class ConfigEncryptionTool {
     }
 
     /**
-     * Decrypts a single element encrypted in the flow.xml.gz style (hex-encoded and wrapped with "enc{" and "}").
-     *
-     * Example:
-     * {@code enc{0123456789ABCDEF} } -> "some text"
-     *
-     * @param wrappedCipherText the wrapped and hex-encoded cipher text
-     * @param password the password used to encrypt the content (UTF-8 encoded)
-     * @param algorithm the encryption and KDF algorithm (defaults to PBEWITHMD5AND256BITAES-CBC-OPENSSL)
-     * @param provider the security provider (defaults to BC)
-     * @return the plaintext in UTF-8 encoding
-     */
-    private
-    static String decryptFlowElement(String wrappedCipherText, String password, String algorithm = DEFAULT_FLOW_ALGORITHM, String provider = DEFAULT_PROVIDER) {
-        // Drop the "enc{" and closing "}"
-        if (!(wrappedCipherText =~ WRAPPED_FLOW_XML_CIPHER_TEXT_REGEX)) {
-            throw new SensitivePropertyProtectionException("The provided cipher text does not match the expected format 'enc{0123456789ABCDEF...}'")
-        }
-        String unwrappedCipherText = wrappedCipherText.replaceAll(/enc\{/, "")[0..<-1]
-        if (unwrappedCipherText.length() % 2 == 1 || unwrappedCipherText.length() == 0) {
-            throw new SensitivePropertyProtectionException("The provided cipher text must have an even number of hex characters")
-        }
-
-        // Decode the hex
-        byte[] cipherBytes = Hex.decodeHex(unwrappedCipherText.chars)
-
-        /* The structure of each cipher text is 16 bytes of salt || actual cipher text,
-         * so extract the salt (32 bytes encoded as hex, 16 bytes raw) and combine that
-         * with the default (and unchanged) iteration count that is hardcoded in
-         * {@link StandardPBEByteEncryptor}. I am extracting
-         * these values to magic numbers here so when the refactoring is performed,
-         * stronger decisions can be implemented here
-         */
-        byte[] saltBytes = cipherBytes[0..<DEFAULT_SALT_SIZE_BYTES]
-        cipherBytes = cipherBytes[DEFAULT_SALT_SIZE_BYTES..-1]
-
-        Cipher decryptionCipher = generateFlowDecryptionCipher(password, saltBytes, algorithm, provider)
-
-        byte[] plainBytes = decryptionCipher.doFinal(cipherBytes)
-        new String(plainBytes, StandardCharsets.UTF_8)
-    }
-
-    /**
-     * Returns an initialized {@link javax.crypto.Cipher} instance with the extracted salt.
-     *
-     * @param password the password (UTF-8 encoding)
-     * @param saltBytes the salt (raw bytes)
-     * @param algorithm the KDF/encryption algorithm
-     * @param provider the security provider
-     * @return the initialized {@link javax.crypto.Cipher}
-     */
-    private
-    static Cipher generateFlowDecryptionCipher(String password, byte[] saltBytes, String algorithm = DEFAULT_FLOW_ALGORITHM, String provider = DEFAULT_PROVIDER) {
-        Cipher decryptCipher = Cipher.getInstance(algorithm, provider)
-        PBEKeySpec keySpec = new PBEKeySpec(password.chars)
-        SecretKeyFactory keyFactory = SecretKeyFactory.getInstance(algorithm, provider)
-        SecretKey pbeKey = keyFactory.generateSecret(keySpec)
-        PBEParameterSpec parameterSpec = new PBEParameterSpec(saltBytes, DEFAULT_KDF_ITERATIONS)
-        decryptCipher.init(Cipher.DECRYPT_MODE, pbeKey, parameterSpec)
-        decryptCipher
-    }
-
-    /**
-     * Encrypts a single element in the flow.xml.gz style (hex-encoded and wrapped with "enc{" and "}").
-     *
-     * Example:
-     * "some text" -> {@code enc{0123456789ABCDEF} }
-     *
-     * @param plaintext the plaintext in UTF-8 encoding
-     * @param saltBytes the salt to embed in the cipher text to allow key derivation and decryption later in raw format
-     * @param encryptCipher the configured Cipher instance
-     * @return the wrapped and hex-encoded cipher text
-     */
-    private static String encryptFlowElement(String plaintext, byte[] saltBytes, Cipher encryptCipher) {
-        byte[] plainBytes = plaintext?.getBytes(StandardCharsets.UTF_8) ?: new byte[0]
-
-        /* The structure of each cipher text is 16 bytes of salt || actual cipher text,
-         * so extract the salt (32 bytes encoded as hex, 16 bytes raw) and combine that
-         * with the default (and unchanged) iteration count that is hardcoded in
-         * {@link StandardPBEByteEncryptor}. I am extracting
-         * these values to magic numbers here so when the refactoring is performed,
-         * stronger decisions can be implemented here
-         */
-        if (saltBytes.length != DEFAULT_SALT_SIZE_BYTES) {
-            throw new SensitivePropertyProtectionException("The salt must be ${DEFAULT_SALT_SIZE_BYTES} bytes")
-        }
-
-        byte[] cipherBytes = encryptCipher.doFinal(plainBytes)
-        byte[] saltAndCipherBytes = concatByteArrays(saltBytes, cipherBytes)
-
-        // Encode the hex
-        String hexEncodedCipherText = Hex.encodeHexString(saltAndCipherBytes)
-        "enc{${hexEncodedCipherText}}"
-    }
-
-    /**
-     * Utility method to quickly concatenate an arbitrary number of byte[].
-     *
-     * @param arrays the byte[] arrays
-     * @returna single byte[] containing the values concatenated
-     */
-    private static byte[] concatByteArrays(byte[] ... arrays) {
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream()
-        arrays.each { byte[] it -> outputStream.write(it) }
-        outputStream.toByteArray()
-    }
-
-    /**
      * Scans XML content and decrypts each encrypted element, then re-encrypts it with the new key, and returns the final XML content.
      *
      * @param flowXmlContent the original flow.xml.gz as an input stream
@@ -799,57 +685,37 @@ class ConfigEncryptionTool {
      * @param existingProvider the {@link java.security.Provider} to use (defaults to BC)
      * @return the encrypted XML content as an InputStream
      */
-    private InputStream migrateFlowXmlContent(InputStream flowXmlContent, String existingFlowPassword, String newFlowPassword, String existingAlgorithm = DEFAULT_FLOW_ALGORITHM, String existingProvider = DEFAULT_PROVIDER, String newAlgorithm = DEFAULT_FLOW_ALGORITHM, String newProvider = DEFAULT_PROVIDER) {
-        /* For re-encryption, for performance reasons, we will use a fixed salt for all of
-         * the operations. These values are stored in the same file and the default key is in the
-         * source code (see NIFI-1465 and NIFI-1277), so the security trade-off is minimal
-         * but the performance hit is substantial. We can't make this decision for
-         * decryption because the FlowSerializer still uses PropertyEncryptor which does not
-         * follow this pattern
-         */
-        byte[] encryptionSalt = new byte[DEFAULT_SALT_SIZE_BYTES]
-        new SecureRandom().nextBytes(encryptionSalt)
-        Cipher encryptCipher = generateFlowEncryptionCipher(newFlowPassword, encryptionSalt, newAlgorithm, newProvider)
-
-        int elementCount = 0
+    private InputStream migrateFlowXmlContent(InputStream flowXmlContent, String existingFlowPassword, String newFlowPassword, String existingAlgorithm = DEFAULT_FLOW_ALGORITHM, String newAlgorithm = DEFAULT_FLOW_ALGORITHM) {
         File tempFlowXmlFile = new File(getTemporaryFlowXmlFile(outputFlowXmlPath).toString())
-        BufferedWriter tempFlowXmlWriter = getFlowOutputStream(tempFlowXmlFile, flowXmlContent instanceof GZIPInputStream)
+        final OutputStream flowOutputStream = getFlowOutputStream(tempFlowXmlFile, flowXmlContent instanceof GZIPInputStream)
 
-        // Scan through XML content as a stream, decrypt and re-encrypt fields with a new flow password
-        final BufferedReader reader = new BufferedReader(new InputStreamReader(flowXmlContent))
-        String line;
+        NiFiProperties inputProperties = NiFiProperties.createBasicNiFiProperties("", [
+                (NiFiProperties.SENSITIVE_PROPS_KEY): existingFlowPassword,
+                (NiFiProperties.SENSITIVE_PROPS_ALGORITHM): existingAlgorithm
+        ])
 
-        while((line = reader.readLine()) != null) {
-            def matcher = line =~ WRAPPED_FLOW_XML_CIPHER_TEXT_REGEX
-            if(matcher.find()) {
-                String plaintext = decryptFlowElement(matcher.getAt(0), existingFlowPassword, existingAlgorithm, existingProvider)
-                byte[] cipherBytes = encryptCipher.doFinal(plaintext.bytes)
-                byte[] saltAndCipherBytes = concatByteArrays(encryptionSalt, cipherBytes)
-                elementCount++
-                tempFlowXmlWriter.writeLine(line.replaceFirst(WRAPPED_FLOW_XML_CIPHER_TEXT_REGEX, "enc{${Hex.encodeHex(saltAndCipherBytes)}}"))
-            } else {
-                tempFlowXmlWriter.writeLine(line)
-            }
-        }
-        tempFlowXmlWriter.flush()
-        tempFlowXmlWriter.close()
+        NiFiProperties outputProperties = NiFiProperties.createBasicNiFiProperties("", [
+                (NiFiProperties.SENSITIVE_PROPS_KEY): newFlowPassword,
+                (NiFiProperties.SENSITIVE_PROPS_ALGORITHM): newAlgorithm
+        ])
+
+        final PropertyEncryptor inputEncryptor = PropertyEncryptorFactory.getPropertyEncryptor(inputProperties)
+        final PropertyEncryptor outputEncryptor = PropertyEncryptorFactory.getPropertyEncryptor(outputProperties)
+
+        final FlowEncryptor flowEncryptor = new StandardFlowEncryptor()
+        flowEncryptor.processFlow(flowXmlContent, flowOutputStream, inputEncryptor, outputEncryptor)
 
         // Overwrite the original flow file with the migrated flow file
         Files.move(tempFlowXmlFile.toPath(), Paths.get(outputFlowXmlPath), StandardCopyOption.ATOMIC_MOVE)
-
-        if (isVerbose) {
-            logger.info("Decrypted and re-encrypted ${elementCount} elements for flow.xml.gz")
-        }
-
         loadFlowXml(outputFlowXmlPath)
     }
 
-    private BufferedWriter getFlowOutputStream(File outputFlowXmlPath, boolean isFileGZipped) {
+    private OutputStream getFlowOutputStream(File outputFlowXmlPath, boolean isFileGZipped) {
         OutputStream flowOutputStream = new FileOutputStream(outputFlowXmlPath)
         if(isFileGZipped) {
             flowOutputStream = new GZIPOutputStream(flowOutputStream)
         }
-        new BufferedWriter(new OutputStreamWriter(flowOutputStream))
+        return flowOutputStream
     }
 
     // Create a temporary output file we can write the stream to
@@ -857,35 +723,6 @@ class ConfigEncryptionTool {
         String outputFilename = Paths.get(originalOutputFlowXmlPath).getFileName().toString()
         String migratedFileName = "migrated-${outputFilename}"
         Paths.get(originalOutputFlowXmlPath).resolveSibling(migratedFileName)
-    }
-
-    /**
-     * Returns an initialized encryption cipher for the flow.xml.gz content.
-     *
-     * @param newFlowPassword the new encryption password
-     * @param saltBytes the salt [16 bytes in raw format]
-     * @param algorithm the KDF/encryption algorithm
-     * @param provider the security provider
-     * @return the initialized cipher instance
-     */
-    private
-    static Cipher generateFlowEncryptionCipher(String newFlowPassword, byte[] saltBytes, String algorithm = DEFAULT_FLOW_ALGORITHM, String provider = DEFAULT_PROVIDER) {
-        // Use the standard Cipher with the password and algorithm provided
-        Cipher encryptCipher = Cipher.getInstance(algorithm, provider)
-
-        /* For re-encryption, for performance reasons, we will use a fixed salt for all of
-         * the operations. These values are stored in the same file and the default key is in the
-         * source code (see NIFI-1465 and NIFI-1277), so the security trade-off is minimal
-         * but the performance hit is substantial. We can't make this decision for
-         * decryption because the FlowSerializer still uses PropertyEncryptor which does not
-         * follow this pattern
-         */
-        PBEKeySpec keySpec = new PBEKeySpec(newFlowPassword.chars)
-        SecretKeyFactory keyFactory = SecretKeyFactory.getInstance(algorithm, provider)
-        SecretKey pbeKey = keyFactory.generateSecret(keySpec)
-        PBEParameterSpec parameterSpec = new PBEParameterSpec(saltBytes, DEFAULT_KDF_ITERATIONS)
-        encryptCipher.init(Cipher.ENCRYPT_MODE, pbeKey, parameterSpec)
-        encryptCipher
     }
 
     String decryptLoginIdentityProviders(String encryptedXml, String existingKeyHex = keyHex) {
@@ -1619,14 +1456,12 @@ class ConfigEncryptionTool {
         // Get the algorithms and providers
         NiFiProperties nfp = niFiProperties
         String existingAlgorithm = nfp?.getProperty(NiFiProperties.SENSITIVE_PROPS_ALGORITHM) ?: DEFAULT_FLOW_ALGORITHM
-        String existingProvider = nfp?.getProperty(NiFiProperties.SENSITIVE_PROPS_PROVIDER) ?: DEFAULT_PROVIDER
 
         String newAlgorithm = newFlowAlgorithm ?: existingAlgorithm
-        String newProvider = newFlowProvider ?: existingProvider
 
         try {
             logger.info("Migrating flow.xml file at ${flowXmlPath}. This could take a while if the flow XML is very large.")
-            migrateFlowXmlContent(flowXmlInputStream, existingFlowPassword, newFlowPassword, existingAlgorithm, existingProvider, newAlgorithm, newProvider)
+            migrateFlowXmlContent(flowXmlInputStream, existingFlowPassword, newFlowPassword, existingAlgorithm, newAlgorithm)
         } catch (Exception e) {
             logger.error("Encountered an error: ${e.getLocalizedMessage()}")
             if (e instanceof BadPaddingException) {

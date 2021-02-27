@@ -83,16 +83,6 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
     private static final String PASSWORD = "thisIsABadPassword"
     private static final String ANOTHER_PASSWORD = "thisIsAnotherBadPassword"
 
-    private static final String STATIC_SALT = "\$s0\$40801\$ABCDEFGHIJKLMNOPQRSTUV"
-    private static final String SCRYPT_SALT_PATTERN = /\$\w{2}\$\w{5,}\$[\w\/\=\+]+/
-
-    // Hash of "password" with 00 * 16 salt
-    private static
-    final String HASHED_PASSWORD = "\$s0\$40801\$AAAAAAAAAAAAAAAAAAAAAA\$gLSh7ChbHdOIMvZ74XGjV6qF65d9qvQ8n75FeGnM8YM"
-    // Hash of [key derived from "password"] with 00 * 16 salt
-    private static
-    final String HASHED_KEY_HEX = "\$s0\$40801\$AAAAAAAAAAAAAAAAAAAAAA\$pJOGA9sPL+pRzynnwt6G2FfVTyLQdbKSbk6W8IKId8E"
-
     // From ConfigEncryptionTool.deriveKeyFromPassword("thisIsABadPassword")
     private static
     final String PASSWORD_KEY_HEX_256 = "2C576A9585DB862F5ECBEE5B4FFFCCA14B18D8365968D7081651006507AD2BDE"
@@ -137,6 +127,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
 
     @After
     void tearDown() throws Exception {
+        System.clearProperty(NiFiProperties.PROPERTIES_FILE_PATH)
         TestAppender.reset()
     }
 
@@ -842,37 +833,6 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         workingFile.deleteOnExit()
     }
 
-    @Ignore("Setting the Windows file permissions fails in the test harness, so the test does not throw the expected exception")
-    @Test
-    void testLoadNiFiPropertiesShouldHandleReadFailureOnWindows() {
-        // Arrange
-        Assume.assumeTrue("Test only runs on Windows", SystemUtils.IS_OS_WINDOWS)
-
-        File inputPropertiesFile = new File("src/test/resources/nifi_with_sensitive_properties_unprotected.properties")
-        File workingFile = new File("target/tmp_nifi.properties")
-        workingFile.delete()
-
-        Files.copy(inputPropertiesFile.toPath(), workingFile.toPath())
-        // Empty set of permissions
-        workingFile.setReadable(false)
-
-        ConfigEncryptionTool tool = new ConfigEncryptionTool()
-        String[] args = ["-n", workingFile.path, "-k", KEY_HEX]
-        tool.parse(args)
-
-        // Act
-        def msg = shouldFail(IOException) {
-            tool.loadNiFiProperties()
-            logger.info("Read nifi.properties")
-        }
-        logger.expected(msg)
-
-        // Assert
-        assert msg == "Cannot load NiFiProperties from [${workingFile.path}]".toString()
-
-        workingFile.deleteOnExit()
-    }
-
     @Test
     void testShouldEncryptSensitiveProperties() {
         // Arrange
@@ -1024,66 +984,6 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
 
         assert updatedLine == EXPECTED_KEY_LINE
         assert originalLines.size() == updatedLines.size()
-
-        workingFile.deleteOnExit()
-    }
-
-    @Ignore("this test needs to be updated to ensure any created files are done under target")
-    @Test
-    void testWriteKeyToBootstrapConfShouldHandleReadFailure() {
-        // Arrange
-        File emptyKeyFile = new File("src/test/resources/bootstrap_with_empty_root_key.conf")
-        File workingFile = new File("target/tmp_bootstrap.conf")
-        workingFile.delete()
-
-        Files.copy(emptyKeyFile.toPath(), workingFile.toPath())
-        // Empty set of permissions
-        setFilePermissions(workingFile, [])
-        logger.info("Set POSIX permissions to ${getFilePermissions(workingFile)}")
-
-        ConfigEncryptionTool tool = new ConfigEncryptionTool()
-        String[] args = ["-b", workingFile.path, "-k", KEY_HEX, "-n", "nifi.properties"]
-        tool.parse(args)
-
-        // Act
-        def msg = shouldFail(IOException) {
-            tool.writeKeyToBootstrapConf()
-            logger.info("Updated bootstrap.conf")
-        }
-        logger.expected(msg)
-
-        // Assert
-        assert msg == "The bootstrap.conf file at tmp_bootstrap.conf must exist and be readable and writable by the user running this tool"
-
-        workingFile.deleteOnExit()
-    }
-
-    @Ignore("this test needs to be updated to ensure any created files are done under target")
-    @Test
-    void testWriteKeyToBootstrapConfShouldHandleWriteFailure() {
-        // Arrange
-        File emptyKeyFile = new File("src/test/resources/bootstrap_with_empty_root_key.conf")
-        File workingFile = new File("target/tmp_bootstrap.conf")
-        workingFile.delete()
-
-        Files.copy(emptyKeyFile.toPath(), workingFile.toPath())
-        // Read-only set of permissions
-        setFilePermissions(workingFile, [PosixFilePermission.OWNER_READ, PosixFilePermission.GROUP_READ, PosixFilePermission.OTHERS_READ])
-        logger.info("Set POSIX permissions to ${getFilePermissions(workingFile)}")
-
-        ConfigEncryptionTool tool = new ConfigEncryptionTool()
-        String[] args = ["-b", workingFile.path, "-k", KEY_HEX, "-n", "nifi.properties"]
-        tool.parse(args)
-
-        // Act
-        def msg = shouldFail(IOException) {
-            tool.writeKeyToBootstrapConf()
-            logger.info("Updated bootstrap.conf")
-        }
-        logger.expected(msg)
-
-        // Assert
-        assert msg == "The bootstrap.conf file at tmp_bootstrap.conf must exist and be readable and writable by the user running this tool"
 
         workingFile.deleteOnExit()
     }
@@ -1472,43 +1372,6 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
 
         workingFile.deleteOnExit()
         setupTmpDir()
-    }
-
-    @Ignore("Setting the Windows file permissions fails in the test harness, so the test does not throw the expected exception")
-    @Test
-    void testWriteNiFiPropertiesShouldHandleWriteFailureWhenFileDoesNotExistOnWindows() {
-        // Arrange
-        Assume.assumeTrue("Test only runs on Windows", SystemUtils.IS_OS_WINDOWS)
-
-        File inputPropertiesFile = new File("src/test/resources/nifi_with_sensitive_properties_unprotected.properties")
-        File tmpDir = new File("target/tmp/")
-        tmpDir.mkdirs()
-        File workingFile = new File("target/tmp/tmp_nifi.properties")
-        workingFile.delete()
-
-        // Read-only set of permissions
-        tmpDir.setWritable(false)
-
-        ConfigEncryptionTool tool = new ConfigEncryptionTool()
-        String[] args = ["-n", inputPropertiesFile.path, "-o", workingFile.path, "-k", KEY_HEX]
-        tool.parse(args)
-        NiFiProperties niFiProperties = tool.loadNiFiProperties()
-        tool.@niFiProperties = niFiProperties
-        logger.info("Loaded ${niFiProperties.size()} properties from ${inputPropertiesFile.path}")
-
-        // Act
-        def msg = shouldFail(IOException) {
-            tool.writeNiFiProperties()
-            logger.info("Wrote to ${workingFile.path}")
-        }
-        logger.expected(msg)
-
-        // Assert
-        assert msg == "The nifi.properties file at ${workingFile.path} must be writable by the user running this tool".toString()
-
-        workingFile.deleteOnExit()
-        setFilePermissions(tmpDir, [PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE])
-        tmpDir.deleteOnExit()
     }
 
     @Test
@@ -3821,11 +3684,6 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
                 def updatedFlowCipherTexts = findFieldsInStream(updatedFlowXmlContent, WFXCTR)
                 logger.info("Updated  flow.xml.gz cipher texts: ${updatedFlowCipherTexts}")
                 assert updatedFlowCipherTexts.size() == CIPHER_TEXT_COUNT
-                updatedFlowCipherTexts.each {
-                    String decryptedValue = ConfigEncryptionTool.decryptFlowElement(it, newFlowPassword)
-                    logger.info("Decrypted value of migrated ${workingFlowXmlFile.path} was: ${decryptedValue}")
-                    assert decryptedValue == PASSWORD || decryptedValue == ANOTHER_PASSWORD
-                }
             }
         })
 
@@ -3927,11 +3785,6 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
                 def migratedFlowCipherTexts = findFieldsInStream(migratedFlowXmlContent, WFXCTR)
                 logger.info("Updated  flow.xml.gz cipher texts: ${migratedFlowCipherTexts}")
                 assert migratedFlowCipherTexts.size() == CIPHER_TEXT_COUNT
-                migratedFlowCipherTexts.each {
-                    String decryptedValue = ConfigEncryptionTool.decryptFlowElement(it, newFlowPassword)
-                    logger.info("Decrypted value of migrated ${workingFlowXmlFile.path} was: ${decryptedValue}")
-                    assert decryptedValue == PASSWORD || decryptedValue == ANOTHER_PASSWORD
-                }
             }
         })
 
@@ -4068,11 +3921,6 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
                 logger.info("Original flow.xml.gz cipher texts: ${originalFlowCipherTexts}")
                 logger.info("Updated  flow.xml.gz cipher texts: ${migratedFlowCipherTexts}")
                 assert migratedFlowCipherTexts.size() == CIPHER_TEXT_COUNT
-                migratedFlowCipherTexts.each {
-                    String decryptedValue = ConfigEncryptionTool.decryptFlowElement(it, newFlowPassword)
-                    logger.info("Decrypted value of migrated ${workingFlowXmlFile.path} was: ${decryptedValue}")
-                    assert decryptedValue == PASSWORD || decryptedValue == ANOTHER_PASSWORD
-                }
             }
         })
 
@@ -4204,11 +4052,6 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
                 logger.info("Original " + workingFlowXmlFile.path + " unique cipher texts: ${originalFlowCipherTexts}")
                 logger.info("Migrated " + workingFlowXmlFile.path + " unique cipher texts: ${migratedFlowCipherTexts}")
                 assert migratedFlowCipherTexts.size() == CIPHER_TEXT_COUNT
-                migratedFlowCipherTexts.each {
-                    String decryptedValue = ConfigEncryptionTool.decryptFlowElement(it, newFlowPassword)
-                    logger.info("Decrypted value of migrated ${workingFlowXmlFile.path} was: ${decryptedValue}")
-                    assert decryptedValue == PASSWORD || decryptedValue == ANOTHER_PASSWORD
-                }
             }
         })
 
@@ -4362,188 +4205,11 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
                 def flowCipherTexts = findFieldsInStream(updatedFlowXmlContent, WFXCTR)
                 logger.info("Updated  flow.xml.gz cipher texts: ${flowCipherTexts}")
                 assert flowCipherTexts.size() == CIPHER_TEXT_COUNT
-                flowCipherTexts.each {
-                    String decryptedValue = ConfigEncryptionTool.decryptFlowElement(it, newFlowPassword)
-                    logger.info("Decrypted value of migrated ${workingFlowXmlFile.path} was: ${decryptedValue}")
-                    assert decryptedValue == PASSWORD || decryptedValue == ANOTHER_PASSWORD
-                }
 
                 // Update the "original" flow cipher texts for the next run to the current values
                 originalFlowCipherTexts = flowCipherTexts
             }
         }
-    }
-
-    @Test
-    void testDecryptFlowXmlContentShouldVerifyPattern() {
-        // Arrange
-        String existingFlowPassword = "flowPassword"
-        String sensitivePropertyValue = "thisIsABadProcessorPassword"
-
-        final Map<String, String> properties = new HashMap<>()
-        properties.put(NiFiProperties.SENSITIVE_PROPS_ALGORITHM, DEFAULT_ENCRYPTION_METHOD.algorithm)
-        properties.put(NiFiProperties.SENSITIVE_PROPS_PROVIDER, DEFAULT_ENCRYPTION_METHOD.provider)
-        properties.put(NiFiProperties.SENSITIVE_PROPS_KEY, existingFlowPassword)
-        final NiFiProperties niFiProperties = NiFiProperties.createBasicNiFiProperties(null, properties)
-
-        PropertyEncryptor sanityEncryptor = PropertyEncryptorFactory.getPropertyEncryptor(niFiProperties)
-        String sanityCipherText = "enc{${sanityEncryptor.encrypt(sensitivePropertyValue)}}"
-        logger.info("Sanity check value: \t${sensitivePropertyValue} -> ${sanityCipherText}")
-
-        def validCipherTexts = (0..4).collect {
-            "enc{${sanityEncryptor.encrypt(sensitivePropertyValue)}}"
-        }
-        logger.info("Generated valid cipher texts: \n${validCipherTexts.join("\n")}")
-
-        def invalidCipherTexts = ["enc{}",
-                                  "enc{x}",
-                                  "encx",
-                                  "enc{012}",
-                                  "enc{01",
-                                  "enc{aBc19+===}",
-                                  "enc{aB=c19+}",
-                                  "enc{aB@}",
-                                  "",
-                                  "}",
-                                  "\"",
-                                  ">",
-                                  null]
-
-        // Act
-        def successfulResults = validCipherTexts.collect { String cipherText ->
-            ConfigEncryptionTool.decryptFlowElement(cipherText, existingFlowPassword)
-        }
-
-        def failedResults = invalidCipherTexts.collect { String cipherText ->
-            def msg = shouldFail(SensitivePropertyProtectionException) {
-                ConfigEncryptionTool.decryptFlowElement(cipherText, existingFlowPassword)
-            }
-            logger.expected(msg)
-            msg
-        }
-
-        // Assert
-        assert successfulResults.every { it == sensitivePropertyValue }
-        assert failedResults.every {
-            it =~ /The provided cipher text does not match the expected format 'enc\{0123456789ABCDEF\.\.\.\}'/ ||
-                    it == "The provided cipher text must have an even number of hex characters"
-        }
-    }
-
-    /**
-     * This test verifies that the crypto logic in the tool is compatible with the default encryptor implementation.
-     */
-    @Test
-    void testShouldDecryptFlowXmlContent() {
-        // Arrange
-        String existingFlowPassword = "nififtw!"
-        String sensitivePropertyValue = "thisIsABadProcessorPassword"
-
-        final Map<String, String> properties = new HashMap<>()
-        properties.put(NiFiProperties.SENSITIVE_PROPS_ALGORITHM, DEFAULT_ENCRYPTION_METHOD.algorithm)
-        properties.put(NiFiProperties.SENSITIVE_PROPS_PROVIDER, DEFAULT_ENCRYPTION_METHOD.provider)
-        properties.put(NiFiProperties.SENSITIVE_PROPS_KEY, existingFlowPassword)
-        final NiFiProperties niFiProperties = NiFiProperties.createBasicNiFiProperties(null, properties)
-
-        PropertyEncryptor sanityEncryptor = PropertyEncryptorFactory.getPropertyEncryptor(niFiProperties)
-        String sanityCipherText = "enc{${sanityEncryptor.encrypt(sensitivePropertyValue)}}"
-        logger.info("Sanity check value: \t${sensitivePropertyValue} -> ${sanityCipherText}")
-
-        // Act
-        String decryptedElement = ConfigEncryptionTool.decryptFlowElement(sanityCipherText, existingFlowPassword, DEFAULT_ALGORITHM, DEFAULT_PROVIDER)
-        logger.info("Decrypted flow element: ${decryptedElement}")
-        String decryptedElementWithDefaultParameters = ConfigEncryptionTool.decryptFlowElement(sanityCipherText, existingFlowPassword)
-        logger.info("Decrypted flow element: ${decryptedElementWithDefaultParameters}")
-
-        // Assert
-        assert decryptedElement == sensitivePropertyValue
-        assert decryptedElementWithDefaultParameters == sensitivePropertyValue
-    }
-
-    /**
-     * This test verifies that the crypto logic in the tool is compatible with an encrypted value taken from a production flow.xml.gz.
-     */
-    @Test
-    void testShouldDecryptFlowXmlContentFromLegacyFlow() {
-        // Arrange
-
-        // DEFAULT_SENSITIVE_PROPS_KEY = "nififtw!" at the time this test
-        // was written and for the encrypted value, but it could change, so don't
-        // reference transitively here
-        String existingFlowPassword = DEFAULT_LEGACY_SENSITIVE_PROPS_KEY
-
-        final String EXPECTED_PLAINTEXT = "thisIsABadPassword"
-
-        final String ENCRYPTED_VALUE_FROM_FLOW = "enc{5d8c45f04790e73cba72e5e3fbee1145f2e18256c3b33c283e17f5281611cb5e5f9e6cc988c5be0e8cca7b5dc8fa7cf7}"
-
-        // Act
-        String decryptedElement = ConfigEncryptionTool.decryptFlowElement(ENCRYPTED_VALUE_FROM_FLOW, existingFlowPassword, DEFAULT_ALGORITHM, DEFAULT_PROVIDER)
-        logger.info("Decrypted flow element: ${decryptedElement}")
-
-        // Assert
-        assert decryptedElement == EXPECTED_PLAINTEXT
-    }
-
-    @Test
-    void testShouldEncryptFlowXmlContent() {
-        // Arrange
-        String flowPassword = "nififtw!"
-        String sensitivePropertyValue = "thisIsAnotherBadPassword"
-        byte[] saltBytes = "thisIsABadSalt..".bytes
-
-        final Map<String, String> properties = new HashMap<>()
-        properties.put(NiFiProperties.SENSITIVE_PROPS_ALGORITHM, DEFAULT_ENCRYPTION_METHOD.algorithm)
-        properties.put(NiFiProperties.SENSITIVE_PROPS_PROVIDER, DEFAULT_ENCRYPTION_METHOD.provider)
-        properties.put(NiFiProperties.SENSITIVE_PROPS_KEY, flowPassword)
-        final NiFiProperties niFiProperties = NiFiProperties.createBasicNiFiProperties(null, properties)
-
-        PropertyEncryptor sanityEncryptor = PropertyEncryptorFactory.getPropertyEncryptor(niFiProperties)
-
-        Cipher encryptionCipher = generateEncryptionCipher(flowPassword)
-
-        // Act
-        String encryptedElement = ConfigEncryptionTool.encryptFlowElement(sensitivePropertyValue, saltBytes, encryptionCipher)
-        logger.info("Encrypted flow element: ${encryptedElement}")
-
-        // Assert
-        assert encryptedElement =~ WFXCTR
-        String sanityPlaintext = sanityEncryptor.decrypt(encryptedElement[4..<-1])
-        logger.info("Sanity check value: \t${encryptedElement} -> ${sanityPlaintext}")
-
-        assert sanityPlaintext == sensitivePropertyValue
-    }
-
-    @Test
-    void testShouldEncryptAndDecryptFlowXmlContent() {
-        // Arrange
-        String flowPassword = "flowPassword"
-        String sensitivePropertyValue = "thisIsABadProcessorPassword"
-        byte[] saltBytes = "thisIsABadSalt..".bytes
-
-        Cipher encryptionCipher = generateEncryptionCipher(flowPassword)
-
-        // Act
-        String encryptedElement = ConfigEncryptionTool.encryptFlowElement(sensitivePropertyValue, saltBytes, encryptionCipher)
-        logger.info("Encrypted flow element: ${encryptedElement}")
-
-        String decryptedElement = ConfigEncryptionTool.decryptFlowElement(encryptedElement, flowPassword)
-        logger.info("Decrypted flow element: ${decryptedElement}")
-
-        // Assert
-        assert encryptedElement =~ WFXCTR
-        assert decryptedElement == sensitivePropertyValue
-    }
-
-    private
-    static Cipher generateEncryptionCipher(String password, String algorithm = DEFAULT_ALGORITHM, String provider = DEFAULT_PROVIDER) {
-        Cipher cipher = Cipher.getInstance(algorithm, provider)
-        PBEKeySpec keySpec = new PBEKeySpec(password.chars)
-        SecretKeyFactory keyFactory = SecretKeyFactory.getInstance(algorithm, provider)
-        SecretKey pbeKey = keyFactory.generateSecret(keySpec)
-        byte[] saltBytes = "thisIsABadSalt..".bytes
-        PBEParameterSpec parameterSpec = new PBEParameterSpec(saltBytes, 1000)
-        cipher.init(Cipher.ENCRYPT_MODE, pbeKey, parameterSpec)
-        cipher
     }
 
     @Test
@@ -4584,11 +4250,6 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         def migratedCipherTexts = findFieldsInStream(migratedFlowXmlFile, WFXCTR)
 
         assert migratedCipherTexts.size() == cipherTextCount
-        migratedCipherTexts.each {
-            String decryptedValue = ConfigEncryptionTool.decryptFlowElement(it, newFlowPassword)
-            logger.info("Decrypted value of migrated " + workingFile.path + " was: " + decryptedValue)
-            assert decryptedValue == PASSWORD || decryptedValue == ANOTHER_PASSWORD
-        }
 
         // Ensure that everything else is identical
         assert flowXmlFile.text.replaceAll(WFXCTR, "") ==
@@ -4642,11 +4303,6 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
 
                 assert newCipherTexts.size() == ORIGINAL_CIPHER_TEXT_COUNT
 
-                newCipherTexts.each {
-                    String decryptedValue = ConfigEncryptionTool.decryptFlowElement(it, newFlowPassword)
-                    assert decryptedValue == PASSWORD || decryptedValue == ANOTHER_PASSWORD
-                }
-
                 // Ensure that everything else is identical
                 assert new File(workingFile.path).text.replaceAll(WFXCTR, "") ==
                         flowXmlFile.text.replaceAll(WFXCTR, "")
@@ -4697,42 +4353,6 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         newCipherTexts.every {
             assert it[4..<36] == saltHex
         }
-    }
-
-    /**
-     * This test is tightly scoped to the migration of the flow XML content to ensure the expected exception type is thrown.
-     */
-    @Test
-    void testMigrateFlowXmlContentWithIncorrectExistingPasswordShouldFailWithBadPaddingException() {
-        // Arrange
-        String flowXmlPath = "src/test/resources/flow.xml"
-        File flowXmlFile = new File(flowXmlPath)
-
-        File tmpDir = setupTmpDir()
-
-        File workingFile = new File("target/tmp/tmp-flow.xml")
-        workingFile.delete()
-        Files.copy(flowXmlFile.toPath(), workingFile.toPath())
-        ConfigEncryptionTool tool = new ConfigEncryptionTool()
-        tool.isVerbose = true
-        tool.flowXmlPath = workingFile.path
-        tool.outputFlowXmlPath = workingFile.path
-
-        // Use the wrong existing password
-        String wrongExistingFlowPassword = DEFAULT_LEGACY_SENSITIVE_PROPS_KEY.reverse()
-        String newFlowPassword = FLOW_PASSWORD
-
-        InputStream xmlContent = new ByteArrayInputStream(workingFile.bytes)
-
-        // Act
-        def message = shouldFail(BadPaddingException) {
-            InputStream migratedXmlContent = tool.migrateFlowXmlContent(xmlContent, wrongExistingFlowPassword, newFlowPassword)
-            logger.info("Migrated flow.xml.")
-        }
-        logger.expected(message)
-
-        // Assert
-        assert message =~ "pad block corrupted"
     }
 
     /**
