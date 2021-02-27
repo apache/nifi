@@ -18,6 +18,7 @@ package org.apache.nifi.properties
 
 import org.apache.commons.lang3.SystemUtils
 import org.apache.nifi.util.NiFiProperties
+import org.apache.nifi.util.file.FileUtils
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.junit.After
 import org.junit.AfterClass
@@ -199,6 +200,44 @@ class NiFiPropertiesLoaderGroovyTest extends GroovyTestCase {
 
         // Assert
         assert msg =~ "Cannot read from bootstrap.conf"
+    }
+
+    @Test
+    void testShouldLoadUnprotectedPropertiesFromPathWithGeneratedSensitivePropertiesKey() throws Exception {
+        // Arrange
+        final File propertiesFile = File.createTempFile("nifi.without.key", ".properties")
+        propertiesFile.deleteOnExit()
+        final OutputStream outputStream = new FileOutputStream(propertiesFile)
+        final InputStream inputStream = getClass().getResourceAsStream("/conf/nifi.without.key.properties")
+        FileUtils.copy(inputStream, outputStream)
+
+        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, propertiesFile.absolutePath);
+        NiFiPropertiesLoader niFiPropertiesLoader = new NiFiPropertiesLoader()
+
+        // Act
+        NiFiProperties niFiProperties = niFiPropertiesLoader.get()
+
+        // Assert
+        final String sensitivePropertiesKey = niFiProperties.getProperty(NiFiProperties.SENSITIVE_PROPS_KEY)
+        assert sensitivePropertiesKey.length() == 32
+    }
+
+    @Test
+    void testShouldNotLoadUnprotectedPropertiesFromPathWithBlankKeyForClusterNode() throws Exception {
+        // Arrange
+        final File propertiesFile = File.createTempFile("nifi.without.key", ".properties")
+        propertiesFile.deleteOnExit()
+        final OutputStream outputStream = new FileOutputStream(propertiesFile)
+        final InputStream inputStream = getClass().getResourceAsStream("/conf/nifi.cluster.without.key.properties")
+        FileUtils.copy(inputStream, outputStream)
+
+        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, propertiesFile.absolutePath);
+        NiFiPropertiesLoader niFiPropertiesLoader = new NiFiPropertiesLoader()
+
+        // Act
+        shouldFail(SensitivePropertyProtectionException) {
+            niFiPropertiesLoader.get()
+        }
     }
 
     @Test

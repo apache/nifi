@@ -334,6 +334,16 @@ run() {
       run_nifi_cmd="exec ${run_nifi_cmd}"
     fi
 
+    if [ "$1" = "set-sensitive-properties-key" ]; then
+        run_command="'${JAVA}' -cp '${BOOTSTRAP_CLASSPATH}' '-Dnifi.properties.file.path=${NIFI_HOME}/conf/nifi.properties' 'org.apache.nifi.flow.encryptor.command.SetSensitivePropertiesKey'"
+        eval "cd ${NIFI_HOME}"
+        shift
+        eval "${run_command}" '"$@"'
+        EXIT_STATUS=$?
+        echo
+        return;
+    fi
+
     if [ "$1" = "stateless" ]; then
         STATELESS_JAVA_OPTS="${STATELESS_JAVA_OPTS:=-Xms1024m -Xmx1024m}"
 
@@ -430,7 +440,7 @@ case "$1" in
         install "$@"
         ;;
 
-    start|stop|decommission|run|status|is_loaded|dump|diagnostics|env|stateless)
+    start|stop|decommission|run|status|is_loaded|dump|diagnostics|env|stateless|set-sensitive-properties-key)
         main "$@"
         ;;
 
@@ -440,6 +450,6 @@ case "$1" in
         run "start"
         ;;
     *)
-        echo "Usage nifi {start|stop|decommission|run|restart|status|dump|diagnostics|install|stateless}"
+        echo "Usage nifi {start|stop|decommission|run|restart|status|dump|diagnostics|install|stateless|set-sensitive-properties-key}"
         ;;
 esac
