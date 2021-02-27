@@ -24,7 +24,9 @@ import java.io.InputStream;
 import java.security.NoSuchAlgorithmException;
 import java.security.Security;
 import java.util.Properties;
+import java.util.Set;
 import javax.crypto.Cipher;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.security.kms.CryptoUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
@@ -173,6 +175,12 @@ public class NiFiPropertiesLoader {
             inStream = new BufferedInputStream(new FileInputStream(file));
             rawProperties.load(inStream);
             logger.info("Loaded {} properties from {}", rawProperties.size(), file.getAbsolutePath());
+
+            Set<String> keys = rawProperties.stringPropertyNames();
+            for (final String key : keys) {
+                String prop = rawProperties.getProperty(key);
+                rawProperties.setProperty(key, StringUtils.stripEnd(prop, null));
+            }
 
             ProtectedNiFiProperties protectedNiFiProperties = new ProtectedNiFiProperties(rawProperties);
             return protectedNiFiProperties;

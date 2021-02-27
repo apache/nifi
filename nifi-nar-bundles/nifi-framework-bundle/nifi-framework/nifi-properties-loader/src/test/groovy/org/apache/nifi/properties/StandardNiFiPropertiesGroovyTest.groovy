@@ -1007,4 +1007,23 @@ class StandardNiFiPropertiesGroovyTest extends GroovyTestCase {
         // Assert
         assert webMaxContentSize == ""
     }
+    
+    
+    @Test
+    void testShouldStripWhitespace() throws Exception {
+        // Arrange
+        File unprotectedFile = new File("src/test/resources/conf/nifi_with_whitespace.properties")
+        NiFiPropertiesLoader niFiPropertiesLoader = new NiFiPropertiesLoader()
+        
+        // Act
+        NiFiProperties niFiProperties = niFiPropertiesLoader.load(unprotectedFile.path)
+
+        // Assert
+        assert niFiProperties.getProperty("nifi.whitespace.propWithNoSpace") == "foo"
+        assert niFiProperties.getProperty("nifi.whitespace.propWithLeadingSpace") == "foo"
+        assert niFiProperties.getProperty("nifi.whitespace.propWithTrailingSpace") == "foo"
+        assert niFiProperties.getProperty("nifi.whitespace.propWithLeadingAndTrailingSpace") == "foo"
+        assert niFiProperties.getProperty("nifi.whitespace.propWithTrailingTab") == "foo"
+        assert niFiProperties.getProperty("nifi.whitespace.propWithMultipleLines") == "foobarbaz"
+    }
 }
