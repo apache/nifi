@@ -16,9 +16,11 @@
 # under the License.
 #
 
-ARG JAVA_VERSION
-FROM $JAVA_VERSION AS artifactbase
-LABEL maintainer="Apache NiFi <dev@nifi.apache.org>"
+ARG IMAGE_NAME=openjdk
+ARG IMAGE_TAG=8-jre
+ARG MAINTAINER="Apache NiFi <dev@nifi.apache.org>"
+FROM ${IMAGE_NAME}:${IMAGE_TAG} AS artifactbase
+LABEL maintainer="${MAINTAINER}"
 
 ARG NIFI_VERSION
 ARG NIFI_BINARY
@@ -54,7 +56,7 @@ RUN mkdir -p ${NIFI_HOME}/conf \
     && mkdir -p ${NIFI_HOME}/state \
     && mkdir -p ${NIFI_LOG_DIR}
 
-FROM $JAVA_VERSION
+FROM ${IMAGE_NAME}:${IMAGE_TAG}
 LABEL maintainer="Apache NiFi <dev@nifi.apache.org>"
 
 ARG UID=1000
