@@ -22,6 +22,9 @@
 
     <properties>
         <docker.java.version>openjdk:8-jre</docker.java.version>
+        <docker.image.name>openjdk</docker.image.name>
+        <docker.image.tag>8-jre</docker.image.tag>
+        <docker.maintainer><![CDATA[Apache NiFi <dev@nifi.apache.org>]]></docker.maintainer>
     </properties>
 
     <profiles>
@@ -41,7 +44,9 @@
                                 </goals>
                                 <configuration>
                                     <buildArgs>
-                                        <JAVA_VERSION>${docker.java.version}</JAVA_VERSION>
+                                        <IMAGE_NAME>${docker.image.name}</IMAGE_NAME >
+                                        <IMAGE_TAG>${docker.image.tag}</IMAGE_TAG >
+                                        <MAINTAINER>${docker.maintainer}</MAINTAINER >
                                         <UID>1000</UID>
                                         <GID>1000</GID>
                                         <NIFI_VERSION>1.7.0</NIFI_VERSION>

@@ -15,9 +15,11 @@
 # specific language governing permissions and limitations
 # under the License.
 #
-ARG JAVA_VERSION
-FROM ${JAVA_VERSION}
-LABEL maintainer="Apache NiFi <dev@nifi.apache.org>"
+ARG IMAGE_NAME=openjdk
+ARG IMAGE_TAG=8-jre
+ARG MAINTAINER="Apache NiFi <dev@nifi.apache.org>"
+FROM ${IMAGE_NAME}:${IMAGE_TAG} AS artifactbase
+LABEL maintainer="${MAINTAINER}"
 LABEL site="https://nifi.apache.org"
 
 ARG UID=1000
