@@ -4436,13 +4436,12 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
     @Test
     void testShouldDecryptFlowXmlContent() {
         // Arrange
-        String existingFlowPassword = "nififtw!"
         String sensitivePropertyValue = "thisIsABadProcessorPassword"
 
         final Map<String, String> properties = new HashMap<>()
         properties.put(NiFiProperties.SENSITIVE_PROPS_ALGORITHM, DEFAULT_ENCRYPTION_METHOD.algorithm)
         properties.put(NiFiProperties.SENSITIVE_PROPS_PROVIDER, DEFAULT_ENCRYPTION_METHOD.provider)
-        properties.put(NiFiProperties.SENSITIVE_PROPS_KEY, existingFlowPassword)
+        properties.put(NiFiProperties.SENSITIVE_PROPS_KEY, DEFAULT_LEGACY_SENSITIVE_PROPS_KEY)
         final NiFiProperties niFiProperties = NiFiProperties.createBasicNiFiProperties(null, properties)
 
         PropertyEncryptor sanityEncryptor = PropertyEncryptorFactory.getPropertyEncryptor(niFiProperties)
@@ -4450,9 +4449,9 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         logger.info("Sanity check value: \t${sensitivePropertyValue} -> ${sanityCipherText}")
 
         // Act
-        String decryptedElement = ConfigEncryptionTool.decryptFlowElement(sanityCipherText, existingFlowPassword, DEFAULT_ALGORITHM, DEFAULT_PROVIDER)
+        String decryptedElement = ConfigEncryptionTool.decryptFlowElement(sanityCipherText, DEFAULT_LEGACY_SENSITIVE_PROPS_KEY, DEFAULT_ALGORITHM, DEFAULT_PROVIDER)
         logger.info("Decrypted flow element: ${decryptedElement}")
-        String decryptedElementWithDefaultParameters = ConfigEncryptionTool.decryptFlowElement(sanityCipherText, existingFlowPassword)
+        String decryptedElementWithDefaultParameters = ConfigEncryptionTool.decryptFlowElement(sanityCipherText, DEFAULT_LEGACY_SENSITIVE_PROPS_KEY)
         logger.info("Decrypted flow element: ${decryptedElementWithDefaultParameters}")
 
         // Assert
@@ -4466,18 +4465,12 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
     @Test
     void testShouldDecryptFlowXmlContentFromLegacyFlow() {
         // Arrange
-
-        // DEFAULT_SENSITIVE_PROPS_KEY = "nififtw!" at the time this test
-        // was written and for the encrypted value, but it could change, so don't
-        // reference transitively here
-        String existingFlowPassword = DEFAULT_LEGACY_SENSITIVE_PROPS_KEY
-
         final String EXPECTED_PLAINTEXT = "thisIsABadPassword"
 
         final String ENCRYPTED_VALUE_FROM_FLOW = "enc{5d8c45f04790e73cba72e5e3fbee1145f2e18256c3b33c283e17f5281611cb5e5f9e6cc988c5be0e8cca7b5dc8fa7cf7}"
 
         // Act
-        String decryptedElement = ConfigEncryptionTool.decryptFlowElement(ENCRYPTED_VALUE_FROM_FLOW, existingFlowPassword, DEFAULT_ALGORITHM, DEFAULT_PROVIDER)
+        String decryptedElement = ConfigEncryptionTool.decryptFlowElement(ENCRYPTED_VALUE_FROM_FLOW, DEFAULT_LEGACY_SENSITIVE_PROPS_KEY, DEFAULT_ALGORITHM, DEFAULT_PROVIDER)
         logger.info("Decrypted flow element: ${decryptedElement}")
 
         // Assert
@@ -4487,19 +4480,18 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
     @Test
     void testShouldEncryptFlowXmlContent() {
         // Arrange
-        String flowPassword = "nififtw!"
         String sensitivePropertyValue = "thisIsAnotherBadPassword"
         byte[] saltBytes = "thisIsABadSalt..".bytes
 
         final Map<String, String> properties = new HashMap<>()
         properties.put(NiFiProperties.SENSITIVE_PROPS_ALGORITHM, DEFAULT_ENCRYPTION_METHOD.algorithm)
         properties.put(NiFiProperties.SENSITIVE_PROPS_PROVIDER, DEFAULT_ENCRYPTION_METHOD.provider)
-        properties.put(NiFiProperties.SENSITIVE_PROPS_KEY, flowPassword)
+        properties.put(NiFiProperties.SENSITIVE_PROPS_KEY, DEFAULT_LEGACY_SENSITIVE_PROPS_KEY)
         final NiFiProperties niFiProperties = NiFiProperties.createBasicNiFiProperties(null, properties)
 
         PropertyEncryptor sanityEncryptor = PropertyEncryptorFactory.getPropertyEncryptor(niFiProperties)
 
-        Cipher encryptionCipher = generateEncryptionCipher(flowPassword)
+        Cipher encryptionCipher = generateEncryptionCipher(DEFAULT_LEGACY_SENSITIVE_PROPS_KEY)
 
         // Act
         String encryptedElement = ConfigEncryptionTool.encryptFlowElement(sensitivePropertyValue, saltBytes, encryptionCipher)

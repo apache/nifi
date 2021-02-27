@@ -22,8 +22,6 @@ import org.apache.nifi.security.util.crypto.AESKeyedCipherProvider;
 import org.apache.nifi.security.util.crypto.KeyedCipherProvider;
 import org.apache.nifi.security.util.crypto.PBECipherProvider;
 import org.apache.nifi.util.NiFiProperties;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.crypto.SecretKey;
 import java.util.Objects;
@@ -32,26 +30,9 @@ import java.util.Objects;
  * Property Encryptor Factory for encapsulating instantiation of Property Encryptors based on various parameters
  */
 public class PropertyEncryptorFactory {
-    private static final Logger LOGGER = LoggerFactory.getLogger(PropertyEncryptorFactory.class);
-
     private static final PropertySecretKeyProvider SECRET_KEY_PROVIDER = new StandardPropertySecretKeyProvider();
 
-    private static final String DEFAULT_PASSWORD = "nififtw!";
-
-    private static final String NOTIFICATION_BORDER = "*";
-
-    private static final int NOTIFICATION_WIDTH = 80;
-
-    private static final String NOTIFICATION_DELIMITER = StringUtils.repeat(NOTIFICATION_BORDER, NOTIFICATION_WIDTH);
-
-    private static final String NOTIFICATION = StringUtils.joinWith(System.lineSeparator(),
-            System.lineSeparator(),
-            NOTIFICATION_DELIMITER,
-            StringUtils.center(String.format("FOUND BLANK SENSITIVE PROPERTIES KEY [%s]", NiFiProperties.SENSITIVE_PROPS_KEY), NOTIFICATION_WIDTH),
-            StringUtils.center("USING DEFAULT KEY FOR ENCRYPTION", NOTIFICATION_WIDTH),
-            StringUtils.center(String.format("SET [%s] TO SECURE SENSITIVE PROPERTIES", NiFiProperties.SENSITIVE_PROPS_KEY), NOTIFICATION_WIDTH),
-            NOTIFICATION_DELIMITER
-    );
+    private static final String KEY_REQUIRED = String.format("NiFi Sensitive Properties Key [%s] is required", NiFiProperties.SENSITIVE_PROPS_KEY);
 
     /**
      * Get Property Encryptor using NiFi Properties
@@ -66,8 +47,7 @@ public class PropertyEncryptorFactory {
         String password = properties.getProperty(NiFiProperties.SENSITIVE_PROPS_KEY);
 
         if (StringUtils.isBlank(password)) {
-            LOGGER.error(NOTIFICATION);
-            password = DEFAULT_PASSWORD;
+            throw new IllegalArgumentException(KEY_REQUIRED);
         }
 
         final PropertyEncryptionMethod propertyEncryptionMethod = findPropertyEncryptionAlgorithm(algorithm);

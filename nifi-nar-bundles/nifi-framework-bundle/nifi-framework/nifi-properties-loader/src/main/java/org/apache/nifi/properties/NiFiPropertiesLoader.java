@@ -21,9 +21,17 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UncheckedIOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.security.Security;
+import java.util.Base64;
+import java.util.List;
 import java.util.Properties;
+import java.util.stream.Collectors;
 import java.util.Set;
 import javax.crypto.Cipher;
 import org.apache.commons.lang3.StringUtils;
@@ -36,7 +44,10 @@ import org.slf4j.LoggerFactory;
 public class NiFiPropertiesLoader {
 
     private static final Logger logger = LoggerFactory.getLogger(NiFiPropertiesLoader.class);
-
+    private static final Base64.Encoder KEY_ENCODER = Base64.getEncoder().withoutPadding();
+    private static final int SENSITIVE_PROPERTIES_KEY_LENGTH = 24;
+    private static final String EMPTY_SENSITIVE_PROPERTIES_KEY = String.format("%s=", NiFiProperties.SENSITIVE_PROPS_KEY);
+    private static final String MIGRATION_INSTRUCTIONS = "See Administration Guide section [Migrating a Flow with Sensitive Properties]";
     private NiFiProperties instance;
     private String keyHex;
 
@@ -168,36 +179,22 @@ public class NiFiPropertiesLoader {
             throw new IllegalArgumentException("NiFi properties file missing or unreadable");
         }
 
-        Properties rawProperties = new Properties();
-
-        InputStream inStream = null;
-        try {
-            inStream = new BufferedInputStream(new FileInputStream(file));
-            rawProperties.load(inStream);
+        final Properties rawProperties = new Properties();
+        try (final InputStream inputStream = new BufferedInputStream(new FileInputStream(file))) {
+            rawProperties.load(inputStream);
             logger.info("Loaded {} properties from {}", rawProperties.size(), file.getAbsolutePath());
 
-            Set<String> keys = rawProperties.stringPropertyNames();
+            final Set<String> keys = rawProperties.stringPropertyNames();
             for (final String key : keys) {
-                String prop = rawProperties.getProperty(key);
-                rawProperties.setProperty(key, StringUtils.stripEnd(prop, null));
+                final String property = rawProperties.getProperty(key);
+                rawProperties.setProperty(key, property.trim());
             }
 
-            ProtectedNiFiProperties protectedNiFiProperties = new ProtectedNiFiProperties(rawProperties);
-            return protectedNiFiProperties;
+            return new ProtectedNiFiProperties(rawProperties);
         } catch (final Exception ex) {
-            logger.error("Cannot load properties file due to " + ex.getLocalizedMessage());
+            logger.error("Cannot load properties file due to {}", ex.getLocalizedMessage());
             throw new RuntimeException("Cannot load properties file due to "
                     + ex.getLocalizedMessage(), ex);
-        } finally {
-            if (null != inStream) {
-                try {
-                    inStream.close();
-                } catch (final Exception ex) {
-                    /**
-                     * do nothing *
-                     */
-                }
-            }
         }
     }
 

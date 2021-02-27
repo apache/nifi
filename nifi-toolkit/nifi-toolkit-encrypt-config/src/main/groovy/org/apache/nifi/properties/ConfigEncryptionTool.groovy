@@ -124,7 +124,7 @@ class ConfigEncryptionTool {
     // Static holder to avoid re-generating the options object multiple times in an invocation
     private static Options staticOptions
 
-    // Hard-coded fallback value from {@link org.apache.nifi.encrypt.PropertyEncryptorFactory}
+    // Hard-coded fallback value from historical defaults
     private static final String DEFAULT_NIFI_SENSITIVE_PROPS_KEY = "nififtw!"
     private static final int MIN_PASSWORD_LENGTH = 12
 
