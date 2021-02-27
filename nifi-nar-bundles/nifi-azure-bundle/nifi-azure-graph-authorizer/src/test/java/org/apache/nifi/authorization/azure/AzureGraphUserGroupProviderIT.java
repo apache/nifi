@@ -120,7 +120,7 @@ public class AzureGraphUserGroupProviderIT {
             testingProvider.initialize(initContext);
             testingProvider.onConfigured(authContext);
         } catch (final Exception exc) {
-            logger.error("setup() exception: " + exc + "; tests cannot run on this system.");
+            logger.error("Error during setup; tests cannot run on this system.");
             return;
         }
     }
@@ -141,7 +141,7 @@ public class AzureGraphUserGroupProviderIT {
         Assert.assertTrue(testingProvider.getGroups().size() > 0);
         Assert.assertTrue(testingProvider.getUsers().size() > 0);
         UserAndGroups uag  = testingProvider.getUserAndGroups(getKnownTestUserName());
-        Assert.assertTrue(uag.getUser() !=null);
+        Assert.assertNotNull(uag.getUser());
         Assert.assertTrue(uag.getGroups().size() > 0);
 
     }
@@ -151,18 +151,18 @@ public class AzureGraphUserGroupProviderIT {
         Mockito.when(authContext.getProperty(Mockito.eq(AzureGraphUserGroupProvider.GROUP_FILTER_LIST_PROPERTY)))
             .thenReturn(new MockPropertyValue(getGroupListInclusion()));
         Mockito.when(authContext.getProperty(Mockito.eq(AzureGraphUserGroupProvider.PAGE_SIZE_PROPERTY)))
-        .thenReturn(new MockPropertyValue("3")); // in the real scenario, this should be 20 or bigger.
+            .thenReturn(new MockPropertyValue("3")); // in the real scenario, this should be 20 or bigger.
 
         setupTestingProvider();
 
         Assert.assertTrue(testingProvider.getGroups().size() > 0);
         Assert.assertTrue(testingProvider.getUsers().size() > 0);
         UserAndGroups uag  = testingProvider.getUserAndGroups(getKnownTestUserName());
-        Assert.assertTrue(uag.getUser() !=null);
+        Assert.assertNotNull(uag.getUser());
         Assert.assertTrue(uag.getGroups().size() > 0);
 
         String knownGroupName = getKnownTestGroupName();
-        List<Group> search = testingProvider.getGroups().stream().filter( g-> g.getName().equals(knownGroupName)).collect(Collectors.toList());
+        List<Group> search = testingProvider.getGroups().stream().filter(g-> g.getName().equals(knownGroupName)).collect(Collectors.toList());
         Assert.assertTrue(search.size() > 0);
     }
 
@@ -176,7 +176,7 @@ public class AzureGraphUserGroupProviderIT {
 
         setupTestingProvider();
         Assert.assertTrue(testingProvider.getGroups().size() > 0);
-        List<Group> search = testingProvider.getGroups().stream().filter( g-> g.getName().equals(knownGroupName)).collect(Collectors.toList());
+        List<Group> search = testingProvider.getGroups().stream().filter(g-> g.getName().equals(knownGroupName)).collect(Collectors.toList());
         Assert.assertTrue(search.size() > 0);
     }
 
@@ -186,11 +186,11 @@ public class AzureGraphUserGroupProviderIT {
         String knownGroupName = getKnownTestGroupName();
         String suffix = knownGroupName.substring(knownGroupName.length()-2);
         Mockito.when(authContext.getProperty(Mockito.eq(AzureGraphUserGroupProvider.GROUP_FILTER_SUFFIX_PROPERTY)))
-        .thenReturn(new MockPropertyValue(suffix));
+            .thenReturn(new MockPropertyValue(suffix));
 
         setupTestingProvider();
         Assert.assertTrue(testingProvider.getGroups().size() > 0);
-        List<Group> search = testingProvider.getGroups().stream().filter( g-> g.getName().equals(knownGroupName)).collect(Collectors.toList());
+        List<Group> search = testingProvider.getGroups().stream().filter(g-> g.getName().equals(knownGroupName)).collect(Collectors.toList());
         Assert.assertTrue(search.size() > 0);
     }
 
@@ -200,7 +200,7 @@ public class AzureGraphUserGroupProviderIT {
         String knownGroupName = getKnownTestGroupName();
         String substring = knownGroupName.substring(1, knownGroupName.length()-1);
         Mockito.when(authContext.getProperty(Mockito.eq(AzureGraphUserGroupProvider.GROUP_FILTER_SUBSTRING_PROPERTY)))
-        .thenReturn(new MockPropertyValue(substring));
+            .thenReturn(new MockPropertyValue(substring));
 
         setupTestingProvider();
         Assert.assertTrue(testingProvider.getGroups().size() > 0);
@@ -214,14 +214,14 @@ public class AzureGraphUserGroupProviderIT {
         String knownGroupName = getKnownTestGroupName();
         String substring = knownGroupName.substring(1, knownGroupName.length()-1);
         Mockito.when(authContext.getProperty(Mockito.eq(AzureGraphUserGroupProvider.GROUP_FILTER_SUBSTRING_PROPERTY)))
-        .thenReturn(new MockPropertyValue(substring));
+            .thenReturn(new MockPropertyValue(substring));
         Mockito.when(authContext.getProperty(Mockito.eq(AzureGraphUserGroupProvider.GROUP_FILTER_LIST_PROPERTY)))
-        .thenReturn(new MockPropertyValue(getGroupListInclusion()));
+            .thenReturn(new MockPropertyValue(getGroupListInclusion()));
 
         setupTestingProvider();
         Assert.assertTrue(testingProvider.getGroups().size() > 0);
         Set<Group> search = testingProvider.getGroups().stream().collect(Collectors.toSet());
         // check there is no duplicate group
-        Assert.assertTrue(search.size() == testingProvider.getGroups().size());
+        Assert.assertEquals(search.size(), testingProvider.getGroups().size());
     }
 }

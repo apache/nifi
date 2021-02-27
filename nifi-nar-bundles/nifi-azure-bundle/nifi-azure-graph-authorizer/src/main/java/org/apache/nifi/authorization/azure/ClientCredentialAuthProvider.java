@@ -117,14 +117,10 @@ public class ClientCredentialAuthProvider implements IAuthenticationProvider {
 
     public static class Builder {
 
-        private String authorityEndpoint ="";
+        private String authorityEndpoint = "";
         private String tenantId = "";
         private String clientId = "";
         private String clientSecret = "";
-
-        public Builder() {
-
-        }
 
         public Builder authorityEndpoint(final String authorityEndpoint){
             this.authorityEndpoint = authorityEndpoint;
