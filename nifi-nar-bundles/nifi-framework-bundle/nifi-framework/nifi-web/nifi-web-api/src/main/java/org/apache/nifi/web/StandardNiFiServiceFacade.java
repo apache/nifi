@@ -15,7 +15,6 @@
  * limitations under the License.
  */
 package org.apache.nifi.web;
-
 import com.google.common.collect.Sets;
 import io.prometheus.client.CollectorRegistry;
 import java.io.IOException;

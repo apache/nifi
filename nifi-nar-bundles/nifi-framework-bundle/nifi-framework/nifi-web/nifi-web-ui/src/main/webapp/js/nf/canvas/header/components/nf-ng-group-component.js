@@ -59,6 +59,10 @@
     return function (serviceProvider) {
         'use strict';
 
+        var uploadFileBtn = $('#upload-file-field-button');
+        var cancelFileBtn = $('#file-cancel-button');
+        var submitFileContainer = $('#submit-file-container');
+
         /**
          * Create the group and add to the graph.
          *
@@ -153,6 +157,21 @@
                 init: function () {
                     var self = this;
 
+                    var selectedFilename = $('#selected-file-name');
+                    var uploadFileField = $('#upload-file-field');
+                    var groupName = $('#new-process-group-name');
+                    var processGroupDialog = $('#new-process-group-dialog');
+
+                    /**
+                     * Clears the values.
+                     */
+                    function resetValues() {
+                        groupName.val('');
+                        selectedFilename.text('');
+                        uploadFileField.val('');
+                        self.fileToBeUploaded = null;
+                    }
+
                     self.fileForm = $('#file-upload-form').ajaxForm({
                         url: '../nifi-api/process-groups/',
                         dataType: 'json',
@@ -168,11 +187,9 @@
                         headerText: 'Add Process Group',
                         handler: {
                             close: function () {
-                                self.fileToBeUploaded = null;
-                                $('#selected-file-name').text('');
-                                $('#upload-file-field').val('');
-                                $('#new-process-group-name').val('');
-                                $('#new-process-group-dialog').removeData('pt');
+                                // clear the values and data
+                                resetValues();
+                                processGroupDialog.removeData('pt');
 
                                 // reset the form to ensure that the change fire will fire
                                 self.fileForm.resetForm();
@@ -180,17 +197,17 @@
                         }
                     });
 
-                    $('#new-process-group-name').on('input', function () {
-                        // update the buttons to the enabled stated
-                        $('#new-process-group-dialog').modal('refreshButtons');
+                    groupName.on('input', function () {
+                        // update the Add button to the enabled stated
+                        processGroupDialog.modal('refreshButtons');
                     });
 
-                    $('#upload-file-field-button').on('click', function (e) {
-                        $('#upload-file-field').click();
+                    uploadFileBtn.on('click', function (e) {
+                        uploadFileField.click();
                     });
 
-                    $('#upload-file-field').on('change', function (e) {
-                        $('#upload-file-field-button').hide();
+                    uploadFileField.on('change', function (e) {
+                        uploadFileBtn.hide();
 
                         self.fileToBeUploaded = e.target;
 
@@ -204,37 +221,34 @@
                         }
 
                         // show the selected filename
-                        $('#selected-file-name').text(filename);
+                        selectedFilename.text(filename);
 
                         // determine if the 'File to Upload' title should show
-                        if ($('#selected-file-name').val) {
-                            $('#submit-file-container').show();
+                        if (selectedFilename.val) {
+                            submitFileContainer.show();
                         }
 
                         // set the filename
-                        if (!$('#new-process-group-name').val()) {
-                            $('#new-process-group-name').val(filenameNoExtension);
-                            // update the buttons to the enabled stated
-                            $('#new-process-group-dialog').modal('refreshButtons');
+                        if (!groupName.val()) {
+                            groupName.val(filenameNoExtension);
+                            // update the Add button to the enabled stated
+                            processGroupDialog.modal('refreshButtons');
                         }
 
-                        $('#file-cancel-button').show();
+                        cancelFileBtn.show();
                     });
 
                     // cancel file button
-                    $('#file-cancel-button').on('click', function () {
+                    cancelFileBtn.on('click', function () {
                         // clear the values
-                        $('#new-process-group-name').val('');
-                        $('#submit-file-container').hide();
-                        $('#selected-file-name').text('');
-                        $('#upload-file-field').val('');
-                        self.fileToBeUploaded = null;
+                        resetValues();
 
-                        $('#file-cancel-button').hide();
-                        $('#upload-file-field-button').show();
+                        submitFileContainer.hide();
+                        cancelFileBtn.hide();
+                        uploadFileBtn.show();
 
-                        // update the buttons to the disabled stated
-                        $('#new-process-group-dialog').modal('refreshButtons');
+                        // update the Add button to the disabled stated
+                        processGroupDialog.modal('refreshButtons');
                     })
                 },
 
@@ -305,7 +319,7 @@
              * @argument {object} pt        The point that the component was dropped.
              */
             dropHandler: function (pt) {
-                this.promptForGroupName(pt, true);
+                this.promptForGroupName(pt, true, true);
             },
 
             /**
@@ -323,8 +337,9 @@
              *
              * @argument {object} pt        The point that the group was dropped.
              * @argument {boolean} showImportLink Whether we should show the import link
+             * @argument {boolean} showUploadFileButton Whether we should show the upload file button
              */
-            promptForGroupName: function (pt, showImportLink) {
+            promptForGroupName: function (pt, showImportLink, showUploadFileButton) {
                 var self = this;
                 var groupComponent = this;
 
@@ -470,20 +485,26 @@
                             }
                         }]);
 
-                    // show the upload file button
-                    $('#upload-file-field-button').show();
-
                     // hide the selected file to upload title
-                    $('#submit-file-container').hide();
+                    submitFileContainer.hide();
 
                     // hide file cancel button
-                    $('#file-cancel-button').hide();
+                    cancelFileBtn.hide();
 
                     // determine if import from registry link should show
+                    var importProcessGroupLink = $('#import-process-group-link');
+
                     if (showImportLink === true && nfCommon.canVersionFlows()) {
-                        $('#import-process-group-link').show();
+                        importProcessGroupLink.show();
                     } else {
-                        $('#import-process-group-link').hide();
+                        importProcessGroupLink.hide();
+                    }
+
+                    // determine if Upload File button should show
+                    if (showUploadFileButton === true) {
+                        uploadFileBtn.show();
+                    } else {
+                        uploadFileBtn.hide();
                     }
 
                     // show the dialog

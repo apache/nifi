@@ -17,7 +17,6 @@
 package org.apache.nifi.web.api;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.module.jaxb.JaxbAnnotationIntrospector;
@@ -33,7 +32,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
@@ -80,7 +78,6 @@ import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Unmarshaller;
 import javax.xml.stream.XMLStreamReader;
-import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.text.StringEscapeUtils;
 import org.apache.nifi.authorization.AuthorizableLookup;
@@ -217,7 +214,6 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
                 return thread;
             }
         });
-    private static final String INVALID_JSON_RESPONSE = "The specified file is not a valid JSON format.";
     private static final ObjectMapper MAPPER = new ObjectMapper();
     static {
         MAPPER.setSerializationInclusion(JsonInclude.Include.NON_NULL);
@@ -2025,33 +2021,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
         return withWriteLock(
                 serviceFacade,
                 requestProcessGroupEntity,
-                lookup -> {
-                    final NiFiUser user = NiFiUserUtils.getNiFiUser();
-                    final Authorizable processGroup = lookup.getProcessGroup(groupId).getAuthorizable();
-                    processGroup.authorize(authorizer, RequestAction.WRITE, user);
-
-                    // If request specifies a Parameter Context, need to authorize that user has READ policy for the Parameter Context.
-                    final ParameterContextReferenceEntity referencedParamContext = requestProcessGroupEntity.getComponent().getParameterContext();
-                    if (referencedParamContext != null && referencedParamContext.getId() != null) {
-                        lookup.getParameterContext(referencedParamContext.getId()).authorize(authorizer, RequestAction.READ, user);
-                    }
-
-                    // Step 5: If any of the components is a Restricted Component, then we must authorize the user
-                    // for write access to the RestrictedComponents resource
-                    final VersionedFlowSnapshot versionedFlowSnapshot = requestProcessGroupEntity.getVersionedFlowSnapshot();
-                    if (versionedFlowSnapshot != null) {
-                        final Set<ConfigurableComponent> restrictedComponents = FlowRegistryUtils.getRestrictedComponents(versionedFlowSnapshot.getFlowContents(), serviceFacade);
-                        restrictedComponents.forEach(restrictedComponent -> {
-                            final ComponentAuthorizable restrictedComponentAuthorizable = lookup.getConfigurableComponent(restrictedComponent);
-                            authorizeRestrictions(authorizer, restrictedComponentAuthorizable);
-                        });
-
-                        final Map<String, VersionedParameterContext> parameterContexts = versionedFlowSnapshot.getParameterContexts();
-                        if (parameterContexts != null) {
-                            parameterContexts.values().forEach(context -> AuthorizeParameterReference.authorizeParameterContextAddition(context, serviceFacade, authorizer, lookup, user));
-                        }
-                    }
-                },
+                lookup -> authorizeAccess(groupId, requestProcessGroupEntity, lookup),
                 () -> {
                     final VersionedFlowSnapshot versionedFlowSnapshot = requestProcessGroupEntity.getVersionedFlowSnapshot();
                     if (versionedFlowSnapshot != null) {
@@ -4270,39 +4240,23 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
             throw new IllegalArgumentException("The client id must be specified");
         }
 
-        // get the contents of the InputStream as a String
-        String stringContent;
-        if (in != null) {
-            try {
-                stringContent = IOUtils.toString(in, StandardCharsets.UTF_8);
-            } catch (IOException e) {
-                throw new IOException("Unable to read the InputStream", e);
-            }
-        } else {
-            logger.warn("The InputStream is null");
-            throw new NullPointerException("The InputStream is null");
-        }
-
-        // deserialize content to a VersionedFlowSnapshot
+        // deserialize InputStream to a VersionedFlowSnapshot
         VersionedFlowSnapshot deserializedSnapshot;
 
-        if (stringContent.length() > 0) {
-            try {
-                deserializedSnapshot = MAPPER.readValue(stringContent, VersionedFlowSnapshot.class);
-            } catch (JsonParseException jpe) {
-                logger.warn("Parsing uploaded JSON failed", jpe);
-                return Response.status(Response.Status.OK).entity(INVALID_JSON_RESPONSE).type("application/json").build();
-            } catch (IOException e) {
-                logger.warn("Deserialization of uploaded JSON failed", e);
-                throw new IOException("Deserialization of uploaded JSON failed", e);
-            }
-        } else {
-            logger.warn("The uploaded file was empty");
-            throw new IOException("The uploaded file was empty.");
+        try {
+            deserializedSnapshot = MAPPER.readValue(in, VersionedFlowSnapshot.class);
+        } catch (IOException e) {
+            logger.warn("Deserialization of uploaded JSON failed", e);
+            throw new IllegalArgumentException("Deserialization of uploaded JSON failed", e);
         }
 
+        // create a PositionDTO
+        final PositionDTO positionDTO = new PositionDTO();
+        positionDTO.setX(positionX);
+        positionDTO.setY(positionY);
+
         // create a new ProcessGroupEntity
-        final ProcessGroupEntity newProcessGroupEntity = createProcessGroupEntity(groupId, groupName, positionX, positionY, deserializedSnapshot);
+        final ProcessGroupEntity newProcessGroupEntity = createProcessGroupEntity(groupId, groupName, positionDTO, deserializedSnapshot);
 
         // replicate the request or call serviceFacade.updateProcessGroup
         if (isReplicateRequest()) {
@@ -4314,33 +4268,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
         return withWriteLock(
                 serviceFacade,
                 newProcessGroupEntity,
-                lookup -> {
-                    final NiFiUser user = NiFiUserUtils.getNiFiUser();
-                    final Authorizable processGroup = lookup.getProcessGroup(groupId).getAuthorizable();
-                    processGroup.authorize(authorizer, RequestAction.WRITE, user);
-
-                    // if request specifies a Parameter Context, need to authorize that user has READ policy for the Parameter Context.
-                    final ParameterContextReferenceEntity referencedParamContext = newProcessGroupEntity.getComponent().getParameterContext();
-                    if (referencedParamContext != null && referencedParamContext.getId() != null) {
-                        lookup.getParameterContext(referencedParamContext.getId()).authorize(authorizer, RequestAction.READ, user);
-                    }
-
-                    // if any of the components is a Restricted Component, then we must authorize the user
-                    // for write access to the RestrictedComponents resource
-                    final VersionedFlowSnapshot versionedFlowSnapshot = newProcessGroupEntity.getVersionedFlowSnapshot();
-                    if (versionedFlowSnapshot != null) {
-                        final Set<ConfigurableComponent> restrictedComponents = FlowRegistryUtils.getRestrictedComponents(versionedFlowSnapshot.getFlowContents(), serviceFacade);
-                        restrictedComponents.forEach(restrictedComponent -> {
-                            final ComponentAuthorizable restrictedComponentAuthorizable = lookup.getConfigurableComponent(restrictedComponent);
-                            authorizeRestrictions(authorizer, restrictedComponentAuthorizable);
-                        });
-
-                        final Map<String, VersionedParameterContext> parameterContexts = versionedFlowSnapshot.getParameterContexts();
-                        if (parameterContexts != null) {
-                            parameterContexts.values().forEach(context -> AuthorizeParameterReference.authorizeParameterContextAddition(context, serviceFacade, authorizer, lookup, user));
-                        }
-                    }
-                },
+                lookup -> authorizeAccess(groupId, newProcessGroupEntity, lookup),
                 () -> {
                     final VersionedFlowSnapshot versionedFlowSnapshot = newProcessGroupEntity.getVersionedFlowSnapshot();
                     if (versionedFlowSnapshot != null) {
@@ -4617,16 +4545,15 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
     /**
      * Creates a new ProcessGroupEntity with the specified VersionedFlowSnapshot and removes Registry info.
      *
-     * @param groupId     the group id string
-     * @param groupName   the process group name string
-     * @param positionX   the x-position of the group
-     * @param positionY   the y-position of the group
-     * @param deserializedSnapshot   the deserialized snapshot
+     * @param groupId               the group id string
+     * @param groupName             the process group name string
+     * @param positionDTO           the process group PositionDTO
+     * @param deserializedSnapshot  the deserialized snapshot
      *
      * @return a new ProcessGroupEntity
      */
     private ProcessGroupEntity createProcessGroupEntity(
-            String groupId, String groupName, Double positionX, Double positionY, VersionedFlowSnapshot deserializedSnapshot) {
+            String groupId, String groupName, PositionDTO positionDTO, VersionedFlowSnapshot deserializedSnapshot) {
 
         final ProcessGroupEntity processGroupEntity = new ProcessGroupEntity();
 
@@ -4648,13 +4575,45 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
         processGroupEntity.setComponent(processGroupDTO);
         processGroupEntity.setVersionedFlowSnapshot(deserializedSnapshot);
 
-        // create a PositionDTO
-        final PositionDTO positionDTO = new PositionDTO();
-        positionDTO.setX(positionX);
-        positionDTO.setY(positionY);
+        // set the ProcessGroupEntity position
         processGroupEntity.getComponent().setPosition(positionDTO);
 
         return processGroupEntity;
+    }
+
+    /**
+     * Authorizes access to a Parameter Context and RestrictedComponents resource.
+     *
+     * @param groupId               the group id string
+     * @param processGroupEntity    the ProcessGroupEntity
+     * @param lookup                the lookup
+     */
+    private void authorizeAccess(String groupId, ProcessGroupEntity processGroupEntity, AuthorizableLookup lookup) {
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+        final Authorizable processGroup = lookup.getProcessGroup(groupId).getAuthorizable();
+        processGroup.authorize(authorizer, RequestAction.WRITE, user);
+
+        // if request specifies a Parameter Context, need to authorize that user has READ policy for the Parameter Context.
+        final ParameterContextReferenceEntity referencedParamContext = processGroupEntity.getComponent().getParameterContext();
+        if (referencedParamContext != null && referencedParamContext.getId() != null) {
+            lookup.getParameterContext(referencedParamContext.getId()).authorize(authorizer, RequestAction.READ, user);
+        }
+
+        // if any of the components is a Restricted Component, then we must authorize the user
+        // for write access to the RestrictedComponents resource
+        final VersionedFlowSnapshot versionedFlowSnapshot = processGroupEntity.getVersionedFlowSnapshot();
+        if (versionedFlowSnapshot != null) {
+            final Set<ConfigurableComponent> restrictedComponents = FlowRegistryUtils.getRestrictedComponents(versionedFlowSnapshot.getFlowContents(), serviceFacade);
+            restrictedComponents.forEach(restrictedComponent -> {
+                final ComponentAuthorizable restrictedComponentAuthorizable = lookup.getConfigurableComponent(restrictedComponent);
+                authorizeRestrictions(authorizer, restrictedComponentAuthorizable);
+            });
+
+            final Map<String, VersionedParameterContext> parameterContexts = versionedFlowSnapshot.getParameterContexts();
+            if (parameterContexts != null) {
+                parameterContexts.values().forEach(context -> AuthorizeParameterReference.authorizeParameterContextAddition(context, serviceFacade, authorizer, lookup, user));
+            }
+        }
     }
 
     // setters
