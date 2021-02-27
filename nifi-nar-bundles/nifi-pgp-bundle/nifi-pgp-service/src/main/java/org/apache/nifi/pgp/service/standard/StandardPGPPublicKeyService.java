@@ -50,8 +50,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -88,7 +88,7 @@ public class StandardPGPPublicKeyService extends AbstractControllerService imple
             KEYRING
     );
 
-    private volatile Map<Long, PGPPublicKey> publicKeys = Collections.emptyMap();
+    private volatile List<PGPPublicKey> publicKeys = Collections.emptyList();
 
     /**
      * On Enabled reads Keyring using configured properties
@@ -101,13 +101,7 @@ public class StandardPGPPublicKeyService extends AbstractControllerService imple
         try {
             final List<PGPPublicKey> extractedPublicKeys = new ArrayList<>(readKeyringFile(context));
             extractedPublicKeys.addAll(readKeyring(context));
-
-            publicKeys = extractedPublicKeys.stream().collect(
-                    Collectors.toMap(
-                            publicKey -> publicKey.getKeyID(),
-                            publicKey -> publicKey
-                    )
-            );
+            publicKeys = extractedPublicKeys;
         } catch (final RuntimeException e) {
             throw new InitializationException("Reading Public Keys Failed", e);
         }
@@ -118,19 +112,19 @@ public class StandardPGPPublicKeyService extends AbstractControllerService imple
      */
     @OnDisabled
     public void onDisabled() {
-        publicKeys = Collections.emptyMap();
+        publicKeys = Collections.emptyList();
     }
 
     /**
-     * Find Public Key matching Key Identifier
+     * Find Public Key matching Search using either uppercase 16 character hexadecimal string as Key ID or matching User ID
      *
-     * @param keyIdentifier Public Key Identifier
+     * @param search Public Key Search as either 16 character hexadecimal string for Key ID or User ID
      * @return Optional container for PGP Public Key empty when no matching Key found
      */
     @Override
-    public Optional<PGPPublicKey> findPublicKey(final long keyIdentifier) {
-        getLogger().debug("Find Public Key [{}]", Long.toHexString(keyIdentifier).toUpperCase());
-        return Optional.ofNullable(publicKeys.get(keyIdentifier));
+    public Optional<PGPPublicKey> findPublicKey(final String search) {
+        getLogger().debug("Find Public Key [{}]", search);
+        return publicKeys.stream().filter(publicKey -> isPublicKeyMatched(publicKey, search)).findFirst();
     }
 
     /**
@@ -188,6 +182,24 @@ public class StandardPGPPublicKeyService extends AbstractControllerService imple
         }
 
         return results;
+    }
+
+    private boolean isPublicKeyMatched(final PGPPublicKey publicKey, final String search) {
+        boolean matched = false;
+        final String keyId = Long.toHexString(publicKey.getKeyID()).toUpperCase();
+        if (keyId.equals(search)) {
+            matched = true;
+        } else {
+            final Iterator<String> userIds = publicKey.getUserIDs();
+            while (userIds.hasNext()) {
+                final String userId = userIds.next();
+                if (userId.contains(search)) {
+                    matched = true;
+                    break;
+                }
+            }
+        }
+        return matched;
     }
 
     private List<PGPPublicKey> readKeyringFile(final PropertyContext context) {

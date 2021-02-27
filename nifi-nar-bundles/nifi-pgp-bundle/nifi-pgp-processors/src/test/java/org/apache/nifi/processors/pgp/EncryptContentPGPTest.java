@@ -161,7 +161,8 @@ public class EncryptContentPGPTest {
     public void testSuccessPublicKeyEncryptionRsaPublicKey() throws IOException, InitializationException, PGPException {
         final PGPPublicKey publicKey = rsaSecretKey.getPublicKey();
         setPublicKeyService(publicKey);
-        when(publicKeyService.findPublicKey(eq(publicKey.getKeyID()))).thenReturn(Optional.of(publicKey));
+        final String publicKeyIdSearch = Long.toHexString(publicKey.getKeyID()).toUpperCase();
+        when(publicKeyService.findPublicKey(eq(publicKeyIdSearch))).thenReturn(Optional.of(publicKey));
 
         runner.enqueue(DATA);
         runner.run();
@@ -171,7 +172,8 @@ public class EncryptContentPGPTest {
     @Test
     public void testSuccessPublicKeyEncryptionElGamalPublicKey() throws IOException, InitializationException, PGPException {
         setPublicKeyService(elGamalPublicKey);
-        when(publicKeyService.findPublicKey(eq(elGamalPublicKey.getKeyID()))).thenReturn(Optional.of(elGamalPublicKey));
+        final String publicKeyIdSearch = Long.toHexString(elGamalPublicKey.getKeyID()).toUpperCase();
+        when(publicKeyService.findPublicKey(eq(publicKeyIdSearch))).thenReturn(Optional.of(elGamalPublicKey));
 
         runner.enqueue(DATA);
         runner.run();
@@ -184,7 +186,7 @@ public class EncryptContentPGPTest {
         setPublicKeyService(publicKey);
 
         final String publicKeyIdNotFound = Long.toHexString(Long.MAX_VALUE).toUpperCase();
-        runner.setProperty(EncryptContentPGP.PUBLIC_KEY_ID, publicKeyIdNotFound);
+        runner.setProperty(EncryptContentPGP.PUBLIC_KEY_SEARCH, publicKeyIdNotFound);
 
         runner.enqueue(DATA);
         runner.run();
@@ -199,7 +201,7 @@ public class EncryptContentPGPTest {
         runner.setProperty(EncryptContentPGP.PUBLIC_KEY_SERVICE, SERVICE_ID);
         final long publicKeyId = publicKey.getKeyID();
         final String publicKeyIdLong = Long.toHexString(publicKeyId).toUpperCase();
-        runner.setProperty(EncryptContentPGP.PUBLIC_KEY_ID, publicKeyIdLong);
+        runner.setProperty(EncryptContentPGP.PUBLIC_KEY_SEARCH, publicKeyIdLong);
     }
 
     private void assertSuccess(final PGPPrivateKey privateKey) throws IOException, PGPException {

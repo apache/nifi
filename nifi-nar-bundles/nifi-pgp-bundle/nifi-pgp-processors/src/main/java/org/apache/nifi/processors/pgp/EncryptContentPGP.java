@@ -39,7 +39,6 @@ import org.apache.nifi.processors.pgp.attributes.CompressionAlgorithm;
 import org.apache.nifi.processors.pgp.attributes.FileEncoding;
 import org.apache.nifi.processors.pgp.attributes.SymmetricKeyAlgorithm;
 import org.apache.nifi.processors.pgp.exception.PGPEncryptionException;
-import org.apache.nifi.processors.pgp.exception.PGPProcessException;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.StringUtils;
 
@@ -140,10 +139,10 @@ public class EncryptContentPGP extends AbstractProcessor {
             .identifiesControllerService(PGPPublicKeyService.class)
             .build();
 
-    public static final PropertyDescriptor PUBLIC_KEY_ID = new PropertyDescriptor.Builder()
-            .name("public-key-id")
-            .displayName("Public Key ID")
-            .description("PGP Public Key Identifier for encryption formatted as uppercase hexadecimal string of 16 characters")
+    public static final PropertyDescriptor PUBLIC_KEY_SEARCH = new PropertyDescriptor.Builder()
+            .name("public-key-search")
+            .displayName("Public Key Search")
+            .description("PGP Public Key Search will be used to match against the User ID or Key ID when formatted as uppercase hexadecimal string of 16 characters")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR)
             .dependsOn(PUBLIC_KEY_SERVICE)
@@ -154,8 +153,6 @@ public class EncryptContentPGP extends AbstractProcessor {
 
     private static final int OUTPUT_BUFFER_SIZE = 8192;
 
-    private static final int HEXADECIMAL = 16;
-
     private static final Set<Relationship> RELATIONSHIPS = new HashSet<>(Arrays.asList(SUCCESS, FAILURE));
 
     private static final List<PropertyDescriptor> DESCRIPTORS = Arrays.asList(
@@ -164,7 +161,7 @@ public class EncryptContentPGP extends AbstractProcessor {
             FILE_ENCODING,
             PASSPHRASE,
             PUBLIC_KEY_SERVICE,
-            PUBLIC_KEY_ID
+            PUBLIC_KEY_SEARCH
     );
 
     /**
@@ -271,32 +268,22 @@ public class EncryptContentPGP extends AbstractProcessor {
             generators.add(new JcePBEKeyEncryptionMethodGenerator(passphrase).setSecureRandom(secureRandom));
         }
 
-        final PropertyValue publicKeyIdProperty = context.getProperty(PUBLIC_KEY_ID);
-        if (publicKeyIdProperty.isSet()) {
-            final String publicKeyId = publicKeyIdProperty.evaluateAttributeExpressions(flowFile).getValue();
-            getLogger().debug("Requested Public Key ID [{}]", publicKeyId);
+        final PropertyValue publicKeySearchProperty = context.getProperty(PUBLIC_KEY_SEARCH);
+        if (publicKeySearchProperty.isSet()) {
+            final String publicKeySearch = publicKeySearchProperty.evaluateAttributeExpressions(flowFile).getValue();
+            getLogger().debug("Public Key Search [{}]", publicKeySearch);
 
-            final long keyId = parsePublicKeyId(publicKeyId);
             final PGPPublicKeyService publicKeyService = context.getProperty(PUBLIC_KEY_SERVICE).asControllerService(PGPPublicKeyService.class);
-            final Optional<PGPPublicKey> optionalPublicKey = publicKeyService.findPublicKey(keyId);
+            final Optional<PGPPublicKey> optionalPublicKey = publicKeyService.findPublicKey(publicKeySearch);
             if (optionalPublicKey.isPresent()) {
                 final PGPPublicKey publicKey = optionalPublicKey.get();
                 generators.add(new BcPublicKeyKeyEncryptionMethodGenerator(publicKey).setSecureRandom(secureRandom));
             } else {
-                throw new PGPEncryptionException(String.format("Public Key ID [%s] not found", publicKeyId));
+                throw new PGPEncryptionException(String.format("Public Key not found using search [%s]", publicKeySearch));
             }
         }
 
         return generators;
-    }
-
-    private long parsePublicKeyId(final String publicKeyId) {
-        try {
-            return Long.parseUnsignedLong(publicKeyId, HEXADECIMAL);
-        } catch (final RuntimeException e) {
-            final String message = String.format("Parsing Public Key ID [%s] Failed", publicKeyId);
-            throw new PGPProcessException(message, e);
-        }
     }
 
     private SymmetricKeyAlgorithm getSymmetricKeyAlgorithm(final ProcessContext context) {

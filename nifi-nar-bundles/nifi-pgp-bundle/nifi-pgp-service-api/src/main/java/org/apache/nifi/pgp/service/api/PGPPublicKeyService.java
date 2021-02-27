@@ -28,8 +28,8 @@ public interface PGPPublicKeyService extends ControllerService {
     /**
      * Find Public Key
      *
-     * @param keyIdentifier Public Key Identifier
+     * @param search Public Key Search to be processed based on Controller Service implementation
      * @return Optional container for PGP Public Key
      */
-    Optional<PGPPublicKey> findPublicKey(long keyIdentifier);
+    Optional<PGPPublicKey> findPublicKey(String search);
 }

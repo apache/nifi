@@ -130,7 +130,8 @@ public class StandardPGPPublicKeyServiceTest {
 
     private void assertPublicKeyFound(final PGPSecretKey secretKey) {
         final long keyIdentifier = secretKey.getKeyID();
-        final Optional<PGPPublicKey> optionalPublicKey = service.findPublicKey(keyIdentifier);
+        final String publicKeySearch = Long.toHexString(keyIdentifier).toUpperCase();
+        final Optional<PGPPublicKey> optionalPublicKey = service.findPublicKey(publicKeySearch);
         assertTrue(optionalPublicKey.isPresent());
         final PGPPublicKey publicKey = optionalPublicKey.get();
         assertEquals(keyIdentifier, publicKey.getKeyID());
