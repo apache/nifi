@@ -158,6 +158,18 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
             .addValidator(StandardValidators.PORT_VALIDATOR)
             .build();
 
+
+    public static final PropertyDescriptor SUB_PROTOCOL = new PropertyDescriptor.Builder()
+            .name("sub-protocol")
+            .displayName("Sub Protocol")
+            .description("set sub protocol")
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
+            .build();            
+
+
+
     private static final List<PropertyDescriptor> properties;
 
     static {
@@ -172,6 +184,7 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
         props.add(AUTH_CHARSET);
         props.add(PROXY_HOST);
         props.add(PROXY_PORT);
+        props.add(SUB_PROTOCOL);
 
         properties = Collections.unmodifiableList(props);
     }
@@ -179,6 +192,7 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
     private WebSocketClient client;
     private URI webSocketUri;
     private String authorizationHeader;
+    private String subProtocol;
     private long connectionTimeoutMillis;
     private volatile ScheduledExecutorService sessionMaintenanceScheduler;
     private final ReentrantLock connectionLock = new ReentrantLock();
@@ -199,6 +213,7 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
         }
 
         HttpClient httpClient = new HttpClient(sslContextFactory);
+
 
         final String proxyHost = context.getProperty(PROXY_HOST).evaluateAttributeExpressions().getValue();
         final Integer proxyPort = context.getProperty(PROXY_PORT).evaluateAttributeExpressions().asInteger();
@@ -224,6 +239,8 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
         } else {
             authorizationHeader = null;
         }
+
+        subProtocol = context.getProperty(SUB_PROTOCOL).evaluateAttributeExpressions().getValue();
 
         client.start();
         activeSessions.clear();
@@ -299,6 +316,11 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
             listener.setSessionId(sessionId);
 
             final ClientUpgradeRequest request = new ClientUpgradeRequest();
+
+            if (!StringUtils.isEmpty(subProtocol)) {
+                 request.setSubProtocols(subProtocol);
+            }
+
             if (!StringUtils.isEmpty(authorizationHeader)) {
                 request.setHeader(HttpHeader.AUTHORIZATION.asString(), authorizationHeader);
             }
