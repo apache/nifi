@@ -450,6 +450,10 @@ public class FormatUtils {
      * @return parsed Instant
      */
     public static Instant parseInstant(DateTimeFormatter formatter, String text) {
+        if (text == null) {
+            throw new IllegalArgumentException("Text cannot be null");
+        }
+
         TemporalAccessor parsed = formatter.parseBest(text, Instant::from, LocalDateTime::from, LocalDate::from, LocalTime::from);
         if (parsed instanceof Instant) {
             return (Instant) parsed;
