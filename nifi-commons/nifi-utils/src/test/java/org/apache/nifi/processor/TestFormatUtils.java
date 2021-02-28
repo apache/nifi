@@ -129,7 +129,7 @@ public class TestFormatUtils {
     }
 
     private void checkSameResultsWithSimpleDateFormat(String pattern, String parsedDateTime, String zone, String expectedUtcDateTime) throws Exception {
-        LocalDateTime expectedDateTime = LocalDateTime.parse(expectedUtcDateTime);
+        Instant expectedInstant = LocalDateTime.parse(expectedUtcDateTime).atZone(ZoneOffset.UTC).toInstant();
 
         // reference implementation
         SimpleDateFormat sdf = new SimpleDateFormat(pattern, Locale.US);
@@ -137,7 +137,7 @@ public class TestFormatUtils {
             sdf.setTimeZone(TimeZone.getTimeZone(zone));
         }
         Instant simpleDateFormatResult = sdf.parse(parsedDateTime).toInstant();
-        assertEquals(expectedDateTime, simpleDateFormatResult.atZone(ZoneOffset.UTC).toLocalDateTime());
+        assertEquals(expectedInstant, simpleDateFormatResult);
 
         // current implementation
         DateTimeFormatter dtf = FormatUtils.prepareLenientCaseInsensitiveDateTimeFormatter(pattern);
@@ -145,7 +145,7 @@ public class TestFormatUtils {
             dtf = dtf.withZone(ZoneId.of(zone));
         }
         Instant result = FormatUtils.parseInstant(dtf, parsedDateTime);
-        assertEquals(expectedDateTime, result.atZone(ZoneOffset.UTC).toLocalDateTime());
+        assertEquals(expectedInstant, result);
     }
 
 }

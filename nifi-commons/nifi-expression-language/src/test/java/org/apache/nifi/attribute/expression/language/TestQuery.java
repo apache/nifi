@@ -37,7 +37,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.time.Instant;
-import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
@@ -50,6 +49,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 
 import static java.lang.Double.NEGATIVE_INFINITY;
@@ -940,10 +940,15 @@ public class TestQuery {
         final String format = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
 
         final String query = "startDateTime=\"${date:toNumber():toDate():format(\"" + format + "\")}\"";
-        final String result = Query.evaluateExpressions(query, attributes, null);
 
-        final String expectedTime = DateTimeFormatter.ofPattern(format, Locale.US).format(Instant.ofEpochMilli(timestamp).atZone(ZoneId.systemDefault()));
-        assertEquals("startDateTime=\"" + expectedTime + "\"", result);
+        TimeZone current = TimeZone.getDefault();
+        TimeZone defaultTimeZone = TimeZone.getTimeZone("Europe/Kiev");
+        TimeZone.setDefault(defaultTimeZone);
+        try {
+            final String result = Query.evaluateExpressions(query, attributes, null);
+
+            final String expectedTime = DateTimeFormatter.ofPattern(format, Locale.US).format(Instant.ofEpochMilli(timestamp).atZone(defaultTimeZone.toZoneId()));
+            assertEquals("startDateTime=\"" + expectedTime + "\"", result);
 
         final List<Range> ranges = Query.extractExpressionRanges(query);
         assertEquals(1, ranges.size());
@@ -965,8 +970,33 @@ public class TestQuery {
                 .format(Instant.ofEpochMilli(timestamp));
         assertEquals("startDateTime=\"" + expectedTime + "\"", result);
 
-        final List<Range> ranges = Query.extractExpressionRanges(query);
-        assertEquals(1, ranges.size());
+            final List<Range> ranges = Query.extractExpressionRanges(query);
+            assertEquals(1, ranges.size());
+        } finally {
+            TimeZone.setDefault(current);
+        }
+    }
+
+    @Test
+    public void testFormatUsesLocalTimeZoneUnlessIsSpecified() {
+        TimeZone current = TimeZone.getDefault();
+        TimeZone.setDefault(TimeZone.getTimeZone("Europe/Kiev"));
+        try {
+            final String formatWithZoneInvocation = "format(\"yyyy-MM-dd HH:mm:ss\", \"GMT\")";
+            assertEquals("2020-01-01 00:00:00", evaluateFormatDate("2020-01-01 00:00:00", formatWithZoneInvocation));
+
+            final String formatWithoutZoneInvocation = "format(\"yyyy-MM-dd HH:mm:ss\")";
+            assertEquals("2020-02-01 02:00:00", evaluateFormatDate("2020-02-01 00:00:00", formatWithoutZoneInvocation));
+        } finally {
+            TimeZone.setDefault(current);
+        }
+    }
+
+    private String evaluateFormatDate(String givenDateStringInGMT, String formatInvocation) {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("date", String.valueOf(givenDateStringInGMT));
+        final String query = "${date:toDate(\"yyyy-MM-dd HH:mm:ss\", \"GMT\"):" + formatInvocation + "}";
+        return Query.evaluateExpressions(query, attributes, null);
     }
 
     @Test
