@@ -248,26 +248,28 @@ public class NiFiPropertiesLoader {
      */
     public NiFiProperties get() {
         if (instance == null) {
-            final NiFiProperties defaultProperties = loadDefault();
-            if (isKeyGenerationRequired(defaultProperties)) {
-                setSensitivePropertiesKey(defaultProperties);
-                instance = loadDefault();
-            } else {
-                instance = defaultProperties;
-            }
+            instance = getDefaultProperties();
         }
 
         return instance;
     }
 
-    private void setSensitivePropertiesKey(final NiFiProperties niFiProperties) {
-        final File flowConfiguration = niFiProperties.getFlowConfigurationFile();
-        if (flowConfiguration.exists()) {
-            logger.error("Flow Configuration [{}] Found: Migration Required for blank Sensitive Properties Key [{}]", flowConfiguration, NiFiProperties.SENSITIVE_PROPS_KEY);
-            final String message = String.format("Sensitive Properties Key [%s] not found: %s", NiFiProperties.SENSITIVE_PROPS_KEY, MIGRATION_INSTRUCTIONS);
-            throw new SensitivePropertyProtectionException(message);
+    private NiFiProperties getDefaultProperties() {
+        NiFiProperties defaultProperties = loadDefault();
+        if (isKeyGenerationRequired(defaultProperties)) {
+            final File flowConfiguration = defaultProperties.getFlowConfigurationFile();
+            if (flowConfiguration.exists()) {
+                logger.error("Flow Configuration [{}] Found: Migration Required for blank Sensitive Properties Key [{}]", flowConfiguration, NiFiProperties.SENSITIVE_PROPS_KEY);
+                final String message = String.format("Sensitive Properties Key [%s] not found: %s", NiFiProperties.SENSITIVE_PROPS_KEY, MIGRATION_INSTRUCTIONS);
+                throw new SensitivePropertyProtectionException(message);
+            }
+            setSensitivePropertiesKey();
+            defaultProperties = loadDefault();
         }
+        return defaultProperties;
+    }
 
+    private void setSensitivePropertiesKey() {
         logger.warn("Generating Random Sensitive Properties Key [{}]", NiFiProperties.SENSITIVE_PROPS_KEY);
         final SecureRandom secureRandom = new SecureRandom();
         final byte[] sensitivePropertiesKeyBinary = new byte[SENSITIVE_PROPERTIES_KEY_LENGTH];
