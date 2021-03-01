@@ -60,4 +60,33 @@ public class TestPropertiesFileLookupService {
         assertEquals(EMPTY_STRING, property3);
     }
 
+    @Test
+    public void testPropertiesFileLookupServiceVariable() throws InitializationException, LookupFailureException {
+        final TestRunner runner = TestRunners.newTestRunner(TestProcessor.class);
+        final PropertiesFileLookupService service = new PropertiesFileLookupService();
+
+        runner.setVariable("myFile", "src/test/resources/test.properties");
+
+        runner.addControllerService("properties-file-lookup-service", service);
+        runner.setProperty(service, PropertiesFileLookupService.CONFIGURATION_FILE, "${myFile}");
+        runner.enableControllerService(service);
+        runner.assertValid(service);
+
+        final PropertiesFileLookupService lookupService =
+            (PropertiesFileLookupService) runner.getProcessContext()
+                .getControllerServiceLookup()
+                .getControllerService("properties-file-lookup-service");
+
+        assertThat(lookupService, instanceOf(LookupService.class));
+
+        final Optional<String> property1 = lookupService.lookup(Collections.singletonMap("key", "property.1"));
+        assertEquals(Optional.of("this is property 1"), property1);
+
+        final Optional<String> property2 = lookupService.lookup(Collections.singletonMap("key", "property.2"));
+        assertEquals(Optional.of("this is property 2"), property2);
+
+        final Optional<String> property3 = lookupService.lookup(Collections.singletonMap("key", "property.3"));
+        assertEquals(EMPTY_STRING, property3);
+    }
+
 }
