@@ -94,6 +94,8 @@ public class AzureGraphUserGroupProvider implements UserGroupProvider {
     public static final String DEFAULT_PAGE_SIZE = "50";
     public static final String DEFAULT_CLAIM_FOR_USERNAME = "upn";
     public static final int MAX_PAGE_SIZE = 999;
+    static final List<String> REST_CALL_KEYWORDS = Arrays.asList("$select", "$top", "$expand", "$search", "$filter", "$format", "$count", "$skip", "$orderby");
+
 
     private ClientCredentialAuthProvider authProvider;
     private IGraphServiceClient graphClient;
@@ -169,6 +171,10 @@ public class AzureGraphUserGroupProvider implements UserGroupProvider {
         return syncInterval;
     }
 
+    private boolean hasReservedKeyword(String prefix) {
+        return REST_CALL_KEYWORDS.contains(prefix);
+    }
+
     @Override
     public void onConfigured(AuthorizerConfigurationContext configurationContext) throws AuthorizerCreationException {
         long fixedDelay = getDelayProperty(configurationContext, REFRESH_DELAY_PROPERTY, DEFAULT_REFRESH_DELAY);
@@ -217,6 +223,10 @@ public class AzureGraphUserGroupProvider implements UserGroupProvider {
         if (StringUtils.isBlank(prefix) && StringUtils.isBlank(suffix) && StringUtils.isBlank(substring) && StringUtils.isBlank(groupFilterList)) {
             throw new AuthorizerCreationException(String.format("At least one group filter (%s, %s, %s) should be specified for %s",
                 GROUP_FILTER_PREFIX_PROPERTY, GROUP_FILTER_SUFFIX_PROPERTY, GROUP_FILTER_LIST_PROPERTY, providerClassName));
+        }
+        // make sure prefix shouldn't have any reserved keywords
+        if (hasReservedKeyword(prefix)) {
+            throw new AuthorizerCreationException(String.format("Prefix shouldn't have any reserved keywords ([%s])", StringUtils.join(REST_CALL_KEYWORDS, ",")));
         }
 
         try {
