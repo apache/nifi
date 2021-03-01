@@ -67,7 +67,8 @@ import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.eclipse.jetty.util.thread.QueuedThreadPool;
+import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.util.thread.ThreadPool;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -76,8 +77,6 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
-import org.mockito.Spy;
 
 import static org.apache.nifi.processors.standard.ListenHTTP.RELATIONSHIP_SUCCESS;
 import static org.junit.Assert.assertEquals;
@@ -124,7 +123,6 @@ public class TestListenHTTP {
     private static SSLContext keyStoreSslContext;
     private static SSLContext trustStoreSslContext;
 
-    @Spy
     private ListenHTTP proc;
     private TestRunner runner;
 
@@ -211,7 +209,7 @@ public class TestListenHTTP {
 
     @Before
     public void setup() throws IOException {
-        MockitoAnnotations.initMocks(this);
+        proc = new ListenHTTP();
         runner = TestRunners.newTestRunner(proc);
         availablePort = NetworkUtils.availablePort();
         runner.setVariable(PORT_VARIABLE, Integer.toString(availablePort));
@@ -454,9 +452,9 @@ public class TestListenHTTP {
     }
 
     @Test
-    public void testWhenServerIsStartedCreateQueuedThreadPoolIsCalledWithMaxThreadPoolSize() {
+    public void testMaxThreadPoolSizeSpecifiedInThePropertyIsSetInTheServerInstance() {
         // GIVEN
-        int maxThreadPoolSize = 200;
+        int maxThreadPoolSize = 201;
         runner.setProperty(ListenHTTP.PORT, Integer.toString(availablePort));
         runner.setProperty(ListenHTTP.BASE_PATH, HTTP_BASE_PATH);
         runner.setProperty(ListenHTTP.MAX_THREAD_POOL_SIZE, Integer.toString(maxThreadPoolSize));
@@ -465,26 +463,10 @@ public class TestListenHTTP {
         startWebServer();
 
         // THEN
-        Mockito.verify(proc).createQueuedThreadPool(maxThreadPoolSize);
-    }
-
-    @Test
-    public void testWhenServerIsStartedCreateCreateServerIsCalledWithTheRightQueuedThreadPool() {
-        // GIVEN
-        int maxThreadPoolSize = 200;
-        QueuedThreadPool queuedThreadPool = new QueuedThreadPool(maxThreadPoolSize);
-
-        runner.setProperty(ListenHTTP.PORT, Integer.toString(availablePort));
-        runner.setProperty(ListenHTTP.BASE_PATH, HTTP_BASE_PATH);
-        runner.setProperty(ListenHTTP.MAX_THREAD_POOL_SIZE, Integer.toString(maxThreadPoolSize));
-
-        Mockito.when(proc.createQueuedThreadPool(maxThreadPoolSize)).thenReturn(queuedThreadPool);
-
-        // WHEN
-        startWebServer();
-
-        // THEN
-        Mockito.verify(proc).createServer(queuedThreadPool);
+        Server server = proc.getServer();
+        ThreadPool threadPool = server.getThreadPool();
+        ThreadPool.SizedThreadPool sizedThreadPool = (ThreadPool.SizedThreadPool) threadPool;
+        assertEquals(maxThreadPoolSize, sizedThreadPool.getMaxThreads());
     }
 
     private void startSecureServer() {
