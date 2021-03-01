@@ -65,6 +65,7 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLDataException;
 import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
 import java.sql.SQLXML;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -297,7 +298,11 @@ public class JdbcCommon {
                             }
                             ByteBuffer bb = ByteBuffer.wrap(buffer);
                             rec.put(i - 1, bb);
-                            blob.free();
+                            try {
+                                blob.free();
+                            } catch (SQLFeatureNotSupportedException sfnse) {
+                                // The driver doesn't support free, but allow processing to continue
+                            }
                         } else {
                             rec.put(i - 1, null);
                         }
