@@ -24,8 +24,6 @@ import org.coursera.metrics.datadog.transport.UdpTransport;
 
 import java.io.IOException;
 import java.net.InetAddress;
-import java.util.Arrays;
-import java.util.List;
 
 /**
  * Class configures MetricRegistry (passed outside or created from scratch) with Datadog support
