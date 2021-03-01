@@ -48,6 +48,8 @@ public class NiFiPropertiesLoader {
     private static final int SENSITIVE_PROPERTIES_KEY_LENGTH = 24;
     private static final String EMPTY_SENSITIVE_PROPERTIES_KEY = String.format("%s=", NiFiProperties.SENSITIVE_PROPS_KEY);
     private static final String MIGRATION_INSTRUCTIONS = "See Administration Guide section [Migrating a Flow with Sensitive Properties]";
+
+    private final String defaultPropertiesFilePath = CryptoUtils.getDefaultFilePath();
     private NiFiProperties instance;
     private String keyHex;
 
@@ -143,7 +145,7 @@ public class NiFiPropertiesLoader {
     }
 
     private NiFiProperties loadDefault() {
-        return load(CryptoUtils.getDefaultFilePath());
+        return load(defaultPropertiesFilePath);
     }
 
     static String getDefaultProviderKey() {
@@ -246,9 +248,52 @@ public class NiFiPropertiesLoader {
      */
     public NiFiProperties get() {
         if (instance == null) {
-            instance = loadDefault();
+            final NiFiProperties defaultProperties = loadDefault();
+            if (isKeyGenerationRequired(defaultProperties)) {
+                setSensitivePropertiesKey(defaultProperties);
+                instance = loadDefault();
+            } else {
+                instance = defaultProperties;
+            }
         }
 
         return instance;
+    }
+
+    private void setSensitivePropertiesKey(final NiFiProperties niFiProperties) {
+        final File flowConfiguration = niFiProperties.getFlowConfigurationFile();
+        if (flowConfiguration.exists()) {
+            logger.error("Flow Configuration [{}] Found: Migration Required for blank Sensitive Properties Key [{}]", flowConfiguration, NiFiProperties.SENSITIVE_PROPS_KEY);
+            final String message = String.format("Sensitive Properties Key [%s] not found: %s", NiFiProperties.SENSITIVE_PROPS_KEY, MIGRATION_INSTRUCTIONS);
+            throw new SensitivePropertyProtectionException(message);
+        }
+
+        logger.warn("Generating Random Sensitive Properties Key [{}]", NiFiProperties.SENSITIVE_PROPS_KEY);
+        final SecureRandom secureRandom = new SecureRandom();
+        final byte[] sensitivePropertiesKeyBinary = new byte[SENSITIVE_PROPERTIES_KEY_LENGTH];
+        secureRandom.nextBytes(sensitivePropertiesKeyBinary);
+        final String sensitivePropertiesKey = KEY_ENCODER.encodeToString(sensitivePropertiesKeyBinary);
+        try {
+            final File niFiPropertiesFile = new File(defaultPropertiesFilePath);
+            final Path niFiPropertiesPath = Paths.get(niFiPropertiesFile.toURI());
+            final List<String> lines = Files.readAllLines(niFiPropertiesPath);
+            final List<String> updatedLines = lines.stream().map(line -> {
+                if (line.equals(EMPTY_SENSITIVE_PROPERTIES_KEY)) {
+                    return line + sensitivePropertiesKey;
+                } else {
+                    return line;
+                }
+            }).collect(Collectors.toList());
+            Files.write(niFiPropertiesPath, updatedLines);
+
+            logger.info("NiFi Properties [{}] updated with Sensitive Properties Key", niFiPropertiesPath);
+        } catch (final IOException e) {
+            throw new UncheckedIOException("Failed to set Sensitive Properties Key", e);
+        }
+    }
+
+    private static boolean isKeyGenerationRequired(final NiFiProperties properties) {
+        final String configuredSensitivePropertiesKey = properties.getProperty(NiFiProperties.SENSITIVE_PROPS_KEY);
+        return (configuredSensitivePropertiesKey == null || configuredSensitivePropertiesKey.length() == 0);
     }
 }
