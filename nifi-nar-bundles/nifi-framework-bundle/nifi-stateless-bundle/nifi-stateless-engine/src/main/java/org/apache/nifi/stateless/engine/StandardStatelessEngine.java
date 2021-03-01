@@ -73,7 +73,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import static java.util.Objects.requireNonNull;
@@ -86,7 +85,7 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
     private final ExtensionManager extensionManager;
     private final BulletinRepository bulletinRepository;
     private final StatelessStateManagerProvider stateManagerProvider;
-    private final Supplier<PropertyEncryptor> encryptorFactory;
+    private final PropertyEncryptor propertyEncryptor;
     private final FlowRegistryClient flowRegistryClient;
     private final VariableRegistry rootVariableRegistry;
     private final ProcessScheduler processScheduler;
@@ -111,7 +110,7 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
         this.extensionManager = requireNonNull(builder.extensionManager, "Extension Manager must be provided");
         this.bulletinRepository = requireNonNull(builder.bulletinRepository, "Bulletin Repository must be provided");
         this.stateManagerProvider = requireNonNull(builder.stateManagerProvider, "State Manager Provider must be provided");
-        this.encryptorFactory = requireNonNull(builder.encryptorFactory, "Encryptor must be provided");
+        this.propertyEncryptor = requireNonNull(builder.propertyEncryptor, "Encryptor must be provided");
         this.flowRegistryClient = requireNonNull(builder.flowRegistryClient, "Flow Registry Client must be provided");
         this.rootVariableRegistry = requireNonNull(builder.variableRegistry, "Variable Registry must be provided");
         this.processScheduler = requireNonNull(builder.processScheduler, "Process Scheduler must be provided");
@@ -459,8 +458,8 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
     }
 
     @Override
-    public Supplier<PropertyEncryptor> getEncryptorFactory() {
-        return encryptorFactory;
+    public PropertyEncryptor getPropertyEncryptor() {
+        return propertyEncryptor;
     }
 
     @Override
@@ -513,7 +512,7 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
         private ExtensionManager extensionManager = null;
         private BulletinRepository bulletinRepository = null;
         private StatelessStateManagerProvider stateManagerProvider = null;
-        private Supplier<PropertyEncryptor> encryptorFactory = null;
+        private PropertyEncryptor propertyEncryptor = null;
         private FlowRegistryClient flowRegistryClient = null;
         private VariableRegistry variableRegistry = null;
         private ProcessScheduler processScheduler = null;
@@ -537,8 +536,8 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
             return this;
         }
 
-        public Builder encryptor(final Supplier<PropertyEncryptor> encryptorFactory) {
-            this.encryptorFactory = encryptorFactory;
+        public Builder encryptor(final PropertyEncryptor propertyEncryptor) {
+            this.propertyEncryptor = propertyEncryptor;
             return this;
         }
 

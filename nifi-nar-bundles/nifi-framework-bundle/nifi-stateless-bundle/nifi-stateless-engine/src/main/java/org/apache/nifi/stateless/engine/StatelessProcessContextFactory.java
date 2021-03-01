@@ -28,15 +28,13 @@ import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.StandardProcessContext;
 
-import java.util.function.Supplier;
-
 public class StatelessProcessContextFactory implements ProcessContextFactory {
     private static final NodeTypeProvider NODE_TYPE_PROVIDER = new StatelessNodeTypeProvider();
     private final ControllerServiceProvider controllerServiceProvider;
-    private final Supplier<PropertyEncryptor> encryptor;
+    private final PropertyEncryptor encryptor;
     private final StateManagerProvider stateManagerProvider;
 
-    public StatelessProcessContextFactory(final ControllerServiceProvider controllerServiceProvider, final Supplier<PropertyEncryptor> encryptor, final StateManagerProvider stateManagerProvider) {
+    public StatelessProcessContextFactory(final ControllerServiceProvider controllerServiceProvider, final PropertyEncryptor encryptor, final StateManagerProvider stateManagerProvider) {
         this.controllerServiceProvider = controllerServiceProvider;
         this.encryptor = encryptor;
         this.stateManagerProvider = stateManagerProvider;

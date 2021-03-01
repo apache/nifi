@@ -86,7 +86,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Supplier;
 
 public class StandardStatelessDataflowFactory implements StatelessDataflowFactory<VersionedFlowSnapshot> {
     private static final Logger logger = LoggerFactory.getLogger(StandardStatelessDataflowFactory.class);
@@ -149,11 +148,20 @@ public class StandardStatelessDataflowFactory implements StatelessDataflowFactor
                 narClassLoaders, extensionClients);
 
             final VariableRegistry variableRegistry = VariableRegistry.EMPTY_REGISTRY;
-            final Supplier<PropertyEncryptor> encryptorFactory = new Supplier<PropertyEncryptor>() {
+            final PropertyEncryptor lazyInitializedEncryptor = new PropertyEncryptor() {
                 private PropertyEncryptor created = null;
 
                 @Override
-                public synchronized PropertyEncryptor get() {
+                public String encrypt(final String property) {
+                    return getEncryptor().encrypt(property);
+                }
+
+                @Override
+                public String decrypt(final String encryptedProperty) {
+                    return getEncryptor().decrypt(encryptedProperty);
+                }
+
+                private synchronized PropertyEncryptor getEncryptor() {
                     if (created != null) {
                         return created;
                     }
@@ -170,7 +178,7 @@ public class StandardStatelessDataflowFactory implements StatelessDataflowFactor
 
             final StatelessEngine<VersionedFlowSnapshot> statelessEngine = new StandardStatelessEngine.Builder()
                 .bulletinRepository(bulletinRepository)
-                .encryptor(encryptorFactory)
+                .encryptor(lazyInitializedEncryptor)
                 .extensionManager(extensionManager)
                 .flowRegistryClient(flowRegistryClient)
                 .stateManagerProvider(stateManagerProvider)
@@ -185,7 +193,7 @@ public class StandardStatelessDataflowFactory implements StatelessDataflowFactor
             final StatelessFlowManager flowManager = new StatelessFlowManager(flowFileEventRepo, parameterContextManager, statelessEngine, () -> true, sslContext);
             final ControllerServiceProvider controllerServiceProvider = new StandardControllerServiceProvider(processScheduler, bulletinRepository, flowManager, extensionManager);
 
-            final ProcessContextFactory rawProcessContextFactory = new StatelessProcessContextFactory(controllerServiceProvider, encryptorFactory, stateManagerProvider);
+            final ProcessContextFactory rawProcessContextFactory = new StatelessProcessContextFactory(controllerServiceProvider, lazyInitializedEncryptor, stateManagerProvider);
             final ProcessContextFactory processContextFactory = new CachingProcessContextFactory(rawProcessContextFactory);
             contentRepo = new ByteArrayContentRepository();
             flowFileRepo = new StatelessFlowFileRepository();

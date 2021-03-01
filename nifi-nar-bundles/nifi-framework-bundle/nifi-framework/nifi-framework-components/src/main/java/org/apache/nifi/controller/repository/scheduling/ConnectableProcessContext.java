@@ -40,7 +40,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Supplier;
 
 /**
  * This class is essentially an empty shell for {@link Connectable}s that are not Processors
@@ -48,16 +47,12 @@ import java.util.function.Supplier;
 public class ConnectableProcessContext implements ProcessContext {
 
     private final Connectable connectable;
-    private final Supplier<PropertyEncryptor> encryptorFactory;
+    private final PropertyEncryptor propertyEncryptor;
     private final StateManager stateManager;
 
-    public ConnectableProcessContext(final Connectable connectable, final PropertyEncryptor encryptor, final StateManager stateManager) {
-        this(connectable, () -> encryptor, stateManager);
-    }
-
-    public ConnectableProcessContext(final Connectable connectable, final Supplier<PropertyEncryptor> encryptorFactory, final StateManager stateManager) {
+    public ConnectableProcessContext(final Connectable connectable, final PropertyEncryptor propertyEncryptor, final StateManager stateManager) {
         this.connectable = connectable;
-        this.encryptorFactory = encryptorFactory;
+        this.propertyEncryptor = propertyEncryptor;
         this.stateManager = stateManager;
     }
 
@@ -217,12 +212,12 @@ public class ConnectableProcessContext implements ProcessContext {
 
     @Override
     public String decrypt(String encrypted) {
-        return encryptorFactory.get().decrypt(encrypted);
+        return propertyEncryptor.decrypt(encrypted);
     }
 
     @Override
     public String encrypt(String unencrypted) {
-        return encryptorFactory.get().encrypt(unencrypted);
+        return propertyEncryptor.encrypt(unencrypted);
     }
 
     @Override

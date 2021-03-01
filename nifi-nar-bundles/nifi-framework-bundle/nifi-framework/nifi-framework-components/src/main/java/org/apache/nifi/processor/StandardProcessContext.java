@@ -43,29 +43,24 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Supplier;
 
 public class StandardProcessContext implements ProcessContext, ControllerServiceLookup {
 
     private final ProcessorNode procNode;
     private final ControllerServiceProvider controllerServiceProvider;
     private final Map<PropertyDescriptor, PreparedQuery> preparedQueries;
-    private final Supplier<PropertyEncryptor> encryptorFactory;
+    private final PropertyEncryptor propertyEncryptor;
     private final StateManager stateManager;
     private final TaskTermination taskTermination;
     private final NodeTypeProvider nodeTypeProvider;
     private final Map<PropertyDescriptor, String> properties;
 
-    public StandardProcessContext(final ProcessorNode processorNode, final ControllerServiceProvider controllerServiceProvider, final PropertyEncryptor encryptor,
-                                  final StateManager stateManager, final TaskTermination taskTermination, final NodeTypeProvider nodeTypeProvider) {
-        this(processorNode, controllerServiceProvider, () -> encryptor, stateManager, taskTermination, nodeTypeProvider);
-    }
 
-    public StandardProcessContext(final ProcessorNode processorNode, final ControllerServiceProvider controllerServiceProvider, final Supplier<PropertyEncryptor> encryptorFactory,
+    public StandardProcessContext(final ProcessorNode processorNode, final ControllerServiceProvider controllerServiceProvider, final PropertyEncryptor propertyEncryptor,
                                   final StateManager stateManager, final TaskTermination taskTermination, final NodeTypeProvider nodeTypeProvider) {
         this.procNode = processorNode;
         this.controllerServiceProvider = controllerServiceProvider;
-        this.encryptorFactory = encryptorFactory;
+        this.propertyEncryptor = propertyEncryptor;
         this.stateManager = stateManager;
         this.taskTermination = taskTermination;
         this.nodeTypeProvider = nodeTypeProvider;
@@ -184,13 +179,13 @@ public class StandardProcessContext implements ProcessContext, ControllerService
     @Override
     public String encrypt(final String unencrypted) {
         verifyTaskActive();
-        return encryptorFactory.get().encrypt(unencrypted);
+        return propertyEncryptor.encrypt(unencrypted);
     }
 
     @Override
     public String decrypt(final String encrypted) {
         verifyTaskActive();
-        return encryptorFactory.get().decrypt(encrypted);
+        return propertyEncryptor.decrypt(encrypted);
     }
 
     @Override
