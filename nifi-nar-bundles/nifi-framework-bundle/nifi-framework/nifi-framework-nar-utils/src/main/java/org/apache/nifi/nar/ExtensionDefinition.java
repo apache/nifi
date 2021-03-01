@@ -21,6 +21,12 @@ import org.apache.nifi.bundle.Bundle;
 
 import java.util.Objects;
 
+/**
+ * Provides a wrapper for the elements that make an extension unique. For example, there may be a class named org.apache.nifi.extensions.ExtensionABC
+ * that exists in a given NiFi Archive (NAR). There may also be several classes named org.apache.nifi.extensions.ExtensionABC, each in its own NAR,
+ * and each of those would be a separate extension. This class provides a mechanism by which the relevant bits to determine an extension's uniqueness
+ * can be bundled together into a single class.
+ */
 public class ExtensionDefinition {
     private final String implementationClassName;
     private final Bundle bundle;
@@ -32,14 +38,24 @@ public class ExtensionDefinition {
         this.extensionType = extensionType;
     }
 
+    /**
+     * @return the fully qualified class name of the class that implements the extension
+     */
     public String getImplementationClassName() {
         return implementationClassName;
     }
 
+    /**
+     * @return the Bundle that contains the extension
+     */
     public Bundle getBundle() {
         return bundle;
     }
 
+    /**
+     * @return the type of Extension (e.g., {@link org.apache.nifi.processor.Processor}, {@link org.apache.nifi.controller.ControllerService},
+     * or {@link org.apache.nifi.reporting.ReportingTask}.
+     */
     public Class<?> getExtensionType() {
         return extensionType;
     }
@@ -55,9 +71,9 @@ public class ExtensionDefinition {
         }
 
         final ExtensionDefinition that = (ExtensionDefinition) o;
-        return Objects.equals(implementationClassName, that.implementationClassName) &&
-            Objects.equals(bundle, that.bundle) &&
-            Objects.equals(extensionType, that.extensionType);
+        return Objects.equals(implementationClassName, that.implementationClassName)
+            && Objects.equals(bundle, that.bundle)
+            && Objects.equals(extensionType, that.extensionType);
     }
 
     @Override

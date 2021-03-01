@@ -367,7 +367,6 @@ public class ExtensionBuilder {
 
             final Class<? extends ControllerService> controllerServiceClass = rawClass.asSubclass(ControllerService.class);
             final ControllerService serviceImpl = controllerServiceClass.newInstance();
-            verifyControllerServiceReferences(serviceImpl, bundle.getClassLoader());
 
             final StandardControllerServiceInvocationHandler invocationHandler = new StandardControllerServiceInvocationHandler(extensionManager, serviceImpl);
 
@@ -390,6 +389,8 @@ public class ExtensionBuilder {
             final ControllerServiceInitializationContext initContext = new StandardControllerServiceInitializationContext(identifier, terminationAwareLogger,
                     serviceProvider, stateManager, kerberosConfig, nodeTypeProvider);
             serviceImpl.initialize(initContext);
+
+            verifyControllerServiceReferences(serviceImpl, bundle.getClassLoader());
 
             final LoggableComponent<ControllerService> originalLoggableComponent = new LoggableComponent<>(serviceImpl, bundleCoordinate, terminationAwareLogger);
             final LoggableComponent<ControllerService> proxiedLoggableComponent = new LoggableComponent<>(proxiedService, bundleCoordinate, terminationAwareLogger);
@@ -421,8 +422,11 @@ public class ExtensionBuilder {
         // if the extension does not require instance classloading, there is no concern.
         final boolean requiresInstanceClassLoading = component.getClass().isAnnotationPresent(RequiresInstanceClassLoading.class);
         if (!requiresInstanceClassLoading) {
+            logger.debug("Instance ClassLoading is not required for {}", component);
             return;
         }
+
+        logger.debug("Component {} requires Instance Class Loading", component);
 
         final Class<?> originalExtensionType = component.getClass();
         final ClassLoader originalExtensionClassLoader = originalExtensionType.getClassLoader();
@@ -441,6 +445,8 @@ public class ExtensionBuilder {
             }
         }
 
+        logger.debug("Component {} is co-bundled with {} Controller Service APIs based on referenced Controller Services: {}", component, cobundledApis.size(), cobundledApis);
+
         // If the component is a Controller Service, it should also not extend from any API that is in the same class loader.
         if (component instanceof ControllerService) {
             Class<?> extensionType = component.getClass();
@@ -453,6 +459,9 @@ public class ExtensionBuilder {
 
                 extensionType = extensionType.getSuperclass();
             }
+
+            logger.debug("Component {} is co-bundled with {} Controller Service APIs based on referenced Controller Services and services that are implemented: {}",
+                component, cobundledApis.size(), cobundledApis);
         }
 
         if (!cobundledApis.isEmpty()) {
@@ -483,10 +492,14 @@ public class ExtensionBuilder {
     private LoggableComponent<Processor> createLoggableProcessor() throws ProcessorInstantiationException {
         try {
             final LoggableComponent<Processor> processorComponent = createLoggableComponent(Processor.class);
+            final Processor processor = processorComponent.getComponent();
 
             final ProcessorInitializationContext initiContext = new StandardProcessorInitializationContext(identifier, processorComponent.getLogger(),
                     serviceProvider, nodeTypeProvider, kerberosConfig);
-            processorComponent.getComponent().initialize(initiContext);
+            processor.initialize(initiContext);
+
+            final Bundle bundle = extensionManager.getBundle(bundleCoordinate);
+            verifyControllerServiceReferences(processor, bundle.getClassLoader());
 
             return processorComponent;
         } catch (final Exception e) {
@@ -504,6 +517,9 @@ public class ExtensionBuilder {
                     SchedulingStrategy.TIMER_DRIVEN, "1 min", taskComponent.getLogger(), serviceProvider, kerberosConfig, nodeTypeProvider);
 
             taskComponent.getComponent().initialize(config);
+
+            final Bundle bundle = extensionManager.getBundle(bundleCoordinate);
+            verifyControllerServiceReferences(taskComponent.getComponent(), bundle.getClassLoader());
 
             return taskComponent;
         } catch (final Exception e) {
@@ -524,12 +540,11 @@ public class ExtensionBuilder {
             Thread.currentThread().setContextClassLoader(detectedClassLoader);
 
             final Object extensionInstance = rawClass.newInstance();
-            final T cast = nodeType.cast(extensionInstance);
-            verifyControllerServiceReferences(cast, bundle.getClassLoader());
 
             final ComponentLog componentLog = new SimpleProcessLogger(identifier, extensionInstance);
             final TerminationAwareLogger terminationAwareLogger = new TerminationAwareLogger(componentLog);
 
+            final T cast = nodeType.cast(extensionInstance);
             return new LoggableComponent<>(cast, bundleCoordinate, terminationAwareLogger);
         } finally {
             if (ctxClassLoader != null) {

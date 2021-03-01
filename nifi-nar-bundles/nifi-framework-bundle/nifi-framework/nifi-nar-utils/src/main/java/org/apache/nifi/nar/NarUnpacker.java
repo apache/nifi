@@ -293,7 +293,7 @@ public final class NarUnpacker {
         if (!narWorkingDirectory.exists()) {
             unpack(nar, narWorkingDirectory, FileDigestUtils.getDigest(nar));
         } else if (verifyHash) {
-            // the working directory does exist. Run MD5 sum against the nar
+            // the working directory does exist. Run digest against the nar
             // file and check if the nar has changed since it was deployed.
             final byte[] narDigest = FileDigestUtils.getDigest(nar);
             final File workingHashFile = new File(narWorkingDirectory, HASH_FILENAME);

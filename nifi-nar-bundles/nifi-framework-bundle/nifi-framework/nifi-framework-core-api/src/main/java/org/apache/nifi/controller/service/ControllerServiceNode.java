@@ -182,6 +182,13 @@ public interface ControllerServiceNode extends ComponentNode, VersionedComponent
      */
     boolean isActive();
 
+    /**
+     * Waits up to the given amount of time for the Controller Service to transition to an ENABLED state.
+     * @param timePeriod maximum amount of time to wait
+     * @param timeUnit the unit for the time period
+     * @return <code>true</code> if the Controller Service finished enabling, <code>false</code> otherwise
+     * @throws InterruptedException if interrupted while waiting for the service complete its enabling
+     */
     boolean awaitEnabled(long timePeriod, TimeUnit timeUnit) throws InterruptedException;
 
     /**

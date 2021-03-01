@@ -135,8 +135,6 @@ public class FileSystemExtensionRepository implements ExtensionRepository {
         }
 
         final Set<Bundle> loadedBundles = narLoadResult.getLoadedBundles();
-
-//        extensionManager.registerBundles(loadedBundles);
         extensionManager.discoverExtensions(loadedBundles);
         return loadedBundles;
     }

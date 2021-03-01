@@ -18,6 +18,8 @@
 package org.apache.nifi.controller.service;
 
 import org.apache.nifi.controller.ComponentNode;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -30,6 +32,7 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class ServiceStateTransition {
+    private static final Logger logger = LoggerFactory.getLogger(ServiceStateTransition.class);
     private ControllerServiceState state = ControllerServiceState.DISABLED;
     private final List<CompletableFuture<?>> enabledFutures = new ArrayList<>();
     private final List<CompletableFuture<?>> disabledFutures = new ArrayList<>();
