@@ -26,7 +26,7 @@
 
 <body>
 
-<h2>Examples for the effect of Force Types From Schema property</h2>
+<h2>Examples for the effect of Force Types From Reader's Schema property</h2>
 
 <p>
     The processor first reads the data from the incoming FlowFile using the specified Record Reader,
@@ -35,9 +35,9 @@
     After that, the processor writes the data into the outgoing FlowFile using the specified
     Record Writer. If the data is valid, the validation schema is used by the writer.
     If the data is invalid, the writer uses the reader's schema.
-    The  <b>Force Types From Schema</b> property affects the first step:
+    The  <b>Force Types From Reader's Schema</b> property affects the first step:
     how strictly the reader's schema should be applied when reading the data from the incoming FlowFile.
-    By affecting how the data is read, the value of the Force Types From Schema property also has an effect on what
+    By affecting how the data is read, the value of the Force Types From Reader's Schema property also has an effect on what
     the output of the ValidateRecord processor is,
     and also whether the output is forwarded to the <b>valid</b> or the <b>invalid</b> relationship.
     Below are two examples where the value of this property affects the output significantly.
@@ -75,7 +75,7 @@
 &lt;/test&gt;</code></pre>
 
 <p>
-    Output if <b>Force Types From Schema = true</b>
+    Output if <b>Force Types From Reader's Schema = true</b>
     (forwarded to the <b>invalid</b> relationship):
 </p>
 <pre><code>[ {
@@ -83,7 +83,7 @@
 } ]</code></pre>
 
 <p>
-    Output if <b>Force Types From Schema = false</b>
+    Output if <b>Force Types From Reader's Schema = false</b>
     (forwarded to the <b>invalid</b> relationship):
 </p>
 <pre><code>[ {
@@ -96,8 +96,8 @@
 <p>
     As you can see, the FlowFile is forwarded to the invalid relationship in both cases,
     since the input data does not match the provided Avro schema.
-    However, if <b>Force Types From Schema = true</b>, only those fields appear in the output
-    that comply with the schema. If <b>Force Types From Schema = false</b>, all fields appear
+    However, if <b>Force Types From Reader's Schema = true</b>, only those fields appear in the output
+    that comply with the schema. If <b>Force Types From Reader's Schema = false</b>, all fields appear
     in the output regardless of whether they comply with the schema or not.
 </p>
 
@@ -138,7 +138,7 @@
 &lt;/test&gt;</code></pre>
 
 <p>
-    Output if <b>Force Types From Schema = true</b>
+    Output if <b>Force Types From Reader's Schema = true</b>
     (forwarded to the <b>valid</b> relationship):
 </p>
 <pre><code>[ {
@@ -147,7 +147,7 @@
 } ]</code></pre>
 
 <p>
-    Output if <b>Force Types From Schema = false</b>
+    Output if <b>Force Types From Reader's Schema = false</b>
     (forwarded to the <b>invalid</b> relationship):
 </p>
 <pre><code>[ {
@@ -157,11 +157,11 @@
 
 <p>
     The schema expects two fields (field1 and field2), both of type ARRAY.
-    field1 only appears once in the input XML document. If <b>Force Types From Schema = true</b>,
+    field1 only appears once in the input XML document. If <b>Force Types From Reader's Schema = true</b>,
     the processor forces this field to be in a type that complies with the schema.
     So it is put in an array with one element. Since this type coercion can be done,
     the output is routed to the <b>valid</b> relationship.
-    If <b>Force Types From Schema = false</b> the processor does not try to apply
+    If <b>Force Types From Reader's Schema = false</b> the processor does not try to apply
     type coercion, thus field1 appears in the output as a single value. According to the schema,
     the processor expects an array for field1, but receives a single element so the output
     is routed to the <b>invalid</b> relationship.
@@ -171,7 +171,7 @@
     does not depend on what Writer is used to produce the output of the ValidateRecord processor.
     Let us suppose that we used the same schema and input as in <b>Example 2</b>, but instead of
     JsonRecordSetWriter, we used XMLRecordSetWriter to produce the output.
-    Both in case of <b>Force Types From Schema = true</b> and <b>Force Types From Schema = false</b>
+    Both in case of <b>Force Types From Reader's Schema = true</b> and <b>Force Types From Reader's Schema = false</b>
     the output is:
 </p>
 <pre><code>&lt;test&gt;
@@ -181,8 +181,8 @@
 &lt;/test&gt;</code></pre>
 
 <p>
-    However, if <b>Force Types From Schema = true</b> this output is routed to the <b>valid</b>
-    relationship and if <b>Force Types From Schema = false</b> it is routed to the <b>invalid</b>
+    However, if <b>Force Types From Reader's Schema = true</b> this output is routed to the <b>valid</b>
+    relationship and if <b>Force Types From Reader's Schema = false</b> it is routed to the <b>invalid</b>
     relationship.
 </p>
 

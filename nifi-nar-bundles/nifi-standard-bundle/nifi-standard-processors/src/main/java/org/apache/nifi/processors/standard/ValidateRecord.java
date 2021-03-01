@@ -188,7 +188,7 @@ public class ValidateRecord extends AbstractProcessor {
                 + "If the value of a field cannot be coerced to the type, the field will be skipped (will not be read from the input data), "
                 + "thus will not appear in the output. "
                 + "If not enabled, then every field will appear in the output but their types may differ from what is "
-                + "specified in the schema. For details please see the Additional Details page of the processor's Help."
+                + "specified in the schema. For details please see the Additional Details page of the processor's Help. "
                 + "This property controls how the data is read by the specified Record Reader.")
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .allowableValues("true", "false")
