@@ -137,6 +137,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
 
     @After
     void tearDown() throws Exception {
+        System.clearProperty(NiFiProperties.PROPERTIES_FILE_PATH)
         TestAppender.reset()
     }
 
