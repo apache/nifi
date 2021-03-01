@@ -38,6 +38,11 @@ ENV NIFI_LOG_DIR=${NIFI_HOME}/logs
 ADD sh/ ${NIFI_BASE_DIR}/scripts/
 RUN chmod -R +x ${NIFI_BASE_DIR}/scripts/*.sh
 
+# Allow Java to bind to low ports in case the user specified a low port on any of
+# NIFI_WEB_HTTP_PORT, NIFI_REMOTE_INPUT_SOCKET_PORT or NIFI_CLUSTER_NODE_PROTOCOL_PORT
+# Adding NET_BIND_SERVICE capability to the container enables it
+RUN setcap CAP_NET_BIND_SERVICE=+eip /usr/local/openjdk-8/bin/java
+
 # Setup NiFi user and create necessary directories
 RUN groupadd -g ${GID} nifi || groupmod -n nifi `getent group ${GID} | cut -d: -f1` \
     && useradd --shell /bin/bash -u ${UID} -g ${GID} -m nifi \
