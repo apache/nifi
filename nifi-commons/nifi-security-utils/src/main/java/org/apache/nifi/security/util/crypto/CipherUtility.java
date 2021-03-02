@@ -16,6 +16,16 @@
  */
 package org.apache.nifi.security.util.crypto;
 
+import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.security.util.EncryptionMethod;
+import org.apache.nifi.security.util.KeyDerivationFunction;
+import org.apache.nifi.stream.io.ByteCountingInputStream;
+import org.apache.nifi.stream.io.ByteCountingOutputStream;
+import org.apache.nifi.stream.io.StreamUtils;
+
+import javax.crypto.Cipher;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -33,15 +43,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import javax.crypto.Cipher;
-import org.apache.commons.codec.binary.Base64;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.security.util.EncryptionMethod;
-import org.apache.nifi.security.util.KeyDerivationFunction;
-import org.apache.nifi.stream.io.ByteCountingInputStream;
-import org.apache.nifi.stream.io.ByteCountingOutputStream;
-import org.apache.nifi.stream.io.StreamUtils;
 
 public class CipherUtility {
 
@@ -347,42 +348,6 @@ public class CipherUtility {
             saltLength = 8;
         }
         return saltLength;
-    }
-
-    /**
-     * Returns a securely-derived, deterministic value from the provided plaintext property
-     * value. This is because sensitive values should not be disclosed through the
-     * logs. However, the equality or difference of the sensitive value can be important, so it cannot be ignored completely.
-     *
-     * The specific derivation process is unimportant as long as it is a salted,
-     * cryptographically-secure hash function with an iteration cost sufficient for password
-     * storage in other applications.
-     *
-     * @param sensitivePropertyValue the plaintext property value
-     * @return a deterministic string value which represents this input but is safe to print in a log
-     */
-    public static String getLoggableRepresentationOfSensitiveValue(String sensitivePropertyValue) {
-        // TODO: Use DI/IoC to inject this implementation in the constructor of the FingerprintFactory
-        // There is little initialization cost, so it doesn't make sense to cache this as a field
-        SecureHasher secureHasher = new Argon2SecureHasher();
-
-        // TODO: Extend with secure hashing capability and inject?
-        return getLoggableRepresentationOfSensitiveValue(sensitivePropertyValue, secureHasher);
-    }
-
-    /**
-     * Returns a securely-derived, deterministic value from the provided plaintext property
-     * value. This is because sensitive values should not be disclosed through the
-     * logs. However, the equality or difference of the sensitive value can be important, so it cannot be ignored completely.
-     *
-     * The specific derivation process is determined by the provided {@link SecureHasher} implementation.
-     *
-     * @param sensitivePropertyValue the plaintext property value
-     * @param secureHasher an instance of {@link SecureHasher} which will be used to mask the value
-     * @return a deterministic string value which represents this input but is safe to print in a log
-     */
-    public static String getLoggableRepresentationOfSensitiveValue(String sensitivePropertyValue, SecureHasher secureHasher) {
-        return "[MASKED] (" + secureHasher.hashBase64(sensitivePropertyValue) + ")";
     }
 
     /**

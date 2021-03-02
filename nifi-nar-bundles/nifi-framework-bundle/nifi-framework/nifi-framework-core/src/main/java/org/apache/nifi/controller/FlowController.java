@@ -131,6 +131,8 @@ import org.apache.nifi.diagnostics.StorageUsage;
 import org.apache.nifi.diagnostics.SystemDiagnostics;
 import org.apache.nifi.diagnostics.SystemDiagnosticsFactory;
 import org.apache.nifi.encrypt.PropertyEncryptor;
+import org.apache.nifi.encrypt.SensitiveValueEncoder;
+import org.apache.nifi.encrypt.StandardSensitiveValueEncoder;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.events.BulletinFactory;
 import org.apache.nifi.events.EventReporter;
@@ -323,6 +325,11 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
      */
     private final PropertyEncryptor encryptor;
 
+    /**
+     * The sensitive value string encoder (hasher)
+     */
+    private final SensitiveValueEncoder sensitiveValueEncoder;
+
     private final ScheduledExecutorService clusterTaskExecutor = new FlowEngine(3, "Clustering Tasks", true);
     private final ResourceClaimManager resourceClaimManager = new StandardResourceClaimManager();
 
@@ -474,6 +481,8 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
             LOG.error("Unable to start the flow controller because the TLS configuration was invalid: {}", e.getLocalizedMessage());
             throw new IllegalStateException("Flow controller TLS configuration is invalid", e);
         }
+
+        this.sensitiveValueEncoder = new StandardSensitiveValueEncoder(nifiProperties);
 
         timerDrivenEngineRef = new AtomicReference<>(new FlowEngine(maxTimerDrivenThreads.get(), "Timer-Driven Process"));
         eventDrivenEngineRef = new AtomicReference<>(new FlowEngine(maxEventDrivenThreads.get(), "Event-Driven Process"));
@@ -1159,6 +1168,10 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
 
     public PropertyEncryptor getEncryptor() {
         return encryptor;
+    }
+
+    public SensitiveValueEncoder getSensitiveValueEncoder() {
+        return sensitiveValueEncoder;
     }
 
     /**
