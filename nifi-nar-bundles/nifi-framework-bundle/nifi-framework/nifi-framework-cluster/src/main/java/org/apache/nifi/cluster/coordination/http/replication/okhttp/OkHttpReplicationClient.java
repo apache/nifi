@@ -37,6 +37,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.zip.GZIPInputStream;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 import javax.ws.rs.HttpMethod;
 import javax.ws.rs.core.MultivaluedHashMap;
 import javax.ws.rs.core.MultivaluedMap;
@@ -53,7 +56,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.cluster.coordination.http.replication.HttpReplicationClient;
 import org.apache.nifi.cluster.coordination.http.replication.PreparedRequest;
 import org.apache.nifi.remote.protocol.http.HttpHeaders;
-import org.apache.nifi.security.util.OkHttpClientUtils;
+import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.security.util.StandardTlsConfiguration;
 import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.stream.io.GZIPOutputStream;
@@ -317,8 +320,11 @@ public class OkHttpReplicationClient implements HttpReplicationClient {
 
         // Apply the TLS configuration, if present
         try {
-            TlsConfiguration tlsConfiguration = StandardTlsConfiguration.fromNiFiProperties(properties);
-            tlsConfigured = OkHttpClientUtils.applyTlsToOkHttpClientBuilder(tlsConfiguration, okHttpClientBuilder);
+            final TlsConfiguration tlsConfiguration = StandardTlsConfiguration.fromNiFiProperties(properties);
+            final X509TrustManager trustManager = SslContextFactory.getX509TrustManager(tlsConfiguration);
+            final SSLContext sslContext = SslContextFactory.createSslContext(tlsConfiguration, new TrustManager[]{trustManager});
+            okHttpClientBuilder.sslSocketFactory(sslContext.getSocketFactory(), trustManager);
+            tlsConfigured = true;
         } catch (Exception e) {
             // Legacy expectations around this client are that it does not throw an exception on invalid TLS configuration
             // TODO: The only current use of this class is ThreadPoolRequestReplicatorFactoryBean#getObject() which should be evaluated to see if that can change
