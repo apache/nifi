@@ -59,29 +59,29 @@ class PopularVoteFlowElectionFactoryBeanTest extends GroovyTestCase {
         mockProps
     }
 
-    @Test
-    void testGetObjectShouldPopulateDefaultSensitivePropsKeyIfEmpty() {
-        // Arrange
-        PopularVoteFlowElectionFactoryBean electionFactoryBean = new PopularVoteFlowElectionFactoryBean()
-        electionFactoryBean.properties = mockProperties()
-
-        final PropertyEncryptor DEFAULT_ENCRYPTOR = PropertyEncryptorFactory.getPropertyEncryptor(mockProperties())
-        final String EXPECTED_PLAINTEXT = "my.test.value"
-        final String EXPECTED_CIPHERTEXT = DEFAULT_ENCRYPTOR.encrypt(EXPECTED_PLAINTEXT)
-        logger.info("Expected ciphertext: ${EXPECTED_CIPHERTEXT}")
-
-        // Act
-        PopularVoteFlowElection election = electionFactoryBean.object
-        logger.info("Got object: ${election}")
-
-        // Assert
-
-        // Violates LoD but need to evaluate nested encryptor can decrypt
-        def encryptor = election.fingerprintFactory.encryptor
-        String decrypted = encryptor.decrypt(EXPECTED_CIPHERTEXT)
-        logger.info("Decrypted plain text: ${decrypted}")
-        assert decrypted == EXPECTED_PLAINTEXT
-    }
+//    @Test
+//    void testGetObjectShouldPopulateDefaultSensitivePropsKeyIfEmpty() {
+//        // Arrange
+//        PopularVoteFlowElectionFactoryBean electionFactoryBean = new PopularVoteFlowElectionFactoryBean()
+//        electionFactoryBean.properties = mockProperties()
+//
+//        final PropertyEncryptor DEFAULT_ENCRYPTOR = PropertyEncryptorFactory.getPropertyEncryptor(mockProperties())
+//        final String EXPECTED_PLAINTEXT = "my.test.value"
+//        final String EXPECTED_CIPHERTEXT = DEFAULT_ENCRYPTOR.encrypt(EXPECTED_PLAINTEXT)
+//        logger.info("Expected ciphertext: ${EXPECTED_CIPHERTEXT}")
+//
+//        // Act
+//        PopularVoteFlowElection election = electionFactoryBean.object
+//        logger.info("Got object: ${election}")
+//
+//        // Assert
+//
+//        // Violates LoD but need to evaluate nested encryptor can decrypt
+//        def encryptor = election.fingerprintFactory.encryptor
+//        String decrypted = encryptor.decrypt(EXPECTED_CIPHERTEXT)
+//        logger.info("Decrypted plain text: ${decrypted}")
+//        assert decrypted == EXPECTED_PLAINTEXT
+//    }
 
     @Test
     void testGetObjectShouldPopulateSensitivePropsKeyIfPresent() {
