@@ -149,6 +149,27 @@ public final class CertificateUtils {
                     username = StringUtils.substring(dn, cnIndex + cnPattern.length());
                 }
             }
+
+            /*
+                https://tools.ietf.org/html/rfc5280#section-4.1.2.6
+
+                Legacy implementations exist where an electronic mail address is
+                embedded in the subject distinguished name as an emailAddress
+                attribute [RFC2985].  The attribute value for emailAddress is of type
+                IA5String to permit inclusion of the character '@', which is not part
+                of the PrintableString character set.  emailAddress attribute values
+                are not case-sensitive (e.g., "subscriber@example.com" is the same as
+                "SUBSCRIBER@EXAMPLE.COM").
+             */
+            final String emailPattern = "/emailAddress=";
+            final int index = StringUtils.indexOfIgnoreCase(username, emailPattern);
+            if (index >= 0) {
+                String[] dnParts = username.split(emailPattern);
+                if (dnParts.length > 0) {
+                    // only use the actual CN
+                    username = dnParts[0];
+                }
+            }
         }
 
         return username;

@@ -60,6 +60,7 @@ import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 
+import static org.junit.Assert.assertEquals
 import static org.junit.Assert.assertTrue
 
 @RunWith(JUnit4.class)
@@ -75,6 +76,7 @@ class CertificateUtilsTest extends GroovyTestCase {
     private static final String PROVIDER = "BC"
 
     private static final String SUBJECT_DN = "CN=NiFi Test Server,OU=Security,O=Apache,ST=CA,C=US"
+    private static final String SUBJECT_DN_LEGACY_EMAIL_ATTR_RFC2985 = "CN=NiFi Test Server/emailAddress=test@apache.org,OU=Security,O=Apache,ST=CA,C=US"
     private static final String ISSUER_DN = "CN=NiFi Test CA,OU=Security,O=Apache,ST=CA,C=US"
     private static final List<String> SUBJECT_ALT_NAMES = ["127.0.0.1", "nifi.nifi.apache.org"]
 
@@ -645,6 +647,13 @@ class CertificateUtilsTest extends GroovyTestCase {
 
         // Assert
         assert(extensions.equivalent(sanExtensions))
+    }
+
+    @Test
+    void testExtractUserNameFromDN() {
+        String expected = "NiFi Test Server"
+        assertEquals(CertificateUtils.extractUsername(SUBJECT_DN), expected)
+        assertEquals(CertificateUtils.extractUsername(SUBJECT_DN_LEGACY_EMAIL_ATTR_RFC2985), expected)
     }
 
     // Using this directly from tls-toolkit results in a dependency loop, so it's added here for testing purposes.
