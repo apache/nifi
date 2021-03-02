@@ -49,7 +49,7 @@ public class StandardSensitiveValueEncoder implements SensitiveValueEncoder {
     }
 
     // We use the sensitive properties key and a SecureHasher impl to derive a secret key for the getEncoded() method
-    public StandardSensitiveValueEncoder(final String sensitivePropertiesKey, final SecureHasher hasher) {
+    private StandardSensitiveValueEncoder(final String sensitivePropertiesKey, final SecureHasher hasher) {
         Objects.requireNonNull(sensitivePropertiesKey, "Sensitive Properties Key is required");
         Objects.requireNonNull(hasher, "SecureHasher is required");
         byte[] hashedSensitivePropertyKey = hasher.hashRaw(sensitivePropertiesKey.getBytes(PROPERTY_CHARSET));

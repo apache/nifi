@@ -16,10 +16,13 @@
  */
 package org.apache.nifi.encrypt;
 
+/** SensitiveValueEncoder implementations should securely encode a sensitive value into a loggable, secure representation
+ * of that value.
+ */
 public interface SensitiveValueEncoder {
 
     /**
-     * Creates a securely-derived, deterministic representation of the provided decrypted NiFi property value
+     * Returns a securely-derived, deterministic representation of a decrypted NiFi sensitive property value
      * for logging/comparison purposes.
      */
     String getEncoded(String plaintextSensitiveValue);
