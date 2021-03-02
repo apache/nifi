@@ -380,11 +380,11 @@
 
                                                 },
                                                 {
-                                                    name: 'position-x',
+                                                    name: 'positionX',
                                                     value: pt.x
                                                 },
                                                 {
-                                                    name: 'position-y',
+                                                    name: 'positionY',
                                                     value: pt.y
                                                 },
                                                 {

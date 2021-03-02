@@ -159,6 +159,7 @@ import org.apache.nifi.web.api.entity.PortEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupImportEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupReplaceRequestEntity;
+import org.apache.nifi.web.api.entity.ProcessGroupUploadEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupsEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.entity.ProcessorsEntity;
@@ -4201,12 +4202,12 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
                     value = "The process group X position.",
                     required = true
             )
-            @FormDataParam("position-x") final Double positionX,
+            @FormDataParam("positionX") final Double positionX,
             @ApiParam(
                     value = "The process group Y position.",
                     required = true
             )
-            @FormDataParam("position-y") final Double positionY,
+            @FormDataParam("positionY") final Double positionY,
             @ApiParam(
                     value = "The client id.",
                     required = true
@@ -4217,7 +4218,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
                     required = false
             )
             @FormDataParam(DISCONNECTED_NODE_ACKNOWLEDGED) @DefaultValue("false") final Boolean disconnectedNodeAcknowledged,
-            @FormDataParam("file") final InputStream in) throws IOException {
+            @FormDataParam("file") final InputStream in) throws InterruptedException {
 
         // ensure the group name is specified
         if (StringUtils.isBlank(groupName)) {
@@ -4250,29 +4251,128 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
             throw new IllegalArgumentException("Deserialization of uploaded JSON failed", e);
         }
 
+        // clear Registry info
+        sanitizeRegistryInfo(deserializedSnapshot.getFlowContents());
+
+        // resolve Bundle info
+        serviceFacade.discoverCompatibleBundles(deserializedSnapshot.getFlowContents());
+
+        // if there are any Controller Services referenced that are inherited from the parent group,
+        // resolve those to point to the appropriate Controller Service, if we are able to.
+        serviceFacade.resolveInheritedControllerServices(deserializedSnapshot, groupId, NiFiUserUtils.getNiFiUser());
+
+        if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(disconnectedNodeAcknowledged);
+        }
+
+        // build the response entity for a replicate request
+        ProcessGroupUploadEntity pgUploadEntity = new ProcessGroupUploadEntity();
+        pgUploadEntity.setId(groupId);
+        pgUploadEntity.setGroupName(groupName);
+        pgUploadEntity.setPositionX(positionX);
+        pgUploadEntity.setPositionY(positionY);
+        pgUploadEntity.setClientId(clientId);
+        pgUploadEntity.setDisconnectedNodeAcknowledged(disconnectedNodeAcknowledged);
+        pgUploadEntity.setFlowSnapshot(deserializedSnapshot);
+
+        // replicate the request
+        if (isReplicateRequest()) {
+            // convert request accordingly
+            final UriBuilder uriBuilder = uriInfo.getBaseUriBuilder();
+            uriBuilder.segment("process-groups", groupId, "process-groups", "import");
+            final URI importUri = uriBuilder.build();
+
+            final Map<String, String> headersToOverride = new HashMap<>();
+            headersToOverride.put("content-type", MediaType.APPLICATION_JSON);
+
+            // Determine whether we should replicate only to the cluster coordinator, or if we should replicate directly
+            // to the cluster nodes themselves.
+            if (getReplicationTarget() == ReplicationTarget.CLUSTER_NODES) {
+                return getRequestReplicator().replicate(HttpMethod.POST, importUri, pgUploadEntity, getHeaders(headersToOverride)).awaitMergedResponse().getResponse();
+            } else {
+                return getRequestReplicator().forwardToCoordinator(
+                        getClusterCoordinatorNode(), HttpMethod.POST, importUri, pgUploadEntity, getHeaders(headersToOverride)).awaitMergedResponse().getResponse();
+            }
+        }
+
+        // otherwise import the process group locally
+        return importProcessGroup(httpServletRequest, groupId, pgUploadEntity);
+    }
+
+    /**
+     * Imports the specified process group.
+     *
+     * @param httpServletRequest request
+     * @param processGroupUploadEntity     A ProcessGroupUploadEntity.
+     * @return A processGroupEntity.
+     */
+    @POST
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{id}/process-groups/import")
+    @ApiOperation(
+            value = "Imports a specified process group",
+            response = ProcessGroupEntity.class,
+            authorizations = {
+                    @Authorization(value = "Write - /process-groups/{uuid}")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
+    public Response importProcessGroup(
+            @Context final HttpServletRequest httpServletRequest,
+            @ApiParam(
+                    value = "The process group id.",
+                    required = true
+            )
+            @PathParam("id") final String groupId,
+            final ProcessGroupUploadEntity processGroupUploadEntity) {
+
+        // verify the process group was specified
+        if (processGroupUploadEntity == null || processGroupUploadEntity.getFlowSnapshot() == null) {
+            throw new IllegalArgumentException("Process group details must be specified.");
+        }
+
+        final VersionedFlowSnapshot versionedFlowSnapshot = processGroupUploadEntity.getFlowSnapshot();
+
+        // clear Registry info
+        sanitizeRegistryInfo(versionedFlowSnapshot.getFlowContents());
+
+        // resolve Bundle info
+        serviceFacade.discoverCompatibleBundles(versionedFlowSnapshot.getFlowContents());
+
+        // if there are any Controller Services referenced that are inherited from the parent group,
+        // resolve those to point to the appropriate Controller Service, if we are able to.
+        serviceFacade.resolveInheritedControllerServices(versionedFlowSnapshot, groupId, NiFiUserUtils.getNiFiUser());
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.POST, processGroupUploadEntity);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(processGroupUploadEntity.getDisconnectedNodeAcknowledged());
+        }
+
         // create a PositionDTO
         final PositionDTO positionDTO = new PositionDTO();
-        positionDTO.setX(positionX);
-        positionDTO.setY(positionY);
+        positionDTO.setX(processGroupUploadEntity.getPositionX());
+        positionDTO.setY(processGroupUploadEntity.getPositionY());
 
         // create a new ProcessGroupEntity
-        final ProcessGroupEntity newProcessGroupEntity = createProcessGroupEntity(groupId, groupName, positionDTO, deserializedSnapshot);
-
-        // replicate the request or call serviceFacade.updateProcessGroup
-        if (isReplicateRequest()) {
-            return replicate(HttpMethod.POST, newProcessGroupEntity);
-        } else if (isDisconnectedFromCluster()) {
-            verifyDisconnectedNodeModification(newProcessGroupEntity.isDisconnectedNodeAcknowledged());
-        }
+        final ProcessGroupEntity newProcessGroupEntity = createProcessGroupEntity(groupId, processGroupUploadEntity.getGroupName(), positionDTO, versionedFlowSnapshot);
 
         return withWriteLock(
                 serviceFacade,
                 newProcessGroupEntity,
                 lookup -> authorizeAccess(groupId, newProcessGroupEntity, lookup),
                 () -> {
-                    final VersionedFlowSnapshot versionedFlowSnapshot = newProcessGroupEntity.getVersionedFlowSnapshot();
-                    if (versionedFlowSnapshot != null) {
-                        serviceFacade.verifyComponentTypes(versionedFlowSnapshot.getFlowContents());
+                    final VersionedFlowSnapshot newVersionedFlowSnapshot = newProcessGroupEntity.getVersionedFlowSnapshot();
+                    if (newVersionedFlowSnapshot != null) {
+                        serviceFacade.verifyComponentTypes(newVersionedFlowSnapshot.getFlowContents());
                     }
                 },
                 processGroupEntity -> {
@@ -4285,7 +4385,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
                     final VersionedFlowSnapshot flowSnapshot = processGroupEntity.getVersionedFlowSnapshot();
 
                     // create the process group contents
-                    final Revision revision = new Revision((long) 0, clientId, processGroup.getId());
+                    final Revision revision = new Revision((long) 0, processGroupUploadEntity.getClientId(), processGroup.getId());
 
                     ProcessGroupEntity entity = serviceFacade.createProcessGroup(revision, groupId, processGroup);
 
@@ -4299,7 +4399,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
                         // To accomplish this, we call updateProcessGroupContents() passing 'false' for the updateSettings flag, set
                         // the Process Group name, and null out the position.
                         flowSnapshot.getFlowContents().setPosition(null);
-                        flowSnapshot.getFlowContents().setName(groupName);
+                        flowSnapshot.getFlowContents().setName(processGroupUploadEntity.getGroupName());
 
                         entity = serviceFacade.updateProcessGroupContents(newGroupRevision, newGroupId, null, flowSnapshot,
                                 getIdGenerationSeed().orElse(null), false, false, true);
@@ -4312,7 +4412,9 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
                     return generateCreatedResponse(URI.create(uri), entity).build();
                 }
         );
+
     }
+
 
     /**
      * Replace the Process Group contents with the given ID with the specified Process Group contents.
@@ -4543,7 +4645,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
     }
 
     /**
-     * Creates a new ProcessGroupEntity with the specified VersionedFlowSnapshot and removes Registry info.
+     * Creates a new ProcessGroupEntity with the specified VersionedFlowSnapshot.
      *
      * @param groupId               the group id string
      * @param groupName             the process group name string
@@ -4556,16 +4658,6 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
             String groupId, String groupName, PositionDTO positionDTO, VersionedFlowSnapshot deserializedSnapshot) {
 
         final ProcessGroupEntity processGroupEntity = new ProcessGroupEntity();
-
-        // clear Registry info
-        sanitizeRegistryInfo(deserializedSnapshot.getFlowContents());
-
-        // resolve Bundle info
-        serviceFacade.discoverCompatibleBundles(deserializedSnapshot.getFlowContents());
-
-        // if there are any Controller Services referenced that are inherited from the parent group,
-        // resolve those to point to the appropriate Controller Service, if we are able to.
-        serviceFacade.resolveInheritedControllerServices(deserializedSnapshot, groupId, NiFiUserUtils.getNiFiUser());
 
         // create a ProcessGroupDTO
         final ProcessGroupDTO processGroupDTO = new ProcessGroupDTO();
