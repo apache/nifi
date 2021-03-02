@@ -638,7 +638,8 @@ public class QuerySolrIT {
         runner.setProperty(SolrUtils.SOLR_LOCATION, SOLR_LOCATION);
         runner.setProperty(SolrUtils.COLLECTION, SOLR_COLLECTION);
 
-        final SSLContextService sslContextService = new MockSSLContextService();
+        final SSLContextService sslContextService = Mockito.mock(SSLContextService.class);
+        Mockito.when(sslContextService.getIdentifier()).thenReturn("ssl-context");
         runner.addControllerService("ssl-context", sslContextService);
         runner.enableControllerService(sslContextService);
 

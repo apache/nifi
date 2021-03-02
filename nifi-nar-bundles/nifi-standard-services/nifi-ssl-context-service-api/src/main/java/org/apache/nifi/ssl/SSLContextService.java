@@ -24,6 +24,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.X509TrustManager;
+
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
@@ -88,6 +90,13 @@ public interface SSLContextService extends ControllerService {
      */
     @Deprecated
     SSLContext createSSLContext(ClientAuth clientAuth) throws ProcessException;
+
+    /**
+     * Create X.509 Trust Manager using configured properties
+     *
+     * @return {@link X509TrustManager} initialized using configured properties
+     */
+    X509TrustManager createTrustManager();
 
     String getTrustStoreFile();
 
