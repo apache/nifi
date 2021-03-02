@@ -16,29 +16,6 @@
  */
 package org.apache.nifi.fingerprint;
 
-import static org.apache.nifi.controller.serialization.ScheduledStateLookup.IDENTITY_LOOKUP;
-import static org.apache.nifi.fingerprint.FingerprintFactory.FLOW_CONFIG_XSD;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
-import java.io.File;
-import java.io.IOException;
-import java.lang.reflect.Method;
-import java.nio.charset.StandardCharsets;
-import java.util.Base64;
-import java.util.Collections;
-import java.util.Optional;
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
-import javax.xml.XMLConstants;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.validation.Schema;
-import javax.xml.validation.SchemaFactory;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.connectable.Position;
@@ -48,10 +25,11 @@ import org.apache.nifi.controller.serialization.FlowSerializer;
 import org.apache.nifi.controller.serialization.ScheduledStateLookup;
 import org.apache.nifi.controller.serialization.StandardFlowSerializer;
 import org.apache.nifi.encrypt.PropertyEncryptor;
+import org.apache.nifi.encrypt.SensitiveValueEncoder;
+import org.apache.nifi.encrypt.StandardSensitiveValueEncoder;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
-import org.apache.nifi.properties.NiFiPropertiesLoader;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.security.util.crypto.Argon2SecureHasher;
@@ -66,6 +44,30 @@ import org.xml.sax.ErrorHandler;
 import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
 
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+import javax.xml.XMLConstants;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.validation.Schema;
+import javax.xml.validation.SchemaFactory;
+import java.io.File;
+import java.io.IOException;
+import java.lang.reflect.Method;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
+import java.util.Collections;
+import java.util.Optional;
+
+import static org.apache.nifi.controller.serialization.ScheduledStateLookup.IDENTITY_LOOKUP;
+import static org.apache.nifi.fingerprint.FingerprintFactory.FLOW_CONFIG_XSD;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 /**
  */
 public class FingerprintFactoryTest {
@@ -73,15 +75,19 @@ public class FingerprintFactoryTest {
     private PropertyEncryptor encryptor;
     private ExtensionManager extensionManager;
     private FingerprintFactory fingerprinter;
+    private SensitiveValueEncoder sensitiveValueEncoder;
+    private NiFiProperties niFiProperties;
 
     private static final String ORIGINAL_NIFI_PROPS_PATH = System.getProperty(NiFiProperties.PROPERTIES_FILE_PATH);
     private static final String TEST_NIFI_PROPS_PATH = "src/test/resources/conf/nifi.properties";
 
     @Before
     public void setup() {
+        niFiProperties = NiFiProperties.createBasicNiFiProperties(TEST_NIFI_PROPS_PATH);
         encryptor = createEncryptor();
+        sensitiveValueEncoder = new StandardSensitiveValueEncoder(niFiProperties);
         extensionManager = new StandardExtensionDiscoveringManager();
-        fingerprinter = new FingerprintFactory(encryptor, extensionManager);
+        fingerprinter = new FingerprintFactory(encryptor, extensionManager, sensitiveValueEncoder);
     }
 
     @AfterClass
@@ -154,7 +160,7 @@ public class FingerprintFactoryTest {
 
     @Test
     public void testSchemaValidation() throws IOException {
-        FingerprintFactory fp = new FingerprintFactory(null, getValidatingDocumentBuilder(), extensionManager);
+        FingerprintFactory fp = new FingerprintFactory(null, getValidatingDocumentBuilder(), extensionManager, null);
         final String fingerprint = fp.createFingerprint(getResourceBytes("/nifi/fingerprint/validating-flow.xml"), null);
     }
 
@@ -283,8 +289,7 @@ public class FingerprintFactoryTest {
         Argon2SecureHasher a2sh = new Argon2SecureHasher();
 
         // The nifi.properties file needs to be present
-        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, TEST_NIFI_PROPS_PATH);
-        String npsk = NiFiPropertiesLoader.loadDefaultWithKeyFromBootstrap().getProperty(NiFiProperties.SENSITIVE_PROPS_KEY);
+        String npsk = niFiProperties.getProperty(NiFiProperties.SENSITIVE_PROPS_KEY);
 
         // The output will be 32B (256b)
         byte[] sensitivePropertyKeyBytes = a2sh.hashRaw(npsk.getBytes(StandardCharsets.UTF_8));
@@ -388,7 +393,16 @@ public class FingerprintFactoryTest {
 
             @Override
             public String decrypt(String encryptedProperty) {
-                return encryptedProperty;
+                return encryptedProperty.substring(4, encryptedProperty.length() - 1);
+            }
+        };
+    }
+
+    private SensitiveValueEncoder createSensitiveValueEncoder() {
+        return new SensitiveValueEncoder() {
+            @Override
+            public String getEncoded(String sensitivePropertyValue) {
+                return String.format("[MASKED] %s", sensitivePropertyValue);
             }
         };
     }
