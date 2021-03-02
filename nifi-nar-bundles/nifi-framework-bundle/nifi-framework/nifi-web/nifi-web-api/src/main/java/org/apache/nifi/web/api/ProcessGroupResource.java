@@ -4161,7 +4161,6 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
     /**
      * Uploads the specified versioned flow definition and adds it to a new process group.
      *
-     * @param httpServletRequest request
      * @param in The flow definition stream
      * @return A processGroupEntity
      * @throws IOException if there is an error during deserialization of the InputStream
@@ -4187,7 +4186,6 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
             }
     )
     public Response uploadProcessGroup(
-            @Context final HttpServletRequest httpServletRequest,
             @ApiParam(
                     value = "The process group id.",
                     required = true
@@ -4296,13 +4294,12 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
         }
 
         // otherwise import the process group locally
-        return importProcessGroup(httpServletRequest, groupId, pgUploadEntity);
+        return importProcessGroup(groupId, pgUploadEntity);
     }
 
     /**
      * Imports the specified process group.
      *
-     * @param httpServletRequest request
      * @param processGroupUploadEntity     A ProcessGroupUploadEntity.
      * @return A processGroupEntity.
      */
@@ -4326,7 +4323,6 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
             }
     )
     public Response importProcessGroup(
-            @Context final HttpServletRequest httpServletRequest,
             @ApiParam(
                     value = "The process group id.",
                     required = true

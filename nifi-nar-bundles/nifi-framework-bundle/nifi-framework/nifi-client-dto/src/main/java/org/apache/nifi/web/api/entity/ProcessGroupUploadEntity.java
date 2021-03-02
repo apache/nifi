@@ -35,42 +35,64 @@ public class ProcessGroupUploadEntity extends Entity {
     /**
      * @return The group ID
      */
-    public String getId() { return id; }
+    public String getId() {
+        return id;
+    }
 
-    public void setId(String id) { this.id = id; }
+    public void setId(String id) {
+        this.id = id;
+    }
 
     /**
      * @return The process group name
      */
-    public String getGroupName() { return groupName; }
+    public String getGroupName() {
+        return groupName;
+    }
 
-    public void setGroupName(String groupName) { this.groupName = groupName; }
+    public void setGroupName(String groupName) {
+        this.groupName = groupName;
+    }
 
     /**
      * @return The process group X-position
      */
-    public Double getPositionX() { return positionX; }
+    public Double getPositionX() {
+        return positionX;
+    }
 
-    public void setPositionX(Double positionX) { this.positionX = positionX; }
+    public void setPositionX(Double positionX) {
+        this.positionX = positionX;
+    }
 
     /**
      * @return The process group Y-position
      */
-    public Double getPositionY() { return positionY; }
+    public Double getPositionY() {
+        return positionY;
+    }
 
-    public void setPositionY(Double positionY) { this.positionY = positionY; }
+    public void setPositionY(Double positionY) {
+        this.positionY = positionY;
+    }
 
     /**
      * @return The client ID
      */
-    public String getClientId() { return clientId; }
+    public String getClientId() {
+        return clientId;
+    }
 
-    public void setClientId(String clientId) { this.clientId = clientId; }
+    public void setClientId(String clientId) {
+        this.clientId = clientId;
+    }
 
     /**
      * @return Acknowledges if a node is disconnected from a cluster
      */
-    public Boolean getDisconnectedNodeAcknowledged() { return disconnectedNodeAcknowledged; }
+    public Boolean getDisconnectedNodeAcknowledged() {
+        return disconnectedNodeAcknowledged;
+    }
 
     public void setDisconnectedNodeAcknowledged(Boolean disconnectedNodeAcknowledged) {
         this.disconnectedNodeAcknowledged = disconnectedNodeAcknowledged;
@@ -79,7 +101,11 @@ public class ProcessGroupUploadEntity extends Entity {
     /**
      * @return The uploaded file of a VersionedFlowSnapshot
      */
-    public VersionedFlowSnapshot getFlowSnapshot() { return versionedFlowSnapshot; }
+    public VersionedFlowSnapshot getFlowSnapshot() {
+        return versionedFlowSnapshot;
+    }
 
-    public void setFlowSnapshot(VersionedFlowSnapshot versionedFlowSnapshot) { this.versionedFlowSnapshot = versionedFlowSnapshot; }
+    public void setFlowSnapshot(VersionedFlowSnapshot versionedFlowSnapshot) {
+        this.versionedFlowSnapshot = versionedFlowSnapshot;
+    }
 }
