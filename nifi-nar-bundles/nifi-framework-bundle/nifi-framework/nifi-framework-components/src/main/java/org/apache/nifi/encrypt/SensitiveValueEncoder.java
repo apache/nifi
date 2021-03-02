@@ -18,5 +18,9 @@ package org.apache.nifi.encrypt;
 
 public interface SensitiveValueEncoder {
 
-    String getEncoded(String plaintextSensitivePropertyValue);
+    /**
+     * Creates a securely-derived, deterministic representation of the provided decrypted NiFi property value
+     * for logging/comparison purposes.
+     */
+    String getEncoded(String plaintextSensitiveValue);
 }

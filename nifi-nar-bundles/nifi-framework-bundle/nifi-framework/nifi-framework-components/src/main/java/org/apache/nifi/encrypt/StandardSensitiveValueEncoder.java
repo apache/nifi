@@ -24,6 +24,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -38,7 +39,9 @@ public class StandardSensitiveValueEncoder implements SensitiveValueEncoder {
     private static final Logger logger = LoggerFactory.getLogger(StandardSensitiveValueEncoder.class);
 
     private SecretKeySpec secretKeySpec;
+    private static Base64.Encoder base64Encoder;
     private static final String HMAC_SHA256 = "HmacSHA256";
+    private static final Charset PROPERTY_CHARSET = StandardCharsets.UTF_8;
 
     public StandardSensitiveValueEncoder(final NiFiProperties properties) {
         this(properties.getProperty(NiFiProperties.SENSITIVE_PROPS_KEY),
@@ -49,8 +52,9 @@ public class StandardSensitiveValueEncoder implements SensitiveValueEncoder {
     public StandardSensitiveValueEncoder(final String sensitivePropertiesKey, final SecureHasher hasher) {
         Objects.requireNonNull(sensitivePropertiesKey, "Sensitive Properties Key is required");
         Objects.requireNonNull(hasher, "SecureHasher is required");
-        byte[] hashedSensitivePropertyKey = hasher.hashRaw(sensitivePropertiesKey.getBytes(StandardCharsets.UTF_8));
+        byte[] hashedSensitivePropertyKey = hasher.hashRaw(sensitivePropertiesKey.getBytes(PROPERTY_CHARSET));
         secretKeySpec = new SecretKeySpec(hashedSensitivePropertyKey, HMAC_SHA256);
+        base64Encoder = Base64.getEncoder();
     }
 
     /**
@@ -58,17 +62,17 @@ public class StandardSensitiveValueEncoder implements SensitiveValueEncoder {
      * for logging/comparison purposes. A SecureHasher implementation is used to derive a secret key from the sensitive which is
      * then used to generate an HMAC using HMAC+SHA256.
      *
-     * @param plaintextSensitivePropertyValue A decrypted, sensitive property value
+     * @param plaintextSensitiveValue A decrypted, sensitive property value
      *
      * @return a deterministic, securely hashed representation of the value which will be consistent across nodes. Safe to print in a log.
      */
     @Override
-    public String getEncoded(final String plaintextSensitivePropertyValue) {
+    public String getEncoded(final String plaintextSensitiveValue) {
         try {
             Mac mac = Mac.getInstance(HMAC_SHA256);
             mac.init(secretKeySpec);
-            byte[] hashedBytes = mac.doFinal(plaintextSensitivePropertyValue.getBytes(StandardCharsets.UTF_8));
-            return "[MASKED] (" + Base64.getEncoder().encodeToString(hashedBytes) + ")";
+            byte[] hashedBytes = mac.doFinal(plaintextSensitiveValue.getBytes(PROPERTY_CHARSET));
+            return "[MASKED] (" + base64Encoder.encodeToString(hashedBytes) + ")";
         } catch (NoSuchAlgorithmException | InvalidKeyException e) {
             logger.error("Encountered an error making the sensitive value loggable: {}", e.getLocalizedMessage());
             return "[Unable to mask value]";

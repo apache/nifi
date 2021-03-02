@@ -19,8 +19,6 @@ package org.apache.nifi.security.util.crypto;
 import org.apache.nifi.security.util.KeyDerivationFunction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -32,7 +30,7 @@ public class SecureHasherFactory {
     private static final Logger LOGGER = LoggerFactory.getLogger(SecureHasherFactory.class);
 
     private static Map<KeyDerivationFunction, Class<? extends SecureHasher>> registeredSecureHashers;
-    private static final KeyDerivationFunction DEFAULT_HASHER = KeyDerivationFunction.ARGON2;
+    private static final Class<? extends SecureHasher> DEFAULT_SECURE_HASHER_CLASS = Argon2SecureHasher.class;
 
     static {
         registeredSecureHashers = new HashMap<>();
@@ -43,27 +41,19 @@ public class SecureHasherFactory {
     }
 
     public static SecureHasher getSecureHasher(final String algorithm) {
-        String hasherAlgorithm = algorithm;
-
+        Class<? extends SecureHasher> secureHasherClass = DEFAULT_SECURE_HASHER_CLASS;
+        final String algorithmPattern = algorithm.toUpperCase();
         try {
-            for(KeyDerivationFunction hashingFunction : registeredSecureHashers.keySet()) {
-                if (hasherAlgorithm.toUpperCase().contains(hashingFunction.getKdfName().toUpperCase())) {
-                    return instantiateHasher(hashingFunction, hasherAlgorithm);
+            for (KeyDerivationFunction keyDerivationFunction : registeredSecureHashers.keySet()) {
+                final String functionName = keyDerivationFunction.getKdfName().toUpperCase();
+                if (algorithmPattern.contains(functionName)) {
+                    secureHasherClass = registeredSecureHashers.get(keyDerivationFunction);
                 }
             }
-
-            hasherAlgorithm = DEFAULT_HASHER.getKdfName();
-            LOGGER.error("Failed to instantiate SecureHasher for algorithm [{}]. Trying [{}] instead", algorithm, hasherAlgorithm);
-            return instantiateHasher(DEFAULT_HASHER, DEFAULT_HASHER.getKdfName());
+            LOGGER.debug("Creating SecureHasher [{}] for algorithm [{}]", secureHasherClass.getName(), algorithm);
+            return secureHasherClass.getDeclaredConstructor().newInstance();
         } catch (Exception e) {
-            throw new SecureHasherException(String.format("SecureHasher instantiation failed for algorithm [%s]", hasherAlgorithm), e);
+            throw new SecureHasherException(String.format("Failed to create SecureHasher for algorithm [%s]", algorithm), e);
         }
-    }
-
-    private static SecureHasher instantiateHasher(KeyDerivationFunction hashingFunction, String hasherAlgorithm)
-            throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException {
-        Class<? extends SecureHasher> clazz = registeredSecureHashers.get(hashingFunction);
-        LOGGER.debug("Instantiating SecureHasher [{}] for algorithm [{}]", clazz.getCanonicalName(), hasherAlgorithm);
-        return clazz.getDeclaredConstructor().newInstance();
     }
 }
