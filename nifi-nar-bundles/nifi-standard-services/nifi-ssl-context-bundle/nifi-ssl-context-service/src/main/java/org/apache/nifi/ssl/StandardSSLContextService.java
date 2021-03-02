@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -252,7 +253,7 @@ public class StandardSSLContextService extends AbstractControllerService impleme
             final TrustManager[] trustManagers = SslContextFactory.getTrustManagers(tlsConfiguration);
             return SslContextFactory.createSslContext(tlsConfiguration, trustManagers);
         } catch (final TlsException e) {
-            getLogger().error("Unable to create SSLContext: {}", new String[]{e.getLocalizedMessage()});
+            getLogger().error("Unable to create SSLContext: {}", e.getLocalizedMessage());
             throw new ProcessException("Unable to create SSLContext", e);
         }
     }
@@ -286,6 +287,24 @@ public class StandardSSLContextService extends AbstractControllerService impleme
     @Override
     public SSLContext createSSLContext(final ClientAuth clientAuth) throws ProcessException {
         return createContext();
+    }
+
+    /**
+     * Create X.509 Trust Manager using configured properties
+     *
+     * @return {@link X509TrustManager} initialized using configured properties
+     */
+    @Override
+    public X509TrustManager createTrustManager() {
+        try {
+            final X509TrustManager trustManager = SslContextFactory.getX509TrustManager(createTlsConfiguration());
+            if (trustManager == null) {
+                throw new ProcessException("X.509 Trust Manager not found using configured properties");
+            }
+            return trustManager;
+        } catch (final TlsException e) {
+            throw new ProcessException("Unable to create X.509 Trust Manager", e);
+        }
     }
 
     @Override

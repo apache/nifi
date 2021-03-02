@@ -22,6 +22,8 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.X509TrustManager;
+
 import okhttp3.FormBody;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -34,8 +36,6 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.security.util.OkHttpClientUtils;
-import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.StringUtils;
 
@@ -89,8 +89,8 @@ public class OAuth2TokenProviderImpl extends AbstractControllerService implement
         OkHttpClient.Builder clientBuilder = new OkHttpClient.Builder();
 
         if (sslService != null) {
-            final TlsConfiguration tlsConfiguration = sslService.createTlsConfiguration();
-            OkHttpClientUtils.applyTlsToOkHttpClientBuilder(tlsConfiguration, clientBuilder);
+            final X509TrustManager trustManager = sslService.createTrustManager();
+            clientBuilder.sslSocketFactory(sslContext.getSocketFactory(), trustManager);
         }
 
         return clientBuilder;
