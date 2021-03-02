@@ -83,8 +83,8 @@ public class StatelessNiFiSourceConnector extends SourceConnector {
 
         configDef.define(TOPIC_NAME_ATTRIBUTE, ConfigDef.Type.STRING, null, ConfigDef.Importance.MEDIUM,
             "Specifies the name of a FlowFile attribute to use for determining which Kafka Topic a FlowFile"
-            + " will be sent to. Either the topic.name or topic.name.attribute configuration must be specified. If both are specified, the topic.name.attribute will be preferred, but if a FlowFile"
-            + " does not have the specified attribute name, then the topic.name property will serve as the default topic name to use.");
+                + " will be sent to. Either the " + TOPIC_NAME + " or " + TOPIC_NAME_ATTRIBUTE + " configuration must be specified. If both are specified, the " + TOPIC_NAME_ATTRIBUTE
+                + " will be preferred, but if a FlowFile does not have the specified attribute name, then the " + TOPIC_NAME + " property will serve as the default topic name to use.");
 
         configDef.define(KEY_ATTRIBUTE, ConfigDef.Type.STRING, null, ConfigDef.Importance.MEDIUM, "Specifies the name of a FlowFile attribute to use for determining the Kafka Message key. If not"
             + " specified, the message key will be null. If specified, the value of the attribute with the given name will be used as the message key.");
