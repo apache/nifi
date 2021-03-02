@@ -151,7 +151,19 @@ public class SecurityUtil {
 
     public static <T> T callWithUgi(UserGroupInformation ugi, PrivilegedExceptionAction<T> action) throws IOException {
         try {
-            return ugi.doAs(action);
+            T result;
+            if (ugi == null) {
+                try {
+                    result = action.run();
+                } catch (RuntimeException re) {
+                    throw re;
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            }  else {
+                result = ugi.doAs(action);
+            }
+            return result;
         } catch (InterruptedException e) {
             throw new IOException(e);
         }
