@@ -155,6 +155,8 @@ public class SecurityUtil {
             if (ugi == null) {
                 try {
                     result = action.run();
+                } catch (IOException ioe) {
+                    throw ioe;
                 } catch (RuntimeException re) {
                     throw re;
                 } catch (Exception e) {
