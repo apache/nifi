@@ -18,29 +18,31 @@ package org.apache.nifi.web.api.entity;
 
 import javax.xml.bind.annotation.XmlRootElement;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
+import org.apache.nifi.web.api.dto.PositionDTO;
+import org.apache.nifi.web.api.dto.RevisionDTO;
 
 /**
  * A serialized representation of this class can be placed in the entity body of a request or response to or from the API. This particular entity holds a reference to a ProcessGroupUploadDTO.
  */
 @XmlRootElement(name = "processGroupUploadEntity")
 public class ProcessGroupUploadEntity extends Entity {
+
     private String id;
     private String groupName;
-    private Double positionX;
-    private Double positionY;
-    private String clientId;
     private Boolean disconnectedNodeAcknowledged;
     private VersionedFlowSnapshot versionedFlowSnapshot;
+    private PositionDTO positionDTO;
+    private RevisionDTO revisionDTO;
 
     /**
      * @return The group ID
      */
-    public String getId() {
+    public String getGroupId() {
         return id;
     }
 
-    public void setId(String id) {
-        this.id = id;
+    public void setGroupId(String groupId) {
+        this.id = groupId;
     }
 
     /**
@@ -52,39 +54,6 @@ public class ProcessGroupUploadEntity extends Entity {
 
     public void setGroupName(String groupName) {
         this.groupName = groupName;
-    }
-
-    /**
-     * @return The process group X-position
-     */
-    public Double getPositionX() {
-        return positionX;
-    }
-
-    public void setPositionX(Double positionX) {
-        this.positionX = positionX;
-    }
-
-    /**
-     * @return The process group Y-position
-     */
-    public Double getPositionY() {
-        return positionY;
-    }
-
-    public void setPositionY(Double positionY) {
-        this.positionY = positionY;
-    }
-
-    /**
-     * @return The client ID
-     */
-    public String getClientId() {
-        return clientId;
-    }
-
-    public void setClientId(String clientId) {
-        this.clientId = clientId;
     }
 
     /**
@@ -107,5 +76,27 @@ public class ProcessGroupUploadEntity extends Entity {
 
     public void setFlowSnapshot(VersionedFlowSnapshot versionedFlowSnapshot) {
         this.versionedFlowSnapshot = versionedFlowSnapshot;
+    }
+
+    /**
+     * @return The PositionDTO
+     */
+    public PositionDTO getPositionDTO() {
+        return positionDTO;
+    }
+
+    public void setPositionDTO(PositionDTO positionDTO) {
+        this.positionDTO = positionDTO;
+    }
+
+    /**
+     * @return The RevisionDTO
+     */
+    public RevisionDTO getRevisionDTO() {
+        return revisionDTO;
+    }
+
+    public void setRevisionDTO(RevisionDTO revisionDTO) {
+        this.revisionDTO = revisionDTO;
     }
 }

@@ -4263,15 +4263,24 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
             verifyDisconnectedNodeModification(disconnectedNodeAcknowledged);
         }
 
+        // create a PositionDTO
+        final PositionDTO positionDTO = new PositionDTO();
+        positionDTO.setX(positionX);
+        positionDTO.setY(positionY);
+
+        // create a RevisionDTO
+        RevisionDTO revisionDTO = new RevisionDTO();
+        revisionDTO.setClientId(clientId);
+        revisionDTO.setVersion((long) 0);
+
         // build the response entity for a replicate request
         ProcessGroupUploadEntity pgUploadEntity = new ProcessGroupUploadEntity();
-        pgUploadEntity.setId(groupId);
+        pgUploadEntity.setGroupId(groupId);
         pgUploadEntity.setGroupName(groupName);
-        pgUploadEntity.setPositionX(positionX);
-        pgUploadEntity.setPositionY(positionY);
-        pgUploadEntity.setClientId(clientId);
         pgUploadEntity.setDisconnectedNodeAcknowledged(disconnectedNodeAcknowledged);
         pgUploadEntity.setFlowSnapshot(deserializedSnapshot);
+        pgUploadEntity.setPositionDTO(positionDTO);
+        pgUploadEntity.setRevisionDTO(revisionDTO);
 
         // replicate the request
         if (isReplicateRequest()) {
@@ -4353,13 +4362,8 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
             verifyDisconnectedNodeModification(processGroupUploadEntity.getDisconnectedNodeAcknowledged());
         }
 
-        // create a PositionDTO
-        final PositionDTO positionDTO = new PositionDTO();
-        positionDTO.setX(processGroupUploadEntity.getPositionX());
-        positionDTO.setY(processGroupUploadEntity.getPositionY());
-
         // create a new ProcessGroupEntity
-        final ProcessGroupEntity newProcessGroupEntity = createProcessGroupEntity(groupId, processGroupUploadEntity.getGroupName(), positionDTO, versionedFlowSnapshot);
+        final ProcessGroupEntity newProcessGroupEntity = createProcessGroupEntity(groupId, processGroupUploadEntity.getGroupName(), processGroupUploadEntity.getPositionDTO(), versionedFlowSnapshot);
 
         return withWriteLock(
                 serviceFacade,
@@ -4381,7 +4385,7 @@ public class ProcessGroupResource extends FlowUpdateResource<ProcessGroupImportE
                     final VersionedFlowSnapshot flowSnapshot = processGroupEntity.getVersionedFlowSnapshot();
 
                     // create the process group contents
-                    final Revision revision = new Revision((long) 0, processGroupUploadEntity.getClientId(), processGroup.getId());
+                    final Revision revision = new Revision((long) 0, processGroupUploadEntity.getRevisionDTO().getClientId(), processGroup.getId());
 
                     ProcessGroupEntity entity = serviceFacade.createProcessGroup(revision, groupId, processGroup);
 
