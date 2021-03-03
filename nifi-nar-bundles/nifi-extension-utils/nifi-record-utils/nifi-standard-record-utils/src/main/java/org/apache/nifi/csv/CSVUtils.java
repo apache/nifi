@@ -230,7 +230,7 @@ public class CSVUtils {
         String value = context.getProperty(VALUE_SEPARATOR).evaluateAttributeExpressions(variables).getValue();
 
         if (value != null) {
-            String unescaped = unescapeJava(value);
+            String unescaped = unescape(value);
             if (unescaped.length() == 1) {
                 return unescaped.charAt(0);
             }
@@ -315,21 +315,10 @@ public class CSVUtils {
         return format;
     }
 
-    public static String unescapeJava(String input) {
+    public static String unescape(String input) {
         if (input != null && input.length() > 1) {
             input = StringEscapeUtils.unescapeJava(input);
         }
         return input;
-    }
-
-
-    public static String unescape(final String input) {
-        if (input == null) {
-            return null;
-        }
-
-        return input.replace("\\t", "\t")
-            .replace("\\n", "\n")
-            .replace("\\r", "\r");
     }
 }

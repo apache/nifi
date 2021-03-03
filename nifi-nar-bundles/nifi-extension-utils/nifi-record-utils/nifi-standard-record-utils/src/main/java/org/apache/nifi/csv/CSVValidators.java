@@ -89,7 +89,7 @@ public class CSVValidators {
                         .build();
             }
 
-            String unescaped = CSVUtils.unescapeJava(input);
+            String unescaped = CSVUtils.unescape(input);
 
             return new ValidationResult.Builder()
                     .subject(subject)
