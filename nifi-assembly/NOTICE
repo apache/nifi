@@ -1960,6 +1960,10 @@ The following binary components are provided under the Apache Software License v
     The following NOTICE information applies:
       Copyright (c) 2014-2019 Appsicle
       Copyright (c) 2019-2020 QuestDB
+      
+  (ASLv2) WURFL Microservice client java (com.scientiamobile.wurflmicroservice:wurfl-microservice-2.1.2.jar - https://github.com/WURFL/wurfl-microservice-client-java)
+    The following NOTICE information applies:
+      Copyright (c) 2017-2021 ScientiaMobile Inc.
 
 ************************
 Common Development and Distribution License 1.1
