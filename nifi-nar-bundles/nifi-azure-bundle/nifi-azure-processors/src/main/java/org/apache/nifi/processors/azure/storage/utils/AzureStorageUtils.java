@@ -161,7 +161,7 @@ public final class AzureStorageUtils {
             .name("storage-account-name-secret")
             .displayName("Storage Account Name Secret Name")
             .description("Storage Account Name Secret Name")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(true)
             .sensitive(true)
@@ -171,7 +171,7 @@ public final class AzureStorageUtils {
             .name("storage-account-key-secret")
             .displayName("Storage Account Key Secret Name")
             .description("Storage Account Key Secret Name")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(false)
             .sensitive(true)
@@ -184,7 +184,7 @@ public final class AzureStorageUtils {
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .sensitive(true)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor KEYVAULT_CONNECTION_SERVICE = new PropertyDescriptor.Builder()

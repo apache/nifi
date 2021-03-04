@@ -481,7 +481,7 @@ public class TestADLSCredentialsControllerService {
 
     private void configureEndpointSuffixUsingEL() {
         String variableName = "endpoint.suffix";
-        configurePropertyUsingEL(ADLSCredentialsControllerService.ENDPOINT_SUFFIX, variableName, END_POINT_SUFFIX_VALUE);
+        configurePropertyUsingEL(AzureStorageUtils.ADLS_ENDPOINT_SUFFIX, variableName, END_POINT_SUFFIX_VALUE);
     }
 
     private void configureServicePrincipalTenantId() {
