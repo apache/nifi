@@ -57,6 +57,9 @@ jobs:
         run: |
           cat /proc/cpuinfo
           cat /proc/meminfo
+      - name: Install CMake and Libpmem
+        run: |
+          sudo apt -y update && sudo apt install cmake libpmem-dev
       - name: Checkout Code
         uses: actions/checkout@v2
       - name: Cache Maven Dependencies
