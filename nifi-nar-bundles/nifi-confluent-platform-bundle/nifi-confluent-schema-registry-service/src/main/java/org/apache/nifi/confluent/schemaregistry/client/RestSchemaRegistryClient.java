@@ -134,8 +134,7 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
                     continue;
                 }
             }
-        }
-        else {
+        } else {
             final ArrayNode subjectsList = (ArrayNode) subjectsJson;
             for (JsonNode subject: subjectsList) {
                 try {
@@ -168,7 +167,7 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
             return AvroTypeUtil.createSchema(avroSchema, schemaText, schemaId);
         } catch (final SchemaParseException spe) {
             throw new SchemaNotFoundException("Obtained Schema with id " + id + " and name " + subject
-                + " from Confluent Schema Registry but the Schema Text that was returned is not a valid Avro Schema");
+                    + " from Confluent Schema Registry but the Schema Text that was returned is not a valid Avro Schema");
         }
     }
 
