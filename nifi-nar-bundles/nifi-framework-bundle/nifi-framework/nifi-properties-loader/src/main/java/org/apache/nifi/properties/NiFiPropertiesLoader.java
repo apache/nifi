@@ -184,7 +184,7 @@ public class NiFiPropertiesLoader {
                 String key = itr.next();
                 String prop = rawProperties.getProperty(key);
                 if(!prop.isEmpty()){
-                    prop = Pattern.compile("( +| *\\r?\\n.*)$", Pattern.DOTALL).matcher(prop).replaceFirst("");
+                    prop = Pattern.compile("\\s+$").matcher(prop).replaceFirst("");
                     rawProperties.setProperty(key, prop);
                 }
             }
