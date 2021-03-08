@@ -36,11 +36,9 @@ import org.mockito.junit.MockitoJUnitRunner;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -122,45 +120,6 @@ public class TestQuerySplunkIndexingStatus {
     }
 
     @Test
-    public void testAckCheckedIsTrueAndFlowFileWithTimedOutEvents() throws Exception {
-        // when
-        testRunner.enqueue(givenFlowFile(1, System.currentTimeMillis() - TimeUnit.HOURS.toMillis(2), true));
-        testRunner.run();
-
-        // then
-        Mockito.verify(service, Mockito.never()).send(Mockito.anyString(), Mockito.any(RequestMessage.class));
-        testRunner.assertAllFlowFilesTransferred(QuerySplunkIndexingStatus.RELATIONSHIP_UNACKNOWLEDGED, 1);
-    }
-
-    @Test
-    public void testAckCheckedIsFalseAndTimedOutEventFlowFileWithAcknowledgeResponse() throws Exception {
-        // given
-        givenSplunkReturns(Collections.singletonMap(1, true));
-
-        // when
-        testRunner.enqueue(givenFlowFile(1, System.currentTimeMillis() - TimeUnit.HOURS.toMillis(2), false));
-        testRunner.run();
-
-        // then
-        Mockito.verify(service).send(Mockito.anyString(), Mockito.any(RequestMessage.class));
-        testRunner.assertAllFlowFilesTransferred(QuerySplunkIndexingStatus.RELATIONSHIP_ACKNOWLEDGED, 1);
-    }
-
-    @Test
-    public void testAckCheckedIsFalseAndTimedOutEventFlowFileWithoutAcknowledgeResponse() throws Exception {
-        // given
-        givenSplunkReturns(Collections.singletonMap(1, false));
-
-        // when
-        testRunner.enqueue(givenFlowFile(1, System.currentTimeMillis() - TimeUnit.HOURS.toMillis(2), false));
-        testRunner.run();
-
-        // then
-        Mockito.verify(service).send(Mockito.anyString(), Mockito.any(RequestMessage.class));
-        testRunner.assertAllFlowFilesTransferred(QuerySplunkIndexingStatus.RELATIONSHIP_UNDETERMINED, 1);
-    }
-
-    @Test
     public void testWhenFlowFileIsLackOfNecessaryAttributes() throws Exception {
         // when
         testRunner.enqueue(EVENT);
@@ -205,14 +164,6 @@ public class TestQuerySplunkIndexingStatus {
         Map<String, String> attributes = new HashMap<>();
         attributes.put("splunk.acknowledgement.id", String.valueOf(ackId));
         attributes.put("splunk.responded.at", String.valueOf(sentAt));
-        result.putAttributes(attributes);
-        return result;
-    }
-
-    private MockFlowFile givenFlowFile(final int ackId, final long sentAt, final boolean ackChecked) throws UnsupportedEncodingException {
-        final MockFlowFile result = givenFlowFile(ackId, sentAt);
-        Map<String, String> attributes = new HashMap<>(result.getAttributes());
-        attributes.put("ack.checked.at.splunk", String.valueOf(ackChecked));
         result.putAttributes(attributes);
         return result;
     }

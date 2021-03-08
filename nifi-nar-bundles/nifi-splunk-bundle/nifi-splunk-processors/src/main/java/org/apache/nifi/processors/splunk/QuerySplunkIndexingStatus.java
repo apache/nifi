@@ -21,8 +21,6 @@ import com.splunk.ResponseMessage;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.ReadsAttribute;
 import org.apache.nifi.annotation.behavior.ReadsAttributes;
-import org.apache.nifi.annotation.behavior.WritesAttribute;
-import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -56,13 +54,9 @@ import java.util.concurrent.TimeUnit;
 @ReadsAttributes({
         @ReadsAttribute(attribute = "splunk.acknowledgement.id", description = "The indexing acknowledgement id provided by Splunk."),
         @ReadsAttribute(attribute = "splunk.responded.at", description = "The time of the response of put request for Splunk.")})
-@WritesAttributes({
-        @WritesAttribute(attribute = "ack.checked.at.splunk", description = "Contains a boolean value representing whether Splunk acknowledgement check has happened. If not set considered as false.")
-})
 @SeeAlso(PutSplunkHTTP.class)
 public class QuerySplunkIndexingStatus extends SplunkAPICall {
     private static final String ENDPOINT = "/services/collector/ack";
-    private static final String ACK_CHECKED_ATTRIBUTE = "ack.checked.at.splunk";
 
     static final Relationship RELATIONSHIP_ACKNOWLEDGED = new Relationship.Builder()
             .name("success")
@@ -168,14 +162,11 @@ public class QuerySplunkIndexingStatus extends SplunkAPICall {
         for (final FlowFile flowFile : flowFiles)  {
             final Optional<Long> sentAt = extractLong(flowFile.getAttribute(SplunkAPICall.RESPONDED_AT_ATTRIBUTE));
             final Optional<Long> ackId = extractLong(flowFile.getAttribute(SplunkAPICall.ACKNOWLEDGEMENT_ID_ATTRIBUTE));
-            final boolean ackChecked = isAlreadyChecked(flowFile);
 
             if (!sentAt.isPresent() || !ackId.isPresent()) {
                 getLogger().error("Flow file ({}) attributes {} and {} are expected to be set using 64-bit integer values!",
                         new Object[]{flowFile.getId(), SplunkAPICall.RESPONDED_AT_ATTRIBUTE, SplunkAPICall.ACKNOWLEDGEMENT_ID_ATTRIBUTE});
                 session.transfer(flowFile, RELATIONSHIP_FAILURE);
-            } else if (ackChecked && sentAt.get() + ttl < currentTime) {
-                session.transfer(flowFile, RELATIONSHIP_UNACKNOWLEDGED);
             } else {
                 undetermined.put(ackId.get(), flowFile);
             }
@@ -200,17 +191,18 @@ public class QuerySplunkIndexingStatus extends SplunkAPICall {
             if (responseMessage.getStatus() == 200) {
                 final EventIndexStatusResponse splunkResponse = unmarshallResult(responseMessage.getContent(), EventIndexStatusResponse.class);
 
-                splunkResponse.getAcks().entrySet().forEach(result -> {
-                    final FlowFile toTransfer = undetermined.get(result.getKey());
-                    if (!isAlreadyChecked(toTransfer)) {
-                        setAckCheckedToTrue(session, toTransfer);
-                    }
-
-                    if (result.getValue()) {
+                splunkResponse.getAcks().forEach((flowFileId, isAcknowledged) -> {
+                    final FlowFile toTransfer = undetermined.get(flowFileId);
+                    if (isAcknowledged) {
                         session.transfer(toTransfer, RELATIONSHIP_ACKNOWLEDGED);
                     } else {
-                        session.penalize(toTransfer);
-                        session.transfer(toTransfer, RELATIONSHIP_UNDETERMINED);
+                        final Long sentAt = extractLong(toTransfer.getAttribute(SplunkAPICall.RESPONDED_AT_ATTRIBUTE)).get();
+                        if (sentAt + ttl < currentTime) {
+                            session.transfer(toTransfer, RELATIONSHIP_UNACKNOWLEDGED);
+                        } else {
+                            session.penalize(toTransfer);
+                            session.transfer(toTransfer, RELATIONSHIP_UNDETERMINED);
+                        }
                     }
                 });
             } else {
@@ -243,19 +235,5 @@ public class QuerySplunkIndexingStatus extends SplunkAPICall {
         } catch (final NumberFormatException e) {
             return Optional.empty();
         }
-    }
-
-    private static boolean isAlreadyChecked(FlowFile flowFile) {
-        return extractBoolean(flowFile.getAttribute(ACK_CHECKED_ATTRIBUTE));
-    }
-
-    private static boolean extractBoolean(final String value) {
-        return Boolean.parseBoolean(value);
-    }
-
-    private void setAckCheckedToTrue(final ProcessSession session, final FlowFile flowFile) {
-        final Map<String, String> attributes = new HashMap<>(flowFile.getAttributes());
-        attributes.put(ACK_CHECKED_ATTRIBUTE, String.valueOf(Boolean.TRUE));
-        session.putAllAttributes(flowFile, attributes);
     }
 }
