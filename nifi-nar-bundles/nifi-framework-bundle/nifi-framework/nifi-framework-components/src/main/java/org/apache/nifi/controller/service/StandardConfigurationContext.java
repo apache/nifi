@@ -66,7 +66,7 @@ public class StandardConfigurationContext implements ConfigurationContext {
                 value = desc.getDefaultValue();
             }
 
-            final PreparedQuery pq = Query.prepare(value);
+            final PreparedQuery pq = Query.prepareWithParametersPreEvaluated(value);
             preparedQueries.put(desc, pq);
         }
     }
