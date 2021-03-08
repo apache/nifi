@@ -164,7 +164,7 @@ public class ConnectableTask {
         // make sure that either we're not clustered or this processor runs on all nodes or that this is the primary node
         if (!isRunOnCluster(flowController)) {
             logger.debug("Will not trigger {} because this is not the primary node", connectable);
-            return InvocationResult.DO_NOT_YIELD;
+            return InvocationResult.yield("This node is not the primary node");
         }
 
         // Make sure processor has work to do.
