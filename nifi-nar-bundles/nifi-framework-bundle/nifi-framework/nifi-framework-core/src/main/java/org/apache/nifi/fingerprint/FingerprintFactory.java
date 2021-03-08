@@ -87,8 +87,6 @@ public class FingerprintFactory {
     private final ExtensionManager extensionManager;
     private final SensitiveValueEncoder sensitiveValueEncoder;
 
-    private byte[] sensitivePropertyKeyBytes;
-
     private static final Logger logger = LoggerFactory.getLogger(FingerprintFactory.class);
 
     public FingerprintFactory(final PropertyEncryptor encryptor, final ExtensionManager extensionManager, final SensitiveValueEncoder sensitiveValueEncoder) {
@@ -545,7 +543,7 @@ public class FingerprintFactory {
      * @return a deterministic string value which represents this input but is safe to print in a log
      */
     private String getLoggableRepresentationOfSensitiveValue(String encryptedPropertyValue) {
-        final String plaintextValue = encryptor.decrypt(encryptedPropertyValue);
+        final String plaintextValue = decrypt(encryptedPropertyValue);
         return sensitiveValueEncoder.getEncoded(plaintextValue);
     }
 
