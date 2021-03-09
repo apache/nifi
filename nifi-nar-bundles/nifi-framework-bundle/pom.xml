@@ -537,6 +537,10 @@
                         <groupId>commons-logging</groupId>
                         <artifactId>commons-logging</artifactId>
                     </exclusion>
+                    <exclusion>
+                        <groupId>com.io7m.xom</groupId>
+                        <artifactId>xom</artifactId>
+                    </exclusion>
                 </exclusions>
             </dependency>
             <dependency>
