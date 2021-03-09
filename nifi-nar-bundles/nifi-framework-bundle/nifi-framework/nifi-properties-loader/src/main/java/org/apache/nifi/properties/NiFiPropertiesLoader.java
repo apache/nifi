@@ -180,11 +180,12 @@ public class NiFiPropertiesLoader {
             // Trim whitespace from each property. If property is multi-line, remove anything after the first line break.
             Set<String> keys = rawProperties.stringPropertyNames();
             Iterator<String> itr = keys.iterator();
+            final Pattern whitespaceRegex = Pattern.compile("\\s+$");
             while(itr.hasNext()){
                 String key = itr.next();
                 String prop = rawProperties.getProperty(key);
                 if(!prop.isEmpty()){
-                    prop = Pattern.compile("\\s+$").matcher(prop).replaceFirst("");
+                    prop = whitespaceRegex.matcher(prop).replaceFirst("");
                     rawProperties.setProperty(key, prop);
                 }
             }
