@@ -39,7 +39,7 @@ public class StringToDateEvaluator extends DateEvaluator {
     private final Evaluator<String> timeZone;
 
     private final DateTimeFormatter preparedFormatter;
-    private final boolean preparedFormatterHasCorrectZone;
+    private final boolean preparedFormatterHasRequestedTimeZone;
 
     public StringToDateEvaluator(final Evaluator<String> subject, final Evaluator<String> format, final Evaluator<String> timeZone) {
         this.subject = subject;
@@ -50,17 +50,17 @@ public class StringToDateEvaluator extends DateEvaluator {
             DateTimeFormatter dtf = FormatUtils.prepareLenientCaseInsensitiveDateTimeFormatter(format.evaluate(new StandardEvaluationContext(Collections.emptyMap())).getValue());
             if (timeZone == null) {
                 preparedFormatter = dtf;
-                preparedFormatterHasCorrectZone = true;
+                preparedFormatterHasRequestedTimeZone = true;
             } else if (timeZone instanceof StringLiteralEvaluator) {
                 preparedFormatter = dtf.withZone(ZoneId.of(timeZone.evaluate(new StandardEvaluationContext(Collections.emptyMap())).getValue()));
-                preparedFormatterHasCorrectZone = true;
+                preparedFormatterHasRequestedTimeZone = true;
             } else {
                 preparedFormatter = dtf;
-                preparedFormatterHasCorrectZone = false;
+                preparedFormatterHasRequestedTimeZone = false;
             }
         } else {
             preparedFormatter = null;
-            preparedFormatterHasCorrectZone = false;
+            preparedFormatterHasRequestedTimeZone = false;
         }
         this.timeZone = timeZone;
     }
@@ -85,7 +85,7 @@ public class StringToDateEvaluator extends DateEvaluator {
             dtf = FormatUtils.prepareLenientCaseInsensitiveDateTimeFormatter(format);
         }
 
-        if ((preparedFormatter == null || !preparedFormatterHasCorrectZone) && timeZone != null) {
+        if ((preparedFormatter == null || !preparedFormatterHasRequestedTimeZone) && timeZone != null) {
             final QueryResult<String> tzResult = timeZone.evaluate(evaluationContext);
             final String tz = tzResult.getValue();
             if(tz != null) {
