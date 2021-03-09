@@ -22,6 +22,7 @@ import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.server.handler.HandlerCollection;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
+import org.eclipse.jetty.util.thread.QueuedThreadPool;
 
 import javax.net.ssl.SSLContext;
 
@@ -31,8 +32,11 @@ public class JettyServerUtils {
 
     private static final long SERVER_START_SLEEP = 100L;
 
+    private static final int MAXIMUM_THREADS = 8;
+
     public static Server createServer(final int port, final SSLContext sslContext, final ClientAuth clientAuth) {
-        final Server server = new Server();
+        final QueuedThreadPool threadPool = new QueuedThreadPool(MAXIMUM_THREADS);
+        final Server server = new Server(threadPool);
 
         final ServerConnector connector;
         if (sslContext == null) {
