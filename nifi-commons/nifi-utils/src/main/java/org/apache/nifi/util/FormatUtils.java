@@ -55,6 +55,8 @@ public class FormatUtils {
     public static final Pattern TIME_DURATION_PATTERN = Pattern.compile(TIME_DURATION_REGEX);
     private static final List<Long> TIME_UNIT_MULTIPLIERS = Arrays.asList(1000L, 1000L, 1000L, 60L, 60L, 24L);
 
+    private static final LocalDate EPOCH_INITIAL_DATE = LocalDate.of(1970, 1, 1);
+
     /**
      * Formats the specified count by adding commas.
      *
@@ -458,12 +460,16 @@ public class FormatUtils {
         if (parsed instanceof Instant) {
             return (Instant) parsed;
         } else if (parsed instanceof LocalDateTime) {
-            return ((LocalDateTime) parsed).atZone(ZoneId.systemDefault()).toInstant();
+            return toInstantInSystemDefaultTimeZone((LocalDateTime) parsed);
         } else if (parsed instanceof LocalDate) {
-            return ((LocalDate) parsed).atTime(0, 0).atZone(ZoneId.systemDefault()).toInstant();
+            return toInstantInSystemDefaultTimeZone(((LocalDate) parsed).atTime(0, 0));
         } else {
-            return ((LocalTime) parsed).atDate(LocalDate.of(1970, 1, 1)).atZone(ZoneId.systemDefault()).toInstant();
+            return toInstantInSystemDefaultTimeZone(((LocalTime) parsed).atDate(EPOCH_INITIAL_DATE));
         }
+    }
+
+    private static Instant toInstantInSystemDefaultTimeZone(LocalDateTime dateTime) {
+        return dateTime.atZone(ZoneId.systemDefault()).toInstant();
     }
 
 }
