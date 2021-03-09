@@ -540,8 +540,8 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
             return null;
         }
 
-        try {
-            final ClassLoader bundleClassLoader = bundle.getClassLoader();
+        final ClassLoader bundleClassLoader = bundle.getClassLoader();
+        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(bundleClassLoader)) {
             final Class<?> componentClass = Class.forName(classType, true, bundleClassLoader);
             final ConfigurableComponent tempComponent = (ConfigurableComponent) componentClass.newInstance();
             initializeTempComponent(tempComponent);
