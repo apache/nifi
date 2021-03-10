@@ -44,6 +44,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
@@ -79,7 +80,7 @@ public class TestFileSystemSwapManager {
 
         final FlowFileRepository flowFileRepo = Mockito.mock(FlowFileRepository.class);
         Mockito.doThrow(new IOException("Intentional IOException for unit test"))
-            .when(flowFileRepo).updateRepository(anyCollection());
+            .when(flowFileRepo).swapFlowFilesOut(any(), any(), any());
 
         final FileSystemSwapManager swapManager = createSwapManager(flowFileRepo);
 
