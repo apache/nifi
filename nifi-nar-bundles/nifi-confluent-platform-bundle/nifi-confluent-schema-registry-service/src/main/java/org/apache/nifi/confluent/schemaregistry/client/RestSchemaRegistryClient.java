@@ -109,7 +109,7 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
 
     @Override
     public RecordSchema getSchema(final int schemaId) throws IOException, SchemaNotFoundException {
-        // The Confluent Schema Registry's version below 5.4.0 REST API does not provide us with the 'subject' (name) of a Schema given the ID.
+        // The Confluent Schema Registry's version below 5.3.1 REST API does not provide us with the 'subject' (name) of a Schema given the ID.
         // It will provide us only the text of the Schema itself. Therefore, in order to determine the name (which is required for
         // a SchemaIdentifier), we must obtain a list of all Schema names, and then request each and every one of the schemas to determine
         // if the ID requested matches the Schema's ID.
@@ -119,8 +119,13 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
 
         final String schemaPath = getSchemaPath(schemaId);
         final JsonNode responseJson = fetchJsonResponse(schemaPath, "id " + schemaId);
-        //Get subject name by id, works only with v5.4.0+ Confluent Schema Registry
-        final JsonNode subjectsJson = fetchJsonResponse(schemaPath + "/subjects", "schema name");
+        //Get subject name by id, works only with v5.3.1+ Confluent Schema Registry
+        JsonNode subjectsJson = null;
+        try {
+            subjectsJson = fetchJsonResponse(schemaPath + "/subjects", "schema name");
+        } catch (SchemaNotFoundException e) {
+            logger.debug("Could not find schema name in registry by id in: + " + schemaPath);
+        }
         JsonNode completeSchema = null;
         if(subjectsJson == null) {
             final JsonNode subjectsAllJson = fetchJsonResponse("/subjects", "subjects array");
