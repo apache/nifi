@@ -223,6 +223,24 @@ class NiFiPropertiesLoaderGroovyTest extends GroovyTestCase {
     }
 
     @Test
+    void testShouldNotLoadUnprotectedPropertiesFromPathWithBlankKeyForClusterNode() throws Exception {
+        // Arrange
+        final File propertiesFile = File.createTempFile("nifi.without.key", ".properties")
+        propertiesFile.deleteOnExit()
+        final OutputStream outputStream = new FileOutputStream(propertiesFile)
+        final InputStream inputStream = getClass().getResourceAsStream("/conf/nifi.cluster.without.key.properties")
+        FileUtils.copy(inputStream, outputStream)
+
+        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, propertiesFile.absolutePath);
+        NiFiPropertiesLoader niFiPropertiesLoader = new NiFiPropertiesLoader()
+
+        // Act
+        shouldFail(SensitivePropertyProtectionException) {
+            niFiPropertiesLoader.get()
+        }
+    }
+
+    @Test
     void testShouldNotLoadUnprotectedPropertiesFromNullFile() throws Exception {
         // Arrange
         NiFiPropertiesLoader niFiPropertiesLoader = new NiFiPropertiesLoader()

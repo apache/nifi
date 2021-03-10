@@ -48,6 +48,7 @@ public class NiFiPropertiesLoader {
     private static final int SENSITIVE_PROPERTIES_KEY_LENGTH = 24;
     private static final String EMPTY_SENSITIVE_PROPERTIES_KEY = String.format("%s=", NiFiProperties.SENSITIVE_PROPS_KEY);
     private static final String MIGRATION_INSTRUCTIONS = "See Administration Guide section [Migrating a Flow with Sensitive Properties]";
+    private static final String PROPERTIES_KEY_MESSAGE = String.format("Sensitive Properties Key [%s] not found: %s", NiFiProperties.SENSITIVE_PROPS_KEY, MIGRATION_INSTRUCTIONS);
 
     private final String defaultPropertiesFilePath = CryptoUtils.getDefaultFilePath();
     private NiFiProperties instance;
@@ -257,11 +258,15 @@ public class NiFiPropertiesLoader {
     private NiFiProperties getDefaultProperties() {
         NiFiProperties defaultProperties = loadDefault();
         if (isKeyGenerationRequired(defaultProperties)) {
+            if (defaultProperties.isClustered()) {
+                logger.error("Clustered Configuration Found: Shared Sensitive Properties Key [{}] required for cluster nodes", NiFiProperties.SENSITIVE_PROPS_KEY);
+                throw new SensitivePropertyProtectionException(PROPERTIES_KEY_MESSAGE);
+            }
+
             final File flowConfiguration = defaultProperties.getFlowConfigurationFile();
             if (flowConfiguration.exists()) {
                 logger.error("Flow Configuration [{}] Found: Migration Required for blank Sensitive Properties Key [{}]", flowConfiguration, NiFiProperties.SENSITIVE_PROPS_KEY);
-                final String message = String.format("Sensitive Properties Key [%s] not found: %s", NiFiProperties.SENSITIVE_PROPS_KEY, MIGRATION_INSTRUCTIONS);
-                throw new SensitivePropertyProtectionException(message);
+                throw new SensitivePropertyProtectionException(PROPERTIES_KEY_MESSAGE);
             }
             setSensitivePropertiesKey();
             defaultProperties = loadDefault();
