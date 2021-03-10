@@ -17,16 +17,18 @@
 
 package org.apache.nifi.components.resource;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 
-public class URLResourceReference implements ResourceReference {
-    private final URL url;
+public class Utf8TextResource implements ResourceReference {
+    private final String text;
 
-    public URLResourceReference(final URL url) {
-        this.url = url;
+    public Utf8TextResource(final String text) {
+        this.text = text;
     }
 
     @Override
@@ -36,12 +38,12 @@ public class URLResourceReference implements ResourceReference {
 
     @Override
     public URL asURL() {
-        return url;
+        return null;
     }
 
     @Override
     public InputStream read() throws IOException {
-        return url.openStream();
+        return new ByteArrayInputStream(text.getBytes(StandardCharsets.UTF_8));
     }
 
     @Override
@@ -51,17 +53,16 @@ public class URLResourceReference implements ResourceReference {
 
     @Override
     public String getLocation() {
-        return url.toExternalForm();
+        return null;
     }
 
     @Override
     public ResourceType getResourceType() {
-        return ResourceType.URL;
+        return ResourceType.TEXT;
     }
 
     @Override
     public String toString() {
-        return "URLResourceReference[url=" + url + "]";
+        return "Utf8TextResource[text=" + text.length() + " characters]";
     }
-
 }

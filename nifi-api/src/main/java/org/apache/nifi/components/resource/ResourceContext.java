@@ -17,18 +17,19 @@
 
 package org.apache.nifi.components.resource;
 
+import org.apache.nifi.components.PropertyDescriptor;
+
 /**
- * Indicates the cardinality of how many resources can be referenced by a given property.
+ * Provides the context in which a Reference Reference is to be evaluated
  */
-public enum ResourceCardinality {
+public interface ResourceContext {
+    /**
+     * @return a ResourceReferenceFactory that can be used to parse a property value into a {@link ResourceReference} or {@link ResourceReferences}
+     */
+    ResourceReferenceFactory getResourceReferenceFactory();
 
     /**
-     * Exactly one resource must be specified
+     * @return the PropertyDescriptor that describes the property whose value may be a resource
      */
-    SINGLE,
-
-    /**
-     * One or more resources may be supplied, as a comma-separated list
-     */
-    MULTIPLE;
+    PropertyDescriptor getPropertyDescriptor();
 }

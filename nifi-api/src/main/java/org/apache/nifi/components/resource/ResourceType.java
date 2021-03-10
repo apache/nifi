@@ -29,6 +29,11 @@ public enum ResourceType {
     DIRECTORY("directory"),
 
     /**
+     * Referenced Resource is UTF-8 text, rather than an external entity
+     */
+    TEXT("text"),
+
+    /**
      * Referenced Resource is a URL that uses the HTTP, HTTPS, or file protocol
      * (i.e., <code>http://...</code>, <code>https://...</code>, or <code>file:...</code>)
      */

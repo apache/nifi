@@ -60,6 +60,7 @@ public abstract class AbstractCSVLookupService extends AbstractControllerService
     public static final PropertyDescriptor CHARSET =
             new PropertyDescriptor.Builder()
                     .fromPropertyDescriptor(CSVUtils.CHARSET)
+                    .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
                     .name("Character Set")
                     .description("The Character Encoding that is used to decode the CSV file.")
                     .build();

@@ -33,6 +33,7 @@ import org.apache.nifi.components.PropertyDependency;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.components.resource.ResourceDefinition;
+import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.documentation.AbstractDocumentationWriter;
 import org.apache.nifi.documentation.ExtensionType;
 import org.apache.nifi.documentation.ServiceAPI;
@@ -189,9 +190,13 @@ public class XmlDocumentationWriter extends AbstractDocumentationWriter {
         writeStartElement("resourceDefinition");
         if (resourceDefinition != null) {
             writeTextElement("cardinality", resourceDefinition.getCardinality().name());
-            writeArray("resourceTypes", resourceDefinition.getResourceTypes(), type -> writeText(type.name()));
+            writeArray("resourceTypes", resourceDefinition.getResourceTypes(), this::writeResourceType);
         }
         writeEndElement();
+    }
+
+    private void writeResourceType(final ResourceType resourceType) throws IOException {
+        writeTextElement("resourceType", resourceType.name());
     }
 
     private void writeAllowableValue(final AllowableValue allowableValue) throws IOException {

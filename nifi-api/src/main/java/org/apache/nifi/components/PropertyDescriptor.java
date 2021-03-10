@@ -19,7 +19,7 @@ package org.apache.nifi.components;
 import org.apache.nifi.components.resource.ResourceCardinality;
 import org.apache.nifi.components.resource.ResourceDefinition;
 import org.apache.nifi.components.resource.ResourceReference;
-import org.apache.nifi.components.resource.ResourceReferenceFactory;
+import org.apache.nifi.components.resource.StandardResourceReferenceFactory;
 import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.components.resource.StandardResourceDefinition;
 import org.apache.nifi.controller.ControllerService;
@@ -745,6 +745,12 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
                 .input(configuredInput)
                 .subject(subject);
 
+            if (configuredInput == null) {
+                return resultBuilder.valid(false)
+                    .explanation("No value specified")
+                    .build();
+            }
+
             // If Expression Language is supported and is used in the property value, we cannot perform validation against the configured
             // input unless the Expression Language is expressly limited to only variable registry. In that case, we can evaluate it and then
             // validate the value after evaluating the Expression Language.
@@ -755,9 +761,19 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
                     resultBuilder.input(input);
                 } else {
                     return resultBuilder.valid(true)
-                        .explanation("Expression Language is present, so validation of property values cannot be performed")
+                        .explanation("Expression Language is present, so validation of property value cannot be performed")
                         .build();
                 }
+            }
+
+            // If the property can be text, then there's nothing to validate. Anything that is entered may be valid.
+            // This will be improved in the future, by allowing the user to specify the type of resource that is being referenced.
+            // Until then, we will simply require that the component perform any necessary validation.
+            final boolean allowsText = resourceDefinition.getResourceTypes().contains(ResourceType.TEXT);
+            if (allowsText) {
+                return resultBuilder.valid(true)
+                    .explanation("Property allows for Resource Type of Text, so validation of property value cannot be performed")
+                    .build();
             }
 
             final String[] splits = input.split(",");
@@ -772,7 +788,7 @@ public final class PropertyDescriptor implements Comparable<PropertyDescriptor> 
 
             int count = 0;
             for (final String split : splits) {
-                final ResourceReference resourceReference = ResourceReferenceFactory.createResourceReference(split);
+                final ResourceReference resourceReference = new StandardResourceReferenceFactory().createResourceReference(split, resourceDefinition);
                 if (resourceReference == null) {
                     continue;
                 }

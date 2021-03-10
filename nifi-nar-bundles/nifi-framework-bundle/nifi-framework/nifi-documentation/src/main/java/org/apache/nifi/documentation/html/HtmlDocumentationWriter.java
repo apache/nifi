@@ -537,6 +537,7 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
                 if (resourceDefinition != null) {
                     xmlStreamWriter.writeEmptyElement("br");
                     xmlStreamWriter.writeEmptyElement("br");
+                    xmlStreamWriter.writeStartElement("strong");
 
                     final ResourceCardinality cardinality = resourceDefinition.getCardinality();
                     final Set<ResourceType> resourceTypes = resourceDefinition.getResourceTypes();
@@ -557,6 +558,8 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
                     }
 
                     xmlStreamWriter.writeCharacters(".");
+                    xmlStreamWriter.writeEndElement();
+                    xmlStreamWriter.writeEmptyElement("br");
                 }
 
                 if (property.isExpressionLanguageSupported()) {
@@ -624,7 +627,8 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
                             suffix = sb.toString();
                         }
 
-                        writeSimpleElement(xmlStreamWriter, "strong", prefix + suffix);
+                        final String elementName = dependencies.size() > 1 ? "li" : "strong";
+                        writeSimpleElement(xmlStreamWriter, elementName, prefix + suffix);
                     }
 
                     if (dependencies.size() > 1) { // write </ul>

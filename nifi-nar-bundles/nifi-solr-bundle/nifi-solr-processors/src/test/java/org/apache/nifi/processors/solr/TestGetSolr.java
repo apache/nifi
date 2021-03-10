@@ -116,6 +116,7 @@ public class TestGetSolr {
         runner.setProperty(GetSolr.DATE_FIELD, "created");
         runner.setProperty(GetSolr.RETURN_FIELDS, "id,created");
         runner.setProperty(SolrUtils.COLLECTION, "testCollection");
+        runner.setValidateExpressionUsage(false);
         return runner;
     }
 

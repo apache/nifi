@@ -15,20 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.components.resource;
+package org.apache.nifi.util;
 
-/**
- * Indicates the cardinality of how many resources can be referenced by a given property.
- */
-public enum ResourceCardinality {
-
-    /**
-     * Exactly one resource must be specified
-     */
-    SINGLE,
-
-    /**
-     * One or more resources may be supplied, as a comma-separated list
-     */
-    MULTIPLE;
+public class EmptyControllerServiceLookup extends MockControllerServiceLookup {
 }

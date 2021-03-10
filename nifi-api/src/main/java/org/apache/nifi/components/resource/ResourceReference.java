@@ -22,6 +22,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 
+/**
+ * A reference to a Resource that is identified by a property value
+ */
 public interface ResourceReference {
 
     /**
@@ -30,7 +33,7 @@ public interface ResourceReference {
     File asFile();
 
     /**
-     * @return a URL representation of the resource
+     * @return a URL representation of the resource, or <code>null</code> if the Resource cannot be represented as a URL
      */
     URL asURL();
 
@@ -51,13 +54,13 @@ public interface ResourceReference {
     boolean isAccessible();
 
     /**
-     * @return a String representation of the location. For a File or a Directory, this will be the full path name; for a URL it will be the
-     * String form of the URL
+     * @return a String representation of the location, or <code>null</code> for a Resource that does not have an external location.
+     * For a File or a Directory, this will be the full path name; for a URL it will be the String form of the URL
      */
     String getLocation();
 
     /**
-     * @return the type of resource that is being represented
+     * @return the type of resource that is being referenced
      */
     ResourceType getResourceType();
 }

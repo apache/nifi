@@ -17,38 +17,8 @@
 
 package org.apache.nifi.components.resource;
 
-import java.io.File;
-import java.net.MalformedURLException;
-import java.net.URL;
+public interface ResourceReferenceFactory {
+    ResourceReference createResourceReference(String value, ResourceDefinition resourceDefinition);
 
-public class ResourceReferenceFactory {
-
-    public static ResourceReference createResourceReference(final String value) {
-        if (value == null) {
-            return null;
-        }
-
-        final String trimmed = value.trim();
-        if (trimmed.isEmpty()) {
-            return null;
-        }
-
-        try {
-            if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
-                return new URLResourceReference(new URL(trimmed));
-            }
-
-            if (trimmed.startsWith("file:")) {
-                final URL url = new URL(trimmed);
-                final String filename = url.getFile();
-                final File file = new File(filename);
-                return new FileResourceReference(file);
-            }
-        } catch (MalformedURLException e) {
-            throw new IllegalArgumentException("Invalid URL: " + trimmed);
-        }
-
-        final File file = new File(trimmed);
-        return new FileResourceReference(file);
-    }
+    ResourceReferences createResourceReferences(String value, ResourceDefinition resourceDefinition);
 }

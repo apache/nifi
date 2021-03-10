@@ -16,11 +16,13 @@
  */
 package org.apache.nifi.attribute.expression.language;
 
+import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.components.resource.ResourceContext;
 import org.apache.nifi.components.resource.ResourceReference;
-import org.apache.nifi.components.resource.ResourceReferenceFactory;
 import org.apache.nifi.components.resource.ResourceReferences;
-import org.apache.nifi.components.resource.StandardResourceReferences;
+import org.apache.nifi.components.resource.StandardResourceContext;
+import org.apache.nifi.components.resource.StandardResourceReferenceFactory;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.expression.AttributeValueDecorator;
@@ -31,9 +33,6 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.util.FormatUtils;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -44,13 +43,20 @@ public class StandardPropertyValue implements PropertyValue {
     private final PreparedQuery preparedQuery;
     private final VariableRegistry variableRegistry;
     private final ParameterLookup parameterLookup;
+    private final ResourceContext resourceContext;
 
     public StandardPropertyValue(final String rawValue, final ControllerServiceLookup serviceLookup, final ParameterLookup parameterLookup) {
-        this(rawValue, serviceLookup, parameterLookup, Query.prepare(rawValue), VariableRegistry.EMPTY_REGISTRY);
+        this(new StandardResourceContext(new StandardResourceReferenceFactory(), null),
+            rawValue, serviceLookup, parameterLookup);
     }
 
-    public StandardPropertyValue(final String rawValue, final ControllerServiceLookup serviceLookup, final ParameterLookup parameterLookup, final VariableRegistry variableRegistry) {
-        this(rawValue, serviceLookup, parameterLookup, Query.prepare(rawValue), variableRegistry);
+    public StandardPropertyValue(final ResourceContext resourceContext, final String rawValue, final ControllerServiceLookup serviceLookup, final ParameterLookup parameterLookup) {
+        this(resourceContext, rawValue, serviceLookup, parameterLookup, Query.prepare(rawValue), VariableRegistry.EMPTY_REGISTRY);
+    }
+
+    public StandardPropertyValue(final ResourceContext resourceContext, final String rawValue, final ControllerServiceLookup serviceLookup, final ParameterLookup parameterLookup,
+                                 final VariableRegistry variableRegistry) {
+        this(resourceContext, rawValue, serviceLookup, parameterLookup, Query.prepare(rawValue), variableRegistry);
     }
 
     /**
@@ -58,25 +64,27 @@ public class StandardPropertyValue implements PropertyValue {
      * lookup and indicates whether or not the rawValue contains any NiFi
      * Expressions. If it is unknown whether or not the value contains any NiFi
      * Expressions, the
-     * {@link #StandardPropertyValue(String, ControllerServiceLookup, ParameterLookup, VariableRegistry)}
+     * {@link #StandardPropertyValue(ResourceContext, String, ControllerServiceLookup, ParameterLookup, VariableRegistry)}
      * constructor should be used or <code>true</code> should be passed.
      * However, if it is known that the value contains no NiFi Expression, that
      * information should be provided so that calls to
      * {@link #evaluateAttributeExpressions()} are much more efficient
      *
+     * @param resourceContext the context in which resources are to be understood
      * @param rawValue value
      * @param serviceLookup lookup
      * @param  parameterLookup the parameter lookup
      * @param preparedQuery query
      * @param variableRegistry variableRegistry
      */
-    public StandardPropertyValue(final String rawValue, final ControllerServiceLookup serviceLookup, final ParameterLookup parameterLookup, final PreparedQuery preparedQuery,
-            final VariableRegistry variableRegistry) {
+    public StandardPropertyValue(final ResourceContext resourceContext, final String rawValue, final ControllerServiceLookup serviceLookup, final ParameterLookup parameterLookup,
+                                 final PreparedQuery preparedQuery, final VariableRegistry variableRegistry) {
         this.rawValue = rawValue;
         this.serviceLookup = serviceLookup;
         this.preparedQuery = preparedQuery;
         this.variableRegistry = variableRegistry;
         this.parameterLookup = parameterLookup == null ? ParameterLookup.EMPTY : parameterLookup;
+        this.resourceContext = resourceContext;
     }
 
     @Override
@@ -171,7 +179,7 @@ public class StandardPropertyValue implements PropertyValue {
         final EvaluationContext evaluationContext = new StandardEvaluationContext(lookup, stateValues, parameterLookup);
         final String evaluated = preparedQuery.evaluateExpressions(evaluationContext, decorator);
 
-        return new StandardPropertyValue(evaluated, serviceLookup, parameterLookup, new EmptyPreparedQuery(evaluated), null);
+        return new StandardPropertyValue(resourceContext, evaluated, serviceLookup, parameterLookup, new EmptyPreparedQuery(evaluated), null);
     }
 
     @Override
@@ -209,45 +217,24 @@ public class StandardPropertyValue implements PropertyValue {
 
     @Override
     public ResourceReference asResource() {
-        if (rawValue == null) {
+        final PropertyDescriptor propertyDescriptor = resourceContext.getPropertyDescriptor();
+        if (propertyDescriptor == null) {
+            // If no property descriptor has been specified, there are no known types of resources.
             return null;
         }
 
-        final List<String> resourceLocations = parseResourceLocations();
-        if (resourceLocations.size() == 1) {
-            return ResourceReferenceFactory.createResourceReference(resourceLocations.get(0));
-        }
-
-        return null;
+        return resourceContext.getResourceReferenceFactory().createResourceReference(rawValue, propertyDescriptor.getResourceDefinition());
     }
 
     @Override
     public ResourceReferences asResources() {
-        final List<ResourceReference> references;
-        if (rawValue == null) {
-            references = Collections.emptyList();
-        } else {
-            final List<String> locations = parseResourceLocations();
-            references = new ArrayList<>(locations.size());
-            locations.forEach(location -> references.add(ResourceReferenceFactory.createResourceReference(location)));
+        final PropertyDescriptor propertyDescriptor = resourceContext.getPropertyDescriptor();
+        if (propertyDescriptor == null) {
+            // If no property descriptor has been specified, there are no known types of resources.
+            return null;
         }
 
-        return new StandardResourceReferences(references);
-    }
-
-    private List<String> parseResourceLocations() {
-        final List<String> resourceLocations = new ArrayList<>();
-        final String[] splits = rawValue.split(",");
-        for (final String split : splits) {
-            final String trimmed = split.trim();
-            if (trimmed.isEmpty()) {
-                continue;
-            }
-
-            resourceLocations.add(trimmed);
-        }
-
-        return resourceLocations;
+        return resourceContext.getResourceReferenceFactory().createResourceReferences(rawValue, propertyDescriptor.getResourceDefinition());
     }
 
     @Override

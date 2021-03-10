@@ -36,7 +36,7 @@ public class ValidateFileExists extends AbstractProcessor {
         .displayName("Filename")
         .description("A file that should exist")
         .required(true)
-        .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE)
+        .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE, ResourceType.DIRECTORY)
         .build();
 
     private static final Relationship REL_SUCCESS = new Relationship.Builder().name("success").build();
