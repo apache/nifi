@@ -1598,6 +1598,14 @@ public class DataTypeUtils {
     }
 
     public static boolean isIntegerTypeCompatible(final Object value) {
+        if (value instanceof Number) {
+            try {
+                Math.toIntExact(((Number) value).longValue());
+                return true;
+            } catch (ArithmeticException ae) {
+                return false;
+            }
+        }
         return isNumberTypeCompatible(value, s -> isIntegral(s, Integer.MIN_VALUE, Integer.MAX_VALUE));
     }
 
