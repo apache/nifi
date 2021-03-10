@@ -430,6 +430,22 @@ public class TestDataTypeUtils {
     }
 
     @Test
+    public void testIsCompatibleDataTypeInteger() {
+        final DataType dataType = RecordFieldType.INT.getDataType();
+        assertTrue(DataTypeUtils.isCompatibleDataType(new Integer("1234567"), dataType));
+        assertTrue(DataTypeUtils.isCompatibleDataType("1234567", dataType));
+        assertFalse(DataTypeUtils.isCompatibleDataType(new BigInteger("12345678901234567890"), dataType));
+        assertFalse(DataTypeUtils.isCompatibleDataType(1234567890123456789L, dataType));
+        assertTrue(DataTypeUtils.isCompatibleDataType(1, dataType));
+        assertTrue(DataTypeUtils.isCompatibleDataType((short) 1, dataType));
+        assertFalse(DataTypeUtils.isCompatibleDataType("12345678901234567890", dataType));
+        assertTrue(DataTypeUtils.isCompatibleDataType(3.1f, dataType));
+        assertTrue(DataTypeUtils.isCompatibleDataType(3.0, dataType));
+        assertFalse(DataTypeUtils.isCompatibleDataType("1234567XYZ", dataType));
+        assertFalse(DataTypeUtils.isCompatibleDataType(new Long[]{1L, 2L}, dataType));
+    }
+
+    @Test
     public void testIsCompatibleDataTypeArrayDifferentElementTypes() {
         Object[] array = new Object[]{"2", 1};
         assertTrue(DataTypeUtils.isCompatibleDataType(array, RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.INT.getDataType())));
