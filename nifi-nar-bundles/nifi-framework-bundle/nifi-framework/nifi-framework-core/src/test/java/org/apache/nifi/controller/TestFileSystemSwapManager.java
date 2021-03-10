@@ -81,7 +81,7 @@ public class TestFileSystemSwapManager {
         Mockito.doThrow(new IOException("Intentional IOException for unit test"))
             .when(flowFileRepo).updateRepository(anyCollection());
 
-        final FileSystemSwapManager swapManager = createSwapManager();
+        final FileSystemSwapManager swapManager = createSwapManager(flowFileRepo);
 
         final List<FlowFileRecord> flowFileRecords = new ArrayList<>();
         for (int i=0; i < 10000; i++) {
