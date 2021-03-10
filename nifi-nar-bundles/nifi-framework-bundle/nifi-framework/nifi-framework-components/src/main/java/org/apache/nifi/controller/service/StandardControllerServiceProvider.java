@@ -295,6 +295,7 @@ public class StandardControllerServiceProvider implements ControllerServiceProvi
         for (final ControllerServiceNode depNode : dependentServices) {
             if (!depNode.isActive()) {
                 logger.debug("Before enabling {}, will enable dependent Controller Service {}", serviceNode, depNode);
+                enableControllerServiceAndDependencies(depNode);
             }
         }
 
