@@ -51,6 +51,7 @@
         <module>nifi-avro-bundle</module>
         <module>nifi-couchbase-bundle</module>
         <module>nifi-azure-bundle</module>
+        <module>nifi-adx-bundle</module>
         <module>nifi-ldap-iaa-providers-bundle</module>
         <module>nifi-kerberos-iaa-providers-bundle</module>
         <module>nifi-single-user-iaa-providers-bundle</module>
