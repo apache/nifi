@@ -36,11 +36,16 @@ public class ServiceStateTransition {
     private ControllerServiceState state = ControllerServiceState.DISABLED;
     private final List<CompletableFuture<?>> enabledFutures = new ArrayList<>();
     private final List<CompletableFuture<?>> disabledFutures = new ArrayList<>();
+    private final ControllerServiceNode controllerServiceNode;
 
     private final ReadWriteLock rwLock = new ReentrantReadWriteLock();
     private final Lock writeLock = rwLock.writeLock();
     private final Lock readLock = rwLock.readLock();
     private final Condition stateChangeCondition = writeLock.newCondition();
+
+    public ServiceStateTransition(final ControllerServiceNode controllerServiceNode) {
+        this.controllerServiceNode = controllerServiceNode;
+    }
 
     public boolean transitionToEnabling(final ControllerServiceState expectedState, final CompletableFuture<?> enabledFuture) {
         writeLock.lock();
@@ -50,6 +55,8 @@ public class ServiceStateTransition {
             }
 
             state = ControllerServiceState.ENABLING;
+            logger.debug("{} transitioned to ENABLING", controllerServiceNode);
+
             stateChangeCondition.signalAll();
             enabledFutures.add(enabledFuture);
             return true;
@@ -62,10 +69,12 @@ public class ServiceStateTransition {
         writeLock.lock();
         try {
             if (state != ControllerServiceState.ENABLING) {
+                logger.debug("{} cannot be transitioned to enabled because it's not currently ENABLING but rather {}", controllerServiceNode, state);
                 return false;
             }
 
             state = ControllerServiceState.ENABLED;
+            logger.debug("{} transitioned to ENABLED", controllerServiceNode);
 
             enabledFutures.forEach(future -> future.complete(null));
 
@@ -86,6 +95,7 @@ public class ServiceStateTransition {
         writeLock.lock();
         try {
             if (expectedState != state) {
+                logger.debug("{} cannot be transitioned to DISABLING because its state is {}, not the expected {}", controllerServiceNode, state, expectedState);
                 return false;
             }
 
@@ -102,6 +112,8 @@ public class ServiceStateTransition {
         writeLock.lock();
         try {
             state = ControllerServiceState.DISABLED;
+            logger.debug("{} transitioned to DISABLED", controllerServiceNode);
+
             stateChangeCondition.signalAll();
             disabledFutures.forEach(future -> future.complete(null));
         } finally {
@@ -129,6 +141,8 @@ public class ServiceStateTransition {
                 if (millisLeft <= 0) {
                     return false;
                 }
+
+                logger.debug("State of {} is currently {}. Will wait up to {} milliseconds for state to transition to {}", controllerServiceNode, state, millisLeft, desiredState);
 
                 stateChangeCondition.await(millisLeft, TimeUnit.MILLISECONDS);
             }

@@ -112,7 +112,7 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
         this.serviceProvider = serviceProvider;
         this.active = new AtomicBoolean();
         setControllerServiceAndProxy(implementation, proxiedControllerService, invocationHandler);
-        stateTransition = new ServiceStateTransition();
+        stateTransition = new ServiceStateTransition(this);
     }
 
     @Override
@@ -594,14 +594,11 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
 
     @Override
     public String toString() {
-        final ControllerServiceDetails details = controllerServiceHolder.get();
-        final String bundleCoordinate = details == null ? "null" : String.valueOf(details.getBundleCoordinate());
         return "StandardControllerServiceNode[" +
                 "service=" + super.toString() +
-                ", versionedComponentId=" + versionedComponentId +
-                ", processGroup=" + processGroup +
+                ", name=" + getName() +
                 ", active=" + active +
-                ']';
+                "]";
     }
 
     @Override
