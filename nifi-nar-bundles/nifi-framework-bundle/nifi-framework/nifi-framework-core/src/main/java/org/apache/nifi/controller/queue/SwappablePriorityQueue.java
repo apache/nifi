@@ -919,7 +919,7 @@ public class SwappablePriorityQueue {
 
                     // Update class member metrics
                     minQueueDateInSwapLocation.put(swapLocation, summary.getMinLastQueueDate());
-                    totalQueueDateInSwapLocation.put(swapLocation, summary.getMinLastQueueDate());
+                    totalQueueDateInSwapLocation.put(swapLocation, summary.getTotalLastQueueDate());
 
                     // Update metrics for this method's return value
                     if(minSwappedQueueDate == null) {
