@@ -1577,6 +1577,37 @@ public class TestRecordPath {
     }
 
     @Test
+    public void testToLongFromString() {
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("s", RecordFieldType.STRING.getDataType()));
+
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        final Map<String, Object> values = new HashMap<>();
+        values.put("s", "214748364700");
+        final Record record = new MapRecord(schema, values);
+
+        assertEquals(Long.valueOf("214748364700"),
+                (Long) RecordPath.compile("toLong(/s)").evaluate(record).getSelectedFields().findFirst().get().getValue());
+    }
+
+    @Test
+    public void testToLongFromDate() {
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("d", RecordFieldType.DATE.getDataType()));
+
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        final Map<String, Object> values = new HashMap<>();
+        final long testDate = 1615371695278l;
+        values.put("d", new Date(testDate));
+        final Record record = new MapRecord(schema, values);
+
+        assertEquals(Long.valueOf(testDate),
+                (Long) RecordPath.compile("toLong(/d)").evaluate(record).getSelectedFields().findFirst().get().getValue());
+    }
+
+    @Test
     public void testBase64Encode() {
         final List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField("firstName", RecordFieldType.STRING.getDataType()));
