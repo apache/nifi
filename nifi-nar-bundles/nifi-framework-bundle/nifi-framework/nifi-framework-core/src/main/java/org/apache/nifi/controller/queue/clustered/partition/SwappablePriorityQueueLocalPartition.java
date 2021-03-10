@@ -68,12 +68,12 @@ public class SwappablePriorityQueueLocalPartition implements LocalQueuePartition
 
     @Override
     public long getTotalActiveQueuedDuration(long fromTimestamp) {
-        return priorityQueue.getTotalActiveQueuedDuration(fromTimestamp);
+        return priorityQueue.getTotalQueuedDuration(fromTimestamp);
     }
 
     @Override
-    public long getMaxActiveQueuedDuration(long fromTimestamp) {
-        return priorityQueue.getMaxActiveQueuedDuration(fromTimestamp);
+    public long getMinLastQueueDate() {
+        return priorityQueue.getMinLastQueueDate();
     }
 
     @Override

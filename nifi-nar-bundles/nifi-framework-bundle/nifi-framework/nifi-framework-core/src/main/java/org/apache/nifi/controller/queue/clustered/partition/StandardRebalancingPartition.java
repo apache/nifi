@@ -69,12 +69,12 @@ public class StandardRebalancingPartition implements RebalancingPartition {
 
     @Override
     public long getTotalActiveQueuedDuration(long fromTimestamp) {
-        return queue.getTotalActiveQueuedDuration(fromTimestamp);
+        return queue.getTotalQueuedDuration(fromTimestamp);
     }
 
     @Override
-    public long getMaxActiveQueuedDuration(long fromTimestamp) {
-        return queue.getMaxActiveQueuedDuration(fromTimestamp);
+    public long getMinLastQueueDate() {
+        return queue.getMinLastQueueDate();
     }
 
     @Override

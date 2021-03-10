@@ -42,8 +42,8 @@ public class ConnectionStatus implements Cloneable {
     private long outputBytes;
     private int maxQueuedCount;
     private long maxQueuedBytes;
-    private long totalActiveQueuedDuration;
-    private long maxActiveQueuedDuration;
+    private long totalQueuedDuration;
+    private long maxQueuedDuration;
 
     public String getId() {
         return id;
@@ -198,20 +198,20 @@ public class ConnectionStatus implements Cloneable {
         this.backPressureBytesThreshold = backPressureBytesThreshold;
     }
 
-    public long getTotalActiveQueuedDuration() {
-        return totalActiveQueuedDuration;
+    public long getTotalQueuedDuration() {
+        return totalQueuedDuration;
     }
 
-    public void setTotalActiveQueuedDuration(long totalActiveQueuedDuration) {
-        this.totalActiveQueuedDuration = totalActiveQueuedDuration;
+    public void setTotalQueuedDuration(long totalQueuedDuration) {
+        this.totalQueuedDuration = totalQueuedDuration;
     }
 
-    public long getMaxActiveQueuedDuration() {
-        return maxActiveQueuedDuration;
+    public long getMaxQueuedDuration() {
+        return maxQueuedDuration;
     }
 
-    public void setMaxActiveQueuedDuration(long maxActiveQueuedDuration) {
-        this.maxActiveQueuedDuration = maxActiveQueuedDuration;
+    public void setMaxQueuedDuration(long maxQueuedDuration) {
+        this.maxQueuedDuration = maxQueuedDuration;
     }
 
     @Override
@@ -239,8 +239,8 @@ public class ConnectionStatus implements Cloneable {
         clonedObj.backPressureObjectThreshold = backPressureObjectThreshold;
         clonedObj.maxQueuedBytes = maxQueuedBytes;
         clonedObj.maxQueuedCount = maxQueuedCount;
-        clonedObj.totalActiveQueuedDuration = totalActiveQueuedDuration;
-        clonedObj.maxActiveQueuedDuration = maxActiveQueuedDuration;
+        clonedObj.totalQueuedDuration = totalQueuedDuration;
+        clonedObj.maxQueuedDuration = maxQueuedDuration;
         return clonedObj;
     }
 
@@ -282,9 +282,9 @@ public class ConnectionStatus implements Cloneable {
         builder.append(", maxQueueBytes=");
         builder.append(maxQueuedBytes);
         builder.append(", totalActiveQueuedDuration=");
-        builder.append(totalActiveQueuedDuration);
+        builder.append(totalQueuedDuration);
         builder.append(", maxActiveQueuedDuration=");
-        builder.append(maxActiveQueuedDuration);
+        builder.append(maxQueuedDuration);
         builder.append("]");
         return builder.toString();
     }

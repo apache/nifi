@@ -40,10 +40,11 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Objects;
+import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.Queue;
 import java.util.Set;
@@ -83,6 +84,11 @@ public class SwappablePriorityQueue {
     private PriorityQueue<FlowFileRecord> activeQueue;
     private ArrayList<FlowFileRecord> swapQueue;
     private boolean swapMode = false;
+
+    // The following members are used to keep metrics in memory for reporting purposes so that we don't have to constantly
+    // read these values from swap files on disk.
+    private final Map<String, Long> minQueueDateInSwapLocation = new HashMap<>();
+    private final Map<String, Long> totalQueueDateInSwapLocation = new HashMap<>();
 
     public SwappablePriorityQueue(final FlowFileSwapManager swapManager, final int swapThreshold, final EventReporter eventReporter, final FlowFileQueue flowFileQueue,
         final DropFlowFileAction dropAction, final String swapPartitionName) {
@@ -187,6 +193,8 @@ public class SwappablePriorityQueue {
         final List<String> swapLocations = new ArrayList<>(numSwapFiles);
         for (int i = 0; i < numSwapFiles; i++) {
             long bytesSwappedThisIteration = 0L;
+            long totalSwapQueueDatesThisIteration = 0L;
+            long minQueueDateThisIteration = Long.MAX_VALUE;
 
             // Create a new swap file for the next SWAP_RECORD_POLL_SIZE records
             final List<FlowFileRecord> toSwap = new ArrayList<>(SWAP_RECORD_POLL_SIZE);
@@ -194,6 +202,8 @@ public class SwappablePriorityQueue {
                 final FlowFileRecord flowFile = tempQueue.poll();
                 toSwap.add(flowFile);
                 bytesSwappedThisIteration += flowFile.getSize();
+                totalSwapQueueDatesThisIteration += flowFile.getLastQueueDate();
+                minQueueDateThisIteration = minQueueDateThisIteration < flowFile.getLastQueueDate() ? minQueueDateThisIteration : flowFile.getLastQueueDate();
             }
 
             try {
@@ -205,6 +215,8 @@ public class SwappablePriorityQueue {
 
                 bytesSwappedOut += bytesSwappedThisIteration;
                 flowFilesSwappedOut += toSwap.size();
+                minQueueDateInSwapLocation.put(swapLocation, minQueueDateThisIteration);
+                totalQueueDateInSwapLocation.put(swapLocation, totalSwapQueueDatesThisIteration);
             } catch (final IOException ioe) {
                 tempQueue.addAll(toSwap); // if we failed, we must add the FlowFiles back to the queue.
 
@@ -351,12 +363,16 @@ public class SwappablePriorityQueue {
             logger.debug("Attempting to swap in {}; all swap locations = {}", swapLocation, swapLocations);
             swapContents = swapManager.swapIn(swapLocation, flowFileQueue);
             swapLocations.remove(0);
+            minQueueDateInSwapLocation.remove(swapLocation);
+            totalQueueDateInSwapLocation.remove(swapLocation);
         } catch (final IncompleteSwapFileException isfe) {
             logger.error("Failed to swap in all FlowFiles from Swap File {}; Swap File ended prematurely. The records that were present will still be swapped in", swapLocation);
             logger.error("", isfe);
             swapContents = isfe.getPartialContents();
             partialContents = true;
             swapLocations.remove(0);
+            minQueueDateInSwapLocation.remove(swapLocation);
+            totalQueueDateInSwapLocation.remove(swapLocation);
         } catch (final FileNotFoundException fnfe) {
             logger.error("Failed to swap in FlowFiles from Swap File {} because the Swap File can no longer be found", swapLocation);
             if (eventReporter != null) {
@@ -364,6 +380,8 @@ public class SwappablePriorityQueue {
             }
 
             swapLocations.remove(0);
+            minQueueDateInSwapLocation.remove(swapLocation);
+            totalQueueDateInSwapLocation.remove(swapLocation);
             return;
         } catch (final IOException ioe) {
             logger.error("Failed to swap in FlowFiles from Swap File {}; Swap File appears to be corrupt!", swapLocation);
@@ -830,6 +848,8 @@ public class SwappablePriorityQueue {
 
                     dropRequest.setCurrentSize(size());
                     swapLocationItr.remove();
+                    minQueueDateInSwapLocation.remove(swapLocation);
+                    totalQueueDateInSwapLocation.remove(swapLocation);
                     logger.debug("For DropFlowFileRequest {}, dropped {} for Swap File {}", requestIdentifier, droppedSize, swapLocation);
                 }
 
@@ -852,6 +872,8 @@ public class SwappablePriorityQueue {
     public SwapSummary recoverSwappedFlowFiles() {
         int swapFlowFileCount = 0;
         long swapByteCount = 0L;
+        long totalSwappedQueueDate = 0L;
+        Long minSwappedQueueDate = null;
         Long maxId = null;
         List<ResourceClaim> resourceClaims = new ArrayList<>();
         final long startNanos = System.nanoTime();
@@ -894,6 +916,20 @@ public class SwappablePriorityQueue {
                     swapFlowFileCount += queueSize.getObjectCount();
                     swapByteCount += queueSize.getByteCount();
                     resourceClaims.addAll(summary.getResourceClaims());
+
+                    // Update class member metrics
+                    minQueueDateInSwapLocation.put(swapLocation, summary.getMinLastQueueDate());
+                    totalQueueDateInSwapLocation.put(swapLocation, summary.getMinLastQueueDate());
+
+                    // Update metrics for this method's return value
+                    if(minSwappedQueueDate == null) {
+                        minSwappedQueueDate = summary.getMinLastQueueDate();
+                    } else {
+                        if(summary.getMinLastQueueDate() != null) {
+                            minSwappedQueueDate = Long.min(minSwappedQueueDate, summary.getMinLastQueueDate());
+                        }
+                    }
+                    totalSwappedQueueDate += summary.getTotalLastQueueDate();
                 } catch (final IOException ioe) {
                     failures++;
                     logger.error("Failed to recover FlowFiles from Swap File {}; the file appears to be corrupt", swapLocation);
@@ -918,16 +954,80 @@ public class SwappablePriorityQueue {
             logger.info("Recovered {} swap files for {} in {} millis", swapLocations.size() - failures, this, millis);
         }
 
-        return new StandardSwapSummary(new QueueSize(swapFlowFileCount, swapByteCount), maxId, resourceClaims);
+        // minSwappedQueueDate and totalSwappedQueueDate within this particular StandardSwapSummary are not ultimately used by the FlowController. However,
+        // it can't hurt to set them here accurately in case they ever are.
+        return new StandardSwapSummary(new QueueSize(swapFlowFileCount, swapByteCount), maxId, resourceClaims, minSwappedQueueDate, totalSwappedQueueDate);
     }
 
-    public long getMaxActiveQueuedDuration(long fromTimestamp) {
-        // We want the oldest timestamp, which will be the min
-        return fromTimestamp - activeQueue.parallelStream().map(FlowFile::getLastQueueDate).filter(Objects::nonNull).min(Long::compareTo).orElse(fromTimestamp);
+    public long getMinLastQueueDate() {
+        readLock.lock();
+        try {
+            // We want the oldest timestamp, which will be the min
+            boolean seen = false;
+            Long min = null;
+            for (FlowFileRecord flowFileRecord : activeQueue) {
+                Long lastQueueDate = flowFileRecord.getLastQueueDate();
+                if (lastQueueDate != null) {
+                    if (!seen || lastQueueDate.compareTo(min) < 0) {
+                        seen = true;
+                        min = lastQueueDate;
+                    }
+                }
+            }
+
+            for (FlowFileRecord flowFileRecord : swapQueue) {
+                Long lastQueueDate = flowFileRecord.getLastQueueDate();
+                if (lastQueueDate != null) {
+                    if (!seen || lastQueueDate.compareTo(min) < 0) {
+                        seen = true;
+                        min = lastQueueDate;
+                    }
+                }
+            }
+
+            for(Long minSwapQueueDate: minQueueDateInSwapLocation.values()) {
+                if(!seen || minSwapQueueDate.compareTo(min) < 0) {
+                    seen = true;
+                    min = minSwapQueueDate;
+                }
+            }
+
+            return seen ? min : 0L;
+        } finally {
+            readLock.unlock("Get Min Last Queue Date");
+        }
     }
 
-    public long getTotalActiveQueuedDuration(long fromTimestamp) {
-        return activeQueue.parallelStream().filter(flowFileRecord -> (flowFileRecord.getLastQueueDate() != null)).mapToLong(flowFileRecord -> fromTimestamp - flowFileRecord.getLastQueueDate()).sum();
+    public long getTotalQueuedDuration(long fromTimestamp) {
+        readLock.lock();
+        try {
+            long sum = 0L;
+            for (FlowFileRecord flowFileRecord : activeQueue) {
+                if ((flowFileRecord.getLastQueueDate() != null)) {
+                    long l = fromTimestamp - flowFileRecord.getLastQueueDate();
+                    sum += l;
+                }
+            }
+
+            for (FlowFileRecord flowFileRecord : swapQueue) {
+                if ((flowFileRecord.getLastQueueDate() != null)) {
+                    long l = fromTimestamp - flowFileRecord.getLastQueueDate();
+                    sum += l;
+                }
+            }
+
+            long totalSwappedQueueDate = 0L;
+            for(Long totalQueueDate: totalQueueDateInSwapLocation.values()) {
+                totalSwappedQueueDate += totalQueueDate;
+            }
+
+            // We are only considering FlowFiles that have been swapped to disk in this calculation since we took care of the
+            // in-memory swapQueue previously.
+            sum += ((getFlowFileQueueSize().getSwappedCount() - swapQueue.size()) * fromTimestamp) - totalSwappedQueueDate;
+            return sum;
+        } finally {
+            readLock.unlock("Get Total Queued Duration");
+        }
     }
 
     protected void incrementActiveQueueSize(final int count, final long bytes) {

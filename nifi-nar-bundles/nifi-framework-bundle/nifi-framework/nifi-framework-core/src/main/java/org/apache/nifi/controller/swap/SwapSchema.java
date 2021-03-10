@@ -40,6 +40,9 @@ public class SwapSchema {
     public static final RecordSchema SWAP_CONTENTS_SCHEMA_V2;
     public static final RecordSchema FULL_SWAP_FILE_SCHEMA_V2;
 
+    public static final RecordSchema SWAP_SUMMARY_SCHEMA_V3;
+    public static final RecordSchema FULL_SWAP_FILE_SCHEMA_V3;
+
     public static final String RESOURCE_CLAIMS = "Resource Claims";
     public static final String RESOURCE_CLAIM = "Resource Claim";
     public static final String RESOURCE_CLAIM_COUNT = "Claim Count";
@@ -48,6 +51,8 @@ public class SwapSchema {
     public static final String FLOWFILE_COUNT = "FlowFile Count";
     public static final String FLOWFILE_SIZE = "FlowFile Size";
     public static final String MAX_RECORD_ID = "Max Record ID";
+    public static final String MIN_LAST_QUEUE_DATE = "Min Last Queue Date";
+    public static final String TOTAL_LAST_QUEUE_DATE = "Total Last Queue Date";
     public static final String SWAP_SUMMARY = "Swap Summary";
     public static final String FLOWFILE_CONTENTS = "FlowFiles";
 
@@ -105,5 +110,33 @@ public class SwapSchema {
         fullSchemaFields.add(new ComplexRecordField(SWAP_SUMMARY, Repetition.EXACTLY_ONE, summaryFields));
         fullSchemaFields.add(new ComplexRecordField(FLOWFILE_CONTENTS, Repetition.ZERO_OR_MORE, FlowFileSchema.FLOWFILE_SCHEMA_V2.getFields()));
         FULL_SWAP_FILE_SCHEMA_V2 = new RecordSchema(fullSchemaFields);
+    }
+
+    static {
+        final RecordField queueIdentifier = new SimpleRecordField(QUEUE_IDENTIFIER, FieldType.STRING, Repetition.EXACTLY_ONE);
+        final RecordField flowFileCount = new SimpleRecordField(FLOWFILE_COUNT, FieldType.INT, Repetition.EXACTLY_ONE);
+        final RecordField flowFileSize = new SimpleRecordField(FLOWFILE_SIZE, FieldType.LONG, Repetition.EXACTLY_ONE);
+        final RecordField maxRecordId = new SimpleRecordField(MAX_RECORD_ID, FieldType.LONG, Repetition.EXACTLY_ONE);
+        final RecordField minLastQueueDate = new SimpleRecordField(MIN_LAST_QUEUE_DATE, FieldType.LONG, Repetition.EXACTLY_ONE);
+        final RecordField totalLastQueueDate = new SimpleRecordField(TOTAL_LAST_QUEUE_DATE, FieldType.LONG, Repetition.EXACTLY_ONE);
+
+        final RecordField resourceClaimField = new ComplexRecordField(RESOURCE_CLAIM, Repetition.EXACTLY_ONE, ContentClaimSchema.RESOURCE_CLAIM_SCHEMA_V1.getFields());
+        final RecordField claimCountField = new SimpleRecordField(RESOURCE_CLAIM_COUNT, FieldType.INT, Repetition.EXACTLY_ONE);
+        final RecordField resourceClaims = new MapRecordField(RESOURCE_CLAIMS, resourceClaimField, claimCountField, Repetition.EXACTLY_ONE);
+
+        final List<RecordField> summaryFields = new ArrayList<>();
+        summaryFields.add(queueIdentifier);
+        summaryFields.add(flowFileCount);
+        summaryFields.add(flowFileSize);
+        summaryFields.add(maxRecordId);
+        summaryFields.add(minLastQueueDate);
+        summaryFields.add(totalLastQueueDate);
+        summaryFields.add(resourceClaims);
+        SWAP_SUMMARY_SCHEMA_V3 = new RecordSchema(summaryFields);
+
+        final List<RecordField> fullSchemaFields = new ArrayList<>();
+        fullSchemaFields.add(new ComplexRecordField(SWAP_SUMMARY, Repetition.EXACTLY_ONE, summaryFields));
+        fullSchemaFields.add(new ComplexRecordField(FLOWFILE_CONTENTS, Repetition.ZERO_OR_MORE, FlowFileSchema.FLOWFILE_SCHEMA_V2.getFields()));
+        FULL_SWAP_FILE_SCHEMA_V3 = new RecordSchema(fullSchemaFields);
     }
 }

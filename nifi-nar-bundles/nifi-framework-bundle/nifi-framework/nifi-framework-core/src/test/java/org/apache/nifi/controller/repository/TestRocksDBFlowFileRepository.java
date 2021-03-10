@@ -786,7 +786,7 @@ public class TestRocksDBFlowFileRepository {
                 }
             }
 
-            return new StandardSwapSummary(new QueueSize(records.size(), size), maxId, resourceClaims);
+            return new StandardSwapSummary(new QueueSize(records.size(), size), maxId, resourceClaims, 0L, 0L);
         }
 
         @Override

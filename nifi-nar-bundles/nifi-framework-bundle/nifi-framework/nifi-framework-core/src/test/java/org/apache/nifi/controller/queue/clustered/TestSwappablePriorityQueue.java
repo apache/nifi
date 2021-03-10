@@ -36,6 +36,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -715,5 +716,53 @@ public class TestSwappablePriorityQueue {
         assertEquals(0, queue.size().getObjectCount());
 
         assertTrue(swapManager.swappedOut.isEmpty());
+    }
+
+    @Test
+    // The purpose of this test is to populate a SwappablePriorityQueue and to ensure that the minLastQueueDate and TotalQueueDuration are correct.
+    // To truly test this we need to get both the in-memory swap queue and swap "on disk" involved.
+    public void testLastQueueDateMetrics() throws IOException {
+        Set<FlowFileRecord> flowFileRecords = new HashSet<>(11001);
+        queue = new SwappablePriorityQueue(swapManager, 1000, eventReporter, flowFileQueue, dropAction, "testGetMinLastQueueDate");
+        long minQueueDate = Long.MAX_VALUE;
+        long totalQueueDate = 0L;
+        // Put enough files in the queue to swap to disk
+        for (int i = 1; i <= 11001; i++) {
+            FlowFileRecord flowFileRecord = new MockFlowFileRecord();
+            queue.put(flowFileRecord);
+            flowFileRecords.add(flowFileRecord);
+            totalQueueDate += flowFileRecord.getLastQueueDate();
+            minQueueDate = Long.min(minQueueDate, flowFileRecord.getLastQueueDate());
+        }
+
+        // Assert the queue has a max of active, in-memory swap, and on-disk swap
+        assertEquals(1000, queue.getActiveFlowFiles().size());
+        assertEquals(10001, queue.getFlowFileQueueSize().getSwappedCount());
+        assertEquals(1, queue.getFlowFileQueueSize().getSwapFileCount());
+        assertEquals(10000, swapManager.getSwapSummary(swapManager.recoverSwapLocations(flowFileQueue, "testGetMinLastQueueDate").get(0)).getQueueSize().getObjectCount());
+
+        // Ensure that the min and totals are correct
+        long now = System.currentTimeMillis();
+        long totalNow = now * flowFileRecords.size();
+        assertEquals(totalNow - totalQueueDate, queue.getTotalQueuedDuration(now));
+        assertEquals(minQueueDate, queue.getMinLastQueueDate());
+
+        List<FlowFileRecord> polledRecords = queue.poll(1000, Collections.emptySet(), -1);
+        polledRecords.addAll(queue.poll(2, Collections.emptySet(), -1));
+
+        // Assert that the lone swap file was recovered into memory and that all numbers are as we still expect them to be.
+        assertEquals(9998, queue.getActiveFlowFiles().size());
+        assertEquals(1, queue.getFlowFileQueueSize().getSwappedCount());
+        assertEquals(0, queue.getFlowFileQueueSize().getSwapFileCount());
+        assert(swapManager.recoverSwapLocations(flowFileQueue, "testGetMinLastQueueDate").isEmpty());
+
+        // Ensure that the min and total are still correct
+        flowFileRecords.removeAll(polledRecords);
+        totalQueueDate = flowFileRecords.stream().mapToLong(FlowFileRecord::getLastQueueDate).sum();
+        minQueueDate = flowFileRecords.stream().mapToLong(FlowFileRecord::getLastQueueDate).min().getAsLong();
+        now = System.currentTimeMillis();
+        totalNow = now * flowFileRecords.size();
+        assertEquals(totalNow - totalQueueDate, queue.getTotalQueuedDuration(now));
+        assertEquals(minQueueDate, queue.getMinLastQueueDate());
     }
 }

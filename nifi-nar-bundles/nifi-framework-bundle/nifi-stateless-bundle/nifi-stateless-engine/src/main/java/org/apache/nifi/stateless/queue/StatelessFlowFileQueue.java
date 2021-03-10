@@ -99,13 +99,27 @@ public class StatelessFlowFileQueue implements DrainableFlowFileQueue {
     }
 
     @Override
-    public long getTotalActiveQueuedDuration(long fromTimestamp) {
-        return flowFiles.parallelStream().mapToLong(flowFileRecord -> fromTimestamp - flowFileRecord.getLastQueueDate()).sum();
+    public long getTotalQueuedDuration(long fromTimestamp) {
+        long sum = 0L;
+        for (FlowFileRecord flowFileRecord : flowFiles) {
+            long l = fromTimestamp - flowFileRecord.getLastQueueDate();
+            sum += l;
+        }
+        return sum;
     }
 
     @Override
-    public long getMaxActiveQueuedDuration(long fromTimestamp) {
-        return fromTimestamp - flowFiles.parallelStream().mapToLong(FlowFileRecord::getLastQueueDate).min().orElse(fromTimestamp);
+    public long getMinLastQueueDate() {
+        boolean seen = false;
+        long min = 0;
+        for (FlowFileRecord flowFile : flowFiles) {
+            long lastQueueDate = flowFile.getLastQueueDate();
+            if (!seen || lastQueueDate < min) {
+                seen = true;
+                min = lastQueueDate;
+            }
+        }
+        return seen ? min : 0L;
     }
 
     @Override

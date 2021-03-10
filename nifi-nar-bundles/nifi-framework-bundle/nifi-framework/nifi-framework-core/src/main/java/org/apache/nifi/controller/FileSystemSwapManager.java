@@ -167,7 +167,7 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
             warn("Cannot swap in FlowFiles from location " + swapLocation + " because the FlowFile Repository does not know about this Swap Location. " +
                 "This file should be manually removed. This typically occurs when a Swap File is written but the FlowFile Repository is not updated yet to reflect this. " +
                 "This is generally not a cause for concern, but may be indicative of a failure to update the FlowFile Repository.");
-            final SwapSummary swapSummary = new StandardSwapSummary(new QueueSize(0, 0), 0L, Collections.emptyList());
+            final SwapSummary swapSummary = new StandardSwapSummary(new QueueSize(0, 0), 0L, Collections.emptyList(), 0L, 0L);
             return new StandardSwapContents(swapSummary, Collections.emptyList());
         }
 

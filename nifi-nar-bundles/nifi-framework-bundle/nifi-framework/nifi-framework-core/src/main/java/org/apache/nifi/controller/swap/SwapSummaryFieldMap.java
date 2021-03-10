@@ -77,6 +77,10 @@ public class SwapSummaryFieldMap implements Record {
                 return queueIdentifier;
             case SwapSchema.RESOURCE_CLAIMS:
                 return claimCounts;
+            case SwapSchema.MIN_LAST_QUEUE_DATE:
+                return swapSummary.getMinLastQueueDate();
+            case SwapSchema.TOTAL_LAST_QUEUE_DATE:
+                return swapSummary.getTotalLastQueueDate();
         }
 
         return null;
@@ -86,6 +90,8 @@ public class SwapSummaryFieldMap implements Record {
     public static SwapSummary getSwapSummary(final Record record, final ResourceClaimManager claimManager) {
         final int flowFileCount = (Integer) record.getFieldValue(SwapSchema.FLOWFILE_COUNT);
         final long flowFileSize = (Long) record.getFieldValue(SwapSchema.FLOWFILE_SIZE);
+        final long minLastQueueDate = (Long) record.getFieldValue(SwapSchema.MIN_LAST_QUEUE_DATE);
+        final long totalLastQueueDate = (Long) record.getFieldValue(SwapSchema.TOTAL_LAST_QUEUE_DATE);
         final QueueSize queueSize = new QueueSize(flowFileCount, flowFileSize);
 
         final long maxFlowFileId = (Long) record.getFieldValue(SwapSchema.MAX_RECORD_ID);
@@ -101,6 +107,6 @@ public class SwapSummaryFieldMap implements Record {
             }
         }
 
-        return new StandardSwapSummary(queueSize, maxFlowFileId, resourceClaims);
+        return new StandardSwapSummary(queueSize, maxFlowFileId, resourceClaims, minLastQueueDate, totalLastQueueDate);
     }
 }

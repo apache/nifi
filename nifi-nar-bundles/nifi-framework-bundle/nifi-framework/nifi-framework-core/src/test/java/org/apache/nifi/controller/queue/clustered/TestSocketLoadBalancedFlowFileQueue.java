@@ -361,12 +361,18 @@ public class TestSocketLoadBalancedFlowFileQueue {
 
     @Test
     public void testRecoverSwapFiles() throws IOException {
+        long expectedMinLastQueueDate = Long.MAX_VALUE;
+        long expectedTotalLastQueueDate = 0L;
+
         for (int partitionIndex = 0; partitionIndex < 3; partitionIndex++) {
             final String partitionName = queue.getPartition(partitionIndex).getSwapPartitionName();
 
             final List<FlowFileRecord> flowFiles = new ArrayList<>();
             for (int i = 0; i < 100; i++) {
-                flowFiles.add(new MockFlowFileRecord(100L));
+                FlowFileRecord newMockFlowFilerecord = new MockFlowFileRecord(100L);
+                flowFiles.add(newMockFlowFilerecord);
+                expectedMinLastQueueDate = Long.min(expectedMinLastQueueDate, newMockFlowFilerecord.getLastQueueDate());
+                expectedTotalLastQueueDate += newMockFlowFilerecord.getLastQueueDate();
             }
 
             swapManager.swapOut(flowFiles, queue, partitionName);
@@ -374,7 +380,10 @@ public class TestSocketLoadBalancedFlowFileQueue {
 
         final List<FlowFileRecord> flowFiles = new ArrayList<>();
         for (int i = 0; i < 100; i++) {
-            flowFiles.add(new MockFlowFileRecord(100L));
+            FlowFileRecord newMockFlowFilerecord = new MockFlowFileRecord(100L);
+            flowFiles.add(newMockFlowFilerecord);
+            expectedMinLastQueueDate = Long.min(expectedMinLastQueueDate, newMockFlowFilerecord.getLastQueueDate());
+            expectedTotalLastQueueDate += newMockFlowFilerecord.getLastQueueDate();
         }
 
         swapManager.swapOut(flowFiles, queue, "other-partition");
@@ -383,6 +392,8 @@ public class TestSocketLoadBalancedFlowFileQueue {
         assertEquals(399L, swapSummary.getMaxFlowFileId().longValue());
         assertEquals(400, swapSummary.getQueueSize().getObjectCount());
         assertEquals(400 * 100L, swapSummary.getQueueSize().getByteCount());
+        assertEquals(expectedTotalLastQueueDate, swapSummary.getTotalLastQueueDate().longValue());
+        assertEquals(expectedMinLastQueueDate, swapSummary.getMinLastQueueDate().longValue());
     }
 
 

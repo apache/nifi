@@ -35,7 +35,7 @@ public class MockFlowFileRecord implements FlowFileRecord {
     private final Map<String, String> attributes;
     private final long size;
     private final ContentClaim contentClaim;
-    private Long lastQueuedDate;
+    private long lastQueuedDate = System.currentTimeMillis() + 1;
 
     public MockFlowFileRecord() {
         this(1L);
@@ -133,7 +133,7 @@ public class MockFlowFileRecord implements FlowFileRecord {
         return lastQueuedDate;
     }
 
-    public void setLastQueuedDate(Long lastQueuedDate) {
+    public void setLastQueuedDate(long lastQueuedDate) {
         this.lastQueuedDate = lastQueuedDate;
     }
 
