@@ -19,7 +19,6 @@ package org.apache.nifi.remote.io.socket.ssl;
 import org.apache.nifi.remote.exception.TransmissionDisabledException;
 import org.apache.nifi.remote.io.socket.BufferStateManager;
 import org.apache.nifi.remote.io.socket.BufferStateManager.Direction;
-import org.apache.nifi.security.util.CertificateUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -184,9 +183,14 @@ public class SSLSocketChannel implements Closeable {
             throw new SSLPeerUnverifiedException("No certificates found");
         }
 
-        final X509Certificate cert = CertificateUtils.convertAbstractX509Certificate(certs[0]);
-        cert.checkValidity();
-        return cert.getSubjectDN().getName().trim();
+        final Certificate certificate = certs[0];
+        if (certificate instanceof X509Certificate) {
+            final X509Certificate peerCertificate = (X509Certificate) certificate;
+            peerCertificate.checkValidity();
+            return peerCertificate.getSubjectDN().getName().trim();
+        } else {
+            throw new CertificateException(String.format("X.509 Certificate class not found [%s]", certificate.getClass()));
+        }
     }
 
     private void performHandshake() throws IOException {
