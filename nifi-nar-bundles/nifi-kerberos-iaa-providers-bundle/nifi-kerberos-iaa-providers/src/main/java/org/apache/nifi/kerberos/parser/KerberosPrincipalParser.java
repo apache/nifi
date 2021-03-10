@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.security.util.krb;
+package org.apache.nifi.kerberos.parser;
 
-import org.apache.nifi.util.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 
 public class KerberosPrincipalParser {
 

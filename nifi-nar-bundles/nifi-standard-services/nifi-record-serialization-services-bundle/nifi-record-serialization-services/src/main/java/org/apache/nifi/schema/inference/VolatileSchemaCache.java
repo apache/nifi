@@ -19,7 +19,6 @@ package org.apache.nifi.schema.inference;
 import avro.shaded.com.google.common.annotations.VisibleForTesting;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import org.apache.commons.codec.binary.Hex;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
@@ -37,6 +36,7 @@ import org.apache.nifi.serialization.record.type.RecordDataType;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -59,6 +59,8 @@ public class VolatileSchemaCache extends AbstractControllerService implements Re
         .expressionLanguageSupported(VARIABLE_REGISTRY)
         .defaultValue("100")
         .build();
+
+    private static final Base64.Encoder ENCODER = Base64.getEncoder().withoutPadding();
 
     private volatile Cache<String, RecordSchema> cache;
 
@@ -127,7 +129,8 @@ public class VolatileSchemaCache extends AbstractControllerService implements Re
         }
 
         final byte[] digestBytes = digest.digest();
-        return Hex.encodeHexString(digestBytes);
+
+        return ENCODER.encodeToString(digestBytes);
     }
 
     private void computeHash(final RecordSchema schema, final MessageDigest digest) {
