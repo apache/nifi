@@ -26,7 +26,9 @@ import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.junit.Assert;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.mockito.Mockito;
 
 import java.io.BufferedInputStream;
@@ -146,13 +148,16 @@ public class TestFileSystemSwapManager {
         assertEquals(10000, contents.getFlowFiles().size());
     }
 
-    private FileSystemSwapManager createSwapManager() {
+    private FileSystemSwapManager createSwapManager() throws IOException {
         final FlowFileRepository flowFileRepo = Mockito.mock(FlowFileRepository.class);
         return createSwapManager(flowFileRepo);
     }
 
-    private FileSystemSwapManager createSwapManager(final FlowFileRepository flowFileRepo) {
-        final FileSystemSwapManager swapManager = new FileSystemSwapManager();
+    @Rule
+    public TemporaryFolder temporaryFolder = new TemporaryFolder();
+
+    private FileSystemSwapManager createSwapManager(final FlowFileRepository flowFileRepo) throws IOException {
+        final FileSystemSwapManager swapManager = new FileSystemSwapManager(temporaryFolder.newFolder().toPath());
         final ResourceClaimManager resourceClaimManager = new NopResourceClaimManager();
         swapManager.initialize(new SwapManagerInitializationContext() {
             @Override
