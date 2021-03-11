@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.sebkenter.nifi.adx;
+package org.apache.nifi.adx;
 
 import com.microsoft.azure.kusto.ingest.IngestClient;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -22,8 +22,8 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.processor.exception.ProcessException;
 
-@Tags({"example"})
-@CapabilityDescription("Example Service API.")
+@Tags({"azure", "adx"})
+@CapabilityDescription("Connection-Service to Azure ADX (Kusto) ingestion cluster.")
 public interface AdxConnectionService extends ControllerService {
 
     void execute()  throws ProcessException;

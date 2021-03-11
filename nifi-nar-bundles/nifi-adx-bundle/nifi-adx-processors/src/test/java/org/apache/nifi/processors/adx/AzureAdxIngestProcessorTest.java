@@ -14,34 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.sebkenter.nifi.adx;
+package org.apache.nifi.processors.adx;
 
-import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Before;
 import org.junit.Test;
 
-public class TestAzureAdxConnectionService {
+
+public class AzureAdxIngestProcessorTest {
+
+    private TestRunner testRunner;
 
     @Before
     public void init() {
-
+        testRunner = TestRunners.newTestRunner(AzureAdxIngestProcessor.class);
     }
 
     @Test
-    public void testService() throws InitializationException {
-        final TestRunner runner = TestRunners.newTestRunner(TestAzureAdxIngestProcessor.class);
-        final AzureAdxConnectionService service = new AzureAdxConnectionService();
-        runner.addControllerService("test-good", service);
+    public void testProcessor() {
 
-        runner.setProperty(service, AzureAdxConnectionService.INGEST_URL, "http://test.com");
-        runner.setProperty(service, AzureAdxConnectionService.APP_ID, "1234");
-        runner.setProperty(service, AzureAdxConnectionService.APP_KEY, "1234");
-        runner.setProperty(service, AzureAdxConnectionService.APP_TENANT, "1234");
-        runner.enableControllerService(service);
-
-        runner.assertValid(service);
     }
 
 }

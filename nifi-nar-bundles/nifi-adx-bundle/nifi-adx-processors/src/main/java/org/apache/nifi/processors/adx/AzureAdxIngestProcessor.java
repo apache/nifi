@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.sebkenter.nifi.processors.adx;
+package org.apache.nifi.processors.adx;
 
-import org.sebkenter.nifi.adx.AdxConnectionService;
+import org.apache.nifi.adx.AdxConnectionService;
 import com.microsoft.azure.kusto.ingest.IngestClient;
 import com.microsoft.azure.kusto.ingest.IngestionMapping;
 import com.microsoft.azure.kusto.ingest.IngestionProperties;
