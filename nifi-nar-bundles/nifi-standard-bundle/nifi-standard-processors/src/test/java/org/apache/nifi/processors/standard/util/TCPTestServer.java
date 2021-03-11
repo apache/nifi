@@ -24,27 +24,26 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.atomic.AtomicInteger;
 import javax.net.ServerSocketFactory;
 
 public class TCPTestServer implements Runnable {
 
     private final InetAddress ipAddress;
-    private int port;
     private final String messageDelimiter;
+    private final ArrayBlockingQueue<List<Byte>> queue;
+    private final AtomicInteger totalNumConnections = new AtomicInteger();
+    private final boolean closeOnMessageReceived;
+
     private volatile ServerSocket serverSocket;
-    private final ArrayBlockingQueue<List<Byte>> recvQueue;
     private volatile Socket connectionSocket;
-    public final static String DEFAULT_MESSAGE_DELIMITER = "\n";
-    private volatile int totalNumConnections = 0;
+    private int port;
 
-    public TCPTestServer(final InetAddress ipAddress, final ArrayBlockingQueue<List<Byte>> recvQueue) {
-        this(ipAddress, recvQueue, DEFAULT_MESSAGE_DELIMITER);
-    }
-
-    public TCPTestServer(final InetAddress ipAddress, final ArrayBlockingQueue<List<Byte>> recvQueue, final String messageDelimiter) {
+    public TCPTestServer(final InetAddress ipAddress, final ArrayBlockingQueue<List<Byte>> queue, final String messageDelimiter, final boolean closeOnMessageReceived) {
         this.ipAddress = ipAddress;
-        this.recvQueue = recvQueue;
+        this.queue = queue;
         this.messageDelimiter = messageDelimiter;
+        this.closeOnMessageReceived = closeOnMessageReceived;
     }
 
     public synchronized void startServer(final ServerSocketFactory serverSocketFactory) throws Exception {
@@ -91,7 +90,10 @@ public class TCPTestServer implements Runnable {
     }
 
     private void storeReceivedMessage(final List<Byte> message) {
-        recvQueue.add(message);
+        queue.add(message);
+        if (closeOnMessageReceived) {
+            shutdownConnection();
+        }
     }
 
     private boolean isServerRunning() {
@@ -102,18 +104,14 @@ public class TCPTestServer implements Runnable {
         return connectionSocket != null && !connectionSocket.isClosed();
     }
 
-    public List<Byte> getReceivedMessage() {
-        return recvQueue.poll();
-    }
-
     public int getTotalNumConnections() {
-        return totalNumConnections;
+        return totalNumConnections.get();
     }
 
     protected boolean isDelimiterPresent(final List<Byte> message) {
         if (messageDelimiter != null && message.size() >= messageDelimiter.length()) {
             for (int i = 1; i <= messageDelimiter.length(); i++) {
-                if (message.get(message.size() - i).byteValue() == messageDelimiter.charAt(messageDelimiter.length() - i)) {
+                if (message.get(message.size() - i) == messageDelimiter.charAt(messageDelimiter.length() - i)) {
                     if (i == messageDelimiter.length()) {
                         return true;
                     }
@@ -142,12 +140,12 @@ public class TCPTestServer implements Runnable {
         try {
             while (isServerRunning()) {
                 connectionSocket = serverSocket.accept();
-                totalNumConnections++;
-                InputStream in = connectionSocket.getInputStream();
+                totalNumConnections.incrementAndGet();
+                final InputStream inputStream = connectionSocket.getInputStream();
                 while (isConnected()) {
-                    final List<Byte> message = new ArrayList<Byte>();
+                    final List<Byte> message = new ArrayList<>();
                     while (true) {
-                        final int c = in.read();
+                        final int c = inputStream.read();
                         if (c < 0) {
                             if (!message.isEmpty()) {
                                 storeReceivedMessage(message);
