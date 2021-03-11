@@ -65,7 +65,7 @@ public abstract class TestPutTCPCommon {
     private final static String OUTGOING_MESSAGE_DELIMITER_MULTI_CHAR = "{delimiter}\r\n";
 
     private TCPTestServer server;
-    private int tcp_server_port;
+    private int port;
     private ArrayBlockingQueue<List<Byte>> recvQueue;
 
     public ServerSocketFactory serverSocketFactory;
@@ -82,20 +82,24 @@ public abstract class TestPutTCPCommon {
 
     @Before
     public void setup() throws Exception {
-        recvQueue = new ArrayBlockingQueue<List<Byte>>(BUFFER_SIZE);
+        recvQueue = new ArrayBlockingQueue<>(BUFFER_SIZE);
         runner = TestRunners.newTestRunner(PutTCP.class);
         runner.setVariable(SERVER_VARIABLE, TCP_SERVER_ADDRESS);
     }
 
-    private synchronized TCPTestServer createTestServer(final String address, final ArrayBlockingQueue<List<Byte>> recvQueue, final String delimiter) throws Exception {
-        TCPTestServer server = new TCPTestServer(InetAddress.getByName(address), recvQueue, delimiter);
+    private TCPTestServer createTestServer(final ArrayBlockingQueue<List<Byte>> queue, final String delimiter, final boolean closeOnMessageReceived) throws Exception {
+        TCPTestServer server = new TCPTestServer(InetAddress.getByName(TCP_SERVER_ADDRESS), queue, delimiter, closeOnMessageReceived);
         server.startServer(serverSocketFactory);
-        tcp_server_port = server.getPort();
+        port = server.getPort();
         return server;
     }
 
+    private TCPTestServer createTestServer(final ArrayBlockingQueue<List<Byte>> queue, final String delimiter) throws Exception {
+        return createTestServer(queue, delimiter, false);
+    }
+
     @After
-    public void cleanup() throws Exception {
+    public void cleanup() {
         runner.shutdown();
         removeTestServer(server);
     }
@@ -103,14 +107,13 @@ public abstract class TestPutTCPCommon {
     private void removeTestServer(TCPTestServer server) {
         if (server != null) {
             server.shutdown();
-            server = null;
         }
     }
 
     @Test(timeout = DEFAULT_TEST_TIMEOUT_PERIOD)
     public void testValidFiles() throws Exception {
-        server = createTestServer(TCP_SERVER_ADDRESS, recvQueue, OUTGOING_MESSAGE_DELIMITER);
-        configureProperties(TCP_SERVER_ADDRESS, tcp_server_port, OUTGOING_MESSAGE_DELIMITER, false, true);
+        server = createTestServer(recvQueue, OUTGOING_MESSAGE_DELIMITER);
+        configureProperties(TCP_SERVER_ADDRESS, port, OUTGOING_MESSAGE_DELIMITER, false, true);
         sendTestData(VALID_FILES);
         checkReceivedAllData(recvQueue, VALID_FILES);
         checkInputQueueIsEmpty();
@@ -119,8 +122,8 @@ public abstract class TestPutTCPCommon {
 
     @Test(timeout = DEFAULT_TEST_TIMEOUT_PERIOD)
     public void testValidFilesEL() throws Exception {
-        server = createTestServer(TCP_SERVER_ADDRESS, recvQueue, OUTGOING_MESSAGE_DELIMITER);
-        configureProperties(TCP_SERVER_ADDRESS_EL, tcp_server_port, OUTGOING_MESSAGE_DELIMITER, false, true);
+        server = createTestServer(recvQueue, OUTGOING_MESSAGE_DELIMITER);
+        configureProperties(TCP_SERVER_ADDRESS_EL, port, OUTGOING_MESSAGE_DELIMITER, false, true);
         sendTestData(VALID_FILES);
         checkReceivedAllData(recvQueue, VALID_FILES);
         checkInputQueueIsEmpty();
@@ -129,8 +132,8 @@ public abstract class TestPutTCPCommon {
 
     @Test(timeout = DEFAULT_TEST_TIMEOUT_PERIOD)
     public void testPruneSenders() throws Exception {
-        server = createTestServer(TCP_SERVER_ADDRESS, recvQueue, OUTGOING_MESSAGE_DELIMITER);
-        configureProperties(TCP_SERVER_ADDRESS, tcp_server_port, OUTGOING_MESSAGE_DELIMITER, false, true);
+        server = createTestServer(recvQueue, OUTGOING_MESSAGE_DELIMITER);
+        configureProperties(TCP_SERVER_ADDRESS, port, OUTGOING_MESSAGE_DELIMITER, false, true);
         sendTestData(VALID_FILES);
         Thread.sleep(10);
         checkRelationships(VALID_FILES.length, 0);
@@ -149,18 +152,18 @@ public abstract class TestPutTCPCommon {
 
     @Test(timeout = DEFAULT_TEST_TIMEOUT_PERIOD)
     public void testMultiCharDelimiter() throws Exception {
-        server = createTestServer(TCP_SERVER_ADDRESS, recvQueue, OUTGOING_MESSAGE_DELIMITER_MULTI_CHAR);
-        configureProperties(TCP_SERVER_ADDRESS, tcp_server_port, OUTGOING_MESSAGE_DELIMITER_MULTI_CHAR, false, true);
+        server = createTestServer(recvQueue, OUTGOING_MESSAGE_DELIMITER_MULTI_CHAR);
+        configureProperties(TCP_SERVER_ADDRESS, port, OUTGOING_MESSAGE_DELIMITER_MULTI_CHAR, false, true);
         sendTestData(VALID_FILES);
         checkReceivedAllData(recvQueue, VALID_FILES);
         checkInputQueueIsEmpty();
         checkTotalNumConnections(server, 1);
     }
 
-    @Test(timeout = DEFAULT_TEST_TIMEOUT_PERIOD)
+    @Test(timeout = LONG_TEST_TIMEOUT_PERIOD)
     public void testConnectionPerFlowFile() throws Exception {
-        server = createTestServer(TCP_SERVER_ADDRESS, recvQueue, OUTGOING_MESSAGE_DELIMITER);
-        configureProperties(TCP_SERVER_ADDRESS, tcp_server_port, OUTGOING_MESSAGE_DELIMITER, true, true);
+        server = createTestServer(recvQueue, OUTGOING_MESSAGE_DELIMITER, true);
+        configureProperties(TCP_SERVER_ADDRESS, port, OUTGOING_MESSAGE_DELIMITER, true, true);
         sendTestData(VALID_FILES);
         checkReceivedAllData(recvQueue, VALID_FILES);
         checkInputQueueIsEmpty();
@@ -169,8 +172,8 @@ public abstract class TestPutTCPCommon {
 
     @Test(timeout = DEFAULT_TEST_TIMEOUT_PERIOD)
     public void testConnectionFailure() throws Exception {
-        server = createTestServer(TCP_SERVER_ADDRESS, recvQueue, OUTGOING_MESSAGE_DELIMITER);
-        configureProperties(TCP_SERVER_ADDRESS, tcp_server_port, OUTGOING_MESSAGE_DELIMITER, false, true);
+        server = createTestServer(recvQueue, OUTGOING_MESSAGE_DELIMITER);
+        configureProperties(TCP_SERVER_ADDRESS, port, OUTGOING_MESSAGE_DELIMITER, false, true);
         sendTestData(VALID_FILES);
         checkReceivedAllData(recvQueue, VALID_FILES);
         checkInputQueueIsEmpty();
@@ -182,8 +185,8 @@ public abstract class TestPutTCPCommon {
         checkNoDataReceived(recvQueue);
         checkInputQueueIsEmpty();
         checkTotalNumConnections(server, 1);
-        server = createTestServer(TCP_SERVER_ADDRESS, recvQueue, OUTGOING_MESSAGE_DELIMITER);
-        configureProperties(TCP_SERVER_ADDRESS, tcp_server_port, OUTGOING_MESSAGE_DELIMITER, false, true);
+        server = createTestServer(recvQueue, OUTGOING_MESSAGE_DELIMITER);
+        configureProperties(TCP_SERVER_ADDRESS, port, OUTGOING_MESSAGE_DELIMITER, false, true);
         sendTestData(VALID_FILES);
         checkReceivedAllData(recvQueue, VALID_FILES);
         checkInputQueueIsEmpty();
@@ -192,8 +195,8 @@ public abstract class TestPutTCPCommon {
 
     @Test(timeout = DEFAULT_TEST_TIMEOUT_PERIOD)
     public void testEmptyFile() throws Exception {
-        server = createTestServer(TCP_SERVER_ADDRESS, recvQueue, OUTGOING_MESSAGE_DELIMITER);
-        configureProperties(TCP_SERVER_ADDRESS, tcp_server_port, OUTGOING_MESSAGE_DELIMITER, false, true);
+        server = createTestServer(recvQueue, OUTGOING_MESSAGE_DELIMITER);
+        configureProperties(TCP_SERVER_ADDRESS, port, OUTGOING_MESSAGE_DELIMITER, false, true);
         sendTestData(EMPTY_FILE);
         Thread.sleep(10);
         checkRelationships(EMPTY_FILE.length, 0);
@@ -203,9 +206,9 @@ public abstract class TestPutTCPCommon {
     }
 
     @Test(timeout = DEFAULT_TEST_TIMEOUT_PERIOD)
-    public void testlargeValidFile() throws Exception {
-        server = createTestServer(TCP_SERVER_ADDRESS, recvQueue, OUTGOING_MESSAGE_DELIMITER);
-        configureProperties(TCP_SERVER_ADDRESS, tcp_server_port, OUTGOING_MESSAGE_DELIMITER, true, true);
+    public void testLargeValidFile() throws Exception {
+        server = createTestServer(recvQueue, OUTGOING_MESSAGE_DELIMITER);
+        configureProperties(TCP_SERVER_ADDRESS, port, OUTGOING_MESSAGE_DELIMITER, true, true);
         final String[] testData = createContent(VALID_LARGE_FILE_SIZE);
         sendTestData(testData);
         checkReceivedAllData(recvQueue, testData);
@@ -216,8 +219,8 @@ public abstract class TestPutTCPCommon {
     @Ignore("This test is failing intermittently as documented in NIFI-4288")
     @Test(timeout = LONG_TEST_TIMEOUT_PERIOD)
     public void testInvalidIPAddress() throws Exception {
-        server = createTestServer(TCP_SERVER_ADDRESS, recvQueue, OUTGOING_MESSAGE_DELIMITER);
-        configureProperties(INVALID_IP_ADDRESS, tcp_server_port, OUTGOING_MESSAGE_DELIMITER, false, true);
+        server = createTestServer(recvQueue, OUTGOING_MESSAGE_DELIMITER);
+        configureProperties(INVALID_IP_ADDRESS, port, OUTGOING_MESSAGE_DELIMITER, false, true);
         sendTestData(VALID_FILES);
         Thread.sleep(10);
         checkRelationships(0, VALID_FILES.length);
@@ -229,8 +232,8 @@ public abstract class TestPutTCPCommon {
     @Ignore("This test is failing intermittently as documented in NIFI-4288")
     @Test(timeout = LONG_TEST_TIMEOUT_PERIOD)
     public void testUnknownHostname() throws Exception {
-        server = createTestServer(TCP_SERVER_ADDRESS, recvQueue, OUTGOING_MESSAGE_DELIMITER);
-        configureProperties(UNKNOWN_HOST, tcp_server_port, OUTGOING_MESSAGE_DELIMITER, false, true);
+        server = createTestServer(recvQueue, OUTGOING_MESSAGE_DELIMITER);
+        configureProperties(UNKNOWN_HOST, port, OUTGOING_MESSAGE_DELIMITER, false, true);
         sendTestData(VALID_FILES);
         Thread.sleep(10);
         checkRelationships(0, VALID_FILES.length);
@@ -249,10 +252,10 @@ public abstract class TestPutTCPCommon {
 
     @Test(timeout = LONG_TEST_TIMEOUT_PERIOD)
     public void testLoadTest() throws Exception {
-        server = createTestServer(TCP_SERVER_ADDRESS, recvQueue, OUTGOING_MESSAGE_DELIMITER);
+        server = createTestServer(recvQueue, OUTGOING_MESSAGE_DELIMITER);
         Thread.sleep(1000);
         final String[] testData = createContent(VALID_SMALL_FILE_SIZE);
-        configureProperties(TCP_SERVER_ADDRESS, tcp_server_port, OUTGOING_MESSAGE_DELIMITER, false, true);
+        configureProperties(TCP_SERVER_ADDRESS, port, OUTGOING_MESSAGE_DELIMITER, false, true);
         sendTestData(testData, LOAD_TEST_ITERATIONS, LOAD_TEST_THREAD_COUNT);
         checkReceivedAllData(recvQueue, testData, LOAD_TEST_ITERATIONS);
         checkInputQueueIsEmpty();
@@ -276,7 +279,7 @@ public abstract class TestPutTCPCommon {
             for (String item : testData) {
                 runner.enqueue(item.getBytes());
             }
-            runner.run(testData.length, false, i == 0 ? true : false);
+            runner.run(testData.length, false, i == 0);
         }
     }
 
@@ -292,7 +295,10 @@ public abstract class TestPutTCPCommon {
 
     private void checkEmptyMessageReceived(final ArrayBlockingQueue<List<Byte>> recvQueue) throws Exception {
         Thread.sleep(DATA_WAIT_PERIOD);
-        assertEquals(0, recvQueue.poll().size());
+        final List<Byte> message = recvQueue.poll();
+
+        assertNotNull(message);
+        assertEquals(0, message.size());
     }
 
     private void checkInputQueueIsEmpty() {
