@@ -35,7 +35,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Collections;
@@ -73,6 +72,7 @@ public class EmbeddedQuestDbRolloverHandlerTest {
     private static final String SGT_MAR_7_1200 = "03/07/2021 12:00:00 SGT"; // UTC: 03/07/2021 04:00:00
     private static final String SGT_MAR_8_1200 = "03/08/2021 12:00:00 SGT"; // UTC: 03/08/2021 04:00:00
     private static final String SGT_MAR_8_1300 = "03/08/2021 13:00:00 SGT"; // UTC: 03/08/2021 05:00:00
+    private static final String SGT_MAR_8_2300 = "03/08/2021 23:00:00 SGT"; // UTC: 03/08/2021 15:00:00
 
     private String path;
     private QuestDbContext dbContext;
@@ -231,7 +231,7 @@ public class EmbeddedQuestDbRolloverHandlerTest {
         givenTableIsPopulated(SGT_MAR_4_1200, SGT_MAR_5_1200, SGT_MAR_6_1200, SGT_MAR_7_1200, SGT_MAR_8_1200);
 
         // when
-        whenRollOverIsExecuted("03/08/2021 23:00:00 SGT"); // UTC: 03/09/2021 04:00:00
+        whenRollOverIsExecuted(SGT_MAR_8_2300);
 
         // then
         thenTheRemainingPartitionsAre("2021-03-06", "2021-03-07", "2021-03-08");
@@ -256,7 +256,7 @@ public class EmbeddedQuestDbRolloverHandlerTest {
     }
 
     private void givenTableIsPopulated(final String date, final int value) throws Exception {
-        final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm:ss z").withZone(ZoneId.systemDefault());
+        final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm:ss z");
         final ZonedDateTime parsedDate = ZonedDateTime.parse(date, formatter);
 
         final SqlExecutionContext executionContext = dbContext.getSqlExecutionContext();
@@ -271,7 +271,7 @@ public class EmbeddedQuestDbRolloverHandlerTest {
     }
 
     private void whenRollOverIsExecuted(final String executedAt) throws Exception {
-        final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm:ss z").withZone(ZoneId.systemDefault());
+        final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm:ss z");
         final ZonedDateTime executionTime = ZonedDateTime.parse(executedAt, formatter);
 
         final Supplier<ZonedDateTime> timeSource = () -> executionTime;

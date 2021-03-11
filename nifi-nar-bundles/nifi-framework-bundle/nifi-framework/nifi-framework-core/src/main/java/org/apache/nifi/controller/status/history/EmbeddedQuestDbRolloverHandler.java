@@ -25,7 +25,7 @@ import org.apache.nifi.controller.status.history.questdb.QuestDbContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -41,13 +41,13 @@ import java.util.function.Supplier;
  */
 public class EmbeddedQuestDbRolloverHandler implements Runnable {
     private static final Logger LOGGER = LoggerFactory.getLogger(EmbeddedQuestDbRolloverHandler.class);
+    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd").withZone(ZoneOffset.UTC);
 
     // Drop keyword is intentionally not uppercase as the query parser only recognizes it in this way
     private static final String DELETION_QUERY = "ALTER TABLE %s drop PARTITION '%s'";
     // Distinct keyword is not recognized if the date mapping is not within an inner query
     static final String SELECTION_QUERY = "SELECT DISTINCT * FROM (SELECT (to_str(capturedAt, 'yyyy-MM-dd')) AS partitionName FROM %s)";
 
-    DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd").withZone(ZoneId.of("UTC"));
 
     private final Supplier<ZonedDateTime> timeSource;
     private final List<String> tables = new ArrayList<>();
@@ -118,7 +118,7 @@ public class EmbeddedQuestDbRolloverHandler implements Runnable {
 
     private String getOldestPartitionToKeep() {
         final ZonedDateTime now = timeSource.get();
-        final ZonedDateTime utc = now.minusDays(daysToKeepData).withZoneSameInstant(ZoneId.of("UTC"));
+        final ZonedDateTime utc = now.minusDays(daysToKeepData).withZoneSameInstant(ZoneOffset.UTC);
         return utc.format(DATE_FORMATTER);
     }
 }
