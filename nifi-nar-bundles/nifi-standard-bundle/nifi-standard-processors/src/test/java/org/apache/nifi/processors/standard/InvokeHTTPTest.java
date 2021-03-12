@@ -119,6 +119,8 @@ public class InvokeHTTPTest {
 
     private static final int TAKE_REQUEST_COMPLETED_TIMEOUT = 1;
 
+    private static final String TLS_CONNECTION_TIMEOUT = "60 s";
+
     private static TlsConfiguration generatedTlsConfiguration;
 
     private static TlsConfiguration truststoreTlsConfiguration;
@@ -834,6 +836,8 @@ public class InvokeHTTPTest {
         runner.addControllerService(serviceIdentifier, sslContextService);
         runner.enableControllerService(sslContextService);
         runner.setProperty(InvokeHTTP.PROP_SSL_CONTEXT_SERVICE, serviceIdentifier);
+        runner.setProperty(InvokeHTTP.PROP_READ_TIMEOUT, TLS_CONNECTION_TIMEOUT);
+        runner.setProperty(InvokeHTTP.PROP_CONNECT_TIMEOUT, TLS_CONNECTION_TIMEOUT);
         return sslContextService;
     }
 
