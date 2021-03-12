@@ -40,7 +40,7 @@ class CipherUtilityGroovyTest extends GroovyTestCase {
     private static final List<String> SYMMETRIC_ALGORITHMS = EncryptionMethod.values().findAll { it.algorithm.startsWith("PBE") || it.algorithm.startsWith("AES") }*.algorithm
     private static final Map<String, List<String>> ALGORITHMS_MAPPED_BY_CIPHER = SYMMETRIC_ALGORITHMS.groupBy { String algorithm -> CIPHERS.find { algorithm.contains(it) } }
 
-    // Manually mapped as of 01/19/16 0.5.0
+    // Manually mapped as of 03/21/21 1.13.0
     private static final Map<Integer, List<String>> ALGORITHMS_MAPPED_BY_KEY_LENGTH = [
             (40) : ["PBEWITHSHAAND40BITRC2-CBC",
                     "PBEWITHSHAAND40BITRC4"],
@@ -56,18 +56,21 @@ class CipherUtilityGroovyTest extends GroovyTestCase {
                     "PBEWITHSHAAND128BITRC2-CBC",
                     "PBEWITHSHAAND128BITRC4",
                     "PBEWITHSHAANDTWOFISH-CBC",
+                    "AES/CBC/NoPadding",
                     "AES/CBC/PKCS7Padding",
                     "AES/CTR/NoPadding",
                     "AES/GCM/NoPadding"],
             (192): ["PBEWITHMD5AND192BITAES-CBC-OPENSSL",
                     "PBEWITHSHA256AND192BITAES-CBC-BC",
                     "PBEWITHSHAAND192BITAES-CBC-BC",
+                    "AES/CBC/NoPadding",
                     "AES/CBC/PKCS7Padding",
                     "AES/CTR/NoPadding",
                     "AES/GCM/NoPadding"],
             (256): ["PBEWITHMD5AND256BITAES-CBC-OPENSSL",
                     "PBEWITHSHA256AND256BITAES-CBC-BC",
                     "PBEWITHSHAAND256BITAES-CBC-BC",
+                    "AES/CBC/NoPadding",
                     "AES/CBC/PKCS7Padding",
                     "AES/CTR/NoPadding",
                     "AES/GCM/NoPadding"]
