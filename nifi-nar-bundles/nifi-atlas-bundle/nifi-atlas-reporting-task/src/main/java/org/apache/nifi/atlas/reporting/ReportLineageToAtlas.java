@@ -24,8 +24,6 @@ import org.apache.atlas.security.SecurityProperties;
 import org.apache.atlas.utils.AtlasPathExtractorUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.security.alias.CredentialProvider;
-import org.apache.hadoop.security.alias.LocalJavaKeyStoreProvider;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.config.SslConfigs;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
@@ -71,17 +69,16 @@ import org.apache.nifi.reporting.AbstractReportingTask;
 import org.apache.nifi.reporting.EventAccess;
 import org.apache.nifi.reporting.ReportingContext;
 import org.apache.nifi.reporting.util.provenance.ProvenanceEventConsumer;
-import org.apache.nifi.security.util.KeystoreType;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.StringSelector;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
-import java.net.URI;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -368,16 +365,14 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
     private static final String ATLAS_PROPERTY_CLUSTER_NAME = "atlas.cluster.name";
     private static final String ATLAS_PROPERTY_REST_ADDRESS = "atlas.rest.address";
     private static final String ATLAS_PROPERTY_ENABLE_TLS = SecurityProperties.TLS_ENABLED;
-    private static final String ATLAS_PROPERTY_TRUSTSTORE_FILE = SecurityProperties.TRUSTSTORE_FILE_KEY;
-    private static final String ATLAS_PROPERTY_CRED_STORE_PATH = SecurityProperties.CERT_STORES_CREDENTIAL_PROVIDER_PATH;
     private static final String ATLAS_KAFKA_PREFIX = "atlas.kafka.";
     private static final String ATLAS_PROPERTY_KAFKA_BOOTSTRAP_SERVERS = ATLAS_KAFKA_PREFIX + "bootstrap.servers";
     private static final String ATLAS_PROPERTY_KAFKA_CLIENT_ID = ATLAS_KAFKA_PREFIX + ProducerConfig.CLIENT_ID_CONFIG;
 
-    private static final String CRED_STORE_FILENAME = "atlas.jceks";
     private static final String SSL_CLIENT_XML_FILENAME = SecurityProperties.SSL_CLIENT_PROPERTIES;
-
-    private static final String TRUSTSTORE_PASSWORD_ALIAS = "ssl.client.truststore.password";
+    private static final String SSL_CLIENT_XML_TRUSTSTORE_LOCATION = "ssl.client.truststore.location";
+    private static final String SSL_CLIENT_XML_TRUSTSTORE_PASSWORD = "ssl.client.truststore.password";
+    private static final String SSL_CLIENT_XML_TRUSTSTORE_TYPE = "ssl.client.truststore.type";
 
     private final ServiceLoader<NamespaceResolver> namespaceResolverLoader = ServiceLoader.load(NamespaceResolver.class);
     private volatile AtlasAuthN atlasAuthN;
@@ -704,11 +699,7 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
         boolean isAtlasApiSecure = urls.stream().anyMatch(url -> url.toLowerCase().startsWith("https"));
         atlasProperties.put(ATLAS_PROPERTY_ENABLE_TLS, String.valueOf(isAtlasApiSecure));
 
-        // ssl-client.xml must be deleted, Atlas will not regenerate it otherwise
-        Path credStorePath = new File(confDir, CRED_STORE_FILENAME).toPath();
-        Files.deleteIfExists(credStorePath);
-        Path sslClientXmlPath = new File(confDir, SSL_CLIENT_XML_FILENAME).toPath();
-        Files.deleteIfExists(sslClientXmlPath);
+        deleteSslClientXml(confDir);
 
         if (isAtlasApiSecure) {
             SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
@@ -716,21 +707,39 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
                 getLogger().warn("No SSLContextService configured, the system default truststore will be used.");
             } else if (!sslContextService.isTrustStoreConfigured()) {
                 getLogger().warn("No truststore configured on SSLContextService, the system default truststore will be used.");
-            } else if (!KeystoreType.JKS.getType().equalsIgnoreCase(sslContextService.getTrustStoreType())) {
-                getLogger().warn("The configured truststore type is not supported by Atlas (not JKS), the system default truststore will be used.");
             } else {
-                atlasProperties.put(ATLAS_PROPERTY_TRUSTSTORE_FILE, sslContextService.getTrustStoreFile());
-
-                String password = sslContextService.getTrustStorePassword();
-                // Hadoop Credential Provider JCEKS URI format: localjceks://file/PATH/TO/JCEKS
-                String credStoreUri = credStorePath.toUri().toString().replaceFirst("^file://", "localjceks://file");
-
-                CredentialProvider credentialProvider = new LocalJavaKeyStoreProvider.Factory().createProvider(new URI(credStoreUri), new Configuration());
-                credentialProvider.createCredentialEntry(TRUSTSTORE_PASSWORD_ALIAS, password.toCharArray());
-                credentialProvider.flush();
-
-                atlasProperties.put(ATLAS_PROPERTY_CRED_STORE_PATH, credStoreUri);
+                // create ssl-client.xml config file for Hadoop Security used by Atlas REST client,
+                // Atlas would generate this file with hardcoded JKS keystore type,
+                // in order to support other keystore types, we generate it ourselves
+                createSslClientXml(confDir, sslContextService);
             }
+        }
+    }
+
+    private void deleteSslClientXml(File confDir) throws Exception {
+        Path sslClientXmlPath = new File(confDir, SSL_CLIENT_XML_FILENAME).toPath();
+        try {
+            Files.deleteIfExists(sslClientXmlPath);
+        } catch (Exception e) {
+            getLogger().error("Unable to delete SSL Client Configuration File {}", sslClientXmlPath, e);
+            throw e;
+        }
+    }
+
+    private void createSslClientXml(File confDir, SSLContextService sslContextService) throws Exception {
+        File sslClientXmlFile = new File(confDir, SSL_CLIENT_XML_FILENAME);
+
+        Configuration configuration = new Configuration(false);
+
+        configuration.set(SSL_CLIENT_XML_TRUSTSTORE_LOCATION, sslContextService.getTrustStoreFile());
+        configuration.set(SSL_CLIENT_XML_TRUSTSTORE_PASSWORD, sslContextService.getTrustStorePassword());
+        configuration.set(SSL_CLIENT_XML_TRUSTSTORE_TYPE, sslContextService.getTrustStoreType());
+
+        try (FileWriter fileWriter = new FileWriter(sslClientXmlFile)) {
+            configuration.writeXml(fileWriter);
+        } catch (Exception e) {
+            getLogger().error("Unable to create SSL Client Configuration File {}", sslClientXmlFile, e);
+            throw e;
         }
     }
 
