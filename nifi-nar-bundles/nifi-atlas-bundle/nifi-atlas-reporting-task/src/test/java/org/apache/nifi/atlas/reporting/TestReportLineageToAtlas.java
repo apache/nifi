@@ -54,8 +54,6 @@ import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.net.MalformedURLException;
-import java.security.Key;
-import java.security.KeyStore;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -315,8 +313,6 @@ public class TestReportLineageToAtlas {
             assertEquals("true", atlasProperties.getProperty("atlas.enableTLS"));
 
             assertGeneratedSslClientXml(truststoreLocation, truststorePassword, truststoreType);
-
-            assertGeneratedCredStore(atlasProperties, truststorePassword);
         };
 
         // WHEN
@@ -361,25 +357,6 @@ public class TestReportLineageToAtlas {
         assertEquals(truststoreLocation, sslClientXmlProperties.get("ssl.client.truststore.location"));
         assertEquals(truststorePassword, sslClientXmlProperties.get("ssl.client.truststore.password"));
         assertEquals(truststoreType, sslClientXmlProperties.get("ssl.client.truststore.type"));
-    }
-
-    private void assertGeneratedCredStore(Properties atlasProperties, String truststorePassword) {
-        File credStoreFile = new File(atlasConfDir, "atlas.jceks");
-        assertTrue(credStoreFile.exists());
-        assertTrue(credStoreFile.isFile());
-
-        assertEquals("localjceks://file" + credStoreFile.getAbsolutePath(), atlasProperties.getProperty("cert.stores.credential.provider.path"));
-
-        char[] credStorePassword = "none".toCharArray();
-        try {
-            KeyStore credStore = KeyStore.getInstance("JCEKS");
-            credStore.load(new FileInputStream(credStoreFile), credStorePassword);
-
-            Key key = credStore.getKey("truststore.password", credStorePassword);
-            assertEquals(truststorePassword, new String(key.getEncoded()));
-        } catch (Exception e) {
-            throw new AssertionError(e);
-        }
     }
 
     private Properties loadGeneratedAtlasProperties() {
