@@ -322,8 +322,8 @@ public class EncryptContent extends AbstractProcessor {
         final String password = context.getProperty(PASSWORD).getValue();
         final KeyDerivationFunction kdf = KeyDerivationFunction.valueOf(context.getProperty(KEY_DERIVATION_FUNCTION).getValue());
         final String keyHex = context.getProperty(RAW_KEY_HEX).getValue();
+        final boolean encrypt = context.getProperty(MODE).getValue().equalsIgnoreCase(ENCRYPT_MODE);
         if (isPGPAlgorithm(algorithm)) {
-            final boolean encrypt = context.getProperty(MODE).getValue().equalsIgnoreCase(ENCRYPT_MODE);
             final String publicKeyring = context.getProperty(PUBLIC_KEYRING).getValue();
             final String publicUserId = context.getProperty(PUBLIC_KEY_USERID).getValue();
             final String privateKeyring = context.getProperty(PRIVATE_KEYRING).getValue();
@@ -334,7 +334,7 @@ public class EncryptContent extends AbstractProcessor {
         } else { // Not PGP
             boolean allowWeakCrypto = context.getProperty(ALLOW_WEAK_CRYPTO).getValue().equalsIgnoreCase(WEAK_CRYPTO_ALLOWED_NAME);
             if (encryptionMethod.isKeyedCipher()) { // Raw key or derived key from password
-                validationResults.addAll(validateKeyed(encryptionMethod, kdf, keyHex, password, allowWeakCrypto));
+                validationResults.addAll(validateKeyed(encryptionMethod, kdf, keyHex, password, allowWeakCrypto, encrypt));
             } else { // PBE
                 validationResults.addAll(validatePBE(encryptionMethod, kdf, password, allowWeakCrypto));
             }
@@ -479,7 +479,7 @@ public class EncryptContent extends AbstractProcessor {
     }
 
 
-    private List<ValidationResult> validateKeyed(EncryptionMethod encryptionMethod, KeyDerivationFunction kdf, String keyHex, String password, boolean allowWeakCrypto) {
+    private List<ValidationResult> validateKeyed(EncryptionMethod encryptionMethod, KeyDerivationFunction kdf, String keyHex, String password, boolean allowWeakCrypto, boolean encrypt) {
         List<ValidationResult> validationResults = new ArrayList<>();
         boolean limitedStrengthCrypto = !CipherUtility.isUnlimitedStrengthCryptoSupported();
 
@@ -526,6 +526,17 @@ public class EncryptContent extends AbstractProcessor {
                     .explanation(KEY_DERIVATION_FUNCTION.getDisplayName() + " is required to be " + StringUtils.join(kdfsForKeyedCipher, ", ") + " when using algorithm " +
                             encryptionMethod.getAlgorithm()).build());
         }
+
+        if (encrypt && EncryptionMethod.AES_CBC_NO_PADDING == encryptionMethod) {
+            validationResults.add(new ValidationResult.Builder()
+                    .subject(ENCRYPTION_ALGORITHM.getDisplayName())
+                    .input(encryptionMethod.name())
+                    .explanation(String.format("Encryption not supported for [%s]", encryptionMethod.getAlgorithm()))
+                    .valid(false)
+                    .build()
+            );
+        }
+
         return validationResults;
     }
 

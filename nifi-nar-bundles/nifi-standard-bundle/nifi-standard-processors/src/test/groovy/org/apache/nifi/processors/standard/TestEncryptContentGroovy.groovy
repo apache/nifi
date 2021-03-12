@@ -25,6 +25,7 @@ import org.apache.nifi.security.util.KeyDerivationFunction
 import org.apache.nifi.security.util.crypto.Argon2CipherProvider
 import org.apache.nifi.security.util.crypto.Argon2SecureHasher
 import org.apache.nifi.security.util.crypto.CipherUtility
+import org.apache.nifi.security.util.crypto.KeyedEncryptor
 import org.apache.nifi.security.util.crypto.PasswordBasedEncryptor
 import org.apache.nifi.security.util.crypto.RandomIVPBECipherProvider
 import org.apache.nifi.util.MockFlowFile
@@ -57,6 +58,8 @@ class TestEncryptContentGroovy {
 
     private static final String WEAK_CRYPTO_ALLOWED = EncryptContent.WEAK_CRYPTO_ALLOWED_NAME
     private static final String WEAK_CRYPTO_NOT_ALLOWED = EncryptContent.WEAK_CRYPTO_NOT_ALLOWED_NAME
+
+    private static final List<EncryptionMethod> SUPPORTED_KEYED_ENCRYPTION_METHODS = EncryptionMethod.values().findAll { it.isKeyedCipher() && it != EncryptionMethod.AES_CBC_NO_PADDING }
 
     @BeforeClass
     static void setUpOnce() throws Exception {
@@ -198,15 +201,13 @@ class TestEncryptContentGroovy {
         Collection<ValidationResult> results
         MockProcessContext pc
 
-        def encryptionMethods = EncryptionMethod.values().findAll { it.isKeyedCipher() }
-
         final int VALID_KEY_LENGTH = 128
         final String VALID_KEY_HEX = "ab" * (VALID_KEY_LENGTH / 8)
         logger.info("Using key ${VALID_KEY_HEX} (${VALID_KEY_HEX.length() * 4} bits)")
 
         runner.setProperty(EncryptContent.MODE, EncryptContent.ENCRYPT_MODE)
 
-        encryptionMethods.each { EncryptionMethod encryptionMethod ->
+        SUPPORTED_KEYED_ENCRYPTION_METHODS.each { EncryptionMethod encryptionMethod ->
             logger.info("Trying encryption method ${encryptionMethod.name()}")
             runner.setProperty(EncryptContent.ENCRYPTION_ALGORITHM, encryptionMethod.name())
 
@@ -315,8 +316,7 @@ class TestEncryptContentGroovy {
         Collection<ValidationResult> results
         MockProcessContext pc
 
-        def keyedEncryptionMethods = EncryptionMethod.values().findAll { it.isKeyedCipher() }
-        logger.info("Testing keyed encryption methods: ${keyedEncryptionMethods*.name()}")
+        logger.info("Testing keyed encryption methods: ${SUPPORTED_KEYED_ENCRYPTION_METHODS*.name()}")
 
         final int VALID_KEY_LENGTH = 128
         final String VALID_KEY_HEX = "ab" * (VALID_KEY_LENGTH / 8)
@@ -330,7 +330,7 @@ class TestEncryptContentGroovy {
         final def VALID_KDFS = KeyDerivationFunction.values().findAll { it.isStrongKDF() }
 
         // Scenario 1 - RKH w/ KDF NONE & em in [CBC, CTR, GCM] (no password)
-        keyedEncryptionMethods.each { EncryptionMethod kem ->
+        SUPPORTED_KEYED_ENCRYPTION_METHODS.each { EncryptionMethod kem ->
             logger.info("Trying encryption method ${kem.name()} with KDF ${none.name()}")
             runner.setProperty(EncryptContent.ENCRYPTION_ALGORITHM, kem.name())
             runner.setProperty(EncryptContent.KEY_DERIVATION_FUNCTION, none.name())
@@ -440,9 +440,7 @@ class TestEncryptContentGroovy {
         testRunner.setProperty(EncryptContent.RAW_KEY_HEX, RAW_KEY_HEX)
         testRunner.setProperty(EncryptContent.KEY_DERIVATION_FUNCTION, KeyDerivationFunction.NONE.name())
 
-        def keyedCipherEMs = EncryptionMethod.values().findAll { it.isKeyedCipher() }
-
-        keyedCipherEMs.each { EncryptionMethod encryptionMethod ->
+        SUPPORTED_KEYED_ENCRYPTION_METHODS.each { EncryptionMethod encryptionMethod ->
             logger.info("Attempting {}", encryptionMethod.name())
             testRunner.setProperty(EncryptContent.ENCRYPTION_ALGORITHM, encryptionMethod.name())
             testRunner.setProperty(EncryptContent.MODE, EncryptContent.ENCRYPT_MODE)
@@ -467,6 +465,33 @@ class TestEncryptContentGroovy {
             flowFile = testRunner.getFlowFilesForRelationship(EncryptContent.REL_SUCCESS).get(0)
             flowFile.assertContentEquals(new File("src/test/resources/hello.txt"))
         }
+    }
+
+    @Test
+    void testDecryptAesCbcNoPadding() {
+        final TestRunner testRunner = TestRunners.newTestRunner(new EncryptContent())
+        final String RAW_KEY_HEX = "ab" * 16
+        testRunner.setProperty(EncryptContent.RAW_KEY_HEX, RAW_KEY_HEX)
+        testRunner.setProperty(EncryptContent.KEY_DERIVATION_FUNCTION, KeyDerivationFunction.NONE.name())
+        testRunner.setProperty(EncryptContent.ENCRYPTION_ALGORITHM, EncryptionMethod.AES_CBC_NO_PADDING.name())
+        testRunner.setProperty(EncryptContent.MODE, EncryptContent.DECRYPT_MODE)
+
+        final String content = "ExactBlockSizeRequiredForProcess"
+        final byte[] bytes = content.getBytes(StandardCharsets.UTF_8)
+        final ByteArrayInputStream inputStream = new ByteArrayInputStream(bytes)
+        final ByteArrayOutputStream outputStream = new ByteArrayOutputStream()
+
+        final KeyedEncryptor encryptor = new KeyedEncryptor(EncryptionMethod.AES_CBC_NO_PADDING, Hex.decodeHex(RAW_KEY_HEX))
+        encryptor.encryptionCallback.process(inputStream, outputStream)
+        outputStream.close()
+
+        final byte[] encrypted = outputStream.toByteArray()
+        testRunner.enqueue(encrypted)
+        testRunner.run()
+
+        testRunner.assertAllFlowFilesTransferred(EncryptContent.REL_SUCCESS, 1)
+        MockFlowFile flowFile = testRunner.getFlowFilesForRelationship(EncryptContent.REL_SUCCESS).get(0)
+        flowFile.assertContentEquals(content)
     }
 
     // TODO: Implement
