@@ -52,6 +52,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
@@ -149,6 +150,8 @@ public class InvokeHTTPTest {
     public void setRunner() {
         mockWebServer = new MockWebServer();
         runner = TestRunners.newTestRunner(new InvokeHTTP());
+        // Disable Connection Pooling
+        runner.setProperty(InvokeHTTP.PROP_MAX_IDLE_CONNECTIONS, Integer.toString(0));
     }
 
     @After
@@ -788,6 +791,13 @@ public class InvokeHTTPTest {
     }
 
     private void assertResponseSuccessRelationships() {
+        final List<LogMessage> errorMessages = runner.getLogger().getErrorMessages();
+        final Optional<LogMessage> errorMessage = errorMessages.stream().findFirst();
+        if (errorMessage.isPresent()) {
+            final String message = String.format("Error Message Logged: %s", errorMessage.get().getMsg());
+            assertFalse(message, errorMessages.isEmpty());
+        }
+
         runner.assertTransferCount(InvokeHTTP.REL_RESPONSE, 1);
         runner.assertTransferCount(InvokeHTTP.REL_SUCCESS_REQ, 1);
         runner.assertTransferCount(InvokeHTTP.REL_RETRY, 0);
