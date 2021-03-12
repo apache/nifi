@@ -511,8 +511,9 @@ public class TestReportLineageToAtlas {
     }
 
     private void saveAtlasConf(Properties atlasConf) throws IOException {
-        FileOutputStream fos = new FileOutputStream(atlasConfDir + File.separator + ApplicationProperties.APPLICATION_PROPERTIES);
-        atlasConf.store(fos, "Atlas test config");
+        try (FileOutputStream fos = new FileOutputStream(atlasConfDir + File.separator + ApplicationProperties.APPLICATION_PROPERTIES)) {
+            atlasConf.store(fos, "Atlas test config");
+        }
     }
 
     private Map<PropertyDescriptor, String> initReportingTaskProperties(String atlasConfDir) {
