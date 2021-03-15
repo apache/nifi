@@ -180,15 +180,18 @@
                 <div id="replay-details" class="content-details hidden">
                     <div class="event-header">Replay</div>
                     <div id="replay-content-connection" class="event-detail">
-                        <div class="content-detail-name">Connection Id</div>
-                        <div id="replay-connection-id" class="content-detail-value"></div>
-                        <div class="clear"></div>
+                        <div class="settings-left">
+                            <div class="content-detail-name">Connection Id</div>
+                            <div id="replay-connection-id" class="content-detail-value"></div>
+                        </div>
+                        <div class="spacer">&nbsp;</div>
+                        <div class="event-detail settings-right">
+                            <div id="replay-content" class="secondary-button fa fa-repeat button-icon"><span>Replay</span></div>
+                            <div class="clear"></div>
+                        </div>
                     </div>
+                    <div class="clear"></div>
                     <div id="replay-content-message" class="hidden"></div>
-                    <div class="event-detail">
-                        <div id="replay-content" class="secondary-button fa fa-repeat button-icon"><span>Replay</span></div>
-                        <div class="clear"></div>
-                    </div>
                 </div>
             </div>
         </div>
