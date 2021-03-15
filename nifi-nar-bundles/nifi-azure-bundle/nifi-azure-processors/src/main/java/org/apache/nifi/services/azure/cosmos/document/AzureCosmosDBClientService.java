@@ -29,7 +29,6 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.processors.azure.cosmos.document.AzureCosmosDBUtils;
-import org.apache.nifi.services.azure.cosmos.AzureCosmosDBConnectionService;
 import org.apache.nifi.util.StringUtils;
 
 @Tags({"azure", "cosmos", "document", "service"})
@@ -38,8 +37,7 @@ import org.apache.nifi.util.StringUtils;
         " and provides access to that connection to other Cosmos DB-related components."
 )
 public class AzureCosmosDBClientService
-        extends AbstractCosmosDBClientService
-        implements AzureCosmosDBConnectionService {
+        extends AbstractCosmosDBClientService {
     private String uri;
     private String accessKey;
     private String consistencyLevel;
@@ -51,7 +49,7 @@ public class AzureCosmosDBClientService
         this.consistencyLevel = context.getProperty(
                 AzureCosmosDBUtils.CONSISTENCY).getValue();
 
-        if (this.cosmosClient != null) {
+        if (getCosmosClient() != null) {
             onStopped();
         }
         createCosmosClient(

@@ -30,7 +30,6 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.azure.cosmos.document.AzureCosmosDBUtils;
-import org.apache.nifi.services.azure.cosmos.AzureCosmosDBConnectionService;
 import org.apache.nifi.services.azure.keyvault.AzureKeyVaultConnectionService;
 import org.apache.nifi.util.StringUtils;
 
@@ -40,8 +39,7 @@ import org.apache.nifi.util.StringUtils;
                 " and provides access to that connection to other Cosmos DB-related components."
 )
 public class AzureCosmosSecureDBClientService
-        extends AbstractCosmosDBClientService
-        implements AzureCosmosDBConnectionService {
+        extends AbstractCosmosDBClientService {
 
     private String uriSecret;
     private String accessKeySecret;
@@ -51,16 +49,18 @@ public class AzureCosmosSecureDBClientService
     public static final PropertyDescriptor URI_SECRET = new PropertyDescriptor.Builder()
             .name("azure-cosmos-db-uri-secret")
             .displayName("Cosmos DB URI Secret Name")
-            .description("Cosmos DB URI Secret Name")
+            .description("The controller service will get the value of secret from Keyvault. " +
+                    "Provide the name of secret which stores Cosmos DB URI.")
             .required(true)
-            .addValidator(StandardValidators.URI_VALIDATOR)
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .sensitive(true)
             .build();
 
     public static final PropertyDescriptor DB_ACCESS_KEY_SECRET = new PropertyDescriptor.Builder()
             .name("azure-cosmos-db-key-secret")
             .displayName("Cosmos DB Access Key Secret Name")
-            .description("Cosmos DB Access Key Secret Name")
+            .description("The controller service will get the value of secret from Keyvault. " +
+                    "Provide the name of secret which stores Cosmos DB Access Key.")
             .required(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .sensitive(true)
@@ -69,10 +69,21 @@ public class AzureCosmosSecureDBClientService
     static final PropertyDescriptor KEYVAULT_CONNECTION_SERVICE = new PropertyDescriptor.Builder()
             .name("azure-keyvault-connection-service")
             .displayName("KeyVault Connection Service")
-            .description("If configured, the controller service used to obtain the secrets from KeyVault")
+            .description("The controller service will get the value of secrets from Keyvault. " +
+                    "Provide the name of keyvault controller service.")
             .required(true)
             .identifiesControllerService(AzureKeyVaultConnectionService.class)
             .build();
+
+    static List<PropertyDescriptor> descriptors = new ArrayList<>();
+
+    static {
+        descriptors.add(KEYVAULT_CONNECTION_SERVICE);
+        descriptors.add(URI_SECRET);
+        descriptors.add(DB_ACCESS_KEY_SECRET);
+        descriptors.add(AzureCosmosDBUtils.CONSISTENCY);
+    }
+
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) {
         this.uriSecret = context.getProperty(URI_SECRET).getValue();
@@ -90,15 +101,6 @@ public class AzureCosmosSecureDBClientService
         );
     }
 
-    static List<PropertyDescriptor> descriptors = new ArrayList<>();
-
-    static {
-        descriptors.add(KEYVAULT_CONNECTION_SERVICE);
-        descriptors.add(URI_SECRET);
-        descriptors.add(DB_ACCESS_KEY_SECRET);
-        descriptors.add(AzureCosmosDBUtils.CONSISTENCY);
-    }
-
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return descriptors;
@@ -109,10 +111,6 @@ public class AzureCosmosSecureDBClientService
         if (keyVaultClientService == null) {
             throw new IllegalArgumentException(String.format(
                     "Cannot get '%s'.", KEYVAULT_CONNECTION_SERVICE.getDisplayName()));
-        }
-        if (StringUtils.isBlank(uriSecret)) {
-            throw new IllegalArgumentException(String.format(
-                    "'%s' must not be empty.", URI_SECRET.getDisplayName()));
         }
         return keyVaultClientService.getSecret(uriSecret);
     }

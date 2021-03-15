@@ -36,7 +36,6 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
-import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 import org.apache.nifi.services.azure.keyvault.AzureKeyVaultConnectionService;
 
@@ -61,7 +60,6 @@ public class AzureStorageSecureCredentialsControllerService
                     AzureStorageUtils.ENDPOINT_SUFFIX));
 
     private ConfigurationContext context;
-    private ComponentLog logger;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -102,18 +100,17 @@ public class AzureStorageSecureCredentialsControllerService
 
     @OnEnabled
     public void onEnabled(ConfigurationContext context) {
-        this.logger = getLogger();
         this.context = context;
     }
 
     @Override
     public AzureStorageCredentialsDetails getStorageCredentialsDetails(Map<String, String> attributes) {
-        final String accountName = context.getProperty(
+        final String accountNameSecret = context.getProperty(
                 AzureStorageUtils.ACCOUNT_NAME_SECRET
         ).evaluateAttributeExpressions(attributes).getValue();
-        final String accountKey = context.getProperty(
+        final String accountKeySecret = context.getProperty(
                 AzureStorageUtils.ACCOUNT_KEY_SECRET).evaluateAttributeExpressions(attributes).getValue();
-        final String sasToken = context.getProperty(
+        final String sasTokenSecret = context.getProperty(
                 AzureStorageUtils.ACCOUNT_SAS_TOKEN_SECRET
         ).evaluateAttributeExpressions(attributes).getValue();
         final String storageSuffix = context.getProperty(
@@ -128,19 +125,20 @@ public class AzureStorageSecureCredentialsControllerService
                     "Cannot get '%s'.", AzureStorageUtils.KEYVAULT_CONNECTION_SERVICE.getDisplayName()));
         }
 
-        if (StringUtils.isBlank(accountName)) {
+        if (StringUtils.isBlank(accountNameSecret)) {
             throw new IllegalArgumentException(String.format(
                     "'%s' must not be empty.", AzureStorageUtils.ACCOUNT_NAME_SECRET.getDisplayName()));
         }
 
-        String accountNameValue = keyVaultClientService.getSecret(accountName);
+        String accountNameValue = keyVaultClientService.getSecret(accountNameSecret);
+
         StorageCredentials storageCredentials;
 
-        if (StringUtils.isNotBlank(accountKey)) {
-            String accountKeyValue = keyVaultClientService.getSecret(accountKey);
+        if (StringUtils.isNotBlank(accountKeySecret)) {
+            String accountKeyValue = keyVaultClientService.getSecret(accountKeySecret);
             storageCredentials = new StorageCredentialsAccountAndKey(accountNameValue, accountKeyValue);
-        } else if (StringUtils.isNotBlank(sasToken)) {
-            String sasTokenValue = keyVaultClientService.getSecret(sasToken);
+        } else if (StringUtils.isNotBlank(sasTokenSecret)) {
+            String sasTokenValue = keyVaultClientService.getSecret(sasTokenSecret);
             storageCredentials = new StorageCredentialsSharedAccessSignature(sasTokenValue);
         } else {
             throw new IllegalArgumentException(String.format(

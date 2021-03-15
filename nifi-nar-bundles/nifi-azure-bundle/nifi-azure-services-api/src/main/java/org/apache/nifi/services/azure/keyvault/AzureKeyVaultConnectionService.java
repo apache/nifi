@@ -18,14 +18,19 @@
 package org.apache.nifi.services.azure.keyvault;
 
 import org.apache.nifi.controller.ControllerService;
-import com.azure.security.keyvault.secrets.SecretClient;
 
+/**
+ *
+ * Service interface to provide KeyVault Secrets.
+ */
 public interface AzureKeyVaultConnectionService extends ControllerService {
 
-    SecretClient getKeyVaultSecretClient();
-
+    /**
+     * Get Secret Value from KeyVault for requested secret name
+     * @param secretName Secret Name
+     * @return String
+     */
     String getSecret(String secretName);
 
-    String getSecretFromKeyVault(String secretName);
 }
 

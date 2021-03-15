@@ -34,7 +34,8 @@ public final class AzureKeyVaultUtils {
     public static final PropertyDescriptor SP_CLIENT_ID = new PropertyDescriptor.Builder()
             .name("azure-service-principal-client-id")
             .displayName("Service Principal Client ID")
-            .description("Azure Service Principal Client ID for authentication")
+            .description("This processor will use Azure Service Principal for authentication. " +
+                    "Please provide Azure Service Principal Client ID for authentication")
             .required(false)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .sensitive(true)
@@ -43,7 +44,8 @@ public final class AzureKeyVaultUtils {
     public static final PropertyDescriptor SP_CLIENT_SECRET = new PropertyDescriptor.Builder()
             .name("azure-service-principal-client-secret")
             .displayName("Service Principal Client Secret")
-            .description("Azure Service Principal Client Secret for authentication")
+            .description("This processor will use Azure Service Principal for authentication. " +
+                    "Please provide Azure Service Principal Client Secret for authentication")
             .required(false)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .sensitive(true)
@@ -52,7 +54,8 @@ public final class AzureKeyVaultUtils {
     public static final PropertyDescriptor TENANT_ID = new PropertyDescriptor.Builder()
             .name("azure-tenant-id")
             .displayName("Azure Tenant ID")
-            .description("Azure Tenant ID for authentication")
+            .description("This processor will use Azure Service Principal for authentication. " +
+                    "Please provide Azure Tenant ID for authentication")
             .required(false)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .sensitive(true)
@@ -61,7 +64,7 @@ public final class AzureKeyVaultUtils {
     public static final PropertyDescriptor ENDPOINT_SUFFIX = new PropertyDescriptor.Builder()
             .name("keyvault-uri-suffix")
             .displayName("KeyVault URI  Suffix")
-            .description("KeyVaults in public Azure always use a common FQDN suffix. " +
+            .description("KeyVault in public Azure always uses a common FQDN suffix. " +
                     "Override this endpoint suffix with a different suffix in certain " +
                     "circumstances (like Azure Stack or non-public Azure regions). ")
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
@@ -73,7 +76,8 @@ public final class AzureKeyVaultUtils {
     public static final PropertyDescriptor USE_MANAGED_IDENTITY = new PropertyDescriptor.Builder()
             .name("azure-use-managed-identity")
             .displayName("Use Azure Managed Identity")
-            .description("Choose whether or not to use the managed identity of Azure VM/VMSS.")
+            .description("Choose whether or not to use the managed identity of Azure VM/VMSS. " +
+                    "If using managed identity user will not be required to provide service principal details")
             .required(false)
             .defaultValue("false")
             .allowableValues("true", "false")

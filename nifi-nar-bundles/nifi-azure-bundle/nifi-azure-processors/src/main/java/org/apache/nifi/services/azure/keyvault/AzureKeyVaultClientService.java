@@ -62,36 +62,10 @@ public class AzureKeyVaultClientService
     private ComponentLog logger;
     private LoadingCache<String, String> secretCache;
 
-    public String getKeyVaultName() {
-        return this.keyVaultName;
-    }
-
-    public String getServicePrincipalClientID() {
-        return this.servicePrincipalClientID;
-    }
-
-    public String getServicePrincipalClientSecret() {
-        return this.servicePrincipalClientSecret;
-    }
-
-    public String getTenantID() {
-        return this.tenantID;
-    }
-
-    public String getEndPointSuffix() {
-        return this.endPointSuffix;
-    }
-
-    public Boolean getUseManagedIdentity() {
-        return this.useManagedIdentity;
-    }
-
-    @Override
     public SecretClient getKeyVaultSecretClient() {
         return this.keyVaultSecretClient;
     }
 
-    @Override
     public String getSecretFromKeyVault(String secretName) {
         return this.keyVaultSecretClient.getSecret(secretName).getValue();
     }

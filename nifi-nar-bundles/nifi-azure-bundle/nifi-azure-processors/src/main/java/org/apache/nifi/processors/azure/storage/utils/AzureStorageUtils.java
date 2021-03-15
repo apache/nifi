@@ -160,9 +160,9 @@ public final class AzureStorageUtils {
     public static final PropertyDescriptor ACCOUNT_NAME_SECRET = new PropertyDescriptor.Builder()
             .name("storage-account-name-secret")
             .displayName("Storage Account Name Secret Name")
-            .description("Storage Account Name Secret Name")
+            .description("The controller service will get the value of secret from Keyvault. " +
+                    "Provide the name of secret which stores Storage Account Name.")
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(true)
             .sensitive(true)
             .build();
@@ -170,9 +170,9 @@ public final class AzureStorageUtils {
     public static final PropertyDescriptor ACCOUNT_KEY_SECRET = new PropertyDescriptor.Builder()
             .name("storage-account-key-secret")
             .displayName("Storage Account Key Secret Name")
-            .description("Storage Account Key Secret Name")
+            .description("The controller service will get the value of secret from Keyvault. " +
+                    "Provide the name of secret which stores Storage Account Key.")
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(false)
             .sensitive(true)
             .build();
@@ -180,9 +180,9 @@ public final class AzureStorageUtils {
     public static final PropertyDescriptor ACCOUNT_SAS_TOKEN_SECRET = new PropertyDescriptor.Builder()
             .name("storage-sas-token")
             .displayName("SAS Token Secret Name")
-            .description("SAS Token Secret Name")
+            .description("The controller service will get the value of secret from Keyvault. " +
+                    "Provide the name of secret which stores Storage SAS Token.")
             .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .sensitive(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
@@ -190,7 +190,8 @@ public final class AzureStorageUtils {
     public static final PropertyDescriptor KEYVAULT_CONNECTION_SERVICE = new PropertyDescriptor.Builder()
             .name("azure-keyvault-connection-service")
             .displayName("KeyVault Connection Service")
-            .description("If configured, the controller service used to obtain the secrets from KeyVault")
+            .description("The controller service will get the value of secrets from Keyvault. " +
+                "Provide the name of keyvault controller service.")
             .required(true)
             .identifiesControllerService(AzureKeyVaultConnectionService.class)
             .build();

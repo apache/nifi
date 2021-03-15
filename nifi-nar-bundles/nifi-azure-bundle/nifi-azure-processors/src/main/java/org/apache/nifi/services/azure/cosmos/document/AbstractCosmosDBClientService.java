@@ -38,7 +38,16 @@ public abstract class AbstractCosmosDBClientService
         extends AbstractControllerService
         implements AzureCosmosDBConnectionService {
 
-    protected CosmosClient cosmosClient;
+    private CosmosClient cosmosClient;
+
+    @Override
+    public CosmosClient getCosmosClient() {
+        return this.cosmosClient;
+    }
+
+    public void setCosmosClient(CosmosClient client) {
+        this.cosmosClient = client;
+    }
 
     @OnStopped
     public final void onStopped() {
@@ -58,7 +67,7 @@ public abstract class AbstractCosmosDBClientService
 
         switch(selectedConsistency) {
             case AzureCosmosDBUtils.CONSISTENCY_STRONG:
-                cLevel =  ConsistencyLevel.STRONG;
+                cLevel = ConsistencyLevel.STRONG;
                 break;
             case AzureCosmosDBUtils.CONSISTENCY_CONSISTENT_PREFIX:
                 cLevel = ConsistencyLevel.CONSISTENT_PREFIX;
@@ -79,13 +88,4 @@ public abstract class AbstractCosmosDBClientService
                 .buildClient();
     }
 
-    @Override
-    public CosmosClient getCosmosClient() {
-        return this.cosmosClient;
-    }
-
-    public void setCosmosClient(CosmosClient client) {
-        this.cosmosClient = client;
-    }
 }
-
