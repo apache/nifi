@@ -16,9 +16,7 @@
  */
 package org.apache.nifi.processors.standard;
 
-import org.apache.commons.io.IOUtils;
-import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.ProcessSessionFactory;
+import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.security.util.ClientAuth;
 import org.apache.nifi.security.util.TlsException;
@@ -34,24 +32,23 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import javax.net.SocketFactory;
 import javax.net.ssl.SSLContext;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
 public class TestListenTCP {
-    private static final long RESPONSE_TIMEOUT = 10000;
-
     private static final String SSL_CONTEXT_IDENTIFIER = SSLContextService.class.getName();
+
+    private static final String LOCALHOST = "localhost";
 
     private static SSLContext keyStoreSslContext;
 
     private static SSLContext trustStoreSslContext;
 
-    private ListenTCP proc;
     private TestRunner runner;
 
     @BeforeClass
@@ -62,9 +59,7 @@ public class TestListenTCP {
 
     @Before
     public void setup() {
-        proc = new ListenTCP();
-        runner = TestRunners.newTestRunner(proc);
-        runner.setProperty(ListenTCP.PORT, "0");
+        runner = TestRunners.newTestRunner(ListenTCP.class);
     }
 
     @Test
@@ -81,7 +76,7 @@ public class TestListenTCP {
     }
 
     @Test
-    public void testListenTCP() throws IOException, InterruptedException {
+    public void testListenTCP() throws IOException {
         final List<String> messages = new ArrayList<>();
         messages.add("This is message 1\n");
         messages.add("This is message 2\n");
@@ -89,7 +84,7 @@ public class TestListenTCP {
         messages.add("This is message 4\n");
         messages.add("This is message 5\n");
 
-        runTCP(messages, messages.size(), null);
+        run(messages, messages.size(), null);
 
         List<MockFlowFile> mockFlowFiles = runner.getFlowFilesForRelationship(ListenTCP.REL_SUCCESS);
         for (int i = 0; i < mockFlowFiles.size(); i++) {
@@ -98,7 +93,7 @@ public class TestListenTCP {
     }
 
     @Test
-    public void testListenTCPBatching() throws IOException, InterruptedException {
+    public void testListenTCPBatching() throws IOException {
         runner.setProperty(ListenTCP.MAX_BATCH_SIZE, "3");
 
         final List<String> messages = new ArrayList<>();
@@ -108,7 +103,7 @@ public class TestListenTCP {
         messages.add("This is message 4\n");
         messages.add("This is message 5\n");
 
-        runTCP(messages, 2, null);
+        run(messages, 2, null);
 
         List<MockFlowFile> mockFlowFiles = runner.getFlowFilesForRelationship(ListenTCP.REL_SUCCESS);
 
@@ -120,9 +115,7 @@ public class TestListenTCP {
     }
 
     @Test
-    public void testTLSClientAuthRequiredAndClientCertProvided() throws IOException, InterruptedException,
-            InitializationException {
-
+    public void testTLSClientAuthRequiredAndClientCertProvided() throws IOException, InitializationException {
         runner.setProperty(ListenTCP.CLIENT_AUTH, ClientAuth.REQUIRED.name());
         enableSslContextService(keyStoreSslContext);
 
@@ -133,8 +126,7 @@ public class TestListenTCP {
         messages.add("This is message 4\n");
         messages.add("This is message 5\n");
 
-        // Make an SSLContext with a key and trust store to send the test messages
-        runTCP(messages, messages.size(), keyStoreSslContext);
+        run(messages, messages.size(), keyStoreSslContext);
 
         List<MockFlowFile> mockFlowFiles = runner.getFlowFilesForRelationship(ListenTCP.REL_SUCCESS);
         for (int i = 0; i < mockFlowFiles.size(); i++) {
@@ -154,14 +146,13 @@ public class TestListenTCP {
         messages.add("This is message 4\n");
         messages.add("This is message 5\n");
 
-        // Make an SSLContext that only has the trust store, this should not work since the processor has client auth REQUIRED
         Assert.assertThrows(IOException.class, () ->
-            runTCP(messages, messages.size(), trustStoreSslContext)
+            run(messages, messages.size(), trustStoreSslContext)
         );
     }
 
     @Test
-    public void testTLSClientAuthNoneAndClientCertNotProvided() throws IOException, InterruptedException, InitializationException {
+    public void testTLSClientAuthNoneAndClientCertNotProvided() throws IOException, InitializationException {
         runner.setProperty(ListenTCP.CLIENT_AUTH, ClientAuth.NONE.name());
         enableSslContextService(keyStoreSslContext);
 
@@ -172,8 +163,7 @@ public class TestListenTCP {
         messages.add("This is message 4\n");
         messages.add("This is message 5\n");
 
-        // Make an SSLContext that only has the trust store, this should not work since the processor has client auth REQUIRED
-        runTCP(messages, messages.size(), trustStoreSslContext);
+        run(messages, messages.size(), trustStoreSslContext);
 
         List<MockFlowFile> mockFlowFiles = runner.getFlowFilesForRelationship(ListenTCP.REL_SUCCESS);
         for (int i = 0; i < mockFlowFiles.size(); i++) {
@@ -181,63 +171,39 @@ public class TestListenTCP {
         }
     }
 
-    protected void runTCP(final List<String> messages, final int expectedTransferred, final SSLContext sslContext)
-            throws IOException, InterruptedException {
+    protected void run(final List<String> messages, final int flowFiles, final SSLContext sslContext)
+            throws IOException {
 
-        Socket socket = null;
-        try {
-            // schedule to start listening on a random port
-            final ProcessSessionFactory processSessionFactory = runner.getProcessSessionFactory();
-            final ProcessContext context = runner.getProcessContext();
-            proc.onScheduled(context);
+        final int port = NetworkUtils.availablePort();
+        runner.setProperty(ListenTCP.PORT, Integer.toString(port));
 
-            // create a client connection to the port the dispatcher is listening on
-            final int realPort = proc.getDispatcherPort();
+        // Run Processor and start Dispatcher without shutting down
+        runner.run(1, false, true);
 
-            // create either a regular socket or ssl socket based on context being passed in
-            if (sslContext == null) {
-                socket = new Socket("localhost", realPort);
-            } else {
-                final SocketFactory socketFactory = sslContext.getSocketFactory();
-                socket = socketFactory.createSocket("localhost", realPort);
-            }
-            Thread.sleep(100);
-
-            // send the frames to the port the processors is listening on
+        try (final Socket socket = getSocket(port, sslContext)) {
+            final OutputStream outputStream = socket.getOutputStream();
             for (final String message : messages) {
-                socket.getOutputStream().write(message.getBytes(StandardCharsets.UTF_8));
-                Thread.sleep(1);
+                outputStream.write(message.getBytes(StandardCharsets.UTF_8));
             }
-            socket.getOutputStream().flush();
+            outputStream.flush();
 
-            // this first loop waits until the internal queue of the processor has the expected
-            // number of messages ready before proceeding, we want to guarantee they are all there
-            // before onTrigger gets a chance to run
-            long startTimeQueueSizeCheck = System.currentTimeMillis();
-            while (proc.getQueueSize() < messages.size()
-                    && (System.currentTimeMillis() - startTimeQueueSizeCheck < RESPONSE_TIMEOUT)) {
-                Thread.sleep(100);
-            }
+            // Run Processor for number of responses
+            runner.run(flowFiles, false, false);
 
-            // want to fail here if the queue size isn't what we expect
-            Assert.assertEquals(messages.size(), proc.getQueueSize());
-
-            // call onTrigger until we processed all the frames, or a certain amount of time passes
-            int numTransferred = 0;
-            long startTime = System.currentTimeMillis();
-            while (numTransferred < expectedTransferred && (System.currentTimeMillis() - startTime < RESPONSE_TIMEOUT)) {
-                proc.onTrigger(context, processSessionFactory);
-                numTransferred = runner.getFlowFilesForRelationship(ListenTCP.REL_SUCCESS).size();
-                Thread.sleep(100);
-            }
-
-            // should have transferred the expected events
-            runner.assertTransferCount(ListenTCP.REL_SUCCESS, expectedTransferred);
+            runner.assertTransferCount(ListenTCP.REL_SUCCESS, flowFiles);
         } finally {
-            // unschedule to close connections
-            proc.onUnscheduled();
-            IOUtils.closeQuietly(socket);
+            runner.shutdown();
         }
+    }
+
+    private Socket getSocket(final int port, final SSLContext sslContext) throws IOException {
+        final Socket socket;
+        if (sslContext == null) {
+            socket = new Socket(LOCALHOST, port);
+        } else {
+            socket = sslContext.getSocketFactory().createSocket(LOCALHOST, port);
+        }
+        return socket;
     }
 
     private void enableSslContextService(final SSLContext sslContext) throws InitializationException {

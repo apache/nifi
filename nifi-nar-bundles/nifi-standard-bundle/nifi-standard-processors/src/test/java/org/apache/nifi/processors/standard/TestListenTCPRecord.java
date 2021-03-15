@@ -16,18 +16,17 @@
  */
 package org.apache.nifi.processors.standard;
 
-import java.io.Closeable;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.io.UncheckedIOException;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import javax.net.ssl.SSLContext;
-import org.apache.commons.io.IOUtils;
+
 import org.apache.nifi.json.JsonTreeReader;
-import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.ProcessSessionFactory;
+import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.schema.access.SchemaAccessUtils;
 import org.apache.nifi.security.util.ClientAuth;
@@ -46,12 +45,8 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class TestListenTCPRecord {
-    static final Logger LOGGER = LoggerFactory.getLogger(TestListenTCPRecord.class);
-
     static final String SCHEMA_TEXT = "{\n" +
             "  \"name\": \"syslogRecord\",\n" +
             "  \"namespace\": \"nifi\",\n" +
@@ -63,17 +58,13 @@ public class TestListenTCPRecord {
             "  ]\n" +
             "}";
 
-    static final List<String> DATA;
+    static final String DATA = "[" +
+            "{\"timestamp\" : \"123456789\", \"logsource\" : \"syslog\", \"message\" : \"This is a test 1\"}," +
+            "{\"timestamp\" : \"123456789\", \"logsource\" : \"syslog\", \"message\" : \"This is a test 2\"}," +
+            "{\"timestamp\" : \"123456789\", \"logsource\" : \"syslog\", \"message\" : \"This is a test 3\"}" +
+            "]";
 
-    static {
-        final List<String> data = new ArrayList<>();
-        data.add("[");
-        data.add("{\"timestamp\" : \"123456789\", \"logsource\" : \"syslog\", \"message\" : \"This is a test 1\"},");
-        data.add("{\"timestamp\" : \"123456789\", \"logsource\" : \"syslog\", \"message\" : \"This is a test 2\"},");
-        data.add("{\"timestamp\" : \"123456789\", \"logsource\" : \"syslog\", \"message\" : \"This is a test 3\"}");
-        data.add("]");
-        DATA = Collections.unmodifiableList(data);
-    }
+    private static final String LOCALHOST = "localhost";
 
     private static final String SSL_CONTEXT_IDENTIFIER = SSLContextService.class.getName();
 
@@ -81,7 +72,6 @@ public class TestListenTCPRecord {
 
     private static SSLContext trustStoreSslContext;
 
-    private ListenTCPRecord proc;
     private TestRunner runner;
 
     @BeforeClass
@@ -92,9 +82,7 @@ public class TestListenTCPRecord {
 
     @Before
     public void setup() throws InitializationException {
-        proc = new ListenTCPRecord();
-        runner = TestRunners.newTestRunner(proc);
-        runner.setProperty(ListenTCPRecord.PORT, "0");
+        runner = TestRunners.newTestRunner(ListenTCPRecord.class);
 
         final String readerId = "record-reader";
         final RecordReaderFactory readerFactory = new JsonTreeReader();
@@ -110,7 +98,6 @@ public class TestListenTCPRecord {
 
         runner.setProperty(ListenTCPRecord.RECORD_READER, readerId);
         runner.setProperty(ListenTCPRecord.RECORD_WRITER, writerId);
-
     }
 
     @Test
@@ -130,7 +117,7 @@ public class TestListenTCPRecord {
     public void testOneRecordPerFlowFile() throws IOException, InterruptedException {
         runner.setProperty(ListenTCPRecord.RECORD_BATCH_SIZE, "1");
 
-        runTCP(DATA, 3, null);
+        run(3, null);
 
         List<MockFlowFile> mockFlowFiles = runner.getFlowFilesForRelationship(ListenTCPRecord.REL_SUCCESS);
         for (int i = 0; i < mockFlowFiles.size(); i++) {
@@ -147,7 +134,7 @@ public class TestListenTCPRecord {
     public void testMultipleRecordsPerFlowFileLessThanBatchSize() throws IOException, InterruptedException {
         runner.setProperty(ListenTCPRecord.RECORD_BATCH_SIZE, "5");
 
-        runTCP(DATA, 1, null);
+        run(1, null);
 
         final List<MockFlowFile> mockFlowFiles = runner.getFlowFilesForRelationship(ListenTCPRecord.REL_SUCCESS);
         Assert.assertEquals(1, mockFlowFiles.size());
@@ -167,7 +154,7 @@ public class TestListenTCPRecord {
         runner.setProperty(ListenTCPRecord.CLIENT_AUTH, ClientAuth.REQUIRED.name());
         enableSslContextService(keyStoreSslContext);
 
-        runTCP(DATA, 1, keyStoreSslContext);
+        run(1, keyStoreSslContext);
 
         final List<MockFlowFile> mockFlowFiles = runner.getFlowFilesForRelationship(ListenTCPRecord.REL_SUCCESS);
         Assert.assertEquals(1, mockFlowFiles.size());
@@ -177,24 +164,14 @@ public class TestListenTCPRecord {
         Assert.assertTrue(content.contains("This is a test " + 1));
         Assert.assertTrue(content.contains("This is a test " + 2));
         Assert.assertTrue(content.contains("This is a test " + 3));
-    }
-
-    @Test
-    public void testTLSClientAuthRequiredAndClientCertNotProvided() throws InitializationException, IOException, InterruptedException {
-        runner.setProperty(ListenTCPRecord.CLIENT_AUTH, ClientAuth.REQUIRED.name());
-        runner.setProperty(ListenTCPRecord.READ_TIMEOUT, "5 seconds");
-        enableSslContextService(keyStoreSslContext);
-
-        runTCP(DATA, 0, trustStoreSslContext);
     }
 
     @Test
     public void testTLSClientAuthNoneAndClientCertNotProvided() throws InitializationException, IOException, InterruptedException {
-
         runner.setProperty(ListenTCPRecord.CLIENT_AUTH, ClientAuth.NONE.name());
         enableSslContextService(keyStoreSslContext);
 
-        runTCP(DATA, 1, trustStoreSslContext);
+        run(1, trustStoreSslContext);
 
         final List<MockFlowFile> mockFlowFiles = runner.getFlowFilesForRelationship(ListenTCPRecord.REL_SUCCESS);
         Assert.assertEquals(1, mockFlowFiles.size());
@@ -206,88 +183,43 @@ public class TestListenTCPRecord {
         Assert.assertTrue(content.contains("This is a test " + 3));
     }
 
-    protected void runTCP(final List<String> messages, final int expectedTransferred, final SSLContext sslContext)
-            throws IOException, InterruptedException {
+    protected void run(final int expectedTransferred, final SSLContext sslContext) throws IOException, InterruptedException {
+        final int port = NetworkUtils.availablePort();
+        runner.setProperty(ListenTCPRecord.PORT, Integer.toString(port));
 
-        SocketSender sender = null;
-        try {
-            // schedule to start listening on a random port
-            final ProcessSessionFactory processSessionFactory = runner.getProcessSessionFactory();
-            final ProcessContext context = runner.getProcessContext();
-            proc.onScheduled(context);
-            Thread.sleep(100);
+        // Run Processor and start listener without shutting down
+        runner.run(1, false, true);
 
-            sender = new SocketSender(proc.getDispatcherPort(), "localhost", sslContext, messages, 0);
-
-            final Thread senderThread = new Thread(sender);
-            senderThread.setDaemon(true);
-            senderThread.start();
-
-            long timeout = 10000;
-
-            // call onTrigger until we processed all the records, or a certain amount of time passes
-            int numTransferred = 0;
-            long startTime = System.currentTimeMillis();
-            while (numTransferred < expectedTransferred && (System.currentTimeMillis() - startTime < timeout)) {
-                proc.onTrigger(context, processSessionFactory);
-                numTransferred = runner.getFlowFilesForRelationship(ListenTCPRecord.REL_SUCCESS).size();
-                Thread.sleep(100);
+        final AtomicBoolean completed = new AtomicBoolean(false);
+        final Thread thread = new Thread(() -> {
+            try (final Socket socket = getSocket(port, sslContext)) {
+                final OutputStream outputStream = socket.getOutputStream();
+                outputStream.write(DATA.getBytes(StandardCharsets.UTF_8));
+                outputStream.flush();
+                completed.set(true);
+            } catch (final IOException e) {
+                throw new UncheckedIOException(e);
             }
+        });
+        thread.start();
 
-            // should have transferred the expected events
-            runner.assertTransferCount(ListenTCPRecord.REL_SUCCESS, expectedTransferred);
-        } finally {
-            // unschedule to close connections
-            proc.onUnscheduled();
-            IOUtils.closeQuietly(sender);
-        }
+        // Wait for Send Completion
+        completed.compareAndSet(true, false);
+
+        // Run Processor for expected FlowFiles with an additional run to ensure completion
+        final int iterations = expectedTransferred + 1;
+        runner.run(iterations, true, false);
+        runner.assertTransferCount(ListenTCPRecord.REL_SUCCESS, expectedTransferred);
     }
 
-    private static class SocketSender implements Runnable, Closeable {
-
-        private final int port;
-        private final String host;
-        private final SSLContext sslContext;
-        private final List<String> data;
-        private final long delay;
-
-        private Socket socket;
-
-        public SocketSender(final int port, final String host, final SSLContext sslContext, final List<String> data, final long delay) {
-            this.port = port;
-            this.host = host;
-            this.sslContext = sslContext;
-            this.data = data;
-            this.delay = delay;
+    private Socket getSocket(final int port, final SSLContext sslContext) throws IOException {
+        final Socket socket;
+        if (sslContext == null) {
+            socket = new Socket(LOCALHOST, port);
+        } else {
+            socket = sslContext.getSocketFactory().createSocket(LOCALHOST, port);
         }
-
-        @Override
-        public void run() {
-            try {
-                if (sslContext != null) {
-                    socket = sslContext.getSocketFactory().createSocket(host, port);
-                } else {
-                    socket = new Socket(host, port);
-                }
-
-                for (final String message : data) {
-                    socket.getOutputStream().write(message.getBytes(StandardCharsets.UTF_8));
-                    if (delay > 0) {
-                        Thread.sleep(delay);
-                    }
-                }
-
-                socket.getOutputStream().flush();
-            } catch (final Exception e) {
-                LOGGER.error(e.getMessage(), e);
-            } finally {
-                IOUtils.closeQuietly(socket);
-            }
-        }
-
-        public void close() {
-            IOUtils.closeQuietly(socket);
-        }
+        return socket;
     }
 
     private void enableSslContextService(final SSLContext sslContext) throws InitializationException {
