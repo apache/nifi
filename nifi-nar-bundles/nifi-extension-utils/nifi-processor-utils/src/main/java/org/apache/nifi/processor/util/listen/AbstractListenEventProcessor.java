@@ -18,7 +18,7 @@ package org.apache.nifi.processor.util.listen;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
-import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
+import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -220,8 +220,8 @@ public abstract class AbstractListenEventProcessor<E extends Event> extends Abst
         return events == null ? 0 : events.size();
     }
 
-    @OnUnscheduled
-    public void onUnscheduled() {
+    @OnStopped
+    public void closeDispatcher() {
         if (dispatcher != null) {
             dispatcher.close();
         }
