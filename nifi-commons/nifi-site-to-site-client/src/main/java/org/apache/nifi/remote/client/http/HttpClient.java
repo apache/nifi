@@ -17,6 +17,7 @@
 package org.apache.nifi.remote.client.http;
 
 import java.io.IOException;
+import java.net.NoRouteToHostException;
 import java.net.URI;
 import java.util.Collection;
 import java.util.Collections;
@@ -187,7 +188,8 @@ public class HttpClient extends AbstractSiteToSiteClient implements PeerStatusPr
                 // Following exceptions will be thrown even if we tried other peers, so throw it.
                 if (e instanceof UnknownPortException
                         || e instanceof PortNotRunningException
-                        || e instanceof HandshakeException) {
+                        || e instanceof HandshakeException
+                        || e instanceof NoRouteToHostException) {
                     throw e;
                 }
 
