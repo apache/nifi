@@ -3307,7 +3307,7 @@ http {
             proxy_set_header X-ProxyHost nginx.example.com;
             proxy_set_header X-ProxyPort 17590;
             proxy_set_header X-ProxyContextPath /;
-            proxy_set_header X-ProxiedEntitiesChain $ssl_client_s_dn;
+            proxy_set_header X-ProxiedEntitiesChain <$ssl_client_s_dn>;
         }
     }
 }
@@ -3432,7 +3432,7 @@ http {
             proxy_set_header X-ProxyHost $1;
             proxy_set_header X-ProxyPort 443;
             proxy_set_header X-ProxyContextPath /;
-            proxy_set_header X-ProxiedEntitiesChain $ssl_client_s_dn;
+            proxy_set_header X-ProxiedEntitiesChain <$ssl_client_s_dn>;
         }
     }
 }
