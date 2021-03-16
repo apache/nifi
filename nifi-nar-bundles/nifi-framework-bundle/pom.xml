@@ -210,7 +210,7 @@
             <dependency>
                 <groupId>com.ibm.icu</groupId>
                 <artifactId>icu4j</artifactId>
-                <version>60.2</version>
+                <version>68.2</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.tika</groupId>

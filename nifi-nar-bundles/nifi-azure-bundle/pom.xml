@@ -28,7 +28,6 @@
     <properties>
         <azure-storage.version>8.4.0</azure-storage.version>
         <azure.core.version>1.6.0</azure.core.version>
-        <jackson.version>2.10.3</jackson.version>
         <azure-cosmos.version>4.2.0</azure-cosmos.version>
     </properties>
 

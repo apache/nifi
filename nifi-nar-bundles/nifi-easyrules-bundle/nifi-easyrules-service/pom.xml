@@ -32,7 +32,7 @@
         <dependency>
             <groupId>org.yaml</groupId>
             <artifactId>snakeyaml</artifactId>
-            <version>1.25</version>
+            <version>1.28</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -62,7 +62,7 @@
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
-            <version>${jackson-databind.version}</version>
+            <version>${jackson.version}</version>
         </dependency>
         <!-- test -->
         <dependency>

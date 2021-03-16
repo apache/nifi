@@ -93,8 +93,7 @@
         <org.slf4j.version>1.7.30</org.slf4j.version>
         <ranger.version>2.1.0</ranger.version>
         <jetty.version>9.4.38.v20210224</jetty.version>
-        <jackson.version>2.9.10</jackson.version>
-        <jackson-databind.version>2.9.10.8</jackson-databind.version>
+        <jackson.version>2.12.2</jackson.version>
         <nifi.registry.version>0.8.0</nifi.registry.version>
         <nifi.groovy.version>2.5.4</nifi.groovy.version>
         <surefire.version>2.22.2</surefire.version>
