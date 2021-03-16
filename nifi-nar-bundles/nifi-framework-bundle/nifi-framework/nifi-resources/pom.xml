@@ -251,6 +251,10 @@
         <nifi.analytics.connection.model.implementation>org.apache.nifi.controller.status.analytics.models.OrdinaryLeastSquares</nifi.analytics.connection.model.implementation>
         <nifi.analytics.connection.model.score.name>rSquared</nifi.analytics.connection.model.score.name>
         <nifi.analytics.connection.model.score.threshold>.90</nifi.analytics.connection.model.score.threshold>
+
+        <!-- nifi.properties: runtime monitoring properties -->
+        <nifi.monitor.long.running.task.schedule>1 min</nifi.monitor.long.running.task.schedule>
+        <nifi.monitor.long.running.task.threshold>5 mins</nifi.monitor.long.running.task.threshold>
     </properties>
     <build>
         <plugins>
