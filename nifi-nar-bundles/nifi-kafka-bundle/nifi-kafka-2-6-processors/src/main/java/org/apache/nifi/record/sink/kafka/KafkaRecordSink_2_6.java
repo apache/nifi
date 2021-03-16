@@ -61,6 +61,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -226,62 +227,67 @@ public class KafkaRecordSink_2_6 extends AbstractControllerService implements Ka
     public WriteResult sendData(final RecordSet recordSet, final Map<String, String> attributes, final boolean sendZeroResults) throws IOException {
 
         try {
-            WriteResult writeResult;
             final RecordSchema writeSchema = getWriterFactory().getSchema(null, recordSet.getSchema());
             final ByteArrayOutputStream baos = new ByteArrayOutputStream();
             final ByteCountingOutputStream out = new ByteCountingOutputStream(baos);
             int recordCount = 0;
             try (final RecordSetWriter writer = getWriterFactory().createWriter(getLogger(), writeSchema, out, attributes)) {
-                writer.beginRecordSet();
                 Record record;
                 while ((record = recordSet.next()) != null) {
+                    baos.reset();
+                    out.reset();
                     writer.write(record);
+                    writer.flush();
                     recordCount++;
                     if (out.getBytesWritten() > maxMessageSize) {
-                        throw new TokenTooLargeException("The query's result set size exceeds the maximum allowed message size of " + maxMessageSize + " bytes.");
+                        throw new TokenTooLargeException("A record's size exceeds the maximum allowed message size of " + maxMessageSize + " bytes.");
                     }
+                    sendMessage(topic, baos.toByteArray());
                 }
-                writeResult = writer.finishRecordSet();
                 if (out.getBytesWritten() > maxMessageSize) {
-                    throw new TokenTooLargeException("The query's result set size exceeds the maximum allowed message size of " + maxMessageSize + " bytes.");
+                    throw new TokenTooLargeException("A record's size exceeds the maximum allowed message size of " + maxMessageSize + " bytes.");
                 }
-                recordCount = writeResult.getRecordCount();
 
                 attributes.put(CoreAttributes.MIME_TYPE.key(), writer.getMimeType());
                 attributes.put("record.count", Integer.toString(recordCount));
-                attributes.putAll(writeResult.getAttributes());
             }
 
-            if (recordCount > 0 || sendZeroResults) {
-                final ProducerRecord<byte[], byte[]> record = new ProducerRecord<>(topic, null, null, baos.toByteArray());
-                try {
-                    producer.send(record, (metadata, exception) -> {
-                        if (exception != null) {
-                            throw new KafkaSendException(exception);
-                        }
-                    }).get(maxAckWaitMillis, TimeUnit.MILLISECONDS);
-                } catch (KafkaSendException kse) {
-                    Throwable t = kse.getCause();
-                    if (t instanceof IOException) {
-                        throw (IOException) t;
-                    } else {
-                        throw new IOException(t);
-                    }
-                } catch (final InterruptedException e) {
-                    getLogger().warn("Interrupted while waiting for an acknowledgement from Kafka");
-                    Thread.currentThread().interrupt();
-                } catch (final TimeoutException e) {
-                    getLogger().warn("Timed out while waiting for an acknowledgement from Kafka");
+            if (recordCount == 0) {
+                if (sendZeroResults) {
+                    sendMessage(topic, new byte[0]);
+                } else {
+                    return WriteResult.EMPTY;
                 }
-            } else {
-                writeResult = WriteResult.EMPTY;
             }
 
-            return writeResult;
+            return WriteResult.of(recordCount, attributes);
         } catch (IOException ioe) {
             throw ioe;
         } catch (Exception e) {
             throw new IOException("Failed to write metrics using record writer: " + e.getMessage(), e);
+        }
+    }
+
+    public void sendMessage(String topic, byte[] payload) throws IOException, ExecutionException {
+        final ProducerRecord<byte[], byte[]> record = new ProducerRecord<>(topic, null, null, payload);
+        try {
+            producer.send(record, (metadata, exception) -> {
+                if (exception != null) {
+                    throw new KafkaSendException(exception);
+                }
+            }).get(maxAckWaitMillis, TimeUnit.MILLISECONDS);
+        } catch (KafkaSendException kse) {
+            Throwable t = kse.getCause();
+            if (t instanceof IOException) {
+                throw (IOException) t;
+            } else {
+                throw new IOException(t);
+            }
+        } catch (final InterruptedException e) {
+            getLogger().warn("Interrupted while waiting for an acknowledgement from Kafka");
+            Thread.currentThread().interrupt();
+        } catch (final TimeoutException e) {
+            getLogger().warn("Timed out while waiting for an acknowledgement from Kafka");
         }
     }
 
