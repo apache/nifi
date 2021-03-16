@@ -717,11 +717,11 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
     }
 
     private void deleteSslClientXml(File confDir) throws Exception {
-        Path path = new File(confDir, SSL_CLIENT_XML_FILENAME).toPath();
+        Path sslClientXmlPath = new File(confDir, SSL_CLIENT_XML_FILENAME).toPath();
         try {
-            Files.deleteIfExists(path);
+            Files.deleteIfExists(sslClientXmlPath);
         } catch (Exception e) {
-            getLogger().error("Unable to delete " + path, e);
+            getLogger().error("Unable to delete SSL Client Configuration File {}", sslClientXmlPath, e);
             throw e;
         }
     }
@@ -738,7 +738,7 @@ public class ReportLineageToAtlas extends AbstractReportingTask {
         try (FileWriter fileWriter = new FileWriter(sslClientXmlFile)) {
             configuration.writeXml(fileWriter);
         } catch (Exception e) {
-            getLogger().error("Unable to create SSL config file: " + sslClientXmlFile, e);
+            getLogger().error("Unable to create SSL Client Configuration File {}", sslClientXmlFile, e);
             throw e;
         }
     }
