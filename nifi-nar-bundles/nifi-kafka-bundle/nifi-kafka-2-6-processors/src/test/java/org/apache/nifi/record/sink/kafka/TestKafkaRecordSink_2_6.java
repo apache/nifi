@@ -97,14 +97,17 @@ public class TestKafkaRecordSink_2_6 {
 
         task.sendData(recordSet, new HashMap<>(), true);
 
-        assertEquals(1, task.dataSent.size());
+        assertEquals(2, task.dataSent.size());
         String[] lines = new String(task.dataSent.get(0)).split("\n");
         assertNotNull(lines);
-        assertEquals(2, lines.length);
+        assertEquals(1, lines.length);
         String[] data = lines[0].split(",");
         assertEquals("15", data[0]); // In the MockRecordWriter all values are strings
         assertEquals("Hello", data[1]);
-        data = lines[1].split(",");
+        lines = new String(task.dataSent.get(1)).split("\n");
+        assertNotNull(lines);
+        assertEquals(1, lines.length);
+        data = lines[0].split(",");
         assertEquals("6", data[0]);
         assertEquals("World!", data[1]);
     }

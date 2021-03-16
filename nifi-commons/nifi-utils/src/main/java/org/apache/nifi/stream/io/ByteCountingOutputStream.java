@@ -64,6 +64,10 @@ public class ByteCountingOutputStream extends OutputStream {
         out.close();
     }
 
+    public void reset() {
+        bytesWritten = 0;
+    }
+
     public OutputStream getWrappedStream() {
         return out;
     }
