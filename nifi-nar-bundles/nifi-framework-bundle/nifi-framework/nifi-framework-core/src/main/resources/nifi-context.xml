@@ -44,6 +44,9 @@
     <bean id="extensionManager" class="org.apache.nifi.spring.ExtensionManagerFactoryBean">
     </bean>
 
+    <bean id="flowAnalysisContext" class="org.apache.nifi.validation.FlowAnalysisContextImpl">
+    </bean>
+
     <!-- flow controller -->
     <bean id="flowController" class="org.apache.nifi.spring.FlowControllerFactoryBean">
         <property name="properties" ref="nifiProperties"/>
@@ -57,6 +60,8 @@
         <property name="flowRegistryClient" ref="flowRegistryClient" />
         <property name="extensionManager" ref="extensionManager" />
         <property name="revisionManager" ref="revisionManager" />
+        <property name="flowAnalysisContext" ref="flowAnalysisContext" />
+        <property name="flowAnalyzer" ref="flowAnalyzer" />
     </bean>
 
     <!-- flow service -->

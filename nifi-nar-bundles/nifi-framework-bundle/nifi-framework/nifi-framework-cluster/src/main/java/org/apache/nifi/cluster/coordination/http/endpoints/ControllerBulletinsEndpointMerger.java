@@ -57,6 +57,7 @@ public class ControllerBulletinsEndpointMerger extends AbstractSingleEntityEndpo
         final Map<NodeIdentifier, List<BulletinEntity>> bulletinDtos = new HashMap<>();
         final Map<NodeIdentifier, List<BulletinEntity>> controllerServiceBulletinDtos = new HashMap<>();
         final Map<NodeIdentifier, List<BulletinEntity>> reportingTaskBulletinDtos = new HashMap<>();
+        final Map<NodeIdentifier, List<BulletinEntity>> flowAnalysisRuleBulletinDtos = new HashMap<>();
         for (final Map.Entry<NodeIdentifier, ControllerBulletinsEntity> entry : entityMap.entrySet()) {
             final NodeIdentifier nodeIdentifier = entry.getKey();
             final ControllerBulletinsEntity entity = entry.getValue();
@@ -90,16 +91,27 @@ public class ControllerBulletinsEndpointMerger extends AbstractSingleEntityEndpo
                     reportingTaskBulletinDtos.computeIfAbsent(nodeIdentifier, nodeId -> new ArrayList<>()).add(bulletin);
                 });
             }
+            if (entity.getFlowAnalysisRuleBulletins() != null) {
+                entity.getFlowAnalysisRuleBulletins().forEach(bulletin -> {
+                    if (bulletin.getNodeAddress() == null) {
+                        bulletin.setNodeAddress(nodeAddress);
+                    }
+
+                    flowAnalysisRuleBulletinDtos.computeIfAbsent(nodeIdentifier, nodeId -> new ArrayList<>()).add(bulletin);
+                });
+            }
         }
 
         clientEntity.setBulletins(BulletinMerger.mergeBulletins(bulletinDtos, entityMap.size()));
         clientEntity.setControllerServiceBulletins(BulletinMerger.mergeBulletins(controllerServiceBulletinDtos, entityMap.size()));
         clientEntity.setReportingTaskBulletins(BulletinMerger.mergeBulletins(reportingTaskBulletinDtos, entityMap.size()));
+        clientEntity.setFlowAnalysisRuleBulletins(BulletinMerger.mergeBulletins(flowAnalysisRuleBulletinDtos, entityMap.size()));
 
         // sort the bulletins
         Collections.sort(clientEntity.getBulletins(), BULLETIN_COMPARATOR);
         Collections.sort(clientEntity.getControllerServiceBulletins(), BULLETIN_COMPARATOR);
         Collections.sort(clientEntity.getReportingTaskBulletins(), BULLETIN_COMPARATOR);
+        Collections.sort(clientEntity.getFlowAnalysisRuleBulletins(), BULLETIN_COMPARATOR);
 
         // prune the response to only include the max number of bulletins
         if (clientEntity.getBulletins().size() > MAX_BULLETINS_FOR_CONTROLLER) {
@@ -110,6 +122,9 @@ public class ControllerBulletinsEndpointMerger extends AbstractSingleEntityEndpo
         }
         if (clientEntity.getReportingTaskBulletins().size() > MAX_BULLETINS_PER_COMPONENT) {
             clientEntity.setReportingTaskBulletins(clientEntity.getReportingTaskBulletins().subList(0, MAX_BULLETINS_PER_COMPONENT));
+        }
+        if (clientEntity.getFlowAnalysisRuleBulletins().size() > MAX_BULLETINS_PER_COMPONENT) {
+            clientEntity.setFlowAnalysisRuleBulletins(clientEntity.getFlowAnalysisRuleBulletins().subList(0, MAX_BULLETINS_PER_COMPONENT));
         }
     }
 

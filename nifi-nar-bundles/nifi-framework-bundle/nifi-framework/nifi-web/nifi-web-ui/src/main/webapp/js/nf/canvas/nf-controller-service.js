@@ -65,7 +65,7 @@
 }(this, function ($, d3, nfErrorHandler, nfCommon, nfDialog, nfStorage, nfClient, nfSettings, nfUniversalCapture, nfCustomUi, nfCanvasUtils, nfProcessor) {
     'use strict';
 
-    var nfControllerServices, nfReportingTask;
+    var nfControllerServices, nfReportingTask, nfFlowAnalysisRule;
 
     var config = {
         edit: 'edit',
@@ -236,6 +236,15 @@
                 var referencingComponentState = $('div.' + reference.id + '-state');
                 if (referencingComponentState.length) {
                     updateReferencingSchedulableComponentState(referencingComponentState, reference);
+                }
+            } else if (reference.referenceType === 'FlowAnalysisRule') {
+                // reload the referencing flow analysis rules
+                nfFlowAnalysisRule.reload(reference.id);
+
+                // update the current state of this flow analysis rule
+                var referencingComponentState = $('div.' + reference.id + '-state');
+                if (referencingComponentState.length) {
+                    updateReferencingServiceState(referencingComponentState, reference);
                 }
             } else {
                 // reload the referencing services
@@ -430,6 +439,7 @@
         var processors = $('<ul class="referencing-component-listing clear"></ul>');
         var services = $('<ul class="referencing-component-listing clear"></ul>');
         var tasks = $('<ul class="referencing-component-listing clear"></ul>');
+        var rules = $('<ul class="referencing-component-listing clear"></ul>');
         var unauthorized = $('<ul class="referencing-component-listing clear"></ul>');
         $.each(referencingComponents, function (_, referencingComponentEntity) {
             // check the access policy for this referencing component
@@ -568,6 +578,36 @@
                     // reporting task
                     var reportingTaskItem = $('<li></li>').append(reportingTaskState).append(reportingTaskBulletins).append(reportingTaskLink).append(reportingTaskType).append(reportingTaskActiveThreadCount);
                     tasks.append(reportingTaskItem);
+                } else if (referencingComponent.referenceType === 'FlowAnalysisRule') {
+                    var flowAnalysisRuleLink = $('<span class="referencing-component-name link"></span>').text(referencingComponent.name).on('click', function () {
+                        var flowAnalysisRuleGrid = $('#flow-analysis-rules-table').data('gridInstance');
+                        var flowAnalysisRuleData = flowAnalysisRuleGrid.getData();
+
+                        // select the selected row
+                        var row = flowAnalysisRuleData.getRowById(referencingComponent.id);
+                        flowAnalysisRuleGrid.setSelectedRows([row]);
+                        flowAnalysisRuleGrid.scrollRowIntoView(row);
+
+                        // select the flow analysis rule tab
+                        $('#settings-tabs').find('li:nth-child(4)').click();
+
+                        // close the dialog and shell
+                        referenceContainer.closest('.dialog').modal('hide');
+                    });
+
+                    // state
+                    var flowAnalysisRuleState = $('<div class="referencing-component-state"></div>').addClass(referencingComponent.id + '-state');
+                    updateReferencingServiceState(flowAnalysisRuleState, referencingComponent);
+
+                    // bulletins
+                    var flowAnalysisRuleBulletins = $('<div class="referencing-component-bulletins"></div>').addClass(referencingComponent.id + '-bulletins');
+
+                    // type
+                    var flowAnalysisRuleType = $('<span class="referencing-component-type"></span>').text(nfCommon.substringAfterLast(referencingComponent.type, '.'));
+
+                    // flow analysis rule
+                    var flowAnalysisRuleItem = $('<li></li>').append(flowAnalysisRuleState).append(flowAnalysisRuleBulletins).append(flowAnalysisRuleLink).append(flowAnalysisRuleType);
+                    rules.append(flowAnalysisRuleItem);
                 }
             }
         });
@@ -599,6 +639,7 @@
         // create blocks for each type of component
         createReferenceBlock('Processors', processors);
         createReferenceBlock('Reporting Tasks', tasks);
+        createReferenceBlock('Flow Analysis Rules', rules);
         createReferenceBlock('Controller Services', services);
         createReferenceBlock('Unauthorized', unauthorized);
 
@@ -1705,9 +1746,10 @@
         /**
          * Initializes the controller service configuration dialog.
          */
-        init: function (nfControllerServicesRef, nfReportingTaskRef) {
+        init: function (nfControllerServicesRef, nfReportingTaskRef, nfFlowAnalysisRuleRef) {
             nfControllerServices = nfControllerServicesRef;
             nfReportingTask = nfReportingTaskRef;
+            nfFlowAnalysisRule = nfFlowAnalysisRuleRef;
 
             // initialize the configuration dialog tabs
             $('#controller-service-configuration-tabs').tabbs({

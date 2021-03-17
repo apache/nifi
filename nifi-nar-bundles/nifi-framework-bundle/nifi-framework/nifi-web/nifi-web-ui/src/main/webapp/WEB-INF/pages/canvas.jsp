@@ -112,6 +112,7 @@
         <jsp:include page="/WEB-INF/partials/canvas/enable-controller-service-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/new-controller-service-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/new-reporting-task-dialog.jsp"/>
+        <jsp:include page="/WEB-INF/partials/canvas/new-flow-analysis-rule-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/new-parameter-context-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/new-processor-dialog.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/new-port-dialog.jsp"/>
@@ -141,6 +142,7 @@
         <jsp:include page="/WEB-INF/partials/canvas/shell.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/controller-service-configuration.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/reporting-task-configuration.jsp"/>
+        <jsp:include page="/WEB-INF/partials/canvas/flow-analysis-rule-configuration.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/processor-configuration.jsp"/>
         <jsp:include page="/WEB-INF/partials/processor-details.jsp"/>
         <jsp:include page="/WEB-INF/partials/canvas/variable-configuration.jsp"/>

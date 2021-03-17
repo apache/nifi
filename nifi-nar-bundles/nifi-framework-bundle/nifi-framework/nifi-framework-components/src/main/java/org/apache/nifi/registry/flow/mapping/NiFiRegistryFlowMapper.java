@@ -86,13 +86,16 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 
 public class NiFiRegistryFlowMapper {
+    public static final Function<String, String> DEFAULT_VERSIONED_UUID_GENERATOR = componentId -> UUID.nameUUIDFromBytes(componentId.getBytes(StandardCharsets.UTF_8)).toString();
 
     private final ExtensionManager extensionManager;
+    private final Function<String, String> versionedUuidGenerator;
 
     // We need to keep a mapping of component id to versionedComponentId as we transform these objects. This way, when
     // we call #mapConnectable, instead of generating a new UUID for the ConnectableComponent, we can lookup the 'versioned'
@@ -101,7 +104,12 @@ public class NiFiRegistryFlowMapper {
     private Map<String, String> versionedComponentIds = new HashMap<>();
 
     public NiFiRegistryFlowMapper(final ExtensionManager extensionManager) {
+        this(extensionManager, DEFAULT_VERSIONED_UUID_GENERATOR);
+    }
+
+    public NiFiRegistryFlowMapper(final ExtensionManager extensionManager, Function<String, String> versionedUuidGenerator) {
         this.extensionManager = extensionManager;
+        this.versionedUuidGenerator = versionedUuidGenerator;
     }
 
     /**
@@ -303,7 +311,7 @@ public class NiFiRegistryFlowMapper {
         if (currentVersionedId.isPresent()) {
             versionedId = currentVersionedId.get();
         } else {
-            versionedId = generateVersionedComponentId(componentId);
+            versionedId = generateVersionedComponentId(componentId, versionedUuidGenerator);
         }
 
         versionedComponentIds.put(componentId, versionedId);
@@ -318,7 +326,11 @@ public class NiFiRegistryFlowMapper {
      * @return a deterministic versioned component identifier
      */
     public static String generateVersionedComponentId(final String componentId) {
-        return UUID.nameUUIDFromBytes(componentId.getBytes(StandardCharsets.UTF_8)).toString();
+        return generateVersionedComponentId(componentId, DEFAULT_VERSIONED_UUID_GENERATOR);
+    }
+
+    private static String generateVersionedComponentId(final String componentId, Function<String, String> versionedUuidGenerator) {
+        return versionedUuidGenerator.apply(componentId);
     }
 
     private <E extends Exception> String getIdOrThrow(final Optional<String> currentVersionedId, final String componentId, final Supplier<E> exceptionSupplier) throws E {

@@ -37,6 +37,7 @@ import org.apache.nifi.authorization.user.StandardNiFiUser.Builder;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
+import org.apache.nifi.flowanalysis.FlowAnalysisRuleType;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.history.History;
@@ -49,6 +50,8 @@ import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.registry.flow.VersionedParameterContext;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedProcessGroup;
 import org.apache.nifi.registry.flow.mapping.NiFiRegistryFlowMapper;
+import org.apache.nifi.validation.FlowAnalysisContext;
+import org.apache.nifi.validation.RuleViolation;
 import org.apache.nifi.web.api.dto.DtoFactory;
 import org.apache.nifi.web.api.dto.EntityFactory;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
@@ -71,8 +74,11 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.util.Arrays;
-import java.util.Date;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Date;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -108,6 +114,7 @@ public class StandardNiFiServiceFacadeTest {
     private Authorizer authorizer;
     private FlowController flowController;
     private ProcessGroupDAO processGroupDAO;
+    private FlowAnalysisContext flowAnalysisContext;
 
     @Before
     public void setUp() throws Exception {
@@ -194,6 +201,7 @@ public class StandardNiFiServiceFacadeTest {
         controllerFacade.setFlowController(flowController);
 
         processGroupDAO = mock(ProcessGroupDAO.class, Answers.RETURNS_DEEP_STUBS);
+        flowAnalysisContext = mock(FlowAnalysisContext.class);
 
         serviceFacade = new StandardNiFiServiceFacade();
         serviceFacade.setAuditService(auditService);
@@ -203,6 +211,7 @@ public class StandardNiFiServiceFacadeTest {
         serviceFacade.setDtoFactory(new DtoFactory());
         serviceFacade.setControllerFacade(controllerFacade);
         serviceFacade.setProcessGroupDAO(processGroupDAO);
+        serviceFacade.setFlowAnalysisContext(flowAnalysisContext);
 
     }
 
@@ -487,5 +496,78 @@ public class StandardNiFiServiceFacadeTest {
         remoteProcessGroup.setTransmitting(transmitting);
 
         return remoteProcessGroup;
+    }
+
+    @Test
+    public void testGetRuleViolationsForGroupIsRecursive() throws Exception {
+        // GIVEN
+        int ruleViolationCounter = 0;
+
+        String groupId = "groupId";
+        String childGroupId = "childGroupId";
+        String grandChildGroupId = "grandChildGroupId";
+
+        RuleViolation ruleViolation1 = createRuleViolation(groupId, ruleViolationCounter++);
+        RuleViolation ruleViolation2 = createRuleViolation(groupId, ruleViolationCounter++);
+
+        RuleViolation childRuleViolation1 = createRuleViolation(childGroupId, ruleViolationCounter++);
+        RuleViolation childRuleViolation2 = createRuleViolation(childGroupId, ruleViolationCounter++);
+
+        RuleViolation grandChildRuleViolation1 = createRuleViolation(grandChildGroupId, ruleViolationCounter++);
+        RuleViolation grandChildRuleViolation2 = createRuleViolation(grandChildGroupId, ruleViolationCounter++);
+        RuleViolation grandChildRuleViolation3 = createRuleViolation(grandChildGroupId, ruleViolationCounter++);
+
+        ProcessGroup grandChildProcessGroup = mockProcessGroup(
+            grandChildGroupId,
+            Collections.emptyList(),
+            Arrays.asList(grandChildRuleViolation1, grandChildRuleViolation2, grandChildRuleViolation3)
+        );
+        ProcessGroup childProcessGroup = mockProcessGroup(
+            childGroupId,
+            Arrays.asList(grandChildProcessGroup),
+            Arrays.asList(childRuleViolation1, childRuleViolation2)
+        );
+        ProcessGroup processGroup = mockProcessGroup(
+            groupId,
+            Arrays.asList(childProcessGroup),
+            Arrays.asList(ruleViolation1, ruleViolation2)
+        );
+
+        Collection<RuleViolation> expected = new HashSet<>(Arrays.asList(
+            ruleViolation1, ruleViolation2,
+            childRuleViolation1, childRuleViolation2,
+            grandChildRuleViolation1, grandChildRuleViolation2, grandChildRuleViolation3
+        ));
+
+        // WHEN
+        Collection<RuleViolation> actual = serviceFacade.getRuleViolations(processGroup.getIdentifier());
+
+        // THEN
+        assertEquals(expected, actual);
+    }
+
+    private RuleViolation createRuleViolation(String groupId, int ruleViolationCounter) {
+        return new RuleViolation(
+            FlowAnalysisRuleType.RECOMMENDATION,
+            "scope" + ruleViolationCounter,
+            "subjectId" + ruleViolationCounter,
+            groupId,
+            "ruleId" + ruleViolationCounter,
+            "issueId" + ruleViolationCounter,
+            "violationMessage" + ruleViolationCounter
+        );
+    }
+
+    private ProcessGroup mockProcessGroup(String groupId, Collection<ProcessGroup> children, Collection<RuleViolation> violations) {
+        ProcessGroup processGroup = mock(ProcessGroup.class, groupId);
+
+        when(processGroup.getIdentifier()).thenReturn(groupId);
+        when(processGroup.getProcessGroups()).thenReturn(new HashSet<>(children));
+
+        when(processGroupDAO.getProcessGroup(groupId)).thenReturn(processGroup);
+
+        when(flowAnalysisContext.getRuleViolationsForGroup(groupId)).thenReturn(violations);
+
+        return processGroup;
     }
 }

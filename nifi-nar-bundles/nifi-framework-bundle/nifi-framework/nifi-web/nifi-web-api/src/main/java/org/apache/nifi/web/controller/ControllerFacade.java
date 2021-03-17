@@ -40,6 +40,7 @@ import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.ContentAvailability;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.Counter;
+import org.apache.nifi.controller.FlowAnalysisRuleNode;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.FlowController.GroupStatusCounts;
 import org.apache.nifi.controller.ProcessorNode;
@@ -61,6 +62,7 @@ import org.apache.nifi.controller.status.analytics.StatusAnalytics;
 import org.apache.nifi.controller.status.analytics.StatusAnalyticsEngine;
 import org.apache.nifi.controller.status.history.StatusHistoryRepository;
 import org.apache.nifi.diagnostics.SystemDiagnostics;
+import org.apache.nifi.flowanalysis.FlowAnalysisRule;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.groups.ProcessGroup;
@@ -565,6 +567,18 @@ public class ControllerFacade implements Authorizable {
     }
 
     /**
+     * Gets the FlowAnalysisRule types that this controller supports.
+     *
+     * @param bundleGroupFilter if specified, must be member of bundle group
+     * @param bundleArtifactFilter if specified, must be member of bundle artifact
+     * @param typeFilter if specified, type must match
+     * @return the FlowAnalysisRule types that this controller supports
+     */
+    public Set<DocumentedTypeDTO> getFlowAnalysisRuleTypes(final String bundleGroupFilter, final String bundleArtifactFilter, final String typeFilter) {
+        return dtoFactory.fromDocumentedTypes(getExtensionManager().getExtensions(FlowAnalysisRule.class), bundleGroupFilter, bundleArtifactFilter, typeFilter);
+    }
+
+    /**
      * Gets the counters for this controller.
      *
      * @return the counters for this controller
@@ -974,6 +988,14 @@ public class ControllerFacade implements Authorizable {
             resources.add(reportingTaskResource);
             resources.add(ResourceFactory.getPolicyResource(reportingTaskResource));
             resources.add(ResourceFactory.getOperationResource(reportingTaskResource));
+        }
+
+        // add each flow analysis rule
+        for (final FlowAnalysisRuleNode flowAnalysisRule : flowController.getAllFlowAnalysisRules()) {
+            final Resource flowAnalysisRuleResource = flowAnalysisRule.getResource();
+            resources.add(flowAnalysisRuleResource);
+            resources.add(ResourceFactory.getPolicyResource(flowAnalysisRuleResource));
+            resources.add(ResourceFactory.getOperationResource(flowAnalysisRuleResource));
         }
 
         // add each template

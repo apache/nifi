@@ -446,7 +446,7 @@
                     }
 
                     // update controller service and reporting task bulletins
-                    nfSettings.setBulletins(response.controllerServiceBulletins, response.reportingTaskBulletins);
+                    nfSettings.setBulletins(response.controllerServiceBulletins, response.reportingTaskBulletins, response.flowAnalysisRuleBulletins);
                 }
 
             }

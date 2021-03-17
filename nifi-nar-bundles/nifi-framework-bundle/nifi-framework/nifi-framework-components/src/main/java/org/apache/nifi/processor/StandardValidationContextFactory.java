@@ -20,9 +20,11 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.controller.PropertyConfiguration;
 import org.apache.nifi.controller.ValidationContextFactory;
+import org.apache.nifi.controller.flowanalysis.FlowAnalyzer;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.registry.VariableRegistry;
+import org.apache.nifi.validation.FlowAnalysisContext;
 
 import java.util.Map;
 
@@ -30,15 +32,41 @@ public class StandardValidationContextFactory implements ValidationContextFactor
 
     private final ControllerServiceProvider serviceProvider;
     private final VariableRegistry variableRegistry;
+    private final FlowAnalysisContext flowAnalysisContext;
+    private final FlowAnalyzer flowAnalyzer;
 
-    public StandardValidationContextFactory(final ControllerServiceProvider serviceProvider, final VariableRegistry variableRegistry) {
+    public StandardValidationContextFactory(
+        final ControllerServiceProvider serviceProvider,
+        final VariableRegistry variableRegistry
+    ) {
+        this(serviceProvider, variableRegistry, null, null);
+    }
+
+    public StandardValidationContextFactory(
+        final ControllerServiceProvider serviceProvider,
+        final VariableRegistry variableRegistry,
+        final FlowAnalysisContext flowAnalysisContext,
+        FlowAnalyzer flowAnalyzer
+    ) {
         this.serviceProvider = serviceProvider;
         this.variableRegistry = variableRegistry;
+        this.flowAnalysisContext = flowAnalysisContext;
+        this.flowAnalyzer = flowAnalyzer;
     }
 
     @Override
     public ValidationContext newValidationContext(final Map<PropertyDescriptor, PropertyConfiguration> properties, final String annotationData, final String groupId, final String componentId,
                                                   final ParameterContext parameterContext, final boolean validateConnections) {
         return new StandardValidationContext(serviceProvider, properties, annotationData, groupId, componentId, variableRegistry, parameterContext, validateConnections);
+    }
+
+    @Override
+    public FlowAnalysisContext getFlowAnalysisContext() {
+        return flowAnalysisContext;
+    }
+
+    @Override
+    public FlowAnalyzer getFlowAnalyzer() {
+        return flowAnalyzer;
     }
 }

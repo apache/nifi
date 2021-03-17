@@ -28,6 +28,10 @@ import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.components.validation.ValidationTrigger;
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
+import org.apache.nifi.controller.flowanalysis.FlowAnalysisRuleInstantiationException;
+import org.apache.nifi.controller.flowanalysis.FlowAnalyzer;
+import org.apache.nifi.controller.flowanalysis.StandardFlowAnalysisInitializationContext;
+import org.apache.nifi.controller.flowanalysis.StandardFlowAnalysisRuleNode;
 import org.apache.nifi.controller.kerberos.KerberosConfig;
 import org.apache.nifi.controller.reporting.ReportingTaskInstantiationException;
 import org.apache.nifi.controller.reporting.StandardReportingInitializationContext;
@@ -39,6 +43,9 @@ import org.apache.nifi.controller.service.GhostControllerService;
 import org.apache.nifi.controller.service.StandardControllerServiceInitializationContext;
 import org.apache.nifi.controller.service.StandardControllerServiceInvocationHandler;
 import org.apache.nifi.controller.service.StandardControllerServiceNode;
+import org.apache.nifi.flowanalysis.FlowAnalysisRule;
+import org.apache.nifi.flowanalysis.FlowAnalysisRuleInitializationContext;
+import org.apache.nifi.flowanalysis.GhostFlowAnalysisRule;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
@@ -56,6 +63,7 @@ import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.reporting.ReportingInitializationContext;
 import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.scheduling.SchedulingStrategy;
+import org.apache.nifi.validation.FlowAnalysisContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -84,6 +92,8 @@ public class ExtensionBuilder {
     private ReloadComponent reloadComponent;
     private FlowController flowController;
     private StateManagerProvider stateManagerProvider;
+    private FlowAnalysisContext flowAnalysisContext;
+    private FlowAnalyzer flowAnalyzer;
 
     public ExtensionBuilder type(final String type) {
         this.type = type;
@@ -155,6 +165,16 @@ public class ExtensionBuilder {
 
     public ExtensionBuilder stateManagerProvider(final StateManagerProvider stateManagerProvider) {
         this.stateManagerProvider = stateManagerProvider;
+        return this;
+    }
+
+    public ExtensionBuilder flowAnalysisContext(FlowAnalysisContext flowAnalysisContext) {
+        this.flowAnalysisContext = flowAnalysisContext;
+        return this;
+    }
+
+    public ExtensionBuilder flowAnalyzer(FlowAnalyzer flowAnalyzer) {
+        this.flowAnalyzer = flowAnalyzer;
         return this;
     }
 
@@ -297,10 +317,57 @@ public class ExtensionBuilder {
         }
     }
 
+    public FlowAnalysisRuleNode buildFlowAnalysisRuleNode() {
+        if (identifier == null) {
+            throw new IllegalStateException("FlowAnalysisRule ID must be specified");
+        }
+        if (type == null) {
+            throw new IllegalStateException("FlowAnalysisRule Type must be specified");
+        }
+        if (bundleCoordinate == null) {
+            throw new IllegalStateException("Bundle Coordinate must be specified");
+        }
+        if (extensionManager == null) {
+            throw new IllegalStateException("Extension Manager must be specified");
+        }
+        if (serviceProvider == null) {
+            throw new IllegalStateException("Controller Service Provider must be specified");
+        }
+        if (nodeTypeProvider == null) {
+            throw new IllegalStateException("Node Type Provider must be specified");
+        }
+        if (variableRegistry == null) {
+            throw new IllegalStateException("Variable Registry must be specified");
+        }
+        if (reloadComponent == null) {
+            throw new IllegalStateException("Reload Component must be specified");
+        }
+        if (flowController == null) {
+            throw new IllegalStateException("FlowController must be specified");
+        }
+
+        boolean creationSuccessful = true;
+        LoggableComponent<FlowAnalysisRule> loggableComponent;
+        try {
+            loggableComponent = createLoggableFlowAnalysisRule();
+        } catch (final FlowAnalysisRuleInstantiationException rtie) {
+            logger.error("Could not create FlowAnalysisRule of type " + type + " for ID " + identifier + "; creating \"Ghost\" implementation", rtie);
+            final GhostFlowAnalysisRule ghostFlowAnalysisRule = new GhostFlowAnalysisRule();
+            ghostFlowAnalysisRule.setIdentifier(identifier);
+            ghostFlowAnalysisRule.setCanonicalClassName(type);
+            loggableComponent = new LoggableComponent<>(ghostFlowAnalysisRule, bundleCoordinate, null);
+            creationSuccessful = false;
+        }
+
+        final FlowAnalysisRuleNode flowAnalysisRuleNode = createFlowAnalysisRuleNode(loggableComponent, creationSuccessful);
+
+        return flowAnalysisRuleNode;
+    }
+
 
     private ProcessorNode createProcessorNode(final LoggableComponent<Processor> processor, final boolean creationSuccessful) {
         final ComponentVariableRegistry componentVarRegistry = new StandardComponentVariableRegistry(this.variableRegistry);
-        final ValidationContextFactory validationContextFactory = new StandardValidationContextFactory(serviceProvider, componentVarRegistry);
+        final ValidationContextFactory validationContextFactory = createValidationContextFactory(serviceProvider, componentVarRegistry);
 
         final ProcessorNode procNode;
         if (creationSuccessful) {
@@ -317,10 +384,9 @@ public class ExtensionBuilder {
         return procNode;
     }
 
-
     private ReportingTaskNode createReportingTaskNode(final LoggableComponent<ReportingTask> reportingTask, final boolean creationSuccessful) {
         final ComponentVariableRegistry componentVarRegistry = new StandardComponentVariableRegistry(this.variableRegistry);
-        final ValidationContextFactory validationContextFactory = new StandardValidationContextFactory(serviceProvider, componentVarRegistry);
+        final ValidationContextFactory validationContextFactory = createValidationContextFactory(serviceProvider, componentVarRegistry);
         final ReportingTaskNode taskNode;
         if (creationSuccessful) {
             taskNode = new StandardReportingTaskNode(reportingTask, identifier, flowController, processScheduler,
@@ -336,6 +402,10 @@ public class ExtensionBuilder {
         }
 
         return taskNode;
+    }
+
+    private StandardValidationContextFactory createValidationContextFactory(ControllerServiceProvider serviceProvider, VariableRegistry variableRegistry) {
+        return new StandardValidationContextFactory(serviceProvider, variableRegistry, flowAnalysisContext, flowAnalyzer);
     }
 
     private void applyDefaultSettings(final ProcessorNode processorNode) {
@@ -396,7 +466,7 @@ public class ExtensionBuilder {
             final LoggableComponent<ControllerService> proxiedLoggableComponent = new LoggableComponent<>(proxiedService, bundleCoordinate, terminationAwareLogger);
 
             final ComponentVariableRegistry componentVarRegistry = new StandardComponentVariableRegistry(this.variableRegistry);
-            final ValidationContextFactory validationContextFactory = new StandardValidationContextFactory(serviceProvider, componentVarRegistry);
+            final ValidationContextFactory validationContextFactory = createValidationContextFactory(serviceProvider, componentVarRegistry);
             final ControllerServiceNode serviceNode = new StandardControllerServiceNode(originalLoggableComponent, proxiedLoggableComponent, invocationHandler,
                     identifier, validationContextFactory, serviceProvider, componentVarRegistry, reloadComponent, extensionManager, validationTrigger);
             serviceNode.setName(rawClass.getSimpleName());
@@ -482,7 +552,7 @@ public class ExtensionBuilder {
         final ControllerServiceInvocationHandler invocationHandler = new StandardControllerServiceInvocationHandler(extensionManager, ghostService);
 
         final ComponentVariableRegistry componentVarRegistry = new StandardComponentVariableRegistry(this.variableRegistry);
-        final ValidationContextFactory validationContextFactory = new StandardValidationContextFactory(serviceProvider, variableRegistry);
+        final ValidationContextFactory validationContextFactory = createValidationContextFactory(serviceProvider, variableRegistry);
         final ControllerServiceNode serviceNode = new StandardControllerServiceNode(proxiedLoggableComponent, proxiedLoggableComponent, invocationHandler, identifier,
                 validationContextFactory, serviceProvider, componentType, type, componentVarRegistry, reloadComponent, extensionManager, validationTrigger, true);
 
@@ -525,6 +595,42 @@ public class ExtensionBuilder {
         } catch (final Exception e) {
             throw new ReportingTaskInstantiationException(type, e);
         }
+    }
+
+    private LoggableComponent<FlowAnalysisRule> createLoggableFlowAnalysisRule() throws FlowAnalysisRuleInstantiationException {
+        try {
+            final LoggableComponent<FlowAnalysisRule> loggableComponent = createLoggableComponent(FlowAnalysisRule.class);
+
+            final String taskName = loggableComponent.getComponent().getClass().getSimpleName();
+            final FlowAnalysisRuleInitializationContext config = new StandardFlowAnalysisInitializationContext(identifier, taskName,
+                    loggableComponent.getLogger(), serviceProvider, kerberosConfig, nodeTypeProvider);
+
+            loggableComponent.getComponent().initialize(config);
+
+            return loggableComponent;
+        } catch (final Exception e) {
+            throw new FlowAnalysisRuleInstantiationException(type, e);
+        }
+    }
+
+    private FlowAnalysisRuleNode createFlowAnalysisRuleNode(final LoggableComponent<FlowAnalysisRule> flowAnalysisRule, final boolean creationSuccessful) {
+        final ComponentVariableRegistry componentVarRegistry = new StandardComponentVariableRegistry(this.variableRegistry);
+        final ValidationContextFactory validationContextFactory = createValidationContextFactory(serviceProvider, componentVarRegistry);
+        final FlowAnalysisRuleNode taskNode;
+        if (creationSuccessful) {
+            taskNode = new StandardFlowAnalysisRuleNode(flowAnalysisRule, identifier, flowController,
+                validationContextFactory, flowAnalysisContext, componentVarRegistry, reloadComponent, extensionManager, validationTrigger);
+            taskNode.setName(taskNode.getFlowAnalysisRule().getClass().getSimpleName());
+        } else {
+            final String simpleClassName = type.contains(".") ? StringUtils.substringAfterLast(type, ".") : type;
+            final String componentType = "(Missing) " + simpleClassName;
+
+            taskNode = new StandardFlowAnalysisRuleNode(flowAnalysisRule, identifier, flowController, validationContextFactory, flowAnalysisContext,
+                    componentType, type, componentVarRegistry, reloadComponent, extensionManager, validationTrigger, true);
+            taskNode.setName(componentType);
+        }
+
+        return taskNode;
     }
 
     private <T extends ConfigurableComponent> LoggableComponent<T> createLoggableComponent(Class<T> nodeType) throws ClassNotFoundException, IllegalAccessException, InstantiationException {

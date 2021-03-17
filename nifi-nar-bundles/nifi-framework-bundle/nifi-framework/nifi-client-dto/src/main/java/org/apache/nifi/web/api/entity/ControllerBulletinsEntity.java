@@ -31,6 +31,7 @@ public class ControllerBulletinsEntity extends Entity {
     private List<BulletinEntity> bulletins;
     private List<BulletinEntity> controllerServiceBulletins;
     private List<BulletinEntity> reportingTaskBulletins;
+    private List<BulletinEntity> flowAnalysisRuleBulletins;
 
     /**
      * @return System bulletins to be reported to the user
@@ -68,12 +69,25 @@ public class ControllerBulletinsEntity extends Entity {
         this.reportingTaskBulletins = reportingTaskBulletins;
     }
 
+    /**
+     * @return Flow Analysis Rule bulletins to be reported to the user
+     */
+    @ApiModelProperty("Flow Analysis Rule bulletins to be reported to the user.")
+    public List<BulletinEntity> getFlowAnalysisRuleBulletins() {
+        return flowAnalysisRuleBulletins;
+    }
+
+    public void setFlowAnalysisRuleBulletins(List<BulletinEntity> flowAnalysisRuleBulletins) {
+        this.flowAnalysisRuleBulletins = flowAnalysisRuleBulletins;
+    }
+
     @Override
     public ControllerBulletinsEntity clone() {
         final ControllerBulletinsEntity other = new ControllerBulletinsEntity();
         other.setBulletins(getBulletins() == null ? null : new ArrayList<>(getBulletins()));
         other.setControllerServiceBulletins(getControllerServiceBulletins() == null ? null : new ArrayList<>(getControllerServiceBulletins()));
         other.setReportingTaskBulletins(getReportingTaskBulletins() == null ? null : new ArrayList<>(getReportingTaskBulletins()));
+        other.setFlowAnalysisRuleBulletins(getFlowAnalysisRuleBulletins() == null ? null : new ArrayList<>(getFlowAnalysisRuleBulletins()));
         return other;
     }
 }

@@ -68,6 +68,8 @@
     var getTypeUri = function (componentEntity) {
         if (componentEntity.type === 'ReportingTask') {
             return '../nifi-api/flow/reporting-task-types';
+        } else if (componentEntity.type === 'FlowAnalysisRule') {
+            return '../nifi-api/flow/flow-analysis-rule-types';
         } else if (componentEntity.type === 'ControllerService') {
             return '../nifi-api/flow/controller-service-types';
         } else {
@@ -86,6 +88,8 @@
             return 'reportingTaskTypes';
         } else if (componentEntity.type === 'ControllerService') {
             return 'controllerServiceTypes';
+        } else if (componentEntity.type === 'FlowAnalysisRule') {
+            return 'flowAnalysisRuleTypes';
         } else {
             return 'processorTypes';
         }
@@ -250,6 +254,22 @@
                                         }
                                     }).done(function () {
                                         nfSettings.selectReportingTask(componentEntity.id);
+                                    });
+                                } else if (componentEntity.type === 'FlowAnalysisRule') {
+                                    $.Deferred(function (deferred) {
+                                        if ($('#settings').is(':visible')) {
+                                            // reload the settings
+                                            nfSettings.loadSettings().done(function () {
+                                                deferred.resolve();
+                                            });
+                                        } else {
+                                            // reload the settings and show
+                                            nfSettings.showSettings().done(function () {
+                                                deferred.resolve();
+                                            });
+                                        }
+                                    }).done(function () {
+                                        nfSettings.selectFlowAnalysisRule(componentEntity.id);
                                     });
                                 }
                             }).fail(nfErrorHandler.handleAjaxError);

@@ -203,5 +203,4 @@ public class VersionedProcessor extends VersionedComponent
     public ComponentType getComponentType() {
         return ComponentType.PROCESSOR;
     }
-
 }

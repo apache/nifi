@@ -18,6 +18,7 @@ package org.apache.nifi.controller;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.admin.service.AuditService;
+import org.apache.nifi.analyzeflow.TriggerFlowAnalysisTask;
 import org.apache.nifi.annotation.lifecycle.OnConfigurationRestored;
 import org.apache.nifi.annotation.notification.OnPrimaryNodeStateChange;
 import org.apache.nifi.annotation.notification.PrimaryNodeState;
@@ -58,6 +59,9 @@ import org.apache.nifi.controller.cluster.Heartbeater;
 import org.apache.nifi.controller.exception.CommunicationsException;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.flow.StandardFlowManager;
+import org.apache.nifi.controller.flowanalysis.FlowAnalysisRuleInstantiationException;
+import org.apache.nifi.controller.flowanalysis.FlowAnalysisRuleProvider;
+import org.apache.nifi.controller.flowanalysis.FlowAnalyzer;
 import org.apache.nifi.controller.kerberos.KerberosConfig;
 import org.apache.nifi.controller.leader.election.LeaderElectionManager;
 import org.apache.nifi.controller.leader.election.LeaderElectionStateChangeListener;
@@ -164,6 +168,8 @@ import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.flow.VersionedConnection;
 import org.apache.nifi.flow.VersionedProcessGroup;
+import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedProcessGroup;
+import org.apache.nifi.registry.flow.mapping.NiFiRegistryFlowMapper;
 import org.apache.nifi.registry.variable.MutableVariableRegistry;
 import org.apache.nifi.remote.HttpRemoteSiteListener;
 import org.apache.nifi.remote.RemoteGroupPort;
@@ -191,6 +197,7 @@ import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.ReflectionUtils;
 import org.apache.nifi.util.concurrency.TimedLock;
+import org.apache.nifi.validation.FlowAnalysisContext;
 import org.apache.nifi.web.api.dto.PositionDTO;
 import org.apache.nifi.web.api.dto.status.StatusHistoryDTO;
 import org.apache.nifi.web.revision.RevisionManager;
@@ -228,11 +235,13 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import static java.util.Objects.requireNonNull;
 
-public class FlowController implements ReportingTaskProvider, Authorizable, NodeTypeProvider {
+public class FlowController implements ReportingTaskProvider, FlowAnalysisRuleProvider, Authorizable, NodeTypeProvider {
 
     // default repository implementations
     public static final String DEFAULT_FLOWFILE_REPO_IMPLEMENTATION = "org.apache.nifi.controller.repository.WriteAheadFlowFileRepository";
@@ -1011,6 +1020,19 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
             LOG.debug("Triggering initial validation of all components");
             final long start = System.nanoTime();
 
+            Supplier<VersionedProcessGroup> rootProcessGroupSupplier = () -> {
+                ProcessGroup rootProcessGroup = getFlowManager().getRootGroup();
+
+                NiFiRegistryFlowMapper mapper = new NiFiRegistryFlowMapper(getExtensionManager(), Function.identity());
+
+                InstantiatedVersionedProcessGroup versionedRootProcessGroup = mapper.mapNonVersionedProcessGroup(
+                    rootProcessGroup,
+                    controllerServiceProvider
+                );
+
+                return versionedRootProcessGroup;
+            };
+
             final ValidationTrigger triggerIfValidating = new ValidationTrigger() {
                 @Override
                 public void triggerAsync(final ComponentNode component) {
@@ -1037,12 +1059,14 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
                 }
             };
 
+            new TriggerFlowAnalysisTask(flowManager.getFlowAnalyzer(), rootProcessGroupSupplier).run();
             new TriggerValidationTask(flowManager, triggerIfValidating).run();
 
             final long millis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
             LOG.info("Performed initial validation of all components in {} milliseconds", millis);
 
             // Trigger component validation to occur every 5 seconds.
+            validationThreadPool.scheduleWithFixedDelay(new TriggerFlowAnalysisTask(flowManager.getFlowAnalyzer(), rootProcessGroupSupplier), 5, 5, TimeUnit.SECONDS);
             validationThreadPool.scheduleWithFixedDelay(new TriggerValidationTask(flowManager, validationTrigger), 5, 5, TimeUnit.SECONDS);
 
             if (startDelayedComponents) {
@@ -3113,5 +3137,46 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
         public boolean isPrimary() {
             return primary;
         }
+    }
+
+    // Flow Analysis
+    public void setFlowAnalysisContext(FlowAnalysisContext flowAnalysisContext) {
+        flowManager.setFlowAnalysisContext(flowAnalysisContext);
+    }
+
+    public void setFlowAnalyzer(FlowAnalyzer flowAnalyzer) {
+        flowManager.setFlowAnalyzer(flowAnalyzer);
+    }
+    @Override
+    public FlowAnalysisRuleNode createFlowAnalysisRule(String type, String id, BundleCoordinate bundleCoordinate, boolean firstTimeAdded) throws FlowAnalysisRuleInstantiationException {
+        return flowManager.createFlowAnalysisRule(type, id, bundleCoordinate, firstTimeAdded);
+    }
+
+    @Override
+    public FlowAnalysisRuleNode getFlowAnalysisRuleNode(String identifier) {
+        return flowManager.getFlowAnalysisRuleNode(identifier);
+    }
+
+    @Override
+    public Set<FlowAnalysisRuleNode> getAllFlowAnalysisRules() {
+        return flowManager.getAllFlowAnalysisRules();
+    }
+
+    @Override
+    public void removeFlowAnalysisRule(FlowAnalysisRuleNode flowAnalysisRule) {
+        flowManager.removeFlowAnalysisRule(flowAnalysisRule);
+    }
+
+    @Override
+    public void enableFlowAnalysisRule(FlowAnalysisRuleNode flowAnalysisRule) {
+        flowAnalysisRule.verifyCanEnable();
+        flowAnalysisRule.reloadAdditionalResourcesIfNecessary();
+        flowAnalysisRule.enable();
+    }
+
+    @Override
+    public void disableFlowAnalysisRule(FlowAnalysisRuleNode flowAnalysisRule) {
+        flowAnalysisRule.verifyCanDisable();
+        flowAnalysisRule.disable();
     }
 }

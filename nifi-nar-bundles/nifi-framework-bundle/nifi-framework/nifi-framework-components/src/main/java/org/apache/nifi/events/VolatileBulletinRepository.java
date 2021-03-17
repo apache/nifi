@@ -39,6 +39,7 @@ public class VolatileBulletinRepository implements BulletinRepository {
     private static final String CONTROLLER_BULLETIN_STORE_KEY = "CONTROLLER";
     private static final String SERVICE_BULLETIN_STORE_KEY = "SERVICE";
     private static final String REPORTING_TASK_BULLETIN_STORE_KEY = "REPORTING_TASK";
+    private static final String FLOW_ANALYSIS_RULE_BULLETIN_STORE_KEY = "FLOW_ANALYSIS_RULE";
 
     private final ConcurrentMap<String, ConcurrentMap<String, RingBuffer<Bulletin>>> bulletinStoreMap = new ConcurrentHashMap<>();
     private volatile BulletinProcessingStrategy processingStrategy = new DefaultBulletinProcessingStrategy();
@@ -252,6 +253,8 @@ public class VolatileBulletinRepository implements BulletinRepository {
                 return SERVICE_BULLETIN_STORE_KEY;
             case REPORTING_TASK:
                 return REPORTING_TASK_BULLETIN_STORE_KEY;
+            case FLOW_ANALYSIS_RULE:
+                return FLOW_ANALYSIS_RULE_BULLETIN_STORE_KEY;
             default:
                 return bulletin.getGroupId();
         }
@@ -262,6 +265,7 @@ public class VolatileBulletinRepository implements BulletinRepository {
             case FLOW_CONTROLLER:
             case CONTROLLER_SERVICE:
             case REPORTING_TASK:
+            case FLOW_ANALYSIS_RULE:
                 return true;
             default:
                 return false;
