@@ -34,6 +34,7 @@ import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ExtensionBuilder;
+import org.apache.nifi.controller.FlowAnalysisRuleNode;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.FlowSnippet;
 import org.apache.nifi.controller.ProcessScheduler;
@@ -44,6 +45,7 @@ import org.apache.nifi.controller.StandardFunnel;
 import org.apache.nifi.controller.StandardProcessorNode;
 import org.apache.nifi.controller.exception.ComponentLifeCycleException;
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
+import org.apache.nifi.controller.flowanalysis.FlowAnalyzer;
 import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.label.StandardLabel;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
@@ -56,6 +58,7 @@ import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.groups.StandardProcessGroup;
 import org.apache.nifi.logging.ControllerServiceLogObserver;
+import org.apache.nifi.logging.FlowAnalysisRuleLogObserver;
 import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.logging.LogRepository;
 import org.apache.nifi.logging.LogRepositoryFactory;
@@ -74,6 +77,7 @@ import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.ReflectionUtils;
+import org.apache.nifi.validation.FlowAnalysisContext;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -105,6 +109,8 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
     private final Authorizer authorizer;
     private final SSLContext sslContext;
     private final FlowController flowController;
+    private FlowAnalysisContext flowAnalysisContext;
+    private FlowAnalyzer flowAnalyzer;
 
     private final ConcurrentMap<String, ControllerServiceNode> rootControllerServices = new ConcurrentHashMap<>();
 
@@ -327,6 +333,8 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
             .addClasspathUrls(additionalUrls)
             .kerberosConfig(flowController.createKerberosConfig(nifiProperties))
             .extensionManager(extensionManager)
+            .flowAnalysisContext(flowAnalysisContext)
+            .flowAnalyzer(flowAnalyzer)
             .buildProcessor();
 
         LogRepositoryFactory.getRepository(procNode.getIdentifier()).setLogger(procNode.getLogger());
@@ -486,6 +494,8 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
             .kerberosConfig(flowController.createKerberosConfig(nifiProperties))
             .stateManagerProvider(flowController.getStateManagerProvider())
             .extensionManager(extensionManager)
+            .flowAnalysisContext(flowAnalysisContext)
+            .flowAnalyzer(flowAnalyzer)
             .buildControllerService();
 
         LogRepositoryFactory.getRepository(serviceNode.getIdentifier()).setLogger(serviceNode.getLogger());
@@ -531,5 +541,77 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
         return flowController;
     }
 
+    public void setFlowAnalysisContext(FlowAnalysisContext flowAnalysisContext) {
+        this.flowAnalysisContext = flowAnalysisContext;
+    }
 
+    public void setFlowAnalyzer(FlowAnalyzer flowAnalyzer) {
+        this.flowAnalyzer = flowAnalyzer;
+    }
+
+    public FlowAnalyzer getFlowAnalyzer() {
+        return flowAnalyzer;
+    }
+
+    @Override
+    public FlowAnalysisRuleNode createFlowAnalysisRule(
+        String type,
+        String id,
+        BundleCoordinate bundleCoordinate,
+        Set<URL> additionalUrls,
+        boolean firstTimeAdded,
+        boolean register
+    ) {
+        if (type == null || id == null || bundleCoordinate == null) {
+            throw new NullPointerException();
+        }
+
+        // make sure the first reference to LogRepository happens outside of a NarCloseable so that we use the framework's ClassLoader
+        final LogRepository logRepository = LogRepositoryFactory.getRepository(id);
+        final ExtensionManager extensionManager = flowController.getExtensionManager();
+
+        final FlowAnalysisRuleNode flowAnalysisNode = new ExtensionBuilder()
+            .identifier(id)
+            .type(type)
+            .bundleCoordinate(bundleCoordinate)
+            .extensionManager(flowController.getExtensionManager())
+            .controllerServiceProvider(flowController.getControllerServiceProvider())
+            .processScheduler(processScheduler)
+            .nodeTypeProvider(flowController)
+            .validationTrigger(flowController.getValidationTrigger())
+            .reloadComponent(flowController.getReloadComponent())
+            .variableRegistry(flowController.getVariableRegistry())
+            .addClasspathUrls(additionalUrls)
+            .kerberosConfig(flowController.createKerberosConfig(nifiProperties))
+            .flowController(flowController)
+            .extensionManager(extensionManager)
+            .buildFlowAnalysisRuleNode();
+
+        LogRepositoryFactory.getRepository(flowAnalysisNode.getIdentifier()).setLogger(flowAnalysisNode.getLogger());
+
+        if (firstTimeAdded) {
+            final Class<?> taskClass = flowAnalysisNode.getFlowAnalysisRule().getClass();
+            final String identifier = flowAnalysisNode.getFlowAnalysisRule().getIdentifier();
+
+            try (final NarCloseable x = NarCloseable.withComponentNarLoader(flowController.getExtensionManager(), taskClass, identifier)) {
+                ReflectionUtils.invokeMethodsWithAnnotation(OnAdded.class, flowAnalysisNode.getFlowAnalysisRule());
+
+                if (flowController.isInitialized()) {
+                    ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, flowAnalysisNode.getFlowAnalysisRule());
+                }
+            } catch (final Exception e) {
+                throw new ComponentLifeCycleException("Failed to invoke On-Added Lifecycle methods of " + flowAnalysisNode.getFlowAnalysisRule(), e);
+            }
+        }
+
+        if (register) {
+            onFlowAnalysisRuleAdded(flowAnalysisNode);
+
+            // Register log observer to provide bulletins when reporting task logs anything at WARN level or above
+            logRepository.addObserver(StandardProcessorNode.BULLETIN_OBSERVER_ID, LogLevel.WARN,
+                new FlowAnalysisRuleLogObserver(bulletinRepository, flowAnalysisNode));
+        }
+
+        return flowAnalysisNode;
+    }
 }

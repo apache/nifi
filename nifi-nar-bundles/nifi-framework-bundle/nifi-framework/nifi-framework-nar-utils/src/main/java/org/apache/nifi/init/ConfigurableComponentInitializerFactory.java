@@ -18,6 +18,7 @@ package org.apache.nifi.init;
 
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.flowanalysis.FlowAnalysisRule;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.reporting.ReportingTask;
@@ -39,6 +40,8 @@ public class ConfigurableComponentInitializerFactory {
             return new ControllerServiceInitializer(extensionManager);
         } else if (ReportingTask.class.isAssignableFrom(componentClass)) {
             return new ReportingTaskingInitializer(extensionManager);
+        } else if (FlowAnalysisRule.class.isAssignableFrom(componentClass)) {
+            return new FlowAnalysisRuleInitializer(extensionManager);
         }
 
         return null;

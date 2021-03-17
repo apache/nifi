@@ -18,6 +18,7 @@ package org.apache.nifi.web.dao;
 
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
+import org.apache.nifi.controller.FlowAnalysisRuleNode;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.service.ControllerServiceNode;
@@ -72,6 +73,10 @@ public interface ComponentStateDAO {
      * @param reportingTask reporting task
      */
     void clearState(ReportingTaskNode reportingTask);
+
+    StateMap getState(FlowAnalysisRuleNode flowAnalysisRule, Scope scope);
+
+    void clearState(FlowAnalysisRuleNode flowAnalysisRule);
 
     /**
      * Gets the state map for the specified RemoteProcessGroup.

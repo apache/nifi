@@ -37,6 +37,7 @@ import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.ComponentNode;
+import org.apache.nifi.controller.FlowAnalysisRuleNode;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.Snippet;
@@ -54,6 +55,7 @@ import org.apache.nifi.web.controller.ControllerFacade;
 import org.apache.nifi.web.dao.AccessPolicyDAO;
 import org.apache.nifi.web.dao.ConnectionDAO;
 import org.apache.nifi.web.dao.ControllerServiceDAO;
+import org.apache.nifi.web.dao.FlowAnalysisRuleDAO;
 import org.apache.nifi.web.dao.FunnelDAO;
 import org.apache.nifi.web.dao.LabelDAO;
 import org.apache.nifi.web.dao.ParameterContextDAO;
@@ -176,6 +178,7 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
     private ConnectionDAO connectionDAO;
     private ControllerServiceDAO controllerServiceDAO;
     private ReportingTaskDAO reportingTaskDAO;
+    private FlowAnalysisRuleDAO flowAnalysisRuleDAO;
     private TemplateDAO templateDAO;
     private AccessPolicyDAO accessPolicyDAO;
     private ParameterContextDAO parameterContextDAO;
@@ -372,6 +375,12 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
     public ComponentAuthorizable getReportingTask(final String id) {
         final ReportingTaskNode reportingTaskNode = reportingTaskDAO.getReportingTask(id);
         return new ReportingTaskComponentAuthorizable(reportingTaskNode, controllerFacade.getExtensionManager());
+    }
+
+    @Override
+    public ComponentAuthorizable getFlowAnalysisRule(final String id) {
+        final FlowAnalysisRuleNode flowAnalysisRuleNode = flowAnalysisRuleDAO.getFlowAnalysisRule(id);
+        return new FlowAnalysisRuleComponentAuthorizable(flowAnalysisRuleNode, controllerFacade.getExtensionManager());
     }
 
     @Override
@@ -1018,6 +1027,64 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
         }
     }
 
+    /**
+     * ComponentAuthorizable for a FlowAnalysisRuleNode
+     */
+    private static class FlowAnalysisRuleComponentAuthorizable implements ComponentAuthorizable {
+        private final FlowAnalysisRuleNode flowAnalysisRuleNode;
+        private final ExtensionManager extensionManager;
+
+        public FlowAnalysisRuleComponentAuthorizable(final FlowAnalysisRuleNode flowAnalysisRuleNode, final ExtensionManager extensionManager) {
+            this.flowAnalysisRuleNode = flowAnalysisRuleNode;
+            this.extensionManager = extensionManager;
+        }
+
+        @Override
+        public Authorizable getAuthorizable() {
+            return flowAnalysisRuleNode;
+        }
+
+        @Override
+        public boolean isRestricted() {
+            return flowAnalysisRuleNode.isRestricted();
+        }
+
+        @Override
+        public Set<Authorizable> getRestrictedAuthorizables() {
+            return RestrictedComponentsAuthorizableFactory.getRestrictedComponentsAuthorizable(flowAnalysisRuleNode.getComponentClass());
+        }
+
+        @Override
+        public Authorizable getParameterContext() {
+            return null;
+        }
+
+        @Override
+        public String getValue(PropertyDescriptor propertyDescriptor) {
+            return flowAnalysisRuleNode.getEffectivePropertyValue(propertyDescriptor);
+        }
+
+        @Override
+        public String getRawValue(final PropertyDescriptor propertyDescriptor) {
+            return flowAnalysisRuleNode.getRawPropertyValue(propertyDescriptor);
+        }
+
+        @Override
+        public PropertyDescriptor getPropertyDescriptor(String propertyName) {
+            return flowAnalysisRuleNode.getFlowAnalysisRule().getPropertyDescriptor(propertyName);
+        }
+
+        @Override
+        public List<PropertyDescriptor> getPropertyDescriptors() {
+            return flowAnalysisRuleNode.getFlowAnalysisRule().getPropertyDescriptors();
+        }
+
+        @Override
+        public void cleanUpResources() {
+            extensionManager.removeInstanceClassLoader(flowAnalysisRuleNode.getIdentifier());
+        }
+    }
+
     private static class StandardProcessGroupAuthorizable implements ProcessGroupAuthorizable {
         private final ProcessGroup processGroup;
         private final ExtensionManager extensionManager;
@@ -1172,6 +1239,10 @@ class StandardAuthorizableLookup implements AuthorizableLookup {
 
     public void setReportingTaskDAO(ReportingTaskDAO reportingTaskDAO) {
         this.reportingTaskDAO = reportingTaskDAO;
+    }
+
+    public void setFlowAnalysisRuleDAO(FlowAnalysisRuleDAO flowAnalysisRuleDAO) {
+        this.flowAnalysisRuleDAO = flowAnalysisRuleDAO;
     }
 
     public void setTemplateDAO(TemplateDAO templateDAO) {

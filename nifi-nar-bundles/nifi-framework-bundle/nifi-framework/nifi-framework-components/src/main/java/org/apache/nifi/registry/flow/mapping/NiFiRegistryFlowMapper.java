@@ -41,31 +41,31 @@ import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.registry.VariableDescriptor;
-import org.apache.nifi.registry.flow.BatchSize;
-import org.apache.nifi.registry.flow.Bundle;
-import org.apache.nifi.registry.flow.ComponentType;
-import org.apache.nifi.registry.flow.ConnectableComponent;
-import org.apache.nifi.registry.flow.ConnectableComponentType;
-import org.apache.nifi.registry.flow.ControllerServiceAPI;
+import org.apache.nifi.flow.BatchSize;
+import org.apache.nifi.flow.Bundle;
+import org.apache.nifi.flow.ComponentType;
+import org.apache.nifi.flow.ConnectableComponent;
+import org.apache.nifi.flow.ConnectableComponentType;
+import org.apache.nifi.flow.ControllerServiceAPI;
 import org.apache.nifi.registry.flow.ExternalControllerServiceReference;
 import org.apache.nifi.registry.flow.FlowRegistry;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
-import org.apache.nifi.registry.flow.PortType;
-import org.apache.nifi.registry.flow.Position;
+import org.apache.nifi.flow.PortType;
+import org.apache.nifi.flow.Position;
 import org.apache.nifi.registry.flow.VersionControlInformation;
-import org.apache.nifi.registry.flow.VersionedConnection;
-import org.apache.nifi.registry.flow.VersionedControllerService;
-import org.apache.nifi.registry.flow.VersionedFlowCoordinates;
-import org.apache.nifi.registry.flow.VersionedFunnel;
-import org.apache.nifi.registry.flow.VersionedLabel;
+import org.apache.nifi.flow.VersionedConnection;
+import org.apache.nifi.flow.VersionedControllerService;
+import org.apache.nifi.flow.VersionedFlowCoordinates;
+import org.apache.nifi.flow.VersionedFunnel;
+import org.apache.nifi.flow.VersionedLabel;
 import org.apache.nifi.registry.flow.VersionedParameter;
 import org.apache.nifi.registry.flow.VersionedParameterContext;
-import org.apache.nifi.registry.flow.VersionedPort;
-import org.apache.nifi.registry.flow.VersionedProcessGroup;
-import org.apache.nifi.registry.flow.VersionedProcessor;
-import org.apache.nifi.registry.flow.VersionedPropertyDescriptor;
-import org.apache.nifi.registry.flow.VersionedRemoteGroupPort;
-import org.apache.nifi.registry.flow.VersionedRemoteProcessGroup;
+import org.apache.nifi.flow.VersionedPort;
+import org.apache.nifi.flow.VersionedProcessGroup;
+import org.apache.nifi.flow.VersionedProcessor;
+import org.apache.nifi.flow.VersionedPropertyDescriptor;
+import org.apache.nifi.flow.VersionedRemoteGroupPort;
+import org.apache.nifi.flow.VersionedRemoteProcessGroup;
 import org.apache.nifi.remote.PublicPort;
 import org.apache.nifi.remote.RemoteGroupPort;
 
@@ -81,13 +81,16 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 
 public class NiFiRegistryFlowMapper {
+    public static final Function<String, String> DEFAULT_VERSIONED_UUID_GENERATOR = componentId -> UUID.nameUUIDFromBytes(componentId.getBytes(StandardCharsets.UTF_8)).toString();
 
     private final ExtensionManager extensionManager;
+    private final Function<String, String> versionedUuidGenerator;
 
     // We need to keep a mapping of component id to versionedComponentId as we transform these objects. This way, when
     // we call #mapConnectable, instead of generating a new UUID for the ConnectableComponent, we can lookup the 'versioned'
@@ -96,7 +99,12 @@ public class NiFiRegistryFlowMapper {
     private Map<String, String> versionedComponentIds = new HashMap<>();
 
     public NiFiRegistryFlowMapper(final ExtensionManager extensionManager) {
+        this(extensionManager, DEFAULT_VERSIONED_UUID_GENERATOR);
+    }
+
+    public NiFiRegistryFlowMapper(final ExtensionManager extensionManager, Function<String, String> versionedUuidGenerator) {
         this.extensionManager = extensionManager;
+        this.versionedUuidGenerator = versionedUuidGenerator;
     }
 
     /**
@@ -295,7 +303,7 @@ public class NiFiRegistryFlowMapper {
         if (currentVersionedId.isPresent()) {
             versionedId = currentVersionedId.get();
         } else {
-            versionedId = generateVersionedComponentId(componentId);
+            versionedId = generateVersionedComponentId(componentId, versionedUuidGenerator);
         }
 
         versionedComponentIds.put(componentId, versionedId);
@@ -310,7 +318,11 @@ public class NiFiRegistryFlowMapper {
      * @return a deterministic versioned component identifier
      */
     public static String generateVersionedComponentId(final String componentId) {
-        return UUID.nameUUIDFromBytes(componentId.getBytes(StandardCharsets.UTF_8)).toString();
+        return generateVersionedComponentId(componentId, DEFAULT_VERSIONED_UUID_GENERATOR);
+    }
+
+    private static String generateVersionedComponentId(final String componentId, Function<String, String> versionedUuidGenerator) {
+        return versionedUuidGenerator.apply(componentId);
     }
 
     private <E extends Exception> String getIdOrThrow(final Optional<String> currentVersionedId, final String componentId, final Supplier<E> exceptionSupplier) throws E {
@@ -593,8 +605,8 @@ public class NiFiRegistryFlowMapper {
         processor.setSchedulingStrategy(procNode.getSchedulingStrategy().name());
         processor.setStyle(procNode.getStyle());
         processor.setYieldDuration(procNode.getYieldPeriod());
-        processor.setScheduledState(procNode.getScheduledState() == ScheduledState.DISABLED ? org.apache.nifi.registry.flow.ScheduledState.DISABLED
-            : org.apache.nifi.registry.flow.ScheduledState.ENABLED);
+        processor.setScheduledState(procNode.getScheduledState() == ScheduledState.DISABLED ? org.apache.nifi.flow.ScheduledState.DISABLED
+            : org.apache.nifi.flow.ScheduledState.ENABLED);
 
         return processor;
     }

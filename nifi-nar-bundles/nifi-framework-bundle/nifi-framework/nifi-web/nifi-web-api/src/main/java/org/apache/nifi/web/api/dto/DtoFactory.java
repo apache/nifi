@@ -78,6 +78,7 @@ import org.apache.nifi.controller.ActiveThreadInfo;
 import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.Counter;
+import org.apache.nifi.controller.FlowAnalysisRuleNode;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
@@ -116,6 +117,7 @@ import org.apache.nifi.diagnostics.GarbageCollection;
 import org.apache.nifi.diagnostics.StorageUsage;
 import org.apache.nifi.diagnostics.SystemDiagnostics;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.flowanalysis.FlowAnalysisRule;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.groups.ProcessGroup;
@@ -141,10 +143,10 @@ import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.registry.VariableDescriptor;
 import org.apache.nifi.registry.flow.FlowRegistry;
 import org.apache.nifi.registry.flow.VersionControlInformation;
-import org.apache.nifi.registry.flow.VersionedComponent;
+import org.apache.nifi.flow.VersionedComponent;
 import org.apache.nifi.registry.flow.VersionedFlowState;
 import org.apache.nifi.registry.flow.VersionedFlowStatus;
-import org.apache.nifi.registry.flow.VersionedProcessGroup;
+import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.registry.flow.diff.DifferenceType;
 import org.apache.nifi.registry.flow.diff.FlowComparison;
 import org.apache.nifi.registry.flow.diff.FlowDifference;
@@ -4703,5 +4705,80 @@ public final class DtoFactory {
 
     public void setExtensionManager(ExtensionManager extensionManager) {
         this.extensionManager = extensionManager;
+    }
+
+    public FlowAnalysisRuleDTO createFlowAnalysisRuleDto(FlowAnalysisRuleNode flowAnalysisRuleNode) {
+        final BundleCoordinate bundleCoordinate = flowAnalysisRuleNode.getBundleCoordinate();
+        final List<Bundle> compatibleBundles = extensionManager.getBundles(flowAnalysisRuleNode.getCanonicalClassName()).stream().filter(bundle -> {
+            final BundleCoordinate coordinate = bundle.getBundleDetails().getCoordinate();
+            return bundleCoordinate.getGroup().equals(coordinate.getGroup()) && bundleCoordinate.getId().equals(coordinate.getId());
+        }).collect(Collectors.toList());
+
+        final FlowAnalysisRuleDTO dto = new FlowAnalysisRuleDTO();
+        dto.setId(flowAnalysisRuleNode.getIdentifier());
+        dto.setRuleType(flowAnalysisRuleNode.getRuleType().name());
+        dto.setName(flowAnalysisRuleNode.getName());
+        dto.setType(flowAnalysisRuleNode.getCanonicalClassName());
+        dto.setBundle(createBundleDto(bundleCoordinate));
+        dto.setState(flowAnalysisRuleNode.getState().name());
+        dto.setAnnotationData(flowAnalysisRuleNode.getAnnotationData());
+        dto.setComments(flowAnalysisRuleNode.getComments());
+        dto.setPersistsState(flowAnalysisRuleNode.getFlowAnalysisRule().getClass().isAnnotationPresent(Stateful.class));
+        dto.setRestricted(flowAnalysisRuleNode.isRestricted());
+        dto.setDeprecated(flowAnalysisRuleNode.isDeprecated());
+        dto.setExtensionMissing(flowAnalysisRuleNode.isExtensionMissing());
+        dto.setMultipleVersionsAvailable(compatibleBundles.size() > 1);
+
+        // sort a copy of the properties
+        final Map<PropertyDescriptor, String> sortedProperties = new TreeMap<>(
+            (o1, o2) -> Collator.getInstance(Locale.US).compare(o1.getName(), o2.getName())
+        );
+        sortedProperties.putAll(flowAnalysisRuleNode.getRawPropertyValues());
+
+        // get the property order from the flow analysis rule
+        final FlowAnalysisRule flowAnalysisRule = flowAnalysisRuleNode.getFlowAnalysisRule();
+        final Map<PropertyDescriptor, String> orderedProperties = new LinkedHashMap<>();
+        final List<PropertyDescriptor> descriptors = flowAnalysisRule.getPropertyDescriptors();
+        if (descriptors != null && !descriptors.isEmpty()) {
+            for (final PropertyDescriptor descriptor : descriptors) {
+                orderedProperties.put(descriptor, null);
+            }
+        }
+        orderedProperties.putAll(sortedProperties);
+
+        // build the descriptor and property dtos
+        dto.setDescriptors(new LinkedHashMap<>());
+        dto.setProperties(new LinkedHashMap<>());
+        for (final Map.Entry<PropertyDescriptor, String> entry : orderedProperties.entrySet()) {
+            final PropertyDescriptor descriptor = entry.getKey();
+
+            // store the property descriptor
+            dto.getDescriptors().put(descriptor.getName(), createPropertyDescriptorDto(descriptor, null));
+
+            // determine the property value - don't include sensitive properties
+            String propertyValue = entry.getValue();
+            if (propertyValue != null && descriptor.isSensitive()) {
+                propertyValue = SENSITIVE_VALUE_MASK;
+            }
+
+            // set the property value
+            dto.getProperties().put(descriptor.getName(), propertyValue);
+        }
+
+        final ValidationStatus validationStatus = flowAnalysisRuleNode.getValidationStatus(1, TimeUnit.MILLISECONDS);
+        dto.setValidationStatus(validationStatus.name());
+
+        // add the validation errors
+        final Collection<ValidationResult> validationErrors = flowAnalysisRuleNode.getValidationErrors();
+        if (validationErrors != null && !validationErrors.isEmpty()) {
+            final List<String> errors = new ArrayList<>();
+            for (final ValidationResult validationResult : validationErrors) {
+                errors.add(validationResult.toString());
+            }
+
+            dto.setValidationErrors(errors);
+        }
+
+        return dto;
     }
 }

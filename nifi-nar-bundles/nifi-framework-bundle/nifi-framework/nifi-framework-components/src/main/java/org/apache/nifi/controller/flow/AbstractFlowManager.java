@@ -25,6 +25,7 @@ import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.Port;
+import org.apache.nifi.controller.FlowAnalysisRuleNode;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
@@ -66,6 +67,7 @@ public abstract class AbstractFlowManager implements FlowManager {
     private final ConcurrentMap<String, Port> allOutputPorts = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, Funnel> allFunnels = new ConcurrentHashMap<>();
     private final ConcurrentMap<String, ReportingTaskNode> allReportingTasks = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, FlowAnalysisRuleNode> allFlowAnalysisRules = new ConcurrentHashMap<>();
 
     private final FlowFileEventRepository flowFileEventRepository;
     private final ParameterContextManager parameterContextManager;
@@ -397,6 +399,66 @@ public abstract class AbstractFlowManager implements FlowManager {
 
     public void onReportingTaskAdded(final ReportingTaskNode taskNode) {
         allReportingTasks.put(taskNode.getIdentifier(), taskNode);
+    }
+
+    public FlowAnalysisRuleNode createFlowAnalysisRule(final String type, final BundleCoordinate bundleCoordinate) {
+        return createFlowAnalysisRule(type, bundleCoordinate, true);
+    }
+
+    public FlowAnalysisRuleNode createFlowAnalysisRule(final String type, final BundleCoordinate bundleCoordinate, final boolean firstTimeAdded) {
+        return createFlowAnalysisRule(type, UUID.randomUUID().toString(), bundleCoordinate, firstTimeAdded);
+    }
+
+    @Override
+    public FlowAnalysisRuleNode createFlowAnalysisRule(final String type, final String id, final BundleCoordinate bundleCoordinate, final boolean firstTimeAdded) {
+        return createFlowAnalysisRule(type, id, bundleCoordinate, Collections.emptySet(), firstTimeAdded, true);
+    }
+
+    @Override
+    public FlowAnalysisRuleNode getFlowAnalysisRule(final String taskId) {
+        return allFlowAnalysisRules.get(taskId);
+    }
+
+    @Override
+    public void removeFlowAnalysisRule(final FlowAnalysisRuleNode flowAnalysisRuleNode) {
+        final FlowAnalysisRuleNode existing = allFlowAnalysisRules.get(flowAnalysisRuleNode.getIdentifier());
+        if (existing == null || existing != flowAnalysisRuleNode) {
+            throw new IllegalStateException("Flow Analysis Rule " + flowAnalysisRuleNode + " does not exist in this Flow");
+        }
+
+        flowAnalysisRuleNode.verifyCanDelete();
+
+        final Class<?> taskClass = flowAnalysisRuleNode.getFlowAnalysisRule().getClass();
+        try (final NarCloseable x = NarCloseable.withComponentNarLoader(getExtensionManager(), taskClass, flowAnalysisRuleNode.getFlowAnalysisRule().getIdentifier())) {
+            ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnRemoved.class, flowAnalysisRuleNode.getFlowAnalysisRule(), flowAnalysisRuleNode.getConfigurationContext());
+        }
+
+        for (final Map.Entry<PropertyDescriptor, String> entry : flowAnalysisRuleNode.getEffectivePropertyValues().entrySet()) {
+            final PropertyDescriptor descriptor = entry.getKey();
+            if (descriptor.getControllerServiceDefinition() != null) {
+                final String value = entry.getValue() == null ? descriptor.getDefaultValue() : entry.getValue();
+                if (value != null) {
+                    final ControllerServiceNode serviceNode = controllerServiceProvider.getControllerServiceNode(value);
+                    if (serviceNode != null) {
+                        serviceNode.removeReference(flowAnalysisRuleNode, descriptor);
+                    }
+                }
+            }
+        }
+
+        allFlowAnalysisRules.remove(flowAnalysisRuleNode.getIdentifier());
+        LogRepositoryFactory.removeRepository(flowAnalysisRuleNode.getIdentifier());
+
+        getExtensionManager().removeInstanceClassLoader(flowAnalysisRuleNode.getIdentifier());
+    }
+
+    @Override
+    public Set<FlowAnalysisRuleNode> getAllFlowAnalysisRules() {
+        return new HashSet<>(allFlowAnalysisRules.values());
+    }
+
+    protected void onFlowAnalysisRuleAdded(final FlowAnalysisRuleNode flowAnalysisRuleNode) {
+        allFlowAnalysisRules.put(flowAnalysisRuleNode.getIdentifier(), flowAnalysisRuleNode);
     }
 
     protected abstract ExtensionManager getExtensionManager();

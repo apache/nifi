@@ -33,6 +33,7 @@ import org.apache.nifi.connectable.Port;
 import org.apache.nifi.connectable.Position;
 import org.apache.nifi.connectable.Size;
 import org.apache.nifi.controller.flow.FlowManager;
+import org.apache.nifi.controller.flowanalysis.FlowAnalysisRuleInstantiationException;
 import org.apache.nifi.controller.inheritance.AuthorizerCheck;
 import org.apache.nifi.controller.inheritance.BundleCompatibilityCheck;
 import org.apache.nifi.controller.inheritance.ConnectionMissingCheck;
@@ -56,6 +57,8 @@ import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.events.BulletinFactory;
+import org.apache.nifi.flowanalysis.FlowAnalysisRuleState;
+import org.apache.nifi.flowanalysis.FlowAnalysisRuleType;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.groups.FlowFileConcurrency;
 import org.apache.nifi.groups.FlowFileOutboundPolicy;
@@ -88,6 +91,7 @@ import org.apache.nifi.web.api.dto.BundleDTO;
 import org.apache.nifi.web.api.dto.ConnectableDTO;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
+import org.apache.nifi.web.api.dto.FlowAnalysisRuleDTO;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 import org.apache.nifi.web.api.dto.FunnelDTO;
 import org.apache.nifi.web.api.dto.LabelDTO;
@@ -331,6 +335,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
         final Set<String> missingComponents = new HashSet<>();
         flowManager.getAllControllerServices().stream().filter(ComponentNode::isExtensionMissing).forEach(cs -> missingComponents.add(cs.getIdentifier()));
         flowManager.getAllReportingTasks().stream().filter(ComponentNode::isExtensionMissing).forEach(r -> missingComponents.add(r.getIdentifier()));
+        flowManager.getAllFlowAnalysisRules().stream().filter(ComponentNode::isExtensionMissing).forEach(r -> missingComponents.add(r.getIdentifier()));
         root.findAllProcessors().stream().filter(AbstractComponentNode::isExtensionMissing).forEach(p -> missingComponents.add(p.getIdentifier()));
 
         logger.trace("Exporting snippets from controller");
@@ -380,7 +385,12 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
         }
     }
 
-    private void updateFlow(final FlowController controller, final Document configuration, final DataFlow existingFlow, final boolean existingFlowEmpty) throws ReportingTaskInstantiationException {
+    private void updateFlow(
+        final FlowController controller,
+        final Document configuration,
+        final DataFlow existingFlow,
+        final boolean existingFlowEmpty
+    ) throws ReportingTaskInstantiationException, FlowAnalysisRuleInstantiationException {
         final boolean flowAlreadySynchronized = controller.isFlowSynchronized();
         final FlowManager flowManager = controller.getFlowManager();
 
@@ -467,6 +477,21 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
             reportingTaskNodesToDTOs.put(reportingTask, dto);
         }
 
+        // get all the flow analysis rule elements
+        final Element flowAnalysisRulesElement = DomUtils.getChild(rootElement, "flowAnalysisRules");
+        final List<Element> flowAnalysisRuleElements = new ArrayList<>();
+        if (flowAnalysisRulesElement != null) {
+            flowAnalysisRuleElements.addAll(DomUtils.getChildElementsByTagName(flowAnalysisRulesElement, "flowAnalysisRule"));
+        }
+
+        // get/create all the flow analysis rule nodes and DTOs, but don't apply their scheduled state yet
+        final Map<FlowAnalysisRuleNode, FlowAnalysisRuleDTO> flowAnalysisRuleNodesToDTOs = new HashMap<>();
+        for (final Element taskElement : flowAnalysisRuleElements) {
+            final FlowAnalysisRuleDTO dto = FlowFromDOMFactory.getFlowAnalysisRule(taskElement, encryptor, encodingVersion);
+            final FlowAnalysisRuleNode flowAnalysisRule = getOrCreateFlowAnalysisRule(controller, dto, flowAlreadySynchronized, existingFlowEmpty);
+            flowAnalysisRuleNodesToDTOs.put(flowAnalysisRule, dto);
+        }
+
         final Element controllerServicesElement = DomUtils.getChild(rootElement, "controllerServices");
         if (controllerServicesElement != null) {
             final List<Element> serviceElements = DomUtils.getChildElementsByTagName(controllerServicesElement, "controllerService");
@@ -520,6 +545,10 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
         // now that controller services are loaded and enabled we can apply the scheduled state to each reporting task
         for (Map.Entry<ReportingTaskNode, ReportingTaskDTO> entry : reportingTaskNodesToDTOs.entrySet()) {
             applyReportingTaskScheduleState(controller, entry.getValue(), entry.getKey(), flowAlreadySynchronized, existingFlowEmpty);
+        }
+
+        for (Map.Entry<FlowAnalysisRuleNode, FlowAnalysisRuleDTO> entry : flowAnalysisRuleNodesToDTOs.entrySet()) {
+            applyFlowAnalysisRuleState(controller, entry.getValue(), entry.getKey(), flowAlreadySynchronized, existingFlowEmpty);
         }
     }
 
@@ -629,6 +658,14 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
         if (reportingTasksElement != null) {
             final List<Element> taskElements = DomUtils.getChildElementsByTagName(reportingTasksElement, "reportingTask");
             if (!taskElements.isEmpty()) {
+                return false;
+            }
+        }
+
+        final Element flowAnalysisRulesElement = DomUtils.getChild(rootElement, "flowAnalysisRules");
+        if (flowAnalysisRulesElement != null) {
+            final List<Element> flowAnalysisRulesElements = DomUtils.getChildElementsByTagName(flowAnalysisRulesElement, "flowAnalysisRule");
+            if (!flowAnalysisRulesElements.isEmpty()) {
                 return false;
             }
         }
@@ -807,6 +844,104 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
                 // create bulletin at Controller level.
                 controller.getBulletinRepository().addBulletin(BulletinFactory.createBulletin("Node Reconnection", Severity.ERROR.name(),
                         "Failed to change Scheduled State of " + taskNode + " from " + taskNode.getScheduledState().name() + " to " + dto.getState() + " due to " + ise.toString()));
+            }
+        }
+    }
+
+    private FlowAnalysisRuleNode getOrCreateFlowAnalysisRule(final FlowController controller, final FlowAnalysisRuleDTO dto, final boolean controllerInitialized, final boolean existingFlowEmpty)
+        throws FlowAnalysisRuleInstantiationException {
+        // create a new flow analysis rule node when the controller is not initialized or the flow is empty
+        if (!controllerInitialized || existingFlowEmpty) {
+            BundleCoordinate coordinate;
+            try {
+                coordinate = BundleUtils.getCompatibleBundle(extensionManager, dto.getType(), dto.getBundle());
+            } catch (final IllegalStateException e) {
+                final BundleDTO bundleDTO = dto.getBundle();
+                if (bundleDTO == null) {
+                    coordinate = BundleCoordinate.UNKNOWN_COORDINATE;
+                } else {
+                    coordinate = new BundleCoordinate(bundleDTO.getGroup(), bundleDTO.getArtifact(), bundleDTO.getVersion());
+                }
+            }
+
+            final FlowAnalysisRuleNode flowAnalysisRule = controller.createFlowAnalysisRule(dto.getType(), dto.getId(), coordinate, false);
+            flowAnalysisRule.setName(dto.getName());
+            flowAnalysisRule.setComments(dto.getComments());
+
+            flowAnalysisRule.setRuleType(FlowAnalysisRuleType.valueOf(dto.getRuleType()));
+
+            flowAnalysisRule.setAnnotationData(dto.getAnnotationData());
+            flowAnalysisRule.setProperties(dto.getProperties());
+            return flowAnalysisRule;
+        } else {
+            // otherwise return the existing flow analysis rule node
+            return controller.getFlowAnalysisRuleNode(dto.getId());
+        }
+    }
+
+    private void applyFlowAnalysisRuleState(final FlowController controller, final FlowAnalysisRuleDTO dto, final FlowAnalysisRuleNode flowAnalysisRule,
+                                            final boolean controllerInitialized, final boolean existingFlowEmpty) {
+        if (!controllerInitialized || existingFlowEmpty) {
+            applyNewFlowAnalysisRuleState(controller, dto, flowAnalysisRule);
+        } else {
+            applyExistingFlowAnalysisRuleState(controller, dto, flowAnalysisRule);
+        }
+    }
+
+    private void applyNewFlowAnalysisRuleState(final FlowController controller, final FlowAnalysisRuleDTO dto, final FlowAnalysisRuleNode flowAnalysisRule) {
+        if (autoResumeState) {
+            if (FlowAnalysisRuleState.ENABLED.name().equals(dto.getState())) {
+                try {
+                    controller.enableFlowAnalysisRule(flowAnalysisRule);
+                } catch (final Exception e) {
+                    logger.error("Failed to enable {} due to {}", flowAnalysisRule, e);
+                    if (logger.isDebugEnabled()) {
+                        logger.error("", e);
+                    }
+                    controller.getBulletinRepository().addBulletin(BulletinFactory.createBulletin(
+                            "Flow Analysis Rules", Severity.ERROR.name(), "Failed to start " + flowAnalysisRule + " due to " + e));
+                }
+            } else if (FlowAnalysisRuleState.DISABLED.name().equals(dto.getState())) {
+                try {
+                    controller.disableFlowAnalysisRule(flowAnalysisRule);
+                } catch (final Exception e) {
+                    logger.error("Failed to mark {} as disabled due to {}", flowAnalysisRule, e);
+                    if (logger.isDebugEnabled()) {
+                        logger.error("", e);
+                    }
+                    controller.getBulletinRepository().addBulletin(BulletinFactory.createBulletin(
+                            "Flow Analysis Rules", Severity.ERROR.name(), "Failed to mark " + flowAnalysisRule + " as disabled due to " + e));
+                }
+            }
+        }
+    }
+
+    private void applyExistingFlowAnalysisRuleState(final FlowController controller, final FlowAnalysisRuleDTO dto, final FlowAnalysisRuleNode node) {
+        if (!node.getState().name().equals(dto.getState())) {
+            try {
+                switch (FlowAnalysisRuleState.valueOf(dto.getState())) {
+                    case DISABLED:
+                        if (node.isEnabled()) {
+                            controller.disableFlowAnalysisRule(node);
+                        }
+                        break;
+                    case ENABLED:
+                        if (!node.isEnabled()) {
+                            controller.enableFlowAnalysisRule(node);
+                        }
+                        break;
+                }
+            } catch (final IllegalStateException ise) {
+                logger.error("Failed to change Scheduled State of {} from {} to {} due to {}", node, node.getState().name(), dto.getState(), ise.toString());
+                logger.error("", ise);
+
+                // create bulletin for the Processor Node
+                controller.getBulletinRepository().addBulletin(BulletinFactory.createBulletin("Node Reconnection", Severity.ERROR.name(),
+                        "Failed to change Scheduled State of " + node + " from " + node.getState().name() + " to " + dto.getState() + " due to " + ise.toString()));
+
+                // create bulletin at Controller level.
+                controller.getBulletinRepository().addBulletin(BulletinFactory.createBulletin("Node Reconnection", Severity.ERROR.name(),
+                        "Failed to change Scheduled State of " + node + " from " + node.getState().name() + " to " + dto.getState() + " due to " + ise.toString()));
             }
         }
     }

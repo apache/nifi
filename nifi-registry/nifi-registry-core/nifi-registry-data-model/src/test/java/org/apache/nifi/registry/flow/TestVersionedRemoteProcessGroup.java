@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.registry.flow;
 
+import org.apache.nifi.flow.VersionedRemoteProcessGroup;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;

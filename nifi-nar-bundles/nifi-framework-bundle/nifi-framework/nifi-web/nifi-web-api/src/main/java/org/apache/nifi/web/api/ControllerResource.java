@@ -36,20 +36,27 @@ import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.api.dto.BulletinDTO;
 import org.apache.nifi.web.api.dto.ClusterDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
+import org.apache.nifi.web.api.dto.FlowAnalysisResultDTO;
+import org.apache.nifi.web.api.dto.FlowAnalysisRuleDTO;
 import org.apache.nifi.web.api.dto.NodeDTO;
 import org.apache.nifi.web.api.dto.RegistryDTO;
 import org.apache.nifi.web.api.dto.ReportingTaskDTO;
+import org.apache.nifi.web.api.dto.action.ActionDTO;
+import org.apache.nifi.web.api.entity.ActionEntity;
 import org.apache.nifi.web.api.entity.BulletinEntity;
 import org.apache.nifi.web.api.entity.ClusterEntity;
 import org.apache.nifi.web.api.entity.ComponentHistoryEntity;
 import org.apache.nifi.web.api.entity.ControllerConfigurationEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.Entity;
+import org.apache.nifi.web.api.entity.FlowAnalysisResultEntity;
+import org.apache.nifi.web.api.entity.FlowAnalysisRuleEntity;
 import org.apache.nifi.web.api.entity.HistoryEntity;
 import org.apache.nifi.web.api.entity.NodeEntity;
 import org.apache.nifi.web.api.entity.RegistryClientEntity;
 import org.apache.nifi.web.api.entity.RegistryClientsEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskEntity;
+import org.apache.nifi.web.api.entity.RuleViolationEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.DateTimeParameter;
 import org.apache.nifi.web.api.request.LongParameter;
@@ -70,8 +77,11 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.net.URI;
+import java.util.Collection;
 import java.util.Date;
+import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * RESTful endpoint for managing a Flow Controller.
@@ -87,6 +97,7 @@ public class ControllerResource extends ApplicationResource {
     private Authorizer authorizer;
 
     private ReportingTaskResource reportingTaskResource;
+    private FlowAnalysisRuleResource flowAnalysisRuleResource;
     private ControllerServiceResource controllerServiceResource;
 
     /**
@@ -310,6 +321,258 @@ public class ControllerResource extends ApplicationResource {
                     return generateCreatedResponse(URI.create(entity.getUri()), entity).build();
                 }
         );
+    }
+
+    // -------------
+    // flow analysis
+    // -------------
+
+    /**
+     * Creates a new Flow Analysis Rule.
+     *
+     * @param httpServletRequest  request
+     * @param requestFlowAnalysisRuleEntity A flowAnalysisRuleEntity.
+     * @return A flowAnalysisRuleEntity.
+     */
+    @POST
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("flow-analysis-rules")
+    @ApiOperation(
+            value = "Creates a new flow analysis rule",
+            response = FlowAnalysisRuleEntity.class,
+            authorizations = {
+                    @Authorization(value = "Write - /controller"),
+                    @Authorization(value = "Read - any referenced Controller Services - /controller-services/{uuid}"),
+                    @Authorization(value = "Write - if the Flow Analysis Rule is restricted - /restricted-components")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
+    public Response createFlowAnalysisRule(
+            @Context final HttpServletRequest httpServletRequest,
+            @ApiParam(
+                    value = "The flow analysis rule configuration details.",
+                    required = true
+            ) final FlowAnalysisRuleEntity requestFlowAnalysisRuleEntity) {
+
+        if (requestFlowAnalysisRuleEntity == null || requestFlowAnalysisRuleEntity.getComponent() == null) {
+            throw new IllegalArgumentException("Flow analysis rule details must be specified.");
+        }
+
+        if (
+            requestFlowAnalysisRuleEntity.getRevision() == null
+                || (requestFlowAnalysisRuleEntity.getRevision().getVersion() == null
+                || requestFlowAnalysisRuleEntity.getRevision().getVersion() != 0)
+        ) {
+            throw new IllegalArgumentException("A revision of 0 must be specified when creating a new Flow analysis rule.");
+        }
+
+        final FlowAnalysisRuleDTO requestFlowAnalysisRule = requestFlowAnalysisRuleEntity.getComponent();
+        if (requestFlowAnalysisRule.getId() != null) {
+            throw new IllegalArgumentException("Flow analysis rule ID cannot be specified.");
+        }
+
+        if (StringUtils.isBlank(requestFlowAnalysisRule.getType())) {
+            throw new IllegalArgumentException("The type of flow analysis rule to create must be specified.");
+        }
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.POST, requestFlowAnalysisRuleEntity);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(requestFlowAnalysisRuleEntity.isDisconnectedNodeAcknowledged());
+        }
+
+        return withWriteLock(
+                serviceFacade,
+                requestFlowAnalysisRuleEntity,
+                lookup -> {
+                    authorizeController(RequestAction.WRITE);
+
+                    ComponentAuthorizable authorizable = null;
+                    try {
+                        authorizable = lookup.getConfigurableComponent(requestFlowAnalysisRule.getType(), requestFlowAnalysisRule.getBundle());
+
+                        if (authorizable.isRestricted()) {
+                            authorizeRestrictions(authorizer, authorizable);
+                        }
+
+                        if (requestFlowAnalysisRule.getProperties() != null) {
+                            AuthorizeControllerServiceReference.authorizeControllerServiceReferences(requestFlowAnalysisRule.getProperties(), authorizable, authorizer, lookup);
+                        }
+                    } finally {
+                        if (authorizable != null) {
+                            authorizable.cleanUpResources();
+                        }
+                    }
+                },
+                () -> serviceFacade.verifyCreateFlowAnalysisRule(requestFlowAnalysisRule),
+                (flowAnalysisRuleEntity) -> {
+                    final FlowAnalysisRuleDTO flowAnalysisRule = flowAnalysisRuleEntity.getComponent();
+
+                    // set the processor id as appropriate
+                    flowAnalysisRule.setId(generateUuid());
+
+                    // create the flow analysis rule and generate the json
+                    final Revision revision = getRevision(flowAnalysisRuleEntity, flowAnalysisRule.getId());
+                    final FlowAnalysisRuleEntity entity = serviceFacade.createFlowAnalysisRule(revision, flowAnalysisRule);
+                    flowAnalysisRuleResource.populateRemainingFlowAnalysisRuleEntityContent(entity);
+
+                    // build the response
+                    return generateCreatedResponse(URI.create(entity.getUri()), entity).build();
+                }
+        );
+    }
+
+    /**
+     * Executes a flow analysis for components within a given process group.
+     * @param groupId The id of the process group to run analysis on
+     * @return a flowAnalysisRuleEntity containing the results that are in the scope of this process group
+     */
+    @POST
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("analyze-flow")
+    @ApiOperation(
+            value = "Executes a flow analysis for components within a given process group",
+            response = FlowAnalysisResultEntity.class,
+            authorizations = {
+                @Authorization(value = "Read - /controller")
+            })
+    @ApiResponses(value = {
+            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+            @ApiResponse(code = 401, message = "Client could not be authenticated."),
+            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+            @ApiResponse(code = 404, message = "The specified resource could not be found."),
+            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+    })
+    public Response analyzeFlow(
+            @ApiParam(value = "The process group id.", required = true)
+            @QueryParam("groupId")
+            final String groupId
+    ) {
+        serviceFacade.authorizeAccess(lookup -> {
+            final Authorizable controller = lookup.getController();
+            controller.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+
+            final Authorizable processGroup = lookup.getProcessGroup(groupId).getAuthorizable();
+            processGroup.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+        });
+
+        serviceFacade.analyzeFlow(groupId);
+
+        FlowAnalysisResultEntity entity = createFlowAnalysisResultEntity();
+
+        return generateOkResponse(entity).build();
+    }
+
+    /**
+     * Returns all flow analysis results currently in effect.
+     * @return a flowAnalysisRuleEntity containing all flow analysis results currently in-effect
+     */
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("analyze-flow/result")
+    @ApiOperation(
+            value = "Returns all flow analysis results currently in effect",
+            response = FlowAnalysisResultEntity.class,
+            authorizations = {
+                @Authorization(value = "Read - /controller")
+            })
+    @ApiResponses(value = {
+            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+            @ApiResponse(code = 401, message = "Client could not be authenticated."),
+            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+            @ApiResponse(code = 404, message = "The specified resource could not be found."),
+            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+    })
+    public Response getFlowAnalysisResult() {
+        serviceFacade.authorizeAccess(lookup -> {
+            final Authorizable controller = lookup.getController();
+            controller.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+        });
+
+        FlowAnalysisResultEntity entity = createFlowAnalysisResultEntity();
+
+        return generateOkResponse(entity).build();
+    }
+
+    private FlowAnalysisResultEntity createFlowAnalysisResultEntity() {
+        Set<FlowAnalysisResultDTO> analysisResult = serviceFacade.getRuleViolations()
+            .values()
+            .stream()
+            .map(Map::values)
+            .flatMap(Collection::stream)
+            .map(ruleViolation -> {
+                FlowAnalysisResultDTO resultDTO = new FlowAnalysisResultDTO();
+
+                resultDTO.setRuleType(ruleViolation.getRuleType().toString());
+                resultDTO.setSubjectId(ruleViolation.getSubjectId());
+                resultDTO.setRuleName(ruleViolation.getRuleName());
+                resultDTO.setErrorMessage(ruleViolation.getErrorMessage());
+                resultDTO.setEnabled(ruleViolation.isEnabled());
+                resultDTO.setAvailable(ruleViolation.isAvailable());
+
+                return resultDTO;
+            })
+            .collect(Collectors.toSet());
+
+        FlowAnalysisResultEntity entity = new FlowAnalysisResultEntity();
+        entity.setAnalysisResults(analysisResult);
+
+        return entity;
+    }
+
+    /**
+     * Updates a rule violation (e.g. enabled/disable)
+     * @param ruleViolationEntity a ruleViolationEntity with the updated state
+     * @return
+     */
+    @PUT
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("analyze-flow/update-rule-violation")
+    @ApiOperation(
+            value = "Updates a rule violation",
+            response = ActionEntity.class,
+            authorizations = {
+                @Authorization(value = "Read - /controller")
+            })
+    @ApiResponses(value = {
+            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+            @ApiResponse(code = 401, message = "Client could not be authenticated."),
+            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+            @ApiResponse(code = 404, message = "The specified resource could not be found."),
+            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+    })
+    public Response updateRuleViolation(
+        @ApiParam(
+            value = "Rule Violation Details.",
+            required = true
+        )
+        final RuleViolationEntity ruleViolationEntity
+    ) {
+        serviceFacade.authorizeAccess(lookup -> {
+            final Authorizable controller = lookup.getController();
+            controller.authorize(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+        });
+
+        serviceFacade.updateRuleViolation(ruleViolationEntity.getSubjectId(), ruleViolationEntity.getRuleName(), ruleViolationEntity.getEnabled());
+
+        ActionDTO actionDTO = new ActionDTO();
+        actionDTO.setOperation("update-rule-violation");
+
+        ActionEntity entity = new ActionEntity();
+        entity.setAction(actionDTO);
+
+        return generateOkResponse(entity).build();
     }
 
     // ----------
@@ -1168,6 +1431,10 @@ public class ControllerResource extends ApplicationResource {
 
     public void setReportingTaskResource(final ReportingTaskResource reportingTaskResource) {
         this.reportingTaskResource = reportingTaskResource;
+    }
+
+    public void setFlowAnalysisRuleResource(FlowAnalysisRuleResource flowAnalysisRuleResource) {
+        this.flowAnalysisRuleResource = flowAnalysisRuleResource;
     }
 
     public void setControllerServiceResource(final ControllerServiceResource controllerServiceResource) {

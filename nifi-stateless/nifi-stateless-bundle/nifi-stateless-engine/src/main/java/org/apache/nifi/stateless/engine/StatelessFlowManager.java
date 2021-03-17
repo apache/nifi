@@ -29,6 +29,7 @@ import org.apache.nifi.connectable.LocalPort;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.connectable.StandardConnection;
 import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.controller.FlowAnalysisRuleNode;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
@@ -361,6 +362,11 @@ public class StatelessFlowManager extends AbstractFlowManager implements FlowMan
 
     @Override
     protected Authorizable getParameterContextParent() {
+        return null;
+    }
+
+    @Override
+    public FlowAnalysisRuleNode createFlowAnalysisRule(String type, String id, BundleCoordinate bundleCoordinate, Set<URL> additionalUrls, boolean firstTimeAdded, boolean register) {
         return null;
     }
 }

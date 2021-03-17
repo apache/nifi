@@ -22,5 +22,13 @@
     </parent>
     <artifactId>nifi-api</artifactId>
     <packaging>jar</packaging>
-    <!-- This module should kept to having no dependencies -->
+
+    <!-- This module should kept to having no dependencies except nifi-versioned-components -->
+    <dependencies>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-versioned-components</artifactId>
+            <version>1.14.0-SNAPSHOT</version>
+        </dependency>
+    </dependencies>
  </project>

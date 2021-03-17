@@ -21,6 +21,7 @@ import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.Port;
+import org.apache.nifi.controller.FlowAnalysisRuleNode;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
@@ -345,4 +346,19 @@ public interface FlowManager {
      * @throws IllegalStateException if any of the components is not in a state that it can be deleted.
      */
     void purge();
+
+    // Flow Analysis
+    FlowAnalysisRuleNode createFlowAnalysisRule(String type, BundleCoordinate bundleCoordinate);
+
+    FlowAnalysisRuleNode createFlowAnalysisRule(String type, BundleCoordinate bundleCoordinate, boolean firstTimeAdded);
+
+    FlowAnalysisRuleNode createFlowAnalysisRule(String type, String id, BundleCoordinate bundleCoordinate, boolean firstTimeAdded);
+
+    FlowAnalysisRuleNode createFlowAnalysisRule(String type, String id, BundleCoordinate bundleCoordinate, Set<URL> additionalUrls, boolean firstTimeAdded, boolean register);
+
+    FlowAnalysisRuleNode getFlowAnalysisRule(String taskId);
+
+    void removeFlowAnalysisRule(FlowAnalysisRuleNode reportingTask);
+
+    Set<FlowAnalysisRuleNode> getAllFlowAnalysisRules();
 }

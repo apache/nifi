@@ -84,6 +84,9 @@ import org.apache.nifi.web.api.entity.ControllerServiceTypesEntity;
 import org.apache.nifi.web.api.entity.ControllerServicesEntity;
 import org.apache.nifi.web.api.entity.ControllerStatusEntity;
 import org.apache.nifi.web.api.entity.CurrentUserEntity;
+import org.apache.nifi.web.api.entity.FlowAnalysisRuleEntity;
+import org.apache.nifi.web.api.entity.FlowAnalysisRuleTypesEntity;
+import org.apache.nifi.web.api.entity.FlowAnalysisRulesEntity;
 import org.apache.nifi.web.api.entity.FlowConfigurationEntity;
 import org.apache.nifi.web.api.entity.HistoryEntity;
 import org.apache.nifi.web.api.entity.ParameterContextEntity;
@@ -181,6 +184,7 @@ public class FlowResource extends ApplicationResource {
     private ProcessGroupResource processGroupResource;
     private ControllerServiceResource controllerServiceResource;
     private ReportingTaskResource reportingTaskResource;
+    private FlowAnalysisRuleResource flowAnalysisRuleResource;
 
     public FlowResource() {
         super();
@@ -587,6 +591,50 @@ public class FlowResource extends ApplicationResource {
         // create the response entity
         final ReportingTasksEntity entity = new ReportingTasksEntity();
         entity.setReportingTasks(reportingTasks);
+
+        // generate the response
+        return generateOkResponse(entity).build();
+    }
+
+    /**
+     * Retrieves all the flow analysis rules in this NiFi.
+     *
+     * @return A flowAnalysisRulesEntity.
+     */
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("flow-analysis-rules")
+    @ApiOperation(
+            value = "Gets all flow analysis rules",
+            response = FlowAnalysisRulesEntity.class,
+            authorizations = {
+                    @Authorization(value = "Read - /flow")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
+    public Response getFlowAnalysisRules() {
+
+        authorizeFlow();
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
+        }
+
+        // get all the flow analysis rules
+        final Set<FlowAnalysisRuleEntity> flowAnalysisRules = serviceFacade.getFlowAnalysisRules();
+        flowAnalysisRuleResource.populateRemainingFlowAnalysisRuleEntitiesContent(flowAnalysisRules);
+
+        // create the response entity
+        final FlowAnalysisRulesEntity entity = new FlowAnalysisRulesEntity();
+        entity.setFlowAnalysisRules(flowAnalysisRules);
 
         // generate the response
         return generateOkResponse(entity).build();
@@ -1351,6 +1399,63 @@ public class FlowResource extends ApplicationResource {
         // create response entity
         final ReportingTaskTypesEntity entity = new ReportingTaskTypesEntity();
         entity.setReportingTaskTypes(serviceFacade.getReportingTaskTypes(bundleGroupFilter, bundleArtifactFilter, typeFilter));
+
+        // generate the response
+        return generateOkResponse(entity).build();
+    }
+
+    /**
+     * Retrieves the types of available Recommendations and Policies.
+     *
+     * @return A controllerServicesTypesEntity.
+     * @throws InterruptedException if interrupted
+     */
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("flow-analysis-rule-types")
+    @ApiOperation(
+            value = "Retrieves the types of available Recommendations and Policies",
+            notes = NON_GUARANTEED_ENDPOINT,
+            response = FlowAnalysisRuleTypesEntity.class,
+            authorizations = {
+                    @Authorization(value = "Read - /flow")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
+    public Response getFlowAnalysisRuleTypes(
+            @ApiParam(
+                    value = "If specified, will only return types that are a member of this bundle group.",
+                    required = false
+            )
+            @QueryParam("bundleGroupFilter") String bundleGroupFilter,
+            @ApiParam(
+                    value = "If specified, will only return types that are a member of this bundle artifact.",
+                    required = false
+            )
+            @QueryParam("bundleArtifactFilter") String bundleArtifactFilter,
+            @ApiParam(
+                    value = "If specified, will only return types whose fully qualified classname matches.",
+                    required = false
+            )
+            @QueryParam("type") String typeFilter) throws InterruptedException {
+
+        authorizeFlow();
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
+        }
+
+        // create response entity
+        final FlowAnalysisRuleTypesEntity entity = new FlowAnalysisRuleTypesEntity();
+        entity.setFlowAnalysisRuleTypes(serviceFacade.getFlowAnalysisRuleTypes(bundleGroupFilter, bundleArtifactFilter, typeFilter));
 
         // generate the response
         return generateOkResponse(entity).build();
@@ -2953,6 +3058,10 @@ public class FlowResource extends ApplicationResource {
 
     public void setReportingTaskResource(ReportingTaskResource reportingTaskResource) {
         this.reportingTaskResource = reportingTaskResource;
+    }
+
+    public void setFlowAnalysisRuleResource(FlowAnalysisRuleResource flowAnalysisRuleResource) {
+        this.flowAnalysisRuleResource = flowAnalysisRuleResource;
     }
 
     public void setAuthorizer(Authorizer authorizer) {

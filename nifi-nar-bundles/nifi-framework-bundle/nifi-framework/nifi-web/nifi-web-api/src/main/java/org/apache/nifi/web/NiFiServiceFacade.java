@@ -25,13 +25,15 @@ import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.repository.claim.ContentDirection;
 import org.apache.nifi.controller.service.ControllerServiceState;
+import org.apache.nifi.flowanalysis.FlowAnalysisResults;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.registry.flow.ExternalControllerServiceReference;
 import org.apache.nifi.registry.flow.VersionedFlow;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.registry.flow.VersionedParameterContext;
-import org.apache.nifi.registry.flow.VersionedProcessGroup;
+import org.apache.nifi.flow.VersionedProcessGroup;
+import org.apache.nifi.validation.RuleViolation;
 import org.apache.nifi.web.api.dto.AccessPolicyDTO;
 import org.apache.nifi.web.api.dto.AffectedComponentDTO;
 import org.apache.nifi.web.api.dto.BulletinBoardDTO;
@@ -49,6 +51,7 @@ import org.apache.nifi.web.api.dto.CounterDTO;
 import org.apache.nifi.web.api.dto.CountersDTO;
 import org.apache.nifi.web.api.dto.DocumentedTypeDTO;
 import org.apache.nifi.web.api.dto.DropRequestDTO;
+import org.apache.nifi.web.api.dto.FlowAnalysisRuleDTO;
 import org.apache.nifi.web.api.dto.FlowFileDTO;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 import org.apache.nifi.web.api.dto.FunnelDTO;
@@ -95,6 +98,7 @@ import org.apache.nifi.web.api.entity.ControllerConfigurationEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceReferencingComponentsEntity;
 import org.apache.nifi.web.api.entity.CurrentUserEntity;
+import org.apache.nifi.web.api.entity.FlowAnalysisRuleEntity;
 import org.apache.nifi.web.api.entity.FlowComparisonEntity;
 import org.apache.nifi.web.api.entity.FlowConfigurationEntity;
 import org.apache.nifi.web.api.entity.FlowEntity;
@@ -135,6 +139,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentMap;
 import java.util.function.Function;
 
 /**
@@ -2405,4 +2410,35 @@ public interface NiFiServiceFacade {
      */
     ConfigurableComponent getTempComponent(String classType, BundleCoordinate bundleCoordinate);
 
+    Set<FlowAnalysisRuleEntity> getFlowAnalysisRules();
+
+    Set<DocumentedTypeDTO> getFlowAnalysisRuleTypes(String bundleGroupFilter, String bundleArtifactFilter, String typeFilter);
+
+    void verifyCreateFlowAnalysisRule(FlowAnalysisRuleDTO requestFlowAnalysisRule);
+
+    void verifyUpdateFlowAnalysisRule(FlowAnalysisRuleDTO reportingTaskDTO);
+
+    void verifyDeleteFlowAnalysisRule(final String flowAnalysisRuleId);
+
+    void verifyCanClearFlowAnalysisRuleState(String id);
+
+    FlowAnalysisRuleEntity createFlowAnalysisRule(Revision revision, FlowAnalysisRuleDTO flowAnalysisRule);
+
+    FlowAnalysisRuleEntity getFlowAnalysisRule(String id);
+
+    PropertyDescriptorDTO getFlowAnalysisRulePropertyDescriptor(String id, String propertyName);
+
+    ComponentStateDTO getFlowAnalysisRuleState(String id);
+
+    void clearFlowAnalysisRuleState(String id);
+
+    FlowAnalysisRuleEntity updateFlowAnalysisRule(Revision revision, FlowAnalysisRuleDTO flowAnalysisRuleDTO);
+
+    FlowAnalysisRuleEntity deleteFlowAnalysisRule(Revision revision, String id);
+
+    FlowAnalysisResults analyzeFlow(String processGroupId);
+
+    ConcurrentMap<String, ConcurrentMap<String, RuleViolation>> getRuleViolations();
+
+    void updateRuleViolation(String subjectId, String ruleName, Boolean enabled);
 }

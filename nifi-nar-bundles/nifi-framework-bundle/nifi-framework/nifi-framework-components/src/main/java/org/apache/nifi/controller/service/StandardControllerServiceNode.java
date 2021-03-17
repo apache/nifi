@@ -605,4 +605,10 @@ public class StandardControllerServiceNode extends AbstractComponentNode impleme
     public ParameterLookup getParameterLookup() {
         return getParameterContext();
     }
+
+    @Override
+    protected void analyze() {
+        Optional.ofNullable(getValidationContextFactory().getFlowAnalyzer())
+            .ifPresent(flowAnalyzer -> flowAnalyzer.analyzeControllerService(this));
+    }
 }
