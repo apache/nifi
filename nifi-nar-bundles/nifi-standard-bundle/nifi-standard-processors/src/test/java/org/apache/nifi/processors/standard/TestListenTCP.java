@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.standard;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.security.util.ClientAuth;
@@ -26,7 +27,6 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.web.util.ssl.SslContextUtils;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -76,7 +76,7 @@ public class TestListenTCP {
     }
 
     @Test
-    public void testListenTCP() throws IOException {
+    public void testRun() throws IOException {
         final List<String> messages = new ArrayList<>();
         messages.add("This is message 1\n");
         messages.add("This is message 2\n");
@@ -93,7 +93,7 @@ public class TestListenTCP {
     }
 
     @Test
-    public void testListenTCPBatching() throws IOException {
+    public void testRunBatching() throws IOException {
         runner.setProperty(ListenTCP.MAX_BATCH_SIZE, "3");
 
         final List<String> messages = new ArrayList<>();
@@ -115,7 +115,7 @@ public class TestListenTCP {
     }
 
     @Test
-    public void testTLSClientAuthRequiredAndClientCertProvided() throws IOException, InitializationException {
+    public void testRunClientAuthRequired() throws IOException, InitializationException {
         runner.setProperty(ListenTCP.CLIENT_AUTH, ClientAuth.REQUIRED.name());
         enableSslContextService(keyStoreSslContext);
 
@@ -135,24 +135,7 @@ public class TestListenTCP {
     }
 
     @Test
-    public void testTLSClientAuthRequiredAndClientCertNotProvided() throws InitializationException {
-        runner.setProperty(ListenTCP.CLIENT_AUTH, ClientAuth.REQUIRED.name());
-        enableSslContextService(keyStoreSslContext);
-
-        final List<String> messages = new ArrayList<>();
-        messages.add("This is message 1\n");
-        messages.add("This is message 2\n");
-        messages.add("This is message 3\n");
-        messages.add("This is message 4\n");
-        messages.add("This is message 5\n");
-
-        Assert.assertThrows(IOException.class, () ->
-            run(messages, messages.size(), trustStoreSslContext)
-        );
-    }
-
-    @Test
-    public void testTLSClientAuthNoneAndClientCertNotProvided() throws IOException, InitializationException {
+    public void testRunClientAuthNone() throws IOException, InitializationException {
         runner.setProperty(ListenTCP.CLIENT_AUTH, ClientAuth.NONE.name());
         enableSslContextService(keyStoreSslContext);
 
@@ -180,11 +163,11 @@ public class TestListenTCP {
         // Run Processor and start Dispatcher without shutting down
         runner.run(1, false, true);
 
+        final String message = StringUtils.join(messages, null);
+        final byte[] bytes = message.getBytes(StandardCharsets.UTF_8);
         try (final Socket socket = getSocket(port, sslContext)) {
             final OutputStream outputStream = socket.getOutputStream();
-            for (final String message : messages) {
-                outputStream.write(message.getBytes(StandardCharsets.UTF_8));
-            }
+            outputStream.write(bytes);
             outputStream.flush();
 
             // Run Processor for number of responses

@@ -16,25 +16,20 @@
  */
 package org.apache.nifi.processors.standard;
 
-import com.google.common.base.Charsets;
-import java.io.DataOutputStream;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.net.HttpURLConnection;
 import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.GeneralSecurityException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.Random;
-import java.util.concurrent.TimeUnit;
-import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLHandshakeException;
@@ -42,6 +37,7 @@ import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 import javax.servlet.http.HttpServletResponse;
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
@@ -49,7 +45,6 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
-import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSessionFactory;
@@ -64,6 +59,7 @@ import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.apache.nifi.web.util.ssl.SslContextUtils;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.util.thread.ThreadPool;
 import org.junit.After;
@@ -83,7 +79,7 @@ public class TestListenHTTP {
 
     private static final String SSL_CONTEXT_SERVICE_IDENTIFIER = "ssl-context";
 
-    private static final String HTTP_POST_METHOD = "POST";
+    private static final MediaType APPLICATION_OCTET_STREAM = MediaType.get("application/octet-stream");
     private static final String HTTP_BASE_PATH = "basePath";
 
     private final static String PORT_VARIABLE = "HTTP_PORT";
@@ -99,6 +95,7 @@ public class TestListenHTTP {
 
     private static final int SOCKET_CONNECT_TIMEOUT = 100;
     private static final long SERVER_START_TIMEOUT = 1200000;
+    private static final Duration CLIENT_CALL_TIMEOUT = Duration.ofSeconds(10);
 
     private static TlsConfiguration tlsConfiguration;
     private static TlsConfiguration serverConfiguration;
@@ -108,6 +105,7 @@ public class TestListenHTTP {
     private static SSLContext serverKeyStoreNoTrustStoreSslContext;
     private static SSLContext keyStoreSslContext;
     private static SSLContext trustStoreSslContext;
+    private static X509TrustManager trustManager;
 
     private ListenHTTP proc;
     private TestRunner runner;
@@ -150,11 +148,11 @@ public class TestListenHTTP {
                 TLS_1_2
         );
 
-        serverKeyStoreSslContext = SslContextFactory.createSslContext(serverConfiguration);
-        final TrustManager[] defaultTrustManagers = SslContextFactory.getTrustManagers(serverNoTruststoreConfiguration);
-        serverKeyStoreNoTrustStoreSslContext = SslContextFactory.createSslContext(serverNoTruststoreConfiguration, defaultTrustManagers);
+        serverKeyStoreSslContext = SslContextUtils.createSslContext(serverConfiguration);
+        trustManager = SslContextFactory.getX509TrustManager(serverConfiguration);
+        serverKeyStoreNoTrustStoreSslContext = SslContextFactory.createSslContext(serverNoTruststoreConfiguration, new TrustManager[]{trustManager});
 
-        keyStoreSslContext = SslContextFactory.createSslContext(new StandardTlsConfiguration(
+        keyStoreSslContext = SslContextUtils.createSslContext(new StandardTlsConfiguration(
                 tlsConfiguration.getKeystorePath(),
                 tlsConfiguration.getKeystorePassword(),
                 tlsConfiguration.getKeystoreType(),
@@ -162,7 +160,7 @@ public class TestListenHTTP {
                 tlsConfiguration.getTruststorePassword(),
                 tlsConfiguration.getTruststoreType())
         );
-        trustStoreSslContext = SslContextFactory.createSslContext(new StandardTlsConfiguration(
+        trustStoreSslContext = SslContextUtils.createSslContext(new StandardTlsConfiguration(
                 null,
                 null,
                 null,
@@ -354,21 +352,15 @@ public class TestListenHTTP {
     public void testSecureServerTrustStoreConfiguredClientAuthenticationRequired() throws Exception {
         configureProcessorSslContextService(ListenHTTP.ClientAuthentication.REQUIRED, serverConfiguration);
         startSecureServer();
-        final HttpsURLConnection connection = getSecureConnection(trustStoreSslContext);
-        assertThrows(SSLException.class, connection::getResponseCode);
-
-        final HttpsURLConnection clientCertificateConnection = getSecureConnection(keyStoreSslContext);
-        final int responseCode = clientCertificateConnection.getResponseCode();
-        assertEquals(HttpServletResponse.SC_METHOD_NOT_ALLOWED, responseCode);
+        assertThrows(SSLException.class, () -> postMessage(null, true, false));
     }
 
     @Test
     public void testSecureServerTrustStoreNotConfiguredClientAuthenticationNotRequired() throws Exception {
         configureProcessorSslContextService(ListenHTTP.ClientAuthentication.AUTO, serverNoTruststoreConfiguration);
         startSecureServer();
-        final HttpsURLConnection connection = getSecureConnection(trustStoreSslContext);
-        final int responseCode = connection.getResponseCode();
-        assertEquals(HttpServletResponse.SC_METHOD_NOT_ALLOWED, responseCode);
+        final int responseCode = postMessage(null, true, true);
+        assertEquals(HttpServletResponse.SC_NO_CONTENT, responseCode);
     }
 
     @Test
@@ -462,37 +454,34 @@ public class TestListenHTTP {
         startWebServer();
     }
 
-    private HttpsURLConnection getSecureConnection(final SSLContext sslContext) throws Exception {
-        final URL url = new URL(buildUrl(true));
-        final HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
-        connection.setSSLSocketFactory(sslContext.getSocketFactory());
-        return connection;
+    private int postMessage(String message, boolean secure, boolean clientAuthRequired) throws Exception {
+        final OkHttpClient okHttpClient = getOkHttpClient(secure, clientAuthRequired);
+        final Request.Builder requestBuilder = new Request.Builder();
+        final String url = buildUrl(secure);
+        requestBuilder.url(url);
+
+        final byte[] bytes = message == null ? new byte[]{} : message.getBytes(StandardCharsets.UTF_8);
+        final RequestBody requestBody = RequestBody.create(bytes, APPLICATION_OCTET_STREAM);
+        final Request request = requestBuilder.post(requestBody).build();
+
+        try (final Response response = okHttpClient.newCall(request).execute()) {
+            return response.code();
+        }
     }
 
-    private int postMessage(String message, boolean secure, boolean clientAuthRequired) throws Exception {
-        String endpointUrl = buildUrl(secure);
-        final URL url = new URL(endpointUrl);
-        final HttpURLConnection connection = (HttpURLConnection)  url.openConnection();
-
-        if (connection instanceof HttpsURLConnection) {
-            final HttpsURLConnection httpsConnection = (HttpsURLConnection) connection;
+    private OkHttpClient getOkHttpClient(final boolean secure, final boolean clientAuthRequired) {
+        final OkHttpClient.Builder builder = new OkHttpClient.Builder();
+        if (secure) {
             if (clientAuthRequired) {
-                httpsConnection.setSSLSocketFactory(keyStoreSslContext.getSocketFactory());
+                builder.sslSocketFactory(keyStoreSslContext.getSocketFactory(), trustManager);
             } else {
-                httpsConnection.setSSLSocketFactory(trustStoreSslContext.getSocketFactory());
+                builder.sslSocketFactory(trustStoreSslContext.getSocketFactory(), trustManager);
             }
         }
-        connection.setRequestMethod(HTTP_POST_METHOD);
-        connection.setDoOutput(true);
 
-        final DataOutputStream wr = new DataOutputStream(connection.getOutputStream());
+        builder.callTimeout(CLIENT_CALL_TIMEOUT);
 
-        if (message != null) {
-            wr.writeBytes(message);
-        }
-        wr.flush();
-        wr.close();
-        return connection.getResponseCode();
+        return builder.build();
     }
 
     private String buildUrl(final boolean secure) {
@@ -603,19 +592,12 @@ public class TestListenHTTP {
                         .post(multipartBody)
                         .build();
 
-        int timeout = 3000;
-        OkHttpClient client = new OkHttpClient.Builder()
-                .readTimeout(timeout, TimeUnit.MILLISECONDS)
-                .writeTimeout(timeout, TimeUnit.MILLISECONDS)
-                .build();
-
+        final OkHttpClient client = getOkHttpClient(false, false);
         try (Response response = client.newCall(request).execute()) {
             Files.deleteIfExists(Paths.get(String.valueOf(file1)));
             Files.deleteIfExists(Paths.get(String.valueOf(file2)));
             Assert.assertTrue(String.format("Unexpected code: %s, body: %s", response.code(), response.body()), response.isSuccessful());
         }
-
-
 
         runner.assertAllFlowFilesTransferred(ListenHTTP.RELATIONSHIP_SUCCESS, 5);
         List<MockFlowFile> flowFilesForRelationship = runner.getFlowFilesForRelationship(ListenHTTP.RELATIONSHIP_SUCCESS);
@@ -673,9 +655,7 @@ public class TestListenHTTP {
         final File textFile = Files.createTempFile(TestListenHTTP.class.getSimpleName(), ".txt").toFile();
         textFile.deleteOnExit();
 
-        try (FileOutputStream fos = new FileOutputStream(textFile)) {
-            IOUtils.writeLines(Arrays.asList(lines), System.lineSeparator(), fos, Charsets.UTF_8);
-        }
+        Files.write(textFile.toPath(), Arrays.asList(lines));
         return textFile;
     }
 
