@@ -30,7 +30,6 @@ public class RunOnceIT extends NiFiSystemIT {
 
     @Test
     public void testRunOnce() throws NiFiClientException, IOException, InterruptedException {
-        // GIVEN
         ProcessorEntity generate = getClientUtil().createProcessor("GenerateFlowFile");
         getClientUtil().updateProcessorSchedulingPeriod(generate, "1 sec");
 
@@ -38,10 +37,8 @@ public class RunOnceIT extends NiFiSystemIT {
 
         ConnectionEntity generateToTerminate = getClientUtil().createConnection(generate, terminate, "success");
 
-        // WHEN
         getNifiClient().getProcessorClient().runProcessorOnce(generate);
 
-        // THEN
         waitForQueueCount(generateToTerminate.getId(), 1);
 
         ProcessorEntity actualGenerate = getNifiClient().getProcessorClient().getProcessor(generate.getId());
