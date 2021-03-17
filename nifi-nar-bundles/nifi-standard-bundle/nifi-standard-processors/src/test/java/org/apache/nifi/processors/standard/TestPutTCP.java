@@ -82,7 +82,7 @@ public class TestPutTCP {
     @After
     public void cleanup() {
         runner.shutdown();
-        removeTestServer(server);
+        shutdownServer();
     }
 
     @Test
@@ -106,7 +106,7 @@ public class TestPutTCP {
         configureProperties(TCP_SERVER_ADDRESS, OUTGOING_MESSAGE_DELIMITER, false);
         sendTestData(VALID_FILES);
         assertMessagesReceived(VALID_FILES);
-        assertEquals("Server Connections not matched", server.getTotalNumConnections(), 1);
+        assertServerConnections(1);
     }
 
     @Test(timeout = LONG_TEST_TIMEOUT_PERIOD)
@@ -130,7 +130,7 @@ public class TestPutTCP {
             configureProperties(TCP_SERVER_ADDRESS, OUTGOING_MESSAGE_DELIMITER, false);
             sendTestData(VALID_FILES);
             assertMessagesReceived(VALID_FILES);
-            assertEquals("Server Connections not matched", server.getTotalNumConnections(), 1);
+            assertServerConnections(1);
         } finally {
             Files.deleteIfExists(Paths.get(tlsConfiguration.getKeystorePath()));
             Files.deleteIfExists(Paths.get(tlsConfiguration.getTruststorePath()));
@@ -143,7 +143,7 @@ public class TestPutTCP {
         configureProperties(TCP_SERVER_ADDRESS_EL, OUTGOING_MESSAGE_DELIMITER, false);
         sendTestData(VALID_FILES);
         assertMessagesReceived(VALID_FILES);
-        assertEquals("Server Connections not matched", server.getTotalNumConnections(), 1);
+        assertServerConnections(1);
     }
 
     @Test(timeout = DEFAULT_TEST_TIMEOUT_PERIOD)
@@ -153,14 +153,14 @@ public class TestPutTCP {
         sendTestData(VALID_FILES);
         assertTransfers(VALID_FILES.length);
         assertMessagesReceived(VALID_FILES);
-        assertEquals("Server Connections not matched", server.getTotalNumConnections(), 1);
+
         runner.setProperty(PutTCP.IDLE_EXPIRATION, "500 ms");
         Thread.sleep(1000);
         runner.run(1, false, false);
         runner.clearTransferState();
         sendTestData(VALID_FILES);
         assertMessagesReceived(VALID_FILES);
-        assertEquals("Server Connections after prune senders not matched", server.getTotalNumConnections(), 2);
+        assertServerConnections(2);
     }
 
     @Test(timeout = DEFAULT_TEST_TIMEOUT_PERIOD)
@@ -169,7 +169,7 @@ public class TestPutTCP {
         configureProperties(TCP_SERVER_ADDRESS, OUTGOING_MESSAGE_DELIMITER_MULTI_CHAR, false);
         sendTestData(VALID_FILES);
         assertMessagesReceived(VALID_FILES);
-        assertEquals("Server Connections not matched", server.getTotalNumConnections(), 1);
+        assertServerConnections(1);
     }
 
     @Test(timeout = LONG_TEST_TIMEOUT_PERIOD)
@@ -178,7 +178,7 @@ public class TestPutTCP {
         configureProperties(TCP_SERVER_ADDRESS, OUTGOING_MESSAGE_DELIMITER, true);
         sendTestData(VALID_FILES);
         assertMessagesReceived(VALID_FILES);
-        assertEquals("Server Connections not matched", server.getTotalNumConnections(), VALID_FILES.length);
+        assertServerConnections(VALID_FILES.length);
     }
 
     @Test(timeout = DEFAULT_TEST_TIMEOUT_PERIOD)
@@ -187,19 +187,17 @@ public class TestPutTCP {
         configureProperties(TCP_SERVER_ADDRESS, OUTGOING_MESSAGE_DELIMITER, false);
         sendTestData(VALID_FILES);
         assertMessagesReceived(VALID_FILES);
-        assertEquals("Server Connections not matched", server.getTotalNumConnections(), 1);
-        removeTestServer(server);
-        runner.clearTransferState();
+
+        shutdownServer();
         sendTestData(VALID_FILES);
         Thread.sleep(500);
-        assertNull("Unexpected Data Received", received.poll());
         runner.assertQueueEmpty();
-        assertEquals("Server Connections after restart not matched", server.getTotalNumConnections(), 1);
+
         createTestServer(OUTGOING_MESSAGE_DELIMITER);
         configureProperties(TCP_SERVER_ADDRESS, OUTGOING_MESSAGE_DELIMITER, false);
         sendTestData(VALID_FILES);
         assertMessagesReceived(VALID_FILES);
-        assertEquals("Server Connections not matched", server.getTotalNumConnections(), 1);
+        assertServerConnections(1);
     }
 
     @Test(timeout = DEFAULT_TEST_TIMEOUT_PERIOD)
@@ -207,9 +205,9 @@ public class TestPutTCP {
         createTestServer(OUTGOING_MESSAGE_DELIMITER);
         configureProperties(TCP_SERVER_ADDRESS, OUTGOING_MESSAGE_DELIMITER, false);
         sendTestData(EMPTY_FILE);
-        assertTransfers(EMPTY_FILE.length);
+        assertTransfers(1);
         runner.assertQueueEmpty();
-        assertEquals("Server Connections not matched", server.getTotalNumConnections(), 1);
+        assertServerConnections(1);
     }
 
     @Test(timeout = DEFAULT_TEST_TIMEOUT_PERIOD)
@@ -219,7 +217,7 @@ public class TestPutTCP {
         final String[] testData = createContent(VALID_LARGE_FILE_SIZE);
         sendTestData(testData);
         assertMessagesReceived(testData);
-        assertEquals("Server Connections not matched", server.getTotalNumConnections(), testData.length);
+        assertServerConnections(testData.length);
     }
 
     @Test(timeout = LONG_TEST_TIMEOUT_PERIOD)
@@ -230,7 +228,7 @@ public class TestPutTCP {
         configureProperties(TCP_SERVER_ADDRESS, OUTGOING_MESSAGE_DELIMITER, false);
         sendTestData(testData, LOAD_TEST_ITERATIONS, LOAD_TEST_THREAD_COUNT);
         assertMessagesReceived(testData, LOAD_TEST_ITERATIONS);
-        assertEquals("Server Connections not matched", server.getTotalNumConnections(), 1);
+        assertServerConnections(1);
     }
 
     private void createTestServer(final String delimiter) throws Exception {
@@ -247,7 +245,7 @@ public class TestPutTCP {
         port = server.getPort();
     }
 
-    private void removeTestServer(final TCPTestServer server) {
+    private void shutdownServer() {
         if (server != null) {
             server.shutdown();
         }
@@ -291,9 +289,9 @@ public class TestPutTCP {
     private void assertMessagesReceived(final String[] sentData, final int iterations) throws Exception {
         for (int i = 0; i < iterations; i++) {
             for (String item : sentData) {
-                List<Byte> message = received.take();
+                final List<Byte> message = received.take();
                 assertNotNull(String.format("Message [%d] not found", i), message);
-                Byte[] messageBytes = new Byte[message.size()];
+                final Byte[] messageBytes = new Byte[message.size()];
                 assertArrayEquals(item.getBytes(), ArrayUtils.toPrimitive(message.toArray(messageBytes)));
             }
         }
@@ -302,6 +300,12 @@ public class TestPutTCP {
         runner.clearTransferState();
 
         assertNull("Unexpected Message Found", received.poll());
+    }
+
+    private void assertServerConnections(final int connections) {
+        // Shutdown server to get completed number of connections
+        shutdownServer();
+        assertEquals("Server Connections not matched", server.getTotalNumConnections(), connections);
     }
 
     private String[] createContent(final int size) {
