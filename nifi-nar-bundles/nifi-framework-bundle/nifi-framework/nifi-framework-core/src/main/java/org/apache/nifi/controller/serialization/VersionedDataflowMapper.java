@@ -18,6 +18,7 @@
 package org.apache.nifi.controller.serialization;
 
 import org.apache.nifi.connectable.Port;
+import org.apache.nifi.controller.FlowAnalysisRuleNode;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ParameterProviderNode;
 import org.apache.nifi.controller.ProcessorNode;
@@ -25,6 +26,7 @@ import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.Template;
 import org.apache.nifi.controller.flow.VersionedDataflow;
 import org.apache.nifi.controller.flow.VersionedFlowEncodingVersion;
+import org.apache.nifi.flow.VersionedFlowAnalysisRule;
 import org.apache.nifi.controller.flow.VersionedTemplate;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.flow.ScheduledState;
@@ -86,6 +88,7 @@ public class VersionedDataflowMapper {
         dataflow.setParameterContexts(mapParameterContexts());
         dataflow.setRegistries(mapRegistries());
         dataflow.setReportingTasks(mapReportingTasks());
+        dataflow.setFlowAnalysisRules(mapFlowAnalysisRules());
         dataflow.setParameterProviders(mapParameterProviders());
         dataflow.setRootGroup(mapRootGroup());
         dataflow.setTemplates(mapTemplates());
@@ -136,6 +139,17 @@ public class VersionedDataflowMapper {
         }
 
         return reportingTasks;
+    }
+
+    private List<VersionedFlowAnalysisRule> mapFlowAnalysisRules() {
+        final List<VersionedFlowAnalysisRule> flowAnalysisRules = new ArrayList<>();
+
+        for (final FlowAnalysisRuleNode ruleNode : flowController.getAllFlowAnalysisRules()) {
+            final VersionedFlowAnalysisRule versionedFlowAnalysisRule = flowMapper.mapFlowAnalysisRule(ruleNode, flowController.getControllerServiceProvider());
+            flowAnalysisRules.add(versionedFlowAnalysisRule);
+        }
+
+        return flowAnalysisRules;
     }
 
     private List<VersionedParameterProvider> mapParameterProviders() {
@@ -203,6 +217,17 @@ public class VersionedDataflowMapper {
             @Override
             public ScheduledState getState(final ReportingTaskNode taskNode) {
                 return map(taskNode.getScheduledState());
+            }
+
+            @Override
+            public ScheduledState getState(final FlowAnalysisRuleNode ruleNode) {
+                switch (ruleNode.getState()) {
+                    case DISABLED:
+                        return ScheduledState.DISABLED;
+                    case ENABLED:
+                    default:
+                        return ScheduledState.ENABLED;
+                }
             }
 
             @Override

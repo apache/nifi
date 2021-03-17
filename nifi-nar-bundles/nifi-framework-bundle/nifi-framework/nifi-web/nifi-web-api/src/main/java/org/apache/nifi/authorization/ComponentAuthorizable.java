@@ -26,14 +26,7 @@ import java.util.Set;
 /**
  * Authorizable for a component that references a ControllerService.
  */
-public interface ComponentAuthorizable {
-    /**
-     * Returns the base authorizable for this ControllerServiceReference. Non null
-     *
-     * @return authorizable
-     */
-    Authorizable getAuthorizable();
-
+public interface ComponentAuthorizable extends AuthorizableHolder {
     /**
      * Returns whether or not the underlying configurable component is restricted.
      *

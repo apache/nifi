@@ -18,6 +18,7 @@
 package org.apache.nifi.registry.flow.diff;
 
 import org.apache.nifi.flow.VersionedControllerService;
+import org.apache.nifi.flow.VersionedFlowAnalysisRule;
 import org.apache.nifi.flow.VersionedFlowRegistryClient;
 import org.apache.nifi.flow.VersionedParameterProvider;
 import org.apache.nifi.flow.VersionedProcessGroup;
@@ -34,6 +35,8 @@ public interface ComparableDataFlow {
     Set<VersionedControllerService> getControllerLevelServices();
 
     Set<VersionedReportingTask> getReportingTasks();
+
+    Set<VersionedFlowAnalysisRule> getFlowAnalysisRules();
 
     Set<VersionedParameterContext> getParameterContexts();
 

@@ -18,6 +18,7 @@
 package org.apache.nifi.registry.flow.diff;
 
 import org.apache.nifi.flow.VersionedControllerService;
+import org.apache.nifi.flow.VersionedFlowAnalysisRule;
 import org.apache.nifi.flow.VersionedFlowRegistryClient;
 import org.apache.nifi.flow.VersionedParameterProvider;
 import org.apache.nifi.flow.VersionedProcessGroup;
@@ -33,21 +34,30 @@ public class StandardComparableDataFlow implements ComparableDataFlow {
     private final VersionedProcessGroup contents;
     private final Set<VersionedControllerService> controllerLevelServices;
     private final Set<VersionedReportingTask> reportingTasks;
+    private final Set<VersionedFlowAnalysisRule> flowAnalysisRules;
     private final Set<VersionedParameterContext> parameterContexts;
     private final Set<VersionedParameterProvider> parameterProviders;
     private final Set<VersionedFlowRegistryClient> flowRegistryClients;
 
     public StandardComparableDataFlow(final String name, final VersionedProcessGroup contents) {
-        this(name, contents, Collections.emptySet(), Collections.emptySet(), Collections.emptySet(), Collections.emptySet(), Collections.emptySet());
+        this(name, contents, Collections.emptySet(), Collections.emptySet(), Collections.emptySet(), Collections.emptySet(), Collections.emptySet(), Collections.emptySet());
     }
 
-    public StandardComparableDataFlow(final String name, final VersionedProcessGroup contents, final Set<VersionedControllerService> controllerLevelServices,
-                                      final Set<VersionedReportingTask> reportingTasks, final Set<VersionedParameterContext> parameterContexts,
-                                      final Set<VersionedParameterProvider> parameterProviders, final Set<VersionedFlowRegistryClient> flowRegistryClients) {
+    public StandardComparableDataFlow(
+            final String name,
+            final VersionedProcessGroup contents,
+            final Set<VersionedControllerService> controllerLevelServices,
+            final Set<VersionedReportingTask> reportingTasks,
+            final Set<VersionedFlowAnalysisRule> flowAnalysisRules,
+            final Set<VersionedParameterContext> parameterContexts,
+            final Set<VersionedParameterProvider> parameterProviders,
+            final Set<VersionedFlowRegistryClient> flowRegistryClients
+    ) {
         this.name = name;
         this.contents = contents;
         this.controllerLevelServices = controllerLevelServices == null ? Collections.emptySet() : new HashSet<>(controllerLevelServices);
         this.reportingTasks = reportingTasks == null ? Collections.emptySet() : new HashSet<>(reportingTasks);
+        this.flowAnalysisRules = flowAnalysisRules == null ? Collections.emptySet() : new HashSet<>(flowAnalysisRules);
         this.parameterContexts = parameterContexts == null ? Collections.emptySet() : new HashSet<>(parameterContexts);
         this.parameterProviders = parameterProviders == null ? Collections.emptySet() : new HashSet<>(parameterProviders);
         this.flowRegistryClients = flowRegistryClients == null ? Collections.emptySet() : new HashSet<>(flowRegistryClients);
@@ -71,6 +81,11 @@ public class StandardComparableDataFlow implements ComparableDataFlow {
     @Override
     public Set<VersionedReportingTask> getReportingTasks() {
         return reportingTasks;
+    }
+
+    @Override
+    public Set<VersionedFlowAnalysisRule> getFlowAnalysisRules() {
+        return flowAnalysisRules;
     }
 
     @Override

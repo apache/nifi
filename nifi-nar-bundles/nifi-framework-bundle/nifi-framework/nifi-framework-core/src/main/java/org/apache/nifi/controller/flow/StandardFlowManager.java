@@ -36,6 +36,7 @@ import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ExtensionBuilder;
+import org.apache.nifi.controller.FlowAnalysisRuleNode;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.FlowSnippet;
 import org.apache.nifi.controller.ParameterProviderNode;
@@ -55,12 +56,14 @@ import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.service.StandardConfigurationContext;
 import org.apache.nifi.deprecation.log.DeprecationLogger;
 import org.apache.nifi.deprecation.log.DeprecationLoggerFactory;
+import org.apache.nifi.flowanalysis.FlowAnalysisRule;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.groups.StandardProcessGroup;
 import org.apache.nifi.groups.StatelessGroupNodeFactory;
 import org.apache.nifi.logging.ControllerServiceLogObserver;
+import org.apache.nifi.logging.FlowAnalysisRuleLogObserver;
 import org.apache.nifi.logging.FlowRegistryClientLogObserver;
 import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.logging.LogRepository;
@@ -346,6 +349,8 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
             .addClasspathUrls(additionalUrls)
             .kerberosConfig(flowController.createKerberosConfig(nifiProperties))
             .extensionManager(extensionManager)
+            .flowAnalyzer(getFlowAnalyzer())
+            .ruleViolationsManager(getRuleViolationsManager())
             .classloaderIsolationKey(classloaderIsolationKey)
             .pythonBridge(flowController.getPythonBridge())
             .buildProcessor();
@@ -522,6 +527,73 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
     }
 
     @Override
+    public FlowAnalysisRuleNode createFlowAnalysisRule(
+            final String type,
+            final String id,
+            final BundleCoordinate bundleCoordinate,
+            final Set<URL> additionalUrls,
+            final boolean firstTimeAdded,
+            final boolean register,
+            final String classloaderIsolationKey
+    ) {
+        requireNonNull(type);
+        requireNonNull(id);
+        requireNonNull(bundleCoordinate);
+
+        // make sure the first reference to LogRepository happens outside of a NarCloseable so that we use the framework's ClassLoader
+        final LogRepository logRepository = LogRepositoryFactory.getRepository(id);
+        final ExtensionManager extensionManager = flowController.getExtensionManager();
+
+        final FlowAnalysisRuleNode flowAnalysisRuleNode = new ExtensionBuilder()
+            .identifier(id)
+            .type(type)
+            .bundleCoordinate(bundleCoordinate)
+            .controllerServiceProvider(flowController.getControllerServiceProvider())
+            .processScheduler(processScheduler)
+            .nodeTypeProvider(flowController)
+            .validationTrigger(flowController.getValidationTrigger())
+            .reloadComponent(flowController.getReloadComponent())
+            .variableRegistry(flowController.getVariableRegistry())
+            .addClasspathUrls(additionalUrls)
+            .kerberosConfig(flowController.createKerberosConfig(nifiProperties))
+            .flowController(flowController)
+            .extensionManager(extensionManager)
+            .flowAnalyzer(getFlowAnalyzer())
+            .ruleViolationsManager(getRuleViolationsManager())
+            .classloaderIsolationKey(classloaderIsolationKey)
+            .buildFlowAnalysisRuleNode();
+
+        LogRepositoryFactory.getRepository(flowAnalysisRuleNode.getIdentifier()).setLogger(flowAnalysisRuleNode.getLogger());
+
+        if (firstTimeAdded) {
+            FlowAnalysisRule flowAnalysisRule = flowAnalysisRuleNode.getFlowAnalysisRule();
+            final Class<? extends ConfigurableComponent> flowAnalysisRuleClass = flowAnalysisRule.getClass();
+            final String identifier = flowAnalysisRule.getIdentifier();
+
+            try (final NarCloseable x = NarCloseable.withComponentNarLoader(flowController.getExtensionManager(), flowAnalysisRuleClass, identifier)) {
+                ReflectionUtils.invokeMethodsWithAnnotation(OnAdded.class, flowAnalysisRule);
+                logDeprecationNotice(flowAnalysisRule);
+
+                if (flowController.isInitialized()) {
+                    ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, flowAnalysisRule, flowAnalysisRuleNode.getConfigurationContext());
+                }
+            } catch (final Exception e) {
+                throw new ComponentLifeCycleException("Failed to invoke On-Added Lifecycle methods of " + flowAnalysisRule, e);
+            }
+        }
+
+        if (register) {
+            onFlowAnalysisRuleAdded(flowAnalysisRuleNode);
+
+            // Register log observer to provide bulletins when reporting task logs anything at WARN level or above
+            logRepository.addObserver(StandardProcessorNode.BULLETIN_OBSERVER_ID, LogLevel.WARN,
+                new FlowAnalysisRuleLogObserver(bulletinRepository, flowAnalysisRuleNode));
+        }
+
+        return flowAnalysisRuleNode;
+    }
+
+    @Override
     public ParameterProviderNode createParameterProvider(final String type, final String id, final BundleCoordinate bundleCoordinate,
                                                          final Set<URL> additionalUrls, final boolean firstTimeAdded, final boolean registerLogObserver) {
         requireNonNull(type);
@@ -625,6 +697,8 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
 
         processScheduler.submitFrameworkTask(() -> flowController.getStateManagerProvider().onComponentRemoved(service.getIdentifier()));
 
+        processScheduler.submitFrameworkTask(() -> getRuleViolationsManager().removeRuleViolationsForSubject(service.getIdentifier()));
+
         extensionManager.removeInstanceClassLoader(service.getIdentifier());
 
         logger.info("{} removed from Flow Controller", service);
@@ -651,6 +725,8 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
             .kerberosConfig(flowController.createKerberosConfig(nifiProperties))
             .stateManagerProvider(flowController.getStateManagerProvider())
             .extensionManager(extensionManager)
+            .flowAnalyzer(getFlowAnalyzer())
+            .ruleViolationsManager(getRuleViolationsManager())
             .classloaderIsolationKey(classloaderIsolationKey)
             .buildControllerService();
 

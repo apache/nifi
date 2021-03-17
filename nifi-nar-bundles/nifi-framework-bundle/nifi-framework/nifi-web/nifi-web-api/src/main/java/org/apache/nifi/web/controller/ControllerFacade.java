@@ -64,6 +64,7 @@ import org.apache.nifi.controller.status.analytics.StatusAnalytics;
 import org.apache.nifi.controller.status.analytics.StatusAnalyticsEngine;
 import org.apache.nifi.controller.status.history.StatusHistoryRepository;
 import org.apache.nifi.diagnostics.SystemDiagnostics;
+import org.apache.nifi.flowanalysis.FlowAnalysisRule;
 import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -557,6 +558,18 @@ public class ControllerFacade implements Authorizable {
      */
     public Set<DocumentedTypeDTO> getReportingTaskTypes(final String bundleGroupFilter, final String bundleArtifactFilter, final String typeFilter) {
         return dtoFactory.fromDocumentedTypes(getExtensionManager().getExtensions(ReportingTask.class), bundleGroupFilter, bundleArtifactFilter, typeFilter);
+    }
+
+    /**
+     * Gets the FlowAnalysisRule types that this controller supports.
+     *
+     * @param bundleGroupFilter if specified, must be member of bundle group
+     * @param bundleArtifactFilter if specified, must be member of bundle artifact
+     * @param typeFilter if specified, type must match
+     * @return the FlowAnalysisRule types that this controller supports
+     */
+    public Set<DocumentedTypeDTO> getFlowAnalysisRuleTypes(final String bundleGroupFilter, final String bundleArtifactFilter, final String typeFilter) {
+        return dtoFactory.fromDocumentedTypes(getExtensionManager().getExtensions(FlowAnalysisRule.class), bundleGroupFilter, bundleArtifactFilter, typeFilter);
     }
 
     /**

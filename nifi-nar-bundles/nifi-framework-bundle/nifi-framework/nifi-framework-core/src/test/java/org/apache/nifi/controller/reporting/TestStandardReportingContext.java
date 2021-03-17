@@ -129,7 +129,7 @@ public class TestStandardReportingContext {
 
         bulletinRepo = Mockito.mock(BulletinRepository.class);
         controller = FlowController.createStandaloneInstance(flowFileEventRepo, nifiProperties, authorizer, auditService, encryptor,
-                bulletinRepo, variableRegistry, extensionManager, statusHistoryRepository);
+                bulletinRepo, variableRegistry, extensionManager, statusHistoryRepository, null);
     }
 
     @AfterEach

@@ -34,6 +34,10 @@ import org.apache.nifi.cluster.coordination.http.endpoints.CountersEndpointMerge
 import org.apache.nifi.cluster.coordination.http.endpoints.CurrentUserEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.DropAllFlowFilesRequestEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.DropRequestEndpointMerger;
+import org.apache.nifi.cluster.coordination.http.endpoints.FlowAnalysisEndpointMerger;
+import org.apache.nifi.cluster.coordination.http.endpoints.FlowAnalysisRuleEndpointMerger;
+import org.apache.nifi.cluster.coordination.http.endpoints.FlowAnalysisRuleTypesEndpointMerger;
+import org.apache.nifi.cluster.coordination.http.endpoints.FlowAnalysisRulesEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.FlowConfigurationEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.FlowMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.FlowRegistryClientEndpointMerger;
@@ -75,6 +79,7 @@ import org.apache.nifi.cluster.coordination.http.endpoints.ReplayLastEventEndpoi
 import org.apache.nifi.cluster.coordination.http.endpoints.ReportingTaskEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ReportingTaskTypesEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.ReportingTasksEndpointMerger;
+import org.apache.nifi.cluster.coordination.http.endpoints.RuleViolationEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.RuntimeManifestEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.SearchUsersEndpointMerger;
 import org.apache.nifi.cluster.coordination.http.endpoints.StatusHistoryEndpointMerger;
@@ -144,6 +149,10 @@ public class StandardHttpResponseMapper implements HttpResponseMapper {
         endpointMergers.add(new ControllerServiceReferenceEndpointMerger());
         endpointMergers.add(new ReportingTaskEndpointMerger());
         endpointMergers.add(new ReportingTasksEndpointMerger());
+        endpointMergers.add(new FlowAnalysisRuleEndpointMerger());
+        endpointMergers.add(new FlowAnalysisRulesEndpointMerger());
+        endpointMergers.add(new FlowAnalysisEndpointMerger());
+        endpointMergers.add(new RuleViolationEndpointMerger());
         endpointMergers.add(new DropRequestEndpointMerger());
         endpointMergers.add(new DropAllFlowFilesRequestEndpointMerger());
         endpointMergers.add(new ListFlowFilesEndpointMerger());
@@ -156,6 +165,7 @@ public class StandardHttpResponseMapper implements HttpResponseMapper {
         endpointMergers.add(new ProcessorTypesEndpointMerger());
         endpointMergers.add(new ControllerServiceTypesEndpointMerger());
         endpointMergers.add(new ReportingTaskTypesEndpointMerger());
+        endpointMergers.add(new FlowAnalysisRuleTypesEndpointMerger());
         endpointMergers.add(new PrioritizerTypesEndpointMerger());
         endpointMergers.add(new ControllerConfigurationEndpointMerger());
         endpointMergers.add(new CurrentUserEndpointMerger());

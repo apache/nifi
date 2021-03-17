@@ -67,6 +67,7 @@
 
     var nfControllerServices,
         nfReportingTask,
+        nfFlowAnalysisRule,
         nfParameterProvider,
         nfSettings;
 
@@ -250,6 +251,15 @@
                 var referencingComponentState = $('div.' + reference.id + '-state');
                 if (referencingComponentState.length) {
                     updateReferencingSchedulableComponentState(referencingComponentState, reference);
+                }
+            } else if (reference.referenceType === 'FlowAnalysisRule') {
+                // reload the referencing flow analysis rules
+                nfFlowAnalysisRule.reload(reference.id);
+
+                // update the current state of this flow analysis rule
+                var referencingComponentState = $('div.' + reference.id + '-state');
+                if (referencingComponentState.length) {
+                    updateReferencingServiceState(referencingComponentState, reference);
                 }
             } else if (reference.referenceType === 'ParameterProvider') {
                 // reload
@@ -493,6 +503,7 @@
         var processors = $('<ul class="referencing-component-listing clear"></ul>');
         var services = $('<ul class="referencing-component-listing clear"></ul>');
         var tasks = $('<ul class="referencing-component-listing clear"></ul>');
+        var rules = $('<ul class="referencing-component-listing clear"></ul>');
         var registries = $('<ul class="referencing-component-listing clear"></ul>');
         var providers = $('<ul class="referencing-component-listing clear"></ul>');
         var unauthorized = $('<ul class="referencing-component-listing clear"></ul>');
@@ -633,6 +644,33 @@
                     // reporting task
                     var reportingTaskItem = $('<li></li>').append(reportingTaskState).append(reportingTaskBulletins).append(reportingTaskLink).append(reportingTaskType).append(reportingTaskActiveThreadCount);
                     tasks.append(reportingTaskItem);
+                } else if (referencingComponent.referenceType === 'FlowAnalysisRule') {
+                    var flowAnalysisRuleLink = $('<span class="referencing-component-name link"></span>').text(referencingComponent.name).on('click', function () {
+                        var flowAnalysisRuleGrid = $('#flow-analysis-rules-table').data('gridInstance');
+                        var flowAnalysisRuleData = flowAnalysisRuleGrid.getData();
+
+                        // select the selected row
+                        var row = flowAnalysisRuleData.getRowById(referencingComponent.id);
+                        flowAnalysisRuleGrid.setSelectedRows([row]);
+                        flowAnalysisRuleGrid.scrollRowIntoView(row);
+
+                        // select the flow analysis rule tab
+                        $('#settings-tabs').find('li:nth-child(4)').click();
+
+                        // close the dialog and shell
+                        referenceContainer.closest('.dialog').modal('hide');
+                    });
+
+                    // state
+                    var flowAnalysisRuleState = $('<div class="referencing-component-state"></div>').addClass(referencingComponent.id + '-state');
+                    updateReferencingServiceState(flowAnalysisRuleState, referencingComponent);
+
+                    // type
+                    var flowAnalysisRuleType = $('<span class="referencing-component-type"></span>').text(nfCommon.substringAfterLast(referencingComponent.type, '.'));
+
+                    // flow analysis rule
+                    var flowAnalysisRuleItem = $('<li></li>').append(flowAnalysisRuleState).append(flowAnalysisRuleLink).append(flowAnalysisRuleType);
+                    rules.append(flowAnalysisRuleItem);
                 } else if (referencingComponent.referenceType === 'ParameterProvider') {
                     var parameterProviderLink = $('<span class="referencing-component-name link"></span>').text(referencingComponent.name).on('click', function () {
                         var parameterProvidersGrid = $('#parameter-providers-table').data('gridInstance');
@@ -742,6 +780,7 @@
         // create blocks for each type of component
         createReferenceBlock('Processors', processors);
         createReferenceBlock('Reporting Tasks', tasks);
+        createReferenceBlock('Flow Analysis Rules', rules);
         createReferenceBlock('Registry Clients', registries);
         createReferenceBlock('Controller Services', services);
         createReferenceBlock('Parameter Providers', providers);
@@ -865,7 +904,7 @@
                     referencingComponentRevisions[referencingComponentEntity.id] = nfClient.getRevision(referencingComponentEntity);
                 }
             } else {
-                if (referencingComponent.referenceType === 'Processor' || referencingComponent.referenceType === 'ReportingTask') {
+                if (referencingComponent.referenceType === 'Processor' || referencingComponent.referenceType === 'ReportingTask' || referencingComponent.referenceType === 'FlowAnalysisRule') {
                     referencingComponentRevisions[referencingComponentEntity.id] = nfClient.getRevision(referencingComponentEntity);
                 }
             }
@@ -1079,7 +1118,7 @@
             var referencingComponents = service.referencingComponents;
             $.each(referencingComponents, function (_, referencingComponentEntity) {
                 var referencingComponent = referencingComponentEntity.component;
-                if (referencingComponent.referenceType === 'Processor' || referencingComponent.referenceType === 'ReportingTask' || referencingComponent.referenceType === 'ParameterProvider' || referencingComponent.referenceType === 'FlowRegistryClient') {
+                if (referencingComponent.referenceType === 'Processor' || referencingComponent.referenceType === 'ReportingTask' || referencingComponent.referenceType === 'FlowAnalysisRule' || referencingComponent.referenceType === 'ParameterProvider' || referencingComponent.referenceType === 'FlowRegistryClient') {
                     referencingSchedulableComponents.push(referencingComponent.id);
                 }
             });
@@ -1882,9 +1921,10 @@
         /**
          * Initializes the controller service configuration dialog.
          */
-        init: function (nfControllerServicesRef, nfReportingTaskRef, nfParameterProviderRef, nfSettingsRef) {
+        init: function (nfControllerServicesRef, nfReportingTaskRef, nfFlowAnalysisRuleRef, nfParameterProviderRef, nfSettingsRef) {
             nfControllerServices = nfControllerServicesRef;
             nfReportingTask = nfReportingTaskRef;
+            nfFlowAnalysisRule = nfFlowAnalysisRuleRef;
             nfParameterProvider = nfParameterProviderRef;
             nfSettings = nfSettingsRef;
 

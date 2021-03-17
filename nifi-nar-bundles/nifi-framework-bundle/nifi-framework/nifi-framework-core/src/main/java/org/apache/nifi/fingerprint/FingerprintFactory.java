@@ -31,6 +31,7 @@ import org.apache.nifi.util.DomUtils;
 import org.apache.nifi.util.LoggingXmlParserErrorHandler;
 import org.apache.nifi.web.api.dto.BundleDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
+import org.apache.nifi.web.api.dto.FlowAnalysisRuleDTO;
 import org.apache.nifi.web.api.dto.FlowRegistryClientDTO;
 import org.apache.nifi.web.api.dto.ParameterProviderDTO;
 import org.apache.nifi.web.api.dto.ReportingTaskDTO;
@@ -282,6 +283,36 @@ public class FingerprintFactory {
 
             for (final ReportingTaskDTO dto : reportingTaskDtos) {
                 addReportingTaskFingerprint(builder, dto);
+            }
+        }
+
+        final Element flowAnalysisRulesElem = DomUtils.getChild(flowControllerElem, "flowAnalysisRules");
+        if (flowAnalysisRulesElem != null) {
+            final List<FlowAnalysisRuleDTO> flowAnalysisRuleDtos = new ArrayList<>();
+            for (final Element ruleElem : DomUtils.getChildElementsByTagName(flowAnalysisRulesElem, "flowAnalysisRule")) {
+                final FlowAnalysisRuleDTO dto = FlowFromDOMFactory.getFlowAnalysisRule(ruleElem, encryptor, encodingVersion);
+                flowAnalysisRuleDtos.add(dto);
+            }
+
+            Collections.sort(flowAnalysisRuleDtos, new Comparator<FlowAnalysisRuleDTO>() {
+                @Override
+                public int compare(final FlowAnalysisRuleDTO o1, final FlowAnalysisRuleDTO o2) {
+                    if (o1 == null && o2 == null) {
+                        return 0;
+                    }
+                    if (o1 == null && o2 != null) {
+                        return 1;
+                    }
+                    if (o1 != null && o2 == null) {
+                        return -1;
+                    }
+
+                    return o1.getId().compareTo(o2.getId());
+                }
+            });
+
+            for (final FlowAnalysisRuleDTO dto : flowAnalysisRuleDtos) {
+                addFlowAnalysisRuleFingerprint(builder, dto);
             }
         }
 
@@ -845,6 +876,28 @@ public class FingerprintFactory {
         final ConfigurableComponent configurableComponent = extensionManager.getTempComponent(dto.getType(), coordinate);
         if (configurableComponent == null) {
             logger.warn("Unable to get ReportingTask of type {}; its default properties will be fingerprinted instead of being ignored.", dto.getType());
+        }
+
+        addPropertiesFingerprint(builder, configurableComponent, dto.getProperties());
+    }
+
+    private void addFlowAnalysisRuleFingerprint(final StringBuilder builder, final FlowAnalysisRuleDTO dto) {
+        builder.append(dto.getId());
+        builder.append(dto.getType());
+        builder.append(dto.getName());
+
+        addBundleFingerprint(builder, dto.getBundle());
+
+        builder.append(dto.getComments());
+        builder.append(dto.getEnforcementPolicy());
+        builder.append(dto.getState());
+        builder.append(dto.getAnnotationData());
+
+        // get the temp instance of the FlowAnalysisRule so that we know the default property values
+        final BundleCoordinate coordinate = getCoordinate(dto.getType(), dto.getBundle());
+        final ConfigurableComponent configurableComponent = extensionManager.getTempComponent(dto.getType(), coordinate);
+        if (configurableComponent == null) {
+            logger.warn("Unable to get FlowAnalysisRule of type {}; its default properties will be fingerprinted instead of being ignored.", dto.getType());
         }
 
         addPropertiesFingerprint(builder, configurableComponent, dto.getProperties());

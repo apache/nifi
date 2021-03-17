@@ -193,6 +193,14 @@ public interface AuthorizableLookup {
     ComponentAuthorizable getReportingTask(String id);
 
     /**
+     * Get the authorizable FlowAnalysisRule
+     *
+     * @param id flow analysis rule id
+     * @return authorizable
+     */
+    ComponentAuthorizable getFlowAnalysisRule(String id);
+
+    /**
      * Get the authorizable ParameterProvider.
      *
      * @param id parameter provider id

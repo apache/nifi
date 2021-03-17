@@ -147,7 +147,8 @@ public class HeadlessNiFiServer implements NiFiServer {
                     bulletinRepository,
                     variableRegistry,
                     extensionManager,
-                    statusHistoryRepository);
+                    statusHistoryRepository,
+                    null);
 
             flowService = StandardFlowService.createStandaloneInstance(
                     flowController,

@@ -39,6 +39,8 @@
 
             <xs:element name="reportingTasks" type="ReportingTasksType" minOccurs="0" maxOccurs="1" />
 
+            <xs:element name="flowAnalysisRules" type="FlowAnalysisRulesType" minOccurs="0" maxOccurs="1" />
+
             <xs:element name="parameterProviders" type="ParameterProvidersType" minOccurs="0" maxOccurs="1" />
         </xs:sequence>
         <xs:attribute name="encoding-version" type="xs:string"/>
@@ -191,6 +193,20 @@
             <xs:enumeration value="DISABLED"></xs:enumeration>
             <xs:enumeration value="RUNNING"></xs:enumeration>
             <xs:enumeration value="STOPPED"></xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="FlowAnalysisRuleEnforcementPolicy">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="ENFORCE"></xs:enumeration>
+            <xs:enumeration value="WARN"></xs:enumeration>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="FlowAnalysisState">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="ENABLED"></xs:enumeration>
+            <xs:enumeration value="DISABLED"></xs:enumeration>
         </xs:restriction>
     </xs:simpleType>
 
@@ -543,6 +559,28 @@
             <xs:element name="schedulingPeriod" type="NonEmptyStringType"/>
             <xs:element name="scheduledState" type="ScheduledState" />
             <xs:element name="schedulingStrategy" type="SchedulingStrategy" />
+
+            <xs:element name="property" type="PropertyType" minOccurs="0" maxOccurs="unbounded"/>
+            <xs:element name="annotationData" type="xs:string" minOccurs="0" maxOccurs="1" />
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="FlowAnalysisRulesType">
+        <xs:sequence>
+            <xs:element name="flowAnalysisRule" type="FlowAnalysisRuleType" minOccurs="0" maxOccurs="unbounded" />
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="FlowAnalysisRuleType">
+        <xs:sequence>
+            <xs:element name="id" type="NonEmptyStringType" />
+            <xs:element name="name" type="NonEmptyStringType" />
+            <xs:element name="comment" type="xs:string" />
+            <xs:element name="class" type="NonEmptyStringType" />
+            <xs:element name="bundle" type="BundleType" />
+
+            <xs:element name="enforcementPolicy" type="FlowAnalysisRuleEnforcementPolicy"/>
+            <xs:element name="state" type="FlowAnalysisState" />
 
             <xs:element name="property" type="PropertyType" minOccurs="0" maxOccurs="unbounded"/>
             <xs:element name="annotationData" type="xs:string" minOccurs="0" maxOccurs="1" />

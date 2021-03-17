@@ -24,6 +24,7 @@ import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.connectable.Position;
 import org.apache.nifi.connectable.Size;
+import org.apache.nifi.controller.FlowAnalysisRuleNode;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ParameterProviderNode;
 import org.apache.nifi.controller.ProcessorNode;
@@ -120,6 +121,12 @@ public class StandardFlowSerializer implements FlowSerializer<Document> {
             rootNode.appendChild(reportingTasksNode);
             for (final ReportingTaskNode taskNode : controller.getAllReportingTasks()) {
                 addReportingTask(reportingTasksNode, taskNode, encryptor);
+            }
+
+            final Element flowAnalysisRulesNode = doc.createElement("flowAnalysisRules");
+            rootNode.appendChild(flowAnalysisRulesNode);
+            for (final FlowAnalysisRuleNode flowAnalysisRuleNode : controller.getAllFlowAnalysisRules()) {
+                addFlowAnalysisRule(flowAnalysisRulesNode, flowAnalysisRuleNode, encryptor);
             }
 
             final Element parameterProvidersNode = doc.createElement("parameterProviders");
@@ -675,6 +682,23 @@ public class StandardFlowSerializer implements FlowSerializer<Document> {
         addConfiguration(taskElement, taskNode.getRawPropertyValues(), taskNode.getAnnotationData(), encryptor);
 
         element.appendChild(taskElement);
+    }
+
+    private void addFlowAnalysisRule(Element flowAnalysisRulesNode, FlowAnalysisRuleNode flowAnalysisRuleNode, final PropertyEncryptor encryptor) {
+        final Element taskElement = flowAnalysisRulesNode.getOwnerDocument().createElement("flowAnalysisRule");
+        addTextElement(taskElement, "id", flowAnalysisRuleNode.getIdentifier());
+        addTextElement(taskElement, "name", flowAnalysisRuleNode.getName());
+        addTextElement(taskElement, "comment", flowAnalysisRuleNode.getComments());
+        addTextElement(taskElement, "class", flowAnalysisRuleNode.getCanonicalClassName());
+
+        addBundle(taskElement, flowAnalysisRuleNode.getBundleCoordinate());
+
+        addTextElement(taskElement, "enforcementPolicy", flowAnalysisRuleNode.getEnforcementPolicy().name());
+        addTextElement(taskElement, "state", flowAnalysisRuleNode.getState().name());
+
+        addConfiguration(taskElement, flowAnalysisRuleNode.getRawPropertyValues(), flowAnalysisRuleNode.getAnnotationData(), encryptor);
+
+        flowAnalysisRulesNode.appendChild(taskElement);
     }
 
     public static void addParameterProvider(final Element element, final ParameterProviderNode providerNode, final PropertyEncryptor encryptor) {

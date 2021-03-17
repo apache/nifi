@@ -95,6 +95,8 @@ UI may become unavailable.
 
 *Reporting Task*: Reporting Tasks run in the background to provide statistical reports about what is happening in the NiFi instance. The DFM adds and configures Reporting Tasks in the User Interface as desired. Common reporting tasks include the ControllerStatusReportingTask, MonitorDiskUsage reporting task, MonitorMemory reporting task, and the StandardGangliaReporter.
 
+*Flow Analysis Rules*: Flow Analysis Rules can analyze components or (parts of) the flow. They may produce rule violations which can help adjust or maintain optimal flow design. The DFM adds and configures Flow Analysis Rules in the User Interface as desired.
+
 *Parameter Provider*: Parameter Providers can provide parameters from an external source to Parameter Contexts.  The parameters of a Parameter Provider may be fetched and applied to all referencing Parameter Contexts.
 
 *Funnel*: A funnel is a NiFi component that is used to combine the data from several Connections into a single Connection.
@@ -193,7 +195,7 @@ The available global access policies are:
 |======================
 |Policy  |Privilege
 |view the UI   |Allows users to view the UI
-|access the controller  |Allows users to view and modify the controller including Management Controller Services, Reporting Tasks, Registry Clients, Parameter Providers and nodes in the cluster
+|access the controller  |Allows users to view and modify the controller including Management Controller Services, Reporting Tasks, Flow Analysis Rules, Registry Clients, Parameter Providers and nodes in the cluster
 |query provenance     |Allows users to submit a provenance search and request even lineage
 |access restricted components     |Allows users to create/modify restricted components assuming other permissions are sufficient. The restricted
 components may indicate which specific permissions are required. Permissions can be granted for specific restrictions or be granted regardless
@@ -453,10 +455,10 @@ choosing `Configure`.
 
 [[component-versioning]]
 === Component Versions
-You have access to information about the version of your Processors, Controller Services, and Reporting Tasks.
+You have access to information about the version of your Processors, Controller Services, Reporting Tasks and Flow Analysis Rules.
 This is especially useful when you are working within a clustered environment with multiple NiFi instances running
 different versions of a component or if you have upgraded to a newer version of a processor. The Add Processor,
-Add Controller Service, and Add Reporting Task dialogs include a column identifying the component version, as well
+Add Controller Service, Add Reporting Task and Add Flow Analysis Rule dialogs include a column identifying the component version, as well
 as the name of the component, the organization or group that created the component, and the NAR bundle that contains
 the component.
 
@@ -897,7 +899,7 @@ The values of properties in the flow, including sensitive properties, can be par
  - A sensitive property can only reference a Sensitive Parameter
  - A non-sensitive property can only reference a Non-Sensitive Parameter
  - Properties that reference Controller Services can not use Parameters
- - Parameters cannot be referenced in Reporting Tasks or in Management Controller Services
+ - Parameters cannot be referenced in Reporting Tasks, Flow Analysis Rules or in Management Controller Services
 
 The UI indicates whether a Parameter can be used for a property value.
 
@@ -1286,9 +1288,9 @@ For more information, see the <<administration-guide.adoc#custom_properties,Cust
 [[Controller_Services]]
 === Controller Services
 
-Controller Services are shared services that can be used by reporting tasks, processors, and other services to utilize for configuration or task execution.
+Controller Services are shared services that can be used by reporting tasks, flow analysis rules, processors, and other services to utilize for configuration or task execution.
 
-IMPORTANT: Controller Services defined on the controller level are limited to reporting tasks and other services defined there. Controller Services for use by processors in your dataflow must be defined in the configuration of the root process group or sub-process group(s) where they will be used.
+IMPORTANT: Controller Services defined on the controller level are limited to reporting tasks, flow analysis rules and other services defined there. Controller Services for use by processors in your dataflow must be defined in the configuration of the root process group or sub-process group(s) where they will be used.
 
 NOTE: If your NiFi instance is secured, your ability to view and add Controller Services is dependent on the privileges assigned to you. If you do not have access to one or more Controller Services, you are not able to see or access it in the UI. Access privileges can be assigned on a global or Controller Service-specific basis (see <<UI-with-multi-tenant-authorization>> for more information).
 
@@ -1299,7 +1301,7 @@ To add a Management Controller Service, select Controller Settings from the Glob
 
 image:controller-settings-selection.png["Global Menu - Controller Settings"]
 
-This displays the NiFi Settings window. The window has five tabs: General, Management Controller Services, Reporting Tasks, Registry Clients and Parameter Providers. The General tab provides settings for the overall maximum thread counts of the instance.
+This displays the NiFi Settings window. The window has six tabs: General, Management Controller Services, Reporting Tasks, Flow Analysis Rules, Registry Clients and Parameter Providers. The General tab provides settings for the overall maximum thread counts of the instance.
 
 image:settings-general-tab.png["Controller Settings General Tab"]
 
@@ -1398,6 +1400,49 @@ image:configure-reporting-task-properties.png["Configure Reporting Task Properti
 The Comments tab is just an open-text field, where the DFM may include comments about the task. After configuring the Reporting Task, click "Apply" to save the configuration and close the window, or click "Cancel" to discard the changes and close the window.
 
 When you want to run the Reporting Task, click the "Start" button (image:iconStart.png["Start Button"]).
+
+[[Flow_Analysis_Rules]]
+=== Flow Analysis Rules
+
+Flow Analysis Rules can analyze components or (parts of) the flow. They may produce rule violations which can help adjust or maintain optimal flow design.
+Each rule can either be a Recommendation or a Policy which can be set on the Configure Flow Analysis Rule window.
+Rule violations of Recommendation type rules can be reported and viewed later but otherwise have no impact on functionality.
+Rule violations of Policy type rules can also be reported and viewed later but also impacts functionality: components that violate a Policy become invalid and remain
+so until the rule violation is resolved.
+The DFM adds and configures Flow Analysis Rules similar to the process for Controller Services. To add a Flow Analysis Rule, select Controller Settings from the Global Menu.
+
+image:controller-settings-selection.png["Global Menu - Controller Settings"]
+
+This displays the NiFi Settings window. Select the Flow Analysis Rules tab and click the `+` button in the upper-right corner to create a new Flow Analysis Rule.
+
+image:flow-analysis-rules-tab.png["Flow Analysis Rules Tab"]
+
+The Add Flow Analysis Rule window opens. This window is similar to the Add Processor window. It provides a list of the available Flow Analysis Rules on the right and a tag cloud, showing the most common category tags used for Flow Analysis Rules, on the left. The DFM may click any tag in the tag cloud in order to narrow down the list of Flow Analysis Rules to those that fit the categories desired. The DFM may also use the Filter field at the top-right of the window to search for the desired Flow Analysis Rule or use the Source drop-down at the top-left to filter the list by the group who created them. Upon selecting a Flow Analysis Rule from the list, the DFM can see a description of the rule below. Select the desired flow analysis rule and click Add, or simply double-click the name of the service to add it.
+
+image:add-flow-analysis-rule-window.png["Add Flow Analysis Rule Window"]
+
+Once a Flow Analysis Rule has been added, the DFM may configure it by clicking the "Configure" button in the far-right column (when the rule is disabled). Other buttons in this column include "Enable", "Disable", "View Configuration", "Remove", "State" and "Access Policies".
+
+image:flow-analysis-rules-configure-buttons.png["Flow Analysis Rules Configure Buttons"]
+
+You can obtain information about Flow Analysis Rules by clicking the "View Details", "Usage", and "Alerts" buttons in the left-hand column.
+
+image:flow-analysis-rules-info-buttons.png["Flow Analysis Rules Information Buttons"]
+
+When the DFM clicks the "Configure" button, a Configure Flow Analysis Rule window opens. It has three tabs: Settings, Properties, and Comments. This window is similar to the Configure Processor window. The Settings tab provides a place for the DFM to give the Flow Analysis Rule a unique name (if desired). It also lists the UUID, Type, and Bundle information for the rule and provides a setting for its type (Recommendation or Policy). The DFM may hover the mouse over the question mark icons to see more information about each setting.
+
+image:configure-flow-analysis-rule-settings.png["Configure Flow Analysis Rule Settings"]
+
+The Properties tab lists the various properties that may be configured for the rule. The DFM may hover the mouse over the question mark icons to see more information about each property.
+
+image:configure-flow-analysis-rule-properties.png["Configure Flow Analysis Rule Properties"]
+
+The Comments tab is just an open-text field, where the DFM may include comments about the rule. After configuring the Flow Analysis Rule, click "Apply" to save the configuration and close the window, or click "Cancel" to discard the changes and close the window.
+
+When you want the Flow Analysis Rule to be active, click the "Enable" button (image:iconEnable.png["Enable Button"]).
+
+When you want the Flow Analysis Rule to be inactive, click the "Disable" button (image:iconDisable.png["Disable Button"]).
+Disabling a rule also renders all corresponding violations null and void.
 
 
 [[Connecting_Components]]

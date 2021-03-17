@@ -20,6 +20,7 @@ import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.cluster.protocol.DataFlow;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.flow.VersionedDataflow;
+import org.apache.nifi.flow.VersionedFlowAnalysisRule;
 import org.apache.nifi.flow.VersionedFlowRegistryClient;
 import org.apache.nifi.controller.serialization.FlowFromDOMFactory;
 import org.apache.nifi.flow.Bundle;
@@ -87,6 +88,19 @@ public class BundleCompatibilityCheck implements FlowInheritabilityCheck {
                 if (isMissing(task.getBundle(), extensionManager)) {
                     return FlowInheritability.notInheritable(String.format("Reporting Task with ID %s and type %s requires bundle %s, but that bundle cannot be found in this NiFi instance",
                         task.getInstanceIdentifier(), task.getType(), task.getBundle()));
+                }
+            }
+        }
+
+        if (dataflow.getFlowAnalysisRules() != null) {
+            for (final VersionedFlowAnalysisRule rule : dataflow.getFlowAnalysisRules()) {
+                if (missingComponents.contains(rule.getInstanceIdentifier())) {
+                    continue;
+                }
+
+                if (isMissing(rule.getBundle(), extensionManager)) {
+                    return FlowInheritability.notInheritable(String.format("Flow Analysis Rule with ID %s and type %s requires bundle %s, but that bundle cannot be found in this NiFi instance",
+                        rule.getInstanceIdentifier(), rule.getType(), rule.getBundle()));
                 }
             }
         }

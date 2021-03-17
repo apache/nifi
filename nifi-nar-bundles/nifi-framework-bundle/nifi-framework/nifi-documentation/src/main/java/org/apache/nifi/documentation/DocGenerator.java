@@ -22,6 +22,7 @@ import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.documentation.html.HtmlDocumentationWriter;
 import org.apache.nifi.documentation.html.HtmlProcessorDocumentationWriter;
+import org.apache.nifi.flowanalysis.FlowAnalysisRule;
 import org.apache.nifi.nar.ExtensionDefinition;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.ExtensionMapping;
@@ -63,6 +64,7 @@ public class DocGenerator {
         documentConfigurableComponent(extensionManager.getExtensions(Processor.class), explodedNiFiDocsDir, extensionManager);
         documentConfigurableComponent(extensionManager.getExtensions(ControllerService.class), explodedNiFiDocsDir, extensionManager);
         documentConfigurableComponent(extensionManager.getExtensions(ReportingTask.class), explodedNiFiDocsDir, extensionManager);
+        documentConfigurableComponent(extensionManager.getExtensions(FlowAnalysisRule.class), explodedNiFiDocsDir, extensionManager);
         documentConfigurableComponent(extensionManager.getExtensions(ParameterProvider.class), explodedNiFiDocsDir, extensionManager);
     }
 

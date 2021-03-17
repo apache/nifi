@@ -18,7 +18,9 @@ package org.apache.nifi.controller;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.controller.flowanalysis.FlowAnalyzer;
 import org.apache.nifi.parameter.ParameterContext;
+import org.apache.nifi.validation.RuleViolationsManager;
 
 import java.util.Map;
 
@@ -27,4 +29,7 @@ public interface ValidationContextFactory {
     ValidationContext newValidationContext(Map<PropertyDescriptor, PropertyConfiguration> properties, String annotationData, String groupId, String componentId, ParameterContext parameterContext,
                                            boolean validateConnections);
 
+    RuleViolationsManager getRuleViolationsManager();
+
+    FlowAnalyzer getFlowAnalyzer();
 }

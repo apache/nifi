@@ -55,6 +55,7 @@ import org.apache.nifi.web.api.dto.CounterDTO;
 import org.apache.nifi.web.api.dto.CountersDTO;
 import org.apache.nifi.web.api.dto.DocumentedTypeDTO;
 import org.apache.nifi.web.api.dto.DropRequestDTO;
+import org.apache.nifi.web.api.dto.FlowAnalysisRuleDTO;
 import org.apache.nifi.web.api.dto.FlowFileDTO;
 import org.apache.nifi.web.api.dto.FlowRegistryClientDTO;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
@@ -91,6 +92,8 @@ import org.apache.nifi.web.api.entity.AccessPolicyEntity;
 import org.apache.nifi.web.api.entity.ActionEntity;
 import org.apache.nifi.web.api.entity.ActivateControllerServicesEntity;
 import org.apache.nifi.web.api.entity.AffectedComponentEntity;
+import org.apache.nifi.web.api.entity.FlowAnalysisResultEntity;
+import org.apache.nifi.web.api.entity.FlowRegistryBucketEntity;
 import org.apache.nifi.web.api.entity.BulletinEntity;
 import org.apache.nifi.web.api.entity.ComponentValidationResultEntity;
 import org.apache.nifi.web.api.entity.ConfigurationAnalysisEntity;
@@ -102,10 +105,10 @@ import org.apache.nifi.web.api.entity.ControllerConfigurationEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceReferencingComponentsEntity;
 import org.apache.nifi.web.api.entity.CurrentUserEntity;
+import org.apache.nifi.web.api.entity.FlowAnalysisRuleEntity;
 import org.apache.nifi.web.api.entity.FlowComparisonEntity;
 import org.apache.nifi.web.api.entity.FlowConfigurationEntity;
 import org.apache.nifi.web.api.entity.FlowEntity;
-import org.apache.nifi.web.api.entity.FlowRegistryBucketEntity;
 import org.apache.nifi.web.api.entity.FlowRegistryClientEntity;
 import org.apache.nifi.web.api.entity.FunnelEntity;
 import org.apache.nifi.web.api.entity.LabelEntity;
@@ -1718,6 +1721,12 @@ public interface NiFiServiceFacade {
     void verifyCanVerifyReportingTaskConfig(String reportingTaskId);
 
     /**
+     * Verifies that the Flow Analysis Rule with the given identifier is in a state where its configuration can be verified
+     * @param flowAnalysisRuleId the ID of the flow analysis rule
+     */
+    void verifyCanVerifyFlowAnalysisRuleConfig(String flowAnalysisRuleId);
+
+    /**
      * Verifies that the Parameter Provider with the given identifier is in a state where its configuration can be verified
      * @param parameterProviderId the ID of the service
      */
@@ -2740,4 +2749,150 @@ public interface NiFiServiceFacade {
      */
     ConfigurableComponent getTempComponent(String classType, BundleCoordinate bundleCoordinate);
 
+    // ----------------------------------------
+    // Flow Analysis Rule methods
+    // ----------------------------------------
+
+    /**
+     * Gets all flow analysis rules.
+     *
+     * @return flow analysis rules
+     */
+    Set<FlowAnalysisRuleEntity> getFlowAnalysisRules();
+
+    /**
+     * Returns the list of flow analysis rule types.
+     *
+     * @param bundleGroupFilter    if specified, must be member of bundle group
+     * @param bundleArtifactFilter if specified, must be member of bundle artifact
+     * @param typeFilter           if specified, type must match
+     * @return The list of available flow analysis rule types matching specified criteria
+     */
+    Set<DocumentedTypeDTO> getFlowAnalysisRuleTypes(String bundleGroupFilter, String bundleArtifactFilter, String typeFilter);
+
+    /**
+     * Verifies the specified flow analysis rule can be created.
+     *
+     * @param flowAnalysisRuleDTO flow analysis rule
+     */
+    void verifyCreateFlowAnalysisRule(FlowAnalysisRuleDTO flowAnalysisRuleDTO);
+
+    /**
+     * Verifies the specified flow analysis rule can be updated.
+     *
+     * @param flowAnalysisRuleDTO flow analysis rule
+     */
+    void verifyUpdateFlowAnalysisRule(FlowAnalysisRuleDTO flowAnalysisRuleDTO);
+
+    /**
+     * Performs verification of the given Configuration for the Flow Analysis Rule with the given ID
+     * @param flowAnalysisRuleId the id of the flow analysis rule
+     * @param properties the configured properties to verify
+     * @return verification results
+     */
+    List<ConfigVerificationResultDTO> performFlowAnalysisRuleConfigVerification(String flowAnalysisRuleId, Map<String, String> properties);
+
+    /**
+     * Performs analysis of the given properties, determining which attributes are referenced by properties
+     * @param flowAnalysisRuleId the ID of the Flow Analysis Rule
+     * @param properties the properties
+     * @return analysis results
+     */
+    ConfigurationAnalysisEntity analyzeFlowAnalysisRuleConfiguration(String flowAnalysisRuleId, Map<String, String> properties);
+
+    /**
+     * Verifies the specified flow analysis rule can be removed.
+     *
+     * @param flowAnalysisRuleId id of flow analysis rule
+     */
+    void verifyDeleteFlowAnalysisRule(final String flowAnalysisRuleId);
+
+    /**
+     * Verifies the state of a flow analysis rule can be cleared.
+     *
+     * @param flowAnalysisRuleId the flow analysis rule id
+     */
+    void verifyCanClearFlowAnalysisRuleState(String flowAnalysisRuleId);
+
+    /**
+     * Creates a flow analysis rule.
+     *
+     * @param revision            revision
+     * @param flowAnalysisRuleDTO The flow analysis rule (as DTO)
+     * @return The created flow analysis rule (wrapped in an Entity)
+     */
+    FlowAnalysisRuleEntity createFlowAnalysisRule(Revision revision, FlowAnalysisRuleDTO flowAnalysisRuleDTO);
+
+    /**
+     * Gets the flow analysis rule with the specified id.
+     *
+     * @param flowAnalysisRuleId id of the flow analysis rule
+     * @return the flow analysis rule
+     */
+    FlowAnalysisRuleEntity getFlowAnalysisRule(String flowAnalysisRuleId);
+
+    /**
+     * Get the descriptor for the specified property of the flow analysis rule with the specified id.
+     *
+     * @param flowAnalysisRuleId id of the flow analysis rule
+     * @param propertyName       property name
+     * @param sensitive          requested sensitive status
+     * @return descriptor
+     */
+    PropertyDescriptorDTO getFlowAnalysisRulePropertyDescriptor(String flowAnalysisRuleId, String propertyName, boolean sensitive);
+
+    /**
+     * Gets the state for the flow analysis rule with the specified id.
+     *
+     * @param flowAnalysisRuleId the flow analysis rule id
+     * @return the component state
+     */
+    ComponentStateDTO getFlowAnalysisRuleState(String flowAnalysisRuleId);
+
+    /**
+     * Clears the state for the flow analysis rule with the specified id.
+     *
+     * @param flowAnalysisRuleId the flow analysis rule id
+     */
+    void clearFlowAnalysisRuleState(String flowAnalysisRuleId);
+
+    /**
+     * Updates the specified flow analysis rule.
+     *
+     * @param revision            Revision to compare with current base revision
+     * @param flowAnalysisRuleDTO The flow analysis rule (as DTO)
+     * @return The updated flow analysis rule (wrapped in an Entity)
+     */
+    FlowAnalysisRuleEntity updateFlowAnalysisRule(Revision revision, FlowAnalysisRuleDTO flowAnalysisRuleDTO);
+
+    /**
+     * Deletes the flow analysis rule with the specified id.
+     *
+     * @param revision           Revision to compare with current base revision
+     * @param flowAnalysisRuleId The flow analysis rule id
+     * @return snapshot of the deleted flow analysis rule (wrapped in an Entity)
+     */
+    FlowAnalysisRuleEntity deleteFlowAnalysisRule(Revision revision, String flowAnalysisRuleId);
+
+    /**
+     * Analyze the flow or a part of it
+     *
+     * @param processGroupId The id of the process group representing (a part of) the flow to be analyzed.
+     *                       Recursive - all child process groups will be analyzed as well.
+     */
+    void analyzeProcessGroup(String processGroupId);
+
+    /**
+     * @return all current rule violations
+     */
+    FlowAnalysisResultEntity getFlowAnalysisResult();
+
+    /**
+     * Returns the rule violations produced by the analysis of a given process group
+     * (Recursive - includes violations for all analyzed child process groups as well)
+     *
+     * @param processGroupId the id of the process that was analyzed
+     * @return rule violations produced by the analysis of the process group
+     */
+    FlowAnalysisResultEntity getFlowAnalysisResult(String processGroupId);
 }

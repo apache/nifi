@@ -18,6 +18,8 @@ package org.apache.nifi.controller;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.admin.service.AuditService;
+import org.apache.nifi.flowanalysis.StandardFlowAnalyzer;
+import org.apache.nifi.flowanalysis.TriggerFlowAnalysisTask;
 import org.apache.nifi.annotation.lifecycle.OnConfigurationRestored;
 import org.apache.nifi.annotation.notification.PrimaryNodeState;
 import org.apache.nifi.authorization.Authorizer;
@@ -57,6 +59,9 @@ import org.apache.nifi.controller.cluster.Heartbeater;
 import org.apache.nifi.controller.exception.CommunicationsException;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.flow.StandardFlowManager;
+import org.apache.nifi.controller.flowanalysis.FlowAnalysisRuleInstantiationException;
+import org.apache.nifi.controller.flowanalysis.FlowAnalysisRuleProvider;
+import org.apache.nifi.controller.flowanalysis.FlowAnalysisUtil;
 import org.apache.nifi.controller.kerberos.KerberosConfig;
 import org.apache.nifi.controller.leader.election.LeaderElectionManager;
 import org.apache.nifi.controller.leader.election.LeaderElectionStateChangeListener;
@@ -144,6 +149,7 @@ import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.flow.Bundle;
 import org.apache.nifi.flow.VersionedConnection;
 import org.apache.nifi.flow.VersionedProcessGroup;
+import org.apache.nifi.flowanalysis.FlowAnalysisRule;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.groups.BundleUpdateStrategy;
@@ -179,6 +185,7 @@ import org.apache.nifi.python.PythonProcessConfig;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.registry.flow.mapping.NiFiRegistryFlowMapper;
 import org.apache.nifi.registry.flow.mapping.VersionedComponentStateLookup;
+import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedProcessGroup;
 import org.apache.nifi.remote.HttpRemoteSiteListener;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.remote.RemoteResourceManager;
@@ -206,6 +213,7 @@ import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.ReflectionUtils;
 import org.apache.nifi.util.concurrency.TimedLock;
+import org.apache.nifi.validation.RuleViolationsManager;
 import org.apache.nifi.web.api.dto.status.StatusHistoryDTO;
 import org.apache.nifi.web.revision.RevisionManager;
 import org.apache.zookeeper.server.quorum.QuorumPeerConfig.ConfigException;
@@ -244,11 +252,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import static java.util.Objects.requireNonNull;
 
-public class FlowController implements ReportingTaskProvider, Authorizable, NodeTypeProvider {
+public class FlowController implements ReportingTaskProvider, FlowAnalysisRuleProvider, Authorizable, NodeTypeProvider {
     private static final String STANDARD_PYTHON_BRIDGE_IMPLEMENTATION_CLASS = "org.apache.nifi.py4j.StandardPythonBridge";
 
     // default repository implementations
@@ -322,11 +331,13 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
     private final LeaderElectionManager leaderElectionManager;
     private final ClusterCoordinator clusterCoordinator;
     private final FlowEngine validationThreadPool;
+    private final FlowEngine flowAnalysisThreadPool;
     private final ValidationTrigger validationTrigger;
     private final ReloadComponent reloadComponent;
     private final ProvenanceAuthorizableFactory provenanceAuthorizableFactory;
     private final UserAwareEventAccess eventAccess;
     private final ParameterContextManager parameterContextManager;
+    private final StandardFlowAnalyzer flowAnalyzer;
     private final StandardFlowManager flowManager;
     private final RepositoryContextFactory repositoryContextFactory;
     private final RingBufferGarbageCollectionLog gcLog;
@@ -408,7 +419,8 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
             final BulletinRepository bulletinRepo,
             final VariableRegistry variableRegistry,
             final ExtensionDiscoveringManager extensionManager,
-            final StatusHistoryRepository statusHistoryRepository) {
+            final StatusHistoryRepository statusHistoryRepository,
+            final RuleViolationsManager ruleViolationsManager) {
 
         return new FlowController(
                 flowFileEventRepo,
@@ -425,7 +437,8 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
                 /* variable registry */ variableRegistry,
                 extensionManager,
                 null,
-                statusHistoryRepository);
+                statusHistoryRepository,
+                ruleViolationsManager);
     }
 
     public static FlowController createClusteredInstance(
@@ -442,7 +455,8 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
             final VariableRegistry variableRegistry,
             final ExtensionDiscoveringManager extensionManager,
             final RevisionManager revisionManager,
-            final StatusHistoryRepository statusHistoryRepository) {
+            final StatusHistoryRepository statusHistoryRepository,
+            final RuleViolationsManager ruleViolationsManager) {
 
         final FlowController flowController = new FlowController(
                 flowFileEventRepo,
@@ -459,7 +473,8 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
                 variableRegistry,
                 extensionManager,
                 revisionManager,
-                statusHistoryRepository);
+                statusHistoryRepository,
+                ruleViolationsManager);
 
         return flowController;
     }
@@ -480,7 +495,8 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
             final VariableRegistry variableRegistry,
             final ExtensionDiscoveringManager extensionManager,
             final RevisionManager revisionManager,
-            final StatusHistoryRepository statusHistoryRepository) {
+            final StatusHistoryRepository statusHistoryRepository,
+            final RuleViolationsManager ruleViolationsManager) {
 
         maxTimerDrivenThreads = new AtomicInteger(10);
 
@@ -552,7 +568,21 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
 
         parameterContextManager = new StandardParameterContextManager();
         repositoryContextFactory = new RepositoryContextFactory(contentRepository, flowFileRepository, flowFileEventRepository, counterRepositoryRef.get(), provenanceRepository, stateManagerProvider);
-        flowManager = new StandardFlowManager(nifiProperties, sslContext, this, flowFileEventRepository, parameterContextManager);
+
+        this.flowAnalysisThreadPool = new FlowEngine(1, "Background Flow Analysis", true);
+        flowAnalyzer = new StandardFlowAnalyzer(
+                ruleViolationsManager,
+                this,
+                extensionManager
+        );
+
+        flowManager = new StandardFlowManager(
+                nifiProperties,
+                sslContext,
+                this,
+                flowFileEventRepository,
+                parameterContextManager
+        );
 
         controllerServiceProvider = new StandardControllerServiceProvider(processScheduler, bulletinRepository, flowManager, extensionManager);
         controllerServiceResolver = new StandardControllerServiceResolver(authorizer, flowManager, new NiFiRegistryFlowMapper(extensionManager),
@@ -572,7 +602,13 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
         pythonBundle = PythonBundle.create(nifiProperties, pythonBridgeClassLoader);
         extensionManager.discoverPythonExtensions(pythonBundle);
 
-        flowManager.initialize(controllerServiceProvider, pythonBridge);
+        flowManager.initialize(
+                controllerServiceProvider,
+                pythonBridge,
+                flowAnalyzer,
+                ruleViolationsManager
+        );
+        flowAnalyzer.initialize(controllerServiceProvider);
 
         final QuartzSchedulingAgent quartzSchedulingAgent = new QuartzSchedulingAgent(this, timerDrivenEngineRef.get(), repositoryContextFactory);
         final TimerDrivenSchedulingAgent timerDrivenAgent = new TimerDrivenSchedulingAgent(this, timerDrivenEngineRef.get(), repositoryContextFactory, this.nifiProperties);
@@ -1105,6 +1141,14 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
             }
         }
 
+        for (final FlowAnalysisRuleNode ruleNode : getAllFlowAnalysisRules()) {
+            final FlowAnalysisRule rule = ruleNode.getFlowAnalysisRule();
+
+            try (final NarCloseable nc = NarCloseable.withComponentNarLoader(extensionManager, rule.getClass(), rule.getIdentifier())) {
+                ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnConfigurationRestored.class, rule, ruleNode.getConfigurationContext());
+            }
+        }
+
         for (final ParameterProviderNode parameterProviderNode : flowManager.getAllParameterProviders()) {
             final ParameterProvider provider = parameterProviderNode.getParameterProvider();
 
@@ -1128,6 +1172,19 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
             // Perform validation of all components before attempting to start them.
             LOG.debug("Triggering initial validation of all components");
             final long start = System.nanoTime();
+
+            Supplier<VersionedProcessGroup> rootProcessGroupSupplier = () -> {
+                ProcessGroup rootProcessGroup = getFlowManager().getRootGroup();
+
+                NiFiRegistryFlowMapper mapper = FlowAnalysisUtil.createMapper(getExtensionManager());
+
+                InstantiatedVersionedProcessGroup versionedRootProcessGroup = mapper.mapNonVersionedProcessGroup(
+                    rootProcessGroup,
+                    controllerServiceProvider
+                );
+
+                return versionedRootProcessGroup;
+            };
 
             final ValidationTrigger triggerIfValidating = new ValidationTrigger() {
                 @Override
@@ -1155,11 +1212,13 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
                 }
             };
 
+            new TriggerFlowAnalysisTask(flowAnalyzer, rootProcessGroupSupplier).run();
             new TriggerValidationTask(flowManager, triggerIfValidating).run();
 
             final long millis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
             LOG.info("Performed initial validation of all components in {} milliseconds", millis);
 
+            scheduleBackgroundFlowAnalysis(rootProcessGroupSupplier);
             // Trigger component validation to occur every 5 seconds.
             validationThreadPool.scheduleWithFixedDelay(new TriggerValidationTask(flowManager, validationTrigger), 5, 5, TimeUnit.SECONDS);
 
@@ -1233,6 +1292,21 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
             timerDrivenEngineRef.get().scheduleWithFixedDelay(discoverPythonExtensions, 1, 1, TimeUnit.MINUTES);
         } finally {
             writeLock.unlock("onFlowInitialized");
+        }
+    }
+
+    private void scheduleBackgroundFlowAnalysis(Supplier<VersionedProcessGroup> rootProcessGroupSupplier) {
+        try {
+            final long scheduleMillis = parseDurationPropertyToMillis(NiFiProperties.BACKGROUND_FLOW_ANALYSIS_SCHEDULE);
+
+            flowAnalysisThreadPool.scheduleWithFixedDelay(
+                new TriggerFlowAnalysisTask(flowManager.getFlowAnalyzer(), rootProcessGroupSupplier),
+                scheduleMillis,
+                scheduleMillis,
+                TimeUnit.MILLISECONDS
+            );
+        } catch (Exception e) {
+            LOG.warn("Could not initialize TriggerFlowAnalysisTask.", e);
         }
     }
 
@@ -1424,6 +1498,7 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
             }
 
             validationThreadPool.shutdown();
+            flowAnalysisThreadPool.shutdown();
             clusterTaskExecutor.shutdownNow();
 
             if (zooKeeperStateServer != null) {
@@ -1625,6 +1700,11 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
             @Override
             public org.apache.nifi.flow.ScheduledState getState(final ReportingTaskNode taskNode) {
                 return delegate.getState(taskNode);
+            }
+
+            @Override
+            public org.apache.nifi.flow.ScheduledState getState(final FlowAnalysisRuleNode ruleNode) {
+                return delegate.getState(ruleNode);
             }
 
             @Override
@@ -3341,5 +3421,39 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
         public boolean isPrimary() {
             return primary;
         }
+    }
+
+    // Flow Analysis
+    @Override
+    public FlowAnalysisRuleNode createFlowAnalysisRule(String type, String id, BundleCoordinate bundleCoordinate, boolean firstTimeAdded) throws FlowAnalysisRuleInstantiationException {
+        return flowManager.createFlowAnalysisRule(type, id, bundleCoordinate, firstTimeAdded);
+    }
+
+    @Override
+    public FlowAnalysisRuleNode getFlowAnalysisRuleNode(String identifier) {
+        return flowManager.getFlowAnalysisRuleNode(identifier);
+    }
+
+    @Override
+    public Set<FlowAnalysisRuleNode> getAllFlowAnalysisRules() {
+        return flowManager.getAllFlowAnalysisRules();
+    }
+
+    @Override
+    public void removeFlowAnalysisRule(FlowAnalysisRuleNode flowAnalysisRule) {
+        flowManager.removeFlowAnalysisRule(flowAnalysisRule);
+    }
+
+    @Override
+    public void enableFlowAnalysisRule(FlowAnalysisRuleNode flowAnalysisRule) {
+        flowAnalysisRule.verifyCanEnable();
+        flowAnalysisRule.reloadAdditionalResourcesIfNecessary();
+        flowAnalysisRule.enable();
+    }
+
+    @Override
+    public void disableFlowAnalysisRule(FlowAnalysisRuleNode flowAnalysisRule) {
+        flowAnalysisRule.verifyCanDisable();
+        flowAnalysisRule.disable();
     }
 }

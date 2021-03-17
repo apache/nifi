@@ -31,6 +31,7 @@ public class ControllerBulletinsEntity extends Entity {
     private List<BulletinEntity> bulletins;
     private List<BulletinEntity> controllerServiceBulletins;
     private List<BulletinEntity> reportingTaskBulletins;
+    private List<BulletinEntity> flowAnalysisRuleBulletins;
     private List<BulletinEntity> parameterProviderBulletins;
     private List<BulletinEntity> flowRegistryClientBulletins;
 
@@ -71,6 +72,18 @@ public class ControllerBulletinsEntity extends Entity {
     }
 
     /**
+     * @return Flow Analysis Rule bulletins to be reported to the user
+     */
+    @ApiModelProperty("Flow Analysis Rule bulletins to be reported to the user.")
+    public List<BulletinEntity> getFlowAnalysisRuleBulletins() {
+        return flowAnalysisRuleBulletins;
+    }
+
+    public void setFlowAnalysisRuleBulletins(List<BulletinEntity> flowAnalysisRuleBulletins) {
+        this.flowAnalysisRuleBulletins = flowAnalysisRuleBulletins;
+    }
+
+    /**
      * @return Parameter provider bulletins to be reported to the user
      */
     @ApiModelProperty("Parameter provider bulletins to be reported to the user.")
@@ -100,6 +113,7 @@ public class ControllerBulletinsEntity extends Entity {
         other.setBulletins(getBulletins() == null ? null : new ArrayList<>(getBulletins()));
         other.setControllerServiceBulletins(getControllerServiceBulletins() == null ? null : new ArrayList<>(getControllerServiceBulletins()));
         other.setReportingTaskBulletins(getReportingTaskBulletins() == null ? null : new ArrayList<>(getReportingTaskBulletins()));
+        other.setFlowAnalysisRuleBulletins(getFlowAnalysisRuleBulletins() == null ? null : new ArrayList<>(getFlowAnalysisRuleBulletins()));
         other.setParameterProviderBulletins(getParameterProviderBulletins() == null ? null : new ArrayList<>(getParameterProviderBulletins()));
         other.setFlowRegistryClientBulletins(getFlowRegistryClientBulletins() == null ? null : new ArrayList<>(getFlowRegistryClientBulletins()));
         return other;

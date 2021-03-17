@@ -250,7 +250,12 @@ public class StandardStatelessDataflowFactory implements StatelessDataflowFactor
             flowFileRepo.initialize(resourceClaimManager);
 
             final PythonBridge pythonBridge = new DisabledPythonBridge();
-            flowManager.initialize(controllerServiceProvider, pythonBridge);
+            flowManager.initialize(
+                    controllerServiceProvider,
+                    pythonBridge,
+                    null,
+                    null
+            );
 
             // Create flow
             final ProcessGroup rootGroup = flowManager.createProcessGroup("root");

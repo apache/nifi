@@ -22,6 +22,7 @@ import org.apache.nifi.flow.ExecutionEngine;
 import org.apache.nifi.flow.VersionedComponent;
 import org.apache.nifi.flow.VersionedConnection;
 import org.apache.nifi.flow.VersionedControllerService;
+import org.apache.nifi.flow.VersionedFlowAnalysisRule;
 import org.apache.nifi.flow.VersionedFlowCoordinates;
 import org.apache.nifi.flow.VersionedFlowRegistryClient;
 import org.apache.nifi.flow.VersionedFunnel;
@@ -92,6 +93,7 @@ public class StandardFlowComparator implements FlowComparator {
 
         differences.addAll(compareComponents(flowA.getControllerLevelServices(), flowB.getControllerLevelServices(), this::compare));
         differences.addAll(compareComponents(flowA.getReportingTasks(), flowB.getReportingTasks(), this::compare));
+        differences.addAll(compareComponents(flowA.getFlowAnalysisRules(), flowB.getFlowAnalysisRules(), this::compare));
         differences.addAll(compareComponents(flowA.getParameterProviders(), flowB.getParameterProviders(), this::compare));
         differences.addAll(compareComponents(flowA.getParameterContexts(), flowB.getParameterContexts(), this::compare));
         differences.addAll(compareComponents(flowA.getFlowRegistryClients(), flowB.getFlowRegistryClients(), this::compare));
@@ -201,6 +203,17 @@ public class StandardFlowComparator implements FlowComparator {
         addIfDifferent(differences, DifferenceType.SCHEDULING_STRATEGY_CHANGED, taskA, taskB, VersionedReportingTask::getSchedulingStrategy);
         addIfDifferent(differences, DifferenceType.SCHEDULED_STATE_CHANGED, taskA, taskB, VersionedReportingTask::getScheduledState);
         compareProperties(taskA, taskB, taskA.getProperties(), taskB.getProperties(), taskA.getPropertyDescriptors(), taskB.getPropertyDescriptors(), differences);
+    }
+
+    private void compare(final VersionedFlowAnalysisRule ruleA, final VersionedFlowAnalysisRule ruleB, final Set<FlowDifference> differences) {
+        if (compareComponents(ruleA, ruleB, differences)) {
+            return;
+        }
+
+        addIfDifferent(differences, DifferenceType.BUNDLE_CHANGED, ruleA, ruleB, VersionedFlowAnalysisRule::getBundle);
+        addIfDifferent(differences, DifferenceType.ENFORCEMENT_POLICY_CHANGED, ruleA, ruleB, VersionedFlowAnalysisRule::getEnforcementPolicy);
+        addIfDifferent(differences, DifferenceType.SCHEDULED_STATE_CHANGED, ruleA, ruleB, VersionedFlowAnalysisRule::getScheduledState);
+        compareProperties(ruleA, ruleB, ruleA.getProperties(), ruleB.getProperties(), ruleA.getPropertyDescriptors(), ruleB.getPropertyDescriptors(), differences);
     }
 
     private void compare(final VersionedParameterProvider parameterProviderA, final VersionedParameterProvider parameterProviderB, final Set<FlowDifference> differences) {

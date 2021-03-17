@@ -8,6 +8,7 @@
   "parameterContexts": [],
   "controllerServices": [],
   "reportingTasks": [],
+  "flowAnalysisRules": [],
   "templates": [],
   "rootGroup": {
     "identifier": "2a2b649d-8538-3239-9965-536b5b993cc5",

@@ -23,14 +23,7 @@ import org.apache.nifi.groups.ProcessGroup;
 /**
  * Authorizable for a Connection and its Group, Source, and Destination.
  */
-public interface ConnectionAuthorizable {
-    /**
-     * Returns the authorizable for this connection. Non null
-     *
-     * @return authorizable
-     */
-    Authorizable getAuthorizable();
-
+public interface ConnectionAuthorizable extends AuthorizableHolder {
     /**
      * Returns the source.
      *

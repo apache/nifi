@@ -78,6 +78,12 @@ public class DocumentationController extends HttpServlet {
             reportingTasks.put(StringUtils.substringAfterLast(reportingTaskClass, "."), reportingTaskClass);
         }
 
+        // create the flow analysis rule lookup
+        final Map<String, String> flowAnalysisRules = new TreeMap<>(collator);
+        for (final String flowAnalysisRuleClass : extensionMappings.getFlowAnalysisRuleNames().keySet()) {
+            flowAnalysisRules.put(StringUtils.substringAfterLast(flowAnalysisRuleClass, "."), flowAnalysisRuleClass);
+        }
+
         // create the parameter provider lookup
         final Map<String, String> parameterProviders = new TreeMap<>(collator);
         for (final String parameterProviderClass : extensionMappings.getParameterProviderNames().keySet()) {
@@ -90,8 +96,10 @@ public class DocumentationController extends HttpServlet {
         request.setAttribute("controllerServices", controllerServices);
         request.setAttribute("controllerServiceBundleLookup", extensionMappings.getControllerServiceNames());
         request.setAttribute("reportingTasks", reportingTasks);
-        request.setAttribute("parameterProviders", parameterProviders);
         request.setAttribute("reportingTaskBundleLookup", extensionMappings.getReportingTaskNames());
+        request.setAttribute("flowAnalysisRules", flowAnalysisRules);
+        request.setAttribute("flowAnalysisRuleBundleLookup", extensionMappings.getFlowAnalysisRuleNames());
+        request.setAttribute("parameterProviders", parameterProviders);
         request.setAttribute("parameterProviderBundleLookup", extensionMappings.getParameterProviderNames());
         request.setAttribute("totalComponents", GENERAL_LINK_COUNT + extensionMappings.size() + DEVELOPER_LINK_COUNT);
 

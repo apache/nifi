@@ -34,6 +34,7 @@ public enum ResourceType {
     Proxy("/proxy"),
     RemoteProcessGroup("/remote-process-groups"),
     ReportingTask("/reporting-tasks"),
+    FlowAnalysisRule("/controller/flow-analysis-rules"),
     Resource("/resources"),
     SiteToSite("/site-to-site"),
     DataTransfer("/data-transfer"),

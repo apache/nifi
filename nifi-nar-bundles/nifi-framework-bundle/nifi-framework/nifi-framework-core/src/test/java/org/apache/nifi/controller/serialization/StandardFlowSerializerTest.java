@@ -99,7 +99,7 @@ public class StandardFlowSerializerTest {
 
         final BulletinRepository bulletinRepo = Mockito.mock(BulletinRepository.class);
         controller = FlowController.createStandaloneInstance(flowFileEventRepo, nifiProperties, authorizer,
-            auditService, encryptor, bulletinRepo, variableRegistry, extensionManager, Mockito.mock(StatusHistoryRepository.class));
+            auditService, encryptor, bulletinRepo, variableRegistry, extensionManager, Mockito.mock(StatusHistoryRepository.class), null);
 
         serializer = new StandardFlowSerializer();
     }

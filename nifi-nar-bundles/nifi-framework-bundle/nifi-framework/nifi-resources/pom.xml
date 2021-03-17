@@ -257,6 +257,9 @@
         <nifi.analytics.connection.model.score.name>rSquared</nifi.analytics.connection.model.score.name>
         <nifi.analytics.connection.model.score.threshold>.90</nifi.analytics.connection.model.score.threshold>
 
+        <!-- nifi.properties: flow analysis properties -->
+        <nifi.flow.analysis.background.task.schedule>5 mins</nifi.flow.analysis.background.task.schedule>
+
         <!-- nifi.properties: runtime monitoring properties -->
         <nifi.monitor.long.running.task.schedule>1 min</nifi.monitor.long.running.task.schedule>
         <nifi.monitor.long.running.task.threshold>5 mins</nifi.monitor.long.running.task.threshold>
