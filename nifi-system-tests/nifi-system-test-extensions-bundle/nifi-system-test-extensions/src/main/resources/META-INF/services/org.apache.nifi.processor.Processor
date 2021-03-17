@@ -26,7 +26,9 @@ org.apache.nifi.processors.tests.system.PassThroughRequiresInstanceClassLoading
 org.apache.nifi.processors.tests.system.ReverseContents
 org.apache.nifi.processors.tests.system.SetAttribute
 org.apache.nifi.processors.tests.system.Sleep
+org.apache.nifi.processors.tests.system.SplitByLine
 org.apache.nifi.processors.tests.system.TerminateFlowFile
 org.apache.nifi.processors.tests.system.ThrowProcessException
 org.apache.nifi.processors.tests.system.ValidateFileExists
+org.apache.nifi.processors.tests.system.VerifyContents
 org.apache.nifi.processors.tests.system.WriteToFile

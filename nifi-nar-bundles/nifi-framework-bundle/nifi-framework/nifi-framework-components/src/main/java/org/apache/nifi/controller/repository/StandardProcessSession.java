@@ -2300,9 +2300,9 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
 
                 currentReadClaim = claim.getResourceClaim();
                 final InputStream contentRepoStream = context.getContentRepository().read(claim.getResourceClaim());
-                StreamUtils.skip(contentRepoStream, claim.getOffset());
+                StreamUtils.skip(contentRepoStream, claim.getOffset() + contentClaimOffset);
                 final InputStream bufferedContentStream = new BufferedInputStream(contentRepoStream);
-                final ByteCountingInputStream byteCountingInputStream = new ByteCountingInputStream(bufferedContentStream, claim.getOffset());
+                final ByteCountingInputStream byteCountingInputStream = new ByteCountingInputStream(bufferedContentStream, claim.getOffset() + contentClaimOffset);
                 currentReadClaimStream = byteCountingInputStream;
 
                 // Use a non-closeable stream (DisableOnCloseInputStream) because we want to keep it open after the callback has finished so that we can
