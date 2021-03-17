@@ -87,7 +87,7 @@ class RestLookupServiceIT {
         try {
             server.startServer()
 
-            setEndpoint(server.port, "/simple")
+            setEndpoint(server.port, '/${schema.name}')
 
             def coordinates = [
                 "mime.type": "application/json",
@@ -207,8 +207,8 @@ class RestLookupServiceIT {
 
     @Test
     void testHeaders() {
-        runner.setProperty(lookupService, "X-USER", "jane.doe")
-        runner.setProperty(lookupService, "X-PASS", "testing7890")
+        runner.setProperty(lookupService, "X-USER", '${x.user}')
+        runner.setProperty(lookupService, "X-PASS", 'testing7890')
 
         TestServer server = new TestServer()
         ServletHandler handler = new ServletHandler()
@@ -224,7 +224,7 @@ class RestLookupServiceIT {
                 "request.method": "get"
             ]
 
-            def context = [ "schema.name": "simple" ]
+            def context = [ 'schema.name': 'simple' , 'x.user': 'jane.doe']
 
             Optional<Record> response = lookupService.lookup(coordinates, context)
             Assert.assertTrue(response.isPresent())
