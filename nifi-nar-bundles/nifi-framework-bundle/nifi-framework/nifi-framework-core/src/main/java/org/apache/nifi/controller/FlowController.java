@@ -1107,7 +1107,8 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
         final long scheduleMillis = parseDurationPropertyToMillis(NiFiProperties.MONITOR_LONG_RUNNING_TASK_SCHEDULE, NiFiProperties.DEFAULT_MONITOR_LONG_RUNNING_TASK_SCHEDULE);
         final long thresholdMillis = parseDurationPropertyToMillis(NiFiProperties.MONITOR_LONG_RUNNING_TASK_THRESHOLD, NiFiProperties.DEFAULT_MONITOR_LONG_RUNNING_TASK_THRESHOLD);
 
-        longRunningTaskMonitorThreadPool.scheduleWithFixedDelay(new LongRunningTaskMonitor(getFlowManager(), thresholdMillis), scheduleMillis, scheduleMillis, TimeUnit.MILLISECONDS);
+        LongRunningTaskMonitor longRunningTaskMonitor = new LongRunningTaskMonitor(getFlowManager(), createEventReporter(), thresholdMillis);
+        longRunningTaskMonitorThreadPool.scheduleWithFixedDelay(longRunningTaskMonitor, scheduleMillis, scheduleMillis, TimeUnit.MILLISECONDS);
     }
 
     private long parseDurationPropertyToMillis(String propertyName, String defaultValue) {
