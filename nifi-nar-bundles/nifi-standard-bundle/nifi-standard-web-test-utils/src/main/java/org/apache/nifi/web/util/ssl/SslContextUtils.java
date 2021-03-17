@@ -16,15 +16,37 @@
  */
 package org.apache.nifi.web.util.ssl;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.security.util.KeystoreType;
 import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.security.util.StandardTlsConfiguration;
 import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.security.util.TlsException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLContext;
+import java.io.File;
+import java.security.Security;
 
 public class SslContextUtils {
+    private static final Logger LOGGER = LoggerFactory.getLogger(SslContextUtils.class);
+
+    private static final String TLS_DISABLED_ALGORITHMS_PROPERTY = "jdk.tls.disabledAlgorithms";
+
+    private static final String DISABLED_ALGORITHMS = "SSLv3, RC4, DES, MD5withRSA, DH keySize < 1024, EC keySize < 224, 3DES_EDE_CBC, anon, NULL, include jdk.disabled.namedCurves";
+
+    static {
+        final String disabledAlgorithms = Security.getProperty(TLS_DISABLED_ALGORITHMS_PROPERTY);
+        if (DISABLED_ALGORITHMS.equals(disabledAlgorithms)) {
+            LOGGER.debug("Found Expected Default TLS Disabled Algorithms: {}", DISABLED_ALGORITHMS);
+        } else {
+            LOGGER.warn("Found System Default TLS Disabled Algorithms: {}", disabledAlgorithms);
+            LOGGER.warn("Setting TLS Disabled Algorithms: {}", DISABLED_ALGORITHMS);
+            Security.setProperty(TLS_DISABLED_ALGORITHMS_PROPERTY, DISABLED_ALGORITHMS);
+        }
+    }
+
     private static final String KEYSTORE_PATH = "src/test/resources/keystore.jks";
 
     private static final String KEYSTORE_AND_TRUSTSTORE_PASSWORD = "passwordpassword";
@@ -71,5 +93,32 @@ public class SslContextUtils {
      */
     public static SSLContext createTrustStoreSslContext() throws TlsException {
         return SslContextFactory.createSslContext(TRUSTSTORE_TLS_CONFIGURATION);
+    }
+
+    /**
+     * Create SSLContext using Keystore and Truststore with deleteOnExit() for files
+     *
+     * @param tlsConfiguration TLS Configuration
+     * @return SSLContext configured with generated Keystore and Truststore
+     * @throws TlsException Thrown on SslContextFactory.createSslContext()
+     */
+    public static SSLContext createSslContext(final TlsConfiguration tlsConfiguration) throws TlsException {
+        final String keystorePath = tlsConfiguration.getKeystorePath();
+        if (StringUtils.isNotBlank(keystorePath)) {
+            final File keystoreFile = new File(keystorePath);
+            keystoreFile.deleteOnExit();
+        }
+
+        final String truststorePath = tlsConfiguration.getTruststorePath();
+        if (StringUtils.isNotBlank(truststorePath)) {
+            final File truststoreFile = new File(truststorePath);
+            truststoreFile.deleteOnExit();
+        }
+
+        final SSLContext sslContext = SslContextFactory.createSslContext(tlsConfiguration);
+        if (sslContext == null) {
+            throw new TlsException(String.format("Failed to create SSLContext from Configuration %s", tlsConfiguration));
+        }
+        return sslContext;
     }
 }

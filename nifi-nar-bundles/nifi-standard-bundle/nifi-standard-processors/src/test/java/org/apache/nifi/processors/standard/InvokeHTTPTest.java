@@ -24,7 +24,6 @@ import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.security.util.KeyStoreUtils;
-import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.security.util.StandardTlsConfiguration;
 import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.security.util.TlsException;
@@ -33,6 +32,7 @@ import org.apache.nifi.util.LogMessage;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.apache.nifi.web.util.ssl.SslContextUtils;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -820,10 +820,10 @@ public class InvokeHTTPTest {
 
     private void setSslContextConfiguration(final TlsConfiguration serverTlsConfiguration, final TlsConfiguration clientTlsConfiguration) throws InitializationException, TlsException {
         final SSLContextService sslContextService = setSslContextService();
-        final SSLContext serverSslContext = getSslContext(serverTlsConfiguration);
+        final SSLContext serverSslContext = SslContextUtils.createSslContext(serverTlsConfiguration);
         setMockWebServerSslSocketFactory(serverSslContext);
 
-        final SSLContext clientSslContext = getSslContext(clientTlsConfiguration);
+        final SSLContext clientSslContext = SslContextUtils.createSslContext(clientTlsConfiguration);
         when(sslContextService.createContext()).thenReturn(clientSslContext);
         when(sslContextService.createTlsConfiguration()).thenReturn(clientTlsConfiguration);
     }
@@ -847,13 +847,5 @@ public class InvokeHTTPTest {
             throw new IllegalArgumentException("Socket Factory not found");
         }
         mockWebServer.useHttps(sslSocketFactory, false);
-    }
-
-    private SSLContext getSslContext(final TlsConfiguration configuration) throws TlsException {
-        final SSLContext sslContext = SslContextFactory.createSslContext(configuration);
-        if (sslContext == null) {
-            throw new IllegalArgumentException("SSLContext not found for TLS Configuration");
-        }
-        return sslContext;
     }
 }
