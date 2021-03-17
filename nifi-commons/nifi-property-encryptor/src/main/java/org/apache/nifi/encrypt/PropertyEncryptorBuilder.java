@@ -16,50 +16,55 @@
  */
 package org.apache.nifi.encrypt;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.security.util.EncryptionMethod;
 import org.apache.nifi.security.util.crypto.AESKeyedCipherProvider;
 import org.apache.nifi.security.util.crypto.KeyedCipherProvider;
 import org.apache.nifi.security.util.crypto.PBECipherProvider;
-import org.apache.nifi.util.NiFiProperties;
 
 import javax.crypto.SecretKey;
 import java.util.Objects;
 
 /**
- * Property Encryptor Factory for encapsulating instantiation of Property Encryptors based on various parameters
+ * Property Encryptor Builder
  */
-public class PropertyEncryptorFactory {
+public class PropertyEncryptorBuilder {
     private static final PropertySecretKeyProvider SECRET_KEY_PROVIDER = new StandardPropertySecretKeyProvider();
 
-    private static final String KEY_REQUIRED = String.format("NiFi Sensitive Properties Key [%s] is required", NiFiProperties.SENSITIVE_PROPS_KEY);
+    private final String password;
+
+    private String algorithm = PropertyEncryptionMethod.NIFI_ARGON2_AES_GCM_256.toString();
 
     /**
-     * Get Property Encryptor using NiFi Properties
+     * Property Encryptor Builder with required password
      *
-     * @param properties NiFi Properties
+     * @param password Password required
+     */
+    public PropertyEncryptorBuilder(final String password) {
+        Objects.requireNonNull(password, "Password required");
+        this.password = password;
+    }
+
+    /**
+     * Set Algorithm as either Property Encryption Method or Encryption Method
+     *
+     * @param algorithm Algorithm
+     * @return Property Encryptor Builder
+     */
+    public PropertyEncryptorBuilder setAlgorithm(final String algorithm) {
+        Objects.requireNonNull(algorithm, "Algorithm required");
+        this.algorithm = algorithm;
+        return this;
+    }
+
+    /**
+     * Build Property Encryptor using current configuration
+     *
      * @return Property Encryptor
      */
-    @SuppressWarnings("deprecation")
-    public static PropertyEncryptor getPropertyEncryptor(final NiFiProperties properties) {
-        Objects.requireNonNull(properties, "NiFi Properties is required");
-        final String algorithm = properties.getProperty(NiFiProperties.SENSITIVE_PROPS_ALGORITHM);
-        String password = properties.getProperty(NiFiProperties.SENSITIVE_PROPS_KEY);
-
-        if (StringUtils.isBlank(password)) {
-            throw new IllegalArgumentException(KEY_REQUIRED);
-        }
-
+    public PropertyEncryptor build() {
         final PropertyEncryptionMethod propertyEncryptionMethod = findPropertyEncryptionAlgorithm(algorithm);
         if (propertyEncryptionMethod == null) {
-            final EncryptionMethod encryptionMethod = findEncryptionMethod(algorithm);
-            if (encryptionMethod.isPBECipher()) {
-                final PBECipherProvider cipherProvider = new org.apache.nifi.security.util.crypto.NiFiLegacyCipherProvider();
-                return new PasswordBasedCipherPropertyEncryptor(cipherProvider, encryptionMethod, password);
-            } else {
-                final String message = String.format("Algorithm [%s] not supported for Sensitive Properties", encryptionMethod.getAlgorithm());
-                throw new UnsupportedOperationException(message);
-            }
+            return getPasswordBasedCipherPropertyEncryptor();
         } else {
             final KeyedCipherProvider keyedCipherProvider = new AESKeyedCipherProvider();
             final SecretKey secretKey = SECRET_KEY_PROVIDER.getSecretKey(propertyEncryptionMethod, password);
@@ -68,7 +73,19 @@ public class PropertyEncryptorFactory {
         }
     }
 
-    private static PropertyEncryptionMethod findPropertyEncryptionAlgorithm(final String algorithm) {
+    @SuppressWarnings("deprecation")
+    private PasswordBasedCipherPropertyEncryptor getPasswordBasedCipherPropertyEncryptor() {
+        final EncryptionMethod encryptionMethod = findEncryptionMethod(algorithm);
+        if (encryptionMethod.isPBECipher()) {
+            final PBECipherProvider cipherProvider = new org.apache.nifi.security.util.crypto.NiFiLegacyCipherProvider();
+            return new PasswordBasedCipherPropertyEncryptor(cipherProvider, encryptionMethod, password);
+        } else {
+            final String message = String.format("Algorithm [%s] not supported for Sensitive Properties", encryptionMethod.getAlgorithm());
+            throw new UnsupportedOperationException(message);
+        }
+    }
+
+    private PropertyEncryptionMethod findPropertyEncryptionAlgorithm(final String algorithm) {
         PropertyEncryptionMethod foundPropertyEncryptionMethod = null;
 
         for (final PropertyEncryptionMethod propertyEncryptionMethod : PropertyEncryptionMethod.values()) {
@@ -81,7 +98,7 @@ public class PropertyEncryptorFactory {
         return foundPropertyEncryptionMethod;
     }
 
-    private static EncryptionMethod findEncryptionMethod(final String algorithm) {
+    private EncryptionMethod findEncryptionMethod(final String algorithm) {
         final EncryptionMethod encryptionMethod = EncryptionMethod.forAlgorithm(algorithm);
         if (encryptionMethod == null) {
             final String message = String.format("Encryption Method not found for Algorithm [%s]", algorithm);

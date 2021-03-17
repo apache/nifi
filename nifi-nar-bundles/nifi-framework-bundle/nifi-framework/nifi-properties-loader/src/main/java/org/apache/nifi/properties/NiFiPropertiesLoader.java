@@ -34,7 +34,6 @@ import java.util.Properties;
 import java.util.stream.Collectors;
 import java.util.Set;
 import javax.crypto.Cipher;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.security.kms.CryptoUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
@@ -47,7 +46,7 @@ public class NiFiPropertiesLoader {
     private static final Base64.Encoder KEY_ENCODER = Base64.getEncoder().withoutPadding();
     private static final int SENSITIVE_PROPERTIES_KEY_LENGTH = 24;
     private static final String EMPTY_SENSITIVE_PROPERTIES_KEY = String.format("%s=", NiFiProperties.SENSITIVE_PROPS_KEY);
-    private static final String MIGRATION_INSTRUCTIONS = "See Administration Guide section [Migrating a Flow with Sensitive Properties]";
+    private static final String MIGRATION_INSTRUCTIONS = "See Admin Guide section [Updating the Sensitive Properties Key]";
     private static final String PROPERTIES_KEY_MESSAGE = String.format("Sensitive Properties Key [%s] not found: %s", NiFiProperties.SENSITIVE_PROPS_KEY, MIGRATION_INSTRUCTIONS);
 
     private final String defaultPropertiesFilePath = CryptoUtils.getDefaultFilePath();
