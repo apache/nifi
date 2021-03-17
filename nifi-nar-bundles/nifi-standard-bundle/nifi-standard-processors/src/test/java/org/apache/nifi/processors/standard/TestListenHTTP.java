@@ -59,6 +59,7 @@ import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.apache.nifi.web.util.ssl.SslContextUtils;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.util.thread.ThreadPool;
 import org.junit.After;
@@ -147,11 +148,11 @@ public class TestListenHTTP {
                 TLS_1_2
         );
 
-        serverKeyStoreSslContext = SslContextFactory.createSslContext(serverConfiguration);
+        serverKeyStoreSslContext = SslContextUtils.createSslContext(serverConfiguration);
         trustManager = SslContextFactory.getX509TrustManager(serverConfiguration);
         serverKeyStoreNoTrustStoreSslContext = SslContextFactory.createSslContext(serverNoTruststoreConfiguration, new TrustManager[]{trustManager});
 
-        keyStoreSslContext = SslContextFactory.createSslContext(new StandardTlsConfiguration(
+        keyStoreSslContext = SslContextUtils.createSslContext(new StandardTlsConfiguration(
                 tlsConfiguration.getKeystorePath(),
                 tlsConfiguration.getKeystorePassword(),
                 tlsConfiguration.getKeystoreType(),
@@ -159,7 +160,7 @@ public class TestListenHTTP {
                 tlsConfiguration.getTruststorePassword(),
                 tlsConfiguration.getTruststoreType())
         );
-        trustStoreSslContext = SslContextFactory.createSslContext(new StandardTlsConfiguration(
+        trustStoreSslContext = SslContextUtils.createSslContext(new StandardTlsConfiguration(
                 null,
                 null,
                 null,

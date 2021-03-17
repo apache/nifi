@@ -20,11 +20,11 @@ package org.apache.nifi.processors.standard;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.nifi.processors.standard.util.TCPTestServer;
 import org.apache.nifi.security.util.KeyStoreUtils;
-import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.apache.nifi.web.util.ssl.SslContextUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -34,8 +34,6 @@ import javax.net.ServerSocketFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLServerSocketFactory;
 import java.net.InetAddress;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 
@@ -113,28 +111,23 @@ public class TestPutTCP {
     public void testRunSuccessSslContextService() throws Exception {
         final TlsConfiguration tlsConfiguration = KeyStoreUtils.createTlsConfigAndNewKeystoreTruststore();
 
-        try {
-            final SSLContext sslContext = SslContextFactory.createSslContext(tlsConfiguration);
-            assertNotNull("SSLContext not found", sslContext);
+        final SSLContext sslContext = SslContextUtils.createSslContext(tlsConfiguration);
+        assertNotNull("SSLContext not found", sslContext);
 
-            final String identifier = SSLContextService.class.getName();
-            final SSLContextService sslContextService = Mockito.mock(SSLContextService.class);
-            Mockito.when(sslContextService.getIdentifier()).thenReturn(identifier);
-            Mockito.when(sslContextService.createContext()).thenReturn(sslContext);
-            runner.addControllerService(identifier, sslContextService);
-            runner.enableControllerService(sslContextService);
-            runner.setProperty(PutTCP.SSL_CONTEXT_SERVICE, identifier);
+        final String identifier = SSLContextService.class.getName();
+        final SSLContextService sslContextService = Mockito.mock(SSLContextService.class);
+        Mockito.when(sslContextService.getIdentifier()).thenReturn(identifier);
+        Mockito.when(sslContextService.createContext()).thenReturn(sslContext);
+        runner.addControllerService(identifier, sslContextService);
+        runner.enableControllerService(sslContextService);
+        runner.setProperty(PutTCP.SSL_CONTEXT_SERVICE, identifier);
 
-            final SSLServerSocketFactory serverSocketFactory = sslContext.getServerSocketFactory();
-            createTestServer(OUTGOING_MESSAGE_DELIMITER, false, serverSocketFactory);
-            configureProperties(TCP_SERVER_ADDRESS, OUTGOING_MESSAGE_DELIMITER, false);
-            sendTestData(VALID_FILES);
-            assertMessagesReceived(VALID_FILES);
-            assertServerConnections(1);
-        } finally {
-            Files.deleteIfExists(Paths.get(tlsConfiguration.getKeystorePath()));
-            Files.deleteIfExists(Paths.get(tlsConfiguration.getTruststorePath()));
-        }
+        final SSLServerSocketFactory serverSocketFactory = sslContext.getServerSocketFactory();
+        createTestServer(OUTGOING_MESSAGE_DELIMITER, false, serverSocketFactory);
+        configureProperties(TCP_SERVER_ADDRESS, OUTGOING_MESSAGE_DELIMITER, false);
+        sendTestData(VALID_FILES);
+        assertMessagesReceived(VALID_FILES);
+        assertServerConnections(1);
     }
 
     @Test(timeout = DEFAULT_TEST_TIMEOUT_PERIOD)
