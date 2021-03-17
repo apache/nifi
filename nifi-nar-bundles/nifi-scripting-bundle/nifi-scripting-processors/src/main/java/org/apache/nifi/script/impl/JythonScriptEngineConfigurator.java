@@ -67,10 +67,15 @@ public class JythonScriptEngineConfigurator implements ScriptEngineConfigurator 
         if (engine != null) {
             final CompiledScript existing = compiledScriptRef.get();
             if (existing == null) {
-                throw new ScriptException("Jython script has not been compiled, the processor must be restarted.");
+                throw new ScriptException("Jython script has not been compiled successfully, the component must be restarted.");
             }
             returnValue = compiledScriptRef.get().eval();
         }
         return returnValue;
+    }
+
+    @Override
+    public void reset() {
+        compiledScriptRef.set(null);
     }
 }

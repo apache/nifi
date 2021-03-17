@@ -195,6 +195,14 @@ public class ScriptedReportingTask extends AbstractReportingTask {
                     scriptEngine.eval(scriptToRun);
                 }
             } catch (ScriptException e) {
+                // Reset the configurator on error, this can indicate to the configurator to recompile the script on next init()
+                ScriptEngineConfigurator configurator =
+                        scriptingComponentHelper.scriptEngineConfiguratorMap.get(scriptingComponentHelper.getScriptEngineName().toLowerCase());
+
+                // Evaluate the script with the configurator (if it exists) or the engine
+                if (configurator != null) {
+                    configurator.reset();
+                }
                 throw new ProcessException(e);
             }
         } catch (final Throwable t) {

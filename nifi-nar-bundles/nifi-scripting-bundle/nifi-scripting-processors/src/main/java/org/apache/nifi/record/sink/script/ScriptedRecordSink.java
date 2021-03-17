@@ -144,6 +144,7 @@ public class ScriptedRecordSink extends AbstractScriptedControllerService implem
                 // Find a custom configurator and invoke their eval() method
                 ScriptEngineConfigurator configurator = scriptingComponentHelper.scriptEngineConfiguratorMap.get(scriptingComponentHelper.getScriptEngineName().toLowerCase());
                 if (configurator != null) {
+                    configurator.reset();
                     configurator.init(scriptEngine, scriptBody, scriptingComponentHelper.getModules());
                     configurator.eval(scriptEngine, scriptBody, scriptingComponentHelper.getModules());
                 } else {

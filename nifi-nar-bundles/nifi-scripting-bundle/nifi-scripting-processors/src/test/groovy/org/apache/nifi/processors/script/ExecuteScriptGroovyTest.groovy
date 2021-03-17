@@ -39,14 +39,14 @@ class ExecuteScriptGroovyTest extends BaseScriptTest {
     private static final Logger logger = LoggerFactory.getLogger(ExecuteScriptGroovyTest.class)
 
     @BeforeClass
-    public static void setUpOnce() throws Exception {
+    static void setUpOnce() throws Exception {
         logger.metaClass.methodMissing = { String name, args ->
             logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
         }
     }
 
     @Before
-    public void setUp() throws Exception {
+    void setUp() throws Exception {
         super.setupExecuteScript()
 
         runner.setValidateExpressionUsage(false)
@@ -56,8 +56,7 @@ class ExecuteScriptGroovyTest extends BaseScriptTest {
     }
 
     @After
-    public void tearDown() throws Exception {
-
+    void tearDown() throws Exception {
     }
 
     private void setupPooledExecuteScript(int poolSize = 2) {
@@ -76,7 +75,7 @@ class ExecuteScriptGroovyTest extends BaseScriptTest {
     }
 
     @Test
-    public void testShouldExecuteScript() throws Exception {
+    void testShouldExecuteScript() throws Exception {
         // Arrange
         final String SINGLE_POOL_THREAD_PATTERN = /pool-\d+-thread-1/
 
@@ -98,7 +97,7 @@ class ExecuteScriptGroovyTest extends BaseScriptTest {
     }
 
     @Test
-    public void testShouldExecuteScriptSerially() throws Exception {
+    void testShouldExecuteScriptSerially() throws Exception {
         // Arrange
         final int ITERATIONS = 10
 
@@ -122,7 +121,7 @@ class ExecuteScriptGroovyTest extends BaseScriptTest {
     }
 
     @Test
-    public void testShouldExecuteScriptWithPool() throws Exception {
+    void testShouldExecuteScriptWithPool() throws Exception {
         // Arrange
         final int ITERATIONS = 10
         final int POOL_SIZE = 2
@@ -153,7 +152,7 @@ class ExecuteScriptGroovyTest extends BaseScriptTest {
 
     @Ignore("This test fails intermittently when the serial execution happens faster than pooled")
     @Test
-    public void testPooledExecutionShouldBeFaster() throws Exception {
+    void testPooledExecutionShouldBeFaster() throws Exception {
         // Arrange
         final int ITERATIONS = 1000
         final int POOL_SIZE = 4
@@ -199,5 +198,30 @@ class ExecuteScriptGroovyTest extends BaseScriptTest {
         }
 
         assert serialExecutionTime > parallelExecutionTime
+    }
+
+    @Test
+    void testExecuteScriptRecompileOnChange() throws Exception {
+
+        runner.setProperty(ScriptingComponentUtils.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "groovy/setAttributeHello_executescript.groovy")
+        runner.enqueue('')
+        runner.run()
+
+        runner.assertAllFlowFilesTransferred(ExecuteScript.REL_SUCCESS, 1)
+        List<MockFlowFile> result = runner.getFlowFilesForRelationship(ExecuteScript.REL_SUCCESS)
+        MockFlowFile flowFile = result.get(0)
+        flowFile.assertAttributeExists('greeting')
+        flowFile.assertAttributeEquals('greeting', 'hello')
+        runner.clearTransferState()
+
+        runner.setProperty(ScriptingComponentUtils.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "groovy/setAttributeGoodbye_executescript.groovy")
+        runner.enqueue('')
+        runner.run()
+
+        runner.assertAllFlowFilesTransferred(ExecuteScript.REL_SUCCESS, 1)
+        result = runner.getFlowFilesForRelationship(ExecuteScript.REL_SUCCESS)
+        flowFile = result.get(0)
+        flowFile.assertAttributeExists('greeting')
+        flowFile.assertAttributeEquals('greeting', 'good-bye')
     }
 }

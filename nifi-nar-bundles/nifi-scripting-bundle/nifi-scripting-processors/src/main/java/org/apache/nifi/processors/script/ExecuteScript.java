@@ -150,6 +150,35 @@ public class ExecuteScript extends AbstractSessionFactoryProcessor implements Se
         return scriptingComponentHelper.customValidate(validationContext);
     }
 
+
+    /**
+     * Handles changes to this processor's properties. If changes are made to
+     * script- or engine-related properties, the script will be reloaded.
+     *
+     * @param descriptor of the modified property
+     * @param oldValue non-null property value (previous)
+     * @param newValue the new property value or if null indicates the property
+     */
+    @Override
+    public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
+
+        if (ScriptingComponentUtils.SCRIPT_FILE.equals(descriptor)
+                || ScriptingComponentUtils.SCRIPT_BODY.equals(descriptor)
+                || ScriptingComponentUtils.MODULES.equals(descriptor)
+                || scriptingComponentHelper.SCRIPT_ENGINE.equals(descriptor)) {
+
+            // Reset the configurator on change, this can indicate to the configurator to recompile the script on next init()
+            String scriptEngineName = scriptingComponentHelper.getScriptEngineName();
+            if (scriptEngineName != null) {
+                ScriptEngineConfigurator configurator =
+                        scriptingComponentHelper.scriptEngineConfiguratorMap.get(scriptEngineName.toLowerCase());
+                if (configurator != null) {
+                    configurator.reset();
+                }
+            }
+        }
+    }
+
     /**
      * Performs setup operations when the processor is scheduled to run. This includes evaluating the processor's
      * properties, as well as reloading the script (from file or the "Script Body" property)
@@ -243,6 +272,13 @@ public class ExecuteScript extends AbstractSessionFactoryProcessor implements Se
                 // class with InvokeScriptedProcessor
                 session.commit();
             } catch (ScriptException e) {
+                // Reset the configurator on error, this can indicate to the configurator to recompile the script on next init()
+                ScriptEngineConfigurator configurator =
+                        scriptingComponentHelper.scriptEngineConfiguratorMap.get(scriptingComponentHelper.getScriptEngineName().toLowerCase());
+                if (configurator != null) {
+                    configurator.reset();
+                }
+
                 // The below 'session.rollback(true)' reverts any changes made during this session (all FlowFiles are
                 // restored back to their initial session state and back to their original queues after being penalized).
                 // However if the incoming relationship is full of flow files, this processor will keep failing and could
@@ -253,7 +289,7 @@ public class ExecuteScript extends AbstractSessionFactoryProcessor implements Se
             }
         } catch (final Throwable t) {
             // Mimic AbstractProcessor behavior here
-            getLogger().error("{} failed to process due to {}; rolling back session", new Object[]{this, t});
+            getLogger().error("{} failed to process due to {}; rolling back session", this, t);
 
             // the rollback might not penalize the incoming flow file if the exception is thrown before the user gets
             // the flow file from the session binding (ff = session.get()).

@@ -62,6 +62,33 @@ public class TestInvokeJython extends BaseScriptTest {
     }
 
     /**
+     * Tests a script that has a Jython processor that begins invalid then is fixed.
+     *
+     * @throws Exception Any error encountered while testing
+     */
+    @Test
+    public void testInvalidThenFixed() throws Exception {
+        final TestRunner runner = TestRunners.newTestRunner(new InvokeScriptedProcessor());
+        runner.setValidateExpressionUsage(false);
+        runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "python");
+        runner.setProperty(ScriptingComponentUtils.SCRIPT_FILE, "target/test/resources/jython/test_invalid.py");
+
+        final Collection<ValidationResult> results = ((MockProcessContext) runner.getProcessContext()).validate();
+        Assert.assertEquals(1L, results.size());
+        Assert.assertEquals("Never valid.", results.iterator().next().getExplanation());
+
+        runner.setProperty(ScriptingComponentUtils.SCRIPT_FILE, "target/test/resources/jython/test_update_attribute.py");
+        runner.setProperty("for-attributes", "value-1");
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("for-attributes", "value-2");
+
+        runner.assertValid();
+        runner.enqueue(new byte[0], attributes);
+        runner.run();
+    }
+
+    /**
      * Test a script that has a Jython processor that reads a value from a processor property and another from a flowfile attribute then stores both in the attributes of the flowfile being routed.
      * <p>
      * This may seem contrived but it verifies that the Jython processors properties are being considered and are able to be set and validated. It verifies the processor is able to access the property
