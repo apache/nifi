@@ -18,6 +18,7 @@ package org.apache.nifi.processors.gcp.credentials.service;
 
 import com.google.auth.http.HttpTransportFactory;
 import com.google.auth.oauth2.GoogleCredentials;
+import com.google.auth.oauth2.ImpersonatedCredentials;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
@@ -34,6 +35,7 @@ import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.reporting.InitializationException;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -43,6 +45,10 @@ import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPrope
 import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.SERVICE_ACCOUNT_JSON_FILE;
 import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.USE_APPLICATION_DEFAULT_CREDENTIALS;
 import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.USE_COMPUTE_ENGINE_CREDENTIALS;
+import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.IMPERSONATE_SERVICE_ACCOUNT;
+import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.IMPERSONATE_DELEGATION_CHAIN;
+import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.IMPERSONATE_OAUTH_SCOPE;
+import static org.apache.nifi.processors.gcp.credentials.factory.CredentialPropertyDescriptors.IMPERSONATE_CREDENTIAL_LIFETIME;
 
 /**
  * Implementation of GCPCredentialsService interface
@@ -65,6 +71,10 @@ public class GCPCredentialsControllerService extends AbstractControllerService i
         props.add(USE_COMPUTE_ENGINE_CREDENTIALS);
         props.add(SERVICE_ACCOUNT_JSON_FILE);
         props.add(SERVICE_ACCOUNT_JSON);
+        props.add(IMPERSONATE_SERVICE_ACCOUNT);
+        props.add(IMPERSONATE_DELEGATION_CHAIN);
+        props.add(IMPERSONATE_OAUTH_SCOPE);
+        props.add(IMPERSONATE_CREDENTIAL_LIFETIME);
         props.add(ProxyConfiguration.createProxyConfigPropertyDescriptor(false, ProxyAwareTransportFactory.PROXY_SPECS));
         properties = Collections.unmodifiableList(props);
     }
@@ -93,7 +103,19 @@ public class GCPCredentialsControllerService extends AbstractControllerService i
         try {
             final ProxyConfiguration proxyConfiguration = ProxyConfiguration.getConfiguration(context);
             final HttpTransportFactory transportFactory = new ProxyAwareTransportFactory(proxyConfiguration);
-            googleCredentials = credentialsProviderFactory.getGoogleCredentials(context.getProperties(), transportFactory);
+            GoogleCredentials credentials = credentialsProviderFactory.getGoogleCredentials(context.getProperties(), transportFactory);
+
+            if (context.getProperty(IMPERSONATE_SERVICE_ACCOUNT).isSet()) {
+                List<String> delegates = null;
+                if (context.getProperty(IMPERSONATE_DELEGATION_CHAIN).isSet()) {
+                    delegates = Arrays.asList(context.getProperty(IMPERSONATE_DELEGATION_CHAIN).getValue().split(","));
+                }
+                List<String> scopes = Arrays.asList(context.getProperty(IMPERSONATE_OAUTH_SCOPE).getValue().split(","));
+
+                credentials = ImpersonatedCredentials.create(credentials, context.getProperty(IMPERSONATE_SERVICE_ACCOUNT).getValue(),
+                        delegates, scopes, context.getProperty(IMPERSONATE_CREDENTIAL_LIFETIME).asInteger(), transportFactory);
+            }
+            googleCredentials = credentials;
         } catch (IOException e) {
             throw new InitializationException(e);
         }

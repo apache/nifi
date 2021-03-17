@@ -89,4 +89,57 @@ public final class CredentialPropertyDescriptors {
             .sensitive(true)
             .build();
 
+    /**
+     * Specifies use of Service Account Impersonation Credentials
+     *
+     * @see <a href="https://cloud.google.com/iam/docs/creating-short-lived-service-account-credentials">
+     *     Google Service Account Impersonation
+     *     </a>
+     */
+    public static final PropertyDescriptor IMPERSONATE_SERVICE_ACCOUNT = new PropertyDescriptor.Builder()
+            .name("impersonate-service-account")
+            .displayName("Impersonate Service Account")
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .required(false)
+            .sensitive(false)
+            .description("The service account to impersonate.")
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor IMPERSONATE_DELEGATION_CHAIN = new PropertyDescriptor.Builder()
+            .name("impersonate-delegation-chain")
+            .displayName("Impersonate Delegation Chain")
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .required(false)
+            .sensitive(false)
+            .description("A comma-separated list of chained delegates that required to grant the final access_token. "
+                    + "This property is valid only when using the service account impersonation strategy; otherwise, it is ignored.")
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .dependsOn(IMPERSONATE_SERVICE_ACCOUNT)
+            .build();
+
+    public static final PropertyDescriptor IMPERSONATE_OAUTH_SCOPE = new PropertyDescriptor.Builder()
+            .name("impersonate-oauth-scope")
+            .displayName("Impersonate OAuth Scope")
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .required(true)
+            .sensitive(false)
+            .description("A comma-separated list of scopes to request during the authorization grant. "
+                    + "This property is valid only when using the service account impersonation strategy; otherwise, it is ignored.")
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .dependsOn(IMPERSONATE_SERVICE_ACCOUNT)
+            .build();
+
+    public static final PropertyDescriptor IMPERSONATE_CREDENTIAL_LIFETIME = new PropertyDescriptor.Builder()
+            .name("impersonate-credential-lifetime")
+            .displayName("Impersonate Credential Lifetime")
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .required(true)
+            .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
+            .sensitive(false)
+            .description("Number of seconds the delegated credential should be valid for. "
+                    + "This property is valid only when using the service account impersonation strategy; otherwise, it is ignored.")
+            .dependsOn(IMPERSONATE_SERVICE_ACCOUNT)
+            .build();
+
 }
