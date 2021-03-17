@@ -20,6 +20,8 @@ import org.apache.nifi.controller.ActiveThreadInfo;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ThreadDetails;
 import org.apache.nifi.controller.flow.FlowManager;
+import org.apache.nifi.events.EventReporter;
+import org.apache.nifi.reporting.Severity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,10 +32,12 @@ public class LongRunningTaskMonitor implements Runnable {
     private static final Logger LOGGER = LoggerFactory.getLogger(LongRunningTaskMonitor.class);
 
     private final FlowManager flowManager;
+    private final EventReporter eventReporter;
     private final long thresholdMillis;
 
-    public LongRunningTaskMonitor(FlowManager flowManager, long thresholdMillis) {
+    public LongRunningTaskMonitor(FlowManager flowManager, EventReporter eventReporter, long thresholdMillis) {
         this.flowManager = flowManager;
+        this.eventReporter = eventReporter;
         this.thresholdMillis = thresholdMillis;
     }
 
@@ -54,12 +58,16 @@ public class LongRunningTaskMonitor implements Runnable {
                 if (activeThread.getActiveMillis() > thresholdMillis) {
                     longRunningThreadCount++;
 
-                    LOGGER.warn(String.format("Long running task detected on processor [id=%s, type=%s, name=%s]. Thread name: %s; Active time: %,d; Stack trace:\n%s",
-                            processorNode.getIdentifier(), processorNode.getComponentType(), processorNode.getName(),
-                            activeThread.getThreadName(), activeThread.getActiveMillis(), activeThread.getStackTrace()));
+                    String taskSeconds = String.format("%,d seconds", activeThread.getActiveMillis() / 1000);
 
-                    processorNode.getLogger().warn(String.format("Long running task detected on the processor [thread name: %s; active time: %,d].",
-                            activeThread.getThreadName(), activeThread.getActiveMillis()));
+                    LOGGER.warn(String.format("Long running task detected on processor [id=%s, name=%s, type=%s]. Task time: %s. Stack trace:\n%s",
+                            processorNode.getIdentifier(), processorNode.getName(), processorNode.getComponentType(), taskSeconds, activeThread.getStackTrace()));
+
+                    eventReporter.reportEvent(Severity.WARNING, "Long Running Task", String.format("Processor with ID %s, Name %s and Type %s has a task that has been running for %s " +
+                            "(thread name: %s).", processorNode.getIdentifier(), processorNode.getName(), processorNode.getComponentType(), taskSeconds, activeThread.getThreadName()));
+
+                    processorNode.getLogger().warn(String.format("The processor has a task that has been running for %s (thread name: %s).",
+                            taskSeconds, activeThread.getThreadName()));
                 }
             }
         }
