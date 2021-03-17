@@ -36,6 +36,7 @@ import org.apache.nifi.controller.repository.FlowFileSwapManager;
 import org.apache.nifi.controller.status.analytics.StatusAnalyticsModel;
 import org.apache.nifi.controller.status.history.StatusHistoryRepository;
 import org.apache.nifi.flow.resource.ExternalResourceProvider;
+import org.apache.nifi.flowanalysis.FlowAnalysisRule;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.init.ConfigurableComponentInitializer;
 import org.apache.nifi.init.ConfigurableComponentInitializerFactory;
@@ -114,6 +115,7 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
         definitionMap.put(Processor.class, new HashSet<>());
         definitionMap.put(FlowFilePrioritizer.class, new HashSet<>());
         definitionMap.put(ReportingTask.class, new HashSet<>());
+        definitionMap.put(FlowAnalysisRule.class, new HashSet<>());
         definitionMap.put(ParameterProvider.class, new HashSet<>());
         definitionMap.put(ControllerService.class, new HashSet<>());
         definitionMap.put(Authorizer.class, new HashSet<>());
@@ -439,7 +441,7 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
      */
     private static boolean multipleVersionsAllowed(Class<?> type) {
         return Processor.class.isAssignableFrom(type) || ControllerService.class.isAssignableFrom(type) || ReportingTask.class.isAssignableFrom(type)
-                || ParameterProvider.class.isAssignableFrom(type) || FlowRegistryClient.class.isAssignableFrom(type);
+                || FlowAnalysisRule.class.isAssignableFrom(type) || ParameterProvider.class.isAssignableFrom(type) || FlowRegistryClient.class.isAssignableFrom(type);
     }
 
     protected boolean isInstanceClassLoaderRequired(final String classType, final Bundle bundle) {

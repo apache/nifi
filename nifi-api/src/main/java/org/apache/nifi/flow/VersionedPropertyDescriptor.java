@@ -24,6 +24,7 @@ public class VersionedPropertyDescriptor {
     private String displayName;
     private boolean identifiesControllerService;
     private boolean sensitive;
+    private boolean dynamic;
     private VersionedResourceDefinition resourceDefinition;
 
     @ApiModelProperty("The name of the property")
@@ -60,6 +61,15 @@ public class VersionedPropertyDescriptor {
 
     public void setSensitive(boolean sensitive) {
         this.sensitive = sensitive;
+    }
+
+    @ApiModelProperty("Whether or not the property is user-defined")
+    public boolean isDynamic() {
+        return dynamic;
+    }
+
+    public void setDynamic(boolean dynamic) {
+        this.dynamic = dynamic;
     }
 
     @ApiModelProperty("Returns the Resource Definition that defines which type(s) of resource(s) this property references, if any")

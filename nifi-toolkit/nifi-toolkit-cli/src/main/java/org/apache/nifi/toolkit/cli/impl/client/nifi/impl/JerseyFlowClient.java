@@ -233,7 +233,7 @@ public class JerseyFlowClient extends AbstractJerseyClient implements FlowClient
 
     @Override
     public ControllerServicesEntity getControllerServices() throws NiFiClientException, IOException {
-        return executeAction("Error retrieving reporting task controller services", () -> {
+        return executeAction("Error retrieving reporting task/flow analysis rule controller services", () -> {
             final WebTarget target = flowTarget.path("controller/controller-services");
             return getRequestBuilder(target).get(ControllerServicesEntity.class);
         });

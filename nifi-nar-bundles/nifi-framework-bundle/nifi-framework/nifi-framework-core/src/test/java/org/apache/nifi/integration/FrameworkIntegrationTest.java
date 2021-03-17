@@ -103,6 +103,8 @@ import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.services.FlowService;
 import org.apache.nifi.util.FileUtils;
 import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.validation.RuleViolationsManager;
+import org.apache.nifi.validation.StandardRuleViolationsManager;
 import org.apache.nifi.web.revision.RevisionManager;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -149,6 +151,7 @@ public class FrameworkIntegrationTest {
     private ClusterCoordinator clusterCoordinator;
     private NiFiProperties nifiProperties;
     private StatusHistoryRepository statusHistoryRepository;
+    private RuleViolationsManager ruleViolationsManager;
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success").build();
 
@@ -218,6 +221,8 @@ public class FrameworkIntegrationTest {
 
         statusHistoryRepository = Mockito.mock(StatusHistoryRepository.class);
 
+        ruleViolationsManager = new StandardRuleViolationsManager();
+
         final PropertyEncryptor encryptor = createEncryptor();
         final Authorizer authorizer = new AlwaysAuthorizedAuthorizer();
         final AuditService auditService = new NopAuditService();
@@ -256,7 +261,7 @@ public class FrameworkIntegrationTest {
 
             flowController = FlowController.createClusteredInstance(flowFileEventRepository, nifiProperties, authorizer, auditService, encryptor, protocolSender,
                     bulletinRepo, clusterCoordinator, heartbeatMonitor, leaderElectionManager, VariableRegistry.ENVIRONMENT_SYSTEM_REGISTRY,
-                    extensionManager, Mockito.mock(RevisionManager.class), statusHistoryRepository);
+                    extensionManager, Mockito.mock(RevisionManager.class), statusHistoryRepository, ruleViolationsManager);
 
             flowController.setClustered(true, UUID.randomUUID().toString());
             flowController.setNodeId(localNodeId);
@@ -264,7 +269,7 @@ public class FrameworkIntegrationTest {
             flowController.setConnectionStatus(new NodeConnectionStatus(localNodeId, NodeConnectionState.CONNECTED));
         } else {
             flowController = FlowController.createStandaloneInstance(flowFileEventRepository, nifiProperties, authorizer, auditService, encryptor, bulletinRepo,
-                VariableRegistry.ENVIRONMENT_SYSTEM_REGISTRY, extensionManager, statusHistoryRepository);
+                VariableRegistry.ENVIRONMENT_SYSTEM_REGISTRY, extensionManager, statusHistoryRepository, ruleViolationsManager);
         }
 
         processScheduler = new StandardProcessScheduler(flowEngine, flowController, flowController.getStateManagerProvider(), nifiProperties, new StandardLifecycleStateManager());

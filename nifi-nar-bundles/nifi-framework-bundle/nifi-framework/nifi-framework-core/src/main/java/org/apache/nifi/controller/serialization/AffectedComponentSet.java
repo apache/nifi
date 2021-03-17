@@ -22,6 +22,7 @@ import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.AbstractComponentNode;
 import org.apache.nifi.controller.ComponentNode;
+import org.apache.nifi.controller.FlowAnalysisRuleNode;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ParameterProviderNode;
 import org.apache.nifi.controller.ProcessorNode;
@@ -38,6 +39,7 @@ import org.apache.nifi.flow.ConnectableComponentType;
 import org.apache.nifi.flow.ExecutionEngine;
 import org.apache.nifi.flow.VersionedComponent;
 import org.apache.nifi.flow.VersionedConnection;
+import org.apache.nifi.flowanalysis.FlowAnalysisRuleState;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.groups.StatelessGroupScheduledState;
@@ -82,6 +84,7 @@ public class AffectedComponentSet {
     private final Set<ProcessorNode> processors = new HashSet<>();
     private final Set<ControllerServiceNode> controllerServices = new HashSet<>();
     private final Set<ReportingTaskNode> reportingTasks = new HashSet<>();
+    private final Set<FlowAnalysisRuleNode> flowAnalysisRules = new HashSet<>();
     private final Set<ParameterProviderNode> parameterProviders = new HashSet<>();
     private final Set<FlowRegistryClientNode> flowRegistryClients = new HashSet<>();
     private final Set<ProcessGroup> statelessProcessGroups = new HashSet<>();
@@ -204,6 +207,8 @@ public class AffectedComponentSet {
                 addProcessor((ProcessorNode) reference);
             } else if (reference instanceof ReportingTaskNode) {
                 addReportingTask((ReportingTaskNode) reference);
+            } else if (reference instanceof FlowAnalysisRuleNode) {
+                addFlowAnalysisRule((FlowAnalysisRuleNode) reference);
             } else if (reference instanceof ParameterProviderNode) {
                 addParameterProvider((ParameterProviderNode) reference);
             } else if (reference instanceof FlowRegistryClientNode) {
@@ -241,6 +246,24 @@ public class AffectedComponentSet {
     public boolean isReportingTaskAffected(final String reportingTaskId) {
         for (final ReportingTaskNode taskNode : reportingTasks) {
             if (taskNode.getIdentifier().equals(reportingTaskId)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public void addFlowAnalysisRule(final FlowAnalysisRuleNode rule) {
+        if (rule == null) {
+            return;
+        }
+
+        flowAnalysisRules.add(rule);
+    }
+
+    public boolean isFlowAnalysisRuleAffected(final String flowAnalysisRuleId) {
+        for (final FlowAnalysisRuleNode ruleNode : flowAnalysisRules) {
+            if (ruleNode.getIdentifier().equals(flowAnalysisRuleId)) {
                 return true;
             }
         }
@@ -566,6 +589,9 @@ public class AffectedComponentSet {
             case REPORTING_TASK:
                 addReportingTask(flowManager.getReportingTaskNode(componentId));
                 break;
+            case FLOW_ANALYSIS_RULE:
+                addFlowAnalysisRule(flowManager.getFlowAnalysisRuleNode(componentId));
+                break;
         }
     }
 
@@ -587,6 +613,7 @@ public class AffectedComponentSet {
         processors.stream().filter(this::isActive).forEach(active::addProcessor);
         reportingTasks.stream().filter(task -> task.getScheduledState() == ScheduledState.STARTING || task.getScheduledState() == ScheduledState.RUNNING || task.isRunning())
             .forEach(active::addReportingTask);
+        flowAnalysisRules.stream().filter(rule -> rule.getState() == FlowAnalysisRuleState.ENABLED).forEach(active::addFlowAnalysisRule);
         controllerServices.stream().filter(service -> ACTIVE_CONTROLLER_SERVICE_STATES.contains(service.getState()))
             .forEach(active::addControllerServiceWithoutReferences);
 
@@ -594,7 +621,6 @@ public class AffectedComponentSet {
 
         return active;
     }
-
 
     private boolean isActive(final ProcessorNode processor) {
         // We consider component active if it's starting, running, or has active threads. The call to ProcessorNode.isRunning() will only return true if it has active threads or a scheduled
@@ -620,6 +646,7 @@ public class AffectedComponentSet {
         remoteOutputPorts.forEach(port -> port.getRemoteProcessGroup().startTransmitting(port));
         processors.forEach(processor -> processor.getProcessGroup().startProcessor(processor, false));
         reportingTasks.forEach(flowController::startReportingTask);
+        flowAnalysisRules.forEach(flowController::enableFlowAnalysisRule);
         statelessProcessGroups.forEach(group -> group.startProcessing());
     }
 
@@ -631,6 +658,7 @@ public class AffectedComponentSet {
         processors.removeIf(filter::testProcessor);
         controllerServices.removeIf(filter::testControllerService);
         reportingTasks.removeIf(filter::testReportingTask);
+        flowAnalysisRules.removeIf(filter::testFlowAnalysisRule);
         flowRegistryClients.removeIf(filter::testFlowRegistryClient);
         statelessProcessGroups.removeIf(filter::testStatelessGroup);
     }
@@ -652,6 +680,7 @@ public class AffectedComponentSet {
         remoteOutputPorts.stream().filter(port -> port.getProcessGroup().findRemoteGroupPort(port.getIdentifier()) != null).forEach(existing::addRemoteOutputPort);
         processors.stream().filter(processor -> processor.getProcessGroup().getProcessor(processor.getIdentifier()) != null).forEach(existing::addProcessor);
         reportingTasks.stream().filter(task -> flowController.getReportingTaskNode(task.getIdentifier()) != null).forEach(existing::addReportingTask);
+        flowAnalysisRules.stream().filter(rule -> flowController.getFlowAnalysisRuleNode(rule.getIdentifier()) != null).forEach(existing::addFlowAnalysisRule);
         controllerServices.stream().filter(service -> serviceProvider.getControllerServiceNode(service.getIdentifier()) != null).forEach(existing::addControllerServiceWithoutReferences);
         flowRegistryClients.stream().filter(client -> flowManager.getFlowRegistryClient(client.getIdentifier()) != null).forEach(existing::addFlowRegistryClient);
         statelessProcessGroups.stream().filter(group -> flowManager.getGroup(group.getIdentifier()) != null).forEach(existing::addStatelessGroup);
@@ -675,6 +704,7 @@ public class AffectedComponentSet {
         remoteOutputPorts.stream().filter(this::isStartable).forEach(startable::addRemoteOutputPort);
         processors.stream().filter(this::isStartable).forEach(startable::addProcessor);
         reportingTasks.stream().filter(this::isStartable).forEach(startable::addReportingTask);
+        flowAnalysisRules.stream().filter(this::isStartable).forEach(startable::addFlowAnalysisRule);
         controllerServices.stream().filter(this::isStartable).forEach(startable::addControllerServiceWithoutReferences);
         statelessProcessGroups.stream().filter(this::isStartable).forEach(startable::addStatelessGroup);
 
@@ -729,6 +759,7 @@ public class AffectedComponentSet {
         remoteOutputPorts.forEach(port -> port.getRemoteProcessGroup().stopTransmitting(port));
         processors.forEach(processor -> processor.getProcessGroup().stopProcessor(processor));
         reportingTasks.forEach(flowController::stopReportingTask);
+        flowAnalysisRules.forEach(flowController::disableFlowAnalysisRule);
         statelessProcessGroups.forEach(group -> group.stopProcessing());
 
         waitForConnectablesStopped();
@@ -822,6 +853,7 @@ public class AffectedComponentSet {
             ", flowRegistryCliens=" + flowRegistryClients +
             ", controllerServices=" + controllerServices +
             ", reportingTasks=" + reportingTasks +
+            ", flowAnalysisRules=" + flowAnalysisRules +
             ", statelessProcessGroups=" + statelessProcessGroups +
             "]";
     }

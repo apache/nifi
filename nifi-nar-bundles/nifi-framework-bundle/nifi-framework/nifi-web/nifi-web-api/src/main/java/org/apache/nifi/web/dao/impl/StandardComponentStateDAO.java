@@ -20,6 +20,7 @@ import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.components.state.StateMap;
+import org.apache.nifi.controller.FlowAnalysisRuleNode;
 import org.apache.nifi.controller.ParameterProviderNode;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
@@ -90,6 +91,16 @@ public class StandardComponentStateDAO implements ComponentStateDAO {
     @Override
     public void clearState(final ReportingTaskNode reportingTask) {
         clearState(reportingTask.getIdentifier());
+    }
+
+    @Override
+    public StateMap getState(final FlowAnalysisRuleNode flowAnalysisRule, Scope scope) {
+        return getState(flowAnalysisRule.getIdentifier(), scope);
+    }
+
+    @Override
+    public void clearState(final FlowAnalysisRuleNode flowAnalysisRule) {
+        clearState(flowAnalysisRule.getIdentifier());
     }
 
     @Override

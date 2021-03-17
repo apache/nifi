@@ -24,6 +24,7 @@ import org.apache.nifi.action.component.details.FlowChangeExtensionDetails;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.components.state.StateMap;
+import org.apache.nifi.controller.FlowAnalysisRuleNode;
 import org.apache.nifi.controller.ParameterProviderNode;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
@@ -173,6 +174,52 @@ public class ComponentStateAuditor extends NiFiAuditor {
             configAction.setSourceName(reportingTask.getName());
             configAction.setSourceType(Component.ReportingTask);
             configAction.setComponentDetails(reportingTaskDetails);
+            actions.add(configAction);
+
+            // record the action
+            saveActions(actions, logger);
+        }
+
+        return stateMap;
+    }
+
+    /**
+     * Audits clearing of state from a Reporting Task.
+     *
+     * @param proceedingJoinPoint join point
+     * @param flowAnalysisRule the flow analysis rule
+     * @throws java.lang.Throwable ex
+     */
+    @Around("within(org.apache.nifi.web.dao.ComponentStateDAO+) && "
+        + "execution(void clearState(org.apache.nifi.controller.FlowAnalysisRuleNode)) && "
+        + "args(flowAnalysisRule)")
+    public StateMap clearFlowAnalysisRuleStateAdvice(ProceedingJoinPoint proceedingJoinPoint, FlowAnalysisRuleNode flowAnalysisRule) throws Throwable {
+
+        // update the flow analysis rule state
+        final StateMap stateMap = (StateMap) proceedingJoinPoint.proceed();
+
+        // if no exception were thrown, add the clear action...
+
+        // get the current user
+        NiFiUser user = NiFiUserUtils.getNiFiUser();
+
+        // ensure the user was found
+        if (user != null) {
+            Collection<Action> actions = new ArrayList<>();
+
+            // create the flow analysis rule details
+            FlowChangeExtensionDetails flowAnalysisRuleDetails = new FlowChangeExtensionDetails();
+            flowAnalysisRuleDetails.setType(flowAnalysisRule.getFlowAnalysisRule().getClass().getSimpleName());
+
+            // create the clear action
+            FlowChangeAction configAction = new FlowChangeAction();
+            configAction.setUserIdentity(user.getIdentity());
+            configAction.setOperation(Operation.ClearState);
+            configAction.setTimestamp(new Date());
+            configAction.setSourceId(flowAnalysisRule.getIdentifier());
+            configAction.setSourceName(flowAnalysisRule.getName());
+            configAction.setSourceType(Component.FlowAnalysisRule);
+            configAction.setComponentDetails(flowAnalysisRuleDetails);
             actions.add(configAction);
 
             // record the action

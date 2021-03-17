@@ -27,6 +27,7 @@
     <!-- controller service / reporting task -->
     <bean id="controllerServiceProvider" class="org.apache.nifi.web.spring.ControllerServiceProviderFactoryBean" depends-on="flowController" />
     <bean id="reportingTaskProvider" class="org.apache.nifi.web.spring.ReportingTaskProviderFactoryBean" depends-on="flowController" />
+    <bean id="flowAnalysisRuleProvider" class="org.apache.nifi.web.spring.FlowAnalysisRuleProviderFactoryBean" depends-on="flowController" />
 
     <!-- component state -->
     <bean id="stateManagerProvider" class="org.apache.nifi.web.spring.StateManagerProviderFactoryBean" depends-on="flowController" />
@@ -263,6 +264,12 @@
         <property name="reloadComponent" ref="reloadComponent" />
         <property name="flowController" ref="flowController" />
     </bean>
+    <bean id="flowAnalysisRuleDAO" class="org.apache.nifi.web.dao.impl.StandardFlowAnalysisRuleDAO">
+        <property name="flowAnalysisRuleProvider" ref="flowAnalysisRuleProvider"/>
+        <property name="componentStateDAO" ref="componentStateDAO"/>
+        <property name="reloadComponent" ref="reloadComponent" />
+        <property name="flowController" ref="flowController" />
+    </bean>
     <bean id="parameterProviderDAO" class="org.apache.nifi.web.dao.impl.StandardParameterProviderDAO">
         <property name="componentStateDAO" ref="componentStateDAO"/>
         <property name="reloadComponent" ref="reloadComponent" />
@@ -328,6 +335,7 @@
         <property name="connectionDAO" ref="connectionDAO"/>
         <property name="controllerServiceDAO" ref="controllerServiceDAO"/>
         <property name="reportingTaskDAO" ref="reportingTaskDAO"/>
+        <property name="flowAnalysisRuleDAO" ref="flowAnalysisRuleDAO"/>
         <property name="parameterProviderDAO" ref="parameterProviderDAO"/>
         <property name="templateDAO" ref="templateDAO"/>
         <property name="snippetDAO" ref="snippetDAO"/>
@@ -349,6 +357,7 @@
         <property name="connectionDAO" ref="connectionDAO"/>
         <property name="controllerServiceDAO" ref="controllerServiceDAO"/>
         <property name="reportingTaskDAO" ref="reportingTaskDAO"/>
+        <property name="flowAnalysisRuleDAO" ref="flowAnalysisRuleDAO"/>
         <property name="parameterProviderDAO" ref="parameterProviderDAO"/>
         <property name="templateDAO" ref="templateDAO"/>
         <property name="snippetDAO" ref="snippetDAO"/>
@@ -366,6 +375,7 @@
         <property name="leaderElectionManager" ref="leaderElectionManager" />
         <property name="flowRegistryDAO" ref="flowRegistryDAO" />
         <property name="parameterContextDAO" ref="parameterContextDAO" />
+        <property name="ruleViolationsManager" ref="ruleViolationsManager" />
     </bean>
 
     <!-- component ui extension configuration context -->
@@ -751,6 +761,11 @@
         <property name="auditService" ref="auditService"/>
         <property name="processGroupDAO" ref="processGroupDAO"/>
     </bean>
+    <bean id="flowAnalysisRuleAuditor" class="org.apache.nifi.audit.FlowAnalysisRuleAuditor">
+        <property name="serviceFacade" ref="serviceFacade"/>
+        <property name="auditService" ref="auditService"/>
+        <property name="processGroupDAO" ref="processGroupDAO"/>
+    </bean>
     <bean id="componentStateAuditor" class="org.apache.nifi.audit.ComponentStateAuditor">
         <property name="serviceFacade" ref="serviceFacade"/>
         <property name="auditService" ref="auditService"/>
@@ -784,5 +799,4 @@
 
     <!-- NiFi locking -->
     <bean id="serviceFacadeLock" class="org.apache.nifi.web.NiFiServiceFacadeLock"/>
-
 </beans>

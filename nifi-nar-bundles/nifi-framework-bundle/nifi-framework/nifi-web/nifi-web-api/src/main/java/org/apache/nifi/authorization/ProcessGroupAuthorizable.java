@@ -24,14 +24,7 @@ import java.util.Set;
 /**
  * Authorizable for a ProcessGroup and its encapsulated components.
  */
-public interface ProcessGroupAuthorizable {
-    /**
-     * Returns the authorizable for this ProcessGroup. Non null
-     *
-     * @return authorizable
-     */
-    Authorizable getAuthorizable();
-
+public interface ProcessGroupAuthorizable extends AuthorizableHolder {
     /**
      * Returns the Process Group that this Authorizable represents. Non null
      *

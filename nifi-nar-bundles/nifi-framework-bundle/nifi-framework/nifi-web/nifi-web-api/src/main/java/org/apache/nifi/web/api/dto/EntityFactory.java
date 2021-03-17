@@ -25,6 +25,7 @@ import org.apache.nifi.web.api.dto.status.ConnectionStatisticsSnapshotDTO;
 import org.apache.nifi.web.api.dto.status.ConnectionStatusDTO;
 import org.apache.nifi.web.api.dto.status.ConnectionStatusSnapshotDTO;
 import org.apache.nifi.web.api.dto.status.ControllerServiceStatusDTO;
+import org.apache.nifi.web.api.dto.status.FlowAnalysisRuleStatusDTO;
 import org.apache.nifi.web.api.dto.status.PortStatusDTO;
 import org.apache.nifi.web.api.dto.status.PortStatusSnapshotDTO;
 import org.apache.nifi.web.api.dto.status.ProcessGroupStatusDTO;
@@ -52,6 +53,7 @@ import org.apache.nifi.web.api.entity.ConnectionStatusSnapshotEntity;
 import org.apache.nifi.web.api.entity.ControllerConfigurationEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceReferencingComponentEntity;
+import org.apache.nifi.web.api.entity.FlowAnalysisRuleEntity;
 import org.apache.nifi.web.api.entity.FlowBreadcrumbEntity;
 import org.apache.nifi.web.api.entity.FlowRegistryClientEntity;
 import org.apache.nifi.web.api.entity.FunnelEntity;
@@ -567,6 +569,35 @@ public final class EntityFactory {
             if (permissions != null && permissions.getCanRead()) {
                 entity.setComponent(dto);
                 entity.setBulletins(bulletins);
+            }
+        }
+
+        return entity;
+    }
+
+    public FlowAnalysisRuleEntity createFlowAnalysisRuleEntity(
+        FlowAnalysisRuleDTO flowAnalysisRuleDTO,
+        RevisionDTO revision,
+        PermissionsDTO permissions,
+        PermissionsDTO operatePermissions,
+        List<BulletinEntity> bulletins
+    ) {
+        final FlowAnalysisRuleEntity entity = new FlowAnalysisRuleEntity();
+        entity.setRevision(revision);
+
+        if (flowAnalysisRuleDTO != null) {
+            entity.setPermissions(permissions);
+            entity.setOperatePermissions(operatePermissions);
+            entity.setId(flowAnalysisRuleDTO.getId());
+
+            final FlowAnalysisRuleStatusDTO status = new FlowAnalysisRuleStatusDTO();
+            status.setRunStatus(flowAnalysisRuleDTO.getState());
+            status.setValidationStatus(flowAnalysisRuleDTO.getValidationStatus());
+            entity.setStatus(status);
+
+            if (permissions != null && permissions.getCanRead()) {
+                entity.setBulletins(bulletins);
+                entity.setComponent(flowAnalysisRuleDTO);
             }
         }
 

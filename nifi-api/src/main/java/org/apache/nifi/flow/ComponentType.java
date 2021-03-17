@@ -31,6 +31,7 @@ public enum ComponentType {
     LABEL("Label"),
     CONTROLLER_SERVICE("Controller Service"),
     REPORTING_TASK("Reporting Task"),
+    FLOW_ANALYSIS_RULE("Flow Analysis Rule"),
     PARAMETER_CONTEXT("Parameter Context"),
     PARAMETER_PROVIDER("Parameter Provider"),
     TEMPLATE("Template"),

@@ -21,10 +21,12 @@ import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Funnel;
 import org.apache.nifi.connectable.Port;
+import org.apache.nifi.controller.FlowAnalysisRuleNode;
 import org.apache.nifi.controller.ParameterProviderNode;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
+import org.apache.nifi.controller.flowanalysis.FlowAnalyzer;
 import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.parameter.ParameterProviderLookup;
 import org.apache.nifi.controller.service.ControllerServiceNode;
@@ -34,6 +36,7 @@ import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterContextManager;
+import org.apache.nifi.validation.RuleViolationsManager;
 import org.apache.nifi.parameter.ParameterProviderConfiguration;
 import org.apache.nifi.registry.flow.FlowRegistryClientNode;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
@@ -392,7 +395,7 @@ public interface FlowManager extends ParameterProviderLookup {
 
     /**
      * @return the number of each type of component (Processor, Controller Service, Process Group, Funnel, Input Port, Output Port,
-     * Parameter Provider, Reporting Task, Remote Process Group)
+     * Parameter Provider, Reporting Task, Flow Analysis Rule, Remote Process Group)
      */
     Map<String, Integer> getComponentCounts();
 
@@ -403,10 +406,39 @@ public interface FlowManager extends ParameterProviderLookup {
      * Controller Services
      * Templates
      * Reporting Tasks
+     * Flow Analysis Rules
      * Parameter Contexts
      * Flow Registries
      *
      * @throws IllegalStateException if any of the components is not in a state that it can be deleted.
      */
     void purge();
+
+    // Flow Analysis
+    FlowAnalysisRuleNode createFlowAnalysisRule(
+        final String type,
+        final String id,
+        final BundleCoordinate bundleCoordinate,
+        final boolean firstTimeAdded
+    );
+
+    FlowAnalysisRuleNode createFlowAnalysisRule(
+        final String type,
+        final String id,
+        final BundleCoordinate bundleCoordinate,
+        final Set<URL> additionalUrls,
+        final boolean firstTimeAdded,
+        final boolean register,
+        final String classloaderIsolationKey
+    );
+
+    FlowAnalysisRuleNode getFlowAnalysisRuleNode(final String taskId);
+
+    void removeFlowAnalysisRule(final FlowAnalysisRuleNode reportingTask);
+
+    Set<FlowAnalysisRuleNode> getAllFlowAnalysisRules();
+
+    FlowAnalyzer getFlowAnalyzer();
+
+    RuleViolationsManager getRuleViolationsManager();
 }

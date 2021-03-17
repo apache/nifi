@@ -468,7 +468,7 @@
 
         // inspect the operation to determine if there are any component details
         if (nfCommon.isDefinedAndNotNull(componentDetails)) {
-            if (action.sourceType === 'Processor' || action.sourceType === 'ControllerService' || action.sourceType === 'ReportingTask') {
+            if (action.sourceType === 'Processor' || action.sourceType === 'ControllerService' || action.sourceType === 'ReportingTask' || action.sourceType === 'FlowAnalysisRule') {
                 detailsMarkup.append(
                     $('<div class="action-detail"><div class="history-details-name">Type</div>' + nfCommon.escapeHtml(componentDetails.type) + '</div>'));
             } else if (action.sourceType === 'RemoteProcessGroup') {

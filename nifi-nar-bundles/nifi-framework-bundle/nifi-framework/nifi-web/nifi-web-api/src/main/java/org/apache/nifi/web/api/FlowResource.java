@@ -83,6 +83,8 @@ import org.apache.nifi.web.api.entity.ControllerServiceTypesEntity;
 import org.apache.nifi.web.api.entity.ControllerServicesEntity;
 import org.apache.nifi.web.api.entity.ControllerStatusEntity;
 import org.apache.nifi.web.api.entity.CurrentUserEntity;
+import org.apache.nifi.web.api.entity.FlowAnalysisResultEntity;
+import org.apache.nifi.web.api.entity.FlowAnalysisRuleTypesEntity;
 import org.apache.nifi.web.api.entity.FlowConfigurationEntity;
 import org.apache.nifi.web.api.entity.FlowRegistryBucketEntity;
 import org.apache.nifi.web.api.entity.FlowRegistryBucketsEntity;
@@ -1524,6 +1526,63 @@ public class FlowResource extends ApplicationResource {
         // create response entity
         final ParameterProviderTypesEntity entity = new ParameterProviderTypesEntity();
         entity.setParameterProviderTypes(serviceFacade.getParameterProviderTypes(bundleGroupFilter, bundleArtifactFilter, typeFilter));
+
+        // generate the response
+        return generateOkResponse(entity).build();
+    }
+
+    /**
+     * Retrieves the types of available Flow Analysis Rules.
+     *
+     * @return A controllerServicesTypesEntity.
+     * @throws InterruptedException if interrupted
+     */
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("flow-analysis-rule-types")
+    @ApiOperation(
+            value = "Retrieves the types of available Flow Analysis Rules",
+            notes = NON_GUARANTEED_ENDPOINT,
+            response = FlowAnalysisRuleTypesEntity.class,
+            authorizations = {
+                    @Authorization(value = "Read - /flow")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
+    public Response getFlowAnalysisRuleTypes(
+            @ApiParam(
+                    value = "If specified, will only return types that are a member of this bundle group.",
+                    required = false
+            )
+            @QueryParam("bundleGroupFilter") String bundleGroupFilter,
+            @ApiParam(
+                    value = "If specified, will only return types that are a member of this bundle artifact.",
+                    required = false
+            )
+            @QueryParam("bundleArtifactFilter") String bundleArtifactFilter,
+            @ApiParam(
+                    value = "If specified, will only return types whose fully qualified classname matches.",
+                    required = false
+            )
+            @QueryParam("type") String typeFilter) throws InterruptedException {
+
+        authorizeFlow();
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
+        }
+
+        // create response entity
+        final FlowAnalysisRuleTypesEntity entity = new FlowAnalysisRuleTypesEntity();
+        entity.setFlowAnalysisRuleTypes(serviceFacade.getFlowAnalysisRuleTypes(bundleGroupFilter, bundleArtifactFilter, typeFilter));
 
         // generate the response
         return generateOkResponse(entity).build();
@@ -3036,6 +3095,86 @@ public class FlowResource extends ApplicationResource {
         entity.setGenerated(new Date());
 
         // generate the response
+        return generateOkResponse(entity).build();
+    }
+
+    // -------------
+    // flow-analysis
+    // -------------
+
+    /**
+     * Returns flow analysis results produced by the analysis of a given process group.
+     *
+     * @return a flowAnalysisResultEntity containing flow analysis results produced by the analysis of the given process group
+     */
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("flow-analysis/results/{processGroupId}")
+    @ApiOperation(
+        value = "Returns flow analysis results produced by the analysis of a given process group",
+        response = FlowAnalysisResultEntity.class,
+        authorizations = {
+            @Authorization(value = "Read - /flow")
+        })
+    @ApiResponses(value = {
+        @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+        @ApiResponse(code = 401, message = "Client could not be authenticated."),
+        @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+        @ApiResponse(code = 404, message = "The specified resource could not be found."),
+        @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+    })
+    public Response getFlowAnalysisResults(
+        @Context final HttpServletRequest httpServletRequest,
+        @ApiParam(
+            value = "The id of the process group representing (a part of) the flow to be analyzed.",
+            required = true
+        )
+        @PathParam("processGroupId")
+        final String processGroupId
+    ) {
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
+        }
+
+        authorizeFlow();
+
+        FlowAnalysisResultEntity entity = serviceFacade.getFlowAnalysisResult(processGroupId);
+
+        return generateOkResponse(entity).build();
+    }
+
+    /**
+     * Returns all flow analysis results currently in effect.
+     *
+     * @return a flowAnalysisRuleEntity containing all flow analysis results currently in-effect
+     */
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("flow-analysis/results")
+    @ApiOperation(
+        value = "Returns all flow analysis results currently in effect",
+        response = FlowAnalysisResultEntity.class,
+        authorizations = {
+            @Authorization(value = "Read - /flow")
+        })
+    @ApiResponses(value = {
+        @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+        @ApiResponse(code = 401, message = "Client could not be authenticated."),
+        @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+        @ApiResponse(code = 404, message = "The specified resource could not be found."),
+        @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+    })
+    public Response getAllFlowAnalysisResults() {
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
+        }
+
+        authorizeFlow();
+
+        FlowAnalysisResultEntity entity = serviceFacade.getFlowAnalysisResult();
+
         return generateOkResponse(entity).build();
     }
 

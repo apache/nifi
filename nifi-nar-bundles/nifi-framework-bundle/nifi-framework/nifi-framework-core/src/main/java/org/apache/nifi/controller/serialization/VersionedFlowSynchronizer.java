@@ -29,6 +29,7 @@ import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Position;
 import org.apache.nifi.controller.AbstractComponentNode;
 import org.apache.nifi.controller.ComponentNode;
+import org.apache.nifi.controller.FlowAnalysisRuleNode;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.MissingBundleException;
 import org.apache.nifi.controller.ParameterProviderNode;
@@ -40,6 +41,8 @@ import org.apache.nifi.controller.UninheritableFlowException;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.flow.VersionedDataflow;
 import org.apache.nifi.controller.flow.VersionedFlowEncodingVersion;
+import org.apache.nifi.controller.flowanalysis.FlowAnalysisRuleInstantiationException;
+import org.apache.nifi.flow.VersionedFlowAnalysisRule;
 import org.apache.nifi.controller.flow.VersionedTemplate;
 import org.apache.nifi.controller.inheritance.AuthorizerCheck;
 import org.apache.nifi.controller.inheritance.BundleCompatibilityCheck;
@@ -250,6 +253,20 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
             }
         }
 
+        if (dataflow.getFlowAnalysisRules() == null) {
+            dataflow.setFlowAnalysisRules(new ArrayList<>());
+        }
+        for (final VersionedFlowAnalysisRule flowAnalysisRule : dataflow.getFlowAnalysisRules()) {
+            if (missingComponentIds.contains(flowAnalysisRule.getInstanceIdentifier())) {
+                continue;
+            }
+
+            final Bundle compatibleBundle = getCompatibleBundle(flowAnalysisRule.getBundle(), extensionManager, flowAnalysisRule.getType());
+            if (compatibleBundle != null) {
+                flowAnalysisRule.setBundle(compatibleBundle);
+            }
+        }
+
         if (dataflow.getRegistries() == null) {
             dataflow.setRegistries(new ArrayList<>());
         }
@@ -385,6 +402,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
                 inheritParameterProviders(controller, versionedFlow, affectedComponentSet);
                 inheritParameterContexts(controller, versionedFlow);
                 inheritReportingTasks(controller, versionedFlow, affectedComponentSet);
+                inheritFlowAnalysisRules(controller, versionedFlow, affectedComponentSet);
                 inheritRegistries(controller, versionedFlow, affectedComponentSet);
 
                 final ComponentIdGenerator componentIdGenerator = (proposedId, instanceId, destinationGroupId) -> instanceId;
@@ -453,16 +471,30 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
 
         final VersionedDataflow clusterVersionedFlow = proposedFlow.getVersionedDataflow();
         final ComparableDataFlow clusterDataFlow = new StandardComparableDataFlow(
-            "Cluster Flow", clusterVersionedFlow.getRootGroup(), toSet(clusterVersionedFlow.getControllerServices()), toSet(clusterVersionedFlow.getReportingTasks()),
-            toSet(clusterVersionedFlow.getParameterContexts()), toSet(clusterVersionedFlow.getParameterProviders()), toSet(clusterVersionedFlow.getRegistries()));
+            "Cluster Flow",
+            clusterVersionedFlow.getRootGroup(),
+            toSet(clusterVersionedFlow.getControllerServices()),
+            toSet(clusterVersionedFlow.getReportingTasks()),
+            toSet(clusterVersionedFlow.getFlowAnalysisRules()),
+            toSet(clusterVersionedFlow.getParameterContexts()),
+            toSet(clusterVersionedFlow.getParameterProviders()),
+            toSet(clusterVersionedFlow.getRegistries())
+        );
 
         final VersionedProcessGroup proposedRootGroup = clusterVersionedFlow.getRootGroup();
         final String proposedRootGroupId = proposedRootGroup == null ? null : proposedRootGroup.getInstanceIdentifier();
 
         final VersionedDataflow existingVersionedFlow = existingFlow.getVersionedDataflow() == null ? createEmptyVersionedDataflow(proposedRootGroupId) : existingFlow.getVersionedDataflow();
         final ComparableDataFlow localDataFlow = new StandardComparableDataFlow(
-                "Local Flow", existingVersionedFlow.getRootGroup(), toSet(existingVersionedFlow.getControllerServices()), toSet(existingVersionedFlow.getReportingTasks()),
-                toSet(existingVersionedFlow.getParameterContexts()),toSet(existingVersionedFlow.getParameterProviders()), toSet(existingVersionedFlow.getRegistries()));
+            "Local Flow",
+            existingVersionedFlow.getRootGroup(),
+            toSet(existingVersionedFlow.getControllerServices()),
+            toSet(existingVersionedFlow.getReportingTasks()),
+            toSet(existingVersionedFlow.getFlowAnalysisRules()),
+            toSet(existingVersionedFlow.getParameterContexts()),
+            toSet(existingVersionedFlow.getParameterProviders()),
+            toSet(existingVersionedFlow.getRegistries())
+        );
 
         final FlowComparator flowComparator = new StandardFlowComparator(localDataFlow, clusterDataFlow, Collections.emptySet(),
             differenceDescriptor, encryptor::decrypt, VersionedComponent::getInstanceIdentifier, FlowComparatorVersionedStrategy.DEEP);
@@ -485,6 +517,7 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
         dataflow.setParameterProviders(Collections.emptyList());
         dataflow.setRegistries(Collections.emptyList());
         dataflow.setReportingTasks(Collections.emptyList());
+        dataflow.setFlowAnalysisRules(Collections.emptyList());
 
         final VersionedProcessGroup rootGroup = new VersionedProcessGroup();
         rootGroup.setInstanceIdentifier(rootGroupId);
@@ -650,6 +683,51 @@ public class VersionedFlowSynchronizer implements FlowSynchronizer {
                 }
                 if (!taskNode.isRunning()) {
                     controller.startReportingTask(taskNode);
+                }
+                break;
+        }
+    }
+
+    private void inheritFlowAnalysisRules(
+        final FlowController controller,
+        final VersionedDataflow dataflow,
+        final AffectedComponentSet affectedComponentSet
+    ) throws FlowAnalysisRuleInstantiationException {
+        for (final VersionedFlowAnalysisRule versionedFlowAnalysisRule : dataflow.getFlowAnalysisRules()) {
+            final FlowAnalysisRuleNode existing = controller.getFlowAnalysisRuleNode(versionedFlowAnalysisRule.getInstanceIdentifier());
+            if (existing == null) {
+                addFlowAnalysisRule(controller, versionedFlowAnalysisRule);
+            } else if (affectedComponentSet.isFlowAnalysisRuleAffected(existing.getIdentifier())) {
+                updateFlowAnalysisRule(existing, versionedFlowAnalysisRule, controller);
+            }
+        }
+    }
+
+    private void addFlowAnalysisRule(final FlowController controller, final VersionedFlowAnalysisRule flowAnalysisRule) throws FlowAnalysisRuleInstantiationException {
+        final BundleCoordinate coordinate = createBundleCoordinate(flowAnalysisRule.getBundle(), flowAnalysisRule.getType());
+
+        final FlowAnalysisRuleNode ruleNode = controller.createFlowAnalysisRule(flowAnalysisRule.getType(), flowAnalysisRule.getInstanceIdentifier(), coordinate, false);
+        updateFlowAnalysisRule(ruleNode, flowAnalysisRule, controller);
+    }
+
+    private void updateFlowAnalysisRule(final FlowAnalysisRuleNode ruleNode, final VersionedFlowAnalysisRule flowAnalysisRule, final FlowController controller) {
+        ruleNode.setName(flowAnalysisRule.getName());
+        ruleNode.setComments(flowAnalysisRule.getComments());
+        ruleNode.setEnforcementPolicy(flowAnalysisRule.getEnforcementPolicy());
+
+        final Set<String> sensitiveDynamicPropertyNames = getSensitiveDynamicPropertyNames(ruleNode, flowAnalysisRule);
+        final Map<String, String> decryptedProperties = decryptProperties(flowAnalysisRule.getProperties(), controller.getEncryptor());
+        ruleNode.setProperties(decryptedProperties, false, sensitiveDynamicPropertyNames);
+
+        switch (flowAnalysisRule.getScheduledState()) {
+            case DISABLED:
+                if (ruleNode.isEnabled()) {
+                    controller.disableFlowAnalysisRule(ruleNode);
+                }
+                break;
+            case ENABLED:
+                if (!ruleNode.isEnabled()) {
+                    controller.enableFlowAnalysisRule(ruleNode);
                 }
                 break;
         }

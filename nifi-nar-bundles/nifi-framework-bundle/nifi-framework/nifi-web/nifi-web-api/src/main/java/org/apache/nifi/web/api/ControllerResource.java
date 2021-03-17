@@ -28,34 +28,53 @@ import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.ComponentAuthorizable;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.web.IllegalClusterResourceRequestException;
 import org.apache.nifi.web.NiFiServiceFacade;
+import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.Revision;
+import org.apache.nifi.web.api.concurrent.AsyncRequestManager;
+import org.apache.nifi.web.api.concurrent.AsynchronousWebRequest;
+import org.apache.nifi.web.api.concurrent.RequestManager;
+import org.apache.nifi.web.api.concurrent.StandardAsynchronousWebRequest;
+import org.apache.nifi.web.api.concurrent.StandardUpdateStep;
+import org.apache.nifi.web.api.concurrent.UpdateStep;
 import org.apache.nifi.web.api.dto.BulletinDTO;
 import org.apache.nifi.web.api.dto.ClusterDTO;
+import org.apache.nifi.web.api.dto.ComponentStateDTO;
+import org.apache.nifi.web.api.dto.ConfigVerificationResultDTO;
+import org.apache.nifi.web.api.dto.ConfigurationAnalysisDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
+import org.apache.nifi.web.api.dto.FlowAnalysisRuleDTO;
 import org.apache.nifi.web.api.dto.DocumentedTypeDTO;
-import org.apache.nifi.web.api.dto.FlowRegistryClientDTO;
 import org.apache.nifi.web.api.dto.NodeDTO;
 import org.apache.nifi.web.api.dto.ParameterProviderDTO;
+import org.apache.nifi.web.api.dto.FlowRegistryClientDTO;
 import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
 import org.apache.nifi.web.api.dto.ReportingTaskDTO;
+import org.apache.nifi.web.api.dto.VerifyConfigRequestDTO;
 import org.apache.nifi.web.api.entity.BulletinEntity;
 import org.apache.nifi.web.api.entity.ClusterEntity;
 import org.apache.nifi.web.api.entity.ComponentHistoryEntity;
+import org.apache.nifi.web.api.entity.ComponentStateEntity;
+import org.apache.nifi.web.api.entity.ConfigurationAnalysisEntity;
 import org.apache.nifi.web.api.entity.ControllerConfigurationEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.Entity;
-import org.apache.nifi.web.api.entity.FlowRegistryClientEntity;
+import org.apache.nifi.web.api.entity.FlowAnalysisRuleRunStatusEntity;
+import org.apache.nifi.web.api.entity.FlowAnalysisRulesEntity;
 import org.apache.nifi.web.api.entity.FlowRegistryClientTypesEntity;
-import org.apache.nifi.web.api.entity.FlowRegistryClientsEntity;
+import org.apache.nifi.web.api.entity.FlowAnalysisRuleEntity;
 import org.apache.nifi.web.api.entity.HistoryEntity;
 import org.apache.nifi.web.api.entity.NodeEntity;
 import org.apache.nifi.web.api.entity.ParameterProviderEntity;
+import org.apache.nifi.web.api.entity.FlowRegistryClientEntity;
+import org.apache.nifi.web.api.entity.FlowRegistryClientsEntity;
 import org.apache.nifi.web.api.entity.PropertyDescriptorEntity;
 import org.apache.nifi.web.api.entity.ReportingTaskEntity;
+import org.apache.nifi.web.api.entity.VerifyConfigRequestEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.DateTimeParameter;
 import org.apache.nifi.web.api.request.LongParameter;
@@ -81,8 +100,11 @@ import java.net.URI;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 /**
  * RESTful endpoint for managing a Flow Controller.
@@ -95,6 +117,10 @@ import java.util.Set;
 public class ControllerResource extends ApplicationResource {
     private static final Logger LOGGER = LoggerFactory.getLogger(ControllerResource.class);
     private static final String NIFI_REGISTRY_TYPE = "org.apache.nifi.registry.flow.NifiRegistryFlowRegistryClient";
+    public static final String VERIFICATION_REQUEST_TYPE = "verification-request";
+
+    public RequestManager<VerifyConfigRequestEntity, List<ConfigVerificationResultDTO>> configVerificationRequestManager =
+            new AsyncRequestManager<>(100, TimeUnit.MINUTES.toMillis(1L), "Verify Flow Analysis Rule Config Thread");
 
     private NiFiServiceFacade serviceFacade;
     private Authorizer authorizer;
@@ -418,6 +444,939 @@ public class ControllerResource extends ApplicationResource {
                 }
         );
     }
+
+    // -------------------
+    // flow-analysis-rules
+    // -------------------
+
+    /**
+     * Creates a new Flow Analysis Rule.
+     *
+     * @param httpServletRequest            request
+     * @param requestFlowAnalysisRuleEntity A flowAnalysisRuleEntity.
+     * @return A flowAnalysisRuleEntity.0
+     */
+    @POST
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("flow-analysis-rules")
+    @ApiOperation(
+        value = "Creates a new flow analysis rule",
+        response = FlowAnalysisRuleEntity.class,
+        authorizations = {
+            @Authorization(value = "Write - /controller"),
+            @Authorization(value = "Read - any referenced Controller Services - /controller-services/{uuid}"),
+            @Authorization(value = "Write - if the Flow Analysis Rule is restricted - /restricted-components")
+        }
+    )
+    @ApiResponses(
+        value = {
+            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+            @ApiResponse(code = 401, message = "Client could not be authenticated."),
+            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+        }
+    )
+    public Response createFlowAnalysisRule(
+        @Context final HttpServletRequest httpServletRequest,
+        @ApiParam(
+            value = "The flow analysis rule configuration details.",
+            required = true
+        ) final FlowAnalysisRuleEntity requestFlowAnalysisRuleEntity) {
+
+        if (requestFlowAnalysisRuleEntity == null || requestFlowAnalysisRuleEntity.getComponent() == null) {
+            throw new IllegalArgumentException("Flow analysis rule details must be specified.");
+        }
+
+        if (
+            requestFlowAnalysisRuleEntity.getRevision() == null
+                || (requestFlowAnalysisRuleEntity.getRevision().getVersion() == null
+                || requestFlowAnalysisRuleEntity.getRevision().getVersion() != 0)
+        ) {
+            throw new IllegalArgumentException("A revision of 0 must be specified when creating a new Flow analysis rule.");
+        }
+
+        final FlowAnalysisRuleDTO requestFlowAnalysisRule = requestFlowAnalysisRuleEntity.getComponent();
+        if (requestFlowAnalysisRule.getId() != null) {
+            throw new IllegalArgumentException("Flow analysis rule ID cannot be specified.");
+        }
+
+        if (StringUtils.isBlank(requestFlowAnalysisRule.getType())) {
+            throw new IllegalArgumentException("The type of flow analysis rule to create must be specified.");
+        }
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.POST, requestFlowAnalysisRuleEntity);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(requestFlowAnalysisRuleEntity.isDisconnectedNodeAcknowledged());
+        }
+
+        return withWriteLock(
+            serviceFacade,
+            requestFlowAnalysisRuleEntity,
+            lookup -> {
+                authorizeController(RequestAction.WRITE);
+
+                ComponentAuthorizable authorizable = null;
+                try {
+                    authorizable = lookup.getConfigurableComponent(requestFlowAnalysisRule.getType(), requestFlowAnalysisRule.getBundle());
+
+                    if (authorizable.isRestricted()) {
+                        authorizeRestrictions(authorizer, authorizable);
+                    }
+
+                    if (requestFlowAnalysisRule.getProperties() != null) {
+                        AuthorizeControllerServiceReference.authorizeControllerServiceReferences(requestFlowAnalysisRule.getProperties(), authorizable, authorizer, lookup);
+                    }
+                } finally {
+                    if (authorizable != null) {
+                        authorizable.cleanUpResources();
+                    }
+                }
+            },
+            () -> serviceFacade.verifyCreateFlowAnalysisRule(requestFlowAnalysisRule),
+            (flowAnalysisRuleEntity) -> {
+                final FlowAnalysisRuleDTO flowAnalysisRule = flowAnalysisRuleEntity.getComponent();
+
+                // set the processor id as appropriate
+                flowAnalysisRule.setId(generateUuid());
+
+                // create the flow analysis rule and generate the json
+                final Revision revision = getRevision(flowAnalysisRuleEntity, flowAnalysisRule.getId());
+                final FlowAnalysisRuleEntity entity = serviceFacade.createFlowAnalysisRule(revision, flowAnalysisRule);
+                populateRemainingFlowAnalysisRuleEntityContent(entity);
+
+                // build the response
+                return generateCreatedResponse(URI.create(entity.getUri()), entity).build();
+            }
+        );
+    }
+
+    /**
+     * Clears the state for a flow analysis rule.
+     *
+     * @param httpServletRequest servlet request
+     * @param id                 The id of the flow analysis rule
+     * @return a componentStateEntity
+     */
+    @POST
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("flow-analysis-rules/{id}/state/clear-requests")
+    @ApiOperation(
+            value = "Clears the state for a flow analysis rule",
+            response = ComponentStateEntity.class,
+            authorizations = {
+                    @Authorization(value = "Write - /flow-analysis-rules/{uuid}")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
+    public Response clearState(
+            @Context final HttpServletRequest httpServletRequest,
+            @ApiParam(
+                    value = "The flow analysis rule id.",
+                    required = true
+            )
+            @PathParam("id") final String id) {
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.POST);
+        }
+
+        final FlowAnalysisRuleEntity requestFlowAnalysisRuleEntity = new FlowAnalysisRuleEntity();
+        requestFlowAnalysisRuleEntity.setId(id);
+
+        return withWriteLock(
+                serviceFacade,
+                requestFlowAnalysisRuleEntity,
+                lookup -> authorizeController(RequestAction.WRITE),
+                () -> serviceFacade.verifyCanClearFlowAnalysisRuleState(id),
+                (flowAnalysisRuleEntity) -> {
+                    // get the component state
+                    serviceFacade.clearFlowAnalysisRuleState(flowAnalysisRuleEntity.getId());
+
+                    // generate the response entity
+                    final ComponentStateEntity entity = new ComponentStateEntity();
+
+                    // generate the response
+                    return generateOkResponse(entity).build();
+                }
+        );
+    }
+
+    /**
+     * Updates the specified Flow Analysis Rule.
+     *
+     * @param httpServletRequest  request
+     * @param id                  The id of the flow analysis rule to update.
+     * @param requestFlowAnalysisRuleEntity A flowAnalysisRuleEntity.
+     * @return A flowAnalysisRuleEntity.
+     */
+    @PUT
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("flow-analysis-rules/{id}")
+    @ApiOperation(
+            value = "Updates a flow analysis rule",
+            response = FlowAnalysisRuleEntity.class,
+            authorizations = {
+                    @Authorization(value = "Write - /flow-analysis-rules/{uuid}"),
+                    @Authorization(value = "Read - any referenced Controller Services if this request changes the reference - /controller-services/{uuid}")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
+    public Response updateFlowAnalysisRule(
+            @Context final HttpServletRequest httpServletRequest,
+            @ApiParam(
+                    value = "The flow analysis rule id.",
+                    required = true
+            )
+            @PathParam("id") final String id,
+            @ApiParam(
+                    value = "The flow analysis rule configuration details.",
+                    required = true
+            ) final FlowAnalysisRuleEntity requestFlowAnalysisRuleEntity) {
+
+        if (requestFlowAnalysisRuleEntity == null || requestFlowAnalysisRuleEntity.getComponent() == null) {
+            throw new IllegalArgumentException("Flow analysis rule details must be specified.");
+        }
+
+        if (requestFlowAnalysisRuleEntity.getRevision() == null) {
+            throw new IllegalArgumentException("Revision must be specified.");
+        }
+
+        // ensure the ids are the same
+        final FlowAnalysisRuleDTO requestFlowAnalysisRuleDTO = requestFlowAnalysisRuleEntity.getComponent();
+        if (!id.equals(requestFlowAnalysisRuleDTO.getId())) {
+            throw new IllegalArgumentException(String.format("The flow analysis rule id (%s) in the request body does not equal the "
+                    + "flow analysis rule id of the requested resource (%s).", requestFlowAnalysisRuleDTO.getId(), id));
+        }
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.PUT, requestFlowAnalysisRuleEntity);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(requestFlowAnalysisRuleEntity.isDisconnectedNodeAcknowledged());
+        }
+
+        // handle expects request (usually from the cluster manager)
+        final Revision requestRevision = getRevision(requestFlowAnalysisRuleEntity, id);
+        return withWriteLock(
+                serviceFacade,
+                requestFlowAnalysisRuleEntity,
+                requestRevision,
+                lookup -> {
+                    // authorize flow analysis rule
+                    authorizeController(RequestAction.WRITE);
+
+                    final ComponentAuthorizable authorizable = lookup.getFlowAnalysisRule(id);
+
+                    // authorize any referenced services
+                    AuthorizeControllerServiceReference.authorizeControllerServiceReferences(requestFlowAnalysisRuleDTO.getProperties(), authorizable, authorizer, lookup);
+                },
+                () -> serviceFacade.verifyUpdateFlowAnalysisRule(requestFlowAnalysisRuleDTO),
+                (revision, flowAnalysisRuleEntity) -> {
+                    final FlowAnalysisRuleDTO flowAnalysisRuleDTO = flowAnalysisRuleEntity.getComponent();
+
+                    // update the flow analysis rule
+                    final FlowAnalysisRuleEntity entity = serviceFacade.updateFlowAnalysisRule(revision, flowAnalysisRuleDTO);
+                    populateRemainingFlowAnalysisRuleEntityContent(entity);
+
+                    return generateOkResponse(entity).build();
+                }
+        );
+    }
+
+    /**
+     * Removes the specified flow analysis rule.
+     *
+     * @param httpServletRequest request
+     * @param version            The revision is used to verify the client is working with
+     *                           the latest version of the flow.
+     * @param clientId           Optional client id. If the client id is not specified, a
+     *                           new one will be generated. This value (whether specified or generated) is
+     *                           included in the response.
+     * @param id                 The id of the flow analysis rule to remove.
+     * @return A entity containing the client id and an updated revision.
+     */
+    @DELETE
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("flow-analysis-rules/{id}")
+    @ApiOperation(
+            value = "Deletes a flow analysis rule",
+            response = FlowAnalysisRuleEntity.class,
+            authorizations = {
+                    @Authorization(value = "Write - /flow-analysis-rules/{uuid}"),
+                    @Authorization(value = "Write - /controller"),
+                    @Authorization(value = "Read - any referenced Controller Services - /controller-services/{uuid}")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
+    public Response removeFlowAnalysisRule(
+            @Context HttpServletRequest httpServletRequest,
+            @ApiParam(
+                    value = "The revision is used to verify the client is working with the latest version of the flow.",
+                    required = false
+            )
+            @QueryParam(VERSION) LongParameter version,
+            @ApiParam(
+                    value = "If the client id is not specified, new one will be generated. This value (whether specified or generated) is included in the response.",
+                    required = false
+            )
+            @QueryParam(CLIENT_ID) @DefaultValue(StringUtils.EMPTY) ClientIdParameter clientId,
+            @ApiParam(
+                    value = "Acknowledges that this node is disconnected to allow for mutable requests to proceed.",
+                    required = false
+            )
+            @QueryParam(DISCONNECTED_NODE_ACKNOWLEDGED) @DefaultValue("false") final Boolean disconnectedNodeAcknowledged,
+            @ApiParam(
+                    value = "The flow analysis rule id.",
+                    required = true
+            )
+            @PathParam("id") String id) {
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.DELETE);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(disconnectedNodeAcknowledged);
+        }
+
+        final FlowAnalysisRuleEntity requestFlowAnalysisRuleEntity = new FlowAnalysisRuleEntity();
+        requestFlowAnalysisRuleEntity.setId(id);
+
+        // handle expects request (usually from the cluster manager)
+        final Revision requestRevision = new Revision(version == null ? null : version.getLong(), clientId.getClientId(), id);
+        return withWriteLock(
+                serviceFacade,
+                requestFlowAnalysisRuleEntity,
+                requestRevision,
+                lookup -> {
+                    final ComponentAuthorizable flowAnalysisRule = lookup.getFlowAnalysisRule(id);
+
+                    authorizeController(RequestAction.WRITE);
+
+                    // verify any referenced services
+                    AuthorizeControllerServiceReference.authorizeControllerServiceReferences(flowAnalysisRule, authorizer, lookup, false);
+                },
+                () -> serviceFacade.verifyDeleteFlowAnalysisRule(id),
+                (revision, flowAnalysisRuleEntity) -> {
+                    // delete the specified flow analysis rule
+                    final FlowAnalysisRuleEntity entity = serviceFacade.deleteFlowAnalysisRule(revision, flowAnalysisRuleEntity.getId());
+                    return generateOkResponse(entity).build();
+                }
+        );
+    }
+
+    /**
+     * Updates the operational status for the specified FlowAnalysisRule with the specified values.
+     *
+     * @param httpServletRequest  request
+     * @param id                  The id of the flow analysis rule to update.
+     * @param requestRunStatus A runStatusEntity.
+     * @return A flowAnalysisRuleEntity.
+     */
+    @PUT
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("flow-analysis-rules/{id}/run-status")
+    @ApiOperation(
+            value = "Updates run status of a flow analysis rule",
+            response = FlowAnalysisRuleEntity.class,
+            authorizations = {
+                    @Authorization(value = "Write - /flow-analysis-rules/{uuid} or  or /operation/flow-analysis-rules/{uuid}")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
+    public Response updateRunStatus(
+            @Context final HttpServletRequest httpServletRequest,
+            @ApiParam(
+                    value = "The flow analysis rule id.",
+                    required = true
+            )
+            @PathParam("id") final String id,
+            @ApiParam(
+                    value = "The flow analysis rule run status.",
+                    required = true
+            ) final FlowAnalysisRuleRunStatusEntity requestRunStatus) {
+
+        if (requestRunStatus == null) {
+            throw new IllegalArgumentException("Flow analysis rule run status must be specified.");
+        }
+
+        if (requestRunStatus.getRevision() == null) {
+            throw new IllegalArgumentException("Revision must be specified.");
+        }
+
+        requestRunStatus.validateState();
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.PUT, requestRunStatus);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(requestRunStatus.isDisconnectedNodeAcknowledged());
+        }
+
+        // handle expects request (usually from the cluster manager)
+        final Revision requestRevision = getRevision(requestRunStatus.getRevision(), id);
+        return withWriteLock(
+                serviceFacade,
+                requestRunStatus,
+                requestRevision,
+                lookup -> authorizeController(RequestAction.WRITE),
+                () -> serviceFacade.verifyUpdateFlowAnalysisRule(createFlowAnalysisRuleDtoWithDesiredRunStatus(id, requestRunStatus.getState())),
+                (revision, flowAnalysisRuleRunStatusEntity) -> {
+                    // update the flow analysis rule
+                    final FlowAnalysisRuleEntity entity = serviceFacade.updateFlowAnalysisRule(revision, createFlowAnalysisRuleDtoWithDesiredRunStatus(id, flowAnalysisRuleRunStatusEntity.getState()));
+                    populateRemainingFlowAnalysisRuleEntityContent(entity);
+
+                    return generateOkResponse(entity).build();
+                }
+        );
+    }
+
+    private FlowAnalysisRuleDTO createFlowAnalysisRuleDtoWithDesiredRunStatus(final String id, final String runStatus) {
+        final FlowAnalysisRuleDTO dto = new FlowAnalysisRuleDTO();
+        dto.setId(id);
+        dto.setState(runStatus);
+        return dto;
+    }
+
+    /**
+     * Populate the uri's for the specified flow analysis rules.
+     *
+     * @param flowAnalysisRuleEntities flow analysis rules
+     * @return dtos
+     */
+    private Set<FlowAnalysisRuleEntity> populateRemainingFlowAnalysisRuleEntitiesContent(final Set<FlowAnalysisRuleEntity> flowAnalysisRuleEntities) {
+        for (FlowAnalysisRuleEntity flowAnalysisRuleEntity : flowAnalysisRuleEntities) {
+            populateRemainingFlowAnalysisRuleEntityContent(flowAnalysisRuleEntity);
+        }
+        return flowAnalysisRuleEntities;
+    }
+
+    /**
+     * Populate the uri's for the specified flow analysis rule.
+     *
+     * @param flowAnalysisRuleEntity flow analysis rule
+     * @return dtos
+     */
+    private FlowAnalysisRuleEntity populateRemainingFlowAnalysisRuleEntityContent(final FlowAnalysisRuleEntity flowAnalysisRuleEntity) {
+        flowAnalysisRuleEntity.setUri(generateResourceUri("controller/flow-analysis-rules", flowAnalysisRuleEntity.getId()));
+
+        return flowAnalysisRuleEntity;
+    }
+
+    //
+
+    /**
+     * Retrieves all the flow analysis rules in this NiFi.
+     *
+     * @return A flowAnalysisRulesEntity.
+     */
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("flow-analysis-rules")
+    @ApiOperation(
+            value = "Gets all flow analysis rules",
+            response = FlowAnalysisRulesEntity.class,
+            authorizations = {
+                    @Authorization(value = "Read - /flow")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
+    public Response getFlowAnalysisRules() {
+        authorizeController(RequestAction.READ);
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
+        }
+
+        // get all the flow analysis rules
+        final Set<FlowAnalysisRuleEntity> flowAnalysisRules = serviceFacade.getFlowAnalysisRules();
+        populateRemainingFlowAnalysisRuleEntitiesContent(flowAnalysisRules);
+
+        // create the response entity
+        final FlowAnalysisRulesEntity entity = new FlowAnalysisRulesEntity();
+        entity.setFlowAnalysisRules(flowAnalysisRules);
+
+        // generate the response
+        return generateOkResponse(entity).build();
+    }
+
+    /**
+     * Retrieves the specified flow analysis rule.
+     *
+     * @param id The id of the flow analysis rule to retrieve
+     * @return A flowAnalysisRuleEntity.
+     */
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("flow-analysis-rules/{id}")
+    @ApiOperation(
+            value = "Gets a flow analysis rule",
+            response = FlowAnalysisRuleEntity.class,
+            authorizations = {
+                    @Authorization(value = "Read - /flow-analysis-rules/{uuid}")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
+    public Response getFlowAnalysisRule(
+            @ApiParam(
+                    value = "The flow analysis rule id.",
+                    required = true
+            )
+            @PathParam("id") final String id
+    ) {
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
+        }
+
+        authorizeController(RequestAction.READ);
+
+        // get the flow analysis rule
+        final FlowAnalysisRuleEntity flowAnalysisRule = serviceFacade.getFlowAnalysisRule(id);
+        populateRemainingFlowAnalysisRuleEntityContent(flowAnalysisRule);
+
+        return generateOkResponse(flowAnalysisRule).build();
+    }
+
+    /**
+     * Returns the descriptor for the specified property.
+     *
+     * @param id           The id of the flow analysis rule.
+     * @param propertyName The property
+     * @return a propertyDescriptorEntity
+     */
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("flow-analysis-rules/{id}/descriptors")
+    @ApiOperation(
+            value = "Gets a flow analysis rule property descriptor",
+            response = PropertyDescriptorEntity.class,
+            authorizations = {
+                    @Authorization(value = "Read - /flow-analysis-rules/{uuid}")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
+    public Response getFlowAnalysisRulePropertyDescriptor(
+            @ApiParam(
+                    value = "The flow analysis rule id.",
+                    required = true
+            )
+            @PathParam("id") final String id,
+            @ApiParam(
+                    value = "The property name.",
+                    required = true
+            )
+            @QueryParam("propertyName") final String propertyName,
+            @ApiParam(
+                    value = "Property Descriptor requested sensitive status",
+                    defaultValue = "false"
+            )
+            @QueryParam("sensitive") final boolean sensitive
+    ) {
+
+        // ensure the property name is specified
+        if (propertyName == null) {
+            throw new IllegalArgumentException("The property name must be specified.");
+        }
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
+        }
+
+        authorizeController(RequestAction.READ);
+
+        // get the property descriptor
+        final PropertyDescriptorDTO descriptor = serviceFacade.getFlowAnalysisRulePropertyDescriptor(id, propertyName, sensitive);
+
+        // generate the response entity
+        final PropertyDescriptorEntity entity = new PropertyDescriptorEntity();
+        entity.setPropertyDescriptor(descriptor);
+
+        // generate the response
+        return generateOkResponse(entity).build();
+    }
+
+    /**
+     * Gets the state for a flow analysis rule.
+     *
+     * @param id The id of the flow analysis rule
+     * @return a componentStateEntity
+     */
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("flow-analysis-rules/{id}/state")
+    @ApiOperation(
+            value = "Gets the state for a flow analysis rule",
+            response = ComponentStateEntity.class,
+            authorizations = {
+                    @Authorization(value = "Write - /flow-analysis-rules/{uuid}")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
+    public Response getFlowAnalysisRuleState(
+            @ApiParam(
+                    value = "The flow analysis rule id.",
+                    required = true
+            )
+            @PathParam("id") final String id) {
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
+        }
+
+        authorizeController(RequestAction.READ);
+
+        // get the component state
+        final ComponentStateDTO state = serviceFacade.getFlowAnalysisRuleState(id);
+
+        // generate the response entity
+        final ComponentStateEntity entity = new ComponentStateEntity();
+        entity.setComponentState(state);
+
+        // generate the response
+        return generateOkResponse(entity).build();
+    }
+
+    @POST
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("flow-analysis-rules/{id}/config/analysis")
+    @ApiOperation(
+        value = "Performs analysis of the component's configuration, providing information about which attributes are referenced.",
+        response = ConfigurationAnalysisEntity.class,
+        authorizations = {
+            @Authorization(value = "Read - /flow-analysis-rules/{uuid}")
+        }
+    )
+    @ApiResponses(
+        value = {
+            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+            @ApiResponse(code = 401, message = "Client could not be authenticated."),
+            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+            @ApiResponse(code = 404, message = "The specified resource could not be found."),
+            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+        }
+    )
+    public Response analyzeFlowAnalysisRuleConfiguration(
+        @ApiParam(value = "The flow analysis rules id.", required = true) @PathParam("id") final String flowAnalysisRuleId,
+        @ApiParam(value = "The configuration analysis request.", required = true) final ConfigurationAnalysisEntity configurationAnalysis) {
+
+        if (configurationAnalysis == null || configurationAnalysis.getConfigurationAnalysis() == null) {
+            throw new IllegalArgumentException("Flow Analysis Rules's configuration must be specified");
+        }
+
+        final ConfigurationAnalysisDTO dto = configurationAnalysis.getConfigurationAnalysis();
+        if (dto.getComponentId() == null) {
+            throw new IllegalArgumentException("Flow Analysis Rule's identifier must be specified in the request");
+        }
+
+        if (!dto.getComponentId().equals(flowAnalysisRuleId)) {
+            throw new IllegalArgumentException("Flow Analysis Rule's identifier in the request must match the identifier provided in the URL");
+        }
+
+        if (dto.getProperties() == null) {
+            throw new IllegalArgumentException("Flow Analysis Rule's properties must be specified in the request");
+        }
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.POST, configurationAnalysis);
+        }
+
+        return withWriteLock(
+            serviceFacade,
+            configurationAnalysis,
+            lookup -> authorizeController(RequestAction.READ),
+            () -> { },
+            entity -> {
+                final ConfigurationAnalysisDTO analysis = entity.getConfigurationAnalysis();
+                final ConfigurationAnalysisEntity resultsEntity = serviceFacade.analyzeFlowAnalysisRuleConfiguration(analysis.getComponentId(), analysis.getProperties());
+                return generateOkResponse(resultsEntity).build();
+            }
+        );
+    }
+
+    @POST
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("flow-analysis-rules/{id}/config/verification-requests")
+    @ApiOperation(
+        value = "Performs verification of the Flow Analysis Rule's configuration",
+        response = VerifyConfigRequestEntity.class,
+        notes = "This will initiate the process of verifying a given Flow Analysis Rule configuration. This may be a long-running task. As a result, this endpoint will immediately return a " +
+            "FlowAnalysisRuleConfigVerificationRequestEntity, and the process of performing the verification will occur asynchronously in the background. " +
+            "The client may then periodically poll the status of the request by " +
+            "issuing a GET request to /flow-analysis-rules/{taskId}/verification-requests/{requestId}. Once the request is completed, the client is expected to issue a DELETE request to " +
+            "/flow-analysis-rules/{serviceId}/verification-requests/{requestId}.",
+        authorizations = {
+            @Authorization(value = "Read - /flow-analysis-rules/{uuid}")
+        }
+    )
+    @ApiResponses(
+        value = {
+            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+            @ApiResponse(code = 401, message = "Client could not be authenticated."),
+            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+            @ApiResponse(code = 404, message = "The specified resource could not be found."),
+            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+        }
+    )
+    public Response submitFlowAnalysisRuleConfigVerificationRequest(
+        @ApiParam(value = "The flow analysis rules id.", required = true) @PathParam("id") final String flowAnalysisRuleId,
+        @ApiParam(value = "The flow analysis rules configuration verification request.", required = true) final VerifyConfigRequestEntity flowAnalysisRuleConfigRequest) {
+
+        if (flowAnalysisRuleConfigRequest == null) {
+            throw new IllegalArgumentException("Flow Analysis Rule's configuration must be specified");
+        }
+
+        final VerifyConfigRequestDTO requestDto = flowAnalysisRuleConfigRequest.getRequest();
+        if (requestDto == null || requestDto.getProperties() == null) {
+            throw new IllegalArgumentException("Flow Analysis Rule Properties must be specified");
+        }
+
+        if (requestDto.getComponentId() == null) {
+            throw new IllegalArgumentException("Flow Analysis Rule's identifier must be specified in the request");
+        }
+
+        if (!requestDto.getComponentId().equals(flowAnalysisRuleId)) {
+            throw new IllegalArgumentException("Flow Analysis Rule's identifier in the request must match the identifier provided in the URL");
+        }
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.POST, flowAnalysisRuleConfigRequest);
+        }
+
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+
+        return withWriteLock(
+            serviceFacade,
+            flowAnalysisRuleConfigRequest,
+            lookup -> authorizeController(RequestAction.READ),
+            () -> serviceFacade.verifyCanVerifyFlowAnalysisRuleConfig(flowAnalysisRuleId),
+            entity -> performAsyncFlowAnalysisRuleConfigVerification(entity, user)
+        );
+    }
+
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("flow-analysis-rules/{id}/config/verification-requests/{requestId}")
+    @ApiOperation(
+        value = "Returns the Verification Request with the given ID",
+        response = VerifyConfigRequestEntity.class,
+        notes = "Returns the Verification Request with the given ID. Once an Verification Request has been created, "
+            + "that request can subsequently be retrieved via this endpoint, and the request that is fetched will contain the updated state, such as percent complete, the "
+            + "current state of the request, and any failures. ",
+        authorizations = {
+            @Authorization(value = "Only the user that submitted the request can get it")
+        })
+    @ApiResponses(value = {
+        @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+        @ApiResponse(code = 401, message = "Client could not be authenticated."),
+        @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+        @ApiResponse(code = 404, message = "The specified resource could not be found."),
+        @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+    })
+    public Response getFlowAnalysisRuleVerificationRequest(
+        @ApiParam("The ID of the Flow Analysis Rule") @PathParam("id") final String flowAnalysisRuleId,
+        @ApiParam("The ID of the Verification Request") @PathParam("requestId") final String requestId) {
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
+        }
+
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+
+        // request manager will ensure that the current is the user that submitted this request
+        final AsynchronousWebRequest<VerifyConfigRequestEntity, List<ConfigVerificationResultDTO>> asyncRequest =
+                configVerificationRequestManager.getRequest(VERIFICATION_REQUEST_TYPE, requestId, user);
+
+        final VerifyConfigRequestEntity updateRequestEntity = createVerifyFlowAnalysisRuleConfigRequestEntity(asyncRequest, requestId);
+        return generateOkResponse(updateRequestEntity).build();
+    }
+
+    @DELETE
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("flow-analysis-rules/{id}/config/verification-requests/{requestId}")
+    @ApiOperation(
+        value = "Deletes the Verification Request with the given ID",
+        response = VerifyConfigRequestEntity.class,
+        notes = "Deletes the Verification Request with the given ID. After a request is created, it is expected "
+            + "that the client will properly clean up the request by DELETE'ing it, once the Verification process has completed. If the request is deleted before the request "
+            + "completes, then the Verification request will finish the step that it is currently performing and then will cancel any subsequent steps.",
+        authorizations = {
+            @Authorization(value = "Only the user that submitted the request can remove it")
+        })
+    @ApiResponses(value = {
+        @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+        @ApiResponse(code = 401, message = "Client could not be authenticated."),
+        @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+        @ApiResponse(code = 404, message = "The specified resource could not be found."),
+        @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+    })
+    public Response deleteFlowAnalysisRuleVerificationRequest(
+        @ApiParam("The ID of the Flow Analysis Rule") @PathParam("id") final String flowAnalysisRuleId,
+        @ApiParam("The ID of the Verification Request") @PathParam("requestId") final String requestId) {
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.DELETE);
+        }
+
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+        final boolean twoPhaseRequest = isTwoPhaseRequest(httpServletRequest);
+        final boolean executionPhase = isExecutionPhase(httpServletRequest);
+
+        // If this is a standalone node, or if this is the execution phase of the request, perform the actual request.
+        if (!twoPhaseRequest || executionPhase) {
+            // request manager will ensure that the current is the user that submitted this request
+            final AsynchronousWebRequest<VerifyConfigRequestEntity, List<ConfigVerificationResultDTO>> asyncRequest =
+                    configVerificationRequestManager.removeRequest(VERIFICATION_REQUEST_TYPE, requestId, user);
+
+            if (asyncRequest == null) {
+                throw new ResourceNotFoundException("Could not find request of type " + VERIFICATION_REQUEST_TYPE + " with ID " + requestId);
+            }
+
+            if (!asyncRequest.isComplete()) {
+                asyncRequest.cancel();
+            }
+
+            final VerifyConfigRequestEntity updateRequestEntity = createVerifyFlowAnalysisRuleConfigRequestEntity(asyncRequest, requestId);
+            return generateOkResponse(updateRequestEntity).build();
+        }
+
+        if (isValidationPhase(httpServletRequest)) {
+            // Perform authorization by attempting to get the request
+            configVerificationRequestManager.getRequest(VERIFICATION_REQUEST_TYPE, requestId, user);
+            return generateContinueResponse().build();
+        } else if (isCancellationPhase(httpServletRequest)) {
+            return generateOkResponse().build();
+        } else {
+            throw new IllegalStateException("This request does not appear to be part of the two phase commit.");
+        }
+    }
+
+    public Response performAsyncFlowAnalysisRuleConfigVerification(final VerifyConfigRequestEntity configRequest, final NiFiUser user) {
+        // Create an asynchronous request that will occur in the background, because this request may take an indeterminate amount of time.
+        final String requestId = generateUuid();
+
+        final VerifyConfigRequestDTO requestDto = configRequest.getRequest();
+        final String taskId = requestDto.getComponentId();
+        final List<UpdateStep> updateSteps = Collections.singletonList(new StandardUpdateStep("Verify Flow Analysis Rule Configuration"));
+
+        final AsynchronousWebRequest<VerifyConfigRequestEntity, List<ConfigVerificationResultDTO>> request =
+            new StandardAsynchronousWebRequest<>(requestId, configRequest, taskId, user, updateSteps);
+
+        // Submit the request to be performed in the background
+        final Consumer<AsynchronousWebRequest<VerifyConfigRequestEntity, List<ConfigVerificationResultDTO>>> verificationTask = asyncRequest -> {
+            try {
+                final List<ConfigVerificationResultDTO> results = serviceFacade.performFlowAnalysisRuleConfigVerification(taskId, requestDto.getProperties());
+                asyncRequest.markStepComplete(results);
+            } catch (final Exception e) {
+                LOGGER.error("Failed to verify Flow Analysis Rule configuration", e);
+                asyncRequest.fail("Failed to verify Flow Analysis Rule configuration due to " + e);
+            }
+        };
+
+        configVerificationRequestManager.submitRequest(VERIFICATION_REQUEST_TYPE, requestId, request, verificationTask);
+
+        // Generate the response
+        final VerifyConfigRequestEntity resultsEntity = createVerifyFlowAnalysisRuleConfigRequestEntity(request, requestId);
+        return generateOkResponse(resultsEntity).build();
+    }
+
+    private VerifyConfigRequestEntity createVerifyFlowAnalysisRuleConfigRequestEntity(
+        final AsynchronousWebRequest<VerifyConfigRequestEntity, List<ConfigVerificationResultDTO>> asyncRequest, final String requestId) {
+
+        final VerifyConfigRequestDTO requestDto = asyncRequest.getRequest().getRequest();
+        final List<ConfigVerificationResultDTO> resultsList = asyncRequest.getResults();
+
+        final VerifyConfigRequestDTO dto = new VerifyConfigRequestDTO();
+        dto.setComponentId(requestDto.getComponentId());
+        dto.setProperties(requestDto.getProperties());
+        dto.setResults(resultsList);
+
+        dto.setComplete(asyncRequest.isComplete());
+        dto.setFailureReason(asyncRequest.getFailureReason());
+        dto.setLastUpdated(asyncRequest.getLastUpdated());
+        dto.setPercentCompleted(asyncRequest.getPercentComplete());
+        dto.setRequestId(requestId);
+        dto.setState(asyncRequest.getState());
+        dto.setUri(generateResourceUri("controller/flow-analysis-rules", requestDto.getComponentId(), "config", "verification-requests", requestId));
+
+        final VerifyConfigRequestEntity entity = new VerifyConfigRequestEntity();
+        entity.setRequest(dto);
+        return entity;
+    }
+    //--
 
     // ----------
     // registries

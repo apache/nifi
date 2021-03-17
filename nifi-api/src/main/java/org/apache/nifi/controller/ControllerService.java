@@ -26,11 +26,12 @@ import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.reporting.ReportingTask;
+import org.apache.nifi.flowanalysis.FlowAnalysisRule;
 
 /**
  * <p>
  * This interface provides a mechanism for creating services that are shared
- * among all {@link Processor}s, {@link ReportingTask}s, {@link ParameterProvider}s and other
+ * among all {@link Processor}s, {@link ReportingTask}s, {@link FlowAnalysisRule}s, {@link ParameterProvider}s and other
  * {@code ControllerService}s.
  * </p>
  *

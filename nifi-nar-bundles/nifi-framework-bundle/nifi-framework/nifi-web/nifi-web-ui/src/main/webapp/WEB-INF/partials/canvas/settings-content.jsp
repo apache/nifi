@@ -23,7 +23,7 @@
             <div class="clear"></div>
         </div>
         <div id="settings-tabs-content">
-            <button id="new-service-or-task" class="add-button fa fa-plus" title="Create a new reporting task controller service" style="display: block;"></button>
+            <button id="new-service-or-task" class="add-button fa fa-plus" title="Create a controller-level component" style="display: block;"></button>
             <div id="general-settings-tab-content" class="configuration-tab">
                 <div id="general-settings">
                     <div class="setting">
@@ -49,6 +49,9 @@
             </div>
             <div id="reporting-tasks-tab-content" class="configuration-tab controller-settings-table">
                 <div id="reporting-tasks-table" class="settings-table"></div>
+            </div>
+            <div id="flow-analysis-rules-tab-content" class="configuration-tab controller-settings-table">
+                <div id="flow-analysis-rules-table" class="settings-table"></div>
             </div>
             <div id="registries-tab-content" class="configuration-tab controller-settings-table">
                 <div class="registry-properties"></div>

@@ -43,6 +43,7 @@ import org.apache.nifi.controller.service.ControllerServiceDisabledException;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.service.ControllerServiceState;
+import org.apache.nifi.flowanalysis.EnforcementPolicy;
 import org.apache.nifi.flow.ExecutionEngine;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.nar.ExtensionManager;
@@ -61,6 +62,8 @@ import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.util.CharacterFilterUtils;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
+import org.apache.nifi.validation.RuleViolation;
+import org.apache.nifi.validation.RuleViolationsManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -758,6 +761,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
 
     protected Collection<ValidationResult> computeValidationErrors(final ValidationContext validationContext) {
         Throwable failureCause = null;
+
         try {
             if (!sensitiveDynamicPropertyNames.get().isEmpty() && !isSupportsSensitiveDynamicProperties()) {
                 return Collections.singletonList(
@@ -785,6 +789,24 @@ public abstract class AbstractComponentNode implements ComponentNode {
             // validate selected controller services implement the API required by the processor
             final Collection<ValidationResult> referencedServiceValidationResults = validateReferencedControllerServices(validationContext);
             validationResults.addAll(referencedServiceValidationResults);
+
+            performFlowAnalysisOnThis();
+
+            RuleViolationsManager ruleViolationsManager = getValidationContextFactory().getRuleViolationsManager();
+            if (ruleViolationsManager != null) {
+                Collection<RuleViolation> ruleViolations = ruleViolationsManager.getRuleViolationsForSubject(getIdentifier());
+                for (RuleViolation ruleViolation : ruleViolations) {
+                    if (ruleViolation.getEnforcementPolicy() == EnforcementPolicy.ENFORCE) {
+                        validationResults.add(
+                            new ValidationResult.Builder()
+                                .subject(getComponent().getClass().getSimpleName())
+                                .valid(false)
+                                .explanation(ruleViolation.getViolationMessage())
+                                .build()
+                        );
+                    }
+                }
+            }
 
             logger.debug("Computed validation errors with Validation Context {}; results = {}", validationContext, validationResults);
 
@@ -992,6 +1014,9 @@ public abstract class AbstractComponentNode implements ComponentNode {
         }
 
         return null;
+    }
+
+    protected void performFlowAnalysisOnThis() {
     }
 
     private ValidationResult createInvalidResult(final String serviceId, final String propertyName, final String explanation) {

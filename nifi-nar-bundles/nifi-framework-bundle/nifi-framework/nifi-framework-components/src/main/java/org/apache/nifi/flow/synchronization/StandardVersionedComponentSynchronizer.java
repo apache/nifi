@@ -29,6 +29,7 @@ import org.apache.nifi.connectable.Position;
 import org.apache.nifi.connectable.Size;
 import org.apache.nifi.controller.BackoffMechanism;
 import org.apache.nifi.controller.ComponentNode;
+import org.apache.nifi.controller.FlowAnalysisRuleNode;
 import org.apache.nifi.controller.ParameterProviderNode;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.PropertyConfiguration;
@@ -37,6 +38,7 @@ import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.Template;
 import org.apache.nifi.controller.Triggerable;
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
+import org.apache.nifi.controller.flowanalysis.FlowAnalysisRuleInstantiationException;
 import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.queue.LoadBalanceCompression;
@@ -57,6 +59,7 @@ import org.apache.nifi.flow.VersionedComponent;
 import org.apache.nifi.flow.VersionedConnection;
 import org.apache.nifi.flow.VersionedControllerService;
 import org.apache.nifi.flow.VersionedExternalFlow;
+import org.apache.nifi.flow.VersionedFlowAnalysisRule;
 import org.apache.nifi.flow.VersionedFlowCoordinates;
 import org.apache.nifi.flow.VersionedFunnel;
 import org.apache.nifi.flow.VersionedLabel;
@@ -3662,6 +3665,82 @@ public class StandardVersionedComponentSynchronizer implements VersionedComponen
             notifyScheduledStateChange(reportingTask, syncOptions, proposed.getScheduledState());
         } finally {
             reportingTask.resumeValidationTrigger();
+        }
+    }
+
+    @Override
+    public void synchronize(final FlowAnalysisRuleNode flowAnalysisRule, final VersionedFlowAnalysisRule proposed, final FlowSynchronizationOptions synchronizationOptions)
+            throws FlowSynchronizationException, TimeoutException, InterruptedException, FlowAnalysisRuleInstantiationException {
+
+        if (flowAnalysisRule == null && proposed == null) {
+            return;
+        }
+
+        synchronizationOptions.getComponentScheduler().pause();
+        try {
+            // If flow analysis rule is not null, make sure that it's disabled.
+            if (flowAnalysisRule != null && flowAnalysisRule.isEnabled()) {
+                flowAnalysisRule.disable();
+            }
+
+            if (proposed == null) {
+                flowAnalysisRule.verifyCanDelete();
+                context.getFlowManager().removeFlowAnalysisRule(flowAnalysisRule);
+                LOG.info("Successfully synchronized {} by removing it from the flow", flowAnalysisRule);
+            } else if (flowAnalysisRule == null) {
+                final FlowAnalysisRuleNode added = addFlowAnalysisRule(proposed);
+                LOG.info("Successfully synchronized {} by adding it to the flow", added);
+            } else {
+                updateFlowAnalysisRule(flowAnalysisRule, proposed);
+                LOG.info("Successfully synchronized {} by updating it to match proposed version", flowAnalysisRule);
+            }
+        } finally {
+            synchronizationOptions.getComponentScheduler().resume();
+        }
+    }
+
+    private FlowAnalysisRuleNode addFlowAnalysisRule(final VersionedFlowAnalysisRule flowAnalysisRule) throws FlowAnalysisRuleInstantiationException {
+        final BundleCoordinate coordinate = toCoordinate(flowAnalysisRule.getBundle());
+        final FlowAnalysisRuleNode ruleNode = context.getFlowManager().createFlowAnalysisRule(flowAnalysisRule.getType(), flowAnalysisRule.getInstanceIdentifier(), coordinate, false);
+        updateFlowAnalysisRule(ruleNode, flowAnalysisRule);
+        return ruleNode;
+    }
+
+    private void updateFlowAnalysisRule(final FlowAnalysisRuleNode flowAnalysisRule, final VersionedFlowAnalysisRule proposed)
+            throws FlowAnalysisRuleInstantiationException {
+        LOG.debug("Updating Flow Analysis Rule {}", flowAnalysisRule);
+
+        flowAnalysisRule.pauseValidationTrigger();
+        try {
+            flowAnalysisRule.setName(proposed.getName());
+            flowAnalysisRule.setComments(proposed.getComments());
+            flowAnalysisRule.setEnforcementPolicy(proposed.getEnforcementPolicy());
+
+            if (!isEqual(flowAnalysisRule.getBundleCoordinate(), proposed.getBundle())) {
+                final BundleCoordinate newBundleCoordinate = toCoordinate(proposed.getBundle());
+                final List<PropertyDescriptor> descriptors = new ArrayList<>(flowAnalysisRule.getProperties().keySet());
+                final Set<URL> additionalUrls = flowAnalysisRule.getAdditionalClasspathResources(descriptors);
+                context.getReloadComponent().reload(flowAnalysisRule, proposed.getType(), newBundleCoordinate, additionalUrls);
+            }
+
+            final Set<String> sensitiveDynamicPropertyNames = getSensitiveDynamicPropertyNames(flowAnalysisRule, proposed.getProperties(), proposed.getPropertyDescriptors().values());
+            flowAnalysisRule.setProperties(proposed.getProperties(), false, sensitiveDynamicPropertyNames);
+
+            switch (proposed.getScheduledState()) {
+                case DISABLED:
+                    if (flowAnalysisRule.isEnabled()) {
+                        flowAnalysisRule.disable();
+                    }
+                    break;
+                case ENABLED:
+                    if (!flowAnalysisRule.isEnabled()) {
+                        flowAnalysisRule.enable();
+                    }
+                    break;
+            }
+            notifyScheduledStateChange(flowAnalysisRule, syncOptions, proposed.getScheduledState());
+        } finally {
+            flowAnalysisRule.resumeValidationTrigger();
         }
     }
 

@@ -44,9 +44,11 @@ import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.documentation.init.DocumentationControllerServiceInitializationContext;
+import org.apache.nifi.documentation.init.DocumentationFlowAnalysisRuleInitializationContext;
 import org.apache.nifi.documentation.init.DocumentationParameterProviderInitializationContext;
 import org.apache.nifi.documentation.init.DocumentationProcessorInitializationContext;
 import org.apache.nifi.documentation.init.DocumentationReportingInitializationContext;
+import org.apache.nifi.flowanalysis.FlowAnalysisRule;
 import org.apache.nifi.parameter.ParameterProvider;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
@@ -87,6 +89,8 @@ public abstract class AbstractDocumentationWriter implements ExtensionDocumentat
                 initialize((ControllerService) component);
             } else if (component instanceof ReportingTask) {
                 initialize((ReportingTask) component);
+            } else if (component instanceof FlowAnalysisRule) {
+                initialize((FlowAnalysisRule) component);
             } else if (component instanceof ParameterProvider) {
                 initialize((ParameterProvider) component);
             }
@@ -105,6 +109,10 @@ public abstract class AbstractDocumentationWriter implements ExtensionDocumentat
 
     protected void initialize(final ReportingTask reportingTask) throws InitializationException {
         reportingTask.initialize(new DocumentationReportingInitializationContext());
+    }
+
+    protected void initialize(final FlowAnalysisRule flowAnalysisRule) throws InitializationException {
+        flowAnalysisRule.initialize(new DocumentationFlowAnalysisRuleInitializationContext());
     }
 
     protected void initialize(final ParameterProvider parameterProvider) throws InitializationException {
@@ -259,6 +267,9 @@ public abstract class AbstractDocumentationWriter implements ExtensionDocumentat
         }
         if (component instanceof ReportingTask) {
             return ExtensionType.REPORTING_TASK;
+        }
+        if (component instanceof ReportingTask) {
+            return ExtensionType.FLOW_ANALYSIS_RULE;
         }
         if (component instanceof ParameterProvider) {
             return ExtensionType.PARAMETER_PROVIDER;

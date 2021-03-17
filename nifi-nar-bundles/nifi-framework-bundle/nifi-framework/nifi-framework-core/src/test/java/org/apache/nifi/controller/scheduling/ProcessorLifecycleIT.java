@@ -560,7 +560,7 @@ public class ProcessorLifecycleIT {
         final FlowController flowController = FlowController.createStandaloneInstance(mock(FlowFileEventRepository.class), nifiProperties,
                 mock(Authorizer.class), mock(AuditService.class), null, new VolatileBulletinRepository(),
                 new FileBasedVariableRegistry(nifiProperties.getVariableRegistryPropertiesPaths()),
-                extensionManager, mock(StatusHistoryRepository.class));
+                extensionManager, mock(StatusHistoryRepository.class), null);
 
         final FlowManager flowManager = flowController.getFlowManager();
         this.processScheduler = flowController.getProcessScheduler();

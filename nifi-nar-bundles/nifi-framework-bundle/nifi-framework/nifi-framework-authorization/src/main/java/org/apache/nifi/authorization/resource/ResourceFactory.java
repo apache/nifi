@@ -575,6 +575,9 @@ public final class ResourceFactory {
                     case ReportingTask:
                         componentType = "Reporting Task";
                         break;
+                    case FlowAnalysisRule:
+                        componentType = "Flow Analysis Rule";
+                        break;
                     case Label:
                         componentType = "Label";
                         break;
