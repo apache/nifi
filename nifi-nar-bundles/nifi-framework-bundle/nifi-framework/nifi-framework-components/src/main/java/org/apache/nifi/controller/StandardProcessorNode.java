@@ -1092,13 +1092,10 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
             }
 
             // Ensure that execution node will not be misused
-            if (getExecutionNode() == ExecutionNode.PRIMARY) {
-                if (getInputRequirement() == Requirement.INPUT_REQUIRED
-                        || getInputRequirement() == Requirement.INPUT_ALLOWED && !getIncomingConnections().isEmpty()) {
-                    results.add(new ValidationResult.Builder()
-                            .explanation("Processor should set to run on all nodes.")
-                            .subject("Execution Node").valid(false).build());
-                }
+            if (getExecutionNode() == ExecutionNode.PRIMARY && hasIncomingConnection()) {
+                results.add(new ValidationResult.Builder()
+                        .explanation("Processors with incoming connections cannot be scheduled for Primary Node Only.")
+                        .subject("Execution Node").valid(false).build());
             }
         } catch (final Throwable t) {
             LOG.error("Failed to perform validation", t);
