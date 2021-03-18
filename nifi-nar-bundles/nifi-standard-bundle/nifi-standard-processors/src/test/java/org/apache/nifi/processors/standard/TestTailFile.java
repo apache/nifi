@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.standard;
 
+import org.apache.commons.lang3.SystemUtils;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.processors.standard.TailFile.TailFileState;
@@ -25,6 +26,7 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.After;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -308,6 +310,77 @@ public class TestTailFile {
         file.renameTo(rolledOverFile);
         raf = new RandomAccessFile(file, "rw");
         return rolledOverFile;
+    }
+
+
+    @Test
+    public void testFileWrittenToAfterRollover() throws IOException, InterruptedException {
+        Assume.assumeTrue("Test requires renaming a file while a file handle is still open to it, so it won't run on Windows", !SystemUtils.IS_OS_WINDOWS);
+
+        runner.setProperty(TailFile.ROLLING_FILENAME_PATTERN, "log.*");
+        runner.setProperty(TailFile.START_POSITION, TailFile.START_BEGINNING_OF_TIME.getValue());
+        runner.setProperty(TailFile.REREAD_ON_NUL, "true");
+        runner.setProperty(TailFile.POST_ROLLOVER_TAIL_PERIOD, "10 mins");
+
+        raf.write("a\nb\n".getBytes());
+        runner.run(1, false, true);
+        runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 1);
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0).assertContentEquals("a\nb\n");
+        runner.clearTransferState();
+
+        raf.write("c\n".getBytes());
+        runner.run(1, false, false);
+        runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 1);
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0).assertContentEquals("c\n");
+        runner.clearTransferState();
+
+        // Write additional data to file, then roll file over
+        raf.write("d\n".getBytes());
+
+        final File rolledFile = new File("target/log.1");
+        final boolean renamed = file.renameTo(rolledFile);
+        assertTrue(renamed);
+        raf.getChannel().force(true);
+
+        System.out.println("Wrote d\\n and rolled file");
+
+        // Create the new file
+        final RandomAccessFile newFile = new RandomAccessFile(new File("target/log.txt"), "rw");
+        newFile.write("new file\n".getBytes()); // This should not get consumed until the old file's last modified date indicates it's complete
+
+        // Trigger processor and verify data is consumed properly
+        runner.run(1, false, false);
+        runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 1);
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0).assertContentEquals("d\n");
+        runner.clearTransferState();
+
+        // Write to the file and trigger again.
+        raf.write("e\n".getBytes());
+        System.out.println("Wrote e\\n");
+        runner.run(1, false, false);
+
+        runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 1);
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0).assertContentEquals("e\n");
+        runner.clearTransferState();
+
+        // Ensure that no data comes in for a bit, since the last modified date on the rolled over file isn't old enough.
+        for (int i=0; i < 100; i++) {
+            runner.run(1, false, false);
+            runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 0);
+            Thread.sleep(1L);
+        }
+
+        // Set last modified time so that processor believes file to have not been modified in a very long time, then run again.
+        assertTrue(rolledFile.setLastModified(500L));
+        System.out.println("Set lastModified on " + rolledFile + " to 500");
+        runner.run(1, false, false);
+
+        // Verify results
+        runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 1);
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0).assertContentEquals("new file\n");
+        runner.clearTransferState();
+
+        raf.close();
     }
 
 
