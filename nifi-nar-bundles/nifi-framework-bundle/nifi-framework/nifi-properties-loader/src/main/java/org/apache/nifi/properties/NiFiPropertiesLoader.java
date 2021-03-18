@@ -23,11 +23,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.security.NoSuchAlgorithmException;
 import java.security.Security;
-import java.util.Iterator;
-import java.util.regex.Pattern;
 import java.util.Properties;
 import java.util.Set;
 import javax.crypto.Cipher;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.security.kms.CryptoUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
@@ -179,15 +178,9 @@ public class NiFiPropertiesLoader {
 
             // Trim whitespace from each property. If property is multi-line, remove anything after the first line break.
             Set<String> keys = rawProperties.stringPropertyNames();
-            Iterator<String> itr = keys.iterator();
-            final Pattern whitespaceRegex = Pattern.compile("\\s+$");
-            while(itr.hasNext()){
-                String key = itr.next();
+            for(final String key : keys){
                 String prop = rawProperties.getProperty(key);
-                if(!prop.isEmpty()){
-                    prop = whitespaceRegex.matcher(prop).replaceFirst("");
-                    rawProperties.setProperty(key, prop);
-                }
+                rawProperties.setProperty(key, StringUtils.stripEnd(prop, null));
             }
 
             ProtectedNiFiProperties protectedNiFiProperties = new ProtectedNiFiProperties(rawProperties);

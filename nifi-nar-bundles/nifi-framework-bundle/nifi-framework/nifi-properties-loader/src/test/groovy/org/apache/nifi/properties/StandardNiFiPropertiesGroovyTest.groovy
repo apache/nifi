@@ -1019,6 +1019,7 @@ class StandardNiFiPropertiesGroovyTest extends GroovyTestCase {
         NiFiProperties niFiProperties = niFiPropertiesLoader.load(unprotectedFile.path)
 
         // Assert
+        assert niFiProperties.getProperty("nifi.whitespace.propWithNoSpace") == "foo"
         assert niFiProperties.getProperty("nifi.whitespace.propWithLeadingSpace") == "foo"
         assert niFiProperties.getProperty("nifi.whitespace.propWithTrailingSpace") == "foo"
         assert niFiProperties.getProperty("nifi.whitespace.propWithLeadingAndTrailingSpace") == "foo"
