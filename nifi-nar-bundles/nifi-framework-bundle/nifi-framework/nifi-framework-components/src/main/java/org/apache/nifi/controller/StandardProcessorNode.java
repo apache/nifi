@@ -1090,6 +1090,16 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                     break;
                 }
             }
+
+            // Ensure that execution node will not be misused
+            if (getExecutionNode() == ExecutionNode.PRIMARY) {
+                if (getInputRequirement() == Requirement.INPUT_REQUIRED
+                        || getInputRequirement() == Requirement.INPUT_ALLOWED && !getIncomingConnections().isEmpty()) {
+                    results.add(new ValidationResult.Builder()
+                            .explanation("Processor should set to run on all nodes.")
+                            .subject("Execution Node").valid(false).build());
+                }
+            }
         } catch (final Throwable t) {
             LOG.error("Failed to perform validation", t);
             results.add(new ValidationResult.Builder().explanation("Failed to run validation due to " + t.toString())
