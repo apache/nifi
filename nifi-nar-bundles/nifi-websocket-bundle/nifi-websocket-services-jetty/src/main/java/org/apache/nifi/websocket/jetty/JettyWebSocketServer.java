@@ -263,6 +263,8 @@ public class JettyWebSocketServer extends AbstractJettyWebSocketService implemen
         final ContextHandlerCollection handlerCollection = new ContextHandlerCollection();
 
         final ServletContextHandler contextHandler = new ServletContextHandler();
+        // Set ClassLoader so that jetty-server classes are available to WebSocketServletFactory.Loader
+        contextHandler.setClassLoader(getClass().getClassLoader());
 
         // Add basic auth.
         if (context.getProperty(BASIC_AUTH).asBoolean()) {
