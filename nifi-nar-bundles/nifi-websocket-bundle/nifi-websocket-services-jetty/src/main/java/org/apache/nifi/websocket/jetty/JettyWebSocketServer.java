@@ -58,6 +58,7 @@ import org.eclipse.jetty.websocket.servlet.WebSocketCreator;
 import org.eclipse.jetty.websocket.servlet.WebSocketServlet;
 import org.eclipse.jetty.websocket.servlet.WebSocketServletFactory;
 
+import javax.servlet.ServletException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -211,6 +212,14 @@ public class JettyWebSocketServer extends AbstractJettyWebSocketService implemen
         @Override
         public void configure(WebSocketServletFactory webSocketServletFactory) {
             webSocketServletFactory.setCreator(this);
+        }
+
+        @Override
+        public void init() throws ServletException {
+            // Set Component ClassLoader as Thread Context ClassLoader so that jetty-server classes are available to WebSocketServletFactory.Loader
+            final ClassLoader componentClassLoader = getClass().getClassLoader();
+            Thread.currentThread().setContextClassLoader(componentClassLoader);
+            super.init();
         }
 
         @Override
