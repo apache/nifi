@@ -25,7 +25,6 @@
     <properties>
         <maven.javadoc.skip>true</maven.javadoc.skip>
         <source.skip>true</source.skip>
-        <jersey.version>2.26</jersey.version>
     </properties>
     <build>
         <plugins>
