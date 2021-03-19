@@ -33,7 +33,6 @@
 
     <properties>
         <jolt.version>0.1.1</jolt.version>
-        <jersey.version>2.26</jersey.version>
     </properties>
 
     <dependencyManagement>
