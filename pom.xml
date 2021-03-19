@@ -103,6 +103,7 @@
         <ozone.version>1.0.0</ozone.version>
         <gcs.version>2.1.5</gcs.version>
         <aspectj.version>1.9.6</aspectj.version>
+        <jersey.version>2.33</jersey.version>
     </properties>
 
     <repositories>

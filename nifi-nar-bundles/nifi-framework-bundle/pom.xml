@@ -23,7 +23,6 @@
     <packaging>pom</packaging>
     <description>NiFi: Framework Bundle</description>
     <properties>
-        <jersey.version>2.26</jersey.version>
         <spring.version>4.3.19.RELEASE</spring.version>
         <spring.security.version>4.2.13.RELEASE</spring.security.version>
     </properties>
