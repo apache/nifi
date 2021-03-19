@@ -65,6 +65,9 @@
                 <include>minifi-utils</include>
                 <include>nifi-utils</include>
                 <include>commons-io</include>
+                <include>commons-lang3</include>
+                <include>slf4j-api</include>
+                <include>logback-classic</include>
             </includes>
         </dependencySet>
 

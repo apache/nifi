@@ -939,7 +939,17 @@ public class MiNiFiPersistentProvenanceRepositoryTest {
             }
 
             @Override
+            public Set<String> getAllGroups() {
+                return null;
+            }
+
+            @Override
             public Set<String> getGroups() {
+                return null;
+            }
+
+            @Override
+            public Set<String> getIdentityProviderGroups() {
                 return null;
             }
 

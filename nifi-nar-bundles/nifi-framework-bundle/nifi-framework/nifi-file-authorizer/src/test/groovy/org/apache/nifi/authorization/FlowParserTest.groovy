@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.authorization
 
-
+import org.apache.nifi.util.FlowParser
 import org.junit.After
 import org.junit.Before
 import org.junit.BeforeClass

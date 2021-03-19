@@ -19,7 +19,10 @@ package org.apache.nifi.minifi.c2.integration.test;
 
 import com.palantir.docker.compose.DockerComposeRule;
 import org.apache.nifi.minifi.c2.integration.test.health.HttpsStatusCodeHealthCheck;
+import org.apache.nifi.security.util.KeystoreType;
 import org.apache.nifi.security.util.SslContextFactory;
+import org.apache.nifi.security.util.StandardTlsConfiguration;
+import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone;
 import org.bouncycastle.openssl.jcajce.JcaMiscPEMGenerator;
 import org.bouncycastle.util.io.pem.PemWriter;
@@ -50,8 +53,15 @@ public class NiFiRestConfigurationProviderSecureTest extends AbstractTestSecure 
                     new HttpsStatusCodeHealthCheck(container -> "https://mocknifi:8443/", containers -> containers.get(0), containers -> containers.get(1), () -> {
                         Path c2 = certificatesDirectory.resolve("c2");
                         try {
-                            return SslContextFactory.createSslContext(c2.resolve("keystore.jks").toFile().getAbsolutePath(), "badKeystorePass".toCharArray(), "badKeyPass".toCharArray(), "JKS",
-                                    c2.resolve("truststore.jks").toFile().getAbsolutePath(), "badTrustPass".toCharArray(), "JKS", SslContextFactory.ClientAuth.NONE, "TLS").getSocketFactory();
+                            TlsConfiguration tlsConfiguration = new StandardTlsConfiguration(
+                            c2.resolve("keystore.jks").toFile().getAbsolutePath(),
+                                    "badKeystorePass",
+                                    "badKeyPass", KeystoreType.JKS,
+                                    c2.resolve("truststore.jks").toFile().getAbsolutePath(),
+                                    "badTrustPass",
+                                    KeystoreType.JKS);
+
+                            return SslContextFactory.createSslContext(tlsConfiguration).getSocketFactory();
                         } catch (Exception e) {
                             throw new RuntimeException(e);
                         }

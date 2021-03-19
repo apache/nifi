@@ -118,7 +118,7 @@ public final class StatusRequestParser {
         RemoteProcessGroupStatusBean remoteProcessGroupStatusBean = new RemoteProcessGroupStatusBean();
         remoteProcessGroupStatusBean.setName(inputRemoteProcessGroupStatus.getName());
 
-        String rootGroupId = flowController.getRootGroupId();
+        String rootGroupId = flowController.getFlowManager().getRootGroupId();
         String[] statusSplits = statusTypes.split(",");
 
         List<Bulletin> bulletinList = flowController.getBulletinRepository().findBulletins(
@@ -163,7 +163,7 @@ public final class StatusRequestParser {
 
     private static List<PortStatus> getPortStatusList(RemoteProcessGroupStatus inputRemoteProcessGroupStatus, FlowController flowController, String rootGroupId,
                                                       Function<RemoteProcessGroup, Set<RemoteGroupPort>> portFunction) {
-        return portFunction.apply(flowController.getGroup(rootGroupId).getRemoteProcessGroup(inputRemoteProcessGroupStatus.getId())).stream().map(r -> {
+        return portFunction.apply(flowController.getFlowManager().getGroup(rootGroupId).getRemoteProcessGroup(inputRemoteProcessGroupStatus.getId())).stream().map(r -> {
             PortStatus portStatus = new PortStatus();
 
             portStatus.setName(r.getName());
@@ -350,7 +350,7 @@ public final class StatusRequestParser {
     static InstanceStatus parseInstanceRequest(String statusTypes, FlowController flowController, ProcessGroupStatus rootGroupStatus) {
         InstanceStatus instanceStatus = new InstanceStatus();
 
-        flowController.getAllControllerServices();
+        flowController.getFlowManager().getAllControllerServices();
         List<Bulletin> bulletinList = flowController.getBulletinRepository().findBulletinsForController();
         String[] statusSplits = statusTypes.split(",");
 

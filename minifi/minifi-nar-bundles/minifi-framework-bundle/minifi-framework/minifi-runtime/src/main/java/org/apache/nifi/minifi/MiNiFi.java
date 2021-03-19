@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
@@ -16,9 +16,12 @@
  */
 package org.apache.nifi.minifi;
 
+import org.apache.nifi.NiFiServer;
 import org.apache.nifi.bundle.Bundle;
-import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.headless.FlowEnrichmentException;
+import org.apache.nifi.nar.ExtensionMapping;
 import org.apache.nifi.nar.NarClassLoaders;
+import org.apache.nifi.nar.NarClassLoadersHolder;
 import org.apache.nifi.nar.NarUnpacker;
 import org.apache.nifi.nar.SystemBundle;
 import org.apache.nifi.util.FileUtils;
@@ -29,10 +32,8 @@ import org.slf4j.bridge.SLF4JBridgeHandler;
 
 import java.io.File;
 import java.io.IOException;
-import java.lang.Thread.UncaughtExceptionHandler;
-import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
-import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -44,7 +45,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
-// These are from the minifi-nar-utils
 
 public class MiNiFi {
 
@@ -55,25 +55,28 @@ public class MiNiFi {
     public static final String BOOTSTRAP_PORT_PROPERTY = "nifi.bootstrap.listen.port";
     private volatile boolean shutdown = false;
 
+    private static final String FRAMEWORK_NAR_ID = "minifi-framework-nar";
+
 
     public MiNiFi(final NiFiProperties properties)
             throws ClassNotFoundException, IOException, NoSuchMethodException, InstantiationException,
             IllegalAccessException, IllegalArgumentException, InvocationTargetException, FlowEnrichmentException {
-        Thread.setDefaultUncaughtExceptionHandler(new UncaughtExceptionHandler() {
-            @Override
-            public void uncaughtException(final Thread t, final Throwable e) {
-                logger.error("An Unknown Error Occurred in Thread {}: {}", t, e.toString());
-                logger.error("", e);
-            }
+        this(properties, ClassLoader.getSystemClassLoader());
+    }
+
+    public MiNiFi(final NiFiProperties properties, ClassLoader rootClassLoader)
+            throws ClassNotFoundException, IOException, NoSuchMethodException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException,
+            FlowEnrichmentException {
+
+        Thread.setDefaultUncaughtExceptionHandler((t, e) -> {
+            logger.error("An Unknown Error Occurred in Thread {}: {}", t, e.toString());
+            logger.error("", e);
         });
 
         // register the shutdown hook
-        Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
-            @Override
-            public void run() {
-                // shutdown the jetty server
-                shutdownHook(true);
-            }
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            // shutdown the jetty server
+            shutdownHook(true);
         }));
 
         final String bootstrapPort = System.getProperty(BOOTSTRAP_PORT_PROPERTY);
@@ -110,37 +113,40 @@ public class MiNiFi {
         SLF4JBridgeHandler.removeHandlersForRootLogger();
         SLF4JBridgeHandler.install();
 
+        final Bundle systemBundle = SystemBundle.create(properties, rootClassLoader);
+
         // expand the nars
-        NarUnpacker.unpackNars(properties);
+        final ExtensionMapping extensionMapping = NarUnpacker.unpackNars(properties, FRAMEWORK_NAR_ID, systemBundle);
 
         // load the extensions classloaders
-        NarClassLoaders.getInstance().init(properties.getFrameworkWorkingDirectory(), properties.getExtensionsWorkingDirectory());
+        NarClassLoaders narClassLoaders = NarClassLoadersHolder.getInstance();
+        narClassLoaders.init(rootClassLoader,
+                properties.getFrameworkWorkingDirectory(), properties.getExtensionsWorkingDirectory(), FRAMEWORK_NAR_ID);
 
-        // load the framework classloader
-        final ClassLoader frameworkClassLoader = NarClassLoaders.getInstance().getFrameworkBundle().getClassLoader();
+        /// load the framework classloader
+        final ClassLoader frameworkClassLoader = narClassLoaders.getFrameworkBundle().getClassLoader();
         if (frameworkClassLoader == null) {
             throw new IllegalStateException("Unable to find the framework NAR ClassLoader.");
         }
 
-        final Bundle systemBundle = SystemBundle.create(properties);
-        final Set<Bundle> narBundles = NarClassLoaders.getInstance().getBundles();
-
-        // discover the extensions
-        ExtensionManager.discoverExtensions(systemBundle, narBundles);
-        ExtensionManager.logClassLoaderMapping();
-
-        // Enrich the flow xml using the Extension Manager mapping
-        final FlowParser flowParser = new FlowParser();
-        final FlowEnricher flowEnricher = new FlowEnricher(this, flowParser, properties);
-        flowEnricher.enrichFlowWithBundleInformation();
-
-        // load the server from the framework classloader
-        Thread.currentThread().setContextClassLoader(frameworkClassLoader);
-        Class<?> minifiServerClass = Class.forName("org.apache.nifi.minifi.MiNiFiServer", true, frameworkClassLoader);
-        Constructor<?> minifiServerConstructor = minifiServerClass.getConstructor(NiFiProperties.class);
+        final Set<Bundle> narBundles = narClassLoaders.getBundles();
 
         final long startTime = System.nanoTime();
-        minifiServer = (MiNiFiServer) minifiServerConstructor.newInstance(properties);
+        final NiFiServer nifiServer = narClassLoaders.getServer();
+        if (nifiServer == null) {
+            throw new IllegalStateException("Unable to find a NiFiServer implementation.");
+        }
+        if (!(nifiServer instanceof MiNiFiServer)) {
+            throw new IllegalStateException("Found NiFiServer implementation with class name " + nifiServer.getClass().getName()
+                    + ", it does not implement the required MiNiFiServer interface.");
+        }
+        minifiServer = (MiNiFiServer) nifiServer;
+        Thread.currentThread().setContextClassLoader(minifiServer.getClass().getClassLoader());
+        // Filter out the framework NAR from being loaded by the NiFiServer
+        minifiServer.initialize(properties,
+                systemBundle,
+                narBundles,
+                extensionMapping);
 
         if (shutdown) {
             logger.info("MiNiFi has been shutdown via MiNiFi Bootstrap. Will not start Controller");
@@ -246,14 +252,10 @@ public class MiNiFi {
     public static void main(String[] args) {
         logger.info("Launching MiNiFi...");
         try {
-            NiFiProperties niFiProperties = NiFiProperties.createBasicNiFiProperties(null, null);
+            NiFiProperties niFiProperties = NiFiProperties.createBasicNiFiProperties(null, (Map<String,String>) null);
             new MiNiFi(niFiProperties);
         } catch (final Throwable t) {
             logger.error("Failure to launch MiNiFi due to " + t, t);
         }
-    }
-
-    protected List<Bundle> getBundles(final String bundleClass) {
-        return ExtensionManager.getBundles(bundleClass);
     }
 }

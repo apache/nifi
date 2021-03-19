@@ -20,7 +20,10 @@ package org.apache.nifi.minifi.integration.c2;
 import com.palantir.docker.compose.DockerComposeRule;
 import org.apache.nifi.minifi.c2.integration.test.health.HttpsStatusCodeHealthCheck;
 import org.apache.nifi.minifi.integration.util.LogUtil;
+import org.apache.nifi.security.util.KeystoreType;
 import org.apache.nifi.security.util.SslContextFactory;
+import org.apache.nifi.security.util.StandardTlsConfiguration;
+import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone;
 import org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandaloneCommandLine;
 import org.junit.AfterClass;
@@ -87,9 +90,13 @@ public class HierarchicalC2IntegrationTest {
         tlsToolkitStandaloneCommandLine.parse(toolkitCommandLine.toArray(new String[toolkitCommandLine.size()]));
         new TlsToolkitStandalone().createNifiKeystoresAndTrustStores(tlsToolkitStandaloneCommandLine.createConfig());
 
-        trustSslContext = SslContextFactory.createTrustSslContext(certificatesDirectory.resolve("c2-authoritative")
-                .resolve("truststore.jks").toFile().getAbsolutePath(), "badTrustPass".toCharArray(), "jks", "TLS");
+        TlsConfiguration tlsConfiguration = new StandardTlsConfiguration(
+                null,null,null,
+                certificatesDirectory.resolve("c2-authoritative").resolve("truststore.jks").toFile().getAbsolutePath(),
+                "badTrustPass",
+                KeystoreType.JKS);
         healthCheckSocketFactory = trustSslContext.getSocketFactory();
+        trustSslContext = SslContextFactory.createSslContext(tlsConfiguration);
 
         docker.before();
     }

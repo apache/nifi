@@ -36,7 +36,6 @@ import java.net.SocketTimeoutException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
@@ -58,7 +57,6 @@ public class BootstrapListener {
     private final String secretKey;
 
     private volatile Listener listener;
-    private volatile ServerSocket serverSocket;
 
     public BootstrapListener(final MiNiFi minifi, final int bootstrapPort) {
         this.minifi = minifi;
@@ -69,7 +67,7 @@ public class BootstrapListener {
     public void start() throws IOException {
         logger.debug("Starting Bootstrap Listener to communicate with Bootstrap Port {}", bootstrapPort);
 
-        serverSocket = new ServerSocket();
+        ServerSocket serverSocket = new ServerSocket();
         serverSocket.bind(new InetSocketAddress("localhost", 0));
         serverSocket.setSoTimeout(2000);
 
@@ -184,47 +182,44 @@ public class BootstrapListener {
                     logger.debug("Received connection from Bootstrap");
                     socket.setSoTimeout(5000);
 
-                    executor.submit(new Runnable() {
-                        @Override
-                        public void run() {
-                            try {
-                                final BootstrapRequest request = readRequest(socket.getInputStream());
-                                final BootstrapRequest.RequestType requestType = request.getRequestType();
+                    executor.submit(() -> {
+                        try {
+                            final BootstrapRequest request = readRequest(socket.getInputStream());
+                            final BootstrapRequest.RequestType requestType = request.getRequestType();
 
-                                switch (requestType) {
-                                    case PING:
-                                        logger.debug("Received PING request from Bootstrap; responding");
-                                        echoPing(socket.getOutputStream());
-                                        logger.debug("Responded to PING request from Bootstrap");
-                                        break;
-                                    case RELOAD:
-                                        logger.info("Received RELOAD request from Bootstrap");
-                                        echoReload(socket.getOutputStream());
-                                        minifi.shutdownHook(true);
-                                        return;
-                                    case SHUTDOWN:
-                                        logger.info("Received SHUTDOWN request from Bootstrap");
-                                        echoShutdown(socket.getOutputStream());
-                                        minifi.shutdownHook(false);
-                                        return;
-                                    case DUMP:
-                                        logger.info("Received DUMP request from Bootstrap");
-                                        writeDump(socket.getOutputStream());
-                                        break;
-                                    case FLOW_STATUS_REPORT:
-                                        logger.info("Received FLOW_STATUS_REPORT request from Bootstrap");
-                                        String flowStatusRequestString = request.getArgs()[0];
-                                        writeStatusReport(flowStatusRequestString, socket.getOutputStream());
-                                        break;
-                                }
-                            } catch (final Throwable t) {
-                                logger.error("Failed to process request from Bootstrap due to " + t.toString(), t);
-                            } finally {
-                                try {
-                                    socket.close();
-                                } catch (final IOException ioe) {
-                                    logger.warn("Failed to close socket to Bootstrap due to {}", ioe.toString());
-                                }
+                            switch (requestType) {
+                                case PING:
+                                    logger.debug("Received PING request from Bootstrap; responding");
+                                    echoPing(socket.getOutputStream());
+                                    logger.debug("Responded to PING request from Bootstrap");
+                                    break;
+                                case RELOAD:
+                                    logger.info("Received RELOAD request from Bootstrap");
+                                    echoReload(socket.getOutputStream());
+                                    minifi.shutdownHook(true);
+                                    return;
+                                case SHUTDOWN:
+                                    logger.info("Received SHUTDOWN request from Bootstrap");
+                                    echoShutdown(socket.getOutputStream());
+                                    minifi.shutdownHook(false);
+                                    return;
+                                case DUMP:
+                                    logger.info("Received DUMP request from Bootstrap");
+                                    writeDump(socket.getOutputStream());
+                                    break;
+                                case FLOW_STATUS_REPORT:
+                                    logger.info("Received FLOW_STATUS_REPORT request from Bootstrap");
+                                    String flowStatusRequestString = request.getArgs()[0];
+                                    writeStatusReport(flowStatusRequestString, socket.getOutputStream());
+                                    break;
+                            }
+                        } catch (final Throwable t) {
+                            logger.error("Failed to process request from Bootstrap due to " + t.toString(), t);
+                        } finally {
+                            try {
+                                socket.close();
+                            } catch (final IOException ioe) {
+                                logger.warn("Failed to close socket to Bootstrap due to {}", ioe.toString());
                             }
                         }
                     });
@@ -251,15 +246,8 @@ public class BootstrapListener {
         final long[] monitorDeadlockThreadIds = mbean.findMonitorDeadlockedThreads();
 
         final List<ThreadInfo> sortedInfos = new ArrayList<>(infos.length);
-        for (final ThreadInfo info : infos) {
-            sortedInfos.add(info);
-        }
-        Collections.sort(sortedInfos, new Comparator<ThreadInfo>() {
-            @Override
-            public int compare(ThreadInfo o1, ThreadInfo o2) {
-                return o1.getThreadName().toLowerCase().compareTo(o2.getThreadName().toLowerCase());
-            }
-        });
+        sortedInfos.addAll(Arrays.asList(infos));
+        sortedInfos.sort(Comparator.comparing(o -> o.getThreadName().toLowerCase()));
 
         final StringBuilder sb = new StringBuilder();
         for (final ThreadInfo info : sortedInfos) {
@@ -406,7 +394,7 @@ public class BootstrapListener {
             SHUTDOWN,
             DUMP,
             PING,
-            FLOW_STATUS_REPORT;
+            FLOW_STATUS_REPORT
         }
 
         private final RequestType requestType;
