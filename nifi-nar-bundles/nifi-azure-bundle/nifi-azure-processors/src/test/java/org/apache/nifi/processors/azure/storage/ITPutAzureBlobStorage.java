@@ -18,6 +18,7 @@ package org.apache.nifi.processors.azure.storage;
 
 import com.microsoft.azure.storage.blob.ListBlobItem;
 import org.apache.nifi.processor.Processor;
+import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 import org.apache.nifi.util.MockFlowFile;
 import org.junit.Before;
 import org.junit.Test;
@@ -56,6 +57,17 @@ public class ITPutAzureBlobStorage extends AbstractAzureBlobStorageIT {
         runner.run();
 
         assertResult();
+    }
+
+    @Test
+    public void testInvalidCredentialsRoutesToFailure() {
+        runner.setProperty(AzureStorageUtils.ACCOUNT_NAME, "invalid");
+        runner.setProperty(AzureStorageUtils.ACCOUNT_KEY, "aW52YWxpZGludmFsaWQ=");
+        runner.assertValid();
+        runner.enqueue("test".getBytes());
+        runner.run();
+
+        runner.assertTransferCount(PutAzureBlobStorage.REL_FAILURE, 1);
     }
 
     private void assertResult() throws Exception {
