@@ -137,6 +137,7 @@ public final class CredentialPropertyDescriptors {
             .required(true)
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
             .sensitive(false)
+            .defaultValue("3600")
             .description("Number of seconds the delegated credential should be valid for. "
                     + "This property is valid only when using the service account impersonation strategy; otherwise, it is ignored.")
             .dependsOn(IMPERSONATE_SERVICE_ACCOUNT)
