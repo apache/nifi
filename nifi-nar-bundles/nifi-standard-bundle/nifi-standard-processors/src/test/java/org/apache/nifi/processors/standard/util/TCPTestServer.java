@@ -16,7 +16,8 @@
  */
 package org.apache.nifi.processors.standard.util;
 
-import java.io.IOException;
+import org.apache.nifi.io.socket.SocketUtils;
+
 import java.io.InputStream;
 import java.net.InetAddress;
 import java.net.ServerSocket;
@@ -32,7 +33,7 @@ public class TCPTestServer implements Runnable {
     private final InetAddress ipAddress;
     private final String messageDelimiter;
     private final ArrayBlockingQueue<List<Byte>> queue;
-    private final AtomicInteger totalNumConnections = new AtomicInteger();
+    private final AtomicInteger totalConnections = new AtomicInteger();
     private final boolean closeOnMessageReceived;
 
     private volatile ServerSocket serverSocket;
@@ -65,28 +66,20 @@ public class TCPTestServer implements Runnable {
         shutdownServer();
     }
 
-    public synchronized void shutdownServer() {
-        if (isServerRunning()) {
-            try {
-                serverSocket.close();
-            } catch (IOException ioe) {
-                // Do Nothing.
-            }
-        }
-    }
-
-    public synchronized void shutdownConnection() {
-        if (isConnected()) {
-            try {
-                connectionSocket.close();
-            } catch (IOException ioe) {
-                // Do Nothing.
-            }
-        }
-    }
-
     public int getPort(){
         return port;
+    }
+
+    private synchronized void shutdownServer() {
+        if (isServerRunning()) {
+            SocketUtils.closeQuietly(serverSocket);
+        }
+    }
+
+    private synchronized void shutdownConnection() {
+        if (isConnected()) {
+            SocketUtils.closeQuietly(connectionSocket);
+        }
     }
 
     private void storeReceivedMessage(final List<Byte> message) {
@@ -104,8 +97,8 @@ public class TCPTestServer implements Runnable {
         return connectionSocket != null && !connectionSocket.isClosed();
     }
 
-    public int getTotalNumConnections() {
-        return totalNumConnections.get();
+    public int getTotalConnections() {
+        return totalConnections.get();
     }
 
     protected boolean isDelimiterPresent(final List<Byte> message) {
@@ -140,7 +133,7 @@ public class TCPTestServer implements Runnable {
         try {
             while (isServerRunning()) {
                 connectionSocket = serverSocket.accept();
-                totalNumConnections.incrementAndGet();
+                totalConnections.incrementAndGet();
                 final InputStream inputStream = connectionSocket.getInputStream();
                 while (isConnected()) {
                     final List<Byte> message = new ArrayList<>();
@@ -166,8 +159,7 @@ public class TCPTestServer implements Runnable {
         } catch (Exception e) {
             // Do Nothing
         } finally {
-            shutdownConnection();
-            shutdownServer();
+            shutdown();
         }
 
     }
