@@ -320,9 +320,8 @@ public class TestTailFile {
         runner.setProperty(TailFile.ROLLING_FILENAME_PATTERN, "log.*");
         runner.setProperty(TailFile.START_POSITION, TailFile.START_BEGINNING_OF_TIME.getValue());
         runner.setProperty(TailFile.REREAD_ON_NUL, "true");
-        runner.setProperty(TailFile.ROLLOVER_TAIL_PERIOD, "10 mins");
+        runner.setProperty(TailFile.POST_ROLLOVER_TAIL_PERIOD, "10 mins");
 
-        // first line fully written, second partially
         raf.write("a\nb\n".getBytes());
         runner.run(1, false, true);
         runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 1);
@@ -360,7 +359,6 @@ public class TestTailFile {
         System.out.println("Wrote e\\n");
         runner.run(1, false, false);
 
-        // There should be no data consumed because the last modified time is too recent.
         runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 1);
         runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0).assertContentEquals("e\n");
         runner.clearTransferState();

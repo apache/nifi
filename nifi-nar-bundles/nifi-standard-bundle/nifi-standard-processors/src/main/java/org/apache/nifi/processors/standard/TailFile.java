@@ -172,8 +172,8 @@ public class TailFile extends AbstractProcessor {
             .required(false)
             .build();
 
-    static final PropertyDescriptor ROLLOVER_TAIL_PERIOD = new PropertyDescriptor.Builder()
-        .name("Rollover Tail Period")
+    static final PropertyDescriptor POST_ROLLOVER_TAIL_PERIOD = new PropertyDescriptor.Builder()
+        .name("Post-Rollover Tail Period")
         .description("When a file is rolled over, the processor will continue tailing the rolled over file until it has not been modified for this amount of time. " +
             "This allows for another process to rollover a file, and then flush out any buffered data. Note that when this value is set, and the tailed file rolls over, " +
             "the new file will not be tailed until the old file has not been modified for the configured amount of time.")
@@ -264,7 +264,7 @@ public class TailFile extends AbstractProcessor {
         properties.add(MODE);
         properties.add(FILENAME);
         properties.add(ROLLING_FILENAME_PATTERN);
-        properties.add(ROLLOVER_TAIL_PERIOD);
+        properties.add(POST_ROLLOVER_TAIL_PERIOD);
         properties.add(BASE_DIRECTORY);
         properties.add(START_POSITION);
         properties.add(STATE_LOCATION);
@@ -706,8 +706,8 @@ public class TailFile extends AbstractProcessor {
 
             rolloverOccurred = recoverRolledFiles(context, session, tailFile, expectedChecksumValue, tfo.getState().getTimestamp(), tfo.getState().getPosition());
             if (rolloverOccurred) {
-                final boolean tailRollover = context.getProperty(ROLLOVER_TAIL_PERIOD).asTimePeriod(TimeUnit.MILLISECONDS) > 0;
-                if (tailRollover) {
+                final boolean tailAfterRollover = context.getProperty(POST_ROLLOVER_TAIL_PERIOD).asTimePeriod(TimeUnit.MILLISECONDS) > 0;
+                if (tailAfterRollover) {
                     getLogger().debug("File {} was rolled over and the Rollover Tail Period is set, so will not consume from new file during this iteration.", tailFile);
                     return;
                 }
@@ -757,7 +757,7 @@ public class TailFile extends AbstractProcessor {
         if (!rotated) {
             final long fileLength = file.length();
             if (length > fileLength) {
-                getLogger().debug("Rotated = true because TailFile State Length = {}, File Length = {}", length, fileLength);
+                getLogger().debug("Rotated = true because TailFileState Length = {}, File Length = {}", length, fileLength);
                 rotated = true;
             } else {
                 try {
@@ -1249,11 +1249,11 @@ public class TailFile extends AbstractProcessor {
                             // same file, just using an updated position/timestamp/checksum/length. This way, the next iteration will compare against these
                             // updated values.
                             // But if we are not going to tail the rolled over file for any period of time, we can essentially reset the state.
-                            final long rolloverTailMillis = context.getProperty(ROLLOVER_TAIL_PERIOD).asTimePeriod(TimeUnit.MILLISECONDS);
-                            final long millisSinceUpdate = System.currentTimeMillis() - firstFile.lastModified();
-                            if (rolloverTailMillis > 0 && millisSinceUpdate < rolloverTailMillis) {
-                                getLogger().debug("File {} has been rolled over, but it was updated {} millis ago, which is less than the configured Rollover Tail Period, so will continue " +
-                                    "tailing", firstFile, millisSinceUpdate);
+                            final long postRolloverTailMillis = context.getProperty(POST_ROLLOVER_TAIL_PERIOD).asTimePeriod(TimeUnit.MILLISECONDS);
+                            final long millisSinceUpdate = System.currentTimeMillis() - timestamp;
+                            if (postRolloverTailMillis > 0 && millisSinceUpdate < postRolloverTailMillis) {
+                                getLogger().debug("File {} has been rolled over, but it was updated {} millis ago, which is less than the configured {} ({} ms), so will continue tailing",
+                                    firstFile, millisSinceUpdate, POST_ROLLOVER_TAIL_PERIOD.getDisplayName(), postRolloverTailMillis);
 
                                 final long length = currentState.getLength() + flowFile.getSize();
                                 final long updatedPosition = position + flowFile.getSize();
