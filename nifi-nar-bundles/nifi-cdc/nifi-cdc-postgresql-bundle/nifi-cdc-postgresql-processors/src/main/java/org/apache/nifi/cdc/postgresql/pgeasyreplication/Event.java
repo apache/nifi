@@ -15,29 +15,31 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.cdc.postgresql.pgEasyReplication;
+package org.apache.nifi.cdc.postgresql.pgeasyreplication;
 
-import java.util.LinkedList;
+import java.util.List;
 
 
-/* Events represent the data and metadata returned by pgEasyReplication, regardless of whether it is a Stream (data changes) or a Snapshot. */
+/**
+ * Events represent the data and metadata returned by pgEasyReplication, regardless of whether it is a Stream (data changes) or a Snapshot.
+ */
 public class Event {
 
-    private LinkedList<String> data;
-    private Long lastLSN;
-    private boolean isSimpleEvent;
-    private boolean hasBeginCommit;
-    private boolean isSnapshot;
+    private final List<String> data;
+    private final Long lastLSN;
+    private final boolean isSimpleEvent;
+    private final boolean hasBeginCommit;
+    private final boolean isSnapshot;
 
-    public Event(LinkedList<String> data, Long lsn, boolean isSimple, boolean hasBeginCommit, boolean isSnap) {
+    public Event(List<String> data, Long lsn, boolean isSimple, boolean hasBeginCommit, boolean isSnap) {
         this.data = data;
         this.lastLSN = lsn;
         this.isSimpleEvent = isSimple;
         this.hasBeginCommit = hasBeginCommit;
-        this.isSimpleEvent = isSnap;
+        this.isSnapshot = isSnap;
     }
 
-    public LinkedList<String> getData() {
+    public List<String> getData() {
         return data;
     }
 

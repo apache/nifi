@@ -14,26 +14,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.cdc.postgresql.processors;
 
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
+package org.apache.nifi.cdc.postgresql.pgeasyreplication;
 
+import java.util.Collections;
+import java.util.Map;
+import java.util.Objects;
 
-public class CaptureChangePostgreSQLTest {
+public class TupleData {
 
-    private TestRunner testRunner;
+    private final Map<String, Object> data;
+    private final int position;
 
-    @Before
-    public void init() {
-        testRunner = TestRunners.newTestRunner(CaptureChangePostgreSQL.class);
+    public TupleData(Map<String, Object> data, int position) {
+        this.data = Collections.unmodifiableMap(Objects.requireNonNull(data));
+        this.position = position;
     }
 
-    @Test
-    public void testProcessor() {
-
+    public int getPosition() {
+        return position;
     }
 
+    public Map<String, Object> getData() {
+        return data;
+    }
 }

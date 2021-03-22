@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.cdc.postgresql.pgEasyReplication;
+package org.apache.nifi.cdc.postgresql.pgeasyreplication;
 
 public class Column {
 

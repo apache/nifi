@@ -15,39 +15,43 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.cdc.postgresql.pgEasyReplication;
+package org.apache.nifi.cdc.postgresql.pgeasyreplication;
+
+import org.apache.nifi.logging.ComponentLog;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.util.Objects;
 import java.util.Properties;
 
 public class ConnectionManager {
 
     private String server;
     private String database;
-    private String driverName;
     private String user;
     private String password;
     private Connection sqlConnection;
     private Connection repConnection;
+    private ComponentLog log;
 
-    public void setProperties(String server, String database, String user, String password, String driverName) {
+    public void setProperties(String server, String database, String user, String password, ComponentLog log) {
         this.server = server;
         this.database = database;
         this.user = user;
-        this.driverName = driverName;
 
         if (password == null) {
             password = "";
         }
 
         this.password = password;
-
+        this.log = Objects.requireNonNull(log);
     }
 
-    public void createReplicationConnection() throws Exception {
+    public void createReplicationConnection() throws SQLException {
 
         String url = "jdbc:postgresql://" + this.server + "/" + this.database;
+        log.debug("Creating SQL replication connection for {}", url);
 
         Properties props = new Properties();
         props.put("user", this.user);
@@ -56,31 +60,29 @@ public class ConnectionManager {
         props.put("replication", "database");
         props.put("preferQueryMode", "simple");
 
-        Connection conn = null;
-        Class.forName(this.driverName);
-        conn = DriverManager.getConnection(url, props);
-        this.repConnection = conn;
+        this.repConnection = DriverManager.getConnection(url, props);
     }
 
     public Connection getReplicationConnection() {
         return this.repConnection;
     }
 
-    public void closeReplicationConnection() throws Exception {
-        this.repConnection.close();
+    public void closeReplicationConnection() throws SQLException {
+        if (repConnection != null) {
+            log.debug("Closing SQL replication connection");
+            repConnection.close();
+        }
     }
 
-    public void createSQLConnection() throws Exception {
-
+    public void createSQLConnection() throws SQLException {
         String url = "jdbc:postgresql://" + this.server + "/" + this.database;
+        log.debug("Creating SQL connection for {}", url);
 
         Properties props = new Properties();
         props.put("user", this.user);
         props.put("password", this.password);
 
-        Connection conn = null;
-        Class.forName(this.driverName);
-        conn = DriverManager.getConnection(url, props);
+        Connection conn = DriverManager.getConnection(url, props);
         conn.setAutoCommit(true);
         this.sqlConnection = conn;
     }
@@ -89,8 +91,11 @@ public class ConnectionManager {
         return this.sqlConnection;
     }
 
-    public void closeSQLConnection() throws Exception {
-        this.sqlConnection.close();
+    public void closeSQLConnection() throws SQLException {
+        if (sqlConnection != null) {
+            log.debug("Closing SQL connection");
+            sqlConnection.close();
+        }
     }
 
 }

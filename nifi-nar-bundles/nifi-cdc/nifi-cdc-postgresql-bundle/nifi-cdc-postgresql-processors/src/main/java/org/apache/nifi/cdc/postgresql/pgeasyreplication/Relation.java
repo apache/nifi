@@ -15,9 +15,10 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.cdc.postgresql.pgEasyReplication;
+package org.apache.nifi.cdc.postgresql.pgeasyreplication;
 
 import java.util.HashMap;
+import java.util.Map;
 
 public class Relation {
 
@@ -26,7 +27,7 @@ public class Relation {
     private String name;
     private char replicaIdentity;
     private short numColumns;
-    private HashMap<Integer, Column> columns = new HashMap<Integer, Column>();
+    private final Map<Integer, Column> columns = new HashMap<>();
 
     public void putColumn(Integer position, Column column) {
         this.columns.put(position, column);
