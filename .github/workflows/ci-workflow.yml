@@ -77,7 +77,7 @@ jobs:
           df -h
       - name: Build with Maven
         env:
-          MAVEN_OPTS: -Xmx2g -XX:ReservedCodeCacheSize=1g -XX:+UseG1GC -Dorg.slf4j.simpleLogger.defaultLogLevel=WARN -Dmaven.surefire.arguments="-Duser.language=fr -Duser.region=FR -Duser.timezone=Europe/Paris"
+          MAVEN_OPTS: -Xmx2g -XX:ReservedCodeCacheSize=1g -XX:+UseG1GC -Dorg.slf4j.simpleLogger.defaultLogLevel=WARN -Dmaven.surefire.arguments="-Duser.language=fr -Duser.region=FR -Duser.timezone=Europe/Paris" -Dhttp.keepAlive=false -Dmaven.wagon.http.pool=false
         run: |
           mvn -V -T 0.7C package verify -B -Pcontrib-check,include-grpc -Ddir-only -ntp -ff -pl -nifi-assembly,-nifi-toolkit/nifi-toolkit-assembly,-nifi-system-tests -nsu
       - name: Disk After Build
@@ -159,7 +159,7 @@ jobs:
           df -h
       - name: Build with Maven
         env:
-          MAVEN_OPTS: -Xmx2g -XX:ReservedCodeCacheSize=1g -XX:+UseG1GC -Dorg.slf4j.simpleLogger.defaultLogLevel=WARN -Dmaven.surefire.arguments="-Duser.language=en -Duser.region=AU -Duser.timezone=Australia/Melbourne"
+          MAVEN_OPTS: -Xmx2g -XX:ReservedCodeCacheSize=1g -XX:+UseG1GC -Dorg.slf4j.simpleLogger.defaultLogLevel=WARN -Dmaven.surefire.arguments="-Duser.language=en -Duser.region=AU -Duser.timezone=Australia/Melbourne" -Dhttp.keepAlive=false -Dmaven.wagon.http.pool=false
         run: |
           mvn -V -T 0.7C package verify -B -Pcontrib-check,include-grpc -Ddir-only -ntp -ff -pl -nifi-assembly,-nifi-toolkit/nifi-toolkit-assembly,-nifi-system-tests -nsu
       - name: Disk After Build
@@ -236,7 +236,7 @@ jobs:
           df -h
       - name: Build with Maven
         env:
-          MAVEN_OPTS: -Xmx2g -XX:ReservedCodeCacheSize=1g -XX:+UseG1GC -Dorg.slf4j.simpleLogger.defaultLogLevel=WARN -Dmaven.surefire.arguments="-Duser.language=ja -Duser.region=JP -Duser.timezone=Asia/Tokyo"
+          MAVEN_OPTS: -Xmx2g -XX:ReservedCodeCacheSize=1g -XX:+UseG1GC -Dorg.slf4j.simpleLogger.defaultLogLevel=WARN -Dmaven.surefire.arguments="-Duser.language=ja -Duser.region=JP -Duser.timezone=Asia/Tokyo" -Dhttp.keepAlive=false -Dmaven.wagon.http.pool=false
         run: |
           mvn -V -T 0.7C package verify -B -Pcontrib-check,include-grpc -Ddir-only -ntp -ff -pl -nifi-assembly,-nifi-toolkit/nifi-toolkit-assembly,-nifi-system-tests -nsu
       - name: Disk After Build
@@ -303,6 +303,6 @@ jobs:
           java-version: 1.8
       - name: Build with Maven
         env:
-          MAVEN_OPTS: -Xmx2g -Dorg.slf4j.simpleLogger.defaultLogLevel=WARN -Dmaven.surefire.arguments="-Duser.language=en -Duser.region=US -Duser.timezone=US/Pacific"
+          MAVEN_OPTS: -Xmx2g -Dorg.slf4j.simpleLogger.defaultLogLevel=WARN -Dmaven.surefire.arguments="-Duser.language=en -Duser.region=US -Duser.timezone=US/Pacific" -Dhttp.keepAlive=false -Dmaven.wagon.http.pool=false
         run: |
           mvn -V -T 0.7C package -B -Ddir-only -ntp -ff -pl -nifi-assembly -pl -nifi-system-tests -nsu
