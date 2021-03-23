@@ -151,7 +151,7 @@ public class PutAzureBlobStorage extends AbstractAzureBlobProcessor {
                     attributes.put("azure.timestamp", String.valueOf(properties.getLastModified()));
                 } catch (StorageException | URISyntaxException | IOException e) {
                     storedException.set(e);
-                    throw new IOException(e);
+                    throw e instanceof IOException ? (IOException) e : new IOException(e);
                 }
             });
 
