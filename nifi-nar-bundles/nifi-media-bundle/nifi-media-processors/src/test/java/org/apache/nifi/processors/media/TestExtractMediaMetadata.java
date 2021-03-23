@@ -174,35 +174,6 @@ public class TestExtractMediaMetadata {
     }
 
     @Test
-    public void testJunkBytes() throws IOException {
-        final TestRunner runner = TestRunners.newTestRunner(new ExtractMediaMetadata());
-        runner.setProperty(ExtractMediaMetadata.METADATA_KEY_FILTER, "");
-        runner.setProperty(ExtractMediaMetadata.METADATA_KEY_PREFIX, "junk.");
-        runner.assertValid();
-
-        final Map<String, String> attrs = new HashMap<>();
-        attrs.put("filename", "junk");
-        Random random = new Random();
-        byte[] bytes = new byte[2048];
-        random.nextBytes(bytes);
-        runner.enqueue(bytes, attrs);
-        runner.run();
-
-        runner.assertAllFlowFilesTransferred(ExtractMediaMetadata.SUCCESS, 1);
-        runner.assertTransferCount(ExtractMediaMetadata.FAILURE, 0);
-
-        final List<MockFlowFile> successFiles = runner.getFlowFilesForRelationship(ExtractMediaMetadata.SUCCESS);
-        MockFlowFile flowFile0 = successFiles.get(0);
-        flowFile0.assertAttributeExists("filename");
-        flowFile0.assertAttributeEquals("filename", "junk");
-        flowFile0.assertAttributeExists("junk.Content-Type");
-        assertTrue(flowFile0.getAttribute("junk.Content-Type").startsWith("application/octet-stream"));
-        flowFile0.assertAttributeExists("junk.X-Parsed-By");
-        assertTrue(flowFile0.getAttribute("junk.X-Parsed-By").contains("org.apache.tika.parser.EmptyParser"));
-        flowFile0.assertContentEquals(bytes);
-    }
-
-    @Test
     public void testMetadataKeyFilter() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(new ExtractMediaMetadata());
         runner.setProperty(ExtractMediaMetadata.METADATA_KEY_FILTER, "(X-Parsed.*)");
