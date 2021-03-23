@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.components.monitor;
 
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.nifi.controller.ActiveThreadInfo;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ThreadDetails;
@@ -43,12 +44,12 @@ public class LongRunningTaskMonitor implements Runnable {
 
     @Override
     public void run() {
-        LOGGER.debug("Checking long running processor tasks...");
+        getLogger().debug("Checking long running processor tasks...");
 
         int activeThreadCount = 0;
         int longRunningThreadCount = 0;
 
-        ThreadDetails threadDetails = ThreadDetails.capture();
+        ThreadDetails threadDetails = captureThreadDetails();
 
         for (ProcessorNode processorNode : flowManager.getRootGroup().findAllProcessors()) {
             List<ActiveThreadInfo> activeThreads = processorNode.getActiveThreads(threadDetails);
@@ -60,7 +61,7 @@ public class LongRunningTaskMonitor implements Runnable {
 
                     String taskSeconds = String.format("%,d seconds", activeThread.getActiveMillis() / 1000);
 
-                    LOGGER.warn(String.format("Long running task detected on processor [id=%s, name=%s, type=%s]. Task time: %s. Stack trace:\n%s",
+                    getLogger().warn(String.format("Long running task detected on processor [id=%s, name=%s, type=%s]. Task time: %s. Stack trace:\n%s",
                             processorNode.getIdentifier(), processorNode.getName(), processorNode.getComponentType(), taskSeconds, activeThread.getStackTrace()));
 
                     eventReporter.reportEvent(Severity.WARNING, "Long Running Task", String.format("Processor with ID %s, Name %s and Type %s has a task that has been running for %s " +
@@ -72,6 +73,16 @@ public class LongRunningTaskMonitor implements Runnable {
             }
         }
 
-        LOGGER.info("Active threads: {}; Long running threads: {}", activeThreadCount, longRunningThreadCount);
+        getLogger().info("Active threads: {}; Long running threads: {}", activeThreadCount, longRunningThreadCount);
+    }
+
+    @VisibleForTesting
+    protected Logger getLogger() {
+        return LOGGER;
+    }
+
+    @VisibleForTesting
+    protected ThreadDetails captureThreadDetails() {
+        return ThreadDetails.capture();
     }
 }
