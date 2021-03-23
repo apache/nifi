@@ -25,6 +25,24 @@ public class JvmMetricsRegistry extends AbstractMetricsRegistry {
         ///////////////////////////////////////////////////////////////
         // JVM Metrics
         ///////////////////////////////////////////////////////////////
+        nameToGaugeMap.put("JVM_HEAP_INIT", Gauge.build()
+                .name("nifi_jvm_heap_init")
+                .help("The amount of heap memory in bytes that the JVM initially requested from the operating system for memory management, returning -1 if undefined.")
+                .labelNames("instance")
+                .register(registry));
+
+        nameToGaugeMap.put("JVM_HEAP_COMMITTED", Gauge.build()
+                .name("nifi_jvm_heap_committed")
+                .help("The amount of heap memory in bytes that is committed and guaranteed for the JVM to use.")
+                .labelNames("instance")
+                .register(registry));
+
+        nameToGaugeMap.put("JVM_HEAP_MAX", Gauge.build()
+                .name("nifi_jvm_heap_max")
+                .help("The maximum amount of heap memory in bytes that can be used for memory management, returning -1 if undefined.")
+                .labelNames("instance")
+                .register(registry));
+
         nameToGaugeMap.put("JVM_HEAP_USED", Gauge.build()
                 .name("nifi_jvm_heap_used")
                 .help("NiFi JVM heap used")
@@ -37,9 +55,33 @@ public class JvmMetricsRegistry extends AbstractMetricsRegistry {
                 .labelNames("instance")
                 .register(registry));
 
+        nameToGaugeMap.put("JVM_HEAP_NON_INIT", Gauge.build()
+                .name("nifi_jvm_heap_non_init")
+                .help("The amount of non-heap memory in bytes that the JVM initially requested from the operating system for memory management, returning -1 if undefined.")
+                .labelNames("instance")
+                .register(registry));
+
+        nameToGaugeMap.put("JVM_HEAP_NON_COMMITTED", Gauge.build()
+                .name("nifi_jvm_heap_non_committed")
+                .help("The amount of non-heap memory in bytes that is committed and guaranteed for the JVM to use.")
+                .labelNames("instance")
+                .register(registry));
+
+        nameToGaugeMap.put("JVM_HEAP_NON_MAX", Gauge.build()
+                .name("nifi_jvm_heap_non_max")
+                .help("The maximum amount of non-heap memory in bytes that can be used for memory management, returning -1 if undefined.")
+                .labelNames("instance")
+                .register(registry));
+
+        nameToGaugeMap.put("JVM_HEAP_NON_USED", Gauge.build()
+                .name("nifi_jvm_heap_non_used")
+                .help("The amount of used non-heap memory in bytes.")
+                .labelNames("instance")
+                .register(registry));
+
         nameToGaugeMap.put("JVM_HEAP_NON_USAGE", Gauge.build()
                 .name("nifi_jvm_heap_non_usage")
-                .help("NiFi JVM heap non usage")
+                .help("NiFi JVM non-heap usage")
                 .labelNames("instance")
                 .register(registry));
 
@@ -52,6 +94,12 @@ public class JvmMetricsRegistry extends AbstractMetricsRegistry {
         nameToGaugeMap.put("JVM_DAEMON_THREAD_COUNT", Gauge.build()
                 .name("nifi_jvm_daemon_thread_count")
                 .help("NiFi JVM daemon thread count")
+                .labelNames("instance")
+                .register(registry));
+
+        nameToGaugeMap.put("JVM_DEADLOCKED_THREAD_COUNT", Gauge.build()
+                .name("nifi_jvm_deadlocked_thread_count")
+                .help("NiFi JVM deadlocked thread count")
                 .labelNames("instance")
                 .register(registry));
 

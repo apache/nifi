@@ -26,6 +26,8 @@ import org.apache.nifi.controller.status.PortStatus;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.controller.status.ProcessorStatus;
 import org.apache.nifi.controller.status.RemoteProcessGroupStatus;
+import org.apache.nifi.controller.status.RepositoryStatus;
+import org.apache.nifi.controller.status.RunStatus;
 import org.apache.nifi.controller.status.TransmissionStatus;
 import org.apache.nifi.controller.status.analytics.StatusAnalytics;
 import org.apache.nifi.expression.ExpressionLanguageScope;
@@ -36,6 +38,7 @@ import org.apache.nifi.util.StringUtils;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -190,6 +193,11 @@ public class PrometheusMetricsUtil {
                 nifiMetricsRegistry.setDataPoint(status.getTerminatedThreadCount() == null ? 0 : status.getTerminatedThreadCount(), "AMOUNT_THREADS_TOTAL_TERMINATED",
                         instanceId, procComponentType, procComponentName, procComponentId, parentId);
 
+                for (RunStatus runStatus : RunStatus.values()) {
+                    nifiMetricsRegistry.setDataPoint(runStatus == processorStatus.getRunStatus() ? 1 : 0,
+                            "NIFI_COMPONENT_STATE", instanceId, procComponentType, procComponentName,
+                            procComponentId, parentPGId, runStatus.name());
+                }
             }
             for (ConnectionStatus connectionStatus : status.getConnectionStatus()) {
                 final String connComponentId = StringUtils.isEmpty(connectionStatus.getId()) ? DEFAULT_LABEL_STRING : connectionStatus.getId();
@@ -252,6 +260,13 @@ public class PrometheusMetricsUtil {
                         instanceId, portComponentType, portComponentName, portComponentId, parentId, portStatus.getRunStatus().name());
 
                 nifiMetricsRegistry.setDataPoint(portStatus.getActiveThreadCount(), "AMOUNT_THREADS_TOTAL_ACTIVE", instanceId, portComponentType, portComponentName, portComponentId, parentId);
+
+                for (RunStatus runStatus : RunStatus.values()) {
+                    nifiMetricsRegistry.setDataPoint(runStatus == portStatus.getRunStatus() ? 1: 0, "NIFI_COMPONENT_STATE", instanceId, portComponentType, portComponentName,
+                            portComponentId, parentId, runStatus.name());
+                }
+                nifiMetricsRegistry.setDataPoint(isTransmitting == null ? 0 : (isTransmitting ? 1 : 0), "NIFI_COMPONENT_STATE", instanceId, portComponentType, portComponentName,
+                        portComponentId, parentId, TransmissionStatus.Transmitting.name());
             }
             for (PortStatus portStatus : status.getOutputPortStatus()) {
                 final String portComponentId = StringUtils.isEmpty(portStatus.getId()) ? DEFAULT_LABEL_STRING : portStatus.getId();
@@ -276,6 +291,13 @@ public class PrometheusMetricsUtil {
                         instanceId, portComponentType, portComponentName, portComponentId, parentId, portStatus.getRunStatus().name());
 
                 nifiMetricsRegistry.setDataPoint(portStatus.getActiveThreadCount(), "AMOUNT_THREADS_TOTAL_ACTIVE", instanceId, portComponentType, portComponentName, portComponentId, parentId);
+
+                for (RunStatus runStatus : RunStatus.values()) {
+                    nifiMetricsRegistry.setDataPoint(runStatus == portStatus.getRunStatus() ? 1: 0, "NIFI_COMPONENT_STATE", instanceId, portComponentType, portComponentName,
+                            portComponentId, parentId, runStatus.name());
+                }
+                nifiMetricsRegistry.setDataPoint(isTransmitting == null ? 0 : (isTransmitting ? 1 : 0), "NIFI_COMPONENT_STATE", instanceId, portComponentType, portComponentName,
+                        portComponentId, parentId, TransmissionStatus.Transmitting.name());
             }
             for (RemoteProcessGroupStatus remoteProcessGroupStatus : status.getRemoteProcessGroupStatus()) {
                 final String rpgComponentId = StringUtils.isEmpty(remoteProcessGroupStatus.getId()) ? DEFAULT_LABEL_STRING : remoteProcessGroupStatus.getId();
@@ -304,6 +326,10 @@ public class PrometheusMetricsUtil {
 
                 nifiMetricsRegistry.setDataPoint(remoteProcessGroupStatus.getActiveThreadCount(), "AMOUNT_THREADS_TOTAL_ACTIVE",
                         instanceId, rpgComponentType, rpgComponentName, rpgComponentId, parentId);
+
+                nifiMetricsRegistry.setDataPoint(TransmissionStatus.Transmitting == remoteProcessGroupStatus.getTransmissionStatus() ? 1 : 0,
+                        "NIFI_COMPONENT_STATE", instanceId, rpgComponentType, rpgComponentName, rpgComponentId, parentId, TransmissionStatus.Transmitting.name());
+
             }
         }
 
@@ -312,11 +338,22 @@ public class PrometheusMetricsUtil {
 
     public static CollectorRegistry createJvmMetrics(JvmMetricsRegistry jvmMetricsRegistry, JvmMetrics jvmMetrics, String instId) {
         final String instanceId = StringUtils.isEmpty(instId) ? DEFAULT_LABEL_STRING : instId;
+        jvmMetricsRegistry.setDataPoint(jvmMetrics.heapInit(DataUnit.B), "JVM_HEAP_INIT", instanceId);
+        jvmMetricsRegistry.setDataPoint(jvmMetrics.heapCommitted(DataUnit.B), "JVM_HEAP_COMMITTED", instanceId);
+        jvmMetricsRegistry.setDataPoint(jvmMetrics.heapMax(DataUnit.B), "JVM_HEAP_MAX", instanceId);
         jvmMetricsRegistry.setDataPoint(jvmMetrics.heapUsed(DataUnit.B), "JVM_HEAP_USED", instanceId);
         jvmMetricsRegistry.setDataPoint(jvmMetrics.heapUsage(), "JVM_HEAP_USAGE", instanceId);
+
+        jvmMetricsRegistry.setDataPoint(jvmMetrics.nonHeapInit(DataUnit.B), "JVM_HEAP_NON_INIT", instanceId);
+        jvmMetricsRegistry.setDataPoint(jvmMetrics.nonHeapCommitted(DataUnit.B), "JVM_HEAP_NON_COMMITTED", instanceId);
+        jvmMetricsRegistry.setDataPoint(jvmMetrics.nonHeapMax(DataUnit.B), "JVM_HEAP_NON_MAX", instanceId);
+        jvmMetricsRegistry.setDataPoint(jvmMetrics.nonHeapUsed(DataUnit.B), "JVM_HEAP_NON_USED", instanceId);
         jvmMetricsRegistry.setDataPoint(jvmMetrics.nonHeapUsage(), "JVM_HEAP_NON_USAGE", instanceId);
+
         jvmMetricsRegistry.setDataPoint(jvmMetrics.threadCount(), "JVM_THREAD_COUNT", instanceId);
         jvmMetricsRegistry.setDataPoint(jvmMetrics.daemonThreadCount(), "JVM_DAEMON_THREAD_COUNT", instanceId);
+        jvmMetricsRegistry.setDataPoint(jvmMetrics.deadlockedThreads().size(), "JVM_DEADLOCKED_THREAD_COUNT", instanceId);
+
         jvmMetricsRegistry.setDataPoint(jvmMetrics.uptime(), "JVM_UPTIME", instanceId);
         jvmMetricsRegistry.setDataPoint(jvmMetrics.fileDescriptorUsage(), "JVM_FILE_DESCRIPTOR_USAGE", instanceId);
 
@@ -379,4 +416,18 @@ public class PrometheusMetricsUtil {
         bulletinMetricsRegistry.setDataPoint(1, "BULLETIN", instanceId, componentType, componentId, parentId, nodeAddress, category, sourceName, sourceId, level);
         return bulletinMetricsRegistry.getRegistry();
     }
+
+    public static CollectorRegistry createSystemMetrics(SystemMetricsRegistry systemMetricsRegistry, String instanceId, int maxEventDrivenThreadCount, int maxTimerDrivenThreadCount,
+                                                        List<RepositoryStatus> repositories) {
+        systemMetricsRegistry.setDataPoint(maxEventDrivenThreadCount, "MAX_EVENT_DRIVEN_THREADS", instanceId);
+        systemMetricsRegistry.setDataPoint(maxTimerDrivenThreadCount, "MAX_TIMER_DRIVEN_THREADS", instanceId);
+
+        repositories.forEach(repository -> {
+            systemMetricsRegistry.setDataPoint(repository.getUsedBytes(), "REPOSITORY_USED_BYTES", instanceId, repository.getIdentifier(), repository.getType().name().toLowerCase());
+            systemMetricsRegistry.setDataPoint(repository.getMaxBytes(), "REPOSITORY_MAX_BYTES", instanceId, repository.getIdentifier(), repository.getType().name().toLowerCase());
+        });
+
+        return systemMetricsRegistry.getRegistry();
+    }
+
 }

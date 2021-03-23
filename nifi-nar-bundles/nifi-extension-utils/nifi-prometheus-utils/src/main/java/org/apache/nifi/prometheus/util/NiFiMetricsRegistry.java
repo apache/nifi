@@ -199,7 +199,7 @@ public class NiFiMetricsRegistry extends AbstractMetricsRegistry {
         // Port metrics
         nameToGaugeMap.put("IS_TRANSMITTING",  Gauge.build()
                 .name("nifi_transmitting")
-                .help("Whether this component is transmitting data. Values are 0 or 1")
+                .help("Whether this component is transmitting data. Values are 0 or 1 - Deprecated, replaced by nifi_component_state")
                 .labelNames("instance", "component_type", "component_name", "component_id", "parent_id", "run_status")
                 .register(registry));
 
@@ -224,5 +224,13 @@ public class NiFiMetricsRegistry extends AbstractMetricsRegistry {
                 .labelNames("instance", "component_type", "component_name", "component_id", "parent_id",
                         "source_id", "source_name", "destination_id", "destination_name")
                 .register(registry));
+
+        // Component metrics
+        nameToGaugeMap.put("NIFI_COMPONENT_STATE", Gauge.build()
+                .name("nifi_component_state")
+                .help("State of the component, captured in the state label. Values are 0 or 1")
+                .labelNames("instance", "component_type", "component_name", "component_id", "parent_id", "state")
+                .register(registry));
+
     }
 }

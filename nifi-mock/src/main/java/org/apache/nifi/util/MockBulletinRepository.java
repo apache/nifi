@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.util;
 
+import java.util.ArrayList;
 import java.util.List;
 import org.apache.nifi.reporting.Bulletin;
 import org.apache.nifi.reporting.BulletinQuery;
@@ -44,7 +45,7 @@ public class MockBulletinRepository implements BulletinRepository {
     @Override
     public List<Bulletin> findBulletins(BulletinQuery bulletinQuery) {
         // TODO: Implement
-        return null;
+        return new ArrayList<Bulletin>();
     }
 
     @Override

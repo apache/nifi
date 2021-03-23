@@ -108,6 +108,42 @@ public interface JvmMetrics {
     double heapUsage();
 
     /**
+     * Returns the non-heap initial memory of the current JVM.
+     *
+     * @param dataUnit The {@link DataUnit} to which the metric will be converted
+     *
+     * @return Non-heap initial JVM memory in the given {@link DataUnit}
+     */
+    double nonHeapInit(DataUnit dataUnit);
+
+    /**
+     * Returns the non-heap memory currently used by the current JVM.
+     *
+     * @param dataUnit The {@link DataUnit} to which the metric will be converted
+     *
+     * @return Non-heap memory currently used by JVM in the given {@link DataUnit}
+     */
+    double nonHeapUsed(DataUnit dataUnit);
+
+    /**
+     * Returns the non-heap memory currently used by the current JVM.
+     *
+     * @param dataUnit The {@link DataUnit} to which the metric will be converted
+     *
+     * @return Non-heap memory currently used by JVM in the given {@link DataUnit}
+     */
+    double nonHeapMax(DataUnit dataUnit);
+
+    /**
+     * Returns the non-heap memory committed to the JVM.
+     *
+     * @param dataUnit The {@link DataUnit} to which the metric will be converted
+     *
+     * @return Non-heap memory currently committed to the JVM in the given {@link DataUnit}
+     */
+    double nonHeapCommitted(DataUnit dataUnit);
+
+    /**
      * Returns the percentage of the JVM's non-heap memory (e.g., direct buffers) which is being
      * used.
      *

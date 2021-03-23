@@ -89,6 +89,8 @@ import org.apache.nifi.controller.service.ControllerServiceReference;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.controller.status.ProcessorStatus;
+import org.apache.nifi.controller.status.RepositoryStatus;
+import org.apache.nifi.diagnostics.StorageUsage;
 import org.apache.nifi.diagnostics.SystemDiagnostics;
 import org.apache.nifi.events.BulletinFactory;
 import org.apache.nifi.groups.ProcessGroup;
@@ -109,6 +111,7 @@ import org.apache.nifi.prometheus.util.ConnectionAnalyticsMetricsRegistry;
 import org.apache.nifi.prometheus.util.JvmMetricsRegistry;
 import org.apache.nifi.prometheus.util.NiFiMetricsRegistry;
 import org.apache.nifi.prometheus.util.PrometheusMetricsUtil;
+import org.apache.nifi.prometheus.util.SystemMetricsRegistry;
 import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.registry.authorization.Permissions;
 import org.apache.nifi.registry.bucket.Bucket;
@@ -410,12 +413,14 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     private JvmMetricsRegistry jvmMetricsRegistry = new JvmMetricsRegistry();
     private ConnectionAnalyticsMetricsRegistry connectionAnalyticsMetricsRegistry = new ConnectionAnalyticsMetricsRegistry();
     private BulletinMetricsRegistry bulletinMetricsRegistry = new BulletinMetricsRegistry();
+    private SystemMetricsRegistry systemMetricsRegistry = new SystemMetricsRegistry();
 
     public final Collection<CollectorRegistry> ALL_REGISTRIES = Arrays.asList(
             nifiMetricsRegistry.getRegistry(),
             jvmMetricsRegistry.getRegistry(),
             connectionAnalyticsMetricsRegistry.getRegistry(),
-            bulletinMetricsRegistry.getRegistry()
+            bulletinMetricsRegistry.getRegistry(),
+            systemMetricsRegistry.getRegistry()
     );
 
 
@@ -5468,7 +5473,44 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 );
             }
         }
+
+        // Create system metrics
+        PrometheusMetricsUtil.createSystemMetrics(systemMetricsRegistry,
+                instanceId,
+                controllerFacade.getMaxEventDrivenThreadCount(),
+                controllerFacade.getMaxTimerDrivenThreadCount(),
+                createRepositoryStatus(controllerFacade.getSystemDiagnostics()));
+
         return ALL_REGISTRIES;
+    }
+
+    private List<RepositoryStatus> createRepositoryStatus(SystemDiagnostics systemDiagnostics) {
+        final List<RepositoryStatus> repositories = new ArrayList<>();
+
+        final StorageUsage flowfileStorage = systemDiagnostics.getFlowFileRepositoryStorageUsage();
+        repositories.add(new RepositoryStatus(RepositoryStatus.Repository.FLOWFILE,
+                flowfileStorage.getIdentifier(),
+                flowfileStorage.getTotalSpace(),
+                flowfileStorage.getUsedSpace())
+        );
+
+        systemDiagnostics.getContentRepositoryStorageUsage().forEach((identifier, storageUsage) -> {
+            repositories.add(new RepositoryStatus(RepositoryStatus.Repository.CONTENT,
+                    identifier,
+                    storageUsage.getTotalSpace(),
+                    storageUsage.getUsedSpace())
+            );
+        });
+
+        systemDiagnostics.getProvenanceRepositoryStorageUsage().forEach((identifier, storageUsage) -> {
+            repositories.add(new RepositoryStatus(RepositoryStatus.Repository.PROVENANCE,
+                    identifier,
+                    storageUsage.getTotalSpace(),
+                    storageUsage.getUsedSpace())
+            );
+        });
+
+        return repositories;
     }
 
     @Override

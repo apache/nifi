@@ -36,18 +36,22 @@ class JmxJvmMetricsSpec extends Specification {
 
 
         where:
-        metricName               | methodName       | dataUnit
-        "memory.total.init"      | "totalInit"      | DataUnit.B
-        "memory.total.used"      | "totalUsed"      | DataUnit.B
-        "memory.total.max"       | "totalMax"       | DataUnit.B
-        "memory.total.committed" | "totalCommitted" | DataUnit.B
-        "memory.heap.init"       | "heapInit"       | DataUnit.B
-        "memory.heap.used"       | "heapUsed"       | DataUnit.B
-        "memory.heap.max"        | "heapMax"        | DataUnit.B
-        "memory.heap.committed"  | "heapCommitted"  | DataUnit.B
-        "memory.total.init"      | "totalInit"      | DataUnit.B
-        "memory.total.init"      | "totalInit"      | DataUnit.B
-        "memory.total.init"      | "totalInit"      | DataUnit.B
+        metricName                  | methodName         | dataUnit
+        "memory.total.init"         | "totalInit"        | DataUnit.B
+        "memory.total.used"         | "totalUsed"        | DataUnit.B
+        "memory.total.max"          | "totalMax"         | DataUnit.B
+        "memory.total.committed"    | "totalCommitted"   | DataUnit.B
+        "memory.heap.init"          | "heapInit"         | DataUnit.B
+        "memory.heap.used"          | "heapUsed"         | DataUnit.B
+        "memory.heap.max"           | "heapMax"          | DataUnit.B
+        "memory.heap.committed"     | "heapCommitted"    | DataUnit.B
+        "memory.total.init"         | "totalInit"        | DataUnit.B
+        "memory.total.init"         | "totalInit"        | DataUnit.B
+        "memory.total.init"         | "totalInit"        | DataUnit.B
+        "memory.non-heap.init"      | "nonHeapInit"      | DataUnit.B
+        "memory.non-heap.used"      | "nonHeapUsed"      | DataUnit.B
+        // "memory.non-heap.max"       | "nonHeapMax"       | DataUnit.B // This returns -1 and fails the test. Bug raised in NIFI-8355.
+        "memory.non-heap.committed" | "nonHeapCommitted" | DataUnit.B
     }
 
     @Unroll

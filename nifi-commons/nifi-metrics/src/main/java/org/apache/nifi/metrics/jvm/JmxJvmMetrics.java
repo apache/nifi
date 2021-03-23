@@ -54,6 +54,10 @@ public class JmxJvmMetrics implements JvmMetrics {
     static final String MEMORY_HEAP_MAX = REGISTRY_METRICSET_MEMORY + ".heap.max";
     static final String MEMORY_HEAP_COMMITTED = REGISTRY_METRICSET_MEMORY + ".heap.committed";
     static final String MEMORY_HEAP_USAGE = REGISTRY_METRICSET_MEMORY + ".heap.usage";
+    static final String MEMORY_NON_HEAP_INIT = REGISTRY_METRICSET_MEMORY + ".non-heap.init";
+    static final String MEMORY_NON_HEAP_USED = REGISTRY_METRICSET_MEMORY + ".non-heap.used";
+    static final String MEMORY_NON_HEAP_MAX = REGISTRY_METRICSET_MEMORY + ".non-heap.max";
+    static final String MEMORY_NON_HEAP_COMMITTED = REGISTRY_METRICSET_MEMORY + ".non-heap.committed";
     static final String MEMORY_NON_HEAP_USAGE = REGISTRY_METRICSET_MEMORY + ".non-heap.usage";
     static final String THREADS_COUNT = REGISTRY_METRICSET_THREADS + ".count";
     static final String THREADS_DAEMON_COUNT = REGISTRY_METRICSET_THREADS + ".daemon.count";
@@ -140,6 +144,26 @@ public class JmxJvmMetrics implements JvmMetrics {
     @Override
     public double heapUsage() {
         return (Double) getMetric(MEMORY_HEAP_USAGE);
+    }
+
+    @Override
+    public double nonHeapInit(DataUnit dataUnit) {
+        return (dataUnit == null ? DataUnit.B : dataUnit).convert((Long) getMetric(MEMORY_NON_HEAP_INIT), DataUnit.B);
+    }
+
+    @Override
+    public double nonHeapUsed(DataUnit dataUnit) {
+        return (dataUnit == null ? DataUnit.B : dataUnit).convert((Long) getMetric(MEMORY_NON_HEAP_USED), DataUnit.B);
+    }
+
+    @Override
+    public double nonHeapMax(DataUnit dataUnit) {
+        return (dataUnit == null ? DataUnit.B : dataUnit).convert((Long) getMetric(MEMORY_NON_HEAP_MAX), DataUnit.B);
+    }
+
+    @Override
+    public double nonHeapCommitted(DataUnit dataUnit) {
+        return (dataUnit == null ? DataUnit.B : dataUnit).convert((Long) getMetric(MEMORY_NON_HEAP_COMMITTED), DataUnit.B);
     }
 
     @Override
