@@ -471,6 +471,7 @@ public class ExecuteStreamCommand extends AbstractProcessor {
         try {
             process = builder.start();
         } catch (IOException e) {
+            errorOut.delete();
             logger.error("Could not create external process to run command", e);
             throw new ProcessException(e);
         }
