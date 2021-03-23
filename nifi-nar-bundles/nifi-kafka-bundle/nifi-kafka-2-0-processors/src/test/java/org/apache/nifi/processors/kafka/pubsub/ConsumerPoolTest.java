@@ -41,6 +41,9 @@ import java.util.UUID;
 import java.util.regex.Pattern;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -156,6 +159,89 @@ public class ConsumerPoolTest {
         assertEquals(1, stats.consumerClosedCount);
         assertEquals(1, stats.leasesObtainedCount);
     }
+
+    @Test
+    public void testConsumerCreatedOnDemand() {
+        try (final ConsumerLease lease = testPool.obtainConsumer(mockSession, mockContext)) {
+            final List<ConsumerLease> created = new ArrayList<>();
+            try {
+                for (int i = 0; i < 3; i++) {
+                    final ConsumerLease newLease = testPool.obtainConsumer(mockSession, mockContext);
+                    created.add(newLease);
+                    assertNotSame(lease, newLease);
+                }
+            } finally {
+                created.forEach(ConsumerLease::close);
+            }
+        }
+    }
+
+    @Test
+    public void testConsumerNotCreatedOnDemandWhenUsingStaticAssignment() {
+        final ConsumerPool staticAssignmentPool = new ConsumerPool(
+            1,
+            null,
+            false,
+            Collections.emptyMap(),
+            Collections.singletonList("nifi"),
+            100L,
+            "utf-8",
+            "ssl",
+            "localhost",
+            logger,
+            true,
+            StandardCharsets.UTF_8,
+            null,
+            new int[] {1, 2, 3}) {
+            @Override
+            protected Consumer<byte[], byte[]> createKafkaConsumer() {
+                return consumer;
+            }
+        };
+
+        try (final ConsumerLease lease = staticAssignmentPool.obtainConsumer(mockSession, mockContext)) {
+            ConsumerLease partition2Lease = null;
+            ConsumerLease partition3Lease = null;
+
+            try {
+                partition2Lease = staticAssignmentPool.obtainConsumer(mockSession, mockContext);
+                assertNotSame(lease, partition2Lease);
+                assertEquals(1, partition2Lease.getAssignedPartitions().size());
+                assertEquals(2, partition2Lease.getAssignedPartitions().get(0).partition());
+
+                partition3Lease = staticAssignmentPool.obtainConsumer(mockSession, mockContext);
+                assertNotSame(lease, partition3Lease);
+                assertNotSame(partition2Lease, partition3Lease);
+                assertEquals(1, partition3Lease.getAssignedPartitions().size());
+                assertEquals(3, partition3Lease.getAssignedPartitions().get(0).partition());
+
+                final ConsumerLease nullLease = staticAssignmentPool.obtainConsumer(mockSession, mockContext);
+                assertNull(nullLease);
+
+                // Close the lease for Partition 2. We should now be able to get another Lease for Partition 2.
+                partition2Lease.close();
+
+                partition2Lease = staticAssignmentPool.obtainConsumer(mockSession, mockContext);
+                assertNotNull(partition2Lease);
+
+                assertEquals(1, partition2Lease.getAssignedPartitions().size());
+                assertEquals(2, partition2Lease.getAssignedPartitions().get(0).partition());
+
+                assertNull(staticAssignmentPool.obtainConsumer(mockSession, mockContext));
+            } finally {
+                closeLeases(partition2Lease, partition3Lease);
+            }
+        }
+    }
+
+    private void closeLeases(final ConsumerLease... leases) {
+        for (final ConsumerLease lease : leases) {
+            if (lease != null) {
+                lease.close();
+            }
+        }
+    }
+
 
     @Test
     public void validatePoolSimpleBatchCreateClose() throws Exception {
