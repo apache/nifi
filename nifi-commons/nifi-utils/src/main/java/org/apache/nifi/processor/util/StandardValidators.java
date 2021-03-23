@@ -409,7 +409,7 @@ public class StandardValidators {
         Optional<ValidationResult> invalidUri = Arrays.stream(input.split(","))
                 .filter(uri -> uri != null && !uri.trim().isEmpty())
                 .map(String::trim)
-                .map((uri) -> StandardValidators.URI_VALIDATOR.validate(subject,uri,context)).filter((uri) -> !uri.isValid()).findFirst();
+                .map((uri) -> StandardValidators.URI_VALIDATOR.validate(subject, uri, context)).filter((uri) -> !uri.isValid()).findFirst();
 
         return invalidUri.orElseGet(() -> new ValidationResult.Builder().subject(subject).input(input).explanation("Valid URI(s)").valid(true).build());
     };
@@ -577,13 +577,13 @@ public class StandardValidators {
     }
 
     public static Validator createListValidator(boolean trimEntries, boolean excludeEmptyEntries,
-        Validator elementValidator){
-        return createListValidator(trimEntries,excludeEmptyEntries, elementValidator, false);
+                                                Validator elementValidator) {
+        return createListValidator(trimEntries, excludeEmptyEntries, elementValidator, false);
     }
 
     public static Validator createListValidator(boolean trimEntries, boolean excludeEmptyEntries,
-        Validator validator,
-        boolean ensureElementValidation) {
+                                                Validator validator,
+                                                boolean ensureElementValidation) {
         return (subject, input, context) -> {
             if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input)) {
                 return new ValidationResult.Builder().subject(subject).input(input).explanation("Expression Language Present").valid(true).build();
@@ -593,7 +593,7 @@ public class StandardValidators {
                     return new ValidationResult.Builder().subject(subject).input(null).explanation("List must have at least one non-empty element").valid(false).build();
                 }
 
-                final String[] list =  ensureElementValidation ? input.split(",",-1) : input.split(",");
+                final String[] list = ensureElementValidation ? input.split(",", -1) : input.split(",");
                 if (list.length == 0) {
                     return new ValidationResult.Builder().subject(subject).input(null).explanation("List must have at least one non-empty element").valid(false).build();
                 }
@@ -678,10 +678,10 @@ public class StandardValidators {
      * Language will not support FlowFile Attributes but only System/JVM
      * Properties
      *
-     * @param minCapturingGroups minimum capturing groups allowed
-     * @param maxCapturingGroups maximum capturing groups allowed
+     * @param minCapturingGroups                 minimum capturing groups allowed
+     * @param maxCapturingGroups                 maximum capturing groups allowed
      * @param supportAttributeExpressionLanguage whether or not to support
-     * expression language
+     *                                           expression language
      * @return validator
      */
     public static Validator createRegexValidator(final int minCapturingGroups, final int maxCapturingGroups, final boolean supportAttributeExpressionLanguage) {
@@ -835,7 +835,7 @@ public class StandardValidators {
         private final boolean allowFileOnly;
 
         public FileExistsValidator(final boolean allowExpressionLanguage) {
-            this(allowExpressionLanguage,false);
+            this(allowExpressionLanguage, false);
         }
 
         public FileExistsValidator(final boolean allowExpressionLanguage, final boolean fileOnly) {
