@@ -25,8 +25,10 @@ public interface LoadBalancedFlowFileQueue extends FlowFileQueue {
     /**
      * Adds the given FlowFiles to this queue, as they have been received from another node in the cluster
      * @param flowFiles the FlowFiles received from the peer
+     *
+     * @throws IllegalClusterStateException if the node is not currently in a state in which it can receive data from other nodes
      */
-    void receiveFromPeer(Collection<FlowFileRecord> flowFiles);
+    void receiveFromPeer(Collection<FlowFileRecord> flowFiles) throws IllegalClusterStateException;
 
     /**
      * Distributes the given FlowFiles to the appropriate partitions. Unlike the {@link #putAll(Collection)} method,

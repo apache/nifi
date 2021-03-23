@@ -28,6 +28,7 @@ import org.apache.nifi.controller.queue.ConnectionEventListener;
 import org.apache.nifi.controller.queue.DropFlowFileRequest;
 import org.apache.nifi.controller.queue.DropFlowFileState;
 import org.apache.nifi.controller.queue.FlowFileQueueContents;
+import org.apache.nifi.controller.queue.IllegalClusterStateException;
 import org.apache.nifi.controller.queue.LoadBalanceStrategy;
 import org.apache.nifi.controller.queue.LoadBalancedFlowFileQueue;
 import org.apache.nifi.controller.queue.LocalQueuePartitionDiagnostics;
@@ -753,9 +754,16 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
         return partition;
     }
 
-    public void receiveFromPeer(final Collection<FlowFileRecord> flowFiles) {
+    public void receiveFromPeer(final Collection<FlowFileRecord> flowFiles) throws IllegalClusterStateException {
         partitionReadLock.lock();
         try {
+            if (offloaded) {
+                throw new IllegalClusterStateException("Node cannot accept data from load-balanced connection because it is in the process of offloading");
+            }
+            if (!clusterCoordinator.isConnected()) {
+                throw new IllegalClusterStateException("Node cannot accept data from load-balanced connection because it is not connected to cluster");
+            }
+
             if (partitioner.isRebalanceOnClusterResize()) {
                 logger.debug("Received the following FlowFiles from Peer: {}. Will re-partition FlowFiles to ensure proper balancing across the cluster.", flowFiles);
                 putAll(flowFiles);

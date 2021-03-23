@@ -20,6 +20,7 @@ package org.apache.nifi.controller.queue.clustered.server;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.flow.FlowManager;
+import org.apache.nifi.controller.queue.IllegalClusterStateException;
 import org.apache.nifi.controller.queue.LoadBalanceCompression;
 import org.apache.nifi.controller.queue.LoadBalancedFlowFileQueue;
 import org.apache.nifi.controller.repository.ContentRepository;
@@ -94,7 +95,7 @@ public class TestStandardLoadBalanceProtocol {
 
 
     @Before
-    public void setup() throws IOException {
+    public void setup() throws IOException, IllegalClusterStateException {
         flowFileQueuePutRecords = new ArrayList<>();
         flowFileQueueReceiveRecords = new ArrayList<>();
         flowFileRepoUpdateRecords = new ArrayList<>();
@@ -177,7 +178,7 @@ public class TestStandardLoadBalanceProtocol {
 
 
     @Test
-    public void testSimpleFlowFileTransaction() throws IOException {
+    public void testSimpleFlowFileTransaction() throws IOException, IllegalClusterStateException {
         final StandardLoadBalanceProtocol protocol = new StandardLoadBalanceProtocol(flowFileRepo, contentRepo, provenanceRepo, flowController, ALWAYS_AUTHORIZED);
 
         final PipedInputStream serverInput = new PipedInputStream();
@@ -571,7 +572,7 @@ public class TestStandardLoadBalanceProtocol {
     }
 
     @Test
-    public void testFlowFileNoContent() throws IOException {
+    public void testFlowFileNoContent() throws IOException, IllegalClusterStateException {
         final StandardLoadBalanceProtocol protocol = new StandardLoadBalanceProtocol(flowFileRepo, contentRepo, provenanceRepo, flowController, ALWAYS_AUTHORIZED);
 
         final PipedInputStream serverInput = new PipedInputStream();

@@ -17,10 +17,10 @@
 
 package org.apache.nifi.controller.queue.clustered.client.async.nio;
 
+import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.controller.queue.clustered.FlowFileContentAccess;
 import org.apache.nifi.controller.queue.clustered.client.LoadBalanceFlowFileCodec;
-import org.apache.nifi.controller.queue.clustered.client.StandardLoadBalanceFlowFileCodec;
 import org.apache.nifi.controller.queue.clustered.client.async.AsyncLoadBalanceClientFactory;
 import org.apache.nifi.events.EventReporter;
 
@@ -32,19 +32,21 @@ public class NioAsyncLoadBalanceClientFactory implements AsyncLoadBalanceClientF
     private final FlowFileContentAccess flowFileContentAccess;
     private final EventReporter eventReporter;
     private final LoadBalanceFlowFileCodec flowFileCodec;
+    private final ClusterCoordinator clusterCoordinator;
 
     public NioAsyncLoadBalanceClientFactory(final SSLContext sslContext, final int timeoutMillis, final FlowFileContentAccess flowFileContentAccess, final EventReporter eventReporter,
-                                            final LoadBalanceFlowFileCodec loadBalanceFlowFileCodec) {
+                                            final LoadBalanceFlowFileCodec loadBalanceFlowFileCodec, final ClusterCoordinator clusterCoordinator) {
         this.sslContext = sslContext;
         this.timeoutMillis = timeoutMillis;
         this.flowFileContentAccess = flowFileContentAccess;
         this.eventReporter = eventReporter;
         this.flowFileCodec = loadBalanceFlowFileCodec;
+        this.clusterCoordinator = clusterCoordinator;
     }
 
 
     @Override
     public NioAsyncLoadBalanceClient createClient(final NodeIdentifier nodeIdentifier) {
-        return new NioAsyncLoadBalanceClient(nodeIdentifier, sslContext, timeoutMillis, flowFileContentAccess, new StandardLoadBalanceFlowFileCodec(), eventReporter);
+        return new NioAsyncLoadBalanceClient(nodeIdentifier, sslContext, timeoutMillis, flowFileContentAccess, flowFileCodec, eventReporter, clusterCoordinator);
     }
 }

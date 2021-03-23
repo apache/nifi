@@ -20,6 +20,7 @@ package org.apache.nifi.controller.queue.clustered.server;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.queue.FlowFileQueue;
+import org.apache.nifi.controller.queue.IllegalClusterStateException;
 import org.apache.nifi.controller.queue.LoadBalanceCompression;
 import org.apache.nifi.controller.queue.LoadBalancedFlowFileQueue;
 import org.apache.nifi.controller.repository.ContentRepository;
@@ -314,10 +315,77 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
         logger.debug("Received Complete Transaction indicator from Peer {}", peerDescription);
         registerReceiveProvenanceEvents(flowFilesReceived, peerDescription, connectionId, startTimestamp);
         updateFlowFileRepository(flowFilesReceived, flowFileQueue);
-        transferFlowFilesToQueue(flowFilesReceived, flowFileQueue);
+
+        try {
+            transferFlowFilesToQueue(flowFilesReceived, flowFileQueue);
+        } catch (final IllegalClusterStateException e) {
+            logger.error("Failed to transferred received data into FlowFile Queue {}", flowFileQueue, e);
+            out.write(ABORT_TRANSACTION);
+            out.flush();
+
+            try {
+                cleanupRepositoriesOnTransferFailure(flowFilesReceived, flowFileQueue, "Rejected transfer due to " + e.getMessage());
+            } catch (final Exception e1) {
+                logger.error("Failed to update FlowFile/Provenance Repositories to denote that the data that could not be received should no longer be present on this node", e1);
+            }
+
+            // We log the error here and cleanup. We do not throw an Exception. If we did throw an Exception,
+            // the caller of this method would catch the Exception and decrement the Content Claims, etc. However,
+            // since we have already updated the FlowFile Repository to DROP the data, that would decrement the claims
+            // twice, which could lead to data loss.
+            return;
+        }
 
         out.write(CONFIRM_COMPLETE_TRANSACTION);
         out.flush();
+    }
+
+    private void cleanupRepositoriesOnTransferFailure(final List<RemoteFlowFileRecord> flowFilesReceived, final FlowFileQueue flowFileQueue, final String details) throws IOException {
+        dropFlowFilesFromRepository(flowFilesReceived, flowFileQueue);
+        reportDropEvents(flowFilesReceived, flowFileQueue.getIdentifier(), details);
+    }
+
+    private void dropFlowFilesFromRepository(final List<RemoteFlowFileRecord> flowFiles, final FlowFileQueue flowFileQueue) throws IOException {
+        final List<RepositoryRecord> repoRecords = flowFiles.stream()
+            .map(remoteFlowFile -> {
+                final StandardRepositoryRecord record = new StandardRepositoryRecord(flowFileQueue, remoteFlowFile.getFlowFile());
+                record.setDestination(flowFileQueue);
+                record.markForDelete();
+                return record;
+            })
+            .collect(Collectors.toList());
+
+        flowFileRepository.updateRepository(repoRecords);
+        logger.debug("Updated FlowFile Repository to note that {} FlowFiles were dropped from the system because the data received from the other node could not be transferred to the FlowFile Queue",
+            repoRecords);
+    }
+
+    private void reportDropEvents(final List<RemoteFlowFileRecord> flowFilesReceived, final String connectionId, final String details) {
+        final List<ProvenanceEventRecord> events = new ArrayList<>(flowFilesReceived.size());
+        for (final RemoteFlowFileRecord remoteFlowFile : flowFilesReceived) {
+            final FlowFileRecord flowFileRecord = remoteFlowFile.getFlowFile();
+
+            final ProvenanceEventBuilder provenanceEventBuilder = new StandardProvenanceEventRecord.Builder()
+                .fromFlowFile(flowFileRecord)
+                .setEventType(ProvenanceEventType.DROP)
+                .setComponentId(connectionId)
+                .setComponentType("Load Balanced Connection")
+                .setDetails(details);
+
+            final ContentClaim contentClaim = flowFileRecord.getContentClaim();
+            if (contentClaim != null) {
+                final ResourceClaim resourceClaim = contentClaim.getResourceClaim();
+                provenanceEventBuilder.setCurrentContentClaim(resourceClaim.getContainer(), resourceClaim.getSection(), resourceClaim.getId(),
+                    contentClaim.getOffset() + flowFileRecord.getContentClaimOffset(), flowFileRecord.getSize());
+            }
+
+            final ProvenanceEventRecord provenanceEvent = provenanceEventBuilder.build();
+            events.add(provenanceEvent);
+        }
+
+        logger.debug("Updated Provenance Repository to note that {} FlowFiles were dropped from the system because the data received from the other node could not be transferred to the FlowFile " +
+            "Queue", events.size());
+        provenanceRepository.registerEvents(events);
     }
 
     private void registerReceiveProvenanceEvents(final List<RemoteFlowFileRecord> flowFiles, final String nodeName, final String connectionId, final long startTimestamp) {
@@ -361,7 +429,7 @@ public class StandardLoadBalanceProtocol implements LoadBalanceProtocol {
         flowFileRepository.updateRepository(repoRecords);
     }
 
-    private void transferFlowFilesToQueue(final List<RemoteFlowFileRecord> remoteFlowFiles, final LoadBalancedFlowFileQueue flowFileQueue) {
+    private void transferFlowFilesToQueue(final List<RemoteFlowFileRecord> remoteFlowFiles, final LoadBalancedFlowFileQueue flowFileQueue) throws IllegalClusterStateException {
         final List<FlowFileRecord> flowFiles = remoteFlowFiles.stream().map(RemoteFlowFileRecord::getFlowFile).collect(Collectors.toList());
         flowFileQueue.receiveFromPeer(flowFiles);
     }

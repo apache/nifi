@@ -17,6 +17,9 @@
 
 package org.apache.nifi.controller.queue.clustered.client.async.nio;
 
+import org.apache.nifi.cluster.coordination.ClusterCoordinator;
+import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
+import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.controller.queue.LoadBalanceCompression;
 import org.apache.nifi.controller.queue.clustered.FlowFileContentAccess;
@@ -66,6 +69,7 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
     private final FlowFileContentAccess flowFileContentAccess;
     private final LoadBalanceFlowFileCodec flowFileCodec;
     private final EventReporter eventReporter;
+    private final ClusterCoordinator clusterCoordinator;
 
     private volatile boolean running = false;
     private final AtomicLong penalizationEnd = new AtomicLong(0L);
@@ -88,13 +92,14 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
 
 
     public NioAsyncLoadBalanceClient(final NodeIdentifier nodeIdentifier, final SSLContext sslContext, final int timeoutMillis, final FlowFileContentAccess flowFileContentAccess,
-                                     final LoadBalanceFlowFileCodec flowFileCodec, final EventReporter eventReporter) {
+                                     final LoadBalanceFlowFileCodec flowFileCodec, final EventReporter eventReporter, final ClusterCoordinator clusterCoordinator) {
         this.nodeIdentifier = nodeIdentifier;
         this.sslContext = sslContext;
         this.timeoutMillis = timeoutMillis;
         this.flowFileContentAccess = flowFileContentAccess;
         this.flowFileCodec = flowFileCodec;
         this.eventReporter = eventReporter;
+        this.clusterCoordinator = clusterCoordinator;
     }
 
     @Override
@@ -347,7 +352,7 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
         try {
             RegisteredPartition partition;
             while ((partition = partitionQueue.poll()) != null) {
-                if (partition.isEmpty() || partition.isPenalized() || !filter.test(partition)) {
+                if (partition.isEmpty() || partition.isPenalized() || !checkNodeConnected() || !filter.test(partition)) {
                     polledPartitions.add(partition);
                     continue;
                 }
@@ -359,6 +364,19 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
         } finally {
             partitionQueue.addAll(polledPartitions);
         }
+    }
+
+    private synchronized boolean checkNodeConnected() {
+        final NodeConnectionStatus status = clusterCoordinator.getConnectionStatus(nodeIdentifier);
+        final boolean connected = status != null && status.getState() == NodeConnectionState.CONNECTED;
+
+        // If not connected but the last known state is connected, we know that the node has just transitioned to disconnected.
+        // In this case we need to call #nodeDisconnected in order to allow for failover to take place
+        if (!connected) {
+            nodeDisconnected();
+        }
+
+        return connected;
     }
 
     private synchronized LoadBalanceSession getActiveTransaction(final RegisteredPartition proposedPartition) {
