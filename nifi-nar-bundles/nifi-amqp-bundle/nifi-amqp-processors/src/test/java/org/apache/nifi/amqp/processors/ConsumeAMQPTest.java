@@ -163,7 +163,7 @@ public class ConsumeAMQPTest {
 
     private TestRunner initTestRunner(ConsumeAMQP proc) {
         TestRunner runner = TestRunners.newTestRunner(proc);
-        runner.setProperty(ConsumeAMQP.HOST, "injvm");
+        runner.setProperty(ConsumeAMQP.BROKERS, "injvm:5672");
         runner.setProperty(ConsumeAMQP.QUEUE, "queue1");
         runner.setProperty(ConsumeAMQP.USER, "user");
         runner.setProperty(ConsumeAMQP.PASSWORD, "password");

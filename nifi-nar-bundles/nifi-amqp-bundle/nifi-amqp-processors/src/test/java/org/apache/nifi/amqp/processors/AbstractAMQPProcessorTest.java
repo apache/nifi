@@ -39,6 +39,7 @@ public class AbstractAMQPProcessorTest {
         testRunner = TestRunners.newTestRunner(ConsumeAMQP.class);
 
         testRunner.setProperty(ConsumeAMQP.QUEUE, "queue");
+        testRunner.setProperty(AbstractAMQPProcessor.BROKERS, "localhost:5672");
     }
 
     @Test
