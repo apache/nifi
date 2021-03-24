@@ -130,7 +130,7 @@ public class GetFile extends AbstractProcessor {
                     + "from otherwise it will ignore the file.")
             .required(true)
             .allowableValues("true", "false")
-            .defaultValue("false")
+            .defaultValue("true")
             .build();
     public static final PropertyDescriptor FILE_FILTER = new PropertyDescriptor.Builder()
             .name("File Filter")
