@@ -232,11 +232,15 @@ public class AvroTypeUtil {
                 final List<Schema> unionTypes = new ArrayList<>(options.size());
                 final Set<Type> typesAdded = new HashSet<>();
 
+                int optionCounter = 1;
                 for (final DataType option : options) {
                     final Schema optionSchema = buildAvroSchema(option, fieldName, fieldNamePrefix, false);
                     if (!typesAdded.contains(optionSchema.getType())) {
                         unionTypes.add(optionSchema);
                         typesAdded.add(optionSchema.getType());
+                    } else if (Type.RECORD.equals(optionSchema.getType()) && !unionTypes.contains(optionSchema)) {
+                        final Schema indexedOptionSchema = buildAvroSchema(option, fieldName + ++optionCounter, fieldNamePrefix, false);
+                        unionTypes.add(indexedOptionSchema);
                     }
                 }
 

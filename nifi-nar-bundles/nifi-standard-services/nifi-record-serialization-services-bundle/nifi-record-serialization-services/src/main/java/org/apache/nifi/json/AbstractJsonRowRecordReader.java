@@ -45,6 +45,7 @@ import java.text.DateFormat;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 
@@ -176,6 +177,30 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
             if (dataType != null && dataType.getFieldType() == RecordFieldType.ARRAY) {
                 final ArrayDataType arrayDataType = (ArrayDataType) dataType;
                 elementDataType = arrayDataType.getElementType();
+            } else if (dataType != null && dataType.getFieldType() == RecordFieldType.CHOICE) {
+                List<DataType> possibleSubTypes = ((ChoiceDataType)dataType).getPossibleSubTypes();
+
+                for (DataType possibleSubType : possibleSubTypes) {
+                    if (possibleSubType.getFieldType() == RecordFieldType.ARRAY) {
+                        ArrayDataType possibleArrayDataType = (ArrayDataType)possibleSubType;
+                        DataType possibleElementType = possibleArrayDataType.getElementType();
+
+                        final Object[] possibleArrayElements = new Object[numElements];
+                        int elementCounter = 0;
+                        for (final JsonNode node : arrayNode) {
+                            final Object value = getRawNodeValue(node, possibleElementType, fieldName);
+                            possibleArrayElements[elementCounter++] = value;
+                        }
+
+                        if (DataTypeUtils.isArrayTypeCompatible(possibleArrayElements, possibleElementType, true)) {
+                            return possibleArrayElements;
+                        }
+                    }
+                }
+
+                logger.debug("Couldn't find proper schema for '{}'. This could lead to some fields filtered out.", fieldName);
+
+                elementDataType = dataType;
             } else {
                 elementDataType = dataType;
             }
@@ -231,8 +256,17 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
         } else if (dataType != null && RecordFieldType.CHOICE == dataType.getFieldType()) {
             final ChoiceDataType choiceDataType = (ChoiceDataType) dataType;
 
-            for (final DataType possibleDataType : choiceDataType.getPossibleSubTypes()) {
-                final Record record = createOptionalRecord(fieldNode, possibleDataType);
+            List<DataType> possibleSubTypes = choiceDataType.getPossibleSubTypes();
+
+            for (final DataType possibleDataType : possibleSubTypes) {
+                final Record record = createOptionalRecord(fieldNode, possibleDataType, true);
+                if (record != null) {
+                    return record;
+                }
+            }
+
+            for (final DataType possibleDataType : possibleSubTypes) {
+                final Record record = createOptionalRecord(fieldNode, possibleDataType, false);
                 if (record != null) {
                     return record;
                 }
@@ -246,18 +280,18 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
         return createRecordFromRawValue(fieldNode, childSchema);
     }
 
-    private Record createOptionalRecord(final JsonNode fieldNode, final DataType dataType) throws IOException {
+    private Record createOptionalRecord(final JsonNode fieldNode, final DataType dataType, final boolean strict) throws IOException {
         if (dataType.getFieldType() == RecordFieldType.RECORD) {
             final RecordSchema possibleSchema = ((RecordDataType) dataType).getChildSchema();
             final Record possibleRecord = createRecordFromRawValue(fieldNode, possibleSchema);
 
-            if (DataTypeUtils.isCompatibleDataType(possibleRecord, dataType)) {
+            if (DataTypeUtils.isCompatibleDataType(possibleRecord, dataType, strict)) {
                 return possibleRecord;
             }
         } else if (dataType.getFieldType() == RecordFieldType.ARRAY) {
             final ArrayDataType arrayDataType = (ArrayDataType) dataType;
             final DataType elementType = arrayDataType.getElementType();
-            final Record record = createOptionalRecord(fieldNode, elementType);
+            final Record record = createOptionalRecord(fieldNode, elementType, strict);
             return record;
         }
 
