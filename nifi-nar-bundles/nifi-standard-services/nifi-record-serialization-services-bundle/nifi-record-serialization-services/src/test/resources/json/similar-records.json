@@ -1,0 +1,14 @@
+{
+  "dataCollection":[
+    {
+      "integer": 1,
+      "boolean": true,
+      "booleanOrString": true
+    },
+    {
+      "integer": 2,
+      "string": "stringValue2",
+      "booleanOrString": "booleanOrStringValue2"
+    }
+  ]
+}
