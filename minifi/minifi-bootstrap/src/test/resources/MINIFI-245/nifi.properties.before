@@ -71,7 +71,7 @@ nifi.content.repository.directory.default=./content_repository
 nifi.content.repository.always.sync=false
 
 # Provenance Repository Properties
-nifi.provenance.repository.implementation=org.apache.nifi.provenance.MiNiFiPersistentProvenanceRepository
+nifi.provenance.repository.implementation=org.apache.nifi.provenance.WriteAheadProvenanceRepository
 nifi.provenance.repository.rollover.time=1 min
 
 # Volatile Provenance Respository Properties

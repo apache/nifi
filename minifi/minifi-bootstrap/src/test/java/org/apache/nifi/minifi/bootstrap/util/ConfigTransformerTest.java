@@ -383,7 +383,7 @@ public class ConfigTransformerTest {
         assertTrue(nifiPropertiesFile.canRead());
 
         String nifi = FileUtils.readFileToString(nifiPropertiesFile, Charset.defaultCharset());
-        assertTrue(nifi.contains("nifi.provenance.repository.implementation=org.apache.nifi.provenance.MiNiFiPersistentProvenanceRepository"));
+        assertTrue(nifi.contains("nifi.provenance.repository.implementation=org.apache.nifi.provenance.WriteAheadProvenanceRepository"));
 
         nifiPropertiesFile.deleteOnExit();
 

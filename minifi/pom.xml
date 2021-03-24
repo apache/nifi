@@ -202,12 +202,6 @@ limitations under the License.
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.minifi</groupId>
-                <artifactId>minifi-ssl-context-service-nar</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
-                <type>nar</type>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.nifi.minifi</groupId>
                 <artifactId>minifi-docs</artifactId>
                 <version>1.14.0-SNAPSHOT</version>
                 <classifier>resources</classifier>
@@ -390,6 +384,11 @@ limitations under the License.
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-provenance-repository-nar</artifactId>
+                <version>${org.apache.nifi.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-runtime</artifactId>
                 <version>${org.apache.nifi.version}</version>
             </dependency>
@@ -452,6 +451,12 @@ limitations under the License.
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-headless-server-nar</artifactId>
+                <version>${org.apache.nifi.version}</version>
+                <type>nar</type>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-standard-nar</artifactId>
                 <version>${org.apache.nifi.version}</version>
                 <type>nar</type>
             </dependency>
@@ -565,27 +570,6 @@ limitations under the License.
                 <artifactId>nifi-distributed-cache-client-service-api</artifactId>
                 <version>${org.apache.nifi.version}</version>
             </dependency>
-
-            <!-- Manage provided dependencies in lib -->
-            <!--<dependency>
-                <groupId>org.bouncycastle</groupId>
-                <artifactId>bcprov-jdk15on</artifactId>
-                <version>1.60</version>
-                <scope>provided</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.bouncycastle</groupId>
-                <artifactId>bcpg-jdk15on</artifactId>
-                <version>1.60</version>
-                <scope>provided</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.bouncycastle</groupId>
-                <artifactId>bcpkix-jdk15on</artifactId>
-                <version>1.60</version>
-                <scope>provided</scope>
-            </dependency>
-            -->
 
             <!-- Test Dependencies -->
             <dependency>

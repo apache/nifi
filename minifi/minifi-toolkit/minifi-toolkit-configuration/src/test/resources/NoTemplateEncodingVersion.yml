@@ -44,7 +44,7 @@ Content Repository:
   content repository archive enabled: false
 Provenance Repository:
   provenance rollover time: 1 min
-  implementation: org.apache.nifi.provenance.MiNiFiPersistentProvenanceRepository
+  implementation: org.apache.nifi.provenance.WriteAheadProvenanceRepository
   provenance max storage time: 24 hours
   provenance max storage size: 1 GB
   provenance index shard size: 500 MB

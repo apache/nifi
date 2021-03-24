@@ -29,7 +29,6 @@ limitations under the License.
 
     <modules>
         <module>minifi-provenance-repository-nar</module>
-        <module>minifi-persistent-provenance-repository</module>
         <module>minifi-provenance-repositories</module>
     </modules>
 

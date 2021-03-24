@@ -30,7 +30,7 @@ Processors:
 
 Provenance Repository:
   provenance rollover time: 1 min
-  implementation: org.apache.nifi.provenance.MiNiFiPersistentProvenanceRepository
+  implementation: org.apache.nifi.provenance.WriteAheadProvenanceRepository
 
 Connections:
     - name: TailToSplit

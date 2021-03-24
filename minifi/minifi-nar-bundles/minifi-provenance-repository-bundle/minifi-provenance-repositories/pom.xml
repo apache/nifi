@@ -29,6 +29,7 @@ limitations under the License.
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-data-provenance-utils</artifactId>
+            <scope>provided</scope>
         </dependency>
     </dependencies>
 </project>

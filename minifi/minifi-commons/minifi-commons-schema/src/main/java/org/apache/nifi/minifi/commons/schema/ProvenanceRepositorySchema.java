@@ -32,7 +32,7 @@ public class ProvenanceRepositorySchema extends BaseSchema implements WritableSc
     public static final String PROVENANCE_REPO_MAX_STORAGE_TIME = "provenance max storage time";
     public static final String DEFAULT_PROVENANCE_ROLLOVER_TIME = "1 min";
     public static final String PROVENANCE_REPOSITORY_KEY = "implementation";
-    public static final String DEFAULT_PROVENANCE_REPOSITORY = "org.apache.nifi.provenance.MiNiFiPersistentProvenanceRepository";
+    public static final String DEFAULT_PROVENANCE_REPOSITORY = "org.apache.nifi.provenance.WriteAheadProvenanceRepository";
     public static final String DEFAULT_PROVENANCE_REPO_INDEX_SHARD_SIZE = "500 MB";
     public static final String DEFAULT_PROVENANCE_REPO_MAX_STORAGE_SIZE = "1 GB";
     public static final String DEFAULT_PROVENANCE_REPO_MAX_STORAGE_TIME = "24 hours";

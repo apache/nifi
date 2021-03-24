@@ -480,7 +480,7 @@ The Content Repository holds the content for all the FlowFiles in the system. By
 *Property*                         | *Description*
 ---------------------------------  | -------------
 `provenance rollover time`         | The amount of time to wait before rolling over the latest data provenance information so that it is available to be accessed by components. The default value is `1 min`.
-`implementation`                   | The implementation of `ProvenanceRepository` to use. The default value is `org.apache.nifi.provenance.MiNiFiPersistentProvenanceRepository`.
+`implementation`                   | The implementation of `ProvenanceRepository` to use. The default value is `org.apache.nifi.provenance.WriteAheadProvenanceRepository`.
 
 ## <a id="component-status-repository" href="#component-status-repository">Component Status Repository</a>
 
