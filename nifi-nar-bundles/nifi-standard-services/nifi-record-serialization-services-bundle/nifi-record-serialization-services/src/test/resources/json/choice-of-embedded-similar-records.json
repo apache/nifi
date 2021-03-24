@@ -1,0 +1,16 @@
+{
+  "dataCollection":[
+    {
+      "record": {
+        "integer": 1,
+        "boolean": true
+      }
+    },
+    {
+      "record": {
+        "integer": 2,
+        "string": "stringValue2"
+      }
+    }
+  ]
+}

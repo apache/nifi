@@ -18,21 +18,25 @@
 package org.apache.nifi.json;
 
 import org.apache.avro.Schema;
+import org.apache.commons.io.FileUtils;
 import org.apache.nifi.avro.AvroTypeUtil;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.schema.inference.InferSchemaAccessStrategy;
+import org.apache.nifi.schema.inference.TimeValueInference;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.DataType;
+import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.type.ChoiceDataType;
+import org.apache.nifi.util.EqualsWrapper;
 import org.apache.nifi.util.MockComponentLog;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.mockito.Mockito;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -48,12 +52,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
 
 public class TestJsonTreeRowRecordReader {
     private final String dateFormat = RecordFieldType.DATE.getDefaultFormat();
@@ -127,7 +133,7 @@ public class TestJsonTreeRowRecordReader {
         final File file = new File("/devel/nifi/nifi-assembly/target/nifi-1.2.0-SNAPSHOT-bin/nifi-1.2.0-SNAPSHOT/prov/16812193969219289");
         final byte[] data = Files.readAllBytes(file.toPath());
 
-        final ComponentLog logger = Mockito.mock(ComponentLog.class);
+        final ComponentLog logger = mock(ComponentLog.class);
 
         int recordCount = 0;
         final int iterations = 1000;
@@ -156,7 +162,7 @@ public class TestJsonTreeRowRecordReader {
         final File file = new File("/devel/nifi/nifi-assembly/target/nifi-1.2.0-SNAPSHOT-bin/nifi-1.2.0-SNAPSHOT/1.prov.json");
         final byte[] data = Files.readAllBytes(file.toPath());
 
-        final ComponentLog logger = Mockito.mock(ComponentLog.class);
+        final ComponentLog logger = mock(ComponentLog.class);
 
         int recordCount = 0;
         final int iterations = 1_000_000;
@@ -183,7 +189,7 @@ public class TestJsonTreeRowRecordReader {
         final RecordSchema recordSchema = AvroTypeUtil.createSchema(avroSchema);
 
         try (final InputStream in = new FileInputStream(new File("src/test/resources/json/elements-for-record-choice.json"));
-            final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, Mockito.mock(ComponentLog.class), recordSchema, dateFormat, timeFormat, timestampFormat)) {
+            final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, mock(ComponentLog.class), recordSchema, dateFormat, timeFormat, timestampFormat)) {
 
             // evaluate first record
             final Record firstRecord = reader.nextRecord();
@@ -238,7 +244,7 @@ public class TestJsonTreeRowRecordReader {
         final RecordSchema schema = new SimpleRecordSchema(getDefaultFields());
 
         try (final InputStream in = new FileInputStream(new File("src/test/resources/json/bank-account-array.json"));
-            final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, Mockito.mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat)) {
+            final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat)) {
 
             final List<String> fieldNames = schema.getFieldNames();
             final List<String> expectedFieldNames = Arrays.asList(new String[] {"id", "name", "balance", "address", "city", "state", "zipCode", "country"});
@@ -264,7 +270,7 @@ public class TestJsonTreeRowRecordReader {
         final RecordSchema schema = new SimpleRecordSchema(getDefaultFields());
 
         try (final InputStream in = new FileInputStream(new File("src/test/resources/json/bank-account-oneline.json"));
-             final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, Mockito.mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat)) {
+             final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat)) {
 
             final List<String> fieldNames = schema.getFieldNames();
             final List<String> expectedFieldNames = Arrays.asList(new String[] {"id", "name", "balance", "address", "city", "state", "zipCode", "country"});
@@ -291,7 +297,7 @@ public class TestJsonTreeRowRecordReader {
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
         try (final InputStream in = new FileInputStream(new File("src/test/resources/json/bank-account-multiline.json"));
-             final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, Mockito.mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat)) {
+             final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat)) {
 
             final List<String> fieldNames = schema.getFieldNames();
             final List<String> expectedFieldNames = Arrays.asList(new String[] {"id", "name", "balance", "address", "city", "state", "zipCode", "country"});
@@ -317,7 +323,7 @@ public class TestJsonTreeRowRecordReader {
         final RecordSchema schema = new SimpleRecordSchema(getDefaultFields());
 
         try (final InputStream in = new FileInputStream(new File("src/test/resources/json/bank-account-multiarray.json"));
-             final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, Mockito.mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat)) {
+             final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat)) {
 
             final List<String> fieldNames = schema.getFieldNames();
             final List<String> expectedFieldNames = Arrays.asList(new String[] {"id", "name", "balance", "address", "city", "state", "zipCode", "country"});
@@ -349,7 +355,7 @@ public class TestJsonTreeRowRecordReader {
         final RecordSchema schema = new SimpleRecordSchema(getDefaultFields());
 
         try (final InputStream in = new FileInputStream(new File("src/test/resources/json/bank-account-mixed.json"));
-             final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, Mockito.mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat)) {
+             final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat)) {
 
             final List<String> fieldNames = schema.getFieldNames();
             final List<String> expectedFieldNames = Arrays.asList(new String[] {"id", "name", "balance", "address", "city", "state", "zipCode", "country"});
@@ -385,7 +391,7 @@ public class TestJsonTreeRowRecordReader {
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
         try (final InputStream in = new FileInputStream(new File("src/test/resources/json/bank-account-array.json"));
-            final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, Mockito.mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat)) {
+            final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat)) {
 
             final Record schemaValidatedRecord = reader.nextRecord(true, true);
             assertEquals(1, schemaValidatedRecord.getValue("id"));
@@ -394,7 +400,7 @@ public class TestJsonTreeRowRecordReader {
         }
 
         try (final InputStream in = new FileInputStream(new File("src/test/resources/json/bank-account-array.json"));
-            final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, Mockito.mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat)) {
+            final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat)) {
 
             final Record rawRecord = reader.nextRecord(false, false);
             assertEquals(1, rawRecord.getValue("id"));
@@ -417,7 +423,7 @@ public class TestJsonTreeRowRecordReader {
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
         try (final InputStream in = new FileInputStream(new File("src/test/resources/json/bank-account-array.json"));
-            final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, Mockito.mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat)) {
+            final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat)) {
 
             final Record schemaValidatedRecord = reader.nextRecord(true, true);
             assertEquals("1", schemaValidatedRecord.getValue("id")); // will be coerced into a STRING as per the schema
@@ -428,7 +434,7 @@ public class TestJsonTreeRowRecordReader {
         }
 
         try (final InputStream in = new FileInputStream(new File("src/test/resources/json/bank-account-array.json"));
-            final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, Mockito.mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat)) {
+            final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat)) {
 
             final Record rawRecord = reader.nextRecord(false, false);
             assertEquals(1, rawRecord.getValue("id")); // will return raw value of (int) 1
@@ -452,7 +458,7 @@ public class TestJsonTreeRowRecordReader {
 
         for (final boolean coerceTypes : new boolean[] {true, false}) {
             try (final InputStream in = new FileInputStream(new File("src/test/resources/json/timestamp.json"));
-                 final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, Mockito.mock(ComponentLog.class), schema, dateFormat, timeFormat, "yyyy/MM/dd HH:mm:ss")) {
+                 final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, mock(ComponentLog.class), schema, dateFormat, timeFormat, "yyyy/MM/dd HH:mm:ss")) {
 
                 final Record record = reader.nextRecord(coerceTypes, false);
                 final Object value = record.getValue("timestamp");
@@ -466,7 +472,7 @@ public class TestJsonTreeRowRecordReader {
         final RecordSchema schema = new SimpleRecordSchema(getDefaultFields());
 
         try (final InputStream in = new FileInputStream(new File("src/test/resources/json/single-bank-account.json"));
-            final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, Mockito.mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat)) {
+            final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat)) {
 
             final List<String> fieldNames = schema.getFieldNames();
             final List<String> expectedFieldNames = Arrays.asList(new String[] {"id", "name", "balance", "address", "city", "state", "zipCode", "country"});
@@ -492,7 +498,7 @@ public class TestJsonTreeRowRecordReader {
         final RecordSchema schema = new SimpleRecordSchema(choiceFields);
 
         try (final InputStream in = new FileInputStream(new File("src/test/resources/json/single-bank-account.json"));
-             final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, Mockito.mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat)) {
+             final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat)) {
 
             final List<String> fieldNames = schema.getFieldNames();
             final List<String> expectedFieldNames = Arrays.asList(new String[] {"id", "name", "balance", "address", "city", "state", "zipCode", "country"});
@@ -523,7 +529,7 @@ public class TestJsonTreeRowRecordReader {
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
         try (final InputStream in = new FileInputStream(new File("src/test/resources/json/single-element-nested.json"));
-            final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, Mockito.mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat)) {
+            final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat)) {
 
             final List<RecordFieldType> dataTypes = schema.getDataTypes().stream().map(dt -> dt.getFieldType()).collect(Collectors.toList());
             final List<RecordFieldType> expectedTypes = Arrays.asList(new RecordFieldType[] {RecordFieldType.INT, RecordFieldType.STRING,
@@ -555,7 +561,7 @@ public class TestJsonTreeRowRecordReader {
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
         try (final InputStream in = new FileInputStream(new File("src/test/resources/json/single-element-nested-array.json"));
-            final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, Mockito.mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat)) {
+            final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat)) {
 
             final List<String> fieldNames = schema.getFieldNames();
             final List<String> expectedFieldNames = Arrays.asList(new String[] {
@@ -583,7 +589,7 @@ public class TestJsonTreeRowRecordReader {
         final RecordSchema schema = new SimpleRecordSchema(getDefaultFields());
 
         try (final InputStream in = new FileInputStream(new File("src/test/resources/json/bank-account-array-different-schemas.json"));
-            final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, Mockito.mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat)) {
+            final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat)) {
 
             final List<String> fieldNames = schema.getFieldNames();
             final List<String> expectedFieldNames = Arrays.asList(new String[] {"id", "name", "balance", "address", "city", "state", "zipCode", "country"});
@@ -617,7 +623,7 @@ public class TestJsonTreeRowRecordReader {
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
         try (final InputStream in = new FileInputStream(new File("src/test/resources/json/bank-account-array-different-schemas.json"));
-            final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, Mockito.mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat)) {
+            final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat)) {
 
             final List<String> fieldNames = schema.getFieldNames();
             final List<String> expectedFieldNames = Arrays.asList(new String[] {"id", "name", "balance", "address", "city", "state", "zipCode", "country", "address2"});
@@ -646,7 +652,7 @@ public class TestJsonTreeRowRecordReader {
         final RecordSchema schema = new SimpleRecordSchema(getDefaultFields());
 
         try (final InputStream in = new FileInputStream(new File("src/test/resources/json/bank-account-array-optional-balance.json"));
-            final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, Mockito.mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat)) {
+            final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat)) {
 
             final List<String> fieldNames = schema.getFieldNames();
             final List<String> expectedFieldNames = Arrays.asList(new String[] {"id", "name", "balance", "address", "city", "state", "zipCode", "country"});
@@ -688,7 +694,7 @@ public class TestJsonTreeRowRecordReader {
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
         try (final InputStream in = new FileInputStream(new File("src/test/resources/json/json-with-unicode.json"));
-            final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, Mockito.mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat)) {
+            final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat)) {
 
             final Object[] firstRecordValues = reader.nextRecord().getValues();
 
@@ -713,7 +719,7 @@ public class TestJsonTreeRowRecordReader {
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
         try (final InputStream in = new FileInputStream(new File("src/test/resources/json/single-bank-account-wrong-field-type.json"));
-            final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, Mockito.mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat)) {
+            final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat)) {
 
             reader.nextRecord().getValues();
             Assert.fail("Was able to read record with invalid schema.");
@@ -725,5 +731,384 @@ public class TestJsonTreeRowRecordReader {
             assertTrue(msg.contains("Double"));
             assertTrue(msg.contains("Boolean"));
         }
+    }
+
+    @Test
+    public void testMergeOfSimilarRecords() throws Exception {
+        // GIVEN
+        String jsonPath = "src/test/resources/json/similar-records.json";
+
+        RecordSchema expectedSchema = new SimpleRecordSchema(Arrays.asList(
+            new RecordField("integer", RecordFieldType.INT.getDataType()),
+            new RecordField("boolean", RecordFieldType.BOOLEAN.getDataType()),
+            new RecordField("booleanOrString", RecordFieldType.CHOICE.getChoiceDataType(
+                RecordFieldType.BOOLEAN.getDataType(),
+                RecordFieldType.STRING.getDataType()
+            )),
+            new RecordField("string", RecordFieldType.STRING.getDataType())
+        ));
+
+        List<Object> expected = Arrays.asList(
+            new MapRecord(expectedSchema, new HashMap<String, Object>(){{
+                put("integer", 1);
+                put("boolean", true);
+                put("booleanOrString", true);
+            }}),
+            new MapRecord(expectedSchema, new HashMap<String, Object>(){{
+                put("integer", 2);
+                put("string", "stringValue2");
+                put("booleanOrString", "booleanOrStringValue2");
+            }})
+        );
+
+        // WHEN
+        // THEN
+        testReadRecords(jsonPath, expected);
+    }
+
+    @Test
+    public void testChoiceOfEmbeddedSimilarRecords() throws Exception {
+        // GIVEN
+        String jsonPath = "src/test/resources/json/choice-of-embedded-similar-records.json";
+
+        SimpleRecordSchema expectedRecordSchema1 = new SimpleRecordSchema(Arrays.asList(
+            new RecordField("integer", RecordFieldType.INT.getDataType()),
+            new RecordField("boolean", RecordFieldType.BOOLEAN.getDataType())
+        ));
+        SimpleRecordSchema expectedRecordSchema2 = new SimpleRecordSchema(Arrays.asList(
+            new RecordField("integer", RecordFieldType.INT.getDataType()),
+            new RecordField("string", RecordFieldType.STRING.getDataType())
+        ));
+        RecordSchema expectedRecordChoiceSchema = new SimpleRecordSchema(Arrays.asList(
+            new RecordField("record", RecordFieldType.CHOICE.getChoiceDataType(
+                RecordFieldType.RECORD.getRecordDataType(expectedRecordSchema1),
+                RecordFieldType.RECORD.getRecordDataType(expectedRecordSchema2)
+            ))
+        ));
+
+        List<Object> expected = Arrays.asList(
+            new MapRecord(expectedRecordChoiceSchema, new HashMap<String, Object>(){{
+                put("record", new MapRecord(expectedRecordSchema1, new HashMap<String, Object>(){{
+                    put("integer", 1);
+                    put("boolean", true);
+                }}));
+            }}),
+            new MapRecord(expectedRecordChoiceSchema, new HashMap<String, Object>(){{
+                put("record", new MapRecord(expectedRecordSchema2, new HashMap<String, Object>(){{
+                    put("integer", 2);
+                    put("string", "stringValue2");
+                }}));
+            }})
+        );
+
+        // WHEN
+        // THEN
+        testReadRecords(jsonPath, expected);
+    }
+
+    @Test
+    public void testChoiceOfEmbeddedArraysAndSingleRecords() throws Exception {
+        // GIVEN
+        String jsonPath = "src/test/resources/json/choice-of-embedded-arrays-and-single-records.json";
+
+        SimpleRecordSchema expectedRecordSchema1 = new SimpleRecordSchema(Arrays.asList(
+            new RecordField("integer", RecordFieldType.INT.getDataType())
+        ));
+        SimpleRecordSchema expectedRecordSchema2 = new SimpleRecordSchema(Arrays.asList(
+            new RecordField("integer", RecordFieldType.INT.getDataType()),
+            new RecordField("boolean", RecordFieldType.BOOLEAN.getDataType())
+        ));
+        SimpleRecordSchema expectedRecordSchema3 = new SimpleRecordSchema(Arrays.asList(
+            new RecordField("integer", RecordFieldType.INT.getDataType()),
+            new RecordField("string", RecordFieldType.STRING.getDataType())
+        ));
+        SimpleRecordSchema expectedRecordSchema4 = new SimpleRecordSchema(Arrays.asList(
+            new RecordField("integer", RecordFieldType.INT.getDataType()),
+            new RecordField("string", RecordFieldType.STRING.getDataType())
+        ));
+        RecordSchema expectedRecordChoiceSchema = new SimpleRecordSchema(Arrays.asList(
+            new RecordField("record", RecordFieldType.CHOICE.getChoiceDataType(
+                RecordFieldType.RECORD.getRecordDataType(expectedRecordSchema1),
+                RecordFieldType.RECORD.getRecordDataType(expectedRecordSchema3),
+                RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.RECORD.getRecordDataType(expectedRecordSchema2)),
+                RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.RECORD.getRecordDataType(expectedRecordSchema4))
+            ))
+        ));
+
+        List<Object> expected = Arrays.asList(
+            new MapRecord(expectedRecordChoiceSchema, new HashMap<String, Object>(){{
+                put("record", new MapRecord(expectedRecordSchema1, new HashMap<String, Object>(){{
+                    put("integer", 1);
+                }}));
+            }}),
+            new MapRecord(expectedRecordChoiceSchema, new HashMap<String, Object>(){{
+                put("record", new Object[]{
+                    new MapRecord(expectedRecordSchema2, new HashMap<String, Object>() {{
+                        put("integer", 21);
+                        put("boolean", true);
+                    }}),
+                    new MapRecord(expectedRecordSchema2, new HashMap<String, Object>() {{
+                        put("integer", 22);
+                        put("boolean", false);
+                    }})
+                });
+            }}),
+            new MapRecord(expectedRecordChoiceSchema, new HashMap<String, Object>(){{
+                put("record", new MapRecord(expectedRecordSchema3, new HashMap<String, Object>(){{
+                    put("integer", 3);
+                    put("string", "stringValue3");
+                }}));
+            }}),
+            new MapRecord(expectedRecordChoiceSchema, new HashMap<String, Object>(){{
+                put("record", new Object[]{
+                    new MapRecord(expectedRecordSchema4, new HashMap<String, Object>() {{
+                        put("integer", 41);
+                        put("string", "stringValue41");
+                    }}),
+                    new MapRecord(expectedRecordSchema4, new HashMap<String, Object>() {{
+                        put("integer", 42);
+                        put("string", "stringValue42");
+                    }})
+                });
+            }})
+        );
+
+        // WHEN
+        // THEN
+        testReadRecords(jsonPath, expected);
+    }
+
+    @Test
+    public void testChoiceOfMergedEmbeddedArraysAndSingleRecords() throws Exception {
+        // GIVEN
+        String jsonPath = "src/test/resources/json/choice-of-merged-embedded-arrays-and-single-records.json";
+
+        SimpleRecordSchema expectedRecordSchema1 = new SimpleRecordSchema(Arrays.asList(
+            new RecordField("integer", RecordFieldType.INT.getDataType()),
+            new RecordField("boolean", RecordFieldType.BOOLEAN.getDataType())
+        ));
+        SimpleRecordSchema expectedRecordSchema2 = new SimpleRecordSchema(Arrays.asList(
+            new RecordField("integer", RecordFieldType.INT.getDataType()),
+            new RecordField("boolean", RecordFieldType.BOOLEAN.getDataType())
+        ));
+        SimpleRecordSchema expectedRecordSchema3 = new SimpleRecordSchema(Arrays.asList(
+            new RecordField("integer", RecordFieldType.INT.getDataType()),
+            new RecordField("string", RecordFieldType.STRING.getDataType())
+        ));
+        SimpleRecordSchema expectedRecordSchema4 = new SimpleRecordSchema(Arrays.asList(
+            new RecordField("integer", RecordFieldType.INT.getDataType()),
+            new RecordField("string", RecordFieldType.STRING.getDataType()),
+            new RecordField("boolean", RecordFieldType.BOOLEAN.getDataType())
+        ));
+        RecordSchema expectedRecordChoiceSchema = new SimpleRecordSchema(Arrays.asList(
+            new RecordField("record", RecordFieldType.CHOICE.getChoiceDataType(
+                RecordFieldType.RECORD.getRecordDataType(expectedRecordSchema1),
+                RecordFieldType.RECORD.getRecordDataType(expectedRecordSchema3),
+                RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.RECORD.getRecordDataType(expectedRecordSchema2)),
+                RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.RECORD.getRecordDataType(expectedRecordSchema4))
+            ))
+        ));
+
+        List<Object> expected = Arrays.asList(
+            new MapRecord(expectedRecordChoiceSchema, new HashMap<String, Object>(){{
+                put("record", new MapRecord(expectedRecordSchema1, new HashMap<String, Object>(){{
+                    put("integer", 1);
+                    put("boolean", false);
+                }}));
+            }}),
+            new MapRecord(expectedRecordChoiceSchema, new HashMap<String, Object>(){{
+                put("record", new Object[]{
+                    new MapRecord(expectedRecordSchema2, new HashMap<String, Object>() {{
+                        put("integer", 21);
+                        put("boolean", true);
+                    }}),
+                    new MapRecord(expectedRecordSchema2, new HashMap<String, Object>() {{
+                        put("integer", 22);
+                        put("boolean", false);
+                    }})
+                });
+            }}),
+            new MapRecord(expectedRecordChoiceSchema, new HashMap<String, Object>(){{
+                put("record", new MapRecord(expectedRecordSchema3, new HashMap<String, Object>(){{
+                    put("integer", 3);
+                    put("string", "stringValue3");
+                }}));
+            }}),
+            new MapRecord(expectedRecordChoiceSchema, new HashMap<String, Object>(){{
+                put("record", new Object[]{
+                    new MapRecord(expectedRecordSchema4, new HashMap<String, Object>() {{
+                        put("integer", 41);
+                        put("string", "stringValue41");
+                    }}),
+                    new MapRecord(expectedRecordSchema4, new HashMap<String, Object>() {{
+                        put("integer", 42);
+                        put("string", "stringValue42");
+                    }}),
+                    new MapRecord(expectedRecordSchema4, new HashMap<String, Object>() {{
+                        put("integer", 43);
+                        put("boolean", false);
+                    }})
+                });
+            }})
+        );
+
+        // WHEN
+        // THEN
+        testReadRecords(jsonPath, expected);
+    }
+
+    @Test
+    public void testChoseSuboptimalSchemaWhenDataHasExtraFields() throws Exception {
+        // GIVEN
+        String jsonPath = "src/test/resources/json/choice-of-different-arrays-with-extra-fields.json";
+
+        SimpleRecordSchema recordSchema1 = new SimpleRecordSchema(Arrays.asList(
+            new RecordField("integer", RecordFieldType.INT.getDataType()),
+            new RecordField("boolean", RecordFieldType.BOOLEAN.getDataType())
+        ));
+        SimpleRecordSchema recordSchema2 = new SimpleRecordSchema(Arrays.asList(
+            new RecordField("integer", RecordFieldType.INT.getDataType()),
+            new RecordField("string", RecordFieldType.STRING.getDataType())
+        ));
+
+        RecordSchema recordChoiceSchema = new SimpleRecordSchema(Arrays.asList(
+            new RecordField("record", RecordFieldType.CHOICE.getChoiceDataType(
+                RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.RECORD.getRecordDataType(recordSchema1)),
+                RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.RECORD.getRecordDataType(recordSchema2))
+            ))
+        ));
+
+        RecordSchema schema = new SimpleRecordSchema(Arrays.asList(
+            new RecordField("dataCollection", RecordFieldType.ARRAY.getArrayDataType(
+                RecordFieldType.RECORD.getRecordDataType(recordChoiceSchema)
+            )
+        )));
+
+        SimpleRecordSchema expectedChildSchema1 = new SimpleRecordSchema(Arrays.asList(
+            new RecordField("integer", RecordFieldType.INT.getDataType()),
+            new RecordField("boolean", RecordFieldType.BOOLEAN.getDataType())
+        ));
+        SimpleRecordSchema expectedChildSchema2 = new SimpleRecordSchema(Arrays.asList(
+            new RecordField("integer", RecordFieldType.INT.getDataType()),
+            new RecordField("string", RecordFieldType.STRING.getDataType())
+        ));
+        RecordSchema expectedRecordChoiceSchema = new SimpleRecordSchema(Arrays.asList(
+            new RecordField("record", RecordFieldType.CHOICE.getChoiceDataType(
+                RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.RECORD.getRecordDataType(expectedChildSchema1)),
+                RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.RECORD.getRecordDataType(expectedChildSchema2))
+            ))
+        ));
+
+        // Since the actual arrays have records with either (INT, BOOLEAN, STRING) or (INT, STRING, STRING)
+        //  while the explicit schema defines only (INT, BOOLEAN) and (INT, STRING) we can't tell which record schema to chose
+        //  so we take the first one (INT, BOOLEAN) - as best effort - for both cases
+        SimpleRecordSchema expectedSelectedRecordSchemaForRecordsInBothArrays = expectedChildSchema1;
+
+        List<Object> expected = Arrays.asList(
+            new MapRecord(expectedRecordChoiceSchema, new HashMap<String, Object>(){{
+                put("record", new Object[]{
+                    new MapRecord(expectedSelectedRecordSchemaForRecordsInBothArrays, new HashMap<String, Object>() {{
+                        put("integer", 11);
+                        put("boolean", true);
+                        put("extraString", "extraStringValue11");
+                    }}),
+                    new MapRecord(expectedSelectedRecordSchemaForRecordsInBothArrays, new HashMap<String, Object>() {{
+                        put("integer", 12);
+                        put("boolean", false);
+                        put("extraString", "extraStringValue12");
+                    }})
+                });
+            }}),
+            new MapRecord(expectedRecordChoiceSchema, new HashMap<String, Object>(){{
+                put("record", new Object[]{
+                    new MapRecord(expectedSelectedRecordSchemaForRecordsInBothArrays, new HashMap<String, Object>() {{
+                        put("integer", 21);
+                        put("extraString", "extraStringValue21");
+                        put("string", "stringValue21");
+                    }}),
+                    new MapRecord(expectedSelectedRecordSchemaForRecordsInBothArrays, new HashMap<String, Object>() {{
+                        put("integer", 22);
+                        put("extraString", "extraStringValue22");
+                        put("string", "stringValue22");
+                    }})
+                });
+            }})
+        );
+
+        // WHEN
+        // THEN
+        testReadRecords(jsonPath, schema, expected);
+    }
+
+    private void testReadRecords(String jsonPath, List<Object> expected) throws IOException, MalformedRecordException {
+        // GIVEN
+        final File jsonFile = new File(jsonPath);
+
+        try (
+            InputStream jsonStream = new ByteArrayInputStream(FileUtils.readFileToByteArray(jsonFile));
+        ) {
+            RecordSchema schema = inferSchema(jsonStream);
+
+            // WHEN
+            // THEN
+            testReadRecords(jsonStream, schema, expected);
+        }
+    }
+
+    private void testReadRecords(String jsonPath, RecordSchema schema, List<Object> expected) throws IOException, MalformedRecordException {
+        // GIVEN
+        final File jsonFile = new File(jsonPath);
+
+        try (
+            InputStream jsonStream = new ByteArrayInputStream(FileUtils.readFileToByteArray(jsonFile));
+        ) {
+            // WHEN
+            // THEN
+            testReadRecords(jsonStream, schema, expected);
+        }
+    }
+
+    private void testReadRecords(InputStream jsonStream, RecordSchema schema, List<Object> expected) throws IOException, MalformedRecordException {
+        // GIVEN
+        try (
+            JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(jsonStream, mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat);
+        ) {
+            // WHEN
+            List<Object> actual = new ArrayList<>();
+            Record record;
+            while ((record = reader.nextRecord()) != null) {
+                List<Object> dataCollection = Arrays.asList((Object[]) record.getValue("dataCollection"));
+                actual.addAll(dataCollection);
+            }
+
+            // THEN
+            List<Function<Object, Object>> propertyProviders = Arrays.asList(
+                _object -> ((Record)_object).getSchema(),
+                _object -> Arrays.stream(((Record)_object).getValues()).map(value -> {
+                    if (value != null && value.getClass().isArray()) {
+                        return Arrays.asList((Object[]) value);
+                    } else {
+                        return value;
+                    }
+                }).collect(Collectors.toList())
+            );
+
+            List<EqualsWrapper<Object>> wrappedExpected = EqualsWrapper.wrapList(expected, propertyProviders);
+            List<EqualsWrapper<Object>> wrappedActual = EqualsWrapper.wrapList(actual, propertyProviders);
+
+            assertEquals(wrappedExpected, wrappedActual);
+        }
+    }
+
+    private RecordSchema inferSchema(InputStream jsonStream) throws IOException {
+        RecordSchema schema = new InferSchemaAccessStrategy<>(
+            (__, inputStream) -> new JsonRecordSource(inputStream),
+            new JsonSchemaInference(new TimeValueInference(null, null, null)),
+            mock(ComponentLog.class)
+        ).getSchema(Collections.emptyMap(), jsonStream, null);
+
+        jsonStream.reset();
+
+        return schema;
     }
 }

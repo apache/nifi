@@ -157,6 +157,11 @@
                         <exclude>src/test/resources/json/bank-account-multiarray.json</exclude>
                         <exclude>src/test/resources/json/bank-account-multiline.json</exclude>
                         <exclude>src/test/resources/json/bank-account-oneline.json</exclude>
+                        <exclude>src/test/resources/json/similar-records.json</exclude>
+                        <exclude>src/test/resources/json/choice-of-embedded-similar-records.json</exclude>
+                        <exclude>src/test/resources/json/choice-of-embedded-arrays-and-single-records.json</exclude>
+                        <exclude>src/test/resources/json/choice-of-merged-embedded-arrays-and-single-records.json</exclude>
+                        <exclude>src/test/resources/json/choice-of-different-arrays-with-extra-fields.json</exclude>
                         <exclude>src/test/resources/json/data-types.json</exclude>
                         <exclude>src/test/resources/json/timestamp.json</exclude>
                         <exclude>src/test/resources/json/json-with-unicode.json</exclude>

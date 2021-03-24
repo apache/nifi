@@ -17,6 +17,7 @@
 
 package org.apache.nifi.avro;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.avro.Conversions;
 import org.apache.avro.LogicalTypes;
 import org.apache.avro.Schema;
@@ -855,6 +856,108 @@ public class TestAvroTypeUtil {
         // WHEN
         // THEN
         testSchemaWithReoccurringFieldName(reoccurringFieldName, childRecord11Fields, childRecord21Fields, expected);
+    }
+
+    @Test
+    public void testSchemaWithArrayOfRecordsThatContainDifferentChildRecordForSameField() throws Exception {
+        // GIVEN
+        SimpleRecordSchema recordSchema1 = new SimpleRecordSchema(Arrays.asList(
+            new RecordField("integer", RecordFieldType.INT.getDataType()),
+            new RecordField("boolean", RecordFieldType.BOOLEAN.getDataType())
+        ));
+        SimpleRecordSchema recordSchema2 = new SimpleRecordSchema(Arrays.asList(
+            new RecordField("integer", RecordFieldType.INT.getDataType()),
+            new RecordField("string", RecordFieldType.STRING.getDataType())
+        ));
+
+        RecordSchema recordChoiceSchema = new SimpleRecordSchema(Arrays.asList(
+            new RecordField("record", RecordFieldType.CHOICE.getChoiceDataType(
+                RecordFieldType.RECORD.getRecordDataType(recordSchema1),
+                RecordFieldType.RECORD.getRecordDataType(recordSchema2)
+            ))
+        ));
+
+        RecordSchema schema = new SimpleRecordSchema(Arrays.asList(
+            new RecordField("dataCollection", RecordFieldType.ARRAY.getArrayDataType(
+                RecordFieldType.RECORD.getRecordDataType(recordChoiceSchema)
+            )
+        )));
+
+        String expected = "{\n" +
+            "  \"type\": \"record\",\n" +
+            "  \"name\": \"nifiRecord\",\n" +
+            "  \"namespace\": \"org.apache.nifi\",\n" +
+            "  \"fields\": [\n" +
+            "    {\n" +
+            "      \"name\": \"dataCollection\",\n" +
+            "      \"type\": [\n" +
+            "        \"null\",\n" +
+            "        {\n" +
+            "          \"type\": \"array\",\n" +
+            "          \"items\": {\n" +
+            "            \"type\": \"record\",\n" +
+            "            \"name\": \"dataCollectionType\",\n" +
+            "            \"fields\": [\n" +
+            "              {\n" +
+            "                \"name\": \"record\",\n" +
+            "                \"type\": [\n" +
+            "                  {\n" +
+            "                    \"type\": \"record\",\n" +
+            "                    \"name\": \"dataCollection_recordType\",\n" +
+            "                    \"fields\": [\n" +
+            "                      {\n" +
+            "                        \"name\": \"integer\",\n" +
+            "                        \"type\": [\n" +
+            "                          \"null\",\n" +
+            "                          \"int\"\n" +
+            "                        ]\n" +
+            "                      },\n" +
+            "                      {\n" +
+            "                        \"name\": \"boolean\",\n" +
+            "                        \"type\": [\n" +
+            "                          \"null\",\n" +
+            "                          \"boolean\"\n" +
+            "                        ]\n" +
+            "                      }\n" +
+            "                    ]\n" +
+            "                  },\n" +
+            "                  {\n" +
+            "                    \"type\": \"record\",\n" +
+            "                    \"name\": \"dataCollection_record2Type\",\n" +
+            "                    \"fields\": [\n" +
+            "                      {\n" +
+            "                        \"name\": \"integer\",\n" +
+            "                        \"type\": [\n" +
+            "                          \"null\",\n" +
+            "                          \"int\"\n" +
+            "                        ]\n" +
+            "                      },\n" +
+            "                      {\n" +
+            "                        \"name\": \"string\",\n" +
+            "                        \"type\": [\n" +
+            "                          \"null\",\n" +
+            "                          \"string\"\n" +
+            "                        ]\n" +
+            "                      }\n" +
+            "                    ]\n" +
+            "                  },\n" +
+            "                  \"null\"\n" +
+            "                ]\n" +
+            "              }\n" +
+            "            ]\n" +
+            "          }\n" +
+            "        }\n" +
+            "      ]\n" +
+            "    }\n" +
+            "  ]\n" +
+            "}";
+
+        // WHEN
+        Schema actual = AvroTypeUtil.extractAvroSchema(schema);
+
+        // THEN
+        ObjectMapper mapper = new ObjectMapper();
+        assertEquals(mapper.readTree(expected), mapper.readTree(actual.toString()));
     }
 
     private void testSchemaWithReoccurringFieldName(String reoccurringFieldName, List<RecordField> childRecord11Fields, List<RecordField> childRecord21Fields, String expected) {
