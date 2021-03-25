@@ -957,6 +957,89 @@ public class TestJsonTreeRowRecordReader {
         testReadRecords(jsonPath, expected);
     }
 
+    @Test
+    public void testChoseSuboptimalSchemaWhenDataHasExtraFields() throws Exception {
+        // GIVEN
+        String jsonPath = "src/test/resources/json/choice-of-different-arrays-with-extra-fields.json";
+
+        SimpleRecordSchema recordSchema1 = new SimpleRecordSchema(Arrays.asList(
+            new RecordField("integer", RecordFieldType.INT.getDataType()),
+            new RecordField("boolean", RecordFieldType.BOOLEAN.getDataType())
+        ));
+        SimpleRecordSchema recordSchema2 = new SimpleRecordSchema(Arrays.asList(
+            new RecordField("integer", RecordFieldType.INT.getDataType()),
+            new RecordField("string", RecordFieldType.STRING.getDataType())
+        ));
+
+        RecordSchema recordChoiceSchema = new SimpleRecordSchema(Arrays.asList(
+            new RecordField("record", RecordFieldType.CHOICE.getChoiceDataType(
+                RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.RECORD.getRecordDataType(recordSchema1)),
+                RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.RECORD.getRecordDataType(recordSchema2))
+            ))
+        ));
+
+        RecordSchema schema = new SimpleRecordSchema(Arrays.asList(
+            new RecordField("dataCollection", RecordFieldType.ARRAY.getArrayDataType(
+                RecordFieldType.RECORD.getRecordDataType(recordChoiceSchema)
+            )
+        )));
+
+        SimpleRecordSchema expectedChildSchema1 = new SimpleRecordSchema(Arrays.asList(
+            new RecordField("integer", RecordFieldType.INT.getDataType()),
+            new RecordField("boolean", RecordFieldType.BOOLEAN.getDataType())
+        ));
+        SimpleRecordSchema expectedChildSchema2 = new SimpleRecordSchema(Arrays.asList(
+            new RecordField("integer", RecordFieldType.INT.getDataType()),
+            new RecordField("string", RecordFieldType.STRING.getDataType())
+        ));
+        RecordSchema expectedRecordChoiceSchema = new SimpleRecordSchema(Arrays.asList(
+            new RecordField("record", RecordFieldType.CHOICE.getChoiceDataType(
+                RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.RECORD.getRecordDataType(expectedChildSchema1)),
+                RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.RECORD.getRecordDataType(expectedChildSchema2))
+            ))
+        ));
+
+        // Since the actual arrays have records with either (INT, BOOLEAN, STRING) or (INT, STRING, STRING)
+        //  while the explicit schema defines only (INT, BOOLEAN) and (INT, STRING) we can't tell which record schema to chose
+        //  so we take the first one (INT, BOOLEAN) - as best effort - for both cases
+        SimpleRecordSchema expectedSelectedRecordSchemaForRecordsInBothArrays = expectedChildSchema1;
+
+        List<Object> expected = Arrays.asList(
+            new MapRecord(expectedRecordChoiceSchema, new HashMap<String, Object>(){{
+                put("record", new Object[]{
+                    new MapRecord(expectedSelectedRecordSchemaForRecordsInBothArrays, new HashMap<String, Object>() {{
+                        put("integer", 11);
+                        put("boolean", true);
+                        put("extraString", "extraStringValue11");
+                    }}),
+                    new MapRecord(expectedSelectedRecordSchemaForRecordsInBothArrays, new HashMap<String, Object>() {{
+                        put("integer", 12);
+                        put("boolean", false);
+                        put("extraString", "extraStringValue12");
+                    }})
+                });
+            }}),
+            new MapRecord(expectedRecordChoiceSchema, new HashMap<String, Object>(){{
+                put("record", new Object[]{
+                    new MapRecord(expectedSelectedRecordSchemaForRecordsInBothArrays, new HashMap<String, Object>() {{
+                        put("integer", 21);
+                        put("extraString", "extraStringValue21");
+                        put("string", "stringValue21");
+                    }}),
+                    new MapRecord(expectedSelectedRecordSchemaForRecordsInBothArrays, new HashMap<String, Object>() {{
+                        put("integer", 22);
+                        put("extraString", "extraStringValue22");
+                        put("string", "stringValue22");
+                    }})
+                });
+            }})
+        );
+
+        // WHEN
+        // THEN
+        testReadRecords(jsonPath, schema, expected);
+    }
+
     private void testReadRecords(String jsonPath, List<Object> expected) throws IOException, MalformedRecordException {
         // GIVEN
         final File jsonFile = new File(jsonPath);
@@ -966,35 +1049,54 @@ public class TestJsonTreeRowRecordReader {
         ) {
             RecordSchema schema = inferSchema(jsonStream);
 
-            try (
-                JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(jsonStream, mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat);
-            ) {
-                // WHEN
+            // WHEN
+            // THEN
+            testReadRecords(jsonStream, schema, expected);
+        }
+    }
 
-                List<Object> actual = new ArrayList<>();
-                Record record;
-                while ((record = reader.nextRecord()) != null) {
-                    List<Object> dataCollection = Arrays.asList((Object[]) record.getValue("dataCollection"));
-                    actual.addAll(dataCollection);
-                }
+    private void testReadRecords(String jsonPath, RecordSchema schema, List<Object> expected) throws IOException, MalformedRecordException {
+        // GIVEN
+        final File jsonFile = new File(jsonPath);
 
-                List<Function<Object, Object>> propertyProviders = Arrays.asList(
-                    _object -> ((Record)_object).getSchema(),
-                    _object -> Arrays.stream(((Record)_object).getValues()).map(value -> {
-                        if (value != null && value.getClass().isArray()) {
-                            return Arrays.asList((Object[]) value);
-                        } else {
-                            return value;
-                        }
-                    }).collect(Collectors.toList())
-                );
+        try (
+            InputStream jsonStream = new ByteArrayInputStream(FileUtils.readFileToByteArray(jsonFile));
+        ) {
+            // WHEN
+            // THEN
+            testReadRecords(jsonStream, schema, expected);
+        }
+    }
 
-                List<EqualsWrapper<Object>> wrappedExpected = EqualsWrapper.wrapList(expected, propertyProviders);
-                List<EqualsWrapper<Object>> wrappedActual = EqualsWrapper.wrapList(actual, propertyProviders);
-
-                // THEN
-                assertEquals(wrappedExpected, wrappedActual);
+    private void testReadRecords(InputStream jsonStream, RecordSchema schema, List<Object> expected) throws IOException, MalformedRecordException {
+        // GIVEN
+        try (
+            JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(jsonStream, mock(ComponentLog.class), schema, dateFormat, timeFormat, timestampFormat);
+        ) {
+            // WHEN
+            List<Object> actual = new ArrayList<>();
+            Record record;
+            while ((record = reader.nextRecord()) != null) {
+                List<Object> dataCollection = Arrays.asList((Object[]) record.getValue("dataCollection"));
+                actual.addAll(dataCollection);
             }
+
+            // THEN
+            List<Function<Object, Object>> propertyProviders = Arrays.asList(
+                _object -> ((Record)_object).getSchema(),
+                _object -> Arrays.stream(((Record)_object).getValues()).map(value -> {
+                    if (value != null && value.getClass().isArray()) {
+                        return Arrays.asList((Object[]) value);
+                    } else {
+                        return value;
+                    }
+                }).collect(Collectors.toList())
+            );
+
+            List<EqualsWrapper<Object>> wrappedExpected = EqualsWrapper.wrapList(expected, propertyProviders);
+            List<EqualsWrapper<Object>> wrappedActual = EqualsWrapper.wrapList(actual, propertyProviders);
+
+            assertEquals(wrappedExpected, wrappedActual);
         }
     }
 

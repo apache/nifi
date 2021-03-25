@@ -161,6 +161,7 @@
                         <exclude>src/test/resources/json/choice-of-embedded-similar-records.json</exclude>
                         <exclude>src/test/resources/json/choice-of-embedded-arrays-and-single-records.json</exclude>
                         <exclude>src/test/resources/json/choice-of-merged-embedded-arrays-and-single-records.json</exclude>
+                        <exclude>src/test/resources/json/choice-of-different-arrays-with-extra-fields.json</exclude>
                         <exclude>src/test/resources/json/data-types.json</exclude>
                         <exclude>src/test/resources/json/timestamp.json</exclude>
                         <exclude>src/test/resources/json/json-with-unicode.json</exclude>

@@ -198,7 +198,9 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
                     }
                 }
 
-                return arrayElements;
+                logger.warn("Couldn't find proper schema for '{}'. This could lead to data loss as fields might end up missing in the output!", fieldName);
+
+                elementDataType = dataType;
             } else {
                 elementDataType = dataType;
             }
