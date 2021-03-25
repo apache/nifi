@@ -220,7 +220,7 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
                 return RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BYTE.getDataType());
             case Types.NUMERIC:
             case Types.DECIMAL:
-                final int decimalPrecision;
+                int decimalPrecision;
                 final int decimalScale;
                 final int resultSetPrecision = rs.getMetaData().getPrecision(columnIndex);
                 final int resultSetScale = rs.getMetaData().getScale(columnIndex);
@@ -238,6 +238,11 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
                     // Queries for example, 'SELECT 1.23 as v from DUAL' can be problematic because it can't be mapped with decimal with scale=0.
                     // Default scale is used to preserve decimals in such case.
                     decimalScale = resultSetScale > 0 ? resultSetScale : defaultScale;
+                }
+                // Scale can be bigger than precision in some cases (Oracle, e.g.) If this is the case, assume precision refers to the number of
+                // decimal digits and thus precision = scale
+                if (decimalScale > decimalPrecision) {
+                    decimalPrecision = decimalScale;
                 }
                 return RecordFieldType.DECIMAL.getDecimalDataType(decimalPrecision, decimalScale);
             case Types.OTHER: {
