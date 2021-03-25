@@ -428,6 +428,15 @@ public class TestJdbcCommon {
         testConvertToAvroStreamForBigDecimal(bigDecimal, dbPrecision, 24, 24, expectedScale);
     }
 
+    @Test
+    public void testConvertToAvroStreamForBigDecimalWithScaleLargerThanPrecision() throws SQLException, IOException {
+        final int expectedScale = 6; // Scale can be larger than precision in Oracle
+        final int dbPrecision = 5;
+        final BigDecimal bigDecimal = new BigDecimal("0.000123", new MathContext(dbPrecision));
+        // If db doesn't return a precision, default precision should be used.
+        testConvertToAvroStreamForBigDecimal(bigDecimal, dbPrecision, 10, expectedScale, expectedScale);
+    }
+
     private void testConvertToAvroStreamForBigDecimal(BigDecimal bigDecimal, int dbPrecision, int defaultPrecision, int expectedPrecision, int expectedScale) throws SQLException, IOException {
 
         final ResultSetMetaData metadata = mock(ResultSetMetaData.class);
@@ -465,7 +474,12 @@ public class TestJdbcCommon {
             assertEquals("decimal", logicalType.getName());
             LogicalTypes.Decimal decimalType = (LogicalTypes.Decimal) logicalType;
             assertEquals(expectedPrecision, decimalType.getPrecision());
-            assertEquals(expectedScale, decimalType.getScale());
+            // If scale > precision then precision will be set to the scale value
+            if (expectedScale > expectedPrecision) {
+                assertEquals(expectedScale, decimalType.getScale());
+            } else {
+                assertEquals(expectedScale, decimalType.getScale());
+            }
 
             GenericRecord record = null;
             while (dataFileReader.hasNext()) {
