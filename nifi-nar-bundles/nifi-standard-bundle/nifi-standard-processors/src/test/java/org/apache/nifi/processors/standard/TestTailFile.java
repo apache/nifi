@@ -347,6 +347,7 @@ public class TestTailFile {
         // Create the new file
         final RandomAccessFile newFile = new RandomAccessFile(new File("target/log.txt"), "rw");
         newFile.write("new file\n".getBytes()); // This should not get consumed until the old file's last modified date indicates it's complete
+        newFile.close();
 
         // Trigger processor and verify data is consumed properly
         runner.run(1, false, false);
@@ -355,8 +356,8 @@ public class TestTailFile {
         runner.clearTransferState();
 
         // Write to the file and trigger again.
-        raf.write("e\n".getBytes());
-        System.out.println("Wrote e\\n");
+        raf.write("e\nf".getBytes());
+        System.out.println("Wrote e\\nf");
         runner.run(1, false, false);
 
         runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 1);
@@ -376,8 +377,9 @@ public class TestTailFile {
         runner.run(1, false, false);
 
         // Verify results
-        runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 1);
-        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0).assertContentEquals("new file\n");
+        runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 2);
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0).assertContentEquals("f");
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(1).assertContentEquals("new file\n");
         runner.clearTransferState();
 
         raf.close();
