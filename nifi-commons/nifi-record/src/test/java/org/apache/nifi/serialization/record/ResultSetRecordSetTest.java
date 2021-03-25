@@ -61,6 +61,7 @@ public class ResultSetRecordSetTest {
     private static final String COLUMN_NAME_BIG_DECIMAL_2 = "bigDecimal2";
     private static final String COLUMN_NAME_BIG_DECIMAL_3 = "bigDecimal3";
     private static final String COLUMN_NAME_BIG_DECIMAL_4 = "bigDecimal4";
+    private static final String COLUMN_NAME_BIG_DECIMAL_5 = "bigDecimal5";
 
     private static final Object[][] COLUMNS = new Object[][] {
             // column number; column label / name / schema field; column type; schema data type;
@@ -81,6 +82,7 @@ public class ResultSetRecordSetTest {
             {15, COLUMN_NAME_BIG_DECIMAL_2, Types.NUMERIC, RecordFieldType.DECIMAL.getDecimalDataType(4, 0)},
             {16, COLUMN_NAME_BIG_DECIMAL_3, Types.JAVA_OBJECT, RecordFieldType.DECIMAL.getDecimalDataType(501, 1)},
             {17, COLUMN_NAME_BIG_DECIMAL_4, Types.DECIMAL, RecordFieldType.DECIMAL.getDecimalDataType(10, 3)},
+            {18, COLUMN_NAME_BIG_DECIMAL_5, Types.DECIMAL, RecordFieldType.DECIMAL.getDecimalDataType(3, 10)},
     };
 
     @Mock
@@ -189,6 +191,7 @@ public class ResultSetRecordSetTest {
         final BigDecimal bigDecimal2Value = new BigDecimal("1234");
         final BigDecimal bigDecimal3Value = new BigDecimal("1234567890.1");
         final BigDecimal bigDecimal4Value = new BigDecimal("1234567.089");
+        final BigDecimal bigDecimal5Value = new BigDecimal("0.1234567");
 
         when(resultSet.getObject(COLUMN_NAME_VARCHAR)).thenReturn(varcharValue);
         when(resultSet.getObject(COLUMN_NAME_BIGINT)).thenReturn(bigintValue);
@@ -207,6 +210,7 @@ public class ResultSetRecordSetTest {
         when(resultSet.getObject(COLUMN_NAME_BIG_DECIMAL_2)).thenReturn(bigDecimal2Value);
         when(resultSet.getObject(COLUMN_NAME_BIG_DECIMAL_3)).thenReturn(bigDecimal3Value);
         when(resultSet.getObject(COLUMN_NAME_BIG_DECIMAL_4)).thenReturn(bigDecimal4Value);
+        when(resultSet.getObject(COLUMN_NAME_BIG_DECIMAL_5)).thenReturn(bigDecimal5Value);
 
         // when
         ResultSetRecordSet testSubject = new ResultSetRecordSet(resultSet, recordSchema);
@@ -234,6 +238,7 @@ public class ResultSetRecordSetTest {
         assertEquals(bigDecimal2Value, record.getValue(COLUMN_NAME_BIG_DECIMAL_2));
         assertEquals(bigDecimal3Value, record.getValue(COLUMN_NAME_BIG_DECIMAL_3));
         assertEquals(bigDecimal4Value, record.getValue(COLUMN_NAME_BIG_DECIMAL_4));
+        assertEquals(bigDecimal5Value, record.getValue(COLUMN_NAME_BIG_DECIMAL_5));
     }
 
     private ResultSet givenResultSetForOther() throws SQLException {
@@ -261,7 +266,16 @@ public class ResultSetRecordSetTest {
         assertNotNull(resultSchema);
 
         for (final Object[] column : COLUMNS) {
-            assertEquals("For column " + column[0] + " the converted type is not matching", column[3], resultSchema.getField((Integer) column[0] - 1).getDataType());
+            // The DECIMAL column with scale larger than precision will not match so verify that instead
+            DataType actualDataType = resultSchema.getField((Integer) column[0] - 1).getDataType();
+            DataType expectedDataType = (DataType) column[3];
+            if (expectedDataType.equals(RecordFieldType.DECIMAL.getDecimalDataType(3, 10))) {
+                DecimalDataType decimalDataType = (DecimalDataType) expectedDataType;
+                if (decimalDataType.getScale() > decimalDataType.getPrecision()) {
+                    expectedDataType = RecordFieldType.DECIMAL.getDecimalDataType(decimalDataType.getScale(), decimalDataType.getScale());
+                }
+            }
+            assertEquals("For column " + column[0] + " the converted type is not matching", expectedDataType, actualDataType);
         }
     }
 }
