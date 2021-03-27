@@ -73,14 +73,14 @@ public abstract class BaseScriptTest {
         }
     }
 
-    class AccessibleExecuteScript extends ExecuteScript implements AccessibleScriptingComponentHelper {
+    static class AccessibleExecuteScript extends ExecuteScript implements AccessibleScriptingComponentHelper {
         @Override
         public ScriptingComponentHelper getScriptingComponentHelper() {
             return this.scriptingComponentHelper;
         }
     }
 
-    class AccessibleInvokeScriptedProcessor extends InvokeScriptedProcessor implements AccessibleScriptingComponentHelper {
+    static class AccessibleInvokeScriptedProcessor extends InvokeScriptedProcessor implements AccessibleScriptingComponentHelper {
         @Override
         public ScriptingComponentHelper getScriptingComponentHelper() {
             return this.scriptingComponentHelper;

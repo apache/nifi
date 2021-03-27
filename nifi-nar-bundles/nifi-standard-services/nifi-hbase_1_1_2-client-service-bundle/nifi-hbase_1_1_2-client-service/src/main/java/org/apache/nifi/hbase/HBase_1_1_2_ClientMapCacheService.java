@@ -294,7 +294,7 @@ public class HBase_1_1_2_ClientMapCacheService extends AbstractControllerService
         return hBaseClientService.checkAndPut(hBaseCacheTableName, rowIdBytes, hBaseColumnFamilyBytes, hBaseColumnQualifierBytes, revision, putColumn);
     }
 
-    private class HBaseRowHandler implements ResultHandler {
+    private static class HBaseRowHandler implements ResultHandler {
         private int numRows = 0;
         private byte[] lastResultBytes;
 

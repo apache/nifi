@@ -642,7 +642,7 @@ public class TestRocksDBFlowFileRepository {
         }
     }
 
-    private class TestQueue {
+    private static class TestQueue {
         private final TestQueueProvider provider;
         private final Collection<FlowFileRecord> queuedFlowFiles;
         private final Connection connection;

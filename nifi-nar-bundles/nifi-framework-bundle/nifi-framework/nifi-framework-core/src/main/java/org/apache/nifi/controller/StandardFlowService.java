@@ -1162,7 +1162,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
         }
     }
 
-    private class SaveHolder {
+    private static class SaveHolder {
 
         private final Calendar saveTime;
         private final boolean shouldArchive;

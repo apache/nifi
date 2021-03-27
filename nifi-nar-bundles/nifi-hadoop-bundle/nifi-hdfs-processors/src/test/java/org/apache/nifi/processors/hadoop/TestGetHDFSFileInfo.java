@@ -767,7 +767,7 @@ public class TestGetHDFSFileInfo {
     }
 
 
-    private class GetHDFSFileInfoWithMockedFileSystem extends GetHDFSFileInfo {
+    private static class GetHDFSFileInfoWithMockedFileSystem extends GetHDFSFileInfo {
         private final MockFileSystem fileSystem = new MockFileSystem();
         private final KerberosProperties testKerberosProps;
 
@@ -791,7 +791,7 @@ public class TestGetHDFSFileInfo {
         }
     }
 
-    private class MockFileSystem extends FileSystem {
+    private static class MockFileSystem extends FileSystem {
         private final Map<Path, Set<FileStatus>> fileStatuses = new HashMap<>();
         private final Map<Path, FileStatus> pathToStatus = new HashMap<>();
 

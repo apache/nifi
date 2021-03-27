@@ -1231,7 +1231,7 @@ public class ITPutS3Object extends AbstractS3IT {
         return runner;
     }
 
-    private class MockAmazonS3Client extends AmazonS3Client {
+    private static class MockAmazonS3Client extends AmazonS3Client {
         MultipartUploadListing listing;
         public void setListing(MultipartUploadListing newlisting) {
             listing = newlisting;
@@ -1244,7 +1244,7 @@ public class ITPutS3Object extends AbstractS3IT {
         }
     }
 
-    public class TestablePutS3Object extends PutS3Object {
+    public static class TestablePutS3Object extends PutS3Object {
         public AmazonS3Client testable_getClient() {
             return this.getClient();
         }

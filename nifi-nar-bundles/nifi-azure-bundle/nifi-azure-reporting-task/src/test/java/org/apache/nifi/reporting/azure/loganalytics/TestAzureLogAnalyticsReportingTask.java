@@ -223,7 +223,7 @@ public class TestAzureLogAnalyticsReportingTask {
     }
 
 
-    private final class TestableAzureLogAnalyticsReportingTask extends AzureLogAnalyticsReportingTask {
+    private static final class TestableAzureLogAnalyticsReportingTask extends AzureLogAnalyticsReportingTask {
 
         private List<Metric> metricsCollected;
         @Override

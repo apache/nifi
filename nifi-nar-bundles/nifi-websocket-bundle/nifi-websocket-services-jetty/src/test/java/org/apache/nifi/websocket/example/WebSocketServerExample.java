@@ -69,7 +69,7 @@ public class WebSocketServerExample {
 
     private Map<String, WebSocketListener> listeners = new HashMap<>();
 
-    public class SocketListener extends WebSocketAdapter {
+    public static class SocketListener extends WebSocketAdapter {
 
         public SocketListener() {
             logger.info("New instance is created: {}", this);

@@ -200,7 +200,7 @@ public class HttpServer {
     }
 
     // reads an HTTP request from the given reader
-    private class HttpRequestReader {
+    private static class HttpRequestReader {
 
         public HttpRequest read(final Reader reader) throws IOException {
 

@@ -337,7 +337,7 @@ public class ParseCEF extends AbstractProcessor {
 
 
     // Serialize MacAddress as plain string
-    private class MacAddressToStringSerializer extends JsonSerializer<MacAddress> {
+    private static class MacAddressToStringSerializer extends JsonSerializer<MacAddress> {
 
         @Override
         public void serialize(MacAddress macAddress,

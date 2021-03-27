@@ -134,7 +134,7 @@ public class QuestDbProcessorStatusStorage implements ProcessorStatusStorage {
         counterWritingTemplate.insert(dbContext.getEngine(), executionContext, statusEntries);
     }
 
-    private final class CounterReadingTemplate extends QuestDbReadingTemplate<List<StandardStatusSnapshot>> {
+    private static final class CounterReadingTemplate extends QuestDbReadingTemplate<List<StandardStatusSnapshot>> {
         private final List<StandardStatusSnapshot> processorStatusSnapshots;
 
         public CounterReadingTemplate(final List<StandardStatusSnapshot> processorStatusSnapshots) {

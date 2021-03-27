@@ -59,7 +59,7 @@ public class JoinEvaluator extends StringEvaluator implements ReduceEvaluator<St
         return subjectEvaluator;
     }
 
-    private class State {
+    private static class State {
         private final StringBuilder sb = new StringBuilder();
         private int evalCount = 0;
     }

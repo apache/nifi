@@ -94,7 +94,7 @@ public class MultiMatchAttributeEvaluator extends MultiAttributeEvaluator {
         return this;
     }
 
-    private class State {
+    private static class State {
         private final List<String> attributeNames = new ArrayList<>();
         private int evaluationCount = 0;
     }

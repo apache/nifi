@@ -612,7 +612,7 @@ public class ValidateCsv extends AbstractProcessor {
      * this method, parsing will return objects and writing objects could result in a different
      * output in comparison to the input.
      */
-    private class NifiCsvListReader extends CsvListReader {
+    private static class NifiCsvListReader extends CsvListReader {
 
         public NifiCsvListReader(Reader reader, CsvPreference preferences) {
             super(reader, preferences);

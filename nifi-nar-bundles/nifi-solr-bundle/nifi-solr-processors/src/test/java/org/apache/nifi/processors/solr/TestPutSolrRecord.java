@@ -618,7 +618,7 @@ public class TestPutSolrRecord {
     }
 
     // Override createSolrClient and return the passed in SolrClient
-    private class TestableProcessor extends PutSolrRecord {
+    private static class TestableProcessor extends PutSolrRecord {
         private SolrClient solrClient;
 
         public TestableProcessor(SolrClient solrClient) {
@@ -642,7 +642,7 @@ public class TestPutSolrRecord {
     }
 
     // Override the createSolrClient method to inject a custom SolrClient.
-    private class CollectionVerifyingProcessor extends PutSolrRecord {
+    private static class CollectionVerifyingProcessor extends PutSolrRecord {
 
         private SolrClient mockSolrClient;
 
@@ -705,7 +705,7 @@ public class TestPutSolrRecord {
     }
 
     // Override the createSolrClient method to inject a Mock.
-    private class ExceptionThrowingProcessor extends PutSolrRecord {
+    private static class ExceptionThrowingProcessor extends PutSolrRecord {
 
         private SolrClient mockSolrClient;
         private Throwable throwable;

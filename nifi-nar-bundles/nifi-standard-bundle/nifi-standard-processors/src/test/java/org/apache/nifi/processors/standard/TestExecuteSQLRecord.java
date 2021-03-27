@@ -755,7 +755,7 @@ public class TestExecuteSQLRecord {
     /**
      * Simple implementation only for ExecuteSQL processor testing.
      */
-    class DBCPServiceSimpleImpl extends AbstractControllerService implements DBCPService {
+    static class DBCPServiceSimpleImpl extends AbstractControllerService implements DBCPService {
 
         private final String type;
 

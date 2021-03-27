@@ -73,7 +73,7 @@ public class TestControllerServiceApiMatcher {
     }
 
     // Implementation for a result
-    private class FooResultImpl implements FooResult {
+    private static class FooResultImpl implements FooResult {
         private final String result;
 
         public FooResultImpl(final String result) {

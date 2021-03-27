@@ -141,7 +141,7 @@ public class ReflectionUtilsTest {
         }
     }
 
-    public class F {
+    public static class F {
         @OnStopped
         public void foo(Integer a) {
             throw new RuntimeException("Intentional");

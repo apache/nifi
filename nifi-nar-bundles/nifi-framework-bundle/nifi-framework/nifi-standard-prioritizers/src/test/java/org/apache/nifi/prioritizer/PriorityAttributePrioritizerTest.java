@@ -106,7 +106,7 @@ public class PriorityAttributePrioritizerTest {
         assertEquals(1, prioritizer.compare(ffPri1, ffPriLN));
     }
 
-    public class SimpleProcessor extends AbstractProcessor {
+    public static class SimpleProcessor extends AbstractProcessor {
 
         @Override
         public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {

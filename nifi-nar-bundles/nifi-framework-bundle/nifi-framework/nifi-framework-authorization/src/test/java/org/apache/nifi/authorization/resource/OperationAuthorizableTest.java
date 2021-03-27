@@ -42,7 +42,7 @@ public class OperationAuthorizableTest {
     private final MockProcessGroup PG1 = new MockProcessGroup("pg-1", ROOT_PG);
     private final Authorizable PROCESSOR = new MockProcessor("component-1", PG1);
 
-    private class MockProcessGroup implements Authorizable {
+    private static class MockProcessGroup implements Authorizable {
         private final String identifier;
         private final MockProcessGroup parent;
 
@@ -66,7 +66,7 @@ public class OperationAuthorizableTest {
         }
     }
 
-    private class MockProcessor implements ComponentAuthorizable {
+    private static class MockProcessor implements ComponentAuthorizable {
         private final String identifier;
         private final MockProcessGroup processGroup;
 

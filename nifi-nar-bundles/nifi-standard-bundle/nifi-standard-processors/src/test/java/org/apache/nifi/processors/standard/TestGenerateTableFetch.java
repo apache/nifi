@@ -1673,7 +1673,7 @@ public class TestGenerateTableFetch {
     /**
      * Simple implementation only for GenerateTableFetch processor testing.
      */
-    private class DBCPServiceSimpleImpl extends AbstractControllerService implements DBCPService {
+    private static class DBCPServiceSimpleImpl extends AbstractControllerService implements DBCPService {
 
         @Override
         public String getIdentifier() {

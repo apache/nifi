@@ -633,7 +633,7 @@ public class TestSelectHive_1_1QL {
     /**
      * Simple implementation only for SelectHive_1_1QL processor testing.
      */
-    private class DBCPServiceSimpleImpl extends AbstractControllerService implements Hive_1_1DBCPService {
+    private static class DBCPServiceSimpleImpl extends AbstractControllerService implements Hive_1_1DBCPService {
 
         @Override
         public String getIdentifier() {

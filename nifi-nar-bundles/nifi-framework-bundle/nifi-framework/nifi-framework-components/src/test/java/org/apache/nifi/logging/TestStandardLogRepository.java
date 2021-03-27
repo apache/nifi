@@ -43,7 +43,7 @@ public class TestStandardLogRepository {
         assertEquals(observer.getMessages().get(1), "Testing org.apache.nifi.logging.TestStandardLogRepository$MockLogObserver to get exception message");
     }
 
-    private class MockLogObserver implements LogObserver {
+    private static class MockLogObserver implements LogObserver {
 
         private List<String> messages = new ArrayList<String>();
 

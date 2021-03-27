@@ -81,7 +81,7 @@ public class MultiNamedAttributeEvaluator extends MultiAttributeEvaluator {
         return attributeNames;
     }
 
-    private class State {
+    private static class State {
         private int evaluationCount = 0;
         private List<String> matchingAttributeNames = null;
     }

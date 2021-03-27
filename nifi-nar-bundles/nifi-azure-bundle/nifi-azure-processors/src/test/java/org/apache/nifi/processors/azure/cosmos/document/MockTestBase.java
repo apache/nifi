@@ -63,7 +63,7 @@ public class MockTestBase {
         return random.nextInt((max-min)+1) + min;
     }
 
-    private class MockConnectionService extends AzureCosmosDBClientService {
+    private static class MockConnectionService extends AzureCosmosDBClientService {
         @Override
         protected void createCosmosClient(final String uri, final String accessKey, final ConsistencyLevel clevel){
             // mock cosmos client

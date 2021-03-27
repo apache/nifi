@@ -223,7 +223,7 @@ public class MetricsSqlQueryService implements MetricsQueryService {
         clearQueue(queue);
     }
 
-    private class PreparedStatementException extends RuntimeException {
+    private static class PreparedStatementException extends RuntimeException {
 
         public PreparedStatementException() {
             super();

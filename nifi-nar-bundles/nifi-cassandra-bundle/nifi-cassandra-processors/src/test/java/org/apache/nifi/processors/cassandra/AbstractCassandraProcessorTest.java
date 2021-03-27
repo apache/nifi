@@ -308,7 +308,7 @@ public class AbstractCassandraProcessorTest {
     /**
      * Mock CassandraSessionProvider implementation for testing purpose
      */
-    private class MockCassandraSessionProvider extends CassandraSessionProvider {
+    private static class MockCassandraSessionProvider extends CassandraSessionProvider {
 
         @OnEnabled
         public void onEnabled(final ConfigurationContext context) {

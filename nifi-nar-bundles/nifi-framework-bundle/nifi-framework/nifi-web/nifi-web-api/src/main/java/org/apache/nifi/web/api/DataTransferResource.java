@@ -809,7 +809,7 @@ public class DataTransferResource extends ApplicationResource {
 
     }
 
-    private class ValidateRequestResult {
+    private static class ValidateRequestResult {
         private Integer transportProtocolVersion;
         private Response errResponse;
     }

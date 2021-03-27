@@ -567,7 +567,7 @@ public class TestPutSolrContentStream {
     }
 
 
-    private class MockKerberosCredentialsService extends AbstractControllerService implements KerberosCredentialsService {
+    private static class MockKerberosCredentialsService extends AbstractControllerService implements KerberosCredentialsService {
 
         private String principal;
         private String keytab;
@@ -589,7 +589,7 @@ public class TestPutSolrContentStream {
     }
 
     // Override the createSolrClient method to inject a custom SolrClient.
-    private class CollectionVerifyingProcessor extends PutSolrContentStream {
+    private static class CollectionVerifyingProcessor extends PutSolrContentStream {
 
         private SolrClient mockSolrClient;
 
@@ -620,7 +620,7 @@ public class TestPutSolrContentStream {
     }
 
     // Override the createSolrClient method to inject a Mock.
-    private class ExceptionThrowingProcessor extends PutSolrContentStream {
+    private static class ExceptionThrowingProcessor extends PutSolrContentStream {
 
         private SolrClient mockSolrClient;
         private Throwable throwable;
@@ -646,7 +646,7 @@ public class TestPutSolrContentStream {
     }
 
     // Override createSolrClient and return the passed in SolrClient
-    private class TestableProcessor extends PutSolrContentStream {
+    private static class TestableProcessor extends PutSolrContentStream {
         private SolrClient solrClient;
         private KerberosUser kerberosUser;
 

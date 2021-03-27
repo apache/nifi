@@ -190,7 +190,7 @@ public class PutHive3QL extends AbstractHive3QLProcessor {
         return relationships;
     }
 
-    private class FunctionContext extends RollbackOnFailure {
+    private static class FunctionContext extends RollbackOnFailure {
         final Charset charset;
         final String statementDelimiter;
         final long startNanos = System.nanoTime();

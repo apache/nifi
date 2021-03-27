@@ -209,7 +209,7 @@ public class TestFetchDistributedMapCache {
     }
 
 
-    private class MockCacheClient extends AbstractControllerService implements DistributedMapCacheClient {
+    private static class MockCacheClient extends AbstractControllerService implements DistributedMapCacheClient {
         private final ConcurrentMap<Object, Object> values = new ConcurrentHashMap<>();
         private boolean failOnCalls = false;
 

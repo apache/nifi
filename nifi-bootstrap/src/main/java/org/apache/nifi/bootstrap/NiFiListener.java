@@ -55,7 +55,7 @@ public class NiFiListener {
         listener.stop();
     }
 
-    private class Listener implements Runnable {
+    private static class Listener implements Runnable {
 
         private final ServerSocket serverSocket;
         private final ExecutorService executor;

@@ -346,7 +346,7 @@ public class OrcFlowFileWriter implements Writer, MemoryManager.Callback {
      * data as buffers fill up and stores them in the output list. When the
      * stripe is being written, the whole stream is written to the file.
      */
-    private class BufferedStream implements OutStream.OutputReceiver {
+    private static class BufferedStream implements OutStream.OutputReceiver {
         private final OutStream outStream;
         private final List<ByteBuffer> output = new ArrayList<ByteBuffer>();
 
@@ -444,7 +444,7 @@ public class OrcFlowFileWriter implements Writer, MemoryManager.Callback {
      * An output receiver that writes the ByteBuffers to the output stream
      * as they are received.
      */
-    private class DirectStream implements OutStream.OutputReceiver {
+    private static class DirectStream implements OutStream.OutputReceiver {
         private final OutputStream output;
 
         DirectStream(OutputStream output) {

@@ -1350,7 +1350,7 @@ public class QueryDatabaseTableTest {
     /**
      * Simple implementation only for QueryDatabaseTable processor testing.
      */
-    private class DBCPServiceSimpleImpl extends AbstractControllerService implements DBCPService {
+    private static class DBCPServiceSimpleImpl extends AbstractControllerService implements DBCPService {
 
         @Override
         public String getIdentifier() {

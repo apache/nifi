@@ -71,7 +71,7 @@ public class RootNode extends BxmlNode {
         return "RootNode{" + getChildren() + "}";
     }
 
-    public class VariantTypeSizeAndFactory {
+    public static class VariantTypeSizeAndFactory {
         private final int size;
         private final VariantTypeNodeFactory factory;
 

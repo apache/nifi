@@ -1148,7 +1148,7 @@ public class ControllerResource extends ApplicationResource {
         );
     }
 
-    private class EndDateEntity extends Entity {
+    private static class EndDateEntity extends Entity {
         final Date endDate;
 
         public EndDateEntity(Date endDate) {

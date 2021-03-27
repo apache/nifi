@@ -529,7 +529,7 @@ public class EndpointConnectionPool implements PeerStatusProvider {
         return "EndpointConnectionPool[Cluster URL=" + siteInfoProvider.getClusterUrls() + "]";
     }
 
-    private class IdEnrichedRemoteDestination implements RemoteDestination {
+    private static class IdEnrichedRemoteDestination implements RemoteDestination {
 
         private final RemoteDestination original;
         private final String identifier;

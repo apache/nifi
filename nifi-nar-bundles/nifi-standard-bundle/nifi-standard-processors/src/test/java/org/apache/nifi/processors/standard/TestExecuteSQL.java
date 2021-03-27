@@ -759,7 +759,7 @@ public class TestExecuteSQL {
      * Simple implementation only for ExecuteSQL processor testing.
      *
      */
-    class DBCPServiceSimpleImpl extends AbstractControllerService implements DBCPService {
+    static class DBCPServiceSimpleImpl extends AbstractControllerService implements DBCPService {
 
         @Override
         public String getIdentifier() {

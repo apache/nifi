@@ -288,7 +288,7 @@ public class TestStandardProcessScheduler {
         assertSame(service.getState(), ControllerServiceState.DISABLED);
     }
 
-    public class TestReportingTask extends AbstractReportingTask {
+    public static class TestReportingTask extends AbstractReportingTask {
 
         private final AtomicBoolean failOnScheduled = new AtomicBoolean(true);
         private final AtomicInteger onScheduleAttempts = new AtomicInteger(0);

@@ -97,7 +97,7 @@ public abstract class AbstractHive_1_1QLProcessor extends AbstractSessionFactory
         return new String(buffer, charset);
     }
 
-    private class ParameterHolder {
+    private static class ParameterHolder {
         String attributeName;
         int jdbcType;
         String value;

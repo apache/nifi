@@ -189,7 +189,7 @@ public class PutHiveQL extends AbstractHiveQLProcessor {
         return relationships;
     }
 
-    private class FunctionContext extends RollbackOnFailure {
+    private static class FunctionContext extends RollbackOnFailure {
         final Charset charset;
         final String statementDelimiter;
         final long startNanos = System.nanoTime();

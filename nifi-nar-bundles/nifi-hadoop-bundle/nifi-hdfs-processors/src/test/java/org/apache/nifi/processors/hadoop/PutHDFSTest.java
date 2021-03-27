@@ -459,7 +459,7 @@ public class PutHDFSTest {
         mockFileSystem.delete(p, true);
     }
 
-    private class TestablePutHDFS extends PutHDFS {
+    private static class TestablePutHDFS extends PutHDFS {
 
         private KerberosProperties testKerberosProperties;
         private FileSystem fileSystem;
@@ -486,7 +486,7 @@ public class PutHDFSTest {
         }
     }
 
-    private class MockFileSystem extends FileSystem {
+    private static class MockFileSystem extends FileSystem {
         private final Map<Path, FileStatus> pathToStatus = new HashMap<>();
         private final boolean failOnClose;
 

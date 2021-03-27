@@ -172,7 +172,7 @@ public class Notify extends AbstractProcessor {
         return relationships;
     }
 
-    private class SignalBuffer {
+    private static class SignalBuffer {
 
         final Map<String, Integer> deltas = new HashMap<>();
         final Map<String, String> attributesToCache = new HashMap<>();

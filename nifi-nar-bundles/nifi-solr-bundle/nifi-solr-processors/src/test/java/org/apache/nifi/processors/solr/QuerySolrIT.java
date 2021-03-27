@@ -650,7 +650,7 @@ public class QuerySolrIT {
     }
 
     // Override createSolrClient and return the passed in SolrClient
-    private class TestableProcessor extends QuerySolr {
+    private static class TestableProcessor extends QuerySolr {
         private SolrClient solrClient;
 
         public TestableProcessor(SolrClient solrClient) {

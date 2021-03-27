@@ -793,7 +793,7 @@ public abstract class ApplicationResource {
         }
     }
 
-    private final class Request<T extends Entity> {
+    private static final class Request<T extends Entity> {
         final String userChain;
         final String uri;
         final Revision revision;

@@ -1122,7 +1122,7 @@ public class TestPutHive3Streaming {
 
     }
 
-    private class MockPutHive3Streaming extends PutHive3Streaming {
+    private static class MockPutHive3Streaming extends PutHive3Streaming {
 
         private boolean generateConnectFailure = false;
         private boolean generateWriteFailure = false;
@@ -1194,7 +1194,7 @@ public class TestPutHive3Streaming {
         }
     }
 
-    private class MockHiveStreamingConnection implements StreamingConnection {
+    private static class MockHiveStreamingConnection implements StreamingConnection {
 
         private boolean generateWriteFailure = false;
         private boolean generateSerializationError = false;

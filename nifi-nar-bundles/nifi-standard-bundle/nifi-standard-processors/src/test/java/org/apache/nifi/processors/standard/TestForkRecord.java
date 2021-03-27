@@ -477,7 +477,7 @@ public class TestForkRecord {
 
     }
 
-    private class CustomRecordWriter extends MockRecordWriter {
+    private static class CustomRecordWriter extends MockRecordWriter {
 
         RecordSchema schema;
 

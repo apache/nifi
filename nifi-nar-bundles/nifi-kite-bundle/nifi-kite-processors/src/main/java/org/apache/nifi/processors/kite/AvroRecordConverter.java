@@ -329,7 +329,7 @@ public class AvroRecordConverter {
     /**
      * Exception thrown when Avro conversion fails.
      */
-    public class AvroConversionException extends Exception {
+    public static class AvroConversionException extends Exception {
         public AvroConversionException(String string, IOException e) {
             super(string, e);
         }

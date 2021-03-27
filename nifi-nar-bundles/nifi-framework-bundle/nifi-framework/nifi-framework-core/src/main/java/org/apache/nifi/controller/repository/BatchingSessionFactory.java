@@ -53,7 +53,7 @@ public class BatchingSessionFactory implements ProcessSessionFactory {
     }
 
 
-    private class HighThroughputSession implements ProcessSession {
+    private static class HighThroughputSession implements ProcessSession {
         private final StandardProcessSession session;
 
         public HighThroughputSession(final StandardProcessSession session) {

@@ -1187,7 +1187,7 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
         return Boolean.parseBoolean(System.getenv(ALLOW_EXPLICIT_KEYTAB));
     }
 
-    protected class HiveStreamingRecord {
+    protected static class HiveStreamingRecord {
 
         private List<String> partitionValues;
         private GenericRecord record;

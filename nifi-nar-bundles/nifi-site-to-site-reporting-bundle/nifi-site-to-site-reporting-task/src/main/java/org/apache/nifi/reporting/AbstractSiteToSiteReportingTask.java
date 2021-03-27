@@ -201,7 +201,7 @@ public abstract class AbstractSiteToSiteReportingTask extends AbstractReportingT
         }
     }
 
-    private class JsonRecordReader implements RecordReader {
+    private static class JsonRecordReader implements RecordReader {
 
         private RecordSchema recordSchema;
         private final JsonParser jsonParser;

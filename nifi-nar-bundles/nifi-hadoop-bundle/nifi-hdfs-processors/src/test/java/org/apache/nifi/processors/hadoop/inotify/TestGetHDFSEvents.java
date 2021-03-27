@@ -236,7 +236,7 @@ public class TestGetHDFSEvents {
             };
     }
 
-    private class TestableGetHDFSEvents extends GetHDFSEvents {
+    private static class TestableGetHDFSEvents extends GetHDFSEvents {
 
         private final KerberosProperties testKerberosProperties;
         private final FileSystem fileSystem = new DistributedFileSystem();

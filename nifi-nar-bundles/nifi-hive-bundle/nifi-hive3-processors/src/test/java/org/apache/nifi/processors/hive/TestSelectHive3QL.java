@@ -707,7 +707,7 @@ public class TestSelectHive3QL {
     /**
      * Simple implementation only for SelectHive3QL processor testing.
      */
-    private class DBCPServiceSimpleImpl extends AbstractControllerService implements Hive3DBCPService {
+    private static class DBCPServiceSimpleImpl extends AbstractControllerService implements Hive3DBCPService {
 
         @Override
         public String getIdentifier() {

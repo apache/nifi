@@ -499,7 +499,7 @@ public class SplitText extends AbstractProcessor {
      * Container for hosting meta-information pertaining to the split so it can
      * be used later to create {@link FlowFile} representing the split.
      */
-    private class SplitInfo {
+    private static class SplitInfo {
         final long startOffset, length, trimmedLength, lineCount;
         OffsetInfo remaningOffsetInfo;
 

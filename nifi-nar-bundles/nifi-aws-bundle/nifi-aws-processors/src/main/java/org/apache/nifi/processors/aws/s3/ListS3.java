@@ -482,7 +482,7 @@ public class ListS3 extends AbstractS3Processor {
         boolean isTruncated();
     }
 
-    public class S3ObjectBucketLister implements S3BucketLister {
+    public static class S3ObjectBucketLister implements S3BucketLister {
         private AmazonS3 client;
         private ListObjectsRequest listObjectsRequest;
         private ObjectListing objectListing;
@@ -543,7 +543,7 @@ public class ListS3 extends AbstractS3Processor {
         }
     }
 
-    public class S3ObjectBucketListerVersion2 implements S3BucketLister {
+    public static class S3ObjectBucketListerVersion2 implements S3BucketLister {
         private AmazonS3 client;
         private ListObjectsV2Request listObjectsRequest;
         private ListObjectsV2Result objectListing;
@@ -604,7 +604,7 @@ public class ListS3 extends AbstractS3Processor {
         }
     }
 
-    public class S3VersionBucketLister implements S3BucketLister {
+    public static class S3VersionBucketLister implements S3BucketLister {
         private AmazonS3 client;
         private ListVersionsRequest listVersionsRequest;
         private VersionListing versionListing;

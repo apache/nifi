@@ -50,7 +50,7 @@ public class TestExceptionHandler {
         }
     }
 
-    private class Context {
+    private static class Context {
         int count = 0;
     }
 

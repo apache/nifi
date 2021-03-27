@@ -37,7 +37,7 @@ public class CuratorACLProviderFactory {
         return StringUtils.equalsIgnoreCase(config.getAuthType(),SASL_AUTH_SCHEME) ? new SaslACLProvider(config) : new DefaultACLProvider();
     }
 
-    private class SaslACLProvider implements ACLProvider{
+    private static class SaslACLProvider implements ACLProvider{
 
         private final List<ACL> acls;
 

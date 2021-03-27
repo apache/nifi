@@ -722,7 +722,7 @@ public class TestListHDFS {
     }
 
 
-    private class ListHDFSWithMockedFileSystem extends ListHDFS {
+    private static class ListHDFSWithMockedFileSystem extends ListHDFS {
         private final MockFileSystem fileSystem = new MockFileSystem();
         private final KerberosProperties testKerberosProps;
 
@@ -751,7 +751,7 @@ public class TestListHDFS {
         }
     }
 
-    private class MockFileSystem extends FileSystem {
+    private static class MockFileSystem extends FileSystem {
         private final Map<Path, Set<FileStatus>> fileStatuses = new HashMap<>();
 
         public void addFileStatus(final Path parent, final FileStatus child) {
@@ -853,7 +853,7 @@ public class TestListHDFS {
 
     }
 
-    private class MockCacheClient extends AbstractControllerService implements DistributedMapCacheClient {
+    private static class MockCacheClient extends AbstractControllerService implements DistributedMapCacheClient {
         private final ConcurrentMap<Object, Object> values = new ConcurrentHashMap<>();
         private boolean failOnCalls = false;
 

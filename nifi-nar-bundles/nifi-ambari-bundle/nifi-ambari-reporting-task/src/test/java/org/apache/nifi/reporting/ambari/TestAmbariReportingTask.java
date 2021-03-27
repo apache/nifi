@@ -126,7 +126,7 @@ public class TestAmbariReportingTask {
     }
 
     // override the creation of the client to provide a mock
-    private class TestableAmbariReportingTask extends AmbariReportingTask {
+    private static class TestableAmbariReportingTask extends AmbariReportingTask {
 
         private Client testClient;
 

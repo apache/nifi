@@ -617,7 +617,7 @@ public class DebugFlow extends AbstractProcessor {
         }
     }
 
-    private class FlowFileResponse {
+    private static class FlowFileResponse {
         private final AtomicReference<FlowFileResponseState> current = new AtomicReference<>();
         FlowFileResponse() {
             current.set(FlowFileResponseState.FF_SUCCESS_RESPONSE);
@@ -649,7 +649,7 @@ public class DebugFlow extends AbstractProcessor {
         }
     }
 
-    private class NoFlowFileResponse {
+    private static class NoFlowFileResponse {
         private final AtomicReference<NoFlowFileResponseState> current = new AtomicReference<>();
         NoFlowFileResponse() {
             current.set(NoFlowFileResponseState.NO_FF_SKIP_RESPONSE);

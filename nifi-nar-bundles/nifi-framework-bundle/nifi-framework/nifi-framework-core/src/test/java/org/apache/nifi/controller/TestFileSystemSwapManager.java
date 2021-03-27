@@ -174,7 +174,7 @@ public class TestFileSystemSwapManager {
         return swapManager;
     }
 
-    public class NopResourceClaimManager implements ResourceClaimManager {
+    public static class NopResourceClaimManager implements ResourceClaimManager {
         @Override
         public ResourceClaim newResourceClaim(String container, String section, String id, boolean lossTolerant, boolean writable) {
             return null;

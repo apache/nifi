@@ -1207,7 +1207,7 @@ public class SiteToSiteRestApiClient implements Closeable {
         }
     }
 
-    public class HttpGetFailedException extends IOException {
+    public static class HttpGetFailedException extends IOException {
         private static final long serialVersionUID = 7920714957269466946L;
 
         private final int responseCode;

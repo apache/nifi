@@ -726,7 +726,7 @@ public class RocksDBMetronome implements Closeable {
     /**
      * An Extension of org.rocksdb.Logger that wraps the slf4j Logger
      */
-    private class LogWrapper extends org.rocksdb.Logger {
+    private static class LogWrapper extends org.rocksdb.Logger {
 
         LogWrapper(Options options) {
             super(options);

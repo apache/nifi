@@ -130,7 +130,7 @@ public class HadoopDBCPConnectionPoolTest {
         }
     }
 
-    private class MockKerberosCredentialsService extends AbstractControllerService implements KerberosCredentialsService {
+    private static class MockKerberosCredentialsService extends AbstractControllerService implements KerberosCredentialsService {
 
         private String principal;
         private String keytab;

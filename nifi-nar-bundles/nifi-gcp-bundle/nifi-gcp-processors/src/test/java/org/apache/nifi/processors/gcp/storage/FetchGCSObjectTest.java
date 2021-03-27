@@ -119,7 +119,7 @@ public class FetchGCSObjectTest extends AbstractGCSTest {
         };
     }
 
-    private class MockReadChannel implements ReadChannel {
+    private static class MockReadChannel implements ReadChannel {
         private byte[] toRead;
         private int position = 0;
         private boolean finished;

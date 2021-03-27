@@ -55,7 +55,7 @@ public class OldestFirstPrioritizerTest {
         Assert.assertEquals(1, prioritizer.compare(flowFile2, flowFile1));
     }
 
-    public class SimpleProcessor extends AbstractProcessor {
+    public static class SimpleProcessor extends AbstractProcessor {
 
         @Override
         public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {

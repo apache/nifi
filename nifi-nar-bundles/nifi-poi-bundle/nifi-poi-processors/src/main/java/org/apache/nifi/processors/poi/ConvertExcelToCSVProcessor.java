@@ -363,7 +363,7 @@ public class ConvertExcelToCSVProcessor
      *  of parsing the Sheet XML, and outputs the contents
      *  as a (basic) CSV.
      */
-    private class SheetToCSV implements XSSFSheetXMLHandler.SheetContentsHandler {
+    private static class SheetToCSV implements XSSFSheetXMLHandler.SheetContentsHandler {
         private ExcelSheetReadConfig readConfig;
         CSVFormat csvFormat;
 
@@ -546,7 +546,7 @@ public class ConvertExcelToCSVProcessor
         return stringBuilder.toString();
     }
 
-    private class ExcelSheetReadConfig {
+    private static class ExcelSheetReadConfig {
         public String getSheetName(){
             return sheetName;
         }

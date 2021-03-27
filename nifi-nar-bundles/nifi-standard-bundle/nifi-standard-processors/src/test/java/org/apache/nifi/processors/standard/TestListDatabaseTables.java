@@ -266,7 +266,7 @@ public class TestListDatabaseTables {
     /**
      * Simple implementation only for ListDatabaseTables processor testing.
      */
-    private class DBCPServiceSimpleImpl extends AbstractControllerService implements DBCPService {
+    private static class DBCPServiceSimpleImpl extends AbstractControllerService implements DBCPService {
 
         @Override
         public String getIdentifier() {

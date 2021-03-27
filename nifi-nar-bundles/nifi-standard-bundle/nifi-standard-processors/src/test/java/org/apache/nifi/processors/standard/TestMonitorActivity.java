@@ -436,7 +436,7 @@ public class TestMonitorActivity {
      * Since each call to run() will call @OnScheduled methods which will set the lastSuccessfulTransfer to the
      * current time, we need a way to create an artificial time difference between calls to run.
      */
-    private class TestableProcessor extends MonitorActivity {
+    private static class TestableProcessor extends MonitorActivity {
 
         private final long timestampDifference;
 
