@@ -573,7 +573,7 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
             throw new IllegalStateException("NiFi Configured to allow Secure Site-to-Site communications but the Keystore/Truststore properties are not configured");
         }
 
-        this.heartbeatDelaySeconds = (int) FormatUtils.getTimeDuration(nifiProperties.getNodeHeartbeatInterval(), TimeUnit.SECONDS);
+        this.heartbeatDelaySeconds = (int) Math.round(FormatUtils.getPreciseTimeDuration(nifiProperties.getNodeHeartbeatInterval(), TimeUnit.SECONDS));
 
         this.snippetManager = new SnippetManager();
         this.reloadComponent = new StandardReloadComponent(this);
@@ -614,9 +614,9 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
         final String snapshotFrequency = nifiProperties.getProperty(NiFiProperties.COMPONENT_STATUS_SNAPSHOT_FREQUENCY, NiFiProperties.DEFAULT_COMPONENT_STATUS_SNAPSHOT_FREQUENCY);
         long snapshotMillis;
         try {
-            snapshotMillis = FormatUtils.getTimeDuration(snapshotFrequency, TimeUnit.MILLISECONDS);
+            snapshotMillis = Math.round(FormatUtils.getPreciseTimeDuration(snapshotFrequency, TimeUnit.MILLISECONDS));
         } catch (final Exception e) {
-            snapshotMillis = FormatUtils.getTimeDuration(NiFiProperties.DEFAULT_COMPONENT_STATUS_SNAPSHOT_FREQUENCY, TimeUnit.MILLISECONDS);
+            snapshotMillis = Math.round(FormatUtils.getPreciseTimeDuration(NiFiProperties.DEFAULT_COMPONENT_STATUS_SNAPSHOT_FREQUENCY, TimeUnit.MILLISECONDS));
         }
 
         // Initialize the Embedded ZooKeeper server, if applicable
@@ -641,22 +641,22 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
             final String predictionInterval = nifiProperties.getProperty(NiFiProperties.ANALYTICS_PREDICTION_INTERVAL, NiFiProperties.DEFAULT_ANALYTICS_PREDICTION_INTERVAL);
             long predictionIntervalMillis;
             try {
-                predictionIntervalMillis = FormatUtils.getTimeDuration(predictionInterval, TimeUnit.MILLISECONDS);
+                predictionIntervalMillis = Math.round(FormatUtils.getPreciseTimeDuration(predictionInterval, TimeUnit.MILLISECONDS));
             } catch (final Exception e) {
                 LOG.warn("Analytics is enabled however could not retrieve value for " + NiFiProperties.ANALYTICS_PREDICTION_INTERVAL + ". This property has been set to '"
                         + NiFiProperties.DEFAULT_ANALYTICS_PREDICTION_INTERVAL + "'");
-                predictionIntervalMillis = FormatUtils.getTimeDuration(NiFiProperties.DEFAULT_ANALYTICS_PREDICTION_INTERVAL, TimeUnit.MILLISECONDS);
+                predictionIntervalMillis = Math.round(FormatUtils.getPreciseTimeDuration(NiFiProperties.DEFAULT_ANALYTICS_PREDICTION_INTERVAL, TimeUnit.MILLISECONDS));
             }
 
             // Determine interval for querying past observations
             final String queryInterval = nifiProperties.getProperty(NiFiProperties.ANALYTICS_QUERY_INTERVAL, NiFiProperties.DEFAULT_ANALYTICS_QUERY_INTERVAL);
             long queryIntervalMillis;
             try {
-                queryIntervalMillis = FormatUtils.getTimeDuration(queryInterval, TimeUnit.MILLISECONDS);
+                queryIntervalMillis = Math.round(FormatUtils.getPreciseTimeDuration(queryInterval, TimeUnit.MILLISECONDS));
             } catch (final Exception e) {
                 LOG.warn("Analytics is enabled however could not retrieve value for " + NiFiProperties.ANALYTICS_QUERY_INTERVAL + ". This property has been set to '"
                         + NiFiProperties.DEFAULT_ANALYTICS_QUERY_INTERVAL + "'");
-                queryIntervalMillis = FormatUtils.getTimeDuration(NiFiProperties.DEFAULT_ANALYTICS_QUERY_INTERVAL, TimeUnit.MILLISECONDS);
+                queryIntervalMillis = Math.round(FormatUtils.getPreciseTimeDuration(NiFiProperties.DEFAULT_ANALYTICS_QUERY_INTERVAL, TimeUnit.MILLISECONDS));
             }
 
             // Determine score name to use for evaluating model performance
@@ -755,7 +755,7 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
 
             final int numThreads = nifiProperties.getIntegerProperty(NiFiProperties.LOAD_BALANCE_MAX_THREAD_COUNT, NiFiProperties.DEFAULT_LOAD_BALANCE_MAX_THREAD_COUNT);
             final String timeoutPeriod = nifiProperties.getProperty(NiFiProperties.LOAD_BALANCE_COMMS_TIMEOUT, NiFiProperties.DEFAULT_LOAD_BALANCE_COMMS_TIMEOUT);
-            final int timeoutMillis = (int) FormatUtils.getTimeDuration(timeoutPeriod, TimeUnit.MILLISECONDS);
+            final int timeoutMillis = (int) Math.round(FormatUtils.getPreciseTimeDuration(timeoutPeriod, TimeUnit.MILLISECONDS));
 
             loadBalanceServer = new ConnectionLoadBalanceServer(loadBalanceAddress.getHostName(), loadBalanceAddress.getPort(), sslContext,
                     numThreads, loadBalanceProtocol, eventReporter, timeoutMillis);

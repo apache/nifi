@@ -67,7 +67,7 @@ public class StandardReportingInitializationContext implements ReportingInitiali
     @Override
     public long getSchedulingPeriod(final TimeUnit timeUnit) {
         if (schedulingStrategy == SchedulingStrategy.TIMER_DRIVEN) {
-            return FormatUtils.getTimeDuration(schedulingPeriod, timeUnit);
+            return Math.round(FormatUtils.getPreciseTimeDuration(schedulingPeriod, timeUnit));
         }
         return -1L;
     }

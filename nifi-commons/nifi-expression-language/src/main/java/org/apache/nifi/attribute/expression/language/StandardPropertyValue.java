@@ -104,7 +104,7 @@ public class StandardPropertyValue implements PropertyValue {
 
     @Override
     public Long asTimePeriod(final TimeUnit timeUnit) {
-        return (rawValue == null) ? null : FormatUtils.getTimeDuration(rawValue.trim(), timeUnit);
+        return (rawValue == null) ? null : Math.round(FormatUtils.getPreciseTimeDuration(rawValue.trim(), timeUnit));
     }
 
     @Override

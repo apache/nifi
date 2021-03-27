@@ -52,22 +52,6 @@ class TestFormatUtilsGroovy extends GroovyTestCase {
     /**
      * New feature test
      */
-    @Test
-    void testGetTimeDurationShouldConvertWeeks() {
-        // Arrange
-        final List WEEKS = ["1 week", "1 wk", "1 w", "1 wks", "1 weeks"]
-        final long EXPECTED_DAYS = 7L
-
-        // Act
-        List days = WEEKS.collect { String week ->
-            FormatUtils.getTimeDuration(week, TimeUnit.DAYS)
-        }
-        logger.converted(days)
-
-        // Assert
-        assert days.every { it == EXPECTED_DAYS }
-    }
-
 
     @Test
     void testGetTimeDurationShouldHandleNegativeWeeks() {
@@ -77,7 +61,7 @@ class TestFormatUtilsGroovy extends GroovyTestCase {
         // Act
         List msgs = WEEKS.collect { String week ->
             shouldFail(IllegalArgumentException) {
-                FormatUtils.getTimeDuration(week, TimeUnit.DAYS)
+                FormatUtils.getPreciseTimeDuration(week, TimeUnit.DAYS)
             }
         }
 
@@ -96,7 +80,7 @@ class TestFormatUtilsGroovy extends GroovyTestCase {
         // Act
         List msgs = WEEKS.collect { String week ->
             shouldFail(IllegalArgumentException) {
-                FormatUtils.getTimeDuration(week, TimeUnit.DAYS)
+                FormatUtils.getPreciseTimeDuration(week, TimeUnit.DAYS)
             }
         }
 
@@ -116,38 +100,12 @@ class TestFormatUtilsGroovy extends GroovyTestCase {
 
         // Act
         List days = WEEKS.collect { String week ->
-            FormatUtils.getTimeDuration(week, TimeUnit.DAYS)
+            FormatUtils.getPreciseTimeDuration(week, TimeUnit.DAYS)
         }
         logger.converted(days)
 
         // Assert
         assert days.every { it == EXPECTED_DAYS }
-    }
-
-    /**
-     * New feature test
-     */
-    @Test
-    void testGetTimeDurationShouldHandleDecimalValues() {
-        // Arrange
-        final List WHOLE_NUMBERS = ["10 ms", "10 millis", "10 milliseconds"]
-        final List DECIMAL_NUMBERS = ["0.010 s", "0.010 seconds"]
-        final long EXPECTED_MILLIS = 10
-
-        // Act
-        List parsedWholeMillis = WHOLE_NUMBERS.collect { String whole ->
-            FormatUtils.getTimeDuration(whole, TimeUnit.MILLISECONDS)
-        }
-        logger.converted(parsedWholeMillis)
-
-        List parsedDecimalMillis = DECIMAL_NUMBERS.collect { String decimal ->
-            FormatUtils.getTimeDuration(decimal, TimeUnit.MILLISECONDS)
-        }
-        logger.converted(parsedDecimalMillis)
-
-        // Assert
-        assert parsedWholeMillis.every { it == EXPECTED_MILLIS }
-        assert parsedDecimalMillis.every { it == EXPECTED_MILLIS }
     }
 
     /**

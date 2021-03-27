@@ -158,7 +158,7 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
     public void onSchedulingStart() {
         super.onSchedulingStart();
 
-        final long penalizationMillis = FormatUtils.getTimeDuration(remoteGroup.getYieldDuration(), TimeUnit.MILLISECONDS);
+        final long penalizationMillis = Math.round(FormatUtils.getPreciseTimeDuration(remoteGroup.getYieldDuration(), TimeUnit.MILLISECONDS));
 
         final SiteToSiteClient.Builder clientBuilder = new SiteToSiteClient.Builder()
                 .urls(SiteToSiteRestApiClient.parseClusterUrls(remoteGroup.getTargetUris()))
@@ -185,7 +185,8 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
 
         final String batchDuration = getBatchDuration();
         if (batchDuration != null && batchDuration.length() > 0) {
-            clientBuilder.requestBatchDuration(FormatUtils.getTimeDuration(batchDuration.trim(), TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS);
+            long batchDurationMillis = Math.round(FormatUtils.getPreciseTimeDuration(batchDuration.trim(), TimeUnit.MILLISECONDS));
+            clientBuilder.requestBatchDuration(batchDurationMillis, TimeUnit.MILLISECONDS);
         }
 
         clientRef.set(clientBuilder.build());

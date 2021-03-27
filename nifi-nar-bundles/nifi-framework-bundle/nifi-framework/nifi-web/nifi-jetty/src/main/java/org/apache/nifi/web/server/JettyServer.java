@@ -898,7 +898,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         // we are able to avoid closing connections from users' browsers most of the time. This can make a significant difference
         // in HTTPS connections, as each HTTPS connection that is established must perform the SSL handshake.
         final String autoRefreshInterval = props.getAutoRefreshInterval();
-        final long autoRefreshMillis = autoRefreshInterval == null ? 30000L : FormatUtils.getTimeDuration(autoRefreshInterval, TimeUnit.MILLISECONDS);
+        final long autoRefreshMillis = autoRefreshInterval == null ? 30000L : Math.round(FormatUtils.getPreciseTimeDuration(autoRefreshInterval, TimeUnit.MILLISECONDS));
         final long idleTimeout = autoRefreshMillis * 2;
 
         // If the interfaces collection is empty or each element is empty

@@ -52,7 +52,7 @@ public class NexusExtensionClient implements ExtensionClient {
     public NexusExtensionClient(final String baseUrl, final SslContextDefinition sslContextDefinition, final String timeout) {
         this.baseUrl = baseUrl;
         this.sslContextDefinition = sslContextDefinition;
-        this.timeoutMillis = timeout == null ? DEFAULT_TIMEOUT_MILLIS : FormatUtils.getTimeDuration(timeout, TimeUnit.MILLISECONDS);
+        this.timeoutMillis = timeout == null ? DEFAULT_TIMEOUT_MILLIS : Math.round(FormatUtils.getPreciseTimeDuration(timeout, TimeUnit.MILLISECONDS));
     }
 
     @Override

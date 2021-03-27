@@ -63,9 +63,9 @@ public class HttpRemoteSiteListener implements RemoteSiteListener {
         int txTtlSec;
         try {
             final String snapshotFrequency = nifiProperties.getProperty(SITE_TO_SITE_HTTP_TRANSACTION_TTL, DEFAULT_SITE_TO_SITE_HTTP_TRANSACTION_TTL);
-            txTtlSec = (int) FormatUtils.getTimeDuration(snapshotFrequency, TimeUnit.SECONDS);
+            txTtlSec = (int) Math.round(FormatUtils.getPreciseTimeDuration(snapshotFrequency, TimeUnit.SECONDS));
         } catch (final Exception e) {
-            txTtlSec = (int) FormatUtils.getTimeDuration(DEFAULT_SITE_TO_SITE_HTTP_TRANSACTION_TTL, TimeUnit.SECONDS);
+            txTtlSec = (int) Math.round(FormatUtils.getPreciseTimeDuration(DEFAULT_SITE_TO_SITE_HTTP_TRANSACTION_TTL, TimeUnit.SECONDS));
             logger.warn("Failed to parse {} due to {}, use default as {} secs.",
                     SITE_TO_SITE_HTTP_TRANSACTION_TTL, e.getMessage(), txTtlSec);
         }

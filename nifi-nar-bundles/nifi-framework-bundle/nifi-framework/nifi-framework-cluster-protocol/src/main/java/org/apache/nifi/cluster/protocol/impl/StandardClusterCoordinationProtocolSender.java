@@ -195,7 +195,7 @@ public class StandardClusterCoordinationProtocolSender implements ClusterCoordin
     }
 
     public void setHandshakeTimeout(final String handshakeTimeout) {
-        this.handshakeTimeoutSeconds = (int) FormatUtils.getTimeDuration(handshakeTimeout, TimeUnit.SECONDS);
+        this.handshakeTimeoutSeconds = (int) Math.round(FormatUtils.getPreciseTimeDuration(handshakeTimeout, TimeUnit.SECONDS));
     }
 
     private Socket createSocket(final NodeIdentifier nodeId, final boolean applyHandshakeTimeout) {

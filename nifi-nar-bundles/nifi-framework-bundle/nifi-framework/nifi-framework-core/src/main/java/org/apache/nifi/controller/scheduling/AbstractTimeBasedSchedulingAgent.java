@@ -88,7 +88,7 @@ public abstract class AbstractTimeBasedSchedulingAgent extends AbstractSchedulin
 
     @Override
     public long getAdministrativeYieldDuration(final TimeUnit timeUnit) {
-        return FormatUtils.getTimeDuration(adminYieldDuration, timeUnit);
+        return Math.round(FormatUtils.getPreciseTimeDuration(adminYieldDuration, timeUnit));
     }
 
     @Override

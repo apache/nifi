@@ -102,12 +102,14 @@ public class StandardHttpResponseMapper implements HttpResponseMapper {
 
     public StandardHttpResponseMapper(final NiFiProperties nifiProperties) {
         final String snapshotFrequency = nifiProperties.getProperty(NiFiProperties.COMPONENT_STATUS_SNAPSHOT_FREQUENCY, NiFiProperties.DEFAULT_COMPONENT_STATUS_SNAPSHOT_FREQUENCY);
-        long snapshotMillis;
+        double snapshotMillis;
+        long snapshotMillisLong;
         try {
-            snapshotMillis = FormatUtils.getTimeDuration(snapshotFrequency, TimeUnit.MILLISECONDS);
+            snapshotMillis = FormatUtils.getPreciseTimeDuration(snapshotFrequency, TimeUnit.MILLISECONDS);
         } catch (final Exception e) {
-            snapshotMillis = FormatUtils.getTimeDuration(NiFiProperties.DEFAULT_COMPONENT_STATUS_SNAPSHOT_FREQUENCY, TimeUnit.MILLISECONDS);
+            snapshotMillis = FormatUtils.getPreciseTimeDuration(NiFiProperties.DEFAULT_COMPONENT_STATUS_SNAPSHOT_FREQUENCY, TimeUnit.MILLISECONDS);
         }
+        snapshotMillisLong = Math.round(snapshotMillis);
         endpointMergers.add(new ControllerStatusEndpointMerger());
         endpointMergers.add(new ControllerBulletinsEndpointMerger());
         endpointMergers.add(new GroupStatusEndpointMerger());
@@ -140,7 +142,7 @@ public class StandardHttpResponseMapper implements HttpResponseMapper {
         endpointMergers.add(new ListFlowFilesEndpointMerger());
         endpointMergers.add(new ComponentStateEndpointMerger());
         endpointMergers.add(new BulletinBoardEndpointMerger());
-        endpointMergers.add(new StatusHistoryEndpointMerger(snapshotMillis));
+        endpointMergers.add(new StatusHistoryEndpointMerger(snapshotMillisLong));
         endpointMergers.add(new SystemDiagnosticsEndpointMerger());
         endpointMergers.add(new CountersEndpointMerger());
         endpointMergers.add(new FlowMerger());
@@ -164,7 +166,7 @@ public class StandardHttpResponseMapper implements HttpResponseMapper {
         endpointMergers.add(new AccessPolicyEndpointMerger());
         endpointMergers.add(new SearchUsersEndpointMerger());
         endpointMergers.add(new VariableRegistryEndpointMerger());
-        endpointMergers.add(new ProcessorDiagnosticsEndpointMerger(snapshotMillis));
+        endpointMergers.add(new ProcessorDiagnosticsEndpointMerger(snapshotMillisLong));
         endpointMergers.add(new ParameterContextValidationMerger());
         endpointMergers.add(new ParameterContextsEndpointMerger());
         endpointMergers.add(new ParameterContextEndpointMerger());

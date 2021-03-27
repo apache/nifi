@@ -124,7 +124,7 @@ public class OcspCertificateValidator {
                 }
 
                 // TODO - determine how long to cache the ocsp responses for
-                final long cacheDurationMillis = FormatUtils.getTimeDuration("12 hours", TimeUnit.MILLISECONDS);
+                final long cacheDurationMillis =  Math.round(FormatUtils.getPreciseTimeDuration("12 hours", TimeUnit.MILLISECONDS));
 
                 // build the ocsp cache
                 ocspCache = CacheBuilder.newBuilder().expireAfterWrite(cacheDurationMillis, TimeUnit.MILLISECONDS).build(new CacheLoader<OcspRequest, OcspStatus>() {

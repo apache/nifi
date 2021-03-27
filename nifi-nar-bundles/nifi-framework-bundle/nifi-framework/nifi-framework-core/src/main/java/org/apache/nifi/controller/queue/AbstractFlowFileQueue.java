@@ -102,7 +102,7 @@ public abstract class AbstractFlowFileQueue implements FlowFileQueue {
 
     @Override
     public void setFlowFileExpiration(final String flowExpirationPeriod) {
-        final long millis = FormatUtils.getTimeDuration(flowExpirationPeriod, TimeUnit.MILLISECONDS);
+        final long millis = Math.round(FormatUtils.getPreciseTimeDuration(flowExpirationPeriod, TimeUnit.MILLISECONDS));
         if (millis < 0) {
             throw new IllegalArgumentException("FlowFile Expiration Period must be positive");
         }

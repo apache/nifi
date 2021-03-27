@@ -193,8 +193,8 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
         this.nifiProperties = nifiProperties;
         this.controller = controller;
         flowXml = Paths.get(nifiProperties.getProperty(NiFiProperties.FLOW_CONFIGURATION_FILE));
-
-        gracefulShutdownSeconds = (int) FormatUtils.getTimeDuration(nifiProperties.getProperty(NiFiProperties.FLOW_CONTROLLER_GRACEFUL_SHUTDOWN_PERIOD), TimeUnit.SECONDS);
+        String shutDownPeriodConfiguredValue = nifiProperties.getProperty(NiFiProperties.FLOW_CONTROLLER_GRACEFUL_SHUTDOWN_PERIOD);
+        gracefulShutdownSeconds = (int) Math.round(FormatUtils.getPreciseTimeDuration(shutDownPeriodConfiguredValue, TimeUnit.SECONDS));
         autoResumeState = nifiProperties.getAutoResumeState();
 
         dao = new StandardXMLFlowConfigurationDAO(flowXml, encryptor, nifiProperties, controller.getExtensionManager());

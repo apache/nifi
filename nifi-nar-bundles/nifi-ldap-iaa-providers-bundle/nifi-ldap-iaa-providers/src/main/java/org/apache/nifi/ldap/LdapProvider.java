@@ -80,7 +80,7 @@ public class LdapProvider implements LoginIdentityProvider {
         }
 
         try {
-            expiration = FormatUtils.getTimeDuration(rawExpiration, TimeUnit.MILLISECONDS);
+            expiration = Math.round(FormatUtils.getPreciseTimeDuration(rawExpiration, TimeUnit.MILLISECONDS));
         } catch (final IllegalArgumentException iae) {
             throw new ProviderCreationException(String.format("The Expiration Duration '%s' is not a valid time duration", rawExpiration));
         }

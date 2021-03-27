@@ -39,20 +39,20 @@ public class PopularVoteFlowElectionFactoryBean implements FactoryBean<PopularVo
     @Override
     public PopularVoteFlowElection getObject() {
         final String maxWaitTime = properties.getFlowElectionMaxWaitTime();
-        long maxWaitMillis;
+        double maxWaitMillis;
         try {
-            maxWaitMillis = FormatUtils.getTimeDuration(maxWaitTime, TimeUnit.MILLISECONDS);
+            maxWaitMillis = FormatUtils.getPreciseTimeDuration(maxWaitTime, TimeUnit.MILLISECONDS);
         } catch (final Exception e) {
             logger.warn("Failed to parse value of property '{}' as a valid time period. Value was '{}'. Ignoring this value and using the default value of '{}'",
                 NiFiProperties.FLOW_ELECTION_MAX_WAIT_TIME, maxWaitTime, NiFiProperties.DEFAULT_FLOW_ELECTION_MAX_WAIT_TIME);
-            maxWaitMillis = FormatUtils.getTimeDuration(NiFiProperties.DEFAULT_FLOW_ELECTION_MAX_WAIT_TIME, TimeUnit.MILLISECONDS);
+            maxWaitMillis = FormatUtils.getPreciseTimeDuration(NiFiProperties.DEFAULT_FLOW_ELECTION_MAX_WAIT_TIME, TimeUnit.MILLISECONDS);
         }
 
         final Integer maxNodes = properties.getFlowElectionMaxCandidates();
         final PropertyEncryptor encryptor = PropertyEncryptorFactory.getPropertyEncryptor(properties);
         final SensitiveValueEncoder sensitiveValueEncoder = new StandardSensitiveValueEncoder(properties);
         final FingerprintFactory fingerprintFactory = new FingerprintFactory(encryptor, extensionManager, sensitiveValueEncoder);
-        return new PopularVoteFlowElection(maxWaitMillis, TimeUnit.MILLISECONDS, maxNodes, fingerprintFactory);
+        return new PopularVoteFlowElection(Math.round(maxWaitMillis), TimeUnit.MILLISECONDS, maxNodes, fingerprintFactory);
     }
 
     @Override

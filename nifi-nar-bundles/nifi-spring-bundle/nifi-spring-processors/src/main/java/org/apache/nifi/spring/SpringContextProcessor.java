@@ -222,10 +222,10 @@ public class SpringContextProcessor extends AbstractProcessor {
         this.applicationContextLibPath = processContext.getProperty(CTX_LIB_PATH).getValue();
 
         String stStr = processContext.getProperty(SEND_TIMEOUT).getValue();
-        this.sendTimeout = stStr == null ? 0 : FormatUtils.getTimeDuration(stStr, TimeUnit.MILLISECONDS);
+        this.sendTimeout = stStr == null ? 0 : Math.round(FormatUtils.getPreciseTimeDuration(stStr, TimeUnit.MILLISECONDS));
 
         String rtStr = processContext.getProperty(RECEIVE_TIMEOUT).getValue();
-        this.receiveTimeout = rtStr == null ? 0 : FormatUtils.getTimeDuration(rtStr, TimeUnit.MILLISECONDS);
+        this.receiveTimeout = rtStr == null ? 0 : Math.round(FormatUtils.getPreciseTimeDuration(rtStr, TimeUnit.MILLISECONDS));
 
         try {
             if (logger.isDebugEnabled()) {

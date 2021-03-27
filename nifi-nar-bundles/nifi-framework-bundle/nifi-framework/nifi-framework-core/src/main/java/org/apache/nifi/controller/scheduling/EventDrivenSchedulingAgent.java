@@ -172,7 +172,7 @@ public class EventDrivenSchedulingAgent extends AbstractSchedulingAgent {
 
     @Override
     public long getAdministrativeYieldDuration(final TimeUnit timeUnit) {
-        return FormatUtils.getTimeDuration(adminYieldDuration, timeUnit);
+        return Math.round(FormatUtils.getPreciseTimeDuration(adminYieldDuration, timeUnit));
     }
 
     private class EventDrivenTask implements Runnable {
@@ -332,7 +332,8 @@ public class EventDrivenSchedulingAgent extends AbstractSchedulingAgent {
                     logger.warn("{} Administratively Pausing for {} due to processing failure: {}", worker, getAdministrativeYieldDuration(), t.toString());
                     logger.warn("", t);
                     try {
-                        Thread.sleep(FormatUtils.getTimeDuration(adminYieldDuration, TimeUnit.MILLISECONDS));
+                        long sleepMillis = Math.round(FormatUtils.getPreciseTimeDuration(adminYieldDuration, TimeUnit.MILLISECONDS));
+                        Thread.sleep(sleepMillis);
                     } catch (final InterruptedException e) {
                     }
 
@@ -374,8 +375,8 @@ public class EventDrivenSchedulingAgent extends AbstractSchedulingAgent {
                     procLog.warn("Processor Administratively Yielded for {} due to processing failure", new Object[]{adminYieldDuration});
                     logger.warn("Administratively Yielding {} due to uncaught Exception: ", worker.getProcessor());
                     logger.warn("", t);
-
-                    worker.yield(FormatUtils.getTimeDuration(adminYieldDuration, TimeUnit.NANOSECONDS), TimeUnit.NANOSECONDS);
+                    long yieldNanos = Math.round(FormatUtils.getPreciseTimeDuration(adminYieldDuration, TimeUnit.NANOSECONDS));
+                    worker.yield(yieldNanos, TimeUnit.NANOSECONDS);
                 }
             } finally {
                 // if the processor is no longer scheduled to run and this is the last thread,

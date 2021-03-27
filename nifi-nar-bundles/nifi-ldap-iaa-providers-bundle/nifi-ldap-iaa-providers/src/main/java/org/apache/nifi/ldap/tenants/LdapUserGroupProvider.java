@@ -373,7 +373,7 @@ public class LdapUserGroupProvider implements UserGroupProvider {
         final long syncInterval;
         if (rawSyncInterval.isSet()) {
             try {
-                syncInterval = FormatUtils.getTimeDuration(rawSyncInterval.getValue(), TimeUnit.MILLISECONDS);
+                syncInterval = Math.round(FormatUtils.getPreciseTimeDuration(rawSyncInterval.getValue(), TimeUnit.MILLISECONDS));
             } catch (final IllegalArgumentException iae) {
                 throw new AuthorizerCreationException(String.format("The %s '%s' is not a valid time duration", PROP_SYNC_INTERVAL, rawSyncInterval.getValue()));
             }
@@ -811,7 +811,7 @@ public class LdapUserGroupProvider implements UserGroupProvider {
         final PropertyValue rawTimeout = configurationContext.getProperty(configurationProperty);
         if (rawTimeout.isSet()) {
             try {
-                final Long timeout = FormatUtils.getTimeDuration(rawTimeout.getValue(), TimeUnit.MILLISECONDS);
+                final Long timeout = Math.round(FormatUtils.getPreciseTimeDuration(rawTimeout.getValue(), TimeUnit.MILLISECONDS));
                 baseEnvironment.put(environmentKey, timeout.toString());
             } catch (final IllegalArgumentException iae) {
                 throw new AuthorizerCreationException(String.format("The %s '%s' is not a valid time duration", configurationProperty, rawTimeout));

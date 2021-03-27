@@ -52,7 +52,7 @@ public class StandardConfigurationContext implements ConfigurationContext {
             schedulingNanos = null;
         } else {
             if (FormatUtils.TIME_DURATION_PATTERN.matcher(schedulingPeriod).matches()) {
-                schedulingNanos = FormatUtils.getTimeDuration(schedulingPeriod, TimeUnit.NANOSECONDS);
+                schedulingNanos = Math.round(FormatUtils.getPreciseTimeDuration(schedulingPeriod, TimeUnit.NANOSECONDS));
             } else {
                 schedulingNanos = null;
             }

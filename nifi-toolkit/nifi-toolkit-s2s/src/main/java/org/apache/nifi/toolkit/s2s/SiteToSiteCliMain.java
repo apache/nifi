@@ -167,10 +167,12 @@ public class SiteToSiteCliMain {
             builder.portIdentifier(commandLine.getOptionValue(PORT_IDENTIFIER_OPTION));
         }
         if (commandLine.hasOption(TIMEOUT_OPTION)) {
-            builder.timeout(FormatUtils.getTimeDuration(commandLine.getOptionValue(TIMEOUT_OPTION), TimeUnit.NANOSECONDS), TimeUnit.NANOSECONDS);
+            long timeoutNanos = Math.round(FormatUtils.getPreciseTimeDuration(commandLine.getOptionValue(TIMEOUT_OPTION), TimeUnit.NANOSECONDS));
+            builder.timeout(timeoutNanos, TimeUnit.NANOSECONDS);
         }
         if (commandLine.hasOption(PENALIZATION_OPTION)) {
-            builder.nodePenalizationPeriod(FormatUtils.getTimeDuration(commandLine.getOptionValue(PENALIZATION_OPTION), TimeUnit.NANOSECONDS), TimeUnit.NANOSECONDS);
+            long penalizationNanos = Math.round(FormatUtils.getPreciseTimeDuration(commandLine.getOptionValue(PENALIZATION_OPTION), TimeUnit.NANOSECONDS));
+            builder.nodePenalizationPeriod(penalizationNanos, TimeUnit.NANOSECONDS);
         }
         if (commandLine.hasOption(KEYSTORE_OPTION)) {
             builder.keystoreFilename(commandLine.getOptionValue(KEYSTORE_OPTION));
@@ -207,7 +209,8 @@ public class SiteToSiteCliMain {
             builder.requestBatchSize(Long.parseLong(commandLine.getOptionValue(BATCH_SIZE_OPTION)));
         }
         if (commandLine.hasOption(BATCH_DURATION_OPTION)) {
-            builder.requestBatchDuration(FormatUtils.getTimeDuration(commandLine.getOptionValue(BATCH_DURATION_OPTION), TimeUnit.NANOSECONDS), TimeUnit.NANOSECONDS);
+            long batchDurationNanos = Math.round(FormatUtils.getPreciseTimeDuration(commandLine.getOptionValue(BATCH_DURATION_OPTION), TimeUnit.NANOSECONDS));
+            builder.requestBatchDuration(batchDurationNanos, TimeUnit.NANOSECONDS);
         }
         if (commandLine.hasOption(PROXY_HOST_OPTION)) {
             builder.httpProxy(new HttpProxy(commandLine.getOptionValue(PROXY_HOST_OPTION), Integer.parseInt(commandLine.getOptionValue(PROXY_PORT_OPTION, PROXY_PORT_OPTION_DEFAULT)),

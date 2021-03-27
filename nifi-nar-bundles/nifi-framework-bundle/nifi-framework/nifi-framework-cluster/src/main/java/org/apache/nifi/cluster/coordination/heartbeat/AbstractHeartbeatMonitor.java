@@ -50,7 +50,7 @@ public abstract class AbstractHeartbeatMonitor implements HeartbeatMonitor {
         this.clusterCoordinator = clusterCoordinator;
         final String heartbeatInterval = nifiProperties.getProperty(NiFiProperties.CLUSTER_PROTOCOL_HEARTBEAT_INTERVAL,
                 NiFiProperties.DEFAULT_CLUSTER_PROTOCOL_HEARTBEAT_INTERVAL);
-        this.heartbeatIntervalMillis = (int) FormatUtils.getTimeDuration(heartbeatInterval, TimeUnit.MILLISECONDS);
+        this.heartbeatIntervalMillis = (int) Math.round(FormatUtils.getPreciseTimeDuration(heartbeatInterval, TimeUnit.MILLISECONDS));
 
         this.missableHeartbeatCount = nifiProperties.getIntegerProperty(NiFiProperties.CLUSTER_PROTOCOL_HEARTBEAT_MISSABLE_MAX,
                 NiFiProperties.DEFAULT_CLUSTER_PROTOCOL_HEARTBEAT_MISSABLE_MAX);

@@ -433,7 +433,7 @@ public class StandardFunnel implements Funnel {
      */
     @Override
     public void setYieldPeriod(final String yieldPeriod) {
-        final long yieldMillis = FormatUtils.getTimeDuration(requireNonNull(yieldPeriod), TimeUnit.MILLISECONDS);
+        final long yieldMillis = Math.round(FormatUtils.getPreciseTimeDuration(requireNonNull(yieldPeriod), TimeUnit.MILLISECONDS));
         if (yieldMillis < 0) {
             throw new IllegalArgumentException("Yield duration must be positive");
         }
@@ -442,7 +442,7 @@ public class StandardFunnel implements Funnel {
 
     @Override
     public void setScheduldingPeriod(final String schedulingPeriod) {
-        final long schedulingNanos = FormatUtils.getTimeDuration(requireNonNull(schedulingPeriod), TimeUnit.NANOSECONDS);
+        final long schedulingNanos = Math.round(FormatUtils.getPreciseTimeDuration(requireNonNull(schedulingPeriod), TimeUnit.NANOSECONDS));
         if (schedulingNanos < 0) {
             throw new IllegalArgumentException("Scheduling Period must be positive");
         }
@@ -453,7 +453,7 @@ public class StandardFunnel implements Funnel {
 
     @Override
     public long getPenalizationPeriod(final TimeUnit timeUnit) {
-        return FormatUtils.getTimeDuration(getPenalizationPeriod(), timeUnit == null ? DEFAULT_TIME_UNIT : timeUnit);
+        return Math.round(FormatUtils.getPreciseTimeDuration(getPenalizationPeriod(), timeUnit == null ? DEFAULT_TIME_UNIT : timeUnit));
     }
 
     @Override
@@ -501,7 +501,7 @@ public class StandardFunnel implements Funnel {
 
     @Override
     public long getYieldPeriod(final TimeUnit timeUnit) {
-        return FormatUtils.getTimeDuration(getYieldPeriod(), timeUnit == null ? DEFAULT_TIME_UNIT : timeUnit);
+        return Math.round(FormatUtils.getPreciseTimeDuration(getYieldPeriod(), timeUnit == null ? DEFAULT_TIME_UNIT : timeUnit));
     }
 
     @Override

@@ -139,7 +139,7 @@ public abstract class AbstractReportingTaskNode extends AbstractComponentNode im
 
     @Override
     public long getSchedulingPeriod(final TimeUnit timeUnit) {
-        return FormatUtils.getTimeDuration(schedulingPeriod.get(), timeUnit);
+        return Math.round(FormatUtils.getPreciseTimeDuration(schedulingPeriod.get(), timeUnit));
     }
 
     @Override

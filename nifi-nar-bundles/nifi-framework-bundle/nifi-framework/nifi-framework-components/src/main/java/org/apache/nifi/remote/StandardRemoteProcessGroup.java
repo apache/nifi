@@ -371,7 +371,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
     public void setCommunicationsTimeout(final String timePeriod) throws IllegalArgumentException {
         // verify the timePeriod is legit
         try {
-            final long millis = FormatUtils.getTimeDuration(timePeriod, TimeUnit.MILLISECONDS);
+            final long millis = Math.round(FormatUtils.getPreciseTimeDuration(timePeriod, TimeUnit.MILLISECONDS));
             if (millis <= 0) {
                 throw new IllegalArgumentException("Time Period must be more than 0 milliseconds; Invalid Time Period: " + timePeriod);
             }
@@ -386,7 +386,7 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
 
     @Override
     public int getCommunicationsTimeout(final TimeUnit timeUnit) {
-        return (int) FormatUtils.getTimeDuration(communicationsTimeout, timeUnit);
+        return (int) Math.round(FormatUtils.getPreciseTimeDuration(communicationsTimeout, timeUnit));
     }
 
     @Override

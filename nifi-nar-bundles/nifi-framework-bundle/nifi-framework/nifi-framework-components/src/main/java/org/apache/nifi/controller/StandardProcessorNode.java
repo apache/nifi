@@ -516,8 +516,8 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
             break;
         case PRIMARY_NODE_ONLY:
         case TIMER_DRIVEN: {
-            final long schedulingNanos = FormatUtils.getTimeDuration(requireNonNull(schedulingPeriod),
-                    TimeUnit.NANOSECONDS);
+            final long schedulingNanos = Math.round(FormatUtils.getPreciseTimeDuration(requireNonNull(schedulingPeriod),
+                    TimeUnit.NANOSECONDS));
             if (schedulingNanos < 0) {
                 throw new IllegalArgumentException("Scheduling Period must be positive");
             }
@@ -577,7 +577,8 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         if (isRunning()) {
             throw new IllegalStateException("Cannot modify Processor configuration while the Processor is running");
         }
-        final long yieldNanos = FormatUtils.getTimeDuration(requireNonNull(yieldPeriod), TimeUnit.NANOSECONDS);
+        final long yieldNanos = Math.round(FormatUtils.getPreciseTimeDuration(requireNonNull(yieldPeriod),
+                TimeUnit.NANOSECONDS));
         if (yieldNanos < 0) {
             throw new IllegalArgumentException("Yield duration must be positive");
         }
@@ -623,7 +624,8 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
 
     @Override
     public long getPenalizationPeriod(final TimeUnit timeUnit) {
-        return FormatUtils.getTimeDuration(getPenalizationPeriod(), timeUnit == null ? DEFAULT_TIME_UNIT : timeUnit);
+        return Math.round(FormatUtils.getPreciseTimeDuration(getPenalizationPeriod(),
+                timeUnit == null ? DEFAULT_TIME_UNIT : timeUnit));
     }
 
     @Override
@@ -637,7 +639,8 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
             throw new IllegalStateException("Cannot modify Processor configuration while the Processor is running");
         }
 
-        final long penalizationMillis = FormatUtils.getTimeDuration(requireNonNull(penalizationPeriod), TimeUnit.MILLISECONDS);
+        final long penalizationMillis = Math.round(FormatUtils.getPreciseTimeDuration(requireNonNull(penalizationPeriod),
+                TimeUnit.MILLISECONDS));
         if (penalizationMillis < 0) {
             throw new IllegalArgumentException("Penalization duration must be positive");
         }

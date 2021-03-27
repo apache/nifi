@@ -328,7 +328,8 @@ public class KafkaRecordSink_1_0 extends AbstractControllerService implements Re
                 // If the property name ends in ".ms" then it is a time period. We want to accept either an integer as number of milliseconds
                 // or the standard NiFi time period such as "5 secs"
                 if (propertyName.endsWith(".ms") && !StringUtils.isNumeric(propertyValue.trim())) { // kafka standard time notation
-                    propertyValue = String.valueOf(FormatUtils.getTimeDuration(propertyValue.trim(), TimeUnit.MILLISECONDS));
+                    long millis = Math.round(FormatUtils.getPreciseTimeDuration(propertyValue.trim(), TimeUnit.MILLISECONDS));
+                    propertyValue = String.valueOf(millis);
                 }
 
                 if (KafkaProcessorUtils.isStaticStringFieldNamePresent(propertyName, kafkaConfigClass, CommonClientConfigs.class, SslConfigs.class, SaslConfigs.class)) {

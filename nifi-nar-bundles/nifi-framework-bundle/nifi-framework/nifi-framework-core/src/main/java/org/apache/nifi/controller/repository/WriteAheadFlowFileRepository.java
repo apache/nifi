@@ -194,7 +194,7 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
         }
 
 
-        checkpointDelayMillis = FormatUtils.getTimeDuration(nifiProperties.getFlowFileRepositoryCheckpointInterval(), TimeUnit.MILLISECONDS);
+        checkpointDelayMillis = Math.round(FormatUtils.getPreciseTimeDuration(nifiProperties.getFlowFileRepositoryCheckpointInterval(), TimeUnit.MILLISECONDS));
 
         checkpointExecutor = Executors.newSingleThreadScheduledExecutor();
     }

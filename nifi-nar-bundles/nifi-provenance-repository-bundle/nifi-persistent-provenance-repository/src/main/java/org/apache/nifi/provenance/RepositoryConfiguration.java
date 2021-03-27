@@ -444,9 +444,9 @@ public class RepositoryConfiguration {
         final int concurrentMergeThreads = nifiProperties.getIntegerProperty(CONCURRENT_MERGE_THREADS, 2);
         final String warmCacheFrequency = nifiProperties.getProperty(WARM_CACHE_FREQUENCY);
         final String maintenanceFrequency = nifiProperties.getProperty(MAINTENACE_FREQUENCY);
-        final long storageMillis = FormatUtils.getTimeDuration(storageTime, TimeUnit.MILLISECONDS);
+        final long storageMillis = Math.round(FormatUtils.getPreciseTimeDuration(storageTime, TimeUnit.MILLISECONDS));
         final long maxStorageBytes = DataUnit.parseDataSize(storageSize, DataUnit.B).longValue();
-        final long rolloverMillis = FormatUtils.getTimeDuration(rolloverTime, TimeUnit.MILLISECONDS);
+        final long rolloverMillis = Math.round(FormatUtils.getPreciseTimeDuration(rolloverTime, TimeUnit.MILLISECONDS));
         final long rolloverBytes = DataUnit.parseDataSize(rolloverSize, DataUnit.B).longValue();
 
         final boolean compressOnRollover = Boolean.parseBoolean(nifiProperties.getProperty(NiFiProperties.PROVENANCE_COMPRESS_ON_ROLLOVER));
@@ -497,13 +497,13 @@ public class RepositoryConfiguration {
         config.setConcurrentMergeThreads(concurrentMergeThreads);
 
         if (warmCacheFrequency != null && !warmCacheFrequency.trim().equals("")) {
-            config.setWarmCacheFrequencyMinutes((int) FormatUtils.getTimeDuration(warmCacheFrequency, TimeUnit.MINUTES));
+            config.setWarmCacheFrequencyMinutes((int)  Math.round(FormatUtils.getPreciseTimeDuration(warmCacheFrequency, TimeUnit.MINUTES)));
         }
         if (shardSize != null) {
             config.setDesiredIndexSize(DataUnit.parseDataSize(shardSize, DataUnit.B).longValue());
         }
         if (maintenanceFrequency != null && !maintenanceFrequency.trim().equals("")) {
-            final long millis = FormatUtils.getTimeDuration(maintenanceFrequency.trim(), TimeUnit.MILLISECONDS);
+            final long millis = Math.round(FormatUtils.getPreciseTimeDuration(maintenanceFrequency.trim(), TimeUnit.MILLISECONDS));
             config.setMaintenanceFrequency(millis, TimeUnit.MILLISECONDS);
         }
 

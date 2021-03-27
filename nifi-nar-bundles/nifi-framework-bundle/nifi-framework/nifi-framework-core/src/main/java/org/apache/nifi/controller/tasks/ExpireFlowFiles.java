@@ -69,7 +69,7 @@ public class ExpireFlowFiles implements Runnable {
         // determine if the incoming connections for this Connectable have Expiration configured.
         boolean expirationConfigured = false;
         for (final Connection incomingConn : connectable.getIncomingConnections()) {
-            if (FormatUtils.getTimeDuration(incomingConn.getFlowFileQueue().getFlowFileExpiration(), TimeUnit.MILLISECONDS) > 0) {
+            if (FormatUtils.getPreciseTimeDuration(incomingConn.getFlowFileQueue().getFlowFileExpiration(), TimeUnit.MILLISECONDS) > 0) {
                 expirationConfigured = true;
                 break;
             }

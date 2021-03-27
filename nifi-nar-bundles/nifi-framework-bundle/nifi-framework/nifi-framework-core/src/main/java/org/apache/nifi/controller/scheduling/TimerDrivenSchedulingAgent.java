@@ -42,7 +42,7 @@ public class TimerDrivenSchedulingAgent extends AbstractTimeBasedSchedulingAgent
 
         final String boredYieldDuration = nifiProperties.getBoredYieldDuration();
         try {
-            noWorkYieldNanos = FormatUtils.getTimeDuration(boredYieldDuration, TimeUnit.NANOSECONDS);
+            noWorkYieldNanos = Math.round(FormatUtils.getPreciseTimeDuration(boredYieldDuration, TimeUnit.NANOSECONDS));
         } catch (final IllegalArgumentException e) {
             throw new RuntimeException("Failed to create SchedulingAgent because the " + NiFiProperties.BORED_YIELD_DURATION + " property is set to an invalid time duration: " + boredYieldDuration);
         }

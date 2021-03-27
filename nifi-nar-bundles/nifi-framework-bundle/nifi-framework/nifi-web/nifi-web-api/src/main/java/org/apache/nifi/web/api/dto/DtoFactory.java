@@ -299,7 +299,7 @@ public final class DtoFactory {
         final FlowConfigurationDTO dto = new FlowConfigurationDTO();
 
         // get the refresh interval
-        final long refreshInterval = FormatUtils.getTimeDuration(autoRefreshInterval, TimeUnit.SECONDS);
+        final long refreshInterval =  Math.round(FormatUtils.getPreciseTimeDuration(autoRefreshInterval, TimeUnit.SECONDS));
         dto.setAutoRefreshIntervalSeconds(refreshInterval);
         dto.setSupportsManagedAuthorizer(AuthorizerCapabilityDetection.isManagedAuthorizer(authorizer));
         dto.setSupportsConfigurableUsersAndGroups(AuthorizerCapabilityDetection.isConfigurableUserGroupProvider(authorizer));

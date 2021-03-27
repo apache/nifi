@@ -244,7 +244,8 @@ public class FileSystemRepository implements ContentRepository {
         if (maxArchiveRatio <= 0D) {
             maxArchiveMillis = 0L;
         } else {
-            maxArchiveMillis = StringUtils.isEmpty(maxArchiveRetentionPeriod) ? Long.MAX_VALUE : FormatUtils.getTimeDuration(maxArchiveRetentionPeriod, TimeUnit.MILLISECONDS);
+            maxArchiveMillis = StringUtils.isEmpty(maxArchiveRetentionPeriod) ? Long.MAX_VALUE :
+                    Math.round(FormatUtils.getPreciseTimeDuration(maxArchiveRetentionPeriod, TimeUnit.MILLISECONDS));
         }
 
         this.alwaysSync = Boolean.parseBoolean(nifiProperties.getProperty("nifi.content.repository.always.sync"));
@@ -1761,7 +1762,7 @@ public class FileSystemRepository implements ContentRepository {
         String archiveCleanupFrequency = properties.getProperty(NiFiProperties.CONTENT_ARCHIVE_CLEANUP_FREQUENCY);
         if (archiveCleanupFrequency != null) {
             try {
-                cleanupInterval = FormatUtils.getTimeDuration(archiveCleanupFrequency.trim(), TimeUnit.MILLISECONDS);
+                cleanupInterval = Math.round(FormatUtils.getPreciseTimeDuration(archiveCleanupFrequency.trim(), TimeUnit.MILLISECONDS));
             } catch (Exception e) {
                 throw new RuntimeException(
                         "Invalid value set for property " + NiFiProperties.CONTENT_ARCHIVE_CLEANUP_FREQUENCY);

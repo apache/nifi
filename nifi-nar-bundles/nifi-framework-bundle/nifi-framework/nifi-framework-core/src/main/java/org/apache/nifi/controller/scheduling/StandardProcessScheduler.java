@@ -101,10 +101,10 @@ public final class StandardProcessScheduler implements ProcessScheduler {
         this.stateManagerProvider = stateManagerProvider;
 
         administrativeYieldDuration = nifiProperties.getAdministrativeYieldDuration();
-        administrativeYieldMillis = FormatUtils.getTimeDuration(administrativeYieldDuration, TimeUnit.MILLISECONDS);
+        administrativeYieldMillis = Math.round(FormatUtils.getPreciseTimeDuration(administrativeYieldDuration, TimeUnit.MILLISECONDS));
 
         final String timeoutString = nifiProperties.getProperty(NiFiProperties.PROCESSOR_SCHEDULING_TIMEOUT);
-        processorStartTimeoutMillis = timeoutString == null ? 60000 : FormatUtils.getTimeDuration(timeoutString.trim(), TimeUnit.MILLISECONDS);
+        processorStartTimeoutMillis = timeoutString == null ? 60000 : Math.round(FormatUtils.getPreciseTimeDuration(timeoutString.trim(), TimeUnit.MILLISECONDS));
 
         frameworkTaskExecutor = new FlowEngine(4, "Framework Task Thread");
     }

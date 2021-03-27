@@ -804,7 +804,7 @@ public class StandardValidators {
             final boolean validSyntax = pattern.matcher(lowerCase).matches();
             final ValidationResult.Builder builder = new ValidationResult.Builder();
             if (validSyntax) {
-                final long nanos = FormatUtils.getTimeDuration(lowerCase, TimeUnit.NANOSECONDS);
+                final long nanos =  Math.round(FormatUtils.getPreciseTimeDuration(lowerCase, TimeUnit.NANOSECONDS));
 
                 if (nanos < minNanos || nanos > maxNanos) {
                     builder.subject(subject).input(input).valid(false)

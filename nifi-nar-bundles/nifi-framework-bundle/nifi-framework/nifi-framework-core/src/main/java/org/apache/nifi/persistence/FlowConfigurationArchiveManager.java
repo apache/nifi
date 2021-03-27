@@ -75,7 +75,7 @@ public class FlowConfigurationArchiveManager {
                     maxTime, maxStorage);
         }
 
-        this.maxTimeMillis = StringUtils.isBlank(maxTime) ? null : FormatUtils.getTimeDuration(maxTime, TimeUnit.MILLISECONDS);
+        this.maxTimeMillis = StringUtils.isBlank(maxTime) ? null : Math.round(FormatUtils.getPreciseTimeDuration(maxTime, TimeUnit.MILLISECONDS));
         this.maxStorageBytes = StringUtils.isBlank(maxStorage) ? null : DataUnit.parseDataSize(maxStorage, DataUnit.B).longValue();
 
         this.flowConfigFile = flowConfigFile;

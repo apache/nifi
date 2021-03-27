@@ -200,7 +200,7 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
 
     public RemoteProcessGroup createRemoteProcessGroup(final String id, final String uris) {
         final String expirationPeriod = nifiProperties.getProperty(NiFiProperties.REMOTE_CONTENTS_CACHE_EXPIRATION, "30 secs");
-        final long remoteContentsCacheExpirationMillis = FormatUtils.getTimeDuration(expirationPeriod, TimeUnit.MILLISECONDS);
+        final long remoteContentsCacheExpirationMillis = Math.round(FormatUtils.getPreciseTimeDuration(expirationPeriod, TimeUnit.MILLISECONDS));
 
         return new StandardRemoteProcessGroup(requireNonNull(id), uris, null,
             processScheduler, bulletinRepository, sslContext,

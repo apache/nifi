@@ -27,17 +27,6 @@ import static org.junit.Assert.assertEquals;
 public class TestFormatUtils {
 
     @Test
-    public void testParse() {
-        assertEquals(3, FormatUtils.getTimeDuration("3000 ms", TimeUnit.SECONDS));
-        assertEquals(3000, FormatUtils.getTimeDuration("3000 s", TimeUnit.SECONDS));
-        assertEquals(0, FormatUtils.getTimeDuration("999 millis", TimeUnit.SECONDS));
-        assertEquals(4L * 24L * 60L * 60L * 1000000000L, FormatUtils.getTimeDuration("4 days", TimeUnit.NANOSECONDS));
-        assertEquals(24, FormatUtils.getTimeDuration("1 DAY", TimeUnit.HOURS));
-        assertEquals(60, FormatUtils.getTimeDuration("1 hr", TimeUnit.MINUTES));
-        assertEquals(60, FormatUtils.getTimeDuration("1 Hrs", TimeUnit.MINUTES));
-    }
-
-    @Test
     public void testFormatTime() throws Exception {
         assertEquals("00:00:00.000", FormatUtils.formatHoursMinutesSeconds(0, TimeUnit.DAYS));
         assertEquals("01:00:00.000", FormatUtils.formatHoursMinutesSeconds(1, TimeUnit.HOURS));

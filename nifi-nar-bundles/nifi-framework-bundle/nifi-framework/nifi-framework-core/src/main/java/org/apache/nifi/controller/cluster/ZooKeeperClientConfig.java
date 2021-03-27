@@ -203,10 +203,10 @@ public class ZooKeeperClientConfig {
     private static int getTimePeriod(final NiFiProperties nifiProperties, final String propertyName, final String defaultValue) {
         final String timeout = nifiProperties.getProperty(propertyName, defaultValue);
         try {
-            return (int) FormatUtils.getTimeDuration(timeout, TimeUnit.MILLISECONDS);
+            return (int) Math.round(FormatUtils.getPreciseTimeDuration(timeout, TimeUnit.MILLISECONDS));
         } catch (final Exception e) {
             logger.warn("Value of '" + propertyName + "' property is set to '" + timeout + "', which is not a valid time period. Using default of " + defaultValue);
-            return (int) FormatUtils.getTimeDuration(defaultValue, TimeUnit.MILLISECONDS);
+            return (int) Math.round(FormatUtils.getPreciseTimeDuration(defaultValue, TimeUnit.MILLISECONDS));
         }
     }
 
