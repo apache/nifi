@@ -22,6 +22,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
@@ -133,7 +134,7 @@ public class PutRecordIT {
     void verifyKey(String tableName, Set<Key> expectedKeys, Authorizations auths) throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
         if (null == auths)
             auths = new Authorizations();
-        try(BatchScanner scanner = accumulo.getConnector("root","password").createBatchScanner(tableName,auths,1)) {
+        try(BatchScanner scanner = accumulo.createAccumuloClient("root", new PasswordToken("password")).createBatchScanner(tableName,auths,1)) {
             List<Range> ranges = new ArrayList<>();
             ranges.add(new Range());
             scanner.setRanges(ranges);
@@ -157,7 +158,8 @@ public class PutRecordIT {
         String tableName = UUID.randomUUID().toString();
         tableName=tableName.replace("-","a");
         if (null != defaultVis)
-        accumulo.getConnector("root","password").securityOperations().changeUserAuthorizations("root",defaultVis);
+            accumulo.createAccumuloClient("root", new PasswordToken("password")).securityOperations().changeUserAuthorizations("root",defaultVis);
+
         TestRunner runner = getTestRunner(tableName, DEFAULT_COLUMN_FAMILY);
         runner.setProperty(PutAccumuloRecord.CREATE_TABLE, "True");
         runner.setProperty(PutAccumuloRecord.ROW_FIELD_NAME, "id");
