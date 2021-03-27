@@ -273,7 +273,7 @@ public class ScanAccumulo extends BaseAccumuloProcessor {
                             try{
                                 final RecordSchema writeSchema = determineRecordSchema(writerFactory, flowAttributes, valueIncluded);
 
-                                try (final RecordSetWriter writer = writerFactory.createWriter(getLogger(), writeSchema, out)) {
+                                try (final RecordSetWriter writer = writerFactory.createWriter(getLogger(), writeSchema, out, Collections.emptyMap())) {
 
                                     int i = 0;
                                     writer.beginRecordSet();
