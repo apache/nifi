@@ -23,6 +23,8 @@ import com.amazonaws.services.kinesis.clientlibrary.lib.worker.InitialPositionIn
 import com.amazonaws.services.kinesis.clientlibrary.lib.worker.KinesisClientLibConfiguration;
 import com.amazonaws.services.kinesis.clientlibrary.lib.worker.Worker;
 import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.json.JsonRecordSetWriter;
+import org.apache.nifi.json.JsonTreeReader;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors;
 import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService;
@@ -45,23 +47,23 @@ import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertThrows;
 
-public class TestGetKinesisStream {
-    private final TestRunner runner = TestRunners.newTestRunner(GetKinesisStream.class);
+public class TestConsumeKinesisStream {
+    private final TestRunner runner = TestRunners.newTestRunner(ConsumeKinesisStream.class);
 
     @Before
     public void setUp() {
-        runner.setProperty(GetKinesisStream.KINESIS_STREAM_NAME, "test-stream");
-        runner.setProperty(GetKinesisStream.APPLICATION_NAME, "test-application");
+        runner.setProperty(ConsumeKinesisStream.KINESIS_STREAM_NAME, "test-stream");
+        runner.setProperty(ConsumeKinesisStream.APPLICATION_NAME, "test-application");
         runner.assertValid();
     }
 
     @Test
     public void testValidWithCredentialsProperties() {
-        runner.setProperty(GetKinesisStream.ACCESS_KEY, "access-key");
-        runner.setProperty(GetKinesisStream.SECRET_KEY, "secret-key");
+        runner.setProperty(ConsumeKinesisStream.ACCESS_KEY, "access-key");
+        runner.setProperty(ConsumeKinesisStream.SECRET_KEY, "secret-key");
         runner.assertValid();
 
-        ((GetKinesisStream) runner.getProcessor()).onScheduled(runner.getProcessContext());
+        ((ConsumeKinesisStream) runner.getProcessor()).onScheduled(runner.getProcessContext());
         assertThat(runner.getLogger().getInfoMessages().stream()
                 .anyMatch(logMessage -> logMessage.getMsg().endsWith("Creating client using aws credentials")), is(true));
 
@@ -78,10 +80,10 @@ public class TestGetKinesisStream {
         runner.setProperty(credentialsProvider, CredentialPropertyDescriptors.SECRET_KEY, "secret-key");
         runner.assertValid(credentialsProvider);
         runner.enableControllerService(credentialsProvider);
-        runner.setProperty(GetKinesisStream.AWS_CREDENTIALS_PROVIDER_SERVICE, "credentials-provider");
+        runner.setProperty(ConsumeKinesisStream.AWS_CREDENTIALS_PROVIDER_SERVICE, "credentials-provider");
         runner.assertValid();
 
-        ((GetKinesisStream) runner.getProcessor()).onScheduled(runner.getProcessContext());
+        ((ConsumeKinesisStream) runner.getProcessor()).onScheduled(runner.getProcessContext());
         assertThat(runner.getLogger().getInfoMessages().stream()
                 .anyMatch(logMessage -> logMessage.getMsg().endsWith("Creating client using aws credentials provider")), is(true));
 
@@ -92,110 +94,156 @@ public class TestGetKinesisStream {
 
     @Test
     public void testMissingMandatoryProperties() {
-        runner.removeProperty(GetKinesisStream.KINESIS_STREAM_NAME);
-        runner.removeProperty(GetKinesisStream.APPLICATION_NAME);
-        runner.removeProperty(GetKinesisStream.ACCESS_KEY);
-        runner.removeProperty(GetKinesisStream.SECRET_KEY);
+        runner.removeProperty(ConsumeKinesisStream.KINESIS_STREAM_NAME);
+        runner.removeProperty(ConsumeKinesisStream.APPLICATION_NAME);
+        runner.removeProperty(ConsumeKinesisStream.ACCESS_KEY);
+        runner.removeProperty(ConsumeKinesisStream.SECRET_KEY);
         runner.assertNotValid();
 
         final AssertionError assertionError = assertThrows(AssertionError.class, runner::run);
         assertThat(assertionError.getMessage(), equalTo(String.format("Processor has 2 validation failures:\n" +
                         "'%s' is invalid because %s is required\n" +
                         "'%s' is invalid because %s is required\n",
-                GetKinesisStream.KINESIS_STREAM_NAME.getDisplayName(), GetKinesisStream.KINESIS_STREAM_NAME.getDisplayName(),
-                GetKinesisStream.APPLICATION_NAME.getDisplayName(), GetKinesisStream.APPLICATION_NAME.getDisplayName()
+                ConsumeKinesisStream.KINESIS_STREAM_NAME.getDisplayName(), ConsumeKinesisStream.KINESIS_STREAM_NAME.getDisplayName(),
+                ConsumeKinesisStream.APPLICATION_NAME.getDisplayName(), ConsumeKinesisStream.APPLICATION_NAME.getDisplayName()
         )));
     }
 
     @Test
     public void testInvalidProperties() {
-        runner.setProperty(GetKinesisStream.APPLICATION_NAME, " ");
-        runner.setProperty(GetKinesisStream.TIMESTAMP_FORMAT, "not-valid-format");
-        runner.setProperty(GetKinesisStream.RETRY_WAIT_MILLIS, "not-a-long");
-        runner.setProperty(GetKinesisStream.NUM_RETRIES, "not-an-int");
-        runner.setProperty(GetKinesisStream.CHECKPOINT_INTERVAL_MILLIS, "not-a-long");
-        runner.setProperty(GetKinesisStream.REPORT_CLOUDWATCH_METRICS, "not-a-boolean");
-        runner.setProperty(GetKinesisStream.DYNAMODB_ENDPOINT_OVERRIDE, "not-a-url");
-        runner.setProperty(GetKinesisStream.INITIAL_STREAM_POSITION, "not-an-enum-match");
+        runner.setProperty(ConsumeKinesisStream.APPLICATION_NAME, " ");
+        runner.setProperty(ConsumeKinesisStream.TIMESTAMP_FORMAT, "not-valid-format");
+        runner.setProperty(ConsumeKinesisStream.RETRY_WAIT_MILLIS, "not-a-long");
+        runner.setProperty(ConsumeKinesisStream.NUM_RETRIES, "not-an-int");
+        runner.setProperty(ConsumeKinesisStream.CHECKPOINT_INTERVAL_MILLIS, "not-a-long");
+        runner.setProperty(ConsumeKinesisStream.REPORT_CLOUDWATCH_METRICS, "not-a-boolean");
+        runner.setProperty(ConsumeKinesisStream.DYNAMODB_ENDPOINT_OVERRIDE, "not-a-url");
+        runner.setProperty(ConsumeKinesisStream.INITIAL_STREAM_POSITION, "not-an-enum-match");
+        runner.setProperty(ConsumeKinesisStream.RECORD_READER, "not-a-reader");
+        runner.setProperty(ConsumeKinesisStream.RECORD_WRITER, "not-a-writer");
         runner.assertNotValid();
 
         final AssertionError assertionError = assertThrows(AssertionError.class, runner::run);
-        assertThat(assertionError.getMessage(), equalTo(String.format("Processor has 8 validation failures:\n" +
+        assertThat(assertionError.getMessage(), equalTo(String.format("Processor has 12 validation failures:\n" +
                         "'%s' validated against ' ' is invalid because %s must contain at least one character that is not white space\n" +
+                        "'%s' validated against 'not-a-reader' is invalid because Property references a Controller Service that does not exist\n" +
+                        "'%s' validated against 'not-a-writer' is invalid because Property references a Controller Service that does not exist\n" +
                         "'%s' validated against 'not-a-url' is invalid because Not a valid URL\n" +
                         "'%s' validated against 'not-an-enum-match' is invalid because Given value not found in allowed set '%s, %s, %s'\n" +
                         "'%s' validated against 'not-valid-format' is invalid because Must be a valid java.time.DateTimeFormatter pattern, e.g. %s\n" +
                         "'%s' validated against 'not-a-long' is invalid because not a valid Long\n" +
                         "'%s' validated against 'not-an-int' is invalid because not a valid integer\n" +
                         "'%s' validated against 'not-a-long' is invalid because not a valid Long\n" +
-                        "'%s' validated against 'not-a-boolean' is invalid because Value must be 'true' or 'false'\n",
-                GetKinesisStream.APPLICATION_NAME.getName(), GetKinesisStream.APPLICATION_NAME.getName(),
-                GetKinesisStream.DYNAMODB_ENDPOINT_OVERRIDE.getName(),
-                GetKinesisStream.INITIAL_STREAM_POSITION.getName(), GetKinesisStream.LATEST.getDisplayName(),
-                GetKinesisStream.TRIM_HORIZON.getDisplayName(), GetKinesisStream.AT_TIMESTAMP.getDisplayName(),
-                GetKinesisStream.TIMESTAMP_FORMAT.getName(), RecordFieldType.TIMESTAMP.getDefaultFormat(),
-                GetKinesisStream.CHECKPOINT_INTERVAL_MILLIS.getName(),
-                GetKinesisStream.NUM_RETRIES.getName(),
-                GetKinesisStream.RETRY_WAIT_MILLIS.getName(),
-                GetKinesisStream.REPORT_CLOUDWATCH_METRICS.getName()
+                        "'%s' validated against 'not-a-boolean' is invalid because Value must be 'true' or 'false'\n" +
+                        "'%s' validated against 'not-a-reader' is invalid because Invalid Controller Service: not-a-reader is not a valid Controller Service Identifier\n" +
+                        "'%s' validated against 'not-a-writer' is invalid because Invalid Controller Service: not-a-writer is not a valid Controller Service Identifier\n",
+                ConsumeKinesisStream.APPLICATION_NAME.getName(), ConsumeKinesisStream.APPLICATION_NAME.getName(),
+                ConsumeKinesisStream.RECORD_READER.getDisplayName(),
+                ConsumeKinesisStream.RECORD_WRITER.getDisplayName(),
+                ConsumeKinesisStream.DYNAMODB_ENDPOINT_OVERRIDE.getName(),
+                ConsumeKinesisStream.INITIAL_STREAM_POSITION.getName(), ConsumeKinesisStream.LATEST.getDisplayName(),
+                ConsumeKinesisStream.TRIM_HORIZON.getDisplayName(), ConsumeKinesisStream.AT_TIMESTAMP.getDisplayName(),
+                ConsumeKinesisStream.TIMESTAMP_FORMAT.getName(), RecordFieldType.TIMESTAMP.getDefaultFormat(),
+                ConsumeKinesisStream.CHECKPOINT_INTERVAL_MILLIS.getName(),
+                ConsumeKinesisStream.NUM_RETRIES.getName(),
+                ConsumeKinesisStream.RETRY_WAIT_MILLIS.getName(),
+                ConsumeKinesisStream.REPORT_CLOUDWATCH_METRICS.getName(),
+                ConsumeKinesisStream.RECORD_READER.getDisplayName(),
+                ConsumeKinesisStream.RECORD_WRITER.getDisplayName()
         )));
     }
 
     @Test
     public void testMissingStreamPositionTimestamp() {
-        runner.setProperty(GetKinesisStream.INITIAL_STREAM_POSITION, InitialPositionInStream.AT_TIMESTAMP.toString());
-        runner.removeProperty(GetKinesisStream.STREAM_POSITION_TIMESTAMP);
+        runner.setProperty(ConsumeKinesisStream.INITIAL_STREAM_POSITION, InitialPositionInStream.AT_TIMESTAMP.toString());
+        runner.removeProperty(ConsumeKinesisStream.STREAM_POSITION_TIMESTAMP);
         runner.assertNotValid();
 
         final AssertionError assertionError = assertThrows(AssertionError.class, runner::run);
         assertThat(assertionError.getMessage(), equalTo(String.format("Processor has 1 validation failures:\n" +
                         "'%s' is invalid because %s must be provided when %s is %s\n",
-                GetKinesisStream.STREAM_POSITION_TIMESTAMP.getName(), GetKinesisStream.STREAM_POSITION_TIMESTAMP.getDisplayName(),
-                GetKinesisStream.INITIAL_STREAM_POSITION.getDisplayName(), InitialPositionInStream.AT_TIMESTAMP.toString()
+                ConsumeKinesisStream.STREAM_POSITION_TIMESTAMP.getName(), ConsumeKinesisStream.STREAM_POSITION_TIMESTAMP.getDisplayName(),
+                ConsumeKinesisStream.INITIAL_STREAM_POSITION.getDisplayName(), InitialPositionInStream.AT_TIMESTAMP.toString()
         )));
     }
 
     @Test
     public void testInvalidStreamPositionTimestamp() {
-        runner.setProperty(GetKinesisStream.INITIAL_STREAM_POSITION, InitialPositionInStream.AT_TIMESTAMP.toString());
-        runner.setProperty(GetKinesisStream.TIMESTAMP_FORMAT, "yyyy-MM-dd");
-        runner.setProperty(GetKinesisStream.STREAM_POSITION_TIMESTAMP, "12:00:00");
+        runner.setProperty(ConsumeKinesisStream.INITIAL_STREAM_POSITION, InitialPositionInStream.AT_TIMESTAMP.toString());
+        runner.setProperty(ConsumeKinesisStream.TIMESTAMP_FORMAT, "yyyy-MM-dd");
+        runner.setProperty(ConsumeKinesisStream.STREAM_POSITION_TIMESTAMP, "12:00:00");
         runner.assertNotValid();
 
         final AssertionError assertionError = assertThrows(AssertionError.class, runner::run);
         assertThat(assertionError.getMessage(), equalTo(String.format("Processor has 1 validation failures:\n" +
                         "'%s' is invalid because %s must be parsable by %s\n",
-                GetKinesisStream.STREAM_POSITION_TIMESTAMP.getName(),
-                GetKinesisStream.STREAM_POSITION_TIMESTAMP.getDisplayName(),
-                GetKinesisStream.TIMESTAMP_FORMAT.getDisplayName()
+                ConsumeKinesisStream.STREAM_POSITION_TIMESTAMP.getName(),
+                ConsumeKinesisStream.STREAM_POSITION_TIMESTAMP.getDisplayName(),
+                ConsumeKinesisStream.TIMESTAMP_FORMAT.getDisplayName()
+        )));
+    }
+
+    @Test
+    public void testInvalidRecordReaderWithoutRecordWriter() throws InitializationException {
+        final ControllerService service = new JsonTreeReader();
+        runner.addControllerService("record-reader", service);
+        runner.enableControllerService(service);
+        runner.setProperty(ConsumeKinesisStream.RECORD_READER, "record-reader");
+        runner.removeProperty(ConsumeKinesisStream.RECORD_WRITER);
+        runner.assertNotValid();
+
+        final AssertionError assertionError = assertThrows(AssertionError.class, runner::assertValid);
+        assertThat(assertionError.getMessage(), equalTo(String.format("Processor has 1 validation failures:\n" +
+                        "'%s' is invalid because %s must be set if %s is set in order to write FlowFiles as Records.\n",
+                ConsumeKinesisStream.RECORD_WRITER.getName(),
+                ConsumeKinesisStream.RECORD_WRITER.getDisplayName(),
+                ConsumeKinesisStream.RECORD_READER.getDisplayName()
+        )));
+    }
+
+    @Test
+    public void testInvalidRecordWriterWithoutRecordReader() throws InitializationException {
+        final ControllerService service = new JsonRecordSetWriter();
+        runner.addControllerService("record-writer", service);
+        runner.enableControllerService(service);
+        runner.setProperty(ConsumeKinesisStream.RECORD_WRITER, "record-writer");
+        runner.removeProperty(ConsumeKinesisStream.RECORD_READER);
+        runner.assertNotValid();
+
+        final AssertionError assertionError = assertThrows(AssertionError.class, runner::assertValid);
+        assertThat(assertionError.getMessage(), equalTo(String.format("Processor has 1 validation failures:\n" +
+                        "'%s' is invalid because %s must be set if %s is set in order to write FlowFiles as Records.\n",
+                ConsumeKinesisStream.RECORD_READER.getName(),
+                ConsumeKinesisStream.RECORD_READER.getDisplayName(),
+                ConsumeKinesisStream.RECORD_WRITER.getDisplayName()
         )));
     }
 
     /*
-     * Trigger a run of the GetKinesisStream processor, but expect the KCL Worker to fail (it needs connections to AWS resources)
-     * Assert that our code is being called by checking log output. The ITGetKinesisStream integration tests prove actual AWS connectivity
+     * Trigger a run of the ConsumeKinesisStream processor, but expect the KCL Worker to fail (it needs connections to AWS resources)
+     * Assert that our code is being called by checking log output. The ITConsumeKinesisStream integration tests prove actual AWS connectivity
      */
     @Test
     public void testRunWorker() throws UnknownHostException {
-        final TestRunner mockGetKinesisStreamRuner = TestRunners.newTestRunner(MockGetKinesisStream.class);
+        final TestRunner mockGetKinesisStreamRuner = TestRunners.newTestRunner(MockConsumeKinesisStream.class);
 
-        mockGetKinesisStreamRuner.setProperty(GetKinesisStream.KINESIS_STREAM_NAME, "test-stream");
-        mockGetKinesisStreamRuner.setProperty(GetKinesisStream.APPLICATION_NAME, "test-application");
-        mockGetKinesisStreamRuner.setProperty(GetKinesisStream.ACCESS_KEY, "test-access");
-        mockGetKinesisStreamRuner.setProperty(GetKinesisStream.SECRET_KEY, "test-secret");
-        mockGetKinesisStreamRuner.setProperty(GetKinesisStream.REGION, Regions.EU_WEST_2.getName());
+        mockGetKinesisStreamRuner.setProperty(ConsumeKinesisStream.KINESIS_STREAM_NAME, "test-stream");
+        mockGetKinesisStreamRuner.setProperty(ConsumeKinesisStream.APPLICATION_NAME, "test-application");
+        mockGetKinesisStreamRuner.setProperty(ConsumeKinesisStream.ACCESS_KEY, "test-access");
+        mockGetKinesisStreamRuner.setProperty(ConsumeKinesisStream.SECRET_KEY, "test-secret");
+        mockGetKinesisStreamRuner.setProperty(ConsumeKinesisStream.REGION, Regions.EU_WEST_2.getName());
 
-        // speed up init process for the unit test (And show use of dynamic properties to configure KCL)
-        mockGetKinesisStreamRuner.setProperty("maxInitializationAttempts", "1");
+        // speed up init process for the unit test (and show use of dynamic properties to configure KCL)
         mockGetKinesisStreamRuner.setProperty("parentShardPollIntervalMillis", "1");
 
         mockGetKinesisStreamRuner.assertValid();
 
-        mockGetKinesisStreamRuner.run();
+        // start the processor (but don't auto-shutdown to give Worker initialisation a chance to progress)
+        mockGetKinesisStreamRuner.run(1, false);
 
         final String hostname = InetAddress.getLocalHost().getCanonicalHostName();
 
-        final MockGetKinesisStream processor = ((MockGetKinesisStream) mockGetKinesisStreamRuner.getProcessor());
+        final MockConsumeKinesisStream processor = ((MockConsumeKinesisStream) mockGetKinesisStreamRuner.getProcessor());
         assertKinesisClientLibConfiguration(processor.kinesisClientLibConfiguration, hostname);
         assertThat(processor.workerBuilder.build().getApplicationName(), equalTo("test-application"));
 
@@ -206,17 +254,40 @@ public class TestGetKinesisStream {
                         "test-application", "test-stream", hostname
                 ))), is(true));
 
-        // confirm the processor worked through the onTrigger and stopConsuming methods
+        // confirm the processor worked through the onTrigger method (and no execution of stopConsuming method)
         assertThat(mockGetKinesisStreamRuner.getLogger().getDebugMessages().stream()
                 .anyMatch(logMessage -> logMessage.getMsg().endsWith("Starting Kinesis Worker")), is(true));
         assertThat(mockGetKinesisStreamRuner.getLogger().getDebugMessages().stream()
-                .anyMatch(logMessage -> logMessage.getMsg().endsWith("Kinesis Worker finished")), is(true));
+                .noneMatch(logMessage -> logMessage.getMsg().endsWith("Requesting Kinesis Worker shutdown")), is(true));
+        assertThat(mockGetKinesisStreamRuner.getLogger().getDebugMessages().stream()
+                .noneMatch(logMessage -> logMessage.getMsg().endsWith("Kinesis Worker shutdown")), is(true));
+        assertThat(mockGetKinesisStreamRuner.getLogger().getWarnMessages().isEmpty(), is(true));
+        assertThat(mockGetKinesisStreamRuner.getLogger().getErrorMessages().isEmpty(), is(true));
+
+        // re-trigger the processor to ensure the Worker isn't re-initialised when already running
+        mockGetKinesisStreamRuner.run(1, false, false);
+        assertThat(mockGetKinesisStreamRuner.getLogger().getDebugMessages().stream()
+                .filter(logMessage -> logMessage.getMsg().endsWith("Starting Kinesis Worker")).count(), is(1L));
+        assertThat(mockGetKinesisStreamRuner.getLogger().getWarnMessages().isEmpty(), is(true));
+        assertThat(mockGetKinesisStreamRuner.getLogger().getErrorMessages().isEmpty(), is(true));
+
+        // stop the processor
+        mockGetKinesisStreamRuner.stop();
+
+        // confirm the processor worked through the stopConsuming method
         assertThat(mockGetKinesisStreamRuner.getLogger().getDebugMessages().stream()
                 .anyMatch(logMessage -> logMessage.getMsg().endsWith("Requesting Kinesis Worker shutdown")), is(true));
         assertThat(mockGetKinesisStreamRuner.getLogger().getDebugMessages().stream()
                 .anyMatch(logMessage -> logMessage.getMsg().endsWith("Kinesis Worker shutdown")), is(true));
 
-        assertThat(mockGetKinesisStreamRuner.getLogger().getWarnMessages().isEmpty(), is(true));
+        // LeaseCoordinator doesn't startup properly (can't create DynamoDB table during unit test) and therefore has a problem during shutdown
+        assertThat(mockGetKinesisStreamRuner.getLogger().getWarnMessages().size(), is(2));
+        assertThat(mockGetKinesisStreamRuner.getLogger().getWarnMessages().stream()
+                .anyMatch(logMessage -> logMessage.getMsg().endsWith(
+                        "Problem while shutting down Kinesis Worker: java.lang.NullPointerException: java.util.concurrent.ExecutionException: java.lang.NullPointerException"
+                )), is(true));
+        assertThat(mockGetKinesisStreamRuner.getLogger().getWarnMessages().stream()
+                .anyMatch(logMessage -> logMessage.getMsg().endsWith("One or more problems while shutting down Kinesis Worker, see logs for details")), is(true));
         assertThat(mockGetKinesisStreamRuner.getLogger().getErrorMessages().isEmpty(), is(true));
     }
 
@@ -328,9 +399,9 @@ public class TestGetKinesisStream {
     @Test
     public void testValidDynamicKCLProperties() {
         runner.setProperty("billingMode", "PROVISIONED"); // enum
-        runner.setProperty("leaseCleanupIntervalMillis", "1000"); // long
+        runner.setProperty("failoverTimeMillis", "1000"); // long
         runner.setProperty("cleanupLeasesUponShardCompletion", "true"); // boolean
-        runner.setProperty("maxInitializationAttempts", "1"); // int
+        runner.setProperty("initialLeaseTableReadCapacity", "1"); // int
         runner.setProperty("dataFetchingStrategy", "DEFAULT"); // String
 
         runner.assertValid();
@@ -357,11 +428,10 @@ public class TestGetKinesisStream {
         assertThat(kinesisClientLibConfiguration.getDynamoDBClientConfiguration(), instanceOf(ClientConfiguration.class));
         assertThat(kinesisClientLibConfiguration.getCloudWatchClientConfiguration(), instanceOf(ClientConfiguration.class));
 
-        assertThat(kinesisClientLibConfiguration.getMaxInitializationAttempts(), equalTo(1));
         assertThat(kinesisClientLibConfiguration.getParentShardPollIntervalMillis(), equalTo(1L));
     }
 
-    public static class MockGetKinesisStream extends GetKinesisStream {
+    public static class MockConsumeKinesisStream extends ConsumeKinesisStream {
         KinesisClientLibConfiguration kinesisClientLibConfiguration;
         Worker.Builder workerBuilder;
 

@@ -24,7 +24,7 @@ import org.junit.Before;
 
 import static com.amazonaws.SDKGlobalConfiguration.AWS_CBOR_DISABLE_SYSTEM_PROPERTY;
 
-public class ITGetKinesisStreamConnectAWS extends ITGetKinesisStream {
+public class ITConsumeKinesisStreamConnectAWS extends ITConsumeKinesisStream {
 
     private final static String CREDENTIALS_FILE =
             System.getProperty("user.home") + "/aws-credentials.properties";
@@ -47,12 +47,12 @@ public class ITGetKinesisStreamConnectAWS extends ITGetKinesisStream {
 
         waitForKinesisToInitialize();
 
-        runner = TestRunners.newTestRunner(GetKinesisStream.class);
-        runner.setProperty(GetKinesisStream.APPLICATION_NAME, APPLICATION_NAME);
-        runner.setProperty(GetKinesisStream.KINESIS_STREAM_NAME, KINESIS_STREAM_NAME);
-        runner.setProperty(GetKinesisStream.CREDENTIALS_FILE, CREDENTIALS_FILE);
-        runner.setProperty(GetKinesisStream.REGION, REGION);
-        runner.setProperty(GetKinesisStream.REPORT_CLOUDWATCH_METRICS, "false");
+        runner = TestRunners.newTestRunner(ConsumeKinesisStream.class);
+        runner.setProperty(ConsumeKinesisStream.APPLICATION_NAME, APPLICATION_NAME);
+        runner.setProperty(ConsumeKinesisStream.KINESIS_STREAM_NAME, KINESIS_STREAM_NAME);
+        runner.setProperty(ConsumeKinesisStream.CREDENTIALS_FILE, CREDENTIALS_FILE);
+        runner.setProperty(ConsumeKinesisStream.REGION, REGION);
+        runner.setProperty(ConsumeKinesisStream.REPORT_CLOUDWATCH_METRICS, "false");
         runner.assertValid();
     }
 

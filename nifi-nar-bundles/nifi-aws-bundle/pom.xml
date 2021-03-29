@@ -26,8 +26,10 @@
     <packaging>pom</packaging>
 
     <properties>
-        <aws-java-sdk-version>1.11.952</aws-java-sdk-version>
-        <aws-kinesis-client-library-version>1.14.1</aws-kinesis-client-library-version>
+        <!-- keep AWS 1.x until NIFI-8287 -->
+        <aws-java-sdk-version>1.11.986</aws-java-sdk-version>
+        <!-- Do not upgrade to 1.14.x+ until https://github.com/awslabs/amazon-kinesis-client/issues/796 is fixed -->
+        <aws-kinesis-client-library-version>1.13.3</aws-kinesis-client-library-version>
     </properties>
 
     <dependencyManagement>

@@ -23,7 +23,7 @@ import com.amazonaws.services.kinesis.AmazonKinesis;
 import com.amazonaws.services.kinesis.clientlibrary.lib.worker.InitialPositionInStream;
 import com.amazonaws.services.kinesis.model.DeleteStreamRequest;
 import com.amazonaws.services.kinesis.model.ListStreamsResult;
-import org.apache.nifi.processors.aws.kinesis.stream.record.KinesisRecordProcessor;
+import org.apache.nifi.processors.aws.kinesis.stream.record.AbstractKinesisRecordProcessor;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.junit.After;
@@ -36,7 +36,7 @@ import java.util.concurrent.Executors;
 
 import static com.amazonaws.SDKGlobalConfiguration.AWS_CBOR_DISABLE_SYSTEM_PROPERTY;
 
-public abstract class ITGetKinesisStream {
+public abstract class ITConsumeKinesisStream {
 
     static final String KINESIS_STREAM_NAME = "test-stream";
     static final String APPLICATION_NAME = "test-application";
@@ -55,12 +55,12 @@ public abstract class ITGetKinesisStream {
 
         startKCL(runner, InitialPositionInStream.TRIM_HORIZON);
 
-        runner.assertAllFlowFilesTransferred(GetKinesisStream.REL_SUCCESS, 1);
+        runner.assertAllFlowFilesTransferred(ConsumeKinesisStream.REL_SUCCESS, 1);
 
         final List<MockFlowFile> ffs = runner.getFlowFilesForRelationship(PutKinesisStream.REL_SUCCESS);
         final MockFlowFile out = ffs.iterator().next();
 
-        out.assertAttributeEquals(KinesisRecordProcessor.AWS_KINESIS_PARTITION_KEY, partitionKey);
+        out.assertAttributeEquals(AbstractKinesisRecordProcessor.AWS_KINESIS_PARTITION_KEY, partitionKey);
 
         out.assertContentEquals("horizon".getBytes());
     }
@@ -77,12 +77,12 @@ public abstract class ITGetKinesisStream {
 
         waitForKCLToProcessTheLatestMessage();
 
-        runner.assertAllFlowFilesTransferred(GetKinesisStream.REL_SUCCESS, 1);
+        runner.assertAllFlowFilesTransferred(ConsumeKinesisStream.REL_SUCCESS, 1);
 
         final List<MockFlowFile> ffs = runner.getFlowFilesForRelationship(PutKinesisStream.REL_SUCCESS);
         final MockFlowFile out = ffs.iterator().next();
 
-        out.assertAttributeEquals(KinesisRecordProcessor.AWS_KINESIS_PARTITION_KEY, partitionKey);
+        out.assertAttributeEquals(AbstractKinesisRecordProcessor.AWS_KINESIS_PARTITION_KEY, partitionKey);
 
         out.assertContentEquals("latest".getBytes());
     }
@@ -92,7 +92,7 @@ public abstract class ITGetKinesisStream {
     }
 
     private void startKCL(TestRunner runner, InitialPositionInStream initialPositionInStream) throws InterruptedException {
-        runner.setProperty(GetKinesisStream.INITIAL_STREAM_POSITION, initialPositionInStream.name());
+        runner.setProperty(ConsumeKinesisStream.INITIAL_STREAM_POSITION, initialPositionInStream.name());
 
         runner.assertValid();
 

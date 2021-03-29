@@ -27,7 +27,7 @@ import org.junit.Before;
 
 import static com.amazonaws.SDKGlobalConfiguration.AWS_CBOR_DISABLE_SYSTEM_PROPERTY;
 
-public class ITGetKinesisStreamEndpointOverride extends ITGetKinesisStream {
+public class ITConsumeKinesisStreamEndpointOverride extends ITConsumeKinesisStream {
 
     private static final String ACCESS_KEY = "test";
     private static final String SECRET_KEY = "test";
@@ -63,15 +63,15 @@ public class ITGetKinesisStreamEndpointOverride extends ITGetKinesisStream {
 
         waitForKinesisToInitialize();
 
-        runner = TestRunners.newTestRunner(GetKinesisStream.class);
-        runner.setProperty(GetKinesisStream.APPLICATION_NAME, APPLICATION_NAME);
-        runner.setProperty(GetKinesisStream.KINESIS_STREAM_NAME, KINESIS_STREAM_NAME);
-        runner.setProperty(GetKinesisStream.ACCESS_KEY, ACCESS_KEY);
-        runner.setProperty(GetKinesisStream.SECRET_KEY, SECRET_KEY);
-        runner.setProperty(GetKinesisStream.REGION, REGION);
-        runner.setProperty(GetKinesisStream.REPORT_CLOUDWATCH_METRICS, "false");
-        runner.setProperty(GetKinesisStream.ENDPOINT_OVERRIDE, LOCAL_STACK_KINESIS_ENDPOINT_OVERRIDE + "/kinesis");
-        runner.setProperty(GetKinesisStream.DYNAMODB_ENDPOINT_OVERRIDE, LOCAL_STACK_DYNAMODB_ENDPOINT_OVERRIDE + "/dynamodb");
+        runner = TestRunners.newTestRunner(ConsumeKinesisStream.class);
+        runner.setProperty(ConsumeKinesisStream.APPLICATION_NAME, APPLICATION_NAME);
+        runner.setProperty(ConsumeKinesisStream.KINESIS_STREAM_NAME, KINESIS_STREAM_NAME);
+        runner.setProperty(ConsumeKinesisStream.ACCESS_KEY, ACCESS_KEY);
+        runner.setProperty(ConsumeKinesisStream.SECRET_KEY, SECRET_KEY);
+        runner.setProperty(ConsumeKinesisStream.REGION, REGION);
+        runner.setProperty(ConsumeKinesisStream.REPORT_CLOUDWATCH_METRICS, "false");
+        runner.setProperty(ConsumeKinesisStream.ENDPOINT_OVERRIDE, LOCAL_STACK_KINESIS_ENDPOINT_OVERRIDE + "/kinesis");
+        runner.setProperty(ConsumeKinesisStream.DYNAMODB_ENDPOINT_OVERRIDE, LOCAL_STACK_DYNAMODB_ENDPOINT_OVERRIDE + "/dynamodb");
         runner.assertValid();
     }
 

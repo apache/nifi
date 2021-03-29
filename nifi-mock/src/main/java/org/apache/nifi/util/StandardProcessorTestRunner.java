@@ -223,33 +223,37 @@ public class StandardProcessorTestRunner implements TestRunner {
 
                     if (++finishedCount == 1) {
                         unscheduledRun = true;
-                        try {
-                            ReflectionUtils.invokeMethodsWithAnnotation(OnUnscheduled.class, processor, context);
-                        } catch (final Exception e) {
-                            Assert.fail("Could not invoke methods annotated with @OnUnscheduled annotation due to: " + e);
-                        }
+                        unSchedule();
                     }
                 } catch (final Exception e) {
                 }
             }
 
             if (!unscheduledRun) {
-                try {
-                    ReflectionUtils.invokeMethodsWithAnnotation(OnUnscheduled.class, processor, context);
-                } catch (final Exception e) {
-                    Assert.fail("Could not invoke methods annotated with @OnUnscheduled annotation due to: " + e);
-                }
+                unSchedule();
             }
 
             if (stopOnFinish) {
-                try {
-                    ReflectionUtils.invokeMethodsWithAnnotation(OnStopped.class, processor, context);
-                } catch (final Exception e) {
-                    Assert.fail("Could not invoke methods annotated with @OnStopped annotation due to: " + e);
-                }
+                stop();
             }
         } finally {
             context.disableExpressionValidation();
+        }
+    }
+
+    public void unSchedule() {
+        try {
+            ReflectionUtils.invokeMethodsWithAnnotation(OnUnscheduled.class, processor, context);
+        } catch (final Exception e) {
+            Assert.fail("Could not invoke methods annotated with @OnUnscheduled annotation due to: " + e);
+        }
+    }
+
+    public void stop() {
+        try {
+            ReflectionUtils.invokeMethodsWithAnnotation(OnStopped.class, processor, context);
+        } catch (final Exception e) {
+            Assert.fail("Could not invoke methods annotated with @OnStopped annotation due to: " + e);
         }
     }
 

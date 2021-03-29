@@ -42,61 +42,73 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
-import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
+import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.aws.kinesis.stream.record.KinesisRecordProcessor;
-import org.apache.nifi.processors.aws.kinesis.stream.record.KinesisRecordProcessorFactory;
+import org.apache.nifi.processors.aws.kinesis.stream.record.AbstractKinesisRecordProcessor;
+import org.apache.nifi.processors.aws.kinesis.stream.record.KinesisRecordProcessorRaw;
+import org.apache.nifi.processors.aws.kinesis.stream.record.KinesisRecordProcessorRecord;
+import org.apache.nifi.serialization.RecordReaderFactory;
+import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.record.RecordFieldType;
 
-import javax.annotation.Nonnull;
 import java.lang.reflect.InvocationTargetException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
 @Tags({"amazon", "aws", "kinesis", "get", "stream"})
-@CapabilityDescription("Reads data from the specified AWS Kinesis stream and outputs a FlowFile for every processed Record. " +
+@CapabilityDescription("Reads data from the specified AWS Kinesis stream and outputs a FlowFile for every processed Record (raw) " +
+        " or a FlowFile for a batch of processed records if a Record Reader and Record Writer are configured. " +
         "At-least-once delivery of all Kinesis Records within the Stream while the processor is running. " +
         "AWS Kinesis Client Library can take several seconds to initialise before starting to fetch data. " +
         "Uses DynamoDB for check pointing and CloudWatch (optional) for metrics. " +
         "Ensure that the credentials provided have access to DynamoDB and CloudWatch (if used) along with Kinesis.")
 @WritesAttributes({
-        @WritesAttribute(attribute = KinesisRecordProcessor.AWS_KINESIS_PARTITION_KEY, description = "Partition from which the Kinesis Record was read"),
-        @WritesAttribute(attribute = KinesisRecordProcessor.AWS_KINESIS_SEQUENCE_NUMBER, description = "The unique identifier of the Kinesis Record within its shard."),
-        @WritesAttribute(attribute = KinesisRecordProcessor.AWS_KINESIS_SHARD_ID, description = "Shard ID from which the Kinesis Record was read"),
-        @WritesAttribute(attribute = KinesisRecordProcessor.AWS_KINESIS_APPROXIMATE_ARRIVAL_TIMESTAMP, description = "Approximate arrival timestamp of the Record in the Kinesis stream")
+        @WritesAttribute(attribute = AbstractKinesisRecordProcessor.AWS_KINESIS_PARTITION_KEY,
+                description = "Partition from which the (last) Kinesis Record was read"),
+        @WritesAttribute(attribute = AbstractKinesisRecordProcessor.AWS_KINESIS_SEQUENCE_NUMBER,
+                description = "The unique identifier of the (last) Kinesis Record within its shard"),
+        @WritesAttribute(attribute = AbstractKinesisRecordProcessor.AWS_KINESIS_APPROXIMATE_ARRIVAL_TIMESTAMP,
+                description = "Approximate arrival timestamp of the (last) Kinesis Record read from the stream"),
+        @WritesAttribute(attribute = AbstractKinesisRecordProcessor.AWS_KINESIS_SHARD_ID,
+                description = "Shard ID from which the Kinesis Record was read"),
+        @WritesAttribute(attribute = "mime.type",
+                description = "Sets the mime.type attribute to the MIME Type specified by the Record Writer (if configured)"),
+        @WritesAttribute(attribute = "record.count",
+                description = "Number of records written to the FlowFiles by the Record Writer (if configured)"),
+        @WritesAttribute(attribute = "record.error.message",
+                description = "This attribute provides on failure the error message encountered by the Record Reader or Record Writer (if configured)")
 })
 @DynamicProperties({
         @DynamicProperty(name="Kinesis Client Library (KCL) Configuration property name",
@@ -115,7 +127,7 @@ import java.util.stream.Stream;
         "requesting up to a maximum number of Records/bytes per call. This can result in sustained network usage.")
 @SeeAlso(PutKinesisStream.class)
 @SuppressWarnings("java:S110")
-public class GetKinesisStream extends AbstractKinesisStreamProcessor {
+public class ConsumeKinesisStream extends AbstractKinesisStreamProcessor {
     static final AllowableValue TRIM_HORIZON = new AllowableValue(
             InitialPositionInStream.TRIM_HORIZON.toString(),
             InitialPositionInStream.TRIM_HORIZON.toString(),
@@ -217,11 +229,42 @@ public class GetKinesisStream extends AbstractKinesisStreamProcessor {
             .defaultValue("false")
             .required(true).build();
 
+    public static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
+            .name("amazon-kinesis-stream-record-reader")
+            .displayName("Record Reader")
+            .description("The Record Reader to use for reading received messages." +
+                    " The Kinesis Stream name can be referred to by Expression Language '${" +
+                    AbstractKinesisRecordProcessor.KINESIS_RECORD_SCHEMA_KEY + "}' to access a schema." +
+                    " If Record Reader/Writer are not specified, each Kinesis Record will create a FlowFile.")
+            .identifiesControllerService(RecordReaderFactory.class)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .required(false)
+            .build();
+
+    public static final PropertyDescriptor RECORD_WRITER = new PropertyDescriptor.Builder()
+            .name("amazon-kinesis-stream-record-writer")
+            .displayName("Record Writer")
+            .description("The Record Writer to use for serializing Records to an output FlowFile." +
+                    " The Kinesis Stream name can be referred to by Expression Language '${" +
+                    AbstractKinesisRecordProcessor.KINESIS_RECORD_SCHEMA_KEY + "}' to access a schema." +
+                    " If Record Reader/Writer are not specified, each Kinesis Record will create a FlowFile.")
+            .identifiesControllerService(RecordSetWriterFactory.class)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .required(false)
+            .build();
+
+    public static final Relationship REL_PARSE_FAILURE = new Relationship.Builder()
+            .name("parse.failure")
+            .description("If a message from Kinesis cannot be parsed using the configured Record Reader" +
+                    " or failed to be written by the configured Record Writer," +
+                    " the contents of the message will be routed to this Relationship as its own individual FlowFile.")
+            .build();
+
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
             Arrays.asList(
                     // Kinesis Stream specific properties
-                    KINESIS_STREAM_NAME, APPLICATION_NAME, REGION, ENDPOINT_OVERRIDE, DYNAMODB_ENDPOINT_OVERRIDE,
-                    INITIAL_STREAM_POSITION, STREAM_POSITION_TIMESTAMP, TIMESTAMP_FORMAT,
+                    KINESIS_STREAM_NAME, APPLICATION_NAME, RECORD_READER, RECORD_WRITER, REGION, ENDPOINT_OVERRIDE,
+                    DYNAMODB_ENDPOINT_OVERRIDE, INITIAL_STREAM_POSITION, STREAM_POSITION_TIMESTAMP, TIMESTAMP_FORMAT,
                     CHECKPOINT_INTERVAL_MILLIS, NUM_RETRIES, RETRY_WAIT_MILLIS, REPORT_CLOUDWATCH_METRICS,
                     // generic AWS processor properties
                     TIMEOUT, AWS_CREDENTIALS_PROVIDER_SERVICE, ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE,
@@ -237,20 +280,27 @@ public class GetKinesisStream extends AbstractKinesisStreamProcessor {
         put("kinesisEndpoint", KINESIS_STREAM_NAME);
     }};
 
-    private long retryWaitMillis;
-    private int numRetries;
-    private InitialPositionInStream initialPositionInStream;
-    private DateTimeFormatter dateTimeFormatter;
-    private Date startStreamPositionTimestamp;
-    private AWSCredentials awsCredentials;
-
-    private volatile ExecutorService executorService;
-    private Map<Worker, Future<?>> workers;
+    private static final Set<Relationship> RELATIONSHIPS = Collections.singleton(REL_SUCCESS);
+    private static final Set<Relationship> RECORD_RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(REL_SUCCESS, REL_PARSE_FAILURE)));
 
     private final PropertyUtilsBean propertyUtilsBean;
     private final BeanUtilsBean beanUtilsBean;
 
-    public GetKinesisStream() {
+    private volatile long retryWaitMillis;
+    private volatile int numRetries;
+    private volatile InitialPositionInStream initialPositionInStream;
+    private volatile DateTimeFormatter dateTimeFormatter;
+    private volatile Date startStreamPositionTimestamp;
+    private volatile AWSCredentials awsCredentials;
+
+    private volatile RecordReaderFactory readerFactory;
+    private volatile RecordSetWriterFactory writerFactory;
+    private volatile boolean isRecordReaderSet = false;
+    private volatile boolean isRecordWriterSet = false;
+
+    private volatile Worker worker;
+
+    public ConsumeKinesisStream() {
         propertyUtilsBean = new PropertyUtilsBean();
         propertyUtilsBean.addBeanIntrospector(new FluentPropertyBeanIntrospector("with"));
 
@@ -276,7 +326,16 @@ public class GetKinesisStream extends AbstractKinesisStreamProcessor {
 
     @Override
     public Set<Relationship> getRelationships() {
-        return Collections.singleton(REL_SUCCESS);
+        return isRecordReaderSet && isRecordWriterSet ? RECORD_RELATIONSHIPS : RELATIONSHIPS;
+    }
+
+    @Override
+    public void onPropertyModified(PropertyDescriptor descriptor, String oldValue, String newValue) {
+        if (RECORD_READER.equals(descriptor)) {
+            isRecordReaderSet = StringUtils.isNotEmpty(newValue);
+        } else if (RECORD_WRITER.equals(descriptor)) {
+            isRecordWriterSet = StringUtils.isNotEmpty(newValue);
+        }
     }
 
     @Override
@@ -341,7 +400,7 @@ public class GetKinesisStream extends AbstractKinesisStreamProcessor {
 
     @Override
     protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
-        final List<ValidationResult> validationResults = new ArrayList<>(super.customValidate(validationContext));
+        final Set<ValidationResult> validationResults = new HashSet<>(super.customValidate(validationContext));
 
         initialPositionInStream = InitialPositionInStream.valueOf(StringUtils.trimToEmpty(validationContext.getProperty(INITIAL_STREAM_POSITION).getValue()));
         try {
@@ -380,6 +439,28 @@ public class GetKinesisStream extends AbstractKinesisStreamProcessor {
             }
         }
 
+        final ControllerService recordReader = validationContext.getProperty(RECORD_READER).isSet()
+                ? validationContext.getProperty(RECORD_READER).asControllerService()
+                : null;
+        final ControllerService recordWriter = validationContext.getProperty(RECORD_WRITER).isSet()
+                ? validationContext.getProperty(RECORD_WRITER).asControllerService()
+                : null;
+        if (recordReader != null && recordWriter == null) {
+            validationResults.add(new ValidationResult.Builder()
+                    .subject(RECORD_WRITER.getName())
+                    .explanation(String.format("%s must be set if %s is set in order to write FlowFiles as Records.",
+                            RECORD_WRITER.getDisplayName(), RECORD_READER.getDisplayName()))
+                    .valid(false)
+                    .build());
+        } else if (recordWriter != null && recordReader == null) {
+            validationResults.add(new ValidationResult.Builder()
+                    .subject(RECORD_READER.getName())
+                    .explanation(String.format("%s must be set if %s is set in order to write FlowFiles as Records.",
+                            RECORD_READER.getDisplayName(), RECORD_WRITER.getDisplayName()))
+                    .valid(false)
+                    .build());
+        }
+
         return validationResults;
     }
 
@@ -395,74 +476,52 @@ public class GetKinesisStream extends AbstractKinesisStreamProcessor {
         retryWaitMillis = getRetryWaitMillis(context);
         numRetries = getNumRetries(context);
 
+        readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
+        writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
+
         super.onScheduled(context);
-
-        workers = new ConcurrentHashMap<>(context.getMaxConcurrentTasks());
-        executorService = Executors.newFixedThreadPool(context.getMaxConcurrentTasks(), new ThreadFactory() {
-            private final ThreadFactory defaultFactory = Executors.defaultThreadFactory();
-
-            @Override
-            public Thread newThread(@Nonnull final Runnable r) {
-                final Thread t = defaultFactory.newThread(r);
-                t.setName("GetKinesisStream " + getIdentifier() + " Task");
-                return t;
-            }
-        });
     }
 
     @Override
-    public void onTrigger(final ProcessContext context, final ProcessSession session) {
-        final Worker worker = prepareWorker(context, session);
-        final Future<?> workerFuture = executorService.submit(worker);
+    public void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) {
+        if (worker == null) {
+            getLogger().debug("Starting Kinesis Worker");
+            worker = prepareWorker(context, sessionFactory);
+            new Thread(worker).start();
+        }
 
-        if (isScheduled()) {
-            workers.put(worker, workerFuture);
+        // after a Worker is registered successfully, nothing has to be done at onTrigger
+        // because new sessions are created when new messages are consumed by the Worker
+        context.yield();
+    }
 
-            try {
-                getLogger().debug("Starting Kinesis Worker");
-                workerFuture.get(); // blocking Thread, completes when processor unscheduled and stopConsuming called
-                getLogger().debug("Kinesis Worker finished");
-            } catch (@SuppressWarnings("java:S2142") InterruptedException e) {
-                getLogger().warn("Interrupted while executing Kinesis Worker", e);
-            } catch (ExecutionException e) {
-                getLogger().error("Exception executing Kinesis Worker", e);
+    @Override
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
+        // intentionally blank (using onTrigger with ProcessSessionFactory above instead)
+    }
+
+    @OnStopped
+    public void stopConsuming(final ProcessContext context) {
+        if (worker != null) {
+            final boolean success = shutdownWorker();
+            worker = null;
+            readerFactory = null;
+            writerFactory = null;
+
+            if (!success) {
+                getLogger().warn("One or more problems while shutting down Kinesis Worker, see logs for details");
                 context.yield();
             }
         }
     }
 
-    @OnUnscheduled
-    public void stopConsuming(final ProcessContext context) {
-        final AtomicBoolean success = new AtomicBoolean(true);
-        final Stream<Map.Entry<Worker, Future<?>>> workerStream;
-        if (workers.size() > 1) {
-            workerStream = workers.entrySet().parallelStream();
-        } else {
-            workerStream = workers.entrySet().stream();
-        }
-        workerStream.forEach(entry -> {
-            if (!shutdownWorker(entry.getKey(), entry.getValue())) {
-                success.set(false);
-            }
-        });
-
-        executorService.shutdown();
-        workers = null;
-
-        if (!success.get()) {
-            getLogger().warn("One of more problems while shutting down Kinesis Workers, see logs for details");
-            context.yield();
-        }
-    }
-
-    private Worker prepareWorker(final ProcessContext context, final ProcessSession session) {
+    private Worker prepareWorker(final ProcessContext context, final ProcessSessionFactory sessionFactory) {
         final String appName = getApplicationName(context);
         final String streamName = getStreamName(context);
         final String workerId = generateWorkerId();
         final long checkpointIntervalMillis = getCheckpointIntervalMillis(context);
 
-        final KinesisRecordProcessorFactory factory = new KinesisRecordProcessorFactory(session, getLogger(),
-                getClient().getEndpointPrefix(), checkpointIntervalMillis, retryWaitMillis, numRetries, dateTimeFormatter);
+        final IRecordProcessorFactory factory = prepareRecordProcessorFactory(sessionFactory, streamName, checkpointIntervalMillis);
 
         final KinesisClientLibConfiguration kinesisClientLibConfiguration = prepareKinesisClientLibConfiguration(
                 context, appName, streamName, workerId);
@@ -473,6 +532,23 @@ public class GetKinesisStream extends AbstractKinesisStreamProcessor {
                 appName, streamName, workerId);
 
         return workerBuilder.build();
+    }
+
+    private IRecordProcessorFactory prepareRecordProcessorFactory(final ProcessSessionFactory sessionFactory,
+                                                                  final String streamName, final long checkpointIntervalMillis) {
+        return () -> {
+            if (isRecordReaderSet && isRecordWriterSet) {
+                return new KinesisRecordProcessorRecord(
+                        sessionFactory, getLogger(), streamName, getClient().getEndpointPrefix(), checkpointIntervalMillis,
+                        retryWaitMillis, numRetries, dateTimeFormatter, readerFactory, writerFactory
+                );
+            } else {
+                return new KinesisRecordProcessorRaw(
+                        sessionFactory, getLogger(), streamName, getClient().getEndpointPrefix(), checkpointIntervalMillis,
+                        retryWaitMillis, numRetries, dateTimeFormatter
+                );
+            }
+        };
     }
 
     /*
@@ -535,24 +611,22 @@ public class GetKinesisStream extends AbstractKinesisStreamProcessor {
         return workerBuilder;
     }
 
-    private boolean shutdownWorker(final Worker worker, final Future<?> workerFuture) {
+    private boolean shutdownWorker() {
         boolean success = true;
         try {
-            if (worker != null && !worker.hasGracefulShutdownStarted()) {
+            if (!worker.hasGracefulShutdownStarted()) {
                 getLogger().debug("Requesting Kinesis Worker shutdown");
                 final Future<Boolean> shutdown = worker.startGracefulShutdown();
-                if (Boolean.FALSE.equals(shutdown.get())) {
+                // allow at least 10 seconds for shutdown before cancelling the task
+                if (Boolean.FALSE.equals(shutdown.get(Math.max(retryWaitMillis * numRetries, 10_000L), TimeUnit.MILLISECONDS))) {
                     getLogger().warn("Kinesis Worker shutdown did not complete in time, cancelling");
                     success = false;
-                    if (workerFuture != null && !workerFuture.isDone()) {
-                        workerFuture.cancel(true);
-                    }
                 } else {
                     getLogger().debug("Kinesis Worker shutdown");
                 }
             }
-        } catch (@SuppressWarnings("java:S2142") InterruptedException | ExecutionException e) {
-            getLogger().warn("Problem while shutting down Kinesis Worker", e);
+        } catch (@SuppressWarnings("java:S2142") InterruptedException | TimeoutException | ExecutionException e) {
+            getLogger().warn("Problem while shutting down Kinesis Worker: {}", e.getLocalizedMessage(), e);
             success = false;
         }
         return success;

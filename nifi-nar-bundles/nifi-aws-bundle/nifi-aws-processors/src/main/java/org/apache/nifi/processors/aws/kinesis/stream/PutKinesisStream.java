@@ -58,7 +58,7 @@ import java.util.Random;
     @WritesAttribute(attribute = "aws.kinesis.error.code", description = "Error code for the message when posting to AWS Kinesis"),
     @WritesAttribute(attribute = "aws.kinesis.sequence.number", description = "Sequence number for the message when posting to AWS Kinesis"),
     @WritesAttribute(attribute = "aws.kinesis.shard.id", description = "Shard id of the message posted to AWS Kinesis")})
-@SeeAlso(GetKinesisStream.class)
+@SeeAlso(ConsumeKinesisStream.class)
 public class PutKinesisStream extends AbstractKinesisStreamProcessor {
     /**
      * Kinesis put record response error message
