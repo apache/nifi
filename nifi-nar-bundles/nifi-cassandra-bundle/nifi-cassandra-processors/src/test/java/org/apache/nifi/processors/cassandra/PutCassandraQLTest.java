@@ -25,6 +25,7 @@ import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Session;
+import com.datastax.driver.core.SniEndPoint;
 import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.exceptions.InvalidQueryException;
 import com.datastax.driver.core.exceptions.NoHostAvailableException;
@@ -219,7 +220,7 @@ public class PutCassandraQLTest {
     public void testProcessorBadTimestamp() {
         setUpStandardTestConfig();
         processor.setExceptionToThrow(
-                new InvalidQueryException(new InetSocketAddress("localhost", 9042), "invalid timestamp"));
+                new InvalidQueryException(new SniEndPoint(new InetSocketAddress("localhost", 9042), ""), "invalid timestamp"));
         testRunner.enqueue("INSERT INTO users (user_id, first_name, last_name, properties, bits, scaleset, largenum, scale, byteobject, ts) VALUES ?, ?, ?, ?, ?, ?, ?, ?, ?, ?",
                 new HashMap<String, String>() {
                     {
@@ -330,7 +331,7 @@ public class PutCassandraQLTest {
 
         // Test exceptions
         processor.setExceptionToThrow(
-                new InvalidQueryException(new InetSocketAddress("localhost", 9042), "invalid query"));
+                new InvalidQueryException(new SniEndPoint(new InetSocketAddress("localhost", 9042), ""), "invalid query"));
         testRunner.enqueue("UPDATE users SET cities = [ 'New York', 'Los Angeles' ] WHERE user_id = 'coast2coast';");
         testRunner.run(1, true, true);
         testRunner.assertAllFlowFilesTransferred(PutCassandraQL.REL_FAILURE, 1);
@@ -342,7 +343,7 @@ public class PutCassandraQLTest {
         setUpStandardTestConfig();
 
         processor.setExceptionToThrow(
-                new UnavailableException(new InetSocketAddress("localhost", 9042), ConsistencyLevel.ALL, 5, 2));
+                new UnavailableException(new SniEndPoint(new InetSocketAddress("localhost", 9042), ""), ConsistencyLevel.ALL, 5, 2));
         testRunner.enqueue("UPDATE users SET cities = [ 'New York', 'Los Angeles' ] WHERE user_id = 'coast2coast';");
         testRunner.run(1, true, true);
         testRunner.assertAllFlowFilesTransferred(PutCassandraQL.REL_RETRY, 1);

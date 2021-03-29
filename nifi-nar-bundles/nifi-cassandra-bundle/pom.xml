@@ -23,7 +23,7 @@
     </parent>
 
     <properties>
-        <cassandra.sdk.version>3.3.0</cassandra.sdk.version>
+        <cassandra.sdk.version>3.11.0</cassandra.sdk.version>
     </properties>
 
     <artifactId>nifi-cassandra-bundle</artifactId>
