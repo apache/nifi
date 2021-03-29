@@ -94,14 +94,14 @@ public class StandardStatelessFlow implements StatelessDataflow {
     private final DataflowDefinition<?> dataflowDefinition;
     private final StatelessStateManagerProvider stateManagerProvider;
     private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ProcessScheduler processScheduler;
 
     private volatile ExecutorService runDataflowExecutor;
-    private volatile ProcessScheduler processScheduler;
     private volatile boolean initialized = false;
 
     public StandardStatelessFlow(final ProcessGroup rootGroup, final List<ReportingTaskNode> reportingTasks, final ControllerServiceProvider controllerServiceProvider,
                                  final ProcessContextFactory processContextFactory, final RepositoryContextFactory repositoryContextFactory, final DataflowDefinition<?> dataflowDefinition,
-                                 final StatelessStateManagerProvider stateManagerProvider) {
+                                 final StatelessStateManagerProvider stateManagerProvider, final ProcessScheduler processScheduler) {
         this.rootGroup = rootGroup;
         this.allConnections = rootGroup.findAllConnections();
         this.reportingTasks = reportingTasks;
@@ -110,6 +110,7 @@ public class StandardStatelessFlow implements StatelessDataflow {
         this.repositoryContextFactory = repositoryContextFactory;
         this.dataflowDefinition = dataflowDefinition;
         this.stateManagerProvider = stateManagerProvider;
+        this.processScheduler = processScheduler;
 
         rootConnectables = new HashSet<>();
 
@@ -164,18 +165,23 @@ public class StandardStatelessFlow implements StatelessDataflow {
         }
     }
 
-    public void initialize(final ProcessScheduler processScheduler) {
+    @Override
+    public void initialize() {
         if (initialized) {
-            throw new IllegalStateException("Cannot initialize dataflow more than once");
+            logger.debug("{} initialize() was called, but dataflow has already been initialized. Returning without doing anything.", this);
+            return;
         }
 
         initialized = true;
-        this.processScheduler = processScheduler;
 
         // Trigger validation to occur so that components can be enabled/started.
         final long validationStart = System.currentTimeMillis();
-        performValidation();
+        final StatelessDataflowValidation validationResult = performValidation();
         final long validationMillis = System.currentTimeMillis() - validationStart;
+
+        if (!validationResult.isValid()) {
+            logger.warn("{} Attempting to initialize dataflow but found at least one invalid component: {}", this, validationResult);
+        }
 
         // Enable Controller Services and start processors in the flow.
         // This is different than the calling ProcessGroup.startProcessing() because
@@ -256,7 +262,9 @@ public class StandardStatelessFlow implements StatelessDataflow {
 
     @Override
     public void shutdown() {
-        runDataflowExecutor.shutdown();
+        if (runDataflowExecutor != null) {
+            runDataflowExecutor.shutdown();
+        }
 
         rootGroup.stopProcessing();
         rootGroup.findAllRemoteProcessGroups().forEach(RemoteProcessGroup::shutdown);
@@ -274,10 +282,7 @@ public class StandardStatelessFlow implements StatelessDataflow {
         // invoke any methods annotated with @OnShutdown on Reporting Tasks
         reportingTasks.forEach(processScheduler::shutdownReportingTask);
 
-        if (processScheduler != null) {
-            processScheduler.shutdown();
-        }
-
+        processScheduler.shutdown();
         repositoryContextFactory.shutdown();
     }
 

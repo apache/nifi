@@ -64,7 +64,7 @@ public class DownloadQueue {
     private final List<ExtensionClient> clients;
 
     private final BlockingQueue<BundleCoordinate> toDownload = new LinkedBlockingQueue<>();
-    private final Set<BundleCoordinate> allDownloads = new HashSet<>();
+    private final Set<BundleCoordinate> allDownloads = Collections.synchronizedSet(new HashSet<>());
 
     public DownloadQueue(final ExtensionManager extensionManager, final ExecutorService executorService, final int concurrentDownloads, final Collection<BundleCoordinate> bundles,
                          final File narLibDirectory, final List<ExtensionClient> clients) {
@@ -74,18 +74,23 @@ public class DownloadQueue {
         this.narLibDirectory = narLibDirectory;
         this.clients = clients;
 
+        if (!narLibDirectory.exists()) {
+            final boolean created = narLibDirectory.mkdirs() || narLibDirectory.exists();
+            if (!created) {
+                logger.error("Extensions directory {} did not exist and could not be created.", narLibDirectory.getAbsolutePath());
+            }
+        }
+
         toDownload.addAll(bundles);
         allDownloads.addAll(bundles);
     }
 
     @SuppressWarnings("rawtypes")
     public CompletableFuture<Void> download() {
-        final Set<File> downloaded = Collections.synchronizedSet(new HashSet<>());
-
         final CompletableFuture[] futures = new CompletableFuture[concurrentDownloads];
         for (int i=0; i < concurrentDownloads; i++) {
             final CompletableFuture<Void> completableFuture = new CompletableFuture<>();
-            executorService.submit(new DownloadTask(toDownload, completableFuture, downloaded));
+            executorService.submit(new DownloadTask(toDownload, completableFuture, allDownloads));
             futures[i] = completableFuture;
         }
 
@@ -110,29 +115,6 @@ public class DownloadQueue {
             && !NarClassLoaders.FRAMEWORK_NAR_ID.equals(coordinate.getId());
     }
 
-    private synchronized void queueParents(final BundleCoordinate parentCoordinates) {
-        if (parentCoordinates == null) {
-            return;
-        }
-
-        final Bundle existingBundle = extensionManager.getBundle(parentCoordinates);
-        if (existingBundle == null) {
-            if (allDownloads.contains(parentCoordinates)) {
-                // Already queued for download.
-                return;
-            }
-
-            // We don't have have the parent yet. Queue it for download.
-            logger.debug("Enqueuing parent bundle {} to be downloaded", parentCoordinates);
-            allDownloads.add(parentCoordinates);
-            toDownload.add(parentCoordinates);
-            return;
-        }
-
-        // Check/queue anything needed for download, recursively.
-        queueParents(existingBundle.getBundleDetails().getDependencyCoordinate());
-    }
-
     private File getBundleFile(final BundleCoordinate coordinate) {
         final String filename = coordinate.getId() + "-" + coordinate.getVersion() + ".nar";
         return new File(narLibDirectory, filename);
@@ -142,12 +124,12 @@ public class DownloadQueue {
     private class DownloadTask implements Runnable {
         private final BlockingQueue<BundleCoordinate> downloadQueue;
         private final CompletableFuture<Void> completableFuture;
-        private final Set<File> filesDownloaded;
+        private final Set<BundleCoordinate> downloads;
 
-        public DownloadTask(final BlockingQueue<BundleCoordinate> downloadQueue, final CompletableFuture<Void> completableFuture, final Set<File> filesDownloaded) {
+        public DownloadTask(final BlockingQueue<BundleCoordinate> downloadQueue, final CompletableFuture<Void> completableFuture, final Set<BundleCoordinate> filesDownloaded) {
             this.downloadQueue = downloadQueue;
             this.completableFuture = completableFuture;
-            this.filesDownloaded = filesDownloaded;
+            this.downloads = filesDownloaded;
         }
 
         @Override
@@ -155,19 +137,7 @@ public class DownloadQueue {
             BundleCoordinate coordinate;
             while ((coordinate = downloadQueue.poll()) != null) {
                 try {
-                    final File downloaded = download(coordinate);
-                    if (downloaded != null) {
-                        filesDownloaded.add(downloaded);
-
-                        final BundleCoordinate parentCoordinate = getParentCoordinate(downloaded);
-                        queueParents(parentCoordinate);
-                    }
-
-                    final Bundle existingBundle = extensionManager.getBundle(coordinate);
-                    if (existingBundle != null) {
-                        final BundleCoordinate parentCoordinate = existingBundle.getBundleDetails().getDependencyCoordinate();
-                        queueParents(parentCoordinate);
-                    }
+                    downloadBundleAndParents(coordinate);
                 } catch (final Exception e) {
                     logger.error("Failed to download {}", coordinate, e);
                     completableFuture.completeExceptionally(e);
@@ -175,6 +145,26 @@ public class DownloadQueue {
             }
 
             completableFuture.complete(null);
+        }
+
+        private void downloadBundleAndParents(final BundleCoordinate coordinate) throws IOException {
+            if (coordinate == null) {
+                return;
+            }
+
+            downloads.add(coordinate);
+
+            final File downloaded = download(coordinate);
+            if (downloaded != null) {
+                final BundleCoordinate parentCoordinate = getParentCoordinate(downloaded);
+                downloadBundleAndParents(parentCoordinate);
+            }
+
+            final Bundle existingBundle = extensionManager.getBundle(coordinate);
+            if (existingBundle != null) {
+                final BundleCoordinate parentCoordinate = existingBundle.getBundleDetails().getDependencyCoordinate();
+                downloadBundleAndParents(parentCoordinate);
+            }
         }
 
         private BundleCoordinate getParentCoordinate(final File narFile) throws IOException {
@@ -198,18 +188,14 @@ public class DownloadQueue {
             final List<Exception> suppressed = new ArrayList<>();
             final File destinationFile = getBundleFile(coordinate);
 
-            if (NarClassLoaders.JETTY_NAR_ID.equals(coordinate.getId())) {
-                logger.debug("Requested to download {} but only a single Jetty NAR is allowed to exist so will not download.", coordinate);
-                return null;
-            }
-            if (NarClassLoaders.FRAMEWORK_NAR_ID.equals(coordinate.getId())) {
-                logger.debug("Requested to download {} but only a single NiFi Framework NAR is allowed to exist so will not download.", coordinate);
+            if (!isDownloadable(coordinate)) {
+                logger.debug("Requested to download {} but only a single NAR of this type is allowed to exist so will not download.", coordinate);
                 return null;
             }
 
             if (destinationFile.exists()) {
                 logger.debug("Requested to download {} but destination file {} already exists. Will not download.", coordinate, destinationFile);
-                return null;
+                return destinationFile;
             }
 
             for (final ExtensionClient extensionClient : clients) {

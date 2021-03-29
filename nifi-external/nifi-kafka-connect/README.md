@@ -117,7 +117,8 @@ as it includes annotations (1), (2), etc. for illustrative purposes):
 (12)   "header.attribute.regex": "syslog.*",
 (13)   "krb5.file": "/etc/krb5.conf",
 (14)   "dataflow.timeout": "30 sec",
-(15)   "parameter.Syslog Port": "19944"
+(15)   "parameter.Syslog Port": "19944",
+(16)   "extensions.directory": "/tmp/stateless-extensions"
   }
 }
 ``` 
@@ -191,6 +192,9 @@ Process Groups have their own Parameter Contexts, this value will be used for an
 should be applied only to a specific Parameter Context, the name of the Parameter Context may be supplied and separated from the Parameter Name with a colon. For example,
 `parameter.Syslog Context:Syslog Port`. In this case, the only Parameter Context whose `Syslog Port` parameter would be set would be the Parameter Context whose name is `Syslog Context`.
 
+`(16) extensions.directory` : Specifies the directory to add any downloaded extensions to. If not specified, the extensions will be written to the same directory that the
+connector lives in. Because this directory may not be writable, and to aid in upgrade scenarios, it is highly recommended that this property be configured.
+ 
 
 ### Transactional sources
 
@@ -252,7 +256,8 @@ as it includes annotations (1), (2), etc. for illustrative purposes):
 (12)   "headers.as.attributes.regex": "syslog.*",
 (13)   "krb5.file": "/etc/krb5.conf",
 (14)   "dataflow.timeout": "30 sec",
-(15)   "parameter.Directory": "/syslog"
+(15)   "parameter.Directory": "/syslog",
+(16)   "extensions.directory": "/tmp/stateless-extensions"
   }
 }
 ``` 
@@ -322,6 +327,9 @@ in the dataflow that has a parameter with name `Directory` will get the value sp
 Process Groups have their own Parameter Contexts, this value will be used for any and all Parameter Contexts containing a Parameter by the name of `Directory`. If the Parameter
 should be applied only to a specific Parameter Context, the name of the Parameter Context may be supplied and separated from the Parameter Name with a colon. For example,
 `parameter.HDFS:Directory`. In this case, the only Parameter Context whose `Directory` parameter would be set would be the Parameter Context whose name is `HDFS`.
+
+`(16) extensions.directory` : Specifies the directory to add any downloaded extensions to. If not specified, the extensions will be written to the same directory that the
+connector lives in. Because this directory may not be writable, and to aid in upgrade scenarios, it is highly recommended that this property be configured.
 
 
 <a name="merging"></a>
@@ -441,8 +449,10 @@ The Connector will then examine its own set of downloaded extensions and determi
 and begin downloading them.
 
 In order to do this, the connect configuration must specify where to download the extensions. This is the reason for the "nexus.url" property that is described
-in both the Source Connector and the Sink Connector. Once downloaded, the extensions are placed in the same directory as existing NiFi Archive (NAR) files.
-Unless explicitly specified in the connector configuration (via the `nar.directory` configuration element), this is auto-detected to be the same directory
+in both the Source Connector and the Sink Connector. Once downloaded, the extensions are placed in the configured extensions directory (configured via the
+`extensions.directory` configuration element).
+If the `extensions.directory` is not explicitly specified in the connector configuration, extensions will be added to the NAR Directory 
+(configured via the `nar.directory` configuration element). If this is not specified, it is is auto-detected to be the same directory
 that the NiFi Kafka Connector was installed in.
 
 
@@ -467,7 +477,9 @@ Kafka Connect does not allow for state to be stored for Sink Tasks.
 NiFi provides several processors that are expected to run only on a single node in the cluster. This is accomplished by setting the Execution Node to
 "Primary Node Only" in the scheduling tab when configuring a NiFi Processor. When using the Source Connector, if any source processor in the configured
 dataflow is set to run on Primary Node Only, only a single task will ever run, even if the "tasks" configuration element is set to a large value. In this
-case, a warning will be logged if attempting to use multiple tasks for a dataflow that has a source processor configured for Primary Node Only.
+case, a warning will be logged if attempting to use multiple tasks for a dataflow that has a source processor configured for Primary Node Only. Because Processors
+should only be scheduled on Primary Node Only if they are sources of data, this is ignored for all Sink Tasks and for any Processor in a Source Task that has
+incoming connections.
 
 #### Processor Yielding
 
