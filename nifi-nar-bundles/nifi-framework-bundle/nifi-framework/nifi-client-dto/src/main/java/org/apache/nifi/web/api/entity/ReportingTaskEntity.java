@@ -68,7 +68,7 @@ public class ReportingTaskEntity extends ComponentEntity implements Permissible<
      */
     @ApiModelProperty(
             value = "The status for this ReportingTask.",
-            readOnly = true
+            accessMode = ApiModelProperty.AccessMode.READ_ONLY
     )
     public ReportingTaskStatusDTO getStatus() {
         return status;

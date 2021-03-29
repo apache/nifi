@@ -37,7 +37,7 @@ public class UserDTO extends TenantDTO {
      */
     @ApiModelProperty(
             value = "The groups to which the user belongs. This field is read only and it provided for convenience.",
-            readOnly = true
+            accessMode = ApiModelProperty.AccessMode.READ_ONLY
     )
     public Set<TenantEntity> getUserGroups() {
         return userGroups;
@@ -52,7 +52,7 @@ public class UserDTO extends TenantDTO {
      */
     @ApiModelProperty(
             value = "The access policies this user belongs to.",
-            readOnly = true
+            accessMode = ApiModelProperty.AccessMode.READ_ONLY
     )
     public Set<AccessPolicySummaryEntity> getAccessPolicies() {
         return accessPolicies;

@@ -90,7 +90,7 @@ public class ProcessGroupEntity extends ComponentEntity implements Permissible<P
      */
     @ApiModelProperty(
         value = "The number of input ports in the process group.",
-        readOnly = true
+        accessMode = ApiModelProperty.AccessMode.READ_ONLY
     )
     public Integer getInputPortCount() {
         return NumberUtil.sumNullableIntegers(localInputPortCount, publicInputPortCount);
@@ -147,7 +147,7 @@ public class ProcessGroupEntity extends ComponentEntity implements Permissible<P
      */
     @ApiModelProperty(
         value = "The number of output ports in the process group.",
-        readOnly = true
+        accessMode = ApiModelProperty.AccessMode.READ_ONLY
     )
     public Integer getOutputPortCount() {
         return NumberUtil.sumNullableIntegers(localOutputPortCount, publicOutputPortCount);
@@ -255,7 +255,7 @@ public class ProcessGroupEntity extends ComponentEntity implements Permissible<P
         this.inactiveRemotePortCount = inactiveRemotePortCount;
     }
 
-    @ApiModelProperty(value = "Returns the Versioned Flow that describes the contents of the Versioned Flow to be imported", readOnly = true)
+    @ApiModelProperty(value = "Returns the Versioned Flow that describes the contents of the Versioned Flow to be imported", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
     public VersionedFlowSnapshot getVersionedFlowSnapshot() {
         return versionedFlowSnapshot;
     }
@@ -264,7 +264,7 @@ public class ProcessGroupEntity extends ComponentEntity implements Permissible<P
         this.versionedFlowSnapshot = versionedFlowSnapshot;
     }
 
-    @ApiModelProperty(readOnly = true,
+    @ApiModelProperty(accessMode = ApiModelProperty.AccessMode.READ_ONLY,
             value = "The current state of the Process Group, as it relates to the Versioned Flow",
             allowableValues = "LOCALLY_MODIFIED, STALE, LOCALLY_MODIFIED_AND_STALE, UP_TO_DATE, SYNC_FAILURE")
     public String getVersionedFlowState() {
