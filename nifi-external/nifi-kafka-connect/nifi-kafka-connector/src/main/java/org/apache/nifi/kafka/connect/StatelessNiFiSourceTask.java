@@ -88,6 +88,7 @@ public class StatelessNiFiSourceTask extends SourceTask {
         headerAttributeNamePattern = headerRegex == null ? null : Pattern.compile(headerRegex);
 
         dataflow = StatelessKafkaConnectorUtil.createDataflow(properties);
+        dataflow.initialize();
 
         // Determine the name of the Output Port to retrieve data from
         dataflowName = properties.get(StatelessKafkaConnectorUtil.DATAFLOW_NAME);

@@ -55,6 +55,7 @@ public class StatelessKafkaConnectorUtil {
     private static final Lock unpackNarLock = new ReentrantLock();
 
     static final String NAR_DIRECTORY = "nar.directory";
+    static final String EXTENSIONS_DIRECTORY = "extensions.directory";
     static final String WORKING_DIRECTORY = "working.directory";
     static final String FLOW_SNAPSHOT = "flow.snapshot";
     static final String KRB5_FILE = "krb5.file";
@@ -79,6 +80,7 @@ public class StatelessKafkaConnectorUtil {
     static final String DEFAULT_KRB5_FILE = "/etc/krb5.conf";
     static final String DEFAULT_DATAFLOW_TIMEOUT = "60 sec";
     static final File DEFAULT_WORKING_DIRECTORY = new File("/tmp/nifi-stateless-working");
+    static final File DEFAULT_EXTENSIONS_DIRECTORY = new File("/tmp/nifi-stateless-extensions");
     static final String DEFAULT_SENSITIVE_PROPS_KEY = "nifi-stateless";
 
     private static final Pattern STATELESS_BOOTSTRAP_FILE_PATTERN = Pattern.compile("nifi-stateless-bootstrap-(.*).jar");
@@ -88,7 +90,9 @@ public class StatelessKafkaConnectorUtil {
     public static void addCommonConfigElements(final ConfigDef configDef) {
         configDef.define(NAR_DIRECTORY, ConfigDef.Type.STRING, null, new ConnectDirectoryExistsValidator(), ConfigDef.Importance.HIGH,
             "Specifies the directory that stores the NiFi Archives (NARs)");
-        configDef.define(WORKING_DIRECTORY, ConfigDef.Type.STRING, null, new ConnectDirectoryExistsValidator(), ConfigDef.Importance.HIGH,
+        configDef.define(EXTENSIONS_DIRECTORY, ConfigDef.Type.STRING, null, ConfigDef.Importance.HIGH,
+            "Specifies the directory that stores the extensions that will be downloaded (if any) from the configured Extension Client");
+        configDef.define(WORKING_DIRECTORY, ConfigDef.Type.STRING, null, ConfigDef.Importance.HIGH,
             "Specifies the temporary working directory for expanding NiFi Archives (NARs)");
         configDef.define(FLOW_SNAPSHOT, ConfigDef.Type.STRING, null, new FlowSnapshotValidator(), ConfigDef.Importance.HIGH,
             "Specifies the dataflow to run. This may be a file containing the dataflow, a URL that points to a dataflow, or a String containing the entire dataflow as an escaped JSON.");
@@ -229,12 +233,23 @@ public class StatelessKafkaConnectorUtil {
             narDirectory = new File(narDirectoryFilename);
         }
 
-        final File workingDirectory;
+        final String dataflowName = properties.get(DATAFLOW_NAME);
+
+        final File baseWorkingDirectory;
         final String workingDirectoryFilename = properties.get(WORKING_DIRECTORY);
         if (workingDirectoryFilename == null) {
-            workingDirectory = DEFAULT_WORKING_DIRECTORY;
+            baseWorkingDirectory = DEFAULT_WORKING_DIRECTORY;
         } else {
-            workingDirectory = new File(workingDirectoryFilename);
+            baseWorkingDirectory = new File(workingDirectoryFilename);
+        }
+        final File workingDirectory = new File(baseWorkingDirectory, dataflowName);
+
+        final File extensionsDirectory;
+        final String extensionsDirectoryFilename = properties.get(EXTENSIONS_DIRECTORY);
+        if (extensionsDirectoryFilename == null) {
+            extensionsDirectory = DEFAULT_EXTENSIONS_DIRECTORY;
+        } else {
+            extensionsDirectory = new File(extensionsDirectoryFilename);
         }
 
         final SslContextDefinition sslContextDefinition = createSslContextDefinition(properties);
@@ -248,6 +263,11 @@ public class StatelessKafkaConnectorUtil {
             @Override
             public File getNarDirectory() {
                 return narDirectory;
+            }
+
+            @Override
+            public File getExtensionsDirectory() {
+                return extensionsDirectory;
             }
 
             @Override

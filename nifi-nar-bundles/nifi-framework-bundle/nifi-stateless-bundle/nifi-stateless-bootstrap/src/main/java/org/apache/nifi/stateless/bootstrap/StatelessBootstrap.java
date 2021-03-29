@@ -23,6 +23,7 @@ import org.apache.nifi.nar.NarUnpacker;
 import org.apache.nifi.nar.SystemBundle;
 import org.apache.nifi.stateless.config.ParameterOverride;
 import org.apache.nifi.stateless.config.StatelessConfigurationException;
+import org.apache.nifi.stateless.engine.NarUnpackLock;
 import org.apache.nifi.stateless.engine.StatelessEngineConfiguration;
 import org.apache.nifi.stateless.flow.DataflowDefinition;
 import org.apache.nifi.stateless.flow.DataflowDefinitionParser;
@@ -98,7 +99,12 @@ public class StatelessBootstrap {
         // Unpack NARs
         final long unpackStart = System.currentTimeMillis();
         final Predicate<BundleCoordinate> narFilter = coordinate -> true;
-        NarUnpacker.unpackNars(systemBundle, frameworkWorkingDir, extensionsWorkingDir, null, narDirectories, false, false, false, narFilter);
+        NarUnpackLock.lock();
+        try {
+            NarUnpacker.unpackNars(systemBundle, frameworkWorkingDir, extensionsWorkingDir, null, narDirectories, false, false, false, narFilter);
+        } finally {
+            NarUnpackLock.unlock();
+        }
         final long unpackMillis = System.currentTimeMillis() - unpackStart;
         logger.info("Unpacked NAR files in {} millis", unpackMillis);
 

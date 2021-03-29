@@ -39,6 +39,7 @@ public class PropertiesFileEngineConfigurationParser {
     private static final String PREFIX = "nifi.stateless.";
 
     private static final String NAR_DIRECTORY = PREFIX + "nar.directory";
+    private static final String EXTENSIONS_DIRECTORY = PREFIX + "extensions.directory";
     private static final String WORKING_DIRECTORY = PREFIX + "working.directory";
 
     private static final String TRUSTSTORE_FILE = PREFIX + "security.truststore";
@@ -78,6 +79,12 @@ public class PropertiesFileEngineConfigurationParser {
             throw new StatelessConfigurationException("Working Directory " + workingDirectory.getAbsolutePath() + " specified in properties file does not exist and could not be created");
         }
 
+        final String extensionsDirectoryFilename = properties.getProperty(EXTENSIONS_DIRECTORY);
+        final File extensionsDirectory = extensionsDirectoryFilename == null ? narDirectory : new File(extensionsDirectoryFilename);
+        if (!extensionsDirectory.exists() && !extensionsDirectory.mkdirs()) {
+            throw new StatelessConfigurationException("Extensions Directory " + narDirectory.getAbsolutePath() + " specified in properties file does not exist and could not be created");
+        }
+
         final String krb5Filename = properties.getProperty(KRB5_FILE, DEFAULT_KRB5_FILENAME);
         final File krb5File = new File(krb5Filename);
 
@@ -95,6 +102,11 @@ public class PropertiesFileEngineConfigurationParser {
             @Override
             public File getNarDirectory() {
                 return narDirectory;
+            }
+
+            @Override
+            public File getExtensionsDirectory() {
+                return extensionsDirectory;
             }
 
             @Override

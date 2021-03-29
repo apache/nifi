@@ -144,7 +144,7 @@ public class StandardStatelessDataflowFactory implements StatelessDataflowFactor
                 extensionClients.add(extensionClient);
             }
 
-            final ExtensionRepository extensionRepository = new FileSystemExtensionRepository(extensionManager, engineConfiguration.getNarDirectory(), engineConfiguration.getWorkingDirectory(),
+            final ExtensionRepository extensionRepository = new FileSystemExtensionRepository(extensionManager, engineConfiguration.getExtensionsDirectory(), engineConfiguration.getWorkingDirectory(),
                 narClassLoaders, extensionClients);
 
             final VariableRegistry variableRegistry = VariableRegistry.EMPTY_REGISTRY;

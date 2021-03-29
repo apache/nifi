@@ -82,6 +82,11 @@ public class StatelessSystemIT {
             }
 
             @Override
+            public File getExtensionsDirectory() {
+                return new File("target/nifi-stateless-assembly/extensions");
+            }
+
+            @Override
             public File getKrb5File() {
                 return new File("/etc/krb5.conf");
             }
