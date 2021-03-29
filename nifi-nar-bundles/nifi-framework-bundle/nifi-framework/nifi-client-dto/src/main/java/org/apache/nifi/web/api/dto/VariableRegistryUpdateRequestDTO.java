@@ -37,7 +37,8 @@ public class VariableRegistryUpdateRequestDTO extends AsynchronousRequestDTO<Var
         this.processGroupId = processGroupId;
     }
 
-    @ApiModelProperty(value = "A set of all components that will be affected if the value of this variable is changed", readOnly = true)
+    @ApiModelProperty(value = "A set of all components that will be affected if the value of this variable is changed",
+            accessMode = ApiModelProperty.AccessMode.READ_ONLY)
     public Set<AffectedComponentEntity> getAffectedComponents() {
         return affectedComponents;
     }
