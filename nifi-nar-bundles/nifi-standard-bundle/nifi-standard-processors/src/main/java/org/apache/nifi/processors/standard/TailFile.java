@@ -1192,8 +1192,9 @@ public class TailFile extends AbstractProcessor {
             getLogger().debug("Recovering Rolled Off Files; total number of files rolled off = {}", new Object[]{rolledOffFiles.size()});
             TailFileObject tfo = states.get(tailFile);
 
+            final long postRolloverTailMillis = context.getProperty(POST_ROLLOVER_TAIL_PERIOD).asTimePeriod(TimeUnit.MILLISECONDS);
             final boolean tailingPostRollover = tfo.getState().isTailingPostRollover();
-            final boolean shouldTailPostRollover = context.getProperty(POST_ROLLOVER_TAIL_PERIOD).asTimePeriod(TimeUnit.MILLISECONDS) > 0;
+            final boolean shouldTailPostRollover = postRolloverTailMillis > 0;
 
             // For first file that we find, it may or may not be the file that we were last reading from.
             // As a result, we have to read up to the position we stored, while calculating the checksum. If the checksums match,
@@ -1201,29 +1202,59 @@ public class TailFile extends AbstractProcessor {
             // processed this file and we need to seek back to position 0 and ingest the entire file.
             // For all other files that have been rolled over, we need to just ingest the entire file.
             boolean rolloverOccurred = !rolledOffFiles.isEmpty();
-            if (rolloverOccurred && expectedChecksum != null && rolledOffFiles.get(0).length() >= position) {
+
+            final boolean tailFirstFile;
+            if (rolloverOccurred) {
+                final File firstFile = rolledOffFiles.get(0);
+                final long millisSinceModified = System.currentTimeMillis() - firstFile.lastModified();
+                final boolean fileGrew = firstFile.length() >= position && position > 0;
+                final boolean tailRolledFile = postRolloverTailMillis == 0 || millisSinceModified < postRolloverTailMillis;
+                tailFirstFile = fileGrew && tailRolledFile && expectedChecksum != null;
+            } else {
+                tailFirstFile = false;
+            }
+
+            if (tailFirstFile) {
                 final File firstFile = rolledOffFiles.get(0);
 
-                if (position > 0) {
-                    final boolean consumed;
-                    if (shouldTailPostRollover) {
-                        consumed = tailRolledFile(context, session, tailFile, expectedChecksum, position, tfo, firstFile, false, true);
-                    } else {
-                        consumed = tailRolledFile(context, session, tailFile, expectedChecksum, position, tfo, firstFile, true, false);
-                    }
+                final boolean consumed;
+                if (shouldTailPostRollover) {
+                    // User has configured to continue tailing file after it has been rolled over, until it's no longer being modified.
+                    // Consume any newly added lines from the rolled over file, but do not consume the last line, if it doesn't have a newline.
+                    // Keep the state indicating that we are currently tailing a file post-rollover.
+                    consumed = tailRolledFile(context, session, tailFile, expectedChecksum, position, tfo, firstFile, false, true);
+                } else {
+                    // User has not configured to continue tailing file after it has been rolled over. If any data was written to the rolled file before
+                    // rolling it over, consume that data, up to the end of the file, including the last line, even if it doesn't have a newline.
+                    consumed = tailRolledFile(context, session, tailFile, expectedChecksum, position, tfo, firstFile, true, false);
+                }
 
-                    if (consumed) {
-                        rolledOffFiles.remove(0);
-                    }
+                if (consumed) {
+                    rolledOffFiles.remove(0);
                 }
             } else if (tailingPostRollover && shouldTailPostRollover) {
+                // This condition is encountered when we are tailing a file post-rollover, and we've now reached the point where the rolled file
+                // has not changed.
                 final List<File> allRolledFiles = getRolledOffFiles(context, 0L, tailFile);
                 allRolledFiles.sort(Comparator.comparing(File::lastModified).reversed());
                 final File newestFile = allRolledFiles.get(0);
 
+                // If we don't notice that the file has been modified, per the checks above, then we want to keep checking until the last modified
+                // date has eclipsed the configured value for the Post-Rollover Tail Period. Until then, return false. Once that occurs, we will
+                // consume the rest of the data, including the last line, even if it doesn't have a line ending.
+                final long millisSinceModified = System.currentTimeMillis() - newestFile.lastModified();
+                if (millisSinceModified < postRolloverTailMillis) {
+                    getLogger().debug("Rolled over file {} (size={}, lastModified={}) was modified {} millis ago, which isn't long enough to consume file fully without taking line endings into " +
+                        "account. Will do nothing will file for now.", newestFile, newestFile.length(), newestFile.lastModified(), millisSinceModified);
+                    return true;
+                }
+
+                // The file has been rolled over and is no longer being written to. Consume all the way to the end of the file, including the last line,
+                // even if it does not have a newline after it.
                 final boolean consumed = tailRolledFile(context, session, tailFile, expectedChecksum, position, tfo, newestFile, true, false);
                 if (consumed) {
                     getLogger().debug("Consumed the final data from {}", newestFile);
+                    rolledOffFiles.remove(newestFile);
                 } else {
                     getLogger().debug("No more data to consume from {} (size={}, lastModified={})", newestFile, newestFile.length(), newestFile.lastModified());
                 }
@@ -1302,7 +1333,7 @@ public class TailFile extends AbstractProcessor {
             // But if we are not going to tail the rolled over file for any period of time, we can essentially reset the state.
             final long postRolloverTailMillis = context.getProperty(POST_ROLLOVER_TAIL_PERIOD).asTimePeriod(TimeUnit.MILLISECONDS);
             final long millisSinceUpdate = System.currentTimeMillis() - timestamp;
-            if (postRolloverTailMillis > 0 && millisSinceUpdate < postRolloverTailMillis) {
+            if (tailingPostRollover && postRolloverTailMillis > 0) {
                 getLogger().debug("File {} has been rolled over, but it was updated {} millis ago, which is less than the configured {} ({} ms), so will continue tailing",
                     fileToTail, millisSinceUpdate, POST_ROLLOVER_TAIL_PERIOD.getDisplayName(), postRolloverTailMillis);
 
@@ -1314,8 +1345,9 @@ public class TailFile extends AbstractProcessor {
                 tfo.setState(updatedState);
             } else {
                 // use a timestamp of lastModified() + 1 so that we do not ingest this file again.
+                getLogger().debug("Completed tailing of file {}; will cleanup state", tailFile);
                 cleanup();
-                tfo.setState(new TailFileState(tailFile, null, null, 0L, fileToTail.lastModified() + 1L, fileToTail.length(), null, tfo.getState().getBuffer()));
+                tfo.setState(new TailFileState(tailFile, null, null, 0L, fileToTail.lastModified() + 1L, fileToTail.length(), null, tfo.getState().getBuffer(), tailingPostRollover));
             }
 
             persistState(tfo, session, context);
