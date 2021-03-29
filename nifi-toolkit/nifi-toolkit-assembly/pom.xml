@@ -308,5 +308,103 @@ language governing permissions and limitations under the License. -->
                 </plugins>
             </build>
         </profile>
+        <profile>
+            <id>rpm</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>rpm-maven-plugin</artifactId>
+                        <configuration>
+                            <name>nifi-toolkit</name>
+                            <summary>Apache NiFi Toolkit</summary>
+                            <description>The NiFi Toolkit contains several command line utilities to setup and support NiFi in standalone and clustered environments.</description>
+                            <license>Apache License, Version 2.0 and others (see included LICENSE file)</license>
+                            <url>https://nifi.apache.org/docs/nifi-docs/html/toolkit-guide.html</url>
+                            <group>Utilities</group>
+                            <prefix>/opt/nifi</prefix>
+                            <defineStatements>
+                                <defineStatement>_use_internal_dependency_generator 0</defineStatement>
+                            </defineStatements>
+                            <defaultDirmode>750</defaultDirmode>
+                            <defaultFilemode>640</defaultFilemode>
+                            <defaultUsername>nifi</defaultUsername>
+                            <defaultGroupname>nifi</defaultGroupname>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>build-bin-rpm</id>
+                                <goals>
+                                    <goal>attached-rpm</goal>
+                                </goals>
+                                <configuration>
+                                    <classifier>bin</classifier>
+                                    <provides>
+                                        <provide>nifi</provide>
+                                    </provides>
+                                    <mappings>
+                                        <mapping>
+                                            <directory>/opt/nifi</directory>
+                                        </mapping>
+                                        <mapping>
+                                            <directory>/opt/nifi/nifi-toolkit-${project.version}</directory>
+                                        </mapping>
+                                        <mapping>
+                                            <directory>/opt/nifi/nifi-toolkit-${project.version}</directory>
+                                            <sources>
+                                                <source>
+                                                    <location>${project.build.directory}/nifi-toolkit-${project.version}-bin/nifi-toolkit-${project.version}/LICENSE</location>
+                                                </source>
+                                                <source>
+                                                    <location>${project.build.directory}/nifi-toolkit-${project.version}-bin/nifi-toolkit-${project.version}/NOTICE</location>
+                                                </source>
+                                            </sources>
+                                        </mapping>
+                                        <mapping>
+                                            <directory>/opt/nifi/nifi-toolkit-${project.version}/bin</directory>
+                                            <filemode>750</filemode>
+                                            <sources>
+                                                <source>
+                                                    <location>${project.build.directory}/nifi-toolkit-${project.version}-bin/nifi-toolkit-${project.version}/bin</location>
+                                                </source>
+                                            </sources>
+                                        </mapping>
+                                        <mapping>
+                                            <directory>/opt/nifi/nifi-toolkit-${project.version}/classpath</directory>
+                                            <sources>
+                                                <source>
+                                                    <location>${project.build.directory}/nifi-toolkit-${project.version}-bin/nifi-toolkit-${project.version}/classpath</location>
+                                                </source>
+                                            </sources>
+                                        </mapping>
+                                        <mapping>
+                                            <directory>/opt/nifi/nifi-toolkit-${project.version}/conf</directory>
+                                            <configuration>true</configuration>
+                                            <sources>
+                                                <source>
+                                                    <location>${project.build.directory}/nifi-toolkit-${project.version}-bin/nifi-toolkit-${project.version}/conf</location>
+                                                    <filter>true</filter>
+                                                </source>
+                                            </sources>
+                                        </mapping>
+                                        <mapping>
+                                            <directory>/opt/nifi/nifi-toolkit-${project.version}/lib</directory>
+                                            <sources>
+                                                <source>
+                                                    <location>${project.build.directory}/nifi-toolkit-${project.version}-bin/nifi-toolkit-${project.version}/lib</location>
+                                                </source>
+                                            </sources>
+                                        </mapping>
+                                    </mappings>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
     </profiles>
 </project>
