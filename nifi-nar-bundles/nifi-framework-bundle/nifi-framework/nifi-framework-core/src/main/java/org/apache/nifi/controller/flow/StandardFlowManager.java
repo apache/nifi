@@ -81,7 +81,6 @@ import org.slf4j.LoggerFactory;
 import javax.net.ssl.SSLContext;
 import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
-import java.sql.Ref;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
