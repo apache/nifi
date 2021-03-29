@@ -29,10 +29,12 @@ import static org.mockito.Mockito.when;
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Configuration;
 import com.datastax.driver.core.ConsistencyLevel;
+import com.datastax.driver.core.EndPoint;
 import com.datastax.driver.core.Metadata;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Session;
+import com.datastax.driver.core.SniEndPoint;
 import com.datastax.driver.core.exceptions.InvalidQueryException;
 import com.datastax.driver.core.exceptions.NoHostAvailableException;
 import com.datastax.driver.core.exceptions.ReadTimeoutException;
@@ -110,19 +112,19 @@ public class QueryCassandraTest {
         testRunner.clearTransferState();
 
         // Test exceptions
-        processor.setExceptionToThrow(new NoHostAvailableException(new HashMap<InetSocketAddress, Throwable>()));
+        processor.setExceptionToThrow(new NoHostAvailableException(new HashMap<EndPoint, Throwable>()));
         testRunner.run(1, true, true);
         testRunner.assertAllFlowFilesTransferred(QueryCassandra.REL_RETRY, 1);
         testRunner.clearTransferState();
 
         processor.setExceptionToThrow(
-                new ReadTimeoutException(new InetSocketAddress("localhost", 9042), ConsistencyLevel.ANY, 0, 1, false));
+                new ReadTimeoutException(new SniEndPoint(new InetSocketAddress("localhost", 9042), ""), ConsistencyLevel.ANY, 0, 1, false));
         testRunner.run(1, true, true);
         testRunner.assertAllFlowFilesTransferred(QueryCassandra.REL_RETRY, 1);
         testRunner.clearTransferState();
 
         processor.setExceptionToThrow(
-                new InvalidQueryException(new InetSocketAddress("localhost", 9042), "invalid query"));
+                new InvalidQueryException(new SniEndPoint(new InetSocketAddress("localhost", 9042), ""), "invalid query"));
         testRunner.run(1, true, true);
         // No files transferred to failure if there was no incoming connection
         testRunner.assertAllFlowFilesTransferred(QueryCassandra.REL_FAILURE, 0);
@@ -225,21 +227,21 @@ public class QueryCassandraTest {
         testRunner.clearTransferState();
 
         // Test exceptions
-        processor.setExceptionToThrow(new NoHostAvailableException(new HashMap<InetSocketAddress, Throwable>()));
+        processor.setExceptionToThrow(new NoHostAvailableException(new HashMap<EndPoint, Throwable>()));
         testRunner.enqueue("".getBytes());
         testRunner.run(1, true, true);
         testRunner.assertAllFlowFilesTransferred(QueryCassandra.REL_RETRY, 1);
         testRunner.clearTransferState();
 
         processor.setExceptionToThrow(
-                new ReadTimeoutException(new InetSocketAddress("localhost", 9042), ConsistencyLevel.ANY, 0, 1, false));
+                new ReadTimeoutException(new SniEndPoint(new InetSocketAddress("localhost", 9042), ""), ConsistencyLevel.ANY, 0, 1, false));
         testRunner.enqueue("".getBytes());
         testRunner.run(1, true, true);
         testRunner.assertAllFlowFilesTransferred(QueryCassandra.REL_RETRY, 1);
         testRunner.clearTransferState();
 
         processor.setExceptionToThrow(
-                new InvalidQueryException(new InetSocketAddress("localhost", 9042), "invalid query"));
+                new InvalidQueryException(new SniEndPoint(new InetSocketAddress("localhost", 9042), ""), "invalid query"));
         testRunner.enqueue("".getBytes());
         testRunner.run(1, true, true);
         testRunner.assertAllFlowFilesTransferred(QueryCassandra.REL_FAILURE, 1);
