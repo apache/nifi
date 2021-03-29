@@ -91,6 +91,7 @@ public class FileSystemExtensionRepository implements ExtensionRepository {
 
         final DownloadQueue downloadQueue = new DownloadQueue(extensionManager, executorService, concurrentDownloads, bundleCoordinates, narLibDirectory, clients);
         final CompletableFuture<Void> downloadFuture = downloadQueue.download();
+        logger.info("Beginning download of extensions {}", bundleCoordinates);
 
         final CompletableFuture<Set<Bundle>> loadFuture = downloadFuture.thenApply(new Function<Void, Set<Bundle>>() {
             @Override

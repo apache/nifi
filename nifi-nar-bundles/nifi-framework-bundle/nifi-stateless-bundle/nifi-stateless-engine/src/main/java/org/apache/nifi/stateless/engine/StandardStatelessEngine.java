@@ -169,8 +169,7 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
 
         final List<ReportingTaskNode> reportingTaskNodes = createReportingTasks(dataflowDefinition);
         final StandardStatelessFlow dataflow = new StandardStatelessFlow(childGroup, reportingTaskNodes, controllerServiceProvider, processContextFactory,
-            repositoryContextFactory, dataflowDefinition, stateManagerProvider);
-        dataflow.initialize(processScheduler);
+            repositoryContextFactory, dataflowDefinition, stateManagerProvider, processScheduler);
         return dataflow;
     }
 

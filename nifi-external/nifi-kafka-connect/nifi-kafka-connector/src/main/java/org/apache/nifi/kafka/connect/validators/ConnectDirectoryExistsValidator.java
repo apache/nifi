@@ -34,7 +34,7 @@ public class ConnectDirectoryExistsValidator implements ConfigDef.Validator {
         }
 
         final File file = new File((String) value);
-        if (!file.exists()) {
+        if (!file.exists() && !file.mkdirs()) {
             throw new ConfigException("The value " + value + " configured for the property " + name + " is not valid because no directory exists at " + file.getAbsolutePath());
         }
 
