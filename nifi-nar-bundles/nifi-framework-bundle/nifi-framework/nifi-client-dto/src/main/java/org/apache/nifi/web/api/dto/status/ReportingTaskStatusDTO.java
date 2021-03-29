@@ -28,7 +28,7 @@ import javax.xml.bind.annotation.XmlType;
 public class ReportingTaskStatusDTO extends ComponentStatusDTO {
 
     @ApiModelProperty(value = "The run status of this ReportingTask",
-            readOnly = true,
+            accessMode = ApiModelProperty.AccessMode.READ_ONLY,
             allowableValues = "RUNNING, STOPPED, DISABLED")
     @Override
     public String getRunStatus() {

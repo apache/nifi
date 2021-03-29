@@ -105,7 +105,7 @@ public class ProcessGroupStatusSnapshotDTO implements Cloneable {
         this.name = name;
     }
 
-    @ApiModelProperty(readOnly = true,
+    @ApiModelProperty(accessMode = ApiModelProperty.AccessMode.READ_ONLY,
             value = "The current state of the Process Group, as it relates to the Versioned Flow",
             allowableValues = "LOCALLY_MODIFIED, STALE, LOCALLY_MODIFIED_AND_STALE, UP_TO_DATE, SYNC_FAILURE")
     public String getVersionedFlowState() {

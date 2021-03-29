@@ -37,7 +37,7 @@ public class ParameterEntity extends Entity implements WritablePermission {
     }
 
     @Override
-    @ApiModelProperty(value = "Indicates whether the user can write a given resource.", readOnly = true)
+    @ApiModelProperty(value = "Indicates whether the user can write a given resource.", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
     public Boolean getCanWrite() {
         return canWrite;
     }

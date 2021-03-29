@@ -21,7 +21,7 @@ import io.swagger.annotations.ApiModelProperty;
 public interface WritablePermission {
     @ApiModelProperty(
             value = "Indicates whether the user can write a given resource.",
-            readOnly = true
+            accessMode = ApiModelProperty.AccessMode.READ_ONLY
     )
     Boolean getCanWrite();
 
