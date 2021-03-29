@@ -474,12 +474,7 @@ public class TestJdbcCommon {
             assertEquals("decimal", logicalType.getName());
             LogicalTypes.Decimal decimalType = (LogicalTypes.Decimal) logicalType;
             assertEquals(expectedPrecision, decimalType.getPrecision());
-            // If scale > precision then precision will be set to the scale value
-            if (expectedScale > expectedPrecision) {
-                assertEquals(expectedScale, decimalType.getScale());
-            } else {
-                assertEquals(expectedScale, decimalType.getScale());
-            }
+            assertEquals(expectedScale, decimalType.getScale());
 
             GenericRecord record = null;
             while (dataFileReader.hasNext()) {
