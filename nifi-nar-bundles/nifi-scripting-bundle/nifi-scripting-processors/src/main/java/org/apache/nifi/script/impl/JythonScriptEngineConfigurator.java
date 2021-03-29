@@ -50,7 +50,7 @@ public class JythonScriptEngineConfigurator implements ScriptEngineConfigurator 
     @Override
     public Object init(ScriptEngine engine, String scriptBody, String[] modulePaths) throws ScriptException {
         // Always compile when first run
-        if (engine != null) {
+        if (engine != null && compiledScriptRef.get() == null) {
                 // Add prefix for import sys and all jython modules
                 String prefix = "import sys\n"
                         + Arrays.stream(modulePaths).map((modulePath) -> "sys.path.append(" + PyString.encode_UnicodeEscape(modulePath, true) + ")")
@@ -72,5 +72,10 @@ public class JythonScriptEngineConfigurator implements ScriptEngineConfigurator 
             returnValue = compiledScriptRef.get().eval();
         }
         return returnValue;
+    }
+
+    @Override
+    public void reset() {
+        compiledScriptRef.set(null);
     }
 }

@@ -243,6 +243,13 @@ public class ExecuteScript extends AbstractSessionFactoryProcessor implements Se
                 // class with InvokeScriptedProcessor
                 session.commit();
             } catch (ScriptException e) {
+                // Reset the configurator on error, this can indicate to the configurator to recompile the script on next init()
+                ScriptEngineConfigurator configurator =
+                        scriptingComponentHelper.scriptEngineConfiguratorMap.get(scriptingComponentHelper.getScriptEngineName().toLowerCase());
+                if (configurator != null) {
+                    configurator.reset();
+                }
+
                 // The below 'session.rollback(true)' reverts any changes made during this session (all FlowFiles are
                 // restored back to their initial session state and back to their original queues after being penalized).
                 // However if the incoming relationship is full of flow files, this processor will keep failing and could

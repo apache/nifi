@@ -37,4 +37,6 @@ public interface ScriptEngineConfigurator {
 
     Object eval(ScriptEngine engine, String scriptBody, String[] modulePaths) throws ScriptException;
 
+    default void reset() {
+    }
 }
