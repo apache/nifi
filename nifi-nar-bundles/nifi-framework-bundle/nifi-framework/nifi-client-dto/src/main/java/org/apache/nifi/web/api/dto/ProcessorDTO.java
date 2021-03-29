@@ -269,7 +269,7 @@ public class ProcessorDTO extends ComponentDTO {
      */
     @ApiModelProperty(
             value = "The available relationships that the processor currently supports.",
-            readOnly = true
+            accessMode = ApiModelProperty.AccessMode.READ_ONLY
     )
     public List<RelationshipDTO> getRelationships() {
         return relationships;
@@ -312,7 +312,7 @@ public class ProcessorDTO extends ComponentDTO {
     }
 
     @ApiModelProperty(value = "Indicates whether the Processor is valid, invalid, or still in the process of validating (i.e., it is unknown whether or not the Processor is valid)",
-        readOnly = true,
+        accessMode = ApiModelProperty.AccessMode.READ_ONLY,
         allowableValues = VALID + ", " + INVALID + ", " + VALIDATING)
     public String getValidationStatus() {
         return validationStatus;

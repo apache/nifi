@@ -35,7 +35,7 @@ public class ParameterContextDTO {
         this.identifier = id;
     }
 
-    @ApiModelProperty(value = "The ID the Parameter Context.", readOnly = true)
+    @ApiModelProperty(value = "The ID the Parameter Context.", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
     public String getId() {
         return identifier;
     }
@@ -71,7 +71,7 @@ public class ParameterContextDTO {
         this.boundProcessGroups = boundProcessGroups;
     }
 
-    @ApiModelProperty(value = "The Process Groups that are bound to this Parameter Context", readOnly = true)
+    @ApiModelProperty(value = "The Process Groups that are bound to this Parameter Context", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
     public Set<ProcessGroupEntity> getBoundProcessGroups() {
         return boundProcessGroups;
     }

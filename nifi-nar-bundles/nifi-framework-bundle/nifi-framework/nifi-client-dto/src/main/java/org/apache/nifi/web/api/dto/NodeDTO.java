@@ -49,7 +49,7 @@ public class NodeDTO {
     @XmlJavaTypeAdapter(DateTimeAdapter.class)
     @ApiModelProperty(
             value = "the time of the nodes's last heartbeat.",
-            readOnly = true,
+            accessMode = ApiModelProperty.AccessMode.READ_ONLY,
             dataType = "string"
     )
     public Date getHeartbeat() {
@@ -66,7 +66,7 @@ public class NodeDTO {
     @XmlJavaTypeAdapter(DateTimeAdapter.class)
     @ApiModelProperty(
             value = "The time of the node's last connection request.",
-            readOnly = true,
+            accessMode = ApiModelProperty.AccessMode.READ_ONLY,
             dataType = "string"
     )
     public Date getConnectionRequested() {
@@ -84,7 +84,7 @@ public class NodeDTO {
      */
     @ApiModelProperty(
             value = "The active threads for the NiFi on the node.",
-            readOnly = true
+            accessMode = ApiModelProperty.AccessMode.READ_ONLY
     )
     public Integer getActiveThreadCount() {
         return activeThreadCount;
@@ -99,7 +99,7 @@ public class NodeDTO {
      */
     @ApiModelProperty(
             value = "The queue the NiFi on the node.",
-            readOnly = true
+            accessMode = ApiModelProperty.AccessMode.READ_ONLY
     )
     public String getQueued() {
         return queued;
@@ -114,7 +114,7 @@ public class NodeDTO {
      */
     @ApiModelProperty(
             value = "The node's host/ip address.",
-            readOnly = true
+            accessMode = ApiModelProperty.AccessMode.READ_ONLY
     )
     public String getAddress() {
         return address;
@@ -129,7 +129,7 @@ public class NodeDTO {
      */
     @ApiModelProperty(
             value = "The id of the node.",
-            readOnly = true
+            accessMode = ApiModelProperty.AccessMode.READ_ONLY
     )
     public String getNodeId() {
         return nodeId;
@@ -144,7 +144,7 @@ public class NodeDTO {
      */
     @ApiModelProperty(
             value = "The port the node is listening for API requests.",
-            readOnly = true
+            accessMode = ApiModelProperty.AccessMode.READ_ONLY
     )
     public Integer getApiPort() {
         return apiPort;
@@ -173,7 +173,7 @@ public class NodeDTO {
      */
     @ApiModelProperty(
             value = "The node's events.",
-            readOnly = true
+            accessMode = ApiModelProperty.AccessMode.READ_ONLY
     )
     public List<NodeEventDTO> getEvents() {
         return events;
@@ -188,7 +188,7 @@ public class NodeDTO {
      */
     @ApiModelProperty(
             value = "The roles of this node.",
-            readOnly = true
+            accessMode = ApiModelProperty.AccessMode.READ_ONLY
     )
     public Set<String> getRoles() {
         return roles;
@@ -204,7 +204,7 @@ public class NodeDTO {
     @XmlJavaTypeAdapter(DateTimeAdapter.class)
     @ApiModelProperty(
             value = "The time at which this Node was last refreshed.",
-            readOnly = true,
+            accessMode = ApiModelProperty.AccessMode.READ_ONLY,
             dataType = "string"
     )
     public Date getNodeStartTime() {

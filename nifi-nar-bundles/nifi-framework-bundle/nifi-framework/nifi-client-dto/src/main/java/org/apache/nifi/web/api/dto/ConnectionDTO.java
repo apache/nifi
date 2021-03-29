@@ -159,7 +159,7 @@ public class ConnectionDTO extends ComponentDTO {
      */
     @ApiModelProperty(
             value = "The relationships that the source of the connection currently supports.",
-            readOnly = true
+            accessMode = ApiModelProperty.AccessMode.READ_ONLY
     )
     public Set<String> getAvailableRelationships() {
         return availableRelationships;
@@ -271,7 +271,7 @@ public class ConnectionDTO extends ComponentDTO {
     @ApiModelProperty(value = "The current status of the Connection's Load Balancing Activities. Status can indicate that Load Balancing is not configured for the connection, that Load Balancing " +
         "is configured but inactive (not currently transferring data to another node), or that Load Balancing is configured and actively transferring data to another node.",
         allowableValues = LOAD_BALANCE_NOT_CONFIGURED + ", " + LOAD_BALANCE_INACTIVE + ", " + LOAD_BALANCE_ACTIVE,
-        readOnly = true)
+        accessMode = ApiModelProperty.AccessMode.READ_ONLY)
     public String getLoadBalanceStatus() {
         return loadBalanceStatus;
     }

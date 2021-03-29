@@ -28,7 +28,7 @@ public class VariableEntity extends Entity implements WritablePermission {
     private Boolean canWrite;
 
     @Override
-    @ApiModelProperty(value = "Indicates whether the user can write a given resource.", readOnly = true)
+    @ApiModelProperty(value = "Indicates whether the user can write a given resource.", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
     public Boolean getCanWrite() {
         return canWrite;
     }

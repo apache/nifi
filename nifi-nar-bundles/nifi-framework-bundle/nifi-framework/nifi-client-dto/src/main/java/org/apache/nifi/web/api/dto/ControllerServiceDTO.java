@@ -303,7 +303,7 @@ public class ControllerServiceDTO extends ComponentDTO {
     }
 
     @ApiModelProperty(value = "Indicates whether the ControllerService is valid, invalid, or still in the process of validating (i.e., it is unknown whether or not the ControllerService is valid)",
-        readOnly = true,
+        accessMode = ApiModelProperty.AccessMode.READ_ONLY,
         allowableValues = VALID + ", " + INVALID + ", " + VALIDATING)
     public String getValidationStatus() {
         return validationStatus;

@@ -42,7 +42,7 @@ public class ParameterContextsEntity extends Entity {
     @ApiModelProperty(
         value = "The current time on the system.",
         dataType = "string",
-        readOnly = true
+        accessMode = ApiModelProperty.AccessMode.READ_ONLY
     )
     public Date getCurrentTime() {
         return currentTime;

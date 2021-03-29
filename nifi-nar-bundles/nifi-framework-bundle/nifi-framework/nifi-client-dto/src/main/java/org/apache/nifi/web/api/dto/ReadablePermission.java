@@ -21,7 +21,7 @@ import io.swagger.annotations.ApiModelProperty;
 public interface ReadablePermission {
     @ApiModelProperty(
             value = "Indicates whether the user can read a given resource.",
-            readOnly = true
+            accessMode = ApiModelProperty.AccessMode.READ_ONLY
     )
     Boolean getCanRead();
 
