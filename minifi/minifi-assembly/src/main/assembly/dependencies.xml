@@ -142,7 +142,7 @@
             <source>src/main/resources/build.properties.template</source>
             <outputDirectory>./</outputDirectory>
             <destName>build.properties</destName>
-            <fileMode>0444</fileMode>
+            <fileMode>0644</fileMode>
             <filtered>true</filtered>
         </file>
 
