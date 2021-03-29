@@ -21,6 +21,7 @@ import org.apache.nifi.serialization.record.type.DecimalDataType;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -30,6 +31,7 @@ import java.sql.Date;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Types;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
@@ -39,6 +41,7 @@ import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -239,6 +242,45 @@ public class ResultSetRecordSetTest {
         assertEquals(bigDecimal3Value, record.getValue(COLUMN_NAME_BIG_DECIMAL_3));
         assertEquals(bigDecimal4Value, record.getValue(COLUMN_NAME_BIG_DECIMAL_4));
         assertEquals(bigDecimal5Value, record.getValue(COLUMN_NAME_BIG_DECIMAL_5));
+    }
+
+    @Test
+    public void testCreateSchemaArrayThrowsException() throws SQLException {
+        // given
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("column", RecordFieldType.DECIMAL.getDecimalDataType(30, 10)));
+        final RecordSchema recordSchema = new SimpleRecordSchema(fields);
+        final ResultSet resultSet = givenResultSetForArrayThrowsException(true);
+
+        // when
+        assertThrows(SQLException.class, () -> new ResultSetRecordSet(resultSet, recordSchema));
+    }
+
+    @Test
+    public void testCreateSchemaArrayThrowsNotSupportedException() throws SQLException {
+        // given
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("column", RecordFieldType.DECIMAL.getDecimalDataType(30, 10)));
+        final RecordSchema recordSchema = new SimpleRecordSchema(fields);
+        final ResultSet resultSet = givenResultSetForArrayThrowsException(false);
+
+        // when
+        final ResultSetRecordSet testSubject = new ResultSetRecordSet(resultSet, recordSchema);
+        final RecordSchema resultSchema = testSubject.getSchema();
+
+        // then
+        assertEquals(RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.STRING.getDataType()), resultSchema.getField(0).getDataType());
+    }
+
+    private ResultSet givenResultSetForArrayThrowsException(boolean featureSupported) throws SQLException {
+        final ResultSet resultSet = Mockito.mock(ResultSet.class);
+        final ResultSetMetaData resultSetMetaData = Mockito.mock(ResultSetMetaData.class);
+        when(resultSet.getMetaData()).thenReturn(resultSetMetaData);
+        when(resultSet.getArray(ArgumentMatchers.anyInt())).thenThrow(featureSupported ? new SQLException("test exception") : new SQLFeatureNotSupportedException("not supported"));
+        when(resultSetMetaData.getColumnCount()).thenReturn(1);
+        when(resultSetMetaData.getColumnLabel(1)).thenReturn("column");
+        when(resultSetMetaData.getColumnType(1)).thenReturn(Types.ARRAY);
+        return resultSet;
     }
 
     private ResultSet givenResultSetForOther() throws SQLException {

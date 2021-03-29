@@ -30,6 +30,7 @@ import java.sql.Array;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Date;
@@ -203,17 +204,17 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
                 // the base type. However, if the base type is, itself, an array, we will simply return a base type of
                 // String because otherwise, we need the ResultSet for the array itself, and many JDBC Drivers do not
                 // support calling Array.getResultSet() and will throw an Exception if that is not supported.
-                if (rs.isAfterLast()) {
+                try {
+                    final Array array = rs.getArray(columnIndex);
+
+                    if (array == null) {
+                        return RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.STRING.getDataType());
+                    }
+                    final DataType baseType = getArrayBaseType(array);
+                    return RecordFieldType.ARRAY.getArrayDataType(baseType);
+                } catch (SQLFeatureNotSupportedException sfnse) {
                     return RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.STRING.getDataType());
                 }
-
-                final Array array = rs.getArray(columnIndex);
-                if (array == null) {
-                    return RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.STRING.getDataType());
-                }
-
-                final DataType baseType = getArrayBaseType(array);
-                return RecordFieldType.ARRAY.getArrayDataType(baseType);
             case Types.BINARY:
             case Types.LONGVARBINARY:
             case Types.VARBINARY:
@@ -317,9 +318,6 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
         }
         if (arrayValue instanceof short[]) {
             return RecordFieldType.SHORT.getDataType();
-        }
-        if (arrayValue instanceof byte[]) {
-            return RecordFieldType.BYTE.getDataType();
         }
         if (arrayValue instanceof float[]) {
             return RecordFieldType.FLOAT.getDataType();
