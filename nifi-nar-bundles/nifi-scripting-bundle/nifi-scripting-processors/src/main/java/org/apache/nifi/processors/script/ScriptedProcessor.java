@@ -1,0 +1,129 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.apache.nifi.processors.script;
+
+import org.apache.commons.io.IOUtils;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.processor.AbstractProcessor;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.script.ScriptingComponentHelper;
+import org.apache.nifi.script.ScriptingComponentUtils;
+import org.apache.nifi.search.SearchContext;
+import org.apache.nifi.search.SearchResult;
+import org.apache.nifi.search.Searchable;
+
+import javax.script.Bindings;
+import javax.script.Compilable;
+import javax.script.CompiledScript;
+import javax.script.ScriptContext;
+import javax.script.ScriptEngine;
+import javax.script.ScriptException;
+import javax.script.SimpleBindings;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.util.Collection;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
+
+abstract class ScriptedProcessor extends AbstractProcessor implements Searchable {
+    protected static final String PYTHON_SCRIPT_LANGUAGE = "python";
+    protected static final Set<String> SCRIPT_OPTIONS = ScriptingComponentUtils.getAvailableEngines();
+
+    protected volatile String scriptToRun = null;
+    protected final AtomicReference<CompiledScript> compiledScriptRef = new AtomicReference<>();
+    private final ScriptingComponentHelper scriptingComponentHelper = new ScriptingComponentHelper();
+
+    @OnScheduled
+    public void setup(final ProcessContext context) throws IOException {
+        if (!scriptingComponentHelper.isInitialized.get()) {
+            scriptingComponentHelper.createResources(false);
+        }
+
+        scriptingComponentHelper.setupVariables(context);
+        scriptToRun = scriptingComponentHelper.getScriptBody();
+
+        if (scriptToRun == null && scriptingComponentHelper.getScriptPath() != null) {
+            try (final FileInputStream scriptStream = new FileInputStream(scriptingComponentHelper.getScriptPath())) {
+                scriptToRun = IOUtils.toString(scriptStream, Charset.defaultCharset());
+            }
+        }
+
+        // Create a script runner for each possible task
+        final int maxTasks = context.getMaxConcurrentTasks();
+        scriptingComponentHelper.setupScriptRunners(maxTasks, scriptToRun, getLogger());
+
+        // Always compile when first run
+        compiledScriptRef.set(null);
+    }
+
+    protected ScriptEvaluator createEvaluator(final ScriptEngine scriptEngine, final FlowFile flowFile) throws ScriptException {
+        if (PYTHON_SCRIPT_LANGUAGE.equalsIgnoreCase(scriptEngine.getFactory().getLanguageName())) {
+            final CompiledScript compiledScript = getOrCompileScript((Compilable) scriptEngine, scriptToRun);
+            return new PythonScriptEvaluator(scriptEngine, compiledScript, flowFile, getLogger());
+        }
+
+        return new InterpretedScriptEvaluator(scriptEngine, scriptToRun, flowFile, getLogger());
+    }
+
+    private CompiledScript getOrCompileScript(final Compilable scriptEngine, final String scriptToRun) throws ScriptException {
+        final CompiledScript existing = compiledScriptRef.get();
+        if (existing != null) {
+            return existing;
+        }
+
+        final CompiledScript compiled = scriptEngine.compile(scriptToRun);
+        final boolean updated = compiledScriptRef.compareAndSet(null, compiled);
+        if (updated) {
+            return compiled;
+        }
+
+        return compiledScriptRef.get();
+    }
+
+    @Override
+    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+        return scriptingComponentHelper.customValidate(validationContext);
+    }
+
+    @Override
+    public Collection<SearchResult> search(final SearchContext context) {
+        return ScriptingComponentUtils.search(context, getLogger());
+    }
+
+    protected static Bindings setupBindings(final ScriptEngine scriptEngine) {
+        Bindings bindings = scriptEngine.getBindings(ScriptContext.ENGINE_SCOPE);
+        if (bindings == null) {
+            bindings = new SimpleBindings();
+        }
+
+        scriptEngine.setBindings(bindings, ScriptContext.ENGINE_SCOPE);
+
+        return bindings;
+    }
+
+    protected ScriptRunner pollScriptEngine() {
+        return scriptingComponentHelper.scriptRunnerQ.poll();
+    }
+
+    protected void offerScriptEngine(ScriptRunner scriptRunner) {
+        scriptingComponentHelper.scriptRunnerQ.offer(scriptRunner);
+    }
+}
