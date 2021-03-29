@@ -70,6 +70,7 @@ import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupPortDTO;
 import org.apache.nifi.web.api.entity.ParameterContextReferenceEntity;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -585,7 +586,7 @@ public class StandardFlowSnippet implements FlowSnippet {
                 for (final String className : newPrioritizersClasses) {
                     try {
                         newPrioritizers.add(flowManager.createPrioritizer(className));
-                    } catch (final ClassNotFoundException | InstantiationException | IllegalAccessException e) {
+                    } catch (final ClassNotFoundException | InstantiationException | IllegalAccessException | NoSuchMethodException | InvocationTargetException e) {
                         throw new IllegalArgumentException("Unable to set prioritizer " + className + ": " + e);
                     }
                 }

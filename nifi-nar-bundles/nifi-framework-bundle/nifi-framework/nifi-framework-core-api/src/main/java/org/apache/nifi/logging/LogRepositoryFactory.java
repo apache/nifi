@@ -45,7 +45,7 @@ public class LogRepositoryFactory {
         LogRepository repository = repositoryMap.get(requireNonNull(componentId));
         if (repository == null) {
             try {
-                repository = logRepositoryClass.newInstance();
+                repository = logRepositoryClass.getDeclaredConstructor().newInstance();
             } catch (final Exception e) {
                 throw new RuntimeException(e);
             }

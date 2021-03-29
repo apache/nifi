@@ -484,7 +484,7 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
                 if (clazz == null) {
                     throw new InitializationException("Can't load Database Driver " + drvName);
                 }
-                final Driver driver = (Driver) clazz.newInstance();
+                final Driver driver = (Driver) clazz.getDeclaredConstructor().newInstance();
                 DriverManager.registerDriver(new DriverShim(driver));
 
                 return classLoader;

@@ -75,7 +75,7 @@ class KafkaPublisher implements Closeable {
         this.ackCheckSize = ackCheckSize;
         try {
             if (kafkaProperties.containsKey("partitioner.class")) {
-                this.partitioner = (Partitioner) Class.forName(kafkaProperties.getProperty("partitioner.class")).newInstance();
+                this.partitioner = (Partitioner) Class.forName(kafkaProperties.getProperty("partitioner.class")).getDeclaredConstructor().newInstance();
             } else {
                 this.partitioner = null;
             }

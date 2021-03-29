@@ -134,7 +134,7 @@ public class RemoteResourceManager {
         }
 
         try {
-            return codecClass.newInstance();
+            return codecClass.getDeclaredConstructor().newInstance();
         } catch (final Exception e) {
             throw new RuntimeException("Unable to instantiate class " + codecClass.getName(), e);
         }
@@ -193,7 +193,7 @@ public class RemoteResourceManager {
         }
 
         try {
-            return desiredClass.newInstance();
+            return desiredClass.getDeclaredConstructor().newInstance();
         } catch (final Exception e) {
             throw new RuntimeException("Unable to instantiate class " + desiredClass.getName(), e);
         }
@@ -219,7 +219,7 @@ public class RemoteResourceManager {
         }
 
         try {
-            return desiredClass.newInstance();
+            return desiredClass.getDeclaredConstructor().newInstance();
         } catch (final Exception e) {
             throw new RuntimeException("Unable to instantiate class " + desiredClass.getName(), e);
         }

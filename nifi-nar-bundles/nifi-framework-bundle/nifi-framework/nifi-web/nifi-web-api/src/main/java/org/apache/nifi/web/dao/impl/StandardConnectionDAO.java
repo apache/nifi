@@ -56,6 +56,7 @@ import org.slf4j.LoggerFactory;
 import javax.ws.rs.WebApplicationException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -162,7 +163,7 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
             for (final String className : newPrioritizersClasses) {
                 try {
                     newPrioritizers.add(flowController.getFlowManager().createPrioritizer(className));
-                } catch (final ClassNotFoundException | InstantiationException | IllegalAccessException e) {
+                } catch (final ClassNotFoundException | InstantiationException | IllegalAccessException | NoSuchMethodException | InvocationTargetException e) {
                     throw new IllegalArgumentException("Unable to set prioritizer " + className + ": " + e);
                 }
             }

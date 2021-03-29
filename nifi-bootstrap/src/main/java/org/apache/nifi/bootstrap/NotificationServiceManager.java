@@ -362,7 +362,7 @@ public class NotificationServiceManager {
 
         final Object serviceObject;
         try {
-            serviceObject = clazz.newInstance();
+            serviceObject = clazz.getDeclaredConstructor().newInstance();
         } catch (final Exception e) {
             logger.error("Found configuration for Notification Service with ID '{}' and Class '{}' but could not instantiate Notification Service.", serviceId, className);
             logger.error("", e);

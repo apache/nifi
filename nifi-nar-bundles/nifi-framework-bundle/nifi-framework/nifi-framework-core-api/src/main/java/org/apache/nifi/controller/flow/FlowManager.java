@@ -34,6 +34,7 @@ import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterContextManager;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
 
+import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
 import java.util.Collection;
 import java.util.Map;
@@ -147,7 +148,7 @@ public interface FlowManager {
      * @param type the type of the prioritizer (fully qualified class name)
      * @return the newly created FlowFile Prioritizer
      */
-    FlowFilePrioritizer createPrioritizer(String type) throws InstantiationException, IllegalAccessException, ClassNotFoundException;
+    FlowFilePrioritizer createPrioritizer(String type) throws InstantiationException, IllegalAccessException, ClassNotFoundException, NoSuchMethodException, InvocationTargetException;
 
     /**
      * Returns the ProcessGroup with the given ID, or null if no group exists with the given ID.

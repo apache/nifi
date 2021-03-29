@@ -301,7 +301,8 @@ public class StandardStateManagerProvider implements StateManagerProvider {
         }
     }
 
-    private static StateProvider instantiateStateProvider(final ExtensionManager extensionManager, final String type) throws ClassNotFoundException, InstantiationException, IllegalAccessException {
+    private static StateProvider instantiateStateProvider(final ExtensionManager extensionManager, final String type) throws ClassNotFoundException, InstantiationException, IllegalAccessException,
+            NoSuchMethodException, InvocationTargetException {
         final ClassLoader ctxClassLoader = Thread.currentThread().getContextClassLoader();
         try {
             final List<Bundle> bundles = extensionManager.getBundles(type);
@@ -318,7 +319,7 @@ public class StandardStateManagerProvider implements StateManagerProvider {
 
             Thread.currentThread().setContextClassLoader(detectedClassLoaderForType);
             final Class<? extends StateProvider> mgrClass = rawClass.asSubclass(StateProvider.class);
-            StateProvider provider = mgrClass.newInstance();
+            StateProvider provider = mgrClass.getDeclaredConstructor().newInstance();
             try {
                 performMethodInjection(provider, mgrClass);
             } catch (InvocationTargetException e) {

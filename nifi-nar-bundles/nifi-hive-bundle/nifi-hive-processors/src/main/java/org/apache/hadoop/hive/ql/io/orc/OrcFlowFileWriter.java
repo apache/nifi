@@ -21,6 +21,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.lang.management.ManagementFactory;
+import java.lang.reflect.InvocationTargetException;
 import java.nio.ByteBuffer;
 import java.sql.Timestamp;
 import java.util.ArrayList;
@@ -311,13 +312,17 @@ public class OrcFlowFileWriter implements Writer, MemoryManager.Callback {
                     Class<? extends CompressionCodec> lzo =
                             (Class<? extends CompressionCodec>)
                                     JavaUtils.loadClass("org.apache.hadoop.hive.ql.io.orc.LzoCodec");
-                    return lzo.newInstance();
+                    return lzo.getDeclaredConstructor().newInstance();
                 } catch (ClassNotFoundException e) {
                     throw new IllegalArgumentException("LZO is not available.", e);
                 } catch (InstantiationException e) {
                     throw new IllegalArgumentException("Problem initializing LZO", e);
                 } catch (IllegalAccessException e) {
                     throw new IllegalArgumentException("Insufficient access to LZO", e);
+                } catch (NoSuchMethodException e) {
+                    throw new IllegalArgumentException("LZO is not available.", e);
+                } catch (InvocationTargetException e) {
+                    throw new IllegalArgumentException("Problem initializing LZO", e);
                 }
             default:
                 throw new IllegalArgumentException("Unknown compression codec: " +

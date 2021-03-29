@@ -46,7 +46,7 @@ public class CipherProviderFactory {
         if (registeredCipherProviders.containsKey(kdf)) {
             Class<? extends CipherProvider> clazz = registeredCipherProviders.get(kdf);
             try {
-                return clazz.newInstance();
+                return clazz.getDeclaredConstructor().newInstance();
             } catch (Exception e) {
                logger.error("Error instantiating new {} with default parameters for {}", clazz.getName(), kdf.getKdfName());
                 throw new ProcessException("Error instantiating cipher provider");

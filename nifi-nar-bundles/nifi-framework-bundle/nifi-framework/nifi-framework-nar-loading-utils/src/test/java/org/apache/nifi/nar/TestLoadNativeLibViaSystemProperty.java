@@ -94,7 +94,7 @@ public class TestLoadNativeLibViaSystemProperty extends AbstractTestNarLoader {
 
             Object actualJniMethodReturnValue = TestJNI
                     .getMethod("testJniMethod")
-                    .invoke(TestJNI.newInstance());
+                    .invoke(TestJNI.getDeclaredConstructor().newInstance());
 
             assertEquals("calledNativeTestJniMethod", actualJniMethodReturnValue);
         }
@@ -136,7 +136,7 @@ public class TestLoadNativeLibViaSystemProperty extends AbstractTestNarLoader {
 
             Object actualJniMethodReturnValue = TestJNI
                     .getMethod("testJniMethod")
-                    .invoke(TestJNI.newInstance());
+                    .invoke(TestJNI.getDeclaredConstructor().newInstance());
 
             assertThat(actualLibraryLocation, containsString(instanceClassLoader.getIdentifier()));
             assertEquals("calledNativeTestJniMethod", actualJniMethodReturnValue);

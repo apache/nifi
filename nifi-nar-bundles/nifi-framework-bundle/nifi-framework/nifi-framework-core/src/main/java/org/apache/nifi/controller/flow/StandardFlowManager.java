@@ -79,7 +79,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLContext;
+import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
+import java.sql.Ref;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -276,7 +278,7 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
         group.findAllRemoteProcessGroups().forEach(RemoteProcessGroup::initialize);
     }
 
-    public FlowFilePrioritizer createPrioritizer(final String type) throws InstantiationException, IllegalAccessException, ClassNotFoundException {
+    public FlowFilePrioritizer createPrioritizer(final String type) throws InstantiationException, IllegalAccessException, ClassNotFoundException, NoSuchMethodException, InvocationTargetException {
         FlowFilePrioritizer prioritizer;
 
         final ClassLoader ctxClassLoader = Thread.currentThread().getContextClassLoader();
@@ -295,7 +297,7 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
 
             Thread.currentThread().setContextClassLoader(detectedClassLoaderForType);
             final Class<? extends FlowFilePrioritizer> prioritizerClass = rawClass.asSubclass(FlowFilePrioritizer.class);
-            final Object processorObj = prioritizerClass.newInstance();
+            final Object processorObj = prioritizerClass.getDeclaredConstructor().newInstance();
             prioritizer = prioritizerClass.cast(processorObj);
 
             return prioritizer;

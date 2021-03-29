@@ -68,13 +68,13 @@ public class ConfigMigrator {
 
     Boolean supportedVersion(final File script, final String currentVersion) {
         final Class ruleClass = new GroovyClassLoader(getClass().getClassLoader()).parseClass(script)
-        final GroovyObject ruleObject = (GroovyObject) ruleClass.newInstance()
+        final GroovyObject ruleObject = (GroovyObject) ruleClass.getDeclaredConstructor().newInstance()
         ruleObject.invokeMethod('supportedVersion', [currentVersion])
     }
 
     byte[] migrateContent(final File script, final byte[] content, final byte[] upgradeContent) {
         final Class ruleClass = new GroovyClassLoader(getClass().getClassLoader()).parseClass(script)
-        final GroovyObject ruleObject = (GroovyObject) ruleClass.newInstance()
+        final GroovyObject ruleObject = (GroovyObject) ruleClass.getDeclaredConstructor().newInstance()
         ruleObject.invokeMethod('migrate', [content, upgradeContent])
     }
 

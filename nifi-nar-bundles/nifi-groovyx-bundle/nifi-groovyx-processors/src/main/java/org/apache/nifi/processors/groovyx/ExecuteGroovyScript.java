@@ -338,7 +338,7 @@ public class ExecuteGroovyScript extends AbstractProcessor {
             compiled = (Class<Script>) script.getClass();
         }
         if (script == null) {
-            script = compiled.newInstance();
+            script = compiled.getDeclaredConstructor().newInstance();
         }
         Thread.currentThread().setContextClassLoader(shell.getClassLoader());
         return script;

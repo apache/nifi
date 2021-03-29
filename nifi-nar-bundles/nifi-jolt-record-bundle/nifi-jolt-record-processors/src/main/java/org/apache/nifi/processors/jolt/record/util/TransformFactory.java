@@ -68,7 +68,7 @@ public class TransformFactory {
             return (JoltTransform)constructor.newInstance(specJson);
 
         }else{
-            return (JoltTransform)clazz.newInstance();
+            return (JoltTransform)clazz.getDeclaredConstructor().newInstance();
         }
     }
 

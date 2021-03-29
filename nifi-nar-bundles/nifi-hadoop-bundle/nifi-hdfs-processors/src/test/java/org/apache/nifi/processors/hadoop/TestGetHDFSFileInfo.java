@@ -864,7 +864,7 @@ public class TestGetHDFSFileInfo {
                 String clzName = f.getName().substring("list_exception_".length(), f.getName().length());
                 IOException exception = null;
                 try {
-                     exception = (IOException)Class.forName(clzName).newInstance();
+                     exception = (IOException)Class.forName(clzName).getDeclaredConstructor().newInstance();
                 } catch (Throwable t) {
                     throw new RuntimeException(t);
                 }
@@ -903,7 +903,7 @@ public class TestGetHDFSFileInfo {
                 String clzName = f.getName().substring("exception_".length(), f.getName().length());
                 IOException exception = null;
                 try {
-                     exception = (IOException)Class.forName(clzName).newInstance();
+                     exception = (IOException)Class.forName(clzName).getDeclaredConstructor().newInstance();
                 } catch (Throwable t) {
                     throw new RuntimeException(t);
                 }

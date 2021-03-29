@@ -59,6 +59,7 @@ import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Proxy;
 import java.net.URL;
 import java.util.Collections;
@@ -353,7 +354,8 @@ public class ExtensionBuilder {
         }
     }
 
-    private ControllerServiceNode createControllerServiceNode() throws ClassNotFoundException, IllegalAccessException, InstantiationException, InitializationException {
+    private ControllerServiceNode createControllerServiceNode() throws InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, InitializationException,
+            NoSuchMethodException, ClassNotFoundException {
         final ClassLoader ctxClassLoader = Thread.currentThread().getContextClassLoader();
         try {
             final Bundle bundle = extensionManager.getBundle(bundleCoordinate);
@@ -366,7 +368,7 @@ public class ExtensionBuilder {
             Thread.currentThread().setContextClassLoader(detectedClassLoader);
 
             final Class<? extends ControllerService> controllerServiceClass = rawClass.asSubclass(ControllerService.class);
-            final ControllerService serviceImpl = controllerServiceClass.newInstance();
+            final ControllerService serviceImpl = controllerServiceClass.getDeclaredConstructor().newInstance();
 
             final StandardControllerServiceInvocationHandler invocationHandler = new StandardControllerServiceInvocationHandler(extensionManager, serviceImpl);
 
@@ -527,7 +529,7 @@ public class ExtensionBuilder {
         }
     }
 
-    private <T extends ConfigurableComponent> LoggableComponent<T> createLoggableComponent(Class<T> nodeType) throws ClassNotFoundException, IllegalAccessException, InstantiationException {
+    private <T extends ConfigurableComponent> LoggableComponent<T> createLoggableComponent(Class<T> nodeType) throws ReflectiveOperationException {
         final ClassLoader ctxClassLoader = Thread.currentThread().getContextClassLoader();
         try {
             final Bundle bundle = extensionManager.getBundle(bundleCoordinate);
@@ -539,7 +541,7 @@ public class ExtensionBuilder {
             final Class<?> rawClass = Class.forName(type, true, detectedClassLoader);
             Thread.currentThread().setContextClassLoader(detectedClassLoader);
 
-            final Object extensionInstance = rawClass.newInstance();
+            final Object extensionInstance = rawClass.getDeclaredConstructor().newInstance();
 
             final ComponentLog componentLog = new SimpleProcessLogger(identifier, extensionInstance);
             final TerminationAwareLogger terminationAwareLogger = new TerminationAwareLogger(componentLog);

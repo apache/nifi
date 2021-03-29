@@ -214,7 +214,7 @@ public class SchemaRegistryClient implements ISchemaRegistryClient {
                 HostnameVerifier hostNameVerifier = null;
                 String hostNameVerifierClassName = sslConfigurations.get(HOSTNAME_VERIFIER_CLASS_KEY);
                 try {
-                    hostNameVerifier = (HostnameVerifier) Class.forName(hostNameVerifierClassName).newInstance();
+                    hostNameVerifier = (HostnameVerifier) Class.forName(hostNameVerifierClassName).getDeclaredConstructor().newInstance();
                 } catch (Exception e) {
                     throw new RuntimeException("Failed to instantiate hostNameVerifierClass : " + hostNameVerifierClassName, e);
                 }
@@ -1084,8 +1084,8 @@ public class SchemaRegistryClient implements ISchemaRegistryClient {
         for (SchemaProviderInfo schemaProvider : supportedSchemaProviders) {
             if (schemaProvider.getType().equals(type)) {
                 try {
-                    return (T) Class.forName(schemaProvider.getDefaultSerializerClassName()).newInstance();
-                } catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
+                    return (T) Class.forName(schemaProvider.getDefaultSerializerClassName()).getDeclaredConstructor().newInstance();
+                } catch (ReflectiveOperationException e) {
                     throw new SerDesException(e);
                 }
             }
@@ -1100,8 +1100,8 @@ public class SchemaRegistryClient implements ISchemaRegistryClient {
         for (SchemaProviderInfo schemaProvider : supportedSchemaProviders) {
             if (schemaProvider.getType().equals(type)) {
                 try {
-                    return (T) Class.forName(schemaProvider.getDefaultDeserializerClassName()).newInstance();
-                } catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
+                    return (T) Class.forName(schemaProvider.getDefaultDeserializerClassName()).getDeclaredConstructor().newInstance();
+                } catch (ReflectiveOperationException e) {
                     throw new SerDesException(e);
                 }
             }
@@ -1153,7 +1153,7 @@ public class SchemaRegistryClient implements ISchemaRegistryClient {
                     isSerializer ? serDesPair.getSerializerClassName() : serDesPair.getDeserializerClassName();
 
             Class<T> clazz = (Class<T>) Class.forName(className, true, classLoader);
-            t = clazz.newInstance();
+            t = clazz.getDeclaredConstructor().newInstance();
             List<Class<?>> classes = new ArrayList<>();
             for (Class<?> interfaceClass : interfaceClasses) {
                 if (interfaceClass.isAssignableFrom(clazz)) {
@@ -1169,7 +1169,7 @@ public class SchemaRegistryClient implements ISchemaRegistryClient {
             Proxy.newProxyInstance(Thread.currentThread().getContextClassLoader(),
                     classes.toArray(new Class[classes.size()]),
                     new ClassLoaderAwareInvocationHandler(classLoader, t));
-        } catch (ClassNotFoundException | InstantiationException | IllegalAccessException e) {
+        } catch (ReflectiveOperationException e) {
             throw new SerDesException(e);
         }
 

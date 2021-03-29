@@ -115,6 +115,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.InvocationTargetException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -1101,7 +1102,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
                 for (final String className : newPrioritizersClasses) {
                     try {
                         newPrioritizers.add(flowManager.createPrioritizer(className));
-                    } catch (final ClassNotFoundException | InstantiationException | IllegalAccessException e) {
+                    } catch (final ClassNotFoundException | InstantiationException | IllegalAccessException | NoSuchMethodException | InvocationTargetException e) {
                         throw new IllegalArgumentException("Unable to set prioritizer " + className + ": " + e);
                     }
                 }
@@ -1666,7 +1667,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
                 for (final String className : newPrioritizersClasses) {
                     try {
                         newPrioritizers.add(flowManager.createPrioritizer(className));
-                    } catch (final ClassNotFoundException | InstantiationException | IllegalAccessException e) {
+                    } catch (final ClassNotFoundException | InstantiationException | IllegalAccessException | NoSuchMethodException | InvocationTargetException e) {
                         throw new IllegalArgumentException("Unable to set prioritizer " + className + ": " + e);
                     }
                 }

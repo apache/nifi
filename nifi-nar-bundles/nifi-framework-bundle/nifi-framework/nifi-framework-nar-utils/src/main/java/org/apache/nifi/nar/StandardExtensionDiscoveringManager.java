@@ -543,7 +543,7 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
         final ClassLoader bundleClassLoader = bundle.getClassLoader();
         try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(bundleClassLoader)) {
             final Class<?> componentClass = Class.forName(classType, true, bundleClassLoader);
-            final ConfigurableComponent tempComponent = (ConfigurableComponent) componentClass.newInstance();
+            final ConfigurableComponent tempComponent = (ConfigurableComponent) componentClass.getDeclaredConstructor().newInstance();
             initializeTempComponent(tempComponent);
             tempComponentLookup.put(bundleKey, tempComponent);
             return tempComponent;
