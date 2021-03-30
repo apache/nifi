@@ -56,7 +56,7 @@ import static org.mockito.Mockito.when;
 public class TestSiteToSiteBulletinReportingTask {
 
     @Test
-    public void testUrls() throws IOException {
+    public void testUrls() {
         final ValidationContext context = Mockito.mock(ValidationContext.class);
         Mockito.when(context.newPropertyValue(Mockito.anyString())).then(new Answer<PropertyValue>() {
             @Override
@@ -80,8 +80,18 @@ public class TestSiteToSiteBulletinReportingTask {
     @Test
     public void testSerializedForm() throws IOException, InitializationException {
         // creating the list of bulletins
-        final List<Bulletin> bulletins = new ArrayList<Bulletin>();
-        bulletins.add(BulletinFactory.createBulletin("group-id", "group-name", "source-id", ComponentType.PROCESSOR, "source-name", "category", "severity", "message", "group-path"));
+        final List<Bulletin> bulletins = new ArrayList<>();
+        Bulletin bulletin = new Bulletin.Builder()
+                .setGroupId("group-id")
+                .setSourceId("source-id")
+                .setSourceName("source-name")
+                .setSourceType(ComponentType.PROCESSOR)
+                .setCategory("category")
+                .setLevel("severity")
+                .setMessage("message")
+                .setGroupPath("group-path")
+                .createBulletin();
+        bulletins.add(bulletin);
 
         // mock the access to the list of bulletins
         final ReportingContext context = Mockito.mock(ReportingContext.class);
@@ -100,12 +110,9 @@ public class TestSiteToSiteBulletinReportingTask {
         properties.put(SiteToSiteUtils.BATCH_SIZE, "1000");
         properties.put(SiteToSiteUtils.PLATFORM, "nifi");
 
-        Mockito.doAnswer(new Answer<PropertyValue>() {
-            @Override
-            public PropertyValue answer(final InvocationOnMock invocation) throws Throwable {
-                final PropertyDescriptor descriptor = invocation.getArgument(0, PropertyDescriptor.class);
-                return new MockPropertyValue(properties.get(descriptor));
-            }
+        Mockito.doAnswer((Answer<PropertyValue>) invocation -> {
+            final PropertyDescriptor descriptor = invocation.getArgument(0, PropertyDescriptor.class);
+            return new MockPropertyValue(properties.get(descriptor));
         }).when(context).getProperty(Mockito.any(PropertyDescriptor.class));
 
         // setup the mock initialization context
@@ -130,8 +137,16 @@ public class TestSiteToSiteBulletinReportingTask {
     @Test
     public void testSerializedFormWithNullValues() throws IOException, InitializationException {
         // creating the list of bulletins
-        final List<Bulletin> bulletins = new ArrayList<Bulletin>();
-        bulletins.add(BulletinFactory.createBulletin("group-id", "group-name", "source-id", "source-name", "category", "severity", "message"));
+        final List<Bulletin> bulletins = new ArrayList<>();
+        Bulletin bulletin = new Bulletin.Builder()
+                .setGroupId("group-id")
+                .setSourceId("source-id")
+                .setSourceName("source-name")
+                .setCategory("category")
+                .setLevel("severity")
+                .setMessage("message")
+                .createBulletin();
+        bulletins.add(bulletin);
 
         // mock the access to the list of bulletins
         final ReportingContext context = Mockito.mock(ReportingContext.class);
@@ -151,12 +166,9 @@ public class TestSiteToSiteBulletinReportingTask {
         properties.put(SiteToSiteUtils.PLATFORM, "nifi");
         properties.put(SiteToSiteStatusReportingTask.ALLOW_NULL_VALUES, "true");
 
-        Mockito.doAnswer(new Answer<PropertyValue>() {
-            @Override
-            public PropertyValue answer(final InvocationOnMock invocation) throws Throwable {
-                final PropertyDescriptor descriptor = invocation.getArgument(0, PropertyDescriptor.class);
-                return new MockPropertyValue(properties.get(descriptor));
-            }
+        Mockito.doAnswer((Answer<PropertyValue>) invocation -> {
+            final PropertyDescriptor descriptor = invocation.getArgument(0, PropertyDescriptor.class);
+            return new MockPropertyValue(properties.get(descriptor));
         }).when(context).getProperty(Mockito.any(PropertyDescriptor.class));
 
         // setup the mock initialization context

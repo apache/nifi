@@ -18,6 +18,7 @@ package org.apache.nifi.mock;
 
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.logging.LogLevel;
+import org.apache.nifi.logging.LogMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,6 +54,12 @@ public class MockComponentLogger implements ComponentLog {
     }
 
     @Override
+    public void warn(LogMessage logMessage) {
+        logger.warn(logMessage.getMessage(), logMessage.getObjects());
+        logger.warn("", logMessage.getThrowable());
+    }
+
+    @Override
     public void trace(String msg, Throwable t) {
         logger.trace(msg, t);
     }
@@ -71,6 +78,12 @@ public class MockComponentLogger implements ComponentLog {
     public void trace(String msg, Object[] os, Throwable t) {
         logger.trace(msg, os);
         logger.trace("", t);
+    }
+
+    @Override
+    public void trace(LogMessage logMessage) {
+        logger.trace(logMessage.getMessage(), logMessage.getObjects());
+        logger.trace("", logMessage.getThrowable());
     }
 
     @Override
@@ -118,7 +131,23 @@ public class MockComponentLogger implements ComponentLog {
     public void info(String msg, Object[] os, Throwable t) {
         logger.trace(msg, os);
         logger.trace("", t);
+    }
 
+    @Override
+    public void info(LogMessage logMessage) {
+        String msg = logMessage.getMessage();
+        Throwable t = logMessage.getThrowable();
+        Object[] os = logMessage.getObjects();
+
+        if (os != null && t != null) {
+            info(msg, os, t);
+        } else if (os != null) {
+            info(msg, os);
+        } else if (t != null) {
+            info(msg, t);
+        } else {
+            info(msg);
+        }
     }
 
     @Override
@@ -148,6 +177,23 @@ public class MockComponentLogger implements ComponentLog {
     }
 
     @Override
+    public void error(LogMessage logMessage) {
+        String msg = logMessage.getMessage();
+        Throwable t = logMessage.getThrowable();
+        Object[] os = logMessage.getObjects();
+
+        if (os != null && t != null) {
+            error(msg, os, t);
+        } else if (os != null) {
+            error(msg, os);
+        } else if (t != null) {
+            error(msg, t);
+        } else {
+            error(msg);
+        }
+    }
+
+    @Override
     public void debug(String msg, Throwable t) {
         logger.debug(msg, t);
     }
@@ -166,6 +212,23 @@ public class MockComponentLogger implements ComponentLog {
     @Override
     public void debug(String msg) {
         logger.debug(msg);
+    }
+
+    @Override
+    public void debug(LogMessage logMessage) {
+        String msg = logMessage.getMessage();
+        Throwable t = logMessage.getThrowable();
+        Object[] os = logMessage.getObjects();
+
+        if (os != null && t != null) {
+            debug(msg, os, t);
+        } else if (os != null) {
+            debug(msg, os);
+        } else if (t != null) {
+            debug(msg, t);
+        } else {
+            debug(msg);
+        }
     }
 
     @Override
@@ -252,6 +315,28 @@ public class MockComponentLogger implements ComponentLog {
                 break;
             case WARN:
                 warn(msg, os, t);
+                break;
+        }
+    }
+
+    @Override
+    public void log(LogMessage message) {
+        switch (message.getLogLevel()) {
+            case DEBUG:
+                debug(message);
+                break;
+            case ERROR:
+            case FATAL:
+                error(message);
+                break;
+            case INFO:
+                info(message);
+                break;
+            case TRACE:
+                trace(message);
+                break;
+            case WARN:
+                warn(message);
                 break;
         }
     }

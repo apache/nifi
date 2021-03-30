@@ -17,7 +17,6 @@
 package org.apache.nifi.logging;
 
 import org.apache.nifi.controller.ReportingTaskNode;
-import org.apache.nifi.events.BulletinFactory;
 import org.apache.nifi.reporting.Bulletin;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.reporting.ComponentType;
@@ -36,10 +35,17 @@ public class ReportingTaskLogObserver implements LogObserver {
     public void onLogMessage(final LogMessage message) {
         // Map LogLevel.WARN to Severity.WARNING so that we are consistent with the Severity enumeration. Else, just use whatever
         // the LogLevel is (INFO and ERROR map directly and all others we will just accept as they are).
-        final String bulletinLevel = message.getLevel() == LogLevel.WARN ? Severity.WARNING.name() : message.getLevel().toString();
+        final String bulletinLevel = message.getLogLevel() == LogLevel.WARN ? Severity.WARNING.name() : message.getLogLevel().toString();
 
-        final Bulletin bulletin = BulletinFactory.createBulletin(null, taskNode.getIdentifier(), ComponentType.REPORTING_TASK,
-            taskNode.getName(), "Log Message", bulletinLevel, message.getMessage());
+        final Bulletin bulletin = new Bulletin.Builder()
+                .setSourceId(taskNode.getIdentifier())
+                .setSourceType(ComponentType.REPORTING_TASK)
+                .setSourceName(taskNode.getName())
+                .setCategory("Log Message")
+                .setLevel(bulletinLevel)
+                .setMessage(message.getMessage())
+                .createBulletin();
+
         bulletinRepository.addBulletin(bulletin);
     }
 }

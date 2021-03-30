@@ -153,6 +153,23 @@ public class MockComponentLog implements ComponentLog {
     }
 
     @Override
+    public void warn(org.apache.nifi.logging.LogMessage logMessage) {
+        String msg = logMessage.getMessage();
+        Throwable t = logMessage.getThrowable();
+        Object[] os = logMessage.getObjects();
+
+        if (os != null && t != null) {
+            warn(msg, os, t);
+        } else if (os != null) {
+            warn(msg, os);
+        } else if (t != null) {
+            warn(msg, t);
+        } else {
+            warn(msg);
+        }
+    }
+
+    @Override
     public void trace(String msg, Throwable t) {
         msg = "{} " + msg;
         final Object[] os = {component};
@@ -180,6 +197,23 @@ public class MockComponentLog implements ComponentLog {
 
         logger.trace(msg, os);
         logger.trace("", t);
+    }
+
+    @Override
+    public void trace(org.apache.nifi.logging.LogMessage logMessage) {
+        String msg = logMessage.getMessage();
+        Throwable t = logMessage.getThrowable();
+        Object[] os = logMessage.getObjects();
+
+        if (os != null && t != null) {
+            trace(msg, os, t);
+        } else if (os != null) {
+            trace(msg, os);
+        } else if (t != null) {
+            trace(msg, t);
+        } else {
+            trace(msg);
+        }
     }
 
     @Override
@@ -246,6 +280,23 @@ public class MockComponentLog implements ComponentLog {
     }
 
     @Override
+    public void info(org.apache.nifi.logging.LogMessage logMessage) {
+        String msg = logMessage.getMessage();
+        Throwable t = logMessage.getThrowable();
+        Object[] os = logMessage.getObjects();
+
+        if (os != null && t != null) {
+            info(msg, os, t);
+        } else if (os != null) {
+            info(msg, os);
+        } else if (t != null) {
+            info(msg, t);
+        } else {
+            info(msg);
+        }
+    }
+
+    @Override
     public String getName() {
         return logger.getName();
     }
@@ -289,6 +340,23 @@ public class MockComponentLog implements ComponentLog {
     }
 
     @Override
+    public void error(org.apache.nifi.logging.LogMessage logMessage) {
+        String msg = logMessage.getMessage();
+        Throwable t = logMessage.getThrowable();
+        Object[] os = logMessage.getObjects();
+
+        if (os != null && t != null) {
+            error(msg, os, t);
+        } else if (os != null) {
+            error(msg, os);
+        } else if (t != null) {
+            error(msg, t);
+        } else {
+            error(msg);
+        }
+    }
+
+    @Override
     public void debug(String msg, Throwable t) {
         msg = "{} " + msg;
         final Object[] os = {component};
@@ -321,6 +389,23 @@ public class MockComponentLog implements ComponentLog {
         final Object[] os = {component};
 
         logger.debug(msg, os);
+    }
+
+    @Override
+    public void debug(org.apache.nifi.logging.LogMessage logMessage) {
+        String msg = logMessage.getMessage();
+        Throwable t = logMessage.getThrowable();
+        Object[] os = logMessage.getObjects();
+
+        if (os != null && t != null) {
+            debug(msg, os, t);
+        } else if (os != null) {
+            debug(msg, os);
+        } else if (t != null) {
+            debug(msg, t);
+        } else {
+            debug(msg);
+        }
     }
 
     @Override
@@ -392,6 +477,31 @@ public class MockComponentLog implements ComponentLog {
     @Override
     public void log(LogLevel level, String msg, Object[] os, Throwable t) {
         switch (level) {
+            case DEBUG:
+                debug(msg, os, t);
+                break;
+            case ERROR:
+            case FATAL:
+                error(msg, os, t);
+                break;
+            case INFO:
+                info(msg, os, t);
+                break;
+            case TRACE:
+                trace(msg, os, t);
+                break;
+            case WARN:
+                warn(msg, os, t);
+                break;
+        }
+    }
+
+    @Override
+    public void log(org.apache.nifi.logging.LogMessage message) {
+        String msg = message.getMessage();
+        Object[] os = message.getObjects();
+        Throwable t = message.getThrowable();
+        switch (message.getLogLevel()) {
             case DEBUG:
                 debug(msg, os, t);
                 break;

@@ -18,7 +18,9 @@ package org.apache.nifi.logging;
 
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.events.BulletinFactory;
+import org.apache.nifi.reporting.Bulletin;
 import org.apache.nifi.reporting.BulletinRepository;
+import org.apache.nifi.reporting.ComponentType;
 import org.apache.nifi.reporting.Severity;
 
 /**
@@ -40,9 +42,17 @@ public class ProcessorLogObserver implements LogObserver {
     public void onLogMessage(final LogMessage message) {
         // Map LogLevel.WARN to Severity.WARNING so that we are consistent with the Severity enumeration. Else, just use whatever
         // the LogLevel is (INFO and ERROR map directly and all others we will just accept as they are).
-        final String bulletinLevel = (message.getLevel() == LogLevel.WARN) ? Severity.WARNING.name() : message.getLevel().toString();
+        final String bulletinLevel = (message.getLogLevel() == LogLevel.WARN) ? Severity.WARNING.name() : message.getLogLevel().toString();
+        final ComponentType componentType = BulletinFactory.getSourceType(processorNode);
 
-        bulletinRepository.addBulletin(BulletinFactory.createBulletin(processorNode, CATEGORY, bulletinLevel, message.getMessage()));
+        Bulletin bulletin = new Bulletin.Builder()
+                .setSourceType(componentType)
+                .setCategory(CATEGORY)
+                .setLevel(bulletinLevel)
+                .setMessage(message.getMessage())
+                .setFlowFile(message.getFlowFile())
+                .createBulletin();
+
+        bulletinRepository.addBulletin(bulletin);
     }
-
 }

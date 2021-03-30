@@ -68,6 +68,7 @@ import org.apache.nifi.remote.exception.RequestExpiredException;
 import org.apache.nifi.remote.exception.TransmissionDisabledException;
 import org.apache.nifi.remote.protocol.CommunicationsSession;
 import org.apache.nifi.remote.protocol.ServerProtocol;
+import org.apache.nifi.reporting.Bulletin;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.reporting.ComponentType;
 import org.apache.nifi.reporting.Severity;
@@ -127,7 +128,17 @@ public class StandardPublicPort extends AbstractPort implements PublicPort {
                 final String sourceId = StandardPublicPort.this.getIdentifier();
                 final String sourceName = StandardPublicPort.this.getName();
                 final ComponentType componentType = direction == TransferDirection.RECEIVE ? ComponentType.INPUT_PORT : ComponentType.OUTPUT_PORT;
-                bulletinRepository.addBulletin(BulletinFactory.createBulletin(groupId, groupName, sourceId, componentType, sourceName, category, severity.name(), message));
+                Bulletin bulletin = new Bulletin.Builder()
+                        .setGroupId(groupId)
+                        .setGroupName(groupName)
+                        .setSourceId(sourceId)
+                        .setSourceType(componentType)
+                        .setSourceName(sourceName)
+                        .setCategory(category)
+                        .setLevel(severity.name())
+                        .setMessage(message)
+                        .createBulletin();
+                bulletinRepository.addBulletin(bulletin);
             }
         };
 

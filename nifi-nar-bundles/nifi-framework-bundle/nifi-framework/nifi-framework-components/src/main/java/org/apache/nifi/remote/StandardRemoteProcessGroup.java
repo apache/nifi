@@ -40,6 +40,7 @@ import org.apache.nifi.groups.RemoteProcessGroupPortDescriptor;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.remote.protocol.http.HttpProxy;
 import org.apache.nifi.remote.util.SiteToSiteRestApiClient;
+import org.apache.nifi.reporting.Bulletin;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.reporting.ComponentType;
 import org.apache.nifi.reporting.Severity;
@@ -168,8 +169,17 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
                 final String groupName = StandardRemoteProcessGroup.this.getProcessGroup().getName();
                 final String sourceId = StandardRemoteProcessGroup.this.getIdentifier();
                 final String sourceName = StandardRemoteProcessGroup.this.getName();
-                bulletinRepository.addBulletin(BulletinFactory.createBulletin(groupId, groupName, sourceId, ComponentType.REMOTE_PROCESS_GROUP,
-                        sourceName, category, severity.name(), message));
+                Bulletin bulletin = new Bulletin.Builder()
+                        .setGroupId(groupId)
+                        .setGroupName(groupName)
+                        .setSourceId(sourceId)
+                        .setSourceType(ComponentType.REMOTE_PROCESS_GROUP)
+                        .setSourceName(sourceName)
+                        .setCategory(category)
+                        .setLevel(severity.name())
+                        .setMessage(message)
+                        .createBulletin();
+                bulletinRepository.addBulletin(bulletin);
             }
         };
 

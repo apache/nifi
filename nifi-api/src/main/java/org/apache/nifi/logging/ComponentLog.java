@@ -58,6 +58,8 @@ public interface ComponentLog {
 
     void warn(String msg);
 
+    void warn(LogMessage logMessage);
+
     void trace(String msg, Throwable t);
 
     void trace(String msg, Object... os);
@@ -65,6 +67,8 @@ public interface ComponentLog {
     void trace(String msg);
 
     void trace(String msg, Object[] os, Throwable t);
+
+    void trace(LogMessage logMessage);
 
     boolean isWarnEnabled();
 
@@ -84,6 +88,8 @@ public interface ComponentLog {
 
     void info(String msg, Object[] os, Throwable t);
 
+    void info(LogMessage message);
+
     String getName();
 
     void error(String msg, Throwable t);
@@ -94,6 +100,8 @@ public interface ComponentLog {
 
     void error(String msg, Object[] os, Throwable t);
 
+    void error(LogMessage message);
+
     void debug(String msg, Throwable t);
 
     void debug(String msg, Object... os);
@@ -102,6 +110,8 @@ public interface ComponentLog {
 
     void debug(String msg);
 
+    void debug(LogMessage message);
+
     void log(LogLevel level, String msg, Throwable t);
 
     void log(LogLevel level, String msg, Object... os);
@@ -109,4 +119,6 @@ public interface ComponentLog {
     void log(LogLevel level, String msg);
 
     void log(LogLevel level, String msg, Object[] os, Throwable t);
+
+    void log(LogMessage message);
 }
