@@ -385,8 +385,8 @@ public class TestQuery {
         // the date.toString() above will end up truncating the milliseconds. So remove millis from the Date before
         // formatting it
         final DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss.SSS", Locale.US);
-        final Instant roundedToNearestSecond = date.toInstant().truncatedTo(ChronoUnit.SECONDS);
-        final String formatted = dtf.format(roundedToNearestSecond);
+        final Instant truncatedSecond = date.toInstant().truncatedTo(ChronoUnit.SECONDS);
+        final String formatted = dtf.format(truncatedSecond);
 
         final QueryResult<?> result = query.evaluate(new StandardEvaluationContext(attributes));
         assertEquals(ResultType.STRING, result.getResultType());

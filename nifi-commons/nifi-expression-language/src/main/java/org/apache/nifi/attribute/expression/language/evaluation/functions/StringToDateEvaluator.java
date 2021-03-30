@@ -94,7 +94,7 @@ public class StringToDateEvaluator extends DateEvaluator {
         }
 
         try {
-            return new DateQueryResult(Date.from(FormatUtils.parseInstant(dtf, subjectValue)));
+            return new DateQueryResult(Date.from(FormatUtils.parseToInstant(dtf, subjectValue)));
         } catch (final DateTimeParseException e) {
             throw new IllegalAttributeException("Cannot parse attribute value as a date; date format: "
                     + formatValue + "; attribute value: " + subjectValue + ". Error: " + e.getMessage());

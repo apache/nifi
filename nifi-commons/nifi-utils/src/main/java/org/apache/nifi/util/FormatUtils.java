@@ -451,7 +451,7 @@ public class FormatUtils {
      * @param text      text which will be parsed
      * @return parsed Instant
      */
-    public static Instant parseInstant(DateTimeFormatter formatter, String text) {
+    public static Instant parseToInstant(DateTimeFormatter formatter, String text) {
         if (text == null) {
             throw new IllegalArgumentException("Text cannot be null");
         }
