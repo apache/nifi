@@ -177,7 +177,9 @@ public class TailFile extends AbstractProcessor {
         .name("Post-Rollover Tail Period")
         .description("When a file is rolled over, the processor will continue tailing the rolled over file until it has not been modified for this amount of time. " +
             "This allows for another process to rollover a file, and then flush out any buffered data. Note that when this value is set, and the tailed file rolls over, " +
-            "the new file will not be tailed until the old file has not been modified for the configured amount of time.")
+            "the new file will not be tailed until the old file has not been modified for the configured amount of time. Additionally, when using this capability, in order to avoid data " +
+            "duplication, this period must be set longer than the Processor's Run Schedule, and the Processor must not be stopped after the file being tailed has been " +
+            "rolled over and before the data has been fully consumed. Otherwise, the data may be duplicated, as the entire file may be written out as the contents of a single FlowFile.")
         .required(false)
         .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
         .expressionLanguageSupported(NONE)
