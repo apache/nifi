@@ -46,7 +46,6 @@ package org.apache.nifi.logging;
  * Managers to understand that a problem exists and what the issue is.
  * </li>
  * </ul>
- *
  */
 public interface ComponentLog {
 

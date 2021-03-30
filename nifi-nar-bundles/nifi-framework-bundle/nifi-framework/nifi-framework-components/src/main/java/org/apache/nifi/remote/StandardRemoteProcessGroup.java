@@ -31,7 +31,6 @@ import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.exception.CommunicationsException;
 import org.apache.nifi.engine.FlowEngine;
-import org.apache.nifi.events.BulletinFactory;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
@@ -935,14 +934,14 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
                 this.refreshContentsTimestamp = System.currentTimeMillis();
 
                 final List<String> inputPortString = dto.getInputPorts().stream()
-                    .map(port -> "InputPort[name=" + port.getName() + ", targetId=" + port.getId() + "]")
-                    .collect(Collectors.toList());
+                        .map(port -> "InputPort[name=" + port.getName() + ", targetId=" + port.getId() + "]")
+                        .collect(Collectors.toList());
                 final List<String> outputPortString = dto.getOutputPorts().stream()
-                    .map(port -> "OutputPort[name=" + port.getName() + ", targetId=" + port.getId() + "]")
-                    .collect(Collectors.toList());
+                        .map(port -> "OutputPort[name=" + port.getName() + ", targetId=" + port.getId() + "]")
+                        .collect(Collectors.toList());
 
                 logger.info("Successfully refreshed Flow Contents for {}; updated to reflect {} Input Ports {} and {} Output Ports {}", this, dto.getInputPorts().size(), inputPortString,
-                    dto.getOutputPorts().size(), outputPortString);
+                        dto.getOutputPorts().size(), outputPortString);
             } finally {
                 writeLock.unlock();
             }

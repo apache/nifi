@@ -17,7 +17,6 @@
 package org.apache.nifi.logging;
 
 import org.apache.nifi.controller.service.ControllerServiceNode;
-import org.apache.nifi.events.BulletinFactory;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.reporting.Bulletin;
 import org.apache.nifi.reporting.BulletinRepository;
