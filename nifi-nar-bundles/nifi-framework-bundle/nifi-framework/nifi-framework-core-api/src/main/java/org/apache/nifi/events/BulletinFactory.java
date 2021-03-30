@@ -17,7 +17,6 @@
 package org.apache.nifi.events;
 
 import org.apache.nifi.connectable.Connectable;
-import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.reporting.Bulletin;
 import org.apache.nifi.reporting.ComponentType;
