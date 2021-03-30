@@ -42,7 +42,6 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -58,6 +57,10 @@ public class TestQuerySolr {
 
     private static final String SOLR_CONNECT = "http://localhost:8443/solr";
 
+    private static final String CREATED_DATETIME = "1970-01-01T12:00:00.000Z";
+
+    private static final String FACET_RANGE_END = "1970-01-01T13:00:00.000Z";
+
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private static SolrClient solrClient;
@@ -72,7 +75,7 @@ public class TestQuerySolr {
         for (int i = 0; i < 10; i++) {
             SolrInputDocument doc = new SolrInputDocument();
             doc.addField("id", "doc" + i);
-            doc.addField("created", Instant.now().toString());
+            doc.addField("created", CREATED_DATETIME);
             doc.addField("string_single", "single" + i + ".1");
             doc.addField("string_multi", "multi" + i + ".1");
             doc.addField("string_multi", "multi" + i + ".2");
@@ -156,9 +159,9 @@ public class TestQuerySolr {
         runner.setProperty("facet.interval.set.1", "[4,7]");
         runner.setProperty("facet.interval.set.2", "[5,7]");
         runner.setProperty("facet.range", "created");
-        runner.setProperty("facet.range.start", "NOW/MINUTE");
-        runner.setProperty("facet.range.end", "NOW/MINUTE+1MINUTE");
-        runner.setProperty("facet.range.gap", "+20SECOND");
+        runner.setProperty("facet.range.start", CREATED_DATETIME);
+        runner.setProperty("facet.range.end", FACET_RANGE_END);
+        runner.setProperty("facet.range.gap", "+1SECOND");
         runner.setProperty("facet.query.1", "*:*");
         runner.setProperty("facet.query.2", "integer_multi:2");
         runner.setProperty("facet.query.3", "integer_multi:3");
@@ -173,22 +176,22 @@ public class TestQuerySolr {
         final int facetQueriesCount = StreamSupport.stream(facetsNode.get("facet_queries").spliterator(), false)
                 .mapToInt(node -> node.get("count").asInt())
                 .sum();
-        assertEquals(30, facetQueriesCount);
+        assertEquals("Facet Queries Count not matched", 30, facetQueriesCount);
 
         final int facetFieldsCount = StreamSupport.stream(facetsNode.get("facet_fields").get("integer_multi").spliterator(), false)
                 .mapToInt(node -> node.get("count").asInt())
                 .sum();
-        assertEquals(30, facetFieldsCount);
+        assertEquals("Facet Fields Count not matched", 30, facetFieldsCount);
 
         final int facetRangesCount = StreamSupport.stream(facetsNode.get("facet_ranges").get("created").spliterator(), false)
                 .mapToInt(node -> node.get("count").asInt())
                 .sum();
-        assertEquals(10, facetRangesCount);
+        assertEquals("Facet Ranges Count not matched",10, facetRangesCount);
 
         final int facetIntervalsCount = StreamSupport.stream(facetsNode.get("facet_intervals").get("integer_single").spliterator(), false)
                 .mapToInt(node -> node.get("count").asInt())
                 .sum();
-        assertEquals(7, facetIntervalsCount);
+        assertEquals("Facet Intervals Count not matched", 7, facetIntervalsCount);
     }
 
     @Test
