@@ -278,6 +278,7 @@ public class CSVUtils {
         format = format.withEscape(escapeChar);
 
         format = format.withTrim(context.getProperty(TRIM_FIELDS).asBoolean());
+        format = format.withIgnoreSurroundingSpaces(context.getProperty(TRIM_FIELDS).asBoolean());
 
         if (context.getProperty(COMMENT_MARKER).isSet()) {
             final Character commentMarker = getCharUnescaped(context, COMMENT_MARKER, variables);

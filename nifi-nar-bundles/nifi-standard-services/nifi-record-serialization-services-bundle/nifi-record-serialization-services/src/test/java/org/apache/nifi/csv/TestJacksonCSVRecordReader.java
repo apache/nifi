@@ -48,8 +48,8 @@ import static org.junit.Assert.assertThrows;
 
 public class TestJacksonCSVRecordReader {
     private final DataType doubleDataType = RecordFieldType.DOUBLE.getDataType();
-    private final CSVFormat format = CSVFormat.DEFAULT.withFirstRecordAsHeader().withTrim().withQuote('"');
-    private final CSVFormat formatWithNullRecordSeparator = CSVFormat.DEFAULT.withFirstRecordAsHeader().withTrim().withQuote('"').withRecordSeparator(null);
+    private final CSVFormat format = CSVFormat.DEFAULT.withFirstRecordAsHeader().withTrim().withIgnoreSurroundingSpaces().withQuote('"');
+    private final CSVFormat formatWithNullRecordSeparator = CSVFormat.DEFAULT.withFirstRecordAsHeader().withTrim().withIgnoreSurroundingSpaces().withQuote('"').withRecordSeparator(null);
 
     private List<RecordField> getDefaultFields() {
         final List<RecordField> fields = new ArrayList<>();
@@ -396,7 +396,7 @@ public class TestJacksonCSVRecordReader {
         }
 
         // confirm duplicate headers cause an exception when requested
-        final CSVFormat disallowDuplicateHeadersFormat = CSVFormat.DEFAULT.withFirstRecordAsHeader().withTrim().withQuote('"').withAllowDuplicateHeaderNames(false);
+        final CSVFormat disallowDuplicateHeadersFormat = CSVFormat.DEFAULT.withFirstRecordAsHeader().withTrim().withIgnoreSurroundingSpaces().withQuote('"').withAllowDuplicateHeaderNames(false);
         try (final InputStream bais = new ByteArrayInputStream(inputData);
              final JacksonCSVRecordReader reader = createReader(bais, schema, disallowDuplicateHeadersFormat)) {
             final IllegalArgumentException iae = assertThrows(IllegalArgumentException.class, () -> reader.nextRecord(false, false));
@@ -413,7 +413,7 @@ public class TestJacksonCSVRecordReader {
 
         char delimiter = StringEscapeUtils.unescapeJava("\u0001").charAt(0);
 
-        final CSVFormat format = CSVFormat.DEFAULT.withFirstRecordAsHeader().withTrim().withQuote('"').withDelimiter(delimiter);
+        final CSVFormat format = CSVFormat.DEFAULT.withFirstRecordAsHeader().withTrim().withIgnoreSurroundingSpaces().withQuote('"').withDelimiter(delimiter);
         final List<RecordField> fields = getDefaultFields();
         fields.replaceAll(f -> f.getFieldName().equals("balance") ? new RecordField("balance", doubleDataType) : f);
 

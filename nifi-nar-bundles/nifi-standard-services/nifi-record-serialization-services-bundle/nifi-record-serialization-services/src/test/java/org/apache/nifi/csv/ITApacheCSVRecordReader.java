@@ -43,7 +43,7 @@ import static org.junit.Assert.assertThat;
 
 public class ITApacheCSVRecordReader {
 
-    private final CSVFormat format = CSVFormat.DEFAULT.withFirstRecordAsHeader().withTrim().withQuote('"');
+    private final CSVFormat format = CSVFormat.DEFAULT.withFirstRecordAsHeader().withTrim().withIgnoreSurroundingSpaces().withQuote('"');
 
     private List<RecordField> getDefaultFields() {
         return createStringFields(new String[]{"id", "name", "balance", "address", "city", "state", "zipCode", "country"});
@@ -83,7 +83,7 @@ public class ITApacheCSVRecordReader {
 
     @Test
     public void testExceptionThrownOnParseProblem() throws IOException, MalformedRecordException {
-        CSVFormat csvFormat = CSVFormat.DEFAULT.withFirstRecordAsHeader().withQuoteMode(QuoteMode.ALL).withTrim().withDelimiter(',');
+        CSVFormat csvFormat = CSVFormat.DEFAULT.withFirstRecordAsHeader().withQuoteMode(QuoteMode.ALL).withTrim().withIgnoreSurroundingSpaces().withDelimiter(',');
         final int NUM_LINES = 25;
         StringBuilder sb = new StringBuilder("\"id\",\"name\",\"balance\"");
         for (int i = 0; i < NUM_LINES; i++) {
