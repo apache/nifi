@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.hazelcast.services.cacheclient;
 
-import com.google.common.primitives.Longs;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
@@ -36,6 +35,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.Serializable;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -199,8 +199,8 @@ public class HazelcastMapCacheClient extends AbstractControllerService implement
     }
 
     @Override
-    public void close() throws IOException {
-        getLogger().debug("Closing " + this.getClass().getSimpleName());
+    public void close() {
+        getLogger().debug("Closing {}", getClass().getSimpleName());
     }
 
     @Override
@@ -209,7 +209,7 @@ public class HazelcastMapCacheClient extends AbstractControllerService implement
     }
 
     private static long parseRevision(final byte[] value) {
-        return Longs.fromByteArray(Arrays.copyOfRange(value, 0, Long.BYTES));
+        return ByteBuffer.wrap(Arrays.copyOfRange(value, 0, Long.BYTES)).getLong();
     }
 
     private static <V> V parsePayload(final Deserializer<V> deserializer, final byte[] value) throws IOException {
@@ -249,8 +249,13 @@ public class HazelcastMapCacheClient extends AbstractControllerService implement
      */
     private <S> byte[] serialize(final S value, final Serializer<S> serializer, final long version) throws IOException {
         final ByteArrayOutputStream stream = new ByteArrayOutputStream();
-        stream.write(Longs.toByteArray(version));
+
+        stream.write(getVersionByteArray(version));
         serializer.serialize(value, stream);
         return stream.toByteArray();
+    }
+
+    private byte[] getVersionByteArray(final long version) {
+        return ByteBuffer.allocate(Long.BYTES).putLong(version).array();
     }
 }
