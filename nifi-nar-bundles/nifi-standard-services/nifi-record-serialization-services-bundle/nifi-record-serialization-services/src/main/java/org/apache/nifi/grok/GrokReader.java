@@ -71,7 +71,7 @@ import java.util.regex.Matcher;
 public class GrokReader extends SchemaRegistryService implements RecordReaderFactory {
     private volatile GrokCompiler grokCompiler;
     private volatile Grok grok;
-    private volatile boolean appendUnmatchedLine;
+    private volatile NoMatchStrategy noMatchStrategy;
     private volatile RecordSchema recordSchema;
     private volatile RecordSchema recordSchemaFromGrok;
 
@@ -81,6 +81,8 @@ public class GrokReader extends SchemaRegistryService implements RecordReaderFac
         "The line of text that does not match the Grok Expression will be appended to the last field of the prior message.");
     static final AllowableValue SKIP_LINE = new AllowableValue("skip-line", "Skip Line",
         "The line of text that does not match the Grok Expression will be skipped.");
+    static final AllowableValue RAW_LINE = new AllowableValue("raw-line", "Raw Line",
+            "The line of text that does not match the Grok Expression will only be added to the _raw field.");
 
     static final AllowableValue STRING_FIELDS_FROM_GROK_EXPRESSION = new AllowableValue("string-fields-from-grok-expression", "Use String Fields From Grok Expression",
         "The schema will be derived by using the field names present in the Grok Expression. All fields will be assumed to be of type String. Additionally, a field will be included "
@@ -110,7 +112,7 @@ public class GrokReader extends SchemaRegistryService implements RecordReaderFac
         .displayName("No Match Behavior")
         .description("If a line of text is encountered and it does not match the given Grok Expression, and it is not part of a stack trace, "
             + "this property specifies how the text should be processed.")
-        .allowableValues(APPEND_TO_PREVIOUS_MESSAGE, SKIP_LINE)
+        .allowableValues(APPEND_TO_PREVIOUS_MESSAGE, SKIP_LINE, RAW_LINE)
         .defaultValue(APPEND_TO_PREVIOUS_MESSAGE.getValue())
         .required(true)
         .build();
@@ -142,7 +144,14 @@ public class GrokReader extends SchemaRegistryService implements RecordReaderFac
 
         grok = grokCompiler.compile(context.getProperty(GROK_EXPRESSION).getValue());
 
-        appendUnmatchedLine = context.getProperty(NO_MATCH_BEHAVIOR).getValue().equalsIgnoreCase(APPEND_TO_PREVIOUS_MESSAGE.getValue());
+
+        if(context.getProperty(NO_MATCH_BEHAVIOR).getValue().equalsIgnoreCase(APPEND_TO_PREVIOUS_MESSAGE.getValue())) {
+            noMatchStrategy = NoMatchStrategy.APPEND;
+        } else if (context.getProperty(NO_MATCH_BEHAVIOR).getValue().equalsIgnoreCase(RAW_LINE.getValue())) {
+            noMatchStrategy = NoMatchStrategy.RAW;
+        } else {
+            noMatchStrategy = NoMatchStrategy.SKIP;
+        }
 
         this.recordSchemaFromGrok = createRecordSchema(grok);
 
@@ -269,6 +278,6 @@ public class GrokReader extends SchemaRegistryService implements RecordReaderFac
     @Override
     public RecordReader createRecordReader(final Map<String, String> variables, final InputStream in, final long inputLength, final ComponentLog logger) throws IOException, SchemaNotFoundException {
         final RecordSchema schema = getSchema(variables, in, null);
-        return new GrokRecordReader(in, grok, schema, recordSchemaFromGrok, appendUnmatchedLine);
+        return new GrokRecordReader(in, grok, schema, recordSchemaFromGrok, noMatchStrategy);
     }
 }
