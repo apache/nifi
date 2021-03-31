@@ -1004,5 +1004,33 @@
                     should be overridden on the command-line <hadoop.version>2.6.0-cdh5.8.1</hadoop.version> -->
             </properties>
         </profile>
+        <profile>
+            <!-- Run "mvn clean verify -P owasp" to generate dependency-check-report.html in the target directory -->
+            <!-- Report results require detailed analysis to determine whether the vulnerability impacts the application -->
+            <id>owasp</id>
+            <properties>
+                <skipTests>true</skipTests>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.owasp</groupId>
+                        <artifactId>dependency-check-maven</artifactId>
+                        <version>6.1.5</version>
+                        <executions>
+                            <execution>
+                                <inherited>false</inherited>
+                                <goals>
+                                    <goal>aggregate</goal>
+                                </goals>
+                                <configuration>
+                                    <suppressionFiles>nifi-dependency-check-maven/suppressions.xml</suppressionFiles>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
     </profiles>
 </project>
