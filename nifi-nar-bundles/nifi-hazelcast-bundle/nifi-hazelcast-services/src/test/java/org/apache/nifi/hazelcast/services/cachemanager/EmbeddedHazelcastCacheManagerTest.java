@@ -22,17 +22,14 @@ public class EmbeddedHazelcastCacheManagerTest extends AbstractHazelcastCacheMan
 
     @Test
     public void testExecution() throws Exception {
-        // given
         testSubject = new EmbeddedHazelcastCacheManager();
         testRunner.addControllerService("hazelcast-connection-service", testSubject);
 
         givenHazelcastMapCacheClient();
         givenServicesAreEnabled();
 
-        // when
         whenExecuting();
 
-        // then
         thenProcessingIsSuccessful();
     }
 }
