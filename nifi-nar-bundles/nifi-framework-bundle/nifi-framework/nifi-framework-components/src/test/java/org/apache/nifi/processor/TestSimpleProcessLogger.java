@@ -16,6 +16,15 @@
  */
 package org.apache.nifi.processor;
 
+import org.apache.nifi.logging.LogLevel;
+import org.apache.nifi.reporting.ReportingTask;
+import org.junit.Before;
+import org.junit.Test;
+import org.slf4j.Logger;
+
+import java.lang.reflect.Field;
+
+import static org.apache.nifi.processor.SimpleProcessLogger.NEW_LINE_ARROW;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -24,16 +33,13 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.lang.reflect.Field;
-
-import org.apache.nifi.logging.LogLevel;
-import org.apache.nifi.reporting.ReportingTask;
-import org.junit.Before;
-import org.junit.Test;
-import org.slf4j.Logger;
-
 public class TestSimpleProcessLogger {
-    private final Exception e = new RuntimeException("intentional");
+
+    private static final String EXPECTED_CAUSES = "java.lang.RuntimeException: third" + System.lineSeparator() +
+            NEW_LINE_ARROW + " causes: java.lang.RuntimeException: second" + System.lineSeparator() +
+            NEW_LINE_ARROW + " causes: java.lang.RuntimeException: first";
+
+    private final Exception e = new RuntimeException("first", new RuntimeException("second", new RuntimeException("third")));
 
     private ReportingTask task;
 
@@ -68,7 +74,7 @@ public class TestSimpleProcessLogger {
     @Test
     public void validateDelegateLoggerReceivesThrowableToStringOnError() {
         componentLog.error("Hello {}", e);
-        verify(logger, times(1)).error(anyString(), eq(task), eq(e.toString()), eq(e));
+        verify(logger, times(1)).error(anyString(), eq(task), eq(EXPECTED_CAUSES), eq(e));
     }
 
     @Test
@@ -80,24 +86,24 @@ public class TestSimpleProcessLogger {
     @Test
     public void validateDelegateLoggerReceivesThrowableToStringOnTrace() {
         componentLog.trace("Hello {}", e);
-        verify(logger, times(1)).trace(anyString(), eq(task), eq(e.toString()), eq(e));
+        verify(logger, times(1)).trace(anyString(), eq(task), eq(EXPECTED_CAUSES), eq(e));
     }
 
     @Test
     public void validateDelegateLoggerReceivesThrowableToStringOnWarn() {
         componentLog.warn("Hello {}", e);
-        verify(logger, times(1)).warn(anyString(), eq(task), eq(e.toString()), eq(e));
+        verify(logger, times(1)).warn(anyString(), eq(task), eq(EXPECTED_CAUSES), eq(e));
     }
 
     @Test
     public void validateDelegateLoggerReceivesThrowableToStringOnLogWithLevel() {
         componentLog.log(LogLevel.WARN, "Hello {}", e);
-        verify(logger, times(1)).warn(anyString(), eq(task), eq(e.toString()), eq(e));
+        verify(logger, times(1)).warn(anyString(), eq(task), eq(EXPECTED_CAUSES), eq(e));
         componentLog.log(LogLevel.ERROR, "Hello {}", e);
-        verify(logger, times(1)).error(anyString(), eq(task), eq(e.toString()), eq(e));
+        verify(logger, times(1)).error(anyString(), eq(task), eq(EXPECTED_CAUSES), eq(e));
         componentLog.log(LogLevel.INFO, "Hello {}", e);
         verify(logger, times(1)).info(anyString(), eq(e));
         componentLog.log(LogLevel.TRACE, "Hello {}", e);
-        verify(logger, times(1)).trace(anyString(), eq(task), eq(e.toString()), eq(e));
+        verify(logger, times(1)).trace(anyString(), eq(task), eq(EXPECTED_CAUSES), eq(e));
     }
 }

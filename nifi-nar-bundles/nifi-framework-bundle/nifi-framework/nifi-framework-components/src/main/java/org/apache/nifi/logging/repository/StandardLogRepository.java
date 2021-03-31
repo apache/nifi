@@ -34,8 +34,6 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class StandardLogRepository implements LogRepository {
 
-    public static final int DEFAULT_MAX_CAPACITY_PER_LEVEL = 10;
-
     private final Map<LogLevel, Collection<LogObserver>> observers = new HashMap<>();
     private final Map<String, LogObserver> observerLookup = new HashMap<>();
 
@@ -82,7 +80,7 @@ public class StandardLogRepository implements LogRepository {
         addLogMessage(level, formattedMessage, t);
     }
 
-    private void replaceThrowablesWithMessage(Object[] params) {
+    private void replaceThrowablesWithMessage(final Object[] params) {
         for (int i = 0; i < params.length; i++) {
             if(params[i] instanceof Throwable) {
                 params[i] = ((Throwable) params[i]).getLocalizedMessage();
