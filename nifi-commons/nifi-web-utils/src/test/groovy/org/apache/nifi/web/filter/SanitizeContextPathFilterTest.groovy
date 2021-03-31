@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.web.filter
 
-import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.junit.After
 import org.junit.Before
 import org.junit.BeforeClass
@@ -29,7 +28,6 @@ import org.slf4j.LoggerFactory
 import javax.servlet.FilterConfig
 import javax.servlet.ServletContext
 import javax.servlet.http.HttpServletRequest
-import java.security.Security
 
 @RunWith(JUnit4.class)
 class SanitizeContextPathFilterTest extends GroovyTestCase {
@@ -37,8 +35,6 @@ class SanitizeContextPathFilterTest extends GroovyTestCase {
 
     @BeforeClass
     static void setUpOnce() throws Exception {
-        Security.addProvider(new BouncyCastleProvider())
-
         logger.metaClass.methodMissing = { String name, args ->
             logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
         }

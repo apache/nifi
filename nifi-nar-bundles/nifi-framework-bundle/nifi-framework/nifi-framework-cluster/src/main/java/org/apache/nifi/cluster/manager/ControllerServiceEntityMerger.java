@@ -16,20 +16,23 @@
  */
 package org.apache.nifi.cluster.manager;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
-
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceReferencingComponentDTO;
 import org.apache.nifi.web.api.dto.PermissionsDTO;
 import org.apache.nifi.web.api.dto.PropertyDescriptorDTO;
+import org.apache.nifi.web.api.entity.BulletinEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceReferencingComponentEntity;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class ControllerServiceEntityMerger implements ComponentEntityMerger<ControllerServiceEntity> {
 
@@ -172,6 +175,7 @@ public class ControllerServiceEntityMerger implements ComponentEntityMerger<Cont
             for (final ControllerServiceReferencingComponentEntity referencingComponent : referencingComponents) {
                 final PermissionsDTO permissions = permissionsHolder.get(referencingComponent.getId());
                 final PermissionsDTO operatePermissions = operatePermissionsHolder.get(referencingComponent.getId());
+
                 if (permissions != null && permissions.getCanRead() != null && permissions.getCanRead()) {
                     final Integer activeThreadCount = activeThreadCounts.get(referencingComponent.getId());
                     if (activeThreadCount != null) {
@@ -200,6 +204,7 @@ public class ControllerServiceEntityMerger implements ComponentEntityMerger<Cont
                     referencingComponent.setPermissions(permissions);
                     referencingComponent.setOperatePermissions(operatePermissions);
                     referencingComponent.setComponent(null);
+                    referencingComponent.setBulletins(null);
                 }
             }
         }
@@ -226,7 +231,7 @@ public class ControllerServiceEntityMerger implements ComponentEntityMerger<Cont
         for (Map.Entry<NodeIdentifier, ControllerServiceReferencingComponentEntity> entry : nodeEntities.entrySet()) {
             final NodeIdentifier nodeIdentifier = entry.getKey();
             final ControllerServiceReferencingComponentEntity nodeEntity = entry.getValue();
-            nodeEntity.getComponent().getDescriptors().values().stream().forEach(propertyDescriptor -> {
+            nodeEntity.getComponent().getDescriptors().values().forEach(propertyDescriptor -> {
                 propertyDescriptorMap.computeIfAbsent(propertyDescriptor.getName(), nodeIdToPropertyDescriptor -> new HashMap<>()).put(nodeIdentifier, propertyDescriptor);
             });
             nodeReferencingComponentsMap.put(nodeIdentifier, nodeEntity.getComponent().getReferencingComponents());
@@ -242,6 +247,16 @@ public class ControllerServiceEntityMerger implements ComponentEntityMerger<Cont
                 PropertyDescriptorDtoMerger.merge(clientPropertyDescriptor, propertyDescriptorByNodeId);
             }
         }
+
+        // Merge bulletins
+        final List<BulletinEntity> bulletins = new ArrayList<>();
+        for (ControllerServiceReferencingComponentEntity entity : nodeEntities.values()) {
+            final List<BulletinEntity> entityBulletins = entity.getBulletins();
+            if (entityBulletins != null) {
+                bulletins.addAll(entityBulletins);
+            }
+        }
+        clientEntity.setBulletins(bulletins);
 
         final Set<ControllerServiceReferencingComponentEntity> referencingComponents = clientEntity.getComponent().getReferencingComponents();
         mergeControllerServiceReferences(referencingComponents, nodeReferencingComponentsMap);
