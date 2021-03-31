@@ -83,13 +83,14 @@ public class TestSiteToSiteBulletinReportingTask {
         final List<Bulletin> bulletins = new ArrayList<>();
         Bulletin bulletin = new Bulletin.Builder()
                 .setGroupId("group-id")
+                .setGroupName("group-name")
+                .setGroupPath("group-path")
                 .setSourceId("source-id")
                 .setSourceName("source-name")
                 .setSourceType(ComponentType.PROCESSOR)
                 .setCategory("category")
                 .setLevel("severity")
                 .setMessage("message")
-                .setGroupPath("group-path")
                 .createBulletin();
         bulletins.add(bulletin);
 

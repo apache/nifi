@@ -32,7 +32,7 @@ public class StandardEventReporter implements EventReporter {
 
     @Override
     public void reportEvent(final Severity severity, final String category, final String message) {
-        final Bulletin bulletin = BulletinFactory.createBulletin(category, severity.name(), message);
+        final Bulletin bulletin = BulletinFactory.createSystemBulletin(category, severity.name(), message);
         bulletinRepo.addBulletin(bulletin);
     }
 }

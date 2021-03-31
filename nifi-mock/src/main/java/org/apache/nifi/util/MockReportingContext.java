@@ -95,7 +95,7 @@ public class MockReportingContext extends MockControllerServiceLookup implements
 
     @Override
     public Bulletin createBulletin(final String category, final Severity severity, final String message) {
-        return BulletinFactory.createBulletin(category, severity.name(), message);
+        return BulletinFactory.createSystemBulletin(category, severity.name(), message);
     }
 
     @Override

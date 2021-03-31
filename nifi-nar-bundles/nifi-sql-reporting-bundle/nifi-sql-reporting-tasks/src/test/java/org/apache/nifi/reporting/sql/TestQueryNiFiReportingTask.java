@@ -409,9 +409,9 @@ public class TestQueryNiFiReportingTask {
         Mockito.when(eventAccess.getProvenanceRepository()).thenReturn(provenanceRepository);
 
         MockBulletinRepository bulletinRepository = new MockQueryBulletinRepository();
-        bulletinRepository.addBulletin(BulletinFactory.createBulletin("controller", "WARN", "test bulletin 2"));
-        bulletinRepository.addBulletin(BulletinFactory.createBulletin("processor", "INFO", "test bulletin 1"));
-        bulletinRepository.addBulletin(BulletinFactory.createBulletin("controller service", "ERROR", "test bulletin 2"));
+        bulletinRepository.addBulletin(BulletinFactory.createSystemBulletin("controller", "WARN", "test bulletin 2"));
+        bulletinRepository.addBulletin(BulletinFactory.createSystemBulletin("processor", "INFO", "test bulletin 1"));
+        bulletinRepository.addBulletin(BulletinFactory.createSystemBulletin("controller service", "ERROR", "test bulletin 2"));
         Mockito.when(context.getBulletinRepository()).thenReturn(bulletinRepository);
 
         return reportingTask;

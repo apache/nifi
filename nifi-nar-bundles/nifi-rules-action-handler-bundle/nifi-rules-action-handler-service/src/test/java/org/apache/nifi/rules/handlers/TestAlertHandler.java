@@ -72,7 +72,7 @@ public class TestAlertHandler {
         Mockito.when(reportingContext.getBulletinRepository()).thenReturn(mockAlertBulletinRepository);
         Mockito.when(reportingContext.createBulletin(anyString(), Mockito.any(Severity.class), anyString()))
                 .thenAnswer(invocation ->
-                        BulletinFactory.createBulletin(invocation.getArgument(0), invocation.getArgument(1).toString(), invocation.getArgument(2)));
+                        BulletinFactory.createSystemBulletin(invocation.getArgument(0), invocation.getArgument(1).toString(), invocation.getArgument(2)));
     }
 
     @Test

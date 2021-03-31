@@ -860,7 +860,7 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
 
             @Override
             public void reportEvent(final Severity severity, final String category, final String message) {
-                final Bulletin bulletin = BulletinFactory.createBulletin(category, severity.name(), message);
+                final Bulletin bulletin = BulletinFactory.createSystemBulletin(category, severity.name(), message);
                 bulletinRepository.addBulletin(bulletin);
             }
         };
@@ -2336,7 +2336,7 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
             @Override
             public synchronized void onLeaderRelinquish() {
                 LOG.info("This node is no longer the elected Active Cluster Coordinator");
-                bulletinRepository.addBulletin(BulletinFactory.createBulletin("Cluster Coordinator", Severity.INFO.name(), participantId + " is no longer the Cluster Coordinator"));
+                bulletinRepository.addBulletin(BulletinFactory.createSystemBulletin("Cluster Coordinator", Severity.INFO.name(), participantId + " is no longer the Cluster Coordinator"));
 
                 // We do not want to stop the heartbeat monitor. This is because even though ZooKeeper offers guarantees
                 // that watchers will see changes on a ZNode in the order they happened, there does not seem to be any
@@ -2351,7 +2351,7 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
             @Override
             public synchronized void onLeaderElection() {
                 LOG.info("This node elected Active Cluster Coordinator");
-                bulletinRepository.addBulletin(BulletinFactory.createBulletin("Cluster Coordinator", Severity.INFO.name(), participantId + " has been elected the Cluster Coordinator"));
+                bulletinRepository.addBulletin(BulletinFactory.createSystemBulletin("Cluster Coordinator", Severity.INFO.name(), participantId + " has been elected the Cluster Coordinator"));
 
                 // Purge any heartbeats that we already have. If we don't do this, we can have a scenario where we receive heartbeats
                 // from a node, and then another node becomes Cluster Coordinator. As a result, we stop receiving heartbeats. Now that
@@ -2503,7 +2503,7 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
         // Emit a bulletin detailing the fact that the primary node state has changed
         if (oldBean == null || oldBean.isPrimary() != primary) {
             final String message = primary ? "This node has been elected Primary Node" : "This node is no longer Primary Node";
-            final Bulletin bulletin = BulletinFactory.createBulletin("Primary Node", Severity.INFO.name(), message);
+            final Bulletin bulletin = BulletinFactory.createSystemBulletin("Primary Node", Severity.INFO.name(), message);
             bulletinRepository.addBulletin(bulletin);
             LOG.info(message);
         }

@@ -32,7 +32,7 @@ public class BulletinAdapter extends XmlAdapter<AdaptedBulletin, Bulletin> {
         }
         // TODO - timestamp is overridden here with a new timestamp... address?
         if (b.getSourceId() == null) {
-            return BulletinFactory.createBulletin(b.getCategory(), b.getLevel(), b.getMessage());
+            return BulletinFactory.createSystemBulletin(b.getCategory(), b.getLevel(), b.getMessage());
         } else {
             return new Bulletin.Builder()
                     .setGroupId(b.getGroupId())

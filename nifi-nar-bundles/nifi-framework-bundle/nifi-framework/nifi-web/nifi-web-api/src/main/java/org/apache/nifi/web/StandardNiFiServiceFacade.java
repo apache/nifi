@@ -2201,7 +2201,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
 
     @Override
     public BulletinEntity createBulletin(final BulletinDTO bulletinDTO, final Boolean canRead){
-        final Bulletin bulletin = BulletinFactory.createBulletin(bulletinDTO.getCategory(),bulletinDTO.getLevel(),bulletinDTO.getMessage());
+        final Bulletin bulletin = BulletinFactory.createSystemBulletin(bulletinDTO.getCategory(),bulletinDTO.getLevel(),bulletinDTO.getMessage());
         bulletinRepository.addBulletin(bulletin);
         return entityFactory.createBulletinEntity(dtoFactory.createBulletinDto(bulletin),canRead);
     }

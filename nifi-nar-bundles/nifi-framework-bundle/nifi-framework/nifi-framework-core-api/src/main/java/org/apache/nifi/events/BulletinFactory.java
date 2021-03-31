@@ -23,7 +23,7 @@ import org.apache.nifi.reporting.ComponentType;
 
 public final class BulletinFactory {
 
-    public static Bulletin createBulletin(final Connectable connectable, final String category, final String severity, final String message) {
+    public static Bulletin createSystemBulletin(final Connectable connectable, final String category, final String severity, final String message) {
         final ComponentType type = getSourceType(connectable);
         final ProcessGroup group = connectable.getProcessGroup();
         final String groupId = connectable.getProcessGroupIdentifier();
@@ -57,8 +57,9 @@ public final class BulletinFactory {
         }
     }
 
-    public static Bulletin createBulletin(final String category, final String severity, final String message) {
+    public static Bulletin createSystemBulletin(final String category, final String severity, final String message) {
         return new Bulletin.Builder()
+                .setSourceType(ComponentType.FLOW_CONTROLLER)
                 .setCategory(category)
                 .setLevel(severity)
                 .setMessage(message)

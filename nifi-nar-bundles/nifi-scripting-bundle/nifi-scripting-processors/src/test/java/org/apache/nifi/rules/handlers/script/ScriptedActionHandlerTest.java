@@ -88,7 +88,7 @@ public class ScriptedActionHandlerTest {
         reportingContext = mock(ReportingContext.class);
         when(reportingContext.getBulletinRepository()).thenReturn(mockScriptedBulletinRepository);
         when(reportingContext.createBulletin(anyString(), Mockito.any(Severity.class), anyString()))
-                .thenAnswer(invocation -> BulletinFactory.createBulletin(invocation.getArgument(0), invocation.getArgument(1).toString(), invocation.getArgument(2)));
+                .thenAnswer(invocation -> BulletinFactory.createSystemBulletin(invocation.getArgument(0), invocation.getArgument(1).toString(), invocation.getArgument(2)));
         List<Action> actions = Arrays.asList(new Action("LOG", attrs), new Action("ALERT", attrs));
         actions.forEach(action -> actionHandler.execute(reportingContext, action, facts));
 
@@ -104,7 +104,7 @@ public class ScriptedActionHandlerTest {
         reportingContext = mock(ReportingContext.class);
         when(reportingContext.getBulletinRepository()).thenReturn(mockScriptedBulletinRepository);
         when(reportingContext.createBulletin(anyString(), Mockito.any(Severity.class), anyString()))
-                .thenAnswer(invocation -> BulletinFactory.createBulletin(invocation.getArgument(0), invocation.getArgument(1).toString(), invocation.getArgument(2)));
+                .thenAnswer(invocation -> BulletinFactory.createSystemBulletin(invocation.getArgument(0), invocation.getArgument(1).toString(), invocation.getArgument(2)));
         List<Action> actions = Arrays.asList(new Action("LOG", attrs), new Action("ALERT", attrs));
         actions.forEach(action -> actionHandler.execute(reportingContext, action, facts));
 
@@ -188,7 +188,7 @@ public class ScriptedActionHandlerTest {
         reportingContext = mock(ReportingContext.class);
         when(reportingContext.getBulletinRepository()).thenReturn(mockScriptedBulletinRepository);
         when(reportingContext.createBulletin(anyString(), Mockito.any(Severity.class), anyString()))
-                .thenAnswer(invocation -> BulletinFactory.createBulletin(invocation.getArgument(0), invocation.getArgument(1).toString(), invocation.getArgument(2)));
+                .thenAnswer(invocation -> BulletinFactory.createSystemBulletin(invocation.getArgument(0), invocation.getArgument(1).toString(), invocation.getArgument(2)));
     }
 
     private MockScriptedActionHandler initTask(String scriptFile) throws InitializationException {
