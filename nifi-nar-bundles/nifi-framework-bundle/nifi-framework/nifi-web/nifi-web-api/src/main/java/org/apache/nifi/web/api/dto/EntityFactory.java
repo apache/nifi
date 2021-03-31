@@ -85,6 +85,7 @@ import org.apache.nifi.web.api.entity.VersionControlInformationEntity;
 
 import java.util.Date;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public final class EntityFactory {
 
@@ -384,7 +385,7 @@ public final class EntityFactory {
     }
 
     public AffectedComponentEntity createAffectedComponentEntity(final AffectedComponentDTO dto, final RevisionDTO revision, final PermissionsDTO permissions,
-                                                                 final ProcessGroupNameDTO processGroupNameDto) {
+                                                                 final ProcessGroupNameDTO processGroupNameDto, final List<BulletinDTO> bulletins) {
         final AffectedComponentEntity entity = new AffectedComponentEntity();
         entity.setRevision(revision);
         if (dto != null) {
@@ -397,6 +398,8 @@ public final class EntityFactory {
             }
         }
 
+        final List<BulletinEntity> bulletinEntities = bulletins.stream().map(bulletin -> createBulletinEntity(bulletin, permissions.getCanRead())).collect(Collectors.toList());
+        entity.setBulletins(bulletinEntities);
         entity.setProcessGroup(processGroupNameDto);
         return entity;
     }
@@ -615,8 +618,11 @@ public final class EntityFactory {
     }
 
     public ControllerServiceReferencingComponentEntity createControllerServiceReferencingComponentEntity(final String id,
-        final ControllerServiceReferencingComponentDTO dto, final RevisionDTO revision, final PermissionsDTO permissions, final PermissionsDTO operatePermissions) {
+        final ControllerServiceReferencingComponentDTO dto, final RevisionDTO revision, final PermissionsDTO permissions, final PermissionsDTO operatePermissions,
+        final List<BulletinDTO> bulletins) {
+
         final ControllerServiceReferencingComponentEntity entity = new ControllerServiceReferencingComponentEntity();
+        entity.setId(id);
         entity.setRevision(revision);
         if (dto != null) {
             entity.setPermissions(permissions);
@@ -627,6 +633,8 @@ public final class EntityFactory {
             }
         }
 
+        final List<BulletinEntity> bulletinEntities = bulletins.stream().map(bulletin -> createBulletinEntity(bulletin, permissions.getCanRead())).collect(Collectors.toList());
+        entity.setBulletins(bulletinEntities);
         return entity;
     }
 

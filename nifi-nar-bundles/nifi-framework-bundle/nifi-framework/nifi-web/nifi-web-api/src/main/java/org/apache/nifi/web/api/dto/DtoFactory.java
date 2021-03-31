@@ -2857,7 +2857,14 @@ public final class DtoFactory {
             }
         }
 
-        return entityFactory.createAffectedComponentEntity(affectedComponent, revision, permissions, groupNameDto);
+        final List<BulletinDTO> bulletins = createBulletins(componentNode);
+        return entityFactory.createAffectedComponentEntity(affectedComponent, revision, permissions, groupNameDto, bulletins);
+    }
+
+    private List<BulletinDTO> createBulletins(final ComponentNode componentNode) {
+        final PermissionsDTO permissions = createPermissionsDto(componentNode);
+        final List<BulletinDTO> bulletins = createBulletinDtos(bulletinRepository.findBulletinsForSource(componentNode.getIdentifier()));
+        return bulletins;
     }
 
     public VariableRegistryDTO createVariableRegistryDto(final ProcessGroup processGroup, final RevisionManager revisionManager) {
