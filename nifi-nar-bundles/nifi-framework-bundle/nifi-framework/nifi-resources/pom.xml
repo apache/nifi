@@ -144,6 +144,8 @@
         <nifi.web.proxy.host />
         <nifi.web.max.content.size />
         <nifi.web.max.requests.per.second>30000</nifi.web.max.requests.per.second>
+        <nifi.web.request.timeout>60 secs</nifi.web.request.timeout>
+        <nifi.web.request.ip.whitelist />
         <nifi.web.should.send.server.version>true</nifi.web.should.send.server.version>
         <!-- nifi.properties: security properties -->
         <nifi.security.keystore />

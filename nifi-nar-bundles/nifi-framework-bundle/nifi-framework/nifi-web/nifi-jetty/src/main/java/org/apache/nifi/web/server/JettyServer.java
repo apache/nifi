@@ -691,8 +691,10 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
      */
     private static void addDenialOfServiceFilters(String path, WebAppContext webAppContext, NiFiProperties props) {
         // Add the requests rate limiting filter to all requests
-        int maxWebRequestsPerSecond = determineMaxWebRequestsPerSecond(props);
-        addWebRequestRateLimitingFilter(path, webAppContext, maxWebRequestsPerSecond);
+        final int maxWebRequestsPerSecond = determineMaxWebRequestsPerSecond(props);
+        final long requestTimeoutInMilliseconds = determineRequestTimeoutInMilliseconds(props);
+        final String ipWhitelist = props.getWebRequestIpWhitelist();
+        addWebRequestLimitingFilter(path, webAppContext, maxWebRequestsPerSecond, ipWhitelist, requestTimeoutInMilliseconds);
 
         // Only add the ContentLengthFilter if the property is explicitly set (empty by default)
         int maxRequestSize = determineMaxRequestSize(props);
@@ -703,32 +705,52 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         }
     }
 
-    private static int determineMaxWebRequestsPerSecond(NiFiProperties props) {
+    private static int determineMaxWebRequestsPerSecond(final NiFiProperties props) {
         int defaultMaxRequestsPerSecond = Integer.parseInt(NiFiProperties.DEFAULT_WEB_MAX_REQUESTS_PER_SECOND);
         int configuredMaxRequestsPerSecond = 0;
         try {
             configuredMaxRequestsPerSecond = Integer.parseInt(props.getMaxWebRequestsPerSecond());
         } catch (final NumberFormatException e) {
-            logger.warn("Exception parsing property " + NiFiProperties.WEB_MAX_REQUESTS_PER_SECOND + "; using default value: " + defaultMaxRequestsPerSecond);
+            logger.warn("Exception parsing property [{}]; using default value: [{}]", NiFiProperties.WEB_MAX_REQUESTS_PER_SECOND, defaultMaxRequestsPerSecond);
         }
 
         return configuredMaxRequestsPerSecond > 0 ? configuredMaxRequestsPerSecond : defaultMaxRequestsPerSecond;
     }
 
+    private static long determineRequestTimeoutInMilliseconds(final NiFiProperties props) {
+        long defaultRequestTimeout = Math.round(FormatUtils.getPreciseTimeDuration(NiFiProperties.DEFAULT_WEB_REQUEST_TIMEOUT, TimeUnit.MILLISECONDS));
+        long configuredRequestTimeout = 0L;
+        try {
+            configuredRequestTimeout = Math.round(FormatUtils.getPreciseTimeDuration(props.getWebRequestTimeout(), TimeUnit.MILLISECONDS));
+        } catch (final NumberFormatException e) {
+            logger.warn("Exception parsing property [{}]; using default value: [{}]", NiFiProperties.WEB_REQUEST_TIMEOUT, defaultRequestTimeout);
+        }
+
+        return configuredRequestTimeout > 0 ? configuredRequestTimeout : defaultRequestTimeout;
+    }
+
     /**
      * Adds the {@link org.eclipse.jetty.servlets.DoSFilter} to the specified context and path. Limits incoming web requests to {@code maxWebRequestsPerSecond} per second.
+     * In order to allow clients to make more requests than the maximum rate, clients can be added to the {@code ipWhitelist}.
+     * The {@code requestTimeoutInMilliseconds} value limits requests to the given request timeout amount, and will close connections that run longer than this time.
      *
      * @param path the path to apply this filter
      * @param webAppContext the context to apply this filter
      * @param maxWebRequestsPerSecond the maximum number of allowed requests per second
+     * @param ipWhitelist a whitelist of IP addresses that should not be rate limited. Does not apply to request timeout
+     * @param requestTimeoutInMilliseconds the amount of time before a connection will be automatically closed
      */
-    private static void addWebRequestRateLimitingFilter(String path, WebAppContext webAppContext, int maxWebRequestsPerSecond) {
+    private static void addWebRequestLimitingFilter(String path, WebAppContext webAppContext, int maxWebRequestsPerSecond, final String ipWhitelist, long requestTimeoutInMilliseconds) {
         FilterHolder holder = new FilterHolder(DoSFilter.class);
         holder.setInitParameters(new HashMap<String, String>() {{
             put("maxRequestsPerSec", String.valueOf(maxWebRequestsPerSecond));
+            put("maxRequestMs", String.valueOf(requestTimeoutInMilliseconds));
+            put("ipWhitelist", String.valueOf(ipWhitelist));
         }});
         holder.setName(DoSFilter.class.getSimpleName());
-        logger.debug("Adding DoSFilter to context at path: " + path + " with max req/sec: " + maxWebRequestsPerSecond);
+
+        logger.debug("Adding DoSFilter to context at path: [{}] with max req/sec: [{}], request timeout: [{}] ms. Whitelisted IPs not subject to filter: [{}]",
+                path, maxWebRequestsPerSecond, requestTimeoutInMilliseconds, StringUtils.defaultIfEmpty(ipWhitelist, "none"));
         webAppContext.addFilter(holder, path, EnumSet.allOf(DispatcherType.class));
     }
 
