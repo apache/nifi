@@ -233,13 +233,16 @@ public class StatelessKafkaConnectorUtil {
             narDirectory = new File(narDirectoryFilename);
         }
 
-        final File workingDirectory;
+        final String dataflowName = properties.get(DATAFLOW_NAME);
+
+        final File baseWorkingDirectory;
         final String workingDirectoryFilename = properties.get(WORKING_DIRECTORY);
         if (workingDirectoryFilename == null) {
-            workingDirectory = DEFAULT_WORKING_DIRECTORY;
+            baseWorkingDirectory = DEFAULT_WORKING_DIRECTORY;
         } else {
-            workingDirectory = new File(workingDirectoryFilename);
+            baseWorkingDirectory = new File(workingDirectoryFilename);
         }
+        final File workingDirectory = new File(baseWorkingDirectory, dataflowName);
 
         final File extensionsDirectory;
         final String extensionsDirectoryFilename = properties.get(EXTENSIONS_DIRECTORY);

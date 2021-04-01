@@ -75,10 +75,8 @@ public class DownloadQueue {
         this.clients = clients;
 
         if (!narLibDirectory.exists()) {
-            final boolean created = narLibDirectory.mkdirs();
-            if (created) {
-                logger.info("Extensions directory {} did not exist but created it", narLibDirectory.getAbsolutePath());
-            } else {
+            final boolean created = narLibDirectory.mkdirs() || narLibDirectory.exists();
+            if (!created) {
                 logger.error("Extensions directory {} did not exist and could not be created.", narLibDirectory.getAbsolutePath());
             }
         }
@@ -197,7 +195,7 @@ public class DownloadQueue {
 
             if (destinationFile.exists()) {
                 logger.debug("Requested to download {} but destination file {} already exists. Will not download.", coordinate, destinationFile);
-                return null;
+                return destinationFile;
             }
 
             for (final ExtensionClient extensionClient : clients) {
