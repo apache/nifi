@@ -58,6 +58,7 @@ import org.apache.nifi.web.security.headers.XContentTypeOptionsFilter;
 import org.apache.nifi.web.security.headers.XFrameOptionsFilter;
 import org.apache.nifi.web.security.headers.XSSProtectionFilter;
 import org.apache.nifi.web.security.requests.ContentLengthFilter;
+import org.apache.nifi.web.security.requests.NiFiDoSFilter;
 import org.eclipse.jetty.annotations.AnnotationConfiguration;
 import org.eclipse.jetty.deploy.App;
 import org.eclipse.jetty.deploy.DeploymentManager;
@@ -692,7 +693,8 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
     private static void addDenialOfServiceFilters(String path, WebAppContext webAppContext, NiFiProperties props) {
         // Add the requests rate limiting filter to all requests
         int maxWebRequestsPerSecond = determineMaxWebRequestsPerSecond(props);
-        addWebRequestRateLimitingFilter(path, webAppContext, maxWebRequestsPerSecond);
+        long requestTimeoutInMilliseconds = determineRequestTimeoutInMilliseconds(props);
+        addWebRequestRateLimitingFilter(path, webAppContext, maxWebRequestsPerSecond, requestTimeoutInMilliseconds);
 
         // Only add the ContentLengthFilter if the property is explicitly set (empty by default)
         int maxRequestSize = determineMaxRequestSize(props);
@@ -715,6 +717,18 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         return configuredMaxRequestsPerSecond > 0 ? configuredMaxRequestsPerSecond : defaultMaxRequestsPerSecond;
     }
 
+    private static long determineRequestTimeoutInMilliseconds(NiFiProperties props) {
+        long defaultRequestTimeout = Math.round(FormatUtils.getPreciseTimeDuration(NiFiProperties.DEFAULT_WEB_REQUEST_TIMEOUT, TimeUnit.MILLISECONDS));
+        long configuredRequestTimeout = 0L;
+        try {
+            configuredRequestTimeout = Math.round(FormatUtils.getPreciseTimeDuration(props.getWebRequestTimeout(), TimeUnit.MILLISECONDS));
+        } catch (final NumberFormatException e) {
+            logger.warn("Exception parsing property " + NiFiProperties.WEB_REQUEST_TIMEOUT + "; using default value: " + defaultRequestTimeout);
+        }
+
+        return configuredRequestTimeout > 0 ? configuredRequestTimeout : defaultRequestTimeout;
+    }
+
     /**
      * Adds the {@link org.eclipse.jetty.servlets.DoSFilter} to the specified context and path. Limits incoming web requests to {@code maxWebRequestsPerSecond} per second.
      *
@@ -722,13 +736,14 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
      * @param webAppContext the context to apply this filter
      * @param maxWebRequestsPerSecond the maximum number of allowed requests per second
      */
-    private static void addWebRequestRateLimitingFilter(String path, WebAppContext webAppContext, int maxWebRequestsPerSecond) {
-        FilterHolder holder = new FilterHolder(DoSFilter.class);
+    private static void addWebRequestRateLimitingFilter(String path, WebAppContext webAppContext, int maxWebRequestsPerSecond, long requestTimeoutInMilliseconds) {
+        FilterHolder holder = new FilterHolder(NiFiDoSFilter.class);
         holder.setInitParameters(new HashMap<String, String>() {{
             put("maxRequestsPerSec", String.valueOf(maxWebRequestsPerSecond));
+            put("maxRequestMs", String.valueOf(requestTimeoutInMilliseconds));
         }});
-        holder.setName(DoSFilter.class.getSimpleName());
-        logger.debug("Adding DoSFilter to context at path: " + path + " with max req/sec: " + maxWebRequestsPerSecond);
+        holder.setName(NiFiDoSFilter.class.getSimpleName());
+        logger.info("Adding DoSFilter to context at path: {} with max req/sec: {}, and request timeout: {} ms", path, maxWebRequestsPerSecond, requestTimeoutInMilliseconds);
         webAppContext.addFilter(holder, path, EnumSet.allOf(DispatcherType.class));
     }
 

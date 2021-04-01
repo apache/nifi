@@ -496,7 +496,7 @@ class JettyServerGroovyTest extends GroovyTestCase {
         assert filters.size() == 2
         def filterNames = filters*.name
         logger.info("Web API Context has ${filters.size()} filters: ${filterNames.join(", ")}".toString())
-        assert filterNames.contains("DoSFilter")
+        assert filterNames.contains("NiFiDoSFilter")
         assert filterNames.contains("ContentLengthFilter")
 
         FilterHolder clfHolder = filters.find { it.name == "ContentLengthFilter" }
@@ -537,8 +537,23 @@ class JettyServerGroovyTest extends GroovyTestCase {
         assert filters.size() == 1
         def filterNames = filters*.name
         logger.info("Web API Context has ${filters.size()} filters: ${filterNames.join(", ")}".toString())
-        assert filterNames.contains("DoSFilter")
+        assert filterNames.contains("NiFiDoSFilter")
         assert !filterNames.contains("ContentLengthFilter")
+    }
+
+    @Test
+    void testDetermineRequestTimeoutInMilliseconds() {
+        // Arrange
+        Map badProps = [
+                (NiFiProperties.WEB_REQUEST_TIMEOUT): "50 sec",
+        ]
+
+        NiFiProperties mockProps = new StandardNiFiProperties(new Properties(badProps))
+
+        // Act
+        long requestTimeout = JettyServer.determineRequestTimeoutInMilliseconds(mockProps)
+
+        assert requestTimeout == 50000;
     }
 }
 
