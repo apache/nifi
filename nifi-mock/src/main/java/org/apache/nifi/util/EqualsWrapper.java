@@ -27,15 +27,88 @@ import java.util.StringJoiner;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+/**
+ * Wraps an object to be able to check equality conveniently, even if it doesn't have meaningful equals() implementation
+ *  or it's not appropriate for a given context.
+ * This is achieved by providing a list of transformer functions that usually extract properties of the object (and maybe transform them)
+ *  and do equality checks on those.
+ * <br/><br/>
+ * Also provides a convenient toString() which can help identifying differences of expected and actual objects during unit tests.
+ * <br/><br/>
+ * Here's an example of a typical use-case:
+ *
+ * <pre>
+ * {@code
+ * @Test
+ * public void testPersonEquals() throws Exception {
+ *     // GIVEN
+ *     Person expected = new Person();
+ *     expected.setName("Joe");
+ *     expected.setStuff(Arrays.asList(1, 2, 3));
+ *
+ *     Person actual = new Person();
+ *     actual.setName("Joe");
+ *     actual.setStuff(Arrays.asList(1, 2, 3));
+ *
+ *     // WHEN
+ *     List<Function<Person, Object>> equalsProperties = Arrays.asList(
+ *         Person::getName,
+ *         Person::getStuff
+ *     );
+ *
+ *     EqualsWrapper expectedWrapper = new EqualsWrapper(expected, equalsProperties);
+ *     EqualsWrapper actualWrapper = new EqualsWrapper(actual, equalsProperties);
+ *
+ *     // THEN
+ *     assertEquals(expectedWrapper, actualWrapper);
+ * }
+ *
+ * private class Person {
+ *     private String name;
+ *     private List<Object> stuff = new ArrayList<>();
+ *
+ *     public String getName() {
+ *         return name;
+ *     }
+ *     public void setName(String name) {
+ *         this.name = name;
+ *     }
+ *
+ *     public List<Object> getStuff() {
+ *         return stuff;
+ *     }
+ *     public void setStuff(List<Object> stuff) {
+ *         this.stuff = stuff;
+ *     }
+ * }
+ * }
+ * </pre>
+ *
+ * @param <T> The type of object to wrap
+ */
 public class EqualsWrapper<T> {
     private final T item;
     private final List<Function<T, Object>> propertyProviders;
 
+    /**
+     * Wraps an object and primes it for equality checks.
+     *
+     * @param item The item to be wrapped
+     * @param propertyProviders List of functions with which to extract properties to use for equality checks
+     */
     public EqualsWrapper(T item, List<Function<T, Object>> propertyProviders) {
         this.item = item;
         this.propertyProviders = propertyProviders;
     }
 
+    /**
+     * Wraps multiple objects and primes them for equality checks.
+     *
+     * @param items The items to be wrapped
+     * @param propertyProviders List of functions with with to extract properties to use for equality checks
+     * @param <T> The type of the objects to be wrapped
+     * @return A list of wrapped objects
+     */
     public static <T> List<EqualsWrapper<T>> wrapList(Collection<T> items, List<Function<T, Object>> propertyProviders) {
         List wrappers = items.stream().map(item -> new EqualsWrapper(item, propertyProviders)).collect(Collectors.toList());
 

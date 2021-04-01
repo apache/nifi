@@ -651,8 +651,8 @@ public class DataTypeUtils {
         }
 
         if (strict) {
-            if (value instanceof MapRecord) {
-                if (!schema.getFieldNames().containsAll(((MapRecord)value).getRawFieldNames())) {
+            if (value instanceof Record) {
+                if (!schema.getFieldNames().containsAll(((Record)value).getRawFieldNames())) {
                     return false;
                 }
             }
