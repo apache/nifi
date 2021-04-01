@@ -80,6 +80,7 @@
                         <div class="setting-name">
                             Referencing Components
                             <div class="fa fa-question-circle" alt="Info" title="Components referencing this parameter grouped by process group."></div>
+                            <div class="referencing-components-loading"></div>
                         </div>
                         <div id="parameter-referencing-components-container" class="setting-field">
                         </div>

@@ -55,7 +55,8 @@
                 <div class="setting-name">
                     Referencing Processors
                     <div class="fa fa-question-circle" alt="Info" title="Processors referencing this variable."></div>
-                </div>
+                    <div class="referencing-components-loading"></div>
+            </div>
                 <div class="setting-field">
                     <ul id="variable-registry-affected-processors"></ul>
                 </div>
@@ -64,6 +65,7 @@
                 <div class="setting-name">
                     Referencing Controller Services
                     <div class="fa fa-question-circle" alt="Info" title="Controller Services referencing this variable."></div>
+                    <div class="referencing-components-loading"></div>
                 </div>
                 <div class="setting-field">
                     <ul id="variable-registry-affected-controller-services"></ul>
@@ -73,6 +75,7 @@
                 <div class="setting-name">
                     Unauthorized referencing components
                     <div class="fa fa-question-circle" alt="Info" title="Referencing components for which READ or WRITE permissions are not granted."></div>
+                    <div class="referencing-components-loading"></div>
                 </div>
                 <div class="setting-field">
                     <ul id="variable-registry-affected-unauthorized-components"></ul>
