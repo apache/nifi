@@ -398,8 +398,13 @@ public final class EntityFactory {
             }
         }
 
-        final List<BulletinEntity> bulletinEntities = bulletins.stream().map(bulletin -> createBulletinEntity(bulletin, permissions.getCanRead())).collect(Collectors.toList());
-        entity.setBulletins(bulletinEntities);
+        if (Boolean.TRUE == permissions.getCanRead()) {
+            final List<BulletinEntity> bulletinEntities = bulletins.stream().map(bulletin -> createBulletinEntity(bulletin, permissions.getCanRead())).collect(Collectors.toList());
+            entity.setBulletins(bulletinEntities);
+        } else {
+            entity.setBulletins(null);
+        }
+
         entity.setProcessGroup(processGroupNameDto);
         return entity;
     }
@@ -633,8 +638,13 @@ public final class EntityFactory {
             }
         }
 
-        final List<BulletinEntity> bulletinEntities = bulletins.stream().map(bulletin -> createBulletinEntity(bulletin, permissions.getCanRead())).collect(Collectors.toList());
-        entity.setBulletins(bulletinEntities);
+        if (permissions.getCanRead() == Boolean.TRUE) {
+            final List<BulletinEntity> bulletinEntities = bulletins.stream().map(bulletin -> createBulletinEntity(bulletin, permissions.getCanRead())).collect(Collectors.toList());
+            entity.setBulletins(bulletinEntities);
+        } else {
+            entity.setBulletins(null);
+        }
+
         return entity;
     }
 

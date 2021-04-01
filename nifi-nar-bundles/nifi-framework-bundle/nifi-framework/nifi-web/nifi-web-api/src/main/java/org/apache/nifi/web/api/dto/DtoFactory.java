@@ -2862,7 +2862,6 @@ public final class DtoFactory {
     }
 
     private List<BulletinDTO> createBulletins(final ComponentNode componentNode) {
-        final PermissionsDTO permissions = createPermissionsDto(componentNode);
         final List<BulletinDTO> bulletins = createBulletinDtos(bulletinRepository.findBulletinsForSource(componentNode.getIdentifier()));
         return bulletins;
     }
