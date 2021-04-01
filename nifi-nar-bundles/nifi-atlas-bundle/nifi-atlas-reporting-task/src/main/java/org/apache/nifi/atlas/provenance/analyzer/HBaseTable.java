@@ -28,22 +28,29 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static org.apache.nifi.atlas.AtlasUtils.toQualifiedName;
+import static org.apache.nifi.atlas.NiFiTypes.ATTR_CLUSTER_NAME;
 import static org.apache.nifi.atlas.NiFiTypes.ATTR_NAME;
 import static org.apache.nifi.atlas.NiFiTypes.ATTR_QUALIFIED_NAME;
 import static org.apache.nifi.atlas.NiFiTypes.ATTR_URI;
 
 /**
  * Analyze a transit URI as a HBase table.
- * <li>qualifiedName=tableName@namespace (example: myTable@ns1)
- * <li>name=tableName (example: myTable)
+ * <li>qualifiedName=hbaseNamespace:tableName@namespace (example: default:myTable@ns1)
+ * <li>name=[hbaseNamespace:]tableName (example: myTable)
  */
 public class HBaseTable extends AbstractNiFiProvenanceEventAnalyzer {
 
     private static final Logger logger = LoggerFactory.getLogger(HBaseTable.class);
-    private static final String TYPE = "hbase_table";
 
-    // hbase://masterAddress/hbaseTableName/hbaseRowId(optional)
-    private static final Pattern URI_PATTERN = Pattern.compile("^hbase://([^/]+)/([^/]+)/?.*$");
+    static final String TYPE_HBASE_TABLE = "hbase_table";
+    static final String TYPE_HBASE_NAMESPACE = "hbase_namespace";
+
+    static final String ATTR_NAMESPACE = "namespace";
+
+    static final String DEFAULT_NAMESPACE = "default";
+
+    // hbase://masterAddress/[hbaseNamespace:]hbaseTableName/hbaseRowId(optional)
+    private static final Pattern URI_PATTERN = Pattern.compile("^hbase://([^/]+)/(([^/]+):)?([^/]+)/?.*$");
 
     @Override
     public DataSetRefs analyze(AnalysisContext context, ProvenanceEventRecord event) {
@@ -51,25 +58,48 @@ public class HBaseTable extends AbstractNiFiProvenanceEventAnalyzer {
         final String transitUri = event.getTransitUri();
         final Matcher uriMatcher = URI_PATTERN.matcher(transitUri);
         if (!uriMatcher.matches()) {
-            logger.warn("Unexpected transit URI: {}", new Object[]{transitUri});
+            logger.warn("Unexpected transit URI: {}", transitUri);
             return null;
         }
 
-        final Referenceable ref = new Referenceable(TYPE);
         final String[] hostNames = splitHostNames(uriMatcher.group(1));
         final String namespace = context.getNamespaceResolver().fromHostNames(hostNames);
 
-        final String tableName = uriMatcher.group(2);
-        ref.set(ATTR_NAME, tableName);
-        ref.set(ATTR_QUALIFIED_NAME, toQualifiedName(namespace, tableName));
-        // TODO: 'uri' is a mandatory attribute, but what should we set?
-        ref.set(ATTR_URI, transitUri);
+        final String hbaseNamespaceName = uriMatcher.group(3) != null ? uriMatcher.group(3) : DEFAULT_NAMESPACE;
+        final String hbaseTableName = uriMatcher.group(4);
 
-        return singleDataSetRef(event.getComponentId(), event.getEventType(), ref);
+        final Referenceable hbaseNamespaceRef = createHBaseNamespaceRef(namespace, hbaseNamespaceName);
+        final Referenceable hbaseTableRef = getHBaseTableRef(namespace, hbaseTableName, hbaseNamespaceRef);
+
+        return singleDataSetRef(event.getComponentId(), event.getEventType(), hbaseTableRef);
     }
 
     @Override
     public String targetTransitUriPattern() {
         return "^hbase://.+$";
+    }
+
+    private Referenceable createHBaseNamespaceRef(String namespace, String hbaseNamespaceName) {
+        final Referenceable hbaseNamespaceRef = new Referenceable(TYPE_HBASE_NAMESPACE);
+
+        hbaseNamespaceRef.set(ATTR_NAME, hbaseNamespaceName);
+        hbaseNamespaceRef.set(ATTR_QUALIFIED_NAME, toQualifiedName(namespace, hbaseNamespaceName));
+        hbaseNamespaceRef.set(ATTR_CLUSTER_NAME, namespace);
+
+        return hbaseNamespaceRef;
+    }
+
+    private Referenceable getHBaseTableRef(String namespace, String hbaseTableName, Referenceable hbaseNamespaceRef) {
+        final Referenceable hbaseTableRef = new Referenceable(TYPE_HBASE_TABLE);
+
+        final String hbaseTableFullName = String.format("%s:%s", hbaseNamespaceRef.get(ATTR_NAME), hbaseTableName);
+        final boolean isDefaultHBaseNamespace = DEFAULT_NAMESPACE.equals(hbaseNamespaceRef.get(ATTR_NAME));
+
+        hbaseTableRef.set(ATTR_NAME, isDefaultHBaseNamespace ? hbaseTableName : hbaseTableFullName);
+        hbaseTableRef.set(ATTR_QUALIFIED_NAME, toQualifiedName(namespace, hbaseTableFullName));
+        hbaseTableRef.set(ATTR_NAMESPACE, hbaseNamespaceRef);
+        hbaseTableRef.set(ATTR_URI, isDefaultHBaseNamespace ? hbaseTableName : hbaseTableFullName);
+
+        return hbaseTableRef;
     }
 }
