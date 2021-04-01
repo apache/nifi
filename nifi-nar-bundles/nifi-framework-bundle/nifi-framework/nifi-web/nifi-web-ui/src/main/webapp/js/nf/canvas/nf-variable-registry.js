@@ -846,10 +846,10 @@
         var affectedControllerServices = [];
         var unauthorizedAffectedComponents = [];
 
-        var spinners = $('#variable-registry-dialog .referencing-components-loading');
+        var spinner = $('#variable-registry-dialog .referencing-components-loading');
 
         var loadingDeferred = $.Deferred(function (deferred) {
-            spinners.addClass('ajax-loading');
+            spinner.addClass('ajax-loading');
             deferred.resolve();
         });
 
@@ -978,7 +978,7 @@
             }
         })
         .always(function () {
-            spinners.removeClass('ajax-loading');
+            spinner.removeClass('ajax-loading');
         });
         return loadingDeferred.promise();
     };
