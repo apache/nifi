@@ -71,6 +71,7 @@
                     <div class="setting">
                         <div class="setting-name">
                             Parameter
+                            <div class="referencing-components-loading"></div>
                         </div>
                         <div class="setting-field">
                             <div id="parameter-referencing-components-context" class="ellipsis"></div>

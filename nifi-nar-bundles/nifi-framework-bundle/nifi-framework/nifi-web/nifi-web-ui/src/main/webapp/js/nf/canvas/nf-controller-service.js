@@ -427,7 +427,6 @@
             }
         };
 
-        var referencingComponentIds = [];
         var processors = $('<ul class="referencing-component-listing clear"></ul>');
         var services = $('<ul class="referencing-component-listing clear"></ul>');
         var tasks = $('<ul class="referencing-component-listing clear"></ul>');
@@ -439,7 +438,6 @@
                 unauthorized.append(unauthorizedReferencingComponent);
             } else {
                 var referencingComponent = referencingComponentEntity.component;
-                referencingComponentIds.push(referencingComponent.id);
 
                 if (referencingComponent.referenceType === 'Processor') {
                     var processorLink = $('<span class="referencing-component-name link"></span>').text(referencingComponent.name).on('click', function () {
@@ -457,6 +455,9 @@
 
                     // bulletin
                     var processorBulletins = $('<div class="referencing-component-bulletins"></div>').addClass(referencingComponent.id + '-bulletins');
+                    if (!nfCommon.isEmpty(referencingComponentEntity.bulletins)) {
+                        updateBulletins(referencingComponentEntity.bulletins, processorBulletins);
+                    }
 
                     // type
                     var processorType = $('<span class="referencing-component-type"></span>').text(referencingComponent.type);
@@ -517,6 +518,9 @@
 
                     // bulletin
                     var serviceBulletins = $('<div class="referencing-component-bulletins"></div>').addClass(referencingComponent.id + '-bulletins');
+                    if (!nfCommon.isEmpty(referencingComponentEntity.bulletins)) {
+                        updateBulletins(referencingComponentEntity.bulletins, serviceBulletins);
+                    }
 
                     // type
                     var serviceType = $('<span class="referencing-component-type"></span>').text(referencingComponent.type);
@@ -548,6 +552,9 @@
 
                     // bulletins
                     var reportingTaskBulletins = $('<div class="referencing-component-bulletins"></div>').addClass(referencingComponent.id + '-bulletins');
+                    if (!nfCommon.isEmpty(referencingComponentEntity.bulletins)) {
+                        updateBulletins(referencingComponentEntity.bulletins, reportingTaskBulletins);
+                    }
 
                     // type
                     var reportingTaskType = $('<span class="referencing-component-type"></span>').text(nfCommon.substringAfterLast(referencingComponent.type, '.'));
@@ -563,12 +570,6 @@
                     tasks.append(reportingTaskItem);
                 }
             }
-        });
-
-        // query for the bulletins
-        nfCanvasUtils.queryBulletins(referencingComponentIds).done(function (response) {
-            var bulletins = response.bulletinBoard.bulletins;
-            updateReferencingComponentBulletins(bulletins);
         });
 
         // create the collapsable listing for each type
@@ -600,6 +601,9 @@
         createReferenceBlock('Reporting Tasks', tasks);
         createReferenceBlock('Controller Services', services);
         createReferenceBlock('Unauthorized', unauthorized);
+
+        // now that the dom elements are in place, we can show the bulletin icons.
+        $('div.referencing-component-bulletins.has-bulletins').show();
     };
 
     /**
