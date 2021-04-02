@@ -51,7 +51,7 @@ public class SetSensitivePropertiesKey {
 
     protected static final String CONFIGURATION_FILE = "nifi.flow.configuration.file";
 
-    private static final int MINIMUM_REQUIRED_LENGTH = 16;
+    private static final int MINIMUM_REQUIRED_LENGTH = 12;
 
     private static final String FLOW_XML_PREFIX = "flow.xml.";
 

@@ -3856,7 +3856,7 @@ The following command can be used to read an existing _flow.xml.gz_ configuratio
 $ ./bin/nifi.sh set-sensitive-properties-key <sensitivePropertiesKey>
 ```
 
-The minimum required length for a new sensitive properties key is 16 characters.
+The minimum required length for a new sensitive properties key is 12 characters.
 
 === Start New NiFi
 

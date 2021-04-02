@@ -337,7 +337,8 @@ run() {
     if [ "$1" = "set-sensitive-properties-key" ]; then
         run_command="'${JAVA}' -cp '${BOOTSTRAP_CLASSPATH}' '-Dnifi.properties.file.path=${NIFI_HOME}/conf/nifi.properties' 'org.apache.nifi.flow.encryptor.command.SetSensitivePropertiesKey'"
         eval "cd ${NIFI_HOME}"
-        eval "${run_command}" "$2"
+        shift
+        eval "${run_command}" '"$@"'
         EXIT_STATUS=$?
         echo
         return;
