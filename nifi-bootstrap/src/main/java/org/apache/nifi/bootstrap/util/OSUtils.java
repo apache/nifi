@@ -36,62 +36,6 @@ public final class OSUtils {
      * @param logger  Logger Reference for Debug
      * @return        Returns pid or null in-case pid could not be determined
      * This method takes {@link Process} and {@link Logger} and returns
-     * the platform specific ProcessId for Unix like systems, a.k.a <b>pid</b>
-     * In-case it fails to determine the pid, it will return Null.
-     * Purpose for the Logger is to log any interaction for debugging.
-     */
-    private static Long getUnicesPid(final Process process, final Logger logger) {
-        try {
-            final Class<?> procClass = process.getClass();
-            final Field pidField = procClass.getDeclaredField("pid");
-            pidField.setAccessible(true);
-            final Object pidObject = pidField.get(process);
-
-            logger.debug("PID Object = {}", pidObject);
-
-            if (pidObject instanceof Number) {
-                return ((Number) pidObject).longValue();
-            }
-            return null;
-        } catch (final IllegalAccessException | NoSuchFieldException nsfe) {
-            logger.debug("Could not find PID for child process due to {}", nsfe);
-            return null;
-        }
-    }
-
-    /**
-     * @param process NiFi Process Reference
-     * @param logger  Logger Reference for Debug
-     * @return        Returns pid or null in-case pid could not be determined
-     * This method takes {@link Process} and {@link Logger} and returns
-     * the platform specific Handle for Win32 Systems, a.k.a <b>pid</b>
-     * In-case it fails to determine the pid, it will return Null.
-     * Purpose for the Logger is to log any interaction for debugging.
-     */
-    private static Long getWindowsProcessId(final Process process, final Logger logger) {
-        /* determine the pid on windows plattforms */
-        try {
-            Field f = process.getClass().getDeclaredField("handle");
-            f.setAccessible(true);
-            long handl = f.getLong(process);
-
-            Kernel32 kernel = Kernel32.INSTANCE;
-            WinNT.HANDLE handle = new WinNT.HANDLE();
-            handle.setPointer(Pointer.createConstant(handl));
-            int ret = kernel.GetProcessId(handle);
-            logger.debug("Detected pid: {}", ret);
-            return Long.valueOf(ret);
-        } catch (final IllegalAccessException | NoSuchFieldException nsfe) {
-            logger.debug("Could not find PID for child process due to {}", nsfe);
-        }
-        return null;
-    }
-
-    /**
-     * @param process NiFi Process Reference
-     * @param logger  Logger Reference for Debug
-     * @return        Returns pid or null in-case pid could not be determined
-     * This method takes {@link Process} and {@link Logger} and returns
      * the platform specific ProcessId for Unix like systems or Handle for Win32 Systems, a.k.a <b>pid</b>
      * In-case it fails to determine the pid, it will return Null.
      * Purpose for the Logger is to log any interaction for debugging.
@@ -109,40 +53,26 @@ public final class OSUtils {
          * of the pid method to the Process API.
          */
         Long pid = null;
-        if (!System.getProperty("java.version").startsWith("1.")) {
-            try {
-                Method pidMethod = process.getClass().getMethod("pid");
-                pidMethod.setAccessible(true);
-                Object pidMethodResult = pidMethod.invoke(process);
-                if (Long.class.isAssignableFrom(pidMethodResult.getClass())) {
-                    pid = (Long) pidMethodResult;
-                } else {
-                    logger.debug("Could not determine PID for child process because returned PID was not " +
-                            "assignable to type " + Long.class.getName());
-                }
-            } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
-                logger.debug("Could not find PID for child process due to {}", e);
+        try {
+            // Get Process.pid() interface method to avoid illegal reflective access
+            final Method pidMethod = Process.class.getDeclaredMethod("pid");
+            final Object pidNumber = pidMethod.invoke(process);
+            if (pidNumber instanceof Long) {
+                pid = (Long) pidNumber;
             }
-        } else if (process.getClass().getName().equals("java.lang.UNIXProcess")) {
-            pid = getUnicesPid(process, logger);
-        } else if (process.getClass().getName().equals("java.lang.Win32Process")
-                || process.getClass().getName().equals("java.lang.ProcessImpl")) {
-            pid = getWindowsProcessId(process, logger);
+        } catch (final NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+            final String processClassName = process.getClass().getName();
+            if (processClassName.equals("java.lang.UNIXProcess")) {
+                pid = getUnixPid(process, logger);
+            } else if (processClassName.equals("java.lang.Win32Process")
+                    || processClassName.equals("java.lang.ProcessImpl")) {
+                pid = getWindowsProcessId(process, logger);
+            } else {
+                logger.debug("Failed to determine Process ID from [{}]: {}", processClassName, e.getMessage());
+            }
         }
 
         return pid;
-    }
-
-    // The two Java version methods are copied from CertificateUtils in nifi-commons/nifi-security-utils
-
-    /**
-     * Returns the JVM Java major version based on the System properties (e.g. {@code JVM 1.8.0.231} -> {code 8}).
-     *
-     * @return the Java major version
-     */
-    public static int getJavaVersion() {
-        String version = System.getProperty("java.version");
-        return parseJavaVersion(version);
     }
 
     /**
@@ -151,7 +81,7 @@ public final class OSUtils {
      * @param version the Java version string
      * @return the major version as an int
      */
-    public static int parseJavaVersion(String version) {
+    public static int parseJavaVersion(final String version) {
         String majorVersion;
         if (version.startsWith("1.")) {
             majorVersion = version.substring(2, 3);
@@ -167,4 +97,55 @@ public final class OSUtils {
         return Integer.parseInt(majorVersion);
     }
 
+    /**
+     * @param process NiFi Process Reference
+     * @param logger  Logger Reference for Debug
+     * @return        Returns pid or null in-case pid could not be determined
+     * This method takes {@link Process} and {@link Logger} and returns
+     * the platform specific ProcessId for Unix like systems, a.k.a <b>pid</b>
+     * In-case it fails to determine the pid, it will return Null.
+     * Purpose for the Logger is to log any interaction for debugging.
+     */
+    private static Long getUnixPid(final Process process, final Logger logger) {
+        try {
+            final Class<?> procClass = process.getClass();
+            final Field pidField = procClass.getDeclaredField("pid");
+            pidField.setAccessible(true);
+            final Object pidObject = pidField.get(process);
+
+            if (pidObject instanceof Number) {
+                return ((Number) pidObject).longValue();
+            }
+            return null;
+        } catch (final IllegalAccessException | NoSuchFieldException e) {
+            logger.debug("Could not find Unix PID", e);
+            return null;
+        }
+    }
+
+    /**
+     * @param process NiFi Process Reference
+     * @param logger  Logger Reference for Debug
+     * @return        Returns pid or null in-case pid could not be determined
+     * This method takes {@link Process} and {@link Logger} and returns
+     * the platform specific Handle for Win32 Systems, a.k.a <b>pid</b>
+     * In-case it fails to determine the pid, it will return Null.
+     * Purpose for the Logger is to log any interaction for debugging.
+     */
+    private static Long getWindowsProcessId(final Process process, final Logger logger) {
+        Long pid = null;
+        try {
+            final Field handleField = process.getClass().getDeclaredField("handle");
+            handleField.setAccessible(true);
+            long peer = handleField.getLong(process);
+
+            final Kernel32 kernel = Kernel32.INSTANCE;
+            final WinNT.HANDLE handle = new WinNT.HANDLE();
+            handle.setPointer(Pointer.createConstant(peer));
+            pid = Long.valueOf(kernel.GetProcessId(handle));
+        } catch (final IllegalAccessException | NoSuchFieldException e) {
+            logger.debug("Could not find Windows PID", e);
+        }
+        return pid;
+    }
 }
