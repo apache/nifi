@@ -20,7 +20,6 @@ import org.apache.nifi.logging.NiFiLog;
 import org.eclipse.jetty.servlets.DoSFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
 import javax.servlet.ServletException;
@@ -28,7 +27,6 @@ import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
-
 
 public class NiFiDoSFilter extends DoSFilter {
     private static final Logger logger = new NiFiLog(LoggerFactory.getLogger(NiFiDoSFilter.class));

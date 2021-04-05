@@ -17,37 +17,17 @@
 package org.apache.nifi.web.security.requests;
 
 import org.apache.nifi.logging.NiFiLog;
-import javax.servlet.Filter;
-
-import org.eclipse.jetty.servlets.DoSFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.servlet.FilterChain;
-import javax.servlet.FilterConfig;
-import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 
-
 class FilterPathUtil {
+    
     private static final Logger logger = new NiFiLog(LoggerFactory.getLogger(FilterPathUtil.class));
     private static final List<String> BYPASS_URI_PREFIXES = Arrays.asList("/nifi-api/data-transfer", "/nifi-api/site-to-site");
 
-    public static void bypassExcludedPaths(ServletRequest request, ServletResponse response, FilterChain chain, final String filterName) throws IOException, ServletException {
-        HttpServletRequest httpRequest = (HttpServletRequest) request;
-
-        // If the request is in the framework allow list, do not evaluate or block based on content length
-        if (!isSubjectToFilter(httpRequest, filterName)) {
-            logger.debug("Request {} is not subject to {} filter", httpRequest.getRequestURI(), filterName);
-            chain.doFilter(request, response);
-            return;
-        }
-    }
     /**
      * Returns {@code true} if this request is subject to the filter operation, {@code false} if not.
      *
