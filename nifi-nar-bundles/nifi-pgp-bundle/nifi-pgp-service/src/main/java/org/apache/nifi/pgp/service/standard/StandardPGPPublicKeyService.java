@@ -65,7 +65,7 @@ public class StandardPGPPublicKeyService extends AbstractControllerService imple
     public static final PropertyDescriptor KEYRING_FILE = new PropertyDescriptor.Builder()
             .name("keyring-file")
             .displayName("Keyring File")
-            .description("File path for PGP Keyring or Public Key encoded in binary or ASCII Armor")
+            .description("File path to PGP Keyring or Public Key encoded in binary or ASCII Armor")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)

@@ -61,8 +61,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.StreamSupport;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
@@ -112,6 +114,23 @@ public class EncryptContentPGPTest {
 
     @Test
     public void testMissingProperties() {
+        runner.assertNotValid();
+    }
+
+    @Test
+    public void testPublicKeyServiceMissingPublicKeySearch() throws InitializationException {
+        when(publicKeyService.getIdentifier()).thenReturn(SERVICE_ID);
+        runner.addControllerService(SERVICE_ID, publicKeyService);
+        runner.enableControllerService(publicKeyService);
+        runner.setProperty(EncryptContentPGP.PUBLIC_KEY_SERVICE, SERVICE_ID);
+
+        runner.assertNotValid();
+    }
+
+    @Test
+    public void testPublicKeySearchMissingPublicKeyService() {
+        runner.setProperty(EncryptContentPGP.PUBLIC_KEY_SEARCH, String.class.getSimpleName());
+
         runner.assertNotValid();
     }
 
@@ -170,6 +189,22 @@ public class EncryptContentPGPTest {
     }
 
     @Test
+    public void testSuccessPasswordBasedAndPublicKeyEncryptionRsaPublicKey() throws IOException, InitializationException, PGPException {
+        final PGPPublicKey publicKey = rsaSecretKey.getPublicKey();
+        setPublicKeyService(publicKey);
+        final String publicKeyIdSearch = Long.toHexString(publicKey.getKeyID()).toUpperCase();
+        when(publicKeyService.findPublicKey(eq(publicKeyIdSearch))).thenReturn(Optional.of(publicKey));
+
+        runner.setProperty(EncryptContentPGP.PASSPHRASE, PASSPHRASE);
+
+        runner.enqueue(DATA);
+        runner.run();
+
+        assertSuccess(rsaPrivateKey);
+        assertSuccess(DEFAULT_SYMMETRIC_KEY_ALGORITHM, PASSPHRASE.toCharArray());
+    }
+
+    @Test
     public void testSuccessPublicKeyEncryptionElGamalPublicKey() throws IOException, InitializationException, PGPException {
         setPublicKeyService(elGamalPublicKey);
         final String publicKeyIdSearch = Long.toHexString(elGamalPublicKey.getKeyID()).toUpperCase();
@@ -209,10 +244,13 @@ public class EncryptContentPGPTest {
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(EncryptContentPGP.SUCCESS).iterator().next();
         assertAttributesFound(DEFAULT_SYMMETRIC_KEY_ALGORITHM, flowFile);
 
-        final PGPEncryptedData encryptedData = getEncryptedData(flowFile);
-        assertEquals(PGPPublicKeyEncryptedData.class, encryptedData.getClass());
+        final PGPEncryptedDataList encryptedDataList = getEncryptedDataList(flowFile);
+        final Optional<PGPEncryptedData> encryptedData = StreamSupport.stream(encryptedDataList.spliterator(), false)
+                .filter(pgpEncryptedData -> pgpEncryptedData instanceof PGPPublicKeyEncryptedData)
+                .findFirst();
+        assertTrue("Public Key Encrypted Data not found", encryptedData.isPresent());
 
-        final PGPPublicKeyEncryptedData publicKeyEncryptedData = (PGPPublicKeyEncryptedData) encryptedData;
+        final PGPPublicKeyEncryptedData publicKeyEncryptedData = (PGPPublicKeyEncryptedData) encryptedData.get();
         final String decryptedData = getDecryptedData(publicKeyEncryptedData, privateKey);
         assertEquals(DATA, decryptedData);
     }
@@ -222,10 +260,13 @@ public class EncryptContentPGPTest {
         final MockFlowFile flowFile = runner.getFlowFilesForRelationship(EncryptContentPGP.SUCCESS).iterator().next();
         assertAttributesFound(symmetricKeyAlgorithm, flowFile);
 
-        final PGPEncryptedData encryptedData = getEncryptedData(flowFile);
-        assertEquals(PGPPBEEncryptedData.class, encryptedData.getClass());
+        final PGPEncryptedDataList encryptedDataList = getEncryptedDataList(flowFile);
+        final Optional<PGPEncryptedData> encryptedData = StreamSupport.stream(encryptedDataList.spliterator(), false)
+                .filter(pgpEncryptedData -> pgpEncryptedData instanceof PGPPBEEncryptedData)
+                .findFirst();
+        assertTrue("Password Based Encrypted Data not found", encryptedData.isPresent());
 
-        final PGPPBEEncryptedData passwordBasedEncryptedData = (PGPPBEEncryptedData) encryptedData;
+        final PGPPBEEncryptedData passwordBasedEncryptedData = (PGPPBEEncryptedData) encryptedData.get();
         final String decryptedData = getDecryptedData(passwordBasedEncryptedData, passphrase);
         assertEquals(DATA, decryptedData);
     }
@@ -240,7 +281,7 @@ public class EncryptContentPGPTest {
         flowFile.assertAttributeExists(PGPAttributeKey.COMPRESS_ALGORITHM_ID);
     }
 
-    private PGPEncryptedData getEncryptedData(final MockFlowFile flowFile) throws IOException {
+    private PGPEncryptedDataList getEncryptedDataList(final MockFlowFile flowFile) throws IOException {
         final FileEncoding fileEncoding = FileEncoding.valueOf(flowFile.getAttribute(PGPAttributeKey.FILE_ENCODING));
         InputStream contentStream = flowFile.getContentStream();
         if (FileEncoding.ASCII.equals(fileEncoding)) {
@@ -251,8 +292,7 @@ public class EncryptContentPGPTest {
         final Object firstObject = objectFactory.nextObject();
         assertEquals(PGPEncryptedDataList.class, firstObject.getClass());
 
-        final PGPEncryptedDataList encryptedDataList = (PGPEncryptedDataList) firstObject;
-        return encryptedDataList.iterator().next();
+        return (PGPEncryptedDataList) firstObject;
     }
 
     private String getDecryptedData(final PGPPBEEncryptedData passwordBasedEncryptedData, final char[] passphrase) throws PGPException, IOException {

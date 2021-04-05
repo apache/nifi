@@ -20,6 +20,7 @@ import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
@@ -76,6 +77,7 @@ import java.util.Set;
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"PGP", "GPG", "OpenPGP", "Encryption", "RFC 4880"})
 @CapabilityDescription("Encrypt Contents using OpenPGP")
+@SeeAlso(DecryptContentPGP.class)
 @WritesAttributes({
         @WritesAttribute(attribute = PGPAttributeKey.SYMMETRIC_KEY_ALGORITHM, description = "Symmetric-Key Algorithm"),
         @WritesAttribute(attribute = PGPAttributeKey.SYMMETRIC_KEY_ALGORITHM_BLOCK_CIPHER, description = "Symmetric-Key Algorithm Block Cipher"),
@@ -144,7 +146,7 @@ public class EncryptContentPGP extends AbstractProcessor {
             .displayName("Public Key Search")
             .description("PGP Public Key Search will be used to match against the User ID or Key ID when formatted as uppercase hexadecimal string of 16 characters")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .addValidator(StandardValidators.ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR)
+            .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
             .dependsOn(PUBLIC_KEY_SERVICE)
             .build();
 
@@ -238,6 +240,24 @@ public class EncryptContentPGP extends AbstractProcessor {
             }
         }
 
+        if (context.getProperty(PUBLIC_KEY_SERVICE).isSet()) {
+            final ValidationResult result = new ValidationResult.Builder()
+                    .valid(context.getProperty(PUBLIC_KEY_SEARCH).isSet())
+                    .subject(PUBLIC_KEY_SERVICE.getDisplayName())
+                    .explanation(String.format("[%s] requires [%s]", PUBLIC_KEY_SERVICE.getDisplayName(), PUBLIC_KEY_SEARCH.getDisplayName()))
+                    .build();
+            results.add(result);
+        }
+
+        if (context.getProperty(PUBLIC_KEY_SEARCH).isSet()) {
+            final ValidationResult result = new ValidationResult.Builder()
+                    .valid(context.getProperty(PUBLIC_KEY_SERVICE).isSet())
+                    .subject(PUBLIC_KEY_SERVICE.getDisplayName())
+                    .explanation(String.format("[%s] requires [%s]", PUBLIC_KEY_SEARCH.getDisplayName(), PUBLIC_KEY_SERVICE.getDisplayName()))
+                    .build();
+            results.add(result);
+        }
+
         return results;
     }
 
@@ -268,9 +288,8 @@ public class EncryptContentPGP extends AbstractProcessor {
             generators.add(new JcePBEKeyEncryptionMethodGenerator(passphrase).setSecureRandom(secureRandom));
         }
 
-        final PropertyValue publicKeySearchProperty = context.getProperty(PUBLIC_KEY_SEARCH);
-        if (publicKeySearchProperty.isSet()) {
-            final String publicKeySearch = publicKeySearchProperty.evaluateAttributeExpressions(flowFile).getValue();
+        final String publicKeySearch = context.getProperty(PUBLIC_KEY_SEARCH).evaluateAttributeExpressions(flowFile).getValue();
+        if (StringUtils.isNotBlank(publicKeySearch)) {
             getLogger().debug("Public Key Search [{}]", publicKeySearch);
 
             final PGPPublicKeyService publicKeyService = context.getProperty(PUBLIC_KEY_SERVICE).asControllerService(PGPPublicKeyService.class);

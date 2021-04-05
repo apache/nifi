@@ -68,7 +68,7 @@ public class StandardPGPPrivateKeyService extends AbstractControllerService impl
     public static final PropertyDescriptor KEYRING_FILE = new PropertyDescriptor.Builder()
             .name("keyring-file")
             .displayName("Keyring File")
-            .description("File path for PGP Keyring or Secret Key encoded in binary or ASCII Armor")
+            .description("File path to PGP Keyring or Secret Key encoded in binary or ASCII Armor")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)

@@ -149,10 +149,7 @@ public class DecryptContentPGPTest {
 
     @Test
     public void testFailurePasswordBasedEncryptionPassphraseNotConfigured() throws IOException, PGPException, InitializationException {
-        when(privateKeyService.getIdentifier()).thenReturn(SERVICE_ID);
-        runner.addControllerService(SERVICE_ID, privateKeyService);
-        runner.enableControllerService(privateKeyService);
-        runner.setProperty(DecryptContentPGP.PRIVATE_KEY_SERVICE, SERVICE_ID);
+        setPrivateKeyService();
 
         final byte[] encryptedData = getPasswordBasedEncryptedData(getLiteralData(), INTEGRITY_ENABLED);
         runner.enqueue(encryptedData);
@@ -256,11 +253,7 @@ public class DecryptContentPGPTest {
 
     @Test
     public void testSuccessPublicKeyEncryptionRsaPrivateKey() throws InitializationException, IOException, PGPException {
-        when(privateKeyService.getIdentifier()).thenReturn(SERVICE_ID);
-        runner.addControllerService(SERVICE_ID, privateKeyService);
-        runner.enableControllerService(privateKeyService);
-        runner.setProperty(DecryptContentPGP.PRIVATE_KEY_SERVICE, SERVICE_ID);
-
+        setPrivateKeyService();
         final PGPPublicKey publicKey = rsaSecretKey.getPublicKey();
         when(privateKeyService.findPrivateKey(eq(publicKey.getKeyID()))).thenReturn(Optional.of(rsaPrivateKey));
 
@@ -273,11 +266,7 @@ public class DecryptContentPGPTest {
 
     @Test
     public void testSuccessPublicKeyEncryptionElGamalPrivateKey() throws InitializationException, IOException, PGPException {
-        when(privateKeyService.getIdentifier()).thenReturn(SERVICE_ID);
-        runner.addControllerService(SERVICE_ID, privateKeyService);
-        runner.enableControllerService(privateKeyService);
-        runner.setProperty(DecryptContentPGP.PRIVATE_KEY_SERVICE, SERVICE_ID);
-
+        setPrivateKeyService();
         when(privateKeyService.findPrivateKey(eq(elGamalPrivateKey.getKeyID()))).thenReturn(Optional.of(elGamalPrivateKey));
         final byte[] encryptedData = getPublicKeyEncryptedData(getLiteralData(), elGamalPublicKey);
         runner.enqueue(encryptedData);
@@ -288,11 +277,7 @@ public class DecryptContentPGPTest {
 
     @Test
     public void testSuccessPublicKeyEncryptionRsaPrivateKeySigned() throws InitializationException, IOException, PGPException {
-        when(privateKeyService.getIdentifier()).thenReturn(SERVICE_ID);
-        runner.addControllerService(SERVICE_ID, privateKeyService);
-        runner.enableControllerService(privateKeyService);
-        runner.setProperty(DecryptContentPGP.PRIVATE_KEY_SERVICE, SERVICE_ID);
-
+        setPrivateKeyService();
         final PGPPublicKey publicKey = rsaSecretKey.getPublicKey();
         when(privateKeyService.findPrivateKey(eq(publicKey.getKeyID()))).thenReturn(Optional.of(rsaPrivateKey));
 
@@ -302,6 +287,41 @@ public class DecryptContentPGPTest {
         runner.run();
 
         assertSuccess();
+    }
+
+    @Test
+    public void testSuccessPasswordBasedAndPublicKeyEncryptionRsaPrivateKey() throws InitializationException, IOException, PGPException {
+        setPrivateKeyService();
+        final PGPPublicKey publicKey = rsaSecretKey.getPublicKey();
+        when(privateKeyService.findPrivateKey(eq(publicKey.getKeyID()))).thenReturn(Optional.of(rsaPrivateKey));
+        runner.setProperty(DecryptContentPGP.PASSPHRASE, PASSPHRASE);
+
+        final byte[] encryptedData = getPasswordBasedAndPublicKeyEncryptedData(getLiteralData(), publicKey);
+        runner.enqueue(encryptedData);
+        runner.run();
+
+        assertSuccess();
+    }
+
+    @Test
+    public void testSuccessPasswordBasedAndPublicKeyEncryptionRsaPrivateKeyNotFound() throws InitializationException, IOException, PGPException {
+        setPrivateKeyService();
+        final PGPPublicKey publicKey = rsaSecretKey.getPublicKey();
+        when(privateKeyService.findPrivateKey(eq(publicKey.getKeyID()))).thenReturn(Optional.empty());
+        runner.setProperty(DecryptContentPGP.PASSPHRASE, PASSPHRASE);
+
+        final byte[] encryptedData = getPasswordBasedAndPublicKeyEncryptedData(getLiteralData(), publicKey);
+        runner.enqueue(encryptedData);
+        runner.run();
+
+        assertSuccess();
+    }
+
+    private void setPrivateKeyService() throws InitializationException {
+        when(privateKeyService.getIdentifier()).thenReturn(SERVICE_ID);
+        runner.addControllerService(SERVICE_ID, privateKeyService);
+        runner.enableControllerService(privateKeyService);
+        runner.setProperty(DecryptContentPGP.PRIVATE_KEY_SERVICE, SERVICE_ID);
     }
 
     private void assertSuccess() {
@@ -344,13 +364,7 @@ public class DecryptContentPGPTest {
         final PGPDataEncryptorBuilder builder = new BcPGPDataEncryptorBuilder(ENCRYPTION_ALGORITHM).setWithIntegrityPacket(INTEGRITY_ENABLED);
         final PGPEncryptedDataGenerator generator = new PGPEncryptedDataGenerator(builder);
         generator.addMethod(new BcPublicKeyKeyEncryptionMethodGenerator(publicKey));
-
-        final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        final byte[] buffer = new byte[BUFFER_SIZE];
-        try (final OutputStream encryptedStream = generator.open(outputStream, buffer)) {
-            encryptedStream.write(contents);
-        }
-        return outputStream.toByteArray();
+        return getEncryptedData(generator, contents);
     }
 
     private byte[] getPasswordBasedEncryptedData(final byte[] contents, final boolean integrityEnabled) throws IOException, PGPException {
@@ -361,13 +375,15 @@ public class DecryptContentPGPTest {
         final PGPDataEncryptorBuilder builder = new BcPGPDataEncryptorBuilder(encryptionAlgorithm).setWithIntegrityPacket(integrityEnabled);
         final PGPEncryptedDataGenerator generator = new PGPEncryptedDataGenerator(builder);
         generator.addMethod(new JcePBEKeyEncryptionMethodGenerator(PASSPHRASE.toCharArray()));
+        return getEncryptedData(generator, contents);
+    }
 
-        final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        final byte[] buffer = new byte[BUFFER_SIZE];
-        try (final OutputStream encryptedStream = generator.open(outputStream, buffer)) {
-            encryptedStream.write(contents);
-        }
-        return outputStream.toByteArray();
+    private byte[] getPasswordBasedAndPublicKeyEncryptedData(final byte[] contents, final PGPPublicKey publicKey) throws IOException, PGPException {
+        final PGPDataEncryptorBuilder builder = new BcPGPDataEncryptorBuilder(ENCRYPTION_ALGORITHM).setWithIntegrityPacket(INTEGRITY_ENABLED);
+        final PGPEncryptedDataGenerator generator = new PGPEncryptedDataGenerator(builder);
+        generator.addMethod(new JcePBEKeyEncryptionMethodGenerator(PASSPHRASE.toCharArray()));
+        generator.addMethod(new BcPublicKeyKeyEncryptionMethodGenerator(publicKey));
+        return getEncryptedData(generator, contents);
     }
 
     private byte[] getCompressedData(final byte[] contents) throws IOException {
@@ -385,6 +401,15 @@ public class DecryptContentPGPTest {
         final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         try (final OutputStream literalStream = generator.open(outputStream, FILE_TYPE, FILE_NAME, MODIFIED, buffer)) {
             literalStream.write(DATA.getBytes(DATA_CHARSET));
+        }
+        return outputStream.toByteArray();
+    }
+
+    private byte[] getEncryptedData(final PGPEncryptedDataGenerator generator, final byte[] contents) throws IOException, PGPException {
+        final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        final byte[] buffer = new byte[BUFFER_SIZE];
+        try (final OutputStream encryptedStream = generator.open(outputStream, buffer)) {
+            encryptedStream.write(contents);
         }
         return outputStream.toByteArray();
     }

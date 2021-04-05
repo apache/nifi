@@ -20,6 +20,7 @@ import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
@@ -64,6 +65,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -75,6 +77,7 @@ import java.util.Set;
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"PGP", "GPG", "OpenPGP", "Encryption", "RFC 4880"})
 @CapabilityDescription("Decrypt Contents of OpenPGP Messages")
+@SeeAlso(EncryptContentPGP.class)
 @WritesAttributes({
         @WritesAttribute(attribute = PGPAttributeKey.LITERAL_DATA_FILENAME, description = "Filename from decrypted Literal Data"),
         @WritesAttribute(attribute = PGPAttributeKey.LITERAL_DATA_MODIFIED, description = "Modified Date from decrypted Literal Data"),
@@ -231,25 +234,71 @@ public class DecryptContentPGP extends AbstractProcessor {
          */
         @Override
         public void process(final InputStream inputStream, final OutputStream outputStream) throws IOException {
-            final InputStream decoderInputStream = PGPUtil.getDecoderStream(inputStream);
-            final PGPEncryptedDataList encryptedDataList = getEncryptedDataList(decoderInputStream);
+            final PGPEncryptedDataList encryptedDataList = getEncryptedDataList(inputStream);
+            final PGPEncryptedData encryptedData = findSupportedEncryptedData(encryptedDataList);
+            final PGPLiteralData literalData = getLiteralData(encryptedData);
 
+            attributes.put(PGPAttributeKey.LITERAL_DATA_FILENAME, literalData.getFileName());
+            attributes.put(PGPAttributeKey.LITERAL_DATA_MODIFIED, Long.toString(literalData.getModificationTime().getTime()));
+
+            getLogger().debug("PGP Decrypted File Name [{}] Modified [{}]", literalData.getFileName(), literalData.getModificationTime());
+            StreamUtils.copy(literalData.getInputStream(), outputStream);
+
+            if (isVerified(encryptedData)) {
+                getLogger().debug("PGP Encrypted Data Verified");
+            } else {
+                final String message = String.format("PGP Encrypted Data [%s] Not Verified", encryptedData.getClass().getSimpleName());
+                throw new PGPDecryptionException(message);
+            }
+        }
+
+        private PGPEncryptedData findSupportedEncryptedData(final PGPEncryptedDataList encryptedDataList) {
+            PGPEncryptedData supportedEncryptedData = null;
+
+            final List<PGPPBEEncryptedData> passwordBasedEncrypted = new ArrayList<>();
+            final List<PGPPublicKeyEncryptedData> publicKeyEncrypted = new ArrayList<>();
             for (final PGPEncryptedData encryptedData : encryptedDataList) {
-                final PGPLiteralData literalData = getLiteralData(encryptedData);
+                if (supportedEncryptedData == null) {
+                    supportedEncryptedData = encryptedData;
+                }
 
-                attributes.put(PGPAttributeKey.LITERAL_DATA_FILENAME, literalData.getFileName());
-                attributes.put(PGPAttributeKey.LITERAL_DATA_MODIFIED, Long.toString(literalData.getModificationTime().getTime()));
-
-                getLogger().debug("PGP Decrypted File Name [{}] Modified [{}]", literalData.getFileName(), literalData.getModificationTime());
-                StreamUtils.copy(literalData.getInputStream(), outputStream);
-
-                if (isVerified(encryptedData)) {
-                    getLogger().debug("PGP Encrypted Data Verified");
-                } else {
-                    final String message = String.format("PGP Encrypted Data [%s] Not Verified", encryptedData.getClass().getSimpleName());
-                    throw new PGPDecryptionException(message);
+                if (encryptedData instanceof PGPPBEEncryptedData) {
+                    passwordBasedEncrypted.add((PGPPBEEncryptedData) encryptedData);
+                } else if (encryptedData instanceof PGPPublicKeyEncryptedData) {
+                    publicKeyEncrypted.add((PGPPublicKeyEncryptedData) encryptedData);
                 }
             }
+            getLogger().debug("PGP Encrypted Data Password-Based Tags [{}] Public Key Tags [{}]", passwordBasedEncrypted.size(), publicKeyEncrypted.size());
+
+            final Iterator<PGPPublicKeyEncryptedData> publicKeyData = publicKeyEncrypted.iterator();
+            if (privateKeyService == null) {
+                final Iterator<PGPPBEEncryptedData> passwordBasedData = passwordBasedEncrypted.iterator();
+                if (passwordBasedData.hasNext()) {
+                    supportedEncryptedData = passwordBasedData.next();
+                } else {
+                    final String message = String.format("PGP [%s] Tag not found and [%s] not configured", PASSWORD_BASED_ENCRYPTION, PRIVATE_KEY_SERVICE.getDisplayName());
+                    throw new PGPDecryptionException(message);
+                }
+            } else if (publicKeyData.hasNext()) {
+                while (publicKeyData.hasNext()) {
+                    final PGPPublicKeyEncryptedData publicKeyEncryptedData = publicKeyData.next();
+                    final long keyId = publicKeyEncryptedData.getKeyID();
+                    final Optional<PGPPrivateKey> privateKey = privateKeyService.findPrivateKey(keyId);
+                    if (privateKey.isPresent()) {
+                        supportedEncryptedData = publicKeyEncryptedData;
+                        final String keyIdentifier = Long.toHexString(keyId).toUpperCase();
+                        getLogger().debug("PGP Private Key [{}] Found for Public Key Encrypted Data", keyIdentifier);
+                        break;
+                    }
+                }
+            }
+
+            if (supportedEncryptedData == null) {
+                final String message = String.format("Supported Encrypted Data not found in Password-Based [%d] Public Key [%d]", passwordBasedEncrypted.size(), publicKeyEncrypted.size());
+                throw new PGPDecryptionException(message);
+            }
+
+            return supportedEncryptedData;
         }
 
         private PGPLiteralData getLiteralData(final PGPEncryptedData encryptedData) {
@@ -348,8 +397,9 @@ public class DecryptContentPGP extends AbstractProcessor {
             return verified;
         }
 
-        private PGPEncryptedDataList getEncryptedDataList(final InputStream inputStream) {
-            final PGPObjectFactory encryptedObjectFactory = new JcaPGPObjectFactory(inputStream);
+        private PGPEncryptedDataList getEncryptedDataList(final InputStream inputStream) throws IOException {
+            final InputStream decoderInputStream = PGPUtil.getDecoderStream(inputStream);
+            final PGPObjectFactory encryptedObjectFactory = new JcaPGPObjectFactory(decoderInputStream);
             final PGPEncryptedDataList encryptedDataList = findEncryptedDataList(encryptedObjectFactory);
             if (encryptedDataList == null) {
                 throw new PGPProcessException("PGP Encrypted Data Packets not found");
