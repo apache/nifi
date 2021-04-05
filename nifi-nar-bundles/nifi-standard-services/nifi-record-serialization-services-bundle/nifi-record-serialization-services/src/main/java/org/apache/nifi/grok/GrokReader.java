@@ -112,7 +112,7 @@ public class GrokReader extends SchemaRegistryService implements RecordReaderFac
         .displayName("No Match Behavior")
         .description("If a line of text is encountered and it does not match the given Grok Expression, and it is not part of a stack trace, "
             + "this property specifies how the text should be processed.")
-        .allowableValues(APPEND_TO_PREVIOUS_MESSAGE, SKIP_LINE)
+        .allowableValues(APPEND_TO_PREVIOUS_MESSAGE, SKIP_LINE, RAW_LINE)
         .defaultValue(APPEND_TO_PREVIOUS_MESSAGE.getValue())
         .required(true)
         .build();
