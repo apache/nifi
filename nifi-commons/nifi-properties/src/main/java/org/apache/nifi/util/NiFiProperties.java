@@ -216,6 +216,7 @@ public abstract class NiFiProperties {
     public static final String WEB_MAX_CONTENT_SIZE = "nifi.web.max.content.size";
     public static final String WEB_MAX_REQUESTS_PER_SECOND = "nifi.web.max.requests.per.second";
     public static final String WEB_REQUEST_TIMEOUT = "nifi.web.request.timeout";
+    public static final String WEB_REQUEST_IP_WHITELIST = "nifi.web.request.ip.whitelist";
     public static final String WEB_SHOULD_SEND_SERVER_VERSION = "nifi.web.should.send.server.version";
 
     // ui properties
@@ -676,6 +677,10 @@ public abstract class NiFiProperties {
 
     public String getWebRequestTimeout() {
         return getProperty(WEB_REQUEST_TIMEOUT, DEFAULT_WEB_REQUEST_TIMEOUT);
+    }
+
+    public String getWebRequestIpWhitelist() {
+        return getProperty(WEB_REQUEST_IP_WHITELIST);
     }
 
     public int getWebThreads() {

@@ -496,7 +496,7 @@ class JettyServerGroovyTest extends GroovyTestCase {
         assert filters.size() == 2
         def filterNames = filters*.name
         logger.info("Web API Context has ${filters.size()} filters: ${filterNames.join(", ")}".toString())
-        assert filterNames.contains("NiFiDoSFilter")
+        assert filterNames.contains("DoSFilter")
         assert filterNames.contains("ContentLengthFilter")
 
         FilterHolder clfHolder = filters.find { it.name == "ContentLengthFilter" }
@@ -537,7 +537,7 @@ class JettyServerGroovyTest extends GroovyTestCase {
         assert filters.size() == 1
         def filterNames = filters*.name
         logger.info("Web API Context has ${filters.size()} filters: ${filterNames.join(", ")}".toString())
-        assert filterNames.contains("NiFiDoSFilter")
+        assert filterNames.contains("DoSFilter")
         assert !filterNames.contains("ContentLengthFilter")
     }
 
