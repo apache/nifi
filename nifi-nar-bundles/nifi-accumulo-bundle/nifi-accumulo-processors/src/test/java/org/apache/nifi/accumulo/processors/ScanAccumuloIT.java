@@ -17,12 +17,14 @@
  */
 package org.apache.nifi.accumulo.processors;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.MultiTableBatchWriter;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
@@ -190,9 +192,10 @@ public class ScanAccumuloIT {
     private String createTable(Authorizations defaultVis) throws AccumuloException, AccumuloSecurityException, TableExistsException {
         String tableName = UUID.randomUUID().toString();
         tableName=tableName.replace("-","a");
+        AccumuloClient client = accumulo.createAccumuloClient("root", new PasswordToken("password"));
         if (null != defaultVis)
-            accumulo.getConnector("root","password").securityOperations().changeUserAuthorizations("root", defaultVis);
-        accumulo.getConnector("root","password").tableOperations().create(tableName);
+            client.securityOperations().changeUserAuthorizations("root", defaultVis);
+        client.tableOperations().create(tableName);
         return tableName;
     }
 
@@ -228,7 +231,7 @@ public class ScanAccumuloIT {
         BatchWriterConfig writerConfig = new BatchWriterConfig();
         writerConfig.setMaxWriteThreads(2);
         writerConfig.setMaxMemory(1024*1024);
-        MultiTableBatchWriter writer  = accumulo.getConnector("root","password").createMultiTableBatchWriter(writerConfig);
+        MultiTableBatchWriter writer  = accumulo.createAccumuloClient("root", new PasswordToken("password")).createMultiTableBatchWriter(writerConfig);
 
         long ts = System.currentTimeMillis();
         ColumnVisibility colViz = new ColumnVisibility();
