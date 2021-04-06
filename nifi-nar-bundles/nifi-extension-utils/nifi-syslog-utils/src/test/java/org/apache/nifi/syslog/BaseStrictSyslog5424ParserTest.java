@@ -27,6 +27,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -69,7 +70,7 @@ public abstract class BaseStrictSyslog5424ParserTest {
         final String procId = "-";
         final String msgId = "ID17";
         final String structuredData = "-";
-        final String body = "BOM'su root' failed for lonvick on /dev/pts/8";
+        final String body = "'su root' failed for lonvick on /dev/pts/8";
 
         final String message = "<" + pri + ">" + version + " " + stamp + " " + host + " "
                 + appName + " " + procId + " " + msgId + " " + "-" + " " + body;
@@ -116,7 +117,7 @@ public abstract class BaseStrictSyslog5424ParserTest {
         final String procId = "-";
         final String msgId = "ID17";
         final String structuredData = "-";
-        final String body = "BOM'su root' failed for lonvick on /dev/pts/8";
+        final String body = "'su root' failed for lonvick on /dev/pts/8";
 
         final String message = "<" + pri + ">" + version + " " + stamp + " " + host + " "
                 + appName + " " + procId + " " + msgId + " " + "-" + " " + body;
@@ -133,7 +134,7 @@ public abstract class BaseStrictSyslog5424ParserTest {
     @Test
     public void testTrailingNewLine() {
         final String message = "<34>1 2003-10-11T22:14:15.003Z mymachine.example.com su - " +
-                "ID47 - BOM'su root' failed for lonvick on /dev/pts/8\n";
+                "ID47 - 'su root' failed for lonvick on /dev/pts/8\n";
 
         final byte[] bytes = message.getBytes(CHARSET);
         final ByteBuffer buffer = ByteBuffer.allocate(bytes.length);
@@ -151,7 +152,7 @@ public abstract class BaseStrictSyslog5424ParserTest {
 
         // supported examples from RFC 5424 including structured data with no message
         messages.add("<34>1 2003-10-11T22:14:15.003Z mymachine.example.com su - " +
-                "ID47 - BOM'su root' failed for lonvick on /dev/pts/8");
+                "ID47 - 'su root' failed for lonvick on /dev/pts/8");
         messages.add("<165>1 2003-08-24T05:14:15.000003-07:00 192.0.2.1 myproc " +
                 "8710 - - %% It's time to make the do-nuts.");
         messages.add("<14>1 2014-06-20T09:14:07+00:00 loggregator"
@@ -231,4 +232,24 @@ public abstract class BaseStrictSyslog5424ParserTest {
         Assert.assertEquals(sender, event.getSender());
         Assert.assertEquals("Removing instance", event.getFieldMap().get(SyslogAttributes.SYSLOG_BODY.key()));
     }
+
+    @Test
+    public void testParseWithBOM() {
+        final String message = "<14>1 2014-06-20T09:14:07+00:00 loggregator"
+            + " d0602076-b14a-4c55-852a-981e7afeed38 DEA MSG-01"
+            + " [exampleSDID@32473 iut=\"3\" eventSource=\"Application\" eventID=\"1011\"]"
+            + "[exampleSDID@32480 iut=\"4\" eventSource=\"Other Application\" eventID=\"2022\"] \uFEFFMessage with some Umlauts äöü";
+
+        final byte[] bytes = message.getBytes(CHARSET);
+        final ByteBuffer buffer = ByteBuffer.allocate(bytes.length);
+        ((Buffer)buffer).clear();
+        buffer.put(bytes);
+
+        final Syslog5424Event event = parser.parseEvent(buffer);
+        Assert.assertNotNull(event);
+        Assert.assertTrue(event.isValid());
+        Assert.assertEquals("Message with some Umlauts äöü", event.getFieldMap().get(SyslogAttributes.SYSLOG_BODY.key()));
+    }
 }
+
+
