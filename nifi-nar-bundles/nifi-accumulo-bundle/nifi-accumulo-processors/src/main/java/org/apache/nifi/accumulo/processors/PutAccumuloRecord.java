@@ -279,6 +279,7 @@ public class PutAccumuloRecord extends BaseAccumuloProcessor {
         BatchWriterConfig writerConfig = new BatchWriterConfig();
         writerConfig.setMaxWriteThreads(context.getProperty(THREADS).asInteger());
         writerConfig.setMaxMemory(maxBytes.longValue());
+        writerConfig.setTimeout(context.getProperty(ACCUMULO_TIMEOUT).asTimePeriod(TimeUnit.SECONDS).longValue(), TimeUnit.SECONDS);
         tableWriter = client.createMultiTableBatchWriter(writerConfig);
         flushOnEveryFlow = context.getProperty(FLUSH_ON_FLOWFILE).asBoolean();
         if (!flushOnEveryFlow){
@@ -354,6 +355,8 @@ public class PutAccumuloRecord extends BaseAccumuloProcessor {
         final String defaultVisibility = processContext.getProperty(DEFAULT_VISIBILITY).isSet() ? processContext.getProperty(DEFAULT_VISIBILITY).getValue() : null;
 
         final String tableName = processContext.getProperty(TABLE_NAME).evaluateAttributeExpressions(flowFile).getValue();
+
+        accumuloConnectorService.renewTgtIfNecessary();
 
         // create the table if EL is present, create table is true and the table does not exist.
         if (processContext.getProperty(TABLE_NAME).isExpressionLanguagePresent() && processContext.getProperty(CREATE_TABLE).asBoolean()) {
