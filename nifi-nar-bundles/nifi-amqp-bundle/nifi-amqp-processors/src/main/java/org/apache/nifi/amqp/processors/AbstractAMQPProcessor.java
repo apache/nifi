@@ -71,7 +71,7 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
             .required(false)
             .defaultValue("localhost")
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .addValidator(StandardValidators.ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR)
+            .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
             .build();
     public static final PropertyDescriptor PORT = new PropertyDescriptor.Builder()
             .name("Port")
@@ -335,7 +335,7 @@ abstract class AbstractAMQPProcessor<T extends AMQPWorker> extends AbstractProce
                 Address[] hostsList = createHostsList(context);
                 connection = cf.newConnection(executor, hostsList);
             } else {
-                cf.setHost(context.getProperty(BROKERS).evaluateAttributeExpressions().getValue());
+                cf.setHost(context.getProperty(HOST).evaluateAttributeExpressions().getValue());
                 cf.setPort(Integer.parseInt(context.getProperty(PORT).evaluateAttributeExpressions().getValue()));
                 connection = cf.newConnection(executor);
             }
