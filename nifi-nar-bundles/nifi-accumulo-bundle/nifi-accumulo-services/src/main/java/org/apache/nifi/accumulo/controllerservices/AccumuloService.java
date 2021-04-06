@@ -20,7 +20,10 @@ package org.apache.nifi.accumulo.controllerservices;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.nifi.annotation.behavior.RequiresInstanceClassLoading;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -33,6 +36,7 @@ import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.kerberos.KerberosCredentialsService;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
 
@@ -41,6 +45,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Properties;
 
 /**
  * Purpose: Controller service that provides us a configured connector. Note that we don't need to close this
@@ -53,49 +58,73 @@ import java.util.List;
 @CapabilityDescription("A controller service for accessing an HBase client.")
 public class AccumuloService extends AbstractControllerService implements BaseAccumuloService {
 
-    private enum AuthenticationType{
+    private enum AuthenticationType {
         PASSWORD,
+        KERBEROS,
         NONE
     }
 
     protected static final PropertyDescriptor ZOOKEEPER_QUORUM = new PropertyDescriptor.Builder()
-            .name("ZooKeeper Quorum")
+            .name("accumulo-zooKeeper-quorum")
+            .displayName("ZooKeeper Quorum")
             .description("Comma-separated list of ZooKeeper hosts for Accumulo.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     protected static final PropertyDescriptor INSTANCE_NAME = new PropertyDescriptor.Builder()
-            .name("Instance Name")
+            .name("accumulo-instance-name")
+            .displayName("Instance Name")
             .description("Instance name of the Accumulo cluster")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
-
-    protected static final PropertyDescriptor ACCUMULO_USER = new PropertyDescriptor.Builder()
-            .name("Accumulo User")
-            .description("Connecting user for Accumulo")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .build();
-
-    protected static final PropertyDescriptor ACCUMULO_PASSWORD = new PropertyDescriptor.Builder()
-            .name("Accumulo Password")
-            .description("Connecting user's password when using the PASSWORD Authentication type")
-            .sensitive(true)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .build();
-
     protected static final PropertyDescriptor AUTHENTICATION_TYPE = new PropertyDescriptor.Builder()
-            .name("Authentication Type")
+            .name("accumulo-authentication-type")
+            .displayName("Authentication Type")
             .description("Authentication Type")
             .allowableValues(AuthenticationType.values())
             .defaultValue(AuthenticationType.PASSWORD.toString())
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
+    protected static final PropertyDescriptor ACCUMULO_USER = new PropertyDescriptor.Builder()
+            .name("accumulo-user")
+            .displayName("Accumulo User")
+            .description("Connecting user for Accumulo")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .dependsOn(AUTHENTICATION_TYPE, AuthenticationType.PASSWORD.toString())
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
+
+    protected static final PropertyDescriptor ACCUMULO_PASSWORD = new PropertyDescriptor.Builder()
+            .name("accumulo-password")
+            .displayName("Accumulo Password")
+            .description("Connecting user's password when using the PASSWORD Authentication type")
+            .sensitive(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .dependsOn(AUTHENTICATION_TYPE, AuthenticationType.PASSWORD.toString())
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
+
+    protected static final PropertyDescriptor KERBEROS_CREDENTIALS_SERVICE = new PropertyDescriptor.Builder()
+            .name("kerberos-credentials-service")
+            .displayName("Kerberos Credentials Service")
+            .description("Specifies the Kerberos Credentials Controller Service that should be used for authenticating with Kerberos")
+            .identifiesControllerService(KerberosCredentialsService.class)
+            .dependsOn(AUTHENTICATION_TYPE, AuthenticationType.KERBEROS.toString())
+            .build();
+
+    protected static final PropertyDescriptor ACCUMULO_SASL_QOP = new PropertyDescriptor.Builder()
+            .name("accumulo-sasl-qop")
+            .displayName("Accumulo SASL quality of protection")
+            .description("Accumulo SASL quality of protection for KERBEROS Authentication type")
+            .allowableValues("auth", "auth-int", "auth-conf")
+            .defaultValue("auth-conf")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .dependsOn(AUTHENTICATION_TYPE, AuthenticationType.KERBEROS.toString())
+            .build();
 
     /**
      * Reference to the accumulo client.
@@ -107,24 +136,19 @@ public class AccumuloService extends AbstractControllerService implements BaseAc
      */
     private List<PropertyDescriptor> properties;
 
+    private AuthenticationType authType;
+
     @Override
-    protected void init(ControllerServiceInitializationContext config) throws InitializationException {
+    protected void init(ControllerServiceInitializationContext config) {
         List<PropertyDescriptor> props = new ArrayList<>();
         props.add(ZOOKEEPER_QUORUM);
         props.add(INSTANCE_NAME);
         props.add(ACCUMULO_USER);
-        props.add(AUTHENTICATION_TYPE);
         props.add(ACCUMULO_PASSWORD);
+        props.add(AUTHENTICATION_TYPE);
+        props.add(KERBEROS_CREDENTIALS_SERVICE);
+        props.add(ACCUMULO_SASL_QOP);
         properties = Collections.unmodifiableList(props);
-    }
-
-    private AuthenticationToken getToken(final AuthenticationType type, final ConfigurationContext context){
-        switch(type){
-            case PASSWORD:
-                return new PasswordToken(context.getProperty(ACCUMULO_PASSWORD).getValue());
-            default:
-                return null;
-        }
     }
 
     @Override
@@ -133,8 +157,10 @@ public class AccumuloService extends AbstractControllerService implements BaseAc
         properties.add(INSTANCE_NAME);
         properties.add(ZOOKEEPER_QUORUM);
         properties.add(ACCUMULO_USER);
-        properties.add(AUTHENTICATION_TYPE);
         properties.add(ACCUMULO_PASSWORD);
+        properties.add(AUTHENTICATION_TYPE);
+        properties.add(KERBEROS_CREDENTIALS_SERVICE);
+        properties.add(ACCUMULO_SASL_QOP);
         return properties;
     }
 
@@ -150,61 +176,92 @@ public class AccumuloService extends AbstractControllerService implements BaseAc
             problems.add(new ValidationResult.Builder().valid(false).subject(ZOOKEEPER_QUORUM.getName()).explanation("Zookeepers must be supplied").build());
         }
 
-        if (!validationContext.getProperty(ACCUMULO_USER).isSet()){
-            problems.add(new ValidationResult.Builder().valid(false).subject(ACCUMULO_USER.getName()).explanation("Accumulo user must be supplied").build());
-        }
-
         final AuthenticationType type = validationContext.getProperty(
-                AUTHENTICATION_TYPE).isSet() ? AuthenticationType.valueOf( validationContext.getProperty(AUTHENTICATION_TYPE).getValue() ) : AuthenticationType.PASSWORD;
+                AUTHENTICATION_TYPE).isSet() ? AuthenticationType.valueOf( validationContext.getProperty(AUTHENTICATION_TYPE).getValue() ) : AuthenticationType.NONE;
 
         switch(type){
             case PASSWORD:
+                if (!validationContext.getProperty(ACCUMULO_USER).isSet()){
+                    problems.add(
+                            new ValidationResult.Builder().valid(false).subject(ACCUMULO_USER.getName()).explanation("Accumulo user must be supplied for the Password Authentication type").build());
+                }
                 if (!validationContext.getProperty(ACCUMULO_PASSWORD).isSet()){
                     problems.add(
-                            new ValidationResult.Builder().valid(false).subject(AUTHENTICATION_TYPE.getName()).explanation("Password must be supplied for the Password Authentication type").build());
+                            new ValidationResult.Builder().valid(false).subject(ACCUMULO_PASSWORD.getName())
+                                    .explanation("Password must be supplied for the Password Authentication type").build());
+                }
+                break;
+            case KERBEROS:
+                if (!validationContext.getProperty(KERBEROS_CREDENTIALS_SERVICE).isSet()){
+                    problems.add(new ValidationResult.Builder().valid(false).subject(KERBEROS_CREDENTIALS_SERVICE.getName())
+                            .explanation("Kerberos credential service must be supplied for the Kerberos Authentication type").build());
                 }
                 break;
             default:
-                problems.add(new ValidationResult.Builder().valid(false).subject(ACCUMULO_PASSWORD.getName()).explanation("Non supported Authentication type").build());
+                problems.add(new ValidationResult.Builder().valid(false).subject(AUTHENTICATION_TYPE.getName()).explanation("Non supported Authentication type").build());
         }
 
         return problems;
     }
 
     @OnEnabled
-    public void onEnabled(final ConfigurationContext context) throws InitializationException, IOException, InterruptedException {
-        if (!context.getProperty(INSTANCE_NAME).isSet() || !context.getProperty(ZOOKEEPER_QUORUM).isSet() || !context.getProperty(ACCUMULO_USER).isSet()){
+    public void onEnabled(final ConfigurationContext context) throws InitializationException, IOException {
+        if (!context.getProperty(INSTANCE_NAME).isSet() || !context.getProperty(ZOOKEEPER_QUORUM).isSet()) {
             throw new InitializationException("Instance name and Zookeeper Quorum must be specified");
         }
 
-
-
+        final KerberosCredentialsService kerberosService = context.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
         final String instanceName = context.getProperty(INSTANCE_NAME).evaluateAttributeExpressions().getValue();
         final String zookeepers = context.getProperty(ZOOKEEPER_QUORUM).evaluateAttributeExpressions().getValue();
-        final String accumuloUser = context.getProperty(ACCUMULO_USER).evaluateAttributeExpressions().getValue();
+        authType = AuthenticationType.valueOf( context.getProperty(AUTHENTICATION_TYPE).getValue());
+        AuthenticationToken token;
 
-        final AuthenticationType type = AuthenticationType.valueOf( context.getProperty(AUTHENTICATION_TYPE).getValue() );
+        final Properties clientConf = new Properties();
+        clientConf.setProperty("instance.zookeepers", zookeepers);
+        clientConf.setProperty("instance.name", instanceName);
 
+        switch(authType){
+            case PASSWORD:
+                final String accumuloUser = context.getProperty(ACCUMULO_USER).evaluateAttributeExpressions().getValue();
 
+                token = new PasswordToken(context.getProperty(ACCUMULO_PASSWORD).getValue());
 
-        final AuthenticationToken token = getToken(type,context);
+                this.client = Accumulo.newClient().from(clientConf).as(accumuloUser,token).build();
+                break;
+            case KERBEROS:
+                final  String principal = kerberosService.getPrincipal();
 
-        this.client = Accumulo.newClient().to(instanceName,zookeepers).as(accumuloUser,token).build();
+                clientConf.setProperty("sasl.enabled", "true");
+                clientConf.setProperty("sasl.qop", context.getProperty(ACCUMULO_SASL_QOP).getValue());
+
+                //Client uses the currently logged in user's security context, so need to login first.
+                Configuration conf = new Configuration();
+                conf.set("hadoop.security.authentication", "kerberos");
+                UserGroupInformation.setConfiguration(conf);
+                UserGroupInformation.loginUserFromKeytab(principal, kerberosService.getKeytab());
+
+                token = new KerberosToken();
+
+                this.client = Accumulo.newClient().from(clientConf).as(principal, token).build();
+                break;
+            default:
+                token = null;
+        }
 
         if (null == token){
             throw new InitializationException("Feature not implemented");
         }
-
     }
 
     @Override
-    public AccumuloClient getClient(){
+    public AccumuloClient getClient() {
         return client;
     }
 
     @OnDisabled
     public void shutdown() {
-        client.close();
+        if (client != null) {
+            client.close();
+        }
     }
-
 }

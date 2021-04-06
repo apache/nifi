@@ -66,5 +66,10 @@
             <artifactId>nifi-accumulo-services-api</artifactId>
             <version>1.14.0-SNAPSHOT</version>
         </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-kerberos-credentials-service-api</artifactId>
+            <version>1.14.0-SNAPSHOT</version>
+        </dependency>
     </dependencies>
 </project>
