@@ -745,7 +745,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         }});
         holder.setName(DoSFilter.class.getSimpleName());
 
-        logger.info("Adding DoSFilter to context at path: [{}] with max req/sec: [{}], request timeout: [{}] ms. Whitelisted IPs not subject to filter: [{}]",
+        logger.debug("Adding DoSFilter to context at path: [{}] with max req/sec: [{}], request timeout: [{}] ms. Whitelisted IPs not subject to filter: [{}]",
                 path, maxWebRequestsPerSecond, requestTimeoutInMilliseconds, StringUtils.defaultIfEmpty(ipWhitelist, "none"));
         webAppContext.addFilter(holder, path, EnumSet.allOf(DispatcherType.class));
     }
