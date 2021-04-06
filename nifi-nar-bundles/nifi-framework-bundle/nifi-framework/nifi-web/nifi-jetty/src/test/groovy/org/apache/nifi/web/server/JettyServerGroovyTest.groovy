@@ -540,21 +540,6 @@ class JettyServerGroovyTest extends GroovyTestCase {
         assert filterNames.contains("DoSFilter")
         assert !filterNames.contains("ContentLengthFilter")
     }
-
-    @Test
-    void testDetermineRequestTimeoutInMilliseconds() {
-        // Arrange
-        Map badProps = [
-                (NiFiProperties.WEB_REQUEST_TIMEOUT): "50 sec",
-        ]
-
-        NiFiProperties mockProps = new StandardNiFiProperties(new Properties(badProps))
-
-        // Act
-        long requestTimeout = JettyServer.determineRequestTimeoutInMilliseconds(mockProps)
-
-        assert requestTimeout == 50000;
-    }
 }
 
 class TestAppender extends AppenderSkeleton {

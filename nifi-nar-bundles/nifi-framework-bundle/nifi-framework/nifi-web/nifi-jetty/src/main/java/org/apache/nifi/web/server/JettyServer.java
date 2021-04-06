@@ -705,25 +705,25 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         }
     }
 
-    private static int determineMaxWebRequestsPerSecond(NiFiProperties props) {
+    private static int determineMaxWebRequestsPerSecond(final NiFiProperties props) {
         int defaultMaxRequestsPerSecond = Integer.parseInt(NiFiProperties.DEFAULT_WEB_MAX_REQUESTS_PER_SECOND);
         int configuredMaxRequestsPerSecond = 0;
         try {
             configuredMaxRequestsPerSecond = Integer.parseInt(props.getMaxWebRequestsPerSecond());
         } catch (final NumberFormatException e) {
-            logger.warn("Exception parsing property " + NiFiProperties.WEB_MAX_REQUESTS_PER_SECOND + "; using default value: " + defaultMaxRequestsPerSecond);
+            logger.warn("Exception parsing property [{}]; using default value: [{}]", NiFiProperties.WEB_MAX_REQUESTS_PER_SECOND, defaultMaxRequestsPerSecond);
         }
 
         return configuredMaxRequestsPerSecond > 0 ? configuredMaxRequestsPerSecond : defaultMaxRequestsPerSecond;
     }
 
-    private static long determineRequestTimeoutInMilliseconds(NiFiProperties props) {
+    private static long determineRequestTimeoutInMilliseconds(final NiFiProperties props) {
         long defaultRequestTimeout = Math.round(FormatUtils.getPreciseTimeDuration(NiFiProperties.DEFAULT_WEB_REQUEST_TIMEOUT, TimeUnit.MILLISECONDS));
         long configuredRequestTimeout = 0L;
         try {
             configuredRequestTimeout = Math.round(FormatUtils.getPreciseTimeDuration(props.getWebRequestTimeout(), TimeUnit.MILLISECONDS));
         } catch (final NumberFormatException e) {
-            logger.warn("Exception parsing property " + NiFiProperties.WEB_REQUEST_TIMEOUT + "; using default value: " + defaultRequestTimeout);
+            logger.warn("Exception parsing property [{}]; using default value: [{}]", NiFiProperties.WEB_REQUEST_TIMEOUT, defaultRequestTimeout);
         }
 
         return configuredRequestTimeout > 0 ? configuredRequestTimeout : defaultRequestTimeout;
@@ -745,12 +745,8 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         }});
         holder.setName(DoSFilter.class.getSimpleName());
 
-        String ipWhitelistLoggable = ipWhitelist;
-        if(ipWhitelist == null) {
-            ipWhitelistLoggable = "none";
-        }
-        logger.info("Adding DoSFilter to context at path: {} with max req/sec: {}, request timeout: {} ms. Whitelisted IPs not subject to filter: {}",
-                path, maxWebRequestsPerSecond, requestTimeoutInMilliseconds, ipWhitelistLoggable);
+        logger.info("Adding DoSFilter to context at path: [{}] with max req/sec: [{}], request timeout: [{}] ms. Whitelisted IPs not subject to filter: [{}]",
+                path, maxWebRequestsPerSecond, requestTimeoutInMilliseconds, StringUtils.defaultIfEmpty(ipWhitelist, "none"));
         webAppContext.addFilter(holder, path, EnumSet.allOf(DispatcherType.class));
     }
 
