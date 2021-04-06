@@ -68,6 +68,15 @@ public class MiNiFi {
             throws ClassNotFoundException, IOException, NoSuchMethodException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException,
             FlowEnrichmentException {
 
+        // There can only be one krb5.conf for the overall Java process so set this globally during
+        // start up so that processors and our Kerberos authentication code don't have to set this
+        final File kerberosConfigFile = properties.getKerberosConfigurationFile();
+        if (kerberosConfigFile != null) {
+            final String kerberosConfigFilePath = kerberosConfigFile.getAbsolutePath();
+            logger.info("Setting java.security.krb5.conf to {}", new Object[]{kerberosConfigFilePath});
+            System.setProperty("java.security.krb5.conf", kerberosConfigFilePath);
+        }
+
         Thread.setDefaultUncaughtExceptionHandler((t, e) -> {
             logger.error("An Unknown Error Occurred in Thread {}: {}", t, e.toString());
             logger.error("", e);
