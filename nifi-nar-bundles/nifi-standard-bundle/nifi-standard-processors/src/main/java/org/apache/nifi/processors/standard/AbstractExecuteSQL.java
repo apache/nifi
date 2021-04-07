@@ -333,8 +333,8 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
                                     resultSetFF = session.putAttribute(resultSetFF, FRAGMENT_INDEX, String.valueOf(fragmentIndex));
                                 }
 
-                                logger.info("{} contains {} records; transferring to 'success'",
-                                        new Object[]{resultSetFF, nrOfRows.get()});
+                                logger.info("{} contains {} records; transferring to 'success'", new Object[]{resultSetFF, nrOfRows.get()});
+
                                 // Report a FETCH event if there was an incoming flow file, or a RECEIVE event otherwise
                                 if(context.hasIncomingConnection()) {
                                     session.getProvenanceReporter().fetch(resultSetFF, "Retrieved " + nrOfRows.get() + " rows", executionTimeElapsed + fetchTimeElapsed);
@@ -351,7 +351,8 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
                                         session.remove(fileToProcess);
                                         fileToProcess = null;
                                     }
-                                    session.commit();
+
+                                    session.commitAsync();
                                     resultSetFlowFiles.clear();
                                 }
 

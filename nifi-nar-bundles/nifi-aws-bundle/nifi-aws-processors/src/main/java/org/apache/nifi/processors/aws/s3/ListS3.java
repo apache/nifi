@@ -82,7 +82,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 @PrimaryNodeOnly
 @TriggerSerially
@@ -251,8 +252,8 @@ public class ListS3 extends AbstractS3Processor {
     public static final String CURRENT_KEY_PREFIX = "key-";
 
     // State tracking
-    private volatile long currentTimestamp = 0L;
-    private volatile Set<String> currentKeys;
+    private final AtomicLong currentTimestamp = new AtomicLong(0L);
+    private final AtomicReference<Set<String>> currentKeys = new AtomicReference<>();
 
     private static Validator createRequesterPaysValidator() {
         return new Validator() {
@@ -294,11 +295,11 @@ public class ListS3 extends AbstractS3Processor {
     private void restoreState(final ProcessSession session) throws IOException {
         final StateMap stateMap = session.getState(Scope.CLUSTER);
         if (stateMap.getVersion() == -1L || stateMap.get(CURRENT_TIMESTAMP) == null || stateMap.get(CURRENT_KEY_PREFIX+"0") == null) {
-            currentTimestamp = 0L;
-            currentKeys = new HashSet<>();
+            currentTimestamp.set(0L);
+            currentKeys.set(new HashSet<>());
         } else {
-            currentTimestamp = Long.parseLong(stateMap.get(CURRENT_TIMESTAMP));
-            currentKeys = extractKeys(stateMap);
+            currentTimestamp.set(Long.parseLong(stateMap.get(CURRENT_TIMESTAMP)));
+            currentKeys.set(extractKeys(stateMap));
         }
     }
 
@@ -339,7 +340,7 @@ public class ListS3 extends AbstractS3Processor {
         final AmazonS3 client = getClient();
         int listCount = 0;
         int totalListCount = 0;
-        long latestListedTimestampInThisCycle = currentTimestamp;
+        long latestListedTimestampInThisCycle = currentTimestamp.get();
         String delimiter = context.getProperty(DELIMITER).getValue();
         String prefix = context.getProperty(PREFIX).evaluateAttributeExpressions().getValue();
 
@@ -380,8 +381,8 @@ public class ListS3 extends AbstractS3Processor {
                     versionListing = bucketLister.listVersions();
                     for (S3VersionSummary versionSummary : versionListing.getVersionSummaries()) {
                         long lastModified = versionSummary.getLastModified().getTime();
-                        if (lastModified < currentTimestamp
-                            || lastModified == currentTimestamp && currentKeys.contains(versionSummary.getKey())
+                        if (lastModified < currentTimestamp.get()
+                            || lastModified == currentTimestamp.get() && currentKeys.get().contains(versionSummary.getKey())
                             || lastModified > (listingTimestamp - minAgeMilliseconds)) {
                             continue;
                         }
@@ -432,7 +433,7 @@ public class ListS3 extends AbstractS3Processor {
 
                     if (listCount >= batchSize && writer.isCheckpoint()) {
                         getLogger().info("Successfully listed {} new files from S3; routing to success", new Object[] {listCount});
-                        session.commit();
+                        session.commitAsync();
                     }
 
                     listCount = 0;
@@ -448,17 +449,18 @@ public class ListS3 extends AbstractS3Processor {
         }
 
         final Set<String> updatedKeys = new HashSet<>();
-        if (latestListedTimestampInThisCycle <= currentTimestamp) {
-            updatedKeys.addAll(currentKeys);
+        if (latestListedTimestampInThisCycle <= currentTimestamp.get()) {
+            updatedKeys.addAll(currentKeys.get());
         }
         updatedKeys.addAll(listedKeys);
 
         persistState(session, latestListedTimestampInThisCycle, updatedKeys);
-        session.commit();
 
-        // Update currentKeys.
-        currentKeys = updatedKeys;
-        currentTimestamp = latestListedTimestampInThisCycle;
+        final long latestListed = latestListedTimestampInThisCycle;
+        session.commitAsync(() -> {
+            this.currentKeys.set(updatedKeys);
+            this.currentTimestamp.set(latestListed);
+        });
 
         final long listMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
         getLogger().info("Successfully listed S3 bucket {} in {} millis", new Object[]{bucket, listMillis});

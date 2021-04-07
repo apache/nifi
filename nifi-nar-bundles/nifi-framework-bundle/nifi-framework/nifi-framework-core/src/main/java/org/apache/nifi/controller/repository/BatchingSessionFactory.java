@@ -28,6 +28,8 @@ import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.io.StreamCallback;
 import org.apache.nifi.provenance.ProvenanceReporter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -37,9 +39,11 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.regex.Pattern;
 
 public class BatchingSessionFactory implements ProcessSessionFactory {
+    private static final Logger logger = LoggerFactory.getLogger(BatchingSessionFactory.class);
 
     private final HighThroughputSession highThroughputSession;
 
@@ -53,7 +57,7 @@ public class BatchingSessionFactory implements ProcessSessionFactory {
     }
 
 
-    private class HighThroughputSession implements ProcessSession {
+    private static class HighThroughputSession implements ProcessSession {
         private final StandardProcessSession session;
 
         public HighThroughputSession(final StandardProcessSession session) {
@@ -63,6 +67,28 @@ public class BatchingSessionFactory implements ProcessSessionFactory {
         @Override
         public void commit() {
             session.checkpoint();
+        }
+
+        @Override
+        public void commitAsync() {
+            commit();
+        }
+
+        @Override
+        public void commitAsync(final Runnable onSuccess, final Consumer<Throwable> onFailure) {
+            try {
+                commit();
+            } catch (final Throwable t) {
+                rollback();
+                logger.error("Failed to asynchronously commit session", t);
+                onFailure.accept(t);
+            }
+
+            try {
+                onSuccess.run();
+            } catch (final Throwable t) {
+                logger.error("Successfully committed session asynchronously but failed to trigger success callback", t);
+            }
         }
 
         @Override

@@ -20,21 +20,6 @@ package org.apache.nifi.processors.windows.event.log;
 import com.sun.jna.platform.win32.Kernel32;
 import com.sun.jna.platform.win32.Kernel32Util;
 import com.sun.jna.platform.win32.WinNT;
-
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
-
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -59,6 +44,20 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.windows.event.log.jna.ErrorLookup;
 import org.apache.nifi.processors.windows.event.log.jna.EventSubscribeXmlRenderingCallback;
 import org.apache.nifi.processors.windows.event.log.jna.WEvtApi;
+
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
@@ -340,16 +339,10 @@ public class ConsumeWindowsEventLog extends AbstractSessionFactoryProcessor {
             flowFile = session.putAttribute(flowFile, CoreAttributes.MIME_TYPE.key(), APPLICATION_XML);
             session.getProvenanceReporter().receive(flowFile, provenanceUri);
             session.transfer(flowFile, REL_SUCCESS);
-            session.commit();
             flowFileCount++;
-            if (!renderedXMLs.remove(xml) && getLogger().isWarnEnabled()) {
-                getLogger().warn(new StringBuilder("Event ")
-                        .append(xml)
-                        .append(" had already been removed from queue, FlowFile ")
-                        .append(flowFile.getAttribute(CoreAttributes.UUID.key()))
-                        .append(" possible duplication of data")
-                        .toString());
-            }
+
+            final String xmlMessage = xml;
+            session.commitAsync(() -> renderedXMLs.remove(xmlMessage));
         }
         return flowFileCount;
     }

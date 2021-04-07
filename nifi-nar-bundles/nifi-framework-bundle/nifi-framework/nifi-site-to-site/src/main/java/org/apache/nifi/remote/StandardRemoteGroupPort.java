@@ -270,7 +270,7 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
                 }
             }
 
-            session.commit();
+            session.commitAsync();
         } catch (final Throwable t) {
             final String message = String.format("%s failed to communicate with remote NiFi instance due to %s", this, t.toString());
             logger.error("{} failed to communicate with remote NiFi instance due to {}", this, t.toString());
@@ -358,7 +358,7 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
             final String dataSize = FormatUtils.formatDataSize(bytesSent);
 
             transaction.complete();
-            session.commit();
+            session.commitAsync();
 
             final String flowFileDescription = (flowFilesSent.size() < 20) ? flowFilesSent.toString() : flowFilesSent.size() + " FlowFiles";
             logger.info("{} Successfully sent {} ({}) to {} in {} milliseconds at a rate of {}",
@@ -420,20 +420,25 @@ public class StandardRemoteGroupPort extends RemoteGroupPort {
         // Confirm that what we received was the correct data.
         transaction.confirm();
 
-        // Commit the session so that we have persisted the data
-        session.commit();
+        final long numBytesReceived = bytesReceived;
+        session.commitAsync(() -> {
+            try {
+                transaction.complete();
+            } catch (final Exception e) {
+                logger.error("Successfully received {} FlowFiles ({}) from {} and committed session but failed to notify sender that transaction was complete. This could result in data duplication.",
+                    flowFilesReceived.size(), flowFilesReceived, userDn);
+            }
 
-        transaction.complete();
-
-        if (!flowFilesReceived.isEmpty()) {
-            stopWatch.stop();
-            final String flowFileDescription = flowFilesReceived.size() < 20 ? flowFilesReceived.toString() : flowFilesReceived.size() + " FlowFiles";
-            final String uploadDataRate = stopWatch.calculateDataRate(bytesReceived);
-            final long uploadMillis = stopWatch.getDuration(TimeUnit.MILLISECONDS);
-            final String dataSize = FormatUtils.formatDataSize(bytesReceived);
-            logger.info("{} Successfully received {} ({}) from {} in {} milliseconds at a rate of {}", new Object[]{
-                this, flowFileDescription, dataSize, transaction.getCommunicant().getUrl(), uploadMillis, uploadDataRate});
-        }
+            if (!flowFilesReceived.isEmpty()) {
+                stopWatch.stop();
+                final String flowFileDescription = flowFilesReceived.size() < 20 ? flowFilesReceived.toString() : flowFilesReceived.size() + " FlowFiles";
+                final String uploadDataRate = stopWatch.calculateDataRate(numBytesReceived);
+                final long uploadMillis = stopWatch.getDuration(TimeUnit.MILLISECONDS);
+                final String dataSize = FormatUtils.formatDataSize(numBytesReceived);
+                logger.info("{} Successfully received {} ({}) from {} in {} milliseconds at a rate of {}", new Object[]{
+                    this, flowFileDescription, dataSize, transaction.getCommunicant().getUrl(), uploadMillis, uploadDataRate});
+            }
+        });
 
         return flowFilesReceived.size();
     }

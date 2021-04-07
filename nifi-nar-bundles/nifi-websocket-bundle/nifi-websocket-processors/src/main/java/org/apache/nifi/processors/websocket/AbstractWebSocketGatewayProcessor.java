@@ -225,7 +225,7 @@ public abstract class AbstractWebSocketGatewayProcessor extends AbstractSessionF
                         break;
                 }
             }
-            session.commit();
+            session.commitAsync();
 
         } catch (Exception e) {
             logger.error("Unable to fully process input due to " + e, e);

@@ -14,23 +14,9 @@
  */
 package org.apache.nifi.processors.network;
 
-import static org.apache.nifi.processors.network.parser.Netflowv5Parser.getHeaderFields;
-import static org.apache.nifi.processors.network.parser.Netflowv5Parser.getRecordFields;
-
-import java.io.BufferedOutputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.OptionalInt;
-import java.util.Set;
-
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -55,9 +41,23 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processors.network.parser.Netflowv5Parser;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+
+import java.io.BufferedOutputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.OptionalInt;
+import java.util.Set;
+
+import static org.apache.nifi.processors.network.parser.Netflowv5Parser.getHeaderFields;
+import static org.apache.nifi.processors.network.parser.Netflowv5Parser.getRecordFields;
 
 @EventDriven
 @SideEffectFree
@@ -146,24 +146,17 @@ public class ParseNetflowv5 extends AbstractProcessor {
                     generateJSON(multipleRecords, session, flowFile, parser, processedRecord);
                     break;
             }
-            // Create a provenance event recording the routing to success
-            multipleRecords.forEach(recordFlowFile -> session.getProvenanceReporter().route(recordFlowFile, REL_SUCCESS));
-            session.getProvenanceReporter().route(flowFile, REL_ORIGINAL);
+
             // Ready to transfer and commit
             session.transfer(flowFile, REL_ORIGINAL);
             session.transfer(multipleRecords, REL_SUCCESS);
             session.adjustCounter("Records Processed", processedRecord, false);
-            session.commit();
         } catch (Exception e) {
             // The flowfile has failed parsing & validation, routing to failure
             logger.error("Failed to parse {} as a netflowv5 message due to {}; routing to failure", new Object[] { flowFile, e });
+
             // Create a provenance event recording the routing to failure
-            session.getProvenanceReporter().route(flowFile, REL_FAILURE);
             session.transfer(flowFile, REL_FAILURE);
-            session.commit();
-            return;
-        } finally {
-            session.rollback();
         }
     }
 

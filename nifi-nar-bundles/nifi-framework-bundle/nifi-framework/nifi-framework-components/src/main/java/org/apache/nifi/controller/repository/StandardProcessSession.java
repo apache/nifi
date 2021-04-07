@@ -93,6 +93,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -220,12 +221,58 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         resetState();
     }
 
-    private void checkpoint(final boolean copyCollections) {
-        verifyTaskActive();
-        resetWriteClaims(false);
+    @Override
+    public void commitAsync() {
+        validateCommitState();
 
-        closeStreams(openInputStreams, "committed", "input");
-        closeStreams(openOutputStreams, "committed", "output");
+        try {
+            commit();
+        } catch (final Throwable t) {
+            LOG.error("Failed to asynchronously commit session {} for {}", this, connectableDescription, t);
+
+            try {
+                rollback();
+            } catch (final Throwable t2) {
+                LOG.error("Failed to roll back session {} for {}", this, connectableDescription, t2);
+            }
+        }
+    }
+
+    @Override
+    public void commitAsync(final Runnable onSuccess, final Consumer<Throwable> onFailure) {
+        validateCommitState();
+
+        try {
+            commit();
+        } catch (final Throwable t) {
+            LOG.error("Failed to asynchronously commit session {} for {}", this, connectableDescription, t);
+
+            try {
+                rollback();
+            } catch (final Throwable t2) {
+                LOG.error("Failed to roll back session {} for {}", this, connectableDescription, t2);
+            }
+
+            if (onFailure != null) {
+                onFailure.accept(t);
+            }
+
+            return;
+        }
+
+        if (onSuccess != null) {
+            try {
+                onSuccess.run();
+            } catch (final Exception e) {
+                LOG.error("Successfully committed session {} for {} but failed to trigger success callback", this, connectableDescription, e);
+            }
+        }
+
+        LOG.debug("Successfully committed session {} for {}", this, connectableDescription);
+    }
+
+    private void validateCommitState() {
+        verifyTaskActive();
 
         if (!readRecursionSet.isEmpty()) {
             throw new IllegalStateException();
@@ -233,6 +280,38 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         if (!writeRecursionSet.isEmpty()) {
             throw new IllegalStateException();
         }
+
+        for (final StandardRepositoryRecord record : records.values()) {
+            if (record.isMarkedForDelete()) {
+                continue;
+            }
+
+            final Relationship relationship = record.getTransferRelationship();
+            if (relationship == null) {
+                throw new FlowFileHandlingException(record.getCurrent() + " transfer relationship not specified");
+            }
+
+            final Collection<Connection> destinations = context.getConnections(relationship);
+            if (destinations.isEmpty() && !context.getConnectable().isAutoTerminated(relationship)) {
+                if (relationship != Relationship.SELF) {
+                    throw new FlowFileHandlingException(relationship + " does not have any destinations for " + context.getConnectable());
+                }
+            }
+        }
+    }
+
+    private void checkpoint(final boolean copyCollections) {
+        try {
+            validateCommitState();
+        } catch (final Exception e) {
+            rollback();
+            throw e;
+        }
+
+        resetWriteClaims(false);
+
+        closeStreams(openInputStreams, "committed", "input");
+        closeStreams(openOutputStreams, "committed", "output");
 
         if (this.checkpoint == null) {
             this.checkpoint = new Checkpoint();
@@ -255,18 +334,9 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             if (record.isMarkedForDelete()) {
                 continue;
             }
+
             final Relationship relationship = record.getTransferRelationship();
-            if (relationship == null) {
-                rollback();
-                throw new FlowFileHandlingException(record.getCurrent() + " transfer relationship not specified");
-            }
             final List<Connection> destinations = new ArrayList<>(context.getConnections(relationship));
-            if (destinations.isEmpty() && !context.getConnectable().isAutoTerminated(relationship)) {
-                if (relationship != Relationship.SELF) {
-                    rollback();
-                    throw new FlowFileHandlingException(relationship + " does not have any destinations for " + context.getConnectable());
-                }
-            }
 
             if (destinations.isEmpty() && relationship == Relationship.SELF) {
                 record.setDestination(record.getOriginalQueue());
@@ -329,7 +399,6 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
 
     @Override
     public synchronized void commit() {
-        verifyTaskActive();
         checkpoint(this.checkpoint != null); // If a checkpoint already exists, we need to copy the collection
         commit(this.checkpoint);
 

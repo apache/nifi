@@ -350,7 +350,7 @@ public abstract class AbstractPutEventProcessor extends AbstractSessionFactoryPr
                 getLogger().error("No available connections, and unable to create a new one, transferring {} to failure",
                         new Object[]{flowFile}, e);
                 session.transfer(flowFile, REL_FAILURE);
-                session.commit();
+                session.commitAsync();
                 context.yield();
                 sender = null;
             }
@@ -561,7 +561,7 @@ public abstract class AbstractPutEventProcessor extends AbstractSessionFactoryPr
             if (successfulRanges.isEmpty() && failedRanges.isEmpty()) {
                 getLogger().info("Completed processing {} but sent 0 FlowFiles", new Object[] {flowFile});
                 session.transfer(flowFile, REL_SUCCESS);
-                session.commit();
+                session.commitAsync();
                 return;
             }
 
@@ -569,7 +569,7 @@ public abstract class AbstractPutEventProcessor extends AbstractSessionFactoryPr
                 getLogger().error("Failed to send {}; routing to 'failure'; last failure reason reported was {};", new Object[] {flowFile, lastFailureReason});
                 final FlowFile penalizedFlowFile = session.penalize(flowFile);
                 session.transfer(penalizedFlowFile, REL_FAILURE);
-                session.commit();
+                session.commitAsync();
                 return;
             }
 
@@ -578,7 +578,7 @@ public abstract class AbstractPutEventProcessor extends AbstractSessionFactoryPr
                 session.getProvenanceReporter().send(flowFile, transitUri, "Sent " + successfulRanges.size() + " messages;", transferMillis);
                 session.transfer(flowFile, REL_SUCCESS);
                 getLogger().info("Successfully sent {} messages for {} in {} millis", new Object[] {successfulRanges.size(), flowFile, transferMillis});
-                session.commit();
+                session.commitAsync();
                 return;
             }
 
@@ -590,7 +590,7 @@ public abstract class AbstractPutEventProcessor extends AbstractSessionFactoryPr
             session.remove(flowFile);
             getLogger().error("Successfully sent {} messages, but failed to send {} messages; the last error received was {}",
                     new Object[] {successfulRanges.size(), failedRanges.size(), lastFailureReason});
-            session.commit();
+            session.commitAsync();
         }
     }
 

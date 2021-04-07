@@ -27,25 +27,6 @@ import com.fluenda.parcefone.event.CEFHandlingException;
 import com.fluenda.parcefone.event.CommonEvent;
 import com.fluenda.parcefone.event.MacAddress;
 import com.fluenda.parcefone.parser.CEFParser;
-import java.io.BufferedOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.InetAddress;
-import java.text.SimpleDateFormat;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-import java.util.TimeZone;
-import javax.validation.Validation;
 import org.apache.bval.jsr.ApacheValidationProvider;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -73,6 +54,26 @@ import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.stream.io.StreamUtils;
+
+import javax.validation.Validation;
+import java.io.BufferedOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.InetAddress;
+import java.text.SimpleDateFormat;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.TimeZone;
 
 @EventDriven
 @SideEffectFree
@@ -309,17 +310,12 @@ public class ParseCEF extends AbstractProcessor {
 
             // whatever the parsing stratgy, ready to transfer to success and commit
             session.transfer(flowFile, REL_SUCCESS);
-            session.commit();
         } catch (CEFHandlingException e) {
             // The flowfile has failed parsing & validation, routing to failure and committing
             getLogger().error("Failed to parse {} as a CEF message due to {}; routing to failure", new Object[] {flowFile, e});
             // Create a provenance event recording the routing to failure
             session.getProvenanceReporter().route(flowFile, REL_FAILURE);
             session.transfer(flowFile, REL_FAILURE);
-            session.commit();
-            return;
-        } finally {
-            session.rollback();
         }
     }
 
