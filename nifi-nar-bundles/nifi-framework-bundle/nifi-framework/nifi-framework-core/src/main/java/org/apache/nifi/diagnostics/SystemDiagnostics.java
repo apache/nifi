@@ -39,9 +39,9 @@ public class SystemDiagnostics implements Cloneable {
     private int totalThreads;
     private int daemonThreads;
 
-    private Long totalPhysicalMemory;
-    private Long maxOpenFileHandles;
-    private Long openFileHandles;
+    private long totalPhysicalMemory;
+    private long maxOpenFileHandles;
+    private long openFileHandles;
 
     private long uptime;
 

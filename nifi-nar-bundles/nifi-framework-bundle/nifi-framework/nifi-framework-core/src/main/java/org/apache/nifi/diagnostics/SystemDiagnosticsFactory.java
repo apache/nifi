@@ -16,6 +16,12 @@
  */
 package org.apache.nifi.diagnostics;
 
+import org.apache.nifi.controller.repository.ContentRepository;
+import org.apache.nifi.controller.repository.FlowFileRepository;
+import org.apache.nifi.provenance.ProvenanceRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.lang.management.GarbageCollectorMXBean;
 import java.lang.management.ManagementFactory;
@@ -30,12 +36,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import org.apache.nifi.controller.repository.ContentRepository;
-import org.apache.nifi.controller.repository.FlowFileRepository;
-import org.apache.nifi.provenance.ProvenanceRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * A factory for creating system diagnostics.
@@ -163,17 +163,23 @@ public class SystemDiagnosticsFactory {
                 final Method totalPhysicalMemory = unixOsMxBeanClass.getMethod("getTotalPhysicalMemorySize");
                 totalPhysicalMemory.setAccessible(true);
                 final Long ramBytes = (Long) totalPhysicalMemory.invoke(osStats);
-                systemDiagnostics.setTotalPhysicalMemory(ramBytes);
+                if (ramBytes != null) {
+                    systemDiagnostics.setTotalPhysicalMemory(ramBytes);
+                }
 
                 final Method maxFileDescriptors = unixOsMxBeanClass.getMethod("getMaxFileDescriptorCount");
                 maxFileDescriptors.setAccessible(true);
                 final Long maxOpenFileDescriptors = (Long) maxFileDescriptors.invoke(osStats);
-                systemDiagnostics.setMaxOpenFileHandles(maxOpenFileDescriptors);
+                if (maxOpenFileDescriptors != null) {
+                    systemDiagnostics.setMaxOpenFileHandles(maxOpenFileDescriptors);
+                }
 
                 final Method openFileDescriptors = unixOsMxBeanClass.getMethod("getOpenFileDescriptorCount");
                 openFileDescriptors.setAccessible(true);
                 final Long openDescriptorCount = (Long) openFileDescriptors.invoke(osStats);
-                systemDiagnostics.setOpenFileHandles(openDescriptorCount);
+                if (openDescriptorCount != null) {
+                    systemDiagnostics.setOpenFileHandles(openDescriptorCount);
+                }
             }
         } catch (final Throwable t) {
             // Ignore. This will throw either ClassNotFound or NoClassDefFoundError if unavailable in this JVM.
