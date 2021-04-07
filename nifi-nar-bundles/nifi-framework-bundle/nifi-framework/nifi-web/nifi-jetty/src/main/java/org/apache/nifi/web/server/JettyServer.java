@@ -694,7 +694,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         final int maxWebRequestsPerSecond = determineMaxWebRequestsPerSecond(props);
         final long requestTimeoutInMilliseconds = determineRequestTimeoutInMilliseconds(props);
         final String ipWhitelist = props.getWebRequestIpWhitelist();
-        addWebRequestRateLimitingFilter(path, webAppContext, maxWebRequestsPerSecond, requestTimeoutInMilliseconds, ipWhitelist);
+        addWebRequestLimitingFilter(path, webAppContext, maxWebRequestsPerSecond, ipWhitelist, requestTimeoutInMilliseconds);
 
         // Only add the ContentLengthFilter if the property is explicitly set (empty by default)
         int maxRequestSize = determineMaxRequestSize(props);
@@ -731,12 +731,16 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
 
     /**
      * Adds the {@link org.eclipse.jetty.servlets.DoSFilter} to the specified context and path. Limits incoming web requests to {@code maxWebRequestsPerSecond} per second.
+     * In order to allow clients to make more requests than the maximum rate, clients can be added to the {@code ipWhitelist}.
+     * The {@code requestTimeoutInMilliseconds} value limits requests to the given request timeout amount, and will close connections that run longer than this time.
      *
      * @param path the path to apply this filter
      * @param webAppContext the context to apply this filter
      * @param maxWebRequestsPerSecond the maximum number of allowed requests per second
+     * @param ipWhitelist a whitelist of IP addresses that should not be rate limited. Does not apply to request timeout
+     * @param requestTimeoutInMilliseconds the amount of time before a connection will be automatically closed
      */
-    private static void addWebRequestRateLimitingFilter(String path, WebAppContext webAppContext, int maxWebRequestsPerSecond, long requestTimeoutInMilliseconds, final String ipWhitelist) {
+    private static void addWebRequestLimitingFilter(String path, WebAppContext webAppContext, int maxWebRequestsPerSecond, final String ipWhitelist, long requestTimeoutInMilliseconds) {
         FilterHolder holder = new FilterHolder(DoSFilter.class);
         holder.setInitParameters(new HashMap<String, String>() {{
             put("maxRequestsPerSec", String.valueOf(maxWebRequestsPerSecond));
