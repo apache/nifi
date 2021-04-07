@@ -16,21 +16,6 @@
  */
 package org.apache.nifi.processors.email.smtp;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
-import java.security.cert.Certificate;
-import java.security.cert.X509Certificate;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
-
 import org.apache.commons.io.IOUtils;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -46,6 +31,21 @@ import org.subethamail.smtp.MessageHandler;
 import org.subethamail.smtp.RejectException;
 import org.subethamail.smtp.TooMuchDataException;
 import org.subethamail.smtp.server.SMTPServer;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
+import java.security.cert.Certificate;
+import java.security.cert.X509Certificate;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * A simple consumer that provides a bridge between 'push' message distribution
@@ -112,12 +112,10 @@ public class SmtpConsumer implements MessageHandler {
             watch.stop();
             processSession.getProvenanceReporter().receive(flowFile, "smtp://" + host + ":" + port + "/", watch.getDuration(TimeUnit.MILLISECONDS));
             processSession.transfer(flowFile, ListenSMTP.REL_SUCCESS);
-            processSession.commit();
+            processSession.commitAsync();
         } catch (FlowFileAccessException | IllegalStateException | RejectException | IOException ex) {
             log.error("Unable to fully process input due to " + ex.getMessage(), ex);
             throw ex;
-        } finally {
-            processSession.rollback(); //make sure this happens no matter what - is safe
         }
     }
 

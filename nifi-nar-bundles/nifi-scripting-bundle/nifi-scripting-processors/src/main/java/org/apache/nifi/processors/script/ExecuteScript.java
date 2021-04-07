@@ -241,7 +241,7 @@ public class ExecuteScript extends AbstractSessionFactoryProcessor implements Se
                 // Commit this session for the user. This plus the outermost catch statement mimics the behavior
                 // of AbstractProcessor. This class doesn't extend AbstractProcessor in order to share a base
                 // class with InvokeScriptedProcessor
-                session.commit();
+                session.commitAsync();
             } catch (ScriptException e) {
                 // The below 'session.rollback(true)' reverts any changes made during this session (all FlowFiles are
                 // restored back to their initial session state and back to their original queues after being penalized).

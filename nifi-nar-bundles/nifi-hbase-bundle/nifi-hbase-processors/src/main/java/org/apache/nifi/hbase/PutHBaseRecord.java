@@ -297,10 +297,6 @@ public class PutHBaseRecord extends AbstractPutHBase {
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
         }
-
-
-
-        session.commit();
     }
 
     private void sendProvenance(ProcessSession session, FlowFile flowFile, int columns, long time, PutFlowFile pff) {

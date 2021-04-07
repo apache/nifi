@@ -350,7 +350,7 @@ public class MergeRecord extends AbstractSessionFactoryProcessor {
                 }
             }
         } finally {
-            session.commit();
+            session.commitAsync();
         }
 
         // If there is no more data queued up, or strategy is defragment, complete any bin that meets our minimum threshold

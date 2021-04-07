@@ -208,7 +208,7 @@ public class LocalPort extends AbstractPort {
         while (session.getQueueSize().getObjectCount() > 0) {
             final List<FlowFile> flowFiles = session.get(10000);
             session.transfer(flowFiles, Relationship.ANONYMOUS);
-            session.commit();
+            session.commitAsync();
             logger.debug("{} Successfully transferred {} FlowFiles into {}", this, flowFiles.size(), processGroup);
         }
     }
@@ -243,7 +243,7 @@ public class LocalPort extends AbstractPort {
             }
 
             session.transfer(flowFiles, Relationship.ANONYMOUS);
-            session.commit();
+            session.commitAsync();
 
             logger.debug("{} Transferred {} FlowFiles", this, flowFiles.size());
 

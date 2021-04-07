@@ -260,18 +260,10 @@ public class ConnectableTask {
         } finally {
             try {
                 if (batch) {
-                    try {
-                        rawSession.commit();
-                    } catch (final Throwable t) {
+                    rawSession.commitAsync(null, t -> {
                         final ComponentLog procLog = new SimpleProcessLogger(connectable.getIdentifier(), connectable.getRunnableComponent());
                         procLog.error("Failed to commit session {} due to {}; rolling back", new Object[] { rawSession, t.toString() }, t);
-
-                        try {
-                            rawSession.rollback(true);
-                        } catch (final Exception e1) {
-                            procLog.error("Failed to roll back session {} due to {}", new Object[] { rawSession, t.toString() }, t);
-                        }
-                    }
+                    });
                 }
 
                 final long processingNanos = System.nanoTime() - startNanos;

@@ -16,15 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import java.io.BufferedInputStream;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
@@ -40,6 +31,16 @@ import org.apache.nifi.processors.standard.util.FileTransfer;
 import org.apache.nifi.processors.standard.util.SFTPTransfer;
 import org.apache.nifi.util.StopWatch;
 import org.apache.nifi.util.StringUtils;
+
+import java.io.BufferedInputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Base class for PutFTP & PutSFTP
@@ -100,68 +101,62 @@ public abstract class PutFileTransfer<T extends FileTransfer> extends AbstractPr
         final int maxNumberOfFiles = context.getProperty(FileTransfer.BATCH_SIZE).asInteger();
         int fileCount = 0;
         try (final T transfer = getFileTransfer(context)) {
-            do {
-                //check if hostname is regular expression requiring evaluation
-                if(context.getProperty(FileTransfer.HOSTNAME).isExpressionLanguagePresent()) {
-                    hostname = context.getProperty(FileTransfer.HOSTNAME).evaluateAttributeExpressions(flowFile).getValue();
-                }
-                final String rootPath = context.getProperty(FileTransfer.REMOTE_PATH).evaluateAttributeExpressions(flowFile).getValue();
-                final String workingDirPath;
-                if (StringUtils.isBlank(rootPath)) {
-                    workingDirPath = transfer.getHomeDirectory(flowFile);
-                } else {
-                    workingDirPath = transfer.getAbsolutePath(flowFile, rootPath);
-                }
+            //check if hostname is regular expression requiring evaluation
+            if(context.getProperty(FileTransfer.HOSTNAME).isExpressionLanguagePresent()) {
+                hostname = context.getProperty(FileTransfer.HOSTNAME).evaluateAttributeExpressions(flowFile).getValue();
+            }
+            final String rootPath = context.getProperty(FileTransfer.REMOTE_PATH).evaluateAttributeExpressions(flowFile).getValue();
+            final String workingDirPath;
+            if (StringUtils.isBlank(rootPath)) {
+                workingDirPath = transfer.getHomeDirectory(flowFile);
+            } else {
+                workingDirPath = transfer.getAbsolutePath(flowFile, rootPath);
+            }
 
-                final boolean rejectZeroByteFiles = context.getProperty(FileTransfer.REJECT_ZERO_BYTE).asBoolean();
-                final ConflictResult conflictResult
-                        = identifyAndResolveConflictFile(context.getProperty(FileTransfer.CONFLICT_RESOLUTION).getValue(), transfer, workingDirPath, flowFile, rejectZeroByteFiles, logger);
+            final boolean rejectZeroByteFiles = context.getProperty(FileTransfer.REJECT_ZERO_BYTE).asBoolean();
+            final ConflictResult conflictResult
+                    = identifyAndResolveConflictFile(context.getProperty(FileTransfer.CONFLICT_RESOLUTION).getValue(), transfer, workingDirPath, flowFile, rejectZeroByteFiles, logger);
 
-                if (conflictResult.isTransfer()) {
-                    final StopWatch stopWatch = new StopWatch();
-                    stopWatch.start();
+            if (conflictResult.isTransfer()) {
+                final StopWatch stopWatch = new StopWatch();
+                stopWatch.start();
 
-                    beforePut(flowFile, context, transfer);
-                    final FlowFile flowFileToTransfer = flowFile;
-                    final AtomicReference<String> fullPathRef = new AtomicReference<>(null);
-                    session.read(flowFile, new InputStreamCallback() {
-                        @Override
-                        public void process(final InputStream in) throws IOException {
-                            try (final InputStream bufferedIn = new BufferedInputStream(in)) {
-                                if (workingDirPath != null && context.getProperty(SFTPTransfer.CREATE_DIRECTORY).asBoolean()) {
-                                    transfer.ensureDirectoryExists(flowFileToTransfer, new File(workingDirPath));
-                                }
-
-                                fullPathRef.set(transfer.put(flowFileToTransfer, workingDirPath, conflictResult.getFileName(), bufferedIn));
+                beforePut(flowFile, context, transfer);
+                final FlowFile flowFileToTransfer = flowFile;
+                final AtomicReference<String> fullPathRef = new AtomicReference<>(null);
+                session.read(flowFile, new InputStreamCallback() {
+                    @Override
+                    public void process(final InputStream in) throws IOException {
+                        try (final InputStream bufferedIn = new BufferedInputStream(in)) {
+                            if (workingDirPath != null && context.getProperty(SFTPTransfer.CREATE_DIRECTORY).asBoolean()) {
+                                transfer.ensureDirectoryExists(flowFileToTransfer, new File(workingDirPath));
                             }
+
+                            fullPathRef.set(transfer.put(flowFileToTransfer, workingDirPath, conflictResult.getFileName(), bufferedIn));
                         }
-                    });
-                    afterPut(flowFile, context, transfer);
-
-                    stopWatch.stop();
-                    final String dataRate = stopWatch.calculateDataRate(flowFile.getSize());
-                    final long millis = stopWatch.getDuration(TimeUnit.MILLISECONDS);
-                    logger.info("Successfully transferred {} to {} on remote host {} in {} milliseconds at a rate of {}",
-                            new Object[]{flowFile, fullPathRef.get(), hostname, millis, dataRate});
-
-                    String fullPathWithSlash = fullPathRef.get();
-                    if (!fullPathWithSlash.startsWith("/")) {
-                        fullPathWithSlash = "/" + fullPathWithSlash;
                     }
-                    final String destinationUri = transfer.getProtocolName() + "://" + hostname + fullPathWithSlash;
-                    session.getProvenanceReporter().send(flowFile, destinationUri, millis);
-                }
+                });
+                afterPut(flowFile, context, transfer);
 
-                if (conflictResult.isPenalize()) {
-                    flowFile = session.penalize(flowFile);
-                }
+                stopWatch.stop();
+                final String dataRate = stopWatch.calculateDataRate(flowFile.getSize());
+                final long millis = stopWatch.getDuration(TimeUnit.MILLISECONDS);
+                logger.info("Successfully transferred {} to {} on remote host {} in {} milliseconds at a rate of {}",
+                        new Object[]{flowFile, fullPathRef.get(), hostname, millis, dataRate});
 
-                session.transfer(flowFile, conflictResult.getRelationship());
-                session.commit();
-            } while (isScheduled()
-                    && (getRelationships().size() == context.getAvailableRelationships().size())
-                    && (++fileCount < maxNumberOfFiles)
-                    && ((flowFile = session.get()) != null));
+                String fullPathWithSlash = fullPathRef.get();
+                if (!fullPathWithSlash.startsWith("/")) {
+                    fullPathWithSlash = "/" + fullPathWithSlash;
+                }
+                final String destinationUri = transfer.getProtocolName() + "://" + hostname + fullPathWithSlash;
+                session.getProvenanceReporter().send(flowFile, destinationUri, millis);
+            }
+
+            if (conflictResult.isPenalize()) {
+                flowFile = session.penalize(flowFile);
+            }
+
+            session.transfer(flowFile, conflictResult.getRelationship());
         } catch (final IOException e) {
             context.yield();
             logger.error("Unable to transfer {} to remote host {} due to {}", new Object[]{flowFile, hostname, e});

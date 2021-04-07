@@ -60,6 +60,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -276,6 +277,24 @@ public class MockProcessSession implements ProcessSession {
         sharedState.addProvenanceEvents(provenanceReporter.getEvents());
         provenanceReporter.clear();
         counterMap.clear();
+    }
+
+    @Override
+    public void commitAsync() {
+        commit();
+    }
+
+    @Override
+    public void commitAsync(final Runnable onSuccess, final Consumer<Throwable> onFailure) {
+        try {
+            commit();
+        } catch (final Throwable t) {
+            rollback();
+            onFailure.accept(t);
+            throw t;
+        }
+
+        onSuccess.run();
     }
 
     /**

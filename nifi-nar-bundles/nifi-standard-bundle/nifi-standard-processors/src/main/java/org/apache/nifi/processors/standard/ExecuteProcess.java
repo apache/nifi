@@ -301,9 +301,6 @@ public class ExecuteProcess extends AbstractProcessor {
             getLogger().info("Created {} and routed to success", new Object[] { flowFile });
             session.transfer(flowFile, REL_SUCCESS);
         }
-
-        // Commit the session so that the FlowFile is transferred to the next processor
-        session.commit();
     }
 
     protected List<String> createCommandStrings(final ProcessContext context, final String command, final String arguments) {
