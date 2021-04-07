@@ -19,7 +19,10 @@ package org.apache.nifi.redis.service;
 import org.apache.nifi.redis.RedisConnectionPool;
 import org.apache.nifi.redis.util.RedisUtils;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.security.util.KeyStoreUtils;
+import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.security.util.TlsConfiguration;
+import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.StandardRestrictedSSLContextService;
 import org.apache.nifi.ssl.StandardSSLContextService;
 import org.apache.nifi.util.MockConfigurationContext;
@@ -27,16 +30,31 @@ import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.StandardProcessorTestRunner;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.apache.nifi.web.util.ssl.SslContextUtils;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
+import org.mockito.Mockito;
 import org.springframework.data.redis.connection.jedis.JedisConnectionFactory;
+
+import javax.net.ssl.SSLContext;
+import java.io.IOException;
+import java.security.GeneralSecurityException;
 
 public class TestRedisConnectionPoolService {
 
+    public static final String SSL_CONTEXT_IDENTIFIER = "ssl-context-service";
     private TestRunner testRunner;
     private FakeRedisProcessor proc;
     private RedisConnectionPool redisService;
+
+    private static SSLContext sslContext;
+
+    @BeforeClass
+    public static void classSetup() throws IOException, GeneralSecurityException {
+        sslContext = SslContextFactory.createSslContext(KeyStoreUtils.createTlsConfigAndNewKeystoreTruststore());
+    }
 
     @Before
     public void setup() throws InitializationException {
@@ -47,22 +65,20 @@ public class TestRedisConnectionPoolService {
         testRunner.addControllerService("redis-service", redisService);
     }
 
+    private void enableSslContextService(final SSLContext sslContext) throws InitializationException {
+        final RestrictedSSLContextService sslContextService = Mockito.mock(RestrictedSSLContextService.class);
+        Mockito.when(sslContextService.getIdentifier()).thenReturn(SSL_CONTEXT_IDENTIFIER);
+        Mockito.when(sslContextService.createContext()).thenReturn(sslContext);
+        testRunner.addControllerService(SSL_CONTEXT_IDENTIFIER, sslContextService);
+        testRunner.enableControllerService(sslContextService);
+        testRunner.setProperty(redisService, RedisUtils.SSL_CONTEXT_SERVICE, SSL_CONTEXT_IDENTIFIER);
+    }
+
     @Test
     public void testSSLContextService() throws InitializationException {
-        StandardRestrictedSSLContextService sslContextService = new StandardRestrictedSSLContextService();
-        testRunner.addControllerService("ssl-context-service", sslContextService);
-        testRunner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE, "src/test/resources/truststore.jks");
-        testRunner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_PASSWORD, "passwordpassword");
-        testRunner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_TYPE, "JKS");
-        testRunner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE, "src/test/resources/keystore.jks");
-        testRunner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE_PASSWORD, "passwordpassword");
-        testRunner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE_TYPE, "JKS");
-        testRunner.setProperty(sslContextService, StandardSSLContextService.SSL_ALGORITHM, TlsConfiguration.TLS_1_2_PROTOCOL);
-        testRunner.enableControllerService(sslContextService);
-
-        testRunner.setProperty(redisService, RedisUtils.SSL_CONTEXT_SERVICE, "ssl-context-service");
-
         this.setDefaultRedisProperties();
+
+        this.enableSslContextService(sslContext);
 
         testRunner.assertValid(redisService);
         testRunner.enableControllerService(redisService);
