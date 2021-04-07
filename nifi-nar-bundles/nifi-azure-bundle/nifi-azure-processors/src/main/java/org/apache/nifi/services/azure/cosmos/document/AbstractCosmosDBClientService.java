@@ -45,7 +45,7 @@ public abstract class AbstractCosmosDBClientService
         return this.cosmosClient;
     }
 
-    public void setCosmosClient(CosmosClient client) {
+    protected void setCosmosClient(CosmosClient client) {
         this.cosmosClient = client;
     }
 
