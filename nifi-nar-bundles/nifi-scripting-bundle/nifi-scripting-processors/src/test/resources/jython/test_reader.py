@@ -60,7 +60,7 @@ class ReadContentAndStoreAsAttribute(Processor) :
             flowfile = session.putAttribute(flowfile, "from-content", reader.getLine())
             # transfer
             session.transfer(flowfile, self.__rel_success)
-            session.commit()
+            session.commitAsync()
         except :
             print sys.exc_info()[0]
             print "Exception in TestReader:"

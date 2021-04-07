@@ -17,18 +17,12 @@
 package org.apache.nifi.processors.flume;
 
 import com.google.common.collect.Maps;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.StringReader;
-import java.util.Map;
-import java.util.Properties;
 import org.apache.flume.Context;
 import org.apache.flume.Event;
 import org.apache.flume.SinkFactory;
 import org.apache.flume.SourceFactory;
 import org.apache.flume.sink.DefaultSinkFactory;
 import org.apache.flume.source.DefaultSourceFactory;
-
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
@@ -41,6 +35,12 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processors.flume.util.FlowFileEvent;
+
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.StringReader;
+import java.util.Map;
+import java.util.Properties;
 
 /**
  * This is a base class that is helpful when building processors interacting with Flume.
@@ -146,7 +146,7 @@ public abstract class AbstractFlumeProcessor extends AbstractSessionFactoryProce
         final ProcessSession session = sessionFactory.createSession();
         try {
             onTrigger(context, session);
-            session.commit();
+            session.commitAsync();
         } catch (final Throwable t) {
             getLogger()
                 .error("{} failed to process due to {}; rolling back session", new Object[]{this, t});

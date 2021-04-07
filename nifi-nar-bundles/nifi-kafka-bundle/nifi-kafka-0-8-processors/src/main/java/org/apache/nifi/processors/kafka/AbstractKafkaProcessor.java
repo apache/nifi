@@ -74,12 +74,13 @@ abstract class AbstractKafkaProcessor<T extends Closeable> extends AbstractSessi
                  * - PublishKafka - some messages were sent to Kafka based on existence of the input FlowFile
                  */
                 boolean processed = this.rendezvousWithKafka(context, session);
-                session.commit();
-                if (processed) {
-                    this.postCommit(context);
-                } else {
-                    context.yield();
-                }
+                session.commitAsync(() -> {
+                    if (processed) {
+                        this.postCommit(context);
+                    } else {
+                        context.yield();
+                    }
+                });
             } catch (Throwable e) {
                 this.acceptTask = false;
                 session.rollback(true);

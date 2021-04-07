@@ -952,7 +952,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                         updateState(session);
 
                         // Commit the NiFi session
-                        session.commit();
+                        session.commitAsync();
                         inTransaction = false;
                         currentTable = null;
                     } else {
@@ -981,7 +981,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                             // If not in a transaction, commit the session so the DDL event(s) will be transferred
                             if (includeDDLEvents && !inTransaction) {
                                 updateState(session);
-                                session.commit();
+                                session.commitAsync();
                             }
                         }
                     }
@@ -1000,7 +1000,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
                     }
                     // Commit the NiFi session
                     updateState(session);
-                    session.commit();
+                    session.commitAsync();
                     inTransaction = false;
                     currentTable = null;
                     currentDatabase = null;
@@ -1110,7 +1110,7 @@ public class CaptureChangeMySQL extends AbstractSessionFactoryProcessor {
             }
 
             if (currentSession != null) {
-                currentSession.commit();
+                currentSession.commitAsync();
             }
 
             doStop.set(true);

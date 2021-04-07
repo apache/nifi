@@ -37,6 +37,7 @@ public class StandardDataflowDefinition implements DataflowDefinition<VersionedF
     private final Set<String> failurePortNames;
     private final List<ParameterContextDefinition> parameterContexts;
     private final List<ReportingTaskDefinition> reportingTaskDefinitions;
+    private final TransactionThresholds transactionThresholds;
     private final String flowName;
 
     private StandardDataflowDefinition(final Builder builder) {
@@ -44,6 +45,7 @@ public class StandardDataflowDefinition implements DataflowDefinition<VersionedF
         failurePortNames = builder.failurePortNames == null ? Collections.emptySet() : builder.failurePortNames;
         parameterContexts = builder.parameterContexts == null ? Collections.emptyList() : builder.parameterContexts;
         reportingTaskDefinitions = builder.reportingTaskDefinitions == null ? Collections.emptyList() : builder.reportingTaskDefinitions;
+        transactionThresholds = builder.transactionThresholds == null ? TransactionThresholds.SINGLE_FLOWFILE : builder.transactionThresholds;
         flowName = builder.flowName;
     }
 
@@ -72,6 +74,11 @@ public class StandardDataflowDefinition implements DataflowDefinition<VersionedF
         return reportingTaskDefinitions;
     }
 
+    @Override
+    public TransactionThresholds getTransactionThresholds() {
+        return transactionThresholds;
+    }
+
     public Set<Bundle> getReferencedBundles() {
         final Set<Bundle> referenced = new HashSet<>();
         final VersionedProcessGroup rootGroup = flowSnapshot.getFlowContents();
@@ -98,6 +105,7 @@ public class StandardDataflowDefinition implements DataflowDefinition<VersionedF
         private Set<String> failurePortNames;
         private List<ParameterContextDefinition> parameterContexts;
         private List<ReportingTaskDefinition> reportingTaskDefinitions;
+        private TransactionThresholds transactionThresholds;
         private String flowName;
 
         public Builder flowSnapshot(final VersionedFlowSnapshot flowSnapshot) {
@@ -122,6 +130,11 @@ public class StandardDataflowDefinition implements DataflowDefinition<VersionedF
 
         public Builder reportingTasks(final List<ReportingTaskDefinition> reportingTasks) {
             this.reportingTaskDefinitions = reportingTasks;
+            return this;
+        }
+
+        public Builder transactionThresholds(final TransactionThresholds thresholds) {
+            this.transactionThresholds = thresholds;
             return this;
         }
 

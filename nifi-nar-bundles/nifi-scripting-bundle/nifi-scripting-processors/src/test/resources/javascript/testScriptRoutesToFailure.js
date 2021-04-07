@@ -50,7 +50,7 @@ var processor = new Object() {
         }
         // transfer
         session.transfer(flowFile, REL_FAILURE)
-        session.commit()
+        session.commitAsync()
     },
 
     // ConfigurableComponent

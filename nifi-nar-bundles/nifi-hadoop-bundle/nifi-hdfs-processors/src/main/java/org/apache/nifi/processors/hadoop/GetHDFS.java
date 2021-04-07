@@ -325,12 +325,14 @@ public class GetHDFS extends AbstractHadoopProcessor {
 
         processBatchOfFiles(files, context, session);
 
-        queueLock.lock();
-        try {
-            processing.removeAll(files);
-        } finally {
-            queueLock.unlock();
-        }
+        session.commitAsync(() -> {
+            queueLock.lock();
+            try {
+                processing.removeAll(files);
+            } finally {
+                queueLock.unlock();
+            }
+        });
     }
 
     protected void processBatchOfFiles(final List<Path> files, final ProcessContext context, final ProcessSession session) {
@@ -396,7 +398,6 @@ public class GetHDFS extends AbstractHadoopProcessor {
                 session.transfer(flowFile, REL_SUCCESS);
                 getLogger().info("retrieved {} from HDFS {} in {} milliseconds at a rate of {}",
                         new Object[]{flowFile, file, millis, dataRate});
-                session.commit();
             } catch (final Throwable t) {
                 getLogger().error("Error retrieving file {} from HDFS due to {}", new Object[]{file, t});
                 session.rollback();

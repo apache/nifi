@@ -16,24 +16,6 @@
  */
 package org.apache.nifi.processors.email;
 
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map.Entry;
-import java.util.Properties;
-import java.util.Set;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.TimeUnit;
-
-import javax.mail.Address;
-import javax.mail.Message;
-import javax.mail.MessagingException;
-
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
@@ -49,6 +31,23 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.support.StaticListableBeanFactory;
 import org.springframework.integration.mail.AbstractMailReceiver;
 import org.springframework.util.Assert;
+
+import javax.mail.Address;
+import javax.mail.Message;
+import javax.mail.MessagingException;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map.Entry;
+import java.util.Properties;
+import java.util.Set;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Base processor for implementing processors to consume messages from Email
@@ -398,7 +397,7 @@ abstract class AbstractEmailProcessor<T extends AbstractMailReceiver> extends Ab
         try {
             while ((emailMessage = this.messageQueue.poll(1, TimeUnit.MILLISECONDS)) != null) {
                 this.transfer(emailMessage, processContext, this.processSession);
-                this.processSession.commit();
+                this.processSession.commitAsync();
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();

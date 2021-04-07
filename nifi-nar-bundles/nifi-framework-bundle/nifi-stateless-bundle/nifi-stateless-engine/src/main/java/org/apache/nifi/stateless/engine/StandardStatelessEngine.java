@@ -119,7 +119,7 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
         this.provenanceRepository = requireNonNull(builder.provenanceRepository, "Provenance Repository must be provided");
         this.extensionRepository = requireNonNull(builder.extensionRepository, "Extension Repository must be provided");
 
-        this.reloadComponent = new StatelessReloadComponent();
+        this.reloadComponent = new StatelessReloadComponent(this);
         this.validationTrigger = new StandardValidationTrigger(new FlowEngine(1, "Component Validation", true), () -> true);
     }
 
@@ -506,6 +506,10 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
         return validationTrigger;
     }
 
+    @Override
+    public FlowManager getFlowManager() {
+        return flowManager;
+    }
 
     public static class Builder {
         private ExtensionManager extensionManager = null;

@@ -418,7 +418,7 @@ public class ListenHTTPServlet extends HttpServlet {
                 new Object[]{request.getRemoteHost(), request.getRemotePort(), foundSubject, foundIssuer});
 
             session.transfer(flowFileSet, ListenHTTP.RELATIONSHIP_SUCCESS);
-            session.commit();
+            session.commitAsync();
         }
     }
 

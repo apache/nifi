@@ -21,6 +21,7 @@ import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.components.validation.ValidationTrigger;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ReloadComponent;
+import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.kerberos.KerberosConfig;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
@@ -51,6 +52,8 @@ public interface StatelessEngine<T> {
     PropertyEncryptor getPropertyEncryptor();
 
     FlowRegistryClient getFlowRegistryClient();
+
+    FlowManager getFlowManager();
 
     VariableRegistry getRootVariableRegistry();
 

@@ -25,14 +25,14 @@ import org.apache.nifi.controller.state.StandardStateMap;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
 public class HashMapStateProvider implements StateProvider {
     private static final int UNKNOWN_STATE_VERSION = -1;
-    private final ConcurrentMap<String, StateMap> states = new ConcurrentHashMap<>();
+    private final Map<String, StateMap> committedStates = new HashMap<>();
+    private final Map<String, StateMap> activeStates = new HashMap<>();
 
     @Override
     public void initialize(final StateProviderInitializationContext context) {
@@ -42,34 +42,48 @@ public class HashMapStateProvider implements StateProvider {
     public void shutdown() {
     }
 
-    public Map<String, StateMap> getAllComponentsState() {
-        return Collections.unmodifiableMap(states);
+    public synchronized void rollback() {
+        activeStates.clear();
     }
 
-    public void updateAllComponentsStates(final Map<String, StateMap> componentStates) {
+    public synchronized void commit() {
+        committedStates.putAll(activeStates);
+    }
+
+    public synchronized Map<String, StateMap> getAllComponentsState() {
+        final Map<String, StateMap> allComponents = new HashMap<>(committedStates);
+        allComponents.putAll(activeStates);
+        return allComponents;
+    }
+
+    public synchronized void updateAllComponentsStates(final Map<String, StateMap> componentStates) {
         if (componentStates == null) {
             return;
         }
 
-        this.states.putAll(componentStates);
+        this.activeStates.putAll(componentStates);
     }
 
     @Override
-    public void setState(final Map<String, String> state, final String componentId) {
-        final StateMap existing = states.get(componentId);
+    public synchronized void setState(final Map<String, String> state, final String componentId) {
+        final StateMap existing = getState(componentId);
         final long version = existing == null ? UNKNOWN_STATE_VERSION : existing.getVersion();
         final StateMap updated = new StandardStateMap(state, version + 1);
-        states.put(componentId, updated);
+        activeStates.put(componentId, updated);
     }
 
     @Override
-    public StateMap getState(final String componentId) {
-        final StateMap existing = states.get(componentId);
+    public synchronized StateMap getState(final String componentId) {
+        StateMap existing = activeStates.get(componentId);
+        if (existing == null) {
+            existing = committedStates.get(componentId);
+        }
+
         return existing == null ? new StandardStateMap(Collections.emptyMap(), -1) : existing;
     }
 
     @Override
-    public boolean replace(final StateMap oldValue, final Map<String, String> newValue, final String componentId) {
+    public synchronized boolean replace(final StateMap oldValue, final Map<String, String> newValue, final String componentId) {
         final StateMap existing = getState(componentId);
         if (oldValue.getVersion() == existing.getVersion() && oldValue.toMap().equals(existing.toMap())) {
             setState(newValue, componentId);
@@ -80,8 +94,9 @@ public class HashMapStateProvider implements StateProvider {
     }
 
     @Override
-    public void clear(final String componentId) {
-        states.remove(componentId);
+    public synchronized void clear(final String componentId) {
+        activeStates.remove(componentId);
+        committedStates.remove(componentId);
     }
 
     @Override

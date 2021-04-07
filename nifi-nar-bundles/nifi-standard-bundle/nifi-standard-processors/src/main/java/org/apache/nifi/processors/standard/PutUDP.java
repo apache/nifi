@@ -16,11 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.concurrent.TimeUnit;
-
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
@@ -38,6 +33,11 @@ import org.apache.nifi.processor.util.put.AbstractPutEventProcessor;
 import org.apache.nifi.processor.util.put.sender.ChannelSender;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.StopWatch;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.concurrent.TimeUnit;
 
 /**
  * <p>
@@ -150,7 +150,7 @@ public class PutUDP extends AbstractPutEventProcessor {
             sender.send(content);
             session.getProvenanceReporter().send(flowFile, transitUri, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
             session.transfer(flowFile, REL_SUCCESS);
-            session.commit();
+            session.commitAsync();
         } catch (Exception e) {
             getLogger().error("Exception while handling a process session, transferring {} to failure.", new Object[] { flowFile }, e);
             onFailure(context, session, flowFile);
@@ -172,7 +172,7 @@ public class PutUDP extends AbstractPutEventProcessor {
      */
     protected void onFailure(final ProcessContext context, final ProcessSession session, final FlowFile flowFile) {
         session.transfer(session.penalize(flowFile), REL_FAILURE);
-        session.commit();
+        session.commitAsync();
         context.yield();
     }
 

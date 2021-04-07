@@ -366,7 +366,7 @@ public class ListGCSBucket extends AbstractGCSProcessor {
             persistState(session, currentTimestamp, currentKeys);
 
             getLogger().info("Successfully listed {} new files from GCS; routing to success", new Object[] {listCount});
-            session.commit();
+            session.commitAsync();
         }
     }
 

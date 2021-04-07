@@ -119,7 +119,7 @@ public class TestConsumeMQTT extends TestConsumeMqttCommon {
             ProcessSession session = testRunner.getProcessSessionFactory().createSession();
             transferQueue(processor,
                     (ProcessSession) Proxy.newProxyInstance(getClass().getClassLoader(), new Class[] { ProcessSession.class }, (proxy, method, args) -> {
-                        if (method.getName().equals("commit")) {
+                        if (method.getName().equals("commitAsync")) {
                             throw new RuntimeException();
                         } else {
                             return method.invoke(session, args);

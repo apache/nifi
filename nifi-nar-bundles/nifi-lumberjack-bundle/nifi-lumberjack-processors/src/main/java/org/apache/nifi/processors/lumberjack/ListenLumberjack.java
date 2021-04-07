@@ -172,11 +172,12 @@ public class ListenLumberjack extends AbstractListenEventBatchingProcessor<Lumbe
     protected void postProcess(final ProcessContext context, final ProcessSession session, final List<LumberjackEvent> events) {
         // first commit the session so we guarantee we have all the events successfully
         // written to FlowFiles and transferred to the success relationship
-        session.commit();
-        // respond to each event to acknowledge successful receipt
-        for (final LumberjackEvent event : events) {
-            respond(event, LumberjackResponse.ok(event.getSeqNumber()));
-        }
+        session.commitAsync(() -> {
+            // respond to each event to acknowledge successful receipt
+            for (final LumberjackEvent event : events) {
+                respond(event, LumberjackResponse.ok(event.getSeqNumber()));
+            }
+        });
     }
 
     @Override

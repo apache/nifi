@@ -23,6 +23,7 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
+import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.registry.client.NiFiRegistryException;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshotMetadata;
@@ -34,6 +35,8 @@ import org.apache.nifi.stateless.engine.StatelessEngineConfiguration;
 import org.apache.nifi.stateless.flow.DataflowDefinition;
 import org.apache.nifi.stateless.flow.DataflowDefinitionParser;
 import org.apache.nifi.stateless.flow.StandardDataflowDefinition;
+import org.apache.nifi.stateless.flow.TransactionThresholds;
+import org.apache.nifi.util.FormatUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,6 +56,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.OptionalLong;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
@@ -79,6 +83,9 @@ public class PropertiesFileFlowDefinitionParser implements DataflowDefinitionPar
     private static final String FLOW_SNAPSHOT_CONTENTS_KEY = "nifi.stateless.flow.snapshot.contents";
     private static final String FLOW_SNAPSHOT_URL_USE_SSLCONTEXT_KEY = "nifi.stateless.flow.snapshot.url.use.ssl.context";
     private static final String FLOW_NAME = "nifi.stateless.flow.name";
+    private static final String TRANSACTION_THRESHOLD_FLOWFILES = "nifi.stateless.transaction.thresholds.flowfiles";
+    private static final String TRANSACTION_THRESHOLD_DATA_SIZE = "nifi.stateless.transaction.thresholds.bytes";
+    private static final String TRANSACTION_THRESHOLD_TIME = "nifi.stateless.transaction.thresholds.time";
 
 
     public DataflowDefinition<VersionedFlowSnapshot> parseFlowDefinition(final File propertiesFile, final StatelessEngineConfiguration engineConfig)
@@ -100,6 +107,7 @@ public class PropertiesFileFlowDefinitionParser implements DataflowDefinitionPar
         final VersionedFlowSnapshot flowSnapshot = fetchVersionedFlowSnapshot(properties, engineConfig.getSslContext());
         final List<ParameterContextDefinition> parameterContextDefinitions = getParameterContexts(properties);
         final List<ReportingTaskDefinition> reportingTaskDefinitions = getReportingTasks(properties);
+        final TransactionThresholds transactionThresholds = getTransactionThresholds(properties);
 
         final String rootGroupName = flowSnapshot.getFlowContents().getName();
         final String flowName = properties.getOrDefault(FLOW_NAME, rootGroupName);
@@ -110,6 +118,7 @@ public class PropertiesFileFlowDefinitionParser implements DataflowDefinitionPar
             .failurePortNames(failurePortNames)
             .parameterContexts(parameterContextDefinitions)
             .reportingTasks(reportingTaskDefinitions)
+            .transactionThresholds(transactionThresholds)
             .build();
     }
 
@@ -183,6 +192,11 @@ public class PropertiesFileFlowDefinitionParser implements DataflowDefinitionPar
                 continue;
             }
 
+            // Ensure that the name is set
+            if (paramContext.getName() == null) {
+                paramContext.setName(parameterContextKey);
+            }
+
             // If properties file contains a parameter with no name, just ignore it. However, the parameter name currently has
             // a . at the beginning because capturing group 2 captures .<parameter name> so remove the .
             if (parameterName.equals(".")) {
@@ -206,6 +220,69 @@ public class PropertiesFileFlowDefinitionParser implements DataflowDefinitionPar
 
         return new ArrayList<>(contextDefinitions.values());
     }
+
+    private TransactionThresholds getTransactionThresholds(final Map<String, String> properties) {
+        final Long flowfileThreshold = getLongProperty(properties, TRANSACTION_THRESHOLD_FLOWFILES);
+        final Double dataSizeThreshold = getDataSizeProperty(properties, TRANSACTION_THRESHOLD_DATA_SIZE, DataUnit.B);
+        final Double timeThreshold = getTimePeriodProperty(properties, TRANSACTION_THRESHOLD_TIME, TimeUnit.NANOSECONDS);
+
+        final OptionalLong maxFlowFiles = flowfileThreshold == null ? OptionalLong.empty() : OptionalLong.of(flowfileThreshold);
+        final OptionalLong maxBytes = dataSizeThreshold == null ? OptionalLong.empty() : OptionalLong.of(dataSizeThreshold.longValue());
+        final OptionalLong maxNanos = timeThreshold == null ? OptionalLong.empty() : OptionalLong.of(timeThreshold.longValue());
+
+        return new TransactionThresholds() {
+            @Override
+            public OptionalLong getMaxFlowFiles() {
+                return maxFlowFiles;
+            }
+
+            @Override
+            public OptionalLong getMaxContentSize(final DataUnit dataUnit) {
+                return maxBytes.isPresent() ? OptionalLong.of((long) dataUnit.convert(maxBytes.getAsLong(), DataUnit.B)) : OptionalLong.empty();
+            }
+
+            @Override
+            public OptionalLong getMaxTime(final TimeUnit timeUnit) {
+                return maxNanos.isPresent() ? OptionalLong.of(timeUnit.convert(maxNanos.getAsLong(), TimeUnit.NANOSECONDS)) : OptionalLong.empty();
+            }
+        };
+    }
+
+    private String getTrimmedProperty(final Map<String, String> properties, final String propertyName) {
+        final String propertyValue = properties.get(propertyName);
+        return (propertyValue == null || propertyValue.trim().isEmpty()) ? null : propertyValue.trim();
+    }
+
+    private Long getLongProperty(final Map<String, String> properties, final String propertyName) {
+        final String propertyValue = getTrimmedProperty(properties, propertyName);
+
+        try {
+            return propertyValue == null ? null : Long.parseLong(propertyValue);
+        } catch (final NumberFormatException nfe) {
+            throw new IllegalArgumentException("Configured property <" + propertyName + "> has a value that is not a valid 64-bit integer");
+        }
+    }
+
+    private Double getDataSizeProperty(final Map<String, String> properties, final String propertyName, final DataUnit dataUnit) {
+        final String propertyValue = getTrimmedProperty(properties, propertyName);
+
+        try {
+            return propertyValue == null ? null : DataUnit.parseDataSize(propertyValue, dataUnit);
+        } catch (final Exception e) {
+            throw new IllegalArgumentException("Configured property <" + propertyName + "> has a value that is not a valid data size");
+        }
+    }
+
+    private Double getTimePeriodProperty(final Map<String, String> properties, final String propertyName, final TimeUnit timeUnit) {
+        final String propertyValue = getTrimmedProperty(properties, propertyName);
+
+        try {
+            return propertyValue == null ? null : FormatUtils.getPreciseTimeDuration(propertyValue, timeUnit);
+        } catch (final Exception e) {
+            throw new IllegalArgumentException("Configured property <" + propertyName + "> has a value that is not a valid time period");
+        }
+    }
+
 
     private Set<String> getFailurePortNames(final Map<String, String> properties) {
         final Set<String> failurePortNames = new HashSet<>();

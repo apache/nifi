@@ -94,9 +94,7 @@ public abstract class AbstractDeleteHBase extends AbstractProcessor {
         try {
             doDelete(context, session);
         } catch (Exception e) {
-            getLogger().error("Error", e);
-        } finally {
-            session.commit();
+            getLogger().error("Failed to perform delete", e);
         }
     }
 

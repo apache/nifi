@@ -416,13 +416,11 @@ public class PutAccumuloRecord extends BaseAccumuloProcessor {
         }
 
 
-        if (!failed) {
-            processSession.transfer(flowFile, REL_SUCCESS);
-        } else {
+        if (failed) {
             processSession.transfer(processSession.penalize(flowFile), REL_FAILURE);
+        } else {
+            processSession.transfer(flowFile, REL_SUCCESS);
         }
-
-        processSession.commit();
     }
 
     /**

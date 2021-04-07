@@ -264,7 +264,7 @@ public class EventDrivenSchedulingAgent extends AbstractSchedulingAgent {
                         } finally {
                             if (batch && rawSession != null) {
                                 try {
-                                    rawSession.commit();
+                                    rawSession.commitAsync();
                                 } catch (final RuntimeException re) {
                                     logger.error("Unable to commit process session", re);
                                 }

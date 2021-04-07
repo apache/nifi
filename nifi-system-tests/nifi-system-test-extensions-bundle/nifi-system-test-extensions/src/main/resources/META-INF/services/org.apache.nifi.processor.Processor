@@ -15,14 +15,18 @@
 
 org.apache.nifi.processors.tests.system.CountEvents
 org.apache.nifi.processors.tests.system.CountFlowFiles
+org.apache.nifi.processors.tests.system.ConcatenateFlowFiles
 org.apache.nifi.processors.tests.system.DependOnProperties
 org.apache.nifi.processors.tests.system.Duplicate
 org.apache.nifi.processors.tests.system.EvaluatePropertiesWithDifferentELScopes
 org.apache.nifi.processors.tests.system.FakeProcessor
 org.apache.nifi.processors.tests.system.FakeDynamicPropertiesProcessor
 org.apache.nifi.processors.tests.system.GenerateFlowFile
+org.apache.nifi.processors.tests.system.IngestFile
+org.apache.nifi.processors.tests.system.LoopFlowFile
 org.apache.nifi.processors.tests.system.PassThrough
 org.apache.nifi.processors.tests.system.PassThroughRequiresInstanceClassLoading
+org.apache.nifi.processors.tests.system.ReplaceWithFile
 org.apache.nifi.processors.tests.system.ReverseContents
 org.apache.nifi.processors.tests.system.SetAttribute
 org.apache.nifi.processors.tests.system.Sleep

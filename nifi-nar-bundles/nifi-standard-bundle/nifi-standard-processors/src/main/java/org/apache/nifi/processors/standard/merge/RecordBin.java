@@ -189,7 +189,7 @@ public class RecordBin {
                 complete = true;
                 session.remove(merged);
                 session.transfer(flowFiles, MergeRecord.REL_FAILURE);
-                session.commit();
+                session.commitAsync();
             }
 
             return true;
@@ -298,7 +298,7 @@ public class RecordBin {
 
             session.remove(merged);
             session.transfer(flowFiles, MergeRecord.REL_FAILURE);
-            session.commit();
+            session.commitAsync();
         } finally {
             writeLock.unlock();
         }
@@ -400,7 +400,7 @@ public class RecordBin {
             session.transfer(merged, MergeRecord.REL_MERGED);
             session.transfer(flowFiles, MergeRecord.REL_ORIGINAL);
             session.adjustCounter("Records Merged", writeResult.getRecordCount(), false);
-            session.commit();
+            session.commitAsync();
 
             if (logger.isDebugEnabled()) {
                 final List<String> ids = flowFiles.stream().map(ff -> "id=" + ff.getId()).collect(Collectors.toList());

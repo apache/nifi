@@ -16,15 +16,10 @@
  */
 package org.apache.nifi.amqp.processors;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
+import com.rabbitmq.client.AMQP.BasicProperties;
+import com.rabbitmq.client.Connection;
+import com.rabbitmq.client.Envelope;
+import com.rabbitmq.client.GetResponse;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -40,10 +35,14 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 
-import com.rabbitmq.client.AMQP.BasicProperties;
-import com.rabbitmq.client.Connection;
-import com.rabbitmq.client.Envelope;
-import com.rabbitmq.client.GetResponse;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 @Tags({"amqp", "rabbit", "get", "message", "receive", "consume"})
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
@@ -159,8 +158,8 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
         }
 
         if (lastReceived != null) {
-            session.commit();
-            consumer.acknowledge(lastReceived);
+            final GetResponse finalGetResponse = lastReceived;
+            session.commitAsync(() -> consumer.acknowledge(finalGetResponse), null);
         }
     }
 

@@ -164,12 +164,12 @@ public class ListenRELP extends AbstractListenEventBatchingProcessor<RELPEvent> 
     protected void postProcess(final ProcessContext context, final ProcessSession session, final List<RELPEvent> events) {
         // first commit the session so we guarantee we have all the events successfully
         // written to FlowFiles and transferred to the success relationship
-        session.commit();
-
-        // respond to each event to acknowledge successful receipt
-        for (final RELPEvent event : events) {
-            respond(event, RELPResponse.ok(event.getTxnr()));
-        }
+        session.commitAsync(() -> {
+            // respond to each event to acknowledge successful receipt
+            for (final RELPEvent event : events) {
+                respond(event, RELPResponse.ok(event.getTxnr()));
+            }
+        });
     }
 
     protected void respond(final RELPEvent event, final RELPResponse relpResponse) {

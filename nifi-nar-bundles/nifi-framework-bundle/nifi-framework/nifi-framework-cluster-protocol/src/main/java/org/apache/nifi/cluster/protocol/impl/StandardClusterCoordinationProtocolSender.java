@@ -42,6 +42,7 @@ import org.slf4j.LoggerFactory;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.net.ConnectException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketException;
@@ -287,8 +288,8 @@ public class StandardClusterCoordinationProtocolSender implements ClusterCoordin
             executor.submit(new Runnable() {
                 @Override
                 public void run() {
-                    final int attempts = 10;
-                    final int retrySeconds = 6;
+                    final int attempts = 5;
+                    final int retrySeconds = 1;
                     Exception lastException = null;
 
                     for (int i = 0; i < attempts; i++) {
@@ -297,6 +298,15 @@ public class StandardClusterCoordinationProtocolSender implements ClusterCoordin
                             final OutputStream out = socket.getOutputStream();
                             out.write(msgBytes);
                         } catch (final Exception e) {
+                            if (e instanceof ProtocolException && e.getCause() instanceof ConnectException && nodeId.equals(msg.getNodeId())) {
+                                // We treat Connect Exceptions different because it means we're not able to reach the node at all. If that is the case and the
+                                // node is the affected node, we don't want to retry. This is common when trying to remove a node that has been terminated, etc.
+                                // and retrying is not likely to help; additionally, when the node reconnects to the cluster, it will get the update at that point
+                                // and does not need the update until then.
+                                logger.warn("Failed to send Node Status Change message to {} because unable to connect to node. Will not retry.", nodeId, e);
+                                return;
+                            }
+
                             logger.warn("Failed to send Node Status Change message to {}", nodeId, e);
 
                             lastException = e;

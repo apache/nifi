@@ -36,31 +36,30 @@ import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.controller.repository.RepositoryContext;
 import org.apache.nifi.controller.repository.StandardProcessSessionFactory;
-import org.apache.nifi.controller.repository.metrics.StandardFlowFileEvent;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.state.StandardStateMap;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
-import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.exception.TerminatedTaskException;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.stateless.engine.ExecutionProgress;
+import org.apache.nifi.stateless.engine.ExecutionProgress.CompletionAction;
 import org.apache.nifi.stateless.engine.ProcessContextFactory;
 import org.apache.nifi.stateless.engine.StandardExecutionProgress;
 import org.apache.nifi.stateless.queue.DrainableFlowFileQueue;
 import org.apache.nifi.stateless.repository.ByteArrayContentRepository;
 import org.apache.nifi.stateless.repository.RepositoryContextFactory;
-import org.apache.nifi.stateless.session.StatelessProcessSessionFactory;
+import org.apache.nifi.stateless.session.AsynchronousCommitTracker;
 import org.apache.nifi.util.Connectables;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
+import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -82,6 +81,7 @@ import java.util.stream.Collectors;
 public class StandardStatelessFlow implements StatelessDataflow {
     private static final Logger logger = LoggerFactory.getLogger(StandardStatelessFlow.class);
     private static final long COMPONENT_ENABLE_TIMEOUT_MILLIS = TimeUnit.SECONDS.toMillis(10);
+    private static final long TEN_MILLIS_IN_NANOS = TimeUnit.MILLISECONDS.toNanos(10);
 
     private final ProcessGroup rootGroup;
     private final List<Connection> allConnections;
@@ -95,6 +95,8 @@ public class StandardStatelessFlow implements StatelessDataflow {
     private final StatelessStateManagerProvider stateManagerProvider;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final ProcessScheduler processScheduler;
+    private final AsynchronousCommitTracker tracker = new AsynchronousCommitTracker();
+    private final TransactionThresholdMeter transactionThresholdMeter;
 
     private volatile ExecutorService runDataflowExecutor;
     private volatile boolean initialized = false;
@@ -111,6 +113,7 @@ public class StandardStatelessFlow implements StatelessDataflow {
         this.dataflowDefinition = dataflowDefinition;
         this.stateManagerProvider = stateManagerProvider;
         this.processScheduler = processScheduler;
+        this.transactionThresholdMeter = new TransactionThresholdMeter(dataflowDefinition.getTransactionThresholds());
 
         rootConnectables = new HashSet<>();
 
@@ -175,13 +178,7 @@ public class StandardStatelessFlow implements StatelessDataflow {
         initialized = true;
 
         // Trigger validation to occur so that components can be enabled/started.
-        final long validationStart = System.currentTimeMillis();
-        final StatelessDataflowValidation validationResult = performValidation();
-        final long validationMillis = System.currentTimeMillis() - validationStart;
-
-        if (!validationResult.isValid()) {
-            logger.warn("{} Attempting to initialize dataflow but found at least one invalid component: {}", this, validationResult);
-        }
+        performValidation();
 
         // Enable Controller Services and start processors in the flow.
         // This is different than the calling ProcessGroup.startProcessing() because
@@ -197,7 +194,13 @@ public class StandardStatelessFlow implements StatelessDataflow {
 
             // Perform validation again so that any processors that reference controller services that were just
             // enabled now can be started
-            performValidation();
+            final long validationStart = System.currentTimeMillis();
+            final StatelessDataflowValidation validationResult = performValidation();
+            final long validationMillis = System.currentTimeMillis() - validationStart;
+
+            if (!validationResult.isValid()) {
+                logger.warn("{} Attempting to initialize dataflow but found at least one invalid component: {}", this, validationResult);
+            }
 
             startProcessors(rootGroup);
             startRemoteGroups(rootGroup);
@@ -379,7 +382,8 @@ public class StandardStatelessFlow implements StatelessDataflow {
         final BlockingQueue<TriggerResult> resultQueue = new LinkedBlockingQueue<>();
 
         final ExecutionProgress executionProgress = new StandardExecutionProgress(rootGroup, internalFlowFileQueues, resultQueue,
-            (ByteArrayContentRepository) repositoryContextFactory.getContentRepository(), dataflowDefinition.getFailurePortNames());
+            (ByteArrayContentRepository) repositoryContextFactory.getContentRepository(), dataflowDefinition.getFailurePortNames(), tracker,
+            stateManagerProvider);
 
         final AtomicReference<Future<?>> processFuture = new AtomicReference<>();
         final DataflowTrigger trigger = new DataflowTrigger() {
@@ -412,49 +416,57 @@ public class StandardStatelessFlow implements StatelessDataflow {
             }
         };
 
-        final Future<?> future = runDataflowExecutor.submit(() -> executeDataflow(resultQueue, executionProgress));
+        final Future<?> future = runDataflowExecutor.submit(() -> executeDataflow(resultQueue, executionProgress, tracker));
         processFuture.set(future);
 
         return trigger;
     }
 
 
-    private void executeDataflow(final BlockingQueue<TriggerResult> resultQueue, final ExecutionProgress executionProgress) {
+    private void executeDataflow(final BlockingQueue<TriggerResult> resultQueue, final ExecutionProgress executionProgress, final AsynchronousCommitTracker tracker) {
+        final long startNanos = System.nanoTime();
+        transactionThresholdMeter.reset();
+
+        final StatelessFlowCurrent current = new StandardStatelessFlowCurrent.Builder()
+            .commitTracker(tracker)
+            .executionProgress(executionProgress)
+            .processContextFactory(processContextFactory)
+            .repositoryContextFactory(repositoryContextFactory)
+            .rootConnectables(rootConnectables)
+            .transactionThresholdMeter(transactionThresholdMeter)
+            .build();
+
         try {
-            for (final Connectable connectable : rootConnectables) {
-                final ProcessContext processContext = processContextFactory.createProcessContext(connectable);
+            current.triggerFlow();
 
-                final StatelessProcessSessionFactory sessionFactory = new StatelessProcessSessionFactory(connectable, repositoryContextFactory,
-                    processContextFactory, executionProgress);
+            logger.debug("Completed triggering of components in dataflow. Will now wait for acknowledgment");
+            final CompletionAction completionAction = executionProgress.awaitCompletionAction();
 
-                final long start = System.nanoTime();
-                final long processingNanos;
-
-                // If there is no incoming connection, trigger once.
-                logger.debug("Triggering {}", connectable);
-                connectable.onTrigger(processContext, sessionFactory);
-
-                processingNanos = System.nanoTime() - start;
-                registerProcessEvent(connectable, 1, processingNanos);
+            switch (completionAction) {
+                case CANCEL:
+                    logger.debug("Dataflow was canceled");
+                    purge();
+                    break;
+                case COMPLETE:
+                default:
+                    final long nanos = System.nanoTime() - startNanos;
+                    final String prettyPrinted = (nanos > TEN_MILLIS_IN_NANOS) ? (TimeUnit.NANOSECONDS.toMillis(nanos) + " millis") : NumberFormat.getInstance().format(nanos) + " nanos";
+                    logger.info("Ran dataflow in {}", prettyPrinted);
+                    break;
             }
         } catch (final TerminatedTaskException tte) {
             // This occurs when the caller invokes the cancel() method of DataflowTrigger.
             logger.debug("Caught a TerminatedTaskException", tte);
+            purge();
+            tracker.triggerFailureCallbacks(tte);
+            stateManagerProvider.rollbackUpdates();
             resultQueue.offer(new CanceledTriggerResult());
         } catch (final Throwable t) {
             logger.error("Failed to execute dataflow", t);
+            purge();
+            tracker.triggerFailureCallbacks(t);
+            stateManagerProvider.rollbackUpdates();
             resultQueue.offer(new ExceptionalTriggerResult(t));
-        }
-    }
-
-    private void registerProcessEvent(final Connectable connectable, final int invocations, final long processingNanos) {
-        try {
-            final StandardFlowFileEvent procEvent = new StandardFlowFileEvent();
-            procEvent.setProcessingNanos(processingNanos);
-            procEvent.setInvocations(invocations);
-            repositoryContextFactory.getFlowFileEventRepository().updateRepository(procEvent, connectable.getIdentifier());
-        } catch (final IOException e) {
-            logger.error("Unable to update FlowFileEvent Repository for {}; statistics may be inaccurate. Reason for failure: {}", connectable.getRunnableComponent(), e.toString(), e);
         }
     }
 
@@ -484,18 +496,18 @@ public class StandardStatelessFlow implements StatelessDataflow {
         final ProcessSessionFactory sessionFactory = new StandardProcessSessionFactory(repositoryContext, () -> false);
         final ProcessSession session = sessionFactory.createSession();
         try {
-            FlowFile flowFile = session.create();
-            flowFile = session.write(flowFile, out -> out.write(flowFileContents));
-            flowFile = session.putAllAttributes(flowFile, attributes);
-            session.transfer(flowFile, LocalPort.PORT_RELATIONSHIP);
-            session.commit();
-
             // Get one of the outgoing connections for the Input Port so that we can return QueueSize for it.
             // It doesn't really matter which connection we get because all will have the same data queued up.
             final Set<Connection> portConnections = inputPort.getConnections();
             if (portConnections.isEmpty()) {
                 throw new IllegalStateException("Cannot enqueue data for Input Port <" + portName + "> because it has no outgoing connections");
             }
+
+            FlowFile flowFile = session.create();
+            flowFile = session.write(flowFile, out -> out.write(flowFileContents));
+            flowFile = session.putAllAttributes(flowFile, attributes);
+            session.transfer(flowFile, LocalPort.PORT_RELATIONSHIP);
+            session.commitAsync();
 
             final Connection firstConnection = portConnections.iterator().next();
             return firstConnection.getFlowFileQueue().size();

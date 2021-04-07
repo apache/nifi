@@ -474,7 +474,7 @@ public class ExecuteGroovyScript extends AbstractProcessor {
             bindings.clear();
 
             onCommitSQL(SQL);
-            session.commit();
+            session.commitAsync();
         } catch (Throwable t) {
             getLogger().error(t.toString(), t);
             onFailSQL(SQL);

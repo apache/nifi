@@ -358,7 +358,7 @@ public class StandardFunnel implements Funnel {
 
         try {
             onTrigger(context, session);
-            session.commit();
+            session.commitAsync();
         } catch (final ProcessException e) {
             session.rollback();
             throw e;
@@ -380,7 +380,7 @@ public class StandardFunnel implements Funnel {
                 }
 
                 session.transfer(flowFiles, Relationship.ANONYMOUS);
-                session.commit();
+                session.commitAsync();
 
                 // If there are fewer than 1,000 FlowFiles available to transfer, or if we
                 // have hit the configured FlowFile cap, we want to stop. This prevents us from

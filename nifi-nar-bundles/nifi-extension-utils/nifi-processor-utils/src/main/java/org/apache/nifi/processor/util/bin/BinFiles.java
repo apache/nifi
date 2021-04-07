@@ -233,7 +233,7 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
                 for (final FlowFile flowFile : bin.getContents()) {
                     binSession.transfer(flowFile, REL_FAILURE);
                 }
-                binSession.commit();
+                binSession.commitAsync();
                 continue;
             } catch (final Exception e) {
                 logger.error("Failed to process bundle of {} files due to {}; rolling back sessions", new Object[] {bin.getContents().size(), e});
@@ -247,7 +247,7 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
                 final ProcessSession binSession = bin.getSession();
                 bin.getContents().forEach(ff -> binSession.putAllAttributes(ff, binProcessingResult.getAttributes()));
                 binSession.transfer(bin.getContents(), REL_ORIGINAL);
-                binSession.commit();
+                binSession.commitAsync();
             }
 
             processedBins++;

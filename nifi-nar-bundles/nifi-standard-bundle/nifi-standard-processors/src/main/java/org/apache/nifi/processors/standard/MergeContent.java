@@ -510,7 +510,7 @@ public class MergeContent extends BinFiles {
                 final String binDescription = contents.size() <= 10 ? contents.toString() : contents.size() + " FlowFiles";
                 getLogger().error(error + "; routing {} to failure", new Object[]{binDescription});
                 binSession.transfer(contents, REL_FAILURE);
-                binSession.commit();
+                binSession.commitAsync();
 
                 return binProcessingResult;
             }

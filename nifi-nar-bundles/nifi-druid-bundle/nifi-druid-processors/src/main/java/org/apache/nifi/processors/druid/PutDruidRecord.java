@@ -17,6 +17,37 @@
 
 package org.apache.nifi.processors.druid;
 
+import com.metamx.tranquility.tranquilizer.MessageDroppedException;
+import com.metamx.tranquility.tranquilizer.Tranquilizer;
+import com.twitter.util.Future;
+import com.twitter.util.FutureEventListener;
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.controller.api.druid.DruidTranquilityService;
+import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processor.AbstractProcessor;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.ProcessorInitializationContext;
+import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.schema.access.SchemaNotFoundException;
+import org.apache.nifi.serialization.MalformedRecordException;
+import org.apache.nifi.serialization.RecordReader;
+import org.apache.nifi.serialization.RecordReaderFactory;
+import org.apache.nifi.serialization.RecordSetWriter;
+import org.apache.nifi.serialization.RecordSetWriterFactory;
+import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordFieldType;
+import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.util.DataTypeUtils;
+import scala.runtime.BoxedUnit;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -28,47 +59,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import com.metamx.tranquility.tranquilizer.MessageDroppedException;
-import com.twitter.util.Future;
-import com.twitter.util.FutureEventListener;
-import org.apache.nifi.annotation.behavior.InputRequirement;
-import org.apache.nifi.annotation.behavior.WritesAttribute;
-import org.apache.nifi.annotation.documentation.CapabilityDescription;
-import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.processor.AbstractSessionFactoryProcessor;
-import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.ProcessSessionFactory;
-import org.apache.nifi.processor.ProcessorInitializationContext;
-import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.schema.access.SchemaNotFoundException;
-import org.apache.nifi.serialization.MalformedRecordException;
-import org.apache.nifi.serialization.RecordReader;
-import org.apache.nifi.serialization.RecordReaderFactory;
-
-import org.apache.nifi.controller.api.druid.DruidTranquilityService;
-import org.apache.nifi.expression.ExpressionLanguageScope;
-
-import com.metamx.tranquility.tranquilizer.Tranquilizer;
-import org.apache.nifi.serialization.RecordSetWriter;
-import org.apache.nifi.serialization.RecordSetWriterFactory;
-import org.apache.nifi.serialization.record.Record;
-import org.apache.nifi.serialization.record.RecordFieldType;
-import org.apache.nifi.serialization.record.RecordSchema;
-import org.apache.nifi.serialization.record.util.DataTypeUtils;
-import scala.runtime.BoxedUnit;
-
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"druid", "timeseries", "olap", "ingest", "put", "record"})
 @CapabilityDescription("Sends records to Druid for Indexing. Leverages Druid Tranquility Controller service.")
 @WritesAttribute(attribute = "record.count", description = "The number of messages that were sent to Druid for this FlowFile. FlowFiles on the success relationship will have a value "
         + "of this attribute that indicates the number of records successfully processed by Druid, and the FlowFile content will be only the successful records. This behavior applies "
         + "to the failure and dropped relationships as well.")
-public class PutDruidRecord extends AbstractSessionFactoryProcessor {
+public class PutDruidRecord extends AbstractProcessor {
 
     static final String RECORD_COUNT = "record.count";
 
@@ -147,7 +144,7 @@ public class PutDruidRecord extends AbstractSessionFactoryProcessor {
      * @param session The process session
      */
     @SuppressWarnings("unchecked")
-    private void processFlowFile(ProcessContext context, final ProcessSession session) {
+    public void onTrigger(ProcessContext context, final ProcessSession session) {
         final ComponentLog log = getLogger();
 
         // Get handle on Druid Tranquility session
@@ -281,7 +278,7 @@ public class PutDruidRecord extends AbstractSessionFactoryProcessor {
             } catch (IOException ioe) {
                 log.error("Error closing output stream for FlowFile with successful records.", ioe);
             }
-            session.commit();
+            session.commitAsync();
             return;
         }
 
@@ -364,12 +361,5 @@ public class PutDruidRecord extends AbstractSessionFactoryProcessor {
 
             session.remove(flowFile);
         }
-
-        session.commit();
-    }
-
-    public void onTrigger(ProcessContext context, ProcessSessionFactory factory) throws ProcessException {
-        final ProcessSession session = factory.createSession();
-        processFlowFile(context, session);
     }
 }

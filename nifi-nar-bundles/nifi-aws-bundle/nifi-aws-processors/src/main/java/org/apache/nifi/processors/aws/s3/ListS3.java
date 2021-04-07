@@ -82,7 +82,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-
+import java.util.concurrent.atomic.AtomicReference;
 
 @PrimaryNodeOnly
 @TriggerSerially
@@ -251,8 +251,7 @@ public class ListS3 extends AbstractS3Processor {
     public static final String CURRENT_KEY_PREFIX = "key-";
 
     // State tracking
-    private volatile long currentTimestamp = 0L;
-    private volatile Set<String> currentKeys;
+    private final AtomicReference<ListingSnapshot> listing = new AtomicReference<>(new ListingSnapshot(0L, Collections.emptySet()));
 
     private static Validator createRequesterPaysValidator() {
         return new Validator() {
@@ -294,12 +293,22 @@ public class ListS3 extends AbstractS3Processor {
     private void restoreState(final ProcessSession session) throws IOException {
         final StateMap stateMap = session.getState(Scope.CLUSTER);
         if (stateMap.getVersion() == -1L || stateMap.get(CURRENT_TIMESTAMP) == null || stateMap.get(CURRENT_KEY_PREFIX+"0") == null) {
-            currentTimestamp = 0L;
-            currentKeys = new HashSet<>();
+            forcefullyUpdateListing(0L, Collections.emptySet());
         } else {
-            currentTimestamp = Long.parseLong(stateMap.get(CURRENT_TIMESTAMP));
-            currentKeys = extractKeys(stateMap);
+            final long timestamp = Long.parseLong(stateMap.get(CURRENT_TIMESTAMP));
+            final Set<String> keys = extractKeys(stateMap);
+            forcefullyUpdateListing(timestamp, keys);
         }
+    }
+
+    private void updateListingIfNewer(final long timestamp, final Set<String> keys) {
+        final ListingSnapshot updatedListing = new ListingSnapshot(timestamp, keys);
+        listing.getAndUpdate(current -> current.getTimestamp() > timestamp ? current : updatedListing);
+    }
+
+    private void forcefullyUpdateListing(final long timestamp, final Set<String> keys) {
+        final ListingSnapshot updatedListing = new ListingSnapshot(timestamp, keys);
+        listing.set(updatedListing);
     }
 
     private void persistState(final ProcessSession session, final long timestamp, final Collection<String> keys) {
@@ -335,6 +344,10 @@ public class ListS3 extends AbstractS3Processor {
         final long listingTimestamp = System.currentTimeMillis();
         final boolean requesterPays = context.getProperty(REQUESTER_PAYS).asBoolean();
         final int batchSize = context.getProperty(BATCH_SIZE).asInteger();
+
+        final ListingSnapshot currentListing = listing.get();
+        final long currentTimestamp = currentListing.getTimestamp();
+        final Set<String> currentKeys = currentListing.getKeys();
 
         final AmazonS3 client = getClient();
         int listCount = 0;
@@ -432,7 +445,7 @@ public class ListS3 extends AbstractS3Processor {
 
                     if (listCount >= batchSize && writer.isCheckpoint()) {
                         getLogger().info("Successfully listed {} new files from S3; routing to success", new Object[] {listCount});
-                        session.commit();
+                        session.commitAsync();
                     }
 
                     listCount = 0;
@@ -454,11 +467,11 @@ public class ListS3 extends AbstractS3Processor {
         updatedKeys.addAll(listedKeys);
 
         persistState(session, latestListedTimestampInThisCycle, updatedKeys);
-        session.commit();
 
-        // Update currentKeys.
-        currentKeys = updatedKeys;
-        currentTimestamp = latestListedTimestampInThisCycle;
+        final long latestListed = latestListedTimestampInThisCycle;
+        session.commitAsync(() -> {
+            updateListingIfNewer(latestListed, updatedKeys);
+        });
 
         final long listMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
         getLogger().info("Successfully listed S3 bucket {} in {} millis", new Object[]{bucket, listMillis});
@@ -851,6 +864,24 @@ public class ListS3 extends AbstractS3Processor {
         @Override
         public boolean isCheckpoint() {
             return true;
+        }
+    }
+
+    private static class ListingSnapshot {
+        private final long timestamp;
+        private final Set<String> keys;
+
+        public ListingSnapshot(final long timestamp, final Set<String> keys) {
+            this.timestamp = timestamp;
+            this.keys = keys;
+        }
+
+        public long getTimestamp() {
+            return timestamp;
+        }
+
+        public Set<String> getKeys() {
+            return keys;
         }
     }
 }

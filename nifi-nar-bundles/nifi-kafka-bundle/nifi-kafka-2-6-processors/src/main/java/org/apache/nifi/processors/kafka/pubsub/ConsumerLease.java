@@ -220,11 +220,13 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
             if (!bundledFlowFiles.isEmpty()) {
                 getProcessSession().transfer(bundledFlowFiles, REL_SUCCESS);
             }
-            getProcessSession().commit();
 
-            final Map<TopicPartition, OffsetAndMetadata> offsetsMap = uncommittedOffsetsMap;
-            kafkaConsumer.commitSync(offsetsMap);
-            resetInternalState();
+            getProcessSession().commitAsync(() -> {
+                final Map<TopicPartition, OffsetAndMetadata> offsetsMap = uncommittedOffsetsMap;
+                kafkaConsumer.commitSync(offsetsMap);
+                resetInternalState();
+            });
+
             return true;
         } catch (final IOException ioe) {
             poison();

@@ -33,9 +33,9 @@ import com.hierynomus.smbj.session.Session;
 import com.hierynomus.smbj.share.DiskShare;
 import com.hierynomus.smbj.share.File;
 import org.apache.nifi.annotation.behavior.InputRequirement;
-import org.apache.nifi.annotation.behavior.WritesAttributes;
-import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
+import org.apache.nifi.annotation.behavior.WritesAttribute;
+import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -48,8 +48,8 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
-import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
@@ -59,16 +59,18 @@ import java.io.InputStream;
 import java.net.URI;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.List;
-import java.util.Set;
-import java.util.HashSet;
-import java.util.Collections;
-import java.util.ListIterator;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.EnumSet;
-import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.ListIterator;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -471,15 +473,18 @@ public class GetSmbFile extends AbstractProcessor {
                             final FileBasicInformation fileBasicInfo = fileInfo.getBasicInformation();
                             final long fileSize = fileInfo.getStandardInformation().getEndOfFile();
 
-                            flowFile = session.putAttribute(flowFile, CoreAttributes.FILENAME.key(), filename);
-                            flowFile = session.putAttribute(flowFile, CoreAttributes.PATH.key(), filePath);
-                            flowFile = session.putAttribute(flowFile, CoreAttributes.ABSOLUTE_PATH.key(), "\\\\" + hostname + "\\" + shareName + "\\" + file);
-                            flowFile = session.putAttribute(flowFile, FILE_CREATION_TIME_ATTRIBUTE, dateFormatter.format(fileBasicInfo.getCreationTime().toDate()));
-                            flowFile = session.putAttribute(flowFile, FILE_LAST_ACCESS_TIME_ATTRIBUTE, dateFormatter.format(fileBasicInfo.getLastAccessTime().toDate()));
-                            flowFile = session.putAttribute(flowFile, FILE_LAST_MODIFY_TIME_ATTRIBUTE, dateFormatter.format(fileBasicInfo.getLastWriteTime().toDate()));
-                            flowFile = session.putAttribute(flowFile, FILE_SIZE_ATTRIBUTE, String.valueOf(fileSize));
-                            flowFile = session.putAttribute(flowFile, HOSTNAME.getName(), hostname);
-                            flowFile = session.putAttribute(flowFile, SHARE.getName(), shareName);
+                            final Map<String, String> attributes = new HashMap<>();
+                            attributes.put(CoreAttributes.FILENAME.key(), filename);
+                            attributes.put(CoreAttributes.PATH.key(), filePath);
+                            attributes.put(CoreAttributes.ABSOLUTE_PATH.key(), "\\\\" + hostname + "\\" + shareName + "\\" + file);
+                            attributes.put(FILE_CREATION_TIME_ATTRIBUTE, dateFormatter.format(fileBasicInfo.getCreationTime().toDate()));
+                            attributes.put(FILE_LAST_ACCESS_TIME_ATTRIBUTE, dateFormatter.format(fileBasicInfo.getLastAccessTime().toDate()));
+                            attributes.put(FILE_LAST_MODIFY_TIME_ATTRIBUTE, dateFormatter.format(fileBasicInfo.getLastWriteTime().toDate()));
+                            attributes.put(FILE_SIZE_ATTRIBUTE, String.valueOf(fileSize));
+                            attributes.put(HOSTNAME.getName(), hostname);
+                            attributes.put(SHARE.getName(), shareName);
+
+                            flowFile = session.putAllAttributes(flowFile, attributes);
                             session.getProvenanceReporter().receive(flowFile, uri.toString(), importMillis);
 
                             session.transfer(flowFile, REL_SUCCESS);
@@ -519,7 +524,8 @@ public class GetSmbFile extends AbstractProcessor {
                             }
                         }
                     }
-                    session.commit();
+
+                    session.commitAsync();
                 } catch (final Exception e) {
                     logger.error("Failed to retrieve files due to {}", e);
 

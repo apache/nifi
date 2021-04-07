@@ -197,16 +197,18 @@ public class FtpCommandSTOR extends AbstractCommand {
             processSession.getProvenanceReporter().modifyContent(flowFile);
 
             processSession.transfer(flowFile, relationshipSuccess);
-            processSession.commit();
         } catch (Exception exception) {
             processSession.rollback();
             LOG.error("Process session error. ", exception);
         }
 
-        // if data transfer ok - send transfer complete message
-        ftpSession.write(LocalizedDataTransferFtpReply.translate(ftpSession, request, context,
+        final long byteCount = transferredBytes;
+        processSession.commitAsync(() -> {
+            // if data transfer ok - send transfer complete message
+            ftpSession.write(LocalizedDataTransferFtpReply.translate(ftpSession, request, context,
                 FtpReply.REPLY_226_CLOSING_DATA_CONNECTION, "STOR",
-                ftpFile.getAbsolutePath(), ftpFile, transferredBytes));
+                ftpFile.getAbsolutePath(), ftpFile, byteCount));
+        });
     }
 
     private String getPath(FtpFile ftpFile) {

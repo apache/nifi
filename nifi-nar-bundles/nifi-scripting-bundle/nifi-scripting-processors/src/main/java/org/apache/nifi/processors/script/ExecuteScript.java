@@ -270,7 +270,7 @@ public class ExecuteScript extends AbstractSessionFactoryProcessor implements Se
                 // Commit this session for the user. This plus the outermost catch statement mimics the behavior
                 // of AbstractProcessor. This class doesn't extend AbstractProcessor in order to share a base
                 // class with InvokeScriptedProcessor
-                session.commit();
+                session.commitAsync();
             } catch (ScriptException e) {
                 // Reset the configurator on error, this can indicate to the configurator to recompile the script on next init()
                 ScriptEngineConfigurator configurator =

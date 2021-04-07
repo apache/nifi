@@ -332,16 +332,16 @@ public class ListedEntityTracker<T extends ListableEntity> {
 
         // Commit ProcessSession before persisting listed entities.
         // In case persisting listed entities failure, same entities may be listed again, but better than not listing.
-        session.commit();
-        try {
-            logger.debug("Removed old entities count: {}, Updated entities count: {}", new Object[]{oldEntityIds.size(), updatedEntities.size()});
-            logger.trace("Removed old entities: {}, Updated entities: {}", new Object[]{oldEntityIds, updatedEntities});
+        session.commitAsync(() -> {
+            try {
+                logger.debug("Removed old entities count: {}, Updated entities count: {}", new Object[]{oldEntityIds.size(), updatedEntities.size()});
+                logger.trace("Removed old entities: {}, Updated entities: {}", new Object[]{oldEntityIds, updatedEntities});
 
-            persistListedEntities(alreadyListedEntities);
-        } catch (IOException e) {
-            throw new ProcessException("Failed to persist already-listed entities due to " + e, e);
-        }
-
+                persistListedEntities(alreadyListedEntities);
+            } catch (IOException e) {
+                throw new ProcessException("Failed to persist already-listed entities due to " + e, e);
+            }
+        });
     }
 
     private void createRecordsForEntities(final ProcessContext context, final ProcessSession session, final List<T> updatedEntities) throws IOException, SchemaNotFoundException {

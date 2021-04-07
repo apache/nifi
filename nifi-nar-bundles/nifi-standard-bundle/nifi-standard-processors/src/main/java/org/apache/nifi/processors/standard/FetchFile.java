@@ -278,8 +278,13 @@ public class FetchFile extends AbstractProcessor {
         // It is critical that we commit the session before we perform the Completion Strategy. Otherwise, we could have a case where we
         // ingest the file, delete/move the file, and then NiFi is restarted before the session is committed. That would result in data loss.
         // As long as we commit the session right here, before we perform the Completion Strategy, we are safe.
-        session.commit();
+        final FlowFile fetched = flowFile;
+        session.commitAsync(() -> {
+            performCompletionAction(completionStrategy, file, targetDirectoryName, fetched, context);
+        });
+    }
 
+    private void performCompletionAction(final String completionStrategy, final File file, final String targetDirectoryName, final FlowFile flowFile, final ProcessContext context) {
         // Attempt to perform the Completion Strategy action
         Exception completionFailureException = null;
         if (COMPLETION_DELETE.getValue().equalsIgnoreCase(completionStrategy)) {
@@ -326,7 +331,6 @@ public class FetchFile extends AbstractProcessor {
                 new Object[] {file, flowFile, completionFailureException}, completionFailureException);
         }
     }
-
 
     //
     // The following set of methods exist purely for testing purposes

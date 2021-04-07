@@ -559,7 +559,7 @@ public class ConsumeEWS extends AbstractProcessor {
         try {
             while ((emailMessage = this.messageQueue.poll(1, TimeUnit.MILLISECONDS)) != null) {
                 this.transfer(emailMessage, processContext, this.processSession);
-                this.processSession.commit();
+                this.processSession.commitAsync();
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();

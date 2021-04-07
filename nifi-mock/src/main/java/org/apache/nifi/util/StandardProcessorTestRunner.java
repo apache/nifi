@@ -87,6 +87,7 @@ public class StandardProcessorTestRunner implements TestRunner {
 
     private int numThreads = 1;
     private MockSessionFactory sessionFactory;
+    private boolean allowSynchronousSessionCommits = false;
     private long runSchedule = 0;
     private final AtomicInteger invocations = new AtomicInteger(0);
 
@@ -117,7 +118,7 @@ public class StandardProcessorTestRunner implements TestRunner {
         this.sharedState = new SharedSessionState(processor, idGenerator);
         this.flowFileQueue = sharedState.getFlowFileQueue();
         this.processorStateManager = new MockStateManager(processor);
-        this.sessionFactory = new MockSessionFactory(sharedState, processor, enforceReadStreamsClosed, processorStateManager);
+        this.sessionFactory = new MockSessionFactory(sharedState, processor, enforceReadStreamsClosed, processorStateManager, allowSynchronousSessionCommits);
         this.variableRegistry = new MockVariableRegistry();
 
         this.context = new MockProcessContext(processor, processorName, processorStateManager, variableRegistry);
@@ -141,13 +142,19 @@ public class StandardProcessorTestRunner implements TestRunner {
     @Override
     public void enforceReadStreamsClosed(final boolean enforce) {
         enforceReadStreamsClosed = enforce;
-        this.sessionFactory = new MockSessionFactory(sharedState, processor, enforceReadStreamsClosed, processorStateManager);
+        this.sessionFactory = new MockSessionFactory(sharedState, processor, enforceReadStreamsClosed, processorStateManager, allowSynchronousSessionCommits);
     }
 
     @Override
     public void setValidateExpressionUsage(final boolean validate) {
         this.validateExpressionUsage = validate;
         context.setValidateExpressionUsage(validate);
+    }
+
+    @Override
+    public void setAllowSynchronousSessionCommits(final boolean allowSynchronousSessionCommits) {
+        this.allowSynchronousSessionCommits = allowSynchronousSessionCommits;
+        this.sessionFactory = new MockSessionFactory(sharedState, processor, enforceReadStreamsClosed, processorStateManager, allowSynchronousSessionCommits);
     }
 
     @Override

@@ -189,11 +189,12 @@ public class ListenBeats extends AbstractListenEventBatchingProcessor<BeatsEvent
     protected void postProcess(final ProcessContext context, final ProcessSession session, final List<BeatsEvent> events) {
         // first commit the session so we guarantee we have all the events successfully
         // written to FlowFiles and transferred to the success relationship
-        session.commit();
-        // respond to each event to acknowledge successful receipt
-        for (final BeatsEvent event : events) {
-            respond(event, BeatsResponse.ok(event.getSeqNumber()));
-        }
+        session.commitAsync(() -> {
+            // respond to each event to acknowledge successful receipt
+            for (final BeatsEvent event : events) {
+                respond(event, BeatsResponse.ok(event.getSeqNumber()));
+            }
+        });
     }
 
     @Override
