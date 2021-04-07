@@ -17,8 +17,10 @@
 
 package org.apache.nifi.stateless.config;
 
+import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.stateless.engine.StatelessEngineConfiguration;
 import org.apache.nifi.stateless.flow.DataflowDefinition;
+import org.apache.nifi.stateless.flow.TransactionThresholds;
 import org.junit.Test;
 
 import java.io.File;
@@ -27,8 +29,10 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 public class TestPropertiesFileFlowDefinitionParser {
 
@@ -60,6 +64,12 @@ public class TestPropertiesFileFlowDefinitionParser {
 
         assertEquals("duration", secondParams.get(1).getName());
         assertEquals("48", secondParams.get(1).getValue());
+
+        final TransactionThresholds transactionThresholds = dataflowDefinition.getTransactionThresholds();
+        assertNotNull(transactionThresholds);
+        assertEquals(1000, transactionThresholds.getMaxFlowFiles().getAsLong());
+        assertEquals(4L, transactionThresholds.getMaxContentSize(DataUnit.KB).getAsLong());
+        assertEquals(1000L, transactionThresholds.getMaxTime(TimeUnit.MILLISECONDS).getAsLong());
     }
 
     private StatelessEngineConfiguration createStatelessEngineConfiguration() {

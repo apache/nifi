@@ -43,4 +43,14 @@ public class StatelessStateManagerProvider extends StandardStateManagerProvider 
         final HashMapStateProvider stateProvider = getProvider(scope);
         stateProvider.updateAllComponentsStates(states);
     }
+
+    public void commitUpdates() {
+        getProvider(Scope.LOCAL).commit();
+        getProvider(Scope.CLUSTER).commit();
+    }
+
+    public void rollbackUpdates() {
+        getProvider(Scope.LOCAL).rollback();
+        getProvider(Scope.CLUSTER).rollback();
+    }
 }

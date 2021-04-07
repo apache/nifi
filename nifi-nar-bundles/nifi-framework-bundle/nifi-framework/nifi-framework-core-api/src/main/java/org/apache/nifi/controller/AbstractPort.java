@@ -242,11 +242,12 @@ public abstract class AbstractPort implements Port {
 
         try {
             onTrigger(context, session);
-            session.commit();
         } catch (final Throwable t) {
             session.rollback();
             throw t;
         }
+
+        session.commitAsync();
     }
 
     public abstract void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException;

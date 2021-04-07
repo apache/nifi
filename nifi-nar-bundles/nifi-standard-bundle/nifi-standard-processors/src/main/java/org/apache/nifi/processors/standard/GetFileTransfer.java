@@ -16,6 +16,19 @@
  */
 package org.apache.nifi.processors.standard;
 
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processor.AbstractProcessor;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.exception.FlowFileAccessException;
+import org.apache.nifi.processors.standard.util.FileInfo;
+import org.apache.nifi.processors.standard.util.FileTransfer;
+import org.apache.nifi.util.StopWatch;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -39,19 +52,6 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-
-import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.processor.AbstractProcessor;
-import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.annotation.lifecycle.OnScheduled;
-import org.apache.nifi.processor.exception.FlowFileAccessException;
-import org.apache.nifi.processors.standard.util.FileInfo;
-import org.apache.nifi.processors.standard.util.FileTransfer;
-import org.apache.nifi.util.StopWatch;
 
 /**
  * Base class for GetSFTP and GetFTP
@@ -164,6 +164,8 @@ public abstract class GetFileTransfer extends AbstractProcessor {
             transfer = getFileTransfer(context);
         }
 
+        final Map<FlowFile, String> flowFilesReceived = new HashMap<>();
+
         try {
             for (int i = 0; i < maxSelects && isScheduled(); i++) {
                 final FileInfo file;
@@ -171,7 +173,7 @@ public abstract class GetFileTransfer extends AbstractProcessor {
                 try {
                     file = fileQueue.poll();
                     if (file == null) {
-                        return;
+                        break;
                     }
                     processing.add(file);
                 } finally {
@@ -193,32 +195,21 @@ public abstract class GetFileTransfer extends AbstractProcessor {
                     stopWatch.stop();
                     final long millis = stopWatch.getDuration(TimeUnit.MILLISECONDS);
                     final String dataRate = stopWatch.calculateDataRate(flowFile.getSize());
-                    flowFile = session.putAttribute(flowFile, this.getClass().getSimpleName().toLowerCase() + ".remote.source", hostname);
-                    flowFile = session.putAttribute(flowFile, CoreAttributes.PATH.key(), parentRelativePathString);
-                    flowFile = session.putAttribute(flowFile, CoreAttributes.FILENAME.key(), relativeFile.getName());
-                    flowFile = session.putAttribute(flowFile, CoreAttributes.ABSOLUTE_PATH.key(), absPathString);
-                    Map<String, String> attributes = getAttributesFromFile(file);
-                    if (attributes.size() > 0) {
-                        flowFile = session.putAllAttributes(flowFile, attributes);
-                    }
 
-                    if (deleteOriginal) {
-                        try {
-                            transfer.deleteFile(flowFile, null, file.getFullPathFileName());
-                        } catch (final IOException e) {
-                            logger.error("Failed to remove remote file {} due to {}; deleting local copy",
-                                    new Object[]{file.getFullPathFileName(), e});
-                            session.remove(flowFile);
-                            return;
-                        }
-                    }
+                    final Map<String, String> attributes = getAttributesFromFile(file);
+                    attributes.put(this.getClass().getSimpleName().toLowerCase() + ".remote.source", hostname);
+                    attributes.put(CoreAttributes.PATH.key(), parentRelativePathString);
+                    attributes.put(CoreAttributes.FILENAME.key(), relativeFile.getName());
+                    attributes.put(CoreAttributes.ABSOLUTE_PATH.key(), absPathString);
+
+                    flowFile = session.putAllAttributes(flowFile, attributes);
 
                     session.getProvenanceReporter().receive(flowFile, transfer.getProtocolName() + "://" + hostname + "/" + file.getFullPathFileName(), millis);
                     session.transfer(flowFile, REL_SUCCESS);
                     logger.info("Successfully retrieved {} from {} in {} milliseconds at a rate of {} and transferred to success",
-                            new Object[]{flowFile, hostname, millis, dataRate});
+                        new Object[]{flowFile, hostname, millis, dataRate});
 
-                    session.commit();
+                    flowFilesReceived.put(flowFile, file.getFullPathFileName());
                 } catch (final IOException e) {
                     context.yield();
                     logger.error("Unable to retrieve file {} due to {}", new Object[]{file.getFullPathFileName(), e});
@@ -246,12 +237,40 @@ public abstract class GetFileTransfer extends AbstractProcessor {
                     processing.remove(file);
                 }
             }
-        } finally {
+
+            final FileTransfer fileTransfer = transfer;
+            session.commitAsync(() -> {
+                if (deleteOriginal) {
+                    deleteRemote(fileTransfer, flowFilesReceived);
+                }
+
+                closeTransfer(fileTransfer, hostname);
+            }, t -> {
+                closeTransfer(fileTransfer, hostname);
+            });
+        } catch (final Throwable t) {
+            closeTransfer(transfer, hostname);
+        }
+    }
+
+    private void deleteRemote(final FileTransfer fileTransfer, final Map<FlowFile, String> flowFileToRemoteFileMapping) {
+        for (final Map.Entry<FlowFile, String> entry : flowFileToRemoteFileMapping.entrySet()) {
+            final FlowFile receivedFlowFile = entry.getKey();
+            final String remoteFilename = entry.getValue();
+
             try {
-                transfer.close();
+                fileTransfer.deleteFile(receivedFlowFile, null, remoteFilename);
             } catch (final IOException e) {
-                logger.warn("Failed to close connection to {} due to {}", new Object[]{hostname, e});
+                getLogger().error("Failed to remove remote file {} due to {}. This file may be duplicated in a subsequent run", new Object[] {remoteFilename, e}, e);
             }
+        }
+    }
+
+    private void closeTransfer(final FileTransfer transfer, final String hostname) {
+        try {
+            transfer.close();
+        } catch (final IOException e) {
+            getLogger().warn("Failed to close connection to {} due to {}", new Object[]{hostname, e});
         }
     }
 

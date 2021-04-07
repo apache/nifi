@@ -17,13 +17,13 @@
 package org.apache.nifi.processors.azure.eventhub;
 
 import com.microsoft.azure.eventhubs.EventData;
+import com.microsoft.azure.eventhubs.ReceiverDisconnectedException;
 import com.microsoft.azure.eventprocessorhost.CloseReason;
 import com.microsoft.azure.eventprocessorhost.EventProcessorHost;
 import com.microsoft.azure.eventprocessorhost.EventProcessorOptions;
 import com.microsoft.azure.eventprocessorhost.IEventProcessor;
 import com.microsoft.azure.eventprocessorhost.IEventProcessorFactory;
 import com.microsoft.azure.eventprocessorhost.PartitionContext;
-import com.microsoft.azure.eventhubs.ReceiverDisconnectedException;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -47,6 +47,7 @@ import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.azure.eventhub.utils.AzureEventHubUtils;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
@@ -75,7 +76,6 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import static org.apache.nifi.util.StringUtils.isEmpty;
-import org.apache.nifi.processors.azure.eventhub.utils.AzureEventHubUtils;
 
 @Tags({"azure", "microsoft", "cloud", "eventhub", "events", "streaming", "streams"})
 @CapabilityDescription("Receives messages from Azure Event Hubs, writing the contents of the message to the content of the FlowFile.")
@@ -382,16 +382,13 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
                 }
 
                 // Commit NiFi first.
-                session.commit();
                 // If creating an Event Hub checkpoint failed, then the same message can be retrieved again.
-                context.checkpoint();
-
+                session.commitAsync(context::checkpoint);
             } catch (Exception e) {
                 getLogger().error("Unable to fully process received message due to " + e, e);
                 // FlowFiles those are already committed will not get rollback.
                 session.rollback();
             }
-
         }
 
         private void putEventHubAttributes(Map<String, String> attributes, String eventHubName, String partitionId, EventData eventData) {

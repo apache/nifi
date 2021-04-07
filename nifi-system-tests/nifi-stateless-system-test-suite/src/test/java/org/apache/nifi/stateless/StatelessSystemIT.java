@@ -29,6 +29,7 @@ import org.apache.nifi.stateless.config.StatelessConfigurationException;
 import org.apache.nifi.stateless.engine.StatelessEngineConfiguration;
 import org.apache.nifi.stateless.flow.DataflowDefinition;
 import org.apache.nifi.stateless.flow.StatelessDataflow;
+import org.apache.nifi.stateless.flow.TransactionThresholds;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -56,7 +57,7 @@ public class StatelessSystemIT {
     public TestName name = new TestName();
 
     @Rule
-    public Timeout defaultTimeout = new Timeout(30, TimeUnit.SECONDS);
+    public Timeout defaultTimeout = new Timeout(30, TimeUnit.MINUTES);
 
 
     @Before
@@ -129,9 +130,14 @@ public class StatelessSystemIT {
     }
 
     protected StatelessDataflow loadDataflow(final VersionedFlowSnapshot versionedFlowSnapshot, final List<ParameterContextDefinition> parameterContexts, final Set<String> failurePortNames)
-        throws IOException, StatelessConfigurationException {
+                    throws IOException, StatelessConfigurationException {
+        return loadDataflow(versionedFlowSnapshot, parameterContexts, failurePortNames, TransactionThresholds.SINGLE_FLOWFILE);
+    }
 
-        final DataflowDefinition<VersionedFlowSnapshot> dataflowDefinition = new DataflowDefinition<VersionedFlowSnapshot>() {
+    protected StatelessDataflow loadDataflow(final VersionedFlowSnapshot versionedFlowSnapshot, final List<ParameterContextDefinition> parameterContexts, final Set<String> failurePortNames,
+                                             final TransactionThresholds transactionThresholds) throws IOException, StatelessConfigurationException {
+
+            final DataflowDefinition<VersionedFlowSnapshot> dataflowDefinition = new DataflowDefinition<VersionedFlowSnapshot>() {
             @Override
             public VersionedFlowSnapshot getFlowSnapshot() {
                 return versionedFlowSnapshot;
@@ -155,6 +161,11 @@ public class StatelessSystemIT {
             @Override
             public List<ReportingTaskDefinition> getReportingTaskDefinitions() {
                 return Collections.emptyList();
+            }
+
+            @Override
+            public TransactionThresholds getTransactionThresholds() {
+                return transactionThresholds;
             }
         };
 

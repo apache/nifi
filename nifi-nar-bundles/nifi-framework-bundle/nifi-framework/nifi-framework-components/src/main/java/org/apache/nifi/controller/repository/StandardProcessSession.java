@@ -93,6 +93,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -190,6 +191,10 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         }
     }
 
+    protected RepositoryContext getRepositoryContext() {
+        return context;
+    }
+
     protected long getSessionId() {
         return sessionId;
     }
@@ -220,12 +225,8 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         resetState();
     }
 
-    private void checkpoint(final boolean copyCollections) {
+    private void validateCommitState() {
         verifyTaskActive();
-        resetWriteClaims(false);
-
-        closeStreams(openInputStreams, "committed", "input");
-        closeStreams(openOutputStreams, "committed", "output");
 
         if (!readRecursionSet.isEmpty()) {
             throw new IllegalStateException();
@@ -233,6 +234,38 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         if (!writeRecursionSet.isEmpty()) {
             throw new IllegalStateException();
         }
+
+        for (final StandardRepositoryRecord record : records.values()) {
+            if (record.isMarkedForDelete()) {
+                continue;
+            }
+
+            final Relationship relationship = record.getTransferRelationship();
+            if (relationship == null) {
+                throw new FlowFileHandlingException(record.getCurrent() + " transfer relationship not specified");
+            }
+
+            final Collection<Connection> destinations = context.getConnections(relationship);
+            if (destinations.isEmpty() && !context.getConnectable().isAutoTerminated(relationship)) {
+                if (relationship != Relationship.SELF) {
+                    throw new FlowFileHandlingException(relationship + " does not have any destinations for " + context.getConnectable());
+                }
+            }
+        }
+    }
+
+    private void checkpoint(final boolean copyCollections) {
+        try {
+            validateCommitState();
+        } catch (final Exception e) {
+            rollback();
+            throw e;
+        }
+
+        resetWriteClaims(false);
+
+        closeStreams(openInputStreams, "committed", "input");
+        closeStreams(openOutputStreams, "committed", "output");
 
         if (this.checkpoint == null) {
             this.checkpoint = new Checkpoint();
@@ -255,18 +288,9 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             if (record.isMarkedForDelete()) {
                 continue;
             }
+
             final Relationship relationship = record.getTransferRelationship();
-            if (relationship == null) {
-                rollback();
-                throw new FlowFileHandlingException(record.getCurrent() + " transfer relationship not specified");
-            }
             final List<Connection> destinations = new ArrayList<>(context.getConnections(relationship));
-            if (destinations.isEmpty() && !context.getConnectable().isAutoTerminated(relationship)) {
-                if (relationship != Relationship.SELF) {
-                    rollback();
-                    throw new FlowFileHandlingException(relationship + " does not have any destinations for " + context.getConnectable());
-                }
-            }
 
             if (destinations.isEmpty() && relationship == Relationship.SELF) {
                 record.setDestination(record.getOriginalQueue());
@@ -329,9 +353,58 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
 
     @Override
     public synchronized void commit() {
-        verifyTaskActive();
+        commit(false);
+    }
+
+    @Override
+    public void commitAsync() {
+        try {
+            commit(true);
+        } catch (final Throwable t) {
+            LOG.error("Failed to asynchronously commit session {} for {}", this, connectableDescription, t);
+
+            try {
+                rollback();
+            } catch (final Throwable t2) {
+                LOG.error("Failed to roll back session {} for {}", this, connectableDescription, t2);
+            }
+        }
+    }
+
+    @Override
+    public void commitAsync(final Runnable onSuccess, final Consumer<Throwable> onFailure) {
+        try {
+            commit(true);
+        } catch (final Throwable t) {
+            LOG.error("Failed to asynchronously commit session {} for {}", this, connectableDescription, t);
+
+            try {
+                rollback();
+            } catch (final Throwable t2) {
+                LOG.error("Failed to roll back session {} for {}", this, connectableDescription, t2);
+            }
+
+            if (onFailure != null) {
+                onFailure.accept(t);
+            }
+
+            return;
+        }
+
+        if (onSuccess != null) {
+            try {
+                onSuccess.run();
+            } catch (final Exception e) {
+                LOG.error("Successfully committed session {} for {} but failed to trigger success callback", this, connectableDescription, e);
+            }
+        }
+
+        LOG.debug("Successfully committed session {} for {}", this, connectableDescription);
+    }
+
+    private void commit(final boolean asynchronous) {
         checkpoint(this.checkpoint != null); // If a checkpoint already exists, we need to copy the collection
-        commit(this.checkpoint);
+        commit(this.checkpoint, asynchronous);
 
         acknowledgeRecords();
         resetState();
@@ -339,8 +412,16 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         this.checkpoint = null;
     }
 
+    /**
+     * Commits the given checkpoint, updating repositories as necessary, and performing any necessary cleanup of resources, etc.
+     * Subclasses may choose to perform these tasks asynchronously if the asynchronous flag indicates that it is acceptable to do so.
+     * However, this implementation will perform the commit synchronously, regardless of the {@code asynchronous} flag.
+     *
+     * @param checkpoint the session checkpoint to commit
+     * @param asynchronous whether or not the commit is allowed to be performed asynchronously.
+     */
     @SuppressWarnings({"unchecked", "rawtypes"})
-    protected void commit(final Checkpoint checkpoint) {
+    protected void commit(final Checkpoint checkpoint, final boolean asynchronous) {
         try {
             final long commitStartNanos = System.nanoTime();
 
@@ -1126,7 +1207,6 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         details.append("]");
         return details.toString();
     }
-
 
     private void decrementClaimCount(final ContentClaim claim) {
         if (claim == null) {
@@ -3661,6 +3741,30 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
 
         private StandardRepositoryRecord getRecord(final FlowFile flowFile) {
             return records.get(flowFile.getId());
+        }
+
+        public int getFlowFilesIn() {
+            return flowFilesIn;
+        }
+
+        public int getFlowFilesOut() {
+            return flowFilesOut;
+        }
+
+        public int getFlowFilesRemoved() {
+            return removedCount;
+        }
+
+        public long getBytesIn() {
+            return contentSizeIn;
+        }
+
+        public long getBytesOut() {
+            return contentSizeOut;
+        }
+
+        public long getBytesRemoved() {
+            return removedBytes;
         }
     }
 }

@@ -37,6 +37,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.regex.Pattern;
 
 /**
@@ -100,6 +101,123 @@ public interface ProcessSession {
      * via <code>Exception.getCause()</code>
      */
     void commit();
+
+    /**
+     * <p>
+     * Commits the current session ensuring all operations against FlowFiles
+     * within this session are atomically persisted. All FlowFiles operated on
+     * within this session must be accounted for by transfer or removal or the
+     * commit will fail.
+     * </p>
+     *
+     * <p>
+     * Unlike the {@link #commit()} method, the persistence of data to the repositories is not
+     * guaranteed to have occurred by the time that this method returns. Therefore, if any follow-on actions
+     * are necessary after the data has been persisted to the repository (for example, acknowledging receipt from
+     * a source system, removing a source file, etc.) that logic should be performed only by invoking
+     * {@link #commitAsync(Runnable)} or {@link #commitAsync(Runnable, Consumer)}
+     * and implementing that action in the provided callback.
+     * </p>
+     *
+     * <p>
+     * If the session cannot be committed, an error will be logged and the session will be rolled back instead.
+     * </p>
+     *
+     * @throws IllegalStateException if called from within a read or write callback (See {@link #write(FlowFile, StreamCallback)}, {@link #write(FlowFile, OutputStreamCallback)},
+     * {@link #read(FlowFile, InputStreamCallback)}).
+     *
+     * @throws FlowFileHandlingException if any FlowFile is not appropriately accounted for by transferring it to a Relationship (see {@link #transfer(FlowFile, Relationship)})
+     * or removed (see {@link #remove(FlowFile)}.
+     */
+    void commitAsync();
+
+    /**
+     * <p>
+     * Commits the current session ensuring all operations against FlowFiles
+     * within this session are atomically persisted. All FlowFiles operated on
+     * within this session must be accounted for by transfer or removal or the
+     * commit will fail.
+     * </p>
+     *
+     * <p>
+     * If the session is successfully committed, the given <code>onSuccess</code> {@link Runnable} will be called.
+     * At the point that the session commit is completed, the session will have already been committed, so any calls
+     * to {@link #rollback()} / {@link #rollback(boolean)} will not undo that session commit but instead roll back any changes
+     * that may have occurred since.
+     * </p>
+     *
+     * <p>
+     * If, for any reason, the session could not be committed, an error-level log message will be generated, but the caller will not
+     * have a chance to perform any cleanup logic. If such logic is necessary, use {@link #commitAsync(Runnable, Consumer)} instead.
+     * </p>
+     *
+     * <p>
+     * Unlike the {@link #commit()} method, the persistence of data to the repositories is not
+     * guaranteed to have occurred by the time that this method returns. As a result, the following
+     * very common idiom:
+     * </p>
+     * <pre><code>
+     * getDataFromSource();
+     * session.commit();
+     * acknowledgeReceiptOfData();
+     * </code></pre>
+     * Cannot be simply changed to:
+     * <pre><code>
+     * getDataFromSource();
+     * session.commitAsync();
+     * acknowledgeReceiptOfData();
+     * </code></pre>
+     * Doing so could result in acknowledging receipt of data from the source system before data has been committed to the repositories.
+     * If NiFi were to then be restarted, there is potential for data loss.
+     * Rather, the following idiom should take its place to ensure that there is no data loss:
+     * <pre><code>
+     * getDataFromSource();
+     * session.commitAsync( () -> acknowledgeReceiptOfData() );
+     * </code></pre>
+     *
+     * @throws IllegalStateException if called from within a callback (See {@link #write(FlowFile, StreamCallback)}, {@link #write(FlowFile, OutputStreamCallback)},
+     * {@link #read(FlowFile, InputStreamCallback)}).
+     *
+     * @throws FlowFileHandlingException if any FlowFile is not appropriately accounted for by transferring it to a Relationship (see {@link #transfer(FlowFile, Relationship)})
+     * or removed (see {@link #remove(FlowFile)}.
+     */
+    default void commitAsync(Runnable onSuccess) {
+        commitAsync(onSuccess, null);
+    }
+
+    /**
+     * <p>
+     * Commits the current session ensuring all operations against FlowFiles
+     * within this session are atomically persisted. All FlowFiles operated on
+     * within this session must be accounted for by transfer or removal or the
+     * commit will fail.
+     * </p>
+     *
+     * <p>
+     * If the session is successfully committed, the given <code>onSuccess</code> {@link Runnable} will be called.
+     * At the point that the session commit is completed, the session will have already been committed, so any calls
+     * to {@link #rollback()} / {@link #rollback(boolean)} will not undo that session commit but instead roll back any chances
+     * that may have occurred since.
+     * </p>
+     *
+     * <p>
+     * If, for any reason, the session could not be committed, the given <code>onFailure</code> {@link Consumer} will be called
+     * instead of the <code>onSuccess</code> {@link Runnable}. The Consumer will be provided the Throwable that prevented the session
+     * commit from completing.
+     * </p>
+     *
+     * <p>
+     * Unlike the {@link #commit()} method, the persistence of data to the repositories is not
+     * guaranteed to have occurred by the time that this method returns.
+     * </p>
+     *
+     * @throws IllegalStateException if called from within a callback (See {@link #write(FlowFile, StreamCallback)}, {@link #write(FlowFile, OutputStreamCallback)},
+     * {@link #read(FlowFile, InputStreamCallback)}).
+     *
+     * @throws FlowFileHandlingException if any FlowFile is not appropriately accounted for by transferring it to a Relationship (see {@link #transfer(FlowFile, Relationship)})
+     * or removed (see {@link #remove(FlowFile)}.
+     */
+    void commitAsync(Runnable onSuccess, Consumer<Throwable> onFailure);
 
     /**
      * Reverts any changes made during this session. All FlowFiles are restored

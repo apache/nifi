@@ -252,11 +252,9 @@ public class CompareFuzzyHash extends AbstractFuzzyHashProcessor {
                 // Finally, append the attributes to the flowfile and sent to match
                 flowFile = session.putAllAttributes(flowFile, attributes);
                 session.transfer(flowFile, REL_FOUND);
-                session.commit();
             } else {
                 // Otherwise send it to non-match
                 session.transfer(flowFile, REL_NOT_FOUND);
-                session.commit();
             }
         } catch (final IOException e) {
             logger.error("Error while reading the hash input source for {}", flowFile, e);

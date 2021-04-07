@@ -125,11 +125,13 @@ public abstract class AbstractKinesisRecordProcessor implements IRecordProcessor
                 startProcessingRecords();
                 final int recordsTransformed = processRecordsWithRetries(records, flowFiles, session, stopWatch);
                 transferTo(ConsumeKinesisStream.REL_SUCCESS, session, records.size(), recordsTransformed, flowFiles);
-                session.commit();
-                processingRecords = false;
 
-                // if creating an Kinesis checkpoint fails, then the same record(s) can be retrieved again
-                checkpointOnceEveryCheckpointInterval(processRecordsInput.getCheckpointer());
+                session.commitAsync(() -> {
+                    processingRecords = false;
+
+                    // if creating an Kinesis checkpoint fails, then the same record(s) can be retrieved again
+                    checkpointOnceEveryCheckpointInterval(processRecordsInput.getCheckpointer());
+                });
             }
         } catch (final Exception e) {
             log.error("Unable to fully process received Kinesis record(s) due to {}", e.getLocalizedMessage(), e);

@@ -82,7 +82,7 @@ public class ExpireFlowFiles implements Runnable {
 
         final StandardProcessSession session = createSession(connectable);
         session.expireFlowFiles();
-        session.commit();
+        session.commitAsync();
     }
 
     private void expireFlowFiles(final ProcessGroup group) {

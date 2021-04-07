@@ -33,4 +33,6 @@ public interface DataflowDefinition<T> {
     List<ParameterContextDefinition> getParameterContexts();
 
     List<ReportingTaskDefinition> getReportingTaskDefinitions();
+
+    TransactionThresholds getTransactionThresholds();
 }

@@ -67,6 +67,7 @@ import org.slf4j.LoggerFactory;
 import java.lang.reflect.Proxy;
 import java.net.URL;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -100,8 +101,16 @@ public class ComponentBuilder {
         return this;
     }
 
-    public ComponentBuilder additionalClassPathUrls(final Set<URL> additionalClassPathUrls) {
-        this.additionalClassPathUrls = additionalClassPathUrls;
+    public ComponentBuilder additionalClassPathUrls(final Set<URL> urls) {
+        if (urls == null || urls.isEmpty()) {
+            return this;
+        }
+
+        if (this.additionalClassPathUrls == null) {
+            this.additionalClassPathUrls = new HashSet<>();
+        }
+
+        this.additionalClassPathUrls.addAll(urls);
         return this;
     }
 

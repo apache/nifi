@@ -322,7 +322,7 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
                         // If we've reached the batch size, send out the flow files
                         if (outputBatchSize > 0 && resultSetFlowFiles.size() >= outputBatchSize) {
                             session.transfer(resultSetFlowFiles, REL_SUCCESS);
-                            session.commit();
+                            session.commitAsync();
                             resultSetFlowFiles.clear();
                         }
                     } else {
@@ -392,7 +392,7 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
                 getLogger().error("{} failed to update State Manager, maximum observed values will not be recorded", new Object[]{this, ioe});
             }
 
-            session.commit();
+            session.commitAsync();
         }
     }
 

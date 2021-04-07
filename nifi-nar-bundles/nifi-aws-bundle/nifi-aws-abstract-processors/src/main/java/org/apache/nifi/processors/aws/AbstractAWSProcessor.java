@@ -27,20 +27,6 @@ import com.amazonaws.auth.PropertiesCredentials;
 import com.amazonaws.http.conn.ssl.SdkTLSSocketFactory;
 import com.amazonaws.regions.Region;
 import com.amazonaws.regions.Regions;
-import java.io.File;
-import java.io.IOException;
-import java.net.Proxy;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import javax.net.ssl.SSLContext;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.conn.ssl.DefaultHostnameVerifier;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -61,6 +47,21 @@ import org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPro
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxySpec;
 import org.apache.nifi.ssl.SSLContextService;
+
+import javax.net.ssl.SSLContext;
+import java.io.File;
+import java.io.IOException;
+import java.net.Proxy;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Abstract base class for aws processors.  This class uses aws credentials for creating aws clients
@@ -283,7 +284,7 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
         final ProcessSession session = sessionFactory.createSession();
         try {
             onTrigger(context, session);
-            session.commit();
+            session.commitAsync();
         } catch (final Throwable t) {
             session.rollback(true);
             throw t;

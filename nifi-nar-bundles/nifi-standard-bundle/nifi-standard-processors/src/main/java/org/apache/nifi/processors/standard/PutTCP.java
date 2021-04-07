@@ -16,15 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import java.io.BufferedInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.nio.charset.Charset;
-import java.util.Arrays;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-import javax.net.ssl.SSLContext;
 import org.apache.commons.io.IOUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -44,6 +35,16 @@ import org.apache.nifi.processor.util.put.sender.ChannelSender;
 import org.apache.nifi.processor.util.put.sender.SocketChannelSender;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.StopWatch;
+
+import javax.net.ssl.SSLContext;
+import java.io.BufferedInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.charset.Charset;
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
  * <p>
@@ -210,7 +211,7 @@ public class PutTCP extends AbstractPutEventProcessor {
 
             session.getProvenanceReporter().send(flowFile, transitUri, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
             session.transfer(flowFile, REL_SUCCESS);
-            session.commit();
+            session.commitAsync();
         } catch (Exception e) {
             onFailure(context, session, flowFile);
             getLogger().error("Exception while handling a process session, transferring {} to failure.", new Object[] { flowFile }, e);
@@ -238,7 +239,7 @@ public class PutTCP extends AbstractPutEventProcessor {
      */
     protected void onFailure(final ProcessContext context, final ProcessSession session, final FlowFile flowFile) {
         session.transfer(session.penalize(flowFile), REL_FAILURE);
-        session.commit();
+        session.commitAsync();
         context.yield();
     }
 
