@@ -30,7 +30,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
-import com.azure.identity.AzureAuthorityHosts;
 import com.google.gson.JsonObject;
 import com.microsoft.graph.core.ClientException;
 import com.microsoft.graph.models.extensions.DirectoryObject;
@@ -75,9 +74,9 @@ public class AzureGraphUserGroupProvider implements UserGroupProvider {
     public static final String REFRESH_DELAY_PROPERTY = "Refresh Delay";
     private static final long MINIMUM_SYNC_INTERVAL_MILLISECONDS = 10_000;
     public static final String AUTHORITY_ENDPOINT_PROPERTY = "Authority Endpoint";
-    public static final String TENANT_ID_PROPERTY = "Tenant Id";
-    public static final String APP_REG_CLIENT_ID_PROPERTY = "App Reg Client Id";
-    public static final String APP_REG_CLIENT_SECRET_PROPERTY = "App Reg Client Secret";
+    public static final String TENANT_ID_PROPERTY = "Directory ID";
+    public static final String APP_REG_CLIENT_ID_PROPERTY = "Application ID";
+    public static final String APP_REG_CLIENT_SECRET_PROPERTY = "Client Secret";
     // comma separated list of group names to search from AAD
     public static final String GROUP_FILTER_LIST_PROPERTY = "Group Filter List Inclusion";
     // group filter with startswith
@@ -89,11 +88,12 @@ public class AzureGraphUserGroupProvider implements UserGroupProvider {
     public static final String PAGE_SIZE_PROPERTY = "Page Size";
     // default: upn (or userPrincipalName). possible choices ['upn', 'email']
     // this should be matched with oidc configuration in nifi.properties
-    public static final String CLAIM_FOR_USERNAME = "Claim For Username";
+    public static final String CLAIM_FOR_USERNAME = "Claim for Username";
     public static final String DEFAULT_REFRESH_DELAY = "5 mins";
     public static final String DEFAULT_PAGE_SIZE = "50";
     public static final String DEFAULT_CLAIM_FOR_USERNAME = "upn";
     public static final int MAX_PAGE_SIZE = 999;
+    public static final String AZURE_PUBLIC_CLOUD = "https://login.microsoftonline.com/";
     static final List<String> REST_CALL_KEYWORDS = Arrays.asList("$select", "$top", "$expand", "$search", "$filter", "$format", "$count", "$skip", "$orderby");
 
 
@@ -177,8 +177,8 @@ public class AzureGraphUserGroupProvider implements UserGroupProvider {
 
     @Override
     public void onConfigured(AuthorizerConfigurationContext configurationContext) throws AuthorizerCreationException {
-        long fixedDelay = getDelayProperty(configurationContext, REFRESH_DELAY_PROPERTY, DEFAULT_REFRESH_DELAY);
-        final String authorityEndpoint = getProperty(configurationContext, AUTHORITY_ENDPOINT_PROPERTY, AzureAuthorityHosts.AZURE_PUBLIC_CLOUD);
+        final long fixedDelay = getDelayProperty(configurationContext, REFRESH_DELAY_PROPERTY, DEFAULT_REFRESH_DELAY);
+        final String authorityEndpoint = getProperty(configurationContext, AUTHORITY_ENDPOINT_PROPERTY, AZURE_PUBLIC_CLOUD);
         final String tenantId = getProperty(configurationContext, TENANT_ID_PROPERTY, null);
         final String clientId = getProperty(configurationContext, APP_REG_CLIENT_ID_PROPERTY, null);
         final String clientSecret = getProperty(configurationContext, APP_REG_CLIENT_SECRET_PROPERTY, null);

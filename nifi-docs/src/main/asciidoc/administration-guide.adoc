@@ -527,13 +527,13 @@ Like LdapUserGroupProvider, the ShellUserGroupProvider is commented out in the _
 The AzureGraphUserGroupProvider fetches users and group details from Azure Activy Driectory (AAD) using the Azure Active Directory Graph API.
 
 This provider fetches a subset of users and groups based on the filters configured in _authorizers.xml_.
-It first fetches a list of groups based on the configured group filters (`Group Filter Prefix`, `Group Filter Suffix`, `Group Filter Substring`, and `Group Filter List`).
+It first fetches a list of groups based on the configured group filters (`Group Filter Prefix`, `Group Filter Suffix`, `Group Filter Substring`, and `Group Filter List Inclusion`).
 These filter conditions are evaluated against the _displayName_ property of Azure AD Group directory object. From the list of groups, it then loads member users of these groups.
 
 Pre-requsites of this provider on Azure Activy Driectory (AAD) side are (link:https://docs.microsoft.com/en-us/graph/auth-v2-service[from Azure graph doc^]):
 
 * Register your NiFi Application to AAD
-* Configure application type permissions for Microsoft Graph on your app (Group.Read.All,User.Read.All)
+* Configure application type permissions for Microsoft Graph on your app (Group.Read.All, User.Read.All)
 * Grant admin consent for the configured permissions
 * Create a client secret for your application
 * Enable 'upn' optional claim for ID token
@@ -553,9 +553,9 @@ The AzureGraphUserGroupProvider has the following properties:
 | Property Name | Description
 |`Refresh Delay` | Duration of delay between each user and group refresh. Default is `5 mins`.
 |`Authority Endpoint` | The endpoint of your AAD login. This can be found in the Azure portal under Azure Active Directory -> App registrations -> [application name] -> Endpoint. For example, global authority endpoint is https://login.microsoftonline.com, and US Gov cloud authority endpoint is https://login.microsoftonline.us
-|`Tenant Id` | Tenant ID or Directory ID. This can be found in the Azural portal under Azure Active Directory -> App registrations -> [application name] -> Directory (tenant) ID
-|`App Reg Client Id` | Client ID or Application ID of your Azure AD application registration. This can be found in Azure portal under Azure Active Directory -> App registrations -> [application name] -> Overview -> Application (client) ID.
-|`App Reg Client Secret` | A client secret from the Azure AD app registration. Secrets can be created in Azure portal under Azure Active Directory -> App registrations -> [application name] -> Certificates & secrets -> Client secrets -> [+] New client secret
+|`Directory ID` | Tenant ID or Directory ID. This can be found in the Azural portal under Azure Active Directory -> App registrations -> [application name] -> Directory (tenant) ID
+|`Application ID` | Client ID or Application ID of your Azure AD application registration. This can be found in Azure portal under Azure Active Directory -> App registrations -> [application name] -> Overview -> Application (client) ID.
+|`Client Secret` | A client secret from the Azure AD app registration. Secrets can be created in Azure portal under Azure Active Directory -> App registrations -> [application name] -> Certificates & secrets -> Client secrets -> [+] New client secret
 |`Group Filter Prefix` | Prefix filter for Azure AD groups. Matches against the group displayName to retrieve only groups with names starting with the provided prefix.
 |`Group Filter Suffix` | Suffix filter for Azure AD groups. Matches against the group displayName to retrieve only groups with names ending with the provided suffix.
 |`Group Filter Substring` | Substring filter for Azure AD Groups. Matches against the group displayName to retrieve only groups with names containing the provided substring.

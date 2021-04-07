@@ -196,38 +196,34 @@
     To enable the shell-user-group-provider remove 2 lines. This is 2 of 2. -->
 
     <!--
-        ** Pre-requsites on Azure Activy Driectory (AAD) side: As described in https://docs.microsoft.com/en-us/graph/auth-v2-service,
-                1. Register your NiFi Application to AAD
-                2. Configure application type permissions for Microsoft Graph on your app
-                    - Group.Read.All
-                    - User.Read.All
-                3. Grant admin consent for the configured permissions
-                4. Create a client secret for your application
-            Reference the following document and sample to configure pre-requsites for detail instructions.
-                - https://docs.microsoft.com/en-us/azure/active-directory/develop/scenario-daemon-app-registration
-                - https://github.com/Azure-Samples/ms-identity-java-daemon
         The AzureGraphUserGroupProvider provides support for retrieving users and groups from Azure Activy Driectory (AAD)
-        using graph rest-api & SDK. This providers will first search and filter groups based on a prefix, a suffix, and a substring filter,
-        if any specified. Comparsion is evaluated against 'displayName' property of Group directory objects.
-        Then, it will add optional list of groups, separated by comma, into the list of group.
-        If no prefix/suffix/substring group filter is specified as a group filter,
-        it will just use the optional list of groups for loading group directory info (displayName and id).
-        Finally, it will finds all the member users of these groups. Only those users with group membership will be loaded into this provider.
+        using graph rest-api & SDK.
 
+        'Refresh Delay'                 - (Optional) Duration of delay between each user and group refresh. Default is `5 mins`.
+        'Authority Endpoint'            - The endpoint of your AAD login.
+            This can be found in the Azure portal under Azure Active Directory -> App registrations -> [application name] -> Endpoint.
+            Global authority endpoint: https://login.microsoftonline.com,
+            Gov cloud authority endpoint: https://login.microsoftonline.us
+        'Directory ID'                  - Tenant ID or Directory ID. This can be found in the Azural portal under
+            Azure Active Directory -> App registrations -> [application name] -> Directory (tenant) ID.
+        'Application ID'                - Client ID or application ID of your AAD application registration
+        'Client Secret'                 - A client secret from the Azure AD app registration.
+            Secrets can be created in Azure portal under Azure Active Directory -> App registrations -> [application name] ->
+            Certificates & secrets -> Client secrets -> [+] New client secret
 
-        'Refresh Delay'         - (Optional) Duration of delay between each user and group refresh. Default is `5 mins`.
-        'Authority Endpoint'    - The endpoint of your AAD login. This can be found in the Azure portal under Azure Active Directory -> App registrations -> [application name] -> Endpoint.
-                                    Global authority endpoint: https://login.microsoftonline.com,
-                                    Gov cloud authority endpoint: https://login.microsoftonline.us
-        'Tenant Id'             - Tenant ID or Directory ID. This can be found in the Azural portal under Azure Active Directory -> App registrations -> [application name] -> Directory (tenant) ID.
-        'App Reg Client Id'     - Client ID or application ID of your AAD application registration
-        'App Reg Client Secret' - A client secret from the Azure AD app registration. Secrets can be created in Azure portal under Azure Active Directory -> App registrations -> [application name] -> Certificates & secrets -> Client secrets -> [+] New client secret
-        'Group Filter Prefix'   - (Optional) Prefix filter for Azure AD groups. Matches against the group displayName to retrieve only groups with names starting with the provided prefix.
-        'Group Filter Suffix'   - (Optional) Suffix filter for Azure AD groups. Matches against the group displayName to retrieve only groups with names ending with the provided suffix.
-        'Group Filter Substring'- (Optional) Comma-separated list of groups to be searched for users. If no string-based matching filter (i.e., prefix, suffix, and substring) is specified, make sure to set this property to avoid fetching all groups and users in the Azure AD tenant.
+        'Group Filter Prefix'           - (Optional) Prefix filter for Azure AD groups. Matches against the group displayName
+            to retrieve only groups with names starting with the provided prefix.
+        'Group Filter Suffix'           - (Optional) Suffix filter for Azure AD groups. Matches against the group displayName 
+            to retrieve only groups with names ending with the provided suffix.
+        'Group Filter Substring'        - (Optional) Comma-separated list of groups to be searched for users.
+            If no string-based matching filter (i.e., prefix, suffix, and substring) is specified, make sure to set this property
+             to avoid fetching all groups and users in the Azure AD tenant.
         'Group Filter List Inclusion'   - (Optional) Additional comma-separated list of group names that will be searched for users.
-        'Page Size'                     - (Optional) Page size to use with Azure Active Directory Graph API. Set to 0 to disable paging API calls. Default: 50, Max: 999
-        'Claim For Username'            - (Optional) The property of user directory object mapped to NiFi user name field. Default is 'upn'. 'email' is the another option when nifi.security.user.oidc.fallback.claims.identifying.user is set to upn.
+        
+        'Page Size'                     - (Optional) Page size to use with Azure Active Directory Graph API. Set to 0
+             to disable paging API calls. Default: 50, Max: 999
+        'Claim for Username'            - (Optional) The property of user directory object mapped to NiFi user name field.
+            Default is 'upn'. 'email' is the another option when nifi.security.user.oidc.fallback.claims.identifying.user is set to upn.
     -->
  <!-- To enable the composite-user-group-provider remove 2 lines. This is 1 of 2.
     <userGroupProvider>
@@ -235,15 +231,15 @@
         <class>org.apache.nifi.authorization.azure.AzureGraphUserGroupProvider</class>
         <property name="Refresh Delay">5 mins</property>
         <property name="Authority Endpoint">https://login.microsoftonline.com</property>
-        <property name="Tenant Id">XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXX</property>
-        <property name="App Reg Client Id">XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXX</property>
-        <property name="App Reg Client Secret">XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX</property>
-        <property name="Group Filter Prefix">test</property>
-        <property name="Group Filter Suffix">Group1</property>
-        <property name="Group Filter Substring">oup</property>
-        <property name="Group Filter List Inclusion">adminGroup, User</property>
-        <property name="Page Size">100</property>
-        <property name="Claim For Username">upn</property>
+        <property name="Directory ID">XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXX</property>
+        <property name="Application ID">XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXX</property>
+        <property name="Client Secret">XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX</property>
+        <property name="Group Filter Prefix"></property>
+        <property name="Group Filter Suffix"></property>
+        <property name="Group Filter Substring"></property>
+        <property name="Group Filter List Inclusion"></property>
+        <property name="Page Size"></property>
+        <property name="Claim for Username">upn</property>
     </userGroupProvider>
     To enable the composite-user-group-provider remove 2 lines. This is 2 of 2. -->
 
