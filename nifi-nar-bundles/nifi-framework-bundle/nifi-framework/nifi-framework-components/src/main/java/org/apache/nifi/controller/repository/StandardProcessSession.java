@@ -191,6 +191,10 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         }
     }
 
+    protected RepositoryContext getRepositoryContext() {
+        return context;
+    }
+
     protected long getSessionId() {
         return sessionId;
     }
@@ -219,56 +223,6 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
     public void checkpoint() {
         checkpoint(true);
         resetState();
-    }
-
-    @Override
-    public void commitAsync() {
-        validateCommitState();
-
-        try {
-            commit();
-        } catch (final Throwable t) {
-            LOG.error("Failed to asynchronously commit session {} for {}", this, connectableDescription, t);
-
-            try {
-                rollback();
-            } catch (final Throwable t2) {
-                LOG.error("Failed to roll back session {} for {}", this, connectableDescription, t2);
-            }
-        }
-    }
-
-    @Override
-    public void commitAsync(final Runnable onSuccess, final Consumer<Throwable> onFailure) {
-        validateCommitState();
-
-        try {
-            commit();
-        } catch (final Throwable t) {
-            LOG.error("Failed to asynchronously commit session {} for {}", this, connectableDescription, t);
-
-            try {
-                rollback();
-            } catch (final Throwable t2) {
-                LOG.error("Failed to roll back session {} for {}", this, connectableDescription, t2);
-            }
-
-            if (onFailure != null) {
-                onFailure.accept(t);
-            }
-
-            return;
-        }
-
-        if (onSuccess != null) {
-            try {
-                onSuccess.run();
-            } catch (final Exception e) {
-                LOG.error("Successfully committed session {} for {} but failed to trigger success callback", this, connectableDescription, e);
-            }
-        }
-
-        LOG.debug("Successfully committed session {} for {}", this, connectableDescription);
     }
 
     private void validateCommitState() {
@@ -399,8 +353,58 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
 
     @Override
     public synchronized void commit() {
+        commit(false);
+    }
+
+    @Override
+    public void commitAsync() {
+        try {
+            commit(true);
+        } catch (final Throwable t) {
+            LOG.error("Failed to asynchronously commit session {} for {}", this, connectableDescription, t);
+
+            try {
+                rollback();
+            } catch (final Throwable t2) {
+                LOG.error("Failed to roll back session {} for {}", this, connectableDescription, t2);
+            }
+        }
+    }
+
+    @Override
+    public void commitAsync(final Runnable onSuccess, final Consumer<Throwable> onFailure) {
+        try {
+            commit(true);
+        } catch (final Throwable t) {
+            LOG.error("Failed to asynchronously commit session {} for {}", this, connectableDescription, t);
+
+            try {
+                rollback();
+            } catch (final Throwable t2) {
+                LOG.error("Failed to roll back session {} for {}", this, connectableDescription, t2);
+            }
+
+            if (onFailure != null) {
+                onFailure.accept(t);
+            }
+
+            return;
+        }
+
+        if (onSuccess != null) {
+            try {
+                onSuccess.run();
+            } catch (final Exception e) {
+                LOG.error("Successfully committed session {} for {} but failed to trigger success callback", this, connectableDescription, e);
+            }
+        }
+
+        LOG.debug("Successfully committed session {} for {}", this, connectableDescription);
+    }
+
+    private void commit(final boolean asynchronous) {
         checkpoint(this.checkpoint != null); // If a checkpoint already exists, we need to copy the collection
-        commit(this.checkpoint);
+        commit(this.checkpoint, asynchronous);
 
         acknowledgeRecords();
         resetState();
@@ -409,7 +413,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
-    protected void commit(final Checkpoint checkpoint) {
+    protected void commit(final Checkpoint checkpoint, final boolean asynchronous) {
         try {
             final long commitStartNanos = System.nanoTime();
 
@@ -1195,7 +1199,6 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         details.append("]");
         return details.toString();
     }
-
 
     private void decrementClaimCount(final ContentClaim claim) {
         if (claim == null) {

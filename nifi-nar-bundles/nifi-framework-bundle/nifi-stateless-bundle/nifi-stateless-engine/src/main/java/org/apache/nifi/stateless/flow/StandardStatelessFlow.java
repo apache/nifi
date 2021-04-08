@@ -50,17 +50,20 @@ import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.exception.TerminatedTaskException;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.stateless.engine.ExecutionProgress;
+import org.apache.nifi.stateless.engine.ExecutionProgress.CompletionAction;
 import org.apache.nifi.stateless.engine.ProcessContextFactory;
 import org.apache.nifi.stateless.engine.StandardExecutionProgress;
 import org.apache.nifi.stateless.queue.DrainableFlowFileQueue;
 import org.apache.nifi.stateless.repository.ByteArrayContentRepository;
 import org.apache.nifi.stateless.repository.RepositoryContextFactory;
+import org.apache.nifi.stateless.session.ConnectableReadyStateTracker;
 import org.apache.nifi.stateless.session.StatelessProcessSessionFactory;
 import org.apache.nifi.util.Connectables;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -82,6 +85,7 @@ import java.util.stream.Collectors;
 public class StandardStatelessFlow implements StatelessDataflow {
     private static final Logger logger = LoggerFactory.getLogger(StandardStatelessFlow.class);
     private static final long COMPONENT_ENABLE_TIMEOUT_MILLIS = TimeUnit.SECONDS.toMillis(10);
+    private static final long TEN_MILLIS_IN_NANOS = TimeUnit.MILLISECONDS.toNanos(10);
 
     private final ProcessGroup rootGroup;
     private final List<Connection> allConnections;
@@ -420,22 +424,42 @@ public class StandardStatelessFlow implements StatelessDataflow {
 
 
     private void executeDataflow(final BlockingQueue<TriggerResult> resultQueue, final ExecutionProgress executionProgress) {
+        final ConnectableReadyStateTracker tracker = new ConnectableReadyStateTracker();
+        final long startNanos = System.nanoTime();
+
         try {
             for (final Connectable connectable : rootConnectables) {
-                final ProcessContext processContext = processContextFactory.createProcessContext(connectable);
+                trigger(connectable, executionProgress, tracker);
+            }
 
-                final StatelessProcessSessionFactory sessionFactory = new StatelessProcessSessionFactory(connectable, repositoryContextFactory,
-                    processContextFactory, executionProgress);
+            while (tracker.isAnyReady()) {
+                final Set<Connectable> next = new HashSet<>(tracker.getReady());
+                logger.debug("The following {} components are ready to be triggered: {}", next.size(), next);
+                for (final Connectable connectable : next) {
+                    while (tracker.isReady(connectable)) {
+                        if (executionProgress.isCanceled()) {
+                            logger.info("Dataflow was canceled so will not trigger any more components");
+                            return;
+                        }
 
-                final long start = System.nanoTime();
-                final long processingNanos;
+                        trigger(connectable, executionProgress, tracker);
+                    }
+                }
+            }
 
-                // If there is no incoming connection, trigger once.
-                logger.debug("Triggering {}", connectable);
-                connectable.onTrigger(processContext, sessionFactory);
+            logger.debug("Completed triggering of components in dataflow. Will now wait for acknowledgment");
+            final CompletionAction completionAction = executionProgress.awaitCompletionAction();
 
-                processingNanos = System.nanoTime() - start;
-                registerProcessEvent(connectable, 1, processingNanos);
+            switch (completionAction) {
+                case CANCEL:
+                    logger.debug("Dataflow was canceled");
+                    break;
+                case COMPLETE:
+                default:
+                    final long nanos = System.nanoTime() - startNanos;
+                    final String prettyPrinted = (nanos > TEN_MILLIS_IN_NANOS) ? (TimeUnit.NANOSECONDS.toMillis(nanos) + " millis") : NumberFormat.getInstance().format(nanos) + " nanos";
+                    logger.info("Ran dataflow in {}", prettyPrinted);
+                    break;
             }
         } catch (final TerminatedTaskException tte) {
             // This occurs when the caller invokes the cancel() method of DataflowTrigger.
@@ -445,6 +469,22 @@ public class StandardStatelessFlow implements StatelessDataflow {
             logger.error("Failed to execute dataflow", t);
             resultQueue.offer(new ExceptionalTriggerResult(t));
         }
+    }
+
+    private void trigger(final Connectable connectable, final ExecutionProgress executionProgress, final ConnectableReadyStateTracker tracker) {
+        final ProcessContext processContext = processContextFactory.createProcessContext(connectable);
+
+        final StatelessProcessSessionFactory sessionFactory = new StatelessProcessSessionFactory(connectable, repositoryContextFactory, processContextFactory,
+            executionProgress, false, tracker);
+
+        final long start = System.nanoTime();
+
+        // Trigger component
+        logger.debug("Triggering {}", connectable);
+        connectable.onTrigger(processContext, sessionFactory);
+
+        final long processingNanos = System.nanoTime() - start;
+        registerProcessEvent(connectable, 1, processingNanos);
     }
 
     private void registerProcessEvent(final Connectable connectable, final int invocations, final long processingNanos) {
