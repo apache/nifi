@@ -64,6 +64,8 @@ import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
 import static org.apache.nifi.expression.ExpressionLanguageScope.FLOWFILE_ATTRIBUTES;
+import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.FAILURE_STRATEGY;
+import static org.apache.nifi.processors.kafka.pubsub.KafkaProcessorUtils.FAILURE_STRATEGY_ROLLBACK;
 
 @Tags({"Apache", "Kafka", "Put", "Send", "Message", "PubSub", "2.5"})
 @CapabilityDescription("Sends the contents of a FlowFile as a message to Apache Kafka using the Kafka 2.5 Producer API."
@@ -279,6 +281,7 @@ public class PublishKafka_2_6 extends AbstractProcessor {
         properties.addAll(KafkaProcessorUtils.getCommonPropertyDescriptors());
         properties.add(TOPIC);
         properties.add(DELIVERY_GUARANTEE);
+        properties.add(FAILURE_STRATEGY);
         properties.add(USE_TRANSACTIONS);
         properties.add(TRANSACTIONAL_ID_PREFIX);
         properties.add(ATTRIBUTE_NAME_REGEX);
@@ -413,6 +416,7 @@ public class PublishKafka_2_6 extends AbstractProcessor {
         final String securityProtocol = context.getProperty(KafkaProcessorUtils.SECURITY_PROTOCOL).getValue();
         final String bootstrapServers = context.getProperty(KafkaProcessorUtils.BOOTSTRAP_SERVERS).evaluateAttributeExpressions().getValue();
         final boolean useTransactions = context.getProperty(USE_TRANSACTIONS).asBoolean();
+        final PublishFailureStrategy failureStrategy = getFailureStrategy(context);
 
         final long startTime = System.nanoTime();
         try (final PublisherLease lease = pool.obtainPublisher()) {
@@ -460,7 +464,7 @@ public class PublishKafka_2_6 extends AbstractProcessor {
 
                 if (publishResult.isFailure()) {
                     getLogger().info("Failed to send FlowFile to kafka; transferring to failure");
-                    session.transfer(flowFiles, REL_FAILURE);
+                    failureStrategy.routeFlowFiles(session, flowFiles);
                     return;
                 }
 
@@ -480,12 +484,20 @@ public class PublishKafka_2_6 extends AbstractProcessor {
             } catch (final ProducerFencedException | OutOfOrderSequenceException | AuthorizationException e) {
                 lease.poison();
                 getLogger().error("Failed to send messages to Kafka; will yield Processor and transfer FlowFiles to failure");
-                session.transfer(flowFiles, REL_FAILURE);
+                failureStrategy.routeFlowFiles(session, flowFiles);
                 context.yield();
             }
         }
     }
 
+    private PublishFailureStrategy getFailureStrategy(final ProcessContext context) {
+        final String strategy = context.getProperty(FAILURE_STRATEGY).getValue();
+        if (FAILURE_STRATEGY_ROLLBACK.getValue().equals(strategy)) {
+            return (session, flowFiles) -> session.rollback();
+        } else {
+            return (session, flowFiles) -> session.transfer(flowFiles, REL_FAILURE);
+        }
+    }
 
     private byte[] getMessageKey(final FlowFile flowFile, final ProcessContext context) {
 
