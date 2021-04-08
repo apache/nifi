@@ -86,6 +86,7 @@ public class MockProcessSession implements ProcessSession {
     // A List of OutputStreams that have been created by calls to {@link #write(FlowFile)} and have not yet been closed.
     private final Map<FlowFile, OutputStream> openOutputStreams = new HashMap<>();
     private final StateManager stateManager;
+    private final boolean allowSynchronousCommits;
 
     private boolean committed = false;
     private boolean rolledback = false;
@@ -102,12 +103,18 @@ public class MockProcessSession implements ProcessSession {
     }
 
     public MockProcessSession(final SharedSessionState sharedState, final Processor processor, final boolean enforceStreamsClosed, final StateManager stateManager) {
+        this(sharedState, processor, enforceStreamsClosed, stateManager, false);
+    }
+
+    public MockProcessSession(final SharedSessionState sharedState, final Processor processor, final boolean enforceStreamsClosed, final StateManager stateManager,
+                              final boolean allowSynchronousCommits) {
         this.processor = processor;
         this.enforceStreamsClosed = enforceStreamsClosed;
         this.sharedState = sharedState;
         this.processorQueue = sharedState.getFlowFileQueue();
         this.provenanceReporter = new MockProvenanceReporter(this, sharedState, processor.getIdentifier(), processor.getClass().getSimpleName());
         this.stateManager = stateManager;
+        this.allowSynchronousCommits = allowSynchronousCommits;
     }
 
     @Override
@@ -258,6 +265,16 @@ public class MockProcessSession implements ProcessSession {
 
     @Override
     public void commit() {
+        if (!allowSynchronousCommits) {
+            throw new RuntimeException("As of version 1.14.0, ProcessSession.commit() should be avoided when possible. See JavaDocs for explanations. Instead, use commitAsync(), " +
+                "commitAsync(Runnable), or commitAsync(Runnable, Consumer<Throwable>). However, if this is not possible, ProcessSession.commit() may still be used, but this must be explicitly " +
+                "enabled by calling TestRunner.");
+        }
+
+        commitInternal();
+    }
+
+    private void commitInternal() {
         if (!beingProcessed.isEmpty()) {
             throw new FlowFileHandlingException("Cannot commit session because the following FlowFiles have not been removed or transferred: " + beingProcessed);
         }
@@ -281,13 +298,13 @@ public class MockProcessSession implements ProcessSession {
 
     @Override
     public void commitAsync() {
-        commit();
+        commitInternal();
     }
 
     @Override
     public void commitAsync(final Runnable onSuccess, final Consumer<Throwable> onFailure) {
         try {
-            commit();
+            commitInternal();
         } catch (final Throwable t) {
             rollback();
             onFailure.accept(t);
@@ -1177,14 +1194,14 @@ public class MockProcessSession implements ProcessSession {
     }
 
     /**
-     * Assert that {@link #commit()} has been called
+     * Assert that the session has been committed
      */
     public void assertCommitted() {
         Assert.assertTrue("Session was not committed", committed);
     }
 
     /**
-     * Assert that {@link #commit()} has not been called
+     * Assert that the session has not been committed
      */
     public void assertNotCommitted() {
         Assert.assertFalse("Session was committed", committed);

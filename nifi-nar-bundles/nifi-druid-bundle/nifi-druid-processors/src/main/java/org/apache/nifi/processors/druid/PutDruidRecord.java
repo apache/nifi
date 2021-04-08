@@ -278,7 +278,7 @@ public class PutDruidRecord extends AbstractProcessor {
             } catch (IOException ioe) {
                 log.error("Error closing output stream for FlowFile with successful records.", ioe);
             }
-            session.commit();
+            session.commitAsync();
             return;
         }
 

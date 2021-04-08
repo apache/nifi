@@ -18,7 +18,6 @@
 package org.apache.nifi.stateless.session;
 
 import org.apache.nifi.connectable.Connectable;
-import org.apache.nifi.controller.repository.RepositoryContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.stateless.engine.ExecutionProgress;
@@ -30,23 +29,22 @@ public class StatelessProcessSessionFactory implements ProcessSessionFactory {
     private final RepositoryContextFactory contextFactory;
     private final ProcessContextFactory processContextFactory;
     private final ExecutionProgress executionProgress;
+    private final boolean requireSynchronousCommits;
+    private final AsynchronousCommitTracker tracker;
 
     public StatelessProcessSessionFactory(final Connectable connectable, final RepositoryContextFactory contextFactory, final ProcessContextFactory processContextFactory,
-                                          final ExecutionProgress executionProgress) {
+                                          final ExecutionProgress executionProgress, final boolean requireSynchronousCommits, final AsynchronousCommitTracker tracker) {
         this.connectable = connectable;
         this.contextFactory = contextFactory;
         this.processContextFactory = processContextFactory;
         this.executionProgress = executionProgress;
+        this.requireSynchronousCommits = requireSynchronousCommits;
+        this.tracker = tracker;
     }
 
     @Override
     public ProcessSession createSession() {
-        final RepositoryContext context = contextFactory.createRepositoryContext(connectable);
-        final ProcessSession session = new StatelessProcessSession(context, this, processContextFactory, executionProgress);
+        final ProcessSession session = new StatelessProcessSession(connectable, contextFactory, processContextFactory, executionProgress, requireSynchronousCommits, tracker);
         return session;
-    }
-
-    public RepositoryContextFactory getRepositoryContextFactory() {
-        return contextFactory;
     }
 }

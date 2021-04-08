@@ -33,7 +33,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.rules.TestName;
-import org.junit.rules.Timeout;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -43,7 +42,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 public class StatelessSystemIT {
     private final List<StatelessDataflow> createdFlows = new ArrayList<>();
@@ -55,8 +53,9 @@ public class StatelessSystemIT {
     @Rule
     public TestName name = new TestName();
 
-    @Rule
-    public Timeout defaultTimeout = new Timeout(30, TimeUnit.SECONDS);
+    // todo: uncomment
+//    @Rule
+//    public Timeout defaultTimeout = new Timeout(30, TimeUnit.SECONDS);
 
 
     @Before
