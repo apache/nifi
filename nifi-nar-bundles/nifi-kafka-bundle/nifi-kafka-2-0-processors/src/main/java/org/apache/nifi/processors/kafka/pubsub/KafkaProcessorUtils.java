@@ -95,6 +95,12 @@ public final class KafkaProcessorUtils {
     static final AllowableValue SASL_MECHANISM_SCRAM_SHA512 = new AllowableValue(SCRAM_SHA512_VALUE, SCRAM_SHA512_VALUE,"The Salted Challenge Response Authentication Mechanism using SHA-512. " +
             "The username and password properties must be set when using this mechanism.");
 
+    static final AllowableValue FAILURE_STRATEGY_FAILURE_RELATIONSHIP = new AllowableValue("Route to Failure", "Route to Failure",
+        "When unable to publish a FlowFile to Kafka, the FlowFile will be routed to the 'failure' relationship.");
+    static final AllowableValue FAILURE_STRATEGY_ROLLBACK = new AllowableValue("Rollback", "Rollback",
+        "When unable to publish a FlowFile to Kafka, the FlowFile will be placed back on the top of its queue so that it will be the next FlowFile tried again. " +
+            "For dataflows where ordering of FlowFiles is important, this strategy can be used along with ensuring that the each processor in the dataflow uses only a single Concurrent Task.");
+
     public static final PropertyDescriptor BOOTSTRAP_SERVERS = new PropertyDescriptor.Builder()
             .name(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG)
             .displayName("Kafka Brokers")
@@ -190,6 +196,15 @@ public final class KafkaProcessorUtils {
         .description("Specifies the Kerberos Credentials Controller Service that should be used for authenticating with Kerberos")
         .identifiesControllerService(KerberosCredentialsService.class)
         .required(false)
+        .build();
+
+    static final PropertyDescriptor FAILURE_STRATEGY = new PropertyDescriptor.Builder()
+        .name("Failure Strategy")
+        .displayName("Failure Strategy")
+        .description("Dictates how the processor handles a FlowFile if it is unable to publish the data to Kafka")
+        .required(true)
+        .allowableValues(FAILURE_STRATEGY_FAILURE_RELATIONSHIP, FAILURE_STRATEGY_ROLLBACK)
+        .defaultValue(FAILURE_STRATEGY_FAILURE_RELATIONSHIP.getValue())
         .build();
 
     static List<PropertyDescriptor> getCommonPropertyDescriptors() {
