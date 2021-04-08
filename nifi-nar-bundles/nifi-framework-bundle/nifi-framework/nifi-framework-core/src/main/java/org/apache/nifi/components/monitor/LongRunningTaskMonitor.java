@@ -26,6 +26,7 @@ import org.apache.nifi.reporting.Severity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.text.NumberFormat;
 import java.util.List;
 
 public class LongRunningTaskMonitor implements Runnable {
@@ -45,6 +46,7 @@ public class LongRunningTaskMonitor implements Runnable {
     @Override
     public void run() {
         getLogger().debug("Checking long running processor tasks...");
+        final long start = System.nanoTime();
 
         int activeThreadCount = 0;
         int longRunningThreadCount = 0;
@@ -73,7 +75,8 @@ public class LongRunningTaskMonitor implements Runnable {
             }
         }
 
-        getLogger().info("Active threads: {}; Long running threads: {}", activeThreadCount, longRunningThreadCount);
+        final long nanos = System.nanoTime() - start;
+        getLogger().info("Active threads: {}; Long running threads: {}; time to check: {} nanos", activeThreadCount, longRunningThreadCount, NumberFormat.getInstance().format(nanos));
     }
 
     @VisibleForTesting
