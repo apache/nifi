@@ -46,6 +46,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.net.MalformedURLException;
+import java.text.NumberFormat;
 import java.util.Date;
 import java.util.Map;
 import java.util.Set;
@@ -55,7 +56,6 @@ import java.util.WeakHashMap;
  * Authorizer implementation that uses Apache Ranger to make authorization decisions.
  */
 public class RangerNiFiAuthorizer implements Authorizer, AuthorizationAuditor {
-
     private static final Logger logger = LoggerFactory.getLogger(RangerNiFiAuthorizer.class);
 
     static final String RANGER_AUDIT_PATH_PROP = "Ranger Audit Config Path";
@@ -79,6 +79,7 @@ public class RangerNiFiAuthorizer implements Authorizer, AuthorizationAuditor {
     private volatile String rangerAdminIdentity = null;
     private volatile boolean rangerKerberosEnabled = false;
     private volatile NiFiProperties nifiProperties;
+    private final NumberFormat numberFormat = NumberFormat.getInstance();
 
     @Override
     public void initialize(AuthorizerInitializationContext initializationContext) throws AuthorizerCreationException {
@@ -177,7 +178,10 @@ public class RangerNiFiAuthorizer implements Authorizer, AuthorizationAuditor {
             rangerRequest.setClientIPAddress(clientIp);
         }
 
+        final long authStart = System.nanoTime();
         final RangerAccessResult result = nifiPlugin.isAccessAllowed(rangerRequest);
+        final long authNanos = System.nanoTime() - authStart;
+        logger.debug("Performed authorization against Ranger for Resource ID {}, Identity {} in {} nanos", resourceIdentifier, identity, numberFormat.format(authNanos));
 
         // store the result for auditing purposes later if appropriate
         if (request.isAccessAttempt()) {
@@ -223,7 +227,10 @@ public class RangerNiFiAuthorizer implements Authorizer, AuthorizationAuditor {
             event.setResourceType(RANGER_NIFI_RESOURCE_NAME);
             event.setResourcePath(request.getRequestedResource().getIdentifier());
 
+            final long start = System.nanoTime();
             defaultAuditHandler.logAuthzAudit(event);
+            final long nanos = System.nanoTime() - start;
+            logger.debug("Logged authorization audits to Ranger in {} nanos", numberFormat.format(nanos));
         }
     }
 
