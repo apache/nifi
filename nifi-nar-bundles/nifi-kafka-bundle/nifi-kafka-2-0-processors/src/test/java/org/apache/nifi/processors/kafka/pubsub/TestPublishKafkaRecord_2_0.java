@@ -155,6 +155,25 @@ public class TestPublishKafkaRecord_2_0 {
     }
 
     @Test
+    public void testSingleFailureWithRollback() throws IOException {
+        runner.setProperty(KafkaProcessorUtils.FAILURE_STRATEGY, KafkaProcessorUtils.FAILURE_STRATEGY_ROLLBACK);
+
+        final MockFlowFile flowFile = runner.enqueue("John Doe, 48");
+
+        when(mockLease.complete()).thenReturn(createFailurePublishResult(flowFile));
+
+        runner.run();
+        runner.assertAllFlowFilesTransferred(PublishKafkaRecord_2_0.REL_FAILURE, 0);
+
+        verify(mockLease, times(1)).publish(any(FlowFile.class), any(RecordSet.class), any(RecordSetWriterFactory.class),
+            AdditionalMatchers.or(any(RecordSchema.class), isNull()), eq(null), eq(TOPIC_NAME), nullable(Function.class));
+        verify(mockLease, times(1)).close();
+
+        assertEquals(1, runner.getQueueSize().getObjectCount());
+    }
+
+
+    @Test
     public void testFailureWhenCreationgTransaction() {
         runner.enqueue("John Doe, 48");
 
@@ -173,6 +192,26 @@ public class TestPublishKafkaRecord_2_0 {
     }
 
     @Test
+    public void testFailureWhenCreatingTransactionWithRollback() {
+        runner.setProperty(KafkaProcessorUtils.FAILURE_STRATEGY, KafkaProcessorUtils.FAILURE_STRATEGY_ROLLBACK);
+        runner.enqueue("John Doe, 48");
+
+        doAnswer(new Answer<Object>() {
+            @Override
+            public Object answer(final InvocationOnMock invocationOnMock) {
+                throw new ProducerFencedException("Intentional ProducedFencedException for unit test");
+            }
+        }).when(mockLease).beginTransaction();
+
+        runner.run();
+        runner.assertAllFlowFilesTransferred(PublishKafkaRecord_2_0.REL_FAILURE, 0);
+
+        verify(mockLease, times(1)).poison();
+        verify(mockLease, times(1)).close();
+        assertEquals(1, runner.getQueueSize().getObjectCount());
+    }
+
+    @Test
     public void testMultipleFailures() throws IOException {
         final Set<FlowFile> flowFiles = new HashSet<>();
         flowFiles.add(runner.enqueue("John Doe, 48"));
@@ -188,6 +227,27 @@ public class TestPublishKafkaRecord_2_0 {
                 AdditionalMatchers.or(any(RecordSchema.class), isNull()), eq(null), eq(TOPIC_NAME), nullable(Function.class));
         verify(mockLease, times(1)).complete();
         verify(mockLease, times(1)).close();
+    }
+
+    @Test
+    public void testMultipleFailuresWithRollback() throws IOException {
+        runner.setProperty(KafkaProcessorUtils.FAILURE_STRATEGY, KafkaProcessorUtils.FAILURE_STRATEGY_ROLLBACK);
+        final Set<FlowFile> flowFiles = new HashSet<>();
+        flowFiles.add(runner.enqueue("John Doe, 48"));
+        flowFiles.add(runner.enqueue("John Doe, 48"));
+        flowFiles.add(runner.enqueue("John Doe, 48"));
+
+        when(mockLease.complete()).thenReturn(createFailurePublishResult(flowFiles));
+
+        runner.run();
+        runner.assertAllFlowFilesTransferred(PublishKafkaRecord_2_0.REL_FAILURE, 0);
+
+        verify(mockLease, times(3)).publish(any(FlowFile.class), any(RecordSet.class), any(RecordSetWriterFactory.class),
+            AdditionalMatchers.or(any(RecordSchema.class), isNull()), eq(null), eq(TOPIC_NAME), nullable(Function.class));
+        verify(mockLease, times(1)).complete();
+        verify(mockLease, times(1)).close();
+
+        assertEquals(3, runner.getQueueSize().getObjectCount());
     }
 
     @Test
