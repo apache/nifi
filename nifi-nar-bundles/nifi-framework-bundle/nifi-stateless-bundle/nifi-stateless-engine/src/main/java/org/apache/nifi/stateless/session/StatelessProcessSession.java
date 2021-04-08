@@ -47,12 +47,12 @@ public class StatelessProcessSession extends StandardProcessSession {
     private final RepositoryContextFactory repositoryContextFactory;
     private final ProcessContextFactory processContextFactory;
     private final ExecutionProgress executionProgress;
-    private final ConnectableReadyStateTracker tracker;
+    private final AsynchronousCommitTracker tracker;
 
     private boolean requireSynchronousCommits;
 
     public StatelessProcessSession(final Connectable connectable, final RepositoryContextFactory repositoryContextFactory, final ProcessContextFactory processContextFactory,
-                                   final ExecutionProgress progress, final boolean requireSynchronousCommits, final ConnectableReadyStateTracker tracker) {
+                                   final ExecutionProgress progress, final boolean requireSynchronousCommits, final AsynchronousCommitTracker tracker) {
 
         super(repositoryContextFactory.createRepositoryContext(connectable), progress::isCanceled);
         this.connectable = connectable;
@@ -83,14 +83,17 @@ public class StatelessProcessSession extends StandardProcessSession {
 
     @Override
     public void commitAsync(final Runnable onSuccess, final Consumer<Throwable> onFailure) {
-        // If we don't require synchronous commits, we can just follow the behavior of the super class
+        // If we don't require synchronous commits, we can trigger the async commit, but we can't call the callback yet, because we only can call the success callback when we've completed the
+        // dataflow in order to ensure that we don't destroy data in a way that it can't be replayed if the downstream processors fail.
         if (!requireSynchronousCommits) {
-            super.commitAsync(onSuccess, onFailure);
+            super.commitAsync();
+            tracker.addCallback(connectable, onSuccess, onFailure);
             return;
         }
 
         // If we require a synchronous commit, we can just call super.commitAsync(), which will then call the super class's commit(),
-        // which will delegate to this.commit(Checkpoint), which is the synchronous commit.
+        // which will delegate to this.commit(Checkpoint), which is the synchronous commit and will result in trigger downstream processors,
+        // so we can then trigger the success callback.
         try {
             super.commit();
         } catch (final Throwable t) {
@@ -99,9 +102,6 @@ public class StatelessProcessSession extends StandardProcessSession {
             return;
         }
 
-        // TODO: This needs to be done only after completing the full dataflow. In the meantime, it needs to be coupled together with the
-        //       failure handler (Tuple<Runnable, Consumer<Throwable>> but not that, an actual class). And then if any Exception occurs, need
-        //       to unwind the stack calling onFailure's, else unwind calling success callback.
         try {
             onSuccess.run();
         } catch (final Exception e) {

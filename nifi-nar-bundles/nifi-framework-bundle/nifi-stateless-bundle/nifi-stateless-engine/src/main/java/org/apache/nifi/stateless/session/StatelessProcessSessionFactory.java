@@ -30,10 +30,10 @@ public class StatelessProcessSessionFactory implements ProcessSessionFactory {
     private final ProcessContextFactory processContextFactory;
     private final ExecutionProgress executionProgress;
     private final boolean requireSynchronousCommits;
-    private final ConnectableReadyStateTracker tracker;
+    private final AsynchronousCommitTracker tracker;
 
     public StatelessProcessSessionFactory(final Connectable connectable, final RepositoryContextFactory contextFactory, final ProcessContextFactory processContextFactory,
-                                          final ExecutionProgress executionProgress, final boolean requireSynchronousCommits, final ConnectableReadyStateTracker tracker) {
+                                          final ExecutionProgress executionProgress, final boolean requireSynchronousCommits, final AsynchronousCommitTracker tracker) {
         this.connectable = connectable;
         this.contextFactory = contextFactory;
         this.processContextFactory = processContextFactory;

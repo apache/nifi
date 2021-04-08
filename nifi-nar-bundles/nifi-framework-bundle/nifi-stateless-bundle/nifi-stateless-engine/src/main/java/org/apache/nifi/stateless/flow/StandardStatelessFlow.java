@@ -56,7 +56,7 @@ import org.apache.nifi.stateless.engine.StandardExecutionProgress;
 import org.apache.nifi.stateless.queue.DrainableFlowFileQueue;
 import org.apache.nifi.stateless.repository.ByteArrayContentRepository;
 import org.apache.nifi.stateless.repository.RepositoryContextFactory;
-import org.apache.nifi.stateless.session.ConnectableReadyStateTracker;
+import org.apache.nifi.stateless.session.AsynchronousCommitTracker;
 import org.apache.nifi.stateless.session.StatelessProcessSessionFactory;
 import org.apache.nifi.util.Connectables;
 import org.slf4j.Logger;
@@ -424,27 +424,38 @@ public class StandardStatelessFlow implements StatelessDataflow {
 
 
     private void executeDataflow(final BlockingQueue<TriggerResult> resultQueue, final ExecutionProgress executionProgress) {
-        final ConnectableReadyStateTracker tracker = new ConnectableReadyStateTracker();
+        final AsynchronousCommitTracker tracker = new AsynchronousCommitTracker();
         final long startNanos = System.nanoTime();
 
         try {
-            for (final Connectable connectable : rootConnectables) {
-                trigger(connectable, executionProgress, tracker);
-            }
+            Connectable lastComponentTriggered = null;
 
-            while (tracker.isAnyReady()) {
-                final Set<Connectable> next = new HashSet<>(tracker.getReady());
-                logger.debug("The following {} components are ready to be triggered: {}", next.size(), next);
-                for (final Connectable connectable : next) {
-                    while (tracker.isReady(connectable)) {
-                        if (executionProgress.isCanceled()) {
-                            logger.info("Dataflow was canceled so will not trigger any more components");
-                            return;
+            try {
+                for (final Connectable connectable : rootConnectables) {
+                    lastComponentTriggered = connectable;
+                    trigger(connectable, executionProgress, tracker);
+                }
+
+                while (tracker.isAnyReady()) {
+                    final Set<Connectable> next = new HashSet<>(tracker.getReady());
+                    logger.debug("The following {} components are ready to be triggered: {}", next.size(), next);
+                    for (final Connectable connectable : next) {
+                        while (tracker.isReady(connectable)) {
+                            if (executionProgress.isCanceled()) {
+                                logger.info("Dataflow was canceled so will not trigger any more components");
+                                return;
+                            }
+
+                            lastComponentTriggered = connectable;
+                            trigger(connectable, executionProgress, tracker);
                         }
-
-                        trigger(connectable, executionProgress, tracker);
                     }
                 }
+            } catch (final Throwable t) {
+                logger.error("Failed to trigger {}", lastComponentTriggered, t);
+                executionProgress.notifyExecutionFailed(t);
+                tracker.triggerFailureCallbacks(t);
+                throw t;
             }
 
             logger.debug("Completed triggering of components in dataflow. Will now wait for acknowledgment");
@@ -453,9 +464,13 @@ public class StandardStatelessFlow implements StatelessDataflow {
             switch (completionAction) {
                 case CANCEL:
                     logger.debug("Dataflow was canceled");
+                    tracker.triggerFailureCallbacks(new RuntimeException("Dataflow Canceled"));
+                    purge();
                     break;
                 case COMPLETE:
                 default:
+                    tracker.triggerCallbacks();
+
                     final long nanos = System.nanoTime() - startNanos;
                     final String prettyPrinted = (nanos > TEN_MILLIS_IN_NANOS) ? (TimeUnit.NANOSECONDS.toMillis(nanos) + " millis") : NumberFormat.getInstance().format(nanos) + " nanos";
                     logger.info("Ran dataflow in {}", prettyPrinted);
@@ -464,14 +479,16 @@ public class StandardStatelessFlow implements StatelessDataflow {
         } catch (final TerminatedTaskException tte) {
             // This occurs when the caller invokes the cancel() method of DataflowTrigger.
             logger.debug("Caught a TerminatedTaskException", tte);
+            purge();
             resultQueue.offer(new CanceledTriggerResult());
         } catch (final Throwable t) {
             logger.error("Failed to execute dataflow", t);
+            purge();
             resultQueue.offer(new ExceptionalTriggerResult(t));
         }
     }
 
-    private void trigger(final Connectable connectable, final ExecutionProgress executionProgress, final ConnectableReadyStateTracker tracker) {
+    private void trigger(final Connectable connectable, final ExecutionProgress executionProgress, final AsynchronousCommitTracker tracker) {
         final ProcessContext processContext = processContextFactory.createProcessContext(connectable);
 
         final StatelessProcessSessionFactory sessionFactory = new StatelessProcessSessionFactory(connectable, repositoryContextFactory, processContextFactory,
