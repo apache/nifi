@@ -19,8 +19,6 @@ package org.apache.nifi.redis.service;
 import org.apache.nifi.redis.RedisConnectionPool;
 import org.apache.nifi.redis.util.RedisUtils;
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.security.util.KeyStoreUtils;
-import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.util.MockConfigurationContext;
 import org.apache.nifi.util.MockProcessContext;
@@ -49,7 +47,7 @@ public class TestRedisConnectionPoolService {
 
     @BeforeClass
     public static void classSetup() throws IOException, GeneralSecurityException {
-        sslContext = SslContextFactory.createSslContext(KeyStoreUtils.createTlsConfigAndNewKeystoreTruststore());
+        sslContext = SSLContext.getDefault();
     }
 
     @Before
@@ -61,7 +59,7 @@ public class TestRedisConnectionPoolService {
         testRunner.addControllerService("redis-service", redisService);
     }
 
-    private void enableSslContextService(final SSLContext sslContext) throws InitializationException {
+    private void enableSslContextService() throws InitializationException {
         final RestrictedSSLContextService sslContextService = Mockito.mock(RestrictedSSLContextService.class);
         Mockito.when(sslContextService.getIdentifier()).thenReturn(SSL_CONTEXT_IDENTIFIER);
         Mockito.when(sslContextService.createContext()).thenReturn(sslContext);
@@ -74,7 +72,7 @@ public class TestRedisConnectionPoolService {
     public void testSSLContextService() throws InitializationException {
         this.setDefaultRedisProperties();
 
-        this.enableSslContextService(sslContext);
+        this.enableSslContextService();
 
         testRunner.assertValid(redisService);
         testRunner.enableControllerService(redisService);
