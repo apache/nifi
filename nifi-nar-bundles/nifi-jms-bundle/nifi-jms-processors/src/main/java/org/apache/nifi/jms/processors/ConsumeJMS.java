@@ -275,20 +275,26 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
                         return;
                     }
 
-                    FlowFile flowFile = processSession.create();
-                    flowFile = processSession.write(flowFile, out -> out.write(response.getMessageBody()));
+                    try {
+                        FlowFile flowFile = processSession.create();
+                        flowFile = processSession.write(flowFile, out -> out.write(response.getMessageBody()));
 
-                    final Map<String, String> jmsHeaders = response.getMessageHeaders();
-                    final Map<String, String> jmsProperties = response.getMessageProperties();
+                        final Map<String, String> jmsHeaders = response.getMessageHeaders();
+                        final Map<String, String> jmsProperties = response.getMessageProperties();
 
-                    flowFile = ConsumeJMS.this.updateFlowFileAttributesWithJMSAttributes(jmsHeaders, flowFile, processSession);
-                    flowFile = ConsumeJMS.this.updateFlowFileAttributesWithJMSAttributes(jmsProperties, flowFile, processSession);
-                    flowFile = processSession.putAttribute(flowFile, JMS_SOURCE_DESTINATION_NAME, destinationName);
+                        flowFile = ConsumeJMS.this.updateFlowFileAttributesWithJMSAttributes(jmsHeaders, flowFile, processSession);
+                        flowFile = ConsumeJMS.this.updateFlowFileAttributesWithJMSAttributes(jmsProperties, flowFile, processSession);
+                        flowFile = processSession.putAttribute(flowFile, JMS_SOURCE_DESTINATION_NAME, destinationName);
 
-                    processSession.getProvenanceReporter().receive(flowFile, destinationName);
-                    processSession.putAttribute(flowFile, JMS_MESSAGETYPE, response.getMessageType());
-                    processSession.transfer(flowFile, REL_SUCCESS);
-                    processSession.commit();
+                        processSession.getProvenanceReporter().receive(flowFile, destinationName);
+                        processSession.putAttribute(flowFile, JMS_MESSAGETYPE, response.getMessageType());
+                        processSession.transfer(flowFile, REL_SUCCESS);
+
+                        processSession.commitAsync(() -> acknowledge(response), throwable -> response.reject());
+                    } catch (final Throwable t) {
+                        response.reject();
+                        throw t;
+                    }
                 }
             });
         } catch(Exception e) {
@@ -297,6 +303,16 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
             throw e; // for backward compatibility with exception handling in flows
         }
     }
+
+    private void acknowledge(final JMSResponse response) {
+        try {
+            response.acknowledge();
+        } catch (final Exception e) {
+            getLogger().error("Failed to acknowledge JMS Message that was received", e);
+            throw new ProcessException(e);
+        }
+    }
+
 
     /**
      * Will create an instance of {@link JMSConsumer}

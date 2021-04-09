@@ -28,6 +28,7 @@ import org.apache.nifi.stateless.flow.FailurePortEncounteredException;
 import org.apache.nifi.stateless.flow.TriggerResult;
 import org.apache.nifi.stateless.queue.DrainableFlowFileQueue;
 import org.apache.nifi.stateless.repository.ByteArrayContentRepository;
+import org.apache.nifi.stateless.session.AsynchronousCommitTracker;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -45,18 +46,20 @@ public class StandardExecutionProgress implements ExecutionProgress {
     private final ByteArrayContentRepository contentRepository;
     private final BlockingQueue<TriggerResult> resultQueue;
     private final Set<String> failurePortNames;
+    private final AsynchronousCommitTracker commitTracker;
 
     private final BlockingQueue<CompletionAction> completionActionQueue;
     private volatile boolean canceled = false;
     private volatile CompletionAction completionAction = null;
 
     public StandardExecutionProgress(final ProcessGroup rootGroup, final List<FlowFileQueue> internalFlowFileQueues, final BlockingQueue<TriggerResult> resultQueue,
-                                     final ByteArrayContentRepository contentRepository, final Set<String> failurePortNames) {
+                                     final ByteArrayContentRepository contentRepository, final Set<String> failurePortNames, final AsynchronousCommitTracker commitTracker) {
         this.rootGroup = rootGroup;
         this.internalFlowFileQueues = internalFlowFileQueues;
         this.resultQueue = resultQueue;
         this.contentRepository = contentRepository;
         this.failurePortNames = failurePortNames;
+        this.commitTracker = commitTracker;
 
         completionActionQueue = new LinkedBlockingQueue<>();
     }
@@ -148,6 +151,7 @@ public class StandardExecutionProgress implements ExecutionProgress {
 
             @Override
             public void acknowledge() {
+                commitTracker.triggerCallbacks();
                 completionActionQueue.offer(CompletionAction.COMPLETE);
             }
         };
@@ -156,11 +160,13 @@ public class StandardExecutionProgress implements ExecutionProgress {
     @Override
     public void notifyExecutionCanceled() {
         canceled = true;
+        commitTracker.triggerFailureCallbacks(new RuntimeException("Dataflow Canceled"));
         completionActionQueue.offer(CompletionAction.CANCEL);
     }
 
     @Override
     public void notifyExecutionFailed(final Throwable cause) {
+        commitTracker.triggerFailureCallbacks(cause);
         completionActionQueue.offer(CompletionAction.CANCEL);
     }
 

@@ -382,8 +382,9 @@ public class StandardStatelessFlow implements StatelessDataflow {
 
         final BlockingQueue<TriggerResult> resultQueue = new LinkedBlockingQueue<>();
 
+        final AsynchronousCommitTracker tracker = new AsynchronousCommitTracker();
         final ExecutionProgress executionProgress = new StandardExecutionProgress(rootGroup, internalFlowFileQueues, resultQueue,
-            (ByteArrayContentRepository) repositoryContextFactory.getContentRepository(), dataflowDefinition.getFailurePortNames());
+            (ByteArrayContentRepository) repositoryContextFactory.getContentRepository(), dataflowDefinition.getFailurePortNames(), tracker);
 
         final AtomicReference<Future<?>> processFuture = new AtomicReference<>();
         final DataflowTrigger trigger = new DataflowTrigger() {
@@ -416,15 +417,15 @@ public class StandardStatelessFlow implements StatelessDataflow {
             }
         };
 
-        final Future<?> future = runDataflowExecutor.submit(() -> executeDataflow(resultQueue, executionProgress));
+        final Future<?> future = runDataflowExecutor.submit(() -> executeDataflow(resultQueue, executionProgress, tracker));
         processFuture.set(future);
 
         return trigger;
     }
 
 
-    private void executeDataflow(final BlockingQueue<TriggerResult> resultQueue, final ExecutionProgress executionProgress) {
-        final AsynchronousCommitTracker tracker = new AsynchronousCommitTracker();
+    private void executeDataflow(final BlockingQueue<TriggerResult> resultQueue, final ExecutionProgress executionProgress, final AsynchronousCommitTracker tracker) {
+        // TODO: Do I need the tracker here?
         final long startNanos = System.nanoTime();
 
         try {
@@ -464,13 +465,10 @@ public class StandardStatelessFlow implements StatelessDataflow {
             switch (completionAction) {
                 case CANCEL:
                     logger.debug("Dataflow was canceled");
-                    tracker.triggerFailureCallbacks(new RuntimeException("Dataflow Canceled"));
                     purge();
                     break;
                 case COMPLETE:
                 default:
-                    tracker.triggerCallbacks();
-
                     final long nanos = System.nanoTime() - startNanos;
                     final String prettyPrinted = (nanos > TEN_MILLIS_IN_NANOS) ? (TimeUnit.NANOSECONDS.toMillis(nanos) + " millis") : NumberFormat.getInstance().format(nanos) + " nanos";
                     logger.info("Ran dataflow in {}", prettyPrinted);
@@ -480,10 +478,12 @@ public class StandardStatelessFlow implements StatelessDataflow {
             // This occurs when the caller invokes the cancel() method of DataflowTrigger.
             logger.debug("Caught a TerminatedTaskException", tte);
             purge();
+            tracker.triggerFailureCallbacks(tte);
             resultQueue.offer(new CanceledTriggerResult());
         } catch (final Throwable t) {
             logger.error("Failed to execute dataflow", t);
             purge();
+            tracker.triggerFailureCallbacks(t);
             resultQueue.offer(new ExceptionalTriggerResult(t));
         }
     }
@@ -541,18 +541,18 @@ public class StandardStatelessFlow implements StatelessDataflow {
         final ProcessSessionFactory sessionFactory = new StandardProcessSessionFactory(repositoryContext, () -> false);
         final ProcessSession session = sessionFactory.createSession();
         try {
-            FlowFile flowFile = session.create();
-            flowFile = session.write(flowFile, out -> out.write(flowFileContents));
-            flowFile = session.putAllAttributes(flowFile, attributes);
-            session.transfer(flowFile, LocalPort.PORT_RELATIONSHIP);
-            session.commit();
-
             // Get one of the outgoing connections for the Input Port so that we can return QueueSize for it.
             // It doesn't really matter which connection we get because all will have the same data queued up.
             final Set<Connection> portConnections = inputPort.getConnections();
             if (portConnections.isEmpty()) {
                 throw new IllegalStateException("Cannot enqueue data for Input Port <" + portName + "> because it has no outgoing connections");
             }
+
+            FlowFile flowFile = session.create();
+            flowFile = session.write(flowFile, out -> out.write(flowFileContents));
+            flowFile = session.putAllAttributes(flowFile, attributes);
+            session.transfer(flowFile, LocalPort.PORT_RELATIONSHIP);
+            session.commitAsync();
 
             final Connection firstConnection = portConnections.iterator().next();
             return firstConnection.getFlowFileQueue().size();

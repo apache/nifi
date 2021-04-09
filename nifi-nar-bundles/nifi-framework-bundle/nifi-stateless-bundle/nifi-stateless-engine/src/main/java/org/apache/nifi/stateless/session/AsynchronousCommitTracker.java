@@ -18,7 +18,9 @@
 package org.apache.nifi.stateless.session;
 
 import org.apache.nifi.connectable.Connectable;
+import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Connection;
+import org.apache.nifi.groups.ProcessGroup;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,6 +55,16 @@ public class AsynchronousCommitTracker {
     public boolean isReady(final Connectable connectable) {
         if (!ready.contains(connectable)) {
             return false;
+        }
+
+        final ConnectableType connectableType = connectable.getConnectableType();
+        if (connectableType == ConnectableType.OUTPUT_PORT) {
+            final ProcessGroup outputPortGroup = connectable.getProcessGroup();
+            if (outputPortGroup.getParent() == null) {
+                // Output Port is at the root group level. We don't want to trigger the Output Port so we consider it not ready
+                ready.remove(connectable);
+                return false;
+            }
         }
 
         for (final Connection incoming : connectable.getIncomingConnections()) {

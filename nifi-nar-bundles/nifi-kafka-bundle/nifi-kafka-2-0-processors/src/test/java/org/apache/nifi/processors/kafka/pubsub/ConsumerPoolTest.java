@@ -153,7 +153,7 @@ public class ConsumerPoolTest {
         }
         testPool.close();
         verify(mockSession, times(3)).create();
-        verify(mockSession, times(1)).commit();
+        verify(mockSession, times(1)).commitAsync(Mockito.any(Runnable.class));
         final PoolStats stats = testPool.getPoolStats();
         assertEquals(1, stats.consumerCreatedCount);
         assertEquals(1, stats.consumerClosedCount);
@@ -279,7 +279,7 @@ public class ConsumerPoolTest {
         }
         testDemarcatedPool.close();
         verify(mockSession, times(1)).create();
-        verify(mockSession, times(1)).commit();
+        verify(mockSession, times(1)).commitAsync(Mockito.any(Runnable.class));
         final PoolStats stats = testDemarcatedPool.getPoolStats();
         assertEquals(1, stats.consumerCreatedCount);
         assertEquals(1, stats.consumerClosedCount);

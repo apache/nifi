@@ -119,7 +119,7 @@ public class StatelessProcessSession extends StandardProcessSession {
         // If the destination were to then call ProcessSession.commitAsync() and that resulted in an asynchronous commit, we would see that the data is transferred to the next queue
         // but not finished processing. Then, the GetFile processor's call to ProcessSession.commit() would return and the file would be deleted, but this would happen before the
         // data made its way to the end destination. If Stateless were then stopped, it would result in data loss.
-        requireSynchronousCommits = requireSynchronousCommits || asynchronous;
+        requireSynchronousCommits = requireSynchronousCommits || !asynchronous;
 
         // Commit the session
         super.commit(checkpoint, asynchronous);
