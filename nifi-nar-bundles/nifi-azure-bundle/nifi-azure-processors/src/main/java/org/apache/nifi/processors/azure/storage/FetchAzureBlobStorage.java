@@ -73,7 +73,7 @@ public class FetchAzureBlobStorage extends AbstractAzureBlobProcessor {
             .name("range-length")
             .displayName("Range Length")
             .description("The number of bytes to download from the blob, starting from the Range Start.  An empty " +
-                    "value will read to the end of the blob.")
+                    "value or a value that extends beyond the end of the blob will read to the end of the blob.")
             .addValidator(StandardValidators.createDataSizeBoundsValidator(1, Long.MAX_VALUE))
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(false)

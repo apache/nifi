@@ -176,7 +176,7 @@ public class FetchGCSObject extends AbstractGCSProcessor {
             .name("gcs-object-range-length")
             .displayName("Range Length")
             .description("The number of bytes to download from the object, starting from the Range Start.  An empty " +
-                    "value will read to the end of the object.")
+                    "value or a value that extends beyond the end of the object will read to the end of the object.")
             .addValidator(StandardValidators.createDataSizeBoundsValidator(1, Long.MAX_VALUE))
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(false)
@@ -233,8 +233,15 @@ public class FetchGCSObject extends AbstractGCSProcessor {
                 throw new StorageException(404, "Blob " + blobId + " not found");
             }
 
+            if (rangeStart > 0 && rangeStart >= blob.getSize()) {
+                getLogger().debug("Start position: {}, blob size: {}", new Object[] {rangeStart, blob.getSize()});
+                throw new StorageException(416, "The range specified is not valid for the blob " + blobId
+                        + ".  Range Start is beyond the end of the blob.");
+            }
+
             final ReadChannel reader = storage.reader(blobId, blobSourceOptions.toArray(new Storage.BlobSourceOption[0]));
             reader.seek(rangeStart);
+
             if (rangeLength == null) {
                 flowFile = session.importFrom(Channels.newInputStream(reader), flowFile);
             } else {

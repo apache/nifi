@@ -111,7 +111,7 @@ public class FetchS3Object extends AbstractS3Processor {
             .name("range-length")
             .displayName("Range Length")
             .description("The number of bytes to download from the object, starting from the Range Start.  An empty " +
-                    "value will read to the end of the object.")
+                    "value or a value that extends beyond the end of the object will read to the end of the object.")
             .addValidator(StandardValidators.createDataSizeBoundsValidator(1, Long.MAX_VALUE))
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(false)
