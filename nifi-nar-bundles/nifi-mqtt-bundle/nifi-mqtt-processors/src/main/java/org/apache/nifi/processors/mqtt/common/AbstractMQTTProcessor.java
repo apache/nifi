@@ -119,6 +119,7 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
             .description("The URI to use to connect to the MQTT broker (e.g. tcp://localhost:1883). The 'tcp', 'ssl', 'ws' and 'wss' schemes are supported. In order to use 'ssl', the SSL Context " +
                     "Service property must be set.")
             .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(BROKER_VALIDATOR)
             .build();
 
@@ -135,6 +136,7 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
             .name("Username")
             .description("Username to use when connecting to the broker")
             .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
