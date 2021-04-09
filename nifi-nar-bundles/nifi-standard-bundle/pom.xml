@@ -302,13 +302,7 @@
             <dependency>
                 <groupId>com.fluenda</groupId>
                 <artifactId>ParCEFone</artifactId>
-                <version>1.2.6</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>org.slf4j</groupId>
-                        <artifactId>slf4j-log4j12</artifactId>
-                    </exclusion>
-                </exclusions>
+                <version>1.2.8</version>
             </dependency>
             <dependency>
                 <groupId>com.github.wnameless</groupId>

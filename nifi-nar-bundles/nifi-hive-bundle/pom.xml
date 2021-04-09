@@ -57,6 +57,14 @@
         <hive.version>${hive3.version}</hive.version>
     </properties>
 
+    <repositories>
+        <!-- HTTP Repository for pentaho-aggdesigner-algorithm 5.1.5-jhyde required by calcite-1.2.0-incubating -->
+        <repository>
+            <id>conjars</id>
+            <url>https://conjars.org/repo</url>
+        </repository>
+    </repositories>
+
     <build>
         <plugins>
             <plugin>
