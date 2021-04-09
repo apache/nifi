@@ -82,7 +82,8 @@ public class TestConsumeMQTT extends TestConsumeMqttCommon {
     public void testSSLContextServiceTruststoreOnly() throws InitializationException {
         String brokerURI = "ssl://localhost:8883";
         TestRunner runner = TestRunners.newTestRunner(ConsumeMQTT.class);
-        runner.setProperty(ConsumeMQTT.PROP_BROKER_URI, brokerURI);
+        runner.setVariable("brokerURI", brokerURI);
+        runner.setProperty(ConsumeMQTT.PROP_BROKER_URI, "${brokerURI}");
         runner.setProperty(ConsumeMQTT.PROP_CLIENTID, "TestClient");
         runner.setProperty(ConsumeMQTT.PROP_TOPIC_FILTER, "testTopic");
         runner.setProperty(ConsumeMQTT.PROP_MAX_QUEUE_SIZE, "100");
