@@ -57,6 +57,15 @@ public class SingleUserAuthorizerTest {
     }
 
     @Test
+    public void testSetPropertiesSingleUserIdentityProviderNotSpecified() throws URISyntaxException {
+        final Path providersPath = Paths.get(getClass().getResource(BLANK_PROVIDERS).toURI());
+        final Properties properties = new Properties();
+        properties.put(NiFiProperties.LOGIN_IDENTITY_PROVIDER_CONFIGURATION_FILE, providersPath.toString());
+        final NiFiProperties niFiProperties = NiFiProperties.createBasicNiFiProperties(EMPTY_PROPERTIES_PATH, properties);
+        assertThrows(AuthorizerCreationException.class, () -> authorizer.setProperties(niFiProperties));
+    }
+
+    @Test
     public void testSetPropertiesAuthorizerCreationException() throws URISyntaxException {
         final Path providersPath = Paths.get(getClass().getResource(UNSUPPORTED_PROVIDERS).toURI());
         final Properties properties = new Properties();

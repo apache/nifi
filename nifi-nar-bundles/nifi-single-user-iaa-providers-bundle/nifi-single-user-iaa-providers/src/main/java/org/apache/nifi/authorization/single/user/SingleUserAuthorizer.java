@@ -51,6 +51,8 @@ public class SingleUserAuthorizer implements Authorizer {
 
     private static final String CLASS_TAG = "class";
 
+    private static final String BLANK_PROVIDER = "provider";
+
     /**
      * Set NiFi Properties using method injection
      *
@@ -59,7 +61,7 @@ public class SingleUserAuthorizer implements Authorizer {
     @AuthorizerContext
     public void setProperties(final NiFiProperties niFiProperties) {
         final File configuration = niFiProperties.getLoginIdentityProviderConfigurationFile();
-        final String identifier = niFiProperties.getProperty(NiFiProperties.SECURITY_USER_LOGIN_IDENTITY_PROVIDER);
+        final String identifier = niFiProperties.getProperty(NiFiProperties.SECURITY_USER_LOGIN_IDENTITY_PROVIDER, BLANK_PROVIDER);
         if (isSingleUserLoginIdentityProviderConfigured(identifier, configuration)) {
             LOGGER.debug("Required Login Identity Provider Configured [{}]", REQUIRED_PROVIDER);
         } else {
