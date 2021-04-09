@@ -94,17 +94,17 @@ The following table lists the default ports used by NiFi and the corresponding p
 
 NOTE: The ports marked with an asterisk (*) have property values that are blank by default in _nifi.properties_.  The values shown in the table are the default values for these ports when <<toolkit-guide.adoc#tls_toolkit,TLS Toolkit>> is used to generate _nifi.properties_ for a secured NiFi instance.  The default Certificate Authority Port used by <<toolkit-guide.adoc#tls_toolkit,TLS Toolkit>> is `8443`.
 
-=== Embedded Zookeeper
+=== Embedded ZooKeeper
 The following table lists the default ports used by an <<embedded_zookeeper>> and the corresponding property in the _zookeeper.properties_ file.
 
 [options="header,footer"]
 |==================================================================================================================================================
 | Function                                         | Property       | Default Value
-|Zookeeper Client Port (Deprecated: client port is no longer specified on a separate line as of NiFi 1.10.x)                             | `clientPort`   | `2181`
-|Zookeeper Server Quorum and Leader Election Ports | `server.1`     | _none_
+|ZooKeeper Client Port (Deprecated: client port is no longer specified on a separate line as of NiFi 1.10.x)                             | `clientPort`   | `2181`
+|ZooKeeper Server Quorum and Leader Election Ports | `server.1`     | _none_
 |==================================================================================================================================================
 
-NOTE: Commented examples for the Zookeeper server ports are included in the _zookeeper.properties_ file in the form `server.N=nifi-nodeN-hostname:2888:3888;2181`.
+NOTE: Commented examples for the ZooKeeper server ports are included in the _zookeeper.properties_ file in the form `server.N=nifi-nodeN-hostname:2888:3888;2181`.
 
 == Configuration Best Practices
 If you are running on Linux, consider these best practices. Typical Linux defaults are not necessarily well-tuned for the needs of an IO intensive application like NiFi.  For all of these areas, your distribution's requirements may vary. Use these sections as advice, but
@@ -2028,8 +2028,8 @@ However, it is up to the administrator to determine the number of nodes most app
 
 If the `nifi.state.management.embedded.zookeeper.start` property is set to `true`, the `nifi.state.management.embedded.zookeeper.properties` property
 in _nifi.properties_ also becomes relevant. This specifies the ZooKeeper properties file to use. At a minimum, this properties file needs to be populated
-with the list of ZooKeeper servers. The servers are specified as properties in the form of `server.1`, `server.2`, to `server.n`. As of NiFi 1.10.x, Zookeeper
-has been upgraded to 3.5.5 and servers are now defined with the client port appended at the end as per the link:https://zookeeper.apache.org/doc/r3.5.2-alpha/zookeeperReconfig.html#sc_reconfig_clientport[Zookeeper Documentation].
+with the list of ZooKeeper servers. The servers are specified as properties in the form of `server.1`, `server.2`, to `server.n`. As of NiFi 1.10.x, ZooKeeper
+has been upgraded to 3.5.5 and servers are now defined with the client port appended at the end as per the link:https://zookeeper.apache.org/doc/r3.5.2-alpha/zookeeperReconfig.html#sc_reconfig_clientport[ZooKeeper Documentation].
 As such, each of these servers is configured as <hostname>:<quorum port>[:<leader election port>][:role];[<client port address>:]<client port>.
 As a simple example this would be `server.1 = myhost:2888:3888;2181`. This list of nodes should be the same nodes in the NiFi cluster that have the `nifi.state.management.embedded.zookeeper.start` property set to `true`.
 Also note that because ZooKeeper will be listening on these ports, the firewall may need to be configured to open these ports for incoming traffic, at least between nodes in the cluster.
@@ -2174,9 +2174,9 @@ requireClientAuthScheme=sasl
 
 The `kerberos.removeHostFromPrincipal` and the `kerberos.removeRealmFromPrincipal` properties are used to normalize the user principal name before comparing an identity to acls
 applied on a Znode.  By default the full principal is used however setting the `kerberos.removeHostFromPrincipal` and the `kerberos.removeRealmFromPrincipal` properties to true will instruct
-Zookeeper to remove the host and the realm from the logged in user's identity for comparison.  In cases where NiFi nodes (within the same cluster) use principals that
+ZooKeeper to remove the host and the realm from the logged in user's identity for comparison.  In cases where NiFi nodes (within the same cluster) use principals that
 have different host(s)/realm(s) values, these kerberos properties can be configured to ensure that the nodes' identity will be normalized and that the nodes will have
-appropriate access to shared Znodes in Zookeeper.
+appropriate access to shared Znodes in ZooKeeper.
 
 The last line is optional but specifies that clients MUST use Kerberos to communicate with our ZooKeeper instance.
 
@@ -2232,7 +2232,7 @@ We add the following line anywhere in this file in order to tell the NiFi JVM to
 [source]
 java.arg.15=-Djava.security.auth.login.config=./conf/zookeeper-jaas.conf
 
-Finally we need to update _nifi.properties_ to ensure that NiFi knows to apply SASL specific ACLs for the Znodes it will create in Zookeeper for cluster management.
+Finally we need to update _nifi.properties_ to ensure that NiFi knows to apply SASL specific ACLs for the Znodes it will create in ZooKeeper for cluster management.
 To enable this, in the _$NIFI_HOME/conf/nifi.properties_ file and edit the following properties as shown below:
 
 [source]
@@ -2240,7 +2240,7 @@ nifi.zookeeper.auth.type=sasl
 nifi.zookeeper.kerberos.removeHostFromPrincipal=true
 nifi.zookeeper.kerberos.removeRealmFromPrincipal=true
 
-NOTE: The `kerberos.removeHostFromPrincipal` and `kerberos.removeRealmFromPrincipal` should be consistent with what is set in Zookeeper configuration.
+NOTE: The `kerberos.removeHostFromPrincipal` and `kerberos.removeRealmFromPrincipal` should be consistent with what is set in ZooKeeper configuration.
 
 We can initialize our Kerberos ticket by running the following command:
 
@@ -2263,7 +2263,7 @@ in the following locations:
 Failure to do so, may result in errors similar to the following:
 
 [source]
-2016-01-08 16:08:57,888 ERROR [pool-26-thread-1-SendThread(localhost:2181)] o.a.zookeeper.client.ZooKeeperSaslClient An error: (java.security.PrivilegedActionException: javax.security.sasl.SaslException: GSS initiate failed [Caused by GSSException: No valid credentials provided (Mechanism level: Server not found in Kerberos database (7) - LOOKING_UP_SERVER)]) occurred when evaluating Zookeeper Quorum Member's  received SASL token. Zookeeper Client will go to AUTH_FAILED state.
+2016-01-08 16:08:57,888 ERROR [pool-26-thread-1-SendThread(localhost:2181)] o.a.zookeeper.client.ZooKeeperSaslClient An error: (java.security.PrivilegedActionException: javax.security.sasl.SaslException: GSS initiate failed [Caused by GSSException: No valid credentials provided (Mechanism level: Server not found in Kerberos database (7) - LOOKING_UP_SERVER)]) occurred when evaluating ZooKeeper Quorum Member's  received SASL token. ZooKeeper Client will go to AUTH_FAILED state.
 
 If there are problems communicating or authenticating with Kerberos, this
 link:http://docs.oracle.com/javase/7/docs/technotes/guides/security/jgss/tutorials/Troubleshooting.html[Troubleshooting Guide^] may be of value.
@@ -2379,7 +2379,7 @@ For example, you may want to use the ZooKeeper Migrator when you are:
 * Upgrading from NiFi 0.x with an external ZooKeeper to NiFi 1.x with the same external ZooKeeper
 * Migrating from an external ZooKeeper to an embedded ZooKeeper in NiFi 1.x
 
-For more information, see the <<toolkit-guide.adoc#zookeeper_migrator,Zookeeper Migrator>> section in the link:toolkit-guide.html[NiFi Toolkit Guide].
+For more information, see the <<toolkit-guide.adoc#zookeeper_migrator,ZooKeeper Migrator>> section in the link:toolkit-guide.html[NiFi Toolkit Guide].
 
 [[bootstrap_properties]]
 == Bootstrap Properties
