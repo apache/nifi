@@ -29,9 +29,11 @@ import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.redis.RedisConnectionPool;
 import org.apache.nifi.redis.RedisType;
 import org.apache.nifi.redis.util.RedisUtils;
+import org.apache.nifi.ssl.SSLContextService;
 import org.springframework.data.redis.connection.RedisConnection;
 import org.springframework.data.redis.connection.jedis.JedisConnectionFactory;
 
+import javax.net.ssl.SSLContext;
 import java.util.Collection;
 import java.util.List;
 
@@ -42,6 +44,7 @@ public class RedisConnectionPoolService extends AbstractControllerService implem
     private volatile PropertyContext context;
     private volatile RedisType redisType;
     private volatile JedisConnectionFactory connectionFactory;
+    private volatile SSLContext sslContext;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -56,6 +59,10 @@ public class RedisConnectionPoolService extends AbstractControllerService implem
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) {
         this.context = context;
+        if (context.getProperty(RedisUtils.SSL_CONTEXT_SERVICE).isSet()) {
+            final SSLContextService sslContextService = context.getProperty(RedisUtils.SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
+            this.sslContext = sslContextService.createContext();
+        }
 
         final String redisMode = context.getProperty(RedisUtils.REDIS_MODE).getValue();
         this.redisType = RedisType.fromDisplayName(redisMode);
@@ -68,6 +75,7 @@ public class RedisConnectionPoolService extends AbstractControllerService implem
             connectionFactory = null;
             redisType = null;
             context = null;
+            sslContext = null;
         }
     }
 
@@ -81,7 +89,7 @@ public class RedisConnectionPoolService extends AbstractControllerService implem
         if (connectionFactory == null) {
             synchronized (this) {
                 if (connectionFactory == null) {
-                    connectionFactory = RedisUtils.createConnectionFactory(context, getLogger());
+                    connectionFactory = RedisUtils.createConnectionFactory(context, getLogger(), sslContext);
                 }
             }
         }
