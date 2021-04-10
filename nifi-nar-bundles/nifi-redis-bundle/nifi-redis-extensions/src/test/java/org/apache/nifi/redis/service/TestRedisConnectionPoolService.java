@@ -20,6 +20,7 @@ import org.apache.nifi.redis.RedisConnectionPool;
 import org.apache.nifi.redis.util.RedisUtils;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.ssl.RestrictedSSLContextService;
+import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.MockConfigurationContext;
 import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.StandardProcessorTestRunner;
@@ -118,7 +119,12 @@ public class TestRedisConnectionPoolService {
         MockProcessContext processContext = ((StandardProcessorTestRunner) testRunner).getProcessContext();
         MockConfigurationContext configContext = new MockConfigurationContext(processContext.getControllerServices()
                 .get(redisService.getIdentifier()).getProperties(), processContext);
-        JedisConnectionFactory connectionFactory = RedisUtils.createConnectionFactory(configContext, testRunner.getLogger());
+        SSLContext providedSslContext = null;
+        if (configContext.getProperty(RedisUtils.SSL_CONTEXT_SERVICE).isSet()) {
+            final SSLContextService sslContextService = configContext.getProperty(RedisUtils.SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
+            providedSslContext = sslContextService.createContext();
+        }
+        JedisConnectionFactory connectionFactory = RedisUtils.createConnectionFactory(configContext, testRunner.getLogger(), providedSslContext);
         return connectionFactory;
     }
 

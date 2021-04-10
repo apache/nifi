@@ -26,7 +26,6 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.redis.RedisType;
 import org.apache.nifi.ssl.RestrictedSSLContextService;
-import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.StringUtils;
 import org.springframework.data.redis.connection.RedisClusterConfiguration;
 import org.springframework.data.redis.connection.RedisConfiguration;
@@ -273,7 +272,7 @@ public class RedisUtils {
     }
 
 
-    public static JedisConnectionFactory createConnectionFactory(final PropertyContext context, final ComponentLog logger) {
+    public static JedisConnectionFactory createConnectionFactory(final PropertyContext context, final ComponentLog logger, final SSLContext sslContext) {
         final String redisMode = context.getProperty(RedisUtils.REDIS_MODE).getValue();
         final String connectionString = context.getProperty(RedisUtils.CONNECTION_STRING).evaluateAttributeExpressions().getValue();
         final Integer dbIndex = context.getProperty(RedisUtils.DATABASE).evaluateAttributeExpressions().asInteger();
@@ -288,9 +287,7 @@ public class RedisUtils {
                 .poolConfig(poolConfig)
                 .and();
 
-        if (context.getProperty(RedisUtils.SSL_CONTEXT_SERVICE).isSet()) {
-            final SSLContextService sslContextService = context.getProperty(RedisUtils.SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
-            final SSLContext sslContext = sslContextService.createContext();
+        if (sslContext != null) {
             builder = builder.useSsl()
                     .sslParameters(sslContext.getSupportedSSLParameters())
                     .sslSocketFactory(sslContext.getSocketFactory())
