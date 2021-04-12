@@ -179,13 +179,7 @@ public class StandardStatelessFlow implements StatelessDataflow {
         initialized = true;
 
         // Trigger validation to occur so that components can be enabled/started.
-        final long validationStart = System.currentTimeMillis();
-        final StatelessDataflowValidation validationResult = performValidation();
-        final long validationMillis = System.currentTimeMillis() - validationStart;
-
-        if (!validationResult.isValid()) {
-            logger.warn("{} Attempting to initialize dataflow but found at least one invalid component: {}", this, validationResult);
-        }
+        performValidation();
 
         // Enable Controller Services and start processors in the flow.
         // This is different than the calling ProcessGroup.startProcessing() because
@@ -201,7 +195,13 @@ public class StandardStatelessFlow implements StatelessDataflow {
 
             // Perform validation again so that any processors that reference controller services that were just
             // enabled now can be started
-            performValidation();
+            final long validationStart = System.currentTimeMillis();
+            final StatelessDataflowValidation validationResult = performValidation();
+            final long validationMillis = System.currentTimeMillis() - validationStart;
+
+            if (!validationResult.isValid()) {
+                logger.warn("{} Attempting to initialize dataflow but found at least one invalid component: {}", this, validationResult);
+            }
 
             startProcessors(rootGroup);
             startRemoteGroups(rootGroup);
@@ -425,7 +425,6 @@ public class StandardStatelessFlow implements StatelessDataflow {
 
 
     private void executeDataflow(final BlockingQueue<TriggerResult> resultQueue, final ExecutionProgress executionProgress, final AsynchronousCommitTracker tracker) {
-        // TODO: Do I need the tracker here?
         final long startNanos = System.nanoTime();
 
         try {
