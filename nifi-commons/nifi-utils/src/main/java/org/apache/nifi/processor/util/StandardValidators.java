@@ -20,6 +20,8 @@ import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
+import org.apache.nifi.components.resource.ResourceCardinality;
+import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.expression.AttributeExpression.ResultType;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.DataUnit;
@@ -532,6 +534,12 @@ public class StandardValidators {
         };
     }
 
+    /**
+     * @deprecated use {@link org.apache.nifi.components.PropertyDescriptor.Builder#identifiesExternalResource(ResourceCardinality, ResourceType, ResourceType...)
+     * identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE, ResourceType.DIRECTORY, ResourceType.URL}
+     * instead.
+     */
+    @Deprecated
     public static Validator createURLorFileValidator() {
         return (subject, input, context) -> {
             if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input)) {

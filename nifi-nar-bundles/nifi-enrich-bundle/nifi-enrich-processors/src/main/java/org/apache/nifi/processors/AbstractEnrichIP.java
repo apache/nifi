@@ -16,20 +16,11 @@
  */
 package org.apache.nifi.processors;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.resource.ResourceCardinality;
+import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -40,6 +31,16 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.maxmind.DatabaseReader;
 import org.apache.nifi.util.StopWatch;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+
 public abstract class AbstractEnrichIP extends AbstractProcessor {
 
     public static final PropertyDescriptor GEO_DATABASE_FILE = new PropertyDescriptor.Builder()
@@ -49,7 +50,7 @@ public abstract class AbstractEnrichIP extends AbstractProcessor {
             .displayName("MaxMind Database File")
             .description("Path to Maxmind IP Enrichment Database File")
             .required(true)
-            .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
+            .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE, ResourceType.DIRECTORY)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
@@ -89,12 +90,11 @@ public abstract class AbstractEnrichIP extends AbstractProcessor {
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) throws IOException {
-        final String dbFileString = context.getProperty(GEO_DATABASE_FILE).evaluateAttributeExpressions().getValue();
-        final File dbFile = new File(dbFileString);
+        final File dbFile = context.getProperty(GEO_DATABASE_FILE).evaluateAttributeExpressions().asResource().asFile();
         final StopWatch stopWatch = new StopWatch(true);
         final DatabaseReader reader = new DatabaseReader.Builder(dbFile).build();
         stopWatch.stop();
-        getLogger().info("Completed loading of Maxmind Database.  Elapsed time was {} milliseconds.", new Object[]{stopWatch.getDuration(TimeUnit.MILLISECONDS)});
+        getLogger().info("Completed loading of Maxmind Database.  Elapsed time was {} milliseconds.", stopWatch.getDuration(TimeUnit.MILLISECONDS));
         databaseReaderRef.set(reader);
     }
 

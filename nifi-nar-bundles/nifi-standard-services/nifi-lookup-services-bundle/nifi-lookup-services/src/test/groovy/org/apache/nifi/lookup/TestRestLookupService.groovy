@@ -50,6 +50,8 @@ class TestRestLookupService {
         recordReader = new MockRecordParser()
         lookupService = new MockRestLookupService()
         runner = TestRunners.newTestRunner(TestRestLookupServiceProcessor.class)
+        runner.setValidateExpressionUsage(false)
+
         runner.addControllerService("lookupService", lookupService)
         runner.addControllerService("recordReader", recordReader)
         runner.setProperty(lookupService, RestLookupService.RECORD_READER, "recordReader")
@@ -86,7 +88,7 @@ class TestRestLookupService {
         Assert.assertEquals(48, record.getAsInt("age"))
         Assert.assertEquals("Soccer", record.getAsString("sport"))
     }
-    
+
     @Test
     void testNestedLookup() {
         runner.disableControllerService(lookupService)

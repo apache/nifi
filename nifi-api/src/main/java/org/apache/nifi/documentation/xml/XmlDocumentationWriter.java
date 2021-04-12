@@ -16,19 +16,6 @@
  */
 package org.apache.nifi.documentation.xml;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Function;
-import javax.xml.stream.XMLOutputFactory;
-import javax.xml.stream.XMLStreamException;
-import javax.xml.stream.XMLStreamWriter;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.DynamicRelationship;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -45,10 +32,26 @@ import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDependency;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.RequiredPermission;
+import org.apache.nifi.components.resource.ResourceDefinition;
+import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.documentation.AbstractDocumentationWriter;
 import org.apache.nifi.documentation.ExtensionType;
 import org.apache.nifi.documentation.ServiceAPI;
 import org.apache.nifi.processor.Relationship;
+
+import javax.xml.stream.XMLOutputFactory;
+import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLStreamWriter;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
 
 /**
  * XML-based implementation of DocumentationWriter
@@ -177,9 +180,23 @@ public class XmlDocumentationWriter extends AbstractDocumentationWriter {
         writeTextElement("expressionLanguageScope", property.getExpressionLanguageScope() == null ? null : property.getExpressionLanguageScope().name());
         writeBooleanElement("dynamicallyModifiesClasspath", property.isDynamicClasspathModifier());
         writeBooleanElement("dynamic", property.isDynamic());
+        writeResourceDefinition(property.getResourceDefinition());
         writeDependencies(property);
 
         writeEndElement();
+    }
+
+    private void writeResourceDefinition(final ResourceDefinition resourceDefinition) throws IOException {
+        writeStartElement("resourceDefinition");
+        if (resourceDefinition != null) {
+            writeTextElement("cardinality", resourceDefinition.getCardinality().name());
+            writeArray("resourceTypes", resourceDefinition.getResourceTypes(), this::writeResourceType);
+        }
+        writeEndElement();
+    }
+
+    private void writeResourceType(final ResourceType resourceType) throws IOException {
+        writeTextElement("resourceType", resourceType.name());
     }
 
     private void writeAllowableValue(final AllowableValue allowableValue) throws IOException {

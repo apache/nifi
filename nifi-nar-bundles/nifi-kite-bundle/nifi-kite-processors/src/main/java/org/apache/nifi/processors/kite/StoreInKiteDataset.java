@@ -18,12 +18,8 @@
  */
 package org.apache.nifi.processors.kite;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import org.apache.avro.Schema;
 import org.apache.avro.file.DataFileStream;
 import org.apache.avro.generic.GenericData.Record;
@@ -32,6 +28,8 @@ import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.resource.ResourceCardinality;
+import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
@@ -39,7 +37,6 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
-import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.util.StopWatch;
 import org.kitesdk.data.DatasetIOException;
 import org.kitesdk.data.DatasetWriter;
@@ -49,8 +46,11 @@ import org.kitesdk.data.ValidationException;
 import org.kitesdk.data.View;
 import org.kitesdk.data.spi.SchemaValidationUtil;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"kite", "avro", "parquet", "hadoop", "hive", "hdfs", "hbase"})
@@ -87,19 +87,17 @@ public class StoreInKiteDataset extends AbstractKiteProcessor {
             .description("A comma-separated list of paths to files and/or directories that will be added to the classpath. When specifying a " +
                     "directory, all files with in the directory will be added to the classpath, but further sub-directories will not be included.")
             .required(false)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .identifiesExternalResource(ResourceCardinality.MULTIPLE, ResourceType.FILE, ResourceType.DIRECTORY)
             .dynamicallyModifiesClasspath(true)
             .build();
 
-    private static final List<PropertyDescriptor> PROPERTIES
-            = ImmutableList.<PropertyDescriptor>builder()
+    private static final List<PropertyDescriptor> PROPERTIES = ImmutableList.<PropertyDescriptor>builder()
             .addAll(AbstractKiteProcessor.getProperties())
             .add(KITE_DATASET_URI)
             .add(ADDITIONAL_CLASSPATH_RESOURCES)
             .build();
 
-    private static final Set<Relationship> RELATIONSHIPS
-            = ImmutableSet.<Relationship>builder()
+    private static final Set<Relationship> RELATIONSHIPS = ImmutableSet.<Relationship>builder()
             .add(SUCCESS)
             .add(INCOMPATIBLE)
             .add(FAILURE)

@@ -28,6 +28,8 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.resource.ResourceCardinality;
+import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
@@ -46,7 +48,6 @@ import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -93,7 +94,7 @@ public class GrokReader extends SchemaRegistryService implements RecordReaderFac
         .description("Path to a file that contains Grok Patterns to use for parsing logs. If not specified, a built-in default Pattern file "
             + "will be used. If specified, all patterns in the given pattern file will override the default patterns. See the Controller Service's "
             + "Additional Details for a list of pre-defined patterns.")
-        .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
+        .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE)
         .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .required(false)
         .build();
@@ -136,8 +137,8 @@ public class GrokReader extends SchemaRegistryService implements RecordReaderFac
         }
 
         if (context.getProperty(PATTERN_FILE).isSet()) {
-            try (final InputStream in = new FileInputStream(context.getProperty(PATTERN_FILE)
-                    .evaluateAttributeExpressions().getValue()); final Reader reader = new InputStreamReader(in)) {
+            try (final InputStream in = context.getProperty(PATTERN_FILE).evaluateAttributeExpressions().asResource().read();
+                 final Reader reader = new InputStreamReader(in)) {
                 grokCompiler.register(reader);
             }
         }

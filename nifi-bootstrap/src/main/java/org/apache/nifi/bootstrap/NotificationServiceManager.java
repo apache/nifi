@@ -16,6 +16,33 @@
  */
 package org.apache.nifi.bootstrap;
 
+import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
+import org.apache.nifi.bootstrap.notification.NotificationContext;
+import org.apache.nifi.bootstrap.notification.NotificationInitializationContext;
+import org.apache.nifi.bootstrap.notification.NotificationService;
+import org.apache.nifi.bootstrap.notification.NotificationType;
+import org.apache.nifi.bootstrap.notification.NotificationValidationContext;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.resource.ResourceContext;
+import org.apache.nifi.components.resource.StandardResourceContext;
+import org.apache.nifi.components.resource.StandardResourceReferenceFactory;
+import org.apache.nifi.parameter.ParameterLookup;
+import org.apache.nifi.registry.VariableRegistry;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -32,29 +59,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
-import org.apache.nifi.bootstrap.notification.NotificationContext;
-import org.apache.nifi.bootstrap.notification.NotificationInitializationContext;
-import org.apache.nifi.bootstrap.notification.NotificationService;
-import org.apache.nifi.bootstrap.notification.NotificationType;
-import org.apache.nifi.bootstrap.notification.NotificationValidationContext;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.PropertyValue;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.parameter.ParameterLookup;
-import org.apache.nifi.registry.VariableRegistry;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
-import org.xml.sax.InputSource;
-import org.xml.sax.SAXException;
 
 public class NotificationServiceManager {
     private static final Logger logger = LoggerFactory.getLogger(NotificationServiceManager.class);
@@ -274,7 +278,8 @@ public class NotificationServiceManager {
                     configuredValue = fullPropDescriptor.getDefaultValue();
                 }
 
-                return new StandardPropertyValue(configuredValue, null, ParameterLookup.EMPTY, variableRegistry);
+                final ResourceContext resourceContext = new StandardResourceContext(new StandardResourceReferenceFactory(), descriptor);
+                return new StandardPropertyValue(resourceContext, configuredValue, null, ParameterLookup.EMPTY, variableRegistry);
             }
 
             @Override
@@ -394,7 +399,8 @@ public class NotificationServiceManager {
                         value = descriptor.getDefaultValue();
                     }
 
-                    return new StandardPropertyValue(value, null, ParameterLookup.EMPTY, variableRegistry);
+                    final ResourceContext resourceContext = new StandardResourceContext(new StandardResourceReferenceFactory(), descriptor);
+                    return new StandardPropertyValue(resourceContext, value, null, ParameterLookup.EMPTY, variableRegistry);
                 }
 
                 @Override
