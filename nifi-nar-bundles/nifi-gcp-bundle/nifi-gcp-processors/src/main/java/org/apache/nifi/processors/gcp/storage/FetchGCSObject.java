@@ -234,7 +234,9 @@ public class FetchGCSObject extends AbstractGCSProcessor {
             }
 
             if (rangeStart > 0 && rangeStart >= blob.getSize()) {
-                getLogger().debug("Start position: {}, blob size: {}", new Object[] {rangeStart, blob.getSize()});
+                if (getLogger().isDebugEnabled() {
+                    getLogger().debug("Start position: {}, blob size: {}", new Object[] {rangeStart, blob.getSize()});
+                }
                 throw new StorageException(416, "The range specified is not valid for the blob " + blobId
                         + ".  Range Start is beyond the end of the blob.");
             }
