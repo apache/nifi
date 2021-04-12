@@ -1,0 +1,21 @@
+nifi-single-user-iaa-providers-nar
+Copyright 2015-2020 The Apache Software Foundation
+
+This product includes software developed at
+The Apache Software Foundation (http://www.apache.org/).
+
+******************
+Apache Software License v2
+******************
+
+The following binary components are provided under the Apache Software License v2
+
+  (ASLv2) BCrypt Password Hashing Function (at.favre.lib:bcrypt:jar:0.9.0 - https://github.com/patrickfav/bcrypt)
+      The following NOTICE information applies:
+        BCrypt Password Hashing Function 0.9.0
+        Copyright 2018 Patrick Favre-Bulle
+
+  (ASLv2) Bytes Utility Library (at.favre.lib:bytes:jar:1.3.0 - https://github.com/patrickfav/bytes-java)
+      The following NOTICE information applies:
+        Bytes Utility Library 1.3.0
+        Copyright 2017 Patrick Favre-Bulle
