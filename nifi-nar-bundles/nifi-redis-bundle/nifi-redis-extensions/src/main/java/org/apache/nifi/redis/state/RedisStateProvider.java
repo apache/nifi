@@ -129,7 +129,7 @@ public class RedisStateProvider extends AbstractConfigurableComponent implements
                     .valid(false)
                     .explanation(ENABLE_TLS.getDisplayName()
                             + " is set to 'true', but Apache NiFi is not secured.  This state provider can only use a TLS-enabled connection " +
-                            "if a keystore and truststore is provided in nifi.properties.")
+                            "if a keystore and truststore are provided in nifi.properties.")
                     .build());
         }
 
