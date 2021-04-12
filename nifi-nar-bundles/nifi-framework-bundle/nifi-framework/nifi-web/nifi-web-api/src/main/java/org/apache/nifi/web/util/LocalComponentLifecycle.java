@@ -386,11 +386,11 @@ public class LocalComponentLifecycle implements ComponentLifecycle {
 
             boolean allReachedDesiredState = true;
             for (final ControllerServiceEntity serviceEntity : serviceEntities) {
-                final ControllerServiceDTO serviceDto = serviceEntity.getComponent();
-                if (!affectedServices.containsKey(serviceDto.getId())) {
+                if (!affectedServices.containsKey(serviceEntity.getId())) {
                     continue;
                 }
 
+                final ControllerServiceDTO serviceDto = serviceEntity.getComponent();
                 final String validationStatus = serviceDto.getValidationStatus();
                 if (ControllerServiceDTO.INVALID.equals(validationStatus)) {
                     switch (invalidComponentAction) {
