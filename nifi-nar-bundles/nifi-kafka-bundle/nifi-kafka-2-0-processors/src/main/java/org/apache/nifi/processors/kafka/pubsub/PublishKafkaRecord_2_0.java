@@ -506,7 +506,7 @@ public class PublishKafkaRecord_2_0 extends AbstractProcessor {
                 final PublishResult publishResult = lease.complete();
 
                 if (publishResult.isFailure()) {
-                    getLogger().info("Failed to send FlowFile to kafka; transferring to failure");
+                    getLogger().info("Failed to send FlowFile to kafka; transferring to specified failure strategy");
                     failureStrategy.routeFlowFiles(session, flowFiles);
                     return;
                 }
@@ -526,7 +526,7 @@ public class PublishKafkaRecord_2_0 extends AbstractProcessor {
                 }
             } catch (final ProducerFencedException | OutOfOrderSequenceException | AuthorizationException e) {
                 lease.poison();
-                getLogger().error("Failed to send messages to Kafka; will yield Processor and transfer FlowFiles to failure");
+                getLogger().error("Failed to send messages to Kafka; will yield Processor and transfer FlowFiles to specified failure strategy");
                 failureStrategy.routeFlowFiles(session, flowFiles);
                 context.yield();
             }
