@@ -92,7 +92,7 @@
         <org.bouncycastle.version>1.68</org.bouncycastle.version>
         <org.slf4j.version>1.7.30</org.slf4j.version>
         <ranger.version>2.1.0</ranger.version>
-        <jetty.version>9.4.38.v20210224</jetty.version>
+        <jetty.version>9.4.39.v20210325</jetty.version>
         <jackson.version>2.12.2</jackson.version>
         <nifi.registry.version>0.8.0</nifi.registry.version>
         <nifi.groovy.version>2.5.6</nifi.groovy.version>
