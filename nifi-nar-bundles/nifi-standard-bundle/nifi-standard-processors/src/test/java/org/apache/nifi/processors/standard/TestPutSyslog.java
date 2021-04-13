@@ -16,460 +16,148 @@
  */
 package org.apache.nifi.processors.standard;
 
-import org.apache.nifi.processor.Processor;
-import org.apache.nifi.processor.util.put.sender.ChannelSender;
+import org.apache.nifi.event.transport.EventServer;
+import org.apache.nifi.event.transport.EventServerFactory;
+import org.apache.nifi.event.transport.configuration.TransportProtocol;
+import org.apache.nifi.event.transport.message.ByteArrayMessage;
+import org.apache.nifi.event.transport.netty.ByteArrayMessageNettyEventServerFactory;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
-import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.io.IOException;
 import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 public class TestPutSyslog {
+    private static final String ADDRESS = "127.0.0.1";
 
-    private MockCollectingSender sender;
-    private MockPutSyslog proc;
+    private static final String LOCALHOST = "localhost";
+
+    private static final String MESSAGE_BODY = String.class.getName();
+
+    private static final String MESSAGE_PRIORITY = "1";
+
+    private static final String DEFAULT_PROTOCOL = "UDP";
+
+    private static final String TIMESTAMP = "Jan 1 00:00:00";
+
+    private static final String VERSION = "2";
+
+    private static final String SYSLOG_MESSAGE = String.format("<%s>%s %s %s", MESSAGE_PRIORITY, TIMESTAMP, LOCALHOST, MESSAGE_BODY);
+
+    private static final String VERSION_SYSLOG_MESSAGE = String.format("<%s>%s %s %s %s", MESSAGE_PRIORITY, VERSION, TIMESTAMP, LOCALHOST, MESSAGE_BODY);
+
+    private static final int MAX_FRAME_LENGTH = 1024;
+
+    private static final Charset CHARSET = StandardCharsets.UTF_8;
+
+    private static final String DELIMITER = "\n";
+
+    private static final int POLL_TIMEOUT_SECONDS = 5;
+
     private TestRunner runner;
 
+    private TransportProtocol protocol = TransportProtocol.UDP;
+
+    private int port;
+
     @Before
-    public void setup() throws IOException {
-        sender = new MockCollectingSender();
-        proc = new MockPutSyslog(sender);
-        runner = TestRunners.newTestRunner(proc);
-        runner.setProperty(PutSyslog.HOSTNAME, "localhost");
-        runner.setProperty(PutSyslog.PORT, "12345");
-    }
-
-    @Test
-    public void testValidMessageStaticPropertiesUdp() {
-        final String pri = "34";
-        final String version = "1";
-        final String stamp = "2003-10-11T22:14:15.003Z";
-        final String host = "mymachine.example.com";
-        final String body = "su - ID47 - BOM'su root' failed for lonvick on /dev/pts/8";
-
-        final String expectedMessage = "<" + pri + ">" + version + " " + stamp + " " + host + " " + body;
-
-        runner.setProperty(PutSyslog.MSG_PRIORITY, pri);
-        runner.setProperty(PutSyslog.MSG_VERSION, version);
-        runner.setProperty(PutSyslog.MSG_TIMESTAMP, stamp);
-        runner.setProperty(PutSyslog.MSG_HOSTNAME, host);
-        runner.setProperty(PutSyslog.MSG_BODY, body);
-
-        runner.enqueue("incoming data".getBytes(Charset.forName("UTF-8")));
-        runner.run();
-
-        runner.assertAllFlowFilesTransferred(PutSyslog.REL_SUCCESS, 1);
-        Assert.assertEquals(1, sender.messages.size());
-        Assert.assertEquals(expectedMessage, sender.messages.get(0));
-
-        final List<ProvenanceEventRecord> events = runner.getProvenanceEvents();
-        Assert.assertNotNull(events);
-        Assert.assertEquals(1, events.size());
-
-        final ProvenanceEventRecord event = events.get(0);
-        Assert.assertEquals(ProvenanceEventType.SEND, event.getEventType());
-        Assert.assertEquals("UDP://localhost:12345", event.getTransitUri());
-    }
-
-    @Test
-    public void testValidMessageStaticPropertiesTcp() {
-        final String pri = "34";
-        final String version = "1";
-        final String stamp = "2003-10-11T22:14:15.003Z";
-        final String host = "mymachine.example.com";
-        final String body = "su - ID47 - BOM'su root' failed for lonvick on /dev/pts/8";
-
-        final String expectedMessage = "<" + pri + ">" + version + " " + stamp + " " + host + " " + body;
-
-        runner.setProperty(PutSyslog.PROTOCOL, PutSyslog.TCP_VALUE);
-        runner.setProperty(PutSyslog.MSG_PRIORITY, pri);
-        runner.setProperty(PutSyslog.MSG_VERSION, version);
-        runner.setProperty(PutSyslog.MSG_TIMESTAMP, stamp);
-        runner.setProperty(PutSyslog.MSG_HOSTNAME, host);
-        runner.setProperty(PutSyslog.MSG_BODY, body);
-
-        runner.enqueue("incoming data".getBytes(Charset.forName("UTF-8")));
-        runner.run();
-
-        runner.assertAllFlowFilesTransferred(PutSyslog.REL_SUCCESS, 1);
-        Assert.assertEquals(1, sender.messages.size());
-        Assert.assertEquals(expectedMessage, sender.messages.get(0).replace("\n", ""));
-
-        final List<ProvenanceEventRecord> events = runner.getProvenanceEvents();
-        Assert.assertNotNull(events);
-        Assert.assertEquals(1, events.size());
-
-        final ProvenanceEventRecord event = events.get(0);
-        Assert.assertEquals(ProvenanceEventType.SEND, event.getEventType());
-        Assert.assertEquals("TCP://localhost:12345", event.getTransitUri());
-    }
-
-    @Test
-    public void testValidELPropertiesTcp() {
-        final String pri = "34";
-        final String version = "1";
-        final String stamp = "2003-10-11T22:14:15.003Z";
-        final String host = "mymachine.example.com";
-        final String body = "su - ID47 - BOM'su root' failed for lonvick on /dev/pts/8";
-
-        final String expectedMessage = "<" + pri + ">" + version + " " + stamp + " " + host + " " + body;
-
-        runner.setProperty(PutSyslog.HOSTNAME, "${'hostname'}");
-        runner.setProperty(PutSyslog.PORT, "${port}");
-        runner.setProperty(PutSyslog.CHARSET, "${charset}");
-        runner.setProperty(PutSyslog.TIMEOUT, "${timeout}");
-        runner.setProperty(PutSyslog.MAX_SOCKET_SEND_BUFFER_SIZE, "${maxSocketSenderBufferSize}");
-        runner.setProperty(PutSyslog.IDLE_EXPIRATION, "${idleExpiration}");
-        runner.setProperty(PutSyslog.PROTOCOL, PutSyslog.TCP_VALUE);
-        runner.setProperty(PutSyslog.MSG_PRIORITY, pri);
-        runner.setProperty(PutSyslog.MSG_VERSION, version);
-        runner.setProperty(PutSyslog.MSG_TIMESTAMP, stamp);
-        runner.setProperty(PutSyslog.MSG_HOSTNAME, host);
-        runner.setProperty(PutSyslog.MSG_BODY, body);
-
+    public void setRunner() {
+        port = NetworkUtils.getAvailableUdpPort();
+        runner = TestRunners.newTestRunner(PutSyslog.class);
+        runner.setProperty(PutSyslog.HOSTNAME, ADDRESS);
+        runner.setProperty(PutSyslog.PROTOCOL, protocol.toString());
+        runner.setProperty(PutSyslog.PORT, Integer.toString(port));
+        runner.setProperty(PutSyslog.MSG_BODY, MESSAGE_BODY);
+        runner.setProperty(PutSyslog.MSG_PRIORITY, MESSAGE_PRIORITY);
+        runner.setProperty(PutSyslog.MSG_HOSTNAME, LOCALHOST);
+        runner.setProperty(PutSyslog.MSG_TIMESTAMP, TIMESTAMP);
         runner.assertValid();
-        runner.setVariable("hostname", "hostname");
-        runner.setVariable("port", "10443");
-        runner.setVariable("charset", "UTF-8");
-        runner.setVariable("timeout", "10 secs");
-        runner.setVariable("maxSocketSenderBufferSize", "10 mb");
-        runner.setVariable("idleExpiration", "10 secs");
-
-        runner.enqueue("incoming data".getBytes(Charset.forName("UTF-8")));
-        runner.run();
-
-        runner.assertAllFlowFilesTransferred(PutSyslog.REL_SUCCESS, 1);
-        Assert.assertEquals(1, sender.messages.size());
-        Assert.assertEquals(expectedMessage, sender.messages.get(0).replace("\n", ""));
-
-        final List<ProvenanceEventRecord> events = runner.getProvenanceEvents();
-        Assert.assertNotNull(events);
-        Assert.assertEquals(1, events.size());
-
-        final ProvenanceEventRecord event = events.get(0);
-        Assert.assertEquals(ProvenanceEventType.SEND, event.getEventType());
-        Assert.assertEquals("TCP://hostname:10443", event.getTransitUri());
     }
 
     @Test
-    public void testValidMessageStaticPropertiesNoVersion() {
-        final String pri = "34";
-        final String stamp = "2003-10-11T22:14:15.003Z";
-        final String host = "mymachine.example.com";
-        final String body = "su - ID47 - BOM'su root' failed for lonvick on /dev/pts/8";
-
-        final String expectedMessage = "<" + pri + ">" + stamp + " " + host + " " + body;
-
-        runner.setProperty(PutSyslog.MSG_PRIORITY, pri);
-        runner.setProperty(PutSyslog.MSG_TIMESTAMP, stamp);
-        runner.setProperty(PutSyslog.MSG_HOSTNAME, host);
-        runner.setProperty(PutSyslog.MSG_BODY, body);
-
-        runner.enqueue("incoming data".getBytes(Charset.forName("UTF-8")));
+    public void testRunNoFlowFiles() {
         runner.run();
-
-        runner.assertAllFlowFilesTransferred(PutSyslog.REL_SUCCESS, 1);
-        Assert.assertEquals(1, sender.messages.size());
-        Assert.assertEquals(expectedMessage, sender.messages.get(0));
+        runner.assertQueueEmpty();
     }
 
     @Test
-    public void testValidMessageELProperties() {
-        final String pri = "34";
-        final String stamp = "2003-10-11T22:14:15.003Z";
-        final String host = "mymachine.example.com";
-        final String body = "su - ID47 - BOM'su root' failed for lonvick on /dev/pts/8";
-
-        final String expectedMessage = "<" + pri + ">" + stamp + " " + host + " " + body;
-
-        runner.setProperty(PutSyslog.MSG_PRIORITY, "${syslog.priority}");
-        runner.setProperty(PutSyslog.MSG_TIMESTAMP, "${syslog.timestamp}");
-        runner.setProperty(PutSyslog.MSG_HOSTNAME, "${syslog.hostname}");
-        runner.setProperty(PutSyslog.MSG_BODY, "${syslog.body}");
-
-        final Map<String,String> attributes = new HashMap<>();
-        attributes.put("syslog.priority", pri);
-        attributes.put("syslog.timestamp", stamp);
-        attributes.put("syslog.hostname", host);
-        attributes.put("syslog.body", body);
-
-        runner.enqueue("incoming data".getBytes(Charset.forName("UTF-8")), attributes);
-        runner.run();
-
-        runner.assertAllFlowFilesTransferred(PutSyslog.REL_SUCCESS, 1);
-        Assert.assertEquals(1, sender.messages.size());
-        Assert.assertEquals(expectedMessage, sender.messages.get(0));
+    public void testRunSuccess() throws InterruptedException {
+        assertSyslogMessageSuccess(SYSLOG_MESSAGE, Collections.emptyMap());
     }
 
     @Test
-    public void testInvalidMessageELProperties() {
-        final String pri = "34";
-        final String stamp = "not-a-timestamp";
-        final String host = "mymachine.example.com";
-        final String body = "su - ID47 - BOM'su root' failed for lonvick on /dev/pts/8";
+    public void testRunSuccessSyslogVersion() throws InterruptedException {
+        final String versionAttributeKey = "version";
+        runner.setProperty(PutSyslog.MSG_VERSION, String.format("${%s}", versionAttributeKey));
+        final Map<String, String> attributes = Collections.singletonMap(versionAttributeKey, VERSION);
 
-        runner.setProperty(PutSyslog.MSG_PRIORITY, "${syslog.priority}");
-        runner.setProperty(PutSyslog.MSG_TIMESTAMP, "${syslog.timestamp}");
-        runner.setProperty(PutSyslog.MSG_HOSTNAME, "${syslog.hostname}");
-        runner.setProperty(PutSyslog.MSG_BODY, "${syslog.body}");
-
-        final Map<String,String> attributes = new HashMap<>();
-        attributes.put("syslog.priority", pri);
-        attributes.put("syslog.timestamp", stamp);
-        attributes.put("syslog.hostname", host);
-        attributes.put("syslog.body", body);
-
-        runner.enqueue("incoming data".getBytes(Charset.forName("UTF-8")), attributes);
-        runner.run();
-
-        runner.assertAllFlowFilesTransferred(PutSyslog.REL_INVALID, 1);
-        Assert.assertEquals(0, sender.messages.size());
+        assertSyslogMessageSuccess(VERSION_SYSLOG_MESSAGE, attributes);
     }
 
     @Test
-    public void testIOExceptionOnSend() throws IOException {
-        final String pri = "34";
-        final String version = "1";
-        final String stamp = "2003-10-11T22:14:15.003Z";
-        final String host = "mymachine.example.com";
-        final String body = "su - ID47 - BOM'su root' failed for lonvick on /dev/pts/8";
-
-        proc = new MockPutSyslog(new MockErrorSender());
-        runner = TestRunners.newTestRunner(proc);
-        runner.setProperty(PutSyslog.HOSTNAME, "localhost");
-        runner.setProperty(PutSyslog.PORT, "12345");
-        runner.setProperty(PutSyslog.MSG_PRIORITY, pri);
-        runner.setProperty(PutSyslog.MSG_VERSION, version);
-        runner.setProperty(PutSyslog.MSG_TIMESTAMP, stamp);
-        runner.setProperty(PutSyslog.MSG_HOSTNAME, host);
-        runner.setProperty(PutSyslog.MSG_BODY, body);
-
-        runner.enqueue("incoming data".getBytes(Charset.forName("UTF-8")));
+    public void testRunInvalid() {
+        runner.setProperty(PutSyslog.MSG_PRIORITY, Integer.toString(Integer.MAX_VALUE));
+        runner.enqueue(new byte[]{});
         runner.run();
-
-        runner.assertAllFlowFilesTransferred(PutSyslog.REL_FAILURE, 1);
-        Assert.assertEquals(0, sender.messages.size());
+        runner.assertAllFlowFilesTransferred(PutSyslog.REL_INVALID);
     }
 
     @Test
-    public void testIOExceptionCreatingConnection() throws IOException {
-        final String pri = "34";
-        final String version = "1";
-        final String stamp = "2003-10-11T22:14:15.003Z";
-        final String host = "mymachine.example.com";
-        final String body = "su - ID47 - BOM'su root' failed for lonvick on /dev/pts/8";
-
-        Processor proc = new MockCreationErrorPutSyslog(new MockErrorSender(), 1);
-        runner = TestRunners.newTestRunner(proc);
-        runner.setProperty(PutSyslog.HOSTNAME, "localhost");
-        runner.setProperty(PutSyslog.PORT, "12345");
-        runner.setProperty(PutSyslog.BATCH_SIZE, "1");
-        runner.setProperty(PutSyslog.MSG_PRIORITY, pri);
-        runner.setProperty(PutSyslog.MSG_VERSION, version);
-        runner.setProperty(PutSyslog.MSG_TIMESTAMP, stamp);
-        runner.setProperty(PutSyslog.MSG_HOSTNAME, host);
-        runner.setProperty(PutSyslog.MSG_BODY, body);
-
-        // the first run will throw IOException when calling send so the connection won't be re-qeued
-        // the second run will try to create a new connection but throw an exception which should be caught and route files to failure
-        runner.enqueue("incoming data".getBytes(Charset.forName("UTF-8")));
-        runner.enqueue("incoming data".getBytes(Charset.forName("UTF-8")));
-        runner.run(2);
-
-        runner.assertAllFlowFilesTransferred(PutSyslog.REL_FAILURE, 2);
-        Assert.assertEquals(0, sender.messages.size());
-    }
-
-    @Test
-    public void testLargeMessageFailure() {
-        final String pri = "34";
-        final String stamp = "2015-10-15T22:14:15.003Z";
-        final String host = "mymachine.example.com";
-
-        final StringBuilder bodyBuilder = new StringBuilder(4096);
-        for (int i=0; i < 4096; i++) {
-            bodyBuilder.append("a");
-        }
-
-        runner.setProperty(PutSyslog.MSG_PRIORITY, "${syslog.priority}");
-        runner.setProperty(PutSyslog.MSG_TIMESTAMP, "${syslog.timestamp}");
-        runner.setProperty(PutSyslog.MSG_HOSTNAME, "${syslog.hostname}");
-        runner.setProperty(PutSyslog.MSG_BODY, "${syslog.body}");
-
-        final Map<String,String> attributes = new HashMap<>();
-        attributes.put("syslog.priority", pri);
-        attributes.put("syslog.timestamp", stamp);
-        attributes.put("syslog.hostname", host);
-        attributes.put("syslog.body", bodyBuilder.toString());
-
-        runner.enqueue("incoming data".getBytes(Charset.forName("UTF-8")), attributes);
+    public void testRunFailure() {
+        runner.setProperty(PutSyslog.PROTOCOL, PutSyslog.TCP_VALUE);
+        runner.setProperty(PutSyslog.PORT, Integer.toString(NetworkUtils.getAvailableTcpPort()));
+        runner.enqueue(new byte[]{});
         runner.run();
-
-        // should have dynamically created a larger buffer
-        runner.assertAllFlowFilesTransferred(PutSyslog.REL_SUCCESS, 1);
-        Assert.assertEquals(1, sender.messages.size());
+        runner.assertAllFlowFilesTransferred(PutSyslog.REL_FAILURE);
     }
 
-    @Test
-    public void testNoIncomingData() {
-        runner.setProperty(PutSyslog.MSG_PRIORITY, "10");
-        runner.setProperty(PutSyslog.MSG_VERSION, "1");
-        runner.setProperty(PutSyslog.MSG_TIMESTAMP, "2003-10-11T22:14:15.003Z");
-        runner.setProperty(PutSyslog.MSG_HOSTNAME, "localhost");
-        runner.setProperty(PutSyslog.MSG_BODY, "test");
+    private void assertSyslogMessageSuccess(final String expectedSyslogMessage, final Map<String, String> attributes) throws InterruptedException {
+        final BlockingQueue<ByteArrayMessage> messages = new LinkedBlockingQueue<>();
+        final byte[] delimiter = DELIMITER.getBytes(CHARSET);
+        final EventServerFactory serverFactory = new ByteArrayMessageNettyEventServerFactory(runner.getLogger(), ADDRESS, port, protocol, delimiter, MAX_FRAME_LENGTH, messages);
+        final EventServer eventServer = serverFactory.getEventServer();
 
-        // queue one file but run several times to test no incoming data
-        runner.enqueue("incoming data".getBytes(Charset.forName("UTF-8")));
-        runner.run(5);
+        try {
+            runner.enqueue(expectedSyslogMessage, attributes);
+            runner.run();
 
-        runner.assertAllFlowFilesTransferred(PutSyslog.REL_SUCCESS, 1);
-    }
+            final ByteArrayMessage message = messages.poll(POLL_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            final String syslogMessage = new String(message.getMessage(), CHARSET);
+            runner.assertAllFlowFilesTransferred(PutSyslog.REL_SUCCESS);
 
-    @Test
-    public void testBatchingFlowFiles() {
-        runner.setProperty(PutSyslog.BATCH_SIZE, "10");
-        runner.setProperty(PutSyslog.MSG_PRIORITY, "${syslog.priority}");
-        runner.setProperty(PutSyslog.MSG_TIMESTAMP, "${syslog.timestamp}");
-        runner.setProperty(PutSyslog.MSG_HOSTNAME, "${syslog.hostname}");
-        runner.setProperty(PutSyslog.MSG_BODY, "${syslog.body}");
-
-        final Map<String,String> attributes = new HashMap<>();
-        attributes.put("syslog.priority", "10");
-        attributes.put("syslog.timestamp", "2015-10-11T22:14:15.003Z");
-        attributes.put("syslog.hostname", "my.host.name");
-        attributes.put("syslog.body", "blah blah blah");
-
-        for (int i=0; i < 15; i++) {
-            runner.enqueue("incoming data".getBytes(Charset.forName("UTF-8")), attributes);
-        }
-
-        runner.run();
-        runner.assertAllFlowFilesTransferred(PutSyslog.REL_SUCCESS, 10);
-        Assert.assertEquals(10, sender.messages.size());
-
-        runner.run();
-        runner.assertAllFlowFilesTransferred(PutSyslog.REL_SUCCESS, 15);
-        Assert.assertEquals(15, sender.messages.size());
-    }
-
-    // Mock processor to return a MockCollectingSender
-    static class MockPutSyslog extends PutSyslog {
-
-        ChannelSender mockSender;
-
-        public MockPutSyslog(ChannelSender sender) {
-            this.mockSender = sender;
-        }
-
-        @Override
-        protected ChannelSender createSender(SSLContextService sslContextService, String protocol, String host,
-                                             int port, int maxSendBuffer, int timeout)
-                throws IOException {
-            return mockSender;
+            assertEquals(expectedSyslogMessage, syslogMessage);
+            assertProvenanceRecordTransitUriFound();
+        } finally {
+            eventServer.shutdown();
         }
     }
 
-    // Mock processor to test exception when creating new senders
-    static class MockCreationErrorPutSyslog extends PutSyslog {
+    private void assertProvenanceRecordTransitUriFound() {
+        final List<ProvenanceEventRecord> provenanceEvents = runner.getProvenanceEvents();
+        assertFalse("Provenance Events not found", provenanceEvents.isEmpty());
+        final ProvenanceEventRecord provenanceEventRecord = provenanceEvents.iterator().next();
+        assertEquals(ProvenanceEventType.SEND, provenanceEventRecord.getEventType());
 
-        int numSendersCreated;
-        int numSendersAllowed;
-        ChannelSender mockSender;
-
-        public MockCreationErrorPutSyslog(ChannelSender sender, int numSendersAllowed) {
-            this.mockSender = sender;
-            this.numSendersAllowed = numSendersAllowed;
-        }
-
-        @Override
-        protected ChannelSender createSender(SSLContextService sslContextService, String protocol, String host,
-                                             int port, int maxSendBuffer, int timeout)
-                throws IOException {
-            if (numSendersCreated >= numSendersAllowed) {
-                throw new IOException("too many senders");
-            }
-            numSendersCreated++;
-            return mockSender;
-        }
+        final String transitUri = provenanceEventRecord.getTransitUri();
+        assertNotNull("Transit URI not found", transitUri);
+        assertTrue("Transit URI Protocol not found", transitUri.contains(DEFAULT_PROTOCOL));
+        assertTrue("Transit URI Hostname not found", transitUri.contains(ADDRESS));
+        assertTrue("Transit URI Port not found", transitUri.contains(Integer.toString(port)));
     }
-
-    // Mock sender that saves any messages passed to send()
-    static class MockCollectingSender extends ChannelSender {
-
-        List<String> messages = new ArrayList<>();
-
-        public MockCollectingSender() throws IOException {
-            super("myhost", 0, 0, null);
-        }
-
-        @Override
-        public void open() throws IOException {
-
-        }
-
-        @Override
-        public void send(String message, Charset charset) throws IOException {
-            messages.add(message);
-            super.send(message, charset);
-        }
-
-        @Override
-        protected void write(byte[] buffer) throws IOException {
-
-        }
-
-        @Override
-        public boolean isConnected() {
-            return true;
-        }
-
-        @Override
-        public void close() {
-
-        }
-    }
-
-    // Mock sender that throws IOException on calls to write() or send()
-    static class MockErrorSender extends ChannelSender {
-
-        public MockErrorSender() throws IOException {
-            super(null, 0, 0, null);
-        }
-
-        @Override
-        public void open() throws IOException {
-
-        }
-
-        @Override
-        public void send(String message, Charset charset) throws IOException {
-            throw new IOException("error");
-        }
-
-        @Override
-        protected void write(byte[] data) throws IOException {
-            throw new IOException("error");
-        }
-
-        @Override
-       public boolean isConnected() {
-            return false;
-        }
-
-        @Override
-        public void close() {
-
-        }
-    }
-
 }
