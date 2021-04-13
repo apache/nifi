@@ -110,17 +110,18 @@ be enough to fill a 'Bin' in MergeContent or MergeRecord, the FlowFile will rema
 to trigger the processor until the FlowFile is merged by itself (due to Processor's Max Bin Duration being reached).
 If no Max Bin Duration is configured, it will trigger continually without making progress.
 
-#### Cycles Not Supported
+#### Failure Handling
 
 In traditional NiFi, it is common to loop a 'failure' connection from a given Processor back to the same Processor.
-This results in the Processor continually trying to process the FlowFile until it is successful. However, because of
-the difference in how data transits the dataflow (i.e., synchronously in Stateless and Asynchronously in standard NiFi),
-this can result in the Processor recursively calling itself. This may be okay for some dataflows, which are intended
-to loop a few times. However, for a failure loop that constantly triggers itself, this will result in a 
-StackOverflowException being thrown.
+This results in the Processor continually trying to process the FlowFile until it is successful. This can be extremely important,
+because typically one NiFi receives the data, it is responsible for taking ownership of that data and must be able to hold the data
+until the downstream services is able to receive it and then delivery that data.
 
-Instead, this should be handled in Stateless by routing the failure to an Output Port and then marking that Output Port
-as a failure port (see [Failure Ports](#failure-ports) below for more information).
+With Stateless NiFi, however, the source of the data is assumed to be both reliable and replayable. Additionally, Stateless NiFi,
+by design, will not hold data after restarts. As a result, the failure handling considerations may be different. With Stateless NiFi,
+if unable to deliver data to the downstream system, it is often preferable to instead route the FlowFile to an Output Port and then
+mark that Output Port as a failure port (see [Failure Ports](#failure-ports) below for more information).
+
 
 #### Flows Should Not Load Massive Files
 

@@ -24,6 +24,7 @@ import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.components.state.StatelessStateManagerProvider;
 import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.connectable.Connectable;
+import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.LocalPort;
 import org.apache.nifi.connectable.Port;
@@ -99,6 +100,7 @@ public class StandardStatelessFlow implements StatelessDataflow {
     private final StatelessStateManagerProvider stateManagerProvider;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final ProcessScheduler processScheduler;
+    private final AsynchronousCommitTracker tracker = new AsynchronousCommitTracker();
 
     private volatile ExecutorService runDataflowExecutor;
     private volatile boolean initialized = false;
@@ -382,7 +384,6 @@ public class StandardStatelessFlow implements StatelessDataflow {
 
         final BlockingQueue<TriggerResult> resultQueue = new LinkedBlockingQueue<>();
 
-        final AsynchronousCommitTracker tracker = new AsynchronousCommitTracker();
         final ExecutionProgress executionProgress = new StandardExecutionProgress(rootGroup, internalFlowFileQueues, resultQueue,
             (ByteArrayContentRepository) repositoryContextFactory.getContentRepository(), dataflowDefinition.getFailurePortNames(), tracker);
 
@@ -428,31 +429,57 @@ public class StandardStatelessFlow implements StatelessDataflow {
         final long startNanos = System.nanoTime();
 
         try {
-            Connectable lastComponentTriggered = null;
+            Connectable currentComponent = null;
 
             try {
-                for (final Connectable connectable : rootConnectables) {
-                    lastComponentTriggered = connectable;
-                    trigger(connectable, executionProgress, tracker);
-                }
+                boolean completionReached = false;
+                while (!completionReached) {
+                    for (final Connectable connectable : rootConnectables) {
+                        currentComponent = connectable;
+                        trigger(connectable, executionProgress, tracker);
+                    }
 
-                while (tracker.isAnyReady()) {
-                    final Set<Connectable> next = new HashSet<>(tracker.getReady());
-                    logger.debug("The following {} components are ready to be triggered: {}", next.size(), next);
-                    for (final Connectable connectable : next) {
-                        while (tracker.isReady(connectable)) {
-                            if (executionProgress.isCanceled()) {
-                                logger.info("Dataflow was canceled so will not trigger any more components");
-                                return;
+                    readyLoop: while (tracker.isAnyReady()) {
+                        final List<Connectable> next = tracker.getReady();
+                        logger.debug("The following {} components are ready to be triggered: {}", next.size(), next);
+
+                        for (final Connectable connectable : next) {
+                            while (tracker.isReady(connectable)) {
+                                if (executionProgress.isCanceled()) {
+                                    logger.info("Dataflow was canceled so will not trigger any more components");
+                                    return;
+                                }
+
+                                currentComponent = connectable;
+
+                                // Reset progress and trigger the component.
+                                tracker.resetProgress();
+                                trigger(connectable, executionProgress, tracker);
+
+                                // Check if the component made any progress or not. If so, continue on. If not, we need to check if providing the component with
+                                // additional input would help the component to progress or not.
+                                final boolean progressed = tracker.isProgress();
+                                if (progressed) {
+                                    logger.debug("{} was triggered and made progress", connectable);
+                                } else {
+                                    // Determine whether or not providing additional input FlowFiles will help the Processor to make progress
+                                    final boolean additionalInputRequired = isAdditionalInputRequired(connectable);
+                                    logger.debug("{} was triggered but made no progress. Additional Input Required = {}", connectable, additionalInputRequired);
+
+                                    // If the processor requires that additional input be provided, break out of the while loop so that we will trigger the 'root' connectables / sources
+                                    // again in order to produce additional data.
+                                    if (additionalInputRequired) {
+                                        break readyLoop;
+                                    }
+                                }
                             }
-
-                            lastComponentTriggered = connectable;
-                            trigger(connectable, executionProgress, tracker);
                         }
                     }
+
+                    completionReached = !tracker.isAnyReady();
                 }
             } catch (final Throwable t) {
-                logger.error("Failed to trigger {}", lastComponentTriggered, t);
+                logger.error("Failed to trigger {}", currentComponent, t);
                 executionProgress.notifyExecutionFailed(t);
                 tracker.triggerFailureCallbacks(t);
                 throw t;
@@ -485,6 +512,16 @@ public class StandardStatelessFlow implements StatelessDataflow {
             tracker.triggerFailureCallbacks(t);
             resultQueue.offer(new ExceptionalTriggerResult(t));
         }
+    }
+
+    private boolean isAdditionalInputRequired(final Connectable connectable) {
+        final ConnectableType connectableType = connectable.getConnectableType();
+        if (connectableType != ConnectableType.PROCESSOR) {
+            return false;
+        }
+
+        final Processor processor = (Processor) connectable.getRunnableComponent();
+        return processor.isAdditionalInputRequired();
     }
 
     private void trigger(final Connectable connectable, final ExecutionProgress executionProgress, final AsynchronousCommitTracker tracker) {

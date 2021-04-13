@@ -419,4 +419,10 @@ public class MergeRecord extends AbstractSessionFactoryProcessor {
     int getBinCount() {
         return binManager.get().getBinCount();
     }
+
+    @Override
+    public boolean isAdditionalInputRequired() {
+        final boolean anyBinFullEnough = binManager.get().isAnyBinFullEnough();
+        return !anyBinFullEnough;
+    }
 }

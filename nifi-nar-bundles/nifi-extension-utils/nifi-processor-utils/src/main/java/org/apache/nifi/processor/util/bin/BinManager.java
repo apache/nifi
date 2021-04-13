@@ -297,4 +297,21 @@ public class BinManager {
         }
         return false;
     }
+
+    public boolean isAnyBinFullEnough() {
+        rLock.lock();
+        try {
+            for (final List<Bin> bins : groupBinMap.values()) {
+                for (final Bin bin : bins) {
+                    if (bin.isFullEnough()) {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        } finally {
+            rLock.unlock();
+        }
+    }
 }

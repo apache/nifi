@@ -16,9 +16,10 @@
  */
 package org.apache.nifi.processor;
 
-import java.util.Set;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.processor.exception.ProcessException;
+
+import java.util.Set;
 
 /**
  * <p>
@@ -87,4 +88,16 @@ public interface Processor extends ConfigurableComponent {
      */
     void onTrigger(ProcessContext context, ProcessSessionFactory sessionFactory) throws ProcessException;
 
+    /**
+     * <p>
+     * Indicates whether or not the Processor requires that additional FlowFiles be queued up before the Processor
+     * will be able to make progress.
+     * </p>
+     *
+     * @return <code>true</code> if the Processor will not be able to make progress without more incoming FlowFiles, <code>false</code> if providing
+     * additional FlowFiles to the Processor will not help the Processor to progress.
+     */
+    default boolean isAdditionalInputRequired() {
+        return false;
+    }
 }

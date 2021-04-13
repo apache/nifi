@@ -24,8 +24,9 @@ import org.apache.nifi.groups.ProcessGroup;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.Stack;
 import java.util.function.Consumer;
@@ -37,43 +38,74 @@ public class AsynchronousCommitTracker {
     private static final Logger logger = LoggerFactory.getLogger(AsynchronousCommitTracker.class);
 
     private final Set<Connectable> ready = new LinkedHashSet<>();
-    private final Set<Connectable> readOnly = Collections.unmodifiableSet(ready);
     private final Stack<CommitCallbacks> commitCallbacks = new Stack<>();
+    private boolean progressMade = false;
 
-    public void addConnectable(final Connectable connectable) {
-        ready.add(connectable);
+    public AsynchronousCommitTracker() {
+
     }
 
-    public Set<Connectable> getReady() {
-        return readOnly;
+    public void addConnectable(final Connectable connectable) {
+        final boolean added = ready.add(connectable);
+
+        if (added) {
+            logger.debug("{} Added {} to list of Ready Connectables", this, connectable);
+        } else {
+            logger.debug("{} Added {} to list of Ready Connectables but it was already in the list", this, connectable);
+        }
+    }
+
+    public List<Connectable> getReady() {
+        return new ArrayList<>(ready);
     }
 
     public boolean isAnyReady() {
-        return !ready.isEmpty();
+        final boolean anyReady = !ready.isEmpty();
+
+        logger.debug("{} Any components ready = {}, list={}", this, anyReady, ready);
+        return anyReady;
     }
 
     public boolean isReady(final Connectable connectable) {
         if (!ready.contains(connectable)) {
+            logger.debug("{} {} is not ready because it's not in the list of ready components", this, connectable);
             return false;
         }
 
+        if (isRootGroupOutputPort(connectable)) {
+            // Output Port is at the root group level. We don't want to trigger the Output Port so we consider it not ready
+            ready.remove(connectable);
+            logger.debug("{} {} is not ready because it's a root group output port", this, connectable);
+            return false;
+        }
+
+        if (isDataQueued(connectable)) {
+            logger.debug("{} {} is ready because it has data queued", this, connectable);
+            return true;
+        }
+
+        logger.debug("{} {} is not ready because it has no data queued", this, connectable);
+        ready.remove(connectable);
+        return false;
+    }
+
+    private boolean isRootGroupOutputPort(final Connectable connectable) {
         final ConnectableType connectableType = connectable.getConnectableType();
         if (connectableType == ConnectableType.OUTPUT_PORT) {
             final ProcessGroup outputPortGroup = connectable.getProcessGroup();
-            if (outputPortGroup.getParent() == null) {
-                // Output Port is at the root group level. We don't want to trigger the Output Port so we consider it not ready
-                ready.remove(connectable);
-                return false;
-            }
+            return outputPortGroup.getParent() == null;
         }
 
+        return false;
+    }
+
+    private boolean isDataQueued(final Connectable connectable) {
         for (final Connection incoming : connectable.getIncomingConnections()) {
             if (!incoming.getFlowFileQueue().isEmpty()) {
                 return true;
             }
         }
 
-        ready.remove(connectable);
         return false;
     }
 
@@ -132,6 +164,18 @@ public class AsynchronousCommitTracker {
         } catch (final Throwable t) {
             logger.error("Tried to invoke failure callback for asynchronous commits on {} but failed to do so", commitCallbacks.getConnectable(), t);
         }
+    }
+
+    public void recordProgress() {
+        progressMade = true;
+    }
+
+    public void resetProgress() {
+        progressMade = false;
+    }
+
+    public boolean isProgress() {
+        return progressMade;
     }
 
     private static class CommitCallbacks {

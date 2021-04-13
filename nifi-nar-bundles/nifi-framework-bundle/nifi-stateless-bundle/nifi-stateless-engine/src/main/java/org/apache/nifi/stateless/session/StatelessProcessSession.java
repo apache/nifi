@@ -121,6 +121,12 @@ public class StatelessProcessSession extends StandardProcessSession {
         // data made its way to the end destination. If Stateless were then stopped, it would result in data loss.
         requireSynchronousCommits = requireSynchronousCommits || !asynchronous;
 
+        // Check if the Processor made any progress or not. If so, record this fact so that the framework knows that this was the case.
+        final int flowFileCounts = checkpoint.getFlowFilesIn() + checkpoint.getFlowFilesOut() + checkpoint.getFlowFilesRemoved();
+        if (flowFileCounts > 0) {
+            tracker.recordProgress();
+        }
+
         // Commit the session
         super.commit(checkpoint, asynchronous);
 

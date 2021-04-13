@@ -364,4 +364,10 @@ public abstract class BinFiles extends AbstractSessionFactoryProcessor {
 
         return problems;
     }
+
+    @Override
+    public boolean isAdditionalInputRequired() {
+        final boolean anyBinFullEnough = binManager.isAnyBinFullEnough();
+        return !anyBinFullEnough;
+    }
 }
