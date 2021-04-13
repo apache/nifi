@@ -36,7 +36,7 @@ public class StandardNiFiUser implements NiFiUser {
     private final NiFiUser chain;
     private final String clientAddress;
     private final boolean isAnonymous;
-    private final boolean canLogOut;
+    private final boolean logOutEnabled;
 
     private StandardNiFiUser(final Builder builder) {
         this.identity = builder.identity;
@@ -45,7 +45,7 @@ public class StandardNiFiUser implements NiFiUser {
         this.chain = builder.chain;
         this.clientAddress = builder.clientAddress;
         this.isAnonymous = builder.isAnonymous;
-        this.canLogOut = builder.canLogOut;
+        this.logOutEnabled = builder.logOutEnabled;
 
         final Set<String> combineGroups = new HashSet<>();
         if (this.groups != null) {
@@ -99,8 +99,8 @@ public class StandardNiFiUser implements NiFiUser {
     }
 
     @Override
-    public boolean canLogOut() {
-        return canLogOut;
+    public boolean logOutEnabled() {
+        return logOutEnabled;
     }
 
     @Override
@@ -152,7 +152,7 @@ public class StandardNiFiUser implements NiFiUser {
         private NiFiUser chain;
         private String clientAddress;
         private boolean isAnonymous = false;
-        private boolean canLogOut = false;
+        private boolean logOutEnabled = false;
 
         /**
          * Sets the identity.
@@ -222,11 +222,11 @@ public class StandardNiFiUser implements NiFiUser {
 
         /**
          * Sets whether the user can request to log out of NiFi, with JWT based authentication mechanisms such as LDAP
-         * @param canLogOut true if the user can log out using the Log Out button on the canvas
+         * @param logOutEnabled true if the user can log out using the Log Out button on the canvas
          * @return the builder
          */
-        public Builder canLogOut(final boolean canLogOut) {
-            this.canLogOut = canLogOut;
+        public Builder logOutEnabled(final boolean logOutEnabled) {
+            this.logOutEnabled = logOutEnabled;
             return this;
         }
 

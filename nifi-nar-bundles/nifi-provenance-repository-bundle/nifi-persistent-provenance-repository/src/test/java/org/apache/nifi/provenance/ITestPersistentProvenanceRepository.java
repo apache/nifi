@@ -2137,7 +2137,7 @@ public class ITestPersistentProvenanceRepository {
             }
 
             @Override
-            public boolean canLogOut() {
+            public boolean logOutEnabled() {
                 return true;
             }
 

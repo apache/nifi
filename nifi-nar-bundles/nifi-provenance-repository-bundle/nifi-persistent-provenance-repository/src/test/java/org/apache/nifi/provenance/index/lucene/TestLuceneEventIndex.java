@@ -411,7 +411,7 @@ public class TestLuceneEventIndex {
             }
 
             @Override
-            public boolean canLogOut() {
+            public boolean logOutEnabled() {
                 return true;
             }
         };

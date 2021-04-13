@@ -91,7 +91,7 @@
         });
 
         // shows the logout link in the message-pane when appropriate and schedule token refresh
-        if (nfCommon.canLogOut()) {
+        if (nfCommon.logOutEnabled()) {
             $('#user-logout-container').css('display', 'block');
             nfCommon.scheduleTokenRefresh();
         }
@@ -102,6 +102,7 @@
                 type: 'DELETE',
                 url: '../nifi-api/access/logout',
             }).done(function () {
+                nfStorage.removeItem("jwt");
                 window.location = '../nifi/logout';
             }).fail(nfErrorHandler.handleAjaxError);
         });
@@ -852,7 +853,7 @@
          * Shows the logout link if appropriate.
          */
         showLogoutLink: function () {
-            if (nfCommon.canLogOut()) {
+            if (nfCommon.logOutEnabled()) {
                 $('#user-logout-container').css('display', 'block');
             } else {
                 $('#user-logout-container').css('display', 'none');
@@ -862,9 +863,9 @@
         /**
          * Determines whether the current user can version flows.
          */
-        canLogOut: function () {
+        logOutEnabled: function () {
             if (nfCommon.isDefinedAndNotNull(nfCommon.currentUser)) {
-                return nfCommon.currentUser.canLogOut === true;
+                return nfCommon.currentUser.logOutEnabled === true;
             } else {
                 return false;
             }

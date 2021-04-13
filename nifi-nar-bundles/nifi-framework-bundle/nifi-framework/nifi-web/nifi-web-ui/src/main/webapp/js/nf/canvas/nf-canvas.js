@@ -907,7 +907,7 @@
                             $('#current-user').text(currentUser.identity).show();
 
                             // render the logout button if there is a token locally
-                            if (nfCommon.canLogOut()) {
+                            if (nfCommon.logOutEnabled()) {
                                 $('#logout-link-container').show();
                             }
                         } else {

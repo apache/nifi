@@ -224,7 +224,7 @@
                 }
             });
 
-            if (nfCommon.canLogOut()) {
+            if (nfCommon.logOutEnabled()) {
                 nfCommon.showLogoutLink();
             }
         }
