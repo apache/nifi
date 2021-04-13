@@ -41,7 +41,7 @@ public abstract class AbstractEmbeddedQuestDbStatusHistoryRepositoryTest extends
 
     protected static final int PREFERRED_DATA_POINTS = 1000;
     protected static final int DAYS_TO_KEEP_DATA = 7;
-    protected static final long PERSIST_FREQUENCY = TimeUnit.MILLISECONDS.convert(2, TimeUnit.SECONDS);
+    protected static final long PERSIST_FREQUENCY = 50; //200 milliseconds
 
     protected EmbeddedQuestDbStatusHistoryRepository testSubject;
     protected String path;
