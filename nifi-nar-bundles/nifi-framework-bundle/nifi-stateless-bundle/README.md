@@ -110,17 +110,18 @@ be enough to fill a 'Bin' in MergeContent or MergeRecord, the FlowFile will rema
 to trigger the processor until the FlowFile is merged by itself (due to Processor's Max Bin Duration being reached).
 If no Max Bin Duration is configured, it will trigger continually without making progress.
 
-#### Cycles Not Supported
+#### Failure Handling
 
 In traditional NiFi, it is common to loop a 'failure' connection from a given Processor back to the same Processor.
-This results in the Processor continually trying to process the FlowFile until it is successful. However, because of
-the difference in how data transits the dataflow (i.e., synchronously in Stateless and Asynchronously in standard NiFi),
-this can result in the Processor recursively calling itself. This may be okay for some dataflows, which are intended
-to loop a few times. However, for a failure loop that constantly triggers itself, this will result in a 
-StackOverflowException being thrown.
+This results in the Processor continually trying to process the FlowFile until it is successful. This can be extremely important,
+because typically one NiFi receives the data, it is responsible for taking ownership of that data and must be able to hold the data
+until the downstream services is able to receive it and then delivery that data.
 
-Instead, this should be handled in Stateless by routing the failure to an Output Port and then marking that Output Port
-as a failure port (see [Failure Ports](#failure-ports) below for more information).
+With Stateless NiFi, however, the source of the data is assumed to be both reliable and replayable. Additionally, Stateless NiFi,
+by design, will not hold data after restarts. As a result, the failure handling considerations may be different. With Stateless NiFi,
+if unable to deliver data to the downstream system, it is often preferable to instead route the FlowFile to an Output Port and then
+mark that Output Port as a failure port (see [Failure Ports](#failure-ports) below for more information).
+
 
 #### Flows Should Not Load Massive Files
 
@@ -288,6 +289,30 @@ nifi.stateless.parameters.kafka.Kafka Brokers=kafka-01:9092,kafka-02:9092,kafka-
 
 Note that while Java properties files typically do not allow for spaces in property names, Stateless parses the properties
 files in a way that does allow for spaces, so that Parameter names, etc. may allow for spaces.
+
+When a stateless dataflow is triggered, it can also be important to consider how much data should be allowed to enter the dataflow for a given invocation.
+Typically, this consists of a single FlowFile at a time or a single batch of FlowFiles at a time, depending on the source processor. However, some processors may
+require additional data in order to perform their tasks. For example, if we have a dataflow whose source processor brings in a single message from a JMS Queue, and
+later in the flow have a MergeContent processor, that MergeContent processor may not be able to perform its function with just one message. As a result, the source
+processor will be triggered again. This process will continue until either the MergeContent processor is able to make progress and empty its incoming FlowFile Queues
+OR until some threshold has been reached. These thresholds can be configured using the following properties:
+
+/ Property Name / Description / Example Value /
+/---------------/-------------/---------------/
+/ nifi.stateless.transaction.thresholds.flowfiles / The maximum number of FlowFiles that a source processors should bring into the flow each time the dataflow is triggered. / 1000 /
+/ nifi.stateless.transaction.thresholds.bytes / The maximum amount of data for all FlowFiles' contents. / 100 MB /
+/ nifi.stateless.transaction.thresholds.time / The amount of time between when the dataflow was triggered and when the source processors should stop being triggered. / 1 sec /
+
+For example, to ensure that the source processors are not triggered to bring in more than 1 MB of data and not more than 10 FlowFiles, we can use:
+```
+nifi.stateless.transaction.thresholds.flowfiles=10
+nifi.stateless.transaction.thresholds.bytes=1 MB
+```  
+
+With this configuration, each time the dataflow is triggered, the source processor (or all sources, cumulatively, if there is more than one) will not be triggered again after it has brought
+10 FlowFiles OR 1 MB worth of FlowFile content (regardless if that 1 MB was from 1 FlowFiles or the sum of all FlowFiles) into the flow.
+Note, however, that if the source were to bring in 1,000 FlowFiles and 50 MB of data in a single invocation, that would be allowed, but the component would no longer be triggered until the dataflow
+has completed.
 
 
 ##### Reporting Tasks

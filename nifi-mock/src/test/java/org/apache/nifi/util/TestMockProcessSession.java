@@ -44,7 +44,7 @@ public class TestMockProcessSession {
     @Test
     public void testReadWithoutCloseThrowsExceptionOnCommit() throws IOException {
         final Processor processor = new PoorlyBehavedProcessor();
-        final MockProcessSession session = new MockProcessSession(new SharedSessionState(processor, new AtomicLong(0L)), processor, new MockStateManager(processor));
+        final MockProcessSession session = new MockProcessSession(new SharedSessionState(processor, new AtomicLong(0L)), processor, true, new MockStateManager(processor), true);
         FlowFile flowFile = session.createFlowFile("hello, world".getBytes());
         final InputStream in = session.read(flowFile);
         final byte[] buffer = new byte[12];
@@ -54,6 +54,25 @@ public class TestMockProcessSession {
 
         try {
             session.commit();
+            Assert.fail("Was able to commit session without closing InputStream");
+        } catch (final FlowFileHandlingException | IllegalStateException e) {
+            System.out.println(e.toString());
+        }
+    }
+
+    @Test
+    public void testReadWithoutCloseThrowsExceptionOnCommitAsync() throws IOException {
+        final Processor processor = new PoorlyBehavedProcessor();
+        final MockProcessSession session = new MockProcessSession(new SharedSessionState(processor, new AtomicLong(0L)), processor, new MockStateManager(processor));
+        FlowFile flowFile = session.createFlowFile("hello, world".getBytes());
+        final InputStream in = session.read(flowFile);
+        final byte[] buffer = new byte[12];
+        StreamUtils.fillBuffer(in, buffer);
+
+        assertEquals("hello, world", new String(buffer));
+
+        try {
+            session.commitAsync();
             Assert.fail("Was able to commit session without closing InputStream");
         } catch (final FlowFileHandlingException | IllegalStateException e) {
             System.out.println(e.toString());

@@ -121,6 +121,12 @@ public class StatelessProcessSession extends StandardProcessSession {
         // data made its way to the end destination. If Stateless were then stopped, it would result in data loss.
         requireSynchronousCommits = requireSynchronousCommits || !asynchronous;
 
+        // Check if the Processor made any progress or not. If so, record this fact so that the framework knows that this was the case.
+        final int flowFileCounts = checkpoint.getFlowFilesIn() + checkpoint.getFlowFilesOut() + checkpoint.getFlowFilesRemoved();
+        if (flowFileCounts > 0) {
+            tracker.recordProgress(checkpoint.getFlowFilesOut() + checkpoint.getFlowFilesRemoved(), checkpoint.getBytesOut() + checkpoint.getBytesRemoved());
+        }
+
         // Commit the session
         super.commit(checkpoint, asynchronous);
 
@@ -195,7 +201,7 @@ public class StatelessProcessSession extends StandardProcessSession {
 
         final ProcessContext connectableContext = processContextFactory.createProcessContext(connectable);
         final ProcessSessionFactory connectableSessionFactory = new StatelessProcessSessionFactory(connectable, repositoryContextFactory,
-            processContextFactory, executionProgress, requireSynchronousCommits, tracker);
+            processContextFactory, executionProgress, requireSynchronousCommits, new AsynchronousCommitTracker());
 
         logger.debug("Triggering {}", connectable);
         final long start = System.nanoTime();

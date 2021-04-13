@@ -3734,5 +3734,29 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         private StandardRepositoryRecord getRecord(final FlowFile flowFile) {
             return records.get(flowFile.getId());
         }
+
+        public int getFlowFilesIn() {
+            return flowFilesIn;
+        }
+
+        public int getFlowFilesOut() {
+            return flowFilesOut;
+        }
+
+        public int getFlowFilesRemoved() {
+            return removedCount;
+        }
+
+        public long getBytesIn() {
+            return contentSizeIn;
+        }
+
+        public long getBytesOut() {
+            return contentSizeOut;
+        }
+
+        public long getBytesRemoved() {
+            return removedBytes;
+        }
     }
 }

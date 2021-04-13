@@ -24,8 +24,10 @@ import org.apache.nifi.groups.ProcessGroup;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.Stack;
 import java.util.function.Consumer;
@@ -37,43 +39,83 @@ public class AsynchronousCommitTracker {
     private static final Logger logger = LoggerFactory.getLogger(AsynchronousCommitTracker.class);
 
     private final Set<Connectable> ready = new LinkedHashSet<>();
-    private final Set<Connectable> readOnly = Collections.unmodifiableSet(ready);
     private final Stack<CommitCallbacks> commitCallbacks = new Stack<>();
+    private int flowFilesProduced = 0;
+    private long bytesProduced = 0L;
+    private boolean progressMade = false;
 
     public void addConnectable(final Connectable connectable) {
+        // this.ready is a LinkedHashSet that is responsible for ensuring that when a Connectable is added,
+        // it will be the first to be triggered. What we really want is to insert the new Connectable at the front
+        // of the collection, regardless of whether it's currently present or not. However, using a List or a Queue
+        // is not ideal because checking for the existence of the Connectable in a List or Queue is generally quite expensive,
+        // even though the insertion is cheap. To achieve the desired behavior, we call remove() and then add(), which ensures
+        // that the given Connectables goes to the END of the list. When getReady() is called, the LinkedHashSet is then
+        // copied into a List and reversed. There is almost certainly a much more efficient way to achieve this, but that
+        // is an optimization best left for a later date.
+        final boolean removed = ready.remove(connectable);
         ready.add(connectable);
+
+        if (removed) {
+            logger.debug("{} Added {} to list of Ready Connectables but it was already in the list", this, connectable);
+        } else {
+            logger.debug("{} Added {} to list of Ready Connectables", this, connectable);
+        }
     }
 
-    public Set<Connectable> getReady() {
-        return readOnly;
+    public List<Connectable> getReady() {
+        final List<Connectable> connectables = new ArrayList<>(ready);
+        Collections.reverse(connectables);
+        return connectables;
     }
 
     public boolean isAnyReady() {
-        return !ready.isEmpty();
+        final boolean anyReady = !ready.isEmpty();
+
+        logger.debug("{} Any components ready = {}, list={}", this, anyReady, ready);
+        return anyReady;
     }
 
     public boolean isReady(final Connectable connectable) {
         if (!ready.contains(connectable)) {
+            logger.debug("{} {} is not ready because it's not in the list of ready components", this, connectable);
             return false;
         }
 
+        if (isRootGroupOutputPort(connectable)) {
+            // Output Port is at the root group level. We don't want to trigger the Output Port so we consider it not ready
+            ready.remove(connectable);
+            logger.debug("{} {} is not ready because it's a root group output port", this, connectable);
+            return false;
+        }
+
+        if (isDataQueued(connectable)) {
+            logger.debug("{} {} is ready because it has data queued", this, connectable);
+            return true;
+        }
+
+        logger.debug("{} {} is not ready because it has no data queued", this, connectable);
+        ready.remove(connectable);
+        return false;
+    }
+
+    private boolean isRootGroupOutputPort(final Connectable connectable) {
         final ConnectableType connectableType = connectable.getConnectableType();
         if (connectableType == ConnectableType.OUTPUT_PORT) {
             final ProcessGroup outputPortGroup = connectable.getProcessGroup();
-            if (outputPortGroup.getParent() == null) {
-                // Output Port is at the root group level. We don't want to trigger the Output Port so we consider it not ready
-                ready.remove(connectable);
-                return false;
-            }
+            return outputPortGroup.getParent() == null;
         }
 
+        return false;
+    }
+
+    private boolean isDataQueued(final Connectable connectable) {
         for (final Connection incoming : connectable.getIncomingConnections()) {
             if (!incoming.getFlowFileQueue().isEmpty()) {
                 return true;
             }
         }
 
-        ready.remove(connectable);
         return false;
     }
 
@@ -132,6 +174,31 @@ public class AsynchronousCommitTracker {
         } catch (final Throwable t) {
             logger.error("Tried to invoke failure callback for asynchronous commits on {} but failed to do so", commitCallbacks.getConnectable(), t);
         }
+    }
+
+    public void recordProgress(final int flowFilesProduced, final long bytesProduced) {
+        this.flowFilesProduced += flowFilesProduced;
+        this.bytesProduced += bytesProduced;
+
+        this.progressMade = true;
+    }
+
+    public void resetProgress() {
+        this.flowFilesProduced = 0;
+        this.bytesProduced = 0L;
+        this.progressMade = false;
+    }
+
+    public boolean isProgress() {
+        return progressMade;
+    }
+
+    public int getFlowFilesProduced() {
+        return flowFilesProduced;
+    }
+
+    public long getBytesProduced() {
+        return bytesProduced;
     }
 
     private static class CommitCallbacks {

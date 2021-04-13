@@ -87,4 +87,5 @@ public class ConcatenateFlowFiles extends AbstractProcessor {
         session.transfer(merged, MERGED);
         session.transfer(flowFiles, ORIGINAL);
     }
+
 }

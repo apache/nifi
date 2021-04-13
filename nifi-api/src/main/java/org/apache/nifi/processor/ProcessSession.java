@@ -128,9 +128,6 @@ public interface ProcessSession {
      * @throws FlowFileHandlingException if any FlowFile is not appropriately accounted for by transferring it to a Relationship (see {@link #transfer(FlowFile, Relationship)})
      * or removed (see {@link #remove(FlowFile)}.
      */
-    // TODO: Deprecate #commit and fail any unit test that uses it unless it explicitly disables that check via TestRunner.
-    // TODO: Update documentation to more clearly spell out all of the lifecycle, preconditions, etc. How will this work with batching?
-    //       What is guaranteed to happen when this returns?
     void commitAsync();
 
     /**

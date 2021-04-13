@@ -29,10 +29,12 @@ import org.apache.nifi.stateless.config.StatelessConfigurationException;
 import org.apache.nifi.stateless.engine.StatelessEngineConfiguration;
 import org.apache.nifi.stateless.flow.DataflowDefinition;
 import org.apache.nifi.stateless.flow.StatelessDataflow;
+import org.apache.nifi.stateless.flow.TransactionThresholds;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.rules.TestName;
+import org.junit.rules.Timeout;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -42,6 +44,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 public class StatelessSystemIT {
     private final List<StatelessDataflow> createdFlows = new ArrayList<>();
@@ -53,9 +56,8 @@ public class StatelessSystemIT {
     @Rule
     public TestName name = new TestName();
 
-    // todo: uncomment
-//    @Rule
-//    public Timeout defaultTimeout = new Timeout(30, TimeUnit.SECONDS);
+    @Rule
+    public Timeout defaultTimeout = new Timeout(30, TimeUnit.SECONDS);
 
 
     @Before
@@ -128,9 +130,14 @@ public class StatelessSystemIT {
     }
 
     protected StatelessDataflow loadDataflow(final VersionedFlowSnapshot versionedFlowSnapshot, final List<ParameterContextDefinition> parameterContexts, final Set<String> failurePortNames)
-        throws IOException, StatelessConfigurationException {
+                    throws IOException, StatelessConfigurationException {
+        return loadDataflow(versionedFlowSnapshot, parameterContexts, failurePortNames, TransactionThresholds.SINGLE_FLOWFILE);
+    }
 
-        final DataflowDefinition<VersionedFlowSnapshot> dataflowDefinition = new DataflowDefinition<VersionedFlowSnapshot>() {
+    protected StatelessDataflow loadDataflow(final VersionedFlowSnapshot versionedFlowSnapshot, final List<ParameterContextDefinition> parameterContexts, final Set<String> failurePortNames,
+                                             final TransactionThresholds transactionThresholds) throws IOException, StatelessConfigurationException {
+
+            final DataflowDefinition<VersionedFlowSnapshot> dataflowDefinition = new DataflowDefinition<VersionedFlowSnapshot>() {
             @Override
             public VersionedFlowSnapshot getFlowSnapshot() {
                 return versionedFlowSnapshot;
@@ -154,6 +161,11 @@ public class StatelessSystemIT {
             @Override
             public List<ReportingTaskDefinition> getReportingTaskDefinitions() {
                 return Collections.emptyList();
+            }
+
+            @Override
+            public TransactionThresholds getTransactionThresholds() {
+                return transactionThresholds;
             }
         };
 

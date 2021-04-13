@@ -99,6 +99,8 @@ public class StandardStatelessFlow implements StatelessDataflow {
     private final StatelessStateManagerProvider stateManagerProvider;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final ProcessScheduler processScheduler;
+    private final AsynchronousCommitTracker tracker = new AsynchronousCommitTracker();
+    private final TransactionThresholdMeter transactionThresholdMeter;
 
     private volatile ExecutorService runDataflowExecutor;
     private volatile boolean initialized = false;
@@ -115,6 +117,7 @@ public class StandardStatelessFlow implements StatelessDataflow {
         this.dataflowDefinition = dataflowDefinition;
         this.stateManagerProvider = stateManagerProvider;
         this.processScheduler = processScheduler;
+        this.transactionThresholdMeter = new TransactionThresholdMeter(dataflowDefinition.getTransactionThresholds());
 
         rootConnectables = new HashSet<>();
 
@@ -382,7 +385,6 @@ public class StandardStatelessFlow implements StatelessDataflow {
 
         final BlockingQueue<TriggerResult> resultQueue = new LinkedBlockingQueue<>();
 
-        final AsynchronousCommitTracker tracker = new AsynchronousCommitTracker();
         final ExecutionProgress executionProgress = new StandardExecutionProgress(rootGroup, internalFlowFileQueues, resultQueue,
             (ByteArrayContentRepository) repositoryContextFactory.getContentRepository(), dataflowDefinition.getFailurePortNames(), tracker);
 
@@ -426,33 +428,70 @@ public class StandardStatelessFlow implements StatelessDataflow {
 
     private void executeDataflow(final BlockingQueue<TriggerResult> resultQueue, final ExecutionProgress executionProgress, final AsynchronousCommitTracker tracker) {
         final long startNanos = System.nanoTime();
+        transactionThresholdMeter.reset();
 
         try {
-            Connectable lastComponentTriggered = null;
+            Connectable currentComponent = null;
 
             try {
-                for (final Connectable connectable : rootConnectables) {
-                    lastComponentTriggered = connectable;
-                    trigger(connectable, executionProgress, tracker);
-                }
+                boolean completionReached = false;
+                while (!completionReached) {
+                    for (final Connectable connectable : rootConnectables) {
+                        currentComponent = connectable;
 
-                while (tracker.isAnyReady()) {
-                    final Set<Connectable> next = new HashSet<>(tracker.getReady());
-                    logger.debug("The following {} components are ready to be triggered: {}", next.size(), next);
-                    for (final Connectable connectable : next) {
-                        while (tracker.isReady(connectable)) {
-                            if (executionProgress.isCanceled()) {
-                                logger.info("Dataflow was canceled so will not trigger any more components");
-                                return;
+                        // Reset progress and trigger the component. This allows us to track whether or not any progress was made by the given connectable
+                        // during this invocation of its onTrigger method.
+                        tracker.resetProgress();
+                        trigger(connectable, executionProgress, tracker);
+
+                        // Keep track of the output of the source component so that we can determine whether or not we've reached our transaction threshold.
+                        transactionThresholdMeter.incrementFlowFiles(tracker.getFlowFilesProduced());
+                        transactionThresholdMeter.incrementBytes(tracker.getBytesProduced());
+                    }
+
+                    readyLoop: while (tracker.isAnyReady()) {
+                        final List<Connectable> next = tracker.getReady();
+                        logger.debug("The following {} components are ready to be triggered: {}", next.size(), next);
+
+                        for (final Connectable connectable : next) {
+                            while (tracker.isReady(connectable)) {
+                                if (executionProgress.isCanceled()) {
+                                    logger.info("Dataflow was canceled so will not trigger any more components");
+                                    return;
+                                }
+
+                                currentComponent = connectable;
+
+                                // Reset progress and trigger the component. This allows us to track whether or not any progress was made by the given connectable
+                                // during this invocation of its onTrigger method.
+                                tracker.resetProgress();
+                                trigger(connectable, executionProgress, tracker);
+
+                                // Check if the component made any progress or not. If so, continue on. If not, we need to check if providing the component with
+                                // additional input would help the component to progress or not.
+                                final boolean progressed = tracker.isProgress();
+                                if (progressed) {
+                                    logger.debug("{} was triggered and made progress", connectable);
+                                } else {
+                                    final boolean thresholdMet = transactionThresholdMeter.isThresholdMet();
+                                    if (thresholdMet) {
+                                        logger.debug("{} was triggered but unable to make progress. The transaction thresholds {} have been met (currently at {}). Will not " +
+                                            "trigger source components to run.", connectable, dataflowDefinition.getTransactionThresholds(), transactionThresholdMeter);
+                                    } else {
+                                        logger.debug("{} was triggered but unable to make progress. Maximum transaction thresholds {} have not been reached (currently at {}) " +
+                                            "so will trigger source components to run.", connectable, dataflowDefinition.getTransactionThresholds(), transactionThresholdMeter);
+
+                                        break readyLoop;
+                                    }
+                                }
                             }
-
-                            lastComponentTriggered = connectable;
-                            trigger(connectable, executionProgress, tracker);
                         }
                     }
+
+                    completionReached = !tracker.isAnyReady();
                 }
             } catch (final Throwable t) {
-                logger.error("Failed to trigger {}", lastComponentTriggered, t);
+                logger.error("Failed to trigger {}", currentComponent, t);
                 executionProgress.notifyExecutionFailed(t);
                 tracker.triggerFailureCallbacks(t);
                 throw t;
@@ -486,6 +525,7 @@ public class StandardStatelessFlow implements StatelessDataflow {
             resultQueue.offer(new ExceptionalTriggerResult(t));
         }
     }
+
 
     private void trigger(final Connectable connectable, final ExecutionProgress executionProgress, final AsynchronousCommitTracker tracker) {
         final ProcessContext processContext = processContextFactory.createProcessContext(connectable);

@@ -419,4 +419,5 @@ public class MergeRecord extends AbstractSessionFactoryProcessor {
     int getBinCount() {
         return binManager.get().getBinCount();
     }
+
 }
