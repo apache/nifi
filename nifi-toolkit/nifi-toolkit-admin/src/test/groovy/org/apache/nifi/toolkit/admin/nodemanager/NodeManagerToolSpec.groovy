@@ -36,10 +36,10 @@ import javax.ws.rs.core.Response
 class NodeManagerToolSpec extends Specification{
 
     @Rule
-    public final ExpectedSystemExit exit = ExpectedSystemExit.none()
+    public ExpectedSystemExit exit = ExpectedSystemExit.none()
 
     @Rule
-    public final SystemOutRule systemOutRule = new SystemOutRule().enableLog()
+    public SystemOutRule systemOutRule = new SystemOutRule().enableLog()
 
 
     def "print help and usage info"() {

@@ -32,10 +32,10 @@ import java.nio.file.attribute.PosixFilePermission
 class ConfigMigratorSpec extends Specification{
 
     @Rule
-    public final ExpectedSystemExit exit = ExpectedSystemExit.none()
+    public ExpectedSystemExit exit = ExpectedSystemExit.none()
 
     @Rule
-    public final SystemOutRule systemOutRule = new SystemOutRule().enableLog()
+    public SystemOutRule systemOutRule = new SystemOutRule().enableLog()
 
     @BeforeClass
     static void setUpOnce() throws Exception {
