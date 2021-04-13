@@ -25,10 +25,15 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
-import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
+import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.event.transport.EventServer;
+import org.apache.nifi.event.transport.configuration.TransportProtocol;
+import org.apache.nifi.event.transport.message.ByteArrayMessage;
+import org.apache.nifi.event.transport.netty.ByteArrayMessageNettyEventServerFactory;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.DataUnit;
@@ -37,19 +42,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processor.util.listen.dispatcher.AsyncChannelDispatcher;
-import org.apache.nifi.processor.util.listen.dispatcher.ByteBufferPool;
-import org.apache.nifi.processor.util.listen.dispatcher.ByteBufferSource;
-import org.apache.nifi.processor.util.listen.dispatcher.ChannelDispatcher;
-import org.apache.nifi.processor.util.listen.dispatcher.DatagramChannelDispatcher;
-import org.apache.nifi.processor.util.listen.dispatcher.SocketChannelDispatcher;
-import org.apache.nifi.processor.util.listen.event.Event;
-import org.apache.nifi.processor.util.listen.event.EventFactory;
-import org.apache.nifi.processor.util.listen.handler.ChannelHandlerFactory;
-import org.apache.nifi.processor.util.listen.handler.socket.SocketChannelHandlerFactory;
-import org.apache.nifi.processor.util.listen.response.ChannelResponder;
 import org.apache.nifi.security.util.ClientAuth;
 import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
@@ -59,11 +52,8 @@ import org.apache.nifi.syslog.parsers.SyslogParser;
 
 import javax.net.ssl.SSLContext;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
-import java.nio.channels.SelectableChannel;
-import java.nio.channels.SocketChannel;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -136,6 +126,7 @@ public class ListenSyslog extends AbstractSyslogProcessor {
         .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
         .defaultValue("1 MB")
         .required(true)
+        .dependsOn(PROTOCOL, TCP_VALUE)
         .build();
     public static final PropertyDescriptor MAX_CONNECTIONS = new PropertyDescriptor.Builder()
         .name("Max Number of TCP Connections")
@@ -144,6 +135,7 @@ public class ListenSyslog extends AbstractSyslogProcessor {
         .addValidator(StandardValidators.createLongValidator(1, 65535, true))
         .defaultValue("2")
         .required(true)
+        .dependsOn(PROTOCOL, TCP_VALUE)
         .build();
     public static final PropertyDescriptor MAX_BATCH_SIZE = new PropertyDescriptor.Builder()
         .name("Max Batch Size")
@@ -152,7 +144,6 @@ public class ListenSyslog extends AbstractSyslogProcessor {
                 "The maximum number of Syslog events to add to a single FlowFile. If multiple events are available, they will be concatenated along with "
                 + "the <Message Delimiter> up to this configured maximum number of messages")
         .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-        .expressionLanguageSupported(false)
         .defaultValue("1")
         .required(true)
         .build();
@@ -180,6 +171,7 @@ public class ListenSyslog extends AbstractSyslogProcessor {
                     "messages will be received over a secure connection.")
         .required(false)
         .identifiesControllerService(RestrictedSSLContextService.class)
+        .dependsOn(PROTOCOL, TCP_VALUE)
         .build();
     public static final PropertyDescriptor CLIENT_AUTH = new PropertyDescriptor.Builder()
         .name("Client Auth")
@@ -188,6 +180,7 @@ public class ListenSyslog extends AbstractSyslogProcessor {
         .required(false)
         .allowableValues(ClientAuth.values())
         .defaultValue(ClientAuth.REQUIRED.name())
+        .dependsOn(SSL_CONTEXT_SERVICE)
         .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -199,14 +192,17 @@ public class ListenSyslog extends AbstractSyslogProcessor {
         .description("Syslog messages that do not match one of the expected formats will be sent out this relationship as a FlowFile per message.")
         .build();
 
+    protected static final String RECEIVED_COUNTER = "Messages Received";
+    protected static final String SUCCESS_COUNTER = "FlowFiles Transferred to Success";
+    private static final String DEFAULT_ADDRESS = "127.0.0.1";
+    private static final String DEFAULT_MIME_TYPE = "text/plain";
+
     private Set<Relationship> relationships;
     private List<PropertyDescriptor> descriptors;
 
-    private volatile ChannelDispatcher channelDispatcher;
+    private volatile EventServer eventServer;
     private volatile SyslogParser parser;
-    private volatile ByteBufferSource byteBufferSource;
-    private volatile BlockingQueue<RawSyslogEvent> syslogEvents;
-    private final BlockingQueue<RawSyslogEvent> errorEvents = new LinkedBlockingQueue<>();
+    private volatile BlockingQueue<ByteArrayMessage> syslogEvents = new LinkedBlockingQueue<>();
     private volatile byte[] messageDemarcatorBytes; //it is only the array reference that is volatile - not the contents.
 
     @Override
@@ -248,12 +244,7 @@ public class ListenSyslog extends AbstractSyslogProcessor {
         // if we are changing the protocol, the events that we may have queued up are no longer valid, as they
         // were received using a different protocol and may be from a completely different source
         if (PROTOCOL.equals(descriptor)) {
-            if (syslogEvents != null) {
-                syslogEvents.clear();
-            }
-            if (errorEvents != null) {
-                errorEvents.clear();
-            }
+            syslogEvents.clear();
         }
     }
 
@@ -274,134 +265,62 @@ public class ListenSyslog extends AbstractSyslogProcessor {
                     .valid(false).subject("SSL Context").build());
         }
 
-        // Validate CLIENT_AUTH
-        final String clientAuth = validationContext.getProperty(CLIENT_AUTH).getValue();
-        if (sslContextService != null && StringUtils.isBlank(clientAuth)) {
-            results.add(new ValidationResult.Builder()
-                    .explanation("Client Auth must be provided when using TLS/SSL")
-                    .valid(false).subject("Client Auth").build());
-        }
-
-
         return results;
     }
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) throws IOException {
         final int port = context.getProperty(PORT).evaluateAttributeExpressions().asInteger();
-        final int bufferSize = context.getProperty(RECV_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
-        final int maxChannelBufferSize = context.getProperty(MAX_SOCKET_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
+        final int receiveBufferSize = context.getProperty(RECV_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
+        final int maxSocketBufferSize = context.getProperty(MAX_SOCKET_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
         final int maxMessageQueueSize = context.getProperty(MAX_MESSAGE_QUEUE_SIZE).asInteger();
-        final String protocol = context.getProperty(PROTOCOL).getValue();
-        final String nicIPAddressStr = context.getProperty(NETWORK_INTF_NAME).evaluateAttributeExpressions().getValue();
-        final String charSet = context.getProperty(CHARSET).evaluateAttributeExpressions().getValue();
+        final TransportProtocol protocol = TransportProtocol.valueOf(context.getProperty(PROTOCOL).getValue());
+        final String networkInterfaceName = context.getProperty(NETWORK_INTF_NAME).evaluateAttributeExpressions().getValue();
+        final Charset charset = Charset.forName(context.getProperty(CHARSET).evaluateAttributeExpressions().getValue());
         final String msgDemarcator = context.getProperty(MESSAGE_DELIMITER).getValue().replace("\\n", "\n").replace("\\r", "\r").replace("\\t", "\t");
-        messageDemarcatorBytes = msgDemarcator.getBytes(Charset.forName(charSet));
-
-        final int maxConnections;
-        if (UDP_VALUE.getValue().equals(protocol)) {
-            maxConnections = 1;
-        } else {
-            maxConnections = context.getProperty(MAX_CONNECTIONS).asLong().intValue();
-        }
-
-        byteBufferSource = new ByteBufferPool(maxConnections, bufferSize);
-        parser = new SyslogParser(Charset.forName(charSet));
+        messageDemarcatorBytes = msgDemarcator.getBytes(charset);
+        parser = new SyslogParser(charset);
         syslogEvents = new LinkedBlockingQueue<>(maxMessageQueueSize);
 
-        InetAddress nicIPAddress = null;
-        if (!StringUtils.isEmpty(nicIPAddressStr)) {
-            NetworkInterface netIF = NetworkInterface.getByName(nicIPAddressStr);
-            nicIPAddress = netIF.getInetAddresses().nextElement();
+        String address = DEFAULT_ADDRESS;
+        if (StringUtils.isNotEmpty(networkInterfaceName)) {
+            final NetworkInterface networkInterface = NetworkInterface.getByName(networkInterfaceName);
+            final InetAddress interfaceAddress = networkInterface.getInetAddresses().nextElement();
+            address = interfaceAddress.getHostName();
         }
 
-        // create either a UDP or TCP reader and call open() to bind to the given port
+        final ByteArrayMessageNettyEventServerFactory factory = new ByteArrayMessageNettyEventServerFactory(getLogger(),
+                address,port, protocol, messageDemarcatorBytes, receiveBufferSize, syslogEvents);
+        factory.setThreadNamePrefix(String.format("%s[%s]", ListenSyslog.class.getSimpleName(), getIdentifier()));
+        final int maxConnections = context.getProperty(MAX_CONNECTIONS).asLong().intValue();
+        factory.setWorkerThreads(maxConnections);
+        factory.setSocketReceiveBuffer(maxSocketBufferSize);
+
         final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
-        channelDispatcher = createChannelReader(context, protocol, byteBufferSource, syslogEvents, maxConnections, sslContextService, Charset.forName(charSet));
-        channelDispatcher.open(nicIPAddress, port, maxChannelBufferSize);
-
-        final Thread readerThread = new Thread(channelDispatcher);
-        readerThread.setName("ListenSyslog [" + getIdentifier() + "]");
-        readerThread.setDaemon(true);
-        readerThread.start();
-    }
-
-    // visible for testing.
-    protected SyslogParser getParser() {
-        return parser;
-    }
-
-    // visible for testing to be overridden and provide a mock ChannelDispatcher if desired
-    protected ChannelDispatcher createChannelReader(final ProcessContext context, final String protocol, final ByteBufferSource byteBufferSource,
-                                                    final BlockingQueue<RawSyslogEvent> events, final int maxConnections,
-                                                    final SSLContextService sslContextService, final Charset charset) throws IOException {
-
-        final EventFactory<RawSyslogEvent> eventFactory = new RawSyslogEventFactory();
-
-        if (UDP_VALUE.getValue().equals(protocol)) {
-            return new DatagramChannelDispatcher(eventFactory, byteBufferSource, events, getLogger());
-        } else {
-            // if an SSLContextService was provided then create an SSLContext to pass down to the dispatcher
-            SSLContext sslContext = null;
-            ClientAuth clientAuth = null;
-
-            if (sslContextService != null) {
-                final String clientAuthValue = context.getProperty(CLIENT_AUTH).getValue();
-                sslContext = sslContextService.createContext();
-                clientAuth = ClientAuth.valueOf(clientAuthValue);
+        if (sslContextService != null) {
+            final SSLContext sslContext = sslContextService.createContext();
+            ClientAuth clientAuth = ClientAuth.REQUIRED;
+            final PropertyValue clientAuthProperty = context.getProperty(CLIENT_AUTH);
+            if (clientAuthProperty.isSet()) {
+                clientAuth = ClientAuth.valueOf(clientAuthProperty.getValue());
             }
-
-            final ChannelHandlerFactory<RawSyslogEvent<SocketChannel>, AsyncChannelDispatcher> handlerFactory = new SocketChannelHandlerFactory<>();
-            return new SocketChannelDispatcher(eventFactory, handlerFactory, byteBufferSource, events, getLogger(), maxConnections, sslContext, clientAuth, charset);
+            factory.setSslContext(sslContext);
+            factory.setClientAuth(clientAuth);
         }
+        eventServer = factory.getEventServer();
     }
 
-    // used for testing to access the random port that was selected
-    protected int getPort() {
-        return channelDispatcher == null ? 0 : channelDispatcher.getPort();
-    }
-
-    @OnUnscheduled
-    public void onUnscheduled() {
-        if (channelDispatcher != null) {
-            channelDispatcher.close();
+    @OnStopped
+    public void shutdownEventServer() {
+        if (eventServer != null) {
+            eventServer.shutdown();
         }
-    }
-
-    protected RawSyslogEvent getMessage(final boolean longPoll, final boolean pollErrorQueue, final ProcessSession session) {
-        RawSyslogEvent rawSyslogEvent = null;
-        if (pollErrorQueue) {
-            rawSyslogEvent = errorEvents.poll();
-        }
-
-        if (rawSyslogEvent == null) {
-            try {
-                if (longPoll) {
-                    rawSyslogEvent = syslogEvents.poll(20, TimeUnit.MILLISECONDS);
-                } else {
-                    rawSyslogEvent = syslogEvents.poll();
-                }
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                return null;
-            }
-        }
-
-        if (rawSyslogEvent != null) {
-            session.adjustCounter("Messages Received", 1L, false);
-        }
-
-        return rawSyslogEvent;
-    }
-
-    protected int getErrorQueueSize() {
-        return errorEvents.size();
     }
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         // poll the queue with a small timeout to avoid unnecessarily yielding below
-        RawSyslogEvent rawSyslogEvent = getMessage(true, true, session);
+        ByteArrayMessage rawSyslogEvent = getMessage(session);
 
         // if nothing in the queue just return, we don't want to yield here because yielding could adversely
         // impact performance, and we already have a long poll in getMessage so there will be some built in
@@ -410,30 +329,17 @@ public class ListenSyslog extends AbstractSyslogProcessor {
             return;
         }
 
-        final int maxBatchSize = context.getProperty(MAX_BATCH_SIZE).asInteger();
-
-        final String port = context.getProperty(PORT).evaluateAttributeExpressions().getValue();
-        final String protocol = context.getProperty(PROTOCOL).getValue();
-
-        final Map<String, String> defaultAttributes = new HashMap<>(4);
-        defaultAttributes.put(SyslogAttributes.SYSLOG_PROTOCOL.key(), protocol);
-        defaultAttributes.put(SyslogAttributes.SYSLOG_PORT.key(), port);
-        defaultAttributes.put(CoreAttributes.MIME_TYPE.key(), "text/plain");
-
-
-        final int numAttributes = SyslogAttributes.values().length + 2;
-        final boolean shouldParse = context.getProperty(PARSE_MESSAGES).asBoolean();
-
+        final boolean parseMessages = context.getProperty(PARSE_MESSAGES).asBoolean();
         final Map<String, FlowFile> flowFilePerSender = new HashMap<>();
-        final SyslogParser parser = getParser();
 
+        final Map<String, String> defaultAttributes = getDefaultAttributes(context);
+        final int maxBatchSize = context.getProperty(MAX_BATCH_SIZE).asInteger();
         for (int i = 0; i < maxBatchSize; i++) {
             SyslogEvent event = null;
 
             // If this is our first iteration, we have already polled our queues. Otherwise, poll on each iteration.
             if (i > 0) {
-                rawSyslogEvent = getMessage(true, false, session);
-
+                rawSyslogEvent = getMessage(session);
                 if (rawSyslogEvent == null) {
                     break;
                 }
@@ -441,153 +347,115 @@ public class ListenSyslog extends AbstractSyslogProcessor {
 
             final String sender = rawSyslogEvent.getSender();
             FlowFile flowFile = flowFilePerSender.computeIfAbsent(sender, k -> session.create());
+            flowFile = session.putAllAttributes(flowFile, defaultAttributes);
+            flowFile = session.putAttribute(flowFile, SyslogAttributes.SYSLOG_SENDER.key(), sender);
 
-            if (shouldParse) {
-                boolean valid = true;
-                try {
-                    event = parser.parseEvent(rawSyslogEvent.getData(), sender);
-                } catch (final ProcessException pe) {
-                    getLogger().warn("Failed to parse Syslog event; routing to invalid");
-                    valid = false;
-                }
+            if (parseMessages) {
+                event = parseSyslogEvent(rawSyslogEvent);
 
                 // If the event is invalid, route it to 'invalid' and then stop.
                 // We create a separate FlowFile for this case instead of using 'flowFile',
                 // because the 'flowFile' object may already have data written to it.
-                if (!valid || event == null || !event.isValid()) {
+                if (event == null || !event.isValid()) {
                     FlowFile invalidFlowFile = session.create();
                     invalidFlowFile = session.putAllAttributes(invalidFlowFile, defaultAttributes);
-                    if (sender != null) {
-                        invalidFlowFile = session.putAttribute(invalidFlowFile, SyslogAttributes.SYSLOG_SENDER.key(), sender);
-                    }
+                    invalidFlowFile = session.putAttribute(invalidFlowFile, SyslogAttributes.SYSLOG_SENDER.key(), sender);
 
-                    try {
-                        final byte[] rawBytes = rawSyslogEvent.getData();
-                        invalidFlowFile = session.write(invalidFlowFile, new OutputStreamCallback() {
-                            @Override
-                            public void process(final OutputStream out) throws IOException {
-                                out.write(rawBytes);
-                            }
-                        });
-                    } catch (final Exception e) {
-                        getLogger().error("Failed to write contents of Syslog message to FlowFile due to {}; will re-queue message and try again", e);
-                        errorEvents.offer(rawSyslogEvent);
-                        session.remove(invalidFlowFile);
-                        break;
-                    }
+                    final byte[] messageBytes = rawSyslogEvent.getMessage();
+                    invalidFlowFile = session.write(invalidFlowFile, outputStream -> outputStream.write(messageBytes));
 
                     session.transfer(invalidFlowFile, REL_INVALID);
                     break;
                 }
 
-                getLogger().trace(event.getFullMessage());
-
-                final Map<String, String> attributes = new HashMap<>(numAttributes);
-                attributes.put(SyslogAttributes.SYSLOG_PRIORITY.key(), event.getPriority());
-                attributes.put(SyslogAttributes.SYSLOG_SEVERITY.key(), event.getSeverity());
-                attributes.put(SyslogAttributes.SYSLOG_FACILITY.key(), event.getFacility());
-                attributes.put(SyslogAttributes.SYSLOG_VERSION.key(), event.getVersion());
-                attributes.put(SyslogAttributes.SYSLOG_TIMESTAMP.key(), event.getTimeStamp());
-                attributes.put(SyslogAttributes.SYSLOG_HOSTNAME.key(), event.getHostName());
-                attributes.put(SyslogAttributes.SYSLOG_BODY.key(), event.getMsgBody());
-                attributes.put(SyslogAttributes.SYSLOG_VALID.key(), String.valueOf(event.isValid()));
-
-                flowFile = session.putAllAttributes(flowFile, attributes);
+                flowFile = session.putAllAttributes(flowFile, getEventAttributes(event));
             }
 
             // figure out if we should write the bytes from the raw event or parsed event
             final boolean writeDemarcator = (i > 0);
-
-            try {
-                // write the raw bytes of the message as the FlowFile content
-                final byte[] rawMessage = (event == null) ? rawSyslogEvent.getData() : event.getRawMessage();
-                flowFile = session.append(flowFile, new OutputStreamCallback() {
-                    @Override
-                    public void process(final OutputStream out) throws IOException {
-                        if (writeDemarcator) {
-                            out.write(messageDemarcatorBytes);
-                        }
-
-                        out.write(rawMessage);
-                    }
-                });
-            } catch (final Exception e) {
-                getLogger().error("Failed to write contents of Syslog message to FlowFile due to {}; will re-queue message and try again", e);
-                errorEvents.offer(rawSyslogEvent);
-                break;
-            }
+            final byte[] messageBytes = (event == null) ? rawSyslogEvent.getMessage() : event.getRawMessage();
+            flowFile = session.append(flowFile, outputStream -> {
+               if (writeDemarcator) {
+                   outputStream.write(messageDemarcatorBytes);
+               }
+               outputStream.write(messageBytes);
+            });
 
             flowFilePerSender.put(sender, flowFile);
         }
 
-
         for (final Map.Entry<String, FlowFile> entry : flowFilePerSender.entrySet()) {
             final String sender = entry.getKey();
-            FlowFile flowFile = entry.getValue();
+            final FlowFile flowFile = entry.getValue();
 
             if (flowFile.getSize() == 0L) {
                 session.remove(flowFile);
-                getLogger().debug("No data written to FlowFile from Sender {}; removing FlowFile", new Object[] {sender});
+                getLogger().debug("Removing empty {} from Sender [{}]", flowFile, sender);
                 continue;
             }
 
-            final Map<String, String> newAttributes = new HashMap<>(defaultAttributes.size() + 1);
-            newAttributes.putAll(defaultAttributes);
-            newAttributes.put(SyslogAttributes.SYSLOG_SENDER.key(), sender);
-            flowFile = session.putAllAttributes(flowFile, newAttributes);
-
-            getLogger().debug("Transferring {} to success", new Object[] {flowFile});
             session.transfer(flowFile, REL_SUCCESS);
-            session.adjustCounter("FlowFiles Transferred to Success", 1L, false);
+            session.adjustCounter(SUCCESS_COUNTER, 1L, false);
 
-            final String senderHost = sender.startsWith("/") && sender.length() > 1 ? sender.substring(1) : sender;
-            final String transitUri = new StringBuilder().append(protocol.toLowerCase()).append("://").append(senderHost).append(":").append(port).toString();
+            final String transitUri = getTransitUri(flowFile);
             session.getProvenanceReporter().receive(flowFile, transitUri);
         }
     }
 
-    /**
-     * Wrapper class to pass around the raw message and the host/ip that sent it
-     */
-    static class RawSyslogEvent<C extends SelectableChannel> implements Event<C> {
-
-        final byte[] rawMessage;
-        final String sender;
-
-        public RawSyslogEvent(final byte[] rawMessage, final String sender) {
-            this.rawMessage = rawMessage;
-            this.sender = sender;
+    private SyslogEvent parseSyslogEvent(final ByteArrayMessage rawSyslogEvent) {
+        final String sender = rawSyslogEvent.getSender();
+        final byte[] message = rawSyslogEvent.getMessage();
+        SyslogEvent syslogEvent = null;
+        try {
+            syslogEvent = parser.parseEvent(message, rawSyslogEvent.getSender());
+        } catch (final RuntimeException e) {
+            getLogger().warn("Syslog Parsing Failed Length [{}] Sender [{}]: {}", message.length, sender, e.getMessage());
         }
-
-        @Override
-        public byte[] getData() {
-            return this.rawMessage;
-        }
-
-        @Override
-        public String getSender() {
-            return this.sender;
-        }
-
-        @Override
-        public ChannelResponder getResponder() {
-            return null;
-        }
+        return syslogEvent;
     }
 
-    /**
-     * EventFactory implementation for RawSyslogEvent.
-     */
-    private static class RawSyslogEventFactory implements EventFactory<RawSyslogEvent> {
-
-        @Override
-        public RawSyslogEvent create(byte[] data, Map<String, String> metadata, final ChannelResponder responder) {
-            String sender = null;
-            if (metadata != null && metadata.containsKey(EventFactory.SENDER_KEY)) {
-                sender = metadata.get(EventFactory.SENDER_KEY);
+    private ByteArrayMessage getMessage(final ProcessSession session) {
+        ByteArrayMessage rawSyslogEvent = null;
+        try {
+            rawSyslogEvent = syslogEvents.poll(20, TimeUnit.MILLISECONDS);
+            if (rawSyslogEvent != null) {
+                session.adjustCounter(RECEIVED_COUNTER, 1L, false);
             }
-            return new RawSyslogEvent(data, sender);
+        } catch (final InterruptedException e) {
+            Thread.currentThread().interrupt();
         }
+
+        return rawSyslogEvent;
     }
 
+    private String getTransitUri(final FlowFile flowFile) {
+        final String protocol = flowFile.getAttribute(SyslogAttributes.SYSLOG_PROTOCOL.key());
+        final String sender = flowFile.getAttribute(SyslogAttributes.SYSLOG_SENDER.key());
+        final String port = flowFile.getAttribute(SyslogAttributes.SYSLOG_PORT.key());
+        return String.format("%s://%s:%s", protocol.toLowerCase(), sender, port);
+    }
+
+    private Map<String, String> getDefaultAttributes(final ProcessContext context) {
+        final String port = context.getProperty(PORT).evaluateAttributeExpressions().getValue();
+        final String protocol = context.getProperty(PROTOCOL).getValue();
+
+        final Map<String, String> defaultAttributes = new HashMap<>();
+        defaultAttributes.put(SyslogAttributes.SYSLOG_PROTOCOL.key(), protocol);
+        defaultAttributes.put(SyslogAttributes.SYSLOG_PORT.key(), port);
+        defaultAttributes.put(CoreAttributes.MIME_TYPE.key(), DEFAULT_MIME_TYPE);
+        return defaultAttributes;
+    }
+
+    private Map<String, String> getEventAttributes(final SyslogEvent event) {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put(SyslogAttributes.SYSLOG_PRIORITY.key(), event.getPriority());
+        attributes.put(SyslogAttributes.SYSLOG_SEVERITY.key(), event.getSeverity());
+        attributes.put(SyslogAttributes.SYSLOG_FACILITY.key(), event.getFacility());
+        attributes.put(SyslogAttributes.SYSLOG_VERSION.key(), event.getVersion());
+        attributes.put(SyslogAttributes.SYSLOG_TIMESTAMP.key(), event.getTimeStamp());
+        attributes.put(SyslogAttributes.SYSLOG_HOSTNAME.key(), event.getHostName());
+        attributes.put(SyslogAttributes.SYSLOG_BODY.key(), event.getMsgBody());
+        attributes.put(SyslogAttributes.SYSLOG_VALID.key(), String.valueOf(event.isValid()));
+        return attributes;
+    }
 }
