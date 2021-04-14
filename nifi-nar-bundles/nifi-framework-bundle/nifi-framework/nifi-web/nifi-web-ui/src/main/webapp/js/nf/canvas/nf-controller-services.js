@@ -1037,8 +1037,8 @@
                 resizable: false,
                 formatter: controllerServiceActionFormatter,
                 sortable: false,
-                width: 90,
-                maxWidth: 90
+                width: 115,
+                maxWidth: 115
             });
 
         // initialize the dataview
