@@ -36,6 +36,12 @@
 
     <dependencyManagement>
         <dependencies>
+            <!-- Override hadoop-common:3.1.1 from atlas:2.1.0 to address HDFS-14037 -->
+            <dependency>
+                <groupId>org.apache.hadoop</groupId>
+                <artifactId>hadoop-common</artifactId>
+                <version>3.1.4</version>
+            </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-atlas-reporting-task</artifactId>
