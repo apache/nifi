@@ -74,7 +74,7 @@ import static org.apache.nifi.atlas.NiFiTypes.TYPE_NIFI_INPUT_PORT;
 import static org.apache.nifi.atlas.NiFiTypes.TYPE_NIFI_OUTPUT_PORT;
 import static org.apache.nifi.atlas.NiFiTypes.TYPE_NIFI_QUEUE;
 
-public class NiFiAtlasClient {
+public class NiFiAtlasClient implements AutoCloseable {
 
     private static final Logger logger = LoggerFactory.getLogger(NiFiAtlasClient.class);
 
@@ -82,6 +82,11 @@ public class NiFiAtlasClient {
 
     public NiFiAtlasClient(AtlasClientV2 atlasClient) {
         this.atlasClient = atlasClient;
+    }
+
+    @Override
+    public void close() {
+        atlasClient.close();
     }
 
     /**
