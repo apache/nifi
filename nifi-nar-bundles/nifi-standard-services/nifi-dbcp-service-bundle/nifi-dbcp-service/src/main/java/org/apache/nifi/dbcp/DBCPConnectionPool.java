@@ -21,6 +21,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.apache.nifi.annotation.behavior.DynamicProperties;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
+import org.apache.nifi.annotation.behavior.RequiresInstanceClassLoading;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
@@ -43,10 +44,8 @@ import org.apache.nifi.security.krb.KerberosAction;
 import org.apache.nifi.security.krb.KerberosKeytabUser;
 import org.apache.nifi.security.krb.KerberosPasswordUser;
 import org.apache.nifi.security.krb.KerberosUser;
-import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
 
 import javax.security.auth.login.LoginException;
-import java.net.MalformedURLException;
 import java.sql.Connection;
 import java.sql.Driver;
 import java.sql.DriverManager;
@@ -74,6 +73,7 @@ import java.util.stream.Collectors;
                 expressionLanguageScope = ExpressionLanguageScope.NONE,
                 description = "JDBC driver property name prefixed with 'SENSITIVE.' handled as a sensitive property.")
 })
+@RequiresInstanceClassLoading
 public class DBCPConnectionPool extends AbstractControllerService implements DBCPService {
     /** Property Name Prefix for Sensitive Dynamic Properties */
     protected static final String SENSITIVE_PROPERTY_PREFIX = "SENSITIVE.";
@@ -131,6 +131,7 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
         .required(false)
         .identifiesExternalResource(ResourceCardinality.MULTIPLE, ResourceType.FILE, ResourceType.DIRECTORY, ResourceType.URL)
         .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .dynamicallyModifiesClasspath(true)
         .build();
 
     public static final PropertyDescriptor DB_USER = new PropertyDescriptor.Builder()
@@ -386,9 +387,10 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
     @OnEnabled
     public void onConfigured(final ConfigurationContext context) throws InitializationException {
 
-        final String drv = context.getProperty(DB_DRIVERNAME).evaluateAttributeExpressions().getValue();
+        final String driverName = context.getProperty(DB_DRIVERNAME).evaluateAttributeExpressions().getValue();
         final String user = context.getProperty(DB_USER).evaluateAttributeExpressions().getValue();
         final String passw = context.getProperty(DB_PASSWORD).evaluateAttributeExpressions().getValue();
+        final String dburl = context.getProperty(DATABASE_URL).evaluateAttributeExpressions().getValue();
         final Integer maxTotal = context.getProperty(MAX_TOTAL_CONNECTIONS).evaluateAttributeExpressions().asInteger();
         final String validationQuery = context.getProperty(VALIDATION_QUERY).evaluateAttributeExpressions().getValue();
         final Long maxWaitMillis = extractMillisWithInfinite(context.getProperty(MAX_WAIT_TIME).evaluateAttributeExpressions());
@@ -417,14 +419,7 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
         }
 
         dataSource = new BasicDataSource();
-        dataSource.setDriverClassName(drv);
-
-        // Optional driver URL, when exist, this URL will be used to locate driver jar file location
-        final String urlString = context.getProperty(DB_DRIVER_LOCATION).evaluateAttributeExpressions().getValue();
-        dataSource.setDriverClassLoader(getDriverClassLoader(urlString, drv));
-
-        final String dburl = context.getProperty(DATABASE_URL).evaluateAttributeExpressions().getValue();
-
+        dataSource.setDriver(getDriver(driverName, dburl));
         dataSource.setMaxWaitMillis(maxWaitMillis);
         dataSource.setMaxTotal(maxTotal);
         dataSource.setMinIdle(minIdle);
@@ -460,45 +455,33 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
         });
     }
 
-    private Long extractMillisWithInfinite(PropertyValue prop) {
-        return "-1".equals(prop.getValue()) ? -1 : prop.asTimePeriod(TimeUnit.MILLISECONDS);
+    private Driver getDriver(final String driverName, final String url) {
+        final Class<?> clazz;
+
+        try {
+            clazz = Class.forName(driverName);
+        } catch (final ClassNotFoundException e) {
+            throw new ProcessException("Driver class " + driverName +  " is not found", e);
+        }
+
+        try {
+            return DriverManager.getDriver(url);
+        } catch (final SQLException e) {
+            // In case the driver is not registered by the implementation, we explicitly try to register it.
+            try {
+                final Driver driver = (Driver) clazz.newInstance();
+                DriverManager.registerDriver(driver);
+                return DriverManager.getDriver(url);
+            } catch (final SQLException e2) {
+                throw new ProcessException("No suitable driver for the given Database Connection URL", e2);
+            } catch (final IllegalAccessException | InstantiationException e2) {
+                throw new ProcessException("Creating driver instance is failed", e2);
+            }
+        }
     }
 
-    /**
-     * using Thread.currentThread().getContextClassLoader(); will ensure that you are using the ClassLoader for you NAR.
-     *
-     * @throws InitializationException
-     *             if there is a problem obtaining the ClassLoader
-     */
-    protected ClassLoader getDriverClassLoader(String locationString, String drvName) throws InitializationException {
-        if (locationString != null && locationString.length() > 0) {
-            try {
-                // Split and trim the entries
-                final ClassLoader classLoader = ClassLoaderUtils.getCustomClassLoader(
-                        locationString,
-                        this.getClass().getClassLoader(),
-                        (dir, name) -> name != null && name.endsWith(".jar")
-                );
-
-                // Workaround which allows to use URLClassLoader for JDBC driver loading.
-                // (Because the DriverManager will refuse to use a driver not loaded by the system ClassLoader.)
-                final Class<?> clazz = Class.forName(drvName, true, classLoader);
-                if (clazz == null) {
-                    throw new InitializationException("Can't load Database Driver " + drvName);
-                }
-                final Driver driver = (Driver) clazz.newInstance();
-                DriverManager.registerDriver(new DriverShim(driver));
-
-                return classLoader;
-            } catch (final MalformedURLException e) {
-                throw new InitializationException("Invalid Database Driver Jar Url", e);
-            } catch (final Exception e) {
-                throw new InitializationException("Can't load Database Driver", e);
-            }
-        } else {
-            // That will ensure that you are using the ClassLoader for you NAR.
-            return Thread.currentThread().getContextClassLoader();
-        }
+    private Long extractMillisWithInfinite(PropertyValue prop) {
+        return "-1".equals(prop.getValue()) ? -1 : prop.asTimePeriod(TimeUnit.MILLISECONDS);
     }
 
     /**
