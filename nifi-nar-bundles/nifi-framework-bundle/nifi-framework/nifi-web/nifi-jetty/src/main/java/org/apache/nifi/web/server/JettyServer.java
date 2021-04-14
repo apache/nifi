@@ -23,6 +23,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.NiFiServer;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleDetails;
+import org.apache.nifi.controller.DecommissionTask;
 import org.apache.nifi.controller.UninheritableFlowException;
 import org.apache.nifi.controller.serialization.FlowSerializationException;
 import org.apache.nifi.controller.serialization.FlowSynchronizationException;
@@ -150,6 +151,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
     private ExtensionMapping extensionMapping;
     private NarAutoLoader narAutoLoader;
     private DiagnosticsFactory diagnosticsFactory;
+    private DecommissionTask decommissionTask;
 
     private WebAppContext webApiContext;
     private WebAppContext webDocsContext;
@@ -1144,6 +1146,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
                 }
 
                 diagnosticsFactory = webApplicationContext.getBean("diagnosticsFactory", DiagnosticsFactory.class);
+                decommissionTask = webApplicationContext.getBean("decommissionTask", DecommissionTask.class);
             }
 
             // ensure the web document war was loaded and provide the extension mapping
@@ -1215,6 +1218,11 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
     @Override
     public DiagnosticsFactory getThreadDumpFactory() {
         return new ThreadDumpDiagnosticsFactory();
+    }
+
+    @Override
+    public DecommissionTask getDecommissionTask() {
+        return decommissionTask;
     }
 
     private void performInjectionForComponentUis(final Collection<WebAppContext> componentUiExtensionWebContexts,

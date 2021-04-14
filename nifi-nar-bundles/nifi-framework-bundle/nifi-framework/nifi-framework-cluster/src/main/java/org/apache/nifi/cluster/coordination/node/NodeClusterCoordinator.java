@@ -86,9 +86,11 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
@@ -270,7 +272,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
         return nodeId;
     }
 
-    private NodeIdentifier waitForElectedClusterCoordinator() {
+    public NodeIdentifier waitForElectedClusterCoordinator() {
         return waitForNodeIdentifier(() -> getElectedActiveCoordinatorNode(false));
     }
 
@@ -502,12 +504,12 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
     }
 
     @Override
-    public void requestNodeOffload(final NodeIdentifier nodeId, final OffloadCode offloadCode, final String explanation) {
+    public Future<Void> requestNodeOffload(final NodeIdentifier nodeId, final OffloadCode offloadCode, final String explanation) {
         final Set<NodeIdentifier> offloadNodeIds = getNodeIdentifiers(NodeConnectionState.OFFLOADING, NodeConnectionState.OFFLOADED);
         if (offloadNodeIds.contains(nodeId)) {
             logger.debug("Attempted to offload node but the node is already offloading or offloaded");
             // no need to do anything here, the node is currently offloading or already offloaded
-            return;
+            return CompletableFuture.completedFuture(null);
         }
 
         final Set<NodeIdentifier> disconnectedNodeIds = getNodeIdentifiers(NodeConnectionState.DISCONNECTED);
@@ -524,11 +526,11 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
         request.setExplanation(explanation);
 
         addNodeEvent(nodeId, "Offload requested due to " + explanation);
-        offloadAsynchronously(request, 10, 5);
+        return offloadAsynchronously(request, 10, 5);
     }
 
     @Override
-    public void requestNodeDisconnect(final NodeIdentifier nodeId, final DisconnectionCode disconnectionCode, final String explanation) {
+    public Future<Void> requestNodeDisconnect(final NodeIdentifier nodeId, final DisconnectionCode disconnectionCode, final String explanation) {
         final Set<NodeIdentifier> connectedNodeIds = getNodeIdentifiers(NodeConnectionState.CONNECTED);
         if (connectedNodeIds.size() == 1 && connectedNodeIds.contains(nodeId)) {
             throw new IllegalNodeDisconnectionException("Cannot disconnect node " + nodeId + " because it is the only node currently connected");
@@ -541,7 +543,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
         // There is no need to tell the node that it's disconnected if it is due to being
         // shutdown, as we will not be able to connect to the node anyway.
         if (disconnectionCode == DisconnectionCode.NODE_SHUTDOWN) {
-            return;
+            return CompletableFuture.completedFuture(null);
         }
 
         final DisconnectMessage request = new DisconnectMessage();
@@ -549,7 +551,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
         request.setExplanation(explanation);
 
         addNodeEvent(nodeId, "Disconnection requested due to " + explanation);
-        disconnectAsynchronously(request, 10, 5);
+        return disconnectAsynchronously(request, 10, 5);
     }
 
     @Override
@@ -901,19 +903,24 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
         senderListener.notifyNodeStatusChange(nodesToNotify, message);
     }
 
-    private void offloadAsynchronously(final OffloadMessage request, final int attempts, final int retrySeconds) {
+    private Future<Void> offloadAsynchronously(final OffloadMessage request, final int attempts, final int retrySeconds) {
+        final CompletableFuture<Void> future = new CompletableFuture<>();
+
         final Thread offloadThread = new Thread(new Runnable() {
             @Override
             public void run() {
                 final NodeIdentifier nodeId = request.getNodeId();
 
+                Exception lastException = null;
                 for (int i = 0; i < attempts; i++) {
                     try {
                         senderListener.offload(request);
                         reportEvent(nodeId, Severity.INFO, "Node was offloaded due to " + request.getExplanation());
+                        future.complete(null);
                         return;
                     } catch (final Exception e) {
                         logger.error("Failed to notify {} that it has been offloaded due to {}", request.getNodeId(), request.getExplanation(), e);
+                        lastException = e;
 
                         try {
                             Thread.sleep(retrySeconds * 1000L);
@@ -923,38 +930,50 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
                         }
                     }
                 }
+
+                future.completeExceptionally(lastException);
             }
         }, "Offload " + request.getNodeId());
 
         offloadThread.start();
+        return future;
     }
 
-    private void disconnectAsynchronously(final DisconnectMessage request, final int attempts, final int retrySeconds) {
+    private Future<Void> disconnectAsynchronously(final DisconnectMessage request, final int attempts, final int retrySeconds) {
+        final CompletableFuture<Void> future = new CompletableFuture<>();
+
         final Thread disconnectThread = new Thread(new Runnable() {
             @Override
             public void run() {
                 final NodeIdentifier nodeId = request.getNodeId();
 
+                Exception lastException = null;
                 for (int i = 0; i < attempts; i++) {
                     try {
                         senderListener.disconnect(request);
                         reportEvent(nodeId, Severity.INFO, "Node disconnected due to " + request.getExplanation());
+                        future.complete(null);
                         return;
                     } catch (final Exception e) {
                         logger.error("Failed to notify {} that it has been disconnected from the cluster due to {}", request.getNodeId(), request.getExplanation());
+                        lastException = e;
 
                         try {
                             Thread.sleep(retrySeconds * 1000L);
                         } catch (final InterruptedException ie) {
+                            future.completeExceptionally(ie);
                             Thread.currentThread().interrupt();
                             return;
                         }
                     }
                 }
+
+                future.completeExceptionally(lastException);
             }
         }, "Disconnect " + request.getNodeId());
 
         disconnectThread.start();
+        return future;
     }
 
     public void validateHeartbeat(final NodeHeartbeat heartbeat) {
