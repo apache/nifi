@@ -430,7 +430,7 @@ case "$1" in
         install "$@"
         ;;
 
-    start|stop|run|status|is_loaded|dump|diagnostics|env|stateless)
+    start|stop|decommission|run|status|is_loaded|dump|diagnostics|env|stateless)
         main "$@"
         ;;
 
@@ -440,6 +440,6 @@ case "$1" in
         run "start"
         ;;
     *)
-        echo "Usage nifi {start|stop|run|restart|status|dump|diagnostics|install|stateless}"
+        echo "Usage nifi {start|stop|decommission|run|restart|status|dump|diagnostics|install|stateless}"
         ;;
 esac
