@@ -20,7 +20,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 public abstract class AbstractConfigurableComponent implements ConfigurableComponent {
@@ -123,19 +122,6 @@ public abstract class AbstractConfigurableComponent implements ConfigurableCompo
             final ValidationResult result = descriptor.validate(value, context);
             if (!result.isValid()) {
                 results.add(result);
-            }
-        }
-
-        // validate any dynamic properties
-        for (final Map.Entry<PropertyDescriptor, String> entry : context.getProperties().entrySet()) {
-            final PropertyDescriptor descriptor = entry.getKey();
-            final String value = entry.getValue();
-
-            if (supportedDescriptors != null && !supportedDescriptors.contains(descriptor)) {
-                final ValidationResult result = descriptor.validate(value, context);
-                if (!result.isValid()) {
-                    results.add(result);
-                }
             }
         }
 
