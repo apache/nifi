@@ -111,8 +111,10 @@ public class RunNiFi {
     public static final String PID_KEY = "pid";
 
     public static final int STARTUP_WAIT_SECONDS = 60;
+    public static final long GRACEFUL_SHUTDOWN_RETRY_MILLIS = 2000L;
 
     public static final String SHUTDOWN_CMD = "SHUTDOWN";
+    public static final String DECOMMISSION_CMD = "DECOMMISSION";
     public static final String PING_CMD = "PING";
     public static final String DUMP_CMD = "DUMP";
     public static final String DIAGNOSTICS_CMD = "DIAGNOSTICS";
@@ -169,6 +171,7 @@ public class RunNiFi {
         System.out.println("Start : Start a new instance of Apache NiFi");
         System.out.println("Stop : Stop a running instance of Apache NiFi");
         System.out.println("Restart : Stop Apache NiFi, if it is running, and then start a new instance");
+        System.out.println("Decommission : Disconnects Apache NiFi from its cluster, offloads its data to other nodes in the cluster, removes itself from the cluster, and shuts down the instance");
         System.out.println("Status : Determine if there is a running instance of Apache NiFi");
         System.out.println("Dump : Write a Thread Dump to the file specified by [options], or to the log if no file is given");
         System.out.println("Diagnostics : Write diagnostic information to the file specified by [options], or to the log if no file is given. The --verbose flag may be provided as an option before " +
@@ -219,6 +222,7 @@ public class RunNiFi {
             case "start":
             case "run":
             case "stop":
+            case "decommission":
             case "status":
             case "is_loaded":
             case "dump":
@@ -244,6 +248,9 @@ public class RunNiFi {
                 break;
             case "stop":
                 runNiFi.stop();
+                break;
+            case "decommission":
+                exitStatus = runNiFi.decommission();
                 break;
             case "status":
                 exitStatus = runNiFi.status();
@@ -810,6 +817,63 @@ public class RunNiFi {
                 "Hello,\n\nApache NiFi has been told to initiate a shutdown on host " + hostname + " at " + now + " by user " + user);
     }
 
+    public Integer decommission() throws IOException {
+        final Logger logger = cmdLogger;
+        final Integer port = getCurrentPort(logger);
+        if (port == null) {
+            logger.info("Apache NiFi is not currently running");
+            return 15;
+        }
+
+        // indicate that a stop command is in progress
+        final File lockFile = getLockFile(logger);
+        if (!lockFile.exists()) {
+            lockFile.createNewFile();
+        }
+
+        final Properties nifiProps = loadProperties(logger);
+        final String secretKey = nifiProps.getProperty("secret.key");
+        final String pid = nifiProps.getProperty(PID_KEY);
+        final File statusFile = getStatusFile(logger);
+        final File pidFile = getPidFile(logger);
+
+        try (final Socket socket = new Socket()) {
+            logger.debug("Connecting to NiFi instance");
+            socket.setSoTimeout(10000);
+            socket.connect(new InetSocketAddress("localhost", port));
+            logger.debug("Established connection to NiFi instance.");
+
+            // We don't know how long it will take for the offloading to complete. It could be a while. So don't timeout.
+            // User can press Ctrl+C to terminate if they don't want to wait
+            socket.setSoTimeout(0);
+
+            logger.debug("Sending DECOMMISSION Command to port {}", port);
+            final OutputStream out = socket.getOutputStream();
+            out.write((DECOMMISSION_CMD + " " + secretKey + "\n").getBytes(StandardCharsets.UTF_8));
+            out.flush();
+            socket.shutdownOutput();
+
+            final String response = readResponse(socket.getInputStream());
+
+            if (DECOMMISSION_CMD.equals(response)) {
+                logger.debug("Received response to DECOMMISSION command: {}", response);
+
+                if (pid != null) {
+                    waitForShutdown(pid, logger, statusFile, pidFile);
+                }
+
+                return null;
+            } else {
+                logger.error("When sending DECOMMISSION command to NiFi, got unexpected response {}", response);
+                return 18;
+            }
+        } finally {
+            if (lockFile.exists() && !lockFile.delete()) {
+                logger.error("Failed to delete lock file {}; this file should be cleaned up manually", lockFile);
+            }
+        }
+    }
+
     public void stop() throws IOException {
         final Logger logger = cmdLogger;
         final Integer port = getCurrentPort(logger);
@@ -843,69 +907,17 @@ public class RunNiFi {
             out.flush();
             socket.shutdownOutput();
 
-            final InputStream in = socket.getInputStream();
-            int lastChar;
-            final StringBuilder sb = new StringBuilder();
-            while ((lastChar = in.read()) > -1) {
-                sb.append((char) lastChar);
-            }
-            final String response = sb.toString().trim();
-
+            final String response = readResponse(socket.getInputStream());
             logger.debug("Received response to SHUTDOWN command: {}", response);
 
             if (SHUTDOWN_CMD.equals(response)) {
                 logger.info("Apache NiFi has accepted the Shutdown Command and is shutting down now");
 
                 if (pid != null) {
-                    final Properties bootstrapProperties = new Properties();
-                    try (final FileInputStream fis = new FileInputStream(bootstrapConfigFile)) {
-                        bootstrapProperties.load(fis);
-                    }
-
-                    String gracefulShutdown = bootstrapProperties.getProperty(GRACEFUL_SHUTDOWN_PROP, DEFAULT_GRACEFUL_SHUTDOWN_VALUE);
-                    int gracefulShutdownSeconds;
-                    try {
-                        gracefulShutdownSeconds = Integer.parseInt(gracefulShutdown);
-                    } catch (final NumberFormatException nfe) {
-                        gracefulShutdownSeconds = Integer.parseInt(DEFAULT_GRACEFUL_SHUTDOWN_VALUE);
-                    }
-
-                    notifyStop();
-                    final long startWait = System.nanoTime();
-                    while (isProcessRunning(pid, logger)) {
-                        logger.info("Waiting for Apache NiFi to finish shutting down...");
-                        final long waitNanos = System.nanoTime() - startWait;
-                        final long waitSeconds = TimeUnit.NANOSECONDS.toSeconds(waitNanos);
-                        if (waitSeconds >= gracefulShutdownSeconds && gracefulShutdownSeconds > 0) {
-                            if (isProcessRunning(pid, logger)) {
-                                logger.warn("NiFi has not finished shutting down after {} seconds. Killing process.", gracefulShutdownSeconds);
-                                try {
-                                    killProcessTree(pid, logger);
-                                } catch (final IOException ioe) {
-                                    logger.error("Failed to kill Process with PID {}", pid);
-                                }
-                            }
-                            break;
-                        } else {
-                            try {
-                                Thread.sleep(2000L);
-                            } catch (final InterruptedException ie) {
-                            }
-                        }
-                    }
-
-                    if (statusFile.exists() && !statusFile.delete()) {
-                        logger.error("Failed to delete status file {}; this file should be cleaned up manually", statusFile);
-                    }
-
-                    if (pidFile.exists() && !pidFile.delete()) {
-                        logger.error("Failed to delete pid file {}; this file should be cleaned up manually", pidFile);
-                    }
-
-                    logger.info("NiFi has finished shutting down.");
+                    waitForShutdown(pid, logger, statusFile, pidFile);
                 }
             } else {
-                logger.error("When sending SHUTDOWN command to NiFi, got unexpected response {}", response);
+                logger.error("When sending SHUTDOWN command to NiFi, got unexpected response: {}", response);
             }
         } catch (final IOException ioe) {
             if (pid == null) {
@@ -924,6 +936,65 @@ public class RunNiFi {
                 logger.error("Failed to delete lock file {}; this file should be cleaned up manually", lockFile);
             }
         }
+    }
+
+    private String readResponse(final InputStream in) throws IOException {
+        int lastChar;
+        final StringBuilder sb = new StringBuilder();
+        while ((lastChar = in.read()) > -1) {
+            sb.append((char) lastChar);
+        }
+
+        return sb.toString().trim();
+    }
+
+    private void waitForShutdown(final String pid, final Logger logger, final File statusFile, final File pidFile) throws IOException {
+        final Properties bootstrapProperties = new Properties();
+        try (final FileInputStream fis = new FileInputStream(bootstrapConfigFile)) {
+            bootstrapProperties.load(fis);
+        }
+
+        String gracefulShutdown = bootstrapProperties.getProperty(GRACEFUL_SHUTDOWN_PROP, DEFAULT_GRACEFUL_SHUTDOWN_VALUE);
+        int gracefulShutdownSeconds;
+        try {
+            gracefulShutdownSeconds = Integer.parseInt(gracefulShutdown);
+        } catch (final NumberFormatException nfe) {
+            gracefulShutdownSeconds = Integer.parseInt(DEFAULT_GRACEFUL_SHUTDOWN_VALUE);
+        }
+
+        notifyStop();
+        final long startWait = System.nanoTime();
+        while (isProcessRunning(pid, logger)) {
+            logger.info("Waiting for Apache NiFi to finish shutting down...");
+            final long waitNanos = System.nanoTime() - startWait;
+            final long waitSeconds = TimeUnit.NANOSECONDS.toSeconds(waitNanos);
+            if (waitSeconds >= gracefulShutdownSeconds && gracefulShutdownSeconds > 0) {
+                if (isProcessRunning(pid, logger)) {
+                    logger.warn("NiFi has not finished shutting down after {} seconds. Killing process.", gracefulShutdownSeconds);
+                    try {
+                        killProcessTree(pid, logger);
+                    } catch (final IOException ioe) {
+                        logger.error("Failed to kill Process with PID {}", pid);
+                    }
+                }
+                break;
+            } else {
+                try {
+                    Thread.sleep(GRACEFUL_SHUTDOWN_RETRY_MILLIS);
+                } catch (final InterruptedException ie) {
+                }
+            }
+        }
+
+        if (statusFile.exists() && !statusFile.delete()) {
+            logger.error("Failed to delete status file {}; this file should be cleaned up manually", statusFile);
+        }
+
+        if (pidFile.exists() && !pidFile.delete()) {
+            logger.error("Failed to delete pid file {}; this file should be cleaned up manually", pidFile);
+        }
+
+        logger.info("NiFi has finished shutting down.");
     }
 
     private static List<String> getChildProcesses(final String ppid) throws IOException {

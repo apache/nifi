@@ -14,30 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi;
 
-import org.apache.nifi.bundle.Bundle;
-import org.apache.nifi.controller.DecommissionTask;
-import org.apache.nifi.diagnostics.DiagnosticsFactory;
-import org.apache.nifi.nar.ExtensionMapping;
-import org.apache.nifi.util.NiFiProperties;
+package org.apache.nifi.controller;
 
-import java.util.Set;
-
-/**
- *
- */
-public interface NiFiServer {
-
-    void start();
-
-    void initialize(NiFiProperties properties, Bundle systemBundle, Set<Bundle> bundles, ExtensionMapping extensionMapping);
-
-    void stop();
-
-    DiagnosticsFactory getDiagnosticsFactory();
-
-    DiagnosticsFactory getThreadDumpFactory();
-
-    DecommissionTask getDecommissionTask();
+public interface DecommissionTask {
+    void decommission() throws InterruptedException;
 }

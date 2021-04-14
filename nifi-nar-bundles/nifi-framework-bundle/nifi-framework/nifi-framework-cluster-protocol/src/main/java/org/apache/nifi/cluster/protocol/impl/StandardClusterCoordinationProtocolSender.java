@@ -16,19 +16,6 @@
  */
 package org.apache.nifi.cluster.protocol.impl;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.net.Socket;
-import java.net.SocketException;
-import java.util.Objects;
-import java.util.Set;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-
 import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
 import org.apache.nifi.cluster.protocol.ClusterCoordinationProtocolSender;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
@@ -36,11 +23,11 @@ import org.apache.nifi.cluster.protocol.ProtocolContext;
 import org.apache.nifi.cluster.protocol.ProtocolException;
 import org.apache.nifi.cluster.protocol.ProtocolMessageMarshaller;
 import org.apache.nifi.cluster.protocol.ProtocolMessageUnmarshaller;
-import org.apache.nifi.cluster.protocol.message.OffloadMessage;
 import org.apache.nifi.cluster.protocol.message.DisconnectMessage;
 import org.apache.nifi.cluster.protocol.message.NodeConnectionStatusRequestMessage;
 import org.apache.nifi.cluster.protocol.message.NodeConnectionStatusResponseMessage;
 import org.apache.nifi.cluster.protocol.message.NodeStatusChangeMessage;
+import org.apache.nifi.cluster.protocol.message.OffloadMessage;
 import org.apache.nifi.cluster.protocol.message.ProtocolMessage;
 import org.apache.nifi.cluster.protocol.message.ProtocolMessage.MessageType;
 import org.apache.nifi.cluster.protocol.message.ReconnectionRequestMessage;
@@ -51,6 +38,20 @@ import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.util.FormatUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.net.InetSocketAddress;
+import java.net.Socket;
+import java.net.SocketException;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * A protocol sender for sending protocol messages from the cluster manager to
@@ -286,14 +287,35 @@ public class StandardClusterCoordinationProtocolSender implements ClusterCoordin
             executor.submit(new Runnable() {
                 @Override
                 public void run() {
-                    try (final Socket socket = createSocket(nodeId, true)) {
-                        // marshal message to output stream
-                        socket.getOutputStream().write(msgBytes);
-                    } catch (final IOException ioe) {
-                        throw new ProtocolException("Failed to send Node Status Change message to " + nodeId, ioe);
+                    final int attempts = 10;
+                    final int retrySeconds = 6;
+                    Exception lastException = null;
+
+                    for (int i = 0; i < attempts; i++) {
+                        try (final Socket socket = createSocket(nodeId, true)) {
+                            // marshal message to output stream
+                            final OutputStream out = socket.getOutputStream();
+                            out.write(msgBytes);
+                        } catch (final Exception e) {
+                            logger.warn("Failed to send Node Status Change message to {}", nodeId, e);
+
+                            lastException = e;
+
+                            try {
+                                Thread.sleep(retrySeconds * 1000L);
+                            } catch (final InterruptedException ie) {
+                                Thread.currentThread().interrupt();
+                                return;
+                            }
+
+                            continue;
+                        }
+
+                        logger.debug("Notified {} of status change {}", nodeId, msg);
+                        return;
                     }
 
-                    logger.debug("Notified {} of status change {}", nodeId, msg);
+                    throw new ProtocolException("Failed to send Node Status Change message to " + nodeId, lastException);
                 }
             });
         }

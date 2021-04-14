@@ -343,4 +343,5 @@ public abstract class AbstractHeartbeatMonitor implements HeartbeatMonitor {
         public void onNodeStateChange(final NodeIdentifier nodeId, final NodeConnectionState newState) {
         }
     }
+
 }
