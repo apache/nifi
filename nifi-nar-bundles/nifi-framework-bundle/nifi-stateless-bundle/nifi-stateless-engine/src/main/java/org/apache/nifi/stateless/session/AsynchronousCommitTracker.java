@@ -25,6 +25,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -41,22 +42,29 @@ public class AsynchronousCommitTracker {
     private final Stack<CommitCallbacks> commitCallbacks = new Stack<>();
     private boolean progressMade = false;
 
-    public AsynchronousCommitTracker() {
-
-    }
-
     public void addConnectable(final Connectable connectable) {
-        final boolean added = ready.add(connectable);
+        // this.ready is a LinkedHashSet that is responsible for ensuring that when a Connectable is added,
+        // it will be the first to be triggered. What we really want is to insert the new Connectable at the front
+        // of the collection, regardless of whether it's currently present or not. However, using a List or a Queue
+        // is not ideal because checking for the existence of the Connectable in a List or Queue is generally quite expensive,
+        // even though the insertion is cheap. To achieve the desired behavior, we call remove() and then add(), which ensures
+        // that the given Connectables goes to the END of the list. When getReady() is called, the LinkedHashSet is then
+        // copied into a List and reversed. There is almost certainly a much more efficient way to achieve this, but that
+        // is an optimization best left for a later date.
+        final boolean removed = ready.remove(connectable);
+        ready.add(connectable);
 
-        if (added) {
-            logger.debug("{} Added {} to list of Ready Connectables", this, connectable);
-        } else {
+        if (removed) {
             logger.debug("{} Added {} to list of Ready Connectables but it was already in the list", this, connectable);
+        } else {
+            logger.debug("{} Added {} to list of Ready Connectables", this, connectable);
         }
     }
 
     public List<Connectable> getReady() {
-        return new ArrayList<>(ready);
+        final List<Connectable> connectables = new ArrayList<>(ready);
+        Collections.reverse(connectables);
+        return connectables;
     }
 
     public boolean isAnyReady() {

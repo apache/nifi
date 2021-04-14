@@ -87,4 +87,11 @@ public class ConcatenateFlowFiles extends AbstractProcessor {
         session.transfer(merged, MERGED);
         session.transfer(flowFiles, ORIGINAL);
     }
+
+    @Override
+    public boolean isAdditionalInputRequired() {
+        // This will be called only when no progress was made as a result of calling onTrigger.
+        // That happens only if additional FlowFiles are necessary.
+        return true;
+    }
 }
