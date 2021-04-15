@@ -456,15 +456,27 @@ public class DBCPConnectionPool extends AbstractControllerService implements DBC
     }
 
     private Driver getDriver(final String driverName, final String url) {
-        try {
-            final Class<?> clazz = Class.forName(driverName);
-            final Driver driver = DriverManager.getDriver(url);
+        final Class<?> clazz;
 
-            return (driver == null)
-                    ? (Driver) clazz.newInstance()
-                    : driver;
-        } catch (final ClassNotFoundException | IllegalAccessException | InstantiationException | SQLException e) {
-            throw new ProcessException("Creating driver instance is failed", e);
+        try {
+            clazz = Class.forName(driverName);
+        } catch (final ClassNotFoundException e) {
+            throw new ProcessException("Driver class " + driverName +  " is not found", e);
+        }
+
+        try {
+            return DriverManager.getDriver(url);
+        } catch (final SQLException e) {
+            // In case the driver is not registered by the implementation, we explicitly try to register it.
+            try {
+                final Driver driver = (Driver) clazz.newInstance();
+                DriverManager.registerDriver(driver);
+                return DriverManager.getDriver(url);
+            } catch (final SQLException e2) {
+                throw new ProcessException("No suitable driver for the given Database Connection URL", e2);
+            } catch (final IllegalAccessException | InstantiationException e2) {
+                throw new ProcessException("Creating driver instance is failed", e2);
+            }
         }
     }
 
