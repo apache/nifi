@@ -27,6 +27,10 @@ import org.apache.nifi.controller.DecommissionTask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -55,6 +59,9 @@ public class ClusterDecommissionTask implements DecommissionTask {
         }
 
         disconnectNode();
+        logger.info("Requested that node be disconnected from cluster");
+
+        waitForDisconnection();
         logger.info("Successfully disconnected node from cluster");
 
         offloadNode();
@@ -64,6 +71,9 @@ public class ClusterDecommissionTask implements DecommissionTask {
         logger.info("Offload has successfully completed.");
 
         removeFromCluster();
+        logger.info("Requested that node be removed from cluster.");
+
+        waitForRemoval();
         logger.info("Node successfully removed from cluster. Decommission is complete.");
     }
 
@@ -82,6 +92,11 @@ public class ClusterDecommissionTask implements DecommissionTask {
         }
     }
 
+    private void waitForDisconnection() throws InterruptedException {
+        logger.info("Waiting for Node to be completely disconnected from cluster");
+        waitForState(Collections.singleton(NodeConnectionState.DISCONNECTED));
+    }
+
     private void offloadNode() throws InterruptedException {
         logger.info("Requesting that Node be offloaded");
 
@@ -97,12 +112,16 @@ public class ClusterDecommissionTask implements DecommissionTask {
         }
 
         // Wait until status changes to either OFFLOADING or OFFLOADED.
+        waitForState(new HashSet<>(Arrays.asList(NodeConnectionState.OFFLOADING, NodeConnectionState.OFFLOADED)));
+    }
+
+    private void waitForState(final Set<NodeConnectionState> acceptableStates) throws InterruptedException {
         while (true) {
             final NodeConnectionStatus status = clusterCoordinator.getConnectionStatus(localNodeIdentifier);
             final NodeConnectionState state = status.getState();
             logger.debug("Node state is {}", state);
 
-            if (state == NodeConnectionState.OFFLOADING || state == NodeConnectionState.OFFLOADED) {
+            if (acceptableStates.contains(state)) {
                 return;
             }
 
@@ -131,5 +150,24 @@ public class ClusterDecommissionTask implements DecommissionTask {
 
     private void removeFromCluster() {
         clusterCoordinator.removeNode(localNodeIdentifier, "<Local Decommission>");
+    }
+
+    private void waitForRemoval() throws InterruptedException {
+        logger.info("Waiting for Node to be completely removed from cluster");
+
+        while (true) {
+            final NodeConnectionStatus status = clusterCoordinator.getConnectionStatus(localNodeIdentifier);
+            if (status == null) {
+                return;
+            }
+
+            final NodeConnectionState state = status.getState();
+            if (state == NodeConnectionState.REMOVED) {
+                return;
+            }
+
+            logger.debug("Node state is {}. Will wait {} seconds and check again", state, delaySeconds);
+            TimeUnit.SECONDS.sleep(delaySeconds);
+        }
     }
 }
