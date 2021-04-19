@@ -40,7 +40,7 @@ import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.util.ComponentIdGenerator;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.security.ProxiedEntitiesUtils;
-import org.apache.nifi.web.security.jwt.JwtAuthenticationFilter;
+import org.apache.nifi.web.security.jwt.NiFiBearerTokenResolver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -244,7 +244,7 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
 
         // remove the access token if present, since the user is already authenticated... authorization
         // will happen when the request is replicated using the proxy chain above
-        headers.remove(JwtAuthenticationFilter.AUTHORIZATION);
+        headers.remove(NiFiBearerTokenResolver.AUTHORIZATION);
 
         // if knox sso cookie name is set, remove any authentication cookie since this user is already authenticated
         // and will be included in the proxied entities chain above... authorization will happen when the

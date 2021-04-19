@@ -24,11 +24,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.util.WebUtils;
 
+import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import java.util.Arrays;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  */
@@ -37,12 +36,9 @@ public class JwtAuthenticationFilter extends NiFiAuthenticationFilter {
     private static final Logger logger = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
 
     // The Authorization header contains authentication credentials
-    public static final String AUTHORIZATION = "Authorization";
     public static final String JWT_COOKIE_NAME = "__Host-jwt-auth-cookie";
-    private static final Pattern BEARER_HEADER_PATTERN = Pattern.compile("^Bearer (\\S*\\.\\S*\\.\\S*)$");
-    private static final Pattern JWT_PATTERN = Pattern.compile("^(\\S*\\.\\S*\\.\\S*)$");
     private static final List<String> IDEMPOTENT_METHODS = Arrays.asList("GET", "HEAD", "TRACE", "OPTIONS");
-
+    private static NiFiBearerTokenResolver bearerTokenResolver = new NiFiBearerTokenResolver();
 
     @Override
     public Authentication attemptAuthentication(final HttpServletRequest request) {
@@ -52,49 +48,23 @@ public class JwtAuthenticationFilter extends NiFiAuthenticationFilter {
         }
 
         // Check for JWT in cookie and header
-        final String cookieToken = WebUtils.getCookie(request, JWT_COOKIE_NAME).getValue();
-        final String headerToken = getTokenFromHeader(request);
-        if (cookieToken != null && !cookieToken.isEmpty()) {
+        final Cookie cookieToken = WebUtils.getCookie(request, JWT_COOKIE_NAME);
+        final String headerToken = bearerTokenResolver.resolve(request);
+        if (cookieToken != null) {
             if (!IDEMPOTENT_METHODS.contains(request.getMethod().toUpperCase())) {
                 // To protect against CSRF when using a cookie, if the request method requires authentication the request must have a matching Authorization header JWT
-                if (headerToken.equals(cookieToken)) {
+                if (headerToken.equals(cookieToken.getValue())) {
                     return new JwtAuthenticationRequestToken(headerToken, request.getRemoteAddr());
                 } else {
                     throw new InvalidAuthenticationException("Authorization HTTP header and authentication cookie did not match.");
                 }
             } else {
-                return new JwtAuthenticationRequestToken(cookieToken, request.getRemoteAddr());
+                return new JwtAuthenticationRequestToken(cookieToken.getValue(), request.getRemoteAddr());
             }
         } else if (StringUtils.isNotBlank(headerToken)) {
             return new JwtAuthenticationRequestToken(headerToken, request.getRemoteAddr());
         } else {
             return null;
-        }
-    }
-
-    private boolean validJwtFormat(String authenticationHeader) {
-        Matcher matcher = BEARER_HEADER_PATTERN.matcher(authenticationHeader);
-        return matcher.matches();
-    }
-
-    private String getTokenFromHeader(final HttpServletRequest request) {
-        final String authorizationHeader = request.getHeader(AUTHORIZATION);
-
-        // if there is no authorization header, we don't know the user
-        if (authorizationHeader == null || !validJwtFormat(authorizationHeader)) {
-            return null;
-        } else {
-            // Extract the Base64 encoded token from the Authorization header
-            return getTokenFromHeader(authorizationHeader);
-        }
-    }
-
-    public static String getTokenFromHeader(String authenticationHeader) {
-        Matcher matcher = BEARER_HEADER_PATTERN.matcher(authenticationHeader);
-        if(matcher.matches()) {
-            return matcher.group(1);
-        } else {
-            throw new InvalidAuthenticationException("JWT did not match expected pattern.");
         }
     }
 }

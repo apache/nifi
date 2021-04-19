@@ -67,6 +67,7 @@ import org.apache.nifi.web.security.jwt.JwtAuthenticationFilter;
 import org.apache.nifi.web.security.jwt.JwtAuthenticationProvider;
 import org.apache.nifi.web.security.jwt.JwtAuthenticationRequestToken;
 import org.apache.nifi.web.security.jwt.JwtService;
+import org.apache.nifi.web.security.jwt.NiFiBearerTokenResolver;
 import org.apache.nifi.web.security.kerberos.KerberosService;
 import org.apache.nifi.web.security.knox.KnoxService;
 import org.apache.nifi.web.security.logout.LogoutRequest;
@@ -1173,7 +1174,7 @@ public class AccessResource extends ApplicationResource {
             // if there is not certificate, consider a token
             if (certificates == null) {
                 // look for an authorization token in header or cookie
-                final String authorization = getJwtFromRequest(httpServletRequest);
+                final String authorization = new NiFiBearerTokenResolver().resolve(httpServletRequest);
 
                 // if there is no authorization header, we don't know the user
                 if (authorization == null) {
@@ -1804,25 +1805,8 @@ public class AccessResource extends ApplicationResource {
     }
 
     private void logOutUser(HttpServletRequest httpServletRequest) {
-        final String jwt = getJwtFromRequest(httpServletRequest);
+        final String jwt = new NiFiBearerTokenResolver().resolve(httpServletRequest);
         jwtService.logOut(jwt);
-    }
-
-    private String getJwtFromRequest(HttpServletRequest httpServletRequest) {
-        final String authCookie = WebUtils.getCookie(httpServletRequest, JwtAuthenticationFilter.JWT_COOKIE_NAME).getValue();
-        final String authHeader = httpServletRequest.getHeader(httpServletRequest.getHeader(JwtAuthenticationFilter.AUTHORIZATION));
-
-        String jwt = null;
-
-        if (StringUtils.isNotBlank(authCookie)) {
-            jwt = authCookie;
-        }
-
-        if (StringUtils.isNotBlank(authHeader)) {
-            jwt = JwtAuthenticationFilter.getTokenFromHeader(authHeader);
-        }
-
-        return jwt;
     }
 
     private Response generateTokenResponse(ResponseBuilder builder, String token) {

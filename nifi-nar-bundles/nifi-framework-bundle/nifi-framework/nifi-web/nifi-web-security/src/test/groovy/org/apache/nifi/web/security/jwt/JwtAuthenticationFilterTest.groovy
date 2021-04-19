@@ -29,7 +29,7 @@ import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
 
 @RunWith(JUnit4.class)
-class JwtAuthenticationFilterTest extends GroovyTestCase {
+class JwtAuthentixationFilterTest extends GroovyTestCase {
 
     public static String jwtString
 
@@ -83,7 +83,7 @@ class JwtAuthenticationFilterTest extends GroovyTestCase {
         String authenticationHeader = "Bearer " + jwtString
 
         // Act
-        boolean isValidHeader = new JwtAuthenticationFilter().validJwtFormat(authenticationHeader)
+        boolean isValidHeader = new NiFiBearerTokenResolver().validAuthorizationHeaderFormat(authenticationHeader)
 
         // Assert
         assertTrue(isValidHeader)
@@ -94,7 +94,7 @@ class JwtAuthenticationFilterTest extends GroovyTestCase {
         // Arrange
 
         // Act
-        boolean isValidHeader = new JwtAuthenticationFilter().validJwtFormat(jwtString)
+        boolean isValidHeader = new NiFiBearerTokenResolver().validAuthorizationHeaderFormat(jwtString)
 
         // Assert
         assertFalse(isValidHeader)
@@ -106,7 +106,7 @@ class JwtAuthenticationFilterTest extends GroovyTestCase {
         String authenticationHeader = "xBearer " + jwtString
 
         // Act
-        boolean isValidToken = new JwtAuthenticationFilter().validJwtFormat(authenticationHeader)
+        boolean isValidToken = new NiFiBearerTokenResolver().validJwtFormat(authenticationHeader)
 
         // Assert
         assertFalse(isValidToken)
@@ -119,7 +119,7 @@ class JwtAuthenticationFilterTest extends GroovyTestCase {
         String badToken = "Bearer " + tokenStrings[1] + tokenStrings[2]
 
         // Act
-        boolean isValidToken = new JwtAuthenticationFilter().validJwtFormat(badToken)
+        boolean isValidToken = new NiFiBearerTokenResolver().validJwtFormat(badToken)
 
         // Assert
         assertFalse(isValidToken)
@@ -132,7 +132,7 @@ class JwtAuthenticationFilterTest extends GroovyTestCase {
         authenticationHeader = authenticationHeader + " " + authenticationHeader
 
         // Act
-        boolean isValidToken = new JwtAuthenticationFilter().validJwtFormat(authenticationHeader)
+        boolean isValidToken = new NiFiBearerTokenResolver().validJwtFormat(authenticationHeader)
 
         // Assert
         assertFalse(isValidToken)
@@ -144,7 +144,7 @@ class JwtAuthenticationFilterTest extends GroovyTestCase {
         String authenticationHeader = "Bearer " + jwtString
 
         // Act
-        String extractedToken = new JwtAuthenticationFilter().getTokenFromHeader(authenticationHeader)
+        String extractedToken = new NiFiBearerTokenResolver().getTokenFromHeader(authenticationHeader)
 
         // Assert
         assertEquals(jwtString, extractedToken)
@@ -157,7 +157,7 @@ class JwtAuthenticationFilterTest extends GroovyTestCase {
         authenticationHeader = authenticationHeader + "." + authenticationHeader
 
         // Act
-        boolean isValidToken = new JwtAuthenticationFilter().validJwtFormat(authenticationHeader)
+        boolean isValidToken = new NiFiBearerTokenResolver().validJwtFormat(authenticationHeader)
 
         // Assert
         assertFalse(isValidToken)
@@ -172,7 +172,7 @@ class JwtAuthenticationFilterTest extends GroovyTestCase {
         authenticationHeader = authenticationHeader + " " + authenticationHeader
 
         // Act
-        String token = new JwtAuthenticationFilter().getTokenFromHeader(authenticationHeader)
+        String token = new NiFiBearerTokenResolver().getTokenFromHeader(authenticationHeader)
 
         // Assert
         // Expect InvalidAuthenticationException

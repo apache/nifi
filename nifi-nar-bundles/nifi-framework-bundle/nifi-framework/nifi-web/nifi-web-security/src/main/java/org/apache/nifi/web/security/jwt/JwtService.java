@@ -205,9 +205,4 @@ public class JwtService {
             throw new LogoutException(errorMessage);
         }
     }
-
-    public void logOutUsingAuthHeader(String authorizationHeader) throws LogoutException {
-        String base64EncodedToken = JwtAuthenticationFilter.getTokenFromHeader(authorizationHeader);
-        logOut(base64EncodedToken);
-    }
 }
