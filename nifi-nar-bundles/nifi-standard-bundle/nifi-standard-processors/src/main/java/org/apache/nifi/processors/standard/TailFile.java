@@ -1306,12 +1306,21 @@ public class TailFile extends AbstractProcessor {
             final FileChannel channel = fis.getChannel();
             final long timestamp = fileToTail.lastModified();
 
-            try {
-                flowFile = session.write(flowFile, out -> readLines(channel, buffer, out, checksum, reReadOnNul, readFully));
-            } catch (NulCharacterEncounteredException ncee) {
-                session.remove(flowFile);
-                throw ncee;
-            }
+            final AtomicReference<NulCharacterEncounteredException> abort = new AtomicReference<>();
+
+            flowFile = session.write(flowFile, out -> {
+                try {
+                    readLines(channel, buffer, out, checksum, reReadOnNul, readFully);
+                } catch (final NulCharacterEncounteredException ncee) {
+                    abort.set(ncee);
+
+                    // Log the fact that we encountered a NUL character and yield. But we don't re-throw the Exception because
+                    // we want to continue on with the same logic of transferring non-zero flowfiles, removing 0-byte flowfiles,
+                    // and maintaining our state.
+                    getLogger().info("Encountered NUL character when tailing file {}; will yield", tailFile);
+                    context.yield();
+                }
+            });
 
             if (flowFile.getSize() == 0L) {
                 session.remove(flowFile);
@@ -1346,6 +1355,11 @@ public class TailFile extends AbstractProcessor {
 
                 tfo.setState(updatedState);
             } else {
+                final NulCharacterEncounteredException ncee = abort.get();
+                if (ncee != null) {
+                    throw ncee;
+                }
+
                 // use a timestamp of lastModified() + 1 so that we do not ingest this file again.
                 getLogger().debug("Completed tailing of file {}; will cleanup state", tailFile);
                 cleanup();
@@ -1356,7 +1370,6 @@ public class TailFile extends AbstractProcessor {
             return true;
         }
     }
-
 
     /**
      * Creates a new FlowFile that contains the entire contents of the given
