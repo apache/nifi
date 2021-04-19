@@ -138,6 +138,10 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         return nameToTest.endsWith(".war") && pathname.isFile();
     };
 
+    // property parsing util
+    private static final String REGEX_SPLIT_PROPERTY = ",\\s*";
+    protected static final String JOIN_ARRAY = ", ";
+
     private Server server;
     private NiFiProperties props;
 
@@ -1011,6 +1015,22 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         // Explicitly exclude legacy TLS protocol versions
         contextFactory.setIncludeProtocols(TlsConfiguration.getCurrentSupportedTlsProtocolVersions());
         contextFactory.setExcludeProtocols("TLS", "TLSv1", "TLSv1.1", "SSL", "SSLv2", "SSLv2Hello", "SSLv3");
+
+        // on configuration, replace default application cipher suites with those configured
+        final String includeCipherSuitesProps = props.getProperty(NiFiProperties.WEB_HTTPS_CIPHERSUITES_INCLUDE);
+        if (StringUtils.isNotEmpty(includeCipherSuitesProps)) {
+            final String[] includeCipherSuites = includeCipherSuitesProps.split(REGEX_SPLIT_PROPERTY);
+            logger.info("Setting include cipher suites from configuration; parsed property = [{}].",
+                    StringUtils.join(includeCipherSuites, JOIN_ARRAY));
+            contextFactory.setIncludeCipherSuites(includeCipherSuites);
+        }
+        final String excludeCipherSuitesProps = props.getProperty(NiFiProperties.WEB_HTTPS_CIPHERSUITES_EXCLUDE);
+        if (StringUtils.isNotEmpty(excludeCipherSuitesProps)) {
+            final String[] excludeCipherSuites = excludeCipherSuitesProps.split(REGEX_SPLIT_PROPERTY);
+            logger.info("Setting exclude cipher suites from configuration; parsed property = [{}].",
+                    StringUtils.join(excludeCipherSuites, JOIN_ARRAY));
+            contextFactory.setExcludeCipherSuites(excludeCipherSuites);
+        }
 
         // require client auth when not supporting login, Kerberos service, or anonymous access
         if (props.isClientAuthRequiredForRestApi()) {

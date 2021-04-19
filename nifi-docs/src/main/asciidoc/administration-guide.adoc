@@ -209,6 +209,28 @@ In order to facilitate the secure setup of NiFi, you can use the `tls-toolkit` c
 * <<toolkit-guide.adoc#tls_intermediate_ca,Using An Existing Intermediate Certificate Authority>>
 * <<toolkit-guide.adoc#additional_certificate_commands,Additional Certificate Commands>>
 
+[[tls_cipher_suites]]
+=== TLS Cipher Suites
+
+The Java Runtime Environment provides the ability to specify custom TLS cipher suites to be used by servers when accepting client connections.  See
+link:https://java.com/en/configure_crypto.html[here^] for more information.  To use this feature for the NiFi web service, the following NiFi properties
+may be set:
+
+[options="header,footer"]
+|==================================================================================================================================================
+| Property Name | Description
+|`nifi.web.https.ciphersuites.include` | Set of ciphers that are available to be used by incoming client connections.  Replaces system defaults if set.
+|`nifi.web.https.ciphersuites.exclude` | Set of ciphers that must not be used by incoming client connections.  Filters available ciphers if set.
+|==================================================================================================================================================
+
+Each property should take the form of a comma-separated list of common cipher names as specified
+link:https://docs.oracle.com/javase/8/docs/technotes/guides/security/StandardNames.html#ciphersuites[here^].  Regular expressions
+(for example `^.*GCM_SHA256$`) may also be specified.
+
+The semantics match the use of the following Jetty APIs:
+
+* link:https://www.eclipse.org/jetty/javadoc/jetty-9/org/eclipse/jetty/util/ssl/SslContextFactory.html#setIncludeCipherSuites(java.lang.String\...)[SslContextFactory.setIncludeCipherSuites()]
+* link:https://www.eclipse.org/jetty/javadoc/jetty-9/org/eclipse/jetty/util/ssl/SslContextFactory.html#setExcludeCipherSuites(java.lang.String\...)[SslContextFactory.setExcludeCipherSuites()]
 
 [[user_authentication]]
 == User Authentication
@@ -3494,6 +3516,14 @@ Providing three total network interfaces, including  `nifi.web.http.network.inte
 |`nifi.web.https.host`|The HTTPS host. It is blank by default.
 |`nifi.web.https.port`|The HTTPS port. It is blank by default. When configuring NiFi to run securely, this port should be configured.
 |`nifi.web.https.port.forwarding`|Same as `nifi.web.http.port.forwarding`, but with HTTPS for secure communication. It is blank by default.
+|`nifi.web.https.ciphersuites.include`|Cipher suites used to initialize the SSLContext of the Jetty HTTPS port.  If unspecified, the runtime SSLContext defaults are used.
+|`nifi.web.https.ciphersuites.exclude`|Cipher suites that may not be used by an SSL client to establish a connection to Jetty.  If unspecified, the runtime SSLContext defaults are used.
+
+
+In Chrome, the SSL cipher negotiated with Jetty may be examined in the 'Developer Tools' plugin, in the 'Security' tab.
+In Firefox, the SSL cipher negotiated with Jetty may be examined in the 'Secure Connection' widget found to the left of the URL in the browser address bar.
+
+
 |`nifi.web.https.network.interface`*|The name of the network interface to which NiFi should bind for HTTPS requests. It is blank by default. +
  +
 *NOTE*: Multiple network interfaces can be specified by using the `nifi.web.https.network.interface.` prefix with unique suffixes and separate network interface names as values. +
