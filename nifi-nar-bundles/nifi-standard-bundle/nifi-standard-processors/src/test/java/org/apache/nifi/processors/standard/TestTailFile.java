@@ -364,6 +364,28 @@ public class TestTailFile {
         runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0).assertContentEquals("e\n");
         runner.clearTransferState();
 
+        // Write out some more characters and then write NUL characters. This should result in the processor not consuming the data.
+        raf.write("\n".getBytes());
+        raf.write(0);
+        raf.write(0);
+        raf.write(0);
+        System.out.println("Wrote \\n\\0\\0\\0");
+
+        runner.run(1, false, false);
+        runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 1);
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0).assertContentEquals("f\n");
+        runner.clearTransferState();
+
+        // Truncate the NUL bytes and replace with additional data, ending with a new line. This should ingest the entire line of text.
+        raf.setLength(raf.length() - 3);
+        raf.write("g\nh".getBytes());
+        System.out.println("Truncated the NUL bytes and replaced with g\\nh");
+
+        runner.run(1, false, false);
+        runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 1);
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0).assertContentEquals("g\n");
+        runner.clearTransferState();
+
         // Ensure that no data comes in for a bit, since the last modified date on the rolled over file isn't old enough.
         for (int i=0; i < 100; i++) {
             runner.run(1, false, false);
@@ -378,7 +400,7 @@ public class TestTailFile {
 
         // Verify results
         runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 2);
-        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0).assertContentEquals("f");
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0).assertContentEquals("h");
         runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(1).assertContentEquals("new file\n");
         runner.clearTransferState();
 
