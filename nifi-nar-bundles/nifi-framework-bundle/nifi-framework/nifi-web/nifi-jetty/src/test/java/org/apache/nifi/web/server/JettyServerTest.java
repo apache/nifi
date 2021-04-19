@@ -19,17 +19,21 @@ package org.apache.nifi.web.server;
 
 import static org.apache.nifi.security.util.KeyStoreUtils.SUN_PROVIDER_NAME;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import java.lang.reflect.InvocationTargetException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.nifi.security.util.KeystoreType;
 import org.apache.nifi.util.NiFiProperties;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
+import org.junit.Assert;
 import org.junit.Test;
 
 public class JettyServerTest {
@@ -141,5 +145,65 @@ public class JettyServerTest {
 
         verify(mockSCF).setTrustStoreType(trustStoreType);
         verify(mockSCF).setTrustStoreProvider(BouncyCastleProvider.PROVIDER_NAME);
+    }
+
+    /**
+     * Verify correct processing of cipher suites with multiple elements.  Verify call to override runtime ciphers.
+     */
+    @Test
+    public void testConfigureSslIncludeExcludeCiphers() {
+        final String[] includeCipherSuites = {"TLS_AES_256_GCM_SHA384", "TLS_AES_128_GCM_SHA256"};
+        final String includeCipherSuitesProp = String.join(", ", Arrays.asList(includeCipherSuites));
+        final String[] excludeCipherSuites = {".*DHE.*", ".*ECDH.*"};
+        final String excludeCipherSuitesProp = String.join(", ", Arrays.asList(excludeCipherSuites));
+        final Map<String, String> addProps = new HashMap<>();
+        addProps.put(NiFiProperties.WEB_HTTPS_INCLUDE_CIPHERSUITES, includeCipherSuitesProp);
+        addProps.put(NiFiProperties.WEB_HTTPS_EXCLUDE_CIPHERSUITES, excludeCipherSuitesProp);
+        final NiFiProperties nifiProperties = NiFiProperties.createBasicNiFiProperties(null, addProps);
+
+        final SslContextFactory.Server mockSCF = mock(SslContextFactory.Server.class);
+        JettyServer.configureSslContextFactory(mockSCF, nifiProperties);
+        verify(mockSCF, times(1)).getIncludeCipherSuites();
+        verify(mockSCF, times(1)).getExcludeCipherSuites();
+        verify(mockSCF, times(1)).setIncludeCipherSuites(includeCipherSuites);
+        verify(mockSCF, times(1)).setExcludeCipherSuites(excludeCipherSuites);
+    }
+
+    /**
+     * Verify skip cipher configuration when NiFiProperties are not specified.
+     */
+    @Test
+    public void testDoNotConfigureSslIncludeExcludeCiphers() {
+        final NiFiProperties nifiProperties = NiFiProperties.createBasicNiFiProperties(null);
+        final SslContextFactory.Server mockSCF = mock(SslContextFactory.Server.class);
+        JettyServer.configureSslContextFactory(mockSCF, nifiProperties);
+        verify(mockSCF, times(0)).getIncludeCipherSuites();
+        verify(mockSCF, times(0)).getExcludeCipherSuites();
+        verify(mockSCF, times(0)).setIncludeCipherSuites(any());
+        verify(mockSCF, times(0)).setExcludeCipherSuites(any());
+    }
+
+    /**
+     * Verify strategy for translating between String representation (in NiFiProperties)
+     * and String[] representation (hand off to JCE API).
+     */
+    @Test
+    public void testTransformStringToStringArray() {
+        final String[] strings = {
+                "ABC",
+                "ABC, DEF",
+                "ABC, DEF, GHI",  // single space is specified below in `String.join()` delimiter
+        };
+        final String[][] stringArrays = {
+                { "ABC" },
+                { "ABC", "DEF" },
+                { "ABC", "DEF", "GHI" },
+        };
+        for (int i = 0; (i < strings.length); ++i) {
+            final String string = strings[i];
+            final String[] stringArray = stringArrays[i];
+            Assert.assertEquals(string, String.join(", ", Arrays.asList(stringArray)));
+            Assert.assertArrayEquals(stringArray, string.split(",\\s*"));
+        }
     }
 }
