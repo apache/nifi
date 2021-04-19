@@ -1012,6 +1012,30 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         contextFactory.setIncludeProtocols(TlsConfiguration.getCurrentSupportedTlsProtocolVersions());
         contextFactory.setExcludeProtocols("TLS", "TLSv1", "TLSv1.1", "SSL", "SSLv2", "SSLv2Hello", "SSLv3");
 
+        // on configuration, replace default application cipher suites with those configured
+        final String includeCipherSuitesProps = props.getProperty(NiFiProperties.WEB_HTTPS_INCLUDE_CIPHERSUITES);
+        if (!StringUtils.isEmpty(includeCipherSuitesProps)) {
+            logger.info(String.format("NiFiProperties.%s = %s",
+                    NiFiProperties.WEB_HTTPS_INCLUDE_CIPHERSUITES, includeCipherSuitesProps));
+            final String[] includeCipherSuitesRuntime = contextFactory.getIncludeCipherSuites();
+            final String[] includeCipherSuites = includeCipherSuitesProps.split(",\\s*");
+            logger.info(String.format("Replacing include cipher suites with configuration; FROM [%s] TO [%s].",
+                    ((includeCipherSuitesRuntime == null) ? null : Arrays.asList(includeCipherSuitesRuntime)),
+                    String.join(", ", Arrays.asList(includeCipherSuites))));
+            contextFactory.setIncludeCipherSuites(includeCipherSuites);
+        }
+        final String excludeCipherSuitesProps = props.getProperty(NiFiProperties.WEB_HTTPS_EXCLUDE_CIPHERSUITES);
+        if (!StringUtils.isEmpty(excludeCipherSuitesProps)) {
+            logger.info(String.format("NiFiProperties.%s = %s",
+                    NiFiProperties.WEB_HTTPS_EXCLUDE_CIPHERSUITES, excludeCipherSuitesProps));
+            final String[] excludeCipherSuitesRuntime = contextFactory.getExcludeCipherSuites();
+            final String[] excludeCipherSuites = excludeCipherSuitesProps.split(",\\s*");
+            logger.info(String.format("Replacing exclude cipher suites with configuration; FROM [%s] TO [%s].",
+                    ((excludeCipherSuitesRuntime == null) ? null : Arrays.asList(excludeCipherSuitesRuntime)),
+                    String.join(", ", Arrays.asList(excludeCipherSuites))));
+            contextFactory.setExcludeCipherSuites(excludeCipherSuites);
+        }
+
         // require client auth when not supporting login, Kerberos service, or anonymous access
         if (props.isClientAuthRequiredForRestApi()) {
             contextFactory.setNeedClientAuth(true);
