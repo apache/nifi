@@ -310,5 +310,10 @@ public class ParquetUtils {
             conf.setBoolean(AvroWriteSupport.WRITE_OLD_LIST_STRUCTURE,
                     parquetConfig.getAvroWriteOldListStructure().booleanValue());
         }
+        conf.setBoolean(AvroReadSupport.READ_INT96_AS_FIXED, true);
+        if (parquetConfig.getInt96Fields() != null) {
+            conf.setStrings("parquet.avro.writeFixedAsInt96",
+                parquetConfig.getInt96Fields());
+        }
     }
 }

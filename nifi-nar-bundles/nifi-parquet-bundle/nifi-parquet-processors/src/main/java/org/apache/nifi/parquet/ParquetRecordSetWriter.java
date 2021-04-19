@@ -59,7 +59,16 @@ public class ParquetRecordSetWriter extends SchemaRegistryRecordSetWriter implem
             .required(true)
             .build();
 
+    public static final PropertyDescriptor INT96_FIELDS = new PropertyDescriptor.Builder()
+            .name("int96-fields")
+            .displayName("INT96 Fields")
+            .description("List of fields with full path that should be treated as INT96 timestamps.")
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .required(false)
+            .build();
+
     private LoadingCache<String, Schema> compiledAvroSchemaCache;
+    private String int96Fields;
 
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) {
@@ -67,12 +76,20 @@ public class ParquetRecordSetWriter extends SchemaRegistryRecordSetWriter implem
         compiledAvroSchemaCache = Caffeine.newBuilder()
                 .maximumSize(cacheSize)
                 .build(schemaText -> new Schema.Parser().parse(schemaText));
+
+        if (context.getProperty(INT96_FIELDS).isSet()) {
+            int96Fields = context.getProperty(INT96_FIELDS).getValue();
+        } else {
+            int96Fields = null;
+        }
     }
 
     @Override
     public RecordSetWriter createWriter(final ComponentLog logger, final RecordSchema recordSchema,
                                         final OutputStream out, final Map<String, String> variables) throws IOException {
         final ParquetConfig parquetConfig = createParquetConfig(getConfigurationContext(), variables);
+        parquetConfig.setInt96Fields(int96Fields);
+
         try {
             final Schema avroSchema;
             try {
@@ -111,6 +128,7 @@ public class ParquetRecordSetWriter extends SchemaRegistryRecordSetWriter implem
         properties.add(ParquetUtils.WRITER_VERSION);
         properties.add(ParquetUtils.AVRO_WRITE_OLD_LIST_STRUCTURE);
         properties.add(ParquetUtils.AVRO_ADD_LIST_ELEMENT_RECORDS);
+        properties.add(INT96_FIELDS);
         return properties;
     }
 }

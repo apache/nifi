@@ -741,7 +741,17 @@ public class AvroTypeUtil {
                     return ByteBuffer.wrap(((String) rawValue).getBytes(charset));
                 }
                 if (rawValue instanceof Object[]) {
-                    return AvroTypeUtil.convertByteArray((Object[]) rawValue);
+                    if (fieldSchema.getType() == Type.FIXED && "INT96".equals(fieldSchema.getName())) {
+                        Object[] rawObjects = (Object[]) rawValue;
+                        byte[] rawBytes = new byte[rawObjects.length];
+                        for (int elementIndex = 0; elementIndex < rawObjects.length; elementIndex++) {
+                            rawBytes[elementIndex] = (Byte) rawObjects[elementIndex];
+                        }
+
+                        return new GenericData.Fixed(fieldSchema, rawBytes);
+                    } else {
+                        return AvroTypeUtil.convertByteArray((Object[]) rawValue);
+                    }
                 }
                 try {
                     if (rawValue instanceof Blob) {

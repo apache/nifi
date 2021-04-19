@@ -244,8 +244,8 @@ public class TestConvertAvroToParquet {
         assertEquals(firstRecord.getGroup("myarray",0).getGroup("list",1).getInteger("element", 0), 2);
 
         // Map
-        assertEquals(firstRecord.getGroup("mymap",0).getGroup("map",0).getInteger("value", 0), 1);
-        assertEquals(firstRecord.getGroup("mymap",0).getGroup("map",1).getInteger("value", 0), 2);
+        assertEquals(firstRecord.getGroup("mymap",0).getGroup("key_value",0).getInteger("value", 0), 1);
+        assertEquals(firstRecord.getGroup("mymap",0).getGroup("key_value",1).getInteger("value", 0), 2);
 
         // Fixed
         assertEquals(firstRecord.getString("myfixed",0), "A");
