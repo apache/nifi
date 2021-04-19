@@ -1,0 +1,121 @@
+<!--
+Licensed to the Apache Software Foundation (ASF) under one or more
+contributor license agreements.  See the NOTICE file distributed with
+this work for additional information regarding copyright ownership.
+The ASF licenses this file to You under the Apache License, Version 2.0
+(the "License"); you may not use this file except in compliance with
+the License.  You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+<div id="nifi-registry-import-versioned-flow-dialog"
+     xmlns:width="http://www.w3.org/1999/xhtml">
+    <div class="pad-bottom-md" fxLayout="row" fxLayoutAlign="space-between center">
+        <mat-card-title>
+            Import New Version
+        </mat-card-title>
+        <button mat-icon-button (click)="cancel()">
+            <mat-icon color="primary">close</mat-icon>
+        </button>
+    </div>
+    <div id="flow-version-container">
+        <div class="fill-available-width">
+            <div class="pad-bottom-sm label-name">
+                <label>Flow Name</label>
+            </div>
+            <div id="flow-version-name" fxLayout="row" fxLayoutAlign="space-between center" class="push-bottom-md">
+                <div id="version-flow-name-input" class="fill-available-width">
+                    <input
+                        id="version-flow-name-input-field"
+                        class="pad-bottom-md fill-available-width"
+                        matInput
+                        [disabled]="true"
+                        type="text"
+                        value="{{droplet.name}}"/>
+                </div>
+                <div class="version-count">
+                    <span>v.{{droplet.snapshotMetadata.length + 1}}</span>
+                </div>
+            </div>
+        </div>
+        <div id="versioned-flow-file-upload-message-container" fxLayout="row" fxLayoutAlign="space-between center">
+            <div class="pad-bottom-xs label-name">
+                <label>Flow Definition</label>
+            </div>
+            <ng-container *ngIf="fileToUpload != null && !hoverValidity || hoverValidity === 'valid'">
+                <span class="file-upload-message">
+                    Looks good!
+                    <i class="fa fa-check-circle-o" aria-hidden="true"
+                       style="color: #1eb475;"></i>
+                </span>
+            </ng-container>
+            <ng-container *ngIf="hoverValidity === 'invalid'">
+                <span class="file-upload-message">
+                    File format is not valid
+                    <i class="fa fa-times-circle" aria-hidden="true"
+                       style="color: #ef6162;"></i></span>
+            </ng-container>
+        </div>
+        <div id="flow-version-definition"
+             class="fill-available-width"
+             fxLayout="row"
+             fxLayoutAlign="space-between center"
+             (click)="selectFile()"
+             (dragenter)="fileDragHandler($event, extensions)"
+             (dragover)="fileDragHandler($event, extensions)"
+             (dragend)="fileDragEndHandler()"
+             (dragleave)="fileDragEndHandler()"
+             (drop)="fileDropHandler($event)">
+            <mat-form-field floatLabel="never" flex>
+                <input matInput
+                       id="flow-version-definition-input"
+                       type="text"
+                       [value]="fileName"
+                       placeholder="Drop file or select..."
+                       autocomplete="off"
+                       [ngClass]="{'file-hover-valid': (hoverValidity === 'valid'),
+                       'file-hover-error': (hoverValidity === 'invalid'),
+                       'file-selected': (fileToUpload != null), 'multiple': multiple}"/>
+                <div id="select-flow-version-file-button" title="Browse">
+                    <i class="fa fa-upload" aria-hidden="true"></i>
+                    <span>Select file</span>
+                </div>
+                <div id="versioned-flow-file-upload-form-container">
+                    <form id="versioned-flow-file-upload-form" enctype="multipart/form-data" method="post">
+                        <input id="upload-versioned-flow-file-field"
+                               type="file"
+                               name="file"
+                               [accept]="extensions"
+                               (change)="handleFileInput($event.target.files)"/>
+                    </form>
+                </div>
+            </mat-form-field>
+        </div>
+        <div class="pad-bottom-sm">
+            <label class="pad-bottom-sm label-name">Version Comments</label>
+        </div>
+        <div id="flow-version-comments" fxLayout="row" class="fill-available-width">
+            <textarea [(ngModel)]="comments"></textarea>
+        </div>
+    </div>
+</div>
+<div fxLayout="row">
+    <span fxFlex></span>
+    <button (click)="cancel()" color="fds-regular" mat-raised-button
+            i18n="Cancel new flow version import|A button for cancelling the new flow version to import in the registry.">
+        Cancel
+    </button>
+    <button [disabled]="!fileToUpload" class="push-left-sm" data-automation-id="import-new-versioned-flow-button"
+            (click)="importNewVersion()"
+            color="fds-primary" mat-raised-button
+            i18n="Cancel new flow version import|A button for cancelling the new flow version to import in the registry.">
+        Import
+    </button>
+</div>
