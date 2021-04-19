@@ -96,6 +96,7 @@ public class TestListenHTTP {
     private static final int SOCKET_CONNECT_TIMEOUT = 100;
     private static final long SERVER_START_TIMEOUT = 1200000;
     private static final Duration CLIENT_CALL_TIMEOUT = Duration.ofSeconds(10);
+    public static final String LOCALHOST_DN = "CN=localhost";
 
     private static TlsConfiguration tlsConfiguration;
     private static TlsConfiguration serverConfiguration;
@@ -299,6 +300,44 @@ public class TestListenHTTP {
     }
 
     @Test
+    public void testSecureTwoWaySslPOSTRequestsReceivedWithUnauthorizedSubjectDn() throws Exception {
+        configureProcessorSslContextService(ListenHTTP.ClientAuthentication.REQUIRED, serverConfiguration);
+
+        runner.setProperty(ListenHTTP.PORT, Integer.toString(availablePort));
+        runner.setProperty(ListenHTTP.AUTHORIZED_DN_PATTERN, "CN=other");
+        runner.setProperty(ListenHTTP.BASE_PATH, HTTP_BASE_PATH);
+        runner.assertValid();
+
+        testPOSTRequestsReceived(HttpServletResponse.SC_FORBIDDEN, true, true);
+    }
+
+    @Test
+    public void testSecureTwoWaySslPOSTRequestsReceivedWithAuthorizedIssuerDn() throws Exception {
+        configureProcessorSslContextService(ListenHTTP.ClientAuthentication.REQUIRED, serverConfiguration);
+
+        runner.setProperty(ListenHTTP.PORT, Integer.toString(availablePort));
+        runner.setProperty(ListenHTTP.AUTHORIZED_DN_PATTERN, LOCALHOST_DN);
+        runner.setProperty(ListenHTTP.AUTHORIZED_ISSUER_DN_PATTERN, LOCALHOST_DN);
+        runner.setProperty(ListenHTTP.BASE_PATH, HTTP_BASE_PATH);
+        runner.assertValid();
+
+        testPOSTRequestsReceived(HttpServletResponse.SC_OK, true, true);
+    }
+
+    @Test
+    public void testSecureTwoWaySslPOSTRequestsReceivedWithUnauthorizedIssuerDn() throws Exception {
+        configureProcessorSslContextService(ListenHTTP.ClientAuthentication.REQUIRED, serverConfiguration);
+
+        runner.setProperty(ListenHTTP.PORT, Integer.toString(availablePort));
+        runner.setProperty(ListenHTTP.AUTHORIZED_DN_PATTERN, LOCALHOST_DN); // Although subject is authorized, issuer is not
+        runner.setProperty(ListenHTTP.AUTHORIZED_ISSUER_DN_PATTERN, "CN=other");
+        runner.setProperty(ListenHTTP.BASE_PATH, HTTP_BASE_PATH);
+        runner.assertValid();
+
+        testPOSTRequestsReceived(HttpServletResponse.SC_FORBIDDEN, true, true);
+    }
+
+    @Test
     public void testSecureTwoWaySslPOSTRequestsReturnCodeReceivedWithoutEL() throws Exception {
         configureProcessorSslContextService(ListenHTTP.ClientAuthentication.REQUIRED, serverConfiguration);
 
@@ -499,11 +538,19 @@ public class TestListenHTTP {
 
         List<MockFlowFile> mockFlowFiles = runner.getFlowFilesForRelationship(RELATIONSHIP_SUCCESS);
 
-        runner.assertTransferCount(RELATIONSHIP_SUCCESS, 4);
-        mockFlowFiles.get(0).assertContentEquals("payload 1");
-        mockFlowFiles.get(1).assertContentEquals("");
-        mockFlowFiles.get(2).assertContentEquals("");
-        mockFlowFiles.get(3).assertContentEquals("payload 2");
+        if (returnCode < 400) { // Only if we actually expect success
+            runner.assertTransferCount(RELATIONSHIP_SUCCESS, 4);
+
+            mockFlowFiles.get(0).assertContentEquals("payload 1");
+            mockFlowFiles.get(1).assertContentEquals("");
+            mockFlowFiles.get(2).assertContentEquals("");
+            mockFlowFiles.get(3).assertContentEquals("payload 2");
+
+            if (twoWaySsl) {
+                mockFlowFiles.get(0).assertAttributeEquals("restlistener.remote.user.dn", LOCALHOST_DN);
+                mockFlowFiles.get(0).assertAttributeEquals("restlistener.remote.issuer.dn", LOCALHOST_DN);
+            }
+        }
     }
 
     private void startWebServer() {
