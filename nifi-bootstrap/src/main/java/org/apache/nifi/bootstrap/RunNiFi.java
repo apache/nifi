@@ -111,6 +111,7 @@ public class RunNiFi {
     public static final String PID_KEY = "pid";
 
     public static final int STARTUP_WAIT_SECONDS = 60;
+    public static final long GRACEFUL_SHUTDOWN_RETRY_MILLIS = 2000L;
 
     public static final String SHUTDOWN_CMD = "SHUTDOWN";
     public static final String DECOMMISSION_CMD = "DECOMMISSION";
@@ -979,7 +980,7 @@ public class RunNiFi {
                 break;
             } else {
                 try {
-                    Thread.sleep(2000L);
+                    Thread.sleep(GRACEFUL_SHUTDOWN_RETRY_MILLIS);
                 } catch (final InterruptedException ie) {
                 }
             }

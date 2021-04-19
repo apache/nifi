@@ -210,15 +210,16 @@ public class BootstrapListener {
                                         try {
                                             decommission();
                                             sendAnswer(socket.getOutputStream(), "DECOMMISSION");
+                                            nifi.shutdownHook(false);
                                         } catch (final Exception e) {
                                             final OutputStream out = socket.getOutputStream();
 
                                             out.write(("Failed to decommission node: " + e + "; see app-log for additional details").getBytes(StandardCharsets.UTF_8));
                                             out.flush();
+                                        } finally {
+                                            socket.close();
                                         }
 
-                                        socket.close();
-                                        nifi.shutdownHook(false);
                                         break;
                                     case DIAGNOSTICS:
                                         logger.info("Received DIAGNOSTICS request from Bootstrap");
