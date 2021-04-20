@@ -191,6 +191,8 @@ public class PutBigQueryStreaming extends AbstractBigQueryProcessor {
                     lmapr.add(convertMapRecord(((MapRecord) mapr).toMap()));
                 }
                 result.put(key, lmapr);
+            } else if (obj instanceof Timestamp || obj instanceof Time || obj instanceof Date) {
+                result.put(key, obj.toString());
             } else {
                 result.put(key, obj);
             }
