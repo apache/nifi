@@ -189,35 +189,12 @@ public class TestInferJsonSchemaAccessStrategy {
         assertSame(RecordFieldType.STRING, schema.getDataType("nullValue").get().getFieldType());
     }
 
-    @Test
-    /**
-     * @see https://issues.apache.org/jira/browse/NIFI-8437
-     */
-    public void testInferLargeRecordWorks() throws IOException {
-        final byte[] ch = new byte[50_000_015];
-        final String prefix = "[{\"test\":\"";
-        final String suffix = "\"}]";
-
-        Arrays.fill(ch, (byte) 'x');
-        System.arraycopy(prefix.getBytes(), 0, ch, 0, prefix.length());
-        System.arraycopy(suffix.getBytes(), 0, ch, ch.length - suffix.length(), suffix.length());
-
-        RecordSchema schema = inferSchema(new ByteArrayInputStream(ch));
-        schema.getFieldCount();
-        assertEquals(1, schema.getFieldCount());
-        assertSame(RecordFieldType.STRING, schema.getDataType("test").get().getFieldType());
-    }
-
     private RecordSchema inferSchema(final File file) throws IOException {
-        try (final InputStream in = new FileInputStream(file)) {
-            return inferSchema(in);
-        }
-    }
+        try (final InputStream in = new FileInputStream(file);
+             final InputStream bufferedIn = new BufferedInputStream(in)) {
 
-    private RecordSchema inferSchema(InputStream in) throws IOException {
-        try (final InputStream bufferedIn = new BufferedInputStream(in)) {
-            final InferSchemaAccessStrategy<?> accessStrategy = new InferSchemaAccessStrategy<>((var, content) -> new JsonRecordSource(content),
-                    timestampInference, Mockito.mock(ComponentLog.class));
+            final InferSchemaAccessStrategy<?> accessStrategy = new InferSchemaAccessStrategy<>((var,content) -> new JsonRecordSource(content),
+                timestampInference, Mockito.mock(ComponentLog.class));
 
             return accessStrategy.getSchema(null, bufferedIn, null);
         }
