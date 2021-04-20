@@ -263,6 +263,7 @@ jobs:
 
   windows-build:
 
+    timeout-minutes: 90
     runs-on: windows-latest
     name: Windows - JDK 1.8
 
