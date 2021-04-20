@@ -18,6 +18,9 @@
 package org.apache.nifi.processors.gcp.bigquery;
 
 import java.io.InputStream;
+import java.sql.Date;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
