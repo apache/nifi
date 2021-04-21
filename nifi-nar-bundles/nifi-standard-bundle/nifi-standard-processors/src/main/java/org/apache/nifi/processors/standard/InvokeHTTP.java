@@ -117,8 +117,8 @@ import static org.apache.commons.lang3.StringUtils.trimToEmpty;
         @WritesAttribute(attribute = InvokeHTTP.STATUS_MESSAGE, description = "The status message that is returned"),
         @WritesAttribute(attribute = InvokeHTTP.RESPONSE_BODY, description = "In the instance where the status code received is not a success (2xx) "
                 + "then the response body will be put to the 'invokehttp.response.body' attribute of the request FlowFile."),
-        @WritesAttribute(attribute = InvokeHTTP.REQUEST_URL, description = "The request URL"),
-        @WritesAttribute(attribute = InvokeHTTP.RESPONSE_URL, description = "If redirects are allowed to be followed, the URL that was ultimately requested"),
+        @WritesAttribute(attribute = InvokeHTTP.REQUEST_URL, description = "The original request URL"),
+        @WritesAttribute(attribute = InvokeHTTP.RESPONSE_URL, description = "The URL that was ultimately requested after any redirects were followed"),
         @WritesAttribute(attribute = InvokeHTTP.TRANSACTION_ID, description = "The transaction ID that is returned after reading the response"),
         @WritesAttribute(attribute = InvokeHTTP.REMOTE_DN, description = "The DN of the remote server"),
         @WritesAttribute(attribute = InvokeHTTP.EXCEPTION_CLASS, description = "The Java exception class raised when the processor fails"),
