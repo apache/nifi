@@ -33,7 +33,6 @@ import org.apache.nifi.security.util.KeystoreType;
 import org.apache.nifi.util.NiFiProperties;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
-import org.junit.Assert;
 import org.junit.Test;
 
 public class JettyServerTest {
@@ -157,8 +156,8 @@ public class JettyServerTest {
         final String[] excludeCipherSuites = {".*DHE.*", ".*ECDH.*"};
         final String excludeCipherSuitesProp = String.join(", ", Arrays.asList(excludeCipherSuites));
         final Map<String, String> addProps = new HashMap<>();
-        addProps.put(NiFiProperties.WEB_HTTPS_INCLUDE_CIPHERSUITES, includeCipherSuitesProp);
-        addProps.put(NiFiProperties.WEB_HTTPS_EXCLUDE_CIPHERSUITES, excludeCipherSuitesProp);
+        addProps.put(NiFiProperties.WEB_HTTPS_CIPHERSUITES_INCLUDE, includeCipherSuitesProp);
+        addProps.put(NiFiProperties.WEB_HTTPS_CIPHERSUITES_EXCLUDE, excludeCipherSuitesProp);
         final NiFiProperties nifiProperties = NiFiProperties.createBasicNiFiProperties(null, addProps);
 
         final SslContextFactory.Server mockSCF = mock(SslContextFactory.Server.class);
@@ -181,29 +180,5 @@ public class JettyServerTest {
         verify(mockSCF, times(0)).getExcludeCipherSuites();
         verify(mockSCF, times(0)).setIncludeCipherSuites(any());
         verify(mockSCF, times(0)).setExcludeCipherSuites(any());
-    }
-
-    /**
-     * Verify strategy for translating between String representation (in NiFiProperties)
-     * and String[] representation (hand off to JCE API).
-     */
-    @Test
-    public void testTransformStringToStringArray() {
-        final String[] strings = {
-                "ABC",
-                "ABC, DEF",
-                "ABC, DEF, GHI",  // single space is specified below in `String.join()` delimiter
-        };
-        final String[][] stringArrays = {
-                { "ABC" },
-                { "ABC", "DEF" },
-                { "ABC", "DEF", "GHI" },
-        };
-        for (int i = 0; (i < strings.length); ++i) {
-            final String string = strings[i];
-            final String[] stringArray = stringArrays[i];
-            Assert.assertEquals(string, String.join(", ", Arrays.asList(stringArray)));
-            Assert.assertArrayEquals(stringArray, string.split(",\\s*"));
-        }
     }
 }

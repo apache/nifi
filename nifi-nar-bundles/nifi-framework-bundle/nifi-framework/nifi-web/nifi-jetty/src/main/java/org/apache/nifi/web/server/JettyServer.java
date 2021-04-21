@@ -138,6 +138,10 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         return nameToTest.endsWith(".war") && pathname.isFile();
     };
 
+    // property parsing util
+    public static final String REGEX_SPLIT_PROPERTY = ",\\s*";
+    public static final String JOIN_ARRAY = ", ";
+
     private Server server;
     private NiFiProperties props;
 
@@ -1013,26 +1017,24 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         contextFactory.setExcludeProtocols("TLS", "TLSv1", "TLSv1.1", "SSL", "SSLv2", "SSLv2Hello", "SSLv3");
 
         // on configuration, replace default application cipher suites with those configured
-        final String includeCipherSuitesProps = props.getProperty(NiFiProperties.WEB_HTTPS_INCLUDE_CIPHERSUITES);
-        if (!StringUtils.isEmpty(includeCipherSuitesProps)) {
-            logger.info(String.format("NiFiProperties.%s = %s",
-                    NiFiProperties.WEB_HTTPS_INCLUDE_CIPHERSUITES, includeCipherSuitesProps));
+        final String includeCipherSuitesProps = props.getProperty(NiFiProperties.WEB_HTTPS_CIPHERSUITES_INCLUDE);
+        if (StringUtils.isNotEmpty(includeCipherSuitesProps)) {
             final String[] includeCipherSuitesRuntime = contextFactory.getIncludeCipherSuites();
-            final String[] includeCipherSuites = includeCipherSuitesProps.split(",\\s*");
-            logger.info(String.format("Replacing include cipher suites with configuration; FROM [%s] TO [%s].",
-                    ((includeCipherSuitesRuntime == null) ? null : Arrays.asList(includeCipherSuitesRuntime)),
-                    String.join(", ", Arrays.asList(includeCipherSuites))));
+            final String[] includeCipherSuites = includeCipherSuitesProps.split(REGEX_SPLIT_PROPERTY);
+            logger.info("Replacing include cipher suites with configuration; runtime = {}, raw property = {}, parsed property = {}.",
+                    ((includeCipherSuitesRuntime == null) ? null : StringUtils.join(includeCipherSuitesRuntime, JOIN_ARRAY)),
+                    includeCipherSuitesProps,
+                    StringUtils.join(includeCipherSuites, JOIN_ARRAY));
             contextFactory.setIncludeCipherSuites(includeCipherSuites);
         }
-        final String excludeCipherSuitesProps = props.getProperty(NiFiProperties.WEB_HTTPS_EXCLUDE_CIPHERSUITES);
-        if (!StringUtils.isEmpty(excludeCipherSuitesProps)) {
-            logger.info(String.format("NiFiProperties.%s = %s",
-                    NiFiProperties.WEB_HTTPS_EXCLUDE_CIPHERSUITES, excludeCipherSuitesProps));
+        final String excludeCipherSuitesProps = props.getProperty(NiFiProperties.WEB_HTTPS_CIPHERSUITES_EXCLUDE);
+        if (StringUtils.isNotEmpty(excludeCipherSuitesProps)) {
             final String[] excludeCipherSuitesRuntime = contextFactory.getExcludeCipherSuites();
-            final String[] excludeCipherSuites = excludeCipherSuitesProps.split(",\\s*");
-            logger.info(String.format("Replacing exclude cipher suites with configuration; FROM [%s] TO [%s].",
-                    ((excludeCipherSuitesRuntime == null) ? null : Arrays.asList(excludeCipherSuitesRuntime)),
-                    String.join(", ", Arrays.asList(excludeCipherSuites))));
+            final String[] excludeCipherSuites = excludeCipherSuitesProps.split(REGEX_SPLIT_PROPERTY);
+            logger.info("Replacing exclude cipher suites with configuration; runtime = {}, raw property = {}, parsed property = {}.",
+                    ((excludeCipherSuitesRuntime == null) ? null : StringUtils.join(excludeCipherSuitesRuntime, JOIN_ARRAY)),
+                    excludeCipherSuitesProps,
+                    StringUtils.join(excludeCipherSuites, JOIN_ARRAY));
             contextFactory.setExcludeCipherSuites(excludeCipherSuites);
         }
 

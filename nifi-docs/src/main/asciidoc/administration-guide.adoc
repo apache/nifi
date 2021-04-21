@@ -219,8 +219,8 @@ may be set:
 [options="header,footer"]
 |==================================================================================================================================================
 | Property Name | Description
-|`nifi.web.https.includeciphersuites` | Additional ciphers that may be used by incoming client connections.
-|`nifi.web.https.excludeciphersuites` | Ciphers that must not be used by incoming client connections.
+|`nifi.web.https.ciphersuites.include` | Set of ciphers that are available to be used by incoming client connections.  Replaces system defaults if set.
+|`nifi.web.https.ciphersuites.exclude` | Set of ciphers that must not be used by incoming client connections.  Filters available ciphers if set.
 |==================================================================================================================================================
 
 Each property should take the form of a comma-separated list of common cipher names as specified
