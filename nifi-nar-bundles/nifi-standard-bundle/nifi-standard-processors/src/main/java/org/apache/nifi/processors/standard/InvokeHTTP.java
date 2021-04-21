@@ -117,7 +117,8 @@ import static org.apache.commons.lang3.StringUtils.trimToEmpty;
         @WritesAttribute(attribute = InvokeHTTP.STATUS_MESSAGE, description = "The status message that is returned"),
         @WritesAttribute(attribute = InvokeHTTP.RESPONSE_BODY, description = "In the instance where the status code received is not a success (2xx) "
                 + "then the response body will be put to the 'invokehttp.response.body' attribute of the request FlowFile."),
-        @WritesAttribute(attribute = InvokeHTTP.REQUEST_URL, description = "The request URL"),
+        @WritesAttribute(attribute = InvokeHTTP.REQUEST_URL, description = "The original request URL"),
+        @WritesAttribute(attribute = InvokeHTTP.RESPONSE_URL, description = "The URL that was ultimately requested after any redirects were followed"),
         @WritesAttribute(attribute = InvokeHTTP.TRANSACTION_ID, description = "The transaction ID that is returned after reading the response"),
         @WritesAttribute(attribute = InvokeHTTP.REMOTE_DN, description = "The DN of the remote server"),
         @WritesAttribute(attribute = InvokeHTTP.EXCEPTION_CLASS, description = "The Java exception class raised when the processor fails"),
@@ -140,6 +141,7 @@ public class InvokeHTTP extends AbstractProcessor {
     public final static String STATUS_MESSAGE = "invokehttp.status.message";
     public final static String RESPONSE_BODY = "invokehttp.response.body";
     public final static String REQUEST_URL = "invokehttp.request.url";
+    public final static String RESPONSE_URL = "invokehttp.response.url";
     public final static String TRANSACTION_ID = "invokehttp.tx.id";
     public final static String REMOTE_DN = "invokehttp.remote.dn";
     public final static String EXCEPTION_CLASS = "invokehttp.java.exception.class";
@@ -154,7 +156,7 @@ public class InvokeHTTP extends AbstractProcessor {
     // This set includes our strings defined above as well as some standard flowfile
     // attributes.
     public static final Set<String> IGNORED_ATTRIBUTES = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
-            STATUS_CODE, STATUS_MESSAGE, RESPONSE_BODY, REQUEST_URL, TRANSACTION_ID, REMOTE_DN,
+            STATUS_CODE, STATUS_MESSAGE, RESPONSE_BODY, REQUEST_URL, RESPONSE_URL, TRANSACTION_ID, REMOTE_DN,
             EXCEPTION_CLASS, EXCEPTION_MESSAGE,
             "uuid", "filename", "path")));
 
@@ -856,6 +858,7 @@ public class InvokeHTTP extends AbstractProcessor {
                 statusAttributes.put(STATUS_CODE, String.valueOf(statusCode));
                 statusAttributes.put(STATUS_MESSAGE, statusMessage);
                 statusAttributes.put(REQUEST_URL, url.toExternalForm());
+                statusAttributes.put(RESPONSE_URL, responseHttp.request().url().toString());
                 statusAttributes.put(TRANSACTION_ID, txId.toString());
 
                 if (requestFlowFile != null) {
