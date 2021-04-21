@@ -858,10 +858,8 @@ public class InvokeHTTP extends AbstractProcessor {
                 statusAttributes.put(STATUS_CODE, String.valueOf(statusCode));
                 statusAttributes.put(STATUS_MESSAGE, statusMessage);
                 statusAttributes.put(REQUEST_URL, url.toExternalForm());
+                statusAttributes.put(RESPONSE_URL, responseHttp.request().url().toString());
                 statusAttributes.put(TRANSACTION_ID, txId.toString());
-                if(context.getProperty(PROP_FOLLOW_REDIRECTS).asBoolean()) {
-                    statusAttributes.put(RESPONSE_URL, responseHttp.request().url().toString());
-                }
 
                 if (requestFlowFile != null) {
                     requestFlowFile = session.putAllAttributes(requestFlowFile, statusAttributes);
