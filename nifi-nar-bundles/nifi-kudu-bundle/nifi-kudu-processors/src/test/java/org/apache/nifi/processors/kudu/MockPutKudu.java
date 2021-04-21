@@ -72,8 +72,8 @@ public class MockPutKudu extends PutKudu {
 
     @Override
     protected Operation createKuduOperation(OperationType operationType, Record record,
-                                            List<String> fieldNames, Boolean ignoreNull,
-                                            Boolean lowercaseFields, KuduTable kuduTable) {
+                                            List<String> fieldNames, boolean ignoreNull,
+                                            boolean lowercaseFields, KuduTable kuduTable) {
         Operation operation = opQueue.poll();
         if (operation == null) {
             switch (operationType) {
