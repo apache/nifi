@@ -19,6 +19,7 @@ package org.apache.nifi.security.util;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.security.KeyPair;
@@ -28,6 +29,8 @@ import java.security.NoSuchAlgorithmException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.util.UUID;
+
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -36,113 +39,87 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 public class KeyStoreUtilsTest {
-    public static final String SIGNING_ALGORITHM = "SHA256withRSA";
-    public static final int DURATION_DAYS = 365;
-    public static final char[] BAD_TEST_PASSWORD_DONT_USE_THIS = "changek".toCharArray();
-    public static final char[] BAD_KEY_STORE_TEST_PASSWORD_DONT_USE_THIS = "changes".toCharArray();
-    public static final String ALIAS = "alias";
-
-    private static KeyPair caCertKeyPair;
-    private static X509Certificate caCertificate;
-
-    private static KeyPair issuedCertificateKeyPair;
-    private static X509Certificate issuedCertificate;
+    private static final String SIGNING_ALGORITHM = "SHA256withRSA";
+    private static final int DURATION_DAYS = 365;
+    private static final char[] KEY_PASSWORD = UUID.randomUUID().toString().toCharArray();
+    private static final char[] STORE_PASSWORD = UUID.randomUUID().toString().toCharArray();
+    private static final String ALIAS = "alias";
+    private static final String KEY_ALGORITHM = "RSA";
+    private static final String SUBJECT_DN = "CN=localhost";
+    private static KeyPair keyPair;
+    private static X509Certificate certificate;
 
     @BeforeClass
     public static void generateKeysAndCertificates() throws NoSuchAlgorithmException, CertificateException {
-        caCertKeyPair = KeyPairGenerator.getInstance("RSA").generateKeyPair();
-        issuedCertificateKeyPair = KeyPairGenerator.getInstance("RSA").generateKeyPair();
-
-        caCertificate = CertificateUtils.generateSelfSignedX509Certificate(caCertKeyPair, "CN=testca,O=Apache,OU=NiFi", SIGNING_ALGORITHM, DURATION_DAYS);
-        issuedCertificate = CertificateUtils.generateIssuedCertificate("CN=testcert,O=Apache,OU=NiFi", issuedCertificateKeyPair.getPublic(), caCertificate, caCertKeyPair, SIGNING_ALGORITHM,
-                DURATION_DAYS);
+        keyPair = KeyPairGenerator.getInstance(KEY_ALGORITHM).generateKeyPair();
+        certificate = CertificateUtils.generateSelfSignedX509Certificate(keyPair, SUBJECT_DN, SIGNING_ALGORITHM, DURATION_DAYS);
     }
 
     @Test
-    public void testBcfksKeyStoreRoundTrip() throws GeneralSecurityException, IOException {
-        testKeyStoreRoundTrip(() -> KeyStoreUtils.getKeyStore(KeystoreType.BCFKS.toString().toLowerCase()));
+    public void testCreateTlsConfigAndNewKeystoreTruststore() throws GeneralSecurityException, IOException {
+        final TlsConfiguration configuration = KeyStoreUtils.createTlsConfigAndNewKeystoreTruststore();
+        final File keystoreFile = new File(configuration.getKeystorePath());
+        assertTrue("Keystore File not found", keystoreFile.exists());
+        keystoreFile.deleteOnExit();
+
+        final File truststoreFile = new File(configuration.getTruststorePath());
+        assertTrue("Truststore File not found", truststoreFile.exists());
+        truststoreFile.deleteOnExit();
+
+        assertEquals("Keystore Type not matched", KeystoreType.PKCS12, configuration.getKeystoreType());
+        assertEquals("Truststore Type not matched", KeystoreType.PKCS12, configuration.getTruststoreType());
+
+        assertTrue("Keystore not valid", KeyStoreUtils.isStoreValid(keystoreFile.toURI().toURL(), configuration.getKeystoreType(), configuration.getKeystorePassword().toCharArray()));
+        assertTrue("Truststore not valid", KeyStoreUtils.isStoreValid(truststoreFile.toURI().toURL(), configuration.getTruststoreType(), configuration.getTruststorePassword().toCharArray()));
     }
 
     @Test
-    public void testJksKeyStoreRoundTrip() throws GeneralSecurityException, IOException {
-        testKeyStoreRoundTrip(() -> KeyStoreUtils.getKeyStore(KeystoreType.JKS.toString().toLowerCase()));
+    public void testKeystoreTypesPrivateKeyEntry() throws GeneralSecurityException, IOException {
+        for (final KeystoreType keystoreType : KeystoreType.values()) {
+            final KeyStore sourceKeyStore = KeyStoreUtils.getKeyStore(keystoreType.getType());
+            final KeyStore destinationKeyStore = KeyStoreUtils.getKeyStore(keystoreType.getType());
+            assertKeyEntryStoredLoaded(sourceKeyStore, destinationKeyStore);
+        }
     }
 
     @Test
-    public void testPkcs12KeyStoreBcRoundTrip() throws GeneralSecurityException, IOException {
-        testKeyStoreRoundTrip(() -> KeyStoreUtils.getKeyStore(KeystoreType.PKCS12.toString().toLowerCase()));
+    public void testKeystoreTypesCertificateEntry() throws GeneralSecurityException, IOException {
+        for (final KeystoreType keystoreType : KeystoreType.values()) {
+            final KeyStore sourceKeyStore = KeyStoreUtils.getKeyStore(keystoreType.getType());
+            final KeyStore destinationKeyStore = KeyStoreUtils.getKeyStore(keystoreType.getType());
+            assertCertificateEntryStoredLoaded(sourceKeyStore, destinationKeyStore);
+        }
     }
 
-    @Test
-    public void testPkcs12KeyStoreRoundTripBcReload() throws GeneralSecurityException, IOException {
-        // Pkcs12 Bouncy Castle needs same key and keystore password to interoperate with Java provider
-        testKeyStoreRoundTrip(() -> KeyStore.getInstance(KeystoreType.PKCS12.toString().toLowerCase()),
-                () -> KeyStoreUtils.getKeyStore(KeystoreType.PKCS12.toString().toLowerCase()), BAD_KEY_STORE_TEST_PASSWORD_DONT_USE_THIS);
+    private void assertCertificateEntryStoredLoaded(final KeyStore sourceKeyStore, final KeyStore destinationKeyStore) throws GeneralSecurityException, IOException {
+        sourceKeyStore.load(null, null);
+        sourceKeyStore.setCertificateEntry(ALIAS, certificate);
+
+        final KeyStore copiedKeyStore = copyKeyStore(sourceKeyStore, destinationKeyStore);
+        assertEquals(String.format("[%s] Certificate not matched", sourceKeyStore.getType()), certificate, copiedKeyStore.getCertificate(ALIAS));
     }
 
-    @Test
-    public void testBcfksTrustStoreRoundTrip() throws GeneralSecurityException, IOException {
-        testTrustStoreRoundTrip(() -> KeyStoreUtils.getKeyStore(KeystoreType.BCFKS.toString().toLowerCase()));
+    private void assertKeyEntryStoredLoaded(final KeyStore sourceKeyStore, final KeyStore destinationKeyStore) throws GeneralSecurityException, IOException {
+        sourceKeyStore.load(null, null);
+        final Certificate[] certificateChain = new Certificate[]{certificate};
+        sourceKeyStore.setKeyEntry(ALIAS, keyPair.getPrivate(), KEY_PASSWORD, certificateChain);
+
+        final KeyStore copiedKeyStore = copyKeyStore(sourceKeyStore, destinationKeyStore);
+        final KeyStore.Entry entry = copiedKeyStore.getEntry(ALIAS, new KeyStore.PasswordProtection(KEY_PASSWORD));
+        assertTrue(String.format("[%s] Private Key entry not found", sourceKeyStore.getType()), entry instanceof KeyStore.PrivateKeyEntry);
+        final KeyStore.PrivateKeyEntry privateKeyEntry = (KeyStore.PrivateKeyEntry) entry;
+
+        final Certificate[] entryCertificateChain = privateKeyEntry.getCertificateChain();
+        assertArrayEquals(String.format("[%s] Certificate Chain not matched", sourceKeyStore.getType()), certificateChain, entryCertificateChain);
+        assertEquals(String.format("[%s] Private Key not matched", sourceKeyStore.getType()), keyPair.getPrivate(), privateKeyEntry.getPrivateKey());
+        assertEquals(String.format("[%s] Public Key not matched", sourceKeyStore.getType()), keyPair.getPublic(), entryCertificateChain[0].getPublicKey());
     }
 
-    @Test
-    public void testJksTrustStoreRoundTrip() throws GeneralSecurityException, IOException {
-        testTrustStoreRoundTrip(() -> KeyStoreUtils.getKeyStore(KeystoreType.JKS.toString().toLowerCase()));
-    }
+    private KeyStore copyKeyStore(final KeyStore sourceKeyStore, final KeyStore destinationKeyStore) throws GeneralSecurityException, IOException {
+        final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        sourceKeyStore.store(byteArrayOutputStream, STORE_PASSWORD);
 
-    @Test
-    public void testPkcs12TrustStoreBcRoundTrip() throws GeneralSecurityException, IOException {
-        testTrustStoreRoundTrip(() -> KeyStoreUtils.getKeyStore(KeystoreType.PKCS12.toString().toLowerCase()));
-    }
-
-    @Test
-    public void testPkcs12TrustStoreRoundTripBcReload() throws GeneralSecurityException, IOException {
-        testTrustStoreRoundTrip(() -> KeyStore.getInstance(KeystoreType.PKCS12.toString().toLowerCase()), () -> KeyStoreUtils.getKeyStore(KeystoreType.PKCS12.toString().toLowerCase()));
-    }
-
-    private void testTrustStoreRoundTrip(KeyStoreSupplier keyStoreSupplier) throws GeneralSecurityException, IOException {
-        testTrustStoreRoundTrip(keyStoreSupplier, keyStoreSupplier);
-    }
-
-    private void testTrustStoreRoundTrip(KeyStoreSupplier initialKeyStoreSupplier, KeyStoreSupplier reloadKeyStoreSupplier) throws GeneralSecurityException, IOException {
-        KeyStore trustStore = initialKeyStoreSupplier.get();
-        trustStore.load(null, null);
-        trustStore.setCertificateEntry(ALIAS, caCertificate);
-
-        KeyStore roundTrip = roundTrip(trustStore, reloadKeyStoreSupplier);
-        assertEquals(caCertificate, roundTrip.getCertificate(ALIAS));
-    }
-
-    private void testKeyStoreRoundTrip(KeyStoreSupplier keyStoreSupplier) throws GeneralSecurityException, IOException {
-        testKeyStoreRoundTrip(keyStoreSupplier, keyStoreSupplier, BAD_TEST_PASSWORD_DONT_USE_THIS);
-    }
-
-    private void testKeyStoreRoundTrip(KeyStoreSupplier initialKeyStoreSupplier, KeyStoreSupplier reloadKeyStoreSupplier, char[] keyPassword) throws GeneralSecurityException, IOException {
-        KeyStore keyStore = initialKeyStoreSupplier.get();
-        keyStore.load(null, null);
-        keyStore.setKeyEntry(ALIAS, issuedCertificateKeyPair.getPrivate(), keyPassword, new Certificate[]{issuedCertificate, caCertificate});
-
-        KeyStore roundTrip = roundTrip(keyStore, reloadKeyStoreSupplier);
-        KeyStore.Entry entry = roundTrip.getEntry(ALIAS, new KeyStore.PasswordProtection(keyPassword));
-        assertTrue(entry instanceof KeyStore.PrivateKeyEntry);
-        KeyStore.PrivateKeyEntry privateKeyEntry = (KeyStore.PrivateKeyEntry) entry;
-
-        Certificate[] certificateChain = privateKeyEntry.getCertificateChain();
-        assertArrayEquals(new Certificate[]{issuedCertificate, caCertificate}, certificateChain);
-        assertEquals(issuedCertificateKeyPair.getPrivate(), privateKeyEntry.getPrivateKey());
-        assertEquals(issuedCertificateKeyPair.getPublic(), certificateChain[0].getPublicKey());
-    }
-
-    private KeyStore roundTrip(KeyStore keyStore, KeyStoreSupplier keyStoreSupplier) throws GeneralSecurityException, IOException {
-        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-        keyStore.store(byteArrayOutputStream, BAD_KEY_STORE_TEST_PASSWORD_DONT_USE_THIS);
-
-        KeyStore result = keyStoreSupplier.get();
-        result.load(new ByteArrayInputStream(byteArrayOutputStream.toByteArray()), BAD_KEY_STORE_TEST_PASSWORD_DONT_USE_THIS);
-        return result;
-    }
-
-    private interface KeyStoreSupplier {
-        KeyStore get() throws GeneralSecurityException;
+        destinationKeyStore.load(new ByteArrayInputStream(byteArrayOutputStream.toByteArray()), STORE_PASSWORD);
+        return destinationKeyStore;
     }
 }
