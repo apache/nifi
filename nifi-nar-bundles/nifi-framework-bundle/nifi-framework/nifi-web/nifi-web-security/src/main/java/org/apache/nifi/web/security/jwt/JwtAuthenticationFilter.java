@@ -17,17 +17,13 @@
 package org.apache.nifi.web.security.jwt;
 
 import org.apache.nifi.util.StringUtils;
-import org.apache.nifi.web.security.InvalidAuthenticationException;
 import org.apache.nifi.web.security.NiFiAuthenticationFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.util.WebUtils;
 
-import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
-import java.util.Arrays;
-import java.util.List;
 
 /**
  */
@@ -37,7 +33,6 @@ public class JwtAuthenticationFilter extends NiFiAuthenticationFilter {
 
     // The Authorization header contains authentication credentials
     public static final String JWT_COOKIE_NAME = "__Host-jwt-auth-cookie";
-    private static final List<String> IDEMPOTENT_METHODS = Arrays.asList("GET", "HEAD", "TRACE", "OPTIONS");
     private static NiFiBearerTokenResolver bearerTokenResolver = new NiFiBearerTokenResolver();
 
     @Override
@@ -48,21 +43,12 @@ public class JwtAuthenticationFilter extends NiFiAuthenticationFilter {
         }
 
         // Check for JWT in cookie and header
-        final Cookie cookieToken = WebUtils.getCookie(request, JWT_COOKIE_NAME);
         final String headerToken = bearerTokenResolver.resolve(request);
-        if (cookieToken != null) {
-            if (!IDEMPOTENT_METHODS.contains(request.getMethod().toUpperCase())) {
-                // To protect against CSRF when using a cookie, if the request method requires authentication the request must have a matching Authorization header JWT
-                if (headerToken.equals(cookieToken.getValue())) {
-                    return new JwtAuthenticationRequestToken(headerToken, request.getRemoteAddr());
-                } else {
-                    throw new InvalidAuthenticationException("Authorization HTTP header and authentication cookie did not match.");
-                }
-            } else {
-                return new JwtAuthenticationRequestToken(cookieToken.getValue(), request.getRemoteAddr());
-            }
-        } else if (StringUtils.isNotBlank(headerToken)) {
+
+        if (StringUtils.isNotBlank(headerToken)) {
             return new JwtAuthenticationRequestToken(headerToken, request.getRemoteAddr());
+        } else if (StringUtils.isNotBlank(WebUtils.getCookie(request, JWT_COOKIE_NAME).getValue())) {
+            return new JwtAuthenticationRequestToken(WebUtils.getCookie(request, JWT_COOKIE_NAME).getValue(), request.getRemoteAddr());
         } else {
             return null;
         }

@@ -127,7 +127,7 @@ class JwtAuthentixationFilterTest extends GroovyTestCase {
 
     @Test
     void testMultipleTokenInvalid() {
-        // Arrange
+        // Arrangex
         String authenticationHeader = "Bearer " + jwtString
         authenticationHeader = authenticationHeader + " " + authenticationHeader
 
