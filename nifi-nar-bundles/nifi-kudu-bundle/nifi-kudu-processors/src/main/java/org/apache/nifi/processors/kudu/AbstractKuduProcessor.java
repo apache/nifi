@@ -60,7 +60,13 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -121,6 +127,16 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
             .defaultValue(String.valueOf(AsyncKuduClient.DEFAULT_KEEP_ALIVE_PERIOD_MS) + "ms")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
+
+    private static final int DEFAULT_WORKER_COUNT = 2 * Runtime.getRuntime().availableProcessors();
+    static final PropertyDescriptor WORKER_COUNT = new Builder()
+            .name("worker-count")
+            .displayName("Kudu Client Worker Count")
+            .description("The maximum number of worker threads handling Kudu client read and write operations. Defaults to the number of available processors multiplied by 2.")
+            .required(true)
+            .defaultValue(Integer.toString(DEFAULT_WORKER_COUNT))
+            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .build();
 
     private volatile KuduClient kuduClient;
@@ -184,10 +200,25 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
         final String masters = context.getProperty(KUDU_MASTERS).evaluateAttributeExpressions().getValue();
         final int operationTimeout = context.getProperty(KUDU_OPERATION_TIMEOUT_MS).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS).intValue();
         final int adminOperationTimeout = context.getProperty(KUDU_KEEP_ALIVE_PERIOD_TIMEOUT_MS).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS).intValue();
+        final int workerCount = context.getProperty(WORKER_COUNT).asInteger();
+
+        // Create Executor following approach of Executors.newCachedThreadPool() using worker count as maximum pool size
+        final int corePoolSize = 0;
+        final long threadKeepAliveTime = 60;
+        final Executor nioExecutor = new ThreadPoolExecutor(
+                corePoolSize,
+                workerCount,
+                threadKeepAliveTime,
+                TimeUnit.SECONDS,
+                new SynchronousQueue<>(),
+                new ClientThreadFactory(getIdentifier())
+        );
 
         return new KuduClient.KuduClientBuilder(masters)
                 .defaultOperationTimeoutMs(operationTimeout)
                 .defaultSocketReadTimeoutMs(adminOperationTimeout)
+                .workerCount(workerCount)
+                .nioExecutor(nioExecutor)
                 .build();
     }
 
@@ -292,7 +323,7 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
     }
 
     @VisibleForTesting
-    protected void buildPartialRow(Schema schema, PartialRow row, Record record, List<String> fieldNames, Boolean ignoreNull, Boolean lowercaseFields) {
+    protected void buildPartialRow(Schema schema, PartialRow row, Record record, List<String> fieldNames, boolean ignoreNull, boolean lowercaseFields) {
         for (String recordFieldName : fieldNames) {
             String colName = recordFieldName;
             if (lowercaseFields) {
@@ -430,5 +461,35 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
                 .build());
 
         return alterTable;
+    }
+
+    private static class ClientThreadFactory implements ThreadFactory {
+        private final ThreadFactory defaultThreadFactory = Executors.defaultThreadFactory();
+
+        private final AtomicInteger threadCount = new AtomicInteger();
+
+        private final String identifier;
+
+        private ClientThreadFactory(final String identifier) {
+            this.identifier = identifier;
+        }
+
+        /**
+         * Create new daemon Thread with custom name
+         *
+         * @param runnable Runnable
+         * @return Created Thread
+         */
+        @Override
+        public Thread newThread(final Runnable runnable) {
+            final Thread thread = defaultThreadFactory.newThread(runnable);
+            thread.setDaemon(true);
+            thread.setName(getName());
+            return thread;
+        }
+
+        private String getName() {
+            return String.format("PutKudu[%s]-client-%d", identifier, threadCount.getAndIncrement());
+        }
     }
 }
