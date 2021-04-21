@@ -1021,9 +1021,8 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         if (StringUtils.isNotEmpty(includeCipherSuitesProps)) {
             final String[] includeCipherSuitesRuntime = contextFactory.getIncludeCipherSuites();
             final String[] includeCipherSuites = includeCipherSuitesProps.split(REGEX_SPLIT_PROPERTY);
-            logger.info("Replacing include cipher suites with configuration; runtime = {}, raw property = {}, parsed property = {}.",
+            logger.info("Replacing include cipher suites with configuration; runtime = {}, parsed property = {}.",
                     ((includeCipherSuitesRuntime == null) ? null : StringUtils.join(includeCipherSuitesRuntime, JOIN_ARRAY)),
-                    includeCipherSuitesProps,
                     StringUtils.join(includeCipherSuites, JOIN_ARRAY));
             contextFactory.setIncludeCipherSuites(includeCipherSuites);
         }
@@ -1031,9 +1030,8 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         if (StringUtils.isNotEmpty(excludeCipherSuitesProps)) {
             final String[] excludeCipherSuitesRuntime = contextFactory.getExcludeCipherSuites();
             final String[] excludeCipherSuites = excludeCipherSuitesProps.split(REGEX_SPLIT_PROPERTY);
-            logger.info("Replacing exclude cipher suites with configuration; runtime = {}, raw property = {}, parsed property = {}.",
+            logger.info("Replacing exclude cipher suites with configuration; runtime = {}, parsed property = {}.",
                     ((excludeCipherSuitesRuntime == null) ? null : StringUtils.join(excludeCipherSuitesRuntime, JOIN_ARRAY)),
-                    excludeCipherSuitesProps,
                     StringUtils.join(excludeCipherSuites, JOIN_ARRAY));
             contextFactory.setExcludeCipherSuites(excludeCipherSuites);
         }
