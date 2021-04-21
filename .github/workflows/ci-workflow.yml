@@ -18,95 +18,10 @@ name: ci-workflow
 on: [push, pull_request]
 
 jobs:
-  ubuntu-build-fr:
-
-    timeout-minutes: 90
-    runs-on: ubuntu-latest
-    name: Ubuntu - JDK 1.8 FR
-
-    steps:
-      - name: Disk Before Code and Cache
-        run: |
-          sudo swapoff -a
-          sudo rm -f /swapfile
-          sudo apt clean
-          docker rmi $(docker image ls -aq)
-          df -h
-      - name: Checkout Code
-        uses: actions/checkout@v2
-      - name: Check NPM Cache
-        uses: actions/cache@v2
-        with:
-          path: ~/.npm
-          key: npm-${{ hashFiles('**/package-lock.json') }} 
-          restore-keys: |
-            npm-
-      - name: Check Maven Com Cache
-        uses: actions/cache@v2
-        with:
-          path: ~/.m2/repository/com
-          key: mvn-com-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            mvn-com-
-      - name: Check Maven Org Cache
-        uses: actions/cache@v2
-        with:
-          path: ~/.m2/repository/org
-          key: mvn-org-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            mvn-org-
-      - name: Check Maven Net Cache
-        uses: actions/cache@v2
-        with:
-          path: ~/.m2/repository/net
-          key: mvn-net-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            mvn-net-
-      - name: Check Maven IO Cache
-        uses: actions/cache@v2
-        with:
-          path: ~/.m2/repository/io
-          key: mvn-io-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            mvn-io-
-      - name: Check Maven BIZ Cache
-        uses: actions/cache@v2
-        with:
-          path: ~/.m2/repository/biz
-          key: mvn-biz-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            mvn-biz-
-      - name: Check Maven IT Cache
-        uses: actions/cache@v2
-        with:
-          path: ~/.m2/repository/it
-          key: mvn-it-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            mvn-it-
-      - name: Set up JDK 1.8 FR
-        uses: actions/setup-java@v2
-        with:
-          distribution: 'zulu'
-          java-version: '8'
-      - name: Disk After Cache
-        run: |
-          df -h
-      - name: Build with Maven
-        env:
-          MAVEN_OPTS: -Xmx2g -XX:ReservedCodeCacheSize=1g -XX:+UseG1GC -Dorg.slf4j.simpleLogger.defaultLogLevel=WARN -Dmaven.surefire.arguments="-Duser.language=fr -Duser.region=FR -Duser.timezone=Europe/Paris" -Dhttp.keepAlive=false -Dmaven.wagon.http.pool=false
-        run: |
-          mvn -V -T 0.7C package verify -B -Pcontrib-check,include-grpc -Ddir-only -ntp -ff -pl -nifi-assembly,-nifi-toolkit/nifi-toolkit-assembly,-nifi-system-tests -nsu
-      - name: Disk After Build
-        run: |
-          df -h
-
-
   ubuntu-build-en:
-
     timeout-minutes: 90
     runs-on: ubuntu-latest
-    name: Ubuntu - JDK 11 EN
-
+    name: Ubuntu Zulu JDK11 EN
     steps:
       - name: Disk Before Code and Cache
         run: |
@@ -184,11 +99,9 @@ jobs:
           df -h
 
   osx-build-jp:
-
     timeout-minutes: 90
     runs-on: macos-latest
-    name: MacOS - JDK 1.8 JP
-
+    name: MacOS Adopt JDK8 JP
     steps:
       - name: Disk Before Code and Cache
         run: |
@@ -262,11 +175,9 @@ jobs:
           df -h
 
   windows-build:
-
     timeout-minutes: 90
     runs-on: windows-latest
-    name: Windows - JDK 1.8
-
+    name: Windows Zulu JDK8 FR
     steps:
       - name: Setup Git
         run:  |
@@ -323,6 +234,6 @@ jobs:
           java-version: '8'
       - name: Build with Maven
         env:
-          MAVEN_OPTS: -Xmx2g -Dorg.slf4j.simpleLogger.defaultLogLevel=WARN -Dmaven.surefire.arguments="-Duser.language=en -Duser.region=US -Duser.timezone=US/Pacific" -Dhttp.keepAlive=false -Dmaven.wagon.http.pool=false
+          MAVEN_OPTS: -Xmx2g -Dorg.slf4j.simpleLogger.defaultLogLevel=WARN -Dmaven.surefire.arguments="-Duser.language=fr -Duser.region=FR -Duser.timezone=Europe/Paris" -Dhttp.keepAlive=false -Dmaven.wagon.http.pool=false
         run: |
           mvn -V -T 0.7C package -B -Ddir-only -ntp -ff -pl -nifi-assembly -pl -nifi-system-tests -nsu
