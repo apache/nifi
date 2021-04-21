@@ -3516,8 +3516,8 @@ Providing three total network interfaces, including  `nifi.web.http.network.inte
 |`nifi.web.https.host`|The HTTPS host. It is blank by default.
 |`nifi.web.https.port`|The HTTPS port. It is blank by default. When configuring NiFi to run securely, this port should be configured.
 |`nifi.web.https.port.forwarding`|Same as `nifi.web.http.port.forwarding`, but with HTTPS for secure communication. It is blank by default.
-|`nifi.web.https.includeciphersuites`|Cipher suites used to initialize the SSLContext of the Jetty https port.  If unspecified, the runtime SSLContext defaults are used.
-|`nifi.web.https.excludeciphersuites`|Cipher suites that may not be used by an SSL client to establish a connection to Jetty.  If unspecified, the runtime SSLContext defaults are used.
+|`nifi.web.https.ciphersuites.include`|Cipher suites used to initialize the SSLContext of the Jetty HTTPS port.  If unspecified, the runtime SSLContext defaults are used.
+|`nifi.web.https.ciphersuites.exclude`|Cipher suites that may not be used by an SSL client to establish a connection to Jetty.  If unspecified, the runtime SSLContext defaults are used.
 
 
 In Chrome, the SSL cipher negotiated with Jetty may be examined in the 'Developer Tools' plugin, in the 'Security' tab.
