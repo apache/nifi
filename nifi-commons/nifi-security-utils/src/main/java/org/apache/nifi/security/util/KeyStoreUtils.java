@@ -41,7 +41,6 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLParameters;
@@ -110,13 +109,12 @@ public class KeyStoreUtils {
      * @throws KeyStoreException if a KeyStore of the given type cannot be instantiated
      */
     public static KeyStore getKeyStore(String keyStoreType) throws KeyStoreException {
-        String keyStoreProvider = getKeyStoreProvider(keyStoreType);
+        final String keyStoreProvider = getKeyStoreProvider(keyStoreType);
         if (StringUtils.isNotEmpty(keyStoreProvider)) {
             try {
                 return KeyStore.getInstance(keyStoreType, keyStoreProvider);
-            } catch (Exception e) {
-                logger.error("Unable to load " + keyStoreProvider + " " + keyStoreType
-                        + " keystore.  This may cause issues getting trusted CA certificates as well as Certificate Chains for use in TLS.", e);
+            } catch (final Exception e) {
+                logger.error("KeyStore Type [{}] Provider [{}] instance creation failed", keyStoreType, keyStoreProvider, e);
             }
         }
         return KeyStore.getInstance(keyStoreType);
@@ -526,15 +524,12 @@ public class KeyStoreUtils {
      * @return an empty keystore
      * @throws KeyStoreException if a keystore of the given type cannot be instantiated
      */
-    private static KeyStore loadEmptyKeyStore(KeystoreType keyStoreType) throws KeyStoreException, CertificateException, NoSuchAlgorithmException {
-        final KeyStore keyStore;
+    private static KeyStore loadEmptyKeyStore(final KeystoreType keyStoreType) throws KeyStoreException, CertificateException, NoSuchAlgorithmException {
         try {
-            keyStore = KeyStore.getInstance(
-                    Objects.requireNonNull(keyStoreType).getType());
+            final KeyStore keyStore = getKeyStore(keyStoreType.getType());
             keyStore.load(null, null);
             return keyStore;
-        } catch (IOException e) {
-            logger.error("Encountered an error loading keystore: {}", e.getLocalizedMessage());
+        } catch (final IOException e) {
             throw new UncheckedIOException("Error loading keystore", e);
         }
     }
