@@ -48,6 +48,8 @@ public class AbstractTestTailFileScenario {
     private TailFile processor;
     protected TestRunner runner;
 
+    private AtomicBoolean stopAfterEachTrigger;
+
     protected AtomicLong wordIndex;
     protected AtomicLong rolloverIndex;
     protected AtomicLong timeAdjustment;
@@ -87,6 +89,8 @@ public class AbstractTestTailFileScenario {
 
         runner.run(1, false, true);
 
+        stopAfterEachTrigger = new AtomicBoolean(false);
+
         nulPositions = new LinkedList<>();
         wordIndex = new AtomicLong(1);
         rolloverIndex = new AtomicLong(1);
@@ -108,6 +112,18 @@ public class AbstractTestTailFileScenario {
     }
 
     public void testScenario(List<Action> actions) throws Exception {
+        testScenario(actions, false);
+
+        tearDown();
+        setUp();
+
+        testScenario(actions, true);
+    }
+
+    public void testScenario(List<Action> actions, boolean stopAfterEachTrigger) throws Exception {
+        // GIVEN
+        this.stopAfterEachTrigger.set(stopAfterEachTrigger);
+
         // WHEN
         for (Action action : actions) {
             action.run(this);
@@ -128,7 +144,7 @@ public class AbstractTestTailFileScenario {
             .collect(Collectors.toList());
 
         assertEquals(
-            actions.toString(),
+            stopAfterEachTrigger + " " + actions.toString(),
             expected.stream().collect(Collectors.joining()),
             actual.stream().collect(Collectors.joining())
         );
@@ -195,7 +211,7 @@ public class AbstractTestTailFileScenario {
     }
 
     private void trigger() {
-        runner.run(1, false, false);
+        runner.run(1, stopAfterEachTrigger.get(), false);
     }
 
     private void rollover() throws IOException {

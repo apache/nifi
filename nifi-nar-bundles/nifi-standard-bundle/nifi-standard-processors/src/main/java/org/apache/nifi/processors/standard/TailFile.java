@@ -585,7 +585,7 @@ public class TailFile extends AbstractProcessor {
         for (TailFileObject tfo : states.values()) {
             cleanReader(tfo);
             final TailFileState state = tfo.getState();
-            tfo.setState(new TailFileState(state.getFilename(), state.getFile(), null, state.getPosition(), state.getTimestamp(), state.getLength(), state.getChecksum(), state.getBuffer()));
+            tfo.setState(new TailFileState(state.getFilename(), state.getFile(), null, state.getPosition(), state.getTimestamp(), state.getLength(), state.getChecksum(), state.getBuffer(), state.isTailingPostRollover()));
         }
     }
 
