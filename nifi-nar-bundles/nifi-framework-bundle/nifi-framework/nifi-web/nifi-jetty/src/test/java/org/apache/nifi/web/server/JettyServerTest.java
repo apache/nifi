@@ -26,9 +26,10 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import java.lang.reflect.InvocationTargetException;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.security.util.KeystoreType;
 import org.apache.nifi.util.NiFiProperties;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
@@ -152,9 +153,9 @@ public class JettyServerTest {
     @Test
     public void testConfigureSslIncludeExcludeCiphers() {
         final String[] includeCipherSuites = {"TLS_AES_256_GCM_SHA384", "TLS_AES_128_GCM_SHA256"};
-        final String includeCipherSuitesProp = String.join(", ", Arrays.asList(includeCipherSuites));
+        final String includeCipherSuitesProp = StringUtils.join(includeCipherSuites, JettyServer.JOIN_ARRAY);
         final String[] excludeCipherSuites = {".*DHE.*", ".*ECDH.*"};
-        final String excludeCipherSuitesProp = String.join(", ", Arrays.asList(excludeCipherSuites));
+        final String excludeCipherSuitesProp = StringUtils.join(excludeCipherSuites, JettyServer.JOIN_ARRAY);
         final Map<String, String> addProps = new HashMap<>();
         addProps.put(NiFiProperties.WEB_HTTPS_CIPHERSUITES_INCLUDE, includeCipherSuitesProp);
         addProps.put(NiFiProperties.WEB_HTTPS_CIPHERSUITES_EXCLUDE, excludeCipherSuitesProp);
@@ -162,8 +163,6 @@ public class JettyServerTest {
 
         final SslContextFactory.Server mockSCF = mock(SslContextFactory.Server.class);
         JettyServer.configureSslContextFactory(mockSCF, nifiProperties);
-        verify(mockSCF, times(1)).getIncludeCipherSuites();
-        verify(mockSCF, times(1)).getExcludeCipherSuites();
         verify(mockSCF, times(1)).setIncludeCipherSuites(includeCipherSuites);
         verify(mockSCF, times(1)).setExcludeCipherSuites(excludeCipherSuites);
     }
@@ -176,8 +175,6 @@ public class JettyServerTest {
         final NiFiProperties nifiProperties = NiFiProperties.createBasicNiFiProperties(null);
         final SslContextFactory.Server mockSCF = mock(SslContextFactory.Server.class);
         JettyServer.configureSslContextFactory(mockSCF, nifiProperties);
-        verify(mockSCF, times(0)).getIncludeCipherSuites();
-        verify(mockSCF, times(0)).getExcludeCipherSuites();
         verify(mockSCF, times(0)).setIncludeCipherSuites(any());
         verify(mockSCF, times(0)).setExcludeCipherSuites(any());
     }
