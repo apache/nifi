@@ -367,7 +367,7 @@ public class PutKudu extends AbstractKuduProcessor {
 
         final KuduSession kuduSession = createKuduSession(kuduClient);
         try {
-            processFlowFiles(flowFiles,
+            processRecords(flowFiles,
                     processedRecords,
                     flowFileFailures,
                     operationFlowFileMap,
@@ -393,7 +393,7 @@ public class PutKudu extends AbstractKuduProcessor {
         }
     }
 
-    private void processFlowFiles(final List<FlowFile> flowFiles,
+    private void processRecords(final List<FlowFile> flowFiles,
                                  final Map<FlowFile, Integer> processedRecords,
                                  final Map<FlowFile, Object> flowFileFailures,
                                  final Map<Operation, FlowFile> operationFlowFileMap,
