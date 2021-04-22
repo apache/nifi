@@ -216,7 +216,7 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
 
         return new KuduClient.KuduClientBuilder(masters)
                 .defaultOperationTimeoutMs(operationTimeout)
-                .defaultAdminOperationTimeoutMs(adminOperationTimeout)
+                .defaultSocketReadTimeoutMs(adminOperationTimeout)
                 .workerCount(workerCount)
                 .nioExecutor(nioExecutor)
                 .build();
