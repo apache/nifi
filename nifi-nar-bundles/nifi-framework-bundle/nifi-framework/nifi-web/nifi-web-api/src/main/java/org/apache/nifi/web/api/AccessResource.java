@@ -1515,10 +1515,10 @@ public class AccessResource extends ApplicationResource {
 
             return generateOkResponse().build();
         } catch (final JwtException e) {
-            logger.error("JWT processing failed for [{}}], due to: ", mappedUserIdentity, e.getMessage(), e);
+            logger.error("JWT processing failed for [{}], due to: ", mappedUserIdentity, e.getMessage(), e);
             return Response.serverError().build();
         } catch (final LogoutException e) {
-            logger.error("Logout failed for user [%s] due to: ", mappedUserIdentity, e.getMessage(), e);
+            logger.error("Logout failed for user [{}] due to: ", mappedUserIdentity, e.getMessage(), e);
             return Response.serverError().build();
         }
     }

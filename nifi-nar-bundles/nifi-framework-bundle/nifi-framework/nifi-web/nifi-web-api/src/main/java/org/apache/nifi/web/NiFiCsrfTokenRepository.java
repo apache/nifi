@@ -30,9 +30,10 @@ import javax.servlet.http.HttpServletResponse;
 import java.lang.reflect.Method;
 
 /**
- * A {@link CsrfTokenRepository} that persists the CSRF token in a cookie named
- * "XSRF-TOKEN" and reads from the header "X-XSRF-TOKEN" following the conventions of
- * AngularJS. When using with AngularJS be sure to use {@link #withHttpOnlyFalse()}.
+ * A {@link CsrfTokenRepository} implementation for NiFi that matches the NiFi Cookie JWT against the
+ * Authorization header JWT to protect against CSRF. If the request is an idempotent method type, then only the Cookie
+ * is required to be present - this allows authenticating access to static resources using a Cookie. If the request is a non-idempotent
+ * method, NiFi requires the Authorization header (eg. for POST requests).
  *
  * @author Rob Winch
  * @since 4.1
@@ -69,7 +70,7 @@ public final class NiFiCsrfTokenRepository implements CsrfTokenRepository {
     @Override
     public void saveToken(CsrfToken token, HttpServletRequest request,
                           HttpServletResponse response) {
-        // Do nothing
+        // Do nothing - we don't need to add new Csrf tokens to the response
     }
 
     @Override
@@ -82,6 +83,7 @@ public final class NiFiCsrfTokenRepository implements CsrfTokenRepository {
         if (!StringUtils.hasLength(token)) {
             return null;
         }
+        // We add the Bearer string here in order to match the Authorization header on comparison in CsrfFilter
         return new DefaultCsrfToken(this.headerName, this.parameterName, String.format("Bearer %s", token));
     }
 
