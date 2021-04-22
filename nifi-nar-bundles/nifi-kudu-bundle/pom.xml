@@ -29,7 +29,7 @@
 
     <properties>
         <exclude.tests>None</exclude.tests>
-        <kudu.version>1.14.0</kudu.version>
+        <kudu.version>1.15.0</kudu.version>
     </properties>
 
     <modules>

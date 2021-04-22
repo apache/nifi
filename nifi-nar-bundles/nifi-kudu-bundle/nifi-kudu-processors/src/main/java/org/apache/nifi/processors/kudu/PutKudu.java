@@ -300,6 +300,7 @@ public class PutKudu extends AbstractKuduProcessor {
         properties.add(KUDU_OPERATION_TIMEOUT_MS);
         properties.add(KUDU_KEEP_ALIVE_PERIOD_TIMEOUT_MS);
         properties.add(WORKER_COUNT);
+        properties.add(KUDU_SASL_PROTOCOL_NAME);
         return properties;
     }
 
