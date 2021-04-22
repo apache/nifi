@@ -691,15 +691,30 @@ public class PutDatabaseRecord extends AbstractProcessor {
 
                     final Object[] values = currentRecord.getValues();
                     final List<DataType> dataTypes = currentRecord.getSchema().getDataTypes();
-                    List<ColumnDescription> columns = tableSchema.getColumnsAsList();
+                    final RecordSchema recordSchema = currentRecord.getSchema();
+                    final Map<String, ColumnDescription> columns = tableSchema.getColumns();
 
                     for (int i = 0; i < fieldIndexes.size(); i++) {
                         final int currentFieldIndex = fieldIndexes.get(i);
                         Object currentValue = values[currentFieldIndex];
                         final DataType dataType = dataTypes.get(currentFieldIndex);
                         final int fieldSqlType = DataTypeUtils.getSQLTypeValue(dataType);
-                        final ColumnDescription column = columns.get(currentFieldIndex);
-                        int sqlType = column.dataType;
+                        final String fieldName = recordSchema.getField(currentFieldIndex).getFieldName();
+                        String columnName = normalizeColumnName(fieldName, settings.translateFieldNames);
+                        int sqlType;
+
+                        final ColumnDescription column = columns.get(columnName);
+                        // 'column' should not be null here as the fieldIndexes should correspond to fields that match table columns, but better to handle just in case
+                        if (column == null) {
+                            if (!settings.ignoreUnmappedFields) {
+                                throw new SQLDataException("Cannot map field '" + fieldName + "' to any column in the database\n"
+                                        + (settings.translateFieldNames ? "Normalized " : "") + "Columns: " + String.join(",", columns.keySet()));
+                            } else {
+                                sqlType = fieldSqlType;
+                            }
+                        } else {
+                            sqlType = column.dataType;
+                        }
 
                         // Convert (if necessary) from field data type to column data type
                         if (fieldSqlType != sqlType) {
@@ -709,7 +724,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
                                     currentValue = DataTypeUtils.convertType(
                                             currentValue,
                                             targetDataType,
-                                            currentRecord.getSchema().getField(currentFieldIndex).getFieldName());
+                                            fieldName);
                                 }
                             } catch (IllegalTypeConversionException itce) {
                                 // If the field and column types don't match or the value can't otherwise be converted to the column datatype,

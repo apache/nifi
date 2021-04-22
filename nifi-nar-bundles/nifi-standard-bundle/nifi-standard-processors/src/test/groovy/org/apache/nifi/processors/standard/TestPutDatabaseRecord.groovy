@@ -302,6 +302,73 @@ class TestPutDatabaseRecord {
     }
 
     @Test
+    void testInsertNonRequiredColumns() throws InitializationException, ProcessException, SQLException, IOException {
+        recreateTable(createPersons)
+        final MockRecordParser parser = new MockRecordParser()
+        runner.addControllerService("parser", parser)
+        runner.enableControllerService(parser)
+
+        parser.addSchemaField("id", RecordFieldType.INT)
+        parser.addSchemaField("name", RecordFieldType.STRING)
+        parser.addSchemaField("dt", RecordFieldType.DATE)
+
+        LocalDate testDate1 = LocalDate.of(2021, 1, 26)
+        Date nifiDate1 = new Date(testDate1.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()) // in UTC
+        Date jdbcDate1 = Date.valueOf(testDate1) // in local TZ
+        LocalDate testDate2 = LocalDate.of(2021, 7, 26)
+        Date nifiDate2 = new Date(testDate2.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()) // in URC
+        Date jdbcDate2 = Date.valueOf(testDate2) // in local TZ
+
+        parser.addRecord(1, 'rec1', nifiDate1)
+        parser.addRecord(2, 'rec2', nifiDate2)
+        parser.addRecord(3, 'rec3', null)
+        parser.addRecord(4, 'rec4', null)
+        parser.addRecord(5, null, null)
+
+        runner.setProperty(PutDatabaseRecord.RECORD_READER_FACTORY, 'parser')
+        runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE, PutDatabaseRecord.INSERT_TYPE)
+        runner.setProperty(PutDatabaseRecord.TABLE_NAME, 'PERSONS')
+
+        runner.enqueue(new byte[0])
+        runner.run()
+
+        runner.assertTransferCount(PutDatabaseRecord.REL_SUCCESS, 1)
+        final Connection conn = dbcp.getConnection()
+        final Statement stmt = conn.createStatement()
+        final ResultSet rs = stmt.executeQuery('SELECT * FROM PERSONS')
+        assertTrue(rs.next())
+        assertEquals(1, rs.getInt(1))
+        assertEquals('rec1', rs.getString(2))
+        // Zero value because of the constraint
+        assertEquals(0, rs.getInt(3))
+        assertEquals(jdbcDate1, rs.getDate(4))
+        assertTrue(rs.next())
+        assertEquals(2, rs.getInt(1))
+        assertEquals('rec2', rs.getString(2))
+        assertEquals(0, rs.getInt(3))
+        assertEquals(jdbcDate2, rs.getDate(4))
+        assertTrue(rs.next())
+        assertEquals(3, rs.getInt(1))
+        assertEquals('rec3', rs.getString(2))
+        assertEquals(0, rs.getInt(3))
+        assertNull(rs.getDate(4))
+        assertTrue(rs.next())
+        assertEquals(4, rs.getInt(1))
+        assertEquals('rec4', rs.getString(2))
+        assertEquals(0, rs.getInt(3))
+        assertNull(rs.getDate(4))
+        assertTrue(rs.next())
+        assertEquals(5, rs.getInt(1))
+        assertNull(rs.getString(2))
+        assertEquals(0, rs.getInt(3))
+        assertNull(rs.getDate(4))
+        assertFalse(rs.next())
+
+        stmt.close()
+        conn.close()
+    }
+
+    @Test
     void testInsertBatchUpdateException() throws InitializationException, ProcessException, SQLException, IOException {
         recreateTable(createPersons)
         final MockRecordParser parser = new MockRecordParser()
@@ -1332,6 +1399,53 @@ class TestPutDatabaseRecord {
         assertTrue(rs.next())
         assertEquals(2, rs.getInt(1))
         assertEquals('rec2', rs.getString(2))
+        assertFalse(rs.next())
+
+        stmt.close()
+        conn.close()
+    }
+
+    @Test
+    void testInsertWithDifferentColumnOrdering() throws InitializationException, ProcessException, SQLException, IOException {
+        // Manually create and drop the tables and schemas
+        def conn = dbcp.connection
+        def stmt = conn.createStatement()
+        try {
+            stmt.execute('DROP TABLE TEMP')
+        } catch(ex) {
+            // Do nothing, table may not exist
+        }
+        stmt.execute('CREATE TABLE TEMP (id integer primary key, code integer, name long varchar)')
+
+        final MockRecordParser parser = new MockRecordParser()
+        runner.addControllerService("parser", parser)
+        runner.enableControllerService(parser)
+
+        parser.addSchemaField("name", RecordFieldType.STRING)
+        parser.addSchemaField("id", RecordFieldType.INT)
+        parser.addSchemaField("code", RecordFieldType.INT)
+
+        // change order of columns
+        parser.addRecord('rec1', 1, 101)
+        parser.addRecord('rec2', 2, 102)
+
+        runner.setProperty(PutDatabaseRecord.RECORD_READER_FACTORY, 'parser')
+        runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE, PutDatabaseRecord.INSERT_TYPE)
+        runner.setProperty(PutDatabaseRecord.TABLE_NAME, 'TEMP')
+
+        runner.enqueue(new byte[0])
+        runner.run()
+
+        runner.assertTransferCount(PutDatabaseRecord.REL_SUCCESS, 1)
+        ResultSet rs = stmt.executeQuery('SELECT * FROM TEMP')
+        assertTrue(rs.next())
+        assertEquals(1, rs.getInt(1))
+        assertEquals(101, rs.getInt(2))
+        assertEquals('rec1', rs.getString(3))
+        assertTrue(rs.next())
+        assertEquals(2, rs.getInt(1))
+        assertEquals(102, rs.getInt(2))
+        assertEquals('rec2', rs.getString(3))
         assertFalse(rs.next())
 
         stmt.close()
