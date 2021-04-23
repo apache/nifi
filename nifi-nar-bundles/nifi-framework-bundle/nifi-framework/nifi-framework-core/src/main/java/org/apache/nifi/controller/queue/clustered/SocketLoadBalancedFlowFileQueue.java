@@ -1138,22 +1138,29 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
             partitionWriteLock.lock();
             try {
                 if (!offloaded) {
-                    return;
-                }
-
-                switch (newState) {
-                    case CONNECTED:
-                        if (nodeId != null && nodeId.equals(clusterCoordinator.getLocalNodeIdentifier())) {
-                            // the node with this queue was connected to the cluster, make sure the queue is not offloaded
-                            resetOffloadedQueue();
-                        }
-                        break;
-                    case OFFLOADED:
-                    case OFFLOADING:
-                    case DISCONNECTED:
-                    case DISCONNECTING:
-                        onNodeRemoved(nodeId);
-                        break;
+                    switch (newState) {
+                        case OFFLOADING:
+                            onNodeRemoved(nodeId);
+                            break;
+                        case CONNECTED:
+                            onNodeAdded(nodeId);
+                            break;
+                    }
+                } else {
+                    switch (newState) {
+                        case CONNECTED:
+                            if (nodeId != null && nodeId.equals(clusterCoordinator.getLocalNodeIdentifier())) {
+                                // the node with this queue was connected to the cluster, make sure the queue is not offloaded
+                                resetOffloadedQueue();
+                            }
+                            break;
+                        case OFFLOADED:
+                        case OFFLOADING:
+                        case DISCONNECTED:
+                        case DISCONNECTING:
+                            onNodeRemoved(nodeId);
+                            break;
+                    }
                 }
             } finally {
                 partitionWriteLock.unlock();
