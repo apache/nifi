@@ -57,7 +57,16 @@ public class SecureNiFiConfigUtil {
         return StringUtils.isNotEmpty(filename) && Paths.get(filename).toFile().exists();
     }
 
-    private static boolean isHttpsSecurityConfigured(final Properties nifiProperties) {
+    /**
+     * Returns true only if nifi.web.https.port is set, nifi.security.keystore and nifi.security.truststore
+     * are both set, and both nifi.security.keystorePasswd and nifi.security.truststorePassword are NOT set.
+     *
+     * This would indicate that the user intends to auto-generate a keystore and truststore, rather than
+     * using their existing kestore and truststore.
+     * @param nifiProperties The nifi properties
+     * @return
+     */
+    private static boolean isHttpsSecurityConfiguredWithEmptyPasswords(final Properties nifiProperties) {
         if (StringUtils.isEmpty(nifiProperties.getProperty(NiFiProperties.WEB_HTTPS_PORT, StringUtils.EMPTY))) {
             return false;
         }
@@ -65,6 +74,12 @@ public class SecureNiFiConfigUtil {
         String keystorePath = nifiProperties.getProperty(NiFiProperties.SECURITY_KEYSTORE, StringUtils.EMPTY);
         String truststorePath = nifiProperties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE, StringUtils.EMPTY);
         if (StringUtils.isEmpty(keystorePath) || StringUtils.isEmpty(truststorePath)) {
+            return false;
+        }
+
+        String keystorePassword = nifiProperties.getProperty(NiFiProperties.SECURITY_KEYSTORE_PASSWD, StringUtils.EMPTY);
+        String truststorePassword = nifiProperties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD, StringUtils.EMPTY);
+        if (StringUtils.isNotEmpty(keystorePassword) || StringUtils.isNotEmpty(truststorePassword)) {
             return false;
         }
 
@@ -85,8 +100,8 @@ public class SecureNiFiConfigUtil {
         final File propertiesFile = new File(nifiPropertiesFilename);
         final Properties nifiProperties = loadProperties(propertiesFile);
 
-        if (!isHttpsSecurityConfigured(nifiProperties)) {
-            cmdLogger.debug("No HTTPS configuration detected: skipping Apache Nifi certificate generation.");
+        if (!isHttpsSecurityConfiguredWithEmptyPasswords(nifiProperties)) {
+            cmdLogger.debug("Skipping Apache Nifi certificate generation.");
             return;
         }
 

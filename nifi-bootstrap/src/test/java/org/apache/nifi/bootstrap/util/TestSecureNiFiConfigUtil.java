@@ -199,6 +199,16 @@ public class TestSecureNiFiConfigUtil {
     }
 
     @Test
+    public void testTruststorePasswordSet() throws IOException, GeneralSecurityException {
+        runTestWithNoExpectedUpdates("nifi.properties.truststore-password", !EXPECT_STORES_TO_EXIST);
+    }
+
+    @Test
+    public void testKeystorePasswordSet() throws IOException, GeneralSecurityException {
+        runTestWithNoExpectedUpdates("nifi.properties.keystore-password", !EXPECT_STORES_TO_EXIST);
+    }
+
+    @Test
     public void test_keystoreAndTruststoreAlreadyExist() throws IOException, GeneralSecurityException {
         runTestWithNoExpectedUpdates("nifi.properties.stores-exist", EXPECT_STORES_TO_EXIST);
     }
