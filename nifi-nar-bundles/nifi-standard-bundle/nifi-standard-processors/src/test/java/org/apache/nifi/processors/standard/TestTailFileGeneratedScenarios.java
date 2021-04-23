@@ -27,7 +27,7 @@ import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 
-//@Ignore("Stress test - longrunning. For manual testing.")
+@Ignore("Stress test - longrunning. For manual testing.")
 @RunWith(Parameterized.class)
 public class TestTailFileGeneratedScenarios extends AbstractTestTailFileScenario {
     private final List<Action> actions;
