@@ -59,6 +59,7 @@
 
     <bean id="decommissionTask" class="org.apache.nifi.cluster.lifecycle.ClusterDecommissionTask">
         <constructor-arg ref="clusterCoordinator" />
+        <constructor-arg ref="flowController" />
     </bean>
 
 </beans>

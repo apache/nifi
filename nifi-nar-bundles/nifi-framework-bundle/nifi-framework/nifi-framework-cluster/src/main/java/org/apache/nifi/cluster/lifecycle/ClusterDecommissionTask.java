@@ -24,6 +24,7 @@ import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
 import org.apache.nifi.cluster.coordination.node.OffloadCode;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.controller.DecommissionTask;
+import org.apache.nifi.controller.FlowController;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,10 +41,12 @@ public class ClusterDecommissionTask implements DecommissionTask {
     private static final int delaySeconds = 3;
 
     private final ClusterCoordinator clusterCoordinator;
+    private final FlowController flowController;
     private NodeIdentifier localNodeIdentifier;
 
-    public ClusterDecommissionTask(final ClusterCoordinator clusterCoordinator) {
+    public ClusterDecommissionTask(final ClusterCoordinator clusterCoordinator, final FlowController flowController) {
         this.clusterCoordinator = clusterCoordinator;
+        this.flowController = flowController;
     }
 
     @Override
@@ -57,6 +60,10 @@ public class ClusterDecommissionTask implements DecommissionTask {
         if (localNodeIdentifier == null) {
             throw new IllegalStateException("Node has not yet connected to the cluster");
         }
+
+        flowController.stopHeartbeating();
+        flowController.setClustered(false, null);
+        logger.info("Instructed FlowController to stop sending heartbeats to Cluster Coordinator and take Cluster Disconnect actions");
 
         disconnectNode();
         logger.info("Requested that node be disconnected from cluster");
