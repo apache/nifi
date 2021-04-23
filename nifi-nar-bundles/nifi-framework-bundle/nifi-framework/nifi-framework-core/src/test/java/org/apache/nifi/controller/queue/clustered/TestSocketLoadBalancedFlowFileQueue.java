@@ -19,6 +19,7 @@ package org.apache.nifi.controller.queue.clustered;
 
 import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.ClusterTopologyEventListener;
+import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.MockFlowFileRecord;
@@ -428,6 +429,33 @@ public class TestSocketLoadBalancedFlowFileQueue {
         }
     }
 
+    @Test
+    public void testOffloadAndReconnectKeepsQueueInCorrectOrder() {
+        // Simulate FirstNodePartitioner, which always selects the first node in the partition queue
+        queue.setFlowFilePartitioner(new StaticFlowFilePartitioner(0));
+
+        QueuePartition firstPartition = queue.putAndGetPartition(new MockFlowFileRecord());
+
+        final NodeIdentifier node1Identifier = nodeIds.get(0);
+        final NodeIdentifier node2Identifier = nodeIds.get(1);
+
+        // The local node partition starts out first
+        Assert.assertEquals("local", firstPartition.getSwapPartitionName());
+
+        // Simulate offloading the first node
+        clusterTopologyEventListener.onNodeStateChange(node1Identifier, NodeConnectionState.OFFLOADING);
+
+        // Now the remote partition for the second node should be returned
+        firstPartition = queue.putAndGetPartition(new MockFlowFileRecord());
+        Assert.assertEquals(node2Identifier, firstPartition.getNodeIdentifier().get());
+
+        // Simulate reconnecting the first node
+        clusterTopologyEventListener.onNodeStateChange(node1Identifier, NodeConnectionState.CONNECTED);
+
+        // Now the local node partition is returned again
+        firstPartition = queue.putAndGetPartition(new MockFlowFileRecord());
+        Assert.assertEquals("local", firstPartition.getSwapPartitionName());
+    }
 
     @Test(timeout = 30000)
     public void testChangeInClusterTopologyTriggersRebalanceOnlyOnRemovedNodeIfNecessary() throws InterruptedException {
