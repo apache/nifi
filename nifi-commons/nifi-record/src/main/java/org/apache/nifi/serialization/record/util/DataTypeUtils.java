@@ -1957,8 +1957,6 @@ public class DataTypeUtils {
                 return RecordFieldType.BOOLEAN.getDataType();
             case Types.TINYINT:
                 return RecordFieldType.BYTE.getDataType();
-            case Types.CHAR:
-                return RecordFieldType.CHAR.getDataType();
             case Types.DATE:
                 return RecordFieldType.DATE.getDataType();
             case Types.DOUBLE:
@@ -1971,6 +1969,7 @@ public class DataTypeUtils {
                 return RecordFieldType.INT.getDataType();
             case Types.SMALLINT:
                 return RecordFieldType.SHORT.getDataType();
+            case Types.CHAR:
             case Types.VARCHAR:
             case Types.LONGNVARCHAR:
             case Types.LONGVARCHAR:
