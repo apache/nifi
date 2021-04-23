@@ -16,10 +16,12 @@
  */
 package org.apache.nifi.processors.standard;
 
+import org.apache.commons.lang3.SystemUtils;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.After;
+import org.junit.Assume;
 import org.junit.Before;
 
 import java.io.File;
@@ -121,13 +123,16 @@ public class AbstractTestTailFileScenario {
     }
 
     public void testScenario(List<Action> actions, boolean stopAfterEachTrigger) throws Exception {
+        if (actions.contains(Action.ROLLOVER)) {
+            Assume.assumeTrue("Test wants to rename an open file which is not allowed on Windows", !SystemUtils.IS_OS_WINDOWS);
+        }
+
         // GIVEN
         this.stopAfterEachTrigger.set(stopAfterEachTrigger);
 
         // WHEN
         for (Action action : actions) {
             action.run(this);
-//            Thread.sleep(20);
         }
         overwriteRemainingNuls();
         Action.WRITE_NEW_LINE.run(this);
@@ -200,7 +205,6 @@ public class AbstractTestTailFileScenario {
 
     private void overwriteNul() throws IOException {
         if (!nulPositions.isEmpty()) {
-//            Long nulPosition = nulPositions.poll();
             Long nulPosition = nulPositions.remove(random.nextInt(nulPositions.size()));
 
             long currentPosition = randomAccessFile.getFilePointer();
@@ -240,56 +244,27 @@ public class AbstractTestTailFileScenario {
     }
 
     protected enum Action {
-        WRITE_WORD {
-            @Override
-            void run(AbstractTestTailFileScenario currentTest) throws Exception {
-                currentTest.writeWord();
-            }
-        },
-        WRITE_NEW_LINE {
-            @Override
-            void run(AbstractTestTailFileScenario currentTest) throws Exception {
-                currentTest.writeNewLine();
-            }
-        },
-        WRITE_NUL {
-            @Override
-            void run(AbstractTestTailFileScenario currentTest) throws Exception {
-                currentTest.writeNul();
-            }
-        },
-        OVERWRITE_NUL {
-            @Override
-            void run(AbstractTestTailFileScenario currentTest) throws Exception {
-                currentTest.overwriteNul();
-            }
-        },
-        TRIGGER {
-            @Override
-            void run(AbstractTestTailFileScenario currentTest) {
-                currentTest.trigger();
-            }
-        },
-        ROLLOVER {
-            @Override
-            void run(AbstractTestTailFileScenario currentTest) throws Exception {
-                currentTest.rollover();
-            }
-        },
-        SWITCH_FILE {
-            @Override
-            void run(AbstractTestTailFileScenario currentTest) throws Exception {
-                currentTest.switchFile();
-            }
-        },
-        EXPIRE_ROLLOVER_WAIT_PERIOD {
-            @Override
-            void run(AbstractTestTailFileScenario currentTest) throws Exception {
-                currentTest.expireRolloverWaitPeriod();
-            }
-        };
+        WRITE_WORD(AbstractTestTailFileScenario::writeWord),
+        WRITE_NEW_LINE(AbstractTestTailFileScenario::writeNewLine),
+        WRITE_NUL(AbstractTestTailFileScenario::writeNul),
+        OVERWRITE_NUL(AbstractTestTailFileScenario::overwriteNul),
+        TRIGGER(AbstractTestTailFileScenario::trigger),
+        ROLLOVER(AbstractTestTailFileScenario::rollover),
+        SWITCH_FILE(AbstractTestTailFileScenario::switchFile),
+        EXPIRE_ROLLOVER_WAIT_PERIOD(AbstractTestTailFileScenario::expireRolloverWaitPeriod);
+
+        private final ActionRunner actionRunner;
+
+        Action(ActionRunner actionRunner) {
+            this.actionRunner = actionRunner;
+        }
 
         void run(AbstractTestTailFileScenario currentTest) throws Exception {
+            actionRunner.runAction(currentTest);
         }
+    }
+
+    private interface ActionRunner {
+        void runAction(AbstractTestTailFileScenario currentTest) throws Exception;
     }
 }
