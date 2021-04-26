@@ -697,9 +697,21 @@ public class PutDatabaseRecord extends AbstractProcessor {
                         Object currentValue = values[currentFieldIndex];
                         final DataType dataType = dataTypes.get(currentFieldIndex);
                         final int fieldSqlType = DataTypeUtils.getSQLTypeValue(dataType);
+                        final String fieldName = currentRecord.getSchema().getField(currentFieldIndex).getFieldName();
                         String columnName = normalizeColumnName(currentRecord.getSchema().getField(currentFieldIndex).getFieldName(), settings.translateFieldNames);
+                        int sqlType;
                         final ColumnDescription column = tableSchema.getColumns().get(columnName);
-                        int sqlType = column.dataType;
+                        // 'column' should not be null here as the fieldIndexes should correspond to fields that match table columns, but better to handle just in case
+                        if (column == null) {
+                            if (!settings.ignoreUnmappedFields) {
+                                throw new SQLDataException("Cannot map field '" + fieldName + "' to any column in the database\n"
+                                        + (settings.translateFieldNames ? "Normalized " : "") + "Columns: " + String.join(",", tableSchema.getColumns().keySet()));
+                            } else {
+                                sqlType = fieldSqlType;
+                            }
+                        } else {
+                            sqlType = column.dataType;
+                        }
 
                         // Convert (if necessary) from field data type to column data type
                         if (fieldSqlType != sqlType) {
@@ -709,7 +721,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
                                     currentValue = DataTypeUtils.convertType(
                                             currentValue,
                                             targetDataType,
-                                            currentRecord.getSchema().getField(currentFieldIndex).getFieldName());
+                                            fieldName);
                                 }
                             } catch (IllegalTypeConversionException itce) {
                                 // If the field and column types don't match or the value can't otherwise be converted to the column datatype,
