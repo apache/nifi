@@ -336,6 +336,7 @@ public class Query {
                 }
 
                 addLiteralsAndParameters(parameterParser, treeText, expressions, true);
+                lastIndex = range.getEnd() + 1;
             }
 
             if (escapedRanges.isEmpty()) {

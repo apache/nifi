@@ -123,6 +123,18 @@ public class TestQuery {
         final PreparedQuery mixedQuery = Query.prepare("${foo}$${foo}");
         final String mixedEvaluated = mixedQuery.evaluateExpressions(new StandardEvaluationContext(variables), null);
         assertEquals("bar${foo}", mixedEvaluated);
+
+        final PreparedQuery multipleEscapedQuery = Query.prepare("$${foo}$${bar}");
+        final String multipleEscapedEvaluated = multipleEscapedQuery.evaluateExpressions(new StandardEvaluationContext(variables), null);
+        assertEquals("${foo}${bar}", multipleEscapedEvaluated);
+
+        final PreparedQuery multipleEscapedWithTextQuery = Query.prepare("foo$${foo}bar$${bar}");
+        final String multipleEscapedWithTextEvaluated = multipleEscapedWithTextQuery.evaluateExpressions(new StandardEvaluationContext(variables), null);
+        assertEquals("foo${foo}bar${bar}", multipleEscapedWithTextEvaluated);
+
+        final PreparedQuery multipleMixedQuery = Query.prepare("foo${foo}$${foo}bar${bar}$${bar}");
+        final String multipleMixedEvaluated = multipleMixedQuery.evaluateExpressions(new StandardEvaluationContext(variables), null);
+        assertEquals("foobar${foo}bar${bar}", multipleMixedEvaluated);
     }
 
     private void assertValid(final String query) {
