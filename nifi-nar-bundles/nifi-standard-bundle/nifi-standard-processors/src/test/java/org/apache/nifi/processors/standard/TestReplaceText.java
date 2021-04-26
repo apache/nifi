@@ -1641,6 +1641,50 @@ public class TestReplaceText {
         out.assertContentEquals("WO$1R$2D");
     }
 
+    @Test
+    public void testSubstituteVariablesWithEvaluationModeEntireText() {
+        testSubstituteVariables("Line1: ${var1}\nLine2: ${var2}", "Line1: foo\nLine2: bar", ReplaceText.ENTIRE_TEXT, createAttributesMap());
+    }
+
+    @Test
+    public void testSubstituteVariablesWithEvaluationModeLineByLine() {
+        testSubstituteVariables("Line1: ${var1}\nLine2: ${var2}", "Line1: foo\nLine2: bar", ReplaceText.LINE_BY_LINE, createAttributesMap());
+    }
+
+    @Test
+    public void testSubstituteVariablesWhenVariableValueMissing() {
+        testSubstituteVariables("Line1: ${var1}\nLine2: ${var2}", "Line1: ${var1}\nLine2: ${var2}", ReplaceText.ENTIRE_TEXT, Collections.emptyMap());
+    }
+
+    @Test
+    public void testSubstituteVariablesWhenVariableReferenceEscaped() {
+        testSubstituteVariables("Line1: $${var1}\nLine2: $${var2}", "Line1: ${var1}\nLine2: ${var2}", ReplaceText.ENTIRE_TEXT, createAttributesMap());
+    }
+
+    @Test
+    public void testSubstituteVariablesWhenVariableNameEmpty() {
+        testSubstituteVariables("Line1: ${}\nLine2: ${}", "Line1: ${}\nLine2: ${}", ReplaceText.ENTIRE_TEXT, createAttributesMap());
+    }
+
+    private void testSubstituteVariables(String inputContent, String expectedContent, String evaluationMode, Map<String, String> attributesMap) {
+        final TestRunner runner = getRunner();
+        runner.setProperty(ReplaceText.EVALUATION_MODE, evaluationMode);
+        runner.setProperty(ReplaceText.REPLACEMENT_STRATEGY, ReplaceText.SUBSTITUTE_VARIABLES.getValue());
+        runner.enqueue(inputContent, attributesMap);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ReplaceText.REL_SUCCESS, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(ReplaceText.REL_SUCCESS).get(0);
+        out.assertContentEquals(expectedContent);
+    }
+
+    private Map<String, String> createAttributesMap() {
+        final Map<String, String> attributesMap = new HashMap<>();
+        attributesMap.put("var1", "foo");
+        attributesMap.put("var2", "bar");
+        return attributesMap;
+    }
+
     /*
      * A repeated alternation regex such as (A|B)* can lead to StackOverflowError
      * on large input strings.
