@@ -314,7 +314,7 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
             if (proposedStatus.getState() == NodeConnectionState.REMOVED) {
                 removeNode(nodeId);
             } else {
-                updateNodeStatus(nodeId, proposedStatus, false);
+                forcefullyUpdateNodeStatus(nodeId, proposedStatus, false);
             }
         }
 
@@ -341,11 +341,45 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
         return removed;
     }
 
+    /**
+     * Updates the status of the node with the given ID to the given status if and only if the updated status's Update ID is >= the Update ID of the current
+     * Node status or if the is currently no node with the given identifier
+     * @param nodeId the NodeIdentifier for the node whose ID is to be updated
+     * @param updatedStatus the new status for the node
+     * @return the previous status for the node
+     */
     private NodeConnectionStatus updateNodeStatus(final NodeIdentifier nodeId, final NodeConnectionStatus updatedStatus) {
         return updateNodeStatus(nodeId, updatedStatus, true);
     }
 
     private NodeConnectionStatus updateNodeStatus(final NodeIdentifier nodeId, final NodeConnectionStatus updatedStatus, final boolean storeState) {
+        final String nodeUuid = nodeId.getId();
+
+        while (true) {
+            final NodeConnectionStatus currentStatus = nodeStatuses.get(nodeUuid);
+            if (currentStatus == null) {
+                onNodeAdded(nodeId, storeState);
+
+                // Return null because that was the previous state
+                return null;
+            }
+
+            if (currentStatus.getUpdateIdentifier() > updatedStatus.getUpdateIdentifier()) {
+                logger.debug("Received status update {} but ignoring it because it has an Update ID of {} and the current status has an Update ID of {}",
+                    updatedStatus, updatedStatus.getUpdateIdentifier(), currentStatus.getUpdateIdentifier());
+                return currentStatus;
+            }
+
+            final boolean updated = nodeStatuses.replace(nodeUuid, currentStatus, updatedStatus);
+            if (updated) {
+                onNodeStateChange(nodeId, updatedStatus.getState());
+                logger.info("Status of {} changed from {} to {}", nodeId, currentStatus, updatedStatus);
+                return currentStatus;
+            }
+        }
+    }
+
+    private NodeConnectionStatus forcefullyUpdateNodeStatus(final NodeIdentifier nodeId, final NodeConnectionStatus updatedStatus, final boolean storeState) {
         final NodeConnectionStatus evictedStatus = nodeStatuses.put(nodeId.getId(), updatedStatus);
         if (evictedStatus == null) {
             onNodeAdded(nodeId, storeState);
@@ -836,12 +870,12 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
     void updateNodeStatus(final NodeConnectionStatus status, final boolean waitForCoordinator) {
         final NodeIdentifier nodeId = status.getNodeIdentifier();
 
-        // In this case, we are using nodeStatuses.put() instead of getting the current value and
+        // In this case, we are using nodeStatuses.put() (i.e., forcefully updating node status) instead of getting the current value and
         // comparing that to the new value and using the one with the largest update id. This is because
         // this method is called when something occurs that causes this node to change the status of the
         // node in question. We only use comparisons against the current value when we receive an update
         // about a node status from a different node, since those may be received out-of-order.
-        final NodeConnectionStatus currentStatus = updateNodeStatus(nodeId, status);
+        final NodeConnectionStatus currentStatus = forcefullyUpdateNodeStatus(nodeId, status, true);
         final NodeConnectionState currentState = currentStatus == null ? null : currentStatus.getState();
         if (Objects.equals(status, currentStatus)) {
             logger.debug("Received notification of Node Status Change for {} but the status remained the same: {}", nodeId, status);
@@ -1111,12 +1145,12 @@ public class NodeClusterCoordinator implements ClusterCoordinator, ProtocolHandl
         if (statusChangeMessage.getNodeConnectionStatus().getState() == NodeConnectionState.REMOVED) {
             if (removeNodeConditionally(nodeId, oldStatus)) {
                 storeState();
+                logger.info("Status of {} changed from {} to {}", statusChangeMessage.getNodeId(), oldStatus, updatedStatus);
             }
         } else {
             updateNodeStatus(nodeId, updatedStatus);
         }
 
-        logger.info("Status of {} changed from {} to {}", statusChangeMessage.getNodeId(), oldStatus, updatedStatus);
         logger.debug("State of cluster nodes is now {}", nodeStatuses);
 
         final NodeConnectionStatus status = statusChangeMessage.getNodeConnectionStatus();
