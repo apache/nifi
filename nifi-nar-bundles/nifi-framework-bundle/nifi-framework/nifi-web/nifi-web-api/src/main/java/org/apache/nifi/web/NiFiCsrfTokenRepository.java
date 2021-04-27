@@ -16,50 +16,26 @@
 package org.apache.nifi.web;
 
 
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.security.web.csrf.CsrfTokenRepository;
 import org.springframework.security.web.csrf.DefaultCsrfToken;
-import org.springframework.util.Assert;
-import org.springframework.util.ReflectionUtils;
-import org.springframework.util.StringUtils;
-import org.springframework.web.util.WebUtils;
 
-import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.lang.reflect.Method;
 
 /**
  * A {@link CsrfTokenRepository} implementation for NiFi that matches the NiFi Cookie JWT against the
  * Authorization header JWT to protect against CSRF. If the request is an idempotent method type, then only the Cookie
  * is required to be present - this allows authenticating access to static resources using a Cookie. If the request is a non-idempotent
  * method, NiFi requires the Authorization header (eg. for POST requests).
- *
- * @author Rob Winch
- * @since 4.1
  */
 public final class NiFiCsrfTokenRepository implements CsrfTokenRepository {
-    static final String DEFAULT_CSRF_COOKIE_NAME = "XSRF-TOKEN";
 
-    static final String DEFAULT_CSRF_PARAMETER_NAME = "_csrf";
-
-    static final String DEFAULT_CSRF_HEADER_NAME = "X-XSRF-TOKEN";
-
-    private String parameterName = DEFAULT_CSRF_PARAMETER_NAME;
-
-    private String headerName = DEFAULT_CSRF_HEADER_NAME;
-
-    private String cookieName = DEFAULT_CSRF_COOKIE_NAME;
-
-    private final Method setHttpOnlyMethod;
-
-    private boolean cookieHttpOnly;
+    private CookieCsrfTokenRepository cookieRepository;
 
     public NiFiCsrfTokenRepository() {
-        this.setHttpOnlyMethod = ReflectionUtils.findMethod(Cookie.class, "setHttpOnly", boolean.class);
-        if (this.setHttpOnlyMethod != null) {
-            this.cookieHttpOnly = true;
-        }
+        cookieRepository = new CookieCsrfTokenRepository();
     }
 
     @Override
@@ -75,16 +51,9 @@ public final class NiFiCsrfTokenRepository implements CsrfTokenRepository {
 
     @Override
     public CsrfToken loadToken(HttpServletRequest request) {
-        Cookie cookie = WebUtils.getCookie(request, this.cookieName);
-        if (cookie == null) {
-            return null;
-        }
-        String token = cookie.getValue();
-        if (!StringUtils.hasLength(token)) {
-            return null;
-        }
+        CsrfToken cookie = cookieRepository.loadToken(request);
         // We add the Bearer string here in order to match the Authorization header on comparison in CsrfFilter
-        return new DefaultCsrfToken(this.headerName, this.parameterName, String.format("Bearer %s", token));
+        return cookie != null ? new DefaultCsrfToken(cookie.getHeaderName(), cookie.getParameterName(), String.format("Bearer %s", cookie.getToken())) : null;
     }
 
     /**
@@ -94,8 +63,7 @@ public final class NiFiCsrfTokenRepository implements CsrfTokenRepository {
      * provide a token
      */
     public void setParameterName(String parameterName) {
-        Assert.notNull(parameterName, "parameterName is not null");
-        this.parameterName = parameterName;
+        cookieRepository.setParameterName(parameterName);
     }
 
     /**
@@ -105,8 +73,7 @@ public final class NiFiCsrfTokenRepository implements CsrfTokenRepository {
      * token
      */
     public void setHeaderName(String headerName) {
-        Assert.notNull(headerName, "headerName is not null");
-        this.headerName = headerName;
+        cookieRepository.setHeaderName(headerName);
     }
 
     /**
@@ -116,7 +83,6 @@ public final class NiFiCsrfTokenRepository implements CsrfTokenRepository {
      * and read from
      */
     public void setCookieName(String cookieName) {
-        Assert.notNull(cookieName, "cookieName is not null");
-        this.cookieName = cookieName;
+        cookieRepository.setCookieName(cookieName);
     }
 }

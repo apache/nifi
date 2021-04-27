@@ -47,7 +47,7 @@ public class JwtAuthenticationFilter extends NiFiAuthenticationFilter {
 
         if (StringUtils.isNotBlank(headerToken)) {
             return new JwtAuthenticationRequestToken(headerToken, request.getRemoteAddr());
-        } else if (StringUtils.isNotBlank(WebUtils.getCookie(request, JWT_COOKIE_NAME).getValue())) {
+        } else if (WebUtils.getCookie(request, JWT_COOKIE_NAME) != null) {
             return new JwtAuthenticationRequestToken(WebUtils.getCookie(request, JWT_COOKIE_NAME).getValue(), request.getRemoteAddr());
         } else {
             return null;
