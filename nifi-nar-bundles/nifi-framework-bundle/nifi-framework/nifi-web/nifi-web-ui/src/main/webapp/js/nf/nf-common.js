@@ -91,7 +91,7 @@
         });
 
         // shows the logout link in the message-pane when appropriate and schedule token refresh
-        if (nfCommon.logOutEnabled()) {
+        if (nfStorage.getItem('jwt') !== null) {
             $('#user-logout-container').css('display', 'block');
             nfCommon.scheduleTokenRefresh();
         }
@@ -853,21 +853,10 @@
          * Shows the logout link if appropriate.
          */
         showLogoutLink: function () {
-            if (nfCommon.logOutEnabled()) {
+            if (nfStorage.getItem('jwt') !== null) {
                 $('#user-logout-container').css('display', 'block');
             } else {
                 $('#user-logout-container').css('display', 'none');
-            }
-        },
-
-        /**
-         * Determines whether the current user can version flows.
-         */
-        logOutEnabled: function () {
-            if (nfCommon.isDefinedAndNotNull(nfCommon.currentUser)) {
-                return nfCommon.currentUser.logOutEnabled === true;
-            } else {
-                return false;
             }
         },
 

@@ -266,11 +266,6 @@ public class TestVolatileProvenanceRepository {
             public String getClientAddress() {
                 return null;
             }
-
-            @Override
-            public boolean logOutEnabled() {
-                return true;
-            }
         };
     }
 }

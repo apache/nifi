@@ -40,6 +40,7 @@ import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.util.ComponentIdGenerator;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.security.ProxiedEntitiesUtils;
+import org.apache.nifi.web.security.jwt.JwtAuthenticationFilter;
 import org.apache.nifi.web.security.jwt.NiFiBearerTokenResolver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -249,20 +250,8 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
         // if knox sso cookie name is set, remove any authentication cookie since this user is already authenticated
         // and will be included in the proxied entities chain above... authorization will happen when the
         // request is replicated
-        final String knoxCookieName = nifiProperties.getKnoxCookieName();
-        if (headers.containsKey("Cookie") && StringUtils.isNotBlank(knoxCookieName)) {
-            final String rawCookies = headers.get("Cookie");
-            final String[] rawCookieParts = rawCookies.split(";");
-            final Set<String> filteredCookieParts = Stream.of(rawCookieParts).map(String::trim).filter(cookie -> !cookie.startsWith(knoxCookieName + "=")).collect(Collectors.toSet());
-
-            // if that was the only cookie, remove it
-            if (filteredCookieParts.isEmpty()) {
-                headers.remove("Cookie");
-            } else {
-                // otherwise rebuild the cookies without the knox token
-                headers.put("Cookie", StringUtils.join(filteredCookieParts, "; "));
-            }
-        }
+        removeCookie(headers, nifiProperties.getKnoxCookieName());
+        removeCookie(headers, JwtAuthenticationFilter.JWT_COOKIE_NAME);
 
         // remove the host header
         headers.remove("Host");
@@ -868,5 +857,21 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
 
         expiredRequestIds.forEach(id -> onResponseConsumed(id));
         return responseMap.size();
+    }
+
+    private void removeCookie(Map<String, String> headers, final String cookieName) {
+        if (headers.containsKey("Cookie") && StringUtils.isNotBlank(cookieName)) {
+            final String rawCookies = headers.get("Cookie");
+            final String[] rawCookieParts = rawCookies.split(";");
+            final Set<String> filteredCookieParts = Stream.of(rawCookieParts).map(String::trim).filter(cookie -> !cookie.startsWith(cookieName + "=")).collect(Collectors.toSet());
+
+            // if that was the only cookie, remove it
+            if (filteredCookieParts.isEmpty()) {
+                headers.remove("Cookie");
+            } else {
+                // otherwise rebuild the cookies without the knox token
+                headers.put("Cookie", StringUtils.join(filteredCookieParts, "; "));
+            }
+        }
     }
 }

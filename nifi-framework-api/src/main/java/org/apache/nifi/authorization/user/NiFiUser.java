@@ -60,10 +60,4 @@ public interface NiFiUser {
      * @return the address of the client that made the request which created this user
      */
     String getClientAddress();
-
-    /**
-     * @return <code>true</code> if the user can use the log out button
-     */
-    boolean logOutEnabled();
-
 }

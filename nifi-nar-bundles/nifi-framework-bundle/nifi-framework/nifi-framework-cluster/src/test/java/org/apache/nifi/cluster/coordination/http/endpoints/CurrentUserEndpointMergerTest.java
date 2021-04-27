@@ -48,7 +48,6 @@ public class CurrentUserEndpointMergerTest {
         userNode1.setRestrictedComponentsPermissions(buildPermissions(false, false));
         userNode1.setSystemPermissions(buildPermissions(true, true));
         userNode1.setTenantsPermissions(buildPermissions(false, true));
-        userNode1.setLogOutEnabled(true);
 
         final Set<ComponentRestrictionPermissionDTO> componentRestrictionsNode1 = new HashSet<>();
         componentRestrictionsNode1.add(buildComponentRestriction(RequiredPermission.ACCESS_KEYTAB, true, true));
@@ -79,7 +78,6 @@ public class CurrentUserEndpointMergerTest {
         final CurrentUserEndpointMerger merger = new CurrentUserEndpointMerger();
         merger.mergeResponses(userNode1, entityMap, Collections.emptySet(), Collections.emptySet());
 
-        assertTrue(userNode1.isLogOutEnabled());
         assertFalse(userNode1.getControllerPermissions().getCanRead());
         assertFalse(userNode1.getControllerPermissions().getCanWrite());
         assertTrue(userNode1.getCountersPermissions().getCanRead());

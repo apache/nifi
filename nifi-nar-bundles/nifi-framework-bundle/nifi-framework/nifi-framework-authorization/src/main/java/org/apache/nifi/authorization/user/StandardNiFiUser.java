@@ -36,7 +36,6 @@ public class StandardNiFiUser implements NiFiUser {
     private final NiFiUser chain;
     private final String clientAddress;
     private final boolean isAnonymous;
-    private final boolean logOutEnabled;
 
     private StandardNiFiUser(final Builder builder) {
         this.identity = builder.identity;
@@ -45,7 +44,6 @@ public class StandardNiFiUser implements NiFiUser {
         this.chain = builder.chain;
         this.clientAddress = builder.clientAddress;
         this.isAnonymous = builder.isAnonymous;
-        this.logOutEnabled = builder.logOutEnabled;
 
         final Set<String> combineGroups = new HashSet<>();
         if (this.groups != null) {
@@ -99,11 +97,6 @@ public class StandardNiFiUser implements NiFiUser {
     }
 
     @Override
-    public boolean logOutEnabled() {
-        return logOutEnabled;
-    }
-
-    @Override
     public String getClientAddress() {
         return clientAddress;
     }
@@ -152,7 +145,6 @@ public class StandardNiFiUser implements NiFiUser {
         private NiFiUser chain;
         private String clientAddress;
         private boolean isAnonymous = false;
-        private boolean logOutEnabled = false;
 
         /**
          * Sets the identity.
@@ -217,16 +209,6 @@ public class StandardNiFiUser implements NiFiUser {
          */
         private Builder anonymous(final boolean isAnonymous) {
             this.isAnonymous = isAnonymous;
-            return this;
-        }
-
-        /**
-         * Sets whether the user can request to log out of NiFi, with JWT based authentication mechanisms such as LDAP
-         * @param logOutEnabled true if the user can log out using the Log Out button on the canvas
-         * @return the builder
-         */
-        public Builder logOutEnabled(final boolean logOutEnabled) {
-            this.logOutEnabled = logOutEnabled;
             return this;
         }
 

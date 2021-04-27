@@ -409,11 +409,6 @@ public class TestLuceneEventIndex {
             public String getClientAddress() {
                 return "127.0.0.1";
             }
-
-            @Override
-            public boolean logOutEnabled() {
-                return true;
-            }
         };
     }
 

@@ -159,6 +159,8 @@
         init: function () {
             nfStorage.init();
 
+            nfCommon.showLogoutLink();
+
             // supporting logging in via enter press
             $('#username, #password').on('keyup', function (e) {
                 var code = e.keyCode ? e.keyCode : e.which;
@@ -223,10 +225,6 @@
                     initializeSubmission();
                 }
             });
-
-            if (nfCommon.logOutEnabled()) {
-                nfCommon.showLogoutLink();
-            }
         }
     };
 

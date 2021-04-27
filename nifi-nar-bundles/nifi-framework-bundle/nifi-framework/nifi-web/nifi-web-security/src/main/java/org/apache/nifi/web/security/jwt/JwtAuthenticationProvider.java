@@ -61,7 +61,6 @@ public class JwtAuthenticationProvider extends NiFiAuthenticationProvider {
                     .groups(userGroupProviderGroups)
                     .identityProviderGroups(idpUserGroups)
                     .clientAddress(request.getClientAddress())
-                    .logOutEnabled(true)
                     .build();
 
             return new NiFiAuthenticationToken(new NiFiUserDetails(user));
