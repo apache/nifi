@@ -154,11 +154,25 @@ public class KeyStoreUtils {
 
     /**
      * Creates a temporary Keystore and Truststore and returns it wrapped in a new TLS configuration with the given values.
+     * Specifies an expiration duration of 365 days.
      *
      * @param tlsConfiguration a {@link org.apache.nifi.security.util.TlsConfiguration}
      * @return a {@link org.apache.nifi.security.util.TlsConfiguration}
      */
     public static TlsConfiguration createTlsConfigAndNewKeystoreTruststore(final TlsConfiguration tlsConfiguration) throws IOException, GeneralSecurityException {
+        return createTlsConfigAndNewKeystoreTruststore(tlsConfiguration, CERT_DURATION_DAYS, null);
+    }
+
+    /**
+     * Creates a temporary Keystore and Truststore and returns it wrapped in a new TLS configuration with the given values.
+     *
+     * @param tlsConfiguration a {@link org.apache.nifi.security.util.TlsConfiguration}
+     * @param certDurationDays The number of days the cert should be valid
+     * @param dnsSubjectAlternativeNames An optional array of dnsName SANs
+     * @return a {@link org.apache.nifi.security.util.TlsConfiguration}
+     */
+    public static TlsConfiguration createTlsConfigAndNewKeystoreTruststore(final TlsConfiguration tlsConfiguration, int certDurationDays,
+                                                                           String[] dnsSubjectAlternativeNames) throws IOException, GeneralSecurityException {
         final Path keyStorePath;
         final String keystorePassword = StringUtils.isNotBlank(tlsConfiguration.getKeystorePassword()) ? tlsConfiguration.getKeystorePassword() : generatePassword();
         final KeystoreType keystoreType = tlsConfiguration.getKeystoreType() != null ? tlsConfiguration.getKeystoreType() : KeystoreType.PKCS12;
@@ -184,7 +198,8 @@ public class KeyStoreUtils {
         }
 
         // Create X509 Certificate
-        final X509Certificate clientCert = createKeyStoreAndGetX509Certificate(KEY_ALIAS, keystorePassword, keyPassword, keyStorePath.toString(), keystoreType);
+        final X509Certificate clientCert = createKeyStoreAndGetX509Certificate(KEY_ALIAS, keystorePassword, keyPassword,
+                keyStorePath.toString(), keystoreType, certDurationDays, dnsSubjectAlternativeNames);
 
         // Create Truststore
         createTrustStore(clientCert, CERT_ALIAS, truststorePassword, trustStorePath.toString(), truststoreType);
@@ -459,12 +474,31 @@ public class KeyStoreUtils {
     private static X509Certificate createKeyStoreAndGetX509Certificate(
             final String alias, final String keyStorePassword, final String keyPassword, final String keyStorePath,
             final KeystoreType keyStoreType) throws IOException, KeyStoreException, NoSuchAlgorithmException, CertificateException {
+        return createKeyStoreAndGetX509Certificate(alias, keyStorePassword, keyPassword, keyStorePath, keyStoreType, CERT_DURATION_DAYS,
+                null);
+    }
+    /**
+     * Loads the Keystore and returns a X509 Certificate with the given values.
+     *
+     * @param alias            the certificate alias
+     * @param keyStorePassword the keystore password
+     * @param keyPassword      the key password
+     * @param keyStorePath     the keystore path
+     * @param keyStoreType     the keystore type
+     * @param dnsSubjectAlternativeNames An optional array of dnsName SANs
+     * @param certDurationDays     the duration of the validity of the certificate, in days
+     * @return a {@link X509Certificate}
+     */
+    private static X509Certificate createKeyStoreAndGetX509Certificate(
+            final String alias, final String keyStorePassword, final String keyPassword, final String keyStorePath,
+            final KeystoreType keyStoreType, int certDurationDays, String[] dnsSubjectAlternativeNames)
+            throws IOException, KeyStoreException, NoSuchAlgorithmException, CertificateException {
 
         try (final FileOutputStream outputStream = new FileOutputStream(keyStorePath)) {
             final KeyPair keyPair = KeyPairGenerator.getInstance(KEY_ALGORITHM).generateKeyPair();
 
             final X509Certificate selfSignedCert = CertificateUtils.generateSelfSignedX509Certificate(
-                    keyPair, CERT_DN, SIGNING_ALGORITHM, CERT_DURATION_DAYS
+                    keyPair, CERT_DN, SIGNING_ALGORITHM, certDurationDays, dnsSubjectAlternativeNames
             );
 
             final KeyStore keyStore = loadEmptyKeyStore(keyStoreType);

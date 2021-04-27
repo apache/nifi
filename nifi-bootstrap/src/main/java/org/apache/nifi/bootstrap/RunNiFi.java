@@ -16,6 +16,14 @@
  */
 package org.apache.nifi.bootstrap;
 
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.bootstrap.notification.NotificationType;
+import org.apache.nifi.bootstrap.util.OSUtils;
+import org.apache.nifi.bootstrap.util.SecureNiFiConfigUtil;
+import org.apache.nifi.util.file.FileUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -60,12 +68,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.bootstrap.notification.NotificationType;
-import org.apache.nifi.bootstrap.util.OSUtils;
-import org.apache.nifi.util.file.FileUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * <p>
@@ -1108,6 +1110,12 @@ public class RunNiFi {
                     javaCmd = javaFile.getAbsolutePath();
                 }
             }
+        }
+
+        try {
+            SecureNiFiConfigUtil.configureSecureNiFiProperties(nifiPropsFilename, cmdLogger);
+        } catch (IOException | RuntimeException e) {
+            cmdLogger.error("Self-Signed Certificate Generation Failed", e);
         }
 
         final NiFiListener listener = new NiFiListener();

@@ -53,6 +53,7 @@ import org.apache.nifi.processor.StandardValidationContext;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.security.util.StandardTlsConfiguration;
+import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.security.util.TlsException;
 import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
@@ -211,7 +212,7 @@ public class StandardStateManagerProvider implements StateManagerProvider {
         }
 
         final SSLContext sslContext;
-        StandardTlsConfiguration standardTlsConfiguration = StandardTlsConfiguration.fromNiFiProperties(properties);
+        TlsConfiguration standardTlsConfiguration = StandardTlsConfiguration.fromNiFiProperties(properties);
         try {
             sslContext = SslContextFactory.createSslContext(standardTlsConfiguration);
         } catch (TlsException e) {
