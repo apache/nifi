@@ -48,6 +48,7 @@
         <module>nifi-socket-utils</module>
         <module>nifi-utils</module>
         <module>nifi-uuid5</module>
+        <module>nifi-vault-utils</module>
         <module>nifi-web-utils</module>
         <module>nifi-write-ahead-log</module>
     </modules>
