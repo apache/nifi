@@ -33,17 +33,17 @@ limitations under the License.
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-processor-utils</artifactId>
-            <version>${org.apache.nifi.version}</version>
+            <version>1.14.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-update-attribute-processor</artifactId>
-            <version>${org.apache.nifi.version}</version>
+            <version>1.14.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-update-attribute-model</artifactId>
-            <version>${org.apache.nifi.version}</version>
+            <version>1.14.0-SNAPSHOT</version>
         </dependency>
     </dependencies>
 </project>
