@@ -148,10 +148,16 @@
         <nifi.web.request.ip.whitelist />
         <nifi.web.should.send.server.version>true</nifi.web.should.send.server.version>
         <!-- nifi.properties: security properties -->
+        <!-- Use these values once we change default configuration to be HTTPS
+        <nifi.security.keystore>./conf/keystore.p12</nifi.security.keystore>
+        <nifi.security.keystoreType>PKCS12</nifi.security.keystoreType> -->
         <nifi.security.keystore />
         <nifi.security.keystoreType />
         <nifi.security.keystorePasswd />
         <nifi.security.keyPasswd />
+        <!-- Use these values once we change default configuration to be HTTPS
+        <nifi.security.truststore>./conf/truststore.p12</nifi.security.truststore>
+        <nifi.security.truststoreType>PKCS12</nifi.security.truststoreType> -->
         <nifi.security.truststore />
         <nifi.security.truststoreType />
         <nifi.security.truststorePasswd />
