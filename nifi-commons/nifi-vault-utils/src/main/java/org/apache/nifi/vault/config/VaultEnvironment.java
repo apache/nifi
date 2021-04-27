@@ -137,41 +137,43 @@ public class VaultEnvironment implements Environment {
     // The rest of these are not actually called from EnvironmentVaultConfiguration
     @Override
     public String getRequiredProperty(String s) throws IllegalStateException {
-        return null;
+        throw new UnsupportedOperationException("Method not supported");
     }
 
     @Override
     public <T> T getRequiredProperty(String s, Class<T> aClass) throws IllegalStateException {
-        return null;
+        throw new UnsupportedOperationException("Method not supported");
     }
 
     @Override
     public String resolvePlaceholders(String s) {
-        return null;
+
+
+        throw new UnsupportedOperationException("Method not supported");
     }
 
     @Override
     public String resolveRequiredPlaceholders(String s) throws IllegalArgumentException {
-        return null;
+        throw new UnsupportedOperationException("Method not supported");
     }
 
     @Override
     public String[] getActiveProfiles() {
-        return new String[0];
+        throw new UnsupportedOperationException("Method not supported");
     }
 
     @Override
     public String[] getDefaultProfiles() {
-        return new String[0];
+        throw new UnsupportedOperationException("Method not supported");
     }
 
     @Override
     public boolean acceptsProfiles(String... strings) {
-        return false;
+        throw new UnsupportedOperationException("Method not supported");
     }
 
     @Override
     public boolean acceptsProfiles(Profiles profiles) {
-        return false;
+        throw new UnsupportedOperationException("Method not supported");
     }
 }
