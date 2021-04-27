@@ -243,6 +243,8 @@ public class ScanAccumulo extends BaseAccumuloProcessor {
 
         boolean cloneFlowFile = incomingFlowFile.isPresent();
 
+        accumuloConnectorService.renewTgtIfNecessary();
+
         try (BatchScanner scanner = client.createBatchScanner(table,auths,threads)) {
             if (!StringUtils.isBlank(startKeyCf) &&  StringUtils.isBlank(endKeyCf))
                 scanner.fetchColumnFamily(new Text(startKeyCf));

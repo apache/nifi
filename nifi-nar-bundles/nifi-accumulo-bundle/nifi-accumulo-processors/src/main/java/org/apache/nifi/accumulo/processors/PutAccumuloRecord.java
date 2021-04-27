@@ -355,6 +355,8 @@ public class PutAccumuloRecord extends BaseAccumuloProcessor {
 
         final String tableName = processContext.getProperty(TABLE_NAME).evaluateAttributeExpressions(flowFile).getValue();
 
+        accumuloConnectorService.renewTgtIfNecessary();
+
         // create the table if EL is present, create table is true and the table does not exist.
         if (processContext.getProperty(TABLE_NAME).isExpressionLanguagePresent() && processContext.getProperty(CREATE_TABLE).asBoolean()) {
             final TableOperations tableOps = this.client.tableOperations();

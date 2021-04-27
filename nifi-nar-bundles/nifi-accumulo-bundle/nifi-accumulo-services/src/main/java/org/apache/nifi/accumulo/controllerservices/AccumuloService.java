@@ -51,7 +51,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
-import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Purpose: Controller service that provides us a configured connector. Note that we don't need to close this
@@ -79,7 +78,7 @@ public class AccumuloService extends AbstractControllerService implements BaseAc
             .build();
 
     protected static final PropertyDescriptor INSTANCE_NAME = new PropertyDescriptor.Builder()
-            .name("accumulo-instance-name")
+            .name("Instance Name")
             .displayName("Instance Name")
             .description("Instance name of the Accumulo cluster")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -96,7 +95,7 @@ public class AccumuloService extends AbstractControllerService implements BaseAc
             .build();
 
     protected static final PropertyDescriptor ACCUMULO_USER = new PropertyDescriptor.Builder()
-            .name("accumulo-user")
+            .name("Accumulo User")
             .displayName("Accumulo User")
             .description("Connecting user for Accumulo")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -105,7 +104,7 @@ public class AccumuloService extends AbstractControllerService implements BaseAc
             .build();
 
     protected static final PropertyDescriptor ACCUMULO_PASSWORD = new PropertyDescriptor.Builder()
-            .name("accumulo-password")
+            .name("Accumulo Password")
             .displayName("Accumulo Password")
             .description("Connecting user's password")
             .sensitive(true)
@@ -122,19 +121,19 @@ public class AccumuloService extends AbstractControllerService implements BaseAc
             .dependsOn(AUTHENTICATION_TYPE, AuthenticationType.KERBEROS.toString())
             .build();
 
-    protected static final PropertyDescriptor ACCUMULO_PRINCIPAL = new PropertyDescriptor.Builder()
-            .name("accumulo-principal")
-            .displayName("Accumulo Principal")
-            .description("Connecting principal for Accumulo")
+    protected static final PropertyDescriptor KERBEROS_PRINCIPAL = new PropertyDescriptor.Builder()
+            .name("kerberos-principal")
+            .displayName("Kerberos Principal")
+            .description("Kerberos Principal")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .dependsOn(AUTHENTICATION_TYPE, AuthenticationType.KERBEROS.toString())
             .build();
 
-    protected static final PropertyDescriptor ACCUMULO_PASSWORD_FOR_KERBEROS = new PropertyDescriptor.Builder()
-            .name("accumulo-password-for-kerberos")
-            .displayName("Accumulo Password for Kerberos")
-            .description("Connecting user's password for Kerberos")
+    protected static final PropertyDescriptor KERBEROS_PASSWORD = new PropertyDescriptor.Builder()
+            .name("kerberos-password")
+            .displayName("Kerberos Password")
+            .description("Kerberos Password")
             .sensitive(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
@@ -161,35 +160,25 @@ public class AccumuloService extends AbstractControllerService implements BaseAc
      */
     private List<PropertyDescriptor> properties;
 
-    private AuthenticationType authType;
+    private KerberosUser kerberosUser;
 
     @Override
     protected void init(ControllerServiceInitializationContext config) {
         List<PropertyDescriptor> props = new ArrayList<>();
         props.add(ZOOKEEPER_QUORUM);
         props.add(INSTANCE_NAME);
+        props.add(AUTHENTICATION_TYPE);
         props.add(ACCUMULO_USER);
         props.add(ACCUMULO_PASSWORD);
-        props.add(AUTHENTICATION_TYPE);
         props.add(KERBEROS_CREDENTIALS_SERVICE);
-        props.add(ACCUMULO_PRINCIPAL);
-        props.add(ACCUMULO_PASSWORD_FOR_KERBEROS);
+        props.add(KERBEROS_PRINCIPAL);
+        props.add(KERBEROS_PASSWORD);
         props.add(ACCUMULO_SASL_QOP);
         properties = Collections.unmodifiableList(props);
     }
 
     @Override
     public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.add(INSTANCE_NAME);
-        properties.add(ZOOKEEPER_QUORUM);
-        properties.add(ACCUMULO_USER);
-        properties.add(ACCUMULO_PASSWORD);
-        properties.add(AUTHENTICATION_TYPE);
-        properties.add(KERBEROS_CREDENTIALS_SERVICE);
-        properties.add(ACCUMULO_PRINCIPAL);
-        properties.add(ACCUMULO_PASSWORD_FOR_KERBEROS);
-        properties.add(ACCUMULO_SASL_QOP);
         return properties;
     }
 
@@ -221,18 +210,18 @@ public class AccumuloService extends AbstractControllerService implements BaseAc
                 }
                 break;
             case KERBEROS:
-                if (!validationContext.getProperty(KERBEROS_CREDENTIALS_SERVICE).isSet() && !validationContext.getProperty(ACCUMULO_PASSWORD_FOR_KERBEROS).isSet()){
+                if (!validationContext.getProperty(KERBEROS_CREDENTIALS_SERVICE).isSet() && !validationContext.getProperty(KERBEROS_PASSWORD).isSet()){
                     problems.add(new ValidationResult.Builder().valid(false).subject(AUTHENTICATION_TYPE.getName())
-                            .explanation("Either password or Kerberos Credential Service must be set").build());
-                } else if (validationContext.getProperty(KERBEROS_CREDENTIALS_SERVICE).isSet() && validationContext.getProperty(ACCUMULO_PASSWORD_FOR_KERBEROS).isSet()){
+                            .explanation("Either Kerberos Password or Kerberos Credential Service must be set").build());
+                } else if (validationContext.getProperty(KERBEROS_CREDENTIALS_SERVICE).isSet() && validationContext.getProperty(KERBEROS_PASSWORD).isSet()){
                     problems.add(new ValidationResult.Builder().valid(false).subject(AUTHENTICATION_TYPE.getName())
-                            .explanation("Password and Kerberos Credential Service should not be filled out at the same time").build());
-                } else if (validationContext.getProperty(ACCUMULO_PASSWORD_FOR_KERBEROS).isSet() && !validationContext.getProperty(ACCUMULO_PRINCIPAL).isSet()) {
-                    problems.add(new ValidationResult.Builder().valid(false).subject(ACCUMULO_PRINCIPAL.getName())
-                            .explanation("Kerberos principal must be supplied when principal + password Kerberos authentication is used").build());
-                } else if (validationContext.getProperty(KERBEROS_CREDENTIALS_SERVICE).isSet() && validationContext.getProperty(ACCUMULO_PRINCIPAL).isSet()){
-                    problems.add(new ValidationResult.Builder().valid(false).subject(ACCUMULO_PRINCIPAL.getName())
-                            .explanation("Principal should not be filled out when principal + keytab Kerberos authentication is used").build());
+                            .explanation("Kerberos Password and Kerberos Credential Service should not be filled out at the same time").build());
+                } else if (validationContext.getProperty(KERBEROS_PASSWORD).isSet() && !validationContext.getProperty(KERBEROS_PRINCIPAL).isSet()) {
+                    problems.add(new ValidationResult.Builder().valid(false).subject(KERBEROS_PRINCIPAL.getName())
+                            .explanation("Kerberos Principal must be supplied when principal + password Kerberos authentication is used").build());
+                } else if (validationContext.getProperty(KERBEROS_CREDENTIALS_SERVICE).isSet() && validationContext.getProperty(KERBEROS_PRINCIPAL).isSet()){
+                    problems.add(new ValidationResult.Builder().valid(false).subject(KERBEROS_PRINCIPAL.getName())
+                            .explanation("Kerberos Principal (for password) should not be filled out when principal + keytab Kerberos authentication is used").build());
                 }
                 break;
             default:
@@ -251,8 +240,7 @@ public class AccumuloService extends AbstractControllerService implements BaseAc
         final KerberosCredentialsService kerberosService = context.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
         final String instanceName = context.getProperty(INSTANCE_NAME).evaluateAttributeExpressions().getValue();
         final String zookeepers = context.getProperty(ZOOKEEPER_QUORUM).evaluateAttributeExpressions().getValue();
-        authType = AuthenticationType.valueOf( context.getProperty(AUTHENTICATION_TYPE).getValue());
-        final AtomicReference<AuthenticationToken> token = new AtomicReference<>();
+        final AuthenticationType authType = AuthenticationType.valueOf( context.getProperty(AUTHENTICATION_TYPE).getValue());
 
         final Properties clientConf = new Properties();
         clientConf.setProperty("instance.zookeepers", zookeepers);
@@ -262,20 +250,20 @@ public class AccumuloService extends AbstractControllerService implements BaseAc
             case PASSWORD:
                 final String accumuloUser = context.getProperty(ACCUMULO_USER).evaluateAttributeExpressions().getValue();
 
-                token.set(new PasswordToken(context.getProperty(ACCUMULO_PASSWORD).getValue()));
+                final AuthenticationToken token = new PasswordToken(context.getProperty(ACCUMULO_PASSWORD).getValue());
 
-                this.client = Accumulo.newClient().from(clientConf).as(accumuloUser, token.get()).build();
+                this.client = Accumulo.newClient().from(clientConf).as(accumuloUser, token).build();
                 break;
             case KERBEROS:
-                final String principal = kerberosService == null ? context.getProperty(ACCUMULO_PRINCIPAL).getValue() : kerberosService.getPrincipal();
-                final AtomicReference<KerberosUser> kerberosUser = new AtomicReference<>();
+                final String principal;
 
-                if (kerberosService != null) {
-                    kerberosUser.set(new KerberosKeytabUser(principal, kerberosService.getKeytab()));
+                if (kerberosService == null) {
+                    principal = context.getProperty(KERBEROS_PRINCIPAL).getValue();
+                    this.kerberosUser = new KerberosPasswordUser(principal, context.getProperty(KERBEROS_PASSWORD).getValue());
                 } else {
-                    kerberosUser.set(new KerberosPasswordUser(principal, context.getProperty(ACCUMULO_PASSWORD_FOR_KERBEROS).getValue()));
+                    principal = kerberosService.getPrincipal();
+                    this.kerberosUser = new KerberosKeytabUser(principal, kerberosService.getKeytab());
                 }
-
 
                 clientConf.setProperty("sasl.enabled", "true");
                 clientConf.setProperty("sasl.qop", context.getProperty(ACCUMULO_SASL_QOP).getValue());
@@ -284,12 +272,10 @@ public class AccumuloService extends AbstractControllerService implements BaseAc
                 Configuration conf = new Configuration();
                 conf.set("hadoop.security.authentication", "kerberos");
                 UserGroupInformation.setConfiguration(conf);
-                UserGroupInformation clientUgi = SecurityUtil.getUgiForKerberosUser(conf, kerberosUser.get());
+                final UserGroupInformation clientUgi = SecurityUtil.getUgiForKerberosUser(conf, kerberosUser);
 
-                this.client = clientUgi.doAs((PrivilegedExceptionAction<AccumuloClient>) () -> {
-                    token.set(new KerberosToken());
-                    return Accumulo.newClient().from(clientConf).as(principal, token.get()).build();
-                });
+                this.client = clientUgi.doAs((PrivilegedExceptionAction<AccumuloClient>) () ->
+                        Accumulo.newClient().from(clientConf).as(principal, new KerberosToken()).build());
                 break;
             default:
                 throw new InitializationException("Not supported authentication type.");
@@ -299,6 +285,13 @@ public class AccumuloService extends AbstractControllerService implements BaseAc
     @Override
     public AccumuloClient getClient() {
         return client;
+    }
+
+    @Override
+    public void renewTgtIfNecessary() {
+        if (kerberosUser != null) {
+            SecurityUtil.checkTGTAndRelogin(getLogger(), kerberosUser);
+        }
     }
 
     @OnDisabled
