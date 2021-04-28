@@ -47,14 +47,17 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -149,6 +152,241 @@ public class UpdateRecord extends AbstractRecordProcessor {
         this.recordPaths = recordPaths;
     }
 
+    private static class RecordWrapper {
+        private Record originalRecord;
+        private Record currentRecord;
+        private Path path;
+        private Map<RecordField, FieldValue> actualFields = new HashMap<>(); // The record might have fewer fields than its schema
+
+        public RecordWrapper(Record record, String path) {
+            this.originalRecord = record;
+            this.path = new Path(path);
+
+            if (this.path.isEmpty()) {
+                this.currentRecord = originalRecord;
+            } else {
+                this.currentRecord = getRecordByPath(this.path.toString() + "/*");
+            }
+
+            if (this.currentRecord != null) {
+                List<FieldValue> listOfActualFields = getSelectedFields(this.path + "/*");
+                listOfActualFields.forEach(field -> actualFields.put(field.getField(), field));
+            }
+        }
+
+        public boolean recordExists() {
+            return currentRecord != null;
+        }
+
+        public Record getRecord() {
+            return currentRecord;
+        }
+
+        public boolean actuallyContainsField(RecordField field) {
+            return actualFields.containsKey(field);
+        }
+
+        public FieldValue getActualFieldValue(RecordField field) {
+            return actualFields.get(field);
+        }
+
+        public String getPath() {
+            return path.toString();
+        }
+
+        public Record getOriginalRecord() {
+            return originalRecord;
+        }
+
+        private Record getRecordByPath(String recordPath) {
+            Record resultRecord;
+            Optional<FieldValue> fieldValueOption = RecordPath.compile(recordPath).evaluate(originalRecord).getSelectedFields().findAny();
+            if (fieldValueOption.isPresent()) {
+                resultRecord = getParentRecordOfField(fieldValueOption.get());
+            } else {
+                Path newPath = new Path(recordPath); // Cutting the "/*" from the end.
+                if (newPath.isEmpty()) {
+                    resultRecord = originalRecord;
+                } else {
+                    resultRecord = getTargetAsRecord(newPath.toString());
+                }
+            }
+            return resultRecord;
+        }
+
+        private Record getParentRecordOfField(FieldValue fieldValue) {
+            Optional<Record> parentRecordOption = fieldValue.getParentRecord();
+            if (parentRecordOption.isPresent()) {
+                return parentRecordOption.get();
+            } else {
+                return originalRecord;
+            }
+        }
+
+        private Record getTargetAsRecord(String path) {
+            Optional<FieldValue> targetFieldOption = RecordPath.compile(path).evaluate(originalRecord).getSelectedFields().findAny();
+            //TODO: is it possible that there are two elements in a record with the same path ?
+            if (targetFieldOption.isPresent()) {
+                FieldValue targetField = targetFieldOption.get();
+                return getFieldValueAsRecord(targetField);
+            } else {
+                return null;
+            }
+        }
+
+        // Returns null if fieldValue is not of type Record
+        private Record getFieldValueAsRecord(FieldValue fieldValue) {
+            Object targetObject = fieldValue.getValue();
+            if (targetObject instanceof Record) {
+                return ((Record) targetObject);
+            } else {
+                return null;
+            }
+        }
+
+        private List<FieldValue> getSelectedFields(String path) {
+            RecordPath recordPath = RecordPath.compile(path);
+            RecordPathResult recordPathResult = recordPath.evaluate(originalRecord);
+            return recordPathResult.getSelectedFields().collect(Collectors.toList());
+        }
+    }
+
+    private static class Path {
+        private final String path;
+
+        public Path(String path) {
+            if (path.length() == 0 || path.equals("/") || path.equals("/*")) {
+                this.path = "";
+            }  else if (path.endsWith("/")) {
+                this.path = path.substring(0, path.length() - 1);
+            } else if (path.endsWith("/*")) {
+                this.path = path.substring(0, path.length() - 2);
+            } else {
+                this.path = path;
+            }
+        }
+
+        public boolean isEmpty() {
+            return "".equals(path);
+        }
+
+        @Override
+        public String toString() {
+            return path;
+        }
+    }
+
+
+    private Record remove(Record record, List<FieldValue> fieldsToRemove) {
+        if (fieldsToRemove.isEmpty()) {
+            return record;
+        } else {
+            RecordWrapper wrappedRecord = new RecordWrapper(record, "/");
+            List<String> fieldsToRemoveWithPath = mapFieldValueToPath(fieldsToRemove);
+            return remove(wrappedRecord, fieldsToRemove, fieldsToRemoveWithPath);
+        }
+    }
+
+    private List<String> mapFieldValueToPath(List<FieldValue> fieldValues) {
+        List<String> paths = new ArrayList<>();
+        fieldValues.forEach(field -> paths.add(getAbsolutePath(field)));
+        return paths;
+    }
+
+    private String getAbsolutePath(FieldValue fieldValue) {
+        if (!fieldValue.getParent().isPresent()) {
+            return "";
+        }
+        if ("root".equals(fieldValue.getParent().get().getField().getFieldName())) {
+            return "/" + fieldValue.getField().getFieldName();
+        }
+        return getAbsolutePath(fieldValue.getParent().get()) + "/" + fieldValue.getField().getFieldName();
+    }
+
+    private Record remove(RecordWrapper wrappedRecord, List<FieldValue> fieldsToRemove, List<String> fieldsToRemoveWithPath) {
+        List<RecordField> newSchemaFieldList = new ArrayList<>();
+        Map<String, Object> newRecordMap = new LinkedHashMap<>();
+
+        for (RecordField schemaField : wrappedRecord.getRecord().getSchema().getFields()) { // Iterate the fields of the record's schema
+            if (wrappedRecord.actuallyContainsField(schemaField)) { // The record actually has data or null for that field
+                handleFieldInSchemaAndData(schemaField, wrappedRecord, fieldsToRemove, fieldsToRemoveWithPath, newSchemaFieldList, newRecordMap);
+            } else { // The record does not even contain the field (no data for it). We still need to check if it needs to be deleted from the schema.
+                handleFieldInSchema(schemaField, wrappedRecord, fieldsToRemove, newSchemaFieldList, fieldsToRemoveWithPath);
+            }
+        }
+
+        RecordSchema newSchema = new SimpleRecordSchema(newSchemaFieldList);
+        Record newRecord = new MapRecord(newSchema, newRecordMap);
+        return newRecord;
+    }
+
+    private void handleFieldInSchemaAndData(RecordField schemaField, RecordWrapper wrappedRecord, List<FieldValue> fieldsToRemove, List<String> fieldsToRemoveWithPath,
+                                            List<RecordField> schemaFieldList, Map<String, Object> recordMap) {
+        String fieldName = schemaField.getFieldName();
+        FieldValue fieldValue = wrappedRecord.getActualFieldValue(schemaField);
+        if (!fieldsToRemove.contains(fieldValue)) { // The field needs to be kept
+            if (fieldValue.getValue() instanceof Record) {
+                String newPath = wrappedRecord.getPath() + "/" + fieldName + "/*";
+                Record newSubRecord = remove(new RecordWrapper(wrappedRecord.getOriginalRecord(), newPath), fieldsToRemove, fieldsToRemoveWithPath);
+                schemaFieldList.add(new RecordField(fieldName, RecordFieldType.RECORD.getRecordDataType(newSubRecord.getSchema()), schemaField.isNullable()));
+                recordMap.put(fieldName, newSubRecord);
+            } else {
+                schemaFieldList.add(schemaField);
+                if (fieldValue.getValue() != null) {
+                    recordMap.put(fieldName, fieldValue.getValue());
+                }
+            }
+        }
+    }
+
+    private void handleFieldInSchema(RecordField schemaField, RecordWrapper wrappedRecord, List<FieldValue> fieldsToRemove,
+                                     List<RecordField> schemaFieldList, List<String> fieldsToRemoveWithPath) {
+        String fieldName = schemaField.getFieldName();
+        if (!fieldNeedsToBeRemoved(fieldName, fieldsToRemove, wrappedRecord.getRecord())) {
+            if (schemaField.getDataType() instanceof RecordDataType) {
+                RecordSchema childSchema = ((RecordDataType) schemaField.getDataType()).getChildSchema();
+                String path = wrappedRecord.getPath().equals("") ? ("/" + fieldName) : (wrappedRecord.getPath() + "/" + fieldName);
+                RecordSchema newSchema = processSubRecordInSchema(childSchema, path, fieldsToRemoveWithPath);
+                RecordField newSchemaField = new RecordField(fieldName, RecordFieldType.RECORD.getRecordDataType(newSchema));
+                schemaFieldList.add(newSchemaField);
+            } else {
+                schemaFieldList.add(schemaField);
+            }
+        }
+    }
+
+    private boolean fieldNeedsToBeRemoved(String fieldName, List<FieldValue> fieldsToRemove, Record record) {
+        for (FieldValue fieldToRemove : fieldsToRemove) {
+            if (fieldToRemove.getField().getFieldName().equals(fieldName)
+                    && fieldToRemove.getParentRecord().isPresent()
+                    && fieldToRemove.getParentRecord().get().equals(record)) { // Have to make sure that only the current record's fields are examined.
+                // If multiple fields with the same name are present, all will be removed regardless of their types.
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private RecordSchema processSubRecordInSchema(RecordSchema schema, String path, List<String> fieldsToRemoveWithPath) {
+        List<RecordField> newSchemaFieldList = new ArrayList<>();
+
+        for (RecordField field : schema.getFields()) {
+            String pathOfCurrentField = path + "/" + field.getFieldName();
+            if (!fieldsToRemoveWithPath.contains(pathOfCurrentField)) {
+                if (field.getDataType() instanceof RecordDataType) {
+                    RecordSchema childSchema = ((RecordDataType) field.getDataType()).getChildSchema();
+                    RecordSchema newSchema = processSubRecordInSchema(childSchema, pathOfCurrentField, fieldsToRemoveWithPath);
+                    RecordField newSchemaField = new RecordField(field.getFieldName(), RecordFieldType.RECORD.getRecordDataType(newSchema));
+                    newSchemaFieldList.add(newSchemaField);
+                } else {
+                    newSchemaFieldList.add(field);
+                }
+            }
+        }
+
+        return new SimpleRecordSchema(newSchemaFieldList);
+    }
+
     @Override
     protected Record process(Record record, final FlowFile flowFile, final ProcessContext context, final long count) {
         final boolean evaluateValueAsRecordPath = context.getProperty(REPLACEMENT_VALUE_STRATEGY).getValue().equals(RECORD_PATH_VALUES.getValue());
@@ -159,14 +397,19 @@ public class UpdateRecord extends AbstractRecordProcessor {
 
             if (evaluateValueAsRecordPath) {
                 final String replacementValue = context.getProperty(recordPathText).evaluateAttributeExpressions(flowFile).getValue();
-                final RecordPath replacementRecordPath = recordPathCache.getCompiled(replacementValue);
-
-                // If we have an Absolute RecordPath, we need to evaluate the RecordPath only once against the Record.
-                // If the RecordPath is a Relative Path, then we have to evaluate it against each FieldValue.
-                if (replacementRecordPath.isAbsolute()) {
-                    record = processAbsolutePath(replacementRecordPath, result.getSelectedFields(), record);
+                if ("".equals(replacementValue)) {
+                    List<FieldValue> selectedFields = result.getSelectedFields().collect(Collectors.toList());
+                    record = remove(record, selectedFields);
                 } else {
-                    record = processRelativePath(replacementRecordPath, result.getSelectedFields(), record);
+                    final RecordPath replacementRecordPath = recordPathCache.getCompiled(replacementValue);
+
+                    // If we have an Absolute RecordPath, we need to evaluate the RecordPath only once against the Record.
+                    // If the RecordPath is a Relative Path, then we have to evaluate it against each FieldValue.
+                    if (replacementRecordPath.isAbsolute()) {
+                        record = processAbsolutePath(replacementRecordPath, result.getSelectedFields(), record);
+                    } else {
+                        record = processRelativePath(replacementRecordPath, result.getSelectedFields(), record);
+                    }
                 }
             } else {
                 final PropertyValue replacementValue = context.getProperty(recordPathText);

@@ -557,29 +557,46 @@
                         <exclude>src/test/resources/TestExtractGrok/apache.log</exclude>
                         <exclude>src/test/resources/TestExtractGrok/simple_text.log</exclude>
                         <exclude>src/test/resources/TestExtractGrok/patterns</exclude>
-                        <exclude>src/test/resources/TestUpdateRecord/input/person.json</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/input/addresses.json</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/input/complex-person.json</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/input/multi-arrays.json</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/input/person-address.json</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/input/person-with-null-array.json</exclude>
-                        <exclude>src/test/resources/TestUpdateRecord/input/multi-arrays.json</exclude>
-                        <exclude>src/test/resources/TestUpdateRecord/output/person-with-null-array.json</exclude>
-                        <exclude>src/test/resources/TestUpdateRecord/output/person-with-firstname.json</exclude>
-                        <exclude>src/test/resources/TestUpdateRecord/output/person-with-firstname-lastname.json</exclude>
-                        <exclude>src/test/resources/TestUpdateRecord/output/person-with-capital-lastname.json</exclude>
-                        <exclude>src/test/resources/TestUpdateRecord/output/name-fields-only.json</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/input/person.json</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/output/complex-person-multiple-fields-removed.json</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/output/complex-person-no-building.json</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/output/complex-person-no-dateOfBirth.json</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/output/complex-person-no-workAddress-building-letter.json</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/output/complex-person-no-workAddress-zip.json</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/output/complex-person-no-workAddress.json</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/output/complex-person-no-zip.json</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/output/complex-person.json</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/output/full-addresses.json</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/output/name-and-mother-same.json</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/output/name-fields-only.json</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/output/person-with-capital-lastname.json</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/output/person-with-firstname-lastname.json</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/output/person-with-firstname.json</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/output/person-with-new-city.json</exclude>
-                        <exclude>src/test/resources/TestUpdateRecord/schema/person-with-address.avsc</exclude>
-                        <exclude>src/test/resources/TestUpdateRecord/schema/person-with-name-record.avsc</exclude>
-                        <exclude>src/test/resources/TestUpdateRecord/schema/person-with-name-string.avsc</exclude>
-                        <exclude>src/test/resources/TestUpdateRecord/schema/person-with-name-string-fields.avsc</exclude>
-                        <exclude>src/test/resources/TestUpdateRecord/schema/name-fields-only.avsc</exclude>
-                        <exclude>src/test/resources/TestUpdateRecord/schema/person-with-name-and-mother.avsc</exclude>
-                        <exclude>src/test/resources/TestUpdateRecord/schema/multi-arrays.avsc</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/output/person-with-null-array.json</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/output/updateArrays/multi-arrays-0and1.json</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/output/updateArrays/multi-arrays-0and2.json</exclude>
                         <exclude>src/test/resources/TestUpdateRecord/output/updateArrays/multi-arrays-streets.json</exclude>
-                        <exclude>src/test/resources/TestUpdateRecord/input/addresses.json</exclude>
-                        <exclude>src/test/resources/TestUpdateRecord/output/full-addresses.json</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/schema/complex-person-multiple-fields-removed.avsc</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/schema/complex-person-no-building.avsc</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/schema/complex-person-no-dateOfBirth.avsc</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/schema/complex-person-no-workAddress-building-letter.avsc</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/schema/complex-person-no-workAddress-zip.avsc</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/schema/complex-person-no-workAddress.avsc</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/schema/complex-person-no-zip.avsc</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/schema/complex-person.avsc</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/schema/multi-arrays.avsc</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/schema/name-fields-only.avsc</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/schema/person-with-address.avsc</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/schema/person-with-name-and-mother.avsc</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/schema/person-with-name-record.avsc</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/schema/person-with-name-string-fields.avsc</exclude>
+                        <exclude>src/test/resources/TestUpdateRecord/schema/person-with-name-string.avsc</exclude>
                         <exclude>src/test/resources/xxe_template.xml</exclude>
                         <exclude>src/test/resources/xxe_from_report.xml</exclude>
                         <exclude>src/test/resources/TestForkRecord/single-element-nested-array-strings.json</exclude>
