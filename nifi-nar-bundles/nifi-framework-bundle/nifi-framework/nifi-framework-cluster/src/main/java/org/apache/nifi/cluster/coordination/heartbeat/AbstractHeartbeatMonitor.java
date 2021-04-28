@@ -45,7 +45,6 @@ public abstract class AbstractHeartbeatMonitor implements HeartbeatMonitor {
 
     private volatile ScheduledFuture<?> future;
     private volatile boolean stopped = true;
-    private volatile ClusterTopologyEventListener clusterTopologyEventListener;
 
     public AbstractHeartbeatMonitor(final ClusterCoordinator clusterCoordinator, final NiFiProperties nifiProperties) {
         this.clusterCoordinator = clusterCoordinator;
@@ -78,8 +77,6 @@ public abstract class AbstractHeartbeatMonitor implements HeartbeatMonitor {
             logger.error("Failed to start Heartbeat Monitor", e);
         }
 
-        registerEventListener();
-
         this.future = flowEngine.scheduleWithFixedDelay(new Runnable() {
             @Override
             public void run() {
@@ -93,36 +90,8 @@ public abstract class AbstractHeartbeatMonitor implements HeartbeatMonitor {
         }, heartbeatIntervalMillis, heartbeatIntervalMillis, TimeUnit.MILLISECONDS);
     }
 
-    /**
-     * Register an event listener with the Cluster Coordinator so that if any node is removed from the cluster,
-     * we also remove its heartbeat. This is important in order to avoid the following situation:
-     *
-     * Node A heartbeats to coordinator. AbstractHeartbeatMonitor caches that heartbeat.
-     * Node A is decommissioned
-     * Node A is stopped
-     * AbstractHeartbeatMonitor processes heartbeats and finds one for Node A.
-     * Node A has been removed from the cluster so it is unknown. As a result, it is set to a state of CONNECTING
-     *      when it should remain removed from the cluster entirely.
-     */
-    private void registerEventListener() {
-        // Ensure that any event listener that may exist has been removed from the coordinator
-        unregisterEventListener();
-
-        clusterTopologyEventListener = new RemoveHeartbeatsOnNodeRemoval();
-        clusterCoordinator.registerEventListener(clusterTopologyEventListener);
-    }
-
-    private void unregisterEventListener() {
-        if (clusterTopologyEventListener != null) {
-            clusterCoordinator.unregisterEventListener(clusterTopologyEventListener);
-            clusterTopologyEventListener = null;
-        }
-    }
-
     @Override
     public synchronized final void stop() {
-        unregisterEventListener();
-
         if (stopped) {
             return;
         }
@@ -364,26 +333,6 @@ public abstract class AbstractHeartbeatMonitor implements HeartbeatMonitor {
         @Override
         public void onNodeRemoved(final NodeIdentifier nodeId) {
             AbstractHeartbeatMonitor.this.removeHeartbeat(nodeId);
-        }
-
-        @Override
-        public void onLocalNodeIdentifierSet(final NodeIdentifier localNodeId) {
-        }
-
-        @Override
-        public void onNodeStateChange(final NodeIdentifier nodeId, final NodeConnectionState newState) {
-        }
-    }
-
-    private class RemoveHeartbeatsOnNodeRemoval implements ClusterTopologyEventListener {
-        @Override
-        public void onNodeAdded(final NodeIdentifier nodeId) {
-        }
-
-        @Override
-        public void onNodeRemoved(final NodeIdentifier nodeId) {
-            logger.info("{} Node {} removed from cluster. Will discard any heartbeats for the node", this, nodeId);
-            removeHeartbeat(nodeId);
         }
 
         @Override

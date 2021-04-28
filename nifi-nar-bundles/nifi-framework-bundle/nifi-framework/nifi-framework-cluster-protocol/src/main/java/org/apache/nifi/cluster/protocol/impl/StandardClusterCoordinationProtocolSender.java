@@ -296,10 +296,6 @@ public class StandardClusterCoordinationProtocolSender implements ClusterCoordin
                             // marshal message to output stream
                             final OutputStream out = socket.getOutputStream();
                             out.write(msgBytes);
-                            out.flush();
-
-                            logger.debug("Notified {} of status change {}", nodeId, msg);
-                            return;
                         } catch (final Exception e) {
                             logger.warn("Failed to send Node Status Change message to {}", nodeId, e);
 
@@ -311,7 +307,12 @@ public class StandardClusterCoordinationProtocolSender implements ClusterCoordin
                                 Thread.currentThread().interrupt();
                                 return;
                             }
+
+                            continue;
                         }
+
+                        logger.debug("Notified {} of status change {}", nodeId, msg);
+                        return;
                     }
 
                     throw new ProtocolException("Failed to send Node Status Change message to " + nodeId, lastException);
