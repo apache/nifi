@@ -40,7 +40,6 @@ import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.util.ComponentIdGenerator;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.security.ProxiedEntitiesUtils;
-import org.apache.nifi.web.security.jwt.JwtAuthenticationFilter;
 import org.apache.nifi.web.security.jwt.NiFiBearerTokenResolver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -251,7 +250,7 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
         // and will be included in the proxied entities chain above... authorization will happen when the
         // request is replicated
         removeCookie(headers, nifiProperties.getKnoxCookieName());
-        removeCookie(headers, JwtAuthenticationFilter.JWT_COOKIE_NAME);
+        removeCookie(headers, NiFiBearerTokenResolver.JWT_COOKIE_NAME);
 
         // remove the host header
         headers.remove("Host");

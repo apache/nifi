@@ -505,7 +505,7 @@
             var interval = nfCommon.MILLIS_PER_MINUTE;
 
             var checkExpiration = function () {
-                var expiration = nfStorage.getItemExpiration('loggedIn');
+                var expiration = nfStorage.getItemExpiration('jwt');
 
                 // ensure there is an expiration and token present
                 if (expiration !== null) {
@@ -852,7 +852,7 @@
         /**
          * Shows the logout link if appropriate.
          */
-        showLogoutLink: function () {
+        updateLogoutLink: function () {
             if (nfStorage.getItem('jwt') !== null) {
                 $('#user-logout-container').css('display', 'block');
             } else {

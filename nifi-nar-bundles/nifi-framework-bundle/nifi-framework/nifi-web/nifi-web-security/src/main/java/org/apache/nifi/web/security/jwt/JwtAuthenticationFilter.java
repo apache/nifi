@@ -21,18 +21,14 @@ import org.apache.nifi.web.security.NiFiAuthenticationFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.util.WebUtils;
 
 import javax.servlet.http.HttpServletRequest;
 
-/**
- */
 public class JwtAuthenticationFilter extends NiFiAuthenticationFilter {
 
     private static final Logger logger = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
 
     // The Authorization header contains authentication credentials
-    public static final String JWT_COOKIE_NAME = "__Host-jwt-auth-cookie";
     private static NiFiBearerTokenResolver bearerTokenResolver = new NiFiBearerTokenResolver();
 
     @Override
@@ -42,13 +38,11 @@ public class JwtAuthenticationFilter extends NiFiAuthenticationFilter {
             return null;
         }
 
-        // Check for JWT in cookie and header
+        // Get JWT from Authorization header or cookie value
         final String headerToken = bearerTokenResolver.resolve(request);
 
         if (StringUtils.isNotBlank(headerToken)) {
             return new JwtAuthenticationRequestToken(headerToken, request.getRemoteAddr());
-        } else if (WebUtils.getCookie(request, JWT_COOKIE_NAME) != null) {
-            return new JwtAuthenticationRequestToken(WebUtils.getCookie(request, JWT_COOKIE_NAME).getValue(), request.getRemoteAddr());
         } else {
             return null;
         }

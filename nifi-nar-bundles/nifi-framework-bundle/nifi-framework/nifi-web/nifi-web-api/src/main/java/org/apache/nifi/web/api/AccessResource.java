@@ -63,7 +63,6 @@ import org.apache.nifi.web.security.InvalidAuthenticationException;
 import org.apache.nifi.web.security.LogoutException;
 import org.apache.nifi.web.security.ProxiedEntitiesUtils;
 import org.apache.nifi.web.security.UntrustedProxyException;
-import org.apache.nifi.web.security.jwt.JwtAuthenticationFilter;
 import org.apache.nifi.web.security.jwt.JwtAuthenticationProvider;
 import org.apache.nifi.web.security.jwt.JwtAuthenticationRequestToken;
 import org.apache.nifi.web.security.jwt.JwtService;
@@ -874,7 +873,7 @@ public class AccessResource extends ApplicationResource {
         }
 
         final String mappedUserIdentity = NiFiUserUtils.getNiFiUserIdentity();
-        removeCookie(httpServletResponse, JwtAuthenticationFilter.JWT_COOKIE_NAME);
+        removeCookie(httpServletResponse, NiFiBearerTokenResolver.JWT_COOKIE_NAME);
         logger.debug("Invalidated JWT for user [{}]", mappedUserIdentity);
 
         // Get the oidc discovery url
@@ -1498,7 +1497,7 @@ public class AccessResource extends ApplicationResource {
         try {
             logger.info("Logging out " + mappedUserIdentity);
             logOutUser(httpServletRequest);
-            removeCookie(httpServletResponse, JwtAuthenticationFilter.JWT_COOKIE_NAME);
+            removeCookie(httpServletResponse, NiFiBearerTokenResolver.JWT_COOKIE_NAME);
             logger.debug("Invalidated JWT for user [{}]", mappedUserIdentity);
 
             // create a LogoutRequest and tell the LogoutRequestManager about it for later retrieval
@@ -1811,7 +1810,7 @@ public class AccessResource extends ApplicationResource {
 
     private Response generateTokenResponse(ResponseBuilder builder, String token) {
         // currently there is no way to use javax.servlet-api to set SameSite=Strict, so we do this using Jetty
-        HttpCookie jwtCookie = new HttpCookie(JwtAuthenticationFilter.JWT_COOKIE_NAME, token, null, "/", VALID_FOR_SESSION_ONLY, true, true, null, 0, HttpCookie.SameSite.STRICT);
+        HttpCookie jwtCookie = new HttpCookie(NiFiBearerTokenResolver.JWT_COOKIE_NAME, token, null, "/", VALID_FOR_SESSION_ONLY, true, true, null, 0, HttpCookie.SameSite.STRICT);
         return builder.header(HttpHeader.SET_COOKIE.asString(), jwtCookie.getRFC6265SetCookie()).build();
     }
 }

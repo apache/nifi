@@ -123,7 +123,7 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
     protected void configure(HttpSecurity http) throws Exception {
         NiFiCsrfTokenRepository csrfRepository = new NiFiCsrfTokenRepository();
         csrfRepository.setHeaderName(NiFiBearerTokenResolver.AUTHORIZATION);
-        csrfRepository.setCookieName(JwtAuthenticationFilter.JWT_COOKIE_NAME);
+        csrfRepository.setCookieName(NiFiBearerTokenResolver.JWT_COOKIE_NAME);
 
         http
                 .cors().and()

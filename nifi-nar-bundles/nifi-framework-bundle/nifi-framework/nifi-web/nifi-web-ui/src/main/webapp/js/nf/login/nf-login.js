@@ -159,7 +159,7 @@
         init: function () {
             nfStorage.init();
 
-            nfCommon.showLogoutLink();
+            nfCommon.updateLogoutLink();
 
             // supporting logging in via enter press
             $('#username, #password').on('keyup', function (e) {

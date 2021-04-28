@@ -1,11 +1,12 @@
 /*
- * Copyright 2012-2016 the original author or authors.
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      https://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -32,6 +33,7 @@ import javax.servlet.http.HttpServletResponse;
  */
 public final class NiFiCsrfTokenRepository implements CsrfTokenRepository {
 
+    private static String EMPTY = "empty";
     private CookieCsrfTokenRepository cookieRepository;
 
     public NiFiCsrfTokenRepository() {
@@ -40,13 +42,14 @@ public final class NiFiCsrfTokenRepository implements CsrfTokenRepository {
 
     @Override
     public CsrfToken generateToken(HttpServletRequest request) {
-        return new DefaultCsrfToken("empty", "empty", "empty");
+        // Return an empty value CsrfToken - it will not be saved to the response as our CSRF token is added elsewhere
+        return new DefaultCsrfToken(EMPTY, EMPTY, EMPTY);
     }
 
     @Override
     public void saveToken(CsrfToken token, HttpServletRequest request,
                           HttpServletResponse response) {
-        // Do nothing - we don't need to add new Csrf tokens to the response
+        // Do nothing - we don't need to add new CSRF tokens to the response
     }
 
     @Override
