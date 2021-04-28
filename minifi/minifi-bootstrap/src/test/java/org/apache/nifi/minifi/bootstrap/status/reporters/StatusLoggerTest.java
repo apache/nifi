@@ -29,6 +29,9 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.Properties;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 import static org.apache.nifi.minifi.bootstrap.status.reporters.StatusLogger.ENCOUNTERED_IO_EXCEPTION;
 import static org.apache.nifi.minifi.bootstrap.status.reporters.StatusLogger.LOGGING_LEVEL_KEY;
@@ -71,9 +74,9 @@ public class StatusLoggerTest {
     }
 
     @Test(expected = IllegalStateException.class)
-    public void testFailedInitDueToFatalLogLevel(){
+    public void testFailedInitDueToFatalLogLevel() {
         Properties properties = new Properties();
-        properties.setProperty(REPORT_PERIOD_KEY, "100");
+        properties.setProperty(REPORT_PERIOD_KEY, "1");
         properties.setProperty(LOGGING_LEVEL_KEY, LogLevel.FATAL.name());
         properties.setProperty(QUERY_KEY, MOCK_QUERY);
 
@@ -81,7 +84,7 @@ public class StatusLoggerTest {
     }
 
     @Test(expected = IllegalStateException.class)
-    public void testFailedInitDueToNoPeriod(){
+    public void testFailedInitDueToNoPeriod() {
         Properties properties = new Properties();
         properties.setProperty(LOGGING_LEVEL_KEY, LogLevel.INFO.name());
         properties.setProperty(QUERY_KEY, MOCK_QUERY);
@@ -90,9 +93,9 @@ public class StatusLoggerTest {
     }
 
     @Test(expected = IllegalStateException.class)
-    public void testFailedInitDueToNoQuery(){
+    public void testFailedInitDueToNoQuery() {
         Properties properties = new Properties();
-        properties.setProperty(REPORT_PERIOD_KEY, "100");
+        properties.setProperty(REPORT_PERIOD_KEY, "1");
         properties.setProperty(LOGGING_LEVEL_KEY, LogLevel.INFO.name());
 
         statusLogger.initialize(properties, queryableStatusAggregator);
@@ -101,48 +104,53 @@ public class StatusLoggerTest {
     @Test
     public void TestTrace() {
         statusLogger.initialize(getProperties(LogLevel.TRACE), queryableStatusAggregator);
+        statusLogger.setScheduledExecutorService(new RunOnceScheduledExecutorService(1));
         statusLogger.start();
 
-        verify(logger, Mockito.timeout(300).atLeastOnce()).info(MOCK_STATUS, (Throwable) null);
+        verify(logger, Mockito.atLeastOnce()).trace(MOCK_STATUS, (Throwable) null);
     }
 
     @Test
     public void TestDebug() {
         statusLogger.initialize(getProperties(LogLevel.DEBUG), queryableStatusAggregator);
+        statusLogger.setScheduledExecutorService(new RunOnceScheduledExecutorService(1));
         statusLogger.start();
 
-        verify(logger, Mockito.timeout(300).atLeastOnce()).debug(MOCK_STATUS, (Throwable) null);
+        verify(logger, Mockito.atLeastOnce()).debug(MOCK_STATUS, (Throwable) null);
     }
 
     @Test
     public void TestInfo() {
         statusLogger.initialize(getProperties(LogLevel.INFO), queryableStatusAggregator);
+        statusLogger.setScheduledExecutorService(new RunOnceScheduledExecutorService(1));
         statusLogger.start();
 
-        verify(logger, Mockito.timeout(300).atLeastOnce()).info(MOCK_STATUS, (Throwable) null);
+        verify(logger, Mockito.atLeastOnce()).info(MOCK_STATUS, (Throwable) null);
     }
 
     @Test
     public void TestWarn() {
         statusLogger.initialize(getProperties(LogLevel.WARN), queryableStatusAggregator);
+        statusLogger.setScheduledExecutorService(new RunOnceScheduledExecutorService(1));
         statusLogger.start();
 
-        verify(logger, Mockito.timeout(300).atLeastOnce()).warn(MOCK_STATUS, (Throwable) null);
+        verify(logger, Mockito.atLeastOnce()).warn(MOCK_STATUS, (Throwable) null);
     }
 
     @Test
     public void TestError() {
         statusLogger.initialize(getProperties(LogLevel.ERROR), queryableStatusAggregator);
+        statusLogger.setScheduledExecutorService(new RunOnceScheduledExecutorService(1));
         statusLogger.start();
 
-        verify(logger, Mockito.timeout(300).atLeastOnce()).error(MOCK_STATUS, (Throwable) null);
+        verify(logger, Mockito.atLeastOnce()).error(MOCK_STATUS, (Throwable) null);
     }
 
     // Exception testing
     @Test
     public void TestTraceException() throws IOException {
         Properties properties = new Properties();
-        properties.setProperty(REPORT_PERIOD_KEY, "100");
+        properties.setProperty(REPORT_PERIOD_KEY, "1");
         properties.setProperty(LOGGING_LEVEL_KEY, LogLevel.TRACE.name());
         properties.setProperty(QUERY_KEY, MOCK_QUERY);
 
@@ -150,9 +158,10 @@ public class StatusLoggerTest {
         Mockito.when(queryableStatusAggregator.statusReport(MOCK_QUERY)).thenThrow(ioException);
 
         statusLogger.initialize(properties, queryableStatusAggregator);
+        statusLogger.setScheduledExecutorService(new RunOnceScheduledExecutorService(1));
         statusLogger.start();
 
-        verify(logger, Mockito.timeout(300).atLeastOnce()).trace(ENCOUNTERED_IO_EXCEPTION, ioException);
+        verify(logger, Mockito.atLeastOnce()).trace(ENCOUNTERED_IO_EXCEPTION, ioException);
     }
 
     @Test
@@ -161,9 +170,10 @@ public class StatusLoggerTest {
         Mockito.when(queryableStatusAggregator.statusReport(MOCK_QUERY)).thenThrow(ioException);
 
         statusLogger.initialize(getProperties(LogLevel.DEBUG), queryableStatusAggregator);
+        statusLogger.setScheduledExecutorService(new RunOnceScheduledExecutorService(1));
         statusLogger.start();
 
-        verify(logger, Mockito.timeout(300).atLeastOnce()).debug(ENCOUNTERED_IO_EXCEPTION, ioException);
+        verify(logger, Mockito.atLeastOnce()).debug(ENCOUNTERED_IO_EXCEPTION, ioException);
     }
 
     @Test
@@ -172,9 +182,10 @@ public class StatusLoggerTest {
         Mockito.when(queryableStatusAggregator.statusReport(MOCK_QUERY)).thenThrow(ioException);
 
         statusLogger.initialize(getProperties(LogLevel.INFO), queryableStatusAggregator);
+        statusLogger.setScheduledExecutorService(new RunOnceScheduledExecutorService(1));
         statusLogger.start();
 
-        verify(logger, Mockito.timeout(300).atLeastOnce()).info(ENCOUNTERED_IO_EXCEPTION, ioException);
+        verify(logger, Mockito.atLeastOnce()).info(ENCOUNTERED_IO_EXCEPTION, ioException);
     }
 
     @Test
@@ -183,9 +194,10 @@ public class StatusLoggerTest {
         Mockito.when(queryableStatusAggregator.statusReport(MOCK_QUERY)).thenThrow(ioException);
 
         statusLogger.initialize(getProperties(LogLevel.WARN), queryableStatusAggregator);
+        statusLogger.setScheduledExecutorService(new RunOnceScheduledExecutorService(1));
         statusLogger.start();
 
-        verify(logger, Mockito.timeout(300).atLeastOnce()).warn(ENCOUNTERED_IO_EXCEPTION, ioException);
+        verify(logger, Mockito.atLeastOnce()).warn(ENCOUNTERED_IO_EXCEPTION, ioException);
     }
 
     @Test
@@ -194,16 +206,31 @@ public class StatusLoggerTest {
         Mockito.when(queryableStatusAggregator.statusReport(MOCK_QUERY)).thenThrow(ioException);
 
         statusLogger.initialize(getProperties(LogLevel.ERROR), queryableStatusAggregator);
+        statusLogger.setScheduledExecutorService(new RunOnceScheduledExecutorService(1));
         statusLogger.start();
 
-        verify(logger, Mockito.timeout(300).atLeastOnce()).error(ENCOUNTERED_IO_EXCEPTION, ioException);
+        verify(logger, Mockito.atLeastOnce()).error(ENCOUNTERED_IO_EXCEPTION, ioException);
     }
 
-    private static Properties getProperties(LogLevel logLevel){
+    private static Properties getProperties(LogLevel logLevel) {
         Properties properties = new Properties();
-        properties.setProperty(REPORT_PERIOD_KEY, "100");
+        properties.setProperty(REPORT_PERIOD_KEY, "1");
         properties.setProperty(LOGGING_LEVEL_KEY, logLevel.name());
         properties.setProperty(QUERY_KEY, MOCK_QUERY);
         return properties;
+    }
+
+    private static class RunOnceScheduledExecutorService extends ScheduledThreadPoolExecutor {
+
+        public RunOnceScheduledExecutorService(int corePoolSize) {
+            super(corePoolSize);
+        }
+
+        @Override
+        public ScheduledFuture<?> scheduleAtFixedRate(Runnable command, long initialDelay, long period, TimeUnit unit) {
+            command.run();
+            // Return value is not used
+            return null;
+        }
     }
 }
