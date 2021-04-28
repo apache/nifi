@@ -20,12 +20,13 @@ package org.apache.nifi.minifi.bootstrap.status;
 import org.apache.nifi.minifi.bootstrap.QueryableStatusAggregator;
 
 import java.util.Properties;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 public abstract class PeriodicStatusReporter {
 
-    private final ScheduledThreadPoolExecutor scheduledExecutorService = new ScheduledThreadPoolExecutor(1);
+    private ScheduledExecutorService scheduledExecutorService = new ScheduledThreadPoolExecutor(1);
 
     private volatile int period = -1;
     private volatile int termination_wait = 5000;
@@ -42,7 +43,6 @@ public abstract class PeriodicStatusReporter {
     /**
      * Begins the associated reporting service provided by the given implementation.  In most implementations, no action will occur until this method is invoked. The implementing class must have set
      * 'reportRunner' prior to this method being called.
-     *
      */
     public void start() {
         if (reportRunner == null){
@@ -78,4 +78,14 @@ public abstract class PeriodicStatusReporter {
     public void setTermination_wait(int termination_wait) {
         this.termination_wait = termination_wait;
     }
+
+    /**
+     * Allows the underlying ScheduledExecutorService to be set to something other than the default ScheduledThreadPoolExecutor(1). This method should be called
+     * before start() to ensure all methods are invoked on the same ScheduledExecutorService instance
+     * @param scheduledExecutorService the ScheduledExecutorService to set
+     */
+    public void setScheduledExecutorService(ScheduledExecutorService scheduledExecutorService) {
+        this.scheduledExecutorService = scheduledExecutorService;
+    }
+
 }
