@@ -40,6 +40,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -556,7 +557,8 @@ public class InvokeHTTP extends AbstractProcessor {
             REL_SUCCESS_REQ, REL_RESPONSE, REL_RETRY, REL_NO_RETRY, REL_FAILURE)));
 
     // RFC 2616 Date Time Formatter with hard-coded GMT Zone
-    private static final DateTimeFormatter RFC_2616_DATE_TIME = DateTimeFormatter.ofPattern("EEE, dd MMM yyyy HH:mm:ss 'GMT'");
+    // https://tools.ietf.org/html/rfc2616#section-3.3 - date format header should not be localized
+    private static final DateTimeFormatter RFC_2616_DATE_TIME = DateTimeFormatter.ofPattern("EEE, dd MMM yyyy HH:mm:ss 'GMT'", Locale.US);
 
     // Multiple Header Delimiter
     private static final String MULTIPLE_HEADER_DELIMITER = ", ";
