@@ -63,7 +63,7 @@ public class C2Properties extends Properties {
     }
 
     public SslContextFactory getSslContextFactory() throws GeneralSecurityException, IOException {
-        SslContextFactory sslContextFactory = new SslContextFactory();
+        SslContextFactory sslContextFactory = new SslContextFactory.Server();
         KeyStore keyStore = KeyStore.getInstance(properties.getProperty(MINIFI_C2_SERVER_KEYSTORE_TYPE));
         Path keyStorePath = Paths.get(C2_SERVER_HOME).resolve(properties.getProperty(MINIFI_C2_SERVER_KEYSTORE)).toAbsolutePath();
         logger.debug("keystore path: " + keyStorePath);
