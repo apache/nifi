@@ -91,9 +91,16 @@ jobs:
           df -h
       - name: Build with Maven
         env:
-          MAVEN_OPTS: -Xmx2g -XX:ReservedCodeCacheSize=1g -XX:+UseG1GC -Dorg.slf4j.simpleLogger.defaultLogLevel=WARN -Dmaven.surefire.arguments="-Duser.language=en -Duser.region=AU -Duser.timezone=Australia/Melbourne" -Dhttp.keepAlive=false -Dmaven.wagon.http.pool=false
+          MAVEN_OPTS: -Xmx2g -XX:ReservedCodeCacheSize=1g -XX:+UseG1GC -Dorg.slf4j.simpleLogger.defaultLogLevel=WARN -Duser.language=en -Duser.country=AU -Duser.region=AU -Duser.timezone=Australia/Melbourne -Dhttp.keepAlive=false -Dmaven.wagon.http.pool=false
         run: |
           mvn -V -T 0.7C package verify -B -Pcontrib-check,include-grpc -Ddir-only -ntp -ff -pl -nifi-assembly,-nifi-toolkit/nifi-toolkit-assembly,-nifi-system-tests -nsu
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        if: always()
+        with:
+          name: surefire-reports-en
+          path: "**/surefire-reports/TEST-*.xml"
+          retention-days: 1
       - name: Disk After Build
         run: |
           df -h
@@ -167,9 +174,16 @@ jobs:
           df -h
       - name: Build with Maven
         env:
-          MAVEN_OPTS: -Xmx2g -XX:ReservedCodeCacheSize=1g -XX:+UseG1GC -Dorg.slf4j.simpleLogger.defaultLogLevel=WARN -Dmaven.surefire.arguments="-Duser.language=ja -Duser.region=JP -Duser.timezone=Asia/Tokyo" -Dhttp.keepAlive=false -Dmaven.wagon.http.pool=false
+          MAVEN_OPTS: -Xmx2g -XX:ReservedCodeCacheSize=1g -XX:+UseG1GC -Dorg.slf4j.simpleLogger.defaultLogLevel=WARN -Duser.language=ja -Duser.country=JP -Duser.region=JP -Duser.timezone=Asia/Tokyo -Dhttp.keepAlive=false -Dmaven.wagon.http.pool=false
         run: |
           mvn -V -T 0.7C package verify -B -Pcontrib-check,include-grpc -Ddir-only -ntp -ff -pl -nifi-assembly,-nifi-toolkit/nifi-toolkit-assembly,-nifi-system-tests -nsu
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        if: always()
+        with:
+          name: surefire-reports-ja
+          path: "**/surefire-reports/TEST-*.xml"
+          retention-days: 1
       - name: Disk After Build
         run: |
           df -h
@@ -234,6 +248,16 @@ jobs:
           java-version: '8'
       - name: Build with Maven
         env:
-          MAVEN_OPTS: -Xmx2g -Dorg.slf4j.simpleLogger.defaultLogLevel=WARN -Dmaven.surefire.arguments="-Duser.language=fr -Duser.region=FR -Duser.timezone=Europe/Paris" -Dhttp.keepAlive=false -Dmaven.wagon.http.pool=false
+          MAVEN_OPTS: -Xmx2g -Dorg.slf4j.simpleLogger.defaultLogLevel=WARN -Duser.language=fr -Duser.country=FR -Duser.region=FR -Duser.timezone=Europe/Paris -Dhttp.keepAlive=false -Dmaven.wagon.http.pool=false
         run: |
           mvn -V -T 0.7C package -B -Ddir-only -ntp -ff -pl -nifi-assembly -pl -nifi-system-tests -nsu
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        if: ${{ false }}
+        with:
+          name: surefire-reports-fr
+          path: |
+            '**/surefire-reports/TEST-*.xml'
+            '!**/node_modules/**'
+            '!**/nifi-nar-bundles/nifi-standard-bundle/nifi-jolt-transform-json-ui/**'
+          retention-days: 1

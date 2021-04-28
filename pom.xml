@@ -421,8 +421,12 @@
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-surefire-plugin</artifactId>
                     <configuration>
-                        <systemPropertyVariables>
+                        <systemPropertyVariables combine.children="append">
                             <java.awt.headless>true</java.awt.headless>
+                            <user.language>${user.language}</user.language>
+                            <user.country>${user.country}</user.country>
+                            <user.region>${user.region}</user.region>
+                            <user.timezone>${user.timezone}</user.timezone>
                         </systemPropertyVariables>
                         <includes>
                             <include>**/*Test.class</include>
@@ -435,7 +439,6 @@
                         <redirectTestOutputToFile>true</redirectTestOutputToFile>
                         <argLine combine.children="append">-Xmx1G
                             -Djava.net.preferIPv4Stack=true
-                            ${maven.surefire.arguments}
                             -Dfile.encoding=UTF-8</argLine>
                     </configuration>
                     <dependencies>
