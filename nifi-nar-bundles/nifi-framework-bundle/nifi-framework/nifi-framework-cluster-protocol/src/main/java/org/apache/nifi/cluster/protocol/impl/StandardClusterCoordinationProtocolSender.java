@@ -325,7 +325,8 @@ public class StandardClusterCoordinationProtocolSender implements ClusterCoordin
         try {
             executor.awaitTermination(10, TimeUnit.DAYS);
         } catch (final InterruptedException ie) {
-            throw new ProtocolException(ie);
+            logger.warn("Interrupted while waiting for other nodes in cluster to be notified of Node Status Change {}", msg);
+            Thread.currentThread().interrupt();
         }
     }
 }
