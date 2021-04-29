@@ -21,10 +21,20 @@ import java.util.Objects;
 public class Parameter {
     private final ParameterDescriptor descriptor;
     private final String value;
+    private final String parameterContextId;
 
-    public Parameter(final ParameterDescriptor descriptor, final String value) {
+    private Parameter(final ParameterDescriptor descriptor, final String value, final String parameterContextId) {
         this.descriptor = descriptor;
         this.value = value;
+        this.parameterContextId = parameterContextId;
+    }
+
+    public Parameter(final Parameter parameter, final String parameterContextId) {
+        this(parameter.getDescriptor(), parameter.getValue(), parameterContextId);
+    }
+
+    public Parameter(final ParameterDescriptor descriptor, final String value) {
+        this(descriptor, value, null);
     }
 
     public ParameterDescriptor getDescriptor() {
@@ -33,6 +43,10 @@ public class Parameter {
 
     public String getValue() {
         return value;
+    }
+
+    public String getParameterContextId() {
+        return parameterContextId;
     }
 
     @Override

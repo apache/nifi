@@ -16,16 +16,12 @@
  */
 package org.apache.nifi.parameter;
 
-import java.util.Map;
-import java.util.Set;
+/**
+ * Represents only an ID reference for a ParameterContext.
+ */
+public class ReferenceOnlyParameterContext extends StandardParameterContext {
 
-public interface ParameterContextManager extends ParameterContextLookup {
-
-    void addParameterContext(ParameterContext parameterContext);
-
-    ParameterContext removeParameterContext(String parameterContextId);
-
-    Set<ParameterContext> getParameterContexts();
-
-    Map<String, ParameterContext> getParameterContextNameMapping();
+    public ReferenceOnlyParameterContext(String id) {
+        super(id, String.format("Reference-Only Parameter Context [%s]", id), ParameterReferenceManager.EMPTY, null);
+    }
 }

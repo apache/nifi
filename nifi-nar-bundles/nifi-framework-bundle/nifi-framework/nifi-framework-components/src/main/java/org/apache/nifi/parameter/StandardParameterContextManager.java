@@ -21,9 +21,15 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class StandardParameterContextManager implements ParameterContextManager {
     private final Map<String, ParameterContext> parameterContexts = new HashMap<>();
+
+    @Override
+    public boolean hasParameterContext(String id) {
+        return parameterContexts.get(id) != null;
+    }
 
     @Override
     public synchronized ParameterContext getParameterContext(final String id) {
@@ -35,7 +41,9 @@ public class StandardParameterContextManager implements ParameterContextManager 
         Objects.requireNonNull(parameterContext);
 
         if (parameterContexts.containsKey(parameterContext.getIdentifier())) {
-            throw new IllegalStateException("Cannot add Parameter Context because another Parameter Context already exists with the same ID");
+            if (!(parameterContexts.get(parameterContext.getIdentifier()) instanceof ReferenceOnlyParameterContext)) {
+                throw new IllegalStateException("Cannot add Parameter Context because another Parameter Context already exists with the same ID");
+            }
         }
 
         for (final ParameterContext context : parameterContexts.values()) {
@@ -56,5 +64,10 @@ public class StandardParameterContextManager implements ParameterContextManager 
     @Override
     public synchronized Set<ParameterContext> getParameterContexts() {
         return new HashSet<>(parameterContexts.values());
+    }
+
+    @Override
+    public Map<String, ParameterContext> getParameterContextNameMapping() {
+        return parameterContexts.values().stream().collect(Collectors.toMap(ParameterContext::getName, pc -> pc));
     }
 }

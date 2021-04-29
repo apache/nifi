@@ -544,6 +544,8 @@
                 // set to pending
                 $('<div class="referencing-component-container"><span class="unset">Pending Apply</span></div>').appendTo(parameterReferencingComponentsContainer);
             } else {
+                $('#parameter-referencing-components-container').empty();
+
                 // bin the referencing components according to their type
                 $.each(referencingComponents, function (_, referencingComponentEntity) {
                     if (referencingComponentEntity.permissions.canRead === true && referencingComponentEntity.permissions.canWrite === true) {
@@ -809,6 +811,13 @@
 
         if (isValid) {
 
+            var permissions = {
+                canRead: true,
+                canWrite: true
+            };
+            var parameterContext = {
+                permissions: permissions
+            };
             var parameter = _.extend({}, param, {
                 id: _.defaultTo(param.id, parameterCount),
                 hidden: false,
@@ -819,6 +828,8 @@
                 isModified: true,
                 hasValueChanged: false,
                 isNew: true,
+                isInherited: false,
+                parameterContext: parameterContext
             });
 
             if (_.isNil(param.id)) {
@@ -1009,7 +1020,9 @@
                 hasValueChanged: serializedParam.hasValueChanged,
                 hasDescriptionChanged: serializedParam.hasDescriptionChanged,
                 value: serializedParam.value,
-                isModified: serializedParam.hasValueChanged || serializedParam.hasDescriptionChanged
+                isModified: serializedParam.hasValueChanged || serializedParam.hasDescriptionChanged,
+                isInherited: originalParameter.isInherited,
+                parameterContext: originalParameter.parameterContext
             });
 
             // update row for the parameter
@@ -1448,6 +1461,10 @@
 
             var parameters = [];
             $.each(parameterContext.component.parameters, function (i, parameterEntity) {
+                var containingParameterContext = {
+                    id: parameterEntity.parameter.parameterContext.component.id,
+                    permissions: parameterEntity.parameter.parameterContext.permissions
+                };
                 var parameter = {
                     id: parameterCount++,
                     hidden: false,
@@ -1462,7 +1479,9 @@
                     previousValue: parameterEntity.parameter.value,
                     previousDescription: parameterEntity.parameter.description,
                     isEditable: _.defaultTo(readOnly, false) ? false : parameterEntity.canWrite,
-                    referencingComponents: parameterEntity.parameter.referencingComponents
+                    referencingComponents: parameterEntity.parameter.referencingComponents,
+                    parameterContext: containingParameterContext,
+                    isInherited: (containingParameterContext.id !== parameterContext.component.id)
                 };
 
                 parameters.push({
@@ -1584,7 +1603,9 @@
         var parameterActionFormatter = function (row, cell, value, columnDef, dataContext) {
             var markup = '';
 
-            if (dataContext.isEditable === true) {
+            if (dataContext.isInherited === true && dataContext.parameterContext.permissions.canRead) {
+                markup += '<div title="Go To" class="pointer go-to-parameter fa fa-long-arrow-right"></div>';
+            } else if (dataContext.isEditable === true) {
                 markup += '<div title="Edit" class="edit-parameter pointer fa fa-pencil"></div>';
                 markup += '<div title="Delete" class="delete-parameter pointer fa fa-trash"></div>';
             }
@@ -1789,7 +1810,15 @@
 
                     // prevents standard edit logic
                     e.stopImmediatePropagation();
-                }
+                } else if (target.hasClass('go-to-parameter')) {
+                    if (parameter.parameterContext.permissions.canRead === true) {
+                        // close the dialog since we are sending the user to the parameter context
+                        close();
+                        resetDialog();
+
+                        nfParameterContexts.showParameterContext(parameter.parameterContext.id, parameter.parameterContext.permissions.canWrite === false, parameter.name);
+                    }
+               }
             }
         });
         parametersGrid.onSelectedRowsChanged.subscribe(function (e, args) {
@@ -2490,6 +2519,9 @@
             var reloadContext = $.ajax({
                 type: 'GET',
                 url: config.urls.parameterContexts + '/' + encodeURIComponent(id),
+                data: {
+                    includeInheritedParameters: 'true'
+                },
                 dataType: 'json'
             });
 
@@ -2582,6 +2614,7 @@
                     }
                 }];
 
+
                 // show the context
                 $('#parameter-context-dialog')
                     .modal('setHeaderText', canWrite ? 'Update Parameter Context' : 'View Parameter Context')
@@ -2660,6 +2693,9 @@
                 var getContext = $.ajax({
                     type: 'GET',
                     url: config.urls.parameterContexts + '/' + encodeURIComponent(parameterContextId),
+                    data: {
+                        includeInheritedParameters: 'true'
+                    },
                     dataType: 'json'
                 });
 

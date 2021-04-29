@@ -18,6 +18,7 @@ package org.apache.nifi.parameter;
 
 import org.apache.nifi.authorization.resource.ComponentAuthorizable;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -70,7 +71,8 @@ public interface ParameterContext extends ParameterLookup, ComponentAuthorizable
 
 
     /**
-     * Returns the Parameter with the given descriptor
+     * Returns the Parameter with the given descriptor, considering this and all inherited
+     * ParameterContexts.
      *
      * @param parameterDescriptor descriptor for the parameter
      * @return the Parameter with the given name, or <code>null</code> if no parameter exists with the given descriptor
@@ -78,12 +80,23 @@ public interface ParameterContext extends ParameterLookup, ComponentAuthorizable
     Optional<Parameter> getParameter(ParameterDescriptor parameterDescriptor);
 
     /**
-     * Returns the Map of all Parameters in this context. Note that the Map that is returned may either be immutable or may be a defensive copy but
-     * modifying the Map that is returned will have no effect on the contents of this Parameter Context.
+     * Returns the Map of all Parameters in this context (not in any inherited ParameterContexts). Note that the Map that
+     * is returned may either be immutable or may be a defensive copy but modifying the Map that is returned will have
+     * no effect on the contents of this Parameter Context.
      *
      * @return a Map that contains all Parameters in the context keyed by their descriptors
      */
     Map<ParameterDescriptor, Parameter> getParameters();
+
+    /**
+     * Returns the Map of all Parameters in this context, as well as in all inherited ParameterContexts.  Any duplicate
+     * parameters will be overridden as described in {@link #setInheritedParameterContexts(List) setParameterContexts}.
+     * Note that the Map that is returned may either be immutable or may be a defensive copy but
+     * modifying the Map that is returned will have no effect on the contents of this Parameter Context or any other.
+     *
+     * @return a Map that contains all Parameters in the context and all nested ParameterContexts, keyed by their descriptors
+     */
+    Map<ParameterDescriptor, Parameter> getEffectiveParameters();
 
     /**
      * Returns the ParameterReferenceManager that is associated with this ParameterContext
@@ -91,5 +104,41 @@ public interface ParameterContext extends ParameterLookup, ComponentAuthorizable
      */
     ParameterReferenceManager getParameterReferenceManager();
 
+    /**
+     * Updates the ParameterContexts within this context to match the given list of ParameterContexts. All parameter in these
+     * ParameterContexts are inherited by this ParameterContext, and can be referenced as if they were actually in this ParameterContext.
+     * The order of the list specifies the priority of parameter overriding, where parameters in the first ParameterContext in the list have
+     * top priority. However, all parameters in this ParameterContext take precedence over any in its list of inherited ParameterContexts.
+     * Note that this method should only update the ordering of the ParameterContexts, it cannot be used to modify the
+     * contents of the ParameterContexts in the list.
+     *
+     * @param inheritedParameterContexts the list of ParameterContexts from which to inherit parameters, in priority order first to last
+     * @throws IllegalStateException if the list of ParameterContexts is invalid (in case of a circular reference or
+     * in case {@link #verifyCanSetParameters(Map)} verifyCanSetParameters} would throw an exception)
+     */
+    void setInheritedParameterContexts(List<ParameterContext> inheritedParameterContexts);
 
+    /**
+     * Returns a list of ParameterContexts from which this ParameterContext inherits parameters.
+     * See {@link #setInheritedParameterContexts(List) setParameterContexts} for further information.  Note that the List that is returned may
+     * either be immutable or may be a defensive copy but modifying the list will not update the ParameterContexts inherited by this one.
+     * @return An ordered list of ParameterContexts from which this one inherits parameters
+     */
+    List<ParameterContext> getInheritedParameterContexts();
+
+    /**
+     * Returns a list of names of ParameterContexts from which this ParameterContext inherits parameters.
+     * See {@link #setInheritedParameterContexts(List) setParameterContexts} for further information.  Note that the List that is returned may
+     * either be immutable or may be a defensive copy but modifying the list will not update the ParameterContexts inherited by this one.
+     * @return An ordered list of ParameterContext names from which this one inherits parameters
+     */
+    List<String> getInheritedParameterContextNames();
+
+    /**
+     * Returns true if this ParameterContext inherits from the given parameter context, either
+     * directly or indirectly.
+     * @param parameterContextId The ID of the sought parameter context
+     * @return True if this inherits from the given ParameterContext
+     */
+    boolean inheritsFrom(String parameterContextId);
 }

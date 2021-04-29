@@ -32,16 +32,20 @@ import org.apache.nifi.parameter.ParameterReference;
 import org.apache.nifi.parameter.ParameterReferenceManager;
 import org.apache.nifi.web.ResourceNotFoundException;
 import org.apache.nifi.web.api.dto.ParameterContextDTO;
+import org.apache.nifi.web.api.dto.ParameterContextReferenceDTO;
 import org.apache.nifi.web.api.dto.ParameterDTO;
+import org.apache.nifi.web.api.entity.ParameterContextReferenceEntity;
 import org.apache.nifi.web.api.entity.ParameterEntity;
 import org.apache.nifi.web.dao.ParameterContextDAO;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class StandardParameterContextDAO implements ParameterContextDAO {
     private FlowManager flowManager;
@@ -54,16 +58,53 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
     @Override
     public void verifyCreate(final ParameterContextDTO parameterContextDto) {
         verifyNoNamingConflict(parameterContextDto.getName());
+        verifyInheritedParameterContextRefs(parameterContextDto.getInheritedParameterContexts());
+    }
+
+    private void verifyInheritedParameterContextRefs(List<ParameterContextReferenceEntity> inheritedParameterContexts) {
+        if (inheritedParameterContexts != null) {
+            // This will throw an exception if one is not found
+            inheritedParameterContexts.stream().forEach(entity -> flowManager.getParameterContextManager()
+                    .getParameterContext(entity.getComponent().getId()));
+        }
     }
 
     @Override
     public ParameterContext createParameterContext(final ParameterContextDTO parameterContextDto) {
         final Map<String, Parameter> parameters = getParameters(parameterContextDto, null);
-        final ParameterContext parameterContext = flowManager.createParameterContext(parameterContextDto.getId(), parameterContextDto.getName(), parameters);
+
+        resolveInheritedParameterContexts(parameterContextDto);
+
+        final ParameterContext parameterContext = flowManager.createParameterContext(parameterContextDto.getId(), parameterContextDto.getName(),
+                parameters, parameterContextDto.getInheritedParameterContexts());
         if (parameterContextDto.getDescription() != null) {
             parameterContext.setDescription(parameterContextDto.getDescription());
         }
         return parameterContext;
+    }
+
+    private void resolveInheritedParameterContexts(final ParameterContextDTO parameterContextDto) {
+        if (parameterContextDto.getInheritedParameterContexts() != null && !parameterContextDto.getInheritedParameterContexts().isEmpty()) {
+            Map<String, ParameterContext> paramContextNameMap = flowManager.getParameterContextManager().getParameterContextNameMapping();
+            for (final ParameterContextReferenceEntity ref : parameterContextDto.getInheritedParameterContexts()) {
+                if (ref.getComponent() == null || (ref.getComponent().getId() == null && ref.getComponent().getName() == null)) {
+                    throw new IllegalStateException(String.format("Could not resolve inherited parameter context references in Parameter Context [%s]",
+                            parameterContextDto.getName()));
+                }
+                final ParameterContextReferenceDTO refDto = ref.getComponent();
+                // If resolving by name only, look up the ids
+                if (refDto.getId() == null) {
+                    final ParameterContext resolvedParameterContext = paramContextNameMap.get(refDto.getName());
+                    if (resolvedParameterContext == null) {
+                        throw new IllegalStateException(String.format("Parameter Context [%s] references missing inherited Parameter Context [%s]",
+                                parameterContextDto.getName(), refDto.getName()));
+                    }
+
+                    ref.setId(resolvedParameterContext.getIdentifier());
+                    ref.getComponent().setId(resolvedParameterContext.getIdentifier());
+                }
+            }
+        }
     }
 
     private Map<String, Parameter> getParameters(final ParameterContextDTO parameterContextDto, final ParameterContext context) {
@@ -149,12 +190,28 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
             context.setParameters(parameters);
         }
 
+        if (parameterContextDto.getInheritedParameterContexts() != null) {
+            final List<ParameterContext> inheritedParameterContexts = getInheritedParameterContexts(parameterContextDto);
+            context.setInheritedParameterContexts(inheritedParameterContexts);
+        }
         return context;
+    }
+
+    private List<ParameterContext> getInheritedParameterContexts(ParameterContextDTO parameterContextDto) {
+        resolveInheritedParameterContexts(parameterContextDto);
+
+        final List<ParameterContext> inheritedParameterContexts = new ArrayList<>();
+        inheritedParameterContexts.addAll(parameterContextDto.getInheritedParameterContexts().stream()
+                .map(entity -> flowManager.getParameterContextManager().getParameterContext(entity.getComponent().getId()))
+                .collect(Collectors.toList()));
+
+        return inheritedParameterContexts;
     }
 
     @Override
     public void verifyUpdate(final ParameterContextDTO parameterContextDto, final boolean verifyComponentStates) {
         verifyNoNamingConflict(parameterContextDto.getName(), parameterContextDto.getId());
+        verifyInheritedParameterContextRefs(parameterContextDto.getInheritedParameterContexts());
 
         final ParameterContext currentContext = getParameterContext(parameterContextDto.getId());
         for (final ParameterEntity parameterEntity : parameterContextDto.getParameters()) {
@@ -266,6 +323,14 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
                 if (service.isReferencingParameter() && service.getState() != ControllerServiceState.DISABLED) {
                     throw new IllegalStateException("Cannot delete Parameter Context with ID " + parameterContextId + " because it is in use by at least one Controller Service that is enabled");
                 }
+            }
+        }
+
+        for (final ParameterContext parameterContext : flowManager.getParameterContextManager().getParameterContexts()) {
+            if (parameterContext.getInheritedParameterContexts().stream().filter(pc -> pc.getIdentifier().equals(parameterContextId))
+                    .findFirst().isPresent()) {
+                throw new IllegalStateException(String.format("Cannot delete Parameter Context with ID [%s] because it is referenced by at least one Parameter Context [%s]",
+                        parameterContextId, parameterContext.getName()));
             }
         }
     }

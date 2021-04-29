@@ -37,10 +37,13 @@ import java.util.stream.Collectors;
 public class ParamContextResult extends AbstractWritableResult<ParameterContextEntity> {
 
     private final ParameterContextEntity parameterContext;
+    private final boolean includeParameterContextSource;
 
-    public ParamContextResult(final ResultType resultType, final ParameterContextEntity parameterContext) {
+    public ParamContextResult(final ResultType resultType, final ParameterContextEntity parameterContext,
+                              final boolean includeParameterContextSource) {
         super(resultType);
         this.parameterContext = parameterContext;
+        this.includeParameterContextSource = includeParameterContextSource;
     }
 
     @Override
@@ -58,17 +61,26 @@ public class ParamContextResult extends AbstractWritableResult<ParameterContextE
                 .sorted(Comparator.comparing(ParameterDTO::getName))
                 .collect(Collectors.toList());
 
-        final Table table = new Table.Builder()
+        final Table.Builder tableBuilder = new Table.Builder()
                 .column("#", 3, 3, false)
                 .column("Name", 20, 60, false)
                 .column("Value", 20, 80, false)
-                .column("Sensitive", 10, 10, false)
-                .column("Description", 20, 80, true)
+                .column("Sensitive", 10, 10, false);
+
+        if (includeParameterContextSource) {
+            tableBuilder.column("Source Parameter Context", 25, 40, true);
+        }
+        final Table table = tableBuilder.column("Description", 20, 80, true)
                 .build();
 
         for (int i = 0; i < sortedParams.size(); i++) {
             final ParameterDTO r = sortedParams.get(i);
-            table.addRow(String.valueOf(i+1), r.getName(), r.getValue(), r.getSensitive().toString(), r.getDescription());
+            final String[] row = includeParameterContextSource
+                    ? new String[] { String.valueOf(i+1), r.getName(), r.getValue(), r.getSensitive().toString(),
+                            r.getParameterContext().getComponent().getName(), r.getDescription() }
+                    : new String[] { String.valueOf(i+1), r.getName(), r.getValue(), r.getSensitive().toString(),
+                            r.getDescription() };
+            table.addRow(row);
         }
 
         final TableWriter tableWriter = new DynamicTableWriter();

@@ -33,9 +33,11 @@ import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterContextManager;
 import org.apache.nifi.web.api.dto.FlowSnippetDTO;
+import org.apache.nifi.web.api.entity.ParameterContextReferenceEntity;
 
 import java.net.URL;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -323,7 +325,13 @@ public interface FlowManager {
 
     void removeRootControllerService(final ControllerServiceNode service);
 
-    ParameterContext createParameterContext(String id, String name, Map<String, Parameter> parameters);
+    ParameterContext createParameterContext(String id, String name, Map<String, Parameter> parameters, List<ParameterContextReferenceEntity> parameterContexts);
+
+    /**
+     * Resolves any reference-only parameter contexts in lists of inherited parameter contexts
+     * @throws IllegalStateException if an invalid parameter context reference was detected
+     */
+    void resolveParameterContextReferences();
 
     ParameterContextManager getParameterContextManager();
 

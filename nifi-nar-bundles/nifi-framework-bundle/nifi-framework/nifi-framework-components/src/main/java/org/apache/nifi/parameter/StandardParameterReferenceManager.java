@@ -53,7 +53,8 @@ public class StandardParameterReferenceManager implements ParameterReferenceMana
         final ProcessGroup rootGroup = flowManager.getRootGroup();
         final String contextId = parameterContext.getIdentifier();
         final List<ProcessGroup> referencingGroups = rootGroup.findAllProcessGroups(
-            group -> group.getParameterContext() != null && group.getParameterContext().getIdentifier().equals(contextId));
+            group -> group.getParameterContext() != null && (group.getParameterContext().getIdentifier().equals(contextId)
+                    || group.getParameterContext().inheritsFrom(contextId)));
 
         return new HashSet<>(referencingGroups);
     }
@@ -65,7 +66,8 @@ public class StandardParameterReferenceManager implements ParameterReferenceMana
         final ProcessGroup rootGroup = flowManager.getRootGroup();
         final String contextId = parameterContext.getIdentifier();
         final List<ProcessGroup> referencingGroups = rootGroup.findAllProcessGroups(
-            group -> group.getParameterContext() != null && group.getParameterContext().getIdentifier().equals(contextId));
+            group -> group.getParameterContext() != null && (group.getParameterContext().getIdentifier().equals(contextId)
+                    || group.getParameterContext().inheritsFrom(contextId)));
 
         for (final ProcessGroup group : referencingGroups) {
             for (final T componentNode : componentFunction.apply(group)) {

@@ -16,16 +16,33 @@
  */
 package org.apache.nifi.parameter;
 
-import java.util.Map;
-import java.util.Set;
+public interface ParameterContextLookup {
 
-public interface ParameterContextManager extends ParameterContextLookup {
+    /**
+     * Returns true if the lookup has the given parameter context.
+     *
+     * @param id the id of the parameter context
+     * @return true if the context has been found
+     */
+    boolean hasParameterContext(String id);
 
-    void addParameterContext(ParameterContext parameterContext);
+    /**
+     * Gets the specified parameter context.
+     *
+     * @param id the id of the parameter context
+     * @return the parameter context
+     */
+    ParameterContext getParameterContext(String id);
 
-    ParameterContext removeParameterContext(String parameterContextId);
+    ParameterContextLookup EMPTY = new ParameterContextLookup() {
+        @Override
+        public boolean hasParameterContext(String id) {
+            return false;
+        }
 
-    Set<ParameterContext> getParameterContexts();
-
-    Map<String, ParameterContext> getParameterContextNameMapping();
+        @Override
+        public ParameterContext getParameterContext(final String id) {
+            return null;
+        }
+    };
 }

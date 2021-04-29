@@ -427,6 +427,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
                     createParameterContext(parameterContextDto, controller.getFlowManager());
                 }
             }
+            controller.getFlowManager().resolveParameterContextReferences();
 
             logger.trace("Adding root process group");
             rootGroup = addProcessGroup(controller, /* parent group */ null, rootGroupElement, encryptor, encodingVersion);
@@ -529,7 +530,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
             .map(this::createParameter)
             .collect(Collectors.toMap(param -> param.getDescriptor().getName(), Function.identity()));
 
-        final ParameterContext context = flowManager.createParameterContext(dto.getId(), dto.getName(), parameters);
+        final ParameterContext context = flowManager.createParameterContext(dto.getId(), dto.getName(), parameters, dto.getInheritedParameterContexts());
         context.setDescription(dto.getDescription());
         return context;
     }

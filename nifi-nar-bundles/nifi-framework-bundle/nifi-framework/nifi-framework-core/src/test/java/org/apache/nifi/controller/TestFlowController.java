@@ -36,6 +36,7 @@ import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.reporting.ReportingTaskInstantiationException;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.scheduling.StandardProcessScheduler;
+import org.apache.nifi.controller.serialization.FlowSynchronizationException;
 import org.apache.nifi.controller.serialization.FlowSynchronizer;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
@@ -53,6 +54,7 @@ import org.apache.nifi.nar.ExtensionDiscoveringManager;
 import org.apache.nifi.nar.InstanceClassLoader;
 import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
 import org.apache.nifi.nar.SystemBundle;
+import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.provenance.MockProvenanceRepository;
 import org.apache.nifi.registry.VariableRegistry;
@@ -322,6 +324,50 @@ public class TestFlowController {
         try {
             controller.synchronize(standardFlowSynchronizer, proposedDataFlow, Mockito.mock(FlowService.class));
             assertNotEquals(authFingerprint, authorizer.getFingerprint());
+        } finally {
+            purgeFlow();
+        }
+    }
+
+    @Test(expected = FlowSynchronizationException.class)
+    public void testSynchronizeFlowWithInvalidParameterContextReference() throws IOException {
+        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(
+                PropertyEncryptorFactory.getPropertyEncryptor(nifiProperties), nifiProperties, extensionManager);
+
+        final File flowFile = new File("src/test/resources/conf/parameter-context-flow-error.xml");
+        final String flow = IOUtils.toString(new FileInputStream(flowFile), StandardCharsets.UTF_8);
+
+        final String authFingerprint = "<authorizations></authorizations>";
+        final DataFlow proposedDataFlow = new StandardDataFlow(flow.getBytes(StandardCharsets.UTF_8), null, authFingerprint.getBytes(StandardCharsets.UTF_8), Collections.emptySet());
+
+        try {
+            controller.synchronize(standardFlowSynchronizer, proposedDataFlow, Mockito.mock(FlowService.class));
+            controller.initializeFlow();
+        } finally {
+            purgeFlow();
+        }
+    }
+
+    @Test
+    public void testSynchronizeFlowWithNestedParameterContexts() throws IOException {
+        final FlowSynchronizer standardFlowSynchronizer = new StandardFlowSynchronizer(
+                PropertyEncryptorFactory.getPropertyEncryptor(nifiProperties), nifiProperties, extensionManager);
+
+        final File flowFile = new File("src/test/resources/conf/parameter-context-flow.xml");
+        final String flow = IOUtils.toString(new FileInputStream(flowFile), StandardCharsets.UTF_8);
+
+        final String authFingerprint = "<authorizations></authorizations>";
+        final DataFlow proposedDataFlow = new StandardDataFlow(flow.getBytes(StandardCharsets.UTF_8), null, authFingerprint.getBytes(StandardCharsets.UTF_8), Collections.emptySet());
+
+        try {
+            controller.synchronize(standardFlowSynchronizer, proposedDataFlow, Mockito.mock(FlowService.class));
+            controller.initializeFlow();
+
+            ParameterContext parameterContext = controller.getFlowManager().getParameterContextManager().getParameterContext("context");
+            Assert.assertNotNull(parameterContext);
+            Assert.assertEquals(2, parameterContext.getInheritedParameterContexts().size());
+            Assert.assertEquals("referenced-context", parameterContext.getInheritedParameterContexts().get(0).getIdentifier());
+            Assert.assertEquals("referenced-context-2", parameterContext.getInheritedParameterContexts().get(1).getIdentifier());
         } finally {
             purgeFlow();
         }

@@ -25,32 +25,32 @@ import org.apache.nifi.toolkit.cli.impl.client.nifi.ParamContextClient;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 import org.apache.nifi.toolkit.cli.impl.result.VoidResult;
 import org.apache.nifi.web.api.dto.ParameterContextDTO;
-import org.apache.nifi.web.api.dto.ParameterDTO;
+import org.apache.nifi.web.api.dto.ParameterContextReferenceDTO;
 import org.apache.nifi.web.api.entity.ParameterContextEntity;
+import org.apache.nifi.web.api.entity.ParameterContextReferenceEntity;
 import org.apache.nifi.web.api.entity.ParameterContextUpdateRequestEntity;
-import org.apache.nifi.web.api.entity.ParameterEntity;
 
 import java.io.IOException;
-import java.util.Collections;
-import java.util.Optional;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 
-public class DeleteParam extends AbstractUpdateParamContextCommand<VoidResult> {
+public class SetInheritedParamContexts extends AbstractUpdateParamContextCommand<VoidResult> {
 
-    public DeleteParam() {
-        super("delete-param", VoidResult.class);
+    public SetInheritedParamContexts() {
+        super("set-inherited-param-contexts", VoidResult.class);
     }
 
     @Override
     public String getDescription() {
-        return "Deletes a given parameter from the given parameter context.";
+        return "Sets a list of parameter context ids from which the given parameter context should inherit parameters";
     }
 
     @Override
     protected void doInitialize(Context context) {
         super.doInitialize(context);
         addOption(CommandOption.PARAM_CONTEXT_ID.createOption());
-        addOption(CommandOption.PARAM_NAME.createOption());
+        addOption(CommandOption.PARAM_CONTEXT_INHERITED_IDS.createOption());
     }
 
     @Override
@@ -59,39 +59,37 @@ public class DeleteParam extends AbstractUpdateParamContextCommand<VoidResult> {
 
         // Required args...
         final String paramContextId = getRequiredArg(properties, CommandOption.PARAM_CONTEXT_ID);
-        final String paramName = getRequiredArg(properties, CommandOption.PARAM_NAME);
+        final String inheritedIds = getRequiredArg(properties, CommandOption.PARAM_CONTEXT_INHERITED_IDS);
 
         // Ensure the context exists...
         final ParamContextClient paramContextClient = client.getParamContextClient();
-        final ParameterContextEntity existingEntity = paramContextClient.getParamContext(paramContextId, false);
+        final ParameterContextEntity existingParameterContextEntity = paramContextClient.getParamContext(paramContextId, false);
 
-        // Determine if this is an existing param or a new one...
-        final Optional<ParameterDTO> existingParam = existingEntity.getComponent().getParameters().stream()
-                .map(p -> p.getParameter())
-                .filter(p -> p.getName().equals(paramName))
-                .findFirst();
+        final String[] inheritedIdArray = inheritedIds.split(",");
+        final List<ParameterContextReferenceEntity> referenceEntities = new ArrayList<>();
+        for(String inheritedId : inheritedIdArray) {
+            final ParameterContextEntity existingInheritedEntity = paramContextClient.getParamContext(inheritedId, false);
+            final ParameterContextReferenceEntity parameterContextReferenceEntity = new ParameterContextReferenceEntity();
+            parameterContextReferenceEntity.setId(existingInheritedEntity.getId());
 
-        if (!existingParam.isPresent()) {
-            throw new NiFiClientException("Unable to delete parameter, no parameter found with name '" + paramName + "'");
+            final ParameterContextReferenceDTO parameterContextReferenceDTO = new ParameterContextReferenceDTO();
+            parameterContextReferenceDTO.setName(existingInheritedEntity.getComponent().getName());
+            parameterContextReferenceDTO.setId(existingInheritedEntity.getComponent().getId());
+            parameterContextReferenceEntity.setComponent(parameterContextReferenceDTO);
+
+            referenceEntities.add(parameterContextReferenceEntity);
         }
 
-        // Construct the objects for the update, a NULL value indicates to the server to removes the parameter...
-        final ParameterDTO parameterDTO = existingParam.get();
-        parameterDTO.setValue(null);
-        parameterDTO.setDescription(null);
-        parameterDTO.setSensitive(null);
-
-        final ParameterEntity parameterEntity = new ParameterEntity();
-        parameterEntity.setParameter(parameterDTO);
-
         final ParameterContextDTO parameterContextDTO = new ParameterContextDTO();
-        parameterContextDTO.setId(existingEntity.getId());
-        parameterContextDTO.setParameters(Collections.singleton(parameterEntity));
+        parameterContextDTO.setId(existingParameterContextEntity.getId());
+        parameterContextDTO.setParameters(existingParameterContextEntity.getComponent().getParameters());
 
         final ParameterContextEntity updatedParameterContextEntity = new ParameterContextEntity();
         updatedParameterContextEntity.setId(paramContextId);
         updatedParameterContextEntity.setComponent(parameterContextDTO);
-        updatedParameterContextEntity.setRevision(existingEntity.getRevision());
+        updatedParameterContextEntity.setRevision(existingParameterContextEntity.getRevision());
+
+        parameterContextDTO.setInheritedParameterContexts(referenceEntities);
 
         // Submit the update request...
         final ParameterContextUpdateRequestEntity updateRequestEntity = paramContextClient.updateParamContext(updatedParameterContextEntity);

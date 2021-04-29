@@ -173,10 +173,16 @@ public class NiFiClientUtil {
     }
 
     public ParameterContextEntity createParameterContextEntity(final String name, final String description, final Set<ParameterEntity> parameters) {
+        return createParameterContextEntity(name, description, parameters, Collections.EMPTY_LIST);
+    }
+
+    public ParameterContextEntity createParameterContextEntity(final String name, final String description, final Set<ParameterEntity> parameters,
+                                                               final List<ParameterContextReferenceEntity> inheritedParameterContexts) {
         final ParameterContextDTO contextDto = new ParameterContextDTO();
         contextDto.setName(name);
         contextDto.setDescription(description);
         contextDto.setParameters(parameters);
+        contextDto.setInheritedParameterContexts(inheritedParameterContexts);
 
         final ParameterContextEntity entity = new ParameterContextEntity();
         entity.setComponent(contextDto);

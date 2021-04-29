@@ -71,6 +71,10 @@ public class ParameterContextMerger {
                 continue;
             }
 
+            if (contextDto.getInheritedParameterContexts() != null && !contextDto.getInheritedParameterContexts().isEmpty()) {
+                target.setInheritedParameterContexts(contextDto.getInheritedParameterContexts());
+            }
+
             Set<ProcessGroupEntity> boundGroupEntities = contextDto.getBoundProcessGroups();
             if (boundGroupEntities != null) {
                 for (final ProcessGroupEntity groupEntity : boundGroupEntities) {
@@ -108,6 +112,9 @@ public class ParameterContextMerger {
         }
 
         target.setBoundProcessGroups(new HashSet<>(mergedBoundGroups.values()));
+        if (target.getInheritedParameterContexts() == null) {
+            target.setInheritedParameterContexts(new ArrayList<>());
+        }
 
         // Set the merged parameter dto's
         for (final ParameterEntity parameterEntity : target.getParameters()) {

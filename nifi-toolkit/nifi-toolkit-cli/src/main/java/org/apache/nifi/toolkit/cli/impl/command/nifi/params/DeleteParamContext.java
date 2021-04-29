@@ -53,7 +53,7 @@ public class DeleteParamContext extends AbstractNiFiCommand<StringResult> {
         final String paramContextId = getRequiredArg(properties, CommandOption.PARAM_CONTEXT_ID);
 
         final ParamContextClient paramContextClient = client.getParamContextClient();
-        final ParameterContextEntity existingParamContext = paramContextClient.getParamContext(paramContextId);
+        final ParameterContextEntity existingParamContext = paramContextClient.getParamContext(paramContextId, false);
 
         final String version = String.valueOf(existingParamContext.getRevision().getVersion());
         paramContextClient.deleteParamContext(paramContextId, version);
