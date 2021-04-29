@@ -691,14 +691,15 @@ public class PutDatabaseRecord extends AbstractProcessor {
 
                     final Object[] values = currentRecord.getValues();
                     final List<DataType> dataTypes = currentRecord.getSchema().getDataTypes();
-                    List<ColumnDescription> columns = tableSchema.getColumnsAsList();
+                    final List<String> fieldNames = currentRecord.getSchema().getFieldNames();
+                    Map<String, ColumnDescription> columns = tableSchema.getColumns();
 
                     for (int i = 0; i < fieldIndexes.size(); i++) {
                         final int currentFieldIndex = fieldIndexes.get(i);
                         Object currentValue = values[currentFieldIndex];
                         final DataType dataType = dataTypes.get(currentFieldIndex);
                         final int fieldSqlType = DataTypeUtils.getSQLTypeValue(dataType);
-                        final ColumnDescription column = columns.get(currentFieldIndex);
+                        final ColumnDescription column = columns.get(normalizeColumnName(fieldNames.get(currentFieldIndex), settings.translateFieldNames));
                         int sqlType = column.dataType;
 
                         // Convert (if necessary) from field data type to column data type
