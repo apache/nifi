@@ -148,6 +148,8 @@
         <nifi.web.request.ip.whitelist />
         <nifi.web.should.send.server.version>true</nifi.web.should.send.server.version>
         <!-- nifi.properties: security properties -->
+        <nifi.security.autoreload.enabled>false</nifi.security.autoreload.enabled>
+        <nifi.security.autoreload.interval>10 secs</nifi.security.autoreload.interval>
         <!-- Use these values once we change default configuration to be HTTPS
         <nifi.security.keystore>./conf/keystore.p12</nifi.security.keystore>
         <nifi.security.keystoreType>PKCS12</nifi.security.keystoreType> -->

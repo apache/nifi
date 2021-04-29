@@ -199,6 +199,19 @@ Now that the User Interface has been secured, we can easily secure Site-to-Site 
 accomplished by setting the `nifi.remote.input.secure` and `nifi.cluster.protocol.is.secure` properties, respectively, to `true`. These communications
 will always REQUIRE two way SSL as the nodes will use their configured keystore/truststore for authentication.
 
+Automatic refreshing of NiFi's web SSL context factory can be enabled using the following properties:
+
+[options="header,footer"]
+|==================================================================================================================================================
+| Property Name | Description
+|`nifi.security.autoreload.enabled`|Specifies whether the SSL context factory should be automatically reloaded if updates to the keystore and truststore are detected. By default, it is set to `false`.
+|`nifi.security.autoreload.interval`|Specifies the interval at which the keystore and truststore are checked for updates. Only applies if `nifi.security.autoreload.enabled` is set to `true`. The default value is `10 secs`.
+|==================================================================================================================================================
+
+Once the `nifi.security.autoreload.enabled` property is set to `true`, any valid changes to the configured keystore and truststore will cause NiFi's SSL context factory to be reloaded, allowing clients to pick up the changes.  This is intended to allow expired certificates to be updated in the keystore and new trusted certificates to be added in the truststore, all without having to restart the NiFi server.
+
+NOTE: Changes to any of the `nifi.security.keystore*` or `nifi.security.truststore*` properties will not be picked up by the auto-refreshing logic, which assumes the passwords and store paths will remain the same.
+
 [[tls_generation_toolkit]]
 === TLS Generation Toolkit
 
@@ -3560,6 +3573,8 @@ These properties pertain to various security features in NiFi. Many of these pro
 |`nifi.sensitive.props.algorithm`|The algorithm used to encrypt sensitive properties. The default value is `PBEWITHMD5AND256BITAES-CBC-OPENSSL`.
 |`nifi.sensitive.props.provider`|The sensitive property provider. The default value is `BC`.
 |`nifi.sensitive.props.additional.keys`|The comma separated list of properties in _nifi.properties_ to encrypt in addition to the default sensitive properties (see <<encrypt-config_tool>>).
+|`nifi.security.autoreload.enabled`|Specifies whether the SSL context factory should be automatically reloaded if updates to the keystore and truststore are detected. By default, it is set to `false`.
+|`nifi.security.autoreload.interval`|Specifies the interval at which the keystore and truststore are checked for updates. Only applies if `nifi.security.autoreload.enabled` is set to `true`. The default value is `10 secs`.
 |`nifi.security.keystore`*|The full path and name of the keystore. It is blank by default.
 |`nifi.security.keystoreType`|The keystore type. It is blank by default.
 |`nifi.security.keystorePasswd`|The keystore password. It is blank by default.
