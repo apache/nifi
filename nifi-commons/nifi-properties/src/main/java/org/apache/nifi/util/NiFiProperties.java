@@ -153,6 +153,8 @@ public abstract class NiFiProperties {
     public static final String SECURITY_TRUSTSTORE = "nifi.security.truststore";
     public static final String SECURITY_TRUSTSTORE_TYPE = "nifi.security.truststoreType";
     public static final String SECURITY_TRUSTSTORE_PASSWD = "nifi.security.truststorePasswd";
+    public static final String SECURITY_AUTO_RELOAD_ENABLED = "nifi.security.autoreload.enabled";
+    public static final String SECURITY_AUTO_RELOAD_INTERVAL = "nifi.security.autoreload.interval";
     public static final String SECURITY_USER_AUTHORIZER = "nifi.security.user.authorizer";
     public static final String SECURITY_ANONYMOUS_AUTHENTICATION = "nifi.security.allow.anonymous.authentication";
     public static final String SECURITY_USER_LOGIN_IDENTITY_PROVIDER = "nifi.security.user.login.identity.provider";
@@ -328,6 +330,7 @@ public abstract class NiFiProperties {
     public static final String DEFAULT_ZOOKEEPER_AUTH_TYPE = "default";
     public static final String DEFAULT_ZOOKEEPER_KERBEROS_REMOVE_HOST_FROM_PRINCIPAL = "true";
     public static final String DEFAULT_ZOOKEEPER_KERBEROS_REMOVE_REALM_FROM_PRINCIPAL = "true";
+    public static final String DEFAULT_SECURITY_AUTO_RELOAD_INTERVAL = "10 secs";
     public static final String DEFAULT_SITE_TO_SITE_HTTP_TRANSACTION_TTL = "30 secs";
     public static final String DEFAULT_FLOW_CONFIGURATION_ARCHIVE_ENABLED = "true";
     public static final String DEFAULT_FLOW_CONFIGURATION_ARCHIVE_MAX_TIME = "30 days";
@@ -760,6 +763,22 @@ public abstract class NiFiProperties {
      */
     public String getAutoRefreshInterval() {
         return getProperty(UI_AUTO_REFRESH_INTERVAL);
+    }
+
+    /**
+     * Returns true if auto reload of the keystore and truststore is enabled.
+     * @return true if auto reload of the keystore and truststore is enabled.
+     */
+    public boolean isSecurityAutoReloadEnabled() {
+        return this.getProperty(SECURITY_AUTO_RELOAD_ENABLED, Boolean.FALSE.toString()).equals(Boolean.TRUE.toString());
+    }
+
+    /**
+     * Returns the auto reload interval of the keystore and truststore.
+     * @return The interval over which the keystore and truststore should auto-reload.
+     */
+    public String getSecurityAutoReloadInterval() {
+        return getProperty(SECURITY_AUTO_RELOAD_INTERVAL, DEFAULT_SECURITY_AUTO_RELOAD_INTERVAL);
     }
 
     // getters for cluster protocol properties //

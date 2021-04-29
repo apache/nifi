@@ -58,6 +58,7 @@ import org.apache.nifi.web.security.headers.XContentTypeOptionsFilter;
 import org.apache.nifi.web.security.headers.XFrameOptionsFilter;
 import org.apache.nifi.web.security.headers.XSSProtectionFilter;
 import org.apache.nifi.web.security.requests.ContentLengthFilter;
+import org.apache.nifi.web.server.util.TrustStoreScanner;
 import org.eclipse.jetty.annotations.AnnotationConfiguration;
 import org.eclipse.jetty.deploy.App;
 import org.eclipse.jetty.deploy.DeploymentManager;
@@ -77,6 +78,7 @@ import org.eclipse.jetty.servlet.DefaultServlet;
 import org.eclipse.jetty.servlet.FilterHolder;
 import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.servlets.DoSFilter;
+import org.eclipse.jetty.util.ssl.KeyStoreScanner;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
 import org.eclipse.jetty.webapp.Configuration;
@@ -150,6 +152,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
     private ExtensionMapping extensionMapping;
     private NarAutoLoader narAutoLoader;
     private DiagnosticsFactory diagnosticsFactory;
+    private SslContextFactory.Server sslContextFactory;
 
     private WebAppContext webApiContext;
     private WebAppContext webDocsContext;
@@ -314,6 +317,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         // deploy the web apps
         return gzip(webAppContextHandlers);
     }
+
 
     @Override
     public void loadExtensionUis(final Set<Bundle> bundles) {
@@ -880,6 +884,29 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         ServerConnectorCreator<Server, HttpConfiguration, ServerConnector> scc = (s, c) -> createUnconfiguredSslServerConnector(s, c, port);
 
         configureGenericConnector(server, httpConfiguration, hostname, port, connectorLabel, httpsNetworkInterfaces, scc);
+
+        if (props.isSecurityAutoReloadEnabled()) {
+            configureSslContextFactoryReloading(server);
+        }
+    }
+
+    /**
+     * Configures a KeyStoreScanner and TrustStoreScanner at the configured reload intervals.  This will
+     * reload the SSLContextFactory if any changes are detected to the keystore or truststore.
+     * @param server The Jetty server
+     */
+    private void configureSslContextFactoryReloading(Server server) {
+        final int scanIntervalSeconds = Double.valueOf(FormatUtils.getPreciseTimeDuration(
+                props.getSecurityAutoReloadInterval(), TimeUnit.SECONDS))
+                .intValue();
+
+        final KeyStoreScanner keyStoreScanner = new KeyStoreScanner(sslContextFactory);
+        keyStoreScanner.setScanInterval(scanIntervalSeconds);
+        server.addBean(keyStoreScanner);
+
+        final TrustStoreScanner trustStoreScanner = new TrustStoreScanner(sslContextFactory);
+        trustStoreScanner.setScanInterval(scanIntervalSeconds);
+        server.addBean(trustStoreScanner);
     }
 
     /**
@@ -1008,6 +1035,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
     private SslContextFactory createSslContextFactory() {
         final SslContextFactory.Server serverContextFactory = new SslContextFactory.Server();
         configureSslContextFactory(serverContextFactory, props);
+        this.sslContextFactory = serverContextFactory;
         return serverContextFactory;
     }
 
