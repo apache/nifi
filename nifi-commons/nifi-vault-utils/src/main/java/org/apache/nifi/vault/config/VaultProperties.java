@@ -42,9 +42,9 @@ public class VaultProperties {
     private final Optional<String> connectionTimeout;
     private final Optional<String> readTimeout;
 
-    private VaultProperties(String uri, String keystore, String keystoreType, String keystorePassword, String truststore,
-                           String truststoreType, String truststorePassword, String authPropertiesFilename,
-                           String enabledTlsCipherSuites, String enabledTlsProtocols, String connectionTimeout, String readTimeout) {
+    private VaultProperties(final String uri, String keystore, final String keystoreType, final String keystorePassword, final String truststore,
+                            final String truststoreType, final String truststorePassword, final String authPropertiesFilename,
+                            final String enabledTlsCipherSuites, final String enabledTlsProtocols, final String connectionTimeout, final String readTimeout) {
         Objects.requireNonNull(uri, "Vault URI is required");
         Objects.requireNonNull(authPropertiesFilename, "Vault auth properties filename is required");
         this.uri = uri;
@@ -70,30 +70,37 @@ public class VaultProperties {
         }
     }
 
+    @VaultProperty(key = VaultEnvironment.VAULT_URI)
     public String getUri() {
         return uri;
     }
 
+    @VaultProperty(key = VaultEnvironment.VAULT_SSL_KEYSTORE)
     public String getKeystore() {
         return keystore;
     }
 
+    @VaultProperty(key = VaultEnvironment.VAULT_SSL_KEYSTORE_TYPE)
     public String getKeystoreType() {
         return keystoreType;
     }
 
+    @VaultProperty(key = VaultEnvironment.VAULT_SSL_KEYSTORE_PASSWORD)
     public String getKeystorePassword() {
         return keystorePassword;
     }
 
+    @VaultProperty(key = VaultEnvironment.VAULT_SSL_TRUSTSTORE)
     public String getTruststore() {
         return truststore;
     }
 
+    @VaultProperty(key = VaultEnvironment.VAULT_SSL_TRUSTSTORE_TYPE)
     public String getTruststoreType() {
         return truststoreType;
     }
 
+    @VaultProperty(key = VaultEnvironment.VAULT_SSL_TRUSTSTORE_PASSWORD)
     public String getTruststorePassword() {
         return truststorePassword;
     }
@@ -102,10 +109,12 @@ public class VaultProperties {
         return authPropertiesFilename;
     }
 
+    @VaultProperty(key = VaultEnvironment.VAULT_SSL_ENABLED_CIPHER_SUITES)
     public String getEnabledTlsCipherSuites() {
         return enabledTlsCipherSuites;
     }
 
+    @VaultProperty(key = VaultEnvironment.VAULT_SSL_ENABLED_PROTOCOLS)
     public String getEnabledTlsProtocols() {
         return enabledTlsProtocols;
     }

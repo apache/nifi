@@ -22,6 +22,7 @@ import org.apache.nifi.vault.config.VaultProperties;
 import org.springframework.vault.authentication.SimpleSessionManager;
 import org.springframework.vault.client.ClientHttpRequestFactoryFactory;
 import org.springframework.vault.core.VaultTemplate;
+import org.springframework.vault.core.VaultTransitOperations;
 import org.springframework.vault.support.Ciphertext;
 import org.springframework.vault.support.ClientOptions;
 import org.springframework.vault.support.Plaintext;
@@ -39,6 +40,7 @@ public class StandardVaultCommunicationService implements VaultCommunicationServ
 
     private final VaultConfiguration vaultConfiguration;
     private final VaultTemplate vaultTemplate;
+    private final VaultTransitOperations transitOperations;
 
     /**
      * Creates a VaultCommunicationService that uses Spring Vault.
@@ -56,6 +58,8 @@ public class StandardVaultCommunicationService implements VaultCommunicationServ
         vaultTemplate = new VaultTemplate(vaultConfiguration.vaultEndpoint(),
                 ClientHttpRequestFactoryFactory.create(clientOptions, sslConfiguration),
                 new SimpleSessionManager(vaultConfiguration.clientAuthentication()));
+
+        transitOperations = vaultTemplate.opsForTransit();
     }
 
     private static ClientOptions getClientOptions(VaultProperties vaultProperties) {
@@ -79,12 +83,12 @@ public class StandardVaultCommunicationService implements VaultCommunicationServ
     }
 
     @Override
-    public String encrypt(String transitKey, byte[] plainText) {
-        return vaultTemplate.opsForTransit().encrypt(transitKey, Plaintext.of(plainText)).getCiphertext();
+    public String encrypt(final String transitKey, final byte[] plainText) {
+        return transitOperations.encrypt(transitKey, Plaintext.of(plainText)).getCiphertext();
     }
 
     @Override
-    public byte[] decrypt(String transitKey, String cipherText) {
-        return vaultTemplate.opsForTransit().decrypt(transitKey, Ciphertext.of(cipherText)).getPlaintext();
+    public byte[] decrypt(final String transitKey, final String cipherText) {
+        return transitOperations.decrypt(transitKey, Ciphertext.of(cipherText)).getPlaintext();
     }
 }

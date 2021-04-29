@@ -23,6 +23,8 @@ import org.springframework.core.env.Profiles;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.URI;
 import java.nio.file.Paths;
 import java.util.Objects;
@@ -51,25 +53,21 @@ public class VaultEnvironment implements Environment {
         Objects.requireNonNull(vaultProperties, "Vault Properties are required");
         this.vaultProperties = vaultProperties;
 
-        Optional<Properties> authProperties = this.getAuthProperties(vaultProperties);
-        if (!authProperties.isPresent()) {
-            throw new VaultConfigurationException("Vault auth properties file is required");
-        } else {
-            this.authProperties = authProperties.get();
-        }
+        this.authProperties = this.getAuthProperties(vaultProperties)
+                .orElseThrow(() -> new VaultConfigurationException("Vault auth properties file is required"));
     }
 
-    private Optional<Properties> getAuthProperties(VaultProperties properties) throws VaultConfigurationException {
+    private Optional<Properties> getAuthProperties(final VaultProperties properties) throws VaultConfigurationException {
         if (properties.getAuthPropertiesFilename() == null) {
             return Optional.empty();
         }
 
-        File authPropertiesFile = Paths.get(properties.getAuthPropertiesFilename()).toFile();
+        final File authPropertiesFile = Paths.get(properties.getAuthPropertiesFilename()).toFile();
         if (!authPropertiesFile.exists()) {
             return Optional.empty();
         }
 
-        Properties authProperties = new Properties();
+        final Properties authProperties = new Properties();
         try (final FileReader reader = new FileReader(authPropertiesFile)) {
             authProperties.load(reader);
         } catch (final IOException e) {
@@ -80,7 +78,7 @@ public class VaultEnvironment implements Environment {
     }
 
     @Override
-    public boolean containsProperty(String propertyName) {
+    public boolean containsProperty(final String propertyName) {
         return this.getProperty(propertyName) != null;
     }
 
@@ -90,42 +88,33 @@ public class VaultEnvironment implements Environment {
      * @return The configured property value
      */
     @Override
-    public String getProperty(String key) {
-        if (VAULT_URI.equals(key)) {
-            return vaultProperties.getUri();
-        } else if (VAULT_SSL_KEYSTORE.equals(key)) {
-            return vaultProperties.getKeystore();
-        } else if (VAULT_SSL_KEYSTORE_PASSWORD.equals(key)) {
-            return vaultProperties.getKeystorePassword();
-        } else if (VAULT_SSL_KEYSTORE_TYPE.equals(key)) {
-            return vaultProperties.getKeystoreType();
-        } else if (VAULT_SSL_TRUSTSTORE.equals(key)) {
-            return vaultProperties.getTruststore();
-        } else if (VAULT_SSL_TRUSTSTORE_PASSWORD.equals(key)) {
-            return vaultProperties.getTruststorePassword();
-        } else if (VAULT_SSL_TRUSTSTORE_TYPE.equals(key)) {
-            return vaultProperties.getTruststoreType();
-        } else if (VAULT_SSL_ENABLED_CIPHER_SUITES.equals(key)) {
-            return vaultProperties.getEnabledTlsCipherSuites();
-        } else if (VAULT_SSL_ENABLED_PROTOCOLS.equals(key)) {
-            return vaultProperties.getEnabledTlsProtocols();
-        } else {
-            return authProperties.getProperty(key);
+    public String getProperty(final String key) {
+        for (Method method : VaultProperties.class.getDeclaredMethods()) {
+            if (method.isAnnotationPresent(VaultProperty.class)
+                    && method.getAnnotation(VaultProperty.class).key().equals(key)) {
+                try {
+                    return (String) method.invoke(vaultProperties);
+                } catch (IllegalAccessException | InvocationTargetException e) {
+                    throw new IllegalStateException(String.format("Error retrieving VaultProperty [%s]", key), e);
+                }
+            }
         }
+
+        return authProperties.getProperty(key);
     }
 
     @Override
-    public String getProperty(String key, String defaultValue) {
+    public String getProperty(final String key, final String defaultValue) {
         return this.getProperty(key, String.class, defaultValue);
     }
 
     @Override
-    public <T> T getProperty(String key, Class<T> targetType) {
+    public <T> T getProperty(final String key, final Class<T> targetType) {
         return this.getProperty(key, targetType, null);
     }
 
     @Override
-    public <T> T getProperty(String key, Class<T> targetType, T defaultValue) {
+    public <T> T getProperty(final String key, final Class<T> targetType, final T defaultValue) {
         final String value = this.getProperty(key);
         if (targetType.isAssignableFrom(URI.class)) {
             return value == null ? defaultValue : (T) URI.create(value);
@@ -147,8 +136,6 @@ public class VaultEnvironment implements Environment {
 
     @Override
     public String resolvePlaceholders(String s) {
-
-
         throw new UnsupportedOperationException("Method not supported");
     }
 

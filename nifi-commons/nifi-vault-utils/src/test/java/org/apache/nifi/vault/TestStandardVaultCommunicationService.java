@@ -34,7 +34,6 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class TestStandardVaultCommunicationService {
-    private static final String TRANSIT_KEY = "nifi";
     public static final String URI_VALUE = "http://127.0.0.1:8200";
     public static final String CIPHER_SUITE_VALUE = "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384";
 
