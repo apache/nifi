@@ -844,7 +844,7 @@ public class RemoteProcessGroupResource extends ApplicationResource {
     @PUT
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    @Path("process-group/run-status/{id}")
+    @Path("process-group/{id}/run-status")
     @ApiOperation(
             value = "Updates run status of all remote process groups in a process group (recursively)",
             response = RemoteProcessGroupEntity.class,
