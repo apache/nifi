@@ -28,12 +28,9 @@ import org.slf4j.Logger;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
-import java.util.List;
 import java.util.Properties;
-import java.util.concurrent.AbstractExecutorService;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import static org.apache.nifi.minifi.bootstrap.status.reporters.StatusLogger.ENCOUNTERED_IO_EXCEPTION;
@@ -107,7 +104,7 @@ public class StatusLoggerTest {
     @Test
     public void TestTrace() {
         statusLogger.initialize(getProperties(LogLevel.TRACE), queryableStatusAggregator);
-        statusLogger.setScheduledExecutorService(new RunOnceScheduledExecutorService());
+        statusLogger.setScheduledExecutorService(new RunOnceScheduledExecutorService(1));
         statusLogger.start();
 
         verify(logger, Mockito.timeout(300).atLeastOnce()).trace(MOCK_STATUS, (Throwable) null);
@@ -116,7 +113,7 @@ public class StatusLoggerTest {
     @Test
     public void TestDebug() {
         statusLogger.initialize(getProperties(LogLevel.DEBUG), queryableStatusAggregator);
-        statusLogger.setScheduledExecutorService(new RunOnceScheduledExecutorService());
+        statusLogger.setScheduledExecutorService(new RunOnceScheduledExecutorService(1));
         statusLogger.start();
 
         verify(logger, Mockito.timeout(300).atLeastOnce()).debug(MOCK_STATUS, (Throwable) null);
@@ -125,7 +122,7 @@ public class StatusLoggerTest {
     @Test
     public void TestInfo() {
         statusLogger.initialize(getProperties(LogLevel.INFO), queryableStatusAggregator);
-        statusLogger.setScheduledExecutorService(new RunOnceScheduledExecutorService());
+        statusLogger.setScheduledExecutorService(new RunOnceScheduledExecutorService(1));
         statusLogger.start();
 
         verify(logger, Mockito.timeout(300).atLeastOnce()).info(MOCK_STATUS, (Throwable) null);
@@ -134,7 +131,7 @@ public class StatusLoggerTest {
     @Test
     public void TestWarn() {
         statusLogger.initialize(getProperties(LogLevel.WARN), queryableStatusAggregator);
-        statusLogger.setScheduledExecutorService(new RunOnceScheduledExecutorService());
+        statusLogger.setScheduledExecutorService(new RunOnceScheduledExecutorService(1));
         statusLogger.start();
 
         verify(logger, Mockito.timeout(300).atLeastOnce()).warn(MOCK_STATUS, (Throwable) null);
@@ -143,7 +140,7 @@ public class StatusLoggerTest {
     @Test
     public void TestError() {
         statusLogger.initialize(getProperties(LogLevel.ERROR), queryableStatusAggregator);
-        statusLogger.setScheduledExecutorService(new RunOnceScheduledExecutorService());
+        statusLogger.setScheduledExecutorService(new RunOnceScheduledExecutorService(1));
         statusLogger.start();
 
         verify(logger, Mockito.timeout(300).atLeastOnce()).error(MOCK_STATUS, (Throwable) null);
@@ -161,7 +158,7 @@ public class StatusLoggerTest {
         Mockito.when(queryableStatusAggregator.statusReport(MOCK_QUERY)).thenThrow(ioException);
 
         statusLogger.initialize(properties, queryableStatusAggregator);
-        statusLogger.setScheduledExecutorService(new RunOnceScheduledExecutorService());
+        statusLogger.setScheduledExecutorService(new RunOnceScheduledExecutorService(1));
         statusLogger.start();
 
         verify(logger, Mockito.timeout(300).atLeastOnce()).trace(ENCOUNTERED_IO_EXCEPTION, ioException);
@@ -173,7 +170,7 @@ public class StatusLoggerTest {
         Mockito.when(queryableStatusAggregator.statusReport(MOCK_QUERY)).thenThrow(ioException);
 
         statusLogger.initialize(getProperties(LogLevel.DEBUG), queryableStatusAggregator);
-        statusLogger.setScheduledExecutorService(new RunOnceScheduledExecutorService());
+        statusLogger.setScheduledExecutorService(new RunOnceScheduledExecutorService(1));
         statusLogger.start();
 
         verify(logger, Mockito.timeout(300).atLeastOnce()).debug(ENCOUNTERED_IO_EXCEPTION, ioException);
@@ -185,7 +182,7 @@ public class StatusLoggerTest {
         Mockito.when(queryableStatusAggregator.statusReport(MOCK_QUERY)).thenThrow(ioException);
 
         statusLogger.initialize(getProperties(LogLevel.INFO), queryableStatusAggregator);
-        statusLogger.setScheduledExecutorService(new RunOnceScheduledExecutorService());
+        statusLogger.setScheduledExecutorService(new RunOnceScheduledExecutorService(1));
         statusLogger.start();
 
         verify(logger, Mockito.timeout(300).atLeastOnce()).info(ENCOUNTERED_IO_EXCEPTION, ioException);
@@ -197,7 +194,7 @@ public class StatusLoggerTest {
         Mockito.when(queryableStatusAggregator.statusReport(MOCK_QUERY)).thenThrow(ioException);
 
         statusLogger.initialize(getProperties(LogLevel.WARN), queryableStatusAggregator);
-        statusLogger.setScheduledExecutorService(new RunOnceScheduledExecutorService());
+        statusLogger.setScheduledExecutorService(new RunOnceScheduledExecutorService(1));
         statusLogger.start();
 
         verify(logger, Mockito.timeout(300).atLeastOnce()).warn(ENCOUNTERED_IO_EXCEPTION, ioException);
@@ -209,7 +206,7 @@ public class StatusLoggerTest {
         Mockito.when(queryableStatusAggregator.statusReport(MOCK_QUERY)).thenThrow(ioException);
 
         statusLogger.initialize(getProperties(LogLevel.ERROR), queryableStatusAggregator);
-        statusLogger.setScheduledExecutorService(new RunOnceScheduledExecutorService());
+        statusLogger.setScheduledExecutorService(new RunOnceScheduledExecutorService(1));
         statusLogger.start();
 
         verify(logger, Mockito.timeout(300).atLeastOnce()).error(ENCOUNTERED_IO_EXCEPTION, ioException);
@@ -223,24 +220,10 @@ public class StatusLoggerTest {
         return properties;
     }
 
-    private static class RunOnceScheduledExecutorService extends AbstractExecutorService implements ScheduledExecutorService {
+    private static class RunOnceScheduledExecutorService extends ScheduledThreadPoolExecutor {
 
-        @Override
-        public ScheduledFuture<?> schedule(Runnable command, long delay, TimeUnit unit) {
-            command.run();
-            // Return value is not used
-            return null;
-        }
-
-        @Override
-        public <V> ScheduledFuture<V> schedule(Callable<V> callable, long delay, TimeUnit unit) {
-            try {
-                callable.call();
-            } catch (Exception e) {
-                // Do nothing
-            }
-            // Return value is not used
-            return null;
+        public RunOnceScheduledExecutorService(int corePoolSize) {
+            super(corePoolSize);
         }
 
         @Override
@@ -248,42 +231,6 @@ public class StatusLoggerTest {
             command.run();
             // Return value is not used
             return null;
-        }
-
-        @Override
-        public ScheduledFuture<?> scheduleWithFixedDelay(Runnable command, long initialDelay, long delay, TimeUnit unit) {
-            command.run();
-            // Return value is not used
-            return null;
-        }
-
-        @Override
-        public void shutdown() {
-        }
-
-        @Override
-        public List<Runnable> shutdownNow() {
-            return null;
-        }
-
-        @Override
-        public boolean isShutdown() {
-            return false;
-        }
-
-        @Override
-        public boolean isTerminated() {
-            return true;
-        }
-
-        @Override
-        public boolean awaitTermination(long timeout, TimeUnit unit) throws InterruptedException {
-            return true;
-        }
-
-        @Override
-        public void execute(Runnable command) {
-            command.run();
         }
     }
 }
