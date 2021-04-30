@@ -52,7 +52,6 @@ public class TestLocaleOfTestSuite {
         Assume.assumeTrue(Arrays.asList("en", "fr", "ja").contains(userLanguage));
         Assume.assumeTrue(Arrays.asList("AU", "FR", "JP").contains(userCountry));
         Assume.assumeTrue(Arrays.asList("en-AU", "fr-FR", "ja-JP").contains(languageTag));
-        Assume.assumeTrue("unconditionally force junit output to XML report",false);
     }
 
     /**
@@ -67,14 +66,23 @@ public class TestLocaleOfTestSuite {
         Assert.assertEquals("1,000", NumberFormat.getInstance(Locale.US).format(1000));
         Assert.assertEquals("1,000", NumberFormat.getInstance(Locale.JAPAN).format(1000));
 
-        final String runtimeJavaVersion = System.getProperty("java.version");
-        final boolean isJava11 = Pattern.compile("11.+").matcher(runtimeJavaVersion).matches();
-        final String expectedEnAu = (isJava11 ? "e" : "E");
-        Assert.assertEquals(expectedEnAu, DecimalFormatSymbols.getInstance(Locale.forLanguageTag("en-AU")).getExponentSeparator());
-
         Assert.assertEquals("E", DecimalFormatSymbols.getInstance(Locale.US).getExponentSeparator());
         Assert.assertEquals("E", DecimalFormatSymbols.getInstance(Locale.FRANCE).getExponentSeparator());
         Assert.assertEquals("E", DecimalFormatSymbols.getInstance(Locale.JAPAN).getExponentSeparator());
+        Assert.assertEquals("E", DecimalFormatSymbols.getInstance(Locale.forLanguageTag("en-NZ")).getExponentSeparator());
+        Assert.assertEquals("E", DecimalFormatSymbols.getInstance(Locale.forLanguageTag("fr-CH")).getExponentSeparator());
         Assert.assertEquals("E", DecimalFormatSymbols.getInstance(Locale.forLanguageTag("xx-YY")).getExponentSeparator());
+    }
+
+    /**
+     * Document behavior of {@link DecimalFormatSymbols} in JRE on use of non-standard {@link Locale}.
+     */
+    @Test
+    public void testExponentSeparatorByLocaleAndJavaVersion() {
+        final String runtimeJavaVersion = System.getProperty("java.version");
+        final boolean isJava8 = Pattern.compile("1\\.8.+").matcher(runtimeJavaVersion).matches();
+        final String expected = (isJava8 ? "E" : "e");
+        // used by project CI
+        Assert.assertEquals(expected, DecimalFormatSymbols.getInstance(Locale.forLanguageTag("en-AU")).getExponentSeparator());
     }
 }

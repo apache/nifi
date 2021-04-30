@@ -136,10 +136,8 @@ public class ConvertExcelToCSVProcessorTest {
         LocalDateTime localDt = LocalDateTime.of(2017, 1, 1, 12, 0, 0);
         DecimalFormatSymbols decimalFormatSymbols = DecimalFormatSymbols.getInstance();
         char decimalSeparator = decimalFormatSymbols.getDecimalSeparator();
-        String exponentSeparator = decimalFormatSymbols.getExponentSeparator();
-        String exponentSeparatorEmit = (exponentSeparator.equals("e") ? "e" : exponentSeparator + "+");
         char groupingSeparator = decimalFormatSymbols.getGroupingSeparator();
-        ff.assertContentEquals("Numbers,Timestamps,Money\n" +
+        ff.assertContentEquals(("Numbers,Timestamps,Money\n" +
                 addQuotingIfNeeded(String.format("1234%1$s456", decimalSeparator)) + "," + DateTimeFormatter.ofPattern("d/M/yy").format(localDt) + "," +
                     addQuotingIfNeeded(String.format("$   123%1$s45", decimalSeparator)) + "\n" +
                 addQuotingIfNeeded(String.format("1234%1$s46", decimalSeparator)) + "," + DateTimeFormatter.ofPattern("hh:mm:ss a").format(localDt) + "," +
@@ -150,10 +148,18 @@ public class ConvertExcelToCSVProcessorTest {
                     addQuotingIfNeeded(String.format("$   1%2$s023%1$s45", decimalSeparator, groupingSeparator)) + "\n" +
                 addQuotingIfNeeded(String.format("1%2$s234%1$s4560", decimalSeparator, groupingSeparator)) + "," + DateTimeFormatter.ofPattern("hh:mm a").format(localDt) + "," +
                     addQuotingIfNeeded(String.format("£   1%2$s023%1$s45", decimalSeparator, groupingSeparator)) + "\n" +
-                addQuotingIfNeeded(String.format("9%1$s88" + exponentSeparatorEmit + "08", decimalSeparator)) + "," + DateTimeFormatter.ofPattern("yyyy/MM/dd/ HH:mm").format(localDt) + "," +
+                addQuotingIfNeeded(String.format("9%1$s88E+08", decimalSeparator)) + "," + DateTimeFormatter.ofPattern("yyyy/MM/dd/ HH:mm").format(localDt) + "," +
                     addQuotingIfNeeded(String.format("¥   1%2$s023%1$s45", decimalSeparator, groupingSeparator)) + "\n" +
-                addQuotingIfNeeded(String.format("9%1$s877" + exponentSeparatorEmit + "08", decimalSeparator)) + ",,\n" +
-                addQuotingIfNeeded(String.format("9%1$s8765" + exponentSeparatorEmit + "08", decimalSeparator)) + ",,\n");
+                addQuotingIfNeeded(String.format("9%1$s877E+08", decimalSeparator)) + ",,\n" +
+                addQuotingIfNeeded(String.format("9%1$s8765E+08", decimalSeparator)) + ",,\n").replace("E+", getExponentSeparator(decimalFormatSymbols)));
+    }
+
+    /**
+     * Workaround for interaction between {@link DecimalFormatSymbols} and use of custom {@link java.util.Locale}.
+     */
+    private static String getExponentSeparator(final DecimalFormatSymbols decimalFormatSymbols) {
+        final String exponentSeparator = decimalFormatSymbols.getExponentSeparator();
+        return (exponentSeparator.equals("e") ? "e" : exponentSeparator + "+");
     }
 
     @Test
@@ -176,16 +182,14 @@ public class ConvertExcelToCSVProcessorTest {
         LocalDateTime localDt = LocalDateTime.of(2017, 1, 1, 12, 0, 0);
         DecimalFormatSymbols decimalFormatSymbols = DecimalFormatSymbols.getInstance();
         String decimalSeparator = decimalFormatSymbols.getDecimalSeparator() == ',' ? "\\,"  : String.valueOf(decimalFormatSymbols.getDecimalSeparator());
-        String exponentSeparator = decimalFormatSymbols.getExponentSeparator();
-        String exponentSeparatorEmit = (exponentSeparator.equals("e") ? "e" : exponentSeparator + "+");
         String groupingSeparator = decimalFormatSymbols.getGroupingSeparator() == ',' ? "\\,"  : String.valueOf(decimalFormatSymbols.getGroupingSeparator());
         ff.assertContentEquals(String.format("1234%1$s46," + DateTimeFormatter.ofPattern("hh:mm:ss a").format(localDt) + ",£   123%1$s45\n" +
                 "1234%1$s5," + DateTimeFormatter.ofPattern("EEEE\\, MMMM dd\\, yyyy").format(localDt) + ",¥   123%1$s45\n" +
                 "1%2$s234%1$s46," + DateTimeFormatter.ofPattern("d/M/yy HH:mm").format(localDt) + ",$   1%2$s023%1$s45\n" +
                 "1%2$s234%1$s4560," + DateTimeFormatter.ofPattern("hh:mm a").format(localDt) + ",£   1%2$s023%1$s45\n" +
-                "9%1$s88" + exponentSeparatorEmit + "08," + DateTimeFormatter.ofPattern("yyyy/MM/dd/ HH:mm").format(localDt) + ",¥   1%2$s023%1$s45\n" +
-                "9%1$s877" + exponentSeparatorEmit + "08,,\n" +
-                "9%1$s8765" + exponentSeparatorEmit + "08,,\n", decimalSeparator, groupingSeparator));
+                "9%1$s88E+08," + DateTimeFormatter.ofPattern("yyyy/MM/dd/ HH:mm").format(localDt) + ",¥   1%2$s023%1$s45\n" +
+                "9%1$s877E+08,,\n" +
+                "9%1$s8765E+08,,\n", decimalSeparator, groupingSeparator).replace("E+", getExponentSeparator(decimalFormatSymbols)));
     }
 
     @Test
@@ -210,16 +214,14 @@ public class ConvertExcelToCSVProcessorTest {
         LocalDateTime localDt = LocalDateTime.of(2017, 1, 1, 12, 0, 0);
         DecimalFormatSymbols decimalFormatSymbols = DecimalFormatSymbols.getInstance();
         String decimalSeparator = decimalFormatSymbols.getDecimalSeparator() == ',' ? "\\,"  : String.valueOf(decimalFormatSymbols.getDecimalSeparator());
-        String exponentSeparator = decimalFormatSymbols.getExponentSeparator();
-        String exponentSeparatorEmit = (exponentSeparator.equals("e") ? "e" : exponentSeparator + "+");
         String groupingSeparator = decimalFormatSymbols.getGroupingSeparator() == ',' ? "\\,"  : String.valueOf(decimalFormatSymbols.getGroupingSeparator());
         ff.assertContentEquals(String.format("1234%1$s46," + DateTimeFormatter.ofPattern("hh:mm:ss a").format(localDt) + ",£   123%1$s45\n" +
                 "1234%1$s5," + DateTimeFormatter.ofPattern("EEEE\\, MMMM dd\\, yyyy").format(localDt) + ",¥   123%1$s45\n" +
                 "1%2$s234%1$s46," + DateTimeFormatter.ofPattern("d/M/yy HH:mm").format(localDt) + ",$   1%2$s023%1$s45\n" +
                 "1%2$s234%1$s4560," + DateTimeFormatter.ofPattern("hh:mm a").format(localDt) + ",£   1%2$s023%1$s45\n" +
-                "9%1$s88" + exponentSeparatorEmit + "08," + DateTimeFormatter.ofPattern("yyyy/MM/dd/ HH:mm").format(localDt) + ",¥   1%2$s023%1$s45\n" +
-                "9%1$s877" + exponentSeparatorEmit + "08,,\n" +
-                "9%1$s8765" + exponentSeparatorEmit + "08,,\n", decimalSeparator, groupingSeparator));
+                "9%1$s88E+08," + DateTimeFormatter.ofPattern("yyyy/MM/dd/ HH:mm").format(localDt) + ",¥   1%2$s023%1$s45\n" +
+                "9%1$s877E+08,,\n" +
+                "9%1$s8765E+08,,\n", decimalSeparator, groupingSeparator).replace("E+", getExponentSeparator(decimalFormatSymbols)));
     }
 
     @Test
@@ -241,8 +243,6 @@ public class ConvertExcelToCSVProcessorTest {
 
         DecimalFormatSymbols decimalFormatSymbols = DecimalFormatSymbols.getInstance();
         String decimalSeparator = decimalFormatSymbols.getDecimalSeparator() == ',' ? "\\,"  : String.valueOf(decimalFormatSymbols.getDecimalSeparator());
-        String exponentSeparator = decimalFormatSymbols.getExponentSeparator();
-        String exponentSeparatorEmit = (exponentSeparator.equals("e") ? "e" : exponentSeparator + "+");
         String groupingSeparator = decimalFormatSymbols.getGroupingSeparator() == ',' ? "\\,"  : String.valueOf(decimalFormatSymbols.getGroupingSeparator());
         ff.assertContentEquals(String.format("Numbers,Money\n" +
                 "1234%1$s456,$   123%1$s45\n" +
@@ -250,9 +250,9 @@ public class ConvertExcelToCSVProcessorTest {
                 "1234%1$s5,¥   123%1$s45\n" +
                 "1%2$s234%1$s46,$   1%2$s023%1$s45\n" +
                 "1%2$s234%1$s4560,£   1%2$s023%1$s45\n" +
-                "9%1$s88" + exponentSeparatorEmit + "08,¥   1%2$s023%1$s45\n" +
-                "9%1$s877" + exponentSeparatorEmit + "08,\n" +
-                "9%1$s8765"  + exponentSeparatorEmit + "08,\n", decimalSeparator, groupingSeparator));
+                "9%1$s88E+08,¥   1%2$s023%1$s45\n" +
+                "9%1$s877E+08,\n" +
+                "9%1$s8765E+08,\n", decimalSeparator, groupingSeparator).replace("E+", getExponentSeparator(decimalFormatSymbols)));
     }
 
     @Test
@@ -276,8 +276,6 @@ public class ConvertExcelToCSVProcessorTest {
 
         DecimalFormatSymbols decimalFormatSymbols = DecimalFormatSymbols.getInstance();
         String decimalSeparator = decimalFormatSymbols.getDecimalSeparator() == ',' ? "\\,"  : String.valueOf(decimalFormatSymbols.getDecimalSeparator());
-        String exponentSeparator = decimalFormatSymbols.getExponentSeparator();
-        String exponentSeparatorEmit = (exponentSeparator.equals("e") ? "e" : exponentSeparator + "+");
         String groupingSeparator = decimalFormatSymbols.getGroupingSeparator() == ',' ? "\\,"  : String.valueOf(decimalFormatSymbols.getGroupingSeparator());
         ff.assertContentEquals(String.format("Numbers,Money\n" +
                 "1234%1$s456,$   123%1$s45\n" +
@@ -285,9 +283,9 @@ public class ConvertExcelToCSVProcessorTest {
                 "1234%1$s5,¥   123%1$s45\n" +
                 "1%2$s234%1$s46,$   1%2$s023%1$s45\n" +
                 "1%2$s234%1$s4560,£   1%2$s023%1$s45\n" +
-                "9%1$s88" + exponentSeparatorEmit + "08,¥   1%2$s023%1$s45\n" +
-                "9%1$s877" + exponentSeparatorEmit + "08,\n" +
-                "9%1$s8765" + exponentSeparatorEmit + "08,\n", decimalSeparator, groupingSeparator));
+                "9%1$s88E+08,¥   1%2$s023%1$s45\n" +
+                "9%1$s877E+08,\n" +
+                "9%1$s8765E+08,\n", decimalSeparator, groupingSeparator).replace("E+", getExponentSeparator(decimalFormatSymbols)));
     }
 
     @Test
@@ -313,8 +311,6 @@ public class ConvertExcelToCSVProcessorTest {
         String valueSeparator = testRunner.getProcessContext().getProperty(CSVUtils.VALUE_SEPARATOR).evaluateAttributeExpressions(ff).getValue();
         String decimalSeparator = (String.valueOf(decimalFormatSymbols.getDecimalSeparator()).equals(valueSeparator))
                 ? ("\\" + decimalFormatSymbols.getDecimalSeparator()) : String.valueOf(decimalFormatSymbols.getDecimalSeparator());
-        String exponentSeparator = decimalFormatSymbols.getExponentSeparator();
-        String exponentSeparatorEmit = (exponentSeparator.equals("e") ? "e" : exponentSeparator + "+");
         String groupingSeparator = String.valueOf(decimalFormatSymbols.getGroupingSeparator()).equals(valueSeparator)
                 ? "\\" + decimalFormatSymbols.getGroupingSeparator() : String.valueOf(decimalFormatSymbols.getGroupingSeparator());
         ff.assertContentEquals(String.format("Numbers|Timestamps|Money\r\n" +
@@ -323,9 +319,9 @@ public class ConvertExcelToCSVProcessorTest {
                 "1234%1$s5|" + DateTimeFormatter.ofPattern("EEEE, MMMM dd, yyyy").format(localDt) + "|¥   123%1$s45\r\n" +
                 "1%2$s234%1$s46|" + DateTimeFormatter.ofPattern("d/M/yy HH:mm").format(localDt) + "|$   1%2$s023%1$s45\r\n" +
                 "1%2$s234%1$s4560|" + DateTimeFormatter.ofPattern("hh:mm a").format(localDt) + "|£   1%2$s023%1$s45\r\n" +
-                "9%1$s88" + exponentSeparatorEmit + "08|" + DateTimeFormatter.ofPattern("yyyy/MM/dd/ HH:mm").format(localDt) + "|¥   1%2$s023%1$s45\r\n" +
-                "9%1$s877" + exponentSeparatorEmit + "08||\r\n" +
-                "9%1$s8765" + exponentSeparatorEmit + "08||\r\n", decimalSeparator, groupingSeparator));
+                "9%1$s88E+08|" + DateTimeFormatter.ofPattern("yyyy/MM/dd/ HH:mm").format(localDt) + "|¥   1%2$s023%1$s45\r\n" +
+                "9%1$s877E+08||\r\n" +
+                "9%1$s8765E+08||\r\n", decimalSeparator, groupingSeparator).replace("E+", getExponentSeparator(decimalFormatSymbols)));
     }
 
     @Test
@@ -352,8 +348,6 @@ public class ConvertExcelToCSVProcessorTest {
         String valueSeparator = testRunner.getProcessContext().getProperty(CSVUtils.VALUE_SEPARATOR).evaluateAttributeExpressions(ff).getValue();
         String decimalSeparator = (String.valueOf(decimalFormatSymbols.getDecimalSeparator()).equals(valueSeparator))
                 ? ("\\" + decimalFormatSymbols.getDecimalSeparator()) : String.valueOf(decimalFormatSymbols.getDecimalSeparator());
-        String exponentSeparator = decimalFormatSymbols.getExponentSeparator();
-        String exponentSeparatorEmit = (exponentSeparator.equals("e") ? "e" : exponentSeparator + "+");
         String groupingSeparator = String.valueOf(decimalFormatSymbols.getGroupingSeparator()).equals(valueSeparator)
                 ? "\\" + decimalFormatSymbols.getGroupingSeparator() : String.valueOf(decimalFormatSymbols.getGroupingSeparator());
         ff.assertContentEquals(String.format("Numbers|Timestamps|Money\n" +
@@ -362,9 +356,9 @@ public class ConvertExcelToCSVProcessorTest {
                 "1234%1$s5|" + DateTimeFormatter.ofPattern("EEEE, MMMM dd, yyyy").format(localDt) + "|¥   123%1$s45\n" +
                 "1%2$s234%1$s46|" + DateTimeFormatter.ofPattern("d/M/yy HH:mm").format(localDt) + "|$   1%2$s023%1$s45\n" +
                 "1%2$s234%1$s4560|" + DateTimeFormatter.ofPattern("hh:mm a").format(localDt) + "|£   1%2$s023%1$s45\n" +
-                "9%1$s88" + exponentSeparatorEmit + "08|" + DateTimeFormatter.ofPattern("yyyy/MM/dd/ HH:mm").format(localDt) + "|¥   1%2$s023%1$s45\n" +
-                "9%1$s877" + exponentSeparatorEmit + "08||\n" +
-                "9%1$s8765" + exponentSeparatorEmit + "08||\n", decimalSeparator, groupingSeparator));
+                "9%1$s88E+08|" + DateTimeFormatter.ofPattern("yyyy/MM/dd/ HH:mm").format(localDt) + "|¥   1%2$s023%1$s45\n" +
+                "9%1$s877E+08||\n" +
+                "9%1$s8765E+08||\n", decimalSeparator, groupingSeparator).replace("E+", getExponentSeparator(decimalFormatSymbols)));
     }
 
     @Test
@@ -391,10 +385,8 @@ public class ConvertExcelToCSVProcessorTest {
         String quoteCharValue = testRunner.getProcessContext().getProperty(CSVUtils.QUOTE_CHAR).evaluateAttributeExpressions(ff).getValue();
         DecimalFormatSymbols decimalFormatSymbols = DecimalFormatSymbols.getInstance();
         char decimalSeparator = decimalFormatSymbols.getDecimalSeparator();
-        String exponentSeparator = decimalFormatSymbols.getExponentSeparator();
-        String exponentSeparatorEmit = (exponentSeparator.equals("e") ? "e" : exponentSeparator + "+");
         char groupingSeparator = decimalFormatSymbols.getGroupingSeparator();
-        ff.assertContentEquals("'Numbers','Timestamps','Money'\n" +
+        ff.assertContentEquals(("'Numbers','Timestamps','Money'\n" +
                 addQuotingIfNeeded(String.format("1234%1$s456", decimalSeparator), ",", quoteCharValue, true) + "," + quoteCharValue +
                     DateTimeFormatter.ofPattern("d/M/yy").format(localDt) + quoteCharValue + "," +
                     addQuotingIfNeeded(String.format("$   123%1$s45", decimalSeparator), ",", quoteCharValue, true) + "\n" +
@@ -410,11 +402,11 @@ public class ConvertExcelToCSVProcessorTest {
                 addQuotingIfNeeded(String.format("1%2$s234%1$s4560", decimalSeparator, groupingSeparator), ",", quoteCharValue, true) + "," + quoteCharValue +
                     DateTimeFormatter.ofPattern("hh:mm a").format(localDt) + quoteCharValue + "," +
                     addQuotingIfNeeded(String.format("£   1%2$s023%1$s45", decimalSeparator, groupingSeparator), ",", quoteCharValue, true) + "\n" +
-                addQuotingIfNeeded(String.format("9%1$s88" + exponentSeparatorEmit + "08", decimalSeparator), ",", quoteCharValue, true) + "," + quoteCharValue +
+                addQuotingIfNeeded(String.format("9%1$s88E+08", decimalSeparator), ",", quoteCharValue, true) + "," + quoteCharValue +
                     DateTimeFormatter.ofPattern("yyyy/MM/dd/ HH:mm").format(localDt) + quoteCharValue + "," +
                     addQuotingIfNeeded(String.format("¥   1%2$s023%1$s45", decimalSeparator, groupingSeparator), ",", quoteCharValue, true) + "\n" +
-                addQuotingIfNeeded(String.format("9%1$s877" + exponentSeparatorEmit + "08", decimalSeparator), ",", quoteCharValue, true) + ",,\n" +
-                addQuotingIfNeeded(String.format("9%1$s8765" + exponentSeparatorEmit + "08", decimalSeparator), ",", quoteCharValue, true) + ",,\n");
+                addQuotingIfNeeded(String.format("9%1$s877E+08", decimalSeparator), ",", quoteCharValue, true) + ",,\n" +
+                addQuotingIfNeeded(String.format("9%1$s8765E+08", decimalSeparator), ",", quoteCharValue, true) + ",,\n").replace("E+", getExponentSeparator(decimalFormatSymbols)));
     }
 
     @Test
@@ -441,8 +433,6 @@ public class ConvertExcelToCSVProcessorTest {
         String escapeCharValue = testRunner.getProcessContext().getProperty(CSVUtils.ESCAPE_CHAR).evaluateAttributeExpressions(ff).getValue();
         String decimalSeparator = String.valueOf(decimalFormatSymbols.getDecimalSeparator()).equals(",")
                 ? escapeCharValue + decimalFormatSymbols.getDecimalSeparator() : String.valueOf(decimalFormatSymbols.getDecimalSeparator());
-        String exponentSeparator = decimalFormatSymbols.getExponentSeparator();
-        String exponentSeparatorEmit = (exponentSeparator.equals("e") ? "e" : exponentSeparator + "+");
         String groupingSeparator = String.valueOf(decimalFormatSymbols.getGroupingSeparator()).equals(",")
                 ? escapeCharValue + decimalFormatSymbols.getGroupingSeparator() : String.valueOf(decimalFormatSymbols.getGroupingSeparator());
         ff.assertContentEquals(String.format("Numbers,Timestamps,Money\n" +
@@ -451,9 +441,9 @@ public class ConvertExcelToCSVProcessorTest {
                 "1234%1$s5," + DateTimeFormatter.ofPattern(String.format("EEEE%1$s, MMMM dd%1$s, yyyy", escapeCharValue)).format(localDt) + ",¥   123%1$s45\n" +
                 "1%2$s234%1$s46," + DateTimeFormatter.ofPattern("d/M/yy HH:mm").format(localDt) + ",$   1%2$s023%1$s45\n" +
                 "1%2$s234%1$s4560," + DateTimeFormatter.ofPattern("hh:mm a").format(localDt) + ",£   1%2$s023%1$s45\n" +
-                "9%1$s88" + exponentSeparatorEmit + "08," + DateTimeFormatter.ofPattern("yyyy/MM/dd/ HH:mm").format(localDt) + ",¥   1%2$s023%1$s45\n" +
-                "9%1$s877" + exponentSeparatorEmit + "08,,\n" +
-                "9%1$s8765" + exponentSeparatorEmit + "08,,\n", decimalSeparator, groupingSeparator));
+                "9%1$s88E+08," + DateTimeFormatter.ofPattern("yyyy/MM/dd/ HH:mm").format(localDt) + ",¥   1%2$s023%1$s45\n" +
+                "9%1$s877E+08,,\n" +
+                "9%1$s8765E+08,,\n", decimalSeparator, groupingSeparator).replace("E+", getExponentSeparator(decimalFormatSymbols)));
     }
 
     /**
