@@ -1,10 +1,24 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.nifi.web.security.jwt;
 
 import groovy.json.JsonOutput;
 import org.junit.BeforeClass;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.mockito.Mock;
 
 import javax.servlet.http.HttpServletRequest;
@@ -22,9 +36,6 @@ public class NiFiBearerTokenResolverTest {
 
     public static String jwtString;
 
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
-
     @Mock
     private static HttpServletRequest request;
 
@@ -37,8 +48,7 @@ public class NiFiBearerTokenResolverTest {
         final long TOKEN_ISSUED_AT = currentTime;
         final long TOKEN_EXPIRATION_SECONDS = currentTime + EXPIRATION_SECONDS;
 
-        Map<String, String> hashMap = new HashMap<String, String>()
-        {{
+        Map<String, String> hashMap = new HashMap<String, String>() {{
             put("sub", "unknownuser");
             put("iss", "MockIdentityProvider");
             put("aud", "MockIdentityProvider");
@@ -60,79 +70,55 @@ public class NiFiBearerTokenResolverTest {
 
     @Test
     public void testValidAuthenticationHeaderString() {
-        // Arrange
         String authenticationHeader = "Bearer " + jwtString;
         when(request.getHeader(eq(NiFiBearerTokenResolver.AUTHORIZATION))).thenReturn(authenticationHeader);
-
-        // Act
         String isValidHeader = new NiFiBearerTokenResolver().resolve(request);
 
-        // Assert
         assertEquals(jwtString, isValidHeader);
     }
 
     @Test
     public void testMissingBearer() {
-        // Arrange
         String authenticationHeader = jwtString;
         when(request.getHeader(eq(NiFiBearerTokenResolver.AUTHORIZATION))).thenReturn(authenticationHeader);
-
-        // Act
         String resolvedToken = new NiFiBearerTokenResolver().resolve(request);
 
-        // Assert
         assertNull(resolvedToken);
     }
 
     @Test
     public void testExtraCharactersAtBeginningOfToken() {
-        // Arrange
         String authenticationHeader = "xBearer " + jwtString;
         when(request.getHeader(eq(NiFiBearerTokenResolver.AUTHORIZATION))).thenReturn(authenticationHeader);
-
-        // Act
         String resolvedToken = new NiFiBearerTokenResolver().resolve(request);
 
-        // Assert
         assertNull(resolvedToken);
     }
 
     @Test
     public void testBadTokenFormat() {
-        // Arrange
         String[] tokenStrings = jwtString.split("\\.");
         when(request.getHeader(eq(NiFiBearerTokenResolver.AUTHORIZATION))).thenReturn(String.valueOf("Bearer " + tokenStrings[1] + tokenStrings[2]));
-
-        // Act
         String resolvedToken = new NiFiBearerTokenResolver().resolve(request);
 
-        // Assert
         assertNull(resolvedToken);
     }
 
     @Test
     public void testMultipleTokenInvalid() {
-        // Arrange
         String authenticationHeader = "Bearer " + jwtString;
         when(request.getHeader(eq(NiFiBearerTokenResolver.AUTHORIZATION))).thenReturn(String.format("%s %s", authenticationHeader, authenticationHeader));
-
-        // Act
         String resolvedToken = new NiFiBearerTokenResolver().resolve(request);
 
-        // Assert
         assertNull(resolvedToken);
     }
 
     @Test
     public void testExtractToken() {
-        // Arrange
         String authenticationHeader = "Bearer " + jwtString;
         when(request.getHeader(eq(NiFiBearerTokenResolver.AUTHORIZATION))).thenReturn(authenticationHeader);
-
-        // Act
         String extractedToken = new NiFiBearerTokenResolver().resolve(request);
 
-        // Assert
         assertEquals(jwtString, extractedToken);
     }
 }
