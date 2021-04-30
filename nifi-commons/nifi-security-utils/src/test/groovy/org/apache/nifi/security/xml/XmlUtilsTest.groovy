@@ -94,7 +94,7 @@ class XmlUtilsTest {
 
         // Assert
         logger.expected(msg)
-        assert msg =~ "SAXParseException.* DOCTYPE"
+        assert msg =~ "SAXParseException.*DOCTYPE"
     }
 }
 
