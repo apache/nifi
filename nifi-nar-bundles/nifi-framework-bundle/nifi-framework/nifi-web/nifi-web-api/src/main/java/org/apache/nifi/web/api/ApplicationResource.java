@@ -55,11 +55,16 @@ import org.apache.nifi.web.api.entity.ComponentEntity;
 import org.apache.nifi.web.api.entity.Entity;
 import org.apache.nifi.web.api.entity.TransactionResultEntity;
 import org.apache.nifi.web.security.ProxiedEntitiesUtils;
+import org.apache.nifi.web.security.jwt.NiFiBearerTokenResolver;
 import org.apache.nifi.web.security.util.CacheKey;
 import org.apache.nifi.web.util.WebUtils;
+import org.eclipse.jetty.http.HttpCookie;
+import org.eclipse.jetty.http.HttpHeader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.servlet.ServletContext;
+import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.core.CacheControl;
@@ -92,12 +97,12 @@ import static javax.ws.rs.core.Response.Status.NOT_FOUND;
 import static org.apache.commons.lang3.StringUtils.isEmpty;
 import static org.apache.nifi.remote.protocol.http.HttpHeaders.LOCATION_URI_INTENT_NAME;
 import static org.apache.nifi.remote.protocol.http.HttpHeaders.LOCATION_URI_INTENT_VALUE;
-import static org.apache.nifi.web.util.WebUtils.PROXY_SCHEME_HTTP_HEADER;
-import static org.apache.nifi.web.util.WebUtils.PROXY_HOST_HTTP_HEADER;
-import static org.apache.nifi.web.util.WebUtils.PROXY_PORT_HTTP_HEADER;
-import static org.apache.nifi.web.util.WebUtils.FORWARDED_PROTO_HTTP_HEADER;
 import static org.apache.nifi.web.util.WebUtils.FORWARDED_HOST_HTTP_HEADER;
 import static org.apache.nifi.web.util.WebUtils.FORWARDED_PORT_HTTP_HEADER;
+import static org.apache.nifi.web.util.WebUtils.FORWARDED_PROTO_HTTP_HEADER;
+import static org.apache.nifi.web.util.WebUtils.PROXY_HOST_HTTP_HEADER;
+import static org.apache.nifi.web.util.WebUtils.PROXY_PORT_HTTP_HEADER;
+import static org.apache.nifi.web.util.WebUtils.PROXY_SCHEME_HTTP_HEADER;
 
 /**
  * Base class for controllers.
@@ -107,6 +112,9 @@ public abstract class ApplicationResource {
     public static final String VERSION = "version";
     public static final String CLIENT_ID = "clientId";
     public static final String DISCONNECTED_NODE_ACKNOWLEDGED = "disconnectedNodeAcknowledged";
+    static final String LOGIN_ERROR_TITLE = "Unable to continue login sequence";
+    static final String LOGOUT_ERROR_TITLE = "Unable to continue logout sequence";
+    private static final int VALID_FOR_SESSION_ONLY = -1;
 
     protected static final String NON_GUARANTEED_ENDPOINT = "Note: This endpoint is subject to change as NiFi and it's REST API evolve.";
 
@@ -127,6 +135,23 @@ public abstract class ApplicationResource {
 
     private static final int MAX_CACHE_SOFT_LIMIT = 500;
     private final Cache<CacheKey, Request<? extends Entity>> twoPhaseCommitCache = CacheBuilder.newBuilder().expireAfterWrite(1, TimeUnit.MINUTES).build();
+
+    protected void forwardToLoginMessagePage(final HttpServletRequest httpServletRequest, final HttpServletResponse httpServletResponse, final String message) throws Exception {
+        forwardToMessagePage(httpServletRequest, httpServletResponse, LOGIN_ERROR_TITLE, message);
+    }
+
+    protected void forwardToLogoutMessagePage(final HttpServletRequest httpServletRequest, final HttpServletResponse httpServletResponse, final String message) throws Exception {
+        forwardToMessagePage(httpServletRequest, httpServletResponse, LOGOUT_ERROR_TITLE, message);
+    }
+
+    protected void forwardToMessagePage(final HttpServletRequest httpServletRequest, final HttpServletResponse httpServletResponse,
+                                      final String title, final String message) throws Exception {
+        httpServletRequest.setAttribute("title", title);
+        httpServletRequest.setAttribute("messages", message);
+
+        final ServletContext uiContext = httpServletRequest.getServletContext().getContext("/nifi");
+        uiContext.getRequestDispatcher("/WEB-INF/pages/message-page.jsp").forward(httpServletRequest, httpServletResponse);
+    }
 
     /**
      * Generate a resource uri based off of the specified parameters.
@@ -1256,5 +1281,28 @@ public abstract class ApplicationResource {
                     .entity(entity).build();
         }
 
+    }
+
+    protected Response generateTokenResponse(ResponseBuilder builder, String token) {
+        // currently there is no way to use javax.servlet-api to set SameSite=Strict, so we do this using Jetty
+        HttpCookie jwtCookie = new HttpCookie(NiFiBearerTokenResolver.JWT_COOKIE_NAME, token, null, "/", VALID_FOR_SESSION_ONLY, true, true, null, 0, HttpCookie.SameSite.STRICT);
+        return builder.header(HttpHeader.SET_COOKIE.asString(), jwtCookie.getRFC6265SetCookie()).build();
+    }
+
+    protected void removeCookie(final HttpServletResponse httpServletResponse, final String cookieName) {
+        final Cookie cookie = new Cookie(cookieName, null);
+        cookie.setPath("/");
+        cookie.setHttpOnly(true);
+        cookie.setMaxAge(0);
+        cookie.setSecure(true);
+        httpServletResponse.addCookie(cookie);
+    }
+
+    protected String getNiFiUri() {
+        final String nifiApiUrl = generateResourceUri();
+        final String baseUrl = StringUtils.substringBeforeLast(nifiApiUrl, "/nifi-api");
+        // Note: if the URL does not end with a / then Jetty will end up doing a redirect which can cause
+        // a problem when being behind a proxy b/c Jetty's redirect doesn't consider proxy headers
+        return baseUrl + "/nifi/";
     }
 }

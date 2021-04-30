@@ -18,25 +18,27 @@ package org.apache.nifi.web.security.saml;
 
 public interface SAMLEndpoints {
 
-    String SERVICE_PROVIDER_METADATA_RELATIVE = "/saml/metadata";
-    String SERVICE_PROVIDER_METADATA = "/access" + SERVICE_PROVIDER_METADATA_RELATIVE;
+    String SAML_ACCESS_ROOT = "/access/saml";
 
-    String LOGIN_REQUEST_RELATIVE = "/saml/login/request";
-    String LOGIN_REQUEST = "/access" + LOGIN_REQUEST_RELATIVE;
+    String SERVICE_PROVIDER_METADATA_RELATIVE = "/metadata";
+    String SERVICE_PROVIDER_METADATA = SAML_ACCESS_ROOT + SERVICE_PROVIDER_METADATA_RELATIVE;
 
-    String LOGIN_CONSUMER_RELATIVE = "/saml/login/consumer";
-    String LOGIN_CONSUMER = "/access" + LOGIN_CONSUMER_RELATIVE;
+    String LOGIN_REQUEST_RELATIVE = "login/request";
+    String LOGIN_REQUEST = SAML_ACCESS_ROOT + LOGIN_REQUEST_RELATIVE;
 
-    String LOGIN_EXCHANGE_RELATIVE = "/saml/login/exchange";
-    String LOGIN_EXCHANGE = "/access" + LOGIN_EXCHANGE_RELATIVE;
+    String LOGIN_CONSUMER_RELATIVE = "/login/consumer";
+    String LOGIN_CONSUMER = SAML_ACCESS_ROOT + LOGIN_CONSUMER_RELATIVE;
 
-    String LOCAL_LOGOUT_RELATIVE = "/saml/local-logout";
-    String LOCAL_LOGOUT = "/access" + LOCAL_LOGOUT_RELATIVE;
+    String LOGIN_EXCHANGE_RELATIVE = "/login/exchange";
+    String LOGIN_EXCHANGE = SAML_ACCESS_ROOT + LOGIN_EXCHANGE_RELATIVE;
 
-    String SINGLE_LOGOUT_REQUEST_RELATIVE = "/saml/single-logout/request";
-    String SINGLE_LOGOUT_REQUEST = "/access" + SINGLE_LOGOUT_REQUEST_RELATIVE;
+    String LOCAL_LOGOUT_RELATIVE = "/local-logout";
+    String LOCAL_LOGOUT = SAML_ACCESS_ROOT + LOCAL_LOGOUT_RELATIVE;
 
-    String SINGLE_LOGOUT_CONSUMER_RELATIVE = "/saml/single-logout/consumer";
-    String SINGLE_LOGOUT_CONSUMER = "/access" + SINGLE_LOGOUT_CONSUMER_RELATIVE;
+    String SINGLE_LOGOUT_REQUEST_RELATIVE = "/single-logout/request";
+    String SINGLE_LOGOUT_REQUEST = SAML_ACCESS_ROOT + SINGLE_LOGOUT_REQUEST_RELATIVE;
+
+    String SINGLE_LOGOUT_CONSUMER_RELATIVE = "/single-logout/consumer";
+    String SINGLE_LOGOUT_CONSUMER = SAML_ACCESS_ROOT + SINGLE_LOGOUT_CONSUMER_RELATIVE;
 
 }

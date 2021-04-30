@@ -24,6 +24,7 @@ import org.apache.nifi.web.security.jwt.JwtAuthenticationProvider;
 import org.apache.nifi.web.security.jwt.NiFiBearerTokenResolver;
 import org.apache.nifi.web.security.knox.KnoxAuthenticationFilter;
 import org.apache.nifi.web.security.knox.KnoxAuthenticationProvider;
+import org.apache.nifi.web.security.oidc.OIDCEndpoints;
 import org.apache.nifi.web.security.otp.OtpAuthenticationFilter;
 import org.apache.nifi.web.security.otp.OtpAuthenticationProvider;
 import org.apache.nifi.web.security.saml.SAMLEndpoints;
@@ -100,10 +101,10 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
                             "/access/config",
                             "/access/token",
                             "/access/kerberos",
-                            "/access/oidc/exchange",
-                            "/access/oidc/callback",
-                            "/access/oidc/logoutCallback",
-                            "/access/oidc/request",
+                            OIDCEndpoints.TOKEN_EXCHANGE,
+                            OIDCEndpoints.LOGIN_REQUEST,
+                            OIDCEndpoints.LOGIN_CALLBACK,
+                            OIDCEndpoints.LOGOUT_CALLBACK,
                             "/access/knox/callback",
                             "/access/knox/request",
                             SAMLEndpoints.SERVICE_PROVIDER_METADATA,

@@ -34,7 +34,7 @@ public class StandardSAMLStateManager implements SAMLStateManager {
 
     private static Logger LOGGER = LoggerFactory.getLogger(StandardSAMLStateManager.class);
 
-    private final JwtService jwtService;
+    private JwtService jwtService;
 
     // identifier from cookie -> state value
     private final Cache<CacheKey, String> stateLookupForPendingRequests;
@@ -140,4 +140,7 @@ public class StandardSAMLStateManager implements SAMLStateManager {
         }
     }
 
+    public void setJwtService(JwtService jwtService) {
+        this.jwtService = jwtService;
+    }
 }

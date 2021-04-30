@@ -575,12 +575,9 @@
         <property name="flowController" ref="flowController" />
     </bean>
     <bean id="accessResource" class="org.apache.nifi.web.api.AccessResource" scope="singleton">
+        <property name="logoutRequestManager" ref="logoutRequestManager" />
         <property name="loginIdentityProvider" ref="loginIdentityProvider"/>
-        <property name="oidcService" ref="oidcService"/>
         <property name="knoxService" ref="knoxService"/>
-        <property name="samlService" ref="samlService" />
-        <property name="samlStateManager" ref="samlStateManager"/>
-        <property name="samlCredentialStore" ref="samlCredentialStore"/>
         <property name="x509AuthenticationProvider" ref="x509AuthenticationProvider"/>
         <property name="certificateExtractor" ref="certificateExtractor"/>
         <property name="principalExtractor" ref="principalExtractor"/>
@@ -592,8 +589,19 @@
         <property name="clusterCoordinator" ref="clusterCoordinator"/>
         <property name="requestReplicator" ref="requestReplicator" />
         <property name="flowController" ref="flowController" />
-        <property name="idpUserGroupService" ref="idpUserGroupService" />
+    </bean>
+    <bean id="samlResource" class="org.apache.nifi.web.api.SAMLAccessResource" scope="singleton">
         <property name="logoutRequestManager" ref="logoutRequestManager" />
+        <property name="samlService" ref="samlService" />
+        <property name="samlStateManager" ref="samlStateManager"/>
+        <property name="samlCredentialStore" ref="samlCredentialStore"/>
+        <property name="idpUserGroupService" ref="idpUserGroupService" />
+        <property name="properties" ref="nifiProperties"/>
+    </bean>
+    <bean id="oidcResource" class="org.apache.nifi.web.api.OIDCAccessResource" scope="singleton">
+        <property name="jwtService" ref="jwtService"/>
+        <property name="oidcService" ref="oidcService"/>
+        <property name="properties" ref="nifiProperties"/>
     </bean>
     <bean id="accessPolicyResource" class="org.apache.nifi.web.api.AccessPolicyResource" scope="singleton">
         <constructor-arg ref="serviceFacade"/>
