@@ -92,7 +92,6 @@ public abstract class AbstractConfigurableComponent implements ConfigurableCompo
         // goes through context properties, should match supported properties + supported dynamic properties
         final Collection<ValidationResult> results = new ArrayList<>();
         final Set<PropertyDescriptor> contextDescriptors = context.getProperties().keySet();
-        final List<PropertyDescriptor> supportedDescriptors = getSupportedPropertyDescriptors();
 
         for (final PropertyDescriptor descriptor : contextDescriptors) {
             // If the property descriptor's dependency is not satisfied, the property does not need to be considered, as it's not relevant to the
