@@ -135,6 +135,9 @@ public class BigQueryAttributes {
     public static final String JOB_ERROR_LOCATION_ATTR = "bq.error.location";
     public static final String JOB_ERROR_LOCATION_DESC = "Load job error location";
 
+
+
+
     // Allowable values
     public static final AllowableValue CREATE_IF_NEEDED = new AllowableValue(JobInfo.CreateDisposition.CREATE_IF_NEEDED.name(),
             JobInfo.CreateDisposition.CREATE_IF_NEEDED.name(), "Configures the job to create the table if it does not exist.");
