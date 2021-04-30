@@ -1404,4 +1404,51 @@ class TestPutDatabaseRecord {
         stmt.close()
         conn.close()
     }
+
+    @Test
+    void testInsertWithDifferentColumnOrdering() throws InitializationException, ProcessException, SQLException, IOException {
+        // Manually create and drop the tables and schemas
+        def conn = dbcp.connection
+        def stmt = conn.createStatement()
+        try {
+            stmt.execute('DROP TABLE TEMP')
+        } catch(ex) {
+            // Do nothing, table may not exist
+        }
+        stmt.execute('CREATE TABLE TEMP (id integer primary key, code integer, name long varchar)')
+
+        final MockRecordParser parser = new MockRecordParser()
+        runner.addControllerService("parser", parser)
+        runner.enableControllerService(parser)
+
+        parser.addSchemaField("name", RecordFieldType.STRING)
+        parser.addSchemaField("id", RecordFieldType.INT)
+        parser.addSchemaField("code", RecordFieldType.INT)
+
+        // change order of columns
+        parser.addRecord('rec1', 1, 101)
+        parser.addRecord('rec2', 2, 102)
+
+        runner.setProperty(PutDatabaseRecord.RECORD_READER_FACTORY, 'parser')
+        runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE, PutDatabaseRecord.INSERT_TYPE)
+        runner.setProperty(PutDatabaseRecord.TABLE_NAME, 'TEMP')
+
+        runner.enqueue(new byte[0])
+        runner.run()
+
+        runner.assertTransferCount(PutDatabaseRecord.REL_SUCCESS, 1)
+        ResultSet rs = stmt.executeQuery('SELECT * FROM TEMP')
+        assertTrue(rs.next())
+        assertEquals(1, rs.getInt(1))
+        assertEquals(101, rs.getInt(2))
+        assertEquals('rec1', rs.getString(3))
+        assertTrue(rs.next())
+        assertEquals(2, rs.getInt(1))
+        assertEquals(102, rs.getInt(2))
+        assertEquals('rec2', rs.getString(3))
+        assertFalse(rs.next())
+
+        stmt.close()
+        conn.close()
+    }
 }
