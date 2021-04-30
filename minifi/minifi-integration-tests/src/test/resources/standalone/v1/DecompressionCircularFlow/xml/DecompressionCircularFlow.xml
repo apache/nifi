@@ -1,0 +1,757 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!--
+  ~ Licensed to the Apache Software Foundation (ASF) under one or more
+  ~ contributor license agreements.  See the NOTICE file distributed with
+  ~ this work for additional information regarding copyright ownership.
+  ~ The ASF licenses this file to You under the Apache License, Version 2.0
+  ~ (the "License"); you may not use this file except in compliance with
+  ~ the License.  You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+<template encoding-version="1.0">
+    <description></description>
+    <groupId>ff2213e2-b27e-458b-ab3b-1c7a4a50d2e3</groupId>
+    <name>DecompressionCircularFlow2</name>
+    <snippet>
+        <connections>
+            <id>645ec08f-3d6d-4255-b4d9-0f6d61708974</id>
+            <parentGroupId>ff2213e2-b27e-458b-ab3b-1c7a4a50d2e3</parentGroupId>
+            <backPressureDataSizeThreshold>0 MB</backPressureDataSizeThreshold>
+            <backPressureObjectThreshold>0</backPressureObjectThreshold>
+            <destination>
+                <groupId>ff2213e2-b27e-458b-ab3b-1c7a4a50d2e3</groupId>
+                <id>9d33bbc9-2f51-43c8-aa8a-94dcc367b371</id>
+                <type>PROCESSOR</type>
+            </destination>
+            <flowFileExpiration>0 sec</flowFileExpiration>
+            <labelIndex>1</labelIndex>
+            <name></name>
+            <prioritizers>org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer</prioritizers>
+            <selectedRelationships>success</selectedRelationships>
+            <source>
+                <groupId>ff2213e2-b27e-458b-ab3b-1c7a4a50d2e3</groupId>
+                <id>defa6d98-3e98-41dd-82ac-1bdfd39eacfc</id>
+                <type>PROCESSOR</type>
+            </source>
+            <zIndex>0</zIndex>
+        </connections>
+        <connections>
+            <id>bb250fb4-0b15-418f-83f9-83a43bd3de9c</id>
+            <parentGroupId>ff2213e2-b27e-458b-ab3b-1c7a4a50d2e3</parentGroupId>
+            <backPressureDataSizeThreshold>0 MB</backPressureDataSizeThreshold>
+            <backPressureObjectThreshold>0</backPressureObjectThreshold>
+            <bends>
+                <x>2664.3797325791907</x>
+                <y>604.6419422353362</y>
+            </bends>
+            <destination>
+                <groupId>ff2213e2-b27e-458b-ab3b-1c7a4a50d2e3</groupId>
+                <id>212097d4-2ea8-497b-b574-b1354fae40f2</id>
+                <type>PROCESSOR</type>
+            </destination>
+            <flowFileExpiration>0 sec</flowFileExpiration>
+            <labelIndex>1</labelIndex>
+            <name></name>
+            <prioritizers>org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer</prioritizers>
+            <selectedRelationships>success</selectedRelationships>
+            <source>
+                <groupId>ff2213e2-b27e-458b-ab3b-1c7a4a50d2e3</groupId>
+                <id>0bdda776-0c7e-4723-b3ce-969b7d10a922</id>
+                <type>PROCESSOR</type>
+            </source>
+            <zIndex>0</zIndex>
+        </connections>
+        <connections>
+            <id>bdfdb568-682d-4d3b-b87b-99199c15505c</id>
+            <parentGroupId>ff2213e2-b27e-458b-ab3b-1c7a4a50d2e3</parentGroupId>
+            <backPressureDataSizeThreshold>0 MB</backPressureDataSizeThreshold>
+            <backPressureObjectThreshold>0</backPressureObjectThreshold>
+            <bends>
+                <x>1701.5</x>
+                <y>538.5800204467773</y>
+            </bends>
+            <bends>
+                <x>1701.5</x>
+                <y>605.5800204467773</y>
+            </bends>
+            <destination>
+                <groupId>ff2213e2-b27e-458b-ab3b-1c7a4a50d2e3</groupId>
+                <id>defa6d98-3e98-41dd-82ac-1bdfd39eacfc</id>
+                <type>PROCESSOR</type>
+            </destination>
+            <flowFileExpiration>0 sec</flowFileExpiration>
+            <labelIndex>1</labelIndex>
+            <name></name>
+            <prioritizers>org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer</prioritizers>
+            <selectedRelationships>failure</selectedRelationships>
+            <source>
+                <groupId>ff2213e2-b27e-458b-ab3b-1c7a4a50d2e3</groupId>
+                <id>defa6d98-3e98-41dd-82ac-1bdfd39eacfc</id>
+                <type>PROCESSOR</type>
+            </source>
+            <zIndex>0</zIndex>
+        </connections>
+        <connections>
+            <id>f6ff74cf-a30b-4916-86b3-e269266666ff</id>
+            <parentGroupId>ff2213e2-b27e-458b-ab3b-1c7a4a50d2e3</parentGroupId>
+            <backPressureDataSizeThreshold>0 MB</backPressureDataSizeThreshold>
+            <backPressureObjectThreshold>0</backPressureObjectThreshold>
+            <bends>
+                <x>1692.5</x>
+                <y>326.86002044677736</y>
+            </bends>
+            <bends>
+                <x>1692.5</x>
+                <y>393.86002044677736</y>
+            </bends>
+            <destination>
+                <groupId>ff2213e2-b27e-458b-ab3b-1c7a4a50d2e3</groupId>
+                <id>e227167f-62af-49cc-8fb5-a5b5e5251066</id>
+                <type>PROCESSOR</type>
+            </destination>
+            <flowFileExpiration>0 sec</flowFileExpiration>
+            <labelIndex>1</labelIndex>
+            <name></name>
+            <prioritizers>org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer</prioritizers>
+            <selectedRelationships>failure</selectedRelationships>
+            <source>
+                <groupId>ff2213e2-b27e-458b-ab3b-1c7a4a50d2e3</groupId>
+                <id>e227167f-62af-49cc-8fb5-a5b5e5251066</id>
+                <type>PROCESSOR</type>
+            </source>
+            <zIndex>0</zIndex>
+        </connections>
+        <connections>
+            <id>ded9891b-4433-4f56-9fc0-1a240146835f</id>
+            <parentGroupId>ff2213e2-b27e-458b-ab3b-1c7a4a50d2e3</parentGroupId>
+            <backPressureDataSizeThreshold>0 MB</backPressureDataSizeThreshold>
+            <backPressureObjectThreshold>0</backPressureObjectThreshold>
+            <destination>
+                <groupId>ff2213e2-b27e-458b-ab3b-1c7a4a50d2e3</groupId>
+                <id>1377e3cc-db4e-4832-8a90-c8dc9e08f603</id>
+                <type>PROCESSOR</type>
+            </destination>
+            <flowFileExpiration>0 sec</flowFileExpiration>
+            <labelIndex>1</labelIndex>
+            <name></name>
+            <prioritizers>org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer</prioritizers>
+            <selectedRelationships>success</selectedRelationships>
+            <source>
+                <groupId>ff2213e2-b27e-458b-ab3b-1c7a4a50d2e3</groupId>
+                <id>212097d4-2ea8-497b-b574-b1354fae40f2</id>
+                <type>PROCESSOR</type>
+            </source>
+            <zIndex>0</zIndex>
+        </connections>
+        <connections>
+            <id>5cdc2e79-ec8c-4f7d-a3ab-d284c80e3afe</id>
+            <parentGroupId>ff2213e2-b27e-458b-ab3b-1c7a4a50d2e3</parentGroupId>
+            <backPressureDataSizeThreshold>0 MB</backPressureDataSizeThreshold>
+            <backPressureObjectThreshold>0</backPressureObjectThreshold>
+            <destination>
+                <groupId>ff2213e2-b27e-458b-ab3b-1c7a4a50d2e3</groupId>
+                <id>e227167f-62af-49cc-8fb5-a5b5e5251066</id>
+                <type>PROCESSOR</type>
+            </destination>
+            <flowFileExpiration>0 sec</flowFileExpiration>
+            <labelIndex>1</labelIndex>
+            <name></name>
+            <prioritizers>org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer</prioritizers>
+            <selectedRelationships>success</selectedRelationships>
+            <source>
+                <groupId>ff2213e2-b27e-458b-ab3b-1c7a4a50d2e3</groupId>
+                <id>9e28dd28-8116-4199-aeab-bc7a1002aec5</id>
+                <type>PROCESSOR</type>
+            </source>
+            <zIndex>0</zIndex>
+        </connections>
+        <connections>
+            <id>42bd2967-d74a-4e22-9b16-9e0a51024658</id>
+            <parentGroupId>ff2213e2-b27e-458b-ab3b-1c7a4a50d2e3</parentGroupId>
+            <backPressureDataSizeThreshold>0 MB</backPressureDataSizeThreshold>
+            <backPressureObjectThreshold>0</backPressureObjectThreshold>
+            <bends>
+                <x>1701.5</x>
+                <y>767.7200204467774</y>
+            </bends>
+            <bends>
+                <x>1701.5</x>
+                <y>834.7200204467774</y>
+            </bends>
+            <destination>
+                <groupId>ff2213e2-b27e-458b-ab3b-1c7a4a50d2e3</groupId>
+                <id>9d33bbc9-2f51-43c8-aa8a-94dcc367b371</id>
+                <type>PROCESSOR</type>
+            </destination>
+            <flowFileExpiration>0 sec</flowFileExpiration>
+            <labelIndex>1</labelIndex>
+            <name></name>
+            <prioritizers>org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer</prioritizers>
+            <selectedRelationships>failure</selectedRelationships>
+            <source>
+                <groupId>ff2213e2-b27e-458b-ab3b-1c7a4a50d2e3</groupId>
+                <id>9d33bbc9-2f51-43c8-aa8a-94dcc367b371</id>
+                <type>PROCESSOR</type>
+            </source>
+            <zIndex>0</zIndex>
+        </connections>
+        <connections>
+            <id>299f7d1f-e216-43a3-ad0b-7a6d6680dacc</id>
+            <parentGroupId>ff2213e2-b27e-458b-ab3b-1c7a4a50d2e3</parentGroupId>
+            <backPressureDataSizeThreshold>0 MB</backPressureDataSizeThreshold>
+            <backPressureObjectThreshold>0</backPressureObjectThreshold>
+            <destination>
+                <groupId>ff2213e2-b27e-458b-ab3b-1c7a4a50d2e3</groupId>
+                <id>9e28dd28-8116-4199-aeab-bc7a1002aec5</id>
+                <type>PROCESSOR</type>
+            </destination>
+            <flowFileExpiration>0 sec</flowFileExpiration>
+            <labelIndex>1</labelIndex>
+            <name></name>
+            <prioritizers>org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer</prioritizers>
+            <selectedRelationships>success</selectedRelationships>
+            <source>
+                <groupId>ff2213e2-b27e-458b-ab3b-1c7a4a50d2e3</groupId>
+                <id>ad8ff6a3-ba60-4b9b-af9e-0773c8afc1c9</id>
+                <type>PROCESSOR</type>
+            </source>
+            <zIndex>0</zIndex>
+        </connections>
+        <connections>
+            <id>6eeca4aa-04c7-4774-aee5-bb6340c3a7b6</id>
+            <parentGroupId>ff2213e2-b27e-458b-ab3b-1c7a4a50d2e3</parentGroupId>
+            <backPressureDataSizeThreshold>0 MB</backPressureDataSizeThreshold>
+            <backPressureObjectThreshold>0</backPressureObjectThreshold>
+            <destination>
+                <groupId>ff2213e2-b27e-458b-ab3b-1c7a4a50d2e3</groupId>
+                <id>0bdda776-0c7e-4723-b3ce-969b7d10a922</id>
+                <type>PROCESSOR</type>
+            </destination>
+            <flowFileExpiration>0 sec</flowFileExpiration>
+            <labelIndex>1</labelIndex>
+            <name></name>
+            <prioritizers>org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer</prioritizers>
+            <selectedRelationships>success</selectedRelationships>
+            <source>
+                <groupId>ff2213e2-b27e-458b-ab3b-1c7a4a50d2e3</groupId>
+                <id>9d33bbc9-2f51-43c8-aa8a-94dcc367b371</id>
+                <type>PROCESSOR</type>
+            </source>
+            <zIndex>0</zIndex>
+        </connections>
+        <connections>
+            <id>4f98618d-2443-465d-9856-bbf7c1ee49e1</id>
+            <parentGroupId>ff2213e2-b27e-458b-ab3b-1c7a4a50d2e3</parentGroupId>
+            <backPressureDataSizeThreshold>0 MB</backPressureDataSizeThreshold>
+            <backPressureObjectThreshold>0</backPressureObjectThreshold>
+            <bends>
+                <x>1695.5</x>
+                <y>120.5</y>
+            </bends>
+            <bends>
+                <x>1695.5</x>
+                <y>187.5</y>
+            </bends>
+            <destination>
+                <groupId>ff2213e2-b27e-458b-ab3b-1c7a4a50d2e3</groupId>
+                <id>9e28dd28-8116-4199-aeab-bc7a1002aec5</id>
+                <type>PROCESSOR</type>
+            </destination>
+            <flowFileExpiration>0 sec</flowFileExpiration>
+            <labelIndex>1</labelIndex>
+            <name></name>
+            <prioritizers>org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer</prioritizers>
+            <selectedRelationships>failure</selectedRelationships>
+            <source>
+                <groupId>ff2213e2-b27e-458b-ab3b-1c7a4a50d2e3</groupId>
+                <id>9e28dd28-8116-4199-aeab-bc7a1002aec5</id>
+                <type>PROCESSOR</type>
+            </source>
+            <zIndex>0</zIndex>
+        </connections>
+        <connections>
+            <id>37f15fde-d463-41b1-9fe7-28c72cd6c871</id>
+            <parentGroupId>ff2213e2-b27e-458b-ab3b-1c7a4a50d2e3</parentGroupId>
+            <backPressureDataSizeThreshold>0 MB</backPressureDataSizeThreshold>
+            <backPressureObjectThreshold>0</backPressureObjectThreshold>
+            <bends>
+                <x>2647.0997032823157</x>
+                <y>701.1219422353362</y>
+            </bends>
+            <bends>
+                <x>2652.689913243253</x>
+                <y>883.8309913076018</y>
+            </bends>
+            <destination>
+                <groupId>ff2213e2-b27e-458b-ab3b-1c7a4a50d2e3</groupId>
+                <id>0bdda776-0c7e-4723-b3ce-969b7d10a922</id>
+                <type>PROCESSOR</type>
+            </destination>
+            <flowFileExpiration>5 sec</flowFileExpiration>
+            <labelIndex>1</labelIndex>
+            <name></name>
+            <prioritizers>org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer</prioritizers>
+            <selectedRelationships>failure</selectedRelationships>
+            <source>
+                <groupId>ff2213e2-b27e-458b-ab3b-1c7a4a50d2e3</groupId>
+                <id>0bdda776-0c7e-4723-b3ce-969b7d10a922</id>
+                <type>PROCESSOR</type>
+            </source>
+            <zIndex>0</zIndex>
+        </connections>
+        <connections>
+            <id>ac822b4f-7d0d-462a-8ac0-03e9032ebefb</id>
+            <parentGroupId>ff2213e2-b27e-458b-ab3b-1c7a4a50d2e3</parentGroupId>
+            <backPressureDataSizeThreshold>0 MB</backPressureDataSizeThreshold>
+            <backPressureObjectThreshold>0</backPressureObjectThreshold>
+            <destination>
+                <groupId>ff2213e2-b27e-458b-ab3b-1c7a4a50d2e3</groupId>
+                <id>defa6d98-3e98-41dd-82ac-1bdfd39eacfc</id>
+                <type>PROCESSOR</type>
+            </destination>
+            <flowFileExpiration>0 sec</flowFileExpiration>
+            <labelIndex>1</labelIndex>
+            <name></name>
+            <prioritizers>org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer</prioritizers>
+            <selectedRelationships>success</selectedRelationships>
+            <source>
+                <groupId>ff2213e2-b27e-458b-ab3b-1c7a4a50d2e3</groupId>
+                <id>e227167f-62af-49cc-8fb5-a5b5e5251066</id>
+                <type>PROCESSOR</type>
+            </source>
+            <zIndex>0</zIndex>
+        </connections>
+        <connections>
+            <id>a72e8727-9a5c-44dd-a4f5-cf94b3422c1a</id>
+            <parentGroupId>ff2213e2-b27e-458b-ab3b-1c7a4a50d2e3</parentGroupId>
+            <backPressureDataSizeThreshold>0 MB</backPressureDataSizeThreshold>
+            <backPressureObjectThreshold>0</backPressureObjectThreshold>
+            <destination>
+                <groupId>ff2213e2-b27e-458b-ab3b-1c7a4a50d2e3</groupId>
+                <id>7209cf79-23ba-421c-b1c3-925ed86c302d</id>
+                <type>PROCESSOR</type>
+            </destination>
+            <flowFileExpiration>0 sec</flowFileExpiration>
+            <labelIndex>1</labelIndex>
+            <name></name>
+            <prioritizers>org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer</prioritizers>
+            <selectedRelationships>unmatched</selectedRelationships>
+            <source>
+                <groupId>ff2213e2-b27e-458b-ab3b-1c7a4a50d2e3</groupId>
+                <id>1377e3cc-db4e-4832-8a90-c8dc9e08f603</id>
+                <type>PROCESSOR</type>
+            </source>
+            <zIndex>0</zIndex>
+        </connections>
+        <connections>
+            <id>5de215d5-9f7e-414b-98aa-2edaa0514d99</id>
+            <parentGroupId>ff2213e2-b27e-458b-ab3b-1c7a4a50d2e3</parentGroupId>
+            <backPressureDataSizeThreshold>0 MB</backPressureDataSizeThreshold>
+            <backPressureObjectThreshold>0</backPressureObjectThreshold>
+            <bends>
+                <x>2258.299776524503</x>
+                <y>1088.9714637197112</y>
+            </bends>
+            <destination>
+                <groupId>ff2213e2-b27e-458b-ab3b-1c7a4a50d2e3</groupId>
+                <id>0bdda776-0c7e-4723-b3ce-969b7d10a922</id>
+                <type>PROCESSOR</type>
+            </destination>
+            <flowFileExpiration>0 sec</flowFileExpiration>
+            <labelIndex>1</labelIndex>
+            <name></name>
+            <prioritizers>org.apache.nifi.prioritizer.FirstInFirstOutPrioritizer</prioritizers>
+            <selectedRelationships>gzip</selectedRelationships>
+            <source>
+                <groupId>ff2213e2-b27e-458b-ab3b-1c7a4a50d2e3</groupId>
+                <id>1377e3cc-db4e-4832-8a90-c8dc9e08f603</id>
+                <type>PROCESSOR</type>
+            </source>
+            <zIndex>0</zIndex>
+        </connections>
+        <processors>
+            <id>1377e3cc-db4e-4832-8a90-c8dc9e08f603</id>
+            <parentGroupId>ff2213e2-b27e-458b-ab3b-1c7a4a50d2e3</parentGroupId>
+            <position>
+                <x>2864.4202270507812</x>
+                <y>1020.8192269897463</y>
+            </position>
+            <config>
+                <bulletinLevel>WARN</bulletinLevel>
+                <comments></comments>
+                <concurrentlySchedulableTaskCount>1</concurrentlySchedulableTaskCount>
+                <lossTolerant>false</lossTolerant>
+                <penaltyDuration>30 sec</penaltyDuration>
+                <properties>
+                    <entry>
+                        <key>Routing Strategy</key>
+                    </entry>
+                    <entry>
+                        <key>gzip</key>
+                        <value>${mime.type:toUpper():contains(&quot;GZIP&quot;)}</value>
+                    </entry>
+                </properties>
+                <runDurationMillis>0</runDurationMillis>
+                <schedulingPeriod>0 sec</schedulingPeriod>
+                <schedulingStrategy>TIMER_DRIVEN</schedulingStrategy>
+                <yieldDuration>1 sec</yieldDuration>
+            </config>
+            <name>Compressed?</name>
+            <relationships>
+                <autoTerminate>false</autoTerminate>
+                <name>gzip</name>
+            </relationships>
+            <relationships>
+                <autoTerminate>false</autoTerminate>
+                <name>unmatched</name>
+            </relationships>
+            <style/>
+            <type>org.apache.nifi.processors.standard.RouteOnAttribute</type>
+        </processors>
+        <processors>
+            <id>212097d4-2ea8-497b-b574-b1354fae40f2</id>
+            <parentGroupId>ff2213e2-b27e-458b-ab3b-1c7a4a50d2e3</parentGroupId>
+            <position>
+                <x>2854.459897460938</x>
+                <y>731.99545032959</y>
+            </position>
+            <config>
+                <bulletinLevel>WARN</bulletinLevel>
+                <comments></comments>
+                <concurrentlySchedulableTaskCount>1</concurrentlySchedulableTaskCount>
+                <lossTolerant>false</lossTolerant>
+                <penaltyDuration>30 sec</penaltyDuration>
+                <properties/>
+                <runDurationMillis>0</runDurationMillis>
+                <schedulingPeriod>0 sec</schedulingPeriod>
+                <schedulingStrategy>TIMER_DRIVEN</schedulingStrategy>
+                <yieldDuration>1 sec</yieldDuration>
+            </config>
+            <name>IdentifyMimeType</name>
+            <relationships>
+                <autoTerminate>false</autoTerminate>
+                <name>success</name>
+            </relationships>
+            <style/>
+            <type>org.apache.nifi.processors.standard.IdentifyMimeType</type>
+        </processors>
+        <processors>
+            <id>9e28dd28-8116-4199-aeab-bc7a1002aec5</id>
+            <parentGroupId>ff2213e2-b27e-458b-ab3b-1c7a4a50d2e3</parentGroupId>
+            <position>
+                <x>1082.0</x>
+                <y>87.0</y>
+            </position>
+            <config>
+                <bulletinLevel>WARN</bulletinLevel>
+                <comments></comments>
+                <concurrentlySchedulableTaskCount>1</concurrentlySchedulableTaskCount>
+                <lossTolerant>false</lossTolerant>
+                <penaltyDuration>30 sec</penaltyDuration>
+                <properties>
+                    <entry>
+                        <key>Mode</key>
+                    </entry>
+                    <entry>
+                        <key>Compression Format</key>
+                        <value>gzip</value>
+                    </entry>
+                    <entry>
+                        <key>Compression Level</key>
+                    </entry>
+                    <entry>
+                        <key>Update Filename</key>
+                    </entry>
+                </properties>
+                <runDurationMillis>0</runDurationMillis>
+                <schedulingPeriod>0 sec</schedulingPeriod>
+                <schedulingStrategy>TIMER_DRIVEN</schedulingStrategy>
+                <yieldDuration>1 sec</yieldDuration>
+            </config>
+            <name>GZIP CompressContent</name>
+            <relationships>
+                <autoTerminate>false</autoTerminate>
+                <name>failure</name>
+            </relationships>
+            <relationships>
+                <autoTerminate>false</autoTerminate>
+                <name>success</name>
+            </relationships>
+            <style/>
+            <type>org.apache.nifi.processors.standard.CompressContent</type>
+        </processors>
+        <processors>
+            <id>defa6d98-3e98-41dd-82ac-1bdfd39eacfc</id>
+            <parentGroupId>ff2213e2-b27e-458b-ab3b-1c7a4a50d2e3</parentGroupId>
+            <position>
+                <x>1088.0</x>
+                <y>505.0800204467774</y>
+            </position>
+            <config>
+                <bulletinLevel>WARN</bulletinLevel>
+                <comments></comments>
+                <concurrentlySchedulableTaskCount>1</concurrentlySchedulableTaskCount>
+                <lossTolerant>false</lossTolerant>
+                <penaltyDuration>30 sec</penaltyDuration>
+                <properties>
+                    <entry>
+                        <key>Mode</key>
+                    </entry>
+                    <entry>
+                        <key>Compression Format</key>
+                        <value>gzip</value>
+                    </entry>
+                    <entry>
+                        <key>Compression Level</key>
+                    </entry>
+                    <entry>
+                        <key>Update Filename</key>
+                    </entry>
+                </properties>
+                <runDurationMillis>0</runDurationMillis>
+                <schedulingPeriod>0 sec</schedulingPeriod>
+                <schedulingStrategy>TIMER_DRIVEN</schedulingStrategy>
+                <yieldDuration>1 sec</yieldDuration>
+            </config>
+            <name>GZIP CompressContent3</name>
+            <relationships>
+                <autoTerminate>false</autoTerminate>
+                <name>failure</name>
+            </relationships>
+            <relationships>
+                <autoTerminate>false</autoTerminate>
+                <name>success</name>
+            </relationships>
+            <style/>
+            <type>org.apache.nifi.processors.standard.CompressContent</type>
+        </processors>
+        <processors>
+            <id>0bdda776-0c7e-4723-b3ce-969b7d10a922</id>
+            <parentGroupId>ff2213e2-b27e-458b-ab3b-1c7a4a50d2e3</parentGroupId>
+            <position>
+                <x>2025.5</x>
+                <y>732.8800204467774</y>
+            </position>
+            <config>
+                <bulletinLevel>WARN</bulletinLevel>
+                <comments></comments>
+                <concurrentlySchedulableTaskCount>1</concurrentlySchedulableTaskCount>
+                <lossTolerant>false</lossTolerant>
+                <penaltyDuration>30 sec</penaltyDuration>
+                <properties>
+                    <entry>
+                        <key>Mode</key>
+                        <value>decompress</value>
+                    </entry>
+                    <entry>
+                        <key>Compression Format</key>
+                        <value>gzip</value>
+                    </entry>
+                    <entry>
+                        <key>Compression Level</key>
+                    </entry>
+                    <entry>
+                        <key>Update Filename</key>
+                    </entry>
+                </properties>
+                <runDurationMillis>0</runDurationMillis>
+                <schedulingPeriod>0 sec</schedulingPeriod>
+                <schedulingStrategy>TIMER_DRIVEN</schedulingStrategy>
+                <yieldDuration>1 sec</yieldDuration>
+            </config>
+            <name>Uncompress GZIP</name>
+            <relationships>
+                <autoTerminate>false</autoTerminate>
+                <name>failure</name>
+            </relationships>
+            <relationships>
+                <autoTerminate>false</autoTerminate>
+                <name>success</name>
+            </relationships>
+            <style/>
+            <type>org.apache.nifi.processors.standard.CompressContent</type>
+        </processors>
+        <processors>
+            <id>7209cf79-23ba-421c-b1c3-925ed86c302d</id>
+            <parentGroupId>ff2213e2-b27e-458b-ab3b-1c7a4a50d2e3</parentGroupId>
+            <position>
+                <x>2858.3004760742188</x>
+                <y>1334.7543026733401</y>
+            </position>
+            <config>
+                <bulletinLevel>WARN</bulletinLevel>
+                <comments></comments>
+                <concurrentlySchedulableTaskCount>1</concurrentlySchedulableTaskCount>
+                <lossTolerant>false</lossTolerant>
+                <penaltyDuration>30 sec</penaltyDuration>
+                <properties>
+                    <entry>
+                        <key>Log Level</key>
+                    </entry>
+                    <entry>
+                        <key>Log Payload</key>
+                    </entry>
+                    <entry>
+                        <key>Attributes to Log</key>
+                    </entry>
+                    <entry>
+                        <key>Attributes to Ignore</key>
+                    </entry>
+                    <entry>
+                        <key>Log prefix</key>
+                    </entry>
+                </properties>
+                <runDurationMillis>0</runDurationMillis>
+                <schedulingPeriod>0 sec</schedulingPeriod>
+                <schedulingStrategy>TIMER_DRIVEN</schedulingStrategy>
+                <yieldDuration>1 sec</yieldDuration>
+            </config>
+            <name>LogAttribute</name>
+            <relationships>
+                <autoTerminate>true</autoTerminate>
+                <name>success</name>
+            </relationships>
+            <style/>
+            <type>org.apache.nifi.processors.standard.LogAttribute</type>
+        </processors>
+        <processors>
+            <id>e227167f-62af-49cc-8fb5-a5b5e5251066</id>
+            <parentGroupId>ff2213e2-b27e-458b-ab3b-1c7a4a50d2e3</parentGroupId>
+            <position>
+                <x>1079.0</x>
+                <y>293.36002044677736</y>
+            </position>
+            <config>
+                <bulletinLevel>WARN</bulletinLevel>
+                <comments></comments>
+                <concurrentlySchedulableTaskCount>1</concurrentlySchedulableTaskCount>
+                <lossTolerant>false</lossTolerant>
+                <penaltyDuration>30 sec</penaltyDuration>
+                <properties>
+                    <entry>
+                        <key>Mode</key>
+                    </entry>
+                    <entry>
+                        <key>Compression Format</key>
+                        <value>gzip</value>
+                    </entry>
+                    <entry>
+                        <key>Compression Level</key>
+                    </entry>
+                    <entry>
+                        <key>Update Filename</key>
+                    </entry>
+                </properties>
+                <runDurationMillis>0</runDurationMillis>
+                <schedulingPeriod>0 sec</schedulingPeriod>
+                <schedulingStrategy>TIMER_DRIVEN</schedulingStrategy>
+                <yieldDuration>1 sec</yieldDuration>
+            </config>
+            <name>GZIP CompressContent2</name>
+            <relationships>
+                <autoTerminate>false</autoTerminate>
+                <name>failure</name>
+            </relationships>
+            <relationships>
+                <autoTerminate>false</autoTerminate>
+                <name>success</name>
+            </relationships>
+            <style/>
+            <type>org.apache.nifi.processors.standard.CompressContent</type>
+        </processors>
+        <processors>
+            <id>ad8ff6a3-ba60-4b9b-af9e-0773c8afc1c9</id>
+            <parentGroupId>ff2213e2-b27e-458b-ab3b-1c7a4a50d2e3</parentGroupId>
+            <position>
+                <x>416.0</x>
+                <y>92.36002044677734</y>
+            </position>
+            <config>
+                <bulletinLevel>WARN</bulletinLevel>
+                <comments></comments>
+                <concurrentlySchedulableTaskCount>1</concurrentlySchedulableTaskCount>
+                <lossTolerant>false</lossTolerant>
+                <penaltyDuration>30 sec</penaltyDuration>
+                <properties>
+                    <entry>
+                        <key>File Size</key>
+                        <value>10kb</value>
+                    </entry>
+                    <entry>
+                        <key>Batch Size</key>
+                    </entry>
+                    <entry>
+                        <key>Data Format</key>
+                    </entry>
+                    <entry>
+                        <key>Unique FlowFiles</key>
+                    </entry>
+                </properties>
+                <runDurationMillis>0</runDurationMillis>
+                <schedulingPeriod>1 min</schedulingPeriod>
+                <schedulingStrategy>TIMER_DRIVEN</schedulingStrategy>
+                <yieldDuration>1 sec</yieldDuration>
+            </config>
+            <name>GenerateFlowFile</name>
+            <relationships>
+                <autoTerminate>false</autoTerminate>
+                <name>success</name>
+            </relationships>
+            <style/>
+            <type>org.apache.nifi.processors.standard.GenerateFlowFile</type>
+        </processors>
+        <processors>
+            <id>9d33bbc9-2f51-43c8-aa8a-94dcc367b371</id>
+            <parentGroupId>ff2213e2-b27e-458b-ab3b-1c7a4a50d2e3</parentGroupId>
+            <position>
+                <x>1088.0</x>
+                <y>734.2200204467774</y>
+            </position>
+            <config>
+                <bulletinLevel>WARN</bulletinLevel>
+                <comments></comments>
+                <concurrentlySchedulableTaskCount>1</concurrentlySchedulableTaskCount>
+                <lossTolerant>false</lossTolerant>
+                <penaltyDuration>30 sec</penaltyDuration>
+                <properties>
+                    <entry>
+                        <key>Mode</key>
+                    </entry>
+                    <entry>
+                        <key>Compression Format</key>
+                        <value>gzip</value>
+                    </entry>
+                    <entry>
+                        <key>Compression Level</key>
+                    </entry>
+                    <entry>
+                        <key>Update Filename</key>
+                    </entry>
+                </properties>
+                <runDurationMillis>0</runDurationMillis>
+                <schedulingPeriod>0 sec</schedulingPeriod>
+                <schedulingStrategy>TIMER_DRIVEN</schedulingStrategy>
+                <yieldDuration>1 sec</yieldDuration>
+            </config>
+            <name>GZIP CompressContent4</name>
+            <relationships>
+                <autoTerminate>false</autoTerminate>
+                <name>failure</name>
+            </relationships>
+            <relationships>
+                <autoTerminate>false</autoTerminate>
+                <name>success</name>
+            </relationships>
+            <style/>
+            <type>org.apache.nifi.processors.standard.CompressContent</type>
+        </processors>
+    </snippet>
+    <timestamp>07/04/2016 20:44:19 UTC</timestamp>
+</template>

@@ -45,7 +45,7 @@ public class PublishAMQPTest {
     public void validateSuccessfulPublishAndTransferToSuccess() throws Exception {
         final PublishAMQP pubProc = new LocalPublishAMQP();
         final TestRunner runner = TestRunners.newTestRunner(pubProc);
-        runner.setProperty(PublishAMQP.HOST, "injvm");
+        runner.setProperty(PublishAMQP.BROKERS, "injvm:5672");
         runner.setProperty(PublishAMQP.EXCHANGE, "myExchange");
         runner.setProperty(PublishAMQP.ROUTING_KEY, "key1");
         runner.setProperty(PublishAMQP.USER, "user");
@@ -110,7 +110,7 @@ public class PublishAMQPTest {
     public void validateFailedPublishAndTransferToFailure() throws Exception {
         PublishAMQP pubProc = new LocalPublishAMQP();
         TestRunner runner = TestRunners.newTestRunner(pubProc);
-        runner.setProperty(PublishAMQP.HOST, "injvm");
+        runner.setProperty(PublishAMQP.BROKERS, "injvm:5672");
         runner.setProperty(PublishAMQP.EXCHANGE, "badToTheBone");
         runner.setProperty(PublishAMQP.ROUTING_KEY, "key1");
         runner.setProperty(PublishAMQP.USER, "user");

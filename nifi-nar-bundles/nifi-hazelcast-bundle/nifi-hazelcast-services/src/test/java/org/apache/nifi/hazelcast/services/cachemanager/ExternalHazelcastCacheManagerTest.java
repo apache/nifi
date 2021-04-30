@@ -19,63 +19,44 @@ package org.apache.nifi.hazelcast.services.cachemanager;
 import com.hazelcast.config.Config;
 import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
+import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 public class ExternalHazelcastCacheManagerTest extends AbstractHazelcastCacheManagerTest {
-    private Thread hazelcastServer;
+    private HazelcastInstance hazelcastInstance;
+
+    private int port;
 
     @Before
     public void setUp() {
-        hazelcastServer = new Thread(new Runnable() {
-            HazelcastInstance hazelcastInstance;
+        port = NetworkUtils.availablePort();
+        final Config config = new Config();
+        config.getNetworkConfig().setPort(port);
+        config.setClusterName("nifi");
 
-            @Override
-            public void run() {
-                final Config config = new Config();
-                config.getNetworkConfig().setPort(5704);
-                config.setClusterName("nifi");
-                hazelcastInstance = Hazelcast.newHazelcastInstance(config);
-
-                while (!Thread.currentThread().isInterrupted()) {
-                    try {
-                        Thread.sleep(100);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                        Thread.currentThread().interrupt();
-                    }
-                }
-
-                hazelcastInstance.shutdown();
-                hazelcastInstance = null;
-            }
-        });
-
-        hazelcastServer.start();
+        hazelcastInstance = Hazelcast.newHazelcastInstance(config);
         super.setUp();
     }
 
     @After
     public void tearDown() {
         super.tearDown();
-        hazelcastServer.interrupt();
+        hazelcastInstance.shutdown();
     }
 
     @Test
     public void testExecution() throws Exception {
-        // given
         testSubject = new ExternalHazelcastCacheManager();
         testRunner.addControllerService("hazelcast-connection-service", testSubject);
-        testRunner.setProperty(testSubject, ExternalHazelcastCacheManager.HAZELCAST_SERVER_ADDRESS, "localhost:5704");
+        testRunner.setProperty(testSubject, ExternalHazelcastCacheManager.HAZELCAST_SERVER_ADDRESS, String.format("localhost:%d", port));
 
         givenHazelcastMapCacheClient();
         givenServicesAreEnabled();
 
-        // when
         whenExecuting();
 
-        // then
         thenProcessingIsSuccessful();
     }
 }

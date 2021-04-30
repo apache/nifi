@@ -220,7 +220,7 @@ public class AccessResource extends ApplicationResource {
 
         // ensure saml is enabled
         if (!samlService.isSamlEnabled()) {
-            logger.warn(SAMLService.SAML_SUPPORT_IS_NOT_CONFIGURED);
+            logger.debug(SAMLService.SAML_SUPPORT_IS_NOT_CONFIGURED);
             return Response.status(Response.Status.CONFLICT).entity(SAMLService.SAML_SUPPORT_IS_NOT_CONFIGURED).build();
         }
 
@@ -425,7 +425,7 @@ public class AccessResource extends ApplicationResource {
 
         // ensure saml is enabled
         if (!samlService.isSamlEnabled()) {
-            logger.warn(SAMLService.SAML_SUPPORT_IS_NOT_CONFIGURED);
+            logger.debug(SAMLService.SAML_SUPPORT_IS_NOT_CONFIGURED);
             return Response.status(Response.Status.CONFLICT).entity(SAMLService.SAML_SUPPORT_IS_NOT_CONFIGURED).build();
         }
 
@@ -827,7 +827,7 @@ public class AccessResource extends ApplicationResource {
 
         // ensure oidc is enabled
         if (!oidcService.isOidcEnabled()) {
-            logger.warn(OPEN_ID_CONNECT_SUPPORT_IS_NOT_CONFIGURED_MSG);
+            logger.debug(OPEN_ID_CONNECT_SUPPORT_IS_NOT_CONFIGURED_MSG);
             return Response.status(Response.Status.CONFLICT).entity(OPEN_ID_CONNECT_SUPPORT_IS_NOT_CONFIGURED_MSG).build();
         }
 
@@ -1351,7 +1351,7 @@ public class AccessResource extends ApplicationResource {
         // If Kerberos Service Principal and keytab location not configured, throws exception
         if (!properties.isKerberosSpnegoSupportEnabled() || kerberosService == null) {
             final String message = "Kerberos ticket login not supported by this NiFi.";
-            logger.warn(message);
+            logger.debug(message);
             return Response.status(Response.Status.CONFLICT).entity(message).build();
         }
 
@@ -1611,11 +1611,13 @@ public class AccessResource extends ApplicationResource {
     private String getNiFiUri() {
         final String nifiApiUrl = generateResourceUri();
         final String baseUrl = StringUtils.substringBeforeLast(nifiApiUrl, "/nifi-api");
-        return baseUrl + "/nifi";
+        // Note: if the URL does not end with a / then Jetty will end up doing a redirect which can cause
+        // a problem when being behind a proxy b/c Jetty's redirect doesn't consider proxy headers
+        return baseUrl + "/nifi/";
     }
 
     private String getNiFiLogoutCompleteUri() {
-        return getNiFiUri() + "/logout-complete";
+        return getNiFiUri() + "logout-complete";
     }
 
     private void removeOidcRequestCookie(final HttpServletResponse httpServletResponse) {

@@ -20,11 +20,15 @@ package org.apache.nifi.processors.mqtt.common;
 import io.moquette.proto.messages.AbstractMessage;
 import io.moquette.proto.messages.PublishMessage;
 import io.moquette.server.Server;
+
+import org.apache.nifi.json.JsonRecordSetWriter;
+import org.apache.nifi.json.JsonTreeReader;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processors.mqtt.ConsumeMQTT;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
+import org.apache.nifi.schema.access.SchemaAccessUtils;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -53,6 +57,7 @@ import static org.junit.Assert.assertTrue;
 public abstract class TestConsumeMqttCommon {
 
     public int PUBLISH_WAIT_MS = 1000;
+    public static final String THIS_IS_NOT_JSON = "ThisIsNotAJSON";
 
     public Server MQTT_server;
     public TestRunner testRunner;
@@ -407,6 +412,227 @@ public abstract class TestConsumeMqttCommon {
         flowFile.assertAttributeEquals(QOS_ATTRIBUTE_KEY, "2");
         flowFile.assertAttributeEquals(IS_DUPLICATE_ATTRIBUTE_KEY, "false");
         flowFile.assertAttributeEquals(IS_RETAINED_ATTRIBUTE_KEY, "false");
+    }
+
+    @Test
+    public void testConsumeRecordsWithAddedFields() throws Exception {
+        testRunner.setProperty(ConsumeMQTT.RECORD_READER, "record-reader");
+        testRunner.setProperty(ConsumeMQTT.RECORD_WRITER, "record-writer");
+
+        final JsonTreeReader jsonReader = new JsonTreeReader();
+        testRunner.addControllerService("record-reader", jsonReader);
+        testRunner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, "infer-schema");
+        testRunner.enableControllerService(jsonReader);
+
+        final JsonRecordSetWriter jsonWriter = new JsonRecordSetWriter();
+        testRunner.addControllerService("record-writer", jsonWriter);
+        testRunner.setProperty(jsonWriter, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.INHERIT_RECORD_SCHEMA);
+        testRunner.enableControllerService(jsonWriter);
+
+        testRunner.assertValid();
+
+        ConsumeMQTT consumeMQTT = (ConsumeMQTT) testRunner.getProcessor();
+        consumeMQTT.onScheduled(testRunner.getProcessContext());
+        reconnect(consumeMQTT, testRunner.getProcessContext());
+
+        Thread.sleep(PUBLISH_WAIT_MS);
+
+        assertTrue(isConnected(consumeMQTT));
+
+        PublishMessage testMessage = new PublishMessage();
+        testMessage.setPayload(ByteBuffer.wrap("{\"name\":\"Apache NiFi\"}".getBytes()));
+        testMessage.setTopicName("testTopic");
+        testMessage.setDupFlag(false);
+        testMessage.setQos(AbstractMessage.QOSType.MOST_ONE);
+        testMessage.setRetainFlag(false);
+
+        PublishMessage badMessage = new PublishMessage();
+        badMessage.setPayload(ByteBuffer.wrap(THIS_IS_NOT_JSON.getBytes()));
+        badMessage.setTopicName("testTopic");
+        badMessage.setDupFlag(false);
+        badMessage.setQos(AbstractMessage.QOSType.MOST_ONE);
+        badMessage.setRetainFlag(false);
+
+        internalPublish(testMessage);
+        internalPublish(badMessage);
+        internalPublish(testMessage);
+
+        Thread.sleep(PUBLISH_WAIT_MS);
+
+        testRunner.run(1, false, false);
+
+        List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(ConsumeMQTT.REL_MESSAGE);
+        assertTrue(flowFiles.size() == 1);
+        assertEquals("[{\"name\":\"Apache NiFi\",\"_topic\":\"testTopic\",\"_qos\":0,\"_isDuplicate\":false,\"_isRetained\":false},"
+                + "{\"name\":\"Apache NiFi\",\"_topic\":\"testTopic\",\"_qos\":0,\"_isDuplicate\":false,\"_isRetained\":false}]",
+                new String(flowFiles.get(0).toByteArray()));
+
+        List<MockFlowFile> badFlowFiles = testRunner.getFlowFilesForRelationship(ConsumeMQTT.REL_PARSE_FAILURE);
+        assertTrue(badFlowFiles.size() == 1);
+        assertEquals(THIS_IS_NOT_JSON, new String(badFlowFiles.get(0).toByteArray()));
+
+        // clean runner by removing records reader/writer
+        testRunner.removeProperty(ConsumeMQTT.RECORD_READER);
+        testRunner.removeProperty(ConsumeMQTT.RECORD_WRITER);
+    }
+
+    @Test
+    public void testConsumeDemarcator() throws Exception {
+        testRunner.setProperty(ConsumeMQTT.MESSAGE_DEMARCATOR, "\\n");
+        testRunner.assertValid();
+
+        ConsumeMQTT consumeMQTT = (ConsumeMQTT) testRunner.getProcessor();
+        consumeMQTT.onScheduled(testRunner.getProcessContext());
+        reconnect(consumeMQTT, testRunner.getProcessContext());
+
+        Thread.sleep(PUBLISH_WAIT_MS);
+
+        assertTrue(isConnected(consumeMQTT));
+
+        PublishMessage testMessage = new PublishMessage();
+        testMessage.setPayload(ByteBuffer.wrap("{\"name\":\"Apache NiFi\"}".getBytes()));
+        testMessage.setTopicName("testTopic");
+        testMessage.setDupFlag(false);
+        testMessage.setQos(AbstractMessage.QOSType.MOST_ONE);
+        testMessage.setRetainFlag(false);
+
+        PublishMessage badMessage = new PublishMessage();
+        badMessage.setPayload(ByteBuffer.wrap(THIS_IS_NOT_JSON.getBytes()));
+        badMessage.setTopicName("testTopic");
+        badMessage.setDupFlag(false);
+        badMessage.setQos(AbstractMessage.QOSType.MOST_ONE);
+        badMessage.setRetainFlag(false);
+
+        internalPublish(testMessage);
+        internalPublish(badMessage);
+        internalPublish(testMessage);
+
+        Thread.sleep(PUBLISH_WAIT_MS);
+        Thread.sleep(PUBLISH_WAIT_MS);
+
+        testRunner.run(1, false, false);
+
+        List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(ConsumeMQTT.REL_MESSAGE);
+        assertEquals(flowFiles.size(), 1);
+        assertEquals("{\"name\":\"Apache NiFi\"}\\n"
+                + THIS_IS_NOT_JSON + "\\n"
+                + "{\"name\":\"Apache NiFi\"}\\n",
+                new String(flowFiles.get(0).toByteArray()));
+
+        List<MockFlowFile> badFlowFiles = testRunner.getFlowFilesForRelationship(ConsumeMQTT.REL_PARSE_FAILURE);
+        assertTrue(badFlowFiles.size() == 0);
+
+        // clean runner by removing message demarcator
+        testRunner.removeProperty(ConsumeMQTT.MESSAGE_DEMARCATOR);
+    }
+
+    @Test
+    public void testConsumeRecordsWithoutAddedFields() throws Exception {
+        testRunner.setProperty(ConsumeMQTT.RECORD_READER, "record-reader");
+        testRunner.setProperty(ConsumeMQTT.RECORD_WRITER, "record-writer");
+        testRunner.setProperty(ConsumeMQTT.ADD_ATTRIBUTES_AS_FIELDS, "false");
+
+        final JsonTreeReader jsonReader = new JsonTreeReader();
+        testRunner.addControllerService("record-reader", jsonReader);
+        testRunner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, "infer-schema");
+        testRunner.enableControllerService(jsonReader);
+
+        final JsonRecordSetWriter jsonWriter = new JsonRecordSetWriter();
+        testRunner.addControllerService("record-writer", jsonWriter);
+        testRunner.setProperty(jsonWriter, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.INHERIT_RECORD_SCHEMA);
+        testRunner.enableControllerService(jsonWriter);
+
+        testRunner.assertValid();
+
+        ConsumeMQTT consumeMQTT = (ConsumeMQTT) testRunner.getProcessor();
+        consumeMQTT.onScheduled(testRunner.getProcessContext());
+        reconnect(consumeMQTT, testRunner.getProcessContext());
+
+        Thread.sleep(PUBLISH_WAIT_MS);
+
+        assertTrue(isConnected(consumeMQTT));
+
+        PublishMessage testMessage = new PublishMessage();
+        testMessage.setPayload(ByteBuffer.wrap("{\"name\":\"Apache NiFi\"}".getBytes()));
+        testMessage.setTopicName("testTopic");
+        testMessage.setDupFlag(false);
+        testMessage.setQos(AbstractMessage.QOSType.MOST_ONE);
+        testMessage.setRetainFlag(false);
+
+        PublishMessage badMessage = new PublishMessage();
+        badMessage.setPayload(ByteBuffer.wrap(THIS_IS_NOT_JSON.getBytes()));
+        badMessage.setTopicName("testTopic");
+        badMessage.setDupFlag(false);
+        badMessage.setQos(AbstractMessage.QOSType.MOST_ONE);
+        badMessage.setRetainFlag(false);
+
+        internalPublish(testMessage);
+        internalPublish(badMessage);
+        internalPublish(testMessage);
+
+        Thread.sleep(PUBLISH_WAIT_MS);
+
+        testRunner.run(1, false, false);
+
+        List<MockFlowFile> flowFiles = testRunner.getFlowFilesForRelationship(ConsumeMQTT.REL_MESSAGE);
+        assertTrue(flowFiles.size() == 1);
+        assertEquals("[{\"name\":\"Apache NiFi\"},{\"name\":\"Apache NiFi\"}]", new String(flowFiles.get(0).toByteArray()));
+
+        List<MockFlowFile> badFlowFiles = testRunner.getFlowFilesForRelationship(ConsumeMQTT.REL_PARSE_FAILURE);
+        assertTrue(badFlowFiles.size() == 1);
+        assertEquals(THIS_IS_NOT_JSON, new String(badFlowFiles.get(0).toByteArray()));
+
+        // clean runner by removing records reader/writer
+        testRunner.removeProperty(ConsumeMQTT.RECORD_READER);
+        testRunner.removeProperty(ConsumeMQTT.RECORD_WRITER);
+    }
+
+    @Test
+    public void testConsumeRecordsOnlyBadData() throws Exception {
+        testRunner.setProperty(ConsumeMQTT.RECORD_READER, "record-reader");
+        testRunner.setProperty(ConsumeMQTT.RECORD_WRITER, "record-writer");
+        testRunner.setProperty(ConsumeMQTT.ADD_ATTRIBUTES_AS_FIELDS, "false");
+
+        final JsonTreeReader jsonReader = new JsonTreeReader();
+        testRunner.addControllerService("record-reader", jsonReader);
+        testRunner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, "infer-schema");
+        testRunner.enableControllerService(jsonReader);
+
+        final JsonRecordSetWriter jsonWriter = new JsonRecordSetWriter();
+        testRunner.addControllerService("record-writer", jsonWriter);
+        testRunner.setProperty(jsonWriter, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.INHERIT_RECORD_SCHEMA);
+        testRunner.enableControllerService(jsonWriter);
+
+        testRunner.assertValid();
+
+        ConsumeMQTT consumeMQTT = (ConsumeMQTT) testRunner.getProcessor();
+        consumeMQTT.onScheduled(testRunner.getProcessContext());
+        reconnect(consumeMQTT, testRunner.getProcessContext());
+
+        Thread.sleep(PUBLISH_WAIT_MS);
+
+        assertTrue(isConnected(consumeMQTT));
+
+        PublishMessage badMessage = new PublishMessage();
+        badMessage.setPayload(ByteBuffer.wrap(THIS_IS_NOT_JSON.getBytes()));
+        badMessage.setTopicName("testTopic");
+        badMessage.setDupFlag(false);
+        badMessage.setQos(AbstractMessage.QOSType.MOST_ONE);
+        badMessage.setRetainFlag(false);
+
+        internalPublish(badMessage);
+
+        Thread.sleep(PUBLISH_WAIT_MS);
+
+        testRunner.run(1, false, false);
+
+        List<MockFlowFile> badFlowFiles = testRunner.getFlowFilesForRelationship(ConsumeMQTT.REL_PARSE_FAILURE);
+        assertTrue(badFlowFiles.size() == 1);
+        assertEquals(THIS_IS_NOT_JSON, new String(badFlowFiles.get(0).toByteArray()));
+
+        // clean runner by removing records reader/writer
+        testRunner.removeProperty(ConsumeMQTT.RECORD_READER);
+        testRunner.removeProperty(ConsumeMQTT.RECORD_WRITER);
     }
 
     private static boolean isConnected(AbstractMQTTProcessor processor) throws NoSuchFieldException, IllegalAccessException {

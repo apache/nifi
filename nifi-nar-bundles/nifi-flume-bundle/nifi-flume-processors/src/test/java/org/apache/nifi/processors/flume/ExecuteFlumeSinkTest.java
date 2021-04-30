@@ -38,6 +38,7 @@ import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.util.file.FileUtils;
+import org.apache.nifi.util.security.MessageDigestUtils;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Rule;
@@ -158,12 +159,12 @@ public class ExecuteFlumeSinkTest {
         File[] files = destDir.listFiles((FilenameFilter)HiddenFileFilter.VISIBLE);
         assertEquals("Unexpected number of destination files.", 1, files.length);
         File dst = files[0];
-        byte[] expectedMd5;
-        try (InputStream md5Stream = getClass().getResourceAsStream("/testdata/records.txt")) {
-            expectedMd5 = FileUtils.computeMd5Digest(md5Stream);
+        byte[] expectedDigest;
+        try (InputStream resourceStream = getClass().getResourceAsStream("/testdata/records.txt")) {
+            expectedDigest = MessageDigestUtils.getDigest(resourceStream);
         }
-        byte[] actualMd5 = FileUtils.computeMd5Digest(dst);
-        Assert.assertArrayEquals("Destination file doesn't match source data", expectedMd5, actualMd5);
+        byte[] actualDigest = FileUtils.computeDigest(dst);
+        Assert.assertArrayEquals("Destination file doesn't match source data", expectedDigest, actualDigest);
     }
 
 }

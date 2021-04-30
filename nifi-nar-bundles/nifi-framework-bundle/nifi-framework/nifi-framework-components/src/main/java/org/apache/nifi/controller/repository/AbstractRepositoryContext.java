@@ -17,6 +17,7 @@
 
 package org.apache.nifi.controller.repository;
 
+import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Connection;
@@ -45,10 +46,12 @@ public abstract class AbstractRepositoryContext implements RepositoryContext {
     private final CounterRepository counterRepo;
     private final ProvenanceEventRepository provenanceRepo;
     private final AtomicLong connectionIndex;
+    private final StateManager stateManager;
 
     public AbstractRepositoryContext(final Connectable connectable, final AtomicLong connectionIndex, final ContentRepository contentRepository,
                                      final FlowFileRepository flowFileRepository, final FlowFileEventRepository flowFileEventRepository,
-                                     final CounterRepository counterRepository, final ProvenanceEventRepository provenanceRepository) {
+                                     final CounterRepository counterRepository, final ProvenanceEventRepository provenanceRepository,
+                                     final StateManager stateManager) {
         this.connectable = connectable;
         contentRepo = contentRepository;
         flowFileRepo = flowFileRepository;
@@ -57,6 +60,7 @@ public abstract class AbstractRepositoryContext implements RepositoryContext {
         provenanceRepo = provenanceRepository;
 
         this.connectionIndex = connectionIndex;
+        this.stateManager = stateManager;
     }
 
     @Override
@@ -250,5 +254,10 @@ public abstract class AbstractRepositoryContext implements RepositoryContext {
     public InternalProvenanceReporter createProvenanceReporter(final Predicate<FlowFile> flowfileKnownCheck, final ProvenanceEventEnricher eventEnricher) {
         final String componentType = getProvenanceComponentDescription();
         return new StandardProvenanceReporter(flowfileKnownCheck, getConnectable().getIdentifier(), componentType, getProvenanceRepository(), eventEnricher);
+    }
+
+    @Override
+    public StateManager getStateManager() {
+        return stateManager;
     }
 }

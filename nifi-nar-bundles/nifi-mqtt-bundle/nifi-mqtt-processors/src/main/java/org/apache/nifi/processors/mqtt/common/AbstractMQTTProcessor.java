@@ -62,6 +62,7 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
     protected ComponentLog logger;
     protected IMqttClient mqttClient;
     protected volatile String broker;
+    protected volatile String brokerUri;
     protected volatile String clientID;
     protected MqttConnectOptions connOpts;
     protected MemoryPersistence persistence = new MemoryPersistence();
@@ -118,6 +119,7 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
             .description("The URI to use to connect to the MQTT broker (e.g. tcp://localhost:1883). The 'tcp', 'ssl', 'ws' and 'wss' schemes are supported. In order to use 'ssl', the SSL Context " +
                     "Service property must be set.")
             .required(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(BROKER_VALIDATOR)
             .build();
 
@@ -134,6 +136,7 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
             .name("Username")
             .description("Username to use when connecting to the broker")
             .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -274,7 +277,7 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
         }
 
         try {
-            URI brokerURI = new URI(validationContext.getProperty(PROP_BROKER_URI).getValue());
+            URI brokerURI = new URI(validationContext.getProperty(PROP_BROKER_URI).evaluateAttributeExpressions().getValue());
             if (brokerURI.getScheme().equalsIgnoreCase("ssl") && !validationContext.getProperty(PROP_SSL_CONTEXT_SERVICE).isSet()) {
                 results.add(new ValidationResult.Builder().subject(PROP_SSL_CONTEXT_SERVICE.getName() + " or " + PROP_BROKER_URI.getName()).valid(false).explanation("if the 'ssl' scheme is used in " +
                         "the broker URI, the SSL Context Service must be set.").build());
@@ -288,18 +291,33 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
 
     public static Properties transformSSLContextService(SSLContextService sslContextService){
         Properties properties = new Properties();
-        properties.setProperty("com.ibm.ssl.protocol", sslContextService.getSslAlgorithm());
-        properties.setProperty("com.ibm.ssl.keyStore", sslContextService.getKeyStoreFile());
-        properties.setProperty("com.ibm.ssl.keyStorePassword", sslContextService.getKeyStorePassword());
-        properties.setProperty("com.ibm.ssl.keyStoreType", sslContextService.getKeyStoreType());
-        properties.setProperty("com.ibm.ssl.trustStore", sslContextService.getTrustStoreFile());
-        properties.setProperty("com.ibm.ssl.trustStorePassword", sslContextService.getTrustStorePassword());
-        properties.setProperty("com.ibm.ssl.trustStoreType", sslContextService.getTrustStoreType());
+        if (sslContextService.getSslAlgorithm() != null) {
+            properties.setProperty("com.ibm.ssl.protocol", sslContextService.getSslAlgorithm());
+        }
+        if (sslContextService.getKeyStoreFile() != null) {
+            properties.setProperty("com.ibm.ssl.keyStore", sslContextService.getKeyStoreFile());
+        }
+        if (sslContextService.getKeyStorePassword() != null) {
+            properties.setProperty("com.ibm.ssl.keyStorePassword", sslContextService.getKeyStorePassword());
+        }
+        if (sslContextService.getKeyStoreType() != null) {
+            properties.setProperty("com.ibm.ssl.keyStoreType", sslContextService.getKeyStoreType());
+        }
+        if (sslContextService.getTrustStoreFile() != null) {
+            properties.setProperty("com.ibm.ssl.trustStore", sslContextService.getTrustStoreFile());
+        }
+        if (sslContextService.getTrustStorePassword() != null) {
+            properties.setProperty("com.ibm.ssl.trustStorePassword", sslContextService.getTrustStorePassword());
+        }
+        if (sslContextService.getTrustStoreType() != null) {
+            properties.setProperty("com.ibm.ssl.trustStoreType", sslContextService.getTrustStoreType());
+        }
         return  properties;
     }
 
     protected void onScheduled(final ProcessContext context){
-        broker = context.getProperty(PROP_BROKER_URI).getValue();
+        broker = context.getProperty(PROP_BROKER_URI).evaluateAttributeExpressions().getValue();
+        brokerUri = broker.endsWith("/") ? broker : broker + "/";
         clientID = context.getProperty(PROP_CLIENTID).evaluateAttributeExpressions().getValue();
 
         if (clientID == null) {
@@ -329,7 +347,7 @@ public abstract class AbstractMQTTProcessor extends AbstractSessionFactoryProces
 
         PropertyValue usernameProp = context.getProperty(PROP_USERNAME);
         if(usernameProp.isSet()) {
-            connOpts.setUserName(usernameProp.getValue());
+            connOpts.setUserName(usernameProp.evaluateAttributeExpressions().getValue());
             connOpts.setPassword(context.getProperty(PROP_PASSWORD).getValue().toCharArray());
         }
     }

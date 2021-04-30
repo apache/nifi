@@ -24,9 +24,11 @@ import java.io.Reader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.io.input.BOMInputStream;
@@ -49,6 +51,7 @@ import com.fasterxml.jackson.dataformat.csv.CsvSchema;
 public class JacksonCSVRecordReader extends AbstractCSVRecordReader {
     private final MappingIterator<String[]> recordStream;
     private List<String> rawFieldNames = null;
+    private boolean allowDuplicateHeaderNames;
 
     private volatile static CsvMapper mapper = new CsvMapper().enable(CsvParser.Feature.WRAP_AS_ARRAY);
 
@@ -75,6 +78,7 @@ public class JacksonCSVRecordReader extends AbstractCSVRecordReader {
                 csvSchemaBuilder = csvSchemaBuilder.setSkipFirstDataRow(true);
             }
         }
+        allowDuplicateHeaderNames = csvFormat.getAllowDuplicateHeaderNames();
 
         CsvSchema csvSchema = csvSchemaBuilder.build();
 
@@ -108,6 +112,17 @@ public class JacksonCSVRecordReader extends AbstractCSVRecordReader {
                     rawFieldNames = schema.getFieldNames();
                 } else {
                     rawFieldNames = Arrays.asList(csvRecord);
+                    if (rawFieldNames.size() > schema.getFieldCount() && !allowDuplicateHeaderNames) {
+                        final Set<String> deDupe = new HashSet<>(schema.getFieldCount());
+                        for (final String name : rawFieldNames) {
+                            if (!deDupe.add(name)) {
+                                    throw new IllegalArgumentException(String.format(
+                                            "The header contains a duplicate name: \"%s\" in %s. If this is valid then use CSVFormat.withAllowDuplicateHeaderNames().",
+                                            name, rawFieldNames
+                                    ));
+                            }
+                        }
+                    }
 
                     // Advance the stream to keep the record count correct
                     if (recordStream.hasNext()) {

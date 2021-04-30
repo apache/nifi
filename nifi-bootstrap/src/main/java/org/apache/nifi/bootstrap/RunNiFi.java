@@ -16,6 +16,14 @@
  */
 package org.apache.nifi.bootstrap;
 
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.bootstrap.notification.NotificationType;
+import org.apache.nifi.bootstrap.util.OSUtils;
+import org.apache.nifi.bootstrap.util.SecureNiFiConfigUtil;
+import org.apache.nifi.util.file.FileUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -60,12 +68,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.bootstrap.notification.NotificationType;
-import org.apache.nifi.bootstrap.util.OSUtils;
-import org.apache.nifi.util.file.FileUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * <p>
@@ -114,6 +116,7 @@ public class RunNiFi {
     public static final String PING_CMD = "PING";
     public static final String DUMP_CMD = "DUMP";
     public static final String DIAGNOSTICS_CMD = "DIAGNOSTICS";
+    public static final String IS_LOADED_CMD = "IS_LOADED";
 
     private static final int UNINITIALIZED_CC_PORT = -1;
 
@@ -217,6 +220,7 @@ public class RunNiFi {
             case "run":
             case "stop":
             case "status":
+            case "is_loaded":
             case "dump":
             case "diagnostics":
             case "restart":
@@ -243,6 +247,13 @@ public class RunNiFi {
                 break;
             case "status":
                 exitStatus = runNiFi.status();
+                break;
+            case "is_loaded":
+                try {
+                    System.out.println(runNiFi.isNiFiFullyLoaded());
+                } catch (NiFiNotRunningException e) {
+                    System.out.println("not_running");
+                }
                 break;
             case "restart":
                 runNiFi.stop();
@@ -711,6 +722,25 @@ public class RunNiFi {
         makeRequest(DUMP_CMD, null, dumpFile, "thread dump");
     }
 
+    private boolean isNiFiFullyLoaded() throws IOException, NiFiNotRunningException {
+        final Logger logger = defaultLogger;
+        final Integer port = getCurrentPort(logger);
+        if (port == null) {
+            logger.info("Apache NiFi is not currently running");
+            throw new NiFiNotRunningException();
+        }
+
+        try (final Socket socket = new Socket()) {
+            sendRequest(socket, port, IS_LOADED_CMD, null, logger);
+
+            final InputStream in = socket.getInputStream();
+            try (final BufferedReader reader = new BufferedReader(new InputStreamReader(in))) {
+                String line = reader.readLine();
+                return Boolean.parseBoolean(line);
+            }
+        }
+    }
+
     private void makeRequest(final String request, final String arguments, final File dumpFile, final String contentsDescription) throws IOException {
         final Logger logger = defaultLogger;    // dump to bootstrap log file by default
         final Integer port = getCurrentPort(logger);
@@ -719,28 +749,10 @@ public class RunNiFi {
             return;
         }
 
-        final Properties nifiProps = loadProperties(logger);
-        final String secretKey = nifiProps.getProperty("secret.key");
-
         final OutputStream fileOut = dumpFile == null ? null : new FileOutputStream(dumpFile);
         try {
             try (final Socket socket = new Socket()) {
-                logger.debug("Connecting to NiFi instance");
-                socket.setSoTimeout(60000);
-                socket.connect(new InetSocketAddress("localhost", port));
-                logger.debug("Established connection to NiFi instance.");
-                socket.setSoTimeout(60000);
-
-                logger.debug("Sending DUMP Command to port {}", port);
-                final OutputStream socketOut = socket.getOutputStream();
-
-                if (arguments == null) {
-                    socketOut.write((request + " " + secretKey + "\n").getBytes(StandardCharsets.UTF_8));
-                } else {
-                    socketOut.write((request + " " + secretKey + " " + arguments + "\n").getBytes(StandardCharsets.UTF_8));
-                }
-
-                socketOut.flush();
+                sendRequest(socket, port, request, arguments, logger);
 
                 final InputStream in = socket.getInputStream();
                 try (final BufferedReader reader = new BufferedReader(new InputStreamReader(in))) {
@@ -763,6 +775,27 @@ public class RunNiFi {
         }
     }
 
+    private void sendRequest(Socket socket, Integer port, String request, String arguments, Logger logger) throws IOException {
+        logger.debug("Connecting to NiFi instance");
+        socket.setSoTimeout(60000);
+        socket.connect(new InetSocketAddress("localhost", port));
+        logger.debug("Established connection to NiFi instance.");
+        socket.setSoTimeout(60000);
+
+        logger.debug("Sending {} Command to port {}", request, port);
+        final OutputStream socketOut = socket.getOutputStream();
+
+        final Properties nifiProps = loadProperties(logger);
+        final String secretKey = nifiProps.getProperty("secret.key");
+
+        if (arguments == null) {
+            socketOut.write((request + " " + secretKey + "\n").getBytes(StandardCharsets.UTF_8));
+        } else {
+            socketOut.write((request + " " + secretKey + " " + arguments + "\n").getBytes(StandardCharsets.UTF_8));
+        }
+
+        socketOut.flush();
+    }
 
     public void notifyStop() {
         final String hostname = getHostname();
@@ -1077,6 +1110,12 @@ public class RunNiFi {
                     javaCmd = javaFile.getAbsolutePath();
                 }
             }
+        }
+
+        try {
+            SecureNiFiConfigUtil.configureSecureNiFiProperties(nifiPropsFilename, cmdLogger);
+        } catch (IOException | RuntimeException e) {
+            cmdLogger.error("Self-Signed Certificate Generation Failed", e);
         }
 
         final NiFiListener listener = new NiFiListener();
@@ -1465,6 +1504,13 @@ public class RunNiFi {
 
         public boolean isProcessRunning() {
             return Boolean.TRUE.equals(processRunning);
+        }
+    }
+
+    private static class NiFiNotRunningException extends Exception {
+        @Override
+        public synchronized Throwable fillInStackTrace() {
+            return this;
         }
     }
 }

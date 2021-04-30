@@ -34,17 +34,32 @@ import static org.apache.nifi.atlas.NiFiTypes.ATTR_QUALIFIED_NAME;
 
 /**
  * Analyze a transit URI as an Azure ADLS Gen2 directory (skipping the file name).
- * <li>qualifiedName=abfs://filesystem@account/path@namespace (example: abfs://myfilesystem@myaccount/mydir1/mydir2@ns1)
- * <li>name=directory (example: mydir2)
+ * <p>
+ * Atlas entity hierarchy: adls_gen2_directory -> adls_gen2_directory -> ... -> adls_gen2_container -> adls_gen2_account
+ * <p>adls_gen2_directory
+ * <ul>
+ *   <li>qualifiedName=abfs://filesystem@account/path@namespace (example: abfs://myfilesystem@myaccount/mydir1/mydir2/@ns1)
+ *   <li>name=directory (example: mydir2)
+ * </ul>
+ * <p>adls_gen2_container
+ * <ul>
+ *   <li>qualifiedName=abfs://filesystem@account@namespace (example: abfs://myfilesystem@myaccount@ns1)
+ *   <li>name=filesystem (example: myfilesystem)
+ * </ul>
+ * <p>adls_gen2_account
+ * <ul>
+ *   <li>qualifiedName=abfs://account@namespace (example: abfs://myaccount@ns1)
+ *   <li>name=account (example: myaccount)
+ * </ul>
  */
 public class AzureADLSDirectory extends AbstractNiFiProvenanceEventAnalyzer {
 
-    public static final String TYPE_DIRECTORY = "adls_gen2_directory";
-    public static final String TYPE_CONTAINER = "adls_gen2_container";
-    public static final String TYPE_ACCOUNT = "adls_gen2_account";
+    public static final String TYPE_DIRECTORY = AtlasPathExtractorUtil.ADLS_GEN2_DIRECTORY;
+    public static final String TYPE_CONTAINER = AtlasPathExtractorUtil.ADLS_GEN2_CONTAINER;
+    public static final String TYPE_ACCOUNT = AtlasPathExtractorUtil.ADLS_GEN2_ACCOUNT;
 
-    public static final String ATTR_PARENT = "parent";
-    public static final String ATTR_ACCOUNT = "account";
+    public static final String ATTR_PARENT = AtlasPathExtractorUtil.ATTRIBUTE_PARENT;
+    public static final String ATTR_ACCOUNT = AtlasPathExtractorUtil.ATTRIBUTE_ACCOUNT;
 
     @Override
     public DataSetRefs analyze(AnalysisContext context, ProvenanceEventRecord event) {

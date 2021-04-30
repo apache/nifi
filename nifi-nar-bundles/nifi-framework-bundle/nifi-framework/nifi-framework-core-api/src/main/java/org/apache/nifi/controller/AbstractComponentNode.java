@@ -24,13 +24,20 @@ import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.resource.ResourceContext;
+import org.apache.nifi.components.resource.ResourceReferenceFactory;
+import org.apache.nifi.components.resource.ResourceReferences;
+import org.apache.nifi.components.resource.StandardResourceContext;
+import org.apache.nifi.components.resource.StandardResourceReferenceFactory;
 import org.apache.nifi.components.validation.DisabledServiceValidationResult;
+import org.apache.nifi.components.validation.EnablingServiceValidationResult;
 import org.apache.nifi.components.validation.ValidationState;
 import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.components.validation.ValidationTrigger;
 import org.apache.nifi.controller.service.ControllerServiceDisabledException;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
+import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.parameter.ExpressionLanguageAgnosticParameterParser;
@@ -49,10 +56,8 @@ import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -159,28 +164,23 @@ public abstract class AbstractComponentNode implements ComponentNode {
     }
 
     private Set<URL> getAdditionalClasspathResources(final Collection<PropertyDescriptor> propertyDescriptors) {
-        final Set<String> modulePaths = new LinkedHashSet<>();
+        final Set<URL> additionalUrls = new LinkedHashSet<>();
+        final ResourceReferenceFactory resourceReferenceFactory = new StandardResourceReferenceFactory();
+
         for (final PropertyDescriptor descriptor : propertyDescriptors) {
             if (descriptor.isDynamicClasspathModifier()) {
                 final PropertyConfiguration propertyConfiguration = getProperty(descriptor);
                 final String value = propertyConfiguration == null ? null : propertyConfiguration.getEffectiveValue(getParameterContext());
 
                 if (!StringUtils.isEmpty(value)) {
-                    final StandardPropertyValue propertyValue = new StandardPropertyValue(value, null, getParameterLookup(), variableRegistry);
-                    modulePaths.add(propertyValue.evaluateAttributeExpressions().getValue());
+                    final ResourceContext resourceContext = new StandardResourceContext(resourceReferenceFactory, descriptor);
+                    final StandardPropertyValue propertyValue = new StandardPropertyValue(resourceContext, value, null, getParameterLookup(), variableRegistry);
+                    final ResourceReferences references = propertyValue.evaluateAttributeExpressions().asResources().flatten();
+                    additionalUrls.addAll(references.asURLs());
                 }
             }
         }
 
-        final Set<URL> additionalUrls = new LinkedHashSet<>();
-        try {
-            final URL[] urls = ClassLoaderUtils.getURLsForClasspath(modulePaths, null, true);
-            if (urls != null) {
-                additionalUrls.addAll(Arrays.asList(urls));
-            }
-        } catch (MalformedURLException mfe) {
-            getLogger().error("Error processing classpath resources for " + id + ": " + mfe.getMessage(), mfe);
-        }
         return additionalUrls;
     }
 
@@ -671,16 +671,6 @@ public abstract class AbstractComponentNode implements ComponentNode {
                         .valid(false)
                         .explanation("Property references Parameter '" + paramName + "' but the currently selected Parameter Context does not have a Parameter with that name")
                         .build());
-
-                    continue;
-                }
-
-                if (!validationContext.isParameterSet(paramName)) {
-                    results.add(new ValidationResult.Builder()
-                        .subject(propertyDescriptor.getDisplayName())
-                        .valid(false)
-                        .explanation("Property references Parameter '" + paramName + "' but the currently selected Parameter Context does not have a value set for that Parameter")
-                        .build());
                 }
             }
         }
@@ -723,6 +713,8 @@ public abstract class AbstractComponentNode implements ComponentNode {
 
             if (!controllerServiceNode.isActive()) {
                 validationResults.add(new DisabledServiceValidationResult(descriptor.getDisplayName(), controllerServiceId));
+            } else if (ControllerServiceState.ENABLING == controllerServiceNode.getState()) {
+                validationResults.add(new EnablingServiceValidationResult(descriptor.getDisplayName(), controllerServiceId));
             }
         }
 

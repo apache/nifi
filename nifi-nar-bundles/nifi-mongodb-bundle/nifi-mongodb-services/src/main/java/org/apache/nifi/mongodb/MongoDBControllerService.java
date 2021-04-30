@@ -24,6 +24,9 @@ import com.mongodb.WriteConcern;
 import com.mongodb.client.MongoDatabase;
 import java.util.ArrayList;
 import java.util.List;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import javax.net.ssl.SSLContext;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -45,7 +48,7 @@ public class MongoDBControllerService extends AbstractControllerService implemen
 
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) {
-        this.uri = context.getProperty(URI).evaluateAttributeExpressions().getValue();
+        this.uri = getURI(context);
         this.createClient(context);
     }
 
@@ -53,6 +56,8 @@ public class MongoDBControllerService extends AbstractControllerService implemen
 
     static {
         descriptors.add(URI);
+        descriptors.add(DB_USER);
+        descriptors.add(DB_PASSWORD);
         descriptors.add(SSL_CONTEXT_SERVICE);
         descriptors.add(CLIENT_AUTH);
     }
@@ -105,7 +110,19 @@ public class MongoDBControllerService extends AbstractControllerService implemen
     }
 
     protected String getURI(final ConfigurationContext context) {
-        return context.getProperty(URI).evaluateAttributeExpressions().getValue();
+        final String uri = context.getProperty(URI).evaluateAttributeExpressions().getValue();
+        final String user = context.getProperty(DB_USER).evaluateAttributeExpressions().getValue();
+        final String passw = context.getProperty(DB_PASSWORD).evaluateAttributeExpressions().getValue();
+        if (!uri.contains("@") && user != null && passw != null) {
+            try {
+                return uri.replaceFirst("://", "://" + URLEncoder.encode(user, StandardCharsets.UTF_8.toString()) + ":" + URLEncoder.encode(passw, StandardCharsets.UTF_8.toString()) + "@");
+            } catch (final UnsupportedEncodingException e) {
+                getLogger().warn("Failed to URL encode username and/or password. Using original URI.");
+                return uri;
+            }
+        } else {
+            return uri;
+        }
     }
 
     @Override

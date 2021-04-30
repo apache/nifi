@@ -16,19 +16,7 @@
  */
 package org.apache.nifi.processors.aws.s3;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-
+import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.internal.Constants;
 import com.amazonaws.services.s3.model.GetObjectMetadataRequest;
 import com.amazonaws.services.s3.model.GetObjectTaggingRequest;
@@ -70,8 +58,6 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
-
-import com.amazonaws.services.s3.AmazonS3;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
@@ -82,6 +68,20 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
+
+import java.io.IOException;
+import java.io.OutputStream;
+import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 
 @PrimaryNodeOnly
@@ -251,8 +251,8 @@ public class ListS3 extends AbstractS3Processor {
     public static final String CURRENT_KEY_PREFIX = "key-";
 
     // State tracking
-    private long currentTimestamp = 0L;
-    private Set<String> currentKeys;
+    private volatile long currentTimestamp = 0L;
+    private volatile Set<String> currentKeys;
 
     private static Validator createRequesterPaysValidator() {
         return new Validator() {
@@ -291,8 +291,8 @@ public class ListS3 extends AbstractS3Processor {
         return keys;
     }
 
-    private void restoreState(final ProcessContext context) throws IOException {
-        final StateMap stateMap = context.getStateManager().getState(Scope.CLUSTER);
+    private void restoreState(final ProcessSession session) throws IOException {
+        final StateMap stateMap = session.getState(Scope.CLUSTER);
         if (stateMap.getVersion() == -1L || stateMap.get(CURRENT_TIMESTAMP) == null || stateMap.get(CURRENT_KEY_PREFIX+"0") == null) {
             currentTimestamp = 0L;
             currentKeys = new HashSet<>();
@@ -302,16 +302,18 @@ public class ListS3 extends AbstractS3Processor {
         }
     }
 
-    private void persistState(final ProcessContext context) {
-        Map<String, String> state = new HashMap<>();
-        state.put(CURRENT_TIMESTAMP, String.valueOf(currentTimestamp));
+    private void persistState(final ProcessSession session, final long timestamp, final Collection<String> keys) {
+        final Map<String, String> state = new HashMap<>();
+        state.put(CURRENT_TIMESTAMP, String.valueOf(timestamp));
+
         int i = 0;
-        for (String key : currentKeys) {
-            state.put(CURRENT_KEY_PREFIX+i, key);
+        for (final String key : keys) {
+            state.put(CURRENT_KEY_PREFIX + i, key);
             i++;
         }
+
         try {
-            context.getStateManager().setState(state, Scope.CLUSTER);
+            session.setState(state, Scope.CLUSTER);
         } catch (IOException ioe) {
             getLogger().error("Failed to save cluster-wide state. If NiFi is restarted, data duplication may occur", ioe);
         }
@@ -320,7 +322,7 @@ public class ListS3 extends AbstractS3Processor {
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) {
         try {
-            restoreState(context);
+            restoreState(session);
         } catch (IOException ioe) {
             getLogger().error("Failed to restore processor state; yielding", ioe);
             context.yield();
@@ -445,17 +447,18 @@ public class ListS3 extends AbstractS3Processor {
             return;
         }
 
+        final Set<String> updatedKeys = new HashSet<>();
+        if (latestListedTimestampInThisCycle <= currentTimestamp) {
+            updatedKeys.addAll(currentKeys);
+        }
+        updatedKeys.addAll(listedKeys);
+
+        persistState(session, latestListedTimestampInThisCycle, updatedKeys);
         session.commit();
 
         // Update currentKeys.
-        if (latestListedTimestampInThisCycle > currentTimestamp) {
-            currentKeys.clear();
-        }
-        currentKeys.addAll(listedKeys);
-
-        // Update stateManger with the most recent timestamp
+        currentKeys = updatedKeys;
         currentTimestamp = latestListedTimestampInThisCycle;
-        persistState(context);
 
         final long listMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
         getLogger().info("Successfully listed S3 bucket {} in {} millis", new Object[]{bucket, listMillis});

@@ -17,13 +17,14 @@
 package org.apache.nifi.processors.tests.system;
 
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.resource.ResourceCardinality;
+import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.util.StandardValidators;
 
 import java.util.Collections;
 import java.util.List;
@@ -35,7 +36,7 @@ public class ValidateFileExists extends AbstractProcessor {
         .displayName("Filename")
         .description("A file that should exist")
         .required(true)
-        .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
+        .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE, ResourceType.DIRECTORY)
         .build();
 
     private static final Relationship REL_SUCCESS = new Relationship.Builder().name("success").build();

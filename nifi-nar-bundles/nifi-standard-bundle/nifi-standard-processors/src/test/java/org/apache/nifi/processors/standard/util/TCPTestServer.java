@@ -16,7 +16,8 @@
  */
 package org.apache.nifi.processors.standard.util;
 
-import java.io.IOException;
+import org.apache.nifi.io.socket.SocketUtils;
+
 import java.io.InputStream;
 import java.net.InetAddress;
 import java.net.ServerSocket;
@@ -24,44 +25,34 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.atomic.AtomicInteger;
 import javax.net.ServerSocketFactory;
-import javax.net.ssl.SSLContext;
-import org.apache.nifi.security.util.SslContextFactory;
-import org.apache.nifi.security.util.StandardTlsConfiguration;
-import org.apache.nifi.security.util.TlsConfiguration;
 
 public class TCPTestServer implements Runnable {
 
     private final InetAddress ipAddress;
-    private int port;
     private final String messageDelimiter;
+    private final ArrayBlockingQueue<List<Byte>> queue;
+    private final AtomicInteger totalConnections = new AtomicInteger();
+    private final boolean closeOnMessageReceived;
+
     private volatile ServerSocket serverSocket;
-    private final ArrayBlockingQueue<List<Byte>> recvQueue;
     private volatile Socket connectionSocket;
-    public final static String DEFAULT_MESSAGE_DELIMITER = "\n";
-    private volatile int totalNumConnections = 0;
+    private int port;
 
-    public TCPTestServer(final InetAddress ipAddress, final ArrayBlockingQueue<List<Byte>> recvQueue) {
-        this(ipAddress, recvQueue, DEFAULT_MESSAGE_DELIMITER);
-    }
-
-    public TCPTestServer(final InetAddress ipAddress, final ArrayBlockingQueue<List<Byte>> recvQueue, final String messageDelimiter) {
+    public TCPTestServer(final InetAddress ipAddress, final ArrayBlockingQueue<List<Byte>> queue, final String messageDelimiter, final boolean closeOnMessageReceived) {
         this.ipAddress = ipAddress;
-        this.recvQueue = recvQueue;
+        this.queue = queue;
         this.messageDelimiter = messageDelimiter;
+        this.closeOnMessageReceived = closeOnMessageReceived;
     }
 
-    public synchronized void startServer(boolean ssl) throws Exception {
+    public synchronized void startServer(final ServerSocketFactory serverSocketFactory) throws Exception {
         if (!isServerRunning()) {
-            if(ssl){
-                TlsConfiguration tlsConfiguration = new StandardTlsConfiguration("src/test/resources/keystore.jks","passwordpassword", null, "JKS", "src/test/resources/truststore.jks",
-                        "passwordpassword", "JKS", TlsConfiguration.getHighestCurrentSupportedTlsProtocolVersion());
-                final SSLContext sslCtx = SslContextFactory.createSslContext(tlsConfiguration);
-
-                ServerSocketFactory sslSocketFactory = sslCtx.getServerSocketFactory();
-                serverSocket = sslSocketFactory.createServerSocket(0, 0, ipAddress);
-            } else {
+            if (serverSocketFactory == null) {
                 serverSocket = new ServerSocket(0, 0, ipAddress);
+            } else {
+                serverSocket = serverSocketFactory.createServerSocket(0, 0, ipAddress);
             }
             Thread t = new Thread(this);
             t.setName(this.getClass().getSimpleName());
@@ -75,32 +66,27 @@ public class TCPTestServer implements Runnable {
         shutdownServer();
     }
 
-    public synchronized void shutdownServer() {
-        if (isServerRunning()) {
-            try {
-                serverSocket.close();
-            } catch (IOException ioe) {
-                // Do Nothing.
-            }
-        }
-    }
-
-    public synchronized void shutdownConnection() {
-        if (isConnected()) {
-            try {
-                connectionSocket.close();
-            } catch (IOException ioe) {
-                // Do Nothing.
-            }
-        }
-    }
-
     public int getPort(){
         return port;
     }
 
+    private synchronized void shutdownServer() {
+        if (isServerRunning()) {
+            SocketUtils.closeQuietly(serverSocket);
+        }
+    }
+
+    private synchronized void shutdownConnection() {
+        if (isConnected()) {
+            SocketUtils.closeQuietly(connectionSocket);
+        }
+    }
+
     private void storeReceivedMessage(final List<Byte> message) {
-        recvQueue.add(message);
+        queue.add(message);
+        if (closeOnMessageReceived) {
+            shutdownConnection();
+        }
     }
 
     private boolean isServerRunning() {
@@ -111,18 +97,14 @@ public class TCPTestServer implements Runnable {
         return connectionSocket != null && !connectionSocket.isClosed();
     }
 
-    public List<Byte> getReceivedMessage() {
-        return recvQueue.poll();
-    }
-
-    public int getTotalNumConnections() {
-        return totalNumConnections;
+    public int getTotalConnections() {
+        return totalConnections.get();
     }
 
     protected boolean isDelimiterPresent(final List<Byte> message) {
         if (messageDelimiter != null && message.size() >= messageDelimiter.length()) {
             for (int i = 1; i <= messageDelimiter.length(); i++) {
-                if (message.get(message.size() - i).byteValue() == messageDelimiter.charAt(messageDelimiter.length() - i)) {
+                if (message.get(message.size() - i) == messageDelimiter.charAt(messageDelimiter.length() - i)) {
                     if (i == messageDelimiter.length()) {
                         return true;
                     }
@@ -151,12 +133,12 @@ public class TCPTestServer implements Runnable {
         try {
             while (isServerRunning()) {
                 connectionSocket = serverSocket.accept();
-                totalNumConnections++;
-                InputStream in = connectionSocket.getInputStream();
+                totalConnections.incrementAndGet();
+                final InputStream inputStream = connectionSocket.getInputStream();
                 while (isConnected()) {
-                    final List<Byte> message = new ArrayList<Byte>();
+                    final List<Byte> message = new ArrayList<>();
                     while (true) {
-                        final int c = in.read();
+                        final int c = inputStream.read();
                         if (c < 0) {
                             if (!message.isEmpty()) {
                                 storeReceivedMessage(message);
@@ -177,8 +159,7 @@ public class TCPTestServer implements Runnable {
         } catch (Exception e) {
             // Do Nothing
         } finally {
-            shutdownConnection();
-            shutdownServer();
+            shutdown();
         }
 
     }

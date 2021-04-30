@@ -603,6 +603,7 @@ public class FTPTransfer implements FileTransfer {
         final boolean useUtf8Encoding = ctx.getProperty(UTF8_ENCODING).isSet() ? ctx.getProperty(UTF8_ENCODING).asBoolean() : false;
         if (useUtf8Encoding) {
             client.setControlEncoding("UTF-8");
+            client.setAutodetectUTF8(useUtf8Encoding);
         }
 
         client.connect(inetAddress, ctx.getProperty(PORT).evaluateAttributeExpressions(flowFile).asInteger());

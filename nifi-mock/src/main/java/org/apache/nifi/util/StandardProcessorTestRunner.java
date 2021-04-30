@@ -16,33 +16,6 @@
  */
 package org.apache.nifi.util;
 
-import static java.util.Objects.requireNonNull;
-
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.lang.reflect.InvocationTargetException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.concurrent.Callable;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Predicate;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.lifecycle.OnAdded;
 import org.apache.nifi.annotation.lifecycle.OnConfigurationRestored;
@@ -58,7 +31,6 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.state.StateManager;
-import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.flowfile.FlowFile;
@@ -72,6 +44,33 @@ import org.apache.nifi.registry.VariableDescriptor;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.state.MockStateManager;
 import org.junit.Assert;
+
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.lang.reflect.InvocationTargetException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Predicate;
+
+import static java.util.Objects.requireNonNull;
 
 public class StandardProcessorTestRunner implements TestRunner {
 
@@ -94,6 +93,7 @@ public class StandardProcessorTestRunner implements TestRunner {
     private final Map<String, MockComponentLog> controllerServiceLoggers = new HashMap<>();
     private final MockComponentLog logger;
     private boolean enforceReadStreamsClosed = true;
+    private boolean validateExpressionUsage = true;
 
     StandardProcessorTestRunner(final Processor processor) {
         this(processor, null);
@@ -116,8 +116,8 @@ public class StandardProcessorTestRunner implements TestRunner {
         this.idGenerator = new AtomicLong(0L);
         this.sharedState = new SharedSessionState(processor, idGenerator);
         this.flowFileQueue = sharedState.getFlowFileQueue();
-        this.sessionFactory = new MockSessionFactory(sharedState, processor, enforceReadStreamsClosed);
         this.processorStateManager = new MockStateManager(processor);
+        this.sessionFactory = new MockSessionFactory(sharedState, processor, enforceReadStreamsClosed, processorStateManager);
         this.variableRegistry = new MockVariableRegistry();
 
         this.context = new MockProcessContext(processor, processorName, processorStateManager, variableRegistry);
@@ -141,11 +141,12 @@ public class StandardProcessorTestRunner implements TestRunner {
     @Override
     public void enforceReadStreamsClosed(final boolean enforce) {
         enforceReadStreamsClosed = enforce;
-        this.sessionFactory = new MockSessionFactory(sharedState, processor, enforceReadStreamsClosed);
+        this.sessionFactory = new MockSessionFactory(sharedState, processor, enforceReadStreamsClosed, processorStateManager);
     }
 
     @Override
     public void setValidateExpressionUsage(final boolean validate) {
+        this.validateExpressionUsage = validate;
         context.setValidateExpressionUsage(validate);
     }
 
@@ -439,7 +440,7 @@ public class StandardProcessorTestRunner implements TestRunner {
 
     @Override
     public MockFlowFile enqueue(final InputStream data, final Map<String, String> attributes) {
-        final MockProcessSession session = new MockProcessSession(new SharedSessionState(processor, idGenerator), processor, enforceReadStreamsClosed);
+        final MockProcessSession session = new MockProcessSession(new SharedSessionState(processor, idGenerator), processor, enforceReadStreamsClosed, processorStateManager);
         MockFlowFile flowFile = session.create();
         flowFile = session.importFrom(data, flowFile);
         flowFile = session.putAllAttributes(flowFile, attributes);
@@ -465,13 +466,6 @@ public class StandardProcessorTestRunner implements TestRunner {
             flowFiles.addAll(session.getFlowFilesForRelationship(relationship));
         }
 
-        Collections.sort(flowFiles, new Comparator<MockFlowFile>() {
-            @Override
-            public int compare(final MockFlowFile o1, final MockFlowFile o2) {
-                return Long.compare(o1.getCreationTime(), o2.getCreationTime());
-            }
-        });
-
         return flowFiles;
     }
 
@@ -481,13 +475,6 @@ public class StandardProcessorTestRunner implements TestRunner {
         for (final MockProcessSession session : sessionFactory.getCreatedSessions()) {
             flowFiles.addAll(session.getPenalizedFlowFiles());
         }
-
-        Collections.sort(flowFiles, new Comparator<MockFlowFile>() {
-            @Override
-            public int compare(final MockFlowFile o1, final MockFlowFile o2) {
-                return Long.compare(o1.getCreationTime(), o2.getCreationTime());
-            }
-        });
 
         return flowFiles;
     }
@@ -707,8 +694,11 @@ public class StandardProcessorTestRunner implements TestRunner {
         }
 
         // ensure controller service is valid before enabling
-        final ValidationContext validationContext = new MockValidationContext(context).getControllerServiceValidationContext(service);
-        final Collection<ValidationResult> results = context.getControllerService(service.getIdentifier()).validate(validationContext);
+        final MockValidationContext mockValidationContext = new MockValidationContext(context, null, variableRegistry);
+        mockValidationContext.setValidateExpressions(validateExpressionUsage);
+        final ValidationContext serviceValidationContext = mockValidationContext.getControllerServiceValidationContext(service);
+
+        final Collection<ValidationResult> results = context.getControllerService(service.getIdentifier()).validate(serviceValidationContext);
 
         for (final ValidationResult result : results) {
             if (!result.isValid()) {
@@ -717,7 +707,8 @@ public class StandardProcessorTestRunner implements TestRunner {
         }
 
         try {
-            final ConfigurationContext configContext = new MockConfigurationContext(service, configuration.getProperties(), context,variableRegistry);
+            final MockConfigurationContext configContext = new MockConfigurationContext(service, configuration.getProperties(), context, variableRegistry);
+            configContext.setValidateExpressions(validateExpressionUsage);
             ReflectionUtils.invokeMethodsWithAnnotation(OnEnabled.class, service, configContext);
         } catch (final InvocationTargetException ite) {
             ite.getCause().printStackTrace();

@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-framework</artifactId>
-        <version>1.13.0-SNAPSHOT</version>
+        <version>1.14.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-resources</artifactId>
     <packaging>pom</packaging>
@@ -125,8 +125,13 @@
         <nifi.components.status.repository.buffer.size>1440</nifi.components.status.repository.buffer.size>
         <nifi.components.status.snapshot.frequency>1 min</nifi.components.status.snapshot.frequency>
 
+        <!-- QuestDb status repository properties -->
+        <nifi.status.repository.questdb.persist.node.days>14</nifi.status.repository.questdb.persist.node.days>
+        <nifi.status.repository.questdb.persist.component.days>3</nifi.status.repository.questdb.persist.component.days>
+        <nifi.status.repository.questdb.persist.location>./status_repository</nifi.status.repository.questdb.persist.location>
+
         <!-- nifi.properties: web properties -->
-        <nifi.web.http.host />
+        <nifi.web.http.host>127.0.0.1</nifi.web.http.host>
         <nifi.web.http.port>8080</nifi.web.http.port>
         <nifi.web.http.network.interface.default />
         <nifi.web.https.host />
@@ -139,12 +144,22 @@
         <nifi.web.proxy.host />
         <nifi.web.max.content.size />
         <nifi.web.max.requests.per.second>30000</nifi.web.max.requests.per.second>
+        <nifi.web.request.timeout>60 secs</nifi.web.request.timeout>
+        <nifi.web.request.ip.whitelist />
         <nifi.web.should.send.server.version>true</nifi.web.should.send.server.version>
         <!-- nifi.properties: security properties -->
+        <nifi.security.autoreload.enabled>false</nifi.security.autoreload.enabled>
+        <nifi.security.autoreload.interval>10 secs</nifi.security.autoreload.interval>
+        <!-- Use these values once we change default configuration to be HTTPS
+        <nifi.security.keystore>./conf/keystore.p12</nifi.security.keystore>
+        <nifi.security.keystoreType>PKCS12</nifi.security.keystoreType> -->
         <nifi.security.keystore />
         <nifi.security.keystoreType />
         <nifi.security.keystorePasswd />
         <nifi.security.keyPasswd />
+        <!-- Use these values once we change default configuration to be HTTPS
+        <nifi.security.truststore>./conf/truststore.p12</nifi.security.truststore>
+        <nifi.security.truststoreType>PKCS12</nifi.security.truststoreType> -->
         <nifi.security.truststore />
         <nifi.security.truststoreType />
         <nifi.security.truststorePasswd />
@@ -173,10 +188,10 @@
         <nifi.security.user.knox.audiences />
 
         <!-- nifi.properties: saml -->
-        <nifi.security.user.saml.idp.metadata.url/>
-        <nifi.security.user.saml.sp.entity.id/>
-        <nifi.security.user.saml.identity.attribute.name/>
-        <nifi.security.user.saml.group.attribute.name/>
+        <nifi.security.user.saml.idp.metadata.url />
+        <nifi.security.user.saml.sp.entity.id />
+        <nifi.security.user.saml.identity.attribute.name />
+        <nifi.security.user.saml.group.attribute.name />
         <nifi.security.user.saml.metadata.signing.enabled>false</nifi.security.user.saml.metadata.signing.enabled>
         <nifi.security.user.saml.request.signing.enabled>false</nifi.security.user.saml.request.signing.enabled>
         <nifi.security.user.saml.want.assertions.signed>true</nifi.security.user.saml.want.assertions.signed>
@@ -246,6 +261,10 @@
         <nifi.analytics.connection.model.implementation>org.apache.nifi.controller.status.analytics.models.OrdinaryLeastSquares</nifi.analytics.connection.model.implementation>
         <nifi.analytics.connection.model.score.name>rSquared</nifi.analytics.connection.model.score.name>
         <nifi.analytics.connection.model.score.threshold>.90</nifi.analytics.connection.model.score.threshold>
+
+        <!-- nifi.properties: runtime monitoring properties -->
+        <nifi.monitor.long.running.task.schedule>1 min</nifi.monitor.long.running.task.schedule>
+        <nifi.monitor.long.running.task.threshold>5 mins</nifi.monitor.long.running.task.threshold>
     </properties>
     <build>
         <plugins>

@@ -18,7 +18,6 @@ package org.apache.nifi.reporting.datadog;
 
 import com.codahale.metrics.Gauge;
 import com.codahale.metrics.MetricRegistry;
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.AtomicDouble;
 import org.apache.nifi.controller.ConfigurationContext;
@@ -119,13 +118,13 @@ public class TestDataDogReportingTask {
         DataDogReportingTask dataDogReportingTask = new TestableDataDogReportingTask();
         dataDogReportingTask.initialize(initContext);
         dataDogReportingTask.setup(configurationContext);
-        dataDogReportingTask.updateMetrics(processorMetrics, Optional.of("sampleProcessor"), tagsMap);
+        dataDogReportingTask.updateMetrics(processorMetrics, tagsMap);
 
-        verify(metricRegistry).register(eq("nifi.sampleProcessor.FlowFilesReceivedLast5Minutes"), Mockito.<Gauge>any());
-        verify(metricRegistry).register(eq("nifi.sampleProcessor.ActiveThreads"), Mockito.<Gauge>any());
-        verify(metricRegistry).register(eq("nifi.sampleProcessor.BytesWrittenLast5Minutes"), Mockito.<Gauge>any());
-        verify(metricRegistry).register(eq("nifi.sampleProcessor.BytesReadLast5Minutes"), Mockito.<Gauge>any());
-        verify(metricRegistry).register(eq("nifi.sampleProcessor.FlowFilesSentLast5Minutes"), Mockito.<Gauge>any());
+        verify(metricRegistry).register(eq("nifi.FlowFilesReceivedLast5Minutes"), Mockito.<Gauge>any());
+        verify(metricRegistry).register(eq("nifi.ActiveThreads"), Mockito.<Gauge>any());
+        verify(metricRegistry).register(eq("nifi.BytesWrittenLast5Minutes"), Mockito.<Gauge>any());
+        verify(metricRegistry).register(eq("nifi.BytesReadLast5Minutes"), Mockito.<Gauge>any());
+        verify(metricRegistry).register(eq("nifi.FlowFilesSentLast5Minutes"), Mockito.<Gauge>any());
     }
 
     //test updating JMV metrics
@@ -139,17 +138,17 @@ public class TestDataDogReportingTask {
         dataDogReportingTask.initialize(initContext);
         dataDogReportingTask.setup(configurationContext);
 
-        dataDogReportingTask.updateMetrics(processorMetrics, Optional.<String>absent(), tagsMap);
-        verify(metricRegistry).register(eq("nifi.flow.jvm.heap_usage"), Mockito.<Gauge>any());
-        verify(metricRegistry).register(eq("nifi.flow.jvm.thread_count"), Mockito.<Gauge>any());
-        verify(metricRegistry).register(eq("nifi.flow.jvm.thread_states.terminated"), Mockito.<Gauge>any());
-        verify(metricRegistry).register(eq("nifi.flow.jvm.heap_used"), Mockito.<Gauge>any());
-        verify(metricRegistry).register(eq("nifi.flow.jvm.thread_states.runnable"), Mockito.<Gauge>any());
-        verify(metricRegistry).register(eq("nifi.flow.jvm.thread_states.timed_waiting"), Mockito.<Gauge>any());
-        verify(metricRegistry).register(eq("nifi.flow.jvm.uptime"), Mockito.<Gauge>any());
-        verify(metricRegistry).register(eq("nifi.flow.jvm.daemon_thread_count"), Mockito.<Gauge>any());
-        verify(metricRegistry).register(eq("nifi.flow.jvm.file_descriptor_usage"), Mockito.<Gauge>any());
-        verify(metricRegistry).register(eq("nifi.flow.jvm.thread_states.blocked"), Mockito.<Gauge>any());
+        dataDogReportingTask.updateMetrics(processorMetrics, tagsMap);
+        verify(metricRegistry).register(eq("nifi.jvm.heap_usage"), Mockito.<Gauge>any());
+        verify(metricRegistry).register(eq("nifi.jvm.thread_count"), Mockito.<Gauge>any());
+        verify(metricRegistry).register(eq("nifi.jvm.thread_states.terminated"), Mockito.<Gauge>any());
+        verify(metricRegistry).register(eq("nifi.jvm.heap_used"), Mockito.<Gauge>any());
+        verify(metricRegistry).register(eq("nifi.jvm.thread_states.runnable"), Mockito.<Gauge>any());
+        verify(metricRegistry).register(eq("nifi.jvm.thread_states.timed_waiting"), Mockito.<Gauge>any());
+        verify(metricRegistry).register(eq("nifi.jvm.uptime"), Mockito.<Gauge>any());
+        verify(metricRegistry).register(eq("nifi.jvm.daemon_thread_count"), Mockito.<Gauge>any());
+        verify(metricRegistry).register(eq("nifi.jvm.file_descriptor_usage"), Mockito.<Gauge>any());
+        verify(metricRegistry).register(eq("nifi.jvm.thread_states.blocked"), Mockito.<Gauge>any());
     }
 
 

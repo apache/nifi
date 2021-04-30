@@ -38,6 +38,8 @@ import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.Code;
 import org.apache.zookeeper.KeeperException.NoNodeException;
+import org.apache.zookeeper.WatchedEvent;
+import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZKUtil;
 import org.apache.zookeeper.ZooDefs.Ids;
 import org.apache.zookeeper.ZooKeeper;
@@ -213,14 +215,22 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
             if(clientConfig != null && clientConfig.isClientSecure()) {
                 SecureClientZooKeeperFactory factory = new SecureClientZooKeeperFactory(clientConfig);
                 try {
-                    zooKeeper = factory.newZooKeeper(connectionString, timeoutMillis, null, true);
+                    zooKeeper = factory.newZooKeeper(connectionString, timeoutMillis, new Watcher() {
+                        @Override
+                        public void process(WatchedEvent event) {
+                        }
+                    }, true);
                     logger.info("Secure Zookeeper client initialized successfully.");
                 } catch (Exception e) {
                     logger.error("Secure Zookeeper configuration failed!", e);
                     invalidateClient();
                 }
             } else {
-                zooKeeper = new ZooKeeper(connectionString, timeoutMillis, null);
+                zooKeeper = new ZooKeeper(connectionString, timeoutMillis, new Watcher() {
+                    @Override
+                    public void process(WatchedEvent event) {
+                    }
+                });
             }
 
             if (auth != null) {
@@ -236,8 +246,8 @@ public class ZooKeeperStateProvider extends AbstractStateProvider {
             return zooKeeperClientConfig;
         } else {
             Properties stateProviderProperties = new Properties();
-            stateProviderProperties.setProperty(NiFiProperties.ZOOKEEPER_SESSION_TIMEOUT, String.valueOf(timeoutMillis));
-            stateProviderProperties.setProperty(NiFiProperties.ZOOKEEPER_CONNECT_TIMEOUT, String.valueOf(timeoutMillis));
+            stateProviderProperties.setProperty(NiFiProperties.ZOOKEEPER_SESSION_TIMEOUT, timeoutMillis + " millis");
+            stateProviderProperties.setProperty(NiFiProperties.ZOOKEEPER_CONNECT_TIMEOUT, timeoutMillis + " millis");
             stateProviderProperties.setProperty(NiFiProperties.ZOOKEEPER_ROOT_NODE, rootNode);
             stateProviderProperties.setProperty(NiFiProperties.ZOOKEEPER_CONNECT_STRING, connectionString);
             zooKeeperClientConfig = ZooKeeperClientConfig.createConfig(combineProperties(nifiProperties, stateProviderProperties));

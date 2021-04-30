@@ -120,7 +120,7 @@ public class TestConsumeKafka_2_0 {
         runner.setVariable("principal", "nifi@APACHE.COM");
         runner.setVariable("service", "kafka");
         runner.setProperty(KafkaProcessorUtils.USER_PRINCIPAL, "${principal}");
-        runner.setProperty(KafkaProcessorUtils.USER_KEYTAB, "${keytab}s");
+        runner.setProperty(KafkaProcessorUtils.USER_KEYTAB, "${keytab}");
         runner.setProperty(KafkaProcessorUtils.JAAS_SERVICE_NAME, "${service}");
         runner.assertValid();
     }

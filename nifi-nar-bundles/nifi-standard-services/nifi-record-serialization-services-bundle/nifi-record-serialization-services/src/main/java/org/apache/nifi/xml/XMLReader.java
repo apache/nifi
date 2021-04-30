@@ -77,6 +77,7 @@ public class XMLReader extends SchemaRegistryService implements RecordReaderFact
                 + "XML blob  with a \"wrapper element\". This property dictates whether the reader expects a FlowFile to consist of a single Record or a series of Records with a \"wrapper element\" "
                 + "that will be ignored.")
             .allowableValues(RECORD_SINGLE, RECORD_ARRAY, RECORD_EVALUATE)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .defaultValue(RECORD_SINGLE.getValue())
             .required(true)
             .build();

@@ -29,6 +29,7 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.microsoft.azure.storage.OperationContext;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -141,16 +142,16 @@ public class PutAzureBlobStorage extends AbstractAzureBlobProcessor {
                 }
 
                 try {
-                    blob.upload(in, -1, null, null, operationContext);
+                    uploadBlob(blob, operationContext, in);
                     BlobProperties properties = blob.getProperties();
                     attributes.put("azure.container", containerName);
                     attributes.put("azure.primaryUri", blob.getSnapshotQualifiedUri().toString());
                     attributes.put("azure.etag", properties.getEtag());
                     attributes.put("azure.length", String.valueOf(length));
                     attributes.put("azure.timestamp", String.valueOf(properties.getLastModified()));
-                } catch (StorageException | URISyntaxException e) {
+                } catch (StorageException | URISyntaxException | IOException e) {
                     storedException.set(e);
-                    throw new IOException(e);
+                    throw e instanceof IOException ? (IOException) e : new IOException(e);
                 }
             });
 
@@ -173,6 +174,11 @@ public class PutAzureBlobStorage extends AbstractAzureBlobProcessor {
             }
         }
 
+    }
+
+    @VisibleForTesting
+    void uploadBlob(CloudBlob blob, OperationContext operationContext, InputStream in) throws StorageException, IOException {
+        blob.upload(in, -1, null, null, operationContext);
     }
 
     // Used to help force Azure Blob SDK to write in blocks

@@ -43,10 +43,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import static org.apache.nifi.processors.standard.util.JdbcProperties.DEFAULT_PRECISION;
-import static org.apache.nifi.processors.standard.util.JdbcProperties.DEFAULT_SCALE;
-import static org.apache.nifi.processors.standard.util.JdbcProperties.NORMALIZE_NAMES_FOR_AVRO;
-import static org.apache.nifi.processors.standard.util.JdbcProperties.USE_AVRO_LOGICAL_TYPES;
+import static org.apache.nifi.util.db.JdbcProperties.NORMALIZE_NAMES_FOR_AVRO;
+import static org.apache.nifi.util.db.JdbcProperties.VARIABLE_REGISTRY_ONLY_DEFAULT_PRECISION;
+import static org.apache.nifi.util.db.JdbcProperties.VARIABLE_REGISTRY_ONLY_DEFAULT_SCALE;
+import static org.apache.nifi.util.db.JdbcProperties.USE_AVRO_LOGICAL_TYPES;
 
 
 @TriggerSerially
@@ -111,8 +111,8 @@ public class QueryDatabaseTable extends AbstractQueryDatabaseTable {
         pds.add(NORMALIZE_NAMES_FOR_AVRO);
         pds.add(TRANS_ISOLATION_LEVEL);
         pds.add(USE_AVRO_LOGICAL_TYPES);
-        pds.add(DEFAULT_PRECISION);
-        pds.add(DEFAULT_SCALE);
+        pds.add(VARIABLE_REGISTRY_ONLY_DEFAULT_PRECISION);
+        pds.add(VARIABLE_REGISTRY_ONLY_DEFAULT_SCALE);
 
         propDescriptors = Collections.unmodifiableList(pds);
     }
@@ -123,8 +123,8 @@ public class QueryDatabaseTable extends AbstractQueryDatabaseTable {
         final boolean convertNamesForAvro = context.getProperty(NORMALIZE_NAMES_FOR_AVRO).asBoolean();
         final Boolean useAvroLogicalTypes = context.getProperty(USE_AVRO_LOGICAL_TYPES).asBoolean();
         final Integer maxRowsPerFlowFile = context.getProperty(MAX_ROWS_PER_FLOW_FILE).evaluateAttributeExpressions().asInteger();
-        final Integer defaultPrecision = context.getProperty(DEFAULT_PRECISION).evaluateAttributeExpressions().asInteger();
-        final Integer defaultScale = context.getProperty(DEFAULT_SCALE).evaluateAttributeExpressions().asInteger();
+        final Integer defaultPrecision = context.getProperty(VARIABLE_REGISTRY_ONLY_DEFAULT_PRECISION).evaluateAttributeExpressions().asInteger();
+        final Integer defaultScale = context.getProperty(VARIABLE_REGISTRY_ONLY_DEFAULT_PRECISION).evaluateAttributeExpressions().asInteger();
 
         final JdbcCommon.AvroConversionOptions options = JdbcCommon.AvroConversionOptions.builder()
                 .recordName(tableName)

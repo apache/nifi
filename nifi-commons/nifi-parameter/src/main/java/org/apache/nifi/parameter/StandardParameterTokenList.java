@@ -76,12 +76,18 @@ public class StandardParameterTokenList implements ParameterTokenList {
     private String substitute(final Function<ParameterToken, String> transform) {
         final StringBuilder sb = new StringBuilder();
 
+        int nullCount = 0;
         int lastEndOffset = -1;
         for (final ParameterToken token : tokens) {
             final int startOffset = token.getStartOffset();
 
             sb.append(input, lastEndOffset + 1, startOffset);
-            sb.append(transform.apply(token));
+            final String transformed = transform.apply(token);
+            if (transformed == null) {
+                nullCount++;
+            } else {
+                sb.append(transformed);
+            }
 
             lastEndOffset = token.getEndOffset();
         }
@@ -90,7 +96,12 @@ public class StandardParameterTokenList implements ParameterTokenList {
             sb.append(input, lastEndOffset + 1, input.length());
         }
 
-        return sb.toString();
+        final String substituted = sb.toString();
+        if (nullCount == tokens.size() && !tokens.isEmpty() && substituted.isEmpty()) {
+            return null;
+        }
+
+        return substituted;
     }
 
     @Override

@@ -20,6 +20,9 @@ import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.engine.FlowEngine;
 
+import java.util.concurrent.Callable;
+import java.util.concurrent.Future;
+
 /**
  * Base implementation of the {@link SchedulingAgent} which encapsulates the
  * updates to the {@link LifecycleState} based on invoked operation and then
@@ -44,6 +47,12 @@ abstract class AbstractSchedulingAgent implements SchedulingAgent {
     public void schedule(Connectable connectable, LifecycleState scheduleState) {
         scheduleState.setScheduled(true);
         this.doSchedule(connectable, scheduleState);
+    }
+
+    @Override
+    public void scheduleOnce(Connectable connectable, LifecycleState scheduleState, Callable<Future<Void>> stopCallback) {
+        scheduleState.setScheduled(true);
+        this.doScheduleOnce(connectable, scheduleState, stopCallback);
     }
 
     @Override
@@ -74,6 +83,18 @@ abstract class AbstractSchedulingAgent implements SchedulingAgent {
      *            the instance of {@link LifecycleState}
      */
     protected abstract void doSchedule(Connectable connectable, LifecycleState scheduleState);
+
+    /**
+     * Schedules the provided {@link Connectable} to run once and then calls the provided stopCallback to stop it.
+     * Its {@link LifecycleState} will be set to <i>true</i>
+     *
+     * @param connectable
+     *            the instance of {@link Connectable}
+     * @param scheduleState
+     *            the instance of {@link LifecycleState}
+     * @param stopCallback the callback responsible for stopping connectable after it ran once
+     */
+    protected abstract void doScheduleOnce(Connectable connectable, LifecycleState scheduleState, Callable<Future<Void>> stopCallback);
 
     /**
      * Unschedules the provided {@link Connectable}. Its {@link LifecycleState}

@@ -97,6 +97,17 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
     }
 
     @Override
+    public boolean isActiveParticipant(final String roleName) {
+        final RegisteredRole role = registeredRoles.get(roleName);
+        if (role == null) {
+            return false;
+        }
+
+        final String participantId = role.getParticipantId();
+        return participantId != null;
+    }
+
+    @Override
     public void register(String roleName, LeaderElectionStateChangeListener listener) {
         register(roleName, listener, null);
     }
@@ -158,15 +169,17 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
 
         final LeaderRole leaderRole = leaderRoles.remove(roleName);
         if (leaderRole == null) {
-            logger.info("Cannot unregister Leader Election Role '{}' becuase that role is not registered", roleName);
+            logger.info("Cannot unregister Leader Election Role '{}' because that role is not registered", roleName);
             return;
         }
 
         final LeaderSelector leaderSelector = leaderRole.getLeaderSelector();
         if (leaderSelector == null) {
-            logger.info("Cannot unregister Leader Election Role '{}' becuase that role is not registered", roleName);
+            logger.info("Cannot unregister Leader Election Role '{}' because that role is not registered", roleName);
             return;
         }
+
+        leaderRole.getElectionListener().disable();
 
         leaderSelector.close();
         logger.info("This node is no longer registered to be elected as the Leader for Role '{}'", roleName);
@@ -233,8 +246,15 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
 
     @Override
     public boolean isLeader(final String roleName) {
+        final boolean activeParticipant = isActiveParticipant(roleName);
+        if (!activeParticipant) {
+            logger.debug("Node is not an active participant in election for role {} so cannot be leader", roleName);
+            return false;
+        }
+
         final LeaderRole role = getLeaderRole(roleName);
         if (role == null) {
+            logger.debug("Node is an active participant in election for role {} but there is no LeaderRole registered so this node cannot be leader", roleName);
             return false;
         }
 
@@ -423,6 +443,10 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
             return leaderSelector;
         }
 
+        public ElectionListener getElectionListener() {
+            return electionListener;
+        }
+
         public boolean isLeader() {
             return electionListener.isLeader();
         }
@@ -458,6 +482,7 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
         private final String participantId;
 
         private volatile boolean leader;
+        private volatile Thread leaderThread;
         private long leaderUpdateTimestamp = 0L;
         private final long MAX_CACHE_MILLIS = TimeUnit.SECONDS.toMillis(5L);
 
@@ -465,6 +490,17 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
             this.roleName = roleName;
             this.listener = listener;
             this.participantId = participantId;
+        }
+
+        public void disable() {
+            logger.info("Election Listener for Role {} disabled", roleName);
+            setLeader(false);
+
+            if (leaderThread == null) {
+                logger.debug("Election Listener for Role {} disabled but there is no leader thread. Will not interrupt any threads.", roleName);
+            } else {
+                leaderThread.interrupt();
+            }
         }
 
         public synchronized boolean isLeader() {
@@ -483,6 +519,8 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
 
                     return false;
                 }
+            } else {
+                logger.debug("Checking if this node is leader for role {}: using cached response, returning {}", roleName, leader);
             }
 
             return leader;
@@ -531,6 +569,7 @@ public class CuratorLeaderElectionManager implements LeaderElectionManager {
 
         @Override
         public void takeLeadership(final CuratorFramework client) throws Exception {
+            leaderThread = Thread.currentThread();
             setLeader(true);
             logger.info("{} This node has been elected Leader for Role '{}'", this, roleName);
 

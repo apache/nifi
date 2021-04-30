@@ -42,7 +42,7 @@ public class AccessStatusDTO {
      */
     @ApiModelProperty(
             value = "The user identity.",
-            readOnly = true
+            accessMode = ApiModelProperty.AccessMode.READ_ONLY
     )
     public String getIdentity() {
         return identity;
@@ -57,7 +57,7 @@ public class AccessStatusDTO {
      */
     @ApiModelProperty(
             value = "The user access status.",
-            readOnly = true
+            accessMode = ApiModelProperty.AccessMode.READ_ONLY
     )
     public String getStatus() {
         return status;
@@ -72,7 +72,7 @@ public class AccessStatusDTO {
      */
     @ApiModelProperty(
             value = "Additional details about the user access status.",
-            readOnly = true
+            accessMode = ApiModelProperty.AccessMode.READ_ONLY
     )
     public String getMessage() {
         return message;

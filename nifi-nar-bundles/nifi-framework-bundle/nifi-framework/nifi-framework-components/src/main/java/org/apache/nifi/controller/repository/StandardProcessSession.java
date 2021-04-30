@@ -16,6 +16,9 @@
  */
 package org.apache.nifi.controller.repository;
 
+import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.components.state.StateManager;
+import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.ProcessorNode;
@@ -34,6 +37,7 @@ import org.apache.nifi.controller.repository.io.LimitedInputStream;
 import org.apache.nifi.controller.repository.io.TaskTerminationInputStream;
 import org.apache.nifi.controller.repository.io.TaskTerminationOutputStream;
 import org.apache.nifi.controller.repository.metrics.StandardFlowFileEvent;
+import org.apache.nifi.controller.state.StandardStateMap;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.FlowFileFilter;
@@ -55,10 +59,12 @@ import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.provenance.ProvenanceReporter;
 import org.apache.nifi.stream.io.ByteCountingInputStream;
 import org.apache.nifi.stream.io.ByteCountingOutputStream;
+import org.apache.nifi.stream.io.LimitingInputStream;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayInputStream;
 import java.io.Closeable;
@@ -104,6 +110,7 @@ import java.util.stream.Collectors;
 public class StandardProcessSession implements ProcessSession, ProvenanceEventEnricher {
     private static final AtomicLong idGenerator = new AtomicLong(0L);
     private static final AtomicLong enqueuedIndex = new AtomicLong(0L);
+    private static final StateMap EMPTY_STATE_MAP = new StandardStateMap(Collections.emptyMap(), -1L);
 
     // determines how many things must be transferred, removed, modified in order to avoid logging the FlowFile ID's on commit/rollback
     public static final int VERBOSE_LOG_THRESHOLD = 10;
@@ -140,8 +147,8 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
     private int flowFilesIn = 0, flowFilesOut = 0;
     private long contentSizeIn = 0L, contentSizeOut = 0L;
 
-    private ContentClaim currentReadClaim = null;
-    private ContentClaimInputStream currentReadClaimStream = null;
+    private ResourceClaim currentReadClaim = null;
+    private ByteCountingInputStream currentReadClaimStream = null;
     private long processingStartTime;
 
     // List of InputStreams that have been opened by calls to {@link #read(FlowFile)} and not yet closed
@@ -160,6 +167,9 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
 
     private Checkpoint checkpoint = null;
     private final ContentClaimWriteCache claimCache;
+
+    private StateMap localState;
+    private StateMap clusterState;
 
     public StandardProcessSession(final RepositoryContext context, final TaskTermination taskTermination) {
         this.context = context;
@@ -369,7 +379,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                         final long flowFileLife = System.currentTimeMillis() - flowFile.getEntryDate();
                         final Connectable connectable = context.getConnectable();
                         final Object terminator = connectable instanceof ProcessorNode ? ((ProcessorNode) connectable).getProcessor() : connectable;
-                        LOG.info("{} terminated by {}; life of FlowFile = {} ms", new Object[]{flowFile, terminator, flowFileLife});
+                        LOG.debug("{} terminated by {}; life of FlowFile = {} ms", flowFile, terminator, flowFileLife);
                     }
                 }
             }
@@ -417,7 +427,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             if (LOG.isInfoEnabled()) {
                 final String sessionSummary = summarizeEvents(checkpoint);
                 if (!sessionSummary.isEmpty()) {
-                    LOG.info("{} for {}, committed the following events: {}", new Object[] {this, connectableDescription, sessionSummary});
+                    LOG.debug("{} for {}, committed the following events: {}", this, connectableDescription, sessionSummary);
                 }
             }
 
@@ -442,8 +452,44 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
 
                 LOG.debug(timingInfo.toString());
             }
+
+            // Update local state
+            final StateManager stateManager = context.getStateManager();
+            if (checkpoint.localState != null) {
+                final StateMap stateMap = stateManager.getState(Scope.LOCAL);
+                if (stateMap.getVersion() < checkpoint.localState.getVersion()) {
+                    LOG.debug("Updating State Manager's Local State");
+
+                    try {
+                        stateManager.setState(checkpoint.localState.toMap(), Scope.LOCAL);
+                    } catch (final Exception e) {
+                        LOG.warn("Failed to update Local State for {}. If NiFi is restarted before the state is able to be updated, it could result in data duplication.", connectableDescription, e);
+                    }
+                } else {
+                    LOG.debug("Will not update State Manager's Local State because the State Manager reports the latest version as {}, which is newer than the session's known version of {}.",
+                        stateMap.getVersion(), checkpoint.localState.getVersion());
+                }
+            }
+
+            // Update cluster state
+            if (checkpoint.clusterState != null) {
+                final StateMap stateMap = stateManager.getState(Scope.CLUSTER);
+                if (stateMap.getVersion() < checkpoint.clusterState.getVersion()) {
+                    LOG.debug("Updating State Manager's Cluster State");
+
+                    try {
+                        stateManager.setState(checkpoint.clusterState.toMap(), Scope.CLUSTER);
+                    } catch (final Exception e) {
+                        LOG.warn("Failed to update Cluster State for {}. If NiFi is restarted before the state is able to be updated, it could result in data duplication.", connectableDescription, e);
+                    }
+                } else {
+                    LOG.debug("Will not update State Manager's Cluster State because the State Manager reports the latest version as {}, which is newer than the session's known version of {}.",
+                        stateMap.getVersion(), checkpoint.clusterState.getVersion());
+                }
+            }
+
         } catch (final Exception e) {
-            LOG.error("Failed to commit session {}. Will roll back.", e, this);
+            LOG.error("Failed to commit session {}. Will roll back.", this, e);
 
             try {
                 // if we fail to commit the session, we need to roll back
@@ -461,6 +507,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             }
         }
     }
+
 
     private void updateEventRepository(final Checkpoint checkpoint) {
         try {
@@ -920,6 +967,13 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             LOG.warn("{} Attempted to close Output Stream for {} due to session rollback but close failed", this, this.connectableDescription, e1);
         }
 
+        if (localState != null || clusterState != null) {
+            LOG.debug("Rolling back session that has state stored. This state will not be updated.");
+        }
+        if (rollbackCheckpoint && checkpoint != null && (checkpoint.localState != null || checkpoint.clusterState != null)) {
+            LOG.debug("Rolling back checkpoint that has state stored. This state will not be updated.");
+        }
+
         // Gather all of the StandardRepositoryRecords that we need to operate on.
         // If we are rolling back the checkpoint, we must create a copy of the Collection so that we can merge the
         // session's records with the checkpoint's. Otherwise, we can operate on the session's records directly.
@@ -1131,6 +1185,9 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         generatedProvenanceEvents.clear();
         forkEventBuilders.clear();
         provenanceReporter.clear();
+
+        localState = null;
+        clusterState = null;
 
         processingStartTime = System.nanoTime();
     }
@@ -2155,7 +2212,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
 
             final long flowFileLife = System.currentTimeMillis() - flowFile.getEntryDate();
             final Object terminator = connectable instanceof ProcessorNode ? ((ProcessorNode) connectable).getProcessor() : connectable;
-            LOG.info("{} terminated by {} due to FlowFile expiration; life of FlowFile = {} ms", new Object[] {flowFile, terminator, flowFileLife});
+            LOG.debug("{} terminated by {} due to FlowFile expiration; life of FlowFile = {} ms", flowFile, terminator, flowFileLife);
         }
 
         try {
@@ -2204,12 +2261,12 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             context.getProvenanceRepository().registerEvents(iterable);
             context.getFlowFileRepository().updateRepository(expiredRecords);
         } catch (final IOException e) {
-            LOG.error("Failed to update FlowFile Repository to record expired records due to {}", e);
+            LOG.error("Failed to update FlowFile Repository to record expired records due to {}", e.toString(), e);
         }
 
     }
 
-    private InputStream getInputStream(final FlowFile flowFile, final ContentClaim claim, final long offset, final boolean allowCachingOfStream) throws ContentNotFoundException {
+    private InputStream getInputStream(final FlowFile flowFile, final ContentClaim claim, final long contentClaimOffset, final boolean allowCachingOfStream) throws ContentNotFoundException {
         // If there's no content, don't bother going to the Content Repository because it is generally expensive and we know
         // that there is no actual content.
         if (flowFile.getSize() == 0L) {
@@ -2220,15 +2277,18 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             // If the recursion set is empty, we can use the same input stream that we already have open. However, if
             // the recursion set is NOT empty, we can't do this because we may be reading the input of FlowFile 1 while in the
             // callback for reading FlowFile 1 and if we used the same stream we'd be destroying the ability to read from FlowFile 1.
-            if (allowCachingOfStream && readRecursionSet.isEmpty() && writeRecursionSet.isEmpty()) {
-                if (currentReadClaim == claim) {
-                    if (currentReadClaimStream != null && currentReadClaimStream.getCurrentOffset() <= offset) {
-                        final long bytesToSkip = offset - currentReadClaimStream.getCurrentOffset();
+            if (allowCachingOfStream && readRecursionSet.isEmpty() && !writeRecursionSet.contains(flowFile) && context.getContentRepository().isResourceClaimStreamSupported()) {
+                if (currentReadClaim == claim.getResourceClaim()) {
+                    final long resourceClaimOffset = claim.getOffset() + contentClaimOffset;
+                    if (currentReadClaimStream != null && currentReadClaimStream.getBytesConsumed() <= resourceClaimOffset) {
+                        final long bytesToSkip = resourceClaimOffset - currentReadClaimStream.getBytesConsumed();
                         if (bytesToSkip > 0) {
                             StreamUtils.skip(currentReadClaimStream, bytesToSkip);
                         }
 
-                        return new DisableOnCloseInputStream(currentReadClaimStream);
+                        final InputStream limitingInputStream = new LimitingInputStream(new DisableOnCloseInputStream(currentReadClaimStream), flowFile.getSize());
+                        final ContentClaimInputStream contentClaimInputStream = new ContentClaimInputStream(context.getContentRepository(), claim, contentClaimOffset, limitingInputStream);
+                        return contentClaimInputStream;
                     }
                 }
 
@@ -2238,17 +2298,25 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                     currentReadClaimStream.close();
                 }
 
-                currentReadClaim = claim;
-                currentReadClaimStream = new ContentClaimInputStream(context.getContentRepository(), claim, offset);
+                currentReadClaim = claim.getResourceClaim();
+                final InputStream contentRepoStream = context.getContentRepository().read(claim.getResourceClaim());
+                StreamUtils.skip(contentRepoStream, claim.getOffset() + contentClaimOffset);
+                final InputStream bufferedContentStream = new BufferedInputStream(contentRepoStream);
+                final ByteCountingInputStream byteCountingInputStream = new ByteCountingInputStream(bufferedContentStream, claim.getOffset() + contentClaimOffset);
+                currentReadClaimStream = byteCountingInputStream;
 
-                // Use a non-closeable stream because we want to keep it open after the callback has finished so that we can
-                // reuse the same InputStream for the next FlowFile
-                final InputStream disableOnClose = new DisableOnCloseInputStream(currentReadClaimStream);
-                return disableOnClose;
+                // Use a non-closeable stream (DisableOnCloseInputStream) because we want to keep it open after the callback has finished so that we can
+                // reuse the same InputStream for the next FlowFile. We then need to use a LimitingInputStream to ensure that we don't allow the InputStream
+                // to be read past the end of the FlowFile (since multiple FlowFiles' contents may be in the given Resource Claim Input Stream).
+                // Finally, we need to wrap the InputStream in a ContentClaimInputStream so that if mark/reset is used, we can provide that capability
+                // without buffering data in memory.
+                final InputStream limitingInputStream = new LimitingInputStream(new DisableOnCloseInputStream(currentReadClaimStream), flowFile.getSize());
+                final ContentClaimInputStream contentClaimInputStream = new ContentClaimInputStream(context.getContentRepository(), claim, contentClaimOffset, limitingInputStream);
+                return contentClaimInputStream;
             } else {
                 claimCache.flush(claim);
 
-                final InputStream rawInStream = new ContentClaimInputStream(context.getContentRepository(), claim, offset);
+                final InputStream rawInStream = new ContentClaimInputStream(context.getContentRepository(), claim, contentClaimOffset);
                 return rawInStream;
             }
         } catch (final ContentNotFoundException cnfe) {
@@ -3322,6 +3390,74 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
     }
 
     @Override
+    public void setState(final Map<String, String> state, final Scope scope) throws IOException {
+        final long currentVersion = getState(scope).getVersion();
+        final StateMap stateMap = new StandardStateMap(state, currentVersion + 1);
+        setState(stateMap, scope);
+    }
+
+    private void setState(final StateMap stateMap, final Scope scope) {
+        if (scope == Scope.LOCAL) {
+            localState = stateMap;
+        } else {
+            clusterState = stateMap;
+        }
+    }
+
+    @Override
+    public StateMap getState(final Scope scope) throws IOException {
+        if (scope == Scope.LOCAL) {
+            if (localState != null) {
+                return localState;
+            }
+
+            if (checkpoint != null && checkpoint.localState != null) {
+                return checkpoint.localState;
+            }
+
+            // If no state is held locally, get it from the State Manager.
+            return context.getStateManager().getState(scope);
+        }
+
+        if (clusterState != null) {
+            return clusterState;
+        }
+
+        if (checkpoint != null && checkpoint.clusterState != null) {
+            return checkpoint.clusterState;
+        }
+
+        return context.getStateManager().getState(scope);
+    }
+
+    @Override
+    public boolean replaceState(final StateMap oldValue, final Map<String, String> newValue, final Scope scope) throws IOException {
+        final StateMap current = getState(scope);
+        if (current.getVersion() == -1 && (oldValue == null || oldValue.getVersion() == -1)) {
+            final StateMap stateMap = new StandardStateMap(newValue, 1L);
+            setState(stateMap, scope);
+            return true;
+        }
+
+        if (oldValue == null) {
+            return false;
+        }
+
+        if (current.getVersion() == oldValue.getVersion() && current.toMap().equals(oldValue.toMap())) {
+            final StateMap stateMap = new StandardStateMap(newValue, current.getVersion() + 1);
+            setState(stateMap, scope);
+            return true;
+        }
+
+        return false;
+    }
+
+    @Override
+    public void clearState(final Scope scope) {
+        setState(EMPTY_STATE_MAP, scope);
+    }
+
+    @Override
     public String toString() {
         return "StandardProcessSession[id=" + sessionId + "]";
     }
@@ -3364,6 +3500,8 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         private long bytesReceived = 0L, bytesSent = 0L;
 
         private boolean initialized = false;
+        private StateMap localState;
+        private StateMap clusterState;
 
         private void initializeForCopy() {
             if (initialized) {
@@ -3430,6 +3568,13 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             this.bytesReceived = session.provenanceReporter.getBytesReceived() + session.provenanceReporter.getBytesFetched();
             this.flowFilesSent = session.provenanceReporter.getFlowFilesSent();
             this.bytesSent = session.provenanceReporter.getBytesSent();
+
+            if (session.localState != null) {
+                this.localState = session.localState;
+            }
+            if (session.clusterState != null) {
+                this.clusterState = session.clusterState;
+            }
         }
 
         /**
@@ -3470,6 +3615,13 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             this.bytesReceived += session.provenanceReporter.getBytesReceived() + session.provenanceReporter.getBytesFetched();
             this.flowFilesSent += session.provenanceReporter.getFlowFilesSent();
             this.bytesSent += session.provenanceReporter.getBytesSent();
+
+            if (session.localState != null) {
+                this.localState = session.localState;
+            }
+            if (session.clusterState != null) {
+                this.clusterState = session.clusterState;
+            }
         }
 
         private <K, V> void mergeMaps(final Map<K, V> destination, final Map<K, V> toMerge, final BiFunction<? super V, ? super V, ? extends V> merger) {

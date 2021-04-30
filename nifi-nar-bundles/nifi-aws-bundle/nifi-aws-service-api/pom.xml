@@ -17,7 +17,7 @@
     <parent>
         <artifactId>nifi-aws-bundle</artifactId>
         <groupId>org.apache.nifi</groupId>
-        <version>1.13.0-SNAPSHOT</version>
+        <version>1.14.0-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -51,7 +51,7 @@
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
-            <version>${jackson-databind.version}</version>
+            <version>${jackson.version}</version>
         </dependency>
         <!-- overriding jackson-dataformat-cbor in aws-java-sdk-core -->
         <dependency>

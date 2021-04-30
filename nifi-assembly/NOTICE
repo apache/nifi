@@ -1,5 +1,5 @@
 Apache NiFi
-Copyright 2014-2020 The Apache Software Foundation
+Copyright 2014-2021 The Apache Software Foundation
 
 This product includes software developed at
 The Apache Software Foundation (http://www.apache.org/).
@@ -1842,7 +1842,6 @@ The following binary components are provided under the Apache Software License v
       - Apache MINA SSHD
       - Apache Commons-Net
 
-<<<<<<< HEAD
   (ASLv2) Nimbus Language Tags
       The following NOTICE information applies:
         Nimbus Language Tags
@@ -1953,8 +1952,13 @@ The following binary components are provided under the Apache Software License v
 
   (ASLv2) Zip4j
     The following NOTICE information applies:
-      Zip4j 2.6.3.
+      Zip4j 2.7.0.
       Copyright 2020 Srikanth Reddy Lingala
+
+  (ASLv2) QuestDB (org.questdb:core:core-4.2.1.jar - https://github.com/questdb/questdb)
+    The following NOTICE information applies:
+      Copyright (c) 2014-2019 Appsicle
+      Copyright (c) 2019-2020 QuestDB
 
 ************************
 Common Development and Distribution License 1.1

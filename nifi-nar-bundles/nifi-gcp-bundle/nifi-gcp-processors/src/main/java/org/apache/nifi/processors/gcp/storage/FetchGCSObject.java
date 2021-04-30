@@ -23,6 +23,7 @@ import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageException;
 import com.google.common.collect.ImmutableList;
+import org.apache.commons.io.input.BoundedInputStream;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
@@ -33,11 +34,13 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 
+import java.io.IOException;
 import java.nio.channels.Channels;
 import java.util.ArrayList;
 import java.util.List;
@@ -159,6 +162,26 @@ public class FetchGCSObject extends AbstractGCSProcessor {
             .sensitive(true)
             .build();
 
+    public static final PropertyDescriptor RANGE_START = new PropertyDescriptor.Builder()
+            .name("gcs-object-range-start")
+            .displayName("Range Start")
+            .description("The byte position at which to start reading from the object. An empty value or a value of " +
+                    "zero will start reading at the beginning of the object.")
+            .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .required(false)
+            .build();
+
+    public static final PropertyDescriptor RANGE_LENGTH = new PropertyDescriptor.Builder()
+            .name("gcs-object-range-length")
+            .displayName("Range Length")
+            .description("The number of bytes to download from the object, starting from the Range Start. An empty " +
+                    "value or a value that extends beyond the end of the object will read to the end of the object.")
+            .addValidator(StandardValidators.createDataSizeBoundsValidator(1, Long.MAX_VALUE))
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .required(false)
+            .build();
+
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return ImmutableList.<PropertyDescriptor>builder()
@@ -167,6 +190,8 @@ public class FetchGCSObject extends AbstractGCSProcessor {
             .addAll(super.getSupportedPropertyDescriptors())
             .add(GENERATION)
             .add(ENCRYPTION_KEY)
+            .add(RANGE_START)
+            .add(RANGE_LENGTH)
             .build();
     }
 
@@ -189,6 +214,9 @@ public class FetchGCSObject extends AbstractGCSProcessor {
         final Storage storage = getCloudService();
         final BlobId blobId = BlobId.of(bucketName, key, generation);
 
+        final long rangeStart = (context.getProperty(RANGE_START).isSet() ? context.getProperty(RANGE_START).evaluateAttributeExpressions(flowFile).asDataSize(DataUnit.B).longValue() : 0L);
+        final Long rangeLength = (context.getProperty(RANGE_LENGTH).isSet() ? context.getProperty(RANGE_LENGTH).evaluateAttributeExpressions(flowFile).asDataSize(DataUnit.B).longValue() : null);
+
         try {
             final List<Storage.BlobSourceOption> blobSourceOptions = new ArrayList<>(2);
 
@@ -205,12 +233,26 @@ public class FetchGCSObject extends AbstractGCSProcessor {
                 throw new StorageException(404, "Blob " + blobId + " not found");
             }
 
+            if (rangeStart > 0 && rangeStart >= blob.getSize()) {
+                if (getLogger().isDebugEnabled()) {
+                    getLogger().debug("Start position: {}, blob size: {}", new Object[] {rangeStart, blob.getSize()});
+                }
+                throw new StorageException(416, "The range specified is not valid for the blob " + blobId
+                        + ". Range Start is beyond the end of the blob.");
+            }
+
             final ReadChannel reader = storage.reader(blobId, blobSourceOptions.toArray(new Storage.BlobSourceOption[0]));
-            flowFile = session.importFrom(Channels.newInputStream(reader), flowFile);
+            reader.seek(rangeStart);
+
+            if (rangeLength == null) {
+                flowFile = session.importFrom(Channels.newInputStream(reader), flowFile);
+            } else {
+                flowFile = session.importFrom(new BoundedInputStream(Channels.newInputStream(reader), rangeLength), flowFile);
+            }
 
             final Map<String, String> attributes = StorageAttributes.createAttributes(blob);
             flowFile = session.putAllAttributes(flowFile, attributes);
-        } catch (StorageException e) {
+        } catch (StorageException | IOException e) {
             getLogger().error("Failed to fetch GCS Object due to {}", new Object[] {e}, e);
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);

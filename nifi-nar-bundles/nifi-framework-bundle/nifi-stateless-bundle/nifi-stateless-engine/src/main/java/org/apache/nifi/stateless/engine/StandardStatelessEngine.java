@@ -17,11 +17,13 @@
 
 package org.apache.nifi.stateless.engine;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.StateManagerProvider;
+import org.apache.nifi.components.state.StatelessStateManagerProvider;
 import org.apache.nifi.components.validation.StandardValidationTrigger;
 import org.apache.nifi.components.validation.ValidationTrigger;
 import org.apache.nifi.controller.ProcessScheduler;
@@ -31,10 +33,11 @@ import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.kerberos.KerberosConfig;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
-import org.apache.nifi.encrypt.StringEncryptor;
+import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.extensions.ExtensionRepository;
 import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.nar.ExtensionDefinition;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
@@ -59,6 +62,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -80,8 +84,8 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
     // Member Variables injected via Builder
     private final ExtensionManager extensionManager;
     private final BulletinRepository bulletinRepository;
-    private final StateManagerProvider stateManagerProvider;
-    private final StringEncryptor encryptor;
+    private final StatelessStateManagerProvider stateManagerProvider;
+    private final PropertyEncryptor propertyEncryptor;
     private final FlowRegistryClient flowRegistryClient;
     private final VariableRegistry rootVariableRegistry;
     private final ProcessScheduler processScheduler;
@@ -106,7 +110,7 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
         this.extensionManager = requireNonNull(builder.extensionManager, "Extension Manager must be provided");
         this.bulletinRepository = requireNonNull(builder.bulletinRepository, "Bulletin Repository must be provided");
         this.stateManagerProvider = requireNonNull(builder.stateManagerProvider, "State Manager Provider must be provided");
-        this.encryptor = requireNonNull(builder.encryptor, "Encryptor must be provided");
+        this.propertyEncryptor = requireNonNull(builder.propertyEncryptor, "Encryptor must be provided");
         this.flowRegistryClient = requireNonNull(builder.flowRegistryClient, "Flow Registry Client must be provided");
         this.rootVariableRegistry = requireNonNull(builder.variableRegistry, "Variable Registry must be provided");
         this.processScheduler = requireNonNull(builder.processScheduler, "Process Scheduler must be provided");
@@ -165,8 +169,7 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
 
         final List<ReportingTaskNode> reportingTaskNodes = createReportingTasks(dataflowDefinition);
         final StandardStatelessFlow dataflow = new StandardStatelessFlow(childGroup, reportingTaskNodes, controllerServiceProvider, processContextFactory,
-            repositoryContextFactory, dataflowDefinition);
-        dataflow.initialize(processScheduler);
+            repositoryContextFactory, dataflowDefinition, stateManagerProvider, processScheduler);
         return dataflow;
     }
 
@@ -341,12 +344,14 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
 
         final Set<String> possibleResolvedClassNames = new HashSet<>();
 
-        final Set<Class> implementationClasses = extensionManager.getExtensions(ReportingTask.class);
-        for (final Class<?> implementationClass : implementationClasses) {
-            if (implementationClass.getSimpleName().equals(specifiedType)) {
-                logger.debug("Found possible matching class {}", implementationClass);
+        final Set<ExtensionDefinition> definitions = extensionManager.getExtensions(ReportingTask.class);
+        for (final ExtensionDefinition definition : definitions) {
+            final String implementationClassName = definition.getImplementationClassName();
+            final String simpleName = implementationClassName.contains(".") ? StringUtils.substringAfterLast(implementationClassName, ".") : implementationClassName;
+            if (simpleName.equals(specifiedType)) {
+                logger.debug("Found possible matching class {}", implementationClassName);
 
-                possibleResolvedClassNames.add(implementationClass.getName());
+                possibleResolvedClassNames.add(implementationClassName);
             }
         }
 
@@ -366,24 +371,40 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
     private void overrideParameters(final Map<String, ParameterContext> parameterContextMap, final List<ParameterOverride> overrides) {
         for (final ParameterOverride override : overrides) {
             final String contextName = override.getContextName();
-            final ParameterContext context = parameterContextMap.get(contextName);
-            if (context == null) {
-                logger.warn("Received Parameter override {} but no Parameter Context exists in the dataflow with name <{}>. Will ignore this Parameter.", override, contextName);
-                continue;
+
+            final Collection<ParameterContext> contexts;
+            if (contextName == null) {
+                contexts = parameterContextMap.values();
+            } else {
+                final ParameterContext context = parameterContextMap.get(contextName);
+                if (context == null) {
+                    logger.warn("Received Parameter override {} but no Parameter Context exists in the dataflow with name <{}>. Will ignore this Parameter.", override, contextName);
+                    continue;
+                }
+
+                contexts = Collections.singleton(context);
             }
 
-            final String parameterName = override.getParameterName();
-            final Optional<Parameter> optionalParameter = context.getParameter(parameterName);
-            if (!optionalParameter.isPresent()) {
+            int parameterFoundCount = 0;
+            for (final ParameterContext context : contexts) {
+                final String parameterName = override.getParameterName();
+                final Optional<Parameter> optionalParameter = context.getParameter(parameterName);
+                if (!optionalParameter.isPresent()) {
+                    continue;
+                }
+                parameterFoundCount++;
+
+                final Parameter existingParameter = optionalParameter.get();
+                final Parameter updatedParameter = new Parameter(existingParameter.getDescriptor(), override.getParameterValue());
+                final Map<String, Parameter> updatedParameters = Collections.singletonMap(parameterName, updatedParameter);
+                context.setParameters(updatedParameters);
+            }
+
+            if (parameterFoundCount == 0) {
                 logger.warn("Received Parameter override {} but no Parameter exists in the dataflow with that Parameter Name for that Context. Will ignore this Parameter.", override);
-                continue;
+            } else {
+                logger.debug("Updated {} Parameter(s) with Override for {}", parameterFoundCount, override);
             }
-
-            final Parameter existingParameter = optionalParameter.get();
-            final Parameter updatedParameter = new Parameter(existingParameter.getDescriptor(), override.getParameterValue());
-            final Map<String, Parameter> updatedParameters = Collections.singletonMap(parameterName, updatedParameter);
-            context.setParameters(updatedParameters);
-            logger.debug("Updated Parameter with Override for {}", override);
         }
     }
 
@@ -420,46 +441,57 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
         logger.info("Registered Parameter Context {}", parameterContextDefinition.getName());
     }
 
+    @Override
     public ExtensionManager getExtensionManager() {
         return extensionManager;
     }
 
+    @Override
     public BulletinRepository getBulletinRepository() {
         return bulletinRepository;
     }
 
+    @Override
     public StateManagerProvider getStateManagerProvider() {
         return stateManagerProvider;
     }
 
-    public StringEncryptor getEncryptor() {
-        return encryptor;
+    @Override
+    public PropertyEncryptor getPropertyEncryptor() {
+        return propertyEncryptor;
     }
 
+    @Override
     public FlowRegistryClient getFlowRegistryClient() {
         return flowRegistryClient;
     }
 
+    @Override
     public VariableRegistry getRootVariableRegistry() {
         return rootVariableRegistry;
     }
 
+    @Override
     public ProcessScheduler getProcessScheduler() {
         return processScheduler;
     }
 
+    @Override
     public ReloadComponent getReloadComponent() {
         return reloadComponent;
     }
 
+    @Override
     public ControllerServiceProvider getControllerServiceProvider() {
         return controllerServiceProvider;
     }
 
+    @Override
     public ProvenanceRepository getProvenanceRepository() {
         return provenanceRepository;
     }
 
+    @Override
     public FlowFileEventRepository getFlowFileEventRepository() {
         return flowFileEventRepository;
     }
@@ -478,8 +510,8 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
     public static class Builder {
         private ExtensionManager extensionManager = null;
         private BulletinRepository bulletinRepository = null;
-        private StateManagerProvider stateManagerProvider = null;
-        private StringEncryptor encryptor = null;
+        private StatelessStateManagerProvider stateManagerProvider = null;
+        private PropertyEncryptor propertyEncryptor = null;
         private FlowRegistryClient flowRegistryClient = null;
         private VariableRegistry variableRegistry = null;
         private ProcessScheduler processScheduler = null;
@@ -498,13 +530,13 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
             return this;
         }
 
-        public Builder stateManagerProvider(final StateManagerProvider stateManagerProvider) {
+        public Builder stateManagerProvider(final StatelessStateManagerProvider stateManagerProvider) {
             this.stateManagerProvider = stateManagerProvider;
             return this;
         }
 
-        public Builder encryptor(final StringEncryptor encryptor) {
-            this.encryptor = encryptor;
+        public Builder encryptor(final PropertyEncryptor propertyEncryptor) {
+            this.propertyEncryptor = propertyEncryptor;
             return this;
         }
 

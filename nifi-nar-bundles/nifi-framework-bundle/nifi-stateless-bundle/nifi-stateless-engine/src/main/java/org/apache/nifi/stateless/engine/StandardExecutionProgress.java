@@ -28,8 +28,6 @@ import org.apache.nifi.stateless.flow.FailurePortEncounteredException;
 import org.apache.nifi.stateless.flow.TriggerResult;
 import org.apache.nifi.stateless.queue.DrainableFlowFileQueue;
 import org.apache.nifi.stateless.repository.ByteArrayContentRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -42,8 +40,6 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
 public class StandardExecutionProgress implements ExecutionProgress {
-    private static final Logger logger = LoggerFactory.getLogger(StandardExecutionProgress.class);
-
     private final ProcessGroup rootGroup;
     private final List<FlowFileQueue> internalFlowFileQueues;
     private final ByteArrayContentRepository contentRepository;
@@ -125,7 +121,7 @@ public class StandardExecutionProgress implements ExecutionProgress {
             }
 
             @Override
-            public Optional<Exception> getFailureCause() {
+            public Optional<Throwable> getFailureCause() {
                 return Optional.empty();
             }
 

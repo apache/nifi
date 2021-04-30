@@ -95,6 +95,10 @@
 
             Password - The password used to authenticate to the Redis server. See the requirepass property in redis.conf.
 
+            Enable TLS - If true, the Redis connection will be configured to use TLS, using the keystore and truststore settings configured in
+                    nifi.properties.  This means that a TLS-enabled Redis connection is only possible if the Apache NiFi instance is running in secure mode.
+                    If this property is false, an insecure Redis connection will be used even if the Apache NiFi instance is secure (default false).
+
             Pool - Max Total - The maximum number of connections that can be allocated by the pool (checked out to clients, or idle awaiting checkout).
                         A negative value indicates that there is no limit.
 

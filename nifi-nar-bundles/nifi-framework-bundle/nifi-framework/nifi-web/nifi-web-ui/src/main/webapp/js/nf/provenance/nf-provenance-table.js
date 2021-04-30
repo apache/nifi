@@ -508,8 +508,11 @@
         var appendSearchableField = function (field) {
             var searchableField = $('<div class="searchable-field"></div>').appendTo('#searchable-fields-container');
             $('<span class="searchable-field-id hidden"></span>').text(field.id).appendTo(searchableField);
-            $('<div class="searchable-field-name"></div>').text(field.label).appendTo(searchableField);
+            $('<div class="searchable-field-name setting-name"></div>').text(field.label).appendTo(searchableField);
             $('<div class="searchable-field-value"><input type="text" class="searchable-field-input"/></div>').appendTo(searchableField);
+            $('<div class="searchable-checkbox-value nf-checkbox checkbox-unchecked"></div>').appendTo(searchableField);
+            $('<div class="searchable-checkbox-label nf-checkbox-label">Exclude from search results</div>').appendTo(searchableField);
+            $('<div class="searchable-checkbox-tooltip fa fa-question-circle" title="Query for all values except what is entered."></div>').appendTo(searchableField);
             $('<div class="clear"></div>').appendTo(searchableField);
 
             // make the searchable accessible for populating
@@ -532,10 +535,20 @@
                 var searchableField = $(this);
                 var fieldId = searchableField.children('span.searchable-field-id').text();
                 var searchValue = $.trim(searchableField.find('input.searchable-field-input').val());
+                var searchDetails = {};
 
                 // if the field isn't blank include it in the search
                 if (!nfCommon.isBlank(searchValue)) {
-                    searchCriteria[fieldId] = searchValue;
+                    searchCriteria[fieldId] = searchDetails;
+                    searchDetails["value"] = searchValue;
+                    var inverse = "inverse";
+                    var searchInverse = searchableField.find('div.searchable-checkbox-value').hasClass('checkbox-checked');
+                    if (searchInverse == true)
+                    {
+                        searchDetails[inverse] = true;
+                    } else {
+                        searchDetails[inverse] = false;
+                    }
                 }
             });
             return searchCriteria;

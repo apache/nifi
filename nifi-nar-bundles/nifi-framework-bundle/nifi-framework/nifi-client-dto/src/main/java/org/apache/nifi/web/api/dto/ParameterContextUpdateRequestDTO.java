@@ -27,7 +27,8 @@ public class ParameterContextUpdateRequestDTO extends AsynchronousRequestDTO<Par
     private ParameterContextDTO parameterContext;
     private Set<AffectedComponentEntity> referencingComponents;
 
-    @ApiModelProperty(value = "The Parameter Context that is being operated on. This may not be populated until the request has successfully completed.", readOnly = true)
+    @ApiModelProperty(value = "The Parameter Context that is being operated on. This may not be populated until the request has successfully completed.",
+            accessMode = ApiModelProperty.AccessMode.READ_ONLY)
     public ParameterContextDTO getParameterContext() {
         return parameterContext;
     }
@@ -36,7 +37,7 @@ public class ParameterContextUpdateRequestDTO extends AsynchronousRequestDTO<Par
         this.parameterContext = parameterContext;
     }
 
-    @ApiModelProperty(value = "The components that are referenced by the update.", readOnly = true)
+    @ApiModelProperty(value = "The components that are referenced by the update.", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
     public Set<AffectedComponentEntity> getReferencingComponents() {
         return referencingComponents;
     }

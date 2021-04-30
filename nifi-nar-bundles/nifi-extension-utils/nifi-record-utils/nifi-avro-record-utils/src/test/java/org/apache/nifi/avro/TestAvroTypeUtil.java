@@ -17,6 +17,7 @@
 
 package org.apache.nifi.avro;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.avro.Conversions;
 import org.apache.avro.LogicalTypes;
 import org.apache.avro.Schema;
@@ -56,6 +57,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.TimeZone;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -483,8 +485,9 @@ public class TestAvroTypeUtil {
 
     @Test
     public void testDateConversion() {
-        final Calendar c = Calendar.getInstance();
+        final Calendar c = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
         c.set(2019, Calendar.JANUARY, 1, 0, 0, 0);
+        c.set(Calendar.MILLISECOND, 0);
         final long epochMillis = c.getTimeInMillis();
 
         final LogicalTypes.Date dateType = LogicalTypes.date();
@@ -492,7 +495,7 @@ public class TestAvroTypeUtil {
         dateType.addToSchema(fieldSchema);
         final Object convertedValue = AvroTypeUtil.convertToAvroObject(new Date(epochMillis), fieldSchema);
         assertTrue(convertedValue instanceof Integer);
-        assertEquals((int) convertedValue, LocalDate.of(2019, 1, 1).toEpochDay());
+        assertEquals(LocalDate.of(2019, 1, 1).toEpochDay(), (int) convertedValue);
     }
 
     @Test
@@ -734,6 +737,311 @@ public class TestAvroTypeUtil {
         final HashMap<String, Object> numbers = (HashMap<String, Object>) result.get("numbers");
         Assert.assertTrue(Long.class.isInstance(numbers.get("number1")));
         Assert.assertTrue(Long.class.isInstance(numbers.get("number2")));
+    }
+
+    @Test
+    public void testSchemaWithReoccurringFieldNameWithDifferentFieldNameInChildSchema() throws Exception {
+        // GIVEN
+        String reoccurringFieldName = "reoccurringFieldNameWithDifferentChildSchema";
+
+        final List<RecordField> childRecord11Fields = Arrays.asList(
+            new RecordField("childRecordField1", RecordFieldType.STRING.getDataType())
+        );
+        final List<RecordField> childRecord21Fields = Arrays.asList(
+            new RecordField("childRecordField2", RecordFieldType.STRING.getDataType())
+        );
+
+        String expected = "{" +
+            "\"type\":\"record\"," +
+            "\"name\":\"nifiRecord\"," +
+            "\"namespace\":\"org.apache.nifi\"," +
+            "\"fields\":[{" +
+                "\"name\":\"record1\"," +
+                "\"type\":[\"null\",{" +
+                    "\"type\":\"record\"," +
+                    "\"name\":\"record1Type\"," +
+                    "\"fields\":[{" +
+                        "\"name\":\"reoccurringFieldNameWithDifferentChildSchema\"," +
+                        "\"type\":[\"null\",{" +
+                            "\"type\":\"record\"," +
+                            "\"name\":\"record1_reoccurringFieldNameWithDifferentChildSchemaType\"," +
+                            "\"fields\":[{" +
+                                "\"name\":\"childRecordField1\"," +
+                                "\"type\":[\"null\",\"string\"]" +
+                            "}]" +
+                        "}]" +
+                    "}]" +
+                "}]" +
+            "}," +
+            "{" +
+                "\"name\":\"record2\"," +
+                "\"type\":[\"null\",{" +
+                    "\"type\":\"record\"," +
+                    "\"name\":\"record2Type\"," +
+                    "\"fields\":[{" +
+                        "\"name\":\"reoccurringFieldNameWithDifferentChildSchema\"," +
+                        "\"type\":[\"null\",{" +
+                            "\"type\":\"record\"," +
+                            "\"name\":\"record2_reoccurringFieldNameWithDifferentChildSchemaType\"," +
+                            "\"fields\":[{" +
+                                "\"name\":\"childRecordField2\"," +
+                                "\"type\":[\"null\",\"string\"]" +
+                            "}]" +
+                        "}]" +
+                    "}]" +
+                "}]" +
+            "}]" +
+        "}";
+
+        // WHEN
+        // THEN
+        testSchemaWithReoccurringFieldName(reoccurringFieldName, childRecord11Fields, childRecord21Fields, expected);
+    }
+
+    @Test
+    public void testSchemaWithReoccurringFieldNameWithDifferentTypeInChildSchema() throws Exception {
+        // GIVEN
+        String reoccurringFieldName = "reoccurringFieldNameWithDifferentChildSchema";
+        String reoccurringFieldNameInChildSchema = "childRecordField";
+
+        final List<RecordField> childRecord11Fields = Arrays.asList(
+            new RecordField(reoccurringFieldNameInChildSchema, RecordFieldType.STRING.getDataType())
+        );
+        final List<RecordField> childRecord21Fields = Arrays.asList(
+            new RecordField(reoccurringFieldNameInChildSchema, RecordFieldType.BOOLEAN.getDataType())
+        );
+
+        String expected = "{" +
+            "\"type\":\"record\"," +
+            "\"name\":\"nifiRecord\"," +
+            "\"namespace\":\"org.apache.nifi\"," +
+            "\"fields\":[{" +
+                "\"name\":\"record1\"," +
+                "\"type\":[\"null\",{" +
+                    "\"type\":\"record\"," +
+                    "\"name\":\"record1Type\"," +
+                    "\"fields\":[{" +
+                        "\"name\":\"reoccurringFieldNameWithDifferentChildSchema\"," +
+                        "\"type\":[\"null\",{" +
+                            "\"type\":\"record\"," +
+                            "\"name\":\"record1_reoccurringFieldNameWithDifferentChildSchemaType\"," +
+                            "\"fields\":[{" +
+                                "\"name\":\"childRecordField\"," +
+                                "\"type\":[\"null\",\"string\"]" +
+                            "}]" +
+                        "}]" +
+                    "}]" +
+                "}]" +
+            "}," +
+            "{" +
+                "\"name\":\"record2\"," +
+                "\"type\":[\"null\",{" +
+                    "\"type\":\"record\"," +
+                    "\"name\":\"record2Type\"," +
+                    "\"fields\":[{" +
+                        "\"name\":\"reoccurringFieldNameWithDifferentChildSchema\"," +
+                        "\"type\":[\"null\",{" +
+                            "\"type\":\"record\"," +
+                            "\"name\":\"record2_reoccurringFieldNameWithDifferentChildSchemaType\"," +
+                            "\"fields\":[{" +
+                                "\"name\":\"childRecordField\"," +
+                                "\"type\":[\"null\",\"boolean\"]" +
+                            "}]" +
+                        "}]" +
+                    "}]" +
+                "}]" +
+            "}]" +
+        "}";
+
+        // WHEN
+        // THEN
+        testSchemaWithReoccurringFieldName(reoccurringFieldName, childRecord11Fields, childRecord21Fields, expected);
+    }
+
+    @Test
+    public void testSchemaWithArrayOfRecordsThatContainDifferentChildRecordForSameField() throws Exception {
+        // GIVEN
+        SimpleRecordSchema recordSchema1 = new SimpleRecordSchema(Arrays.asList(
+            new RecordField("integer", RecordFieldType.INT.getDataType()),
+            new RecordField("boolean", RecordFieldType.BOOLEAN.getDataType())
+        ));
+        SimpleRecordSchema recordSchema2 = new SimpleRecordSchema(Arrays.asList(
+            new RecordField("integer", RecordFieldType.INT.getDataType()),
+            new RecordField("string", RecordFieldType.STRING.getDataType())
+        ));
+
+        RecordSchema recordChoiceSchema = new SimpleRecordSchema(Arrays.asList(
+            new RecordField("record", RecordFieldType.CHOICE.getChoiceDataType(
+                RecordFieldType.RECORD.getRecordDataType(recordSchema1),
+                RecordFieldType.RECORD.getRecordDataType(recordSchema2)
+            ))
+        ));
+
+        RecordSchema schema = new SimpleRecordSchema(Arrays.asList(
+            new RecordField("dataCollection", RecordFieldType.ARRAY.getArrayDataType(
+                RecordFieldType.RECORD.getRecordDataType(recordChoiceSchema)
+            )
+        )));
+
+        String expected = "{\n" +
+            "  \"type\": \"record\",\n" +
+            "  \"name\": \"nifiRecord\",\n" +
+            "  \"namespace\": \"org.apache.nifi\",\n" +
+            "  \"fields\": [\n" +
+            "    {\n" +
+            "      \"name\": \"dataCollection\",\n" +
+            "      \"type\": [\n" +
+            "        \"null\",\n" +
+            "        {\n" +
+            "          \"type\": \"array\",\n" +
+            "          \"items\": {\n" +
+            "            \"type\": \"record\",\n" +
+            "            \"name\": \"dataCollectionType\",\n" +
+            "            \"fields\": [\n" +
+            "              {\n" +
+            "                \"name\": \"record\",\n" +
+            "                \"type\": [\n" +
+            "                  {\n" +
+            "                    \"type\": \"record\",\n" +
+            "                    \"name\": \"dataCollection_recordType\",\n" +
+            "                    \"fields\": [\n" +
+            "                      {\n" +
+            "                        \"name\": \"integer\",\n" +
+            "                        \"type\": [\n" +
+            "                          \"null\",\n" +
+            "                          \"int\"\n" +
+            "                        ]\n" +
+            "                      },\n" +
+            "                      {\n" +
+            "                        \"name\": \"boolean\",\n" +
+            "                        \"type\": [\n" +
+            "                          \"null\",\n" +
+            "                          \"boolean\"\n" +
+            "                        ]\n" +
+            "                      }\n" +
+            "                    ]\n" +
+            "                  },\n" +
+            "                  {\n" +
+            "                    \"type\": \"record\",\n" +
+            "                    \"name\": \"dataCollection_record2Type\",\n" +
+            "                    \"fields\": [\n" +
+            "                      {\n" +
+            "                        \"name\": \"integer\",\n" +
+            "                        \"type\": [\n" +
+            "                          \"null\",\n" +
+            "                          \"int\"\n" +
+            "                        ]\n" +
+            "                      },\n" +
+            "                      {\n" +
+            "                        \"name\": \"string\",\n" +
+            "                        \"type\": [\n" +
+            "                          \"null\",\n" +
+            "                          \"string\"\n" +
+            "                        ]\n" +
+            "                      }\n" +
+            "                    ]\n" +
+            "                  },\n" +
+            "                  \"null\"\n" +
+            "                ]\n" +
+            "              }\n" +
+            "            ]\n" +
+            "          }\n" +
+            "        }\n" +
+            "      ]\n" +
+            "    }\n" +
+            "  ]\n" +
+            "}";
+
+        // WHEN
+        Schema actual = AvroTypeUtil.extractAvroSchema(schema);
+
+        // THEN
+        ObjectMapper mapper = new ObjectMapper();
+        assertEquals(mapper.readTree(expected), mapper.readTree(actual.toString()));
+    }
+
+    private void testSchemaWithReoccurringFieldName(String reoccurringFieldName, List<RecordField> childRecord11Fields, List<RecordField> childRecord21Fields, String expected) {
+        // GIVEN
+        final List<RecordField> fields = new ArrayList<>();
+
+        final List<RecordField> record1Fields = Arrays.asList(
+            new RecordField(reoccurringFieldName, RecordFieldType.RECORD.getRecordDataType(new SimpleRecordSchema(childRecord11Fields)))
+        );
+        final DataType recordType1 = RecordFieldType.RECORD.getRecordDataType(new SimpleRecordSchema(record1Fields));
+
+        final List<RecordField> record2Fields = Arrays.asList(
+            new RecordField(reoccurringFieldName, RecordFieldType.RECORD.getRecordDataType(new SimpleRecordSchema(childRecord21Fields)))
+        );
+        final DataType recordType2 = RecordFieldType.RECORD.getRecordDataType(new SimpleRecordSchema(record2Fields));
+
+        fields.add(new RecordField("record1", recordType1));
+        fields.add(new RecordField("record2", recordType2));
+
+        RecordSchema recordSchema = new SimpleRecordSchema(fields);
+
+        // WHEN
+        Schema actual = AvroTypeUtil.extractAvroSchema(recordSchema);
+
+        // THEN
+        assertEquals(expected, actual.toString());
+    }
+
+    @Test
+    public void testSchemaWithMultiLevelRecord() throws Exception {
+        // GIVEN
+        final List<RecordField> fields = new ArrayList<>();
+
+        final List<RecordField> level3RecordFields = Arrays.asList(
+            new RecordField("stringField", RecordFieldType.STRING.getDataType())
+        );
+        final List<RecordField> level2RecordFields = Arrays.asList(
+            new RecordField("level3Record", RecordFieldType.RECORD.getRecordDataType(new SimpleRecordSchema(level3RecordFields)))
+        );
+        final List<RecordField> multiLevelRecordFields = Arrays.asList(
+            new RecordField("level2Record", RecordFieldType.RECORD.getRecordDataType(new SimpleRecordSchema(level2RecordFields)))
+        );
+        final DataType multiLevelRecordType = RecordFieldType.RECORD.getRecordDataType(new SimpleRecordSchema(multiLevelRecordFields));
+
+        fields.add(new RecordField("multiLevelRecord", multiLevelRecordType));
+
+        RecordSchema recordSchema = new SimpleRecordSchema(fields);
+
+        String expected = "{" +
+            "\"type\":\"record\"," +
+            "\"name\":\"nifiRecord\"," +
+            "\"namespace\":\"org.apache.nifi\"," +
+            "\"fields\":[{" +
+                "\"name\":\"multiLevelRecord\"," +
+                "\"type\":[\"null\",{" +
+                    "\"type\":\"record\"," +
+                    "\"name\":\"multiLevelRecordType\"," +
+                    "\"fields\":[{" +
+                        "\"name\":\"level2Record\"," +
+                        "\"type\":[\"null\",{" +
+                            "\"type\":\"record\"," +
+                            "\"name\":\"multiLevelRecord_level2RecordType\"," +
+                            "\"fields\":[{" +
+                                "\"name\":\"level3Record\"," +
+                                "\"type\":[\"null\",{" +
+                                    "\"type\":\"record\"," +
+                                    "\"name\":\"multiLevelRecord_level2Record_level3RecordType\"," +
+                                    "\"fields\":[{" +
+                                        "\"name\":\"stringField\"," +
+                                        "\"type\":[\"null\",\"string\"]" +
+                                    "}]" +
+                                "}]" +
+                            "}]" +
+                        "}]" +
+                    "}]" +
+                "}]" +
+            "}]" +
+        "}";
+
+        // WHEN
+        Schema actual = AvroTypeUtil.extractAvroSchema(recordSchema);
+
+        // THEN
+        assertEquals(expected, actual.toString());
     }
 
     private MapRecord givenRecordContainingNumericMap() {

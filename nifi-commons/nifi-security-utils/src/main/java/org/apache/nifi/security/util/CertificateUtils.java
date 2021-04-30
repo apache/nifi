@@ -56,6 +56,7 @@ import org.bouncycastle.asn1.x500.AttributeTypeAndValue;
 import org.bouncycastle.asn1.x500.RDN;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x500.style.BCStyle;
+import org.bouncycastle.asn1.x500.style.IETFUtils;
 import org.bouncycastle.asn1.x509.BasicConstraints;
 import org.bouncycastle.asn1.x509.ExtendedKeyUsage;
 import org.bouncycastle.asn1.x509.Extension;
@@ -63,6 +64,8 @@ import org.bouncycastle.asn1.x509.Extensions;
 import org.bouncycastle.asn1.x509.KeyPurposeId;
 import org.bouncycastle.asn1.x509.KeyUsage;
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
+import org.bouncycastle.asn1.x509.GeneralName;
+import org.bouncycastle.asn1.x509.GeneralNames;
 import org.bouncycastle.cert.CertIOException;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.X509v3CertificateBuilder;
@@ -144,6 +147,27 @@ public final class CertificateUtils {
                     username = StringUtils.substring(dn, cnIndex + cnPattern.length(), separatorIndex);
                 } else {
                     username = StringUtils.substring(dn, cnIndex + cnPattern.length());
+                }
+            }
+
+            /*
+                https://tools.ietf.org/html/rfc5280#section-4.1.2.6
+
+                Legacy implementations exist where an electronic mail address is
+                embedded in the subject distinguished name as an emailAddress
+                attribute [RFC2985].  The attribute value for emailAddress is of type
+                IA5String to permit inclusion of the character '@', which is not part
+                of the PrintableString character set.  emailAddress attribute values
+                are not case-sensitive (e.g., "subscriber@example.com" is the same as
+                "SUBSCRIBER@EXAMPLE.COM").
+             */
+            final String emailPattern = "/emailAddress=";
+            final int index = StringUtils.indexOfIgnoreCase(username, emailPattern);
+            if (index >= 0) {
+                String[] dnParts = username.split(emailPattern);
+                if (dnParts.length > 0) {
+                    // only use the actual CN
+                    username = dnParts[0];
                 }
             }
         }
@@ -442,6 +466,23 @@ public final class CertificateUtils {
      */
     public static X509Certificate generateSelfSignedX509Certificate(KeyPair keyPair, String dn, String signingAlgorithm, int certificateDurationDays)
             throws CertificateException {
+        return generateSelfSignedX509Certificate(keyPair, dn, signingAlgorithm, certificateDurationDays, null);
+    }
+
+    /**
+     * Generates a self-signed {@link X509Certificate} suitable for use as a Certificate Authority.
+     *
+     * @param keyPair                 the {@link KeyPair} to generate the {@link X509Certificate} for
+     * @param dn                      the distinguished name to user for the {@link X509Certificate}
+     * @param signingAlgorithm        the signing algorithm to use for the {@link X509Certificate}
+     * @param certificateDurationDays the duration in days for which the {@link X509Certificate} should be valid
+     * @param dnsSubjectAlternativeNames An optional array of dnsName SANs
+     * @return a self-signed {@link X509Certificate} suitable for use as a Certificate Authority
+     * @throws CertificateException if there is an generating the new certificate
+     */
+    public static X509Certificate generateSelfSignedX509Certificate(KeyPair keyPair, String dn, String signingAlgorithm, int certificateDurationDays,
+                                                                    String[] dnsSubjectAlternativeNames)
+            throws CertificateException {
         try {
             ContentSigner sigGen = new JcaContentSignerBuilder(signingAlgorithm).setProvider(BouncyCastleProvider.PROVIDER_NAME).build(keyPair.getPrivate());
             SubjectPublicKeyInfo subPubKeyInfo = SubjectPublicKeyInfo.getInstance(keyPair.getPublic().getEncoded());
@@ -468,6 +509,24 @@ public final class CertificateUtils {
 
             // (2) extendedKeyUsage extension
             certBuilder.addExtension(Extension.extendedKeyUsage, false, new ExtendedKeyUsage(new KeyPurposeId[]{KeyPurposeId.id_kp_clientAuth, KeyPurposeId.id_kp_serverAuth}));
+
+            // (3) subjectAlternativeName extension. Include CN as a SAN entry if it exists.
+            final String cn = getCommonName(dn);
+            List<GeneralName> generalNames = new ArrayList<>();
+            if (StringUtils.isNotBlank(cn)) {
+                generalNames.add(new GeneralName(GeneralName.dNSName, cn));
+            }
+            if (dnsSubjectAlternativeNames != null) {
+                for (String subjectAlternativeName : dnsSubjectAlternativeNames) {
+                    if (StringUtils.isNotBlank(subjectAlternativeName)) {
+                        generalNames.add(new GeneralName(GeneralName.dNSName, subjectAlternativeName));
+                    }
+                }
+            }
+            if (!generalNames.isEmpty()) {
+                certBuilder.addExtension(Extension.subjectAlternativeName, false, new GeneralNames(generalNames.toArray(
+                        new GeneralName[generalNames.size()])));
+            }
 
             // Sign the certificate
             X509CertificateHolder certificateHolder = certBuilder.build(sigGen);
@@ -623,6 +682,20 @@ public final class CertificateUtils {
                 return false;
             }
         }
+    }
+
+    /**
+     * Extracts the common name from the given DN.
+     *
+     * @param dn the distinguished name to evaluate
+     * @return the common name if it exists, null otherwise.
+     */
+    public static String getCommonName(final String dn) {
+        RDN[] rdns = new X500Name(dn).getRDNs(BCStyle.CN);
+        if (rdns.length == 0) {
+            return null;
+        }
+        return  IETFUtils.valueToString(rdns[0].getFirst().getValue());
     }
 
     private CertificateUtils() {

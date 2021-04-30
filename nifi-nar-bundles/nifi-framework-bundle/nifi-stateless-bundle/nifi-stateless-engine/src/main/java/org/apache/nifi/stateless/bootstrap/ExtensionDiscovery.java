@@ -19,7 +19,6 @@ package org.apache.nifi.stateless.bootstrap;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.nar.ExtensionDiscoveringManager;
 import org.apache.nifi.nar.NarClassLoaders;
-import org.apache.nifi.nar.NarClassLoadersHolder;
 import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,10 +31,9 @@ import java.util.concurrent.TimeUnit;
 public class ExtensionDiscovery {
     private static final Logger logger = LoggerFactory.getLogger(ExtensionDiscovery.class);
 
-    public static ExtensionDiscoveringManager discover(final File narWorkingDirectory, final ClassLoader systemClassLoader) throws IOException {
-        NarClassLoaders narClassLoaders = NarClassLoadersHolder.getInstance();
+    public static ExtensionDiscoveringManager discover(final File narWorkingDirectory, final ClassLoader systemClassLoader, final NarClassLoaders narClassLoaders) throws IOException {
+        logger.info("Initializing NAR ClassLoaders");
 
-        final long discoveryStart = System.nanoTime();
         try {
             narClassLoaders.init(systemClassLoader, null, narWorkingDirectory);
         } catch (final ClassNotFoundException cnfe) {
@@ -44,9 +42,9 @@ public class ExtensionDiscovery {
 
         final Set<Bundle> narBundles = narClassLoaders.getBundles();
 
+        final long discoveryStart = System.nanoTime();
         final StandardExtensionDiscoveringManager extensionManager = new StandardExtensionDiscoveringManager();
         extensionManager.discoverExtensions(narBundles);
-        extensionManager.logClassLoaderMapping();
 
         final long discoveryMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - discoveryStart);
         logger.info("Successfully discovered extensions in {} milliseconds", discoveryMillis);

@@ -446,7 +446,7 @@ public class ITestPersistentProvenanceRepository {
         repo.waitForRollover();
 
         final Query query = new Query(UUID.randomUUID().toString());
-        query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.ComponentID, "XXXX"));
+        query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.ComponentID, "XXXX", null));
         query.setMaxResults(100);
 
         final QueryResult result = repo.queryEvents(query, createUser());
@@ -495,7 +495,7 @@ public class ITestPersistentProvenanceRepository {
         repo.waitForRollover();
 
         final Query query = new Query(UUID.randomUUID().toString());
-        query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.newSearchableAttribute("immense"), "000*"));
+        query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.newSearchableAttribute("immense"), "000*", null));
         query.setMaxResults(100);
 
         final QueryResult result = repo.queryEvents(query, createUser());
@@ -534,10 +534,10 @@ public class ITestPersistentProvenanceRepository {
         repo.waitForRollover();
 
         final Query query = new Query(UUID.randomUUID().toString());
-        query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.FlowFileUUID, "000000*"));
-        query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.Filename, "file-*"));
-        query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.ComponentID, "12?4"));
-        query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.TransitURI, "nifi://*"));
+        query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.FlowFileUUID, "000000*", null));
+        query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.Filename, "file-*", null));
+        query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.ComponentID, "12?4", null));
+        query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.TransitURI, "nifi://*", null));
         query.setMaxResults(100);
 
         final QueryResult result = repo.queryEvents(query, createUser());
@@ -620,9 +620,9 @@ public class ITestPersistentProvenanceRepository {
 
         final Query query = new Query(UUID.randomUUID().toString());
         // query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.FlowFileUUID, "00000000-0000-0000-0000*"));
-        query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.Filename, "file-*"));
-        query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.ComponentID, "12?4"));
-        query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.TransitURI, "nifi://*"));
+        query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.Filename, "file-*", null));
+        query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.ComponentID, "12?4", null));
+        query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.TransitURI, "nifi://*", null));
         query.setMaxResults(100);
 
         final QueryResult result = repo.queryEvents(query, createUser());
@@ -689,9 +689,9 @@ public class ITestPersistentProvenanceRepository {
         }
 
         final Query query = new Query(UUID.randomUUID().toString());
-        query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.Filename, "file-*"));
-        query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.ComponentID, "12?4"));
-        query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.TransitURI, "nifi://*"));
+        query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.Filename, "file-*", null));
+        query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.ComponentID, "12?4", null));
+        query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.TransitURI, "nifi://*", null));
         query.setMaxResults(100);
 
         final QuerySubmission submission = repo.submitQuery(query, createUser());
@@ -1065,7 +1065,7 @@ public class ITestPersistentProvenanceRepository {
         File eventFile = this.prepCorruptedEventFileTests();
 
         final Query query = new Query(UUID.randomUUID().toString());
-        query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.ComponentID, "foo-*"));
+        query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.ComponentID, "foo-*", null));
         query.setMaxResults(100);
 
         DataOutputStream in = new DataOutputStream(new GZIPOutputStream(new FileOutputStream(eventFile)));
@@ -1087,7 +1087,7 @@ public class ITestPersistentProvenanceRepository {
         File eventFile = this.prepCorruptedEventFileTests();
 
         final Query query = new Query(UUID.randomUUID().toString());
-        query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.ComponentID, "foo-*"));
+        query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.ComponentID, "foo-*", null));
         query.setMaxResults(100);
         DataOutputStream in = new DataOutputStream(new GZIPOutputStream(new FileOutputStream(eventFile)));
         in.close();
@@ -1180,9 +1180,9 @@ public class ITestPersistentProvenanceRepository {
 
         // verify we get the results expected
         final Query query = new Query(UUID.randomUUID().toString());
-        query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.Filename, "file-*"));
-        query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.ComponentID, "12?4"));
-        query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.TransitURI, "nifi://*"));
+        query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.Filename, "file-*", null));
+        query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.ComponentID, "12?4", null));
+        query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.TransitURI, "nifi://*", null));
         query.setMaxResults(100);
 
         final QueryResult result = repo.queryEvents(query, createUser());
@@ -1355,7 +1355,7 @@ public class ITestPersistentProvenanceRepository {
         repo.waitForRollover();
 
         final Query query = new Query("1234");
-        query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.ComponentID, "1234"));
+        query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.ComponentID, "1234", null));
         final QuerySubmission submission = repo.submitQuery(query, createUser());
 
         final QueryResult result = submission.getResult();

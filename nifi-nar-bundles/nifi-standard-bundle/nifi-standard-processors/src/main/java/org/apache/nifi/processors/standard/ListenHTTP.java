@@ -24,6 +24,7 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.annotation.notification.OnPrimaryNodeStateChange;
 import org.apache.nifi.annotation.notification.PrimaryNodeState;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
@@ -65,6 +66,7 @@ import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.Path;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -77,6 +79,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @Tags({"ingest", "http", "https", "rest", "listen"})
@@ -87,12 +90,37 @@ import java.util.regex.Pattern;
         + "The health check functionality can be configured to be accessible via a different port. "
         + "For details see the documentation of the \"Listening Port for health check requests\" property.")
 public class ListenHTTP extends AbstractSessionFactoryProcessor {
+    private static final String MATCH_ALL = ".*";
 
     private Set<Relationship> relationships;
     private List<PropertyDescriptor> properties;
 
-    private AtomicBoolean initialized = new AtomicBoolean(false);
-    private AtomicBoolean runOnPrimary = new AtomicBoolean(false);
+    private final AtomicBoolean initialized = new AtomicBoolean(false);
+    private final AtomicBoolean runOnPrimary = new AtomicBoolean(false);
+
+    public enum ClientAuthentication {
+        AUTO("Inferred based on SSL Context Service properties. The presence of Trust Store properties implies REQUIRED, otherwise NONE is configured."),
+
+        WANT(ClientAuth.WANT.getDescription()),
+
+        REQUIRED(ClientAuth.REQUIRED.getDescription()),
+
+        NONE(ClientAuth.NONE.getDescription());
+
+        private final String description;
+
+        ClientAuthentication(final String description) {
+            this.description = description;
+        }
+
+        public String getDescription() {
+            return description;
+        }
+
+        public AllowableValue getAllowableValue() {
+            return new AllowableValue(name(), name(), description);
+        }
+    }
 
     public static final Relationship RELATIONSHIP_SUCCESS = new Relationship.Builder()
         .name("success")
@@ -132,9 +160,20 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
             .build();
     public static final PropertyDescriptor AUTHORIZED_DN_PATTERN = new PropertyDescriptor.Builder()
         .name("Authorized DN Pattern")
-        .description("A Regular Expression to apply against the Distinguished Name of incoming connections. If the Pattern does not match the DN, the connection will be refused.")
+        .displayName("Authorized Subject DN Pattern")
+        .description("A Regular Expression to apply against the Subject's Distinguished Name of incoming connections. If the Pattern does not match the Subject DN, " +
+                "the the processor will respond with a status of HTTP 403 Forbidden.")
         .required(true)
-        .defaultValue(".*")
+        .defaultValue(MATCH_ALL)
+        .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
+        .build();
+    public static final PropertyDescriptor AUTHORIZED_ISSUER_DN_PATTERN = new PropertyDescriptor.Builder()
+        .name("authorized-issuer-dn-pattern")
+        .displayName("Authorized Issuer DN Pattern")
+        .description("A Regular Expression to apply against the Issuer's Distinguished Name of incoming connections. If the Pattern does not match the Issuer DN, " +
+                "the processor will respond with a status of HTTP 403 Forbidden.")
+        .required(false)
+        .defaultValue(MATCH_ALL)
         .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
         .build();
     public static final PropertyDescriptor MAX_UNCONFIRMED_TIME = new PropertyDescriptor.Builder()
@@ -187,14 +226,31 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
         .defaultValue("512 KB")
         .build();
-    public static final PropertyDescriptor CLIENT_AUTH = new PropertyDescriptor.Builder()
-            .name("client-auth")
+    public static final PropertyDescriptor CLIENT_AUTHENTICATION = new PropertyDescriptor.Builder()
+            .name("client-authentication")
             .displayName("Client Authentication")
             .description("Client Authentication policy for TLS connections. Required when SSL Context Service configured.")
             .required(false)
-            .allowableValues(ClientAuth.values())
-            .defaultValue(ClientAuth.REQUIRED.name())
+            .allowableValues(Arrays.stream(ClientAuthentication.values())
+                    .map(ClientAuthentication::getAllowableValue)
+                    .collect(Collectors.toList())
+                    .toArray(new AllowableValue[]{}))
+            .defaultValue(ClientAuthentication.AUTO.name())
             .dependsOn(SSL_CONTEXT_SERVICE)
+            .build();
+    public static final PropertyDescriptor MAX_THREAD_POOL_SIZE = new PropertyDescriptor.Builder()
+            .name("max-thread-pool-size")
+            .displayName("Maximum Thread Pool Size")
+            .description("The maximum number of threads to be used by the embedded Jetty server. "
+                    + "The value can be set between 8 and 1000. "
+                    + "The value of this property affects the performance of the flows and the operating system, therefore "
+                    + "the default value should only be changed in justified cases. "
+                    + "A value that is less than the default value may be suitable "
+                    + "if only a small number of HTTP clients connect to the server. A greater value may be suitable "
+                    + "if a large number of HTTP clients are expected to make requests to the server simultaneously.")
+            .required(true)
+            .addValidator(StandardValidators.createLongValidator(8L, 1000L, true))
+            .defaultValue("200")
             .build();
 
     public static final String CONTEXT_ATTRIBUTE_PROCESSOR = "processor";
@@ -202,6 +258,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
     public static final String CONTEXT_ATTRIBUTE_SESSION_FACTORY_HOLDER = "sessionFactoryHolder";
     public static final String CONTEXT_ATTRIBUTE_PROCESS_CONTEXT_HOLDER = "processContextHolder";
     public static final String CONTEXT_ATTRIBUTE_AUTHORITY_PATTERN = "authorityPattern";
+    public static final String CONTEXT_ATTRIBUTE_AUTHORITY_ISSUER_PATTERN = "authorityIssuerPattern";
     public static final String CONTEXT_ATTRIBUTE_HEADER_PATTERN = "headerPattern";
     public static final String CONTEXT_ATTRIBUTE_FLOWFILE_MAP = "flowFileMap";
     public static final String CONTEXT_ATTRIBUTE_STREAM_THROTTLER = "streamThrottler";
@@ -252,13 +309,15 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         descriptors.add(HEALTH_CHECK_PORT);
         descriptors.add(MAX_DATA_RATE);
         descriptors.add(SSL_CONTEXT_SERVICE);
-        descriptors.add(CLIENT_AUTH);
+        descriptors.add(CLIENT_AUTHENTICATION);
         descriptors.add(AUTHORIZED_DN_PATTERN);
+        descriptors.add(AUTHORIZED_ISSUER_DN_PATTERN);
         descriptors.add(MAX_UNCONFIRMED_TIME);
         descriptors.add(HEADERS_AS_ATTRIBUTES_REGEX);
         descriptors.add(RETURN_CODE);
         descriptors.add(MULTIPART_REQUEST_MAX_SIZE);
         descriptors.add(MULTIPART_READ_BUFFER_SIZE);
+        descriptors.add(MAX_THREAD_POOL_SIZE);
         this.properties = Collections.unmodifiableList(descriptors);
     }
 
@@ -291,6 +350,10 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         shutdownHttpServer(toShutdown);
     }
 
+    Server getServer() {
+        return this.server;
+    }
+
     private void shutdownHttpServer(Server toShutdown) {
         try {
             toShutdown.stop();
@@ -314,17 +377,15 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         final int returnCode = context.getProperty(RETURN_CODE).asInteger();
         long requestMaxSize = context.getProperty(MULTIPART_REQUEST_MAX_SIZE).asDataSize(DataUnit.B).longValue();
         int readBufferSize = context.getProperty(MULTIPART_READ_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
+        int maxThreadPoolSize = context.getProperty(MAX_THREAD_POOL_SIZE).asInteger();
         throttlerRef.set(streamThrottler);
 
         final boolean sslRequired = sslContextService != null;
-        ClientAuth clientAuth = ClientAuth.NONE;
-        final PropertyValue clientAuthProperty = context.getProperty(CLIENT_AUTH);
-        if (clientAuthProperty.isSet()) {
-            clientAuth = ClientAuth.valueOf(clientAuthProperty.getValue());
-        }
+        final PropertyValue clientAuthenticationProperty = context.getProperty(CLIENT_AUTHENTICATION);
+        final ClientAuthentication clientAuthentication = getClientAuthentication(sslContextService, clientAuthenticationProperty);
 
         // thread pool for the jetty instance
-        final QueuedThreadPool threadPool = new QueuedThreadPool();
+        final QueuedThreadPool threadPool = new QueuedThreadPool(maxThreadPoolSize);
         threadPool.setName(String.format("%s (%s) Web Server", getClass().getSimpleName(), getIdentifier()));
 
         // create the server instance
@@ -333,13 +394,21 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         // get the configured port
         final int port = context.getProperty(PORT).evaluateAttributeExpressions().asInteger();
 
-        final ServerConnector connector = createServerConnector(server, port, sslContextService, sslRequired, clientAuth);
+        final ServerConnector connector = createServerConnector(server,
+                port,
+                sslContextService,
+                sslRequired,
+                clientAuthentication);
         server.addConnector(connector);
 
         // Add a separate connector for the health check port (if specified)
         final Integer healthCheckPort = context.getProperty(HEALTH_CHECK_PORT).evaluateAttributeExpressions().asInteger();
         if (healthCheckPort != null) {
-            final ServerConnector healthCheckConnector = createServerConnector(server, healthCheckPort, sslContextService, sslRequired, ClientAuth.NONE);
+            final ServerConnector healthCheckConnector = createServerConnector(server,
+                    healthCheckPort,
+                    sslContextService,
+                    sslRequired,
+                    ClientAuthentication.NONE);
             server.addConnector(healthCheckConnector);
         }
 
@@ -362,6 +431,8 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         contextHandler.setAttribute(CONTEXT_ATTRIBUTE_PROCESS_CONTEXT_HOLDER, context);
         contextHandler.setAttribute(CONTEXT_ATTRIBUTE_FLOWFILE_MAP, flowFileMap);
         contextHandler.setAttribute(CONTEXT_ATTRIBUTE_AUTHORITY_PATTERN, Pattern.compile(context.getProperty(AUTHORIZED_DN_PATTERN).getValue()));
+        contextHandler.setAttribute(CONTEXT_ATTRIBUTE_AUTHORITY_ISSUER_PATTERN, Pattern.compile(context.getProperty(AUTHORIZED_ISSUER_DN_PATTERN)
+                .isSet() ? context.getProperty(AUTHORIZED_ISSUER_DN_PATTERN).getValue() : MATCH_ALL));
         contextHandler.setAttribute(CONTEXT_ATTRIBUTE_STREAM_THROTTLER, streamThrottler);
         contextHandler.setAttribute(CONTEXT_ATTRIBUTE_BASE_PATH, basePath);
         contextHandler.setAttribute(CONTEXT_ATTRIBUTE_RETURN_CODE, returnCode);
@@ -383,7 +454,26 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         initialized.set(true);
     }
 
-    private ServerConnector createServerConnector(Server server, int port, SSLContextService sslContextService, boolean sslRequired, final ClientAuth clientAuth) {
+    private ClientAuthentication getClientAuthentication(final SSLContextService sslContextService,
+                                                         final PropertyValue clientAuthenticationProperty) {
+        ClientAuthentication clientAuthentication = ClientAuthentication.NONE;
+        if (clientAuthenticationProperty.isSet()) {
+            clientAuthentication = ClientAuthentication.valueOf(clientAuthenticationProperty.getValue());
+            final boolean trustStoreConfigured = sslContextService != null && sslContextService.isTrustStoreConfigured();
+
+            if (ClientAuthentication.AUTO.equals(clientAuthentication) && trustStoreConfigured) {
+                clientAuthentication = ClientAuthentication.REQUIRED;
+                getLogger().debug("Client Authentication REQUIRED from SSLContextService Trust Store configuration");
+            }
+        }
+        return clientAuthentication;
+    }
+
+    private ServerConnector createServerConnector(final Server server,
+                                                  final int port,
+                                                  final SSLContextService sslContextService,
+                                                  final boolean sslRequired,
+                                                  final ClientAuthentication clientAuthentication) {
         final ServerConnector connector;
         final HttpConfiguration httpConfiguration = new HttpConfiguration();
         if (sslRequired) {
@@ -391,7 +481,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
             httpConfiguration.setSecurePort(port);
             httpConfiguration.addCustomizer(new SecureRequestCustomizer());
 
-            final SslContextFactory contextFactory = createSslContextFactory(sslContextService, clientAuth);
+            final SslContextFactory contextFactory = createSslContextFactory(sslContextService, clientAuthentication);
 
             connector = new ServerConnector(server, new SslConnectionFactory(contextFactory, "http/1.1"), new HttpConnectionFactory(httpConfiguration));
         } else {
@@ -402,7 +492,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         return connector;
     }
 
-    private SslContextFactory createSslContextFactory(SSLContextService sslContextService, final ClientAuth clientAuth) {
+    private SslContextFactory createSslContextFactory(final SSLContextService sslContextService, final ClientAuthentication clientAuthentication) {
         final SslContextFactory.Server contextFactory = new SslContextFactory.Server();
         final SSLContext sslContext = sslContextService.createContext();
         contextFactory.setSslContext(sslContext);
@@ -410,9 +500,9 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         final TlsConfiguration tlsConfiguration = sslContextService.createTlsConfiguration();
         contextFactory.setIncludeProtocols(tlsConfiguration.getEnabledProtocols());
 
-        if (ClientAuth.REQUIRED.equals(clientAuth)) {
+        if (ClientAuthentication.REQUIRED.equals(clientAuthentication)) {
             contextFactory.setNeedClientAuth(true);
-        } else if (ClientAuth.WANT.equals(clientAuth)) {
+        } else if (ClientAuthentication.WANT.equals(clientAuthentication)) {
             contextFactory.setWantClientAuth(true);
         }
 

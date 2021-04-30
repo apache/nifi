@@ -30,7 +30,7 @@ import java.util.Map;
 @XmlType(name = "provenanceRequest")
 public class ProvenanceRequestDTO {
 
-    private Map<String, String> searchTerms;
+    private Map<String, ProvenanceSearchValueDTO> searchTerms;
     private String clusterNodeId;
     private Date startDate;
     private Date endDate;
@@ -47,11 +47,11 @@ public class ProvenanceRequestDTO {
     @ApiModelProperty(
             value = "The search terms used to perform the search."
     )
-    public Map<String, String> getSearchTerms() {
+    public Map<String, ProvenanceSearchValueDTO> getSearchTerms() {
         return searchTerms;
     }
 
-    public void setSearchTerms(final Map<String, String> searchTerms) {
+    public void setSearchTerms(final Map<String, ProvenanceSearchValueDTO> searchTerms) {
         this.searchTerms = searchTerms;
     }
 

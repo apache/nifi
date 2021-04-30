@@ -28,6 +28,8 @@ public interface StatelessEngineConfiguration {
 
     File getNarDirectory();
 
+    File getExtensionsDirectory();
+
     File getKrb5File();
 
     SslContextDefinition getSslContext();

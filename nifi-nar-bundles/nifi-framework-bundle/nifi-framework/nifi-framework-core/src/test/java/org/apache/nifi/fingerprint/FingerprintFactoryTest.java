@@ -16,6 +16,44 @@
  */
 package org.apache.nifi.fingerprint;
 
+import org.apache.commons.codec.DecoderException;
+import org.apache.commons.codec.binary.Hex;
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.connectable.Position;
+import org.apache.nifi.controller.ScheduledState;
+import org.apache.nifi.controller.serialization.FlowEncodingVersion;
+import org.apache.nifi.controller.serialization.FlowSerializer;
+import org.apache.nifi.controller.serialization.ScheduledStateLookup;
+import org.apache.nifi.controller.serialization.StandardFlowSerializer;
+import org.apache.nifi.encrypt.PropertyEncryptor;
+import org.apache.nifi.encrypt.SensitiveValueEncoder;
+import org.apache.nifi.groups.RemoteProcessGroup;
+import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
+import org.apache.nifi.remote.RemoteGroupPort;
+import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
+import org.apache.nifi.security.xml.XmlUtils;
+import org.junit.Before;
+import org.junit.Test;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.xml.sax.ErrorHandler;
+import org.xml.sax.SAXException;
+import org.xml.sax.SAXParseException;
+
+import javax.xml.XMLConstants;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.validation.Schema;
+import javax.xml.validation.SchemaFactory;
+import java.io.File;
+import java.io.IOException;
+import java.lang.reflect.Method;
+import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.Optional;
+
 import static org.apache.nifi.controller.serialization.ScheduledStateLookup.IDENTITY_LOOKUP;
 import static org.apache.nifi.fingerprint.FingerprintFactory.FLOW_CONFIG_XSD;
 import static org.junit.Assert.assertEquals;
@@ -25,99 +63,50 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.io.File;
-import java.io.IOException;
-import java.lang.reflect.Method;
-import java.nio.charset.StandardCharsets;
-import java.util.Base64;
-import java.util.Collections;
-import java.util.Optional;
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
-import javax.xml.XMLConstants;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.validation.Schema;
-import javax.xml.validation.SchemaFactory;
-import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.connectable.Position;
-import org.apache.nifi.controller.ScheduledState;
-import org.apache.nifi.controller.serialization.FlowEncodingVersion;
-import org.apache.nifi.controller.serialization.FlowSerializer;
-import org.apache.nifi.controller.serialization.ScheduledStateLookup;
-import org.apache.nifi.controller.serialization.StandardFlowSerializer;
-import org.apache.nifi.encrypt.StringEncryptor;
-import org.apache.nifi.groups.RemoteProcessGroup;
-import org.apache.nifi.nar.ExtensionManager;
-import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
-import org.apache.nifi.properties.NiFiPropertiesLoader;
-import org.apache.nifi.remote.RemoteGroupPort;
-import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
-import org.apache.nifi.security.util.crypto.Argon2SecureHasher;
-import org.apache.nifi.security.xml.XmlUtils;
-import org.apache.nifi.util.NiFiProperties;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.Test;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.xml.sax.ErrorHandler;
-import org.xml.sax.SAXException;
-import org.xml.sax.SAXParseException;
-
 /**
  */
 public class FingerprintFactoryTest {
 
-    private StringEncryptor encryptor;
+    private PropertyEncryptor encryptor;
     private ExtensionManager extensionManager;
-    private FingerprintFactory fingerprinter;
-
-    private static final String ORIGINAL_NIFI_PROPS_PATH = System.getProperty(NiFiProperties.PROPERTIES_FILE_PATH);
-    private static final String TEST_NIFI_PROPS_PATH = "src/test/resources/conf/nifi.properties";
+    private FingerprintFactory fingerprintFactory;
+    private SensitiveValueEncoder sensitiveValueEncoder;
 
     @Before
     public void setup() {
-        encryptor = new StringEncryptor("PBEWITHMD5AND256BITAES-CBC-OPENSSL", "BC", "nififtw!");
+        encryptor = createEncryptor();
+        sensitiveValueEncoder = createSensitiveValueEncoder();
         extensionManager = new StandardExtensionDiscoveringManager();
-        fingerprinter = new FingerprintFactory(encryptor, extensionManager);
-    }
-
-    @AfterClass
-    public static void tearDownOnce() {
-        if (ORIGINAL_NIFI_PROPS_PATH != null) {
-            System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, ORIGINAL_NIFI_PROPS_PATH);
-        }
+        fingerprintFactory = new FingerprintFactory(encryptor, extensionManager, sensitiveValueEncoder);
     }
 
     @Test
     public void testSameFingerprint() throws IOException {
-        final String fp1 = fingerprinter.createFingerprint(getResourceBytes("/nifi/fingerprint/flow1a.xml"), null);
-        final String fp2 = fingerprinter.createFingerprint(getResourceBytes("/nifi/fingerprint/flow1b.xml"), null);
+        final String fp1 = fingerprintFactory.createFingerprint(getResourceBytes("/nifi/fingerprint/flow1a.xml"), null);
+        final String fp2 = fingerprintFactory.createFingerprint(getResourceBytes("/nifi/fingerprint/flow1b.xml"), null);
         assertEquals(fp1, fp2);
     }
 
     @Test
     public void testDifferentFingerprint() throws IOException {
-        final String fp1 = fingerprinter.createFingerprint(getResourceBytes("/nifi/fingerprint/flow1a.xml"), null);
-        final String fp2 = fingerprinter.createFingerprint(getResourceBytes("/nifi/fingerprint/flow2.xml"), null);
+        final String fp1 = fingerprintFactory.createFingerprint(getResourceBytes("/nifi/fingerprint/flow1a.xml"), null);
+        final String fp2 = fingerprintFactory.createFingerprint(getResourceBytes("/nifi/fingerprint/flow2.xml"), null);
         assertNotEquals(fp1, fp2);
     }
 
     @Test
     public void testResourceValueInFingerprint() throws IOException {
-        final String fingerprint = fingerprinter.createFingerprint(getResourceBytes("/nifi/fingerprint/flow1a.xml"), null);
+        final String fingerprint = fingerprintFactory.createFingerprint(getResourceBytes("/nifi/fingerprint/flow1a.xml"), null);
         assertEquals(3, StringUtils.countMatches(fingerprint, "success"));
         assertTrue(fingerprint.contains("In Connection"));
     }
 
     @Test
     public void testSameFlowWithDifferentBundleShouldHaveDifferentFingerprints() throws IOException {
-        final String fp1 = fingerprinter.createFingerprint(getResourceBytes("/nifi/fingerprint/flow3-with-bundle-1.xml"), null);
+        final String fp1 = fingerprintFactory.createFingerprint(getResourceBytes("/nifi/fingerprint/flow3-with-bundle-1.xml"), null);
         assertTrue(fp1.contains("org.apache.nifinifi-standard-nar1.0"));
 
-        final String fp2 = fingerprinter.createFingerprint(getResourceBytes("/nifi/fingerprint/flow3-with-bundle-2.xml"), null);
+        final String fp2 = fingerprintFactory.createFingerprint(getResourceBytes("/nifi/fingerprint/flow3-with-bundle-2.xml"), null);
         assertTrue(fp2.contains("org.apache.nifinifi-standard-nar2.0"));
 
         assertNotEquals(fp1, fp2);
@@ -125,10 +114,10 @@ public class FingerprintFactoryTest {
 
     @Test
     public void testSameFlowAndOneHasNoBundleShouldHaveDifferentFingerprints() throws IOException {
-        final String fp1 = fingerprinter.createFingerprint(getResourceBytes("/nifi/fingerprint/flow3-with-bundle-1.xml"), null);
+        final String fp1 = fingerprintFactory.createFingerprint(getResourceBytes("/nifi/fingerprint/flow3-with-bundle-1.xml"), null);
         assertTrue(fp1.contains("org.apache.nifinifi-standard-nar1.0"));
 
-        final String fp2 = fingerprinter.createFingerprint(getResourceBytes("/nifi/fingerprint/flow3-with-no-bundle.xml"), null);
+        final String fp2 = fingerprintFactory.createFingerprint(getResourceBytes("/nifi/fingerprint/flow3-with-no-bundle.xml"), null);
         assertTrue(fp2.contains("MISSING_BUNDLE"));
 
         assertNotEquals(fp1, fp2);
@@ -136,10 +125,10 @@ public class FingerprintFactoryTest {
 
     @Test
     public void testSameFlowAndOneHasMissingBundleShouldHaveDifferentFingerprints() throws IOException {
-        final String fp1 = fingerprinter.createFingerprint(getResourceBytes("/nifi/fingerprint/flow3-with-bundle-1.xml"), null);
+        final String fp1 = fingerprintFactory.createFingerprint(getResourceBytes("/nifi/fingerprint/flow3-with-bundle-1.xml"), null);
         assertTrue(fp1.contains("org.apache.nifinifi-standard-nar1.0"));
 
-        final String fp2 = fingerprinter.createFingerprint(getResourceBytes("/nifi/fingerprint/flow3-with-missing-bundle.xml"), null);
+        final String fp2 = fingerprintFactory.createFingerprint(getResourceBytes("/nifi/fingerprint/flow3-with-missing-bundle.xml"), null);
         assertTrue(fp2.contains("missingmissingmissing"));
 
         assertNotEquals(fp1, fp2);
@@ -147,15 +136,15 @@ public class FingerprintFactoryTest {
 
     @Test
     public void testConnectionWithMultipleRelationshipsSortedInFingerprint() throws IOException {
-        final String fingerprint = fingerprinter.createFingerprint(getResourceBytes("/nifi/fingerprint/flow-connection-with-multiple-rels.xml"), null);
+        final String fingerprint = fingerprintFactory.createFingerprint(getResourceBytes("/nifi/fingerprint/flow-connection-with-multiple-rels.xml"), null);
         assertNotNull(fingerprint);
         assertTrue(fingerprint.contains("AAABBBCCCDDD"));
     }
 
     @Test
     public void testSchemaValidation() throws IOException {
-        FingerprintFactory fp = new FingerprintFactory(null, getValidatingDocumentBuilder(), extensionManager);
-        final String fingerprint = fp.createFingerprint(getResourceBytes("/nifi/fingerprint/validating-flow.xml"), null);
+        FingerprintFactory fp = new FingerprintFactory(null, getValidatingDocumentBuilder(), extensionManager, null);
+        fp.createFingerprint(getResourceBytes("/nifi/fingerprint/validating-flow.xml"), null);
     }
 
     private byte[] getResourceBytes(final String resource) throws IOException {
@@ -194,7 +183,7 @@ public class FingerprintFactoryTest {
         }
     }
 
-    private <T> Element serializeElement(final StringEncryptor encryptor, final Class<T> componentClass, final T component,
+    private <T> Element serializeElement(final PropertyEncryptor encryptor, final Class<T> componentClass, final T component,
                                          final String serializerMethodName, ScheduledStateLookup scheduledStateLookup) throws Exception {
         final DocumentBuilder docBuilder = XmlUtils.createSafeDocumentBuilder(false);
         final Document doc = docBuilder.newDocument();
@@ -214,7 +203,7 @@ public class FingerprintFactoryTest {
         fingerprintFromComponent.setAccessible(true);
 
         final StringBuilder fingerprint = new StringBuilder();
-        fingerprintFromComponent.invoke(fingerprinter, fingerprint, input);
+        fingerprintFromComponent.invoke(fingerprintFactory, fingerprint, input);
         return fingerprint.toString();
     }
 
@@ -279,20 +268,7 @@ public class FingerprintFactoryTest {
         when(component.getProxyPassword()).thenReturn(proxyPassword);
         when(component.getVersionedComponentId()).thenReturn(Optional.empty());
 
-        // Build the same secure hasher to derive the HMAC key
-        Argon2SecureHasher a2sh = new Argon2SecureHasher();
-
-        // The nifi.properties file needs to be present
-        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, TEST_NIFI_PROPS_PATH);
-        String npsk = NiFiPropertiesLoader.loadDefaultWithKeyFromBootstrap().getProperty(NiFiProperties.SENSITIVE_PROPS_KEY);
-
-        // The output will be 32B (256b)
-        byte[] sensitivePropertyKeyBytes = a2sh.hashRaw(npsk.getBytes(StandardCharsets.UTF_8));
-
-        Mac mac = Mac.getInstance("HmacSHA256");
-        mac.init(new SecretKeySpec(sensitivePropertyKeyBytes, "HmacSHA256"));
-        byte[] hashedBytes = mac.doFinal(proxyPassword.getBytes(StandardCharsets.UTF_8));
-        final String hashedProxyPassword = "[MASKED] (" + Base64.getEncoder().encodeToString(hashedBytes) + ")";
+        final String hashedProxyPassword = sensitiveValueEncoder.getEncoded(proxyPassword);
 
         // Assert fingerprints with expected one.
         final String expected = "id" +
@@ -362,7 +338,7 @@ public class FingerprintFactoryTest {
         final Element processGroup = document.getDocumentElement();
 
         final StringBuilder sb = new StringBuilder();
-        fingerprinter.addProcessGroupFingerprint(sb, processGroup, new FlowEncodingVersion(1, 0));
+        fingerprintFactory.addProcessGroupFingerprint(sb, processGroup, new FlowEncodingVersion(1, 0));
 
         final String fingerprint = sb.toString();
         final String[] criticalFingerprintValues = new String[] {
@@ -377,5 +353,32 @@ public class FingerprintFactoryTest {
 
         // Ensure that 's1' comes before 's2' in the fingerprint
         assertTrue(fingerprint.indexOf("FingerprintControllerService") < fingerprint.indexOf("AnotherService"));
+    }
+
+    private PropertyEncryptor createEncryptor() {
+        return new PropertyEncryptor() {
+            @Override
+            public String encrypt(String property) {
+                return Hex.encodeHexString(property.getBytes(StandardCharsets.UTF_8));
+            }
+
+            @Override
+            public String decrypt(String encryptedProperty) {
+                try {
+                    return new String(Hex.decodeHex(encryptedProperty));
+                } catch (DecoderException e) {
+                    throw new IllegalArgumentException(e);
+                }
+            }
+        };
+    }
+
+    private SensitiveValueEncoder createSensitiveValueEncoder() {
+        return new SensitiveValueEncoder() {
+            @Override
+            public String getEncoded(String sensitivePropertyValue) {
+                return String.format("[MASKED] %s", sensitivePropertyValue);
+            }
+        };
     }
 }

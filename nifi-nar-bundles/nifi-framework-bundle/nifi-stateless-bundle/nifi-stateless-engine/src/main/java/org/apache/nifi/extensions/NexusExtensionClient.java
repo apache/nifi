@@ -22,14 +22,17 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 import org.apache.nifi.bundle.BundleCoordinate;
-import org.apache.nifi.security.util.OkHttpClientUtils;
+import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.security.util.TlsConfiguration;
+import org.apache.nifi.security.util.TlsException;
 import org.apache.nifi.stateless.config.SslConfigurationUtil;
 import org.apache.nifi.stateless.config.SslContextDefinition;
 import org.apache.nifi.util.FormatUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.X509TrustManager;
 import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -104,7 +107,13 @@ public class NexusExtensionClient implements ExtensionClient {
 
         if (sslContextDefinition != null) {
             final TlsConfiguration tlsConfiguration = SslConfigurationUtil.createTlsConfiguration(sslContextDefinition);
-            OkHttpClientUtils.applyTlsToOkHttpClientBuilder(tlsConfiguration, okHttpClientBuilder);
+            try {
+                final X509TrustManager trustManager = SslContextFactory.getX509TrustManager(tlsConfiguration);
+                final SSLContext sslContext = SslContextFactory.createSslContext(tlsConfiguration);
+                okHttpClientBuilder.sslSocketFactory(sslContext.getSocketFactory(), trustManager);
+            } catch (final TlsException e) {
+                throw new IllegalArgumentException("TLS Configuration Failed: Check SSL Context Properties", e);
+            }
         }
 
         return okHttpClientBuilder.build();

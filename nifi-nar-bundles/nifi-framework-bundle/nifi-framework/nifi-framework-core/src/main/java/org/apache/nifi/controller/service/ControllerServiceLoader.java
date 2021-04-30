@@ -36,7 +36,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.serialization.FlowEncodingVersion;
 import org.apache.nifi.controller.serialization.FlowFromDOMFactory;
-import org.apache.nifi.encrypt.StringEncryptor;
+import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.security.xml.XmlUtils;
@@ -56,7 +56,7 @@ public class ControllerServiceLoader {
     private static final Logger logger = LoggerFactory.getLogger(ControllerServiceLoader.class);
 
     public static List<ControllerServiceNode> loadControllerServices(final FlowController controller, final InputStream serializedStream, final ProcessGroup parentGroup,
-        final StringEncryptor encryptor, final BulletinRepository bulletinRepo, final boolean autoResumeState, final FlowEncodingVersion encodingVersion) throws IOException {
+        final PropertyEncryptor encryptor, final BulletinRepository bulletinRepo, final boolean autoResumeState, final FlowEncodingVersion encodingVersion) throws IOException {
 
         try (final InputStream in = new BufferedInputStream(serializedStream)) {
             final DocumentBuilder builder = XmlUtils.createSafeDocumentBuilder(null);
@@ -104,7 +104,7 @@ public class ControllerServiceLoader {
     }
 
     public static Map<ControllerServiceNode, Element> loadControllerServices(final List<Element> serviceElements, final FlowController controller,
-                                                                             final ProcessGroup parentGroup, final StringEncryptor encryptor, final FlowEncodingVersion encodingVersion) {
+                                                                             final ProcessGroup parentGroup, final PropertyEncryptor encryptor, final FlowEncodingVersion encodingVersion) {
 
         final Map<ControllerServiceNode, Element> nodeMap = new HashMap<>();
         for (final Element serviceElement : serviceElements) {
@@ -127,7 +127,7 @@ public class ControllerServiceLoader {
     }
 
     public static void enableControllerServices(final Map<ControllerServiceNode, Element> nodeMap, final FlowController controller,
-                                                final StringEncryptor encryptor, final boolean autoResumeState, final FlowEncodingVersion encodingVersion) {
+                                                final PropertyEncryptor encryptor, final boolean autoResumeState, final FlowEncodingVersion encodingVersion) {
         // Start services
         if (autoResumeState) {
             final Set<ControllerServiceNode> nodesToEnable = new HashSet<>();
@@ -187,7 +187,7 @@ public class ControllerServiceLoader {
         return clone;
     }
 
-    private static ControllerServiceNode createControllerService(final FlowController flowController, final Element controllerServiceElement, final StringEncryptor encryptor,
+    private static ControllerServiceNode createControllerService(final FlowController flowController, final Element controllerServiceElement, final PropertyEncryptor encryptor,
                                                                  final FlowEncodingVersion encodingVersion) {
         final ControllerServiceDTO dto = FlowFromDOMFactory.getControllerService(controllerServiceElement, encryptor, encodingVersion);
 
@@ -210,7 +210,7 @@ public class ControllerServiceLoader {
         return node;
     }
 
-    private static void configureControllerService(final ControllerServiceNode node, final Element controllerServiceElement, final StringEncryptor encryptor,
+    private static void configureControllerService(final ControllerServiceNode node, final Element controllerServiceElement, final PropertyEncryptor encryptor,
                                                    final FlowEncodingVersion encodingVersion) {
         final ControllerServiceDTO dto = FlowFromDOMFactory.getControllerService(controllerServiceElement, encryptor, encodingVersion);
         node.pauseValidationTrigger();

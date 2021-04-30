@@ -70,7 +70,7 @@ import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.service.ControllerServiceReference;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.controller.service.StandardConfigurationContext;
-import org.apache.nifi.encrypt.StringEncryptor;
+import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.logging.LogRepository;
@@ -159,6 +159,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -209,7 +210,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     private final Map<String, Funnel> funnels = new HashMap<>();
     private final Map<String, ControllerServiceNode> controllerServices = new HashMap<>();
     private final Map<String, Template> templates = new HashMap<>();
-    private final StringEncryptor encryptor;
+    private final PropertyEncryptor encryptor;
     private final MutableVariableRegistry variableRegistry;
     private final VersionControlFields versionControlFields = new VersionControlFields();
     private volatile ParameterContext parameterContext;
@@ -228,7 +229,7 @@ public final class StandardProcessGroup implements ProcessGroup {
     private static final Logger LOG = LoggerFactory.getLogger(StandardProcessGroup.class);
 
     public StandardProcessGroup(final String id, final ControllerServiceProvider serviceProvider, final ProcessScheduler scheduler,
-                                final StringEncryptor encryptor, final ExtensionManager extensionManager,
+                                final PropertyEncryptor encryptor, final ExtensionManager extensionManager,
                                 final StateManagerProvider stateManagerProvider, final FlowManager flowManager, final FlowRegistryClient flowRegistryClient,
                                 final ReloadComponent reloadComponent, final MutableVariableRegistry variableRegistry, final NodeTypeProvider nodeTypeProvider) {
         this.id = id;
@@ -443,7 +444,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                 syncFailure += childCounts.getSyncFailureCount();
             }
 
-            for (final RemoteProcessGroup remoteGroup : findAllRemoteProcessGroups()) {
+            for (final RemoteProcessGroup remoteGroup : getRemoteProcessGroups()) {
                 // Count only input ports that have incoming connections
                 for (final Port port : remoteGroup.getInputPorts()) {
                     if (port.hasIncomingConnection()) {
@@ -518,7 +519,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                 try {
                     node.getProcessGroup().stopProcessor(node);
                 } catch (final Throwable t) {
-                    LOG.error("Unable to stop processor {} due to {}", new Object[]{node.getIdentifier(), t});
+                    LOG.error("Unable to stop processor {}", node.getIdentifier(), t);
                 }
             });
 
@@ -1470,6 +1471,31 @@ public final class StandardProcessGroup implements ProcessGroup {
     }
 
     @Override
+    public Future<Void> runProcessorOnce(ProcessorNode processor, Callable<Future<Void>> stopCallback) {
+        readLock.lock();
+        try {
+            if (getProcessor(processor.getIdentifier()) == null) {
+                throw new IllegalStateException("Processor is not a member of this Process Group");
+            }
+
+            final ScheduledState state = processor.getScheduledState();
+            if (state == ScheduledState.DISABLED) {
+                throw new IllegalStateException("Processor is disabled");
+            } else if (state == ScheduledState.RUNNING) {
+                throw new IllegalStateException("Processor is already running");
+            }
+            processor.reloadAdditionalResourcesIfNecessary();
+
+            return scheduler.runProcessorOnce(processor, stopCallback);
+        } catch (Exception e) {
+            processor.getLogger().error("Error while running processor {} once.", new Object[]{processor}, e);
+            return stopProcessor(processor);
+        } finally {
+            readLock.unlock();
+        }
+    }
+
+    @Override
     public void startInputPort(final Port port) {
         readLock.lock();
         try {
@@ -1557,7 +1583,7 @@ public final class StandardProcessGroup implements ProcessGroup {
             }
 
             final ScheduledState state = processor.getScheduledState();
-            if (state != ScheduledState.STOPPED) {
+            if (state != ScheduledState.STOPPED && state != ScheduledState.RUN_ONCE) {
                 throw new IllegalStateException("Cannot terminate processor with ID " + processor.getIdentifier() + " because it is not stopped");
             }
 
@@ -3578,6 +3604,8 @@ public final class StandardProcessGroup implements ProcessGroup {
                 childCopy.setName(childGroup.getName());
                 childCopy.setPosition(childGroup.getPosition());
                 childCopy.setVersionedFlowCoordinates(childGroup.getVersionedFlowCoordinates());
+                childCopy.setFlowFileConcurrency(childGroup.getFlowFileConcurrency());
+                childCopy.setFlowFileOutboundPolicy(childGroup.getFlowFileOutboundPolicy());
 
                 copyChildren.add(childCopy);
             }
@@ -5170,12 +5198,20 @@ public final class StandardProcessGroup implements ProcessGroup {
                 final String processorToAddClass = processorToAdd.getType();
                 final BundleCoordinate processorToAddCoordinate = toCoordinate(processorToAdd.getBundle());
 
-                final List<org.apache.nifi.bundle.Bundle> possibleBundles = extensionManager.getBundles(processorToAddClass);
-                final boolean bundleExists = possibleBundles.stream()
-                    .anyMatch(b -> processorToAddCoordinate.equals(b.getBundleDetails().getCoordinate()));
+                // Get the exact bundle requested, if it exists.
+                final Bundle bundle = processorToAdd.getBundle();
+                final BundleCoordinate coordinate = new BundleCoordinate(bundle.getGroup(), bundle.getArtifact(), bundle.getVersion());
+                final org.apache.nifi.bundle.Bundle resolved = extensionManager.getBundle(coordinate);
 
-                if (!bundleExists && possibleBundles.size() != 1) {
-                    throw new IllegalArgumentException("Unknown bundle " + processorToAddCoordinate.toString() + " for processor type " + processorToAddClass);
+                if (resolved == null) {
+                    // Could not resolve the bundle explicitly. Check for possible bundles.
+                    final List<org.apache.nifi.bundle.Bundle> possibleBundles = extensionManager.getBundles(processorToAddClass);
+                    final boolean bundleExists = possibleBundles.stream()
+                        .anyMatch(b -> processorToAddCoordinate.equals(b.getBundleDetails().getCoordinate()));
+
+                    if (!bundleExists && possibleBundles.size() != 1) {
+                        throw new IllegalArgumentException("Unknown bundle " + processorToAddCoordinate.toString() + " for processor type " + processorToAddClass);
+                    }
                 }
             }
 
@@ -5191,12 +5227,15 @@ public final class StandardProcessGroup implements ProcessGroup {
                 final String serviceToAddClass = serviceToAdd.getType();
                 final BundleCoordinate serviceToAddCoordinate = toCoordinate(serviceToAdd.getBundle());
 
-                final List<org.apache.nifi.bundle.Bundle> possibleBundles = extensionManager.getBundles(serviceToAddClass);
-                final boolean bundleExists = possibleBundles.stream()
-                    .anyMatch(b -> serviceToAddCoordinate.equals(b.getBundleDetails().getCoordinate()));
+                final org.apache.nifi.bundle.Bundle resolved = extensionManager.getBundle(serviceToAddCoordinate);
+                if (resolved == null) {
+                    final List<org.apache.nifi.bundle.Bundle> possibleBundles = extensionManager.getBundles(serviceToAddClass);
+                    final boolean bundleExists = possibleBundles.stream()
+                        .anyMatch(b -> serviceToAddCoordinate.equals(b.getBundleDetails().getCoordinate()));
 
-                if (!bundleExists && possibleBundles.size() != 1) {
-                    throw new IllegalArgumentException("Unknown bundle " + serviceToAddCoordinate.toString() + " for service type " + serviceToAddClass);
+                    if (!bundleExists && possibleBundles.size() != 1) {
+                        throw new IllegalArgumentException("Unknown bundle " + serviceToAddCoordinate.toString() + " for service type " + serviceToAddClass);
+                    }
                 }
             }
 

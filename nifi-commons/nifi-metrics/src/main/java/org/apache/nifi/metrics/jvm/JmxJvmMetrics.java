@@ -139,12 +139,14 @@ public class JmxJvmMetrics implements JvmMetrics {
 
     @Override
     public double heapUsage() {
-        return (Double) getMetric(MEMORY_HEAP_USAGE);
+        double usage = (Double) getMetric(MEMORY_HEAP_USAGE);
+        return usage < 0 ? -1.0 : usage;
     }
 
     @Override
     public double nonHeapUsage() {
-        return (Double) getMetric(MEMORY_NON_HEAP_USAGE);
+        double usage = (Double) getMetric(MEMORY_NON_HEAP_USAGE);
+        return usage < 0 ? -1.0 : usage;
     }
 
     @Override

@@ -430,6 +430,20 @@
     };
 
     /**
+     * Determines whether the current selection is a processor.
+     *
+     * @param {selection} selection
+     */
+    var isRunnableProcessor = function (selection) {
+        // ensure the correct number of components are selected
+        if (selection.size() !== 1) {
+            return false;
+        }
+
+        return isRunnable(selection) && nfCanvasUtils.isProcessor(selection);
+    };
+
+    /**
      * Returns whether the process group supports downloading the current flow.
      *
      * @param selection
@@ -804,6 +818,7 @@
         {separator: true},
         {id: 'start-menu-item', condition: isRunnable, menuItem: {clazz: 'fa fa-play', text: 'Start', action: 'start'}},
         {id: 'stop-menu-item', condition: isStoppable, menuItem: {clazz: 'fa fa-stop', text: 'Stop', action: 'stop'}},
+        {id: 'run-once-menu-item', condition: isRunnableProcessor, menuItem: {clazz: 'fa fa-caret-right', text: 'Run Once', action: 'runOnce'}},
         {id: 'terminate-menu-item', condition: canTerminate, menuItem: {clazz: 'fa fa-hourglass-end', text: 'Terminate', action: 'terminate'}},
         {id: 'enable-menu-item', condition: canEnable, menuItem: {clazz: 'fa fa-flash', text: 'Enable', action: 'enable'}},
         {id: 'disable-menu-item', condition: canDisable, menuItem: {clazz: 'icon icon-enable-false', text: 'Disable', action: 'disable'}},
@@ -841,7 +856,7 @@
         {id: 'move-into-parent-menu-item', condition: canMoveToParent, menuItem: {clazz: 'fa fa-arrows', text: 'Move to parent group', action: 'moveIntoParent'}},
         {id: 'group-menu-item', condition: canGroup, menuItem: {clazz: 'icon icon-group', text: 'Group', action: 'group'}},
         {separator: true},
-        {id: 'download-menu-item', condition: supportsDownloadFlow, menuItem: {clazz: 'fa', text: 'Download flow', action: 'downloadFlow'}},
+        {id: 'download-menu-item', condition: supportsDownloadFlow, menuItem: {clazz: 'fa', text: 'Download flow definition', action: 'downloadFlow'}},
         {separator: true},
         {id: 'upload-template-menu-item', condition: canUploadTemplate, menuItem: {clazz: 'icon icon-template-import', text: 'Upload template', action: 'uploadTemplate'}},
         {id: 'template-menu-item', condition: canCreateTemplate, menuItem: {clazz: 'icon icon-template-save', text: 'Create template', action: 'template'}},

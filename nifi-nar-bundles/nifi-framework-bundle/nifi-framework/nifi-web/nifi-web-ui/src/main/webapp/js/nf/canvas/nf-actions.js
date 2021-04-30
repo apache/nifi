@@ -703,6 +703,46 @@
         },
 
         /**
+         * Runs a processor once.
+         *
+         * @argument {selection} selection      The selection
+         */
+        runOnce: function (selection) {
+            var componentsToRunOnce = selection.filter(function (d) {
+                return nfCanvasUtils.isRunnable(d3.select(this));
+            });
+
+            // ensure there are startable components selected
+            if (!componentsToRunOnce.empty()) {
+                var requests = [];
+
+                // start each selected component
+                componentsToRunOnce.each(function (d) {
+                    var selected = d3.select(this);
+
+                    // prepare the request
+                    var uri, entity;
+                    uri = d.uri + '/run-status';
+                    entity = {
+                        'revision': nfClient.getRevision(d),
+                        'state': 'RUN_ONCE'
+                    };
+
+                    requests.push(updateResource(uri, entity).done(function (response) {
+                        nfCanvasUtils.getComponentByType(d.type).set(response);
+                    }));
+                });
+
+                // inform Angular app once the updates have completed
+                if (requests.length > 0) {
+                    $.when.apply(window, requests).always(function () {
+                        nfNgBridge.digest();
+                    });
+                }
+            }
+        },
+
+        /**
          * Stops the components in the specified selection.
          *
          * @argument {selection} selection      The selection
@@ -1588,7 +1628,7 @@
                     window.open(uri);
                 }).fail(function () {
                     nfDialog.showOkDialog({
-                        headerText: 'Download Flow',
+                        headerText: 'Download Flow Definition',
                         dialogContent: 'Unable to generate access token for downloading content.'
                     });
                 });
@@ -1861,7 +1901,7 @@
             var origin = nfCanvasUtils.getOrigin(selection);
 
             var pt = {'x': origin.x, 'y': origin.y};
-            $.when(nfNgBridge.injector.get('groupComponent').promptForGroupName(pt, false)).done(function (processGroup) {
+            $.when(nfNgBridge.injector.get('groupComponent').promptForGroupName(pt, false, false)).done(function (processGroup) {
                 var group = d3.select('#id-' + processGroup.id);
                 nfCanvasUtils.moveComponents(selection, group);
             });

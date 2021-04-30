@@ -43,6 +43,10 @@ public class XXEValidator implements Validator {
         String line;
         boolean containsXXE = false;
 
+        if (validationContext.isExpressionLanguageSupported(subject) && validationContext.isExpressionLanguagePresent(input)) {
+            return new ValidationResult.Builder().subject(subject).input(input).explanation("Expression Language Present").valid(true).build();
+        }
+
         final String xmlFilePathString = xmlFilePath.toString();
         logger.info("Validating {} for XXE attack", xmlFilePathString);
 

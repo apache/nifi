@@ -19,6 +19,7 @@ package org.apache.nifi.controller;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
@@ -39,6 +40,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * Reporting task used to monitor usage of memory after Garbage Collection has
@@ -91,7 +93,8 @@ public class MonitorMemory extends AbstractReportingTask {
     private static final AllowableValue[] memPoolAllowableValues;
 
     static {
-        List<MemoryPoolMXBean> memoryPoolBeans = ManagementFactory.getMemoryPoolMXBeans();
+        // Only allow memory pool beans that support usage thresholds, otherwise we wouldn't report anything anyway
+        List<MemoryPoolMXBean> memoryPoolBeans = ManagementFactory.getMemoryPoolMXBeans().stream().filter(MemoryPoolMXBean::isUsageThresholdSupported).collect(Collectors.toList());
         memPoolAllowableValues = new AllowableValue[memoryPoolBeans.size()];
         for (int i = 0; i < memPoolAllowableValues.length; i++) {
             memPoolAllowableValues[i] = new AllowableValue(memoryPoolBeans.get(i).getName());
@@ -101,14 +104,17 @@ public class MonitorMemory extends AbstractReportingTask {
     public static final PropertyDescriptor MEMORY_POOL_PROPERTY = new PropertyDescriptor.Builder()
             .name("Memory Pool")
             .displayName("Memory Pool")
-            .description("The name of the JVM Memory Pool to monitor")
+            .description("The name of the JVM Memory Pool to monitor. The allowed values for Memory Pools are platform and JVM"
+                    + " dependent and may vary for different versions of Java and from published documentation. This reporting"
+                    + " task will become invalidated if configured to use a Memory Pool that is not available on the currently"
+                    + " running host platform and JVM")
             .required(true)
             .allowableValues(memPoolAllowableValues)
             .build();
     public static final PropertyDescriptor THRESHOLD_PROPERTY = new PropertyDescriptor.Builder()
             .name("Usage Threshold")
             .displayName("Usage Threshold")
-            .description("Indicates the threshold at which warnings should be generated")
+            .description("Indicates the threshold at which warnings should be generated. This can be a percentage or a Data Size")
             .required(true)
             .addValidator(new ThresholdValidator())
             .defaultValue("65%")
@@ -175,7 +181,9 @@ public class MonitorMemory extends AbstractReportingTask {
                         final double pct = Double.parseDouble(percentage) / 100D;
                         calculatedThreshold = (long) (monitoredBean.getUsage().getMax() * pct);
                     }
-                    monitoredBean.setUsageThreshold(calculatedThreshold);
+                    if (monitoredBean.isUsageThresholdSupported()) {
+                        monitoredBean.setUsageThreshold(calculatedThreshold);
+                    }
                 }
             }
         }
@@ -200,7 +208,7 @@ public class MonitorMemory extends AbstractReportingTask {
         }
 
         final double percentageUsed = (double) usage.getUsed() / (double) usage.getMax() * 100D;
-        if (bean.isUsageThresholdExceeded()) {
+        if (bean.isUsageThresholdSupported() && bean.isUsageThresholdExceeded()) {
             if (System.currentTimeMillis() < reportingIntervalMillis + lastReportTime && lastReportTime > 0L) {
                 return;
             }
@@ -221,6 +229,11 @@ public class MonitorMemory extends AbstractReportingTask {
 
             getLogger().info("{}", new Object[] {message});
         }
+    }
+
+    @OnStopped
+    public void onStopped() {
+        monitoredBean = null;
     }
 
     private static class ThresholdValidator implements Validator {

@@ -24,6 +24,7 @@ import org.apache.nifi.nar.ExtensionDiscoveringManager;
 import org.apache.nifi.nar.NarClassLoaders;
 import org.apache.nifi.nar.NarLoadResult;
 import org.apache.nifi.nar.NarUnpacker;
+import org.apache.nifi.stateless.engine.NarUnpackLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,8 +49,8 @@ public class FileSystemExtensionRepository implements ExtensionRepository {
     private final List<ExtensionClient> clients;
 
 
-    public FileSystemExtensionRepository(final ExtensionDiscoveringManager extensionManager, final File narLibDirectory, final File workingDirectory, final NarClassLoaders narClassLoaders,
-                                         final List<ExtensionClient> clients) {
+    public FileSystemExtensionRepository(final ExtensionDiscoveringManager extensionManager, final File narLibDirectory, final File workingDirectory,
+                                         final NarClassLoaders narClassLoaders, final List<ExtensionClient> clients) {
         this.extensionManager = extensionManager;
         this.narLibDirectory = narLibDirectory;
         this.workingDirectory = workingDirectory;
@@ -88,6 +89,7 @@ public class FileSystemExtensionRepository implements ExtensionRepository {
 
         final DownloadQueue downloadQueue = new DownloadQueue(extensionManager, executorService, concurrentDownloads, bundleCoordinates, narLibDirectory, clients);
         final CompletableFuture<Void> downloadFuture = downloadQueue.download();
+        logger.info("Beginning download of extensions {}", bundleCoordinates);
 
         final CompletableFuture<Set<Bundle>> loadFuture = downloadFuture.thenApply(new Function<Void, Set<Bundle>>() {
             @Override
@@ -111,8 +113,17 @@ public class FileSystemExtensionRepository implements ExtensionRepository {
 
         final long start = System.currentTimeMillis();
         for (final File downloadedFile : downloadedFiles) {
-            final File unpackedDir = NarUnpacker.unpackNar(downloadedFile, workingDirectory);
-            unpackedDirs.add(unpackedDir);
+            // Use a statically defined Lock to prevent multiple threads from unpacking their downloaded nars at the same time,
+            // even if they use a different ExtensionRepository.
+            NarUnpackLock.lock();
+            try {
+                logger.info("Unpacking {}", downloadedFile);
+                final File extensionsWorkingDirectory = new File(workingDirectory, "extensions");
+                final File unpackedDir = NarUnpacker.unpackNar(downloadedFile, extensionsWorkingDirectory, false);
+                unpackedDirs.add(unpackedDir);
+            } finally {
+                NarUnpackLock.unlock();
+            }
         }
 
         final long unpackMillis = System.currentTimeMillis() - start;

@@ -36,7 +36,7 @@ import org.apache.nifi.controller.repository.scheduling.ConnectableProcessContex
 import org.apache.nifi.controller.scheduling.LifecycleState;
 import org.apache.nifi.controller.scheduling.RepositoryContextFactory;
 import org.apache.nifi.controller.scheduling.SchedulingAgent;
-import org.apache.nifi.encrypt.StringEncryptor;
+import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.processor.ProcessContext;
@@ -72,7 +72,7 @@ public class ConnectableTask {
 
     public ConnectableTask(final SchedulingAgent schedulingAgent, final Connectable connectable,
             final FlowController flowController, final RepositoryContextFactory contextFactory, final LifecycleState scheduleState,
-            final StringEncryptor encryptor) {
+            final PropertyEncryptor encryptor) {
 
         this.schedulingAgent = schedulingAgent;
         this.connectable = connectable;
@@ -164,7 +164,7 @@ public class ConnectableTask {
         // make sure that either we're not clustered or this processor runs on all nodes or that this is the primary node
         if (!isRunOnCluster(flowController)) {
             logger.debug("Will not trigger {} because this is not the primary node", connectable);
-            return InvocationResult.DO_NOT_YIELD;
+            return InvocationResult.yield("This node is not the primary node");
         }
 
         // Make sure processor has work to do.
@@ -208,7 +208,7 @@ public class ConnectableTask {
         final String originalThreadName = Thread.currentThread().getName();
         try {
             try (final AutoCloseable ncl = NarCloseable.withComponentNarLoader(flowController.getExtensionManager(), connectable.getRunnableComponent().getClass(), connectable.getIdentifier())) {
-                boolean shouldRun = connectable.getScheduledState() == ScheduledState.RUNNING;
+                boolean shouldRun = connectable.getScheduledState() == ScheduledState.RUNNING || connectable.getScheduledState() == ScheduledState.RUN_ONCE;
                 while (shouldRun) {
                     invocationCount++;
                     connectable.onTrigger(processContext, activeSessionFactory);

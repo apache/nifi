@@ -33,6 +33,7 @@ import org.apache.nifi.redis.util.RedisUtils;
 import org.springframework.data.redis.connection.RedisConnection;
 import org.springframework.data.redis.connection.jedis.JedisConnectionFactory;
 
+import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -57,11 +58,22 @@ public class RedisStateProvider extends AbstractConfigurableComponent implements
             .defaultValue("nifi/components/")
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
+    public static final PropertyDescriptor ENABLE_TLS = new PropertyDescriptor.Builder()
+            .name("Enable TLS")
+            .displayName("Enable TLS")
+            .description("If true, the Redis connection will be configured to use TLS, using the keystore and truststore settings configured in " +
+                    "nifi.properties.  This means that a TLS-enabled Redis connection is only possible if the Apache NiFi instance is running in secure mode. " +
+                    "If this property is false, an insecure Redis connection will be used even if the Apache NiFi instance is secure.")
+            .required(true)
+            .defaultValue("false")
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .build();
 
     static final List<PropertyDescriptor> STATE_PROVIDER_PROPERTIES;
     static {
         final List<PropertyDescriptor> props = new ArrayList<>(RedisUtils.REDIS_CONNECTION_PROPERTY_DESCRIPTORS);
         props.add(KEY_PREFIX);
+        props.add(ENABLE_TLS);
         STATE_PROVIDER_PROPERTIES = Collections.unmodifiableList(props);
     }
 
@@ -69,6 +81,7 @@ public class RedisStateProvider extends AbstractConfigurableComponent implements
     private String keyPrefix;
     private ComponentLog logger;
     private PropertyContext context;
+    private SSLContext sslContext;
 
     private volatile boolean enabled;
     private volatile JedisConnectionFactory connectionFactory;
@@ -76,8 +89,11 @@ public class RedisStateProvider extends AbstractConfigurableComponent implements
     private final RedisStateMapSerDe serDe = new RedisStateMapJsonSerDe();
 
     @Override
-    public final void initialize(final StateProviderInitializationContext context) throws IOException {
+    public final void initialize(final StateProviderInitializationContext context) {
         this.context = context;
+        if (context.getProperty(ENABLE_TLS).asBoolean()) {
+            this.sslContext = context.getSSLContext();
+        }
         this.identifier = context.getIdentifier();
         this.logger = context.getLogger();
 
@@ -98,12 +114,22 @@ public class RedisStateProvider extends AbstractConfigurableComponent implements
         final List<ValidationResult> results = new ArrayList<>(RedisUtils.validate(validationContext));
 
         final RedisType redisType = RedisType.fromDisplayName(validationContext.getProperty(RedisUtils.REDIS_MODE).getValue());
-        if (redisType != null && redisType == RedisType.CLUSTER) {
+        if (redisType == RedisType.CLUSTER) {
             results.add(new ValidationResult.Builder()
                     .subject(RedisUtils.REDIS_MODE.getDisplayName())
                     .valid(false)
                     .explanation(RedisUtils.REDIS_MODE.getDisplayName()
                             + " is configured in clustered mode, and this service requires a non-clustered Redis")
+                    .build());
+        }
+        final boolean enableTls = validationContext.getProperty(ENABLE_TLS).asBoolean();
+        if (enableTls && sslContext == null) {
+            results.add(new ValidationResult.Builder()
+                    .subject(ENABLE_TLS.getDisplayName())
+                    .valid(false)
+                    .explanation(ENABLE_TLS.getDisplayName()
+                            + " is set to 'true', but Apache NiFi is not secured.  This state provider can only use a TLS-enabled connection " +
+                            "if a keystore and truststore are provided in nifi.properties.")
                     .build());
         }
 
@@ -274,7 +300,7 @@ public class RedisStateProvider extends AbstractConfigurableComponent implements
     // visible for testing
     synchronized RedisConnection getRedis() {
         if (connectionFactory == null) {
-            connectionFactory = RedisUtils.createConnectionFactory(context, logger);
+            connectionFactory = RedisUtils.createConnectionFactory(context, logger, sslContext);
         }
 
         return connectionFactory.getConnection();

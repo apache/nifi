@@ -25,9 +25,7 @@ import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -60,72 +58,36 @@ import org.apache.nifi.http.HttpContextMap;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.standard.util.HTTPUtils;
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.security.util.SslContextFactory;
-import org.apache.nifi.security.util.StandardTlsConfiguration;
-import org.apache.nifi.security.util.TlsConfiguration;
-import org.apache.nifi.ssl.SSLContextService;
-import org.apache.nifi.ssl.StandardRestrictedSSLContextService;
-import org.apache.nifi.ssl.StandardSSLContextService;
+import org.apache.nifi.security.util.TlsException;
+import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.apache.nifi.web.util.ssl.SslContextUtils;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 public class ITestHandleHttpRequest {
 
-    private static final String KEYSTORE = "src/test/resources/keystore.jks";
-    private static final String KEYSTORE_PASSWORD = "passwordpassword";
-    private static final String KEYSTORE_TYPE = "JKS";
-    private static final String TRUSTSTORE = "src/test/resources/truststore.jks";
-    private static final String TRUSTSTORE_PASSWORD = "passwordpassword";
-    private static final String TRUSTSTORE_TYPE = "JKS";
-    private static final String CLIENT_KEYSTORE = "src/test/resources/client-keystore.p12";
-    private static final String CLIENT_KEYSTORE_TYPE = "PKCS12";
-
     private HandleHttpRequest processor;
 
-    private TlsConfiguration clientTlsConfiguration;
-    private TlsConfiguration trustOnlyTlsConfiguration;
+    private static SSLContext keyStoreSslContext;
 
-    private static Map<String, String> getTruststoreProperties() {
-        final Map<String, String> props = new HashMap<>();
-        props.put(StandardSSLContextService.TRUSTSTORE.getName(), TRUSTSTORE);
-        props.put(StandardSSLContextService.TRUSTSTORE_PASSWORD.getName(), TRUSTSTORE_PASSWORD);
-        props.put(StandardSSLContextService.TRUSTSTORE_TYPE.getName(), TRUSTSTORE_TYPE);
-        return props;
-    }
+    private static SSLContext trustStoreSslContext;
 
-    private static Map<String, String> getServerKeystoreProperties() {
-        final Map<String, String> properties = new HashMap<>();
-        properties.put(StandardSSLContextService.KEYSTORE.getName(), KEYSTORE);
-        properties.put(StandardSSLContextService.KEYSTORE_PASSWORD.getName(), KEYSTORE_PASSWORD);
-        properties.put(StandardSSLContextService.KEYSTORE_TYPE.getName(), KEYSTORE_TYPE);
-        return properties;
-    }
-
-    private static SSLContext useSSLContextService(final TestRunner controller, final Map<String, String> sslProperties) {
-        final SSLContextService service = new StandardRestrictedSSLContextService();
-        try {
-            controller.addControllerService("ssl-service", service, sslProperties);
-            controller.enableControllerService(service);
-        } catch (InitializationException ex) {
-            ex.printStackTrace();
-            Assert.fail("Could not create SSL Context Service");
-        }
-
-        controller.setProperty(HandleHttpRequest.SSL_CONTEXT, "ssl-service");
-        return service.createContext();
+    @BeforeClass
+    public static void configureServices() throws TlsException  {
+        keyStoreSslContext = SslContextUtils.createKeyStoreSslContext();
+        trustStoreSslContext = SslContextUtils.createTrustStoreSslContext();
     }
 
     @Before
     public void setUp() throws Exception {
-        clientTlsConfiguration = new StandardTlsConfiguration(CLIENT_KEYSTORE, KEYSTORE_PASSWORD, null, CLIENT_KEYSTORE_TYPE,
-                TRUSTSTORE, TRUSTSTORE_PASSWORD, TRUSTSTORE_TYPE, TlsConfiguration.getHighestCurrentSupportedTlsProtocolVersion());
-        trustOnlyTlsConfiguration = new StandardTlsConfiguration(null, null, null, null,
-                TRUSTSTORE, TRUSTSTORE_PASSWORD, TRUSTSTORE_TYPE, TlsConfiguration.getHighestCurrentSupportedTlsProtocolVersion());
+
     }
 
     @After
@@ -136,7 +98,7 @@ public class ITestHandleHttpRequest {
     }
 
     @Test(timeout = 30000)
-    public void testRequestAddedToService() throws InitializationException, IOException, InterruptedException {
+    public void testRequestAddedToService() throws InitializationException {
         CountDownLatch serverReady = new CountDownLatch(1);
         CountDownLatch requestSent = new CountDownLatch(1);
 
@@ -191,7 +153,7 @@ public class ITestHandleHttpRequest {
     }
 
     @Test(timeout = 30000)
-    public void testMultipartFormDataRequest() throws InitializationException, IOException, InterruptedException {
+    public void testMultipartFormDataRequest() throws InitializationException {
         CountDownLatch serverReady = new CountDownLatch(1);
         CountDownLatch requestSent = new CountDownLatch(1);
 
@@ -304,8 +266,7 @@ public class ITestHandleHttpRequest {
     }
 
     @Test(timeout = 30000)
-    public void testMultipartFormDataRequestCaptureFormAttributes() throws InitializationException, IOException,
-        InterruptedException {
+    public void testMultipartFormDataRequestCaptureFormAttributes() throws InitializationException {
         CountDownLatch serverReady = new CountDownLatch(1);
         CountDownLatch requestSent = new CountDownLatch(1);
 
@@ -374,7 +335,7 @@ public class ITestHandleHttpRequest {
     }
 
     @Test(timeout = 30000)
-    public void testMultipartFormDataRequestFailToRegisterContext() throws InitializationException, IOException, InterruptedException {
+    public void testMultipartFormDataRequestFailToRegisterContext() throws InitializationException, InterruptedException {
         CountDownLatch serverReady = new CountDownLatch(1);
         CountDownLatch requestSent = new CountDownLatch(1);
         CountDownLatch resultReady = new CountDownLatch(1);
@@ -427,7 +388,7 @@ public class ITestHandleHttpRequest {
                         }
 
                         @Override
-                        public void onResponse(Call call, Response response) throws IOException {
+                        public void onResponse(Call call, Response response) {
                             responseCode.set(response.code());
                             resultReady.countDown();
                         }
@@ -473,7 +434,7 @@ public class ITestHandleHttpRequest {
 
 
     @Test(timeout = 30000)
-    public void testFailToRegister() throws InitializationException, IOException, InterruptedException {
+    public void testFailToRegister() throws InitializationException, InterruptedException {
         CountDownLatch serverReady = new CountDownLatch(1);
         CountDownLatch requestSent = new CountDownLatch(1);
         CountDownLatch resultReady = new CountDownLatch(1);
@@ -649,10 +610,13 @@ public class ITestHandleHttpRequest {
         runner.enableControllerService(contextMap);
         runner.setProperty(HandleHttpRequest.HTTP_CONTEXT_MAP, "http-context-map");
 
-        final Map<String, String> sslProperties = getServerKeystoreProperties();
-        sslProperties.putAll(getTruststoreProperties());
-        sslProperties.put(StandardSSLContextService.SSL_ALGORITHM.getName(), TlsConfiguration.getHighestCurrentSupportedTlsProtocolVersion());
-        useSSLContextService(runner, sslProperties);
+        final RestrictedSSLContextService sslContextService = Mockito.mock(RestrictedSSLContextService.class);
+        final String serviceIdentifier = RestrictedSSLContextService.class.getName();
+        Mockito.when(sslContextService.getIdentifier()).thenReturn(serviceIdentifier);
+        Mockito.when(sslContextService.createContext()).thenReturn(keyStoreSslContext);
+        runner.addControllerService(serviceIdentifier, sslContextService);
+        runner.enableControllerService(sslContextService);
+        runner.setProperty(HandleHttpRequest.SSL_CONTEXT, serviceIdentifier);
 
         final Thread httpThread = new Thread(new Runnable() {
             @Override
@@ -667,10 +631,10 @@ public class ITestHandleHttpRequest {
                     SSLContext clientSslContext;
                     if (twoWaySsl) {
                         // Use a client certificate, do not reuse the server's keystore
-                        clientSslContext = SslContextFactory.createSslContext(clientTlsConfiguration);
+                        clientSslContext = keyStoreSslContext;
                     } else {
                         // With one-way SSL, the client still needs a truststore
-                        clientSslContext = SslContextFactory.createSslContext(trustOnlyTlsConfiguration);
+                        clientSslContext = trustStoreSslContext;
                     }
                     connection.setSSLSocketFactory(clientSslContext.getSocketFactory());
                     connection.setDoOutput(false);

@@ -20,6 +20,7 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.resource.ResourceReferences;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
@@ -29,8 +30,6 @@ import org.apache.nifi.util.StringUtils;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineFactory;
 import javax.script.ScriptEngineManager;
-import java.io.File;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.Files;
@@ -65,9 +64,9 @@ public class ScriptingComponentHelper {
     private String scriptEngineName;
     private String scriptPath;
     private String scriptBody;
-    private String[] modules;
     private List<PropertyDescriptor> descriptors;
     private List<AllowableValue> engineAllowableValues;
+    private ResourceReferences modules;
 
     public BlockingQueue<ScriptEngine> engineQ = null;
 
@@ -96,10 +95,10 @@ public class ScriptingComponentHelper {
     }
 
     public String[] getModules() {
-        return modules;
+        return modules.asLocations().toArray(new String[0]);
     }
 
-    public void setModules(String[] modules) {
+    public void setModules(final ResourceReferences modules) {
         this.modules = modules;
     }
 
@@ -240,18 +239,14 @@ public class ScriptingComponentHelper {
             // Get a list of URLs from the configurator (if present), or just convert modules from Strings to URLs
             URL[] additionalClasspathURLs = null;
             if (configurator != null) {
-                additionalClasspathURLs = configurator.getModuleURLsForClasspath(modules, log);
+                final String[] locations = modules.asLocations().toArray(new String[0]);
+                additionalClasspathURLs = configurator.getModuleURLsForClasspath(locations, log);
             } else {
                 if (modules != null) {
-                    List<URL> urls = new LinkedList<>();
-                    for (String modulePathString : modules) {
-                        try {
-                            urls.add(new File(modulePathString).toURI().toURL());
-                        } catch (MalformedURLException mue) {
-                            log.error("{} is not a valid file, ignoring", new Object[]{modulePathString}, mue);
-                        }
+                    final List<URL> urls = modules.asURLs();
+                    if (!urls.isEmpty()) {
+                        additionalClasspathURLs = urls.toArray(new URL[urls.size()]);
                     }
-                    additionalClasspathURLs = urls.toArray(new URL[urls.size()]);
                 }
             }
 
@@ -280,12 +275,7 @@ public class ScriptingComponentHelper {
         scriptEngineName = context.getProperty(SCRIPT_ENGINE).getValue();
         scriptPath = context.getProperty(ScriptingComponentUtils.SCRIPT_FILE).evaluateAttributeExpressions().getValue();
         scriptBody = context.getProperty(ScriptingComponentUtils.SCRIPT_BODY).getValue();
-        String modulePath = context.getProperty(ScriptingComponentUtils.MODULES).evaluateAttributeExpressions().getValue();
-        if (!StringUtils.isEmpty(modulePath)) {
-            modules = modulePath.split(",");
-        } else {
-            modules = new String[0];
-        }
+        modules = context.getProperty(ScriptingComponentUtils.MODULES).evaluateAttributeExpressions().asResources().flattenRecursively();
     }
 
 
