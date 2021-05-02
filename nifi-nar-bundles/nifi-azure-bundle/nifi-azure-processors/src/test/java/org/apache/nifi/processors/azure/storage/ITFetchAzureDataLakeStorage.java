@@ -211,7 +211,6 @@ public class ITFetchAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT 
         testFailedFetch(fileSystemName, directory, filename, inputFlowFileContent, inputFlowFileContent, 404);
     }
 
-    @Ignore("Takes some time, only recommended for manual testing.")
     @Test
     public void testFetchLargeFile() {
         // GIVEN

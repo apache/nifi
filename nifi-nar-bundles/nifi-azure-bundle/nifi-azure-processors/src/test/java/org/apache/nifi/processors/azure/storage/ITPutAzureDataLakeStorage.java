@@ -140,8 +140,6 @@ public class ITPutAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
         assertSuccess(DIRECTORY, FILE_NAME, fileData);
     }
 
-    @Ignore
-    // ignore excessive test with larger file size
     @Test
     public void testPutBigFile() throws Exception {
         Random random = new Random();
