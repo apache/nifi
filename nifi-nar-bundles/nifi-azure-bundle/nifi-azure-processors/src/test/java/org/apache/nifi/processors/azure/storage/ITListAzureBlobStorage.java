@@ -60,7 +60,7 @@ public class ITListAzureBlobStorage extends AbstractAzureBlobStorageIT {
         runner.assertAllFlowFilesTransferred(ListAzureBlobStorage.REL_SUCCESS, 1);
 
         for (MockFlowFile entry : runner.getFlowFilesForRelationship(ListAzureBlobStorage.REL_SUCCESS)) {
-            entry.assertAttributeEquals("azure.length", "10");
+            entry.assertAttributeEquals("azure.length", "36");
             entry.assertAttributeEquals("mime.type", "application/octet-stream");
         }
     }
