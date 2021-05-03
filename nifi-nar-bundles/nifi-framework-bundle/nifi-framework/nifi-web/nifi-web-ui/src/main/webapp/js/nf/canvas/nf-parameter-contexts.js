@@ -195,6 +195,8 @@
         $('#parameter-context-description-field').val('');
         $('#parameter-context-description-read-only').text('');
 
+        $('#parameter-context-referencing-components').empty();
+
         $('#parameter-table, #add-parameter').show();
         $('#parameter-context-tabs').show();
         $('#parameter-context-tabs').find('.tab')[0].click();
@@ -1345,6 +1347,90 @@
     var parameterIndex = 0;
 
     /**
+     * Loads the reference for this parameter context.
+     *
+     * @param {jQuery} referencingProcessGroupsContainer
+     * @param {object} parameterContext
+     */
+    var loadReferencingProcessGroups = function (referencingProcessGroupsContainer, parameterContext) {
+        if (parameterContext.permissions.canRead === false) {
+            referencingProcessGroupsContainer.append('<div class="unset">Unauthorized</div>');
+            return;
+        }
+        var referencingProcessGroups = parameterContext.component.boundProcessGroups;
+        if (nfCommon.isEmpty(referencingProcessGroups)) {
+            referencingProcessGroupsContainer.append('<div class="unset">No referencing components.</div>');
+            return;
+        }
+
+        // toggles the visibility of a container
+        var toggle = function (twist, container) {
+            if (twist.hasClass('expanded')) {
+                twist.removeClass('expanded').addClass('collapsed');
+                container.hide();
+            } else {
+                twist.removeClass('collapsed').addClass('expanded');
+                container.show();
+            }
+        };
+
+        var processGroups = $('<ul class="referencing-component-listing clear"></ul>');
+        var unauthorized = $('<ul class="referencing-component-listing clear"></ul>');
+        $.each(referencingProcessGroups, function (_, referencingProcessGroupsEntity) {
+            // check the access policy for this referencing component
+            if (referencingProcessGroupsEntity.permissions.canRead === false) {
+                var unauthorizedReferencingComponent = $('<div class="unset"></div>').text(referencingProcessGroupsEntity.id);
+                unauthorized.append(unauthorizedReferencingComponent);
+            } else {
+                var referencingComponent = referencingProcessGroupsEntity.component;
+
+                var processGroupLink = $('<span class="referencing-component-name link"></span>').text(referencingComponent.name).on('click', function () {
+                    // show the component
+                    if (nfCommon.isDefinedAndNotNull(referencingComponent.parentGroupId)) {
+                        nfCanvasUtils.showComponent(referencingComponent.parentGroupId, referencingComponent.id);
+                    } else {
+                        nfProcessGroup.enterGroup(referencingComponent.id);
+                    }
+
+                    // close the dialog and shell
+                    referencingProcessGroupsContainer.closest('.dialog').modal('hide');
+                    $('#shell-close-button').click();
+                });
+                var processGroupItem = $('<li></li>').append(processGroupLink);
+                processGroups.append(processGroupItem);
+            }
+        });
+
+        // create the collapsable listing for each type
+        var createReferenceBlock = function (titleText, list) {
+            if (list.is(':empty')) {
+                list.remove();
+                return;
+            }
+
+            var twist = $('<div class="expansion-button expanded"></div>');
+            var title = $('<span class="referencing-component-title"></span>').text(titleText);
+            var count = $('<span class="referencing-component-count"></span>').text('(' + list.children().length + ')');
+
+            // create the reference block
+            $('<div class="referencing-component-block pointer unselectable"></div>').on('click', function () {
+                // toggle this block
+                toggle(twist, list);
+
+                // update the border if necessary
+                updateReferencingComponentsBorder(referencingProcessGroupsContainer);
+            }).append(twist).append(title).append(count).appendTo(referencingProcessGroupsContainer);
+
+            // add the listing
+            list.appendTo(referencingProcessGroupsContainer);
+        };
+
+        // create blocks for each type of component
+        createReferenceBlock('Process Groups', processGroups);
+        createReferenceBlock('Unauthorized', unauthorized);
+    };
+
+    /**
      * Loads the specified parameter registry.
      *
      * @param {object} parameterContext
@@ -2439,6 +2525,12 @@
                     .prop('title', parameterContextEntity.id)
                     .text(parameterContextEntity.id);
 
+                // get the reference container
+                var referencingComponentsContainer = $('#parameter-context-referencing-components');
+
+                // load the controller referencing components list
+                loadReferencingProcessGroups(referencingComponentsContainer, parameterContextEntity);
+
                 loadParameters(parameterContextEntity, parameterToSelect, readOnly || !canWrite);
 
                 var editModeButtonModel = [{
@@ -2501,6 +2593,10 @@
 
                 // check if border is necessary
                 updateReferencingComponentsBorder($('#parameter-referencing-components-container'));
+
+                // show the border if necessary
+                updateReferencingComponentsBorder(referencingComponentsContainer);
+
             }).fail(nfErrorHandler.handleAjaxError);
         },
 

@@ -46,6 +46,15 @@
                 </div>
                 <div class="spacer">&nbsp;</div>
                 <div class="settings-right">
+                    <div class="setting">
+                        <div class="setting-name">
+                            Referencing Components
+                            <div class="fa fa-question-circle" alt="Info" title="Other components referencing this parameter context."></div>
+                        </div>
+                        <div class="setting-field">
+                            <div id="parameter-context-referencing-components"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div id="parameter-context-parameters-tab-content" class="configuration-tab">
