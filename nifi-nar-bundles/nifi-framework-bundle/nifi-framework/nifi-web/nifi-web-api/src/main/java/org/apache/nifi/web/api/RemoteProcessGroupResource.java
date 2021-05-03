@@ -923,7 +923,6 @@ public class RemoteProcessGroupResource extends ApplicationResource {
                     .collect(Collectors.toSet());
 
                 RemoteProcessGroupsEntity remoteProcessGroupsEntity = new RemoteProcessGroupsEntity();
-                remoteProcessGroupsEntity.setRemoteProcessGroups(remoteProcessGroupEntities);
 
                 Response response = generateOkResponse(remoteProcessGroupsEntity).build();
 
