@@ -38,6 +38,8 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
 
+import java.sql.Blob
+import java.sql.Clob
 import java.sql.Connection
 import java.sql.Date
 import java.sql.DriverManager
@@ -1447,6 +1449,55 @@ class TestPutDatabaseRecord {
         assertEquals(102, rs.getInt(2))
         assertEquals('rec2', rs.getString(3))
         assertFalse(rs.next())
+
+        stmt.close()
+        conn.close()
+    }
+
+    @Test
+    void testInsertWithBlobClob() throws Exception {
+        String createTableWithBlob = "CREATE TABLE PERSONS (id integer primary key, name clob," +
+                "content blob, code integer CONSTRAINT CODE_RANGE CHECK (code >= 0 AND code < 1000))"
+
+        recreateTable(createTableWithBlob)
+        final MockRecordParser parser = new MockRecordParser()
+        runner.addControllerService("parser", parser)
+        runner.enableControllerService(parser)
+
+        byte[] bytes = "BLOB".getBytes()
+        Byte[] blobRecordValue = new Byte[bytes.length]
+        (0 .. (bytes.length-1)).each { i -> blobRecordValue[i] = bytes[i].longValue() }
+
+        parser.addSchemaField("id", RecordFieldType.INT)
+        parser.addSchemaField("name", RecordFieldType.STRING)
+        parser.addSchemaField("code", RecordFieldType.INT)
+        parser.addSchemaField("content", RecordFieldType.ARRAY)
+
+        parser.addRecord(1, 'rec1', 101, blobRecordValue)
+
+        runner.setProperty(PutDatabaseRecord.RECORD_READER_FACTORY, 'parser')
+        runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE, PutDatabaseRecord.INSERT_TYPE)
+        runner.setProperty(PutDatabaseRecord.TABLE_NAME, 'PERSONS')
+
+        runner.enqueue(new byte[0])
+        runner.run()
+
+        runner.assertTransferCount(PutDatabaseRecord.REL_SUCCESS, 1)
+        final Connection conn = dbcp.getConnection()
+        final Statement stmt = conn.createStatement()
+        final ResultSet rs = stmt.executeQuery('SELECT * FROM PERSONS')
+        assertTrue(rs.next())
+        assertEquals(1, rs.getInt(1))
+        Clob clob = rs.getClob(2)
+        assertNotNull(clob)
+        char[] clobText = new char[5]
+        int numBytes = clob.characterStream.read(clobText)
+        assertEquals(4, numBytes)
+        // Ignore last character, it's meant to ensure that only 4 bytes were read even though the buffer is 5 bytes
+        assertEquals('rec1', new String(clobText).substring(0,4))
+        Blob blob = rs.getBlob(3)
+        assertEquals("BLOB", new String(blob.getBytes(1, blob.length() as int)))
+        assertEquals(101, rs.getInt(4))
 
         stmt.close()
         conn.close()

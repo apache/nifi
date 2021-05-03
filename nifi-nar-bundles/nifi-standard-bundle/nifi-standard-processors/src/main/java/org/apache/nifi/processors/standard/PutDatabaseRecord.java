@@ -59,6 +59,7 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.apache.nifi.serialization.record.util.IllegalTypeConversionException;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.BatchUpdateException;
@@ -721,10 +722,30 @@ public class PutDatabaseRecord extends AbstractProcessor {
                             try {
                                 DataType targetDataType = DataTypeUtils.getDataTypeFromSQLTypeValue(sqlType);
                                 if (targetDataType != null) {
-                                    currentValue = DataTypeUtils.convertType(
-                                            currentValue,
-                                            targetDataType,
-                                            fieldName);
+                                    if (sqlType == Types.BLOB || sqlType == Types.BINARY) {
+                                        if (currentValue instanceof Object[]) {
+                                            // Convert Object[] arrays to byte[]
+                                            Object[] src = (Object[]) currentValue;
+                                            byte[] dest = new byte[src.length];
+                                            for (int j = 0; j < src.length; j++) {
+                                                dest[j] = (byte) src[j];
+                                            }
+                                            currentValue = dest;
+                                        } else if (currentValue instanceof Byte[]) {
+                                            // Convert Byte[] arrays to byte[]
+                                            Byte[] src = (Byte[]) currentValue;
+                                            byte[] dest = new byte[src.length];
+                                            for (int j = 0; j < src.length; j++) {
+                                                dest[j] = src[j];
+                                            }
+                                            currentValue = dest;
+                                        }
+                                    } else {
+                                        currentValue = DataTypeUtils.convertType(
+                                                currentValue,
+                                                targetDataType,
+                                                fieldName);
+                                    }
                                 }
                             } catch (IllegalTypeConversionException itce) {
                                 // If the field and column types don't match or the value can't otherwise be converted to the column datatype,
@@ -740,15 +761,15 @@ public class PutDatabaseRecord extends AbstractProcessor {
 
                         // If DELETE type, insert the object twice because of the null check (see generateDelete for details)
                         if (DELETE_TYPE.equalsIgnoreCase(statementType)) {
-                            ps.setObject(i * 2 + 1, currentValue, sqlType);
-                            ps.setObject(i * 2 + 2, currentValue, sqlType);
+                            setParameter(ps, i * 2 + 1, currentValue, fieldSqlType, sqlType);
+                            setParameter(ps, i * 2 + 2, currentValue, fieldSqlType, sqlType);
                         } else if (UPSERT_TYPE.equalsIgnoreCase(statementType)) {
                             final int timesToAddObjects = databaseAdapter.getTimesToAddColumnObjectsForUpsert();
                             for (int j = 0; j < timesToAddObjects; j++) {
-                                ps.setObject(i + (fieldIndexes.size() * j) + 1, currentValue, sqlType);
+                                setParameter(ps, i + (fieldIndexes.size() * j) + 1, currentValue, fieldSqlType, sqlType);
                             }
                         } else {
-                            ps.setObject(i + 1, currentValue, sqlType);
+                            setParameter(ps, i + 1, currentValue, fieldSqlType, sqlType);
                         }
                     }
 
@@ -772,6 +793,58 @@ public class PutDatabaseRecord extends AbstractProcessor {
         } finally {
             for (final PreparedSqlAndColumns preparedSqlAndColumns : preparedSql.values()) {
                 preparedSqlAndColumns.getPreparedStatement().close();
+            }
+        }
+    }
+
+    private void setParameter(PreparedStatement ps, int index, Object value, int fieldSqlType, int sqlType) throws IOException {
+        if (sqlType == Types.BLOB) {
+            // Convert Byte[] into Blob
+            if (fieldSqlType == Types.ARRAY) {
+                if (!(value instanceof byte[])) {
+                    if (value == null) {
+                        try {
+                            ps.setNull(index, Types.BLOB);
+                            return;
+                        } catch (SQLException e) {
+                            throw new IOException("Unable to setNull() on prepared statement" , e);
+                        }
+                    } else {
+                        throw new IOException("Expected BLOB to be of type byte[] but is instead " + value.getClass().getName());
+                    }
+                }
+                byte[] byteArray = (byte[]) value;
+                try (InputStream inputStream = new ByteArrayInputStream(byteArray)) {
+                    ps.setBlob(index, inputStream);
+                } catch (SQLException e) {
+                    throw new IOException("Unable to parse binary data " + value, e.getCause());
+                }
+            } else {
+                try (InputStream inputStream = new ByteArrayInputStream(value.toString().getBytes())) {
+                    ps.setBlob(index, inputStream);
+                } catch (IOException | SQLException e) {
+                    throw new IOException("Unable to parse binary data " + value, e.getCause());
+                }
+            }
+        } else if (sqlType == Types.CLOB) {
+            if (value == null) {
+                try {
+                    ps.setNull(index, Types.CLOB);
+                } catch (SQLException e) {
+                    throw new IOException("Unable to setNull() on prepared statement", e);
+                }
+            } else {
+                try {
+                    ps.setString(index, value.toString());
+                } catch (SQLException e) {
+                    throw new IOException("Unable to parse data as CLOB/String " + value, e.getCause());
+                }
+            }
+        } else {
+            try {
+                ps.setObject(index, value, sqlType);
+            } catch (SQLException e) {
+                throw new IOException("Unable to setObject() with value " + value + " at index " + index + " of type " + sqlType , e);
             }
         }
     }
