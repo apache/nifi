@@ -65,12 +65,21 @@ public abstract class BaseAccumuloProcessor extends AbstractProcessor {
             .defaultValue("10")
             .build();
 
+    protected static final PropertyDescriptor ACCUMULO_TIMEOUT = new PropertyDescriptor.Builder()
+            .name("accumulo-timeout")
+            .displayName("Accumulo Timeout")
+            .description("Max amount of time to wait for an unresponsive server. Set to 0 sec for no timeout. Entered value less than 1 second may be converted to 0 sec.")
+            .required(false)
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .defaultValue("30 sec")
+            .build();
+
     /**
      * Implementations can decide to include all base properties or individually include them. List is immutable
      * so that implementations must constructor their own lists knowingly
      */
 
-    protected static final ImmutableList<PropertyDescriptor> baseProperties = ImmutableList.of(ACCUMULO_CONNECTOR_SERVICE,TABLE_NAME,CREATE_TABLE,THREADS);
+    protected static final ImmutableList<PropertyDescriptor> baseProperties = ImmutableList.of(ACCUMULO_CONNECTOR_SERVICE,TABLE_NAME,CREATE_TABLE,THREADS,ACCUMULO_TIMEOUT);
 
 
 }

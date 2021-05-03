@@ -162,6 +162,8 @@ public class AccumuloService extends AbstractControllerService implements BaseAc
 
     private KerberosUser kerberosUser;
 
+    private AuthenticationType authType;
+
     @Override
     protected void init(ControllerServiceInitializationContext config) {
         List<PropertyDescriptor> props = new ArrayList<>();
@@ -240,7 +242,7 @@ public class AccumuloService extends AbstractControllerService implements BaseAc
         final KerberosCredentialsService kerberosService = context.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
         final String instanceName = context.getProperty(INSTANCE_NAME).evaluateAttributeExpressions().getValue();
         final String zookeepers = context.getProperty(ZOOKEEPER_QUORUM).evaluateAttributeExpressions().getValue();
-        final AuthenticationType authType = AuthenticationType.valueOf( context.getProperty(AUTHENTICATION_TYPE).getValue());
+        this.authType = AuthenticationType.valueOf( context.getProperty(AUTHENTICATION_TYPE).getValue());
 
         final Properties clientConf = new Properties();
         clientConf.setProperty("instance.zookeepers", zookeepers);
@@ -289,7 +291,7 @@ public class AccumuloService extends AbstractControllerService implements BaseAc
 
     @Override
     public void renewTgtIfNecessary() {
-        if (kerberosUser != null) {
+        if (authType.equals(AuthenticationType.KERBEROS)) {
             SecurityUtil.checkTGTAndRelogin(getLogger(), kerberosUser);
         }
     }
