@@ -437,7 +437,6 @@
                             -Djava.net.preferIPv4Stack=true
                             -Duser.language=${user.language}
                             -Duser.country=${user.country}
-                            -Duser.region=${user.region}
                             -Duser.timezone=${user.timezone}
                             -Dfile.encoding=UTF-8</argLine>
                     </configuration>
