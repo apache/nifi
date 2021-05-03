@@ -1995,6 +1995,7 @@ public class DataTypeUtils {
             case Types.NVARCHAR:
             case Types.OTHER:
             case Types.SQLXML:
+            case Types.CLOB:
                 return RecordFieldType.STRING.getDataType();
             case Types.TIME:
                 return RecordFieldType.TIME.getDataType();
@@ -2002,6 +2003,9 @@ public class DataTypeUtils {
                 return RecordFieldType.TIMESTAMP.getDataType();
             case Types.ARRAY:
                 return RecordFieldType.ARRAY.getDataType();
+            case Types.BINARY:
+            case Types.BLOB:
+                return RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BYTE.getDataType());
             case Types.STRUCT:
                 return RecordFieldType.RECORD.getDataType();
             default:
