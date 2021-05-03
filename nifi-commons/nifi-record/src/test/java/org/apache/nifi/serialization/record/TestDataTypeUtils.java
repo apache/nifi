@@ -363,6 +363,12 @@ public class TestDataTypeUtils {
     }
 
     @Test
+    public void testGetDataTypeFromSQLTypeValue() {
+        assertEquals(RecordFieldType.STRING.getDataType(), DataTypeUtils.getDataTypeFromSQLTypeValue(Types.CLOB));
+        assertEquals(RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BYTE.getDataType()), DataTypeUtils.getDataTypeFromSQLTypeValue(Types.BLOB));
+    }
+
+    @Test
     public void testChooseDataTypeWhenExpectedIsBigDecimal() {
         // GIVEN
         final List<DataType> dataTypes = Arrays.asList(
