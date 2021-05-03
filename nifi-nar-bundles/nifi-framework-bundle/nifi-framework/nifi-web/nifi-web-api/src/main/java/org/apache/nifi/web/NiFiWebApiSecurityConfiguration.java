@@ -48,7 +48,6 @@ import org.springframework.security.web.authentication.AnonymousAuthenticationFi
 import org.springframework.security.web.authentication.preauth.x509.X509PrincipalExtractor;
 import org.springframework.security.web.csrf.CsrfFilter;
 import org.springframework.security.web.util.matcher.AndRequestMatcher;
-import org.springframework.security.web.util.matcher.RequestHeaderRequestMatcher;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -130,7 +129,7 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
                 .rememberMe().disable()
                 .authorizeRequests().anyRequest().fullyAuthenticated().and()
                 .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS).and()
-                .csrf().requireCsrfProtectionMatcher(new AndRequestMatcher(CsrfFilter.DEFAULT_CSRF_MATCHER, new RequestHeaderRequestMatcher("Cookie"))).csrfTokenRepository(csrfRepository);
+                .csrf().requireCsrfProtectionMatcher(new AndRequestMatcher(CsrfFilter.DEFAULT_CSRF_MATCHER, new CsrfCookieRequestMatcher())).csrfTokenRepository(csrfRepository);
 
         // x509
         http.addFilterBefore(x509FilterBean(), AnonymousAuthenticationFilter.class);
