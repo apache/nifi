@@ -823,7 +823,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
                     throw new IOException("Unable to parse binary data " + value, e.getCause());
                 }
             } else {
-                try (InputStream inputStream = new ByteArrayInputStream(value.toString().getBytes())) {
+                try (InputStream inputStream = new ByteArrayInputStream(value.toString().getBytes(StandardCharsets.UTF_8))) {
                     ps.setBlob(index, inputStream);
                 } catch (IOException | SQLException e) {
                     throw new IOException("Unable to parse binary data " + value, e.getCause());
