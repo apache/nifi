@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.vault;
+package org.apache.nifi.vault.hashicorp;
 
 /**
  * A service to handle all communication with an instance of HashiCorp Vault.
  * @see <a href="https://www.vaultproject.io/">https://www.vaultproject.io/</a>
  */
-public interface VaultCommunicationService {
+public interface HashiCorpVaultCommunicationService {
 
     /**
      * Encrypts the given plaintext using Vault's Transit Secrets Engine.

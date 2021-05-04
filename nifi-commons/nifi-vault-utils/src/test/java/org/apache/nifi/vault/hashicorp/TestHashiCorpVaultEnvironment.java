@@ -14,10 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.vault;
+package org.apache.nifi.vault.hashicorp;
 
-import org.apache.nifi.vault.config.VaultEnvironment;
-import org.apache.nifi.vault.config.VaultProperties;
+import org.apache.nifi.vault.hashicorp.config.HashiCorpVaultEnvironment;
+import org.apache.nifi.vault.hashicorp.config.HashiCorpVaultProperties;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -33,7 +33,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
-public class TestVaultEnvironment {
+public class TestHashiCorpVaultEnvironment {
     public static final String VAULT_AUTHENTICATION = "vault.authentication";
     public static final String VAULT_TOKEN = "vault.token";
 
@@ -52,15 +52,15 @@ public class TestVaultEnvironment {
     public static final String TLS_V_1_3_VALUE = "TLSv1.3";
     public static final String TEST_CIPHER_SUITE_VALUE = "Test cipher suite";
 
-    private VaultProperties.VaultPropertiesBuilder propertiesBuilder;
+    private HashiCorpVaultProperties.VaultPropertiesBuilder propertiesBuilder;
     private File authProps;
 
-    private VaultEnvironment env;
+    private HashiCorpVaultEnvironment env;
 
     @Before
     public void init() throws IOException {
         authProps = writeBasicVaultAuthProperties();
-        propertiesBuilder = new VaultProperties.VaultPropertiesBuilder()
+        propertiesBuilder = new HashiCorpVaultProperties.VaultPropertiesBuilder()
                 .setUri(URI_VALUE)
                 .setAuthPropertiesFilename(authProps.getAbsolutePath());
 
@@ -99,16 +99,16 @@ public class TestVaultEnvironment {
     }
 
     public void runSuccessfulTest() {
-        env = new VaultEnvironment(propertiesBuilder.build());
+        env = new HashiCorpVaultEnvironment(propertiesBuilder.build());
 
         Assert.assertEquals(TOKEN_VALUE, env.getProperty(VAULT_AUTHENTICATION));
         Assert.assertEquals(TEST_TOKEN_VALUE, env.getProperty(VAULT_TOKEN));
-        Assert.assertEquals(URI_VALUE, env.getProperty(VaultEnvironment.VAULT_URI));
+        Assert.assertEquals(URI_VALUE, env.getProperty(HashiCorpVaultEnvironment.VAULT_URI));
 
-        Assert.assertEquals(URI.create(URI_VALUE), env.getProperty(VaultEnvironment.VAULT_URI, URI.class));
-        Assert.assertEquals(URI.create(URI_VALUE), env.getProperty(VaultEnvironment.VAULT_URI, URI.class, URI.create(DEFAULT_URI_VALUE)));
+        Assert.assertEquals(URI.create(URI_VALUE), env.getProperty(HashiCorpVaultEnvironment.VAULT_URI, URI.class));
+        Assert.assertEquals(URI.create(URI_VALUE), env.getProperty(HashiCorpVaultEnvironment.VAULT_URI, URI.class, URI.create(DEFAULT_URI_VALUE)));
 
-        Assert.assertEquals(URI_VALUE, env.getProperty(VaultEnvironment.VAULT_URI, DEFAULT_URI_VALUE));
+        Assert.assertEquals(URI_VALUE, env.getProperty(HashiCorpVaultEnvironment.VAULT_URI, DEFAULT_URI_VALUE));
         Assert.assertEquals(DEFAULT_URI_VALUE, env.getProperty(NONEXISTANT_PROPERTY, DEFAULT_URI_VALUE));
         Assert.assertEquals(URI.create(DEFAULT_URI_VALUE), env.getProperty(NONEXISTANT_PROPERTY, URI.class, URI.create(DEFAULT_URI_VALUE)));
     }
@@ -131,14 +131,14 @@ public class TestVaultEnvironment {
 
         this.runSuccessfulTest();
 
-        Assert.assertEquals(KEYSTORE_VALUE, env.getProperty(VaultEnvironment.VAULT_SSL_KEYSTORE));
-        Assert.assertEquals(KEYSTORE_PASSWORD_VALUE, env.getProperty(VaultEnvironment.VAULT_SSL_KEYSTORE_PASSWORD));
-        Assert.assertEquals(KEYSTORE_TYPE_VALUE, env.getProperty(VaultEnvironment.VAULT_SSL_KEYSTORE_TYPE));
-        Assert.assertEquals(TRUSTSTORE_VALUE, env.getProperty(VaultEnvironment.VAULT_SSL_TRUSTSTORE));
-        Assert.assertEquals(TRUSTSTORE_PASSWORD_VALUE, env.getProperty(VaultEnvironment.VAULT_SSL_TRUSTSTORE_PASSWORD));
-        Assert.assertEquals(TRUSTSTORE_TYPE_VALUE, env.getProperty(VaultEnvironment.VAULT_SSL_TRUSTSTORE_TYPE));
-        Assert.assertEquals(TLS_V_1_3_VALUE, env.getProperty(VaultEnvironment.VAULT_SSL_ENABLED_PROTOCOLS));
-        Assert.assertEquals(TEST_CIPHER_SUITE_VALUE, env.getProperty(VaultEnvironment.VAULT_SSL_ENABLED_CIPHER_SUITES));
+        Assert.assertEquals(KEYSTORE_VALUE, env.getProperty(HashiCorpVaultEnvironment.VAULT_SSL_KEYSTORE));
+        Assert.assertEquals(KEYSTORE_PASSWORD_VALUE, env.getProperty(HashiCorpVaultEnvironment.VAULT_SSL_KEYSTORE_PASSWORD));
+        Assert.assertEquals(KEYSTORE_TYPE_VALUE, env.getProperty(HashiCorpVaultEnvironment.VAULT_SSL_KEYSTORE_TYPE));
+        Assert.assertEquals(TRUSTSTORE_VALUE, env.getProperty(HashiCorpVaultEnvironment.VAULT_SSL_TRUSTSTORE));
+        Assert.assertEquals(TRUSTSTORE_PASSWORD_VALUE, env.getProperty(HashiCorpVaultEnvironment.VAULT_SSL_TRUSTSTORE_PASSWORD));
+        Assert.assertEquals(TRUSTSTORE_TYPE_VALUE, env.getProperty(HashiCorpVaultEnvironment.VAULT_SSL_TRUSTSTORE_TYPE));
+        Assert.assertEquals(TLS_V_1_3_VALUE, env.getProperty(HashiCorpVaultEnvironment.VAULT_SSL_ENABLED_PROTOCOLS));
+        Assert.assertEquals(TEST_CIPHER_SUITE_VALUE, env.getProperty(HashiCorpVaultEnvironment.VAULT_SSL_ENABLED_CIPHER_SUITES));
     }
 
     @Test(expected = NullPointerException.class)

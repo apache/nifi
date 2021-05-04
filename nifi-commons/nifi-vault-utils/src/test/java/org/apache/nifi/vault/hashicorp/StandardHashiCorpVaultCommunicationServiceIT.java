@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.vault;
+package org.apache.nifi.vault.hashicorp;
 
-import org.apache.nifi.vault.config.VaultProperties;
+import org.apache.nifi.vault.hashicorp.config.HashiCorpVaultProperties;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -36,15 +36,15 @@ import java.nio.charset.StandardCharsets;
  * Then, set the system property -Dvault.auth.properties to the file path of the above properties file when
  * running the integration test.
  */
-public class StandardVaultCommunicationServiceIT {
+public class StandardHashiCorpVaultCommunicationServiceIT {
 
     private static final String TRANSIT_KEY = "nifi";
 
-    private VaultCommunicationService vcs;
+    private HashiCorpVaultCommunicationService vcs;
 
     @Before
     public void init() {
-        vcs = new StandardVaultCommunicationService(new VaultProperties.VaultPropertiesBuilder()
+        vcs = new StandardHashiCorpVaultCommunicationService(new HashiCorpVaultProperties.VaultPropertiesBuilder()
                 .setAuthPropertiesFilename(System.getProperty("vault.auth.properties"))
                 .setUri("http://127.0.0.1:8200")
                 .build());

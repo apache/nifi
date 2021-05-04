@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.vault;
+package org.apache.nifi.vault.hashicorp;
 
 import org.apache.nifi.util.FormatUtils;
-import org.apache.nifi.vault.config.VaultConfiguration;
-import org.apache.nifi.vault.config.VaultProperties;
+import org.apache.nifi.vault.hashicorp.config.HashiCorpVaultConfiguration;
+import org.apache.nifi.vault.hashicorp.config.HashiCorpVaultProperties;
 import org.springframework.vault.authentication.SimpleSessionManager;
 import org.springframework.vault.client.ClientHttpRequestFactoryFactory;
 import org.springframework.vault.core.VaultTemplate;
@@ -35,20 +35,20 @@ import java.util.concurrent.TimeUnit;
 /**
  * Implements the VaultCommunicationService using Spring Vault
  */
-public class StandardVaultCommunicationService implements VaultCommunicationService {
+public class StandardHashiCorpVaultCommunicationService implements HashiCorpVaultCommunicationService {
     private static final String HTTPS = "https";
 
-    private final VaultConfiguration vaultConfiguration;
+    private final HashiCorpVaultConfiguration vaultConfiguration;
     private final VaultTemplate vaultTemplate;
     private final VaultTransitOperations transitOperations;
 
     /**
      * Creates a VaultCommunicationService that uses Spring Vault.
      * @param vaultProperties Properties to configure the service
-     * @throws VaultConfigurationException If the configuration was invalid
+     * @throws HashiCorpVaultConfigurationException If the configuration was invalid
      */
-    public StandardVaultCommunicationService(final VaultProperties vaultProperties) throws VaultConfigurationException {
-        this.vaultConfiguration = new VaultConfiguration(vaultProperties);
+    public StandardHashiCorpVaultCommunicationService(final HashiCorpVaultProperties vaultProperties) throws HashiCorpVaultConfigurationException {
+        this.vaultConfiguration = new HashiCorpVaultConfiguration(vaultProperties);
 
         final SslConfiguration sslConfiguration = vaultProperties.getUri().contains(HTTPS)
                 ? vaultConfiguration.sslConfiguration() : SslConfiguration.unconfigured();
@@ -62,7 +62,7 @@ public class StandardVaultCommunicationService implements VaultCommunicationServ
         transitOperations = vaultTemplate.opsForTransit();
     }
 
-    private static ClientOptions getClientOptions(VaultProperties vaultProperties) {
+    private static ClientOptions getClientOptions(HashiCorpVaultProperties vaultProperties) {
         final ClientOptions clientOptions = new ClientOptions();
         Duration readTimeoutDuration = clientOptions.getReadTimeout();
         Duration connectionTimeoutDuration = clientOptions.getConnectionTimeout();

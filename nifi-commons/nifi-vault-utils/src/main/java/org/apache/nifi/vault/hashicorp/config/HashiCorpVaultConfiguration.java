@@ -14,20 +14,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.vault;
+package org.apache.nifi.vault.hashicorp.config;
+
+import org.springframework.core.env.Environment;
+import org.springframework.vault.config.EnvironmentVaultConfiguration;
 
 /**
- * Indicates a misconfiguration of the Vault client.
+ * A Vault configuration that uses the NiFiVaultEnvironment.
  */
-public class VaultConfigurationException extends RuntimeException {
-    public VaultConfigurationException() {
+public class HashiCorpVaultConfiguration extends EnvironmentVaultConfiguration {
+
+    private HashiCorpVaultEnvironment env;
+
+    public HashiCorpVaultConfiguration(final HashiCorpVaultProperties vaultProperties) {
+        this.env = new HashiCorpVaultEnvironment(vaultProperties);
+        this.setApplicationContext(new HashiCorpVaultApplicationContext());
     }
 
-    public VaultConfigurationException(String message) {
-        super(message);
+    @Override
+    protected Environment getEnvironment() {
+        return env;
     }
 
-    public VaultConfigurationException(String message, Throwable cause) {
-        super(message, cause);
-    }
 }

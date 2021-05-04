@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.vault.config;
+package org.apache.nifi.vault.hashicorp.config;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -27,7 +27,7 @@ import java.util.Optional;
  * @see <a href="https://docs.spring.io/spring-vault/docs/2.3.1/reference/html/#vault.core.environment-vault-configuration">
  *     https://docs.spring.io/spring-vault/docs/2.3.1/reference/html/#vault.core.environment-vault-configuration</a>
  */
-public class VaultProperties {
+public class HashiCorpVaultProperties {
     public static final String HTTPS = "https";
     private final String uri;
     private final String keystore;
@@ -42,9 +42,9 @@ public class VaultProperties {
     private final Optional<String> connectionTimeout;
     private final Optional<String> readTimeout;
 
-    private VaultProperties(final String uri, String keystore, final String keystoreType, final String keystorePassword, final String truststore,
-                            final String truststoreType, final String truststorePassword, final String authPropertiesFilename,
-                            final String enabledTlsCipherSuites, final String enabledTlsProtocols, final String connectionTimeout, final String readTimeout) {
+    private HashiCorpVaultProperties(final String uri, String keystore, final String keystoreType, final String keystorePassword, final String truststore,
+                                     final String truststoreType, final String truststorePassword, final String authPropertiesFilename,
+                                     final String enabledTlsCipherSuites, final String enabledTlsProtocols, final String connectionTimeout, final String readTimeout) {
         Objects.requireNonNull(uri, "Vault URI is required");
         Objects.requireNonNull(authPropertiesFilename, "Vault auth properties filename is required");
         this.uri = uri;
@@ -70,37 +70,37 @@ public class VaultProperties {
         }
     }
 
-    @VaultProperty(key = VaultEnvironment.VAULT_URI)
+    @HashiCorpVaultProperty(key = HashiCorpVaultEnvironment.VAULT_URI)
     public String getUri() {
         return uri;
     }
 
-    @VaultProperty(key = VaultEnvironment.VAULT_SSL_KEYSTORE)
+    @HashiCorpVaultProperty(key = HashiCorpVaultEnvironment.VAULT_SSL_KEYSTORE)
     public String getKeystore() {
         return keystore;
     }
 
-    @VaultProperty(key = VaultEnvironment.VAULT_SSL_KEYSTORE_TYPE)
+    @HashiCorpVaultProperty(key = HashiCorpVaultEnvironment.VAULT_SSL_KEYSTORE_TYPE)
     public String getKeystoreType() {
         return keystoreType;
     }
 
-    @VaultProperty(key = VaultEnvironment.VAULT_SSL_KEYSTORE_PASSWORD)
+    @HashiCorpVaultProperty(key = HashiCorpVaultEnvironment.VAULT_SSL_KEYSTORE_PASSWORD)
     public String getKeystorePassword() {
         return keystorePassword;
     }
 
-    @VaultProperty(key = VaultEnvironment.VAULT_SSL_TRUSTSTORE)
+    @HashiCorpVaultProperty(key = HashiCorpVaultEnvironment.VAULT_SSL_TRUSTSTORE)
     public String getTruststore() {
         return truststore;
     }
 
-    @VaultProperty(key = VaultEnvironment.VAULT_SSL_TRUSTSTORE_TYPE)
+    @HashiCorpVaultProperty(key = HashiCorpVaultEnvironment.VAULT_SSL_TRUSTSTORE_TYPE)
     public String getTruststoreType() {
         return truststoreType;
     }
 
-    @VaultProperty(key = VaultEnvironment.VAULT_SSL_TRUSTSTORE_PASSWORD)
+    @HashiCorpVaultProperty(key = HashiCorpVaultEnvironment.VAULT_SSL_TRUSTSTORE_PASSWORD)
     public String getTruststorePassword() {
         return truststorePassword;
     }
@@ -109,12 +109,12 @@ public class VaultProperties {
         return authPropertiesFilename;
     }
 
-    @VaultProperty(key = VaultEnvironment.VAULT_SSL_ENABLED_CIPHER_SUITES)
+    @HashiCorpVaultProperty(key = HashiCorpVaultEnvironment.VAULT_SSL_ENABLED_CIPHER_SUITES)
     public String getEnabledTlsCipherSuites() {
         return enabledTlsCipherSuites;
     }
 
-    @VaultProperty(key = VaultEnvironment.VAULT_SSL_ENABLED_PROTOCOLS)
+    @HashiCorpVaultProperty(key = HashiCorpVaultEnvironment.VAULT_SSL_ENABLED_PROTOCOLS)
     public String getEnabledTlsProtocols() {
         return enabledTlsProtocols;
     }
@@ -274,8 +274,8 @@ public class VaultProperties {
          * Build the VaultProperties.
          * @return
          */
-        public VaultProperties build() {
-            return new VaultProperties(uri, keystore, keystoreType, keystorePassword, truststore, truststoreType,
+        public HashiCorpVaultProperties build() {
+            return new HashiCorpVaultProperties(uri, keystore, keystoreType, keystorePassword, truststore, truststoreType,
                     truststorePassword, authPropertiesFilename, enabledTlsCipherSuites, enabledTlsProtocols, connectionTimeout, readTimeout);
         }
     }

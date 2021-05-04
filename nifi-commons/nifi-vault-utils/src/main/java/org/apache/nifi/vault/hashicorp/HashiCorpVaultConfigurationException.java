@@ -14,21 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.vault.config;
-
-import org.springframework.context.support.StaticApplicationContext;
-import org.springframework.core.io.FileSystemResource;
-import org.springframework.core.io.Resource;
-
-import java.nio.file.Paths;
+package org.apache.nifi.vault.hashicorp;
 
 /**
- * Basic ApplicationContext that defines resources as FileSystemResource objects.
+ * Indicates a misconfiguration of the Vault client.
  */
-public class VaultApplicationContext extends StaticApplicationContext {
+public class HashiCorpVaultConfigurationException extends RuntimeException {
+    public HashiCorpVaultConfigurationException() {
+    }
 
-    @Override
-    public Resource getResource(String location) {
-        return new FileSystemResource(Paths.get(location));
+    public HashiCorpVaultConfigurationException(String message) {
+        super(message);
+    }
+
+    public HashiCorpVaultConfigurationException(String message, Throwable cause) {
+        super(message, cause);
     }
 }

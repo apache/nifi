@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.vault.config;
+package org.apache.nifi.vault.hashicorp.config;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -26,7 +26,7 @@ import java.lang.annotation.Target;
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.METHOD)
-public @interface VaultProperty {
+public @interface HashiCorpVaultProperty {
     /**
      * The Spring Vault property key.
      * @return The property key

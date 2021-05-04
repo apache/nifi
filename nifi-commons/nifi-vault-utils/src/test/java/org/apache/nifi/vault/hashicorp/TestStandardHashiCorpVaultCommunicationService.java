@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.vault;
+package org.apache.nifi.vault.hashicorp;
 
 import org.apache.nifi.security.util.KeyStoreUtils;
 import org.apache.nifi.security.util.TlsConfiguration;
-import org.apache.nifi.vault.config.VaultProperties;
+import org.apache.nifi.vault.hashicorp.config.HashiCorpVaultProperties;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -33,18 +33,18 @@ import java.util.Arrays;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-public class TestStandardVaultCommunicationService {
+public class TestStandardHashiCorpVaultCommunicationService {
     public static final String URI_VALUE = "http://127.0.0.1:8200";
     public static final String CIPHER_SUITE_VALUE = "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384";
 
-    private VaultProperties properties;
+    private HashiCorpVaultProperties properties;
     private File authProps;
 
     @Before
     public void init() throws IOException {
-        authProps = TestVaultEnvironment.writeBasicVaultAuthProperties();
+        authProps = TestHashiCorpVaultEnvironment.writeBasicVaultAuthProperties();
 
-        properties = Mockito.mock(VaultProperties.class);
+        properties = Mockito.mock(HashiCorpVaultProperties.class);
         Mockito.when(properties.getUri()).thenReturn(URI_VALUE);
         Mockito.when(properties.getAuthPropertiesFilename()).thenReturn(authProps.getAbsolutePath());
     }
@@ -54,8 +54,8 @@ public class TestStandardVaultCommunicationService {
         Files.deleteIfExists(authProps.toPath());
     }
 
-    private VaultCommunicationService configureService() {
-        return new StandardVaultCommunicationService(properties);
+    private HashiCorpVaultCommunicationService configureService() {
+        return new StandardHashiCorpVaultCommunicationService(properties);
     }
 
     @Test

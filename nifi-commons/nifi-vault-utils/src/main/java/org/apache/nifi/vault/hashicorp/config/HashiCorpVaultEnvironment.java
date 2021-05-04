@@ -14,9 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.vault.config;
+package org.apache.nifi.vault.hashicorp.config;
 
-import org.apache.nifi.vault.VaultConfigurationException;
+import org.apache.nifi.vault.hashicorp.HashiCorpVaultConfigurationException;
 import org.springframework.core.env.Environment;
 import org.springframework.core.env.Profiles;
 
@@ -35,7 +35,7 @@ import java.util.Properties;
  * A custom Spring Environment that uses configured POJO properties to provide the expected property values
  * for Spring Vault.
  */
-public class VaultEnvironment implements Environment {
+public class HashiCorpVaultEnvironment implements Environment {
     public static final String VAULT_URI = "vault.uri";
     public static final String VAULT_SSL_KEYSTORE = "vault.ssl.key-store";
     public static final String VAULT_SSL_KEYSTORE_PASSWORD = "vault.ssl.key-store-password";
@@ -47,17 +47,17 @@ public class VaultEnvironment implements Environment {
     public static final String VAULT_SSL_ENABLED_CIPHER_SUITES = "vault.ssl.enabled-cipher-suites";
 
     private final Properties authProperties;
-    private final VaultProperties vaultProperties;
+    private final HashiCorpVaultProperties vaultProperties;
 
-    public VaultEnvironment(final VaultProperties vaultProperties) throws VaultConfigurationException {
+    public HashiCorpVaultEnvironment(final HashiCorpVaultProperties vaultProperties) throws HashiCorpVaultConfigurationException {
         Objects.requireNonNull(vaultProperties, "Vault Properties are required");
         this.vaultProperties = vaultProperties;
 
         this.authProperties = this.getAuthProperties(vaultProperties)
-                .orElseThrow(() -> new VaultConfigurationException("Vault auth properties file is required"));
+                .orElseThrow(() -> new HashiCorpVaultConfigurationException("Vault auth properties file is required"));
     }
 
-    private Optional<Properties> getAuthProperties(final VaultProperties properties) throws VaultConfigurationException {
+    private Optional<Properties> getAuthProperties(final HashiCorpVaultProperties properties) throws HashiCorpVaultConfigurationException {
         if (properties.getAuthPropertiesFilename() == null) {
             return Optional.empty();
         }
@@ -72,7 +72,7 @@ public class VaultEnvironment implements Environment {
             authProperties.load(reader);
         } catch (final IOException e) {
             final String message = String.format("Failed to read Vault auth properties [%s]", authPropertiesFile);
-            throw new VaultConfigurationException(message, e);
+            throw new HashiCorpVaultConfigurationException(message, e);
         }
         return Optional.of(authProperties);
     }
@@ -89,9 +89,9 @@ public class VaultEnvironment implements Environment {
      */
     @Override
     public String getProperty(final String key) {
-        for (Method method : VaultProperties.class.getDeclaredMethods()) {
-            if (method.isAnnotationPresent(VaultProperty.class)
-                    && method.getAnnotation(VaultProperty.class).key().equals(key)) {
+        for (Method method : HashiCorpVaultProperties.class.getDeclaredMethods()) {
+            if (method.isAnnotationPresent(HashiCorpVaultProperty.class)
+                    && method.getAnnotation(HashiCorpVaultProperty.class).key().equals(key)) {
                 try {
                     return (String) method.invoke(vaultProperties);
                 } catch (IllegalAccessException | InvocationTargetException e) {
