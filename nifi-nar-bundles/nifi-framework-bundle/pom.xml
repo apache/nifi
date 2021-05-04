@@ -540,6 +540,10 @@
                         <groupId>com.io7m.xom</groupId>
                         <artifactId>xom</artifactId>
                     </exclusion>
+                    <exclusion>
+                        <groupId>xalan</groupId>
+                        <artifactId>xalan</artifactId>
+                    </exclusion>
                 </exclusions>
             </dependency>
             <dependency>
