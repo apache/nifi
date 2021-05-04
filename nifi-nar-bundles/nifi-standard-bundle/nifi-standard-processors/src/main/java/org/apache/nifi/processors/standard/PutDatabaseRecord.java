@@ -62,7 +62,9 @@ import org.apache.nifi.serialization.record.util.IllegalTypeConversionException;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.sql.BatchUpdateException;
+import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.Date;
@@ -724,21 +726,22 @@ public class PutDatabaseRecord extends AbstractProcessor {
                                 if (targetDataType != null) {
                                     if (sqlType == Types.BLOB || sqlType == Types.BINARY) {
                                         if (currentValue instanceof Object[]) {
-                                            // Convert Object[] arrays to byte[]
+                                            // Convert Object[Byte] arrays to byte[]
                                             Object[] src = (Object[]) currentValue;
+                                            if (src.length > 0) {
+                                                if (!(src[0] instanceof Byte)) {
+                                                    throw new IllegalTypeConversionException("Cannot convert value " + currentValue + " to BLOB/BINARY");
+                                                }
+                                            }
                                             byte[] dest = new byte[src.length];
                                             for (int j = 0; j < src.length; j++) {
-                                                dest[j] = (byte) src[j];
+                                                dest[j] = (Byte) src[j];
                                             }
                                             currentValue = dest;
-                                        } else if (currentValue instanceof Byte[]) {
-                                            // Convert Byte[] arrays to byte[]
-                                            Byte[] src = (Byte[]) currentValue;
-                                            byte[] dest = new byte[src.length];
-                                            for (int j = 0; j < src.length; j++) {
-                                                dest[j] = src[j];
-                                            }
-                                            currentValue = dest;
+                                        } else if (currentValue instanceof String) {
+                                            currentValue = ((String) currentValue).getBytes(StandardCharsets.UTF_8);
+                                        } else if (currentValue != null && !(currentValue instanceof byte[])) {
+                                            throw new IllegalTypeConversionException("Cannot convert value " + currentValue + " to BLOB/BINARY");
                                         }
                                     } else {
                                         currentValue = DataTypeUtils.convertType(
@@ -799,8 +802,8 @@ public class PutDatabaseRecord extends AbstractProcessor {
 
     private void setParameter(PreparedStatement ps, int index, Object value, int fieldSqlType, int sqlType) throws IOException {
         if (sqlType == Types.BLOB) {
-            // Convert Byte[] into Blob
-            if (fieldSqlType == Types.ARRAY) {
+            // Convert Byte[] or String (anything that has been converted to byte[]) into BLOB
+            if (fieldSqlType == Types.ARRAY || fieldSqlType == Types.VARCHAR) {
                 if (!(value instanceof byte[])) {
                     if (value == null) {
                         try {
@@ -835,7 +838,9 @@ public class PutDatabaseRecord extends AbstractProcessor {
                 }
             } else {
                 try {
-                    ps.setString(index, value.toString());
+                    Clob clob = ps.getConnection().createClob();
+                    clob.setString(1, value.toString());
+                    ps.setClob(index, clob);
                 } catch (SQLException e) {
                     throw new IOException("Unable to parse data as CLOB/String " + value, e.getCause());
                 }
