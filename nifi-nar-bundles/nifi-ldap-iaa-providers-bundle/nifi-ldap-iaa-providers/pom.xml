@@ -23,7 +23,7 @@
     <artifactId>nifi-ldap-iaa-providers</artifactId>
     <packaging>jar</packaging>
     <properties>
-        <spring.security.version>4.2.13.RELEASE</spring.security.version>
+        <spring.security.version>4.2.20.RELEASE</spring.security.version>
     </properties>
     <dependencies>
         <dependency>

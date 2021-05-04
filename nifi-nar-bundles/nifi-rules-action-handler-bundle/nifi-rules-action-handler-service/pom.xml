@@ -24,7 +24,7 @@
     <artifactId>nifi-rules-action-handler-service</artifactId>
     <packaging>jar</packaging>
     <properties>
-        <spring.version>4.3.19.RELEASE</spring.version>
+        <spring.version>4.3.30.RELEASE</spring.version>
     </properties>
     <dependencies>
         <dependency>

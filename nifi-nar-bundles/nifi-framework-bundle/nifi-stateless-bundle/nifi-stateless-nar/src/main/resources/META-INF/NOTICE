@@ -100,8 +100,8 @@ The following binary components are provided under the Apache Software License v
 
   (ASLv2) Spring Security
     The following NOTICE information applies:
-          Spring Framework 4.0.3.RELEASE
-          Copyright (c) 2002-2015 Pivotal, Inc.
+          Spring Security 4
+          Copyright (c) 2002-2021 Pivotal, Inc.
 
   (ASLv2) ASM Based Accessors Helper Used By JSON Smart (net.minidev:accessors-smart:jar:1.2 - http://www.minidev.net/)
     The following NOTICE information applies:

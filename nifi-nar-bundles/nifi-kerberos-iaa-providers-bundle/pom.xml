@@ -27,7 +27,7 @@
         <module>nifi-kerberos-iaa-providers-nar</module>
     </modules>
     <properties>
-        <spring.version>4.3.24.RELEASE</spring.version>
+        <spring.version>4.3.30.RELEASE</spring.version>
     </properties>
     <dependencyManagement>
         <dependencies>

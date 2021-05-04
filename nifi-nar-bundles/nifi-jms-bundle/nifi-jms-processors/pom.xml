@@ -17,6 +17,9 @@
     <modelVersion>4.0.0</modelVersion>
     <artifactId>nifi-jms-processors</artifactId>
     <packaging>jar</packaging>
+    <properties>
+        <spring.version>4.3.30.RELEASE</spring.version>
+    </properties>
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -41,7 +44,7 @@
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-jms</artifactId>
-            <version>4.3.19.RELEASE</version>
+            <version>${spring.version}</version>
         </dependency>
         <dependency>
             <groupId>commons-logging</groupId>
