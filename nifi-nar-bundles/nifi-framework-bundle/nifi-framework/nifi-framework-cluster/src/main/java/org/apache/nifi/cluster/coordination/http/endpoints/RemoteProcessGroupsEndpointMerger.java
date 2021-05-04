@@ -54,24 +54,31 @@ public class RemoteProcessGroupsEndpointMerger implements EndpointResponseMerger
         final RemoteProcessGroupsEntity responseEntity = clientResponse.getClientResponse().readEntity(RemoteProcessGroupsEntity.class);
         final Set<RemoteProcessGroupEntity> rpgEntities = responseEntity.getRemoteProcessGroups();
 
-        final Map<String, Map<NodeIdentifier, RemoteProcessGroupEntity>> entityMap = new HashMap<>();
-        for (final NodeResponse nodeResponse : successfulResponses) {
-            final RemoteProcessGroupsEntity nodeResponseEntity = nodeResponse == clientResponse ? responseEntity : nodeResponse.getClientResponse().readEntity(RemoteProcessGroupsEntity.class);
-            final Set<RemoteProcessGroupEntity> nodeRpgEntities = nodeResponseEntity.getRemoteProcessGroups();
+        if (rpgEntities != null) {
+            final Map<String, Map<NodeIdentifier, RemoteProcessGroupEntity>> entityMap = new HashMap<>();
+            for (final NodeResponse nodeResponse : successfulResponses) {
+                final RemoteProcessGroupsEntity nodeResponseEntity =
+                    nodeResponse == clientResponse ?
+                        responseEntity
+                        : nodeResponse.getClientResponse().readEntity(RemoteProcessGroupsEntity.class);
+                final Set<RemoteProcessGroupEntity> nodeRpgEntities = nodeResponseEntity.getRemoteProcessGroups();
 
-            for (final RemoteProcessGroupEntity nodeRpgEntity : nodeRpgEntities) {
-                final NodeIdentifier nodeId = nodeResponse.getNodeId();
-                Map<NodeIdentifier, RemoteProcessGroupEntity> innerMap = entityMap.get(nodeId);
-                if (innerMap == null) {
-                    innerMap = new HashMap<>();
-                    entityMap.put(nodeRpgEntity.getId(), innerMap);
+                if (nodeRpgEntities != null) {
+                    for (final RemoteProcessGroupEntity nodeRpgEntity : nodeRpgEntities) {
+                        final NodeIdentifier nodeId = nodeResponse.getNodeId();
+                        Map<NodeIdentifier, RemoteProcessGroupEntity> innerMap = entityMap.get(nodeId);
+                        if (innerMap == null) {
+                            innerMap = new HashMap<>();
+                            entityMap.put(nodeRpgEntity.getId(), innerMap);
+                        }
+
+                        innerMap.put(nodeResponse.getNodeId(), nodeRpgEntity);
+                    }
                 }
-
-                innerMap.put(nodeResponse.getNodeId(), nodeRpgEntity);
             }
-        }
 
-        RemoteProcessGroupsEntityMerger.mergeRemoteProcessGroups(rpgEntities, entityMap);
+            RemoteProcessGroupsEntityMerger.mergeRemoteProcessGroups(rpgEntities, entityMap);
+        }
 
         // create a new client response
         return new NodeResponse(clientResponse, responseEntity);
