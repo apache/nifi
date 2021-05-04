@@ -63,6 +63,8 @@ public class StandardFlowSerializerTest {
     private static final String SERIALIZED_VARIABLE_NAME = "Name with  escape needed";
     private static final String RAW_VARIABLE_VALUE = "Value with \u0001 escape needed";
     private static final String SERIALIZED_VARIABLE_VALUE = "Value with  escape needed";
+    private static final String RAW_STRING_WITH_EMOJI = "String with \uD83D\uDCA7 droplet emoji";
+    private static final String SERIALIZED_STRING_WITH_EMOJI = "String with &#128167; droplet emoji";
 
     private volatile String propsFile = StandardFlowSerializerTest.class.getResource("/standardflowserializertest.nifi.properties").getFile();
 
@@ -127,5 +129,26 @@ public class StandardFlowSerializerTest {
         assertTrue(serializedFlow.contains(SERIALIZED_VARIABLE_VALUE));
         assertFalse(serializedFlow.contains(RAW_VARIABLE_VALUE));
         assertFalse(serializedFlow.contains("\u0001"));
+    }
+
+    @Test
+    public void testSerializationEmoji() throws Exception {
+        final ProcessorNode dummy = controller.getFlowManager().createProcessor(DummyScheduledProcessor.class.getName(),
+                UUID.randomUUID().toString(), systemBundle.getBundleDetails().getCoordinate());
+
+        dummy.setName(RAW_STRING_WITH_EMOJI);
+        controller.getFlowManager().getRootGroup().addProcessor(dummy);
+
+        controller.getFlowManager().getRootGroup().setVariables(Collections.singletonMap(RAW_STRING_WITH_EMOJI, RAW_STRING_WITH_EMOJI));
+
+        // serialize the controller
+        final ByteArrayOutputStream os = new ByteArrayOutputStream();
+        final Document doc = serializer.transform(controller, ScheduledStateLookup.IDENTITY_LOOKUP);
+        serializer.serialize(doc, os);
+
+        // verify the results contain the serialized string
+        final String serializedFlow = os.toString(StandardCharsets.UTF_8.name());
+        assertTrue(serializedFlow.contains(SERIALIZED_STRING_WITH_EMOJI));
+        assertFalse(serializedFlow.contains(RAW_STRING_WITH_EMOJI));
     }
 }
