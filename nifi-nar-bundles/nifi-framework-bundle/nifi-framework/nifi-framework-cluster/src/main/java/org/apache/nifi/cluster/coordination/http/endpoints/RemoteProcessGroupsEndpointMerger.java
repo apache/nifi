@@ -58,8 +58,8 @@ public class RemoteProcessGroupsEndpointMerger implements EndpointResponseMerger
             final Map<String, Map<NodeIdentifier, RemoteProcessGroupEntity>> entityMap = new HashMap<>();
             for (final NodeResponse nodeResponse : successfulResponses) {
                 final RemoteProcessGroupsEntity nodeResponseEntity =
-                    nodeResponse == clientResponse ?
-                        responseEntity
+                    nodeResponse == clientResponse
+                        ? responseEntity
                         : nodeResponse.getClientResponse().readEntity(RemoteProcessGroupsEntity.class);
                 final Set<RemoteProcessGroupEntity> nodeRpgEntities = nodeResponseEntity.getRemoteProcessGroups();
 
