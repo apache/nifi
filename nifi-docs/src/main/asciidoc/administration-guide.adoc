@@ -4012,3 +4012,42 @@ Now, we must place our custom processor nar in the configured directory. The con
 Ensure that the file has appropriate permissions for the nifi user and group.
 
 Refresh the browser page and the custom processor should now be available when adding a new Processor to your flow.
+
+=== NAR Providers
+
+NiFi supports fetching NAR files for the autoloading feature from external sources. This can be achieved by using NAR Providers. A NAR Provider serves as a connector between an external data store
+and NiFi.
+
+When configured, a NAR Provider polls the external source for available NAR files and offers them to the framework. The framework then fetches new NAR files and copies them to
+the `nifi.nar.library.autoload.directory` for autoloading.
+
+NAR Provider can be configured by adding the `nifi.nar.library.provider.<providerName>.implementation` property with value containing the proper implementation class. Some implementations might need
+further properties. These are defined by the implementation and must be prefixed with `nifi.nar.library.provider.<providerName>.`.
+
+The `<providerName>` is arbitrary and serves to correlate multiple properties together for a single provider. Multiple providers might be set, with different `<providerName>`. Currently NiFi supports HDFS based NAR provider.
+
+==== HDFS NAR Provider
+
+This implementation is capable of downloading NAR files from an HDFS file system.
+
+The value of the `nifi.nar.library.provider.<providerName>.implementation` must be `org.apache.nifi.nar.hadoop.HDFSNarProvider`. The following further properties are defined by the provider:
+
+[options="header"]
+|===
+| Name                       |  Description
+| resources                  |  List of HDFS resources, separated by comma.
+| source.directory           |  The source directory of NAR files within HDFS. Note: the provider does not check for files recursively.
+| kerberos.principal         |  Optional. Kerberos principal to authenticate as.
+| kerberos.keytab            |  Optional. Kerberos keytab associated with the principal.
+| kerberos.password          |  Optional. Kerberos password associated with the principal.
+|===
+
+Example configuration:
+
+   nifi.nar.library.provider.hdfs1.implementation=org.apache.nifi.nar.hadoop.HDFSNarProvider
+   nifi.nar.library.provider.hdfs1.resources=/etc/hadoop/core-site.xml
+   nifi.nar.library.provider.hdfs1.source.directory=/customNars
+
+   nifi.nar.library.provider.hdfs2.implementation=org.apache.nifi.nar.hadoop.HDFSNarProvider
+   nifi.nar.library.provider.hdfs2.resources=/etc/hadoop/core-site.xml
+   nifi.nar.library.provider.hdfs2.source.directory=/other/dir/for/customNars

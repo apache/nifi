@@ -172,7 +172,6 @@ public class NarAutoLoaderTask implements Runnable {
         public NarAutoLoaderTask build() {
             return new NarAutoLoaderTask(this);
         }
-
     }
 
 }
