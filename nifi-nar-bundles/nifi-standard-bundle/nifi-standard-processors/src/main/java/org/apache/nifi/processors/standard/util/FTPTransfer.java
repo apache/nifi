@@ -606,7 +606,7 @@ public class FTPTransfer implements FileTransfer {
             client.setAutodetectUTF8(useUtf8Encoding);
         }
 
-        client.connect(inetAddress, ctx.getProperty(PORT).evaluateAttributeExpressions(flowFile).asInteger());
+        client.connect(remoteHostName, ctx.getProperty(PORT).evaluateAttributeExpressions(flowFile).asInteger());
         this.closed = false;
         client.setDataTimeout(ctx.getProperty(DATA_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue());
         client.setSoTimeout(ctx.getProperty(CONNECTION_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue());
