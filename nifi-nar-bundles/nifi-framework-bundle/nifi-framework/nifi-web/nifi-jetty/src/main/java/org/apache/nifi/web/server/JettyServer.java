@@ -1225,7 +1225,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
                     extensionMapping,
                     this);
 
-            narAutoLoader = new NarAutoLoader(props.getNarAutoLoadDirectory(), narLoader);
+            narAutoLoader = new NarAutoLoader(props, narLoader, extensionManager);
             narAutoLoader.start();
 
             // dump the application url after confirming everything started successfully

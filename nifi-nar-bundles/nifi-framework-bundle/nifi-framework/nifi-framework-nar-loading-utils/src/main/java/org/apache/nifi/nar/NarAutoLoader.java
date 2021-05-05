@@ -17,6 +17,7 @@
 package org.apache.nifi.nar;
 
 import org.apache.nifi.util.FileUtils;
+import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,37 +27,44 @@ import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.nio.file.StandardWatchEventKinds;
 import java.nio.file.WatchService;
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
+import java.util.UUID;
 
 /**
  * Starts a thread to monitor the auto-load directory for new NARs.
  */
 public class NarAutoLoader {
-
     private static final Logger LOGGER = LoggerFactory.getLogger(NarAutoLoader.class);
+    private static final String NAR_PROVIDER_PREFIX = "nifi.nar.library.provider.";
+    private static final String IMPLEMENTATION_PROPERTY = "implementation";
 
     private static final long POLL_INTERVAL_MS = 5000;
 
-    private final File autoLoadDir;
+    private final NiFiProperties properties;
     private final NarLoader narLoader;
+    private final ExtensionManager extensionManager;
 
+    private volatile Set<NarProviderTask> narProviderTasks;
     private volatile NarAutoLoaderTask narAutoLoaderTask;
     private volatile boolean started = false;
 
-    public NarAutoLoader(final File autoLoadDir, final NarLoader narLoader) {
-        this.autoLoadDir = Objects.requireNonNull(autoLoadDir);
+    public NarAutoLoader(final NiFiProperties properties, final NarLoader narLoader, final ExtensionManager extensionManager) {
+        this.properties = Objects.requireNonNull(properties);
         this.narLoader = Objects.requireNonNull(narLoader);
+        this.extensionManager = Objects.requireNonNull(extensionManager);
     }
 
-    public synchronized void start() throws IOException {
+    public synchronized void start() throws IllegalAccessException, InstantiationException, ClassNotFoundException, IOException {
         if (started) {
             return;
         }
 
+        final File autoLoadDir = properties.getNarAutoLoadDirectory();
         FileUtils.ensureDirectoryExistAndCanRead(autoLoadDir);
 
         final WatchService watcher = FileSystems.getDefault().newWatchService();
-
         final Path autoLoadPath = autoLoadDir.toPath();
         autoLoadPath.register(watcher, StandardWatchEventKinds.ENTRY_CREATE);
 
@@ -69,19 +77,43 @@ public class NarAutoLoader {
 
         LOGGER.info("Starting NAR Auto-Loader for directory {} ...", new Object[]{autoLoadPath});
 
-        final Thread thread = new Thread(narAutoLoaderTask);
-        thread.setName("NAR Auto-Loader");
-        thread.setDaemon(true);
-        thread.start();
+        final Thread autoLoaderThread = new Thread(narAutoLoaderTask);
+        autoLoaderThread.setName("NAR Auto-Loader");
+        autoLoaderThread.setDaemon(true);
+        autoLoaderThread.start();
 
-        LOGGER.info("NAR Auto-Loader started");
-        started = true;
+        narProviderTasks = new HashSet<>();
+
+        for (final String externalSourceName : properties.getDirectSubsequentTokens(NAR_PROVIDER_PREFIX)) {
+            LOGGER.info("NAR Provider {} found in configuration", externalSourceName);
+
+            final NarProviderInitializationContext context = new PropertyBasedNarProviderInitializationContext(properties, externalSourceName);
+            final String implementationClass = properties.getProperty(NAR_PROVIDER_PREFIX + externalSourceName + "." + IMPLEMENTATION_PROPERTY);
+            final String providerId = UUID.randomUUID().toString();
+            final NarProvider provider = NarThreadContextClassLoader.createInstance(extensionManager, implementationClass, NarProvider.class, properties, providerId);
+            provider.initialize(context);
+
+            final ClassLoader instanceClassLoader = extensionManager.getInstanceClassLoader(providerId);
+            final ClassLoader providerClassLoader = instanceClassLoader == null ? provider.getClass().getClassLoader() : instanceClassLoader;
+            final NarProviderTask task = new NarProviderTask(provider, providerClassLoader, properties.getNarAutoLoadDirectory(), POLL_INTERVAL_MS);
+            narProviderTasks.add(task);
+
+            final Thread providerThread = new Thread(task);
+            providerThread.setName("NAR Provider Task - " + externalSourceName);
+            providerThread.setDaemon(true);
+            providerThread.setContextClassLoader(provider.getClass().getClassLoader());
+            providerThread.start();
+        }
     }
 
     public synchronized void stop() {
         started = false;
         narAutoLoaderTask.stop();
+        narAutoLoaderTask = null;
+
+        narProviderTasks.forEach(NarProviderTask::stop);
+        narProviderTasks = null;
+
         LOGGER.info("NAR Auto-Loader stopped");
     }
-
 }

@@ -1915,6 +1915,39 @@ public abstract class NiFiProperties {
     }
 
     /**
+     * Returns all properties where the property key starts with the prefix.
+     *
+     * @param prefix The exact string the returned properties should start with. Dots are considered, thus prefix "item" will return both
+     *               properties starting with "item." and "items". Properties with empty value will be included as well.
+     *
+     * @return A map of properties starting with the prefix.
+     */
+    public Map<String, String> getPropertiesWithPrefix(final String prefix) {
+        return getPropertyKeys().stream().filter(key -> key.startsWith(prefix)).collect(Collectors.toMap(key -> key, key -> getProperty(key)));
+    }
+
+    /**
+     * Returns with all the possible next "tokens" after the given prefix. An alphanumeric string between dots is considered as a "token".
+     *
+     * For example if there are "parent.sub1" and a "parent.sub2" properties are set, and the prefix is "parent", the method will return
+     * with a set, consisting of "sub1" and "sub2. Only directly subsequent tokens are considered, so in case of "parent.sub1.subsub1", the
+     * result will contain "sub1" as well.
+     *
+     * @param prefix The prefix of the request.
+     *
+     * @return A set of direct subsequent tokens.
+     */
+    public Set<String> getDirectSubsequentTokens(final String prefix) {
+        final String fixedPrefix = prefix.endsWith(".") ? prefix : prefix + ".";
+
+        return getPropertyKeys().stream()
+                .filter(key -> key.startsWith(fixedPrefix))
+                .map(key -> key.substring(fixedPrefix.length()))
+                .map(key -> key.indexOf('.') == -1 ? key : key.substring(0, key.indexOf('.')))
+                .collect(Collectors.toSet());
+    }
+
+    /**
      * Creates an instance of NiFiProperties. This should likely not be called
      * by any classes outside of the NiFi framework but can be useful by the
      * framework for default property loading behavior or helpful in tests

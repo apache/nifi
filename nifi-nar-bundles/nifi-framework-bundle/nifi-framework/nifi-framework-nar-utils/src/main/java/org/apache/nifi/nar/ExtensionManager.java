@@ -63,6 +63,13 @@ public interface ExtensionManager {
     InstanceClassLoader removeInstanceClassLoader(String instanceIdentifier);
 
     /**
+     * Registers the given instance class loader so that it can be later retrieved via {@link #getInstanceClassLoader(String)}
+     * @param instanceIdentifier the instance identifier
+     * @param instanceClassLoader the class loader
+     */
+    void registerInstanceClassLoader(String instanceIdentifier, InstanceClassLoader instanceClassLoader);
+
+    /**
      * Closes the given ClassLoader if it is an instance of URLClassLoader.
      *
      * @param instanceIdentifier the instance id the class loader corresponds to

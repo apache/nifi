@@ -101,6 +101,7 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
         definitionMap.put(ContentRepository.class, new HashSet<>());
         definitionMap.put(StateProvider.class, new HashSet<>());
         definitionMap.put(StatusAnalyticsModel.class, new HashSet<>());
+        definitionMap.put(NarProvider.class, new HashSet<>());
     }
 
     @Override
@@ -460,6 +461,11 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
         final InstanceClassLoader classLoader = instanceClassloaderLookup.remove(instanceIdentifier);
         closeURLClassLoader(instanceIdentifier, classLoader);
         return classLoader;
+    }
+
+    @Override
+    public void registerInstanceClassLoader(final String instanceIdentifier, final InstanceClassLoader instanceClassLoader) {
+        instanceClassloaderLookup.putIfAbsent(instanceIdentifier, instanceClassLoader);
     }
 
     @Override

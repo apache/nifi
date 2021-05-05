@@ -37,7 +37,6 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.hadoop.KerberosProperties;
 import org.apache.nifi.hadoop.SecurityUtil;
 import org.apache.nifi.kerberos.KerberosCredentialsService;
-import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessorInitializationContext;
@@ -51,7 +50,6 @@ import javax.net.SocketFactory;
 import javax.security.auth.login.LoginException;
 import java.io.File;
 import java.io.IOException;
-import java.lang.ref.WeakReference;
 import java.lang.reflect.Field;
 import java.net.InetSocketAddress;
 import java.net.Socket;
@@ -62,8 +60,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
-import java.util.WeakHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
 
@@ -592,36 +588,6 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
         return accessDenied;
     }
 
-    static protected class HdfsResources {
-        private final Configuration configuration;
-        private final FileSystem fileSystem;
-        private final UserGroupInformation userGroupInformation;
-        private final KerberosUser kerberosUser;
-
-        public HdfsResources(Configuration configuration, FileSystem fileSystem, UserGroupInformation userGroupInformation, KerberosUser kerberosUser) {
-            this.configuration = configuration;
-            this.fileSystem = fileSystem;
-            this.userGroupInformation = userGroupInformation;
-            this.kerberosUser = kerberosUser;
-        }
-
-        public Configuration getConfiguration() {
-            return configuration;
-        }
-
-        public FileSystem getFileSystem() {
-            return fileSystem;
-        }
-
-        public UserGroupInformation getUserGroupInformation() {
-            return userGroupInformation;
-        }
-
-        public KerberosUser getKerberosUser() {
-            return kerberosUser;
-        }
-    }
-
     static protected class ValidationResources {
         private final ResourceReferences configResources;
         private final Configuration configuration;
@@ -638,59 +604,6 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
         public Configuration getConfiguration() {
             return configuration;
         }
-    }
-
-    /**
-     * Extending Hadoop Configuration to prevent it from caching classes that can't be found. Since users may be
-     * adding additional JARs to the classpath we don't want them to have to restart the JVM to be able to load
-     * something that was previously not found, but might now be available.
-     *
-     * Reference the original getClassByNameOrNull from Configuration.
-     */
-    static class ExtendedConfiguration extends Configuration {
-
-        private final ComponentLog logger;
-        private final Map<ClassLoader, Map<String, WeakReference<Class<?>>>> CACHE_CLASSES = new WeakHashMap<>();
-
-        public ExtendedConfiguration(final ComponentLog logger) {
-            this.logger = logger;
-        }
-
-        @Override
-        public Class<?> getClassByNameOrNull(String name) {
-            final ClassLoader classLoader = getClassLoader();
-
-            Map<String, WeakReference<Class<?>>> map;
-            synchronized (CACHE_CLASSES) {
-                map = CACHE_CLASSES.get(classLoader);
-                if (map == null) {
-                    map = Collections.synchronizedMap(new WeakHashMap<>());
-                    CACHE_CLASSES.put(classLoader, map);
-                }
-            }
-
-            Class<?> clazz = null;
-            WeakReference<Class<?>> ref = map.get(name);
-            if (ref != null) {
-                clazz = ref.get();
-            }
-
-            if (clazz == null) {
-                try {
-                    clazz = Class.forName(name, true, classLoader);
-                } catch (ClassNotFoundException e) {
-                    logger.error(e.getMessage(), e);
-                    return null;
-                }
-                // two putters can race here, but they'll put the same class
-                map.put(name, new WeakReference<>(clazz));
-                return clazz;
-            } else {
-                // cache hit
-                return clazz;
-            }
-        }
-
     }
 
 }

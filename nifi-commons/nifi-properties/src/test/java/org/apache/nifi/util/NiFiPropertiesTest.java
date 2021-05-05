@@ -374,4 +374,100 @@ public class NiFiPropertiesTest {
 
         assertFalse(properties.isTlsConfigurationPresent());
     }
+
+    @Test
+    public void testGetPropertiesWithPrefixWithoutDot() {
+        // given
+        final NiFiProperties testSubject = loadNiFiProperties("/NiFiProperties/conf/nifi.properties", null);
+
+        // when
+        final Map<String, String> result = testSubject.getPropertiesWithPrefix("nifi.web.http");
+
+        // then
+        Assert.assertEquals(4, result.size());
+        Assert.assertTrue(result.containsKey("nifi.web.http.host"));
+        Assert.assertTrue(result.containsKey("nifi.web.https.host"));
+    }
+
+    @Test
+    public void testGetPropertiesWithPrefixWithDot() {
+        // given
+        final NiFiProperties testSubject = loadNiFiProperties("/NiFiProperties/conf/nifi.properties", null);
+
+        // when
+        final Map<String, String> result = testSubject.getPropertiesWithPrefix("nifi.web.http.");
+
+        // then
+        Assert.assertEquals(2, result.size());
+        Assert.assertTrue(result.containsKey("nifi.web.http.host"));
+        Assert.assertFalse(result.containsKey("nifi.web.https.host"));
+    }
+
+    @Test
+    public void testGetPropertiesWithPrefixWhenNoResult() {
+        // given
+        final NiFiProperties testSubject = loadNiFiProperties("/NiFiProperties/conf/nifi.properties", null);
+
+        // when
+        final Map<String, String> result = testSubject.getPropertiesWithPrefix("invalid.property");
+
+        // then
+        Assert.assertTrue(result.isEmpty());
+    }
+
+    @Test
+    public void testGetDirectSubsequentTokensWithoutDot() {
+        // given
+        final NiFiProperties testSubject = loadNiFiProperties("/NiFiProperties/conf/nifi.properties", null);
+
+        // when
+        final Set<String> result = testSubject.getDirectSubsequentTokens("nifi.web.http");
+
+        // then
+        Assert.assertEquals(2, result.size());
+        Assert.assertTrue(result.contains("host"));
+        Assert.assertTrue(result.contains("port"));
+    }
+
+    @Test
+    public void testGetDirectSubsequentTokensWithDot() {
+        // given
+        final NiFiProperties testSubject = loadNiFiProperties("/NiFiProperties/conf/nifi.properties", null);
+
+        // when
+        final Set<String> result = testSubject.getDirectSubsequentTokens("nifi.web.http.");
+
+        // then
+        Assert.assertEquals(2, result.size());
+        Assert.assertTrue(result.contains("host"));
+        Assert.assertTrue(result.contains("port"));
+    }
+
+    @Test
+    public void testGetDirectSubsequentTokensWithNonExistingToken() {
+        // given
+        final NiFiProperties testSubject = loadNiFiProperties("/NiFiProperties/conf/nifi.properties", null);
+
+        // when
+        final Set<String> result = testSubject.getDirectSubsequentTokens("lorem.ipsum");
+
+        // then
+        Assert.assertTrue(result.isEmpty());
+    }
+
+    @Test
+    public void testGetDirectSubsequentTokensWhenMoreTokensAfterward() {
+        // given
+        final NiFiProperties testSubject = loadNiFiProperties("/NiFiProperties/conf/nifi.properties", null);
+
+        // when
+        final Set<String> result = testSubject.getDirectSubsequentTokens("nifi.web");
+
+        // then
+        Assert.assertEquals(4, result.size());
+        Assert.assertTrue(result.contains("http"));
+        Assert.assertTrue(result.contains("https"));
+        Assert.assertTrue(result.contains("war"));
+        Assert.assertTrue(result.contains("jetty"));
+    }
 }
