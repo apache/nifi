@@ -101,6 +101,7 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
         definitionMap.put(ContentRepository.class, new HashSet<>());
         definitionMap.put(StateProvider.class, new HashSet<>());
         definitionMap.put(StatusAnalyticsModel.class, new HashSet<>());
+        definitionMap.put(NarAutoLoaderExternalSource.class, new HashSet<>());
     }
 
     @Override

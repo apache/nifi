@@ -28,6 +28,7 @@ import java.nio.file.WatchService;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -46,6 +47,7 @@ public class NarAutoLoaderTask implements Runnable {
     private final WatchService watchService;
     private final long pollIntervalMillis;
     private final NarLoader narLoader;
+    private final Optional<NarAutoLoaderExternalSource> externalSource;
     private final List<File> candidateNars;
 
     private volatile boolean stopped = false;
@@ -55,12 +57,19 @@ public class NarAutoLoaderTask implements Runnable {
         this.watchService = builder.watchService;
         this.pollIntervalMillis = builder.pollIntervalMillis;
         this.narLoader = builder.narLoader;
+        this.externalSource = builder.externalSource;
         this.candidateNars = new ArrayList<>();
     }
 
     @Override
     public void run() {
         while (!stopped) {
+            try {
+                externalSource.ifPresent(externalSource -> externalSource.acquire());
+            } catch (final Throwable e) {
+                LOGGER.error("Error during reaching the external source", e);
+            }
+
             try {
                 WatchKey key;
                 try {
@@ -132,6 +141,8 @@ public class NarAutoLoaderTask implements Runnable {
                 LOGGER.error("Error loading NARs due to: " + t.getMessage(), t);
             }
         }
+
+        externalSource.ifPresent(externalSource -> externalSource.stop());
     }
 
     public void stop() {
@@ -148,6 +159,7 @@ public class NarAutoLoaderTask implements Runnable {
         private WatchService watchService;
         private long pollIntervalMillis;
         private NarLoader narLoader;
+        private Optional<NarAutoLoaderExternalSource> externalSource = Optional.empty();
 
         public Builder autoLoadPath(final Path autoLoadPath) {
             this.autoLoadPath = autoLoadPath;
@@ -166,6 +178,11 @@ public class NarAutoLoaderTask implements Runnable {
 
         public Builder narLoader(final NarLoader narLoader) {
             this.narLoader = narLoader;
+            return this;
+        }
+
+        public Builder externalSource(Optional<NarAutoLoaderExternalSource> externalSource) {
+            this.externalSource = externalSource;
             return this;
         }
 
