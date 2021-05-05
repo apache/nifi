@@ -226,6 +226,7 @@ public class ConsumeKinesisStream extends AbstractKinesisStreamProcessor {
             .name("amazon-kinesis-stream-cloudwatch-flag")
             .description("Whether to report Kinesis usage metrics to CloudWatch.")
             .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .allowableValues("true", "false")
             .defaultValue("false")
             .required(true).build();
 
