@@ -134,7 +134,7 @@ public class TestConsumeKinesisStream {
                         "'%s' validated against 'not-a-long' is invalid because not a valid Long\n" +
                         "'%s' validated against 'not-an-int' is invalid because not a valid integer\n" +
                         "'%s' validated against 'not-a-long' is invalid because not a valid Long\n" +
-                        "'%s' validated against 'not-a-boolean' is invalid because Value must be 'true' or 'false'\n" +
+                        "'%s' validated against 'not-a-boolean' is invalid because Given value not found in allowed set 'true, false'\n" +
                         "'%s' validated against 'not-a-reader' is invalid because Invalid Controller Service: not-a-reader is not a valid Controller Service Identifier\n" +
                         "'%s' validated against 'not-a-writer' is invalid because Invalid Controller Service: not-a-writer is not a valid Controller Service Identifier\n",
                 ConsumeKinesisStream.APPLICATION_NAME.getName(), ConsumeKinesisStream.APPLICATION_NAME.getName(),
@@ -163,7 +163,7 @@ public class TestConsumeKinesisStream {
         assertThat(assertionError.getMessage(), equalTo(String.format("Processor has 1 validation failures:\n" +
                         "'%s' is invalid because %s must be provided when %s is %s\n",
                 ConsumeKinesisStream.STREAM_POSITION_TIMESTAMP.getName(), ConsumeKinesisStream.STREAM_POSITION_TIMESTAMP.getDisplayName(),
-                ConsumeKinesisStream.INITIAL_STREAM_POSITION.getDisplayName(), InitialPositionInStream.AT_TIMESTAMP.toString()
+                ConsumeKinesisStream.INITIAL_STREAM_POSITION.getDisplayName(), InitialPositionInStream.AT_TIMESTAMP
         )));
     }
 
