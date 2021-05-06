@@ -833,7 +833,7 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
 
         // load the flow
         logger.debug("Loading proposed flow into FlowController");
-        dao.load(controller, actualProposedFlow);
+        dao.load(controller, actualProposedFlow, this);
 
         final ProcessGroup rootGroup = controller.getFlowManager().getRootGroup();
         if (rootGroup.isEmpty() && !allowEmptyFlow) {

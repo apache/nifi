@@ -141,9 +141,9 @@ public class NodeIdentifier {
                 siteToSiteAddress, siteToSitePort, siteToSiteHttpApiPort, siteToSiteSecure, null, null);
     }
     
-    public NodeIdentifier(final String id, final String apiAddress, final int apiPort, final String socketAddress, final int socketPort,
+    public NodeIdentifier(final String id, final String apiAddress, final int apiPort, final String socketAddress, final int socketPort, 
             final String loadBalanceAddress, final int loadBalancePort,
-        final String siteToSiteAddress, final Integer siteToSitePort, final Integer siteToSiteHttpApiPort, final boolean siteToSiteSecure,
+            final String siteToSiteAddress, final Integer siteToSitePort, final Integer siteToSiteHttpApiPort, final boolean siteToSiteSecure, 
         final String webContextRoot, final Set<String> nodeIdentities) {
 
         if (StringUtils.isBlank(id)) {
