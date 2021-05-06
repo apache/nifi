@@ -114,9 +114,9 @@ public class TestConsumeKinesisStream {
     public void testInvalidProperties() {
         runner.setProperty(ConsumeKinesisStream.APPLICATION_NAME, " ");
         runner.setProperty(ConsumeKinesisStream.TIMESTAMP_FORMAT, "not-valid-format");
-        runner.setProperty(ConsumeKinesisStream.RETRY_WAIT_MILLIS, "not-a-long");
+        runner.setProperty(ConsumeKinesisStream.RETRY_WAIT, "not-a-long");
         runner.setProperty(ConsumeKinesisStream.NUM_RETRIES, "not-an-int");
-        runner.setProperty(ConsumeKinesisStream.CHECKPOINT_INTERVAL_MILLIS, "not-a-long");
+        runner.setProperty(ConsumeKinesisStream.CHECKPOINT_INTERVAL, "not-a-long");
         runner.setProperty(ConsumeKinesisStream.REPORT_CLOUDWATCH_METRICS, "not-a-boolean");
         runner.setProperty(ConsumeKinesisStream.DYNAMODB_ENDPOINT_OVERRIDE, "not-a-url");
         runner.setProperty(ConsumeKinesisStream.INITIAL_STREAM_POSITION, "not-an-enum-match");
@@ -132,9 +132,11 @@ public class TestConsumeKinesisStream {
                         "'%s' validated against 'not-a-url' is invalid because Not a valid URL\n" +
                         "'%s' validated against 'not-an-enum-match' is invalid because Given value not found in allowed set '%s, %s, %s'\n" +
                         "'%s' validated against 'not-valid-format' is invalid because Must be a valid java.time.DateTimeFormatter pattern, e.g. %s\n" +
-                        "'%s' validated against 'not-a-long' is invalid because not a valid Long\n" +
+                        "'%s' validated against 'not-a-long' is invalid because Must be of format <duration> <TimeUnit> where <duration> is a non-negative integer and " +
+                        "TimeUnit is a supported Time Unit, such as: nanos, millis, secs, mins, hrs, days\n" +
                         "'%s' validated against 'not-an-int' is invalid because not a valid integer\n" +
-                        "'%s' validated against 'not-a-long' is invalid because not a valid Long\n" +
+                        "'%s' validated against 'not-a-long' is invalid because Must be of format <duration> <TimeUnit> where <duration> is a non-negative integer and " +
+                        "TimeUnit is a supported Time Unit, such as: nanos, millis, secs, mins, hrs, days\n" +
                         "'%s' validated against 'not-a-boolean' is invalid because Given value not found in allowed set 'true, false'\n" +
                         "'%s' validated against 'not-a-reader' is invalid because Invalid Controller Service: not-a-reader is not a valid Controller Service Identifier\n" +
                         "'%s' validated against 'not-a-writer' is invalid because Invalid Controller Service: not-a-writer is not a valid Controller Service Identifier\n",
@@ -145,9 +147,9 @@ public class TestConsumeKinesisStream {
                 ConsumeKinesisStream.INITIAL_STREAM_POSITION.getName(), ConsumeKinesisStream.LATEST.getDisplayName(),
                 ConsumeKinesisStream.TRIM_HORIZON.getDisplayName(), ConsumeKinesisStream.AT_TIMESTAMP.getDisplayName(),
                 ConsumeKinesisStream.TIMESTAMP_FORMAT.getName(), RecordFieldType.TIMESTAMP.getDefaultFormat(),
-                ConsumeKinesisStream.CHECKPOINT_INTERVAL_MILLIS.getName(),
+                ConsumeKinesisStream.CHECKPOINT_INTERVAL.getName(),
                 ConsumeKinesisStream.NUM_RETRIES.getName(),
-                ConsumeKinesisStream.RETRY_WAIT_MILLIS.getName(),
+                ConsumeKinesisStream.RETRY_WAIT.getName(),
                 ConsumeKinesisStream.REPORT_CLOUDWATCH_METRICS.getName(),
                 ConsumeKinesisStream.RECORD_READER.getDisplayName(),
                 ConsumeKinesisStream.RECORD_WRITER.getDisplayName()

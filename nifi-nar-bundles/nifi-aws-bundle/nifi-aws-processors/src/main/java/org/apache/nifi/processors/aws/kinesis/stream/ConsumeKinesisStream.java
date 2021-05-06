@@ -119,7 +119,7 @@ import java.util.stream.Collectors;
 @SystemResourceConsideration(resource = SystemResource.CPU, description = "Kinesis Client Library is used to create a Worker thread for consumption of Kinesis Records. " +
         "The Worker is initialised and started when this Processor has been triggered. It runs continually, spawning Kinesis Record Processors as required " +
         "to fetch Kinesis Records. The Worker Thread (and any child Record Processor threads) are not controlled by the normal NiFi scheduler as part of the " +
-        "Concurrent Thread pool are are not released until this processor is stopped.")
+        "Concurrent Thread pool and are not released until this processor is stopped.")
 @SystemResourceConsideration(resource = SystemResource.NETWORK, description = "Kinesis Client Library will continually poll for new Records, " +
         "requesting up to a maximum number of Records/bytes per call. This can result in sustained network usage.")
 @SeeAlso(PutKinesisStream.class)
@@ -186,12 +186,12 @@ public class ConsumeKinesisStream extends AbstractKinesisStreamProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .required(true).build();
 
-    public static final PropertyDescriptor CHECKPOINT_INTERVAL_MILLIS = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor CHECKPOINT_INTERVAL = new PropertyDescriptor.Builder()
             .displayName("Checkpoint Interval")
             .name("amazon-kinesis-stream-checkpoint-interval")
-            .description("Interval (milliseconds) between Kinesis checkpoints")
-            .addValidator(StandardValidators.LONG_VALIDATOR)
-            .defaultValue("60000")
+            .description("Interval between Kinesis checkpoints")
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .defaultValue("1 min")
             .required(true).build();
 
     public static final PropertyDescriptor NUM_RETRIES = new PropertyDescriptor.Builder()
@@ -202,12 +202,12 @@ public class ConsumeKinesisStream extends AbstractKinesisStreamProcessor {
             .defaultValue("10")
             .required(true).build();
 
-    public static final PropertyDescriptor RETRY_WAIT_MILLIS = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor RETRY_WAIT = new PropertyDescriptor.Builder()
             .displayName("Retry Wait")
             .name("amazon-kinesis-stream-retry-wait")
-            .description("Interval (milliseconds) between Kinesis operation retries (get records, checkpoint, shutdown)")
-            .addValidator(StandardValidators.LONG_VALIDATOR)
-            .defaultValue("1000")
+            .description("Interval between Kinesis operation retries (get records, checkpoint, shutdown)")
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .defaultValue("1 sec")
             .required(true).build();
 
     public static final PropertyDescriptor DYNAMODB_ENDPOINT_OVERRIDE = new PropertyDescriptor.Builder()
@@ -263,7 +263,7 @@ public class ConsumeKinesisStream extends AbstractKinesisStreamProcessor {
                     // Kinesis Stream specific properties
                     KINESIS_STREAM_NAME, APPLICATION_NAME, RECORD_READER, RECORD_WRITER, REGION, ENDPOINT_OVERRIDE,
                     DYNAMODB_ENDPOINT_OVERRIDE, INITIAL_STREAM_POSITION, STREAM_POSITION_TIMESTAMP, TIMESTAMP_FORMAT,
-                    CHECKPOINT_INTERVAL_MILLIS, NUM_RETRIES, RETRY_WAIT_MILLIS, REPORT_CLOUDWATCH_METRICS,
+                    CHECKPOINT_INTERVAL, NUM_RETRIES, RETRY_WAIT, REPORT_CLOUDWATCH_METRICS,
                     // generic AWS processor properties
                     TIMEOUT, AWS_CREDENTIALS_PROVIDER_SERVICE, PROXY_CONFIGURATION_SERVICE
             )
@@ -278,7 +278,7 @@ public class ConsumeKinesisStream extends AbstractKinesisStreamProcessor {
         put("kinesisEndpoint", ENDPOINT_OVERRIDE);
     }};
 
-    private static final String WORKER_THREAD_NAME_TEMPLATE = ConsumeKinesisStream.class.getName() + "-" + Worker.class.getName() + "-";
+    private static final String WORKER_THREAD_NAME_TEMPLATE = ConsumeKinesisStream.class.getSimpleName() + "-" + Worker.class.getSimpleName() + "-";
 
     private static final Set<Relationship> RELATIONSHIPS = Collections.singleton(REL_SUCCESS);
     private static final Set<Relationship> RECORD_RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(REL_SUCCESS, REL_PARSE_FAILURE)));
@@ -649,7 +649,7 @@ public class ConsumeKinesisStream extends AbstractKinesisStreamProcessor {
     }
 
     private long getCheckpointIntervalMillis(final ProcessContext context) {
-        return context.getProperty(CHECKPOINT_INTERVAL_MILLIS).asLong();
+        return context.getProperty(CHECKPOINT_INTERVAL).asTimePeriod(TimeUnit.MILLISECONDS);
     }
 
     private int getNumRetries(final ProcessContext context) {
@@ -657,7 +657,7 @@ public class ConsumeKinesisStream extends AbstractKinesisStreamProcessor {
     }
 
     private long getRetryWaitMillis(final ProcessContext context) {
-        return context.getProperty(RETRY_WAIT_MILLIS).asLong();
+        return context.getProperty(RETRY_WAIT).asTimePeriod(TimeUnit.MILLISECONDS);
     }
 
     private boolean isReportCloudWatchMetrics(final ProcessContext context) {
