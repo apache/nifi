@@ -43,6 +43,7 @@ public class NarAutoLoader {
     private final NarLoader narLoader;
     private final ExtensionManager extensionManager;
 
+    private volatile Optional<NarAutoLoaderExternalSourceTask> externalSourceTask = Optional.empty();
     private volatile NarAutoLoaderTask narAutoLoaderTask;
     private volatile boolean started = false;
 
@@ -60,7 +61,6 @@ public class NarAutoLoader {
         final File autoLoadDir = properties.getNarAutoLoadDirectory();
         FileUtils.ensureDirectoryExistAndCanRead(autoLoadDir);
 
-        final Optional<NarAutoLoaderExternalSource> externalSource = getExternalSource();
         final WatchService watcher = FileSystems.getDefault().newWatchService();
         final Path autoLoadPath = autoLoadDir.toPath();
         autoLoadPath.register(watcher, StandardWatchEventKinds.ENTRY_CREATE);
@@ -70,20 +70,25 @@ public class NarAutoLoader {
                 .watchService(watcher)
                 .pollIntervalMillis(POLL_INTERVAL_MS)
                 .narLoader(narLoader)
-                .externalSource(externalSource)
                 .build();
 
         LOGGER.info("Starting NAR Auto-Loader for directory {} ...", new Object[]{autoLoadPath});
 
-        final Thread thread = new Thread(narAutoLoaderTask);
-        thread.setName("NAR Auto-Loader");
-        thread.setDaemon(true);
+        final Thread autoLoaderThread = new Thread(narAutoLoaderTask);
+        autoLoaderThread.setName("NAR Auto-Loader");
+        autoLoaderThread.setDaemon(true);
+        autoLoaderThread.start();
+
+        final Optional<NarAutoLoaderExternalSource> externalSource = getExternalSource();
 
         if (externalSource.isPresent()) {
-            thread.setContextClassLoader(externalSource.get().getClass().getClassLoader());
+            externalSourceTask = Optional.of(new NarAutoLoaderExternalSourceTask(externalSource.get(), 5000)); // TODO
+            final Thread externalSourceThread = new Thread(externalSourceTask.get());
+            externalSourceThread.setName("NAR Auto-Loader External Source Task");
+            externalSourceThread.setDaemon(true);
+            externalSourceThread.setContextClassLoader(externalSource.get().getClass().getClassLoader());
+            externalSourceThread.start();
         }
-
-        thread.start();
     }
 
     private Optional<NarAutoLoaderExternalSource> getExternalSource() throws IllegalAccessException, ClassNotFoundException, InstantiationException  {
@@ -102,6 +107,7 @@ public class NarAutoLoader {
         started = false;
         narAutoLoaderTask.stop();
         narAutoLoaderTask = null;
+        externalSourceTask.ifPresent(task -> task.stop());
         LOGGER.info("NAR Auto-Loader stopped");
     }
 }
