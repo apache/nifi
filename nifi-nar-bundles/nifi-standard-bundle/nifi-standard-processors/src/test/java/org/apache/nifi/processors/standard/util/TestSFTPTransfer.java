@@ -16,13 +16,18 @@
  */
 package org.apache.nifi.processors.standard.util;
 
+import net.schmizz.sshj.DefaultConfig;
+import net.schmizz.sshj.common.Factory;
 import net.schmizz.sshj.sftp.Response;
 import net.schmizz.sshj.sftp.SFTPClient;
 import net.schmizz.sshj.sftp.SFTPException;
+import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.mock.MockComponentLogger;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.MockPropertyContext;
 import org.apache.nifi.util.MockPropertyValue;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -30,7 +35,10 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
@@ -244,4 +252,34 @@ public class TestSFTPTransfer {
         verify(sftpClient).mkdir(eq("/dir1/dir2/dir3")); // dir3 was created blindly.
     }
 
+    @Test
+    public void testRestrictSSHOptions() {
+        Map<PropertyDescriptor, String> propertyDescriptorValues = new HashMap<>();
+
+        DefaultConfig defaultConfig = new DefaultConfig();
+
+        String allowedMac = defaultConfig.getMACFactories().stream().map(Factory.Named::getName).collect(Collectors.toList()).get(0);
+        String allowedKeyAlgorithm = defaultConfig.getKeyAlgorithms().stream().map(Factory.Named::getName).collect(Collectors.toList()).get(0);
+        String allowedKeyExchangeAlgorithm = defaultConfig.getKeyExchangeFactories().stream().map(Factory.Named::getName).collect(Collectors.toList()).get(0);
+        String allowedCipher = defaultConfig.getCipherFactories().stream().map(Factory.Named::getName).collect(Collectors.toList()).get(0);
+
+        propertyDescriptorValues.put(SFTPTransfer.MESSAGE_AUTHENTICATION_CODES_ALLOWED, allowedMac);
+        propertyDescriptorValues.put(SFTPTransfer.CIPHERS_ALLOWED, allowedCipher);
+        propertyDescriptorValues.put(SFTPTransfer.KEY_ALGORITHMS_ALLOWED, allowedKeyAlgorithm);
+        propertyDescriptorValues.put(SFTPTransfer.KEY_EXCHANGE_ALGORITHMS_ALLOWED, allowedKeyExchangeAlgorithm);
+        MockPropertyContext mockPropertyContext = new MockPropertyContext(propertyDescriptorValues);
+        SFTPTransfer sftpTransfer = new SFTPTransfer(mockPropertyContext, new MockComponentLogger());
+
+        sftpTransfer.updateConfigAlgorithms(defaultConfig);
+
+        assertEquals(1, defaultConfig.getCipherFactories().size());
+        assertEquals(1, defaultConfig.getKeyAlgorithms().size());
+        assertEquals(1, defaultConfig.getKeyExchangeFactories().size());
+        assertEquals(1, defaultConfig.getMACFactories().size());
+
+        assertEquals(allowedCipher, defaultConfig.getCipherFactories().get(0).getName());
+        assertEquals(allowedKeyAlgorithm, defaultConfig.getKeyAlgorithms().get(0).getName());
+        assertEquals(allowedKeyExchangeAlgorithm, defaultConfig.getKeyExchangeFactories().get(0).getName());
+        assertEquals(allowedMac, defaultConfig.getMACFactories().get(0).getName());
+    }
 }
