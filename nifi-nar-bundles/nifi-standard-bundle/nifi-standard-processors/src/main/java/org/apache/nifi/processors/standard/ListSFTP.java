@@ -102,6 +102,10 @@ public class ListSFTP extends ListFileTransfer {
         properties.add(SFTPTransfer.CONNECTION_TIMEOUT);
         properties.add(SFTPTransfer.DATA_TIMEOUT);
         properties.add(SFTPTransfer.USE_KEEPALIVE_ON_TIMEOUT);
+        properties.add(SFTPTransfer.CIPHERS_ALLOWED);
+        properties.add(SFTPTransfer.KEY_ALGORITHMS_ALLOWED);
+        properties.add(SFTPTransfer.KEY_EXCHANGE_ALGORITHMS_ALLOWED);
+        properties.add(SFTPTransfer.MESSAGE_AUTHENTICATION_CODES_ALLOWED);
         properties.add(TARGET_SYSTEM_TIMESTAMP_PRECISION);
         properties.add(SFTPTransfer.PROXY_CONFIGURATION_SERVICE);
         properties.add(FTPTransfer.PROXY_TYPE);

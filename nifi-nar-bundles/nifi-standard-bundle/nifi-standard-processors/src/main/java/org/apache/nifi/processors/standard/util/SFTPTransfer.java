@@ -18,8 +18,10 @@ package org.apache.nifi.processors.standard.util;
 
 import net.schmizz.keepalive.KeepAlive;
 import net.schmizz.keepalive.KeepAliveProvider;
+import net.schmizz.sshj.Config;
 import net.schmizz.sshj.DefaultConfig;
 import net.schmizz.sshj.SSHClient;
+import net.schmizz.sshj.common.Factory;
 import net.schmizz.sshj.connection.ConnectionException;
 import net.schmizz.sshj.connection.ConnectionImpl;
 import net.schmizz.sshj.sftp.FileAttributes;
@@ -72,17 +74,65 @@ import java.nio.file.Paths;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import static org.apache.nifi.processors.standard.util.FTPTransfer.createComponentProxyConfigSupplier;
 
 public class SFTPTransfer implements FileTransfer {
+    // The following DefaultConfig is used for configuration purposes. There are PropertyDescriptors associated with this class
+    // that allow an operator to choose various algorithms and ciphers to allow to be used for their SSH connections.
+    private static final DefaultConfig DEFAULT_CONFIG = new DefaultConfig();
+
+    private static final Set<String> AVAILABLE_KEY_ALGORITHM_NAMES_SET = Collections.unmodifiableSet(DEFAULT_CONFIG.getKeyAlgorithms().stream()
+            .map(Factory.Named::getName)
+            .collect(Collectors.toSet()));
+
+    private static final Set<String> AVAILABLE_CIPHER_NAMES_SET = Collections.unmodifiableSet(DEFAULT_CONFIG.getCipherFactories().stream()
+            .map(Factory.Named::getName)
+            .collect(Collectors.toSet()));
+
+    private static final Set<String> AVAILABLE_MESSAGE_AUTHENTICATION_CODE_NAMES_SET = Collections.unmodifiableSet(DEFAULT_CONFIG.getMACFactories().stream()
+            .map(Factory.Named::getName)
+            .collect(Collectors.toSet()));
+
+    private static final Set<String> AVAILABLE_KEY_EXCHANGE_ALGORITHM_NAMES_SET = Collections.unmodifiableSet(DEFAULT_CONFIG.getKeyExchangeFactories().stream()
+            .map(Factory.Named::getName)
+            .collect(Collectors.toSet()));
+
+    /**
+     * Converts a set of names into an alphabetically ordered comma separated value list.
+     *
+     * @param factorySetNames The set of names
+     * @return An alphabetically ordered comma separated value list of names
+     */
+    private static String convertFactorySetToString(Set<String> factorySetNames) {
+        return factorySetNames
+                .stream()
+                .sorted()
+                .collect(Collectors.toList())
+                .toString().replaceAll("[\\[\\]]", "");
+    }
+
+    /**
+     * This method takes a set of strings and returns a Pattern whose regex represents a comma-separated value
+     * list of those same names.
+     *
+     * @param factorySetNames A set of names that will be used as options within the resultant regex
+     * @return A compiled pattern representing a CSV list of factory names.
+     */
+    private static Pattern convertFactorySetToPattern(Set<String> factorySetNames) {
+        String namesWithBars = String.join("|", factorySetNames);
+        return Pattern.compile("((X) *, *)*(X)".replaceAll("X", namesWithBars));
+    }
 
     public static final PropertyDescriptor PRIVATE_KEY_PATH = new PropertyDescriptor.Builder()
         .name("Private Key Path")
@@ -131,6 +181,39 @@ public class SFTPTransfer implements FileTransfer {
         .required(true)
         .build();
 
+    public static final PropertyDescriptor KEY_ALGORITHMS_ALLOWED = new PropertyDescriptor.Builder()
+            .name("Key Algorithms Allowed")
+            .description("A comma-separated list of Key Algorithms to allow your SFTP connection to use. Available options are: " + convertFactorySetToString(AVAILABLE_KEY_ALGORITHM_NAMES_SET))
+            .defaultValue(convertFactorySetToString(AVAILABLE_KEY_ALGORITHM_NAMES_SET))
+            .required(false)
+            .addValidator(StandardValidators.createRegexMatchingValidator(convertFactorySetToPattern(AVAILABLE_KEY_ALGORITHM_NAMES_SET)))
+            .build();
+
+    public static final PropertyDescriptor CIPHERS_ALLOWED = new PropertyDescriptor.Builder()
+            .name("Ciphers Allowed")
+            .description("A comma-separated list of Ciphers to allow your SFTP connection to use. Available options are: " + convertFactorySetToString(AVAILABLE_CIPHER_NAMES_SET))
+            .defaultValue(convertFactorySetToString(AVAILABLE_CIPHER_NAMES_SET))
+            .required(false)
+            .addValidator(StandardValidators.createRegexMatchingValidator(convertFactorySetToPattern(AVAILABLE_CIPHER_NAMES_SET)))
+            .build();
+
+    public static final PropertyDescriptor MESSAGE_AUTHENTICATION_CODES_ALLOWED = new PropertyDescriptor.Builder()
+            .name("Message Authentication Codes Allowed")
+            .description("A comma-separated list of Message Authentication Codes to allow your SFTP connection to use. Available options are: "
+                    + convertFactorySetToString(AVAILABLE_MESSAGE_AUTHENTICATION_CODE_NAMES_SET))
+            .defaultValue(convertFactorySetToString(AVAILABLE_MESSAGE_AUTHENTICATION_CODE_NAMES_SET))
+            .required(false)
+            .addValidator(StandardValidators.createRegexMatchingValidator(convertFactorySetToPattern(AVAILABLE_MESSAGE_AUTHENTICATION_CODE_NAMES_SET)))
+            .build();
+
+    public static final PropertyDescriptor KEY_EXCHANGE_ALGORITHMS_ALLOWED = new PropertyDescriptor.Builder()
+            .name("Key Exchange Algorithms Allowed")
+            .description("A comma-separated list of Key Exchange Algorithms to allow your SFTP connection to use. Available options are: "
+                    + convertFactorySetToString(AVAILABLE_KEY_EXCHANGE_ALGORITHM_NAMES_SET))
+            .defaultValue(convertFactorySetToString(AVAILABLE_KEY_EXCHANGE_ALGORITHM_NAMES_SET))
+            .required(false)
+            .addValidator(StandardValidators.createRegexMatchingValidator(convertFactorySetToPattern(AVAILABLE_KEY_EXCHANGE_ALGORITHM_NAMES_SET)))
+            .build();
 
     /**
      * Property which is used to decide if the {@link #ensureDirectoryExists(FlowFile, File)} method should perform a {@link SFTPClient#ls(String)} before calling
@@ -521,6 +604,8 @@ public class SFTPTransfer implements FileTransfer {
             sshClientConfig.setKeepAliveProvider(NO_OP_KEEP_ALIVE);
         }
 
+        restrictSSHOptions(sshClientConfig);
+
         final SSHClient sshClient = new SSHClient(sshClientConfig);
 
         // Create a Proxy if the config was specified, proxy will be null if type was NO_PROXY
@@ -640,6 +725,38 @@ public class SFTPTransfer implements FileTransfer {
         }
 
         return sftpClient;
+    }
+
+    void restrictSSHOptions(Config config) {
+        final String csvRegex = " *, *";
+
+        if(ctx.getProperty(CIPHERS_ALLOWED).isSet()) {
+            List<String> allowedCiphers = Arrays.asList(ctx.getProperty(CIPHERS_ALLOWED).getValue().split(csvRegex));
+            config.setCipherFactories(config.getCipherFactories().stream()
+                    .filter(cipherNamed -> allowedCiphers.contains(cipherNamed.getName()))
+                    .collect(Collectors.toList()));
+        }
+
+        if(ctx.getProperty(KEY_ALGORITHMS_ALLOWED).isSet()) {
+            List<String> allowedKeyAlgorithms = Arrays.asList(ctx.getProperty(KEY_ALGORITHMS_ALLOWED).getValue().split(csvRegex));
+            config.setKeyAlgorithms(config.getKeyAlgorithms().stream()
+                    .filter(keyAlgorithmNamed -> allowedKeyAlgorithms.contains(keyAlgorithmNamed.getName()))
+                    .collect(Collectors.toList()));
+        }
+
+        if(ctx.getProperty(KEY_EXCHANGE_ALGORITHMS_ALLOWED).isSet()) {
+            List<String> allowedKeyExchangeAlgorithms = Arrays.asList(ctx.getProperty(KEY_EXCHANGE_ALGORITHMS_ALLOWED).getValue().split(csvRegex));
+            config.setKeyExchangeFactories(config.getKeyExchangeFactories().stream()
+                    .filter(keyExchangeNamed -> allowedKeyExchangeAlgorithms.contains(keyExchangeNamed.getName()))
+                    .collect(Collectors.toList()));
+        }
+
+        if(ctx.getProperty(MESSAGE_AUTHENTICATION_CODES_ALLOWED).isSet()) {
+            List<String> allowedMessageAuthenticationCodes = Arrays.asList(ctx.getProperty(MESSAGE_AUTHENTICATION_CODES_ALLOWED).getValue().split(csvRegex));
+            config.setMACFactories(config.getMACFactories().stream()
+                    .filter(macNamed -> allowedMessageAuthenticationCodes.contains(macNamed.getName()))
+                    .collect(Collectors.toList()));
+        }
     }
 
     @Override
