@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.processors.aws.kinesis.stream.record;
 
+import com.amazonaws.services.kinesis.clientlibrary.exceptions.InvalidStateException;
+import com.amazonaws.services.kinesis.clientlibrary.exceptions.ShutdownException;
 import com.amazonaws.services.kinesis.clientlibrary.interfaces.IRecordProcessorCheckpointer;
 import com.amazonaws.services.kinesis.clientlibrary.interfaces.v2.IRecordProcessor;
 import com.amazonaws.services.kinesis.clientlibrary.types.ProcessRecordsInput;
@@ -63,7 +65,8 @@ public class TestKinesisRecordProcessorRaw {
     @Mock
     private ProcessSessionFactory processSessionFactory;
 
-    private final MockProcessSession session = new MockProcessSession(new SharedSessionState(runner.getProcessor(), new AtomicLong(0)), runner.getProcessor());
+    private final SharedSessionState sharedState = new SharedSessionState(runner.getProcessor(), new AtomicLong(0));
+    private final MockProcessSession session = new MockProcessSession(sharedState, runner.getProcessor());
 
     private IRecordProcessor fixture;
 
@@ -71,7 +74,7 @@ public class TestKinesisRecordProcessorRaw {
     private IRecordProcessorCheckpointer checkpointer;
 
     @Mock
-    private Record record;
+    private Record kinesisRecord;
 
     @Before
     public void setUp() {
@@ -79,13 +82,13 @@ public class TestKinesisRecordProcessorRaw {
 
         // default test fixture will try operations twice with very little wait in between
         fixture = new KinesisRecordProcessorRaw(processSessionFactory, runner.getLogger(), "kinesis-test",
-                "endpoint-prefix", 10_000L, 1L, 2, DATE_TIME_FORMATTER);
+                "endpoint-prefix", null, 10_000L, 1L, 2, DATE_TIME_FORMATTER);
     }
 
     @After
     public void tearDown() {
-        verifyNoMoreInteractions(checkpointer, record, processSessionFactory);
-        reset(checkpointer, record, processSessionFactory);
+        verifyNoMoreInteractions(checkpointer, kinesisRecord, processSessionFactory);
+        reset(checkpointer, kinesisRecord, processSessionFactory);
     }
 
     @Test
@@ -98,21 +101,27 @@ public class TestKinesisRecordProcessorRaw {
                 .withMillisBehindLatest(100L);
 
         // would checkpoint (but should skip because there are no records processed)
-        ((AbstractKinesisRecordProcessor) fixture).nextCheckpointTimeInMillis = System.currentTimeMillis() - 10_000L;
+        ((AbstractKinesisRecordProcessor) fixture).setNextCheckpointTimeInMillis(System.currentTimeMillis() - 10_000L);
 
         fixture.processRecords(processRecordsInput);
 
         session.assertTransferCount(ConsumeKinesisStream.REL_SUCCESS, 0);
+        assertThat(sharedState.getProvenanceEvents().size(), is(0));
         session.assertNotCommitted();
         session.assertNotRolledBack();
-
-        // DEBUG messages don't have their fields replaced in the MockComponentLog
-        assertThat(runner.getLogger().getDebugMessages().stream().anyMatch(logMessage -> logMessage.getMsg()
-                .endsWith("Processing {} records from {}; cache entry: {}; cache exit: {}; millis behind latest: {}")), is(true));
     }
 
     @Test
     public void testProcessRecordsNoCheckpoint() {
+        processMultipleRecordsAssertProvenance(false);
+    }
+
+    @Test
+    public void testProcessRecordsWithEndpointOverride() {
+        processMultipleRecordsAssertProvenance(true);
+    }
+
+    private void processMultipleRecordsAssertProvenance(final boolean endpointOverridden) {
         final Date firstDate = Date.from(Instant.now().minus(1, ChronoUnit.MINUTES));
         final Date secondDate = new Date();
 
@@ -136,15 +145,26 @@ public class TestKinesisRecordProcessorRaw {
                 .withCacheExitTime(null)
                 .withMillisBehindLatest(null);
 
+        final String transitUriPrefix = endpointOverridden ? "https://another-endpoint.com:8443" : "http://endpoint-prefix.amazonaws.com";
+        if (endpointOverridden) {
+            fixture = new KinesisRecordProcessorRaw(processSessionFactory, runner.getLogger(), "kinesis-test",
+                    "endpoint-prefix", "https://another-endpoint.com:8443", 10_000L, 1L, 2, DATE_TIME_FORMATTER);
+        }
+
         // skip checkpoint
-        ((AbstractKinesisRecordProcessor) fixture).nextCheckpointTimeInMillis = System.currentTimeMillis() + 10_000L;
-        ((AbstractKinesisRecordProcessor) fixture).kinesisShardId = "test-shard";
+        ((AbstractKinesisRecordProcessor) fixture).setNextCheckpointTimeInMillis(System.currentTimeMillis() + 10_000L);
+        ((AbstractKinesisRecordProcessor) fixture).setKinesisShardId("test-shard");
 
         when(processSessionFactory.createSession()).thenReturn(session);
         fixture.processRecords(processRecordsInput);
         verify(processSessionFactory, times(1)).createSession();
 
         session.assertTransferCount(ConsumeKinesisStream.REL_SUCCESS, processRecordsInput.getRecords().size());
+        assertThat(sharedState.getProvenanceEvents().size(), is(processRecordsInput.getRecords().size()));
+        assertThat(sharedState.getProvenanceEvents().get(0).getTransitUri(), is(String.format("%s/test-shard/partition-1#1", transitUriPrefix)));
+        assertThat(sharedState.getProvenanceEvents().get(1).getTransitUri(), is(String.format("%s/test-shard/partition-2#2", transitUriPrefix)));
+        assertThat(sharedState.getProvenanceEvents().get(2).getTransitUri(), is(String.format("%s/test-shard/partition-no-date#no-date", transitUriPrefix)));
+
         final List<MockFlowFile> flowFiles = session.getFlowFilesForRelationship(ConsumeKinesisStream.REL_SUCCESS);
         assertFlowFile(flowFiles.get(0), firstDate, "partition-1", "1", "record-1");
         assertFlowFile(flowFiles.get(1), secondDate, "partition-2", "2", "record-2");
@@ -155,14 +175,14 @@ public class TestKinesisRecordProcessorRaw {
     }
 
     @Test
-    public void testProcessPoisonPillRecordWithCheckpoint() {
+    public void testProcessPoisonPillRecordWithCheckpoint() throws ShutdownException, InvalidStateException {
         final ProcessRecordsInput processRecordsInput = new ProcessRecordsInput()
                 .withRecords(Arrays.asList(
                         new Record().withApproximateArrivalTimestamp(null)
                                 .withPartitionKey("partition-1")
                                 .withSequenceNumber("1")
                                 .withData(ByteBuffer.wrap("record-1".getBytes(StandardCharsets.UTF_8))),
-                        record,
+                        kinesisRecord,
                         new Record().withApproximateArrivalTimestamp(null)
                                 .withPartitionKey("partition-3")
                                 .withSequenceNumber("3")
@@ -173,12 +193,10 @@ public class TestKinesisRecordProcessorRaw {
                 .withCacheExitTime(Instant.now().minus(1, ChronoUnit.SECONDS))
                 .withMillisBehindLatest(100L);
 
-        when(record.getData()).thenThrow(new IllegalStateException("illegal state"));
-        when(record.toString()).thenReturn("poison-pill");
+        when(kinesisRecord.getData()).thenThrow(new IllegalStateException("illegal state"));
+        when(kinesisRecord.toString()).thenReturn("poison-pill");
 
-        // skip checkpoint
-        ((AbstractKinesisRecordProcessor) fixture).nextCheckpointTimeInMillis = System.currentTimeMillis() + 10_000L;
-        ((AbstractKinesisRecordProcessor) fixture).kinesisShardId = "test-shard";
+        ((AbstractKinesisRecordProcessor) fixture).setKinesisShardId("test-shard");
 
         when(processSessionFactory.createSession()).thenReturn(session);
         fixture.processRecords(processRecordsInput);
@@ -191,10 +209,11 @@ public class TestKinesisRecordProcessorRaw {
         assertFlowFile(flowFiles.get(1), null, "partition-3", "3", "record-3");
 
         // check the "poison pill" record was retried a 2nd time
-        assertNull(verify(record, times(2)).getPartitionKey());
-        assertNull(verify(record, times(2)).getSequenceNumber());
-        assertNull(verify(record, times(2)).getApproximateArrivalTimestamp());
-        assertNull(verify(record, times(2)).getData());
+        assertNull(verify(kinesisRecord, times(2)).getPartitionKey());
+        assertNull(verify(kinesisRecord, times(2)).getSequenceNumber());
+        assertNull(verify(kinesisRecord, times(2)).getApproximateArrivalTimestamp());
+        assertNull(verify(kinesisRecord, times(2)).getData());
+        verify(checkpointer, times(1)).checkpoint();
 
         // ERROR messages don't have their fields replaced in the MockComponentLog
         assertThat(runner.getLogger().getErrorMessages().stream().filter(logMessage -> logMessage.getMsg()

@@ -43,7 +43,6 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor {
     final RecordReaderFactory readerFactory;
@@ -55,11 +54,12 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
 
     @SuppressWarnings("java:S107")
     public KinesisRecordProcessorRecord(final ProcessSessionFactory sessionFactory, final ComponentLog log, final String streamName,
-                                        final String endpointPrefix, final long checkpointIntervalMillis, final long retryWaitMillis,
+                                        final String endpointPrefix, final String kinesisEndpoint,
+                                        final long checkpointIntervalMillis, final long retryWaitMillis,
                                         final int numRetries, final DateTimeFormatter dateTimeFormatter,
                                         final RecordReaderFactory readerFactory, final RecordSetWriterFactory writerFactory) {
-        super(sessionFactory, log, streamName, endpointPrefix, checkpointIntervalMillis, retryWaitMillis, numRetries,
-                dateTimeFormatter);
+        super(sessionFactory, log, streamName, endpointPrefix, kinesisEndpoint, checkpointIntervalMillis, retryWaitMillis,
+                numRetries, dateTimeFormatter);
         this.readerFactory = readerFactory;
         this.writerFactory = writerFactory;
 
@@ -74,15 +74,15 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
     }
 
     @Override
-    void processRecord(final List<FlowFile> flowFiles, final Record record, final boolean lastRecord,
+    void processRecord(final List<FlowFile> flowFiles, final Record kinesisRecord, final boolean lastRecord,
                        final ProcessSession session, final StopWatch stopWatch) {
         boolean firstOutputRecord = true;
         int recordCount = 0;
-        final byte[] data = record.getData() != null ? record.getData().array() : new byte[0];
+        final byte[] data = kinesisRecord.getData() != null ? kinesisRecord.getData().array() : new byte[0];
 
         FlowFile flowFile = null;
         try (final InputStream in = new ByteArrayInputStream(data);
-             final RecordReader reader = readerFactory.createRecordReader(schemaRetrievalVariables, in, data.length, log)
+             final RecordReader reader = readerFactory.createRecordReader(schemaRetrievalVariables, in, data.length, getLogger())
         ) {
             org.apache.nifi.serialization.record.Record outputRecord;
             final PushBackRecordSet recordSet = new PushBackRecordSet(reader.createRecordSet());
@@ -100,20 +100,20 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
 
                 // complete the FlowFile if there are no more incoming Kinesis Records and no more records in this RecordSet
                 if (lastRecord && !recordSet.isAnotherRecord()) {
-                    completeFlowFile(flowFiles, session, recordCount, writeResult, record, stopWatch);
+                    completeFlowFile(flowFiles, session, recordCount, writeResult, kinesisRecord, stopWatch);
                 }
                 firstOutputRecord = false;
             }
         } catch (final MalformedRecordException | IOException | SchemaNotFoundException e) {
             // write raw Kinesis Record to the parse failure relationship
-            log.error("Failed to parse message from Kinesis Stream using configured Record Reader and Writer due to {}",
+            getLogger().error("Failed to parse message from Kinesis Stream using configured Record Reader and Writer due to {}",
                     e.getLocalizedMessage(), e);
-            outputRawRecordOnException(firstOutputRecord, flowFile, flowFiles, session, data, record, e);
+            outputRawRecordOnException(firstOutputRecord, flowFile, flowFiles, session, data, kinesisRecord, e);
         }
 
-        if (log.isDebugEnabled()) {
-            log.debug("Sequence No: {}, Partition Key: {}, Data: {}",
-                    record.getSequenceNumber(), record.getPartitionKey(), BASE_64_ENCODER.encodeToString(data));
+        if (getLogger().isDebugEnabled()) {
+            getLogger().debug("Sequence No: {}, Partition Key: {}, Data: {}",
+                    kinesisRecord.getSequenceNumber(), kinesisRecord.getPartitionKey(), BASE_64_ENCODER.encodeToString(data));
         }
     }
 
@@ -124,7 +124,7 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
         final RecordSchema readerSchema = outputRecord.getSchema();
         final RecordSchema writeSchema = writerFactory.getSchema(schemaRetrievalVariables, readerSchema);
         outputStream = session.write(flowFile);
-        writer = writerFactory.createWriter(log, writeSchema, outputStream, flowFile);
+        writer = writerFactory.createWriter(getLogger(), writeSchema, outputStream, flowFile);
         writer.beginRecordSet();
     }
 
@@ -135,7 +135,7 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
         try {
             writer.finishRecordSet();
         } catch (IOException e) {
-            log.error("Failed to finish record output due to {}", e.getLocalizedMessage(), e);
+            getLogger().error("Failed to finish record output due to {}", e.getLocalizedMessage(), e);
             session.remove(flowFiles.get(0));
             flowFiles.remove(0);
             throw e;
@@ -144,12 +144,11 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
                 writer.close();
                 outputStream.close();
             } catch (final IOException e) {
-                log.warn("Failed to close Record Writer due to {}", e.getLocalizedMessage(), e);
+                getLogger().warn("Failed to close Record Writer due to {}", e.getLocalizedMessage(), e);
             }
         }
 
-        session.getProvenanceReporter().receive(flowFiles.get(0), String.format("http://%s.amazonaws.com/%s", endpointPrefix, kinesisShardId),
-                stopWatch.getElapsed(TimeUnit.MILLISECONDS));
+        reportProvenance(session, flowFiles.get(0), null, null, stopWatch);
 
         final Map<String, String> attributes = getDefaultAttributes(lastRecord);
         attributes.put("record.count", String.valueOf(recordCount));
@@ -163,7 +162,7 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
 
     private void outputRawRecordOnException(final boolean firstOutputRecord, final FlowFile flowFile,
                                             final List<FlowFile> flowFiles, final ProcessSession session,
-                                            final byte[] data, final Record record, final Exception e) {
+                                            final byte[] data, final Record kinesisRecord, final Exception e) {
         if (firstOutputRecord && flowFile != null) {
             session.remove(flowFile);
             flowFiles.remove(0);
@@ -172,23 +171,23 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
                     writer.close();
                     outputStream.close();
                 } catch (IOException ioe) {
-                    log.warn("Failed to close Record Writer due to {}", ioe.getLocalizedMessage(), ioe);
+                    getLogger().warn("Failed to close Record Writer due to {}", ioe.getLocalizedMessage(), ioe);
                 }
             }
         }
         FlowFile failed = session.create();
         session.write(failed, o -> o.write(data));
-        final Map<String, String> attributes = getDefaultAttributes(record);
+        final Map<String, String> attributes = getDefaultAttributes(kinesisRecord);
         final Throwable c = e.getCause() != null ? e.getCause() : e;
         attributes.put("record.error.message", (c.getLocalizedMessage() != null) ? c.getLocalizedMessage() : c.getClass().getCanonicalName() + " Thrown");
         failed = session.putAllAttributes(failed, attributes);
         transferTo(ConsumeKinesisStream.REL_PARSE_FAILURE, session, 0, 0, Collections.singletonList(failed));
     }
 
-    private Map<String, String> getDefaultAttributes(final Record record) {
-        final String partitionKey = record.getPartitionKey();
-        final String sequenceNumber = record.getSequenceNumber();
-        final Date approximateArrivalTimestamp = record.getApproximateArrivalTimestamp();
+    private Map<String, String> getDefaultAttributes(final Record kinesisRecord) {
+        final String partitionKey = kinesisRecord.getPartitionKey();
+        final String sequenceNumber = kinesisRecord.getSequenceNumber();
+        final Date approximateArrivalTimestamp = kinesisRecord.getApproximateArrivalTimestamp();
         return getDefaultAttributes(sequenceNumber, partitionKey, approximateArrivalTimestamp);
     }
 }

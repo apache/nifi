@@ -22,7 +22,6 @@ import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.services.kinesis.AmazonKinesisClient;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.aws.kinesis.AbstractBaseKinesisProcessor;
@@ -31,12 +30,10 @@ import org.apache.nifi.processors.aws.kinesis.AbstractBaseKinesisProcessor;
  * This class provides processor the base class for kinesis client
  */
 public abstract class AbstractKinesisStreamProcessor extends AbstractBaseKinesisProcessor<AmazonKinesisClient> {
-
     public static final PropertyDescriptor KINESIS_STREAM_NAME = new PropertyDescriptor.Builder()
             .name("kinesis-stream-name")
             .displayName("Amazon Kinesis Stream Name")
             .description("The name of Kinesis Stream")
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();

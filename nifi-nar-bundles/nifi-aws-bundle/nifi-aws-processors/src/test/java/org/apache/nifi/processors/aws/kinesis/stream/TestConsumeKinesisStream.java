@@ -28,6 +28,7 @@ import org.apache.nifi.json.JsonTreeReader;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors;
 import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService;
+import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderService;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.util.TestRunner;
@@ -58,9 +59,9 @@ public class TestConsumeKinesisStream {
     }
 
     @Test
-    public void testValidWithCredentialsProperties() {
-        runner.setProperty(ConsumeKinesisStream.ACCESS_KEY, "access-key");
-        runner.setProperty(ConsumeKinesisStream.SECRET_KEY, "secret-key");
+    public void testValidWithNoCredentials() {
+        runner.setValidateExpressionUsage(false); // ignore use of unused ACCESS_KEY/SECRET_KEY property evaluation in AbstractAWSProcessor
+        runner.removeProperty(ConsumeKinesisStream.AWS_CREDENTIALS_PROVIDER_SERVICE);
         runner.assertValid();
 
         ((ConsumeKinesisStream) runner.getProcessor()).onScheduled(runner.getProcessContext());
@@ -219,76 +220,14 @@ public class TestConsumeKinesisStream {
         )));
     }
 
-    /*
-     * Trigger a run of the ConsumeKinesisStream processor, but expect the KCL Worker to fail (it needs connections to AWS resources)
-     * Assert that our code is being called by checking log output. The ITConsumeKinesisStream integration tests prove actual AWS connectivity
-     */
     @Test
-    public void testRunWorker() throws UnknownHostException {
-        final TestRunner mockGetKinesisStreamRuner = TestRunners.newTestRunner(MockConsumeKinesisStream.class);
+    public void testRunWorkerWithCredentials() throws UnknownHostException, InitializationException {
+        runWorker(true);
+    }
 
-        mockGetKinesisStreamRuner.setProperty(ConsumeKinesisStream.KINESIS_STREAM_NAME, "test-stream");
-        mockGetKinesisStreamRuner.setProperty(ConsumeKinesisStream.APPLICATION_NAME, "test-application");
-        mockGetKinesisStreamRuner.setProperty(ConsumeKinesisStream.ACCESS_KEY, "test-access");
-        mockGetKinesisStreamRuner.setProperty(ConsumeKinesisStream.SECRET_KEY, "test-secret");
-        mockGetKinesisStreamRuner.setProperty(ConsumeKinesisStream.REGION, Regions.EU_WEST_2.getName());
-
-        // speed up init process for the unit test (and show use of dynamic properties to configure KCL)
-        mockGetKinesisStreamRuner.setProperty("parentShardPollIntervalMillis", "1");
-
-        mockGetKinesisStreamRuner.assertValid();
-
-        // start the processor (but don't auto-shutdown to give Worker initialisation a chance to progress)
-        mockGetKinesisStreamRuner.run(1, false);
-
-        final String hostname = InetAddress.getLocalHost().getCanonicalHostName();
-
-        final MockConsumeKinesisStream processor = ((MockConsumeKinesisStream) mockGetKinesisStreamRuner.getProcessor());
-        assertKinesisClientLibConfiguration(processor.kinesisClientLibConfiguration, hostname);
-        assertThat(processor.workerBuilder.build().getApplicationName(), equalTo("test-application"));
-
-        // confirm the Kinesis Worker initialisation was attempted
-        assertThat(mockGetKinesisStreamRuner.getLogger().getInfoMessages().stream()
-                .anyMatch(logMessage -> logMessage.getMsg().contains(String.format(
-                        "Kinesis Worker prepared for application %s to process stream %s as worker ID %s:",
-                        "test-application", "test-stream", hostname
-                ))), is(true));
-
-        // confirm the processor worked through the onTrigger method (and no execution of stopConsuming method)
-        assertThat(mockGetKinesisStreamRuner.getLogger().getDebugMessages().stream()
-                .anyMatch(logMessage -> logMessage.getMsg().endsWith("Starting Kinesis Worker")), is(true));
-        assertThat(mockGetKinesisStreamRuner.getLogger().getDebugMessages().stream()
-                .noneMatch(logMessage -> logMessage.getMsg().endsWith("Requesting Kinesis Worker shutdown")), is(true));
-        assertThat(mockGetKinesisStreamRuner.getLogger().getDebugMessages().stream()
-                .noneMatch(logMessage -> logMessage.getMsg().endsWith("Kinesis Worker shutdown")), is(true));
-        assertThat(mockGetKinesisStreamRuner.getLogger().getWarnMessages().isEmpty(), is(true));
-        assertThat(mockGetKinesisStreamRuner.getLogger().getErrorMessages().isEmpty(), is(true));
-
-        // re-trigger the processor to ensure the Worker isn't re-initialised when already running
-        mockGetKinesisStreamRuner.run(1, false, false);
-        assertThat(mockGetKinesisStreamRuner.getLogger().getDebugMessages().stream()
-                .filter(logMessage -> logMessage.getMsg().endsWith("Starting Kinesis Worker")).count(), is(1L));
-        assertThat(mockGetKinesisStreamRuner.getLogger().getWarnMessages().isEmpty(), is(true));
-        assertThat(mockGetKinesisStreamRuner.getLogger().getErrorMessages().isEmpty(), is(true));
-
-        // stop the processor
-        mockGetKinesisStreamRuner.stop();
-
-        // confirm the processor worked through the stopConsuming method
-        assertThat(mockGetKinesisStreamRuner.getLogger().getDebugMessages().stream()
-                .anyMatch(logMessage -> logMessage.getMsg().endsWith("Requesting Kinesis Worker shutdown")), is(true));
-        assertThat(mockGetKinesisStreamRuner.getLogger().getDebugMessages().stream()
-                .anyMatch(logMessage -> logMessage.getMsg().endsWith("Kinesis Worker shutdown")), is(true));
-
-        // LeaseCoordinator doesn't startup properly (can't create DynamoDB table during unit test) and therefore has a problem during shutdown
-        assertThat(mockGetKinesisStreamRuner.getLogger().getWarnMessages().size(), is(2));
-        assertThat(mockGetKinesisStreamRuner.getLogger().getWarnMessages().stream()
-                .anyMatch(logMessage -> logMessage.getMsg().endsWith(
-                        "Problem while shutting down Kinesis Worker: java.lang.NullPointerException: java.util.concurrent.ExecutionException: java.lang.NullPointerException"
-                )), is(true));
-        assertThat(mockGetKinesisStreamRuner.getLogger().getWarnMessages().stream()
-                .anyMatch(logMessage -> logMessage.getMsg().endsWith("One or more problems while shutting down Kinesis Worker, see logs for details")), is(true));
-        assertThat(mockGetKinesisStreamRuner.getLogger().getErrorMessages().isEmpty(), is(true));
+    @Test
+    public void testRunWorkerWithoutCredentials() throws UnknownHostException, InitializationException {
+        runWorker(false);
     }
 
     @Test
@@ -380,7 +319,7 @@ public class TestConsumeKinesisStream {
                 "'dynamoDBEndpoint' validated against 'http://localhost:4566/dynamodb' is invalid because Use \"DynamoDB Override\" instead of a dynamic property\n"
         ));
         assertThat(ae.getMessage(), containsString(
-                "'kinesisEndpoint' validated against 'http://localhost:4566/kinesis' is invalid because Use \"Amazon Kinesis Stream Name\" instead of a dynamic property\n"
+                "'kinesisEndpoint' validated against 'http://localhost:4566/kinesis' is invalid because Use \"Endpoint Override URL\" instead of a dynamic property\n"
         ));
 
         // invalid parameter conversions
@@ -407,17 +346,109 @@ public class TestConsumeKinesisStream {
         runner.assertValid();
     }
 
-    private void assertKinesisClientLibConfiguration(final KinesisClientLibConfiguration kinesisClientLibConfiguration, final String hostname) {
+    /*
+     * Trigger a run of the ConsumeKinesisStream processor, but expect the KCL Worker to fail (it needs connections to AWS resources)
+     * Assert that our code is being called by checking log output. The ITConsumeKinesisStream integration tests prove actual AWS connectivity
+     */
+    private void runWorker(final boolean withCredentials) throws UnknownHostException, InitializationException {
+        final TestRunner mockConsumeKinesisStreamRunner = TestRunners.newTestRunner(MockConsumeKinesisStream.class);
+
+        mockConsumeKinesisStreamRunner.setProperty(ConsumeKinesisStream.KINESIS_STREAM_NAME, "test-stream");
+        mockConsumeKinesisStreamRunner.setProperty(ConsumeKinesisStream.APPLICATION_NAME, "test-application");
+        mockConsumeKinesisStreamRunner.setProperty(ConsumeKinesisStream.REGION, Regions.EU_WEST_2.getName());
+
+        if (withCredentials) {
+            final AWSCredentialsProviderService awsCredentialsProviderService = new AWSCredentialsProviderControllerService();
+            mockConsumeKinesisStreamRunner.addControllerService("aws-credentials", awsCredentialsProviderService);
+            mockConsumeKinesisStreamRunner.setProperty(awsCredentialsProviderService, CredentialPropertyDescriptors.ACCESS_KEY, "test-access");
+            mockConsumeKinesisStreamRunner.setProperty(awsCredentialsProviderService, CredentialPropertyDescriptors.SECRET_KEY, "test-secret");
+            mockConsumeKinesisStreamRunner.assertValid(awsCredentialsProviderService);
+            mockConsumeKinesisStreamRunner.enableControllerService(awsCredentialsProviderService);
+            mockConsumeKinesisStreamRunner.setProperty(ConsumeKinesisStream.AWS_CREDENTIALS_PROVIDER_SERVICE, "aws-credentials");
+        } else {
+            mockConsumeKinesisStreamRunner.setValidateExpressionUsage(false); // ignore use of unused ACCESS_KEY/SECRET_KEY property evaluation in AbstractAWSProcessor
+            mockConsumeKinesisStreamRunner.removeProperty(ConsumeKinesisStream.AWS_CREDENTIALS_PROVIDER_SERVICE);
+        }
+
+        // speed up init process for the unit test (and show use of dynamic properties to configure KCL)
+        mockConsumeKinesisStreamRunner.setProperty("parentShardPollIntervalMillis", "1");
+
+        mockConsumeKinesisStreamRunner.assertValid();
+
+        // start the processor (but don't auto-shutdown to give Worker initialisation a chance to progress)
+        mockConsumeKinesisStreamRunner.run(1, false);
+
+        final String hostname = InetAddress.getLocalHost().getCanonicalHostName();
+
+        final MockConsumeKinesisStream processor = ((MockConsumeKinesisStream) mockConsumeKinesisStreamRunner.getProcessor());
+        assertKinesisClientLibConfiguration(processor.kinesisClientLibConfiguration, withCredentials, hostname);
+        assertThat(processor.workerBuilder.build().getApplicationName(), equalTo("test-application"));
+
+        // confirm the Kinesis Worker initialisation was attempted
+        assertThat(mockConsumeKinesisStreamRunner.getLogger().getInfoMessages().stream()
+                .anyMatch(logMessage -> logMessage.getMsg().contains(String.format(
+                        "Kinesis Worker prepared for application %s to process stream %s as worker ID %s:",
+                        "test-application", "test-stream", hostname
+                ))), is(true));
+
+        // confirm the processor worked through the onTrigger method (and no execution of stopConsuming method)
+        assertThat(mockConsumeKinesisStreamRunner.getLogger().getInfoMessages().stream()
+                .anyMatch(logMessage -> logMessage.getMsg().contains(String.format("Starting Kinesis Worker %s", hostname))), is(true));
+        assertThat(mockConsumeKinesisStreamRunner.getLogger().getInfoMessages().stream()
+                .noneMatch(logMessage -> logMessage.getMsg().endsWith("Requesting Kinesis Worker shutdown")), is(true));
+        assertThat(mockConsumeKinesisStreamRunner.getLogger().getInfoMessages().stream()
+                .noneMatch(logMessage -> logMessage.getMsg().endsWith("Kinesis Worker shutdown")), is(true));
+        assertThat(mockConsumeKinesisStreamRunner.getLogger().getWarnMessages().isEmpty(), is(true));
+        assertThat(mockConsumeKinesisStreamRunner.getLogger().getErrorMessages().isEmpty(), is(true));
+
+        // re-trigger the processor to ensure the Worker isn't re-initialised when already running
+        mockConsumeKinesisStreamRunner.run(1, false, false);
+        assertThat(mockConsumeKinesisStreamRunner.getLogger().getInfoMessages().stream()
+                .filter(logMessage -> logMessage.getMsg().contains(String.format("Starting Kinesis Worker %s", hostname))).count(), is(1L));
+        assertThat(mockConsumeKinesisStreamRunner.getLogger().getWarnMessages().isEmpty(), is(true));
+        assertThat(mockConsumeKinesisStreamRunner.getLogger().getErrorMessages().isEmpty(), is(true));
+
+        // stop the processor
+        mockConsumeKinesisStreamRunner.stop();
+
+        // confirm the processor worked through the stopConsuming method
+        assertThat(mockConsumeKinesisStreamRunner.getLogger().getInfoMessages().stream()
+                .anyMatch(logMessage -> logMessage.getMsg().endsWith("Requesting Kinesis Worker shutdown")), is(true));
+        assertThat(mockConsumeKinesisStreamRunner.getLogger().getInfoMessages().stream()
+                .anyMatch(logMessage -> logMessage.getMsg().endsWith("Kinesis Worker shutdown")), is(true));
+
+        // LeaseCoordinator doesn't startup properly (can't create DynamoDB table during unit test) and therefore has a problem during shutdown
+        assertThat(mockConsumeKinesisStreamRunner.getLogger().getWarnMessages().size(), is(2));
+        assertThat(mockConsumeKinesisStreamRunner.getLogger().getWarnMessages().stream()
+                .anyMatch(logMessage -> logMessage.getMsg().endsWith(
+                        "Problem while shutting down Kinesis Worker: java.lang.NullPointerException: java.util.concurrent.ExecutionException: java.lang.NullPointerException"
+                )), is(true));
+        assertThat(mockConsumeKinesisStreamRunner.getLogger().getWarnMessages().stream()
+                .anyMatch(logMessage -> logMessage.getMsg().endsWith("One or more problems while shutting down Kinesis Worker, see logs for details")), is(true));
+        assertThat(mockConsumeKinesisStreamRunner.getLogger().getErrorMessages().isEmpty(), is(true));
+    }
+
+    private void assertKinesisClientLibConfiguration(final KinesisClientLibConfiguration kinesisClientLibConfiguration,
+                                                     final boolean withCredentials, final String hostname) {
         assertThat(kinesisClientLibConfiguration.getWorkerIdentifier(), startsWith(hostname));
         assertThat(kinesisClientLibConfiguration.getApplicationName(), equalTo("test-application"));
         assertThat(kinesisClientLibConfiguration.getStreamName(), equalTo("test-stream"));
 
-        assertThat(kinesisClientLibConfiguration.getKinesisCredentialsProvider().getCredentials().getAWSAccessKeyId(), equalTo("test-access"));
-        assertThat(kinesisClientLibConfiguration.getKinesisCredentialsProvider().getCredentials().getAWSSecretKey(), equalTo("test-secret"));
-        assertThat(kinesisClientLibConfiguration.getDynamoDBCredentialsProvider().getCredentials().getAWSAccessKeyId(), equalTo("test-access"));
-        assertThat(kinesisClientLibConfiguration.getDynamoDBCredentialsProvider().getCredentials().getAWSSecretKey(), equalTo("test-secret"));
-        assertThat(kinesisClientLibConfiguration.getCloudWatchCredentialsProvider().getCredentials().getAWSAccessKeyId(), equalTo("test-access"));
-        assertThat(kinesisClientLibConfiguration.getCloudWatchCredentialsProvider().getCredentials().getAWSSecretKey(), equalTo("test-secret"));
+        if (withCredentials) {
+            assertThat(kinesisClientLibConfiguration.getKinesisCredentialsProvider().getCredentials().getAWSAccessKeyId(), equalTo("test-access"));
+            assertThat(kinesisClientLibConfiguration.getKinesisCredentialsProvider().getCredentials().getAWSSecretKey(), equalTo("test-secret"));
+            assertThat(kinesisClientLibConfiguration.getDynamoDBCredentialsProvider().getCredentials().getAWSAccessKeyId(), equalTo("test-access"));
+            assertThat(kinesisClientLibConfiguration.getDynamoDBCredentialsProvider().getCredentials().getAWSSecretKey(), equalTo("test-secret"));
+            assertThat(kinesisClientLibConfiguration.getCloudWatchCredentialsProvider().getCredentials().getAWSAccessKeyId(), equalTo("test-access"));
+            assertThat(kinesisClientLibConfiguration.getCloudWatchCredentialsProvider().getCredentials().getAWSSecretKey(), equalTo("test-secret"));
+        } else {
+            assertThat(kinesisClientLibConfiguration.getKinesisCredentialsProvider().getCredentials().getAWSAccessKeyId(), nullValue());
+            assertThat(kinesisClientLibConfiguration.getKinesisCredentialsProvider().getCredentials().getAWSSecretKey(), nullValue());
+            assertThat(kinesisClientLibConfiguration.getDynamoDBCredentialsProvider().getCredentials().getAWSAccessKeyId(), nullValue());
+            assertThat(kinesisClientLibConfiguration.getDynamoDBCredentialsProvider().getCredentials().getAWSSecretKey(), nullValue());
+            assertThat(kinesisClientLibConfiguration.getCloudWatchCredentialsProvider().getCredentials().getAWSAccessKeyId(), nullValue());
+            assertThat(kinesisClientLibConfiguration.getCloudWatchCredentialsProvider().getCredentials().getAWSSecretKey(), nullValue());
+        }
 
         assertThat(kinesisClientLibConfiguration.getRegionName(), equalTo(Regions.EU_WEST_2.getName()));
         assertThat(kinesisClientLibConfiguration.getInitialPositionInStream(), equalTo(InitialPositionInStream.LATEST));
@@ -444,9 +475,10 @@ public class TestConsumeKinesisStream {
 
         @Override
         KinesisClientLibConfiguration prepareKinesisClientLibConfiguration(final ProcessContext context, final String appName,
-                                                                           final String streamName, final String workerId) {
+                                                                           final String streamName, final String workerId,
+                                                                           final String kinesisEndpoint) {
             kinesisClientLibConfiguration =
-                    super.prepareKinesisClientLibConfiguration(context, appName, streamName, workerId);
+                    super.prepareKinesisClientLibConfiguration(context, appName, streamName, workerId, kinesisEndpoint);
 
             return kinesisClientLibConfiguration;
         }

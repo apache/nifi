@@ -33,6 +33,7 @@ import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processors.aws.kinesis.stream.ConsumeKinesisStream;
 import org.apache.nifi.util.StopWatch;
+import org.apache.nifi.util.StringUtils;
 
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -42,6 +43,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 public abstract class AbstractKinesisRecordProcessor implements IRecordProcessor {
     public static final String AWS_KINESIS_SHARD_ID = "aws.kinesis.shard.id";
@@ -56,33 +58,35 @@ public abstract class AbstractKinesisRecordProcessor implements IRecordProcessor
 
     static final Base64.Encoder BASE_64_ENCODER = Base64.getEncoder();
 
-    final ProcessSessionFactory sessionFactory;
-    final ComponentLog log;
-    final String streamName;
-    final String endpointPrefix;
+    private final ProcessSessionFactory sessionFactory;
+    private final ComponentLog log;
+    private final String streamName;
+    private final String transitUriPrefix;
 
-    final long checkpointIntervalMillis;
-    final long retryWaitMillis;
-    final int numRetries;
-    final DateTimeFormatter dateTimeFormatter;
+    private final long checkpointIntervalMillis;
+    private final long retryWaitMillis;
+    private final int numRetries;
+    private final DateTimeFormatter dateTimeFormatter;
 
-    String kinesisShardId;
-    long nextCheckpointTimeInMillis;
+    private String kinesisShardId;
+    private long nextCheckpointTimeInMillis;
 
-    boolean processingRecords = false;
+    private boolean processingRecords = false;
 
     @SuppressWarnings("java:S107")
     AbstractKinesisRecordProcessor(final ProcessSessionFactory sessionFactory, final ComponentLog log, final String streamName,
-                                   final String endpointPrefix, final long checkpointIntervalMillis, final long retryWaitMillis,
+                                   final String endpointPrefix, final String kinesisEndpoint,
+                                   final long checkpointIntervalMillis, final long retryWaitMillis,
                                    final int numRetries, final DateTimeFormatter dateTimeFormatter) {
         this.sessionFactory = sessionFactory;
         this.log = log;
         this.streamName = streamName;
-        this.endpointPrefix = endpointPrefix;
         this.checkpointIntervalMillis = checkpointIntervalMillis;
         this.retryWaitMillis = retryWaitMillis;
         this.numRetries = numRetries;
         this.dateTimeFormatter = dateTimeFormatter;
+
+        this.transitUriPrefix = StringUtils.isBlank(kinesisEndpoint) ? String.format("http://%s.amazonaws.com", endpointPrefix) : kinesisEndpoint;
     }
 
     @Override
@@ -104,11 +108,13 @@ public abstract class AbstractKinesisRecordProcessor implements IRecordProcessor
     @SuppressWarnings({"java:S3252"}) // ConsumeKinesisStream reference to REL_SUCCESS instead of deprecated AbstractAWSProcessor
     @Override
     public void processRecords(final ProcessRecordsInput processRecordsInput) {
-        log.debug("Processing {} records from {}; cache entry: {}; cache exit: {}; millis behind latest: {}",
-                processRecordsInput.getRecords().size(), kinesisShardId,
-                processRecordsInput.getCacheEntryTime() != null ? dateTimeFormatter.format(processRecordsInput.getCacheEntryTime().atZone(ZoneId.systemDefault())) : null,
-                processRecordsInput.getCacheExitTime() != null ? dateTimeFormatter.format(processRecordsInput.getCacheExitTime().atZone(ZoneId.systemDefault())) : null,
-                processRecordsInput.getMillisBehindLatest());
+        if (log.isDebugEnabled()) {
+            log.debug("Processing {} records from {}; cache entry: {}; cache exit: {}; millis behind latest: {}",
+                    processRecordsInput.getRecords().size(), kinesisShardId,
+                    processRecordsInput.getCacheEntryTime() != null ? dateTimeFormatter.format(processRecordsInput.getCacheEntryTime().atZone(ZoneId.systemDefault())) : null,
+                    processRecordsInput.getCacheExitTime() != null ? dateTimeFormatter.format(processRecordsInput.getCacheExitTime().atZone(ZoneId.systemDefault())) : null,
+                    processRecordsInput.getMillisBehindLatest());
+        }
 
         ProcessSession session = null;
         try {
@@ -144,30 +150,30 @@ public abstract class AbstractKinesisRecordProcessor implements IRecordProcessor
                                            final ProcessSession session, final StopWatch stopWatch) {
         int recordsTransformed = 0;
         for (int r = 0; r < records.size(); r++) {
-            final Record record = records.get(r);
+            final Record kinesisRecord = records.get(r);
             boolean processedSuccessfully = false;
             for (int i = 0; !processedSuccessfully && i < numRetries; i++) {
-                processedSuccessfully = attemptProcessRecord(flowFiles, record, r == records.size() - 1, session, stopWatch);
+                processedSuccessfully = attemptProcessRecord(flowFiles, kinesisRecord, r == records.size() - 1, session, stopWatch);
             }
 
             if (processedSuccessfully) {
                 recordsTransformed++;
             } else {
-                log.error("Couldn't process Kinesis record {}, skipping.", record);
+                log.error("Couldn't process Kinesis record {}, skipping.", kinesisRecord);
             }
         }
 
         return recordsTransformed;
     }
 
-    private boolean attemptProcessRecord(final List<FlowFile> flowFiles, final Record record, final boolean lastRecord,
+    private boolean attemptProcessRecord(final List<FlowFile> flowFiles, final Record kinesisRecord, final boolean lastRecord,
                                          final ProcessSession session, final StopWatch stopWatch) {
         boolean processedSuccessfully = false;
         try {
-            processRecord(flowFiles, record, lastRecord, session, stopWatch);
+            processRecord(flowFiles, kinesisRecord, lastRecord, session, stopWatch);
             processedSuccessfully = true;
         } catch (final Exception e) {
-            log.error("Caught Exception while processing Kinesis record {}", record, e);
+            log.error("Caught Exception while processing Kinesis record {}", kinesisRecord, e);
 
             // backoff if we encounter an exception.
             try {
@@ -184,15 +190,24 @@ public abstract class AbstractKinesisRecordProcessor implements IRecordProcessor
      * Process an individual {@link Record} and serialise to {@link FlowFile}
      *
      * @param flowFiles {@link List} of {@link FlowFile}s to be output after all processing is complete
-     * @param record the Kinesis {@link Record} to be processed
+     * @param kinesisRecord the Kinesis {@link Record} to be processed
      * @param lastRecord whether this is the last {@link Record} to be processed in this batch
      * @param session {@link ProcessSession} into which {@link FlowFile}s will be transferred
      * @param stopWatch {@link StopWatch} tracking how much time has been spent processing the current batch
      *
      * @throws RuntimeException if there are any unhandled Exceptions that should be retried
      */
-    abstract void processRecord(final List<FlowFile> flowFiles, final Record record, final boolean lastRecord,
+    abstract void processRecord(final List<FlowFile> flowFiles, final Record kinesisRecord, final boolean lastRecord,
                                 final ProcessSession session, final StopWatch stopWatch);
+
+    void reportProvenance(final ProcessSession session, final FlowFile flowFile, final String partitionKey,
+                 final String sequenceNumber, final StopWatch stopWatch) {
+        final String transitUri = StringUtils.isNotBlank(partitionKey) && StringUtils.isNotBlank(sequenceNumber)
+                ? String.format("%s/%s/%s#%s", transitUriPrefix, kinesisShardId, partitionKey, sequenceNumber)
+                : String.format("%s/%s", transitUriPrefix, kinesisShardId);
+
+        session.getProvenanceReporter().receive(flowFile, transitUri, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
+    }
 
     Map<String, String> getDefaultAttributes(final String sequenceNumber, final String partitionKey, final Date approximateArrivalTimestamp) {
         final Map<String, String> attributes = new HashMap<>();
@@ -277,5 +292,29 @@ public abstract class AbstractKinesisRecordProcessor implements IRecordProcessor
             }
         }
         return success;
+    }
+
+    ComponentLog getLogger() {
+        return log;
+    }
+
+    String getKinesisShardId() {
+        return kinesisShardId;
+    }
+
+    void setKinesisShardId(final String kinesisShardId) {
+        this.kinesisShardId = kinesisShardId;
+    }
+
+    long getNextCheckpointTimeInMillis() {
+        return nextCheckpointTimeInMillis;
+    }
+
+    void setNextCheckpointTimeInMillis(final long nextCheckpointTimeInMillis) {
+        this.nextCheckpointTimeInMillis = nextCheckpointTimeInMillis;
+    }
+
+    void setProcessingRecords(final boolean processingRecords) {
+        this.processingRecords = processingRecords;
     }
 }

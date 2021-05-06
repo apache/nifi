@@ -73,7 +73,7 @@ public class TestAbstractKinesisRecordProcessor {
     private IRecordProcessorCheckpointer checkpointer;
 
     @Mock
-    private Record record;
+    private Record kinesisRecord;
 
     @Before
     public void setUp() {
@@ -83,13 +83,13 @@ public class TestAbstractKinesisRecordProcessor {
 
         // default test fixture will try operations twice with very little wait in between
         fixture = new MockKinesisRecordProcessor(processSessionFactory, runner.getLogger(), "kinesis-test",
-                "endpoint-prefix", 10_000L, 1L, 2, DATE_TIME_FORMATTER);
+                "endpoint-prefix", null, 10_000L, 1L, 2, DATE_TIME_FORMATTER);
     }
 
     @After
     public void tearDown() {
-        verifyNoMoreInteractions(checkpointer, record, processSessionFactory);
-        reset(checkpointer, record, processSessionFactory);
+        verifyNoMoreInteractions(checkpointer, kinesisRecord, processSessionFactory);
+        reset(checkpointer, kinesisRecord, processSessionFactory);
     }
 
     @Test
@@ -101,8 +101,8 @@ public class TestAbstractKinesisRecordProcessor {
 
         fixture.initialize(initializationInput);
 
-        assertThat(((AbstractKinesisRecordProcessor) fixture).nextCheckpointTimeInMillis > System.currentTimeMillis(), is(true));
-        assertThat(((AbstractKinesisRecordProcessor) fixture).kinesisShardId, equalTo("shard-id"));
+        assertThat(((AbstractKinesisRecordProcessor) fixture).getNextCheckpointTimeInMillis() > System.currentTimeMillis(), is(true));
+        assertThat(((AbstractKinesisRecordProcessor) fixture).getKinesisShardId(), equalTo("shard-id"));
 
         // DEBUG messages don't have their fields replaced in the MockComponentLog
         assertThat(runner.getLogger().getDebugMessages().stream().anyMatch(logMessage -> logMessage.getMsg()
@@ -120,8 +120,8 @@ public class TestAbstractKinesisRecordProcessor {
 
         fixture.initialize(initializationInput);
 
-        assertThat(((AbstractKinesisRecordProcessor) fixture).nextCheckpointTimeInMillis > System.currentTimeMillis(), is(true));
-        assertThat(((AbstractKinesisRecordProcessor) fixture).kinesisShardId, equalTo("shard-id"));
+        assertThat(((AbstractKinesisRecordProcessor) fixture).getNextCheckpointTimeInMillis() > System.currentTimeMillis(), is(true));
+        assertThat(((AbstractKinesisRecordProcessor) fixture).getKinesisShardId(), equalTo("shard-id"));
 
         assertThat(runner.getLogger().getWarnMessages().stream().anyMatch(logMessage -> logMessage.getMsg()
                 .contains(String.format(
@@ -136,7 +136,7 @@ public class TestAbstractKinesisRecordProcessor {
                 .withShutdownReason(ShutdownReason.REQUESTED)
                 .withCheckpointer(checkpointer);
 
-        ((AbstractKinesisRecordProcessor) fixture).kinesisShardId = "test-shard";
+        ((AbstractKinesisRecordProcessor) fixture).setKinesisShardId("test-shard");
         fixture.shutdown(shutdownInput);
 
         verify(checkpointer, times(1)).checkpoint();
@@ -206,8 +206,8 @@ public class TestAbstractKinesisRecordProcessor {
                 .withShutdownReason(ShutdownReason.TERMINATE)
                 .withCheckpointer(checkpointer);
 
-        ((AbstractKinesisRecordProcessor) fixture).kinesisShardId = "test-shard";
-        ((AbstractKinesisRecordProcessor) fixture).processingRecords = false;
+        ((AbstractKinesisRecordProcessor) fixture).setKinesisShardId("test-shard");
+        ((AbstractKinesisRecordProcessor) fixture).setProcessingRecords(false);
         fixture.shutdown(shutdownInput);
 
         verify(checkpointer, times(1)).checkpoint();
@@ -230,8 +230,8 @@ public class TestAbstractKinesisRecordProcessor {
                 .withShutdownReason(ShutdownReason.TERMINATE)
                 .withCheckpointer(checkpointer);
 
-        ((AbstractKinesisRecordProcessor) fixture).kinesisShardId = "test-shard";
-        ((AbstractKinesisRecordProcessor) fixture).processingRecords = true;
+        ((AbstractKinesisRecordProcessor) fixture).setKinesisShardId("test-shard");
+        ((AbstractKinesisRecordProcessor) fixture).setProcessingRecords(true);
         fixture.shutdown(shutdownInput);
 
         verify(checkpointer, times(1)).checkpoint();
@@ -252,13 +252,13 @@ public class TestAbstractKinesisRecordProcessor {
     private static class MockKinesisRecordProcessor extends AbstractKinesisRecordProcessor {
         @SuppressWarnings("java:S107")
         public MockKinesisRecordProcessor(final ProcessSessionFactory sessionFactory, final ComponentLog log, final String streamName,
-                                          final String endpointPrefix, final long checkpointIntervalMillis, final long retryWaitMillis,
+                                          final String endpointPrefix, final String kinesisEndpoint, final long checkpointIntervalMillis, final long retryWaitMillis,
                                           final int numRetries, final DateTimeFormatter dateTimeFormatter) {
-            super(sessionFactory, log, streamName, endpointPrefix, checkpointIntervalMillis, retryWaitMillis, numRetries, dateTimeFormatter);
+            super(sessionFactory, log, streamName, endpointPrefix, kinesisEndpoint, checkpointIntervalMillis, retryWaitMillis, numRetries, dateTimeFormatter);
         }
 
         @Override
-        void processRecord(final List<FlowFile> flowFiles, final Record record, final boolean lastRecord,
+        void processRecord(final List<FlowFile> flowFiles, final Record kinesisRecord, final boolean lastRecord,
                            final ProcessSession session, final StopWatch stopWatch) {
             // intentionally blank
         }

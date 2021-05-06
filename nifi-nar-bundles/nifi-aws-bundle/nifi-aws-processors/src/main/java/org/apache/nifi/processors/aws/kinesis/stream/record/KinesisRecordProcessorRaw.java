@@ -27,33 +27,33 @@ import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 public class KinesisRecordProcessorRaw extends AbstractKinesisRecordProcessor {
     @SuppressWarnings("java:S107")
     public KinesisRecordProcessorRaw(final ProcessSessionFactory sessionFactory, final ComponentLog log, final String streamName,
-                                     final String endpointPrefix, final long checkpointIntervalMillis, final long retryWaitMillis,
+                                     final String endpointPrefix, final String kinesisEndpoint,
+                                     final long checkpointIntervalMillis, final long retryWaitMillis,
                                      final int numRetries, final DateTimeFormatter dateTimeFormatter) {
-        super(sessionFactory, log, streamName, endpointPrefix, checkpointIntervalMillis, retryWaitMillis, numRetries, dateTimeFormatter);
+        super(sessionFactory, log, streamName, endpointPrefix, kinesisEndpoint, checkpointIntervalMillis, retryWaitMillis,
+                numRetries, dateTimeFormatter);
     }
 
     @Override
-    void processRecord(final List<FlowFile> flowFiles, final Record record, final boolean lastRecord,
+    void processRecord(final List<FlowFile> flowFiles, final Record kinesisRecord, final boolean lastRecord,
                        final ProcessSession session, final StopWatch stopWatch) {
-        final String partitionKey = record.getPartitionKey();
-        final String sequenceNumber = record.getSequenceNumber();
-        final Date approximateArrivalTimestamp = record.getApproximateArrivalTimestamp();
-        final byte[] data = record.getData() != null ? record.getData().array() : new byte[0];
+        final String partitionKey = kinesisRecord.getPartitionKey();
+        final String sequenceNumber = kinesisRecord.getSequenceNumber();
+        final Date approximateArrivalTimestamp = kinesisRecord.getApproximateArrivalTimestamp();
+        final byte[] data = kinesisRecord.getData() != null ? kinesisRecord.getData().array() : new byte[0];
 
         FlowFile flowFile = session.create();
         session.write(flowFile, out -> out.write(data));
 
-        if (log.isDebugEnabled()) {
-            log.debug("Sequence No: {}, Partition Key: {}, Data: {}", sequenceNumber, partitionKey, BASE_64_ENCODER.encodeToString(data));
+        if (getLogger().isDebugEnabled()) {
+            getLogger().debug("Sequence No: {}, Partition Key: {}, Data: {}", sequenceNumber, partitionKey, BASE_64_ENCODER.encodeToString(data));
         }
 
-        session.getProvenanceReporter().receive(flowFile, String.format("http://%s.amazonaws.com/%s/%s#%s", endpointPrefix, kinesisShardId,
-                partitionKey, sequenceNumber), stopWatch.getElapsed(TimeUnit.MILLISECONDS));
+        reportProvenance(session, flowFile, partitionKey, sequenceNumber, stopWatch);
 
         final Map<String, String> attributes = getDefaultAttributes(sequenceNumber, partitionKey, approximateArrivalTimestamp);
         flowFile = session.putAllAttributes(flowFile, attributes);

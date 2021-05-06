@@ -103,6 +103,11 @@ public class PutKinesisStream extends AbstractKinesisStreamProcessor {
             .sensitive(false)
             .build();
 
+    public static final PropertyDescriptor KINESIS_STREAM_NAME = new PropertyDescriptor.Builder()
+            .fromPropertyDescriptor(AbstractKinesisStreamProcessor.KINESIS_STREAM_NAME)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .build();
+
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
             Arrays.asList(KINESIS_STREAM_NAME, KINESIS_PARTITION_KEY, BATCH_SIZE, MAX_MESSAGE_BUFFER_SIZE_MB, REGION, ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE,
                 AWS_CREDENTIALS_PROVIDER_SERVICE, TIMEOUT, PROXY_CONFIGURATION_SERVICE, PROXY_HOST, PROXY_HOST_PORT, PROXY_USERNAME, PROXY_PASSWORD, ENDPOINT_OVERRIDE));
