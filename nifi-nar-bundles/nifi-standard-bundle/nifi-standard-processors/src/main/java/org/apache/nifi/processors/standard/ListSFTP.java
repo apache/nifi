@@ -116,6 +116,10 @@ public class ListSFTP extends ListFileTransfer {
         properties.add(ListFile.MAX_AGE);
         properties.add(ListFile.MIN_SIZE);
         properties.add(ListFile.MAX_SIZE);
+        properties.add(SFTPTransfer.CIPHERS_ALLOWED);
+        properties.add(SFTPTransfer.KEY_ALGORITHMS_ALLOWED);
+        properties.add(SFTPTransfer.KEY_EXCHANGE_ALGORITHMS_ALLOWED);
+        properties.add(SFTPTransfer.MESSAGE_AUTHENTICATION_CODES_ALLOWED);
         return properties;
     }
 

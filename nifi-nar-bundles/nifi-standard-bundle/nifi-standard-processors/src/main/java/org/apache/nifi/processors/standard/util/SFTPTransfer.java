@@ -18,8 +18,10 @@ package org.apache.nifi.processors.standard.util;
 
 import net.schmizz.keepalive.KeepAlive;
 import net.schmizz.keepalive.KeepAliveProvider;
+import net.schmizz.sshj.Config;
 import net.schmizz.sshj.DefaultConfig;
 import net.schmizz.sshj.SSHClient;
+import net.schmizz.sshj.common.Factory;
 import net.schmizz.sshj.connection.ConnectionException;
 import net.schmizz.sshj.connection.ConnectionImpl;
 import net.schmizz.sshj.sftp.FileAttributes;
@@ -72,17 +74,50 @@ import java.nio.file.Paths;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import static org.apache.nifi.processors.standard.util.FTPTransfer.createComponentProxyConfigSupplier;
 
 public class SFTPTransfer implements FileTransfer {
+    private static final Set<String> DEFAULT_KEY_ALGORITHM_NAMES;
+    private static final Set<String> DEFAULT_CIPHER_NAMES;
+    private static final Set<String> DEFAULT_MESSAGE_AUTHENTICATION_CODE_NAMES;
+    private static final Set<String> DEFAULT_KEY_EXCHANGE_ALGORITHM_NAMES;
+
+    static {
+        DefaultConfig defaultConfig = new DefaultConfig();
+
+        DEFAULT_KEY_ALGORITHM_NAMES = Collections.unmodifiableSet(defaultConfig.getKeyAlgorithms().stream()
+                .map(Factory.Named::getName).collect(Collectors.toSet()));
+        DEFAULT_CIPHER_NAMES = Collections.unmodifiableSet(defaultConfig.getCipherFactories().stream()
+                .map(Factory.Named::getName).collect(Collectors.toSet()));
+        DEFAULT_MESSAGE_AUTHENTICATION_CODE_NAMES = Collections.unmodifiableSet(defaultConfig.getMACFactories().stream()
+                .map(Factory.Named::getName).collect(Collectors.toSet()));
+        DEFAULT_KEY_EXCHANGE_ALGORITHM_NAMES = Collections.unmodifiableSet(defaultConfig.getKeyExchangeFactories().stream()
+                .map(Factory.Named::getName).collect(Collectors.toSet()));
+    }
+
+    /**
+     * Converts a set of names into an alphabetically ordered comma separated value list.
+     *
+     * @param factorySetNames The set of names
+     * @return An alphabetically ordered comma separated value list of names
+     */
+    private static String convertFactorySetToString(Set<String> factorySetNames) {
+        return factorySetNames
+                .stream()
+                .sorted()
+                .collect(Collectors.joining(", "));
+    }
 
     public static final PropertyDescriptor PRIVATE_KEY_PATH = new PropertyDescriptor.Builder()
         .name("Private Key Path")
@@ -131,6 +166,44 @@ public class SFTPTransfer implements FileTransfer {
         .required(true)
         .build();
 
+    public static final PropertyDescriptor KEY_ALGORITHMS_ALLOWED = new PropertyDescriptor.Builder()
+            .name("Key Algorithms Allowed")
+            .displayName("Key Algorithms Allowed")
+            .description("A comma-separated list of Key Algorithms allowed for SFTP connections. Leave unset to allow all. Available options are: "
+                    + convertFactorySetToString(DEFAULT_KEY_ALGORITHM_NAMES))
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor CIPHERS_ALLOWED = new PropertyDescriptor.Builder()
+            .name("Ciphers Allowed")
+            .displayName("Ciphers Allowed")
+            .description("A comma-separated list of Ciphers allowed for SFTP connections. Leave unset to allow all. Available options are: " + convertFactorySetToString(DEFAULT_CIPHER_NAMES))
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor MESSAGE_AUTHENTICATION_CODES_ALLOWED = new PropertyDescriptor.Builder()
+            .name("Message Authentication Codes Allowed")
+            .displayName("Message Authentication Codes Allowed")
+            .description("A comma-separated list of Message Authentication Codes allowed for SFTP connections. Leave unset to allow all. Available options are: "
+                    + convertFactorySetToString(DEFAULT_MESSAGE_AUTHENTICATION_CODE_NAMES))
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor KEY_EXCHANGE_ALGORITHMS_ALLOWED = new PropertyDescriptor.Builder()
+            .name("Key Exchange Algorithms Allowed")
+            .displayName("Key Exchange Algorithms Allowed")
+            .description("A comma-separated list of Key Exchange Algorithms allowed for SFTP connections. Leave unset to allow all. Available options are: "
+                    + convertFactorySetToString(DEFAULT_KEY_EXCHANGE_ALGORITHM_NAMES))
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .build();
 
     /**
      * Property which is used to decide if the {@link #ensureDirectoryExists(FlowFile, File)} method should perform a {@link SFTPClient#ls(String)} before calling
@@ -521,6 +594,8 @@ public class SFTPTransfer implements FileTransfer {
             sshClientConfig.setKeepAliveProvider(NO_OP_KEEP_ALIVE);
         }
 
+        updateConfigAlgorithms(sshClientConfig);
+
         final SSHClient sshClient = new SSHClient(sshClientConfig);
 
         // Create a Proxy if the config was specified, proxy will be null if type was NO_PROXY
@@ -640,6 +715,44 @@ public class SFTPTransfer implements FileTransfer {
         }
 
         return sftpClient;
+    }
+
+    void updateConfigAlgorithms(final Config config) {
+        if (ctx.getProperty(CIPHERS_ALLOWED).isSet()) {
+            Set<String> allowedCiphers = Arrays.stream(ctx.getProperty(CIPHERS_ALLOWED).evaluateAttributeExpressions().getValue().split(","))
+                    .map(String::trim)
+                    .collect(Collectors.toSet());
+            config.setCipherFactories(config.getCipherFactories().stream()
+                    .filter(cipherNamed -> allowedCiphers.contains(cipherNamed.getName()))
+                    .collect(Collectors.toList()));
+        }
+
+        if (ctx.getProperty(KEY_ALGORITHMS_ALLOWED).isSet()) {
+            Set<String> allowedKeyAlgorithms = Arrays.stream(ctx.getProperty(KEY_ALGORITHMS_ALLOWED).evaluateAttributeExpressions().getValue().split(","))
+                    .map(String::trim)
+                    .collect(Collectors.toSet());
+            config.setKeyAlgorithms(config.getKeyAlgorithms().stream()
+                    .filter(keyAlgorithmNamed -> allowedKeyAlgorithms.contains(keyAlgorithmNamed.getName()))
+                    .collect(Collectors.toList()));
+        }
+
+        if (ctx.getProperty(KEY_EXCHANGE_ALGORITHMS_ALLOWED).isSet()) {
+            Set<String> allowedKeyExchangeAlgorithms = Arrays.stream(ctx.getProperty(KEY_EXCHANGE_ALGORITHMS_ALLOWED).evaluateAttributeExpressions().getValue().split(","))
+                    .map(String::trim)
+                    .collect(Collectors.toSet());
+            config.setKeyExchangeFactories(config.getKeyExchangeFactories().stream()
+                    .filter(keyExchangeNamed -> allowedKeyExchangeAlgorithms.contains(keyExchangeNamed.getName()))
+                    .collect(Collectors.toList()));
+        }
+
+        if (ctx.getProperty(MESSAGE_AUTHENTICATION_CODES_ALLOWED).isSet()) {
+            Set<String> allowedMessageAuthenticationCodes = Arrays.stream(ctx.getProperty(MESSAGE_AUTHENTICATION_CODES_ALLOWED).evaluateAttributeExpressions().getValue().split(","))
+                    .map(String::trim)
+                    .collect(Collectors.toSet());
+            config.setMACFactories(config.getMACFactories().stream()
+                    .filter(macNamed -> allowedMessageAuthenticationCodes.contains(macNamed.getName()))
+                    .collect(Collectors.toList()));
+        }
     }
 
     @Override
