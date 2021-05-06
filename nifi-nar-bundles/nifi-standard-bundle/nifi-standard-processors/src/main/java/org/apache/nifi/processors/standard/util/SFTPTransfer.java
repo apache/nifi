@@ -183,6 +183,7 @@ public class SFTPTransfer implements FileTransfer {
 
     public static final PropertyDescriptor KEY_ALGORITHMS_ALLOWED = new PropertyDescriptor.Builder()
             .name("Key Algorithms Allowed")
+            .displayName("Key Algorithms Allowed")
             .description("A comma-separated list of Key Algorithms to allow your SFTP connection to use. Available options are: " + convertFactorySetToString(AVAILABLE_KEY_ALGORITHM_NAMES_SET))
             .defaultValue(convertFactorySetToString(AVAILABLE_KEY_ALGORITHM_NAMES_SET))
             .required(false)
@@ -191,6 +192,7 @@ public class SFTPTransfer implements FileTransfer {
 
     public static final PropertyDescriptor CIPHERS_ALLOWED = new PropertyDescriptor.Builder()
             .name("Ciphers Allowed")
+            .displayName("Ciphers Allowed")
             .description("A comma-separated list of Ciphers to allow your SFTP connection to use. Available options are: " + convertFactorySetToString(AVAILABLE_CIPHER_NAMES_SET))
             .defaultValue(convertFactorySetToString(AVAILABLE_CIPHER_NAMES_SET))
             .required(false)
@@ -199,6 +201,7 @@ public class SFTPTransfer implements FileTransfer {
 
     public static final PropertyDescriptor MESSAGE_AUTHENTICATION_CODES_ALLOWED = new PropertyDescriptor.Builder()
             .name("Message Authentication Codes Allowed")
+            .displayName("Message Authentication Codes Allowed")
             .description("A comma-separated list of Message Authentication Codes to allow your SFTP connection to use. Available options are: "
                     + convertFactorySetToString(AVAILABLE_MESSAGE_AUTHENTICATION_CODE_NAMES_SET))
             .defaultValue(convertFactorySetToString(AVAILABLE_MESSAGE_AUTHENTICATION_CODE_NAMES_SET))
@@ -208,6 +211,7 @@ public class SFTPTransfer implements FileTransfer {
 
     public static final PropertyDescriptor KEY_EXCHANGE_ALGORITHMS_ALLOWED = new PropertyDescriptor.Builder()
             .name("Key Exchange Algorithms Allowed")
+            .displayName("Key Exchange Algorithms Allowed")
             .description("A comma-separated list of Key Exchange Algorithms to allow your SFTP connection to use. Available options are: "
                     + convertFactorySetToString(AVAILABLE_KEY_EXCHANGE_ALGORITHM_NAMES_SET))
             .defaultValue(convertFactorySetToString(AVAILABLE_KEY_EXCHANGE_ALGORITHM_NAMES_SET))
