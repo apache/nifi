@@ -30,7 +30,7 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 public class LabelsEndpointMerger implements EndpointResponseMerger {
-    public static final Pattern LABELS_URI_PATTERN = Pattern.compile("/nifi-api/process-groups/(?:(?:root)|(?:[a-f0-9\\-]{36}))/labels");
+    public static final Pattern LABELS_URI_PATTERN = Pattern.compile(".*/nifi-api/process-groups/(?:(?:root)|(?:[a-f0-9\\-]{36}))/labels");
 
     @Override
     public boolean canHandle(URI uri, String method) {

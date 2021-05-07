@@ -28,7 +28,7 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 public class SearchUsersEndpointMerger implements EndpointResponseMerger {
-    public static final Pattern SEARCH_TENANTS_URI_PATTERN = Pattern.compile("/nifi-api/tenants/search-results");
+    public static final Pattern SEARCH_TENANTS_URI_PATTERN = Pattern.compile(".*/nifi-api/tenants/search-results");
 
     @Override
     public boolean canHandle(final URI uri, final String method) {

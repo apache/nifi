@@ -41,7 +41,7 @@ import java.util.regex.Pattern;
 
 public class ProvenanceQueryEndpointMerger implements EndpointResponseMerger {
     public static final String PROVENANCE_URI = "/nifi-api/provenance";
-    public static final Pattern PROVENANCE_QUERY_URI = Pattern.compile("/nifi-api/provenance/[a-f0-9\\-]{36}");
+    public static final Pattern PROVENANCE_QUERY_URI = Pattern.compile(".*/nifi-api/provenance/[a-f0-9\\-]{36}");
 
     @Override
     public boolean canHandle(URI uri, String method) {

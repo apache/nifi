@@ -29,8 +29,8 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 public class UserEndpointMerger extends AbstractSingleEntityEndpoint<UserEntity> implements EndpointResponseMerger {
-    public static final Pattern USERS_URI_PATTERN = Pattern.compile("/nifi-api/tenants/users");
-    public static final Pattern USER_URI_PATTERN = Pattern.compile("/nifi-api/tenants/users/[a-f0-9\\-]{36}");
+    public static final Pattern USERS_URI_PATTERN = Pattern.compile(".*/nifi-api/tenants/users");
+    public static final Pattern USER_URI_PATTERN = Pattern.compile(".*/nifi-api/tenants/users/[a-f0-9\\-]{36}");
     private final UserEntityMerger userEntityMerger = new UserEntityMerger();
 
     @Override

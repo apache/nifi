@@ -29,7 +29,7 @@ import org.apache.nifi.web.api.dto.SystemDiagnosticsDTO;
 import org.apache.nifi.web.api.entity.SystemDiagnosticsEntity;
 
 public class SystemDiagnosticsEndpointMerger extends AbstractNodeStatusEndpoint<SystemDiagnosticsEntity, SystemDiagnosticsDTO> {
-    public static final Pattern SYSTEM_DIAGNOSTICS_URI_PATTERN = Pattern.compile("/nifi-api/system-diagnostics");
+    public static final Pattern SYSTEM_DIAGNOSTICS_URI_PATTERN = Pattern.compile(".*/nifi-api/system-diagnostics");
 
     @Override
     public boolean canHandle(URI uri, String method) {

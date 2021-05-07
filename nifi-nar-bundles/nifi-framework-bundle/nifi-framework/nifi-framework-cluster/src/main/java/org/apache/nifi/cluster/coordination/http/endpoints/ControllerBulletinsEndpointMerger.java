@@ -38,7 +38,7 @@ import static org.apache.nifi.reporting.BulletinRepository.MAX_BULLETINS_FOR_CON
 import static org.apache.nifi.reporting.BulletinRepository.MAX_BULLETINS_PER_COMPONENT;
 
 public class ControllerBulletinsEndpointMerger extends AbstractSingleEntityEndpoint<ControllerBulletinsEntity> implements EndpointResponseMerger {
-    public static final Pattern CONTROLLER_BULLETINS_URI_PATTERN = Pattern.compile("/nifi-api/flow/controller/bulletins");
+    public static final Pattern CONTROLLER_BULLETINS_URI_PATTERN = Pattern.compile(".*/nifi-api/flow/controller/bulletins");
 
     @Override
     public boolean canHandle(URI uri, String method) {

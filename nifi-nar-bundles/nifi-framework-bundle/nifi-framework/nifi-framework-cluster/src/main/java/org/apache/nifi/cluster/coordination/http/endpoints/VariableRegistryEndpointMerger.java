@@ -35,7 +35,7 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 public class VariableRegistryEndpointMerger extends AbstractSingleEntityEndpoint<VariableRegistryEntity> implements EndpointResponseMerger {
-    public static final Pattern VARIABLE_REGISTRY_UPDATE_REQUEST_URI_PATTERN = Pattern.compile("/nifi-api/process-groups/(?:(?:root)|(?:[a-f0-9\\-]{36}))/variable-registry");
+    public static final Pattern VARIABLE_REGISTRY_UPDATE_REQUEST_URI_PATTERN = Pattern.compile(".*/nifi-api/process-groups/(?:(?:root)|(?:[a-f0-9\\-]{36}))/variable-registry");
 
     private final AffectedComponentEntityMerger affectedComponentEntityMerger = new AffectedComponentEntityMerger();
 

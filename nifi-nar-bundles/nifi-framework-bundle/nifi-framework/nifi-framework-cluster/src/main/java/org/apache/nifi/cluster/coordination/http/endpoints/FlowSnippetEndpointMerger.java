@@ -32,8 +32,8 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 public class FlowSnippetEndpointMerger implements EndpointResponseMerger {
-    public static final Pattern TEMPLATE_INSTANCE_URI_PATTERN = Pattern.compile("/nifi-api/process-groups/(?:(?:root)|(?:[a-f0-9\\-]{36}))/template-instance");
-    public static final Pattern FLOW_SNIPPET_INSTANCE_URI_PATTERN = Pattern.compile("/nifi-api/process-groups/(?:(?:root)|(?:[a-f0-9\\-]{36}))/snippet-instance");
+    public static final Pattern TEMPLATE_INSTANCE_URI_PATTERN = Pattern.compile(".*/nifi-api/process-groups/(?:(?:root)|(?:[a-f0-9\\-]{36}))/template-instance");
+    public static final Pattern FLOW_SNIPPET_INSTANCE_URI_PATTERN = Pattern.compile(".*/nifi-api/process-groups/(?:(?:root)|(?:[a-f0-9\\-]{36}))/snippet-instance");
 
     @Override
     public boolean canHandle(final URI uri, final String method) {

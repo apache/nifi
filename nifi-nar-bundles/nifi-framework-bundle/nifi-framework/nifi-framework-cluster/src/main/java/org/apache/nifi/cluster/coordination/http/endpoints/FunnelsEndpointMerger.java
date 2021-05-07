@@ -30,7 +30,7 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 public class FunnelsEndpointMerger implements EndpointResponseMerger {
-    public static final Pattern FUNNELS_URI_PATTERN = Pattern.compile("/nifi-api/process-groups/(?:(?:root)|(?:[a-f0-9\\-]{36}))/funnels");
+    public static final Pattern FUNNELS_URI_PATTERN = Pattern.compile(".*/nifi-api/process-groups/(?:(?:root)|(?:[a-f0-9\\-]{36}))/funnels");
 
     @Override
     public boolean canHandle(URI uri, String method) {

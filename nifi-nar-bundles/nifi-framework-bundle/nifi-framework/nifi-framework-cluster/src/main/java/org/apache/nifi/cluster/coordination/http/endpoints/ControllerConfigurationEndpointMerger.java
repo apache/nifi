@@ -28,7 +28,7 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 public class ControllerConfigurationEndpointMerger extends AbstractSingleEntityEndpoint<ControllerConfigurationEntity> {
-    public static final Pattern CONTROLLER_CONFIGURATION_URI_PATTERN = Pattern.compile("/nifi-api/controller/config");
+    public static final Pattern CONTROLLER_CONFIGURATION_URI_PATTERN = Pattern.compile(".*/nifi-api/controller/config");
 
     @Override
     protected Class<ControllerConfigurationEntity> getEntityClass() {

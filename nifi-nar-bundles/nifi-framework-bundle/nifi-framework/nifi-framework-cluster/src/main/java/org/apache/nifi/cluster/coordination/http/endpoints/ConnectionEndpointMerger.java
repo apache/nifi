@@ -29,8 +29,8 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 public class ConnectionEndpointMerger extends AbstractSingleEntityEndpoint<ConnectionEntity> implements EndpointResponseMerger {
-    public static final Pattern CONNECTIONS_URI_PATTERN = Pattern.compile("/nifi-api/process-groups/(?:(?:root)|(?:[a-f0-9\\-]{36}))/connections");
-    public static final Pattern CONNECTION_URI_PATTERN = Pattern.compile("/nifi-api/connections/[a-f0-9\\-]{36}");
+    public static final Pattern CONNECTIONS_URI_PATTERN = Pattern.compile(".*/nifi-api/process-groups/(?:(?:root)|(?:[a-f0-9\\-]{36}))/connections");
+    public static final Pattern CONNECTION_URI_PATTERN = Pattern.compile(".*/nifi-api/connections/[a-f0-9\\-]{36}");
     private final ConnectionEntityMerger connectionEntityMerger = new ConnectionEntityMerger();
 
     @Override

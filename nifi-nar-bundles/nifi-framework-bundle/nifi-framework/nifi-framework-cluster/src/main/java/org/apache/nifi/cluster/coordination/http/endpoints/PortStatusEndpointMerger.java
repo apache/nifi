@@ -32,8 +32,8 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 public class PortStatusEndpointMerger extends AbstractSingleEntityEndpoint<PortStatusEntity> implements ComponentEntityStatusMerger<PortStatusDTO> {
-    public static final Pattern INPUT_PORT_STATUS_URI_PATTERN = Pattern.compile("/nifi-api/flow/input-ports/[a-f0-9\\-]{36}/status");
-    public static final Pattern OUTPUT_PORT_STATUS_URI_PATTERN = Pattern.compile("/nifi-api/flow/output-ports/[a-f0-9\\-]{36}/status");
+    public static final Pattern INPUT_PORT_STATUS_URI_PATTERN = Pattern.compile(".*/nifi-api/flow/input-ports/[a-f0-9\\-]{36}/status");
+    public static final Pattern OUTPUT_PORT_STATUS_URI_PATTERN = Pattern.compile(".*/nifi-api/flow/output-ports/[a-f0-9\\-]{36}/status");
 
     @Override
     public boolean canHandle(URI uri, String method) {

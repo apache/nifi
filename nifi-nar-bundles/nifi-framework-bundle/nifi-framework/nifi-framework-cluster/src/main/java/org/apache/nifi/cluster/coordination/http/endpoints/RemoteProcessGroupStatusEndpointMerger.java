@@ -32,7 +32,7 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 public class RemoteProcessGroupStatusEndpointMerger extends AbstractSingleEntityEndpoint<RemoteProcessGroupStatusEntity> implements ComponentEntityStatusMerger<RemoteProcessGroupStatusDTO> {
-    public static final Pattern REMOTE_PROCESS_GROUP_STATUS_URI_PATTERN = Pattern.compile("/nifi-api/flow/remote-process-groups/[a-f0-9\\-]{36}/status");
+    public static final Pattern REMOTE_PROCESS_GROUP_STATUS_URI_PATTERN = Pattern.compile(".*/nifi-api/flow/remote-process-groups/[a-f0-9\\-]{36}/status");
 
     @Override
     public boolean canHandle(URI uri, String method) {

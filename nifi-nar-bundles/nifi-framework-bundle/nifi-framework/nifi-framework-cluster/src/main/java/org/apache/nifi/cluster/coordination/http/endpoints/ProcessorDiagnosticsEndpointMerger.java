@@ -30,7 +30,7 @@ import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.web.api.entity.ProcessorDiagnosticsEntity;
 
 public class ProcessorDiagnosticsEndpointMerger implements EndpointResponseMerger {
-    public static final Pattern PROCESSOR_DIAGNOSTICS_URI_PATTERN = Pattern.compile("/nifi-api/processors/[a-f0-9\\-]{36}/diagnostics");
+    public static final Pattern PROCESSOR_DIAGNOSTICS_URI_PATTERN = Pattern.compile(".*/nifi-api/processors/[a-f0-9\\-]{36}/diagnostics");
 
     private final ProcessorDiagnosticsEntityMerger diagnosticsEntityMerger;
 

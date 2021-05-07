@@ -31,7 +31,7 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 public class ProcessorsEndpointMerger implements EndpointResponseMerger {
-    public static final Pattern PROCESSORS_URI_PATTERN = Pattern.compile("/nifi-api/process-groups/(?:(?:root)|(?:[a-f0-9\\-]{36}))/processors");
+    public static final Pattern PROCESSORS_URI_PATTERN = Pattern.compile(".*/nifi-api/process-groups/(?:(?:root)|(?:[a-f0-9\\-]{36}))/processors");
 
     @Override
     public boolean canHandle(final URI uri, final String method) {

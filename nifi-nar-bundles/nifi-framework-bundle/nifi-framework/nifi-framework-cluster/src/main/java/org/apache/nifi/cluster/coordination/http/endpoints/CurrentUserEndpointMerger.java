@@ -29,7 +29,7 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 public class CurrentUserEndpointMerger extends AbstractSingleEntityEndpoint<CurrentUserEntity> {
-    public static final Pattern CURRENT_USER_URI_PATTERN = Pattern.compile("/nifi-api/flow/current-user");
+    public static final Pattern CURRENT_USER_URI_PATTERN = Pattern.compile(".*/nifi-api/flow/current-user");
 
     @Override
     public boolean canHandle(URI uri, String method) {

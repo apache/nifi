@@ -29,13 +29,13 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 public class PortEndpointMerger extends AbstractSingleEntityEndpoint<PortEntity> implements EndpointResponseMerger {
-    public static final Pattern INPUT_PORTS_URI_PATTERN = Pattern.compile("/nifi-api/process-groups/(?:(?:root)|(?:[a-f0-9\\-]{36}))/input-ports");
-    public static final Pattern INPUT_PORT_URI_PATTERN = Pattern.compile("/nifi-api/input-ports/[a-f0-9\\-]{36}");
-    public static final Pattern INPUT_PORT_RUN_STATUS_URI_PATTERN = Pattern.compile("/nifi-api/input-ports/[a-f0-9\\-]{36}/run-status");
+    public static final Pattern INPUT_PORTS_URI_PATTERN = Pattern.compile(".*/nifi-api/process-groups/(?:(?:root)|(?:[a-f0-9\\-]{36}))/input-ports");
+    public static final Pattern INPUT_PORT_URI_PATTERN = Pattern.compile(".*/nifi-api/input-ports/[a-f0-9\\-]{36}");
+    public static final Pattern INPUT_PORT_RUN_STATUS_URI_PATTERN = Pattern.compile(".*/nifi-api/input-ports/[a-f0-9\\-]{36}/run-status");
 
-    public static final Pattern OUTPUT_PORTS_URI_PATTERN = Pattern.compile("/nifi-api/process-groups/(?:(?:root)|(?:[a-f0-9\\-]{36}))/output-ports");
-    public static final Pattern OUTPUT_PORT_URI_PATTERN = Pattern.compile("/nifi-api/output-ports/[a-f0-9\\-]{36}");
-    public static final Pattern OUTPUT_PORT_RUN_STATUS_URI_PATTERN = Pattern.compile("/nifi-api/output-ports/[a-f0-9\\-]{36}/run-status");
+    public static final Pattern OUTPUT_PORTS_URI_PATTERN = Pattern.compile(".*/nifi-api/process-groups/(?:(?:root)|(?:[a-f0-9\\-]{36}))/output-ports");
+    public static final Pattern OUTPUT_PORT_URI_PATTERN = Pattern.compile(".*/nifi-api/output-ports/[a-f0-9\\-]{36}");
+    public static final Pattern OUTPUT_PORT_RUN_STATUS_URI_PATTERN = Pattern.compile(".*/nifi-api/output-ports/[a-f0-9\\-]{36}/run-status");
     private final PortEntityMerger portEntityMerger = new PortEntityMerger();
 
     @Override

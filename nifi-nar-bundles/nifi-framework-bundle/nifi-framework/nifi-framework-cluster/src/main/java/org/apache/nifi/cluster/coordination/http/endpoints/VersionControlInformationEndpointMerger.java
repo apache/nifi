@@ -29,7 +29,7 @@ import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.web.api.entity.VersionControlInformationEntity;
 
 public class VersionControlInformationEndpointMerger extends AbstractSingleEntityEndpoint<VersionControlInformationEntity> implements EndpointResponseMerger {
-    public static final Pattern VERSION_CONTROL_URI_PATTERN = Pattern.compile("/nifi-api/versions/process-groups/(?:(?:root)|(?:[a-f0-9\\-]{36}))");
+    public static final Pattern VERSION_CONTROL_URI_PATTERN = Pattern.compile(".*/nifi-api/versions/process-groups/(?:(?:root)|(?:[a-f0-9\\-]{36}))");
     private final VersionControlInformationEntityMerger versionControlInfoEntityMerger = new VersionControlInformationEntityMerger();
 
     @Override

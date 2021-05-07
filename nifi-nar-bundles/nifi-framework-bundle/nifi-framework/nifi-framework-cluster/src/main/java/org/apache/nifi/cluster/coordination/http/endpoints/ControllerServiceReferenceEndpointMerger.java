@@ -31,7 +31,7 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 public class ControllerServiceReferenceEndpointMerger implements EndpointResponseMerger {
-    public static final Pattern CONTROLLER_SERVICE_REFERENCES_URI_PATTERN = Pattern.compile("/nifi-api/controller-services/node/[a-f0-9\\-]{36}/references");
+    public static final Pattern CONTROLLER_SERVICE_REFERENCES_URI_PATTERN = Pattern.compile(".*/nifi-api/controller-services/node/[a-f0-9\\-]{36}/references");
 
     @Override
     public boolean canHandle(URI uri, String method) {

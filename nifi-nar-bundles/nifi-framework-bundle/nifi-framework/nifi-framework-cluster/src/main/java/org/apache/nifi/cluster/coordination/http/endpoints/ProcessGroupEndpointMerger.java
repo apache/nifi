@@ -29,8 +29,8 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 public class ProcessGroupEndpointMerger extends AbstractSingleEntityEndpoint<ProcessGroupEntity> implements EndpointResponseMerger {
-    public static final Pattern PROCESS_GROUP_URI_PATTERN = Pattern.compile("/nifi-api/process-groups/(?:(?:root)|(?:[a-f0-9\\-]{36}))");
-    public static final Pattern CONTROLLER_ARCHIVE_URI_PATTERN = Pattern.compile("/nifi-api/controller/archive");
+    public static final Pattern PROCESS_GROUP_URI_PATTERN = Pattern.compile(".*/nifi-api/process-groups/(?:(?:root)|(?:[a-f0-9\\-]{36}))");
+    public static final Pattern CONTROLLER_ARCHIVE_URI_PATTERN = Pattern.compile(".*/nifi-api/controller/archive");
     private ProcessGroupEntityMerger processGroupEntityMerger = new ProcessGroupEntityMerger();
 
     @Override

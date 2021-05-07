@@ -32,7 +32,7 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 public class ControllerEndpointMerger extends AbstractSingleDTOEndpoint<ControllerEntity, ControllerDTO> {
-    public static final Pattern CONTROLLER_URI_PATTERN = Pattern.compile("/nifi-api/site-to-site");
+    public static final Pattern CONTROLLER_URI_PATTERN = Pattern.compile(".*/nifi-api/site-to-site");
 
     @Override
     protected Class<ControllerEntity> getEntityClass() {

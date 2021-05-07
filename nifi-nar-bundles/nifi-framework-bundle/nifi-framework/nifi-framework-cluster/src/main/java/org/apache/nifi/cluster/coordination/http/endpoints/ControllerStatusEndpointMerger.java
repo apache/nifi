@@ -29,7 +29,7 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 public class ControllerStatusEndpointMerger extends AbstractSingleDTOEndpoint<ControllerStatusEntity, ControllerStatusDTO> {
-    public static final Pattern CONTROLLER_STATUS_URI_PATTERN = Pattern.compile("/nifi-api/flow/status");
+    public static final Pattern CONTROLLER_STATUS_URI_PATTERN = Pattern.compile(".*/nifi-api/flow/status");
 
     @Override
     public boolean canHandle(URI uri, String method) {

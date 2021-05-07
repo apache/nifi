@@ -36,8 +36,8 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 public class ParameterContextValidationMerger extends AbstractSingleEntityEndpoint<ParameterContextValidationRequestEntity> implements EndpointResponseMerger {
-    public static final Pattern REQUESTS_URI_PATTERN = Pattern.compile("/nifi-api/parameter-contexts/validation-requests");
-    public static final Pattern REQUEST_BY_ID_URI_PATTERN = Pattern.compile("/nifi-api/parameter-contexts/validation-requests/[a-f0-9\\-]{36}");
+    public static final Pattern REQUESTS_URI_PATTERN = Pattern.compile(".*/nifi-api/parameter-contexts/validation-requests");
+    public static final Pattern REQUEST_BY_ID_URI_PATTERN = Pattern.compile(".*/nifi-api/parameter-contexts/validation-requests/[a-f0-9\\-]{36}");
 
     @Override
     public boolean canHandle(final URI uri, final String method) {

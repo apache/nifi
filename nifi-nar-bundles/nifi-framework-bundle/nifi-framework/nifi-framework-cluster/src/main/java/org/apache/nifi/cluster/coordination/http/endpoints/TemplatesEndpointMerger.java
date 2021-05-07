@@ -32,7 +32,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class TemplatesEndpointMerger implements EndpointResponseMerger {
-    public static final Pattern TEMPLATES_URI_PATTERN = Pattern.compile("/nifi-api/process-groups/(?:(?:root)|(?:[a-f0-9\\-]{36}))/templates");
+    public static final Pattern TEMPLATES_URI_PATTERN = Pattern.compile(".*/nifi-api/process-groups/(?:(?:root)|(?:[a-f0-9\\-]{36}))/templates");
 
     @Override
     public boolean canHandle(final URI uri, final String method) {

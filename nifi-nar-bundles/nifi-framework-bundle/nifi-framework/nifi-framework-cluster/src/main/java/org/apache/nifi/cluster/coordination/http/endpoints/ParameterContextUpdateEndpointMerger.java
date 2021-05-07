@@ -33,7 +33,7 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 public class ParameterContextUpdateEndpointMerger extends AbstractSingleEntityEndpoint<ParameterContextUpdateRequestEntity> implements EndpointResponseMerger {
-    private static final Pattern PARAMETER_CONTEXT_URI = Pattern.compile("/nifi-api/parameter-contexts/[a-f0-9\\-]{36}");
+    private static final Pattern PARAMETER_CONTEXT_URI = Pattern.compile(".*/nifi-api/parameter-contexts/[a-f0-9\\-]{36}");
     private static final String PARAMETER_CONTEXTS_URI = "/nifi-api/parameter-contexts";
 
     @Override

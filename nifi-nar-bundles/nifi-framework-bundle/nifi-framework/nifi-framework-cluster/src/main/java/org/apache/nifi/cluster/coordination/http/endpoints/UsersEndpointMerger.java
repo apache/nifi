@@ -32,7 +32,7 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 public class UsersEndpointMerger implements EndpointResponseMerger {
-    public static final Pattern TENANTS_URI_PATTERN = Pattern.compile("/nifi-api/tenants/users");
+    public static final Pattern TENANTS_URI_PATTERN = Pattern.compile(".*/nifi-api/tenants/users");
 
     @Override
     public boolean canHandle(final URI uri, final String method) {

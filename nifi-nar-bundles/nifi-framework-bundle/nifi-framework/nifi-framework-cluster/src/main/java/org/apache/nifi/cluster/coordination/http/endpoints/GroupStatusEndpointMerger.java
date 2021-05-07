@@ -32,7 +32,7 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 public class GroupStatusEndpointMerger extends AbstractSingleEntityEndpoint<ProcessGroupStatusEntity> implements ComponentEntityStatusMerger<ProcessGroupStatusDTO> {
-    public static final Pattern GROUP_STATUS_URI_PATTERN = Pattern.compile("/nifi-api/flow/process-groups/(?:(?:root)|(?:[a-f0-9\\-]{36}))/status");
+    public static final Pattern GROUP_STATUS_URI_PATTERN = Pattern.compile(".*/nifi-api/flow/process-groups/(?:(?:root)|(?:[a-f0-9\\-]{36}))/status");
 
     @Override
     public boolean canHandle(URI uri, String method) {

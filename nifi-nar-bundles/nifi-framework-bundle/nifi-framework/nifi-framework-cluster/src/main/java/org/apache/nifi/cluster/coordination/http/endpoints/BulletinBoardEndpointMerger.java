@@ -33,7 +33,7 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 public class BulletinBoardEndpointMerger extends AbstractSingleDTOEndpoint<BulletinBoardEntity, BulletinBoardDTO> {
-    public static final Pattern BULLETIN_BOARD_URI_PATTERN = Pattern.compile("/nifi-api/flow/bulletin-board");
+    public static final Pattern BULLETIN_BOARD_URI_PATTERN = Pattern.compile(".*/nifi-api/flow/bulletin-board");
 
     @Override
     public boolean canHandle(URI uri, String method) {

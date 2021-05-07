@@ -26,7 +26,7 @@ import java.util.Map;
 import java.util.regex.Pattern;
 
 public class FlowConfigurationEndpointMerger extends AbstractNodeStatusEndpoint<FlowConfigurationEntity, FlowConfigurationDTO> {
-    public static final Pattern FLOW_CONFIGURATION_URI_PATTERN = Pattern.compile("/nifi-api/flow/config");
+    public static final Pattern FLOW_CONFIGURATION_URI_PATTERN = Pattern.compile(".*/nifi-api/flow/config");
 
     @Override
     public boolean canHandle(URI uri, String method) {

@@ -27,8 +27,8 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 public class LabelEndpointMerger extends AbstractSingleEntityEndpoint<LabelEntity> {
-    public static final Pattern LABELS_URI_PATTERN = Pattern.compile("/nifi-api/process-groups/(?:(?:root)|(?:[a-f0-9\\-]{36}))/labels");
-    public static final Pattern LABEL_URI_PATTERN = Pattern.compile("/nifi-api/labels/[a-f0-9\\-]{36}");
+    public static final Pattern LABELS_URI_PATTERN = Pattern.compile(".*/nifi-api/process-groups/(?:(?:root)|(?:[a-f0-9\\-]{36}))/labels");
+    public static final Pattern LABEL_URI_PATTERN = Pattern.compile(".*/nifi-api/labels/[a-f0-9\\-]{36}");
 
     final private LabelEntityMerger labelEntityMerger = new LabelEntityMerger();
 

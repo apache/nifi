@@ -32,7 +32,7 @@ import java.util.regex.Pattern;
 
 public class ControllerServicesEndpointMerger implements EndpointResponseMerger {
     public static final String CONTROLLER_SERVICES_URI = "/nifi-api/flow/controller/controller-services";
-    public static final Pattern PROCESS_GROUPS_CONTROLLER_SERVICES_URI = Pattern.compile("/nifi-api/flow/process-groups/(?:(?:root)|(?:[a-f0-9\\-]{36}))/controller-services");
+    public static final Pattern PROCESS_GROUPS_CONTROLLER_SERVICES_URI = Pattern.compile(".*/nifi-api/flow/process-groups/(?:(?:root)|(?:[a-f0-9\\-]{36}))/controller-services");
 
     @Override
     public boolean canHandle(URI uri, String method) {
