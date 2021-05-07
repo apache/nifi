@@ -18,6 +18,7 @@ package org.apache.nifi.minifi.bootstrap;
 
 import org.apache.commons.io.input.TeeInputStream;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.bootstrap.util.OSUtils;
 import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeCoordinator;
 import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeException;
 import org.apache.nifi.minifi.bootstrap.configuration.ConfigurationChangeListener;
@@ -44,7 +45,6 @@ import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.io.OutputStream;
 import java.io.Reader;
-import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -1155,7 +1155,7 @@ public class RunMiNiFi implements QueryableStatusAggregator, ConfigurationFileHo
 
         Process process = builder.start();
         handleLogging(process);
-        Long pid = getPid(process, cmdLogger);
+        Long pid = OSUtils.getProcessId(process, cmdLogger);
         if (pid != null) {
             minifiPid = pid;
             final Properties minifiProps = new Properties();
@@ -1293,7 +1293,7 @@ public class RunMiNiFi implements QueryableStatusAggregator, ConfigurationFileHo
                         process = builder.start();
                         handleLogging(process);
 
-                        Long pid = getPid(process, defaultLogger);
+                        Long pid = OSUtils.getProcessId(process, defaultLogger);
                         if (pid != null) {
                             minifiPid = pid;
                             final Properties minifiProps = new Properties();
@@ -1398,25 +1398,6 @@ public class RunMiNiFi implements QueryableStatusAggregator, ConfigurationFileHo
         futures.add(stdOutFuture);
         futures.add(stdErrFuture);
         this.loggingFutures = futures;
-    }
-
-    private Long getPid(final Process process, final Logger logger) {
-        try {
-            final Class<?> procClass = process.getClass();
-            final Field pidField = procClass.getDeclaredField(PID_KEY);
-            pidField.setAccessible(true);
-            final Object pidObject = pidField.get(process);
-
-            logger.debug("PID Object = {}", pidObject);
-
-            if (pidObject instanceof Number) {
-                return ((Number) pidObject).longValue();
-            }
-            return null;
-        } catch (final IllegalAccessException | NoSuchFieldException nsfe) {
-            logger.debug("Could not find PID for child process due to {}", nsfe);
-            return null;
-        }
     }
 
     private boolean isWindows() {

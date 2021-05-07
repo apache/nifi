@@ -29,6 +29,7 @@
             <fileMode>0664</fileMode>
             <useTransitiveFiltering>true</useTransitiveFiltering>
             <includes>
+                <include>nifi-bootstrap-utils</include>
                 <include>nifi-bootstrap</include>
                 <include>slf4j-api</include>
                 <include>nifi-api</include>
@@ -62,6 +63,7 @@
             <fileMode>0664</fileMode>
             <useTransitiveFiltering>true</useTransitiveFiltering>
             <excludes>
+                <exclude>nifi-bootstrap-utils</exclude>
                 <exclude>nifi-bootstrap</exclude>
                 <exclude>nifi-resources</exclude>
                 <exclude>nifi-docs</exclude>
