@@ -62,6 +62,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
@@ -79,12 +80,11 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
 @TriggerSerially
-@Tags({"amazon", "aws", "kinesis", "get", "stream"})
+@Tags({"amazon", "aws", "kinesis", "consume", "stream"})
 @CapabilityDescription("Reads data from the specified AWS Kinesis stream and outputs a FlowFile for every processed Record (raw) " +
         " or a FlowFile for a batch of processed records if a Record Reader and Record Writer are configured. " +
         "At-least-once delivery of all Kinesis Records within the Stream while the processor is running. " +
@@ -367,9 +367,9 @@ public class ConsumeKinesisStream extends AbstractKinesisStreamProcessor {
     private ValidationResult validateDynamicKCLConfigProperty(final String subject, final String input, final ValidationContext context) {
         final ValidationResult.Builder validationResult = new ValidationResult.Builder().subject(subject).input(input);
 
-        if (!subject.matches("^(?!with)[a-z]\\w*$")) {
+        if (!subject.matches("^(?!with)[a-zA-Z]\\w*$")) {
             return validationResult
-                    .explanation("Property name must not have a prefix of \"with\", must start with a lowercase letter and contain only letters, numbers or underscores")
+                    .explanation("Property name must not have a prefix of \"with\", must start with a letter and contain only letters, numbers or underscores")
                     .valid(false).build();
         }
 
@@ -382,15 +382,16 @@ public class ConsumeKinesisStream extends AbstractKinesisStreamProcessor {
         @SuppressWarnings("java:S1192")
         final KinesisClientLibConfiguration kclTemp = new KinesisClientLibConfiguration("validate", "validate", null, "validate");
         try {
-            if (!PROPERTY_UTILS_BEAN.isWriteable(kclTemp, subject)) {
+            final String propName = StringUtils.uncapitalize(subject);
+            if (!PROPERTY_UTILS_BEAN.isWriteable(kclTemp, propName)) {
                 return validationResult
-                        .explanation(String.format("Kinesis Client Library Configuration property with name with%s does not exist or is not writable", StringUtils.capitalize(subject)))
+                        .explanation(String.format("Kinesis Client Library Configuration property with name %s does not exist or is not writable", StringUtils.capitalize(subject)))
                         .valid(false).build();
             }
-            BEAN_UTILS_BEAN.setProperty(kclTemp, subject, input);
+            BEAN_UTILS_BEAN.setProperty(kclTemp, propName, input);
         } catch (IllegalAccessException e) {
             return validationResult
-                    .explanation(String.format("Kinesis Client Library Configuration property with name with%s is not accessible", StringUtils.capitalize(subject)))
+                    .explanation(String.format("Kinesis Client Library Configuration property with name %s is not accessible", StringUtils.capitalize(subject)))
                     .valid(false).build();
         } catch (InvocationTargetException e) {
             return buildDynamicPropertyBeanValidationResult(validationResult, subject, input, e.getTargetException().getLocalizedMessage());
@@ -564,11 +565,7 @@ public class ConsumeKinesisStream extends AbstractKinesisStreamProcessor {
         }
 
         getDynamoDBOverride(context).ifPresent(kinesisClientLibConfiguration::withDynamoDBEndpoint);
-
-        final String kinesisEndpoint = getKinesisEndpoint(context).orElse(null);
-        if (StringUtils.isNotBlank(kinesisEndpoint)) {
-            kinesisClientLibConfiguration.withKinesisEndpoint(kinesisEndpoint);
-        }
+        getKinesisEndpoint(context).ifPresent(kinesisClientLibConfiguration::withKinesisEndpoint);
 
         final List<PropertyDescriptor> dynamicProperties = context.getProperties()
                 .keySet()
@@ -576,20 +573,15 @@ public class ConsumeKinesisStream extends AbstractKinesisStreamProcessor {
                 .filter(PropertyDescriptor::isDynamic)
                 .collect(Collectors.toList());
 
-        final AtomicBoolean dynamicPropertyFailure = new AtomicBoolean(false);
         dynamicProperties.forEach(descriptor -> {
             final String name = descriptor.getName();
             final String value = context.getProperty(descriptor).getValue();
             try {
-                BEAN_UTILS_BEAN.setProperty(kinesisClientLibConfiguration, name, value);
+                BEAN_UTILS_BEAN.setProperty(kinesisClientLibConfiguration, StringUtils.uncapitalize(name), value);
             } catch (IllegalAccessException | InvocationTargetException e) {
-                getLogger().error("Unable to set Kinesis Client Library Configuration property for {} with value {}", name, value, e);
-                dynamicPropertyFailure.set(true);
+                throw new ProcessException(String.format("Unable to set Kinesis Client Library Configuration property %s with value %s", StringUtils.capitalize(name), value), e);
             }
         });
-        if (dynamicPropertyFailure.get()) {
-            throw new ProcessException("Failed to set dynamic properties for the Kinesis Client Library (see logs for more details)");
-        }
 
         return kinesisClientLibConfiguration;
     }
@@ -703,6 +695,10 @@ public class ConsumeKinesisStream extends AbstractKinesisStreamProcessor {
 
     private Date getStartStreamTimestamp(final PropertyContext context, final DateTimeFormatter dateTimeFormatter) {
         final String streamTimestamp = context.getProperty(STREAM_POSITION_TIMESTAMP).getValue();
-        return new Date(LocalDateTime.parse(streamTimestamp, dateTimeFormatter).toInstant(ZoneOffset.UTC).toEpochMilli());
+        return new Date(
+                LocalDateTime.parse(streamTimestamp, dateTimeFormatter).atZone(ZoneId.systemDefault()) // parse date/time with system timezone
+                .withZoneSameInstant(ZoneOffset.UTC) // convert to UTC
+                .toInstant().toEpochMilli() // convert to epoch milliseconds for creating Date
+        );
     }
 }

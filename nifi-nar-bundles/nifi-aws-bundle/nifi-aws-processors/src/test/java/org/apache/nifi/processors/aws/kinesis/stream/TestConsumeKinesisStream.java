@@ -243,7 +243,6 @@ public class TestConsumeKinesisStream {
 
         // invalid property names
         runner.setProperty("withPrefixNotAllowed", "a-value");
-        runner.setProperty("UpperCaseLeadingCharacterNotAllowed", "another-value");
         runner.setProperty("unknownProperty", "a-third-value");
         runner.setProperty("toString", "cannot-call");
 
@@ -266,7 +265,7 @@ public class TestConsumeKinesisStream {
         runner.setProperty("shutdownGraceMillis", "not-long");
 
         final AssertionError ae = assertThrows(AssertionError.class, runner::assertValid);
-        assertThat(ae.getMessage(), startsWith("Processor has 18 validation failures:\n"));
+        assertThat(ae.getMessage(), startsWith("Processor has 17 validation failures:\n"));
 
         // blank properties
         assertThat(ae.getMessage(), containsString("'Property Name' validated against '' is invalid because Invalid attribute key: <Empty String>\n"));
@@ -275,41 +274,37 @@ public class TestConsumeKinesisStream {
         // invalid property names
         assertThat(ae.getMessage(), containsString(
                 "'withPrefixNotAllowed' validated against 'a-value' is invalid because Property name must not have a prefix of \"with\", " +
-                "must start with a lowercase letter and contain only letters, numbers or underscores\n"
-        ));
-        assertThat(ae.getMessage(), containsString(
-                "'UpperCaseLeadingCharacterNotAllowed' validated against 'another-value' is invalid because Property name must not have a prefix of \"with\", " +
-                "must start with a lowercase letter and contain only letters, numbers or underscores\n"
+                "must start with a letter and contain only letters, numbers or underscores\n"
         ));
         assertThat(ae.getMessage(), containsString(
                 "'unknownProperty' validated against 'a-third-value' is invalid because Kinesis Client Library Configuration property with name " +
-                "withUnknownProperty does not exist or is not writable\n"
+                "UnknownProperty does not exist or is not writable\n"
         ));
         assertThat(ae.getMessage(), containsString(
                 "'toString' validated against 'cannot-call' is invalid because Kinesis Client Library Configuration property with name " +
-                "withToString does not exist or is not writable\n"
+                "ToString does not exist or is not writable\n"
         ));
 
         // invalid property names (cannot use nested/indexed/mapped properties via BeanUtils)
         assertThat(ae.getMessage(), containsString(
                 "'no.allowed' validated against 'no-.' is invalid because Property name must not have a prefix of \"with\", " +
-                "must start with a lowercase letter and contain only letters, numbers or underscores\n"
+                "must start with a letter and contain only letters, numbers or underscores\n"
         ));
         assertThat(ae.getMessage(), containsString(
                 "'no[allowed' validated against 'no-[' is invalid because Property name must not have a prefix of \"with\", " +
-                "must start with a lowercase letter and contain only letters, numbers or underscores\n"
+                "must start with a letter and contain only letters, numbers or underscores\n"
         ));
         assertThat(ae.getMessage(), containsString(
                 "'no]allowed' validated against 'no-]' is invalid because Property name must not have a prefix of \"with\", " +
-                "must start with a lowercase letter and contain only letters, numbers or underscores\n"
+                "must start with a letter and contain only letters, numbers or underscores\n"
         ));
         assertThat(ae.getMessage(), containsString(
                 "'no(allowed' validated against 'no-(' is invalid because Property name must not have a prefix of \"with\", " +
-                "must start with a lowercase letter and contain only letters, numbers or underscores\n"
+                "must start with a letter and contain only letters, numbers or underscores\n"
         ));
         assertThat(ae.getMessage(), containsString(
                 "'no)allowed' validated against 'no-)' is invalid because Property name must not have a prefix of \"with\", " +
-                "must start with a lowercase letter and contain only letters, numbers or underscores\n"
+                "must start with a letter and contain only letters, numbers or underscores\n"
         ));
 
         // can't override static properties
@@ -346,7 +341,7 @@ public class TestConsumeKinesisStream {
         runner.setProperty("idleMillisBetweenCalls", "1000"); // long
         runner.setProperty("cleanupLeasesUponShardCompletion", "true"); // boolean
         runner.setProperty("initialLeaseTableReadCapacity", "1"); // int
-        runner.setProperty("dataFetchingStrategy", "DEFAULT"); // String
+        runner.setProperty("DataFetchingStrategy", "DEFAULT"); // String with uppercase leading character in property name
 
         runner.assertValid();
     }
