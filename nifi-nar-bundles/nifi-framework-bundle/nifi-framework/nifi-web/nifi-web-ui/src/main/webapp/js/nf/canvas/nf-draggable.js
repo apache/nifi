@@ -148,7 +148,7 @@
             return;
         }
 
-        // move the seleciton into the group
+        // move the selection into the group
         nfCanvasUtils.moveComponents(selection, group);
     };
 

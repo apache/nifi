@@ -2212,6 +2212,14 @@
          */
         getCanvasOffset: function () {
             return nfCanvas.CANVAS_OFFSET;
+        },
+
+        isBackgroundVisible: function () {
+            return nfCanvas.View.isBackgroundVisible();                
+        },
+
+        changeBackgroundVisiblity: function() {
+            return nfCanvas.View.changeBackgroundVisiblity();    
         }
     };
     return nfCanvasUtils;

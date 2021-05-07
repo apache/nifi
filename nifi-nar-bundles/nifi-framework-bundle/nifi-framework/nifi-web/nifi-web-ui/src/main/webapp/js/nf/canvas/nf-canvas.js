@@ -83,6 +83,7 @@
     var MAX_SCALE = 8;
     var MIN_SCALE = 0.2;
     var MIN_SCALE_TO_RENDER = 0.6;
+    var GRID_SIZE = 8;
 
     var DEFAULT_PAGE_TITLE = '';
     var BANNER_TEXT = '';
@@ -99,6 +100,8 @@
     var configurableUsersAndGroups = false;
     var svg = null;
     var canvas = null;
+    var backgroundCanvas = null;
+    var backgroundGrid = null;
 
     var canvasClicked = false;
 
@@ -303,7 +306,7 @@
                     processGroupXhr = changeProcessGroup(groupId, options);
                 } else {
                     processGroupXhr = reloadProcessGroup(options);
-                }
+                } 
 
                 var statusXhr = nfNgBridge.injector.get('flowStatusCtrl').reloadFlowStatus();
                 var currentUserXhr = loadCurrentUser();
@@ -405,6 +408,45 @@
                 })
                 .append('path')
                 .attr('d', 'M2,3 L0,6 L6,3 L0,0 z');
+
+            var componentSmallGridPattern = defs.append('pattern')
+                .attrs({
+                    'id': 'smallGrid',
+                    'width': GRID_SIZE,
+                    'height': GRID_SIZE,
+                    'patternUnits': 'userSpaceOnUse'
+                });
+
+            componentSmallGridPattern.append('path')
+                .attrs({
+                    'd': 'M ' + GRID_SIZE + ' 0 L 0 0 0 ' +GRID_SIZE,
+                    'fill': 'none',
+                    'stroke': 'gray',
+                    'stroke-width': 0.5
+                });
+
+            var componentGridPattern = defs.append('pattern')
+                .attrs({
+                    'id': 'grid',
+                    'width': GRID_SIZE * GRID_SIZE,
+                    'height': GRID_SIZE * GRID_SIZE,
+                    'patternUnits': 'userSpaceOnUse'
+                });
+
+            componentGridPattern.append('rect')
+                .attrs({
+                    'width': GRID_SIZE * GRID_SIZE,
+                    'height': GRID_SIZE * GRID_SIZE,
+                    'fill': 'url(#smallGrid)'
+                });
+
+            componentGridPattern.append('path')
+                .attrs({
+                    'd': 'M ' + GRID_SIZE * GRID_SIZE + ' 0 L 0 0 0 ' + GRID_SIZE * GRID_SIZE,
+                    'fill': 'none',
+                    'stroke': 'gray',
+                    'stroke-width': 1
+                });
 
             // filter for drop shadow
             var componentDropShadowFilter = defs.append('filter')
@@ -510,6 +552,16 @@
                     'transform': 'translate(' + TRANSLATE + ') scale(' + SCALE + ')',
                     'pointer-events': 'all',
                     'id': 'canvas'
+                });
+
+            backgroundGrid = canvas.append('rect')
+                .attrs({
+                    'width': '100%',
+                    'height': '100%',
+                    'x': -64,
+                    'y': -64,
+                    'fill': 'url(#grid)',
+                    'id': 'background-grid'
                 });
 
             // handle canvas events
@@ -677,6 +729,8 @@
                     'height': windowHeight + 'px',
                     'width': $(window).width() + 'px'
                 });
+
+                nfCanvas.View.refresh();
             };
 
             // listen for events to go to components
@@ -1236,6 +1290,15 @@
                     return k;
                 },
 
+                isBackgroundVisible: function () {
+                    return !backgroundGrid.classed('hidden');
+                },
+
+                changeBackgroundVisiblity: function () {
+                   var isHidden = backgroundGrid.classed('hidden');
+                   return backgroundGrid.classed('hidden', !isHidden);
+                },
+
                 /**
                  * Zooms in a single zoom increment.
                  */
@@ -1376,8 +1439,17 @@
                         var t = nfCanvas.View.getTranslate();
                         var s = nfCanvas.View.getScale();
 
+                        var canvasContainer = $('#canvas-container');
+
+                        // Compute the new position of the background grid
+                        var backgroundGridWidth = (canvasContainer.width() + GRID_SIZE * GRID_SIZE * 2) / s ;
+                        var backgroundGridHeight = (canvasContainer.height() + GRID_SIZE * GRID_SIZE * 2) / s ;
+                        var backgroundGridX = - (t[0] + GRID_SIZE * GRID_SIZE) / s;
+                        var backgroundGridY = - (t[1] + GRID_SIZE * GRID_SIZE) / s;
+
                         // update the canvas
                         if (transition === true) {
+
                             canvas.transition()
                                 .duration(500)
                                 .attr('transform', function () {
@@ -1391,9 +1463,27 @@
 
                                     deferred.resolve();
                                 });
+
+                            backgroundGrid.transition()
+                                .duration(500)
+                                .attrs({
+                                'width': backgroundGridWidth,
+                                'height': backgroundGridHeight,
+                                'x': backgroundGridX,
+                                'y': backgroundGridY
+                            });
+
+
                         } else {
                             canvas.attr('transform', function () {
                                 return 'translate(' + t + ') scale(' + s + ')';
+                            });
+
+                            backgroundGrid.attrs({
+                                'width': backgroundGridWidth,
+                                'height': backgroundGridHeight,
+                                'x': backgroundGridX,
+                                'y': backgroundGridY
                             });
 
                             // refresh birdseye if appropriate

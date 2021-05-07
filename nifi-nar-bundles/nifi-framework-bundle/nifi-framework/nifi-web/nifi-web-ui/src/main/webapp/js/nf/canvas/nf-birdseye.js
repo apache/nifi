@@ -88,7 +88,7 @@
         var birdseyeWidth = birdseye.width();
         var birdseyeHeight = birdseye.height();
 
-        // determine the appropriate scale for the birdseye (min scale to accomodate total width and height)
+        // determine the appropriate scale for the birdseye (min scale to accommodate total width and height)
         var birdseyeWidthScale = birdseyeWidth / canvasWidth;
         var birdseyeHeightScale = birdseyeHeight / canvasHeight;
         var birdseyeScale = Math.min(birdseyeWidthScale, birdseyeHeightScale);

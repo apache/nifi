@@ -25,8 +25,6 @@
     bottom: 0px;
     right: 0px;
     background-color: #f9fafb;
-    background-size: 14px 14px;
-    background-image: linear-gradient(to right, rgba(229, 235, 237, 1) 1px, transparent 1px), linear-gradient(to bottom, rgba(229, 235, 237, 1) 1px, transparent 1px);
     z-index: 1;
     overflow: hidden;
 }

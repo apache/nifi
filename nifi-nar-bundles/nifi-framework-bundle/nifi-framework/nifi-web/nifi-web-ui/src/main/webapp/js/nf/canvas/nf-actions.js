@@ -973,6 +973,13 @@
             }
         },
 
+        /**
+         * Change the visibility of the background grid.
+         */
+        changeBackgroundVisiblity: function() {
+            return nfCanvasUtils.changeBackgroundVisiblity();
+        },
+
         // Defines an action for showing component details (like configuration but read only).
         showDetails: function (selection) {
             if (selection.empty()) {

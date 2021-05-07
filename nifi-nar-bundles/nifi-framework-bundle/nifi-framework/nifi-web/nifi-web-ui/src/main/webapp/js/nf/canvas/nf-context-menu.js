@@ -290,6 +290,15 @@
         return selection.empty();
     };
 
+    var isBackgroundVisible = function() {
+        return nfCanvasUtils.isBackgroundVisible();
+    }
+
+    var isBackgroundHidden = function() {
+        return !nfCanvasUtils.isBackgroundVisible();
+    }
+
+
     /**
      * Determines whether the componets in the specified selection support being moved to the front.
      *
@@ -815,6 +824,9 @@
         ]},
         {separator: true},
         {id: 'enter-group-menu-item', condition: isProcessGroup, menuItem: {clazz: 'fa fa-sign-in', text: 'Enter group', action: 'enterGroup'}},
+        {separator: true},
+        {id: 'hide-grid-menu-item', condition: isBackgroundVisible, menuItem: {clazz: 'fa', text: 'Hide background grid', action: 'changeBackgroundVisiblity'}},
+        {id: 'show-grid-menu-item', condition: isBackgroundHidden, menuItem: {clazz: 'fa', text: 'Show background grid', action: 'changeBackgroundVisiblity'}},
         {separator: true},
         {id: 'start-menu-item', condition: isRunnable, menuItem: {clazz: 'fa fa-play', text: 'Start', action: 'start'}},
         {id: 'stop-menu-item', condition: isStoppable, menuItem: {clazz: 'fa fa-stop', text: 'Stop', action: 'stop'}},
