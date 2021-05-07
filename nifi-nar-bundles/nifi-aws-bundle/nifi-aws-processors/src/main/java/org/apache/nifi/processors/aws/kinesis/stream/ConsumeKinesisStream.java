@@ -198,7 +198,7 @@ public class ConsumeKinesisStream extends AbstractKinesisStreamProcessor {
             .name("amazon-kinesis-stream-graceful-shutdown-period")
             .description("Kinesis Client Library graceful shutdown period")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-            .defaultValue("10 secs")
+            .defaultValue("20 secs")
             .required(true).build();
 
     public static final PropertyDescriptor CHECKPOINT_INTERVAL = new PropertyDescriptor.Builder()
@@ -206,7 +206,7 @@ public class ConsumeKinesisStream extends AbstractKinesisStreamProcessor {
             .name("amazon-kinesis-stream-checkpoint-interval")
             .description("Interval between Kinesis checkpoints")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
-            .defaultValue("1 min")
+            .defaultValue("3 secs")
             .required(true).build();
 
     public static final PropertyDescriptor NUM_RETRIES = new PropertyDescriptor.Builder()
@@ -220,7 +220,7 @@ public class ConsumeKinesisStream extends AbstractKinesisStreamProcessor {
     public static final PropertyDescriptor RETRY_WAIT = new PropertyDescriptor.Builder()
             .displayName("Retry Wait")
             .name("amazon-kinesis-stream-retry-wait")
-            .description("Interval between Kinesis operation retries (get records, checkpoint, shutdown)")
+            .description("Interval between Kinesis operation retries (process record, checkpoint, shutdown)")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .defaultValue("1 sec")
             .required(true).build();
