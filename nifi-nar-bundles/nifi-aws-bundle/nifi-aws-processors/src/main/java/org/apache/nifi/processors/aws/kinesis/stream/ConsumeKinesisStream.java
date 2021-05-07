@@ -16,9 +16,6 @@
  */
 package org.apache.nifi.processors.aws.kinesis.stream;
 
-import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.auth.AWSStaticCredentialsProvider;
-import com.amazonaws.auth.AnonymousAWSCredentials;
 import com.amazonaws.services.kinesis.clientlibrary.interfaces.v2.IRecordProcessorFactory;
 import com.amazonaws.services.kinesis.clientlibrary.lib.worker.InitialPositionInStream;
 import com.amazonaws.services.kinesis.clientlibrary.lib.worker.KinesisClientLibConfiguration;
@@ -34,18 +31,18 @@ import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SystemResource;
 import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
+import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -53,6 +50,7 @@ import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.aws.AbstractAWSCredentialsProviderProcessor;
 import org.apache.nifi.processors.aws.kinesis.stream.record.AbstractKinesisRecordProcessor;
 import org.apache.nifi.processors.aws.kinesis.stream.record.KinesisRecordProcessorRaw;
 import org.apache.nifi.processors.aws.kinesis.stream.record.KinesisRecordProcessorRecord;
@@ -85,13 +83,14 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
+@TriggerSerially
 @Tags({"amazon", "aws", "kinesis", "get", "stream"})
 @CapabilityDescription("Reads data from the specified AWS Kinesis stream and outputs a FlowFile for every processed Record (raw) " +
         " or a FlowFile for a batch of processed records if a Record Reader and Record Writer are configured. " +
         "At-least-once delivery of all Kinesis Records within the Stream while the processor is running. " +
         "AWS Kinesis Client Library can take several seconds to initialise before starting to fetch data. " +
         "Uses DynamoDB for check pointing and CloudWatch (optional) for metrics. " +
-        "Ensure that the credentials provided have access to DynamoDB and CloudWatch (if used) along with Kinesis.")
+        "Ensure that the credentials provided have access to DynamoDB and CloudWatch (optional) along with Kinesis.")
 @WritesAttributes({
         @WritesAttribute(attribute = AbstractKinesisRecordProcessor.AWS_KINESIS_PARTITION_KEY,
                 description = "Partition key of the (last) Kinesis Record read from the Shard"),
@@ -186,6 +185,22 @@ public class ConsumeKinesisStream extends AbstractKinesisStreamProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .required(true).build();
 
+    public static final PropertyDescriptor FAILOVER_PERIOD = new PropertyDescriptor.Builder()
+            .displayName("Failover Time")
+            .name("amazon-kinesis-stream-failover-period")
+            .description("Kinesis Client Library failover period")
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .defaultValue("30 secs")
+            .required(true).build();
+
+    public static final PropertyDescriptor GRACEFUL_SHUTDOWN_PERIOD = new PropertyDescriptor.Builder()
+            .displayName("Failover Time")
+            .name("amazon-kinesis-stream-graceful-shutdown-period")
+            .description("Kinesis Client Library graceful shutdown period")
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .defaultValue("10 secs")
+            .required(true).build();
+
     public static final PropertyDescriptor CHECKPOINT_INTERVAL = new PropertyDescriptor.Builder()
             .displayName("Checkpoint Interval")
             .name("amazon-kinesis-stream-checkpoint-interval")
@@ -251,6 +266,11 @@ public class ConsumeKinesisStream extends AbstractKinesisStreamProcessor {
             .required(false)
             .build();
 
+    public static final PropertyDescriptor AWS_CREDENTIALS_PROVIDER_SERVICE = new PropertyDescriptor.Builder()
+            .fromPropertyDescriptor(AbstractAWSCredentialsProviderProcessor.AWS_CREDENTIALS_PROVIDER_SERVICE)
+            .required(true)
+            .build();
+
     public static final Relationship REL_PARSE_FAILURE = new Relationship.Builder()
             .name("parse.failure")
             .description("If a message from Kinesis cannot be parsed using the configured Record Reader" +
@@ -263,7 +283,7 @@ public class ConsumeKinesisStream extends AbstractKinesisStreamProcessor {
                     // Kinesis Stream specific properties
                     KINESIS_STREAM_NAME, APPLICATION_NAME, RECORD_READER, RECORD_WRITER, REGION, ENDPOINT_OVERRIDE,
                     DYNAMODB_ENDPOINT_OVERRIDE, INITIAL_STREAM_POSITION, STREAM_POSITION_TIMESTAMP, TIMESTAMP_FORMAT,
-                    CHECKPOINT_INTERVAL, NUM_RETRIES, RETRY_WAIT, REPORT_CLOUDWATCH_METRICS,
+                    FAILOVER_PERIOD, GRACEFUL_SHUTDOWN_PERIOD, CHECKPOINT_INTERVAL, NUM_RETRIES, RETRY_WAIT, REPORT_CLOUDWATCH_METRICS,
                     // generic AWS processor properties
                     TIMEOUT, AWS_CREDENTIALS_PROVIDER_SERVICE, PROXY_CONFIGURATION_SERVICE
             )
@@ -276,32 +296,21 @@ public class ConsumeKinesisStream extends AbstractKinesisStreamProcessor {
         put("initialPositionInStream", INITIAL_STREAM_POSITION);
         put("dynamoDBEndpoint", DYNAMODB_ENDPOINT_OVERRIDE);
         put("kinesisEndpoint", ENDPOINT_OVERRIDE);
+        put("failoverTimeMillis", FAILOVER_PERIOD);
+        put("gracefulShutdownMillis", GRACEFUL_SHUTDOWN_PERIOD);
     }};
 
+    private static final Object WORKER_LOCK = new Object();
     private static final String WORKER_THREAD_NAME_TEMPLATE = ConsumeKinesisStream.class.getSimpleName() + "-" + Worker.class.getSimpleName() + "-";
 
     private static final Set<Relationship> RELATIONSHIPS = Collections.singleton(REL_SUCCESS);
     private static final Set<Relationship> RECORD_RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(REL_SUCCESS, REL_PARSE_FAILURE)));
 
-    private final PropertyUtilsBean propertyUtilsBean;
-    private final BeanUtilsBean beanUtilsBean;
-
-    private volatile long retryWaitMillis;
-    private volatile int numRetries;
-    private volatile InitialPositionInStream initialPositionInStream;
-    private volatile DateTimeFormatter dateTimeFormatter;
-    private volatile Date startStreamPositionTimestamp;
-
-    private volatile RecordReaderFactory readerFactory;
-    private volatile RecordSetWriterFactory writerFactory;
-    private volatile boolean isRecordReaderSet = false;
-    private volatile boolean isRecordWriterSet = false;
-
-    private volatile Worker worker;
-
-    public ConsumeKinesisStream() {
-        propertyUtilsBean = new PropertyUtilsBean();
-        propertyUtilsBean.addBeanIntrospector(new FluentPropertyBeanIntrospector("with"));
+    private static final PropertyUtilsBean PROPERTY_UTILS_BEAN;
+    private static final BeanUtilsBean BEAN_UTILS_BEAN;
+    static {
+        PROPERTY_UTILS_BEAN = new PropertyUtilsBean();
+        PROPERTY_UTILS_BEAN.addBeanIntrospector(new FluentPropertyBeanIntrospector("with"));
 
         final ConvertUtilsBean2 convertUtilsBean2 = new ConvertUtilsBean2() {
             @SuppressWarnings("unchecked") // generic Enum conversion from String property values
@@ -315,8 +324,13 @@ public class ConsumeKinesisStream extends AbstractKinesisStreamProcessor {
             }
         };
 
-        beanUtilsBean = new BeanUtilsBean(convertUtilsBean2, propertyUtilsBean);
+        BEAN_UTILS_BEAN = new BeanUtilsBean(convertUtilsBean2, PROPERTY_UTILS_BEAN);
     }
+
+    private volatile boolean isRecordReaderSet;
+    private volatile boolean isRecordWriterSet;
+
+    private volatile Worker worker;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -329,7 +343,7 @@ public class ConsumeKinesisStream extends AbstractKinesisStreamProcessor {
     }
 
     @Override
-    public void onPropertyModified(PropertyDescriptor descriptor, String oldValue, String newValue) {
+    public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
         if (RECORD_READER.equals(descriptor)) {
             isRecordReaderSet = StringUtils.isNotEmpty(newValue);
         } else if (RECORD_WRITER.equals(descriptor)) {
@@ -368,12 +382,12 @@ public class ConsumeKinesisStream extends AbstractKinesisStreamProcessor {
         @SuppressWarnings("java:S1192")
         final KinesisClientLibConfiguration kclTemp = new KinesisClientLibConfiguration("validate", "validate", null, "validate");
         try {
-            if (!propertyUtilsBean.isWriteable(kclTemp, subject)) {
+            if (!PROPERTY_UTILS_BEAN.isWriteable(kclTemp, subject)) {
                 return validationResult
                         .explanation(String.format("Kinesis Client Library Configuration property with name with%s does not exist or is not writable", StringUtils.capitalize(subject)))
                         .valid(false).build();
             }
-            beanUtilsBean.setProperty(kclTemp, subject, input);
+            BEAN_UTILS_BEAN.setProperty(kclTemp, subject, input);
         } catch (IllegalAccessException e) {
             return validationResult
                     .explanation(String.format("Kinesis Client Library Configuration property with name with%s is not accessible", StringUtils.capitalize(subject)))
@@ -401,9 +415,9 @@ public class ConsumeKinesisStream extends AbstractKinesisStreamProcessor {
     protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
         final Set<ValidationResult> validationResults = new HashSet<>(super.customValidate(validationContext));
 
-        initialPositionInStream = InitialPositionInStream.valueOf(StringUtils.trimToEmpty(validationContext.getProperty(INITIAL_STREAM_POSITION).getValue()));
+        DateTimeFormatter dateTimeFormatter = null;
         try {
-            dateTimeFormatter = DateTimeFormatter.ofPattern(validationContext.getProperty(TIMESTAMP_FORMAT).evaluateAttributeExpressions().getValue());
+            dateTimeFormatter = getDateTimeFormatter(validationContext);
         } catch (IllegalArgumentException iae) {
             validationResults.add(new ValidationResult.Builder().valid(false)
                     .subject(TIMESTAMP_FORMAT.getName())
@@ -412,7 +426,7 @@ public class ConsumeKinesisStream extends AbstractKinesisStreamProcessor {
             );
         }
 
-        if (InitialPositionInStream.AT_TIMESTAMP == initialPositionInStream) {
+        if (InitialPositionInStream.AT_TIMESTAMP == getInitialPositionInStream(validationContext)) {
             if (!validationContext.getProperty(STREAM_POSITION_TIMESTAMP).isSet()) {
                 validationResults.add(new ValidationResult.Builder().valid(false)
                         .subject(STREAM_POSITION_TIMESTAMP.getName())
@@ -421,13 +435,9 @@ public class ConsumeKinesisStream extends AbstractKinesisStreamProcessor {
                         .build()
                 );
             } else if (dateTimeFormatter != null) {
-                final String streamTimestamp = validationContext.getProperty(STREAM_POSITION_TIMESTAMP).getValue();
                 try {
-                    dateTimeFormatter.parse(streamTimestamp);
-                    startStreamPositionTimestamp = new Date(
-                            LocalDateTime.parse(validationContext.getProperty(STREAM_POSITION_TIMESTAMP).getValue(), dateTimeFormatter)
-                                    .toInstant(ZoneOffset.UTC).toEpochMilli()
-                    );
+                    // check the streamTimestamp can be formatted
+                    getStartStreamTimestamp(validationContext, dateTimeFormatter);
                 } catch (Exception e) {
                     validationResults.add(new ValidationResult.Builder().valid(false)
                             .subject(STREAM_POSITION_TIMESTAMP.getName())
@@ -438,20 +448,14 @@ public class ConsumeKinesisStream extends AbstractKinesisStreamProcessor {
             }
         }
 
-        final ControllerService recordReader = validationContext.getProperty(RECORD_READER).isSet()
-                ? validationContext.getProperty(RECORD_READER).asControllerService()
-                : null;
-        final ControllerService recordWriter = validationContext.getProperty(RECORD_WRITER).isSet()
-                ? validationContext.getProperty(RECORD_WRITER).asControllerService()
-                : null;
-        if (recordReader != null && recordWriter == null) {
+        if (isRecordReaderSet && !isRecordWriterSet) {
             validationResults.add(new ValidationResult.Builder()
                     .subject(RECORD_WRITER.getName())
                     .explanation(String.format("%s must be set if %s is set in order to write FlowFiles as Records.",
                             RECORD_WRITER.getDisplayName(), RECORD_READER.getDisplayName()))
                     .valid(false)
                     .build());
-        } else if (recordWriter != null && recordReader == null) {
+        } else if (isRecordWriterSet && !isRecordReaderSet) {
             validationResults.add(new ValidationResult.Builder()
                     .subject(RECORD_READER.getName())
                     .explanation(String.format("%s must be set if %s is set in order to write FlowFiles as Records.",
@@ -464,24 +468,16 @@ public class ConsumeKinesisStream extends AbstractKinesisStreamProcessor {
     }
 
     @Override
-    @OnScheduled
-    public void onScheduled(final ProcessContext context) {
-        retryWaitMillis = getRetryWaitMillis(context);
-        numRetries = getNumRetries(context);
-
-        readerFactory = context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
-        writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
-
-        super.onScheduled(context);
-    }
-
-    @Override
     public void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) {
         if (worker == null) {
-            final String workerId = generateWorkerId();
-            getLogger().info("Starting Kinesis Worker {}", workerId);
-            worker = prepareWorker(context, sessionFactory, workerId);
-            new Thread(worker, WORKER_THREAD_NAME_TEMPLATE + workerId).start();
+            synchronized (WORKER_LOCK) {
+                if (worker == null) {
+                    final String workerId = generateWorkerId();
+                    getLogger().info("Starting Kinesis Worker {}", workerId);
+                    worker = prepareWorker(context, sessionFactory, workerId);
+                    new Thread(worker, WORKER_THREAD_NAME_TEMPLATE + workerId).start();
+                }
+            }
         }
 
         // after a Worker is registered successfully, nothing has to be done at onTrigger
@@ -497,50 +493,47 @@ public class ConsumeKinesisStream extends AbstractKinesisStreamProcessor {
     @OnStopped
     public void stopConsuming(final ProcessContext context) {
         if (worker != null) {
-            final boolean success = shutdownWorker();
-            worker = null;
-            readerFactory = null;
-            writerFactory = null;
+            synchronized (WORKER_LOCK) {
+                if (worker != null) {
+                    final boolean success = shutdownWorker(context);
+                    worker = null;
 
-            if (!success) {
-                getLogger().warn("One or more problems while shutting down Kinesis Worker, see logs for details");
-                context.yield();
+                    if (!success) {
+                        getLogger().warn("One or more problems while shutting down Kinesis Worker, see logs for details");
+                    }
+                }
             }
         }
     }
 
-    private Worker prepareWorker(final ProcessContext context, final ProcessSessionFactory sessionFactory, final String workerId) {
-        final String appName = getApplicationName(context);
-        final String streamName = getStreamName(context);
-        final long checkpointIntervalMillis = getCheckpointIntervalMillis(context);
-        final String kinesisEndpoint = getKinesisOverride(context).orElse(null);
+    private synchronized Worker prepareWorker(final ProcessContext context, final ProcessSessionFactory sessionFactory, final String workerId) {
+        final IRecordProcessorFactory factory = prepareRecordProcessorFactory(context, sessionFactory);
 
-        final IRecordProcessorFactory factory = prepareRecordProcessorFactory(sessionFactory, streamName,
-                checkpointIntervalMillis, kinesisEndpoint);
+        final KinesisClientLibConfiguration kinesisClientLibConfiguration =
+                prepareKinesisClientLibConfiguration(context, workerId);
 
-        final KinesisClientLibConfiguration kinesisClientLibConfiguration = prepareKinesisClientLibConfiguration(
-                context, appName, streamName, workerId, kinesisEndpoint);
-
-        final Worker.Builder workerBuilder = prepareWorkerBuilder(kinesisClientLibConfiguration, factory, context);
+        final Worker.Builder workerBuilder = prepareWorkerBuilder(context, kinesisClientLibConfiguration, factory);
 
         getLogger().info("Kinesis Worker prepared for application {} to process stream {} as worker ID {}...",
-                appName, streamName, workerId);
+                getApplicationName(context), getStreamName(context), workerId);
 
         return workerBuilder.build();
     }
 
-    private IRecordProcessorFactory prepareRecordProcessorFactory(final ProcessSessionFactory sessionFactory, final String streamName,
-                                                                  final long checkpointIntervalMillis, final String kinesisEndpoint) {
+    private IRecordProcessorFactory prepareRecordProcessorFactory(final ProcessContext context, final ProcessSessionFactory sessionFactory) {
         return () -> {
             if (isRecordReaderSet && isRecordWriterSet) {
                 return new KinesisRecordProcessorRecord(
-                        sessionFactory, getLogger(), streamName, getClient().getEndpointPrefix(), kinesisEndpoint,
-                        checkpointIntervalMillis, retryWaitMillis, numRetries, dateTimeFormatter, readerFactory, writerFactory
+                        sessionFactory, getLogger(), getStreamName(context), getClient().getEndpointPrefix(),
+                        getKinesisEndpoint(context).orElse(null), getCheckpointIntervalMillis(context),
+                        getRetryWaitMillis(context), getNumRetries(context), getDateTimeFormatter(context),
+                        getReaderFactory(context), getWriterFactory(context)
                 );
             } else {
                 return new KinesisRecordProcessorRaw(
-                        sessionFactory, getLogger(), streamName, getClient().getEndpointPrefix(), kinesisEndpoint,
-                        checkpointIntervalMillis, retryWaitMillis, numRetries, dateTimeFormatter
+                        sessionFactory, getLogger(), getStreamName(context), getClient().getEndpointPrefix(),
+                        getKinesisEndpoint(context).orElse(null), getCheckpointIntervalMillis(context),
+                        getRetryWaitMillis(context), getNumRetries(context), getDateTimeFormatter(context)
                 );
             }
         };
@@ -550,25 +543,29 @@ public class ConsumeKinesisStream extends AbstractKinesisStreamProcessor {
      *  Developer note: if setting KCL configuration explicitly from processor properties, be sure to add them to the
      *  DISALLOWED_DYNAMIC_KCL_PROPERTIES list so Dynamic Properties can't be used to override the static properties
      */
-    KinesisClientLibConfiguration prepareKinesisClientLibConfiguration(final ProcessContext context, final String appName,
-                                                                       final String streamName, final String workerId,
-                                                                       final String kinesisEndpoint) {
-        final AWSCredentialsProvider credentialsProvider = context.getProperty(AWS_CREDENTIALS_PROVIDER_SERVICE).isSet()
-                ? getCredentialsProvider(context)
-                : new AWSStaticCredentialsProvider(new AnonymousAWSCredentials());
-
+    KinesisClientLibConfiguration prepareKinesisClientLibConfiguration(final ProcessContext context, final String workerId) {
         @SuppressWarnings({"deprecated", "java:S1874"}) // use most of the defaults in the constructor chain rather than the mammoth constructor here
-        final KinesisClientLibConfiguration kinesisClientLibConfiguration =
-                new KinesisClientLibConfiguration(appName, streamName, credentialsProvider, workerId)
-                        .withCommonClientConfig(getClient().getClientConfiguration());
+        final KinesisClientLibConfiguration kinesisClientLibConfiguration = new KinesisClientLibConfiguration(
+                getApplicationName(context),
+                getStreamName(context),
+                getCredentialsProvider(context),
+                workerId
+        )
+                .withCommonClientConfig(getClient().getClientConfiguration())
+                .withRegionName(getRegion().getName())
+                .withFailoverTimeMillis(getFailoverTimeMillis(context))
+                .withShutdownGraceMillis(getGracefulShutdownMillis(context));
 
-        kinesisClientLibConfiguration.withRegionName(getRegion().getName());
+        final InitialPositionInStream initialPositionInStream = getInitialPositionInStream(context);
         if (InitialPositionInStream.AT_TIMESTAMP == initialPositionInStream) {
-            kinesisClientLibConfiguration.withTimestampAtInitialPositionInStream(startStreamPositionTimestamp);
+            kinesisClientLibConfiguration.withTimestampAtInitialPositionInStream(getStartStreamTimestamp(context));
         } else {
             kinesisClientLibConfiguration.withInitialPositionInStream(initialPositionInStream);
         }
+
         getDynamoDBOverride(context).ifPresent(kinesisClientLibConfiguration::withDynamoDBEndpoint);
+
+        final String kinesisEndpoint = getKinesisEndpoint(context).orElse(null);
         if (StringUtils.isNotBlank(kinesisEndpoint)) {
             kinesisClientLibConfiguration.withKinesisEndpoint(kinesisEndpoint);
         }
@@ -584,7 +581,7 @@ public class ConsumeKinesisStream extends AbstractKinesisStreamProcessor {
             final String name = descriptor.getName();
             final String value = context.getProperty(descriptor).getValue();
             try {
-                beanUtilsBean.setProperty(kinesisClientLibConfiguration, name, value);
+                BEAN_UTILS_BEAN.setProperty(kinesisClientLibConfiguration, name, value);
             } catch (IllegalAccessException | InvocationTargetException e) {
                 getLogger().error("Unable to set Kinesis Client Library Configuration property for {} with value {}", name, value, e);
                 dynamicPropertyFailure.set(true);
@@ -597,8 +594,8 @@ public class ConsumeKinesisStream extends AbstractKinesisStreamProcessor {
         return kinesisClientLibConfiguration;
     }
 
-    Worker.Builder prepareWorkerBuilder(final KinesisClientLibConfiguration kinesisClientLibConfiguration,
-                                        final IRecordProcessorFactory factory, final ProcessContext context) {
+    Worker.Builder prepareWorkerBuilder(final ProcessContext context, final KinesisClientLibConfiguration kinesisClientLibConfiguration,
+                                        final IRecordProcessorFactory factory) {
         final Worker.Builder workerBuilder = new Worker.Builder()
                 .config(kinesisClientLibConfiguration)
                 .kinesisClient(getClient())
@@ -611,14 +608,14 @@ public class ConsumeKinesisStream extends AbstractKinesisStreamProcessor {
         return workerBuilder;
     }
 
-    private boolean shutdownWorker() {
+    private boolean shutdownWorker(final ProcessContext context) {
         boolean success = true;
         try {
             if (!worker.hasGracefulShutdownStarted()) {
                 getLogger().info("Requesting Kinesis Worker shutdown");
                 final Future<Boolean> shutdown = worker.startGracefulShutdown();
-                // allow at least 10 seconds for shutdown before cancelling the task
-                if (Boolean.FALSE.equals(shutdown.get(Math.max(retryWaitMillis * numRetries, 10_000L), TimeUnit.MILLISECONDS))) {
+                // allow 2 seconds longer than the graceful period for shutdown before cancelling the task
+                if (Boolean.FALSE.equals(shutdown.get(getGracefulShutdownMillis(context) + 2_000L, TimeUnit.MILLISECONDS))) {
                     getLogger().warn("Kinesis Worker shutdown did not complete in time, cancelling");
                     success = false;
                 } else {
@@ -640,39 +637,72 @@ public class ConsumeKinesisStream extends AbstractKinesisStreamProcessor {
         }
     }
 
-    private String getApplicationName(final ProcessContext context) {
+    private String getApplicationName(final PropertyContext context) {
         return StringUtils.trimToEmpty(context.getProperty(APPLICATION_NAME).getValue());
     }
 
-    private String getStreamName(final ProcessContext context) {
+    private String getStreamName(final PropertyContext context) {
         return StringUtils.trimToEmpty(context.getProperty(KINESIS_STREAM_NAME).getValue());
     }
 
-    private long getCheckpointIntervalMillis(final ProcessContext context) {
+    private long getFailoverTimeMillis(final PropertyContext context) {
+        return context.getProperty(FAILOVER_PERIOD).asTimePeriod(TimeUnit.MILLISECONDS);
+    }
+
+    private long getGracefulShutdownMillis(final PropertyContext context) {
+        return context.getProperty(GRACEFUL_SHUTDOWN_PERIOD).asTimePeriod(TimeUnit.MILLISECONDS);
+    }
+
+    private long getCheckpointIntervalMillis(final PropertyContext context) {
         return context.getProperty(CHECKPOINT_INTERVAL).asTimePeriod(TimeUnit.MILLISECONDS);
     }
 
-    private int getNumRetries(final ProcessContext context) {
+    private int getNumRetries(final PropertyContext context) {
         return context.getProperty(NUM_RETRIES).asInteger();
     }
 
-    private long getRetryWaitMillis(final ProcessContext context) {
+    private long getRetryWaitMillis(final PropertyContext context) {
         return context.getProperty(RETRY_WAIT).asTimePeriod(TimeUnit.MILLISECONDS);
     }
 
-    private boolean isReportCloudWatchMetrics(final ProcessContext context) {
+    private boolean isReportCloudWatchMetrics(final PropertyContext context) {
         return context.getProperty(REPORT_CLOUDWATCH_METRICS).asBoolean();
     }
 
-    private Optional<String> getKinesisOverride(final ProcessContext context) {
+    private Optional<String> getKinesisEndpoint(final PropertyContext context) {
         return context.getProperty(ENDPOINT_OVERRIDE).isSet()
                 ? Optional.of(StringUtils.trimToEmpty(context.getProperty(ENDPOINT_OVERRIDE).evaluateAttributeExpressions().getValue()))
                 : Optional.empty();
     }
 
-    private Optional<String> getDynamoDBOverride(final ProcessContext context) {
+    private Optional<String> getDynamoDBOverride(final PropertyContext context) {
         return context.getProperty(DYNAMODB_ENDPOINT_OVERRIDE).isSet()
                 ? Optional.of(StringUtils.trimToEmpty(context.getProperty(DYNAMODB_ENDPOINT_OVERRIDE).evaluateAttributeExpressions().getValue()))
                 : Optional.empty();
+    }
+
+    private RecordReaderFactory getReaderFactory(final PropertyContext context) {
+        return context.getProperty(RECORD_READER).asControllerService(RecordReaderFactory.class);
+    }
+
+    private RecordSetWriterFactory getWriterFactory(final PropertyContext context) {
+        return context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
+    }
+
+    private InitialPositionInStream getInitialPositionInStream(final PropertyContext context) {
+        return InitialPositionInStream.valueOf(StringUtils.trimToEmpty(context.getProperty(INITIAL_STREAM_POSITION).getValue()));
+    }
+
+    private DateTimeFormatter getDateTimeFormatter(final PropertyContext context) {
+        return DateTimeFormatter.ofPattern(context.getProperty(TIMESTAMP_FORMAT).evaluateAttributeExpressions().getValue());
+    }
+
+    private Date getStartStreamTimestamp(final PropertyContext context) {
+        return getStartStreamTimestamp(context, getDateTimeFormatter(context));
+    }
+
+    private Date getStartStreamTimestamp(final PropertyContext context, final DateTimeFormatter dateTimeFormatter) {
+        final String streamTimestamp = context.getProperty(STREAM_POSITION_TIMESTAMP).getValue();
+        return new Date(LocalDateTime.parse(streamTimestamp, dateTimeFormatter).toInstant(ZoneOffset.UTC).toEpochMilli());
     }
 }

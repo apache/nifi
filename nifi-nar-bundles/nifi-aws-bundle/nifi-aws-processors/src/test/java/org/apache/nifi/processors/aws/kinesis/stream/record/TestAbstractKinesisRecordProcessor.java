@@ -217,11 +217,13 @@ public class TestAbstractKinesisRecordProcessor {
 
         // DEBUG messages don't have their fields replaced in the MockComponentLog
         assertThat(runner.getLogger().getDebugMessages().stream().anyMatch(logMessage -> logMessage.getMsg()
-                .endsWith("Shutting down record processor for shard: {} with reason: {}")), is(true));
+                .endsWith("Shutting down Record Processor for shard: {} with reason: {}")), is(true));
 
         // no waiting loop when records aren't processing
         assertThat(runner.getLogger().getDebugMessages().stream().anyMatch(logMessage -> logMessage.getMsg()
                 .endsWith("Record Processor for shard {} still processing records, waiting before shutdown")), is(false));
+
+        assertThat(runner.getLogger().getWarnMessages().size(), is(0));
     }
 
     @Test
@@ -241,12 +243,16 @@ public class TestAbstractKinesisRecordProcessor {
 
         // DEBUG messages don't have their fields replaced in the MockComponentLog
         assertThat(runner.getLogger().getDebugMessages().stream().anyMatch(logMessage -> logMessage.getMsg()
-                .endsWith("Shutting down record processor for shard: {} with reason: {}")), is(true));
+                .endsWith("Shutting down Record Processor for shard: {} with reason: {}")), is(true));
 
         // wait loop when records are processing
         assertThat(runner.getLogger().getDebugMessages().stream().filter(logMessage -> logMessage.getMsg()
                 .endsWith("Record Processor for shard {} still processing records, waiting before shutdown"))
                 .count(), is(2L));
+
+        assertThat(runner.getLogger().getWarnMessages().stream().filter(logMessage -> logMessage.getMsg()
+                .endsWith("Record Processor for shard test-shard still running, but maximum wait time elapsed, checkpoint will be attempted"))
+                .count(), is(1L));
     }
 
     private static class MockKinesisRecordProcessor extends AbstractKinesisRecordProcessor {

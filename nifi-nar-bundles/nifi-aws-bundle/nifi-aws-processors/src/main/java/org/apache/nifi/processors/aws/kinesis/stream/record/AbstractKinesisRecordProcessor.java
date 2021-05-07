@@ -239,7 +239,7 @@ public abstract class AbstractKinesisRecordProcessor implements IRecordProcessor
 
     @Override
     public void shutdown(final ShutdownInput shutdownInput) {
-        log.debug("Shutting down record processor for shard: {} with reason: {}", kinesisShardId, shutdownInput.getShutdownReason());
+        log.debug("Shutting down Record Processor for shard: {} with reason: {}", kinesisShardId, shutdownInput.getShutdownReason());
 
         // be sure to finish processing any records before shutdown on TERMINATE
         if (ShutdownReason.TERMINATE == shutdownInput.getShutdownReason()) {
@@ -251,6 +251,10 @@ public abstract class AbstractKinesisRecordProcessor implements IRecordProcessor
                     log.debug("Interrupted sleep while waiting for record processing to complete before shutdown (TERMINATE)", ie);
                 }
             }
+
+            if (processingRecords) {
+                log.warn("Record Processor for shard {} still running, but maximum wait time elapsed, checkpoint will be attempted", kinesisShardId);
+            }
         }
         checkpointWithRetries(shutdownInput.getCheckpointer());
     }
@@ -259,7 +263,7 @@ public abstract class AbstractKinesisRecordProcessor implements IRecordProcessor
         log.debug("Checkpointing shard " + kinesisShardId);
         try {
             for (int i = 0; i < numRetries; i++) {
-                if (checkpoint(checkpointer, i)) {
+                if (attemptCheckpoint(checkpointer, i)) {
                     break;
                 }
             }
@@ -272,7 +276,7 @@ public abstract class AbstractKinesisRecordProcessor implements IRecordProcessor
         }
     }
 
-    private boolean checkpoint(final IRecordProcessorCheckpointer checkpointer, final int attempt) throws ShutdownException, InvalidStateException {
+    private boolean attemptCheckpoint(final IRecordProcessorCheckpointer checkpointer, final int attempt) throws ShutdownException, InvalidStateException {
         boolean success = false;
         try {
             checkpointer.checkpoint();

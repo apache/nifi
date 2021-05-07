@@ -52,29 +52,23 @@ public class TestConsumeKinesisStream {
     private final TestRunner runner = TestRunners.newTestRunner(ConsumeKinesisStream.class);
 
     @Before
-    public void setUp() {
+    public void setUp() throws InitializationException {
         runner.setProperty(ConsumeKinesisStream.KINESIS_STREAM_NAME, "test-stream");
         runner.setProperty(ConsumeKinesisStream.APPLICATION_NAME, "test-application");
+
+        // use anonymous credentials by default
+        final ControllerService credentialsProvider = new AWSCredentialsProviderControllerService();
+        runner.addControllerService("credentials-provider", credentialsProvider);
+        runner.setProperty(credentialsProvider, CredentialPropertyDescriptors.USE_ANONYMOUS_CREDENTIALS, "true");
+        runner.assertValid(credentialsProvider);
+        runner.enableControllerService(credentialsProvider);
+        runner.setProperty(ConsumeKinesisStream.AWS_CREDENTIALS_PROVIDER_SERVICE, "credentials-provider");
+
         runner.assertValid();
     }
 
     @Test
-    public void testValidWithNoCredentials() {
-        runner.setValidateExpressionUsage(false); // ignore use of unused ACCESS_KEY/SECRET_KEY property evaluation in AbstractAWSProcessor
-        runner.removeProperty(ConsumeKinesisStream.AWS_CREDENTIALS_PROVIDER_SERVICE);
-        runner.assertValid();
-
-        ((ConsumeKinesisStream) runner.getProcessor()).onScheduled(runner.getProcessContext());
-        assertThat(runner.getLogger().getInfoMessages().stream()
-                .anyMatch(logMessage -> logMessage.getMsg().endsWith("Creating client using aws credentials")), is(true));
-
-        // "raw" credentials are put into a static credentials provider for creating the client
-        assertThat(runner.getLogger().getInfoMessages().stream()
-                .anyMatch(logMessage -> logMessage.getMsg().endsWith("Creating client using aws credentials provider")), is(true));
-    }
-
-    @Test
-    public void testValidWithCredentialsProvider() throws InitializationException {
+    public void testValidWithCredentials() throws InitializationException {
         final ControllerService credentialsProvider = new AWSCredentialsProviderControllerService();
         runner.addControllerService("credentials-provider", credentialsProvider);
         runner.setProperty(credentialsProvider, CredentialPropertyDescriptors.ACCESS_KEY, "access-key");
@@ -97,16 +91,17 @@ public class TestConsumeKinesisStream {
     public void testMissingMandatoryProperties() {
         runner.removeProperty(ConsumeKinesisStream.KINESIS_STREAM_NAME);
         runner.removeProperty(ConsumeKinesisStream.APPLICATION_NAME);
-        runner.removeProperty(ConsumeKinesisStream.ACCESS_KEY);
-        runner.removeProperty(ConsumeKinesisStream.SECRET_KEY);
+        runner.removeProperty(ConsumeKinesisStream.AWS_CREDENTIALS_PROVIDER_SERVICE);
         runner.assertNotValid();
 
         final AssertionError assertionError = assertThrows(AssertionError.class, runner::run);
-        assertThat(assertionError.getMessage(), equalTo(String.format("Processor has 2 validation failures:\n" +
+        assertThat(assertionError.getMessage(), equalTo(String.format("Processor has 3 validation failures:\n" +
+                        "'%s' is invalid because %s is required\n" +
                         "'%s' is invalid because %s is required\n" +
                         "'%s' is invalid because %s is required\n",
                 ConsumeKinesisStream.KINESIS_STREAM_NAME.getDisplayName(), ConsumeKinesisStream.KINESIS_STREAM_NAME.getDisplayName(),
-                ConsumeKinesisStream.APPLICATION_NAME.getDisplayName(), ConsumeKinesisStream.APPLICATION_NAME.getDisplayName()
+                ConsumeKinesisStream.APPLICATION_NAME.getDisplayName(), ConsumeKinesisStream.APPLICATION_NAME.getDisplayName(),
+                ConsumeKinesisStream.AWS_CREDENTIALS_PROVIDER_SERVICE.getDisplayName(), ConsumeKinesisStream.AWS_CREDENTIALS_PROVIDER_SERVICE.getDisplayName()
         )));
     }
 
@@ -116,6 +111,8 @@ public class TestConsumeKinesisStream {
         runner.setProperty(ConsumeKinesisStream.TIMESTAMP_FORMAT, "not-valid-format");
         runner.setProperty(ConsumeKinesisStream.RETRY_WAIT, "not-a-long");
         runner.setProperty(ConsumeKinesisStream.NUM_RETRIES, "not-an-int");
+        runner.setProperty(ConsumeKinesisStream.FAILOVER_PERIOD, "not-a-period");
+        runner.setProperty(ConsumeKinesisStream.GRACEFUL_SHUTDOWN_PERIOD, "not-a-period");
         runner.setProperty(ConsumeKinesisStream.CHECKPOINT_INTERVAL, "not-a-long");
         runner.setProperty(ConsumeKinesisStream.REPORT_CLOUDWATCH_METRICS, "not-a-boolean");
         runner.setProperty(ConsumeKinesisStream.DYNAMODB_ENDPOINT_OVERRIDE, "not-a-url");
@@ -125,13 +122,17 @@ public class TestConsumeKinesisStream {
         runner.assertNotValid();
 
         final AssertionError assertionError = assertThrows(AssertionError.class, runner::run);
-        assertThat(assertionError.getMessage(), equalTo(String.format("Processor has 12 validation failures:\n" +
+        assertThat(assertionError.getMessage(), equalTo(String.format("Processor has 14 validation failures:\n" +
                         "'%s' validated against ' ' is invalid because %s must contain at least one character that is not white space\n" +
                         "'%s' validated against 'not-a-reader' is invalid because Property references a Controller Service that does not exist\n" +
                         "'%s' validated against 'not-a-writer' is invalid because Property references a Controller Service that does not exist\n" +
                         "'%s' validated against 'not-a-url' is invalid because Not a valid URL\n" +
                         "'%s' validated against 'not-an-enum-match' is invalid because Given value not found in allowed set '%s, %s, %s'\n" +
                         "'%s' validated against 'not-valid-format' is invalid because Must be a valid java.time.DateTimeFormatter pattern, e.g. %s\n" +
+                        "'%s' validated against 'not-a-period' is invalid because Must be of format <duration> <TimeUnit> where <duration> is a non-negative integer and " +
+                        "TimeUnit is a supported Time Unit, such as: nanos, millis, secs, mins, hrs, days\n" +
+                        "'%s' validated against 'not-a-period' is invalid because Must be of format <duration> <TimeUnit> where <duration> is a non-negative integer and " +
+                        "TimeUnit is a supported Time Unit, such as: nanos, millis, secs, mins, hrs, days\n" +
                         "'%s' validated against 'not-a-long' is invalid because Must be of format <duration> <TimeUnit> where <duration> is a non-negative integer and " +
                         "TimeUnit is a supported Time Unit, such as: nanos, millis, secs, mins, hrs, days\n" +
                         "'%s' validated against 'not-an-int' is invalid because not a valid integer\n" +
@@ -147,6 +148,8 @@ public class TestConsumeKinesisStream {
                 ConsumeKinesisStream.INITIAL_STREAM_POSITION.getName(), ConsumeKinesisStream.LATEST.getDisplayName(),
                 ConsumeKinesisStream.TRIM_HORIZON.getDisplayName(), ConsumeKinesisStream.AT_TIMESTAMP.getDisplayName(),
                 ConsumeKinesisStream.TIMESTAMP_FORMAT.getName(), RecordFieldType.TIMESTAMP.getDefaultFormat(),
+                ConsumeKinesisStream.FAILOVER_PERIOD.getName(),
+                ConsumeKinesisStream.GRACEFUL_SHUTDOWN_PERIOD.getName(),
                 ConsumeKinesisStream.CHECKPOINT_INTERVAL.getName(),
                 ConsumeKinesisStream.NUM_RETRIES.getName(),
                 ConsumeKinesisStream.RETRY_WAIT.getName(),
@@ -340,7 +343,7 @@ public class TestConsumeKinesisStream {
     @Test
     public void testValidDynamicKCLProperties() {
         runner.setProperty("billingMode", "PROVISIONED"); // enum
-        runner.setProperty("failoverTimeMillis", "1000"); // long
+        runner.setProperty("idleMillisBetweenCalls", "1000"); // long
         runner.setProperty("cleanupLeasesUponShardCompletion", "true"); // boolean
         runner.setProperty("initialLeaseTableReadCapacity", "1"); // int
         runner.setProperty("dataFetchingStrategy", "DEFAULT"); // String
@@ -359,18 +362,17 @@ public class TestConsumeKinesisStream {
         mockConsumeKinesisStreamRunner.setProperty(ConsumeKinesisStream.APPLICATION_NAME, "test-application");
         mockConsumeKinesisStreamRunner.setProperty(ConsumeKinesisStream.REGION, Regions.EU_WEST_2.getName());
 
+        final AWSCredentialsProviderService awsCredentialsProviderService = new AWSCredentialsProviderControllerService();
+        mockConsumeKinesisStreamRunner.addControllerService("aws-credentials", awsCredentialsProviderService);
         if (withCredentials) {
-            final AWSCredentialsProviderService awsCredentialsProviderService = new AWSCredentialsProviderControllerService();
-            mockConsumeKinesisStreamRunner.addControllerService("aws-credentials", awsCredentialsProviderService);
             mockConsumeKinesisStreamRunner.setProperty(awsCredentialsProviderService, CredentialPropertyDescriptors.ACCESS_KEY, "test-access");
             mockConsumeKinesisStreamRunner.setProperty(awsCredentialsProviderService, CredentialPropertyDescriptors.SECRET_KEY, "test-secret");
-            mockConsumeKinesisStreamRunner.assertValid(awsCredentialsProviderService);
-            mockConsumeKinesisStreamRunner.enableControllerService(awsCredentialsProviderService);
-            mockConsumeKinesisStreamRunner.setProperty(ConsumeKinesisStream.AWS_CREDENTIALS_PROVIDER_SERVICE, "aws-credentials");
         } else {
-            mockConsumeKinesisStreamRunner.setValidateExpressionUsage(false); // ignore use of unused ACCESS_KEY/SECRET_KEY property evaluation in AbstractAWSProcessor
-            mockConsumeKinesisStreamRunner.removeProperty(ConsumeKinesisStream.AWS_CREDENTIALS_PROVIDER_SERVICE);
+            mockConsumeKinesisStreamRunner.setProperty(awsCredentialsProviderService, CredentialPropertyDescriptors.USE_ANONYMOUS_CREDENTIALS, "true");
         }
+        mockConsumeKinesisStreamRunner.assertValid(awsCredentialsProviderService);
+        mockConsumeKinesisStreamRunner.enableControllerService(awsCredentialsProviderService);
+        mockConsumeKinesisStreamRunner.setProperty(ConsumeKinesisStream.AWS_CREDENTIALS_PROVIDER_SERVICE, "aws-credentials");
 
         // speed up init process for the unit test (and show use of dynamic properties to configure KCL)
         mockConsumeKinesisStreamRunner.setProperty("parentShardPollIntervalMillis", "1");
@@ -469,19 +471,15 @@ public class TestConsumeKinesisStream {
         Worker.Builder workerBuilder;
 
         @Override
-        Worker.Builder prepareWorkerBuilder(final KinesisClientLibConfiguration kinesisClientLibConfiguration,
-                                            final IRecordProcessorFactory factory, final ProcessContext context) {
-            workerBuilder = super.prepareWorkerBuilder(kinesisClientLibConfiguration, factory, context);
+        Worker.Builder prepareWorkerBuilder(final ProcessContext context, final KinesisClientLibConfiguration kinesisClientLibConfiguration,
+                                            final IRecordProcessorFactory factory) {
+            workerBuilder = super.prepareWorkerBuilder(context, kinesisClientLibConfiguration, factory);
             return workerBuilder;
         }
 
         @Override
-        KinesisClientLibConfiguration prepareKinesisClientLibConfiguration(final ProcessContext context, final String appName,
-                                                                           final String streamName, final String workerId,
-                                                                           final String kinesisEndpoint) {
-            kinesisClientLibConfiguration =
-                    super.prepareKinesisClientLibConfiguration(context, appName, streamName, workerId, kinesisEndpoint);
-
+        KinesisClientLibConfiguration prepareKinesisClientLibConfiguration(final ProcessContext context, final String workerId) {
+            kinesisClientLibConfiguration = super.prepareKinesisClientLibConfiguration(context, workerId);
             return kinesisClientLibConfiguration;
         }
     }
