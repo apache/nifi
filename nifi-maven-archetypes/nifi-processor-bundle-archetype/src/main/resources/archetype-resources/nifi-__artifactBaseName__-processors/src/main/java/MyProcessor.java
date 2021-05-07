@@ -71,7 +71,11 @@ public class MyProcessor extends AbstractProcessor {
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
-
+        getLogger()
+            .info("{} scheduled with \"{}\" set to \"{}\"",
+                getClass().getSimpleName(),
+                MY_PROPERTY.getDisplayName(),
+                context.getProperty(MY_PROPERTY));
     }
 
     @Override
@@ -80,6 +84,12 @@ public class MyProcessor extends AbstractProcessor {
         if ( flowFile == null ) {
             return;
         }
-        // TODO implement
+        // TODO: implement
+
+        // TODO: Remove the dummy code used to demonstrate testing
+        String dummy = flowFile.getAttribute("Dummy");
+        String reversedDummy = new StringBuilder(dummy).reverse().toString();
+        session.putAttribute(flowFile, "Reversed", reversedDummy);
+        session.transfer(flowFile, MY_RELATIONSHIP);
     }
 }

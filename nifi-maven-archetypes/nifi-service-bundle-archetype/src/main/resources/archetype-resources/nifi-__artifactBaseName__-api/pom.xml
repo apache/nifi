@@ -12,6 +12,7 @@
 
     <artifactId>nifi-${artifactBaseName}-api</artifactId>
     <packaging>jar</packaging>
+    <name>nifi-${artifactBaseName} : api</name>
 
     <dependencies>
         <dependency>

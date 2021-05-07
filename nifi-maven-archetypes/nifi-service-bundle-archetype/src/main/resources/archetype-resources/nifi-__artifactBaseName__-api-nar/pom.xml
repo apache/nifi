@@ -13,6 +13,9 @@
     <artifactId>nifi-${artifactBaseName}-api-nar</artifactId>
     <version>${version}</version>
     <packaging>nar</packaging>
+
+    <name>nifi-${artifactBaseName} : api nar</name>
+
     <properties>
         <maven.javadoc.skip>true</maven.javadoc.skip>
         <source.skip>true</source.skip>
@@ -20,15 +23,15 @@
 
     <dependencies>
         <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-standard-services-api-nar</artifactId>
-            <version>${nifiVersion}</version>
-            <type>nar</type>
-        </dependency>
-        <dependency>
             <groupId>${groupId}</groupId>
             <artifactId>nifi-${artifactBaseName}-api</artifactId>
-            <version>${version}</version>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-standard-services-api-nar</artifactId>
+            <type>nar</type>
         </dependency>
     </dependencies>
 

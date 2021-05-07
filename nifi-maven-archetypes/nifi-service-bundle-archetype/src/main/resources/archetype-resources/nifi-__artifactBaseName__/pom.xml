@@ -13,37 +13,44 @@
     <artifactId>nifi-${artifactBaseName}</artifactId>
     <packaging>jar</packaging>
 
+    <name>nifi-${artifactBaseName} : service</name>
+
     <dependencies>
         <dependency>
             <groupId>${groupId}</groupId>
             <artifactId>nifi-${artifactBaseName}-api</artifactId>
-            <version>${version}</version>
+            <version>${project.version}</version>
         </dependency>
+
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-api</artifactId>
             <scope>provided</scope>
         </dependency>
+
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-processor-utils</artifactId>
-            <version>${nifiVersion}</version>
         </dependency>
+
+        <!-- Testing dependencies -->
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock</artifactId>
-            <version>${nifiVersion}</version>
             <scope>test</scope>
         </dependency>
+
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-engine</artifactId>
+            <scope>test</scope>
+        </dependency>
+
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-simple</artifactId>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <scope>test</scope>
-        </dependency>
+
     </dependencies>
 </project>

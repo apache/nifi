@@ -14,30 +14,33 @@
   limitations under the License.
 -->
 <archetype-descriptor name="${artifactId}">
-  <requiredProperties>
-    <requiredProperty key="artifactBaseName" />
-    <requiredProperty key="nifiVersion" >
-        <defaultValue>NIFIVERSION</defaultValue>
-    </requiredProperty>
-	<requiredProperty key="package">
-		<defaultValue>${groupId}.processors.${artifactBaseName}</defaultValue>
-	</requiredProperty>
-  </requiredProperties>
-  <fileSets>
-    <fileSet filtered="true" packaged="false" encoding="UTF-8">
-        <directory>nifi-__artifactBaseName__-processors</directory>
-        <excludes>
-            <exclude>**/*.java</exclude>
-        </excludes>
-    </fileSet>
-    <fileSet filtered="true" packaged="true" encoding="UTF-8">
-        <directory>nifi-__artifactBaseName__-processors/src/main/java</directory>
-    </fileSet>
-    <fileSet filtered="true" packaged="true" encoding="UTF-8">
-        <directory>nifi-__artifactBaseName__-processors/src/test/java</directory>
-    </fileSet>
-    <fileSet filtered="true" packaged="false" encoding="UTF-8">
-        <directory>nifi-__artifactBaseName__-nar</directory>
-    </fileSet>
-  </fileSets>
+    <requiredProperties>
+        <requiredProperty key="artifactBaseName"/>
+        <requiredProperty key="nifiVersion">
+            <defaultValue>NIFIVERSION</defaultValue>
+        </requiredProperty>
+        <requiredProperty key="nifiMavenNarVersion">
+            <defaultValue>NIFIMAVENNARVERSION</defaultValue>
+        </requiredProperty>
+        <requiredProperty key="package">
+            <defaultValue>${groupId}.processors.${artifactBaseName}</defaultValue>
+        </requiredProperty>
+    </requiredProperties>
+    <fileSets>
+        <fileSet filtered="true" packaged="false" encoding="UTF-8">
+            <directory>nifi-__artifactBaseName__-processors</directory>
+            <excludes>
+                <exclude>**/*.java</exclude>
+            </excludes>
+        </fileSet>
+        <fileSet filtered="true" packaged="true" encoding="UTF-8">
+            <directory>nifi-__artifactBaseName__-processors/src/main/java</directory>
+        </fileSet>
+        <fileSet filtered="true" packaged="true" encoding="UTF-8">
+            <directory>nifi-__artifactBaseName__-processors/src/test/java</directory>
+        </fileSet>
+        <fileSet filtered="true" packaged="false" encoding="UTF-8">
+            <directory>nifi-__artifactBaseName__-nar</directory>
+        </fileSet>
+    </fileSets>
 </archetype-descriptor>
