@@ -24,6 +24,7 @@
             <fileMode>0664</fileMode>
             <useTransitiveFiltering>true</useTransitiveFiltering>
             <includes>
+                <include>nifi-bootstrap-utils</include>
                 <include>nifi-bootstrap</include>
                 <include>slf4j-api</include>
                 <include>logback-classic</include>

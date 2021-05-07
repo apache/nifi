@@ -24,6 +24,7 @@
     <artifactId>nifi-commons</artifactId>
     <packaging>pom</packaging>
     <modules>
+        <module>nifi-bootstrap-utils</module>
         <module>nifi-data-provenance-utils</module>
         <module>nifi-expression-language</module>
         <module>nifi-flowfile-packager</module>
