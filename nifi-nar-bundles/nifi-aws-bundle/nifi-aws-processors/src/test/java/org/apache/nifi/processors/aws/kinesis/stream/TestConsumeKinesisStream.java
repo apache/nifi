@@ -111,8 +111,8 @@ public class TestConsumeKinesisStream {
         runner.setProperty(ConsumeKinesisStream.TIMESTAMP_FORMAT, "not-valid-format");
         runner.setProperty(ConsumeKinesisStream.RETRY_WAIT, "not-a-long");
         runner.setProperty(ConsumeKinesisStream.NUM_RETRIES, "not-an-int");
-        runner.setProperty(ConsumeKinesisStream.FAILOVER_PERIOD, "not-a-period");
-        runner.setProperty(ConsumeKinesisStream.GRACEFUL_SHUTDOWN_PERIOD, "not-a-period");
+        runner.setProperty(ConsumeKinesisStream.FAILOVER_TIMEOUT, "not-a-period");
+        runner.setProperty(ConsumeKinesisStream.GRACEFUL_SHUTDOWN_TIMEOUT, "not-a-period");
         runner.setProperty(ConsumeKinesisStream.CHECKPOINT_INTERVAL, "not-a-long");
         runner.setProperty(ConsumeKinesisStream.REPORT_CLOUDWATCH_METRICS, "not-a-boolean");
         runner.setProperty(ConsumeKinesisStream.DYNAMODB_ENDPOINT_OVERRIDE, "not-a-url");
@@ -148,8 +148,8 @@ public class TestConsumeKinesisStream {
                 ConsumeKinesisStream.INITIAL_STREAM_POSITION.getName(), ConsumeKinesisStream.LATEST.getDisplayName(),
                 ConsumeKinesisStream.TRIM_HORIZON.getDisplayName(), ConsumeKinesisStream.AT_TIMESTAMP.getDisplayName(),
                 ConsumeKinesisStream.TIMESTAMP_FORMAT.getName(), RecordFieldType.TIMESTAMP.getDefaultFormat(),
-                ConsumeKinesisStream.FAILOVER_PERIOD.getName(),
-                ConsumeKinesisStream.GRACEFUL_SHUTDOWN_PERIOD.getName(),
+                ConsumeKinesisStream.FAILOVER_TIMEOUT.getName(),
+                ConsumeKinesisStream.GRACEFUL_SHUTDOWN_TIMEOUT.getName(),
                 ConsumeKinesisStream.CHECKPOINT_INTERVAL.getName(),
                 ConsumeKinesisStream.NUM_RETRIES.getName(),
                 ConsumeKinesisStream.RETRY_WAIT.getName(),

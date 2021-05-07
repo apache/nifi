@@ -185,18 +185,18 @@ public class ConsumeKinesisStream extends AbstractKinesisStreamProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .required(true).build();
 
-    public static final PropertyDescriptor FAILOVER_PERIOD = new PropertyDescriptor.Builder()
-            .displayName("Failover Time")
-            .name("amazon-kinesis-stream-failover-period")
-            .description("Kinesis Client Library failover period")
+    public static final PropertyDescriptor FAILOVER_TIMEOUT = new PropertyDescriptor.Builder()
+            .displayName("Failover Timeout")
+            .name("amazon-kinesis-stream-failover-timeout")
+            .description("Kinesis Client Library failover timeout")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .defaultValue("30 secs")
             .required(true).build();
 
-    public static final PropertyDescriptor GRACEFUL_SHUTDOWN_PERIOD = new PropertyDescriptor.Builder()
-            .displayName("Failover Time")
-            .name("amazon-kinesis-stream-graceful-shutdown-period")
-            .description("Kinesis Client Library graceful shutdown period")
+    public static final PropertyDescriptor GRACEFUL_SHUTDOWN_TIMEOUT = new PropertyDescriptor.Builder()
+            .displayName("Graceful Shutdown Timeout")
+            .name("amazon-kinesis-stream-graceful-shutdown-timeout")
+            .description("Kinesis Client Library graceful shutdown timeout")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .defaultValue("20 secs")
             .required(true).build();
@@ -283,7 +283,7 @@ public class ConsumeKinesisStream extends AbstractKinesisStreamProcessor {
                     // Kinesis Stream specific properties
                     KINESIS_STREAM_NAME, APPLICATION_NAME, RECORD_READER, RECORD_WRITER, REGION, ENDPOINT_OVERRIDE,
                     DYNAMODB_ENDPOINT_OVERRIDE, INITIAL_STREAM_POSITION, STREAM_POSITION_TIMESTAMP, TIMESTAMP_FORMAT,
-                    FAILOVER_PERIOD, GRACEFUL_SHUTDOWN_PERIOD, CHECKPOINT_INTERVAL, NUM_RETRIES, RETRY_WAIT, REPORT_CLOUDWATCH_METRICS,
+                    FAILOVER_TIMEOUT, GRACEFUL_SHUTDOWN_TIMEOUT, CHECKPOINT_INTERVAL, NUM_RETRIES, RETRY_WAIT, REPORT_CLOUDWATCH_METRICS,
                     // generic AWS processor properties
                     TIMEOUT, AWS_CREDENTIALS_PROVIDER_SERVICE, PROXY_CONFIGURATION_SERVICE
             )
@@ -296,8 +296,8 @@ public class ConsumeKinesisStream extends AbstractKinesisStreamProcessor {
         put("initialPositionInStream", INITIAL_STREAM_POSITION);
         put("dynamoDBEndpoint", DYNAMODB_ENDPOINT_OVERRIDE);
         put("kinesisEndpoint", ENDPOINT_OVERRIDE);
-        put("failoverTimeMillis", FAILOVER_PERIOD);
-        put("gracefulShutdownMillis", GRACEFUL_SHUTDOWN_PERIOD);
+        put("failoverTimeMillis", FAILOVER_TIMEOUT);
+        put("gracefulShutdownMillis", GRACEFUL_SHUTDOWN_TIMEOUT);
     }};
 
     private static final Object WORKER_LOCK = new Object();
@@ -646,11 +646,11 @@ public class ConsumeKinesisStream extends AbstractKinesisStreamProcessor {
     }
 
     private long getFailoverTimeMillis(final PropertyContext context) {
-        return context.getProperty(FAILOVER_PERIOD).asTimePeriod(TimeUnit.MILLISECONDS);
+        return context.getProperty(FAILOVER_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS);
     }
 
     private long getGracefulShutdownMillis(final PropertyContext context) {
-        return context.getProperty(GRACEFUL_SHUTDOWN_PERIOD).asTimePeriod(TimeUnit.MILLISECONDS);
+        return context.getProperty(GRACEFUL_SHUTDOWN_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS);
     }
 
     private long getCheckpointIntervalMillis(final PropertyContext context) {
