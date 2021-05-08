@@ -406,7 +406,7 @@ public class ConsumeKinesisStream extends AbstractKinesisStreamProcessor {
                                                                       final String subject, final String input, final String message) {
         return validationResult
                 .explanation(
-                        String.format("Kinesis Client Library Configuration property with name with%s cannot be used with value \"%s\" : %s",
+                        String.format("Kinesis Client Library Configuration property with name %s cannot be used with value \"%s\" : %s",
                                 StringUtils.capitalize(subject), input, message)
                 )
                 .valid(false).build();

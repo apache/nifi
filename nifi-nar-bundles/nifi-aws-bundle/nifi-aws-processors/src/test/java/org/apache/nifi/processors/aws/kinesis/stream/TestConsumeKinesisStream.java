@@ -325,13 +325,13 @@ public class TestConsumeKinesisStream {
         // invalid parameter conversions
         assertThat(ae.getMessage(), containsString(
                 "'dynamoDBClientConfig' validated against 'too-complex' is invalid because Kinesis Client Library Configuration property " +
-                "with name withDynamoDBClientConfig cannot be used with value \"too-complex\" : " +
+                "with name DynamoDBClientConfig cannot be used with value \"too-complex\" : " +
                 "Cannot invoke com.amazonaws.services.kinesis.clientlibrary.lib.worker.KinesisClientLibConfiguration.withDynamoDBClientConfig on bean class " +
                 "'class com.amazonaws.services.kinesis.clientlibrary.lib.worker.KinesisClientLibConfiguration' - argument type mismatch - " +
                 "had objects of type \"java.lang.String\" but expected signature \"com.amazonaws.ClientConfiguration\"\n"
         ));
         assertThat(ae.getMessage(), containsString("'shutdownGraceMillis' validated against 'not-long' is invalid because " +
-                "Kinesis Client Library Configuration property with name withShutdownGraceMillis " +
+                "Kinesis Client Library Configuration property with name ShutdownGraceMillis " +
                 "cannot be used with value \"not-long\" : Value of ShutdownGraceMillis should be positive, but current value is 0\n"));
     }
 
