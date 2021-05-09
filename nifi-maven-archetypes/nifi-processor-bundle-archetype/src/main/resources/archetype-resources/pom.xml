@@ -13,6 +13,7 @@
         <nifi.version>${nifiVersion}</nifi.version>
         <nifi-nar-maven-plugin.version>${nifiMavenNarVersion}</nifi-nar-maven-plugin.version>
 
+        <org.slf4j.version>1.7.30</org.slf4j.version>
         <junit5.version>5.7.1</junit5.version>
     </properties>
 
@@ -44,16 +45,6 @@
     </dependencyManagement>
 
     <build>
-        <pluginManagement>
-            <plugins>
-                <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-resources-plugin</artifactId><version>3.2.0</version></plugin>
-                <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-compiler-plugin</artifactId><version>3.8.1</version></plugin>
-                <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-surefire-plugin</artifactId><version>3.0.0-M5</version></plugin>
-                <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-install-plugin</artifactId><version>3.0.0-M1</version></plugin>
-                <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-deploy-plugin</artifactId><version>3.0.0-M1</version></plugin>
-            </plugins>
-        </pluginManagement>
-
         <plugins>
             <plugin>
                 <groupId>org.apache.nifi</groupId>

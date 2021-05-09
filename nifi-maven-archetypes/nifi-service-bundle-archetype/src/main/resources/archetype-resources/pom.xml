@@ -13,6 +13,7 @@
         <nifi.version>${nifiVersion}</nifi.version>
         <nifi-nar-maven-plugin.version>${nifiMavenNarVersion}</nifi-nar-maven-plugin.version>
 
+        <org.slf4j.version>1.7.30</org.slf4j.version>
         <junit5.version>5.7.1</junit5.version>
     </properties>
 
@@ -25,6 +26,7 @@
 
     <dependencyManagement>
         <dependencies>
+
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-bom</artifactId>
