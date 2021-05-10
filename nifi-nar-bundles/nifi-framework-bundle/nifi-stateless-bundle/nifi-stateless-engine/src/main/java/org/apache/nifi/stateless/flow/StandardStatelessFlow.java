@@ -36,14 +36,12 @@ import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.controller.repository.RepositoryContext;
 import org.apache.nifi.controller.repository.StandardProcessSessionFactory;
-import org.apache.nifi.controller.repository.metrics.StandardFlowFileEvent;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.state.StandardStateMap;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
-import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Processor;
@@ -57,12 +55,10 @@ import org.apache.nifi.stateless.queue.DrainableFlowFileQueue;
 import org.apache.nifi.stateless.repository.ByteArrayContentRepository;
 import org.apache.nifi.stateless.repository.RepositoryContextFactory;
 import org.apache.nifi.stateless.session.AsynchronousCommitTracker;
-import org.apache.nifi.stateless.session.StatelessProcessSessionFactory;
 import org.apache.nifi.util.Connectables;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -430,72 +426,17 @@ public class StandardStatelessFlow implements StatelessDataflow {
         final long startNanos = System.nanoTime();
         transactionThresholdMeter.reset();
 
+        final StatelessFlowCurrent current = new StandardStatelessFlowCurrent.Builder()
+            .commitTracker(tracker)
+            .executionProgress(executionProgress)
+            .processContextFactory(processContextFactory)
+            .repositoryContextFactory(repositoryContextFactory)
+            .rootConnectables(rootConnectables)
+            .transactionThresholdMeter(transactionThresholdMeter)
+            .build();
+
         try {
-            Connectable currentComponent = null;
-
-            try {
-                boolean completionReached = false;
-                while (!completionReached) {
-                    for (final Connectable connectable : rootConnectables) {
-                        currentComponent = connectable;
-
-                        // Reset progress and trigger the component. This allows us to track whether or not any progress was made by the given connectable
-                        // during this invocation of its onTrigger method.
-                        tracker.resetProgress();
-                        trigger(connectable, executionProgress, tracker);
-
-                        // Keep track of the output of the source component so that we can determine whether or not we've reached our transaction threshold.
-                        transactionThresholdMeter.incrementFlowFiles(tracker.getFlowFilesProduced());
-                        transactionThresholdMeter.incrementBytes(tracker.getBytesProduced());
-                    }
-
-                    readyLoop: while (tracker.isAnyReady()) {
-                        final List<Connectable> next = tracker.getReady();
-                        logger.debug("The following {} components are ready to be triggered: {}", next.size(), next);
-
-                        for (final Connectable connectable : next) {
-                            while (tracker.isReady(connectable)) {
-                                if (executionProgress.isCanceled()) {
-                                    logger.info("Dataflow was canceled so will not trigger any more components");
-                                    return;
-                                }
-
-                                currentComponent = connectable;
-
-                                // Reset progress and trigger the component. This allows us to track whether or not any progress was made by the given connectable
-                                // during this invocation of its onTrigger method.
-                                tracker.resetProgress();
-                                trigger(connectable, executionProgress, tracker);
-
-                                // Check if the component made any progress or not. If so, continue on. If not, we need to check if providing the component with
-                                // additional input would help the component to progress or not.
-                                final boolean progressed = tracker.isProgress();
-                                if (progressed) {
-                                    logger.debug("{} was triggered and made progress", connectable);
-                                } else {
-                                    final boolean thresholdMet = transactionThresholdMeter.isThresholdMet();
-                                    if (thresholdMet) {
-                                        logger.debug("{} was triggered but unable to make progress. The transaction thresholds {} have been met (currently at {}). Will not " +
-                                            "trigger source components to run.", connectable, dataflowDefinition.getTransactionThresholds(), transactionThresholdMeter);
-                                    } else {
-                                        logger.debug("{} was triggered but unable to make progress. Maximum transaction thresholds {} have not been reached (currently at {}) " +
-                                            "so will trigger source components to run.", connectable, dataflowDefinition.getTransactionThresholds(), transactionThresholdMeter);
-
-                                        break readyLoop;
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    completionReached = !tracker.isAnyReady();
-                }
-            } catch (final Throwable t) {
-                logger.error("Failed to trigger {}", currentComponent, t);
-                executionProgress.notifyExecutionFailed(t);
-                tracker.triggerFailureCallbacks(t);
-                throw t;
-            }
+            current.triggerFlow();
 
             logger.debug("Completed triggering of components in dataflow. Will now wait for acknowledgment");
             final CompletionAction completionAction = executionProgress.awaitCompletionAction();
@@ -523,34 +464,6 @@ public class StandardStatelessFlow implements StatelessDataflow {
             purge();
             tracker.triggerFailureCallbacks(t);
             resultQueue.offer(new ExceptionalTriggerResult(t));
-        }
-    }
-
-
-    private void trigger(final Connectable connectable, final ExecutionProgress executionProgress, final AsynchronousCommitTracker tracker) {
-        final ProcessContext processContext = processContextFactory.createProcessContext(connectable);
-
-        final StatelessProcessSessionFactory sessionFactory = new StatelessProcessSessionFactory(connectable, repositoryContextFactory, processContextFactory,
-            executionProgress, false, tracker);
-
-        final long start = System.nanoTime();
-
-        // Trigger component
-        logger.debug("Triggering {}", connectable);
-        connectable.onTrigger(processContext, sessionFactory);
-
-        final long processingNanos = System.nanoTime() - start;
-        registerProcessEvent(connectable, 1, processingNanos);
-    }
-
-    private void registerProcessEvent(final Connectable connectable, final int invocations, final long processingNanos) {
-        try {
-            final StandardFlowFileEvent procEvent = new StandardFlowFileEvent();
-            procEvent.setProcessingNanos(processingNanos);
-            procEvent.setInvocations(invocations);
-            repositoryContextFactory.getFlowFileEventRepository().updateRepository(procEvent, connectable.getIdentifier());
-        } catch (final IOException e) {
-            logger.error("Unable to update FlowFileEvent Repository for {}; statistics may be inaccurate. Reason for failure: {}", connectable.getRunnableComponent(), e.toString(), e);
         }
     }
 

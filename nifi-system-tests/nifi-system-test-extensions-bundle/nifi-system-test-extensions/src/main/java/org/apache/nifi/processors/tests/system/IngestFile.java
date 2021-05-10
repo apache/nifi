@@ -38,6 +38,9 @@ import java.util.Set;
 import static org.apache.nifi.expression.ExpressionLanguageScope.NONE;
 
 public class IngestFile extends AbstractProcessor {
+    private static final String COMMIT_SYNCHRONOUS = "synchronous";
+    private static final String COMMIT_ASYNC = "asynchronous";
+
     static final PropertyDescriptor FILENAME = new Builder()
         .name("Filename")
         .displayName("Filename")
@@ -50,8 +53,8 @@ public class IngestFile extends AbstractProcessor {
         .name("Commit Mode")
         .displayName("Commit Mode")
         .description("How to commit the process session")
-        .allowableValues("synchronous", "asynchronous")
-        .defaultValue("asynchronous")
+        .allowableValues(COMMIT_ASYNC, COMMIT_SYNCHRONOUS)
+        .defaultValue(COMMIT_ASYNC)
         .build();
 
     static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -79,7 +82,7 @@ public class IngestFile extends AbstractProcessor {
         session.getProvenanceReporter().receive(flowFile, file.toURI().toString());
 
         final String commitMode = context.getProperty(COMMIT_MODE).getValue();
-        if ("synchronous".equalsIgnoreCase(commitMode)) {
+        if (COMMIT_SYNCHRONOUS.equalsIgnoreCase(commitMode)) {
             session.commit();
             cleanup(file);
         } else {

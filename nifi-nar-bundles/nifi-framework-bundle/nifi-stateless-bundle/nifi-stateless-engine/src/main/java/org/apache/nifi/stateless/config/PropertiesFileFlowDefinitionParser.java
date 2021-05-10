@@ -118,7 +118,7 @@ public class PropertiesFileFlowDefinitionParser implements DataflowDefinitionPar
             .failurePortNames(failurePortNames)
             .parameterContexts(parameterContextDefinitions)
             .reportingTasks(reportingTaskDefinitions)
-            .transactionThresholds( transactionThresholds)
+            .transactionThresholds(transactionThresholds)
             .build();
     }
 
@@ -238,50 +238,46 @@ public class PropertiesFileFlowDefinitionParser implements DataflowDefinitionPar
 
             @Override
             public OptionalLong getMaxContentSize(final DataUnit dataUnit) {
-                return maxBytes;
+                return maxBytes.isPresent() ? OptionalLong.of((long) dataUnit.convert(maxBytes.getAsLong(), DataUnit.B)) : OptionalLong.empty();
             }
 
             @Override
             public OptionalLong getMaxTime(final TimeUnit timeUnit) {
-                return maxNanos;
+                return maxNanos.isPresent() ? OptionalLong.of(timeUnit.convert(maxNanos.getAsLong(), TimeUnit.NANOSECONDS)) : OptionalLong.empty();
             }
         };
     }
 
-    private Long getLongProperty(final Map<String, String> properties, final String propertyName) {
+    private String getTrimmedProperty(final Map<String, String> properties, final String propertyName) {
         final String propertyValue = properties.get(propertyName);
-        if (propertyValue == null || propertyValue.trim().isEmpty()) {
-            return null;
-        }
+        return (propertyValue == null || propertyValue.trim().isEmpty()) ? null : propertyValue.trim();
+    }
+
+    private Long getLongProperty(final Map<String, String> properties, final String propertyName) {
+        final String propertyValue = getTrimmedProperty(properties, propertyName);
 
         try {
-            return Long.parseLong(propertyValue.trim());
+            return propertyValue == null ? null : Long.parseLong(propertyValue);
         } catch (final NumberFormatException nfe) {
             throw new IllegalArgumentException("Configured property <" + propertyName + "> has a value that is not a valid 64-bit integer");
         }
     }
 
     private Double getDataSizeProperty(final Map<String, String> properties, final String propertyName, final DataUnit dataUnit) {
-        final String propertyValue = properties.get(propertyName);
-        if (propertyValue == null || propertyValue.trim().isEmpty()) {
-            return null;
-        }
+        final String propertyValue = getTrimmedProperty(properties, propertyName);
 
         try {
-            return DataUnit.parseDataSize(propertyValue.trim(), dataUnit);
+            return propertyValue == null ? null : DataUnit.parseDataSize(propertyValue, dataUnit);
         } catch (final Exception e) {
             throw new IllegalArgumentException("Configured property <" + propertyName + "> has a value that is not a valid data size");
         }
     }
 
     private Double getTimePeriodProperty(final Map<String, String> properties, final String propertyName, final TimeUnit timeUnit) {
-        final String propertyValue = properties.get(propertyName);
-        if (propertyValue == null || propertyValue.trim().isEmpty()) {
-            return null;
-        }
+        final String propertyValue = getTrimmedProperty(properties, propertyName);
 
         try {
-            return FormatUtils.getPreciseTimeDuration(propertyValue.trim(), timeUnit);
+            return propertyValue == null ? null : FormatUtils.getPreciseTimeDuration(propertyValue, timeUnit);
         } catch (final Exception e) {
             throw new IllegalArgumentException("Configured property <" + propertyName + "> has a value that is not a valid time period");
         }

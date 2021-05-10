@@ -71,7 +71,7 @@ public abstract class ProcessSessionWrap implements ProcessSession {
     */
     private Map<String, FlowFile> toDrop = new HashMap<>();
 
-    public ProcessSessionWrap(ProcessSession session, boolean toFailureOnError) {
+    public ProcessSessionWrap(final ProcessSession session, final boolean toFailureOnError) {
         if (session instanceof ProcessSessionWrap) {
             throw new RuntimeException("session could be instanceof ProcessSessionWrap");
         }
@@ -97,7 +97,7 @@ public abstract class ProcessSessionWrap implements ProcessSession {
      */
     public abstract SessionFile wrap(FlowFile f);
 
-    public List<FlowFile> wrap(List<FlowFile> ff) {
+    public List<FlowFile> wrap(final List<FlowFile> ff) {
         if (ff == null) {
             return null;
         }
@@ -117,7 +117,7 @@ public abstract class ProcessSessionWrap implements ProcessSession {
         return f;
     }
 
-    public List<FlowFile> unwrap(Collection<FlowFile> flowFiles) {
+    public List<FlowFile> unwrap(final Collection<FlowFile> flowFiles) {
         if (flowFiles == null) {
             return null;
         }

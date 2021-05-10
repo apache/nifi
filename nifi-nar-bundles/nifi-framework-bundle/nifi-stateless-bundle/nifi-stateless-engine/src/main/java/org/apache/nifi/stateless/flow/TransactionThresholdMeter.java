@@ -38,6 +38,10 @@ public class TransactionThresholdMeter {
         flowFiles = 0;
     }
 
+    public TransactionThresholds getThresholds() {
+        return thresholds;
+    }
+
     public void incrementFlowFiles(final long flowFiles) {
         this.flowFiles += flowFiles;
     }

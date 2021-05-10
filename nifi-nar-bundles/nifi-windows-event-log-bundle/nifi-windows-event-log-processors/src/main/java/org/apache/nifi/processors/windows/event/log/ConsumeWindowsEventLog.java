@@ -329,22 +329,31 @@ public class ConsumeWindowsEventLog extends AbstractSessionFactoryProcessor {
      * @return the number of created FlowFiles
      */
     private int processQueue(ProcessSession session) {
-        String xml;
-        int flowFileCount = 0;
+        final List<String> xmlMessages = new ArrayList<>();
+        renderedXMLs.drainTo(xmlMessages);
 
-        while ((xml = renderedXMLs.peek()) != null) {
-            FlowFile flowFile = session.create();
-            byte[] xmlBytes = xml.getBytes(StandardCharsets.UTF_8);
-            flowFile = session.write(flowFile, out -> out.write(xmlBytes));
-            flowFile = session.putAttribute(flowFile, CoreAttributes.MIME_TYPE.key(), APPLICATION_XML);
-            session.getProvenanceReporter().receive(flowFile, provenanceUri);
-            session.transfer(flowFile, REL_SUCCESS);
-            flowFileCount++;
-
-            final String xmlMessage = xml;
-            session.commitAsync(() -> renderedXMLs.remove(xmlMessage));
+        try {
+            for (final String xmlMessage : xmlMessages) {
+                FlowFile flowFile = session.create();
+                byte[] xmlBytes = xmlMessage.getBytes(StandardCharsets.UTF_8);
+                flowFile = session.write(flowFile, out -> out.write(xmlBytes));
+                flowFile = session.putAttribute(flowFile, CoreAttributes.MIME_TYPE.key(), APPLICATION_XML);
+                session.getProvenanceReporter().receive(flowFile, provenanceUri);
+                session.transfer(flowFile, REL_SUCCESS);
+            }
+        } catch (final Throwable t) {
+            getLogger().error("Failed to create FlowFile for XML message", t);
+            renderedXMLs.addAll(xmlMessages);
+            session.rollback();
+            throw t;
         }
-        return flowFileCount;
+
+        // Commit the session. If successful, we're done. But if we encounter a failure, re-queue the messages.
+        session.commitAsync(() -> {}, t -> {
+            renderedXMLs.addAll(xmlMessages);
+        });
+
+        return xmlMessages.size();
     }
 
     @Override

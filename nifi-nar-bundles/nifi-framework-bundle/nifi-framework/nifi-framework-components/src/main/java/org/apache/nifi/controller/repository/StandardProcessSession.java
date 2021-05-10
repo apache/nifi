@@ -412,6 +412,14 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         this.checkpoint = null;
     }
 
+    /**
+     * Commits the given checkpoint, updating repositories as necessary, and performing any necessary cleanup of resources, etc.
+     * Subclasses may choose to perform these tasks asynchronously if the asynchronous flag indicates that it is acceptable to do so.
+     * However, this implementation will perform the commit synchronously, regardless of the {@code asynchronous} flag.
+     *
+     * @param checkpoint the session checkpoint to commit
+     * @param asynchronous whether or not the commit is allowed to be performed asynchronously.
+     */
     @SuppressWarnings({"unchecked", "rawtypes"})
     protected void commit(final Checkpoint checkpoint, final boolean asynchronous) {
         try {

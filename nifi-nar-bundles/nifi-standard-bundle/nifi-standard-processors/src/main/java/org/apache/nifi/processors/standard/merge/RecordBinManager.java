@@ -245,23 +245,6 @@ public class RecordBinManager {
         return handleCompletedBins(RecordBin::isFullEnough, "Bin is full enough");
     }
 
-    public boolean isAnyBinFullEnough() {
-        lock.lock();
-        try {
-            for (final List<RecordBin> bins : groupBinMap.values()) {
-                for (final RecordBin bin : bins) {
-                    if (bin.isFullEnough()) {
-                        return true;
-                    }
-                }
-            }
-
-            return false;
-        } finally {
-            lock.unlock();
-        }
-    }
-
     private int handleCompletedBins(final Predicate<RecordBin> completionTest, final String completionReason) throws IOException {
         final Map<String, List<RecordBin>> completedBinMap = new HashMap<>();
 

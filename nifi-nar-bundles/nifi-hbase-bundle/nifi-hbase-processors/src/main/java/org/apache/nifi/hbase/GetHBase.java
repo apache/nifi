@@ -380,7 +380,7 @@ public class GetHBase extends AbstractProcessor implements VisibilityFetchSuppor
             final ScanResult latestResult = lastResult.get();
             if (latestResult == null || scanResults.getTimestamp() > latestResult.getTimestamp()) {
                 session.setState(scanResults.toFlatMap(), Scope.CLUSTER);
-                session.commitAsync(() -> lastResult.set(scanResults));
+                session.commitAsync(() -> updateScanResultsIfNewer(scanResults));
             } else if (scanResults.getTimestamp() == latestResult.getTimestamp()) {
                 final Map<String, Set<String>> combinedResults = new HashMap<>(scanResults.getMatchingCells());
 
@@ -403,7 +403,7 @@ public class GetHBase extends AbstractProcessor implements VisibilityFetchSuppor
                 final ScanResult scanResult = new ScanResult(scanResults.getTimestamp(), combinedResults);
                 session.setState(scanResult.toFlatMap(), Scope.CLUSTER);
 
-                session.commitAsync(() -> lastResult.set(scanResult));
+                session.commitAsync(() -> updateScanResultsIfNewer(scanResult));
             }
         } catch (final IOException e) {
             getLogger().error("Failed to receive data from HBase due to {}", e);
@@ -413,6 +413,10 @@ public class GetHBase extends AbstractProcessor implements VisibilityFetchSuppor
             // pulled all of the records, so we want to wait a bit before hitting hbase again anyway.
             context.yield();
         }
+    }
+
+    private void updateScanResultsIfNewer(final ScanResult scanResult) {
+        lastResult.getAndUpdate(current -> (current == null || scanResult.getTimestamp() > current.getTimestamp()) ? scanResult : current);
     }
 
     // present for tests
