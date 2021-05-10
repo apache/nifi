@@ -20,7 +20,7 @@ FROM openjdk:8-jre AS artifactbase
 LABEL maintainer="Apache NiFi <dev@nifi.apache.org>"
 
 ARG NIFI_REGISTRY_BINARY
-ARG NIFI_REGISTRY_VERSION=0.9.0
+ARG NIFI_REGISTRY_VERSION=1.14.0
 
 ENV NIFI_REGISTRY_BASE_DIR /opt/nifi-registry
 ENV NIFI_REGISTRY_HOME ${NIFI_REGISTRY_BASE_DIR}/nifi-registry-current
