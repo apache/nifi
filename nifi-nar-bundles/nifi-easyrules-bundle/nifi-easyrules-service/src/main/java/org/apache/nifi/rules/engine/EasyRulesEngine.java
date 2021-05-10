@@ -21,6 +21,7 @@ import org.apache.nifi.rules.Rule;
 import org.apache.nifi.rules.RulesMVELCondition;
 import org.apache.nifi.rules.RulesSPELCondition;
 import org.jeasy.rules.api.Condition;
+import org.jeasy.rules.api.Fact;
 import org.jeasy.rules.api.Facts;
 import org.jeasy.rules.api.RuleListener;
 import org.jeasy.rules.api.Rules;
@@ -149,13 +150,13 @@ public class EasyRulesEngine implements RulesEngine {
 
             if (nifiRule.getFacts() != null) {
 
-                List<Map.Entry<String, Object>> filteredFacts = StreamSupport.stream(facts.spliterator(), false)
-                        .filter(fact -> nifiRule.getFacts().contains(fact.getKey())).collect(Collectors.toList());
+                List<Fact<?>> filteredFacts = StreamSupport.stream(facts.spliterator(), false)
+                        .filter(fact -> nifiRule.getFacts().contains(fact.getName())).collect(Collectors.toList());
 
                 if (filteredFacts.size() > 0) {
                     evaluateFacts = new Facts();
                     filteredFacts.forEach(filteredFact -> {
-                        evaluateFacts.put(filteredFact.getKey(), filteredFact.getValue());
+                        evaluateFacts.put(filteredFact.getName(), filteredFact.getValue());
                     });
                 } else {
                     evaluateFacts = facts;

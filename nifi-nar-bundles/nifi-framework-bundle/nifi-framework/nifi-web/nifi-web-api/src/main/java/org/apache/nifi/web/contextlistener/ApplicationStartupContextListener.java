@@ -16,9 +16,6 @@
  */
 package org.apache.nifi.web.contextlistener;
 
-import org.apache.nifi.authentication.LoginIdentityProvider;
-import org.apache.nifi.authorization.Authorizer;
-import org.apache.nifi.cluster.coordination.http.replication.RequestReplicator;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.repository.RepositoryPurgeException;
 import org.apache.nifi.services.FlowService;
@@ -45,7 +42,6 @@ public class ApplicationStartupContextListener implements ServletContextListener
 
     private FlowController flowController = null;
     private FlowService flowService = null;
-    private RequestReplicator requestReplicator = null;
 
     @Override
     public void contextInitialized(ServletContextEvent sce) {
@@ -54,7 +50,6 @@ public class ApplicationStartupContextListener implements ServletContextListener
         try {
             flowService = ctx.getBean("flowService", FlowService.class);
             flowController = ctx.getBean("flowController", FlowController.class);
-            requestReplicator = ctx.getBean("requestReplicator", RequestReplicator.class);
 
             // start and load the flow if we're not clustered (clustered flow loading should
             // happen once the application (wars) is fully loaded and initialized). non clustered
@@ -90,8 +85,8 @@ public class ApplicationStartupContextListener implements ServletContextListener
 
         try {
             // attempt to get a few beans that we want to to ensure properly created since they are lazily initialized
-            ctx.getBean("loginIdentityProvider", LoginIdentityProvider.class);
-            ctx.getBean("authorizer", Authorizer.class);
+            ctx.getBean("loginIdentityProvider");
+            ctx.getBean("authorizer");
         } catch (final BeansException e) {
             shutdown();
             throw new NiFiCoreException("Unable to start Flow Controller.", e);
@@ -113,20 +108,6 @@ public class ApplicationStartupContextListener implements ServletContextListener
             }
         } catch (final Exception e) {
             final String msg = "Problem occurred ensuring flow controller or repository was properly terminated due to " + e;
-            if (logger.isDebugEnabled()) {
-                logger.warn(msg, e);
-            } else {
-                logger.warn(msg);
-            }
-        }
-
-        try {
-            // ensure the request replicator is shutdown
-            if (requestReplicator != null) {
-                requestReplicator.shutdown();
-            }
-        } catch (final Exception e) {
-            final String msg = "Problem occurred ensuring request replicator was properly terminated due to " + e;
             if (logger.isDebugEnabled()) {
                 logger.warn(msg, e);
             } else {
