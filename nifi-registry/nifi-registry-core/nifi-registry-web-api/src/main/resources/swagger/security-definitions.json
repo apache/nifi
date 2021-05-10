@@ -1,0 +1,12 @@
+{
+  "BasicAuth": {
+    "type": "basic",
+    "description": "HTTP Basic Auth"
+  },
+  "Authorization": {
+    "type": "apiKey",
+    "name": "Authorization",
+    "in": "header",
+    "description": "NiFi Registry Auth Token (JWT)"
+  }
+}

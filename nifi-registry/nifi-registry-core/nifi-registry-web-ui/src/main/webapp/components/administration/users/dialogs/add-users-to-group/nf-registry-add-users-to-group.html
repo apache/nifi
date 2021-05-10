@@ -1,0 +1,82 @@
+<!--
+Licensed to the Apache Software Foundation (ASF) under one or more
+contributor license agreements.  See the NOTICE file distributed with
+this work for additional information regarding copyright ownership.
+The ASF licenses this file to You under the Apache License, Version 2.0
+(the "License"); you may not use this file except in compliance with
+the License.  You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+<div id="nifi-registry-admin-add-selected-users-to-group-dialog">
+    <div class="pad-bottom-md" fxLayout="row" fxLayoutAlign="space-between center">
+        <mat-card-title class="ellipsis">
+            Add users to group
+        </mat-card-title>
+        <button mat-icon-button (click)="cancel()">
+            <mat-icon color="primary">close</mat-icon>
+        </button>
+    </div>
+    <div *ngIf="filteredUsers.length > 0" class="pad-bottom-md">
+        <div id="nifi-registry-users-administration-list-container-column-header" class="td-data-table">
+            <div class="td-data-table-column" (click)="sortUsers(column)"
+                 *ngFor="let column of usersColumns"
+                 fxFlex="{{column.width}}">
+                {{column.label}}
+                <i *ngIf="column.active && column.sortable && column.sortOrder === 'ASC'" class="fa fa-caret-up"
+                   aria-hidden="true"></i>
+                <i *ngIf="column.active && column.sortable && column.sortOrder === 'DESC'" class="fa fa-caret-down"
+                   aria-hidden="true"></i>
+            </div>
+            <div class="td-data-table-column">
+                <mat-checkbox [(ngModel)]="allUsersSelected"
+                              (checked)="allUsersSelected"
+                              (change)="toggleUsersSelectAll()"></mat-checkbox>
+            </div>
+        </div>
+        <div id="nifi-registry-add-selected-users-to-group-list-container">
+            <div fxLayout="row" fxLayoutAlign="space-between center"
+                 class="td-data-table-row"
+                 [ngClass]="{'selected' : user.checked}"
+                 *ngFor="let user of filteredUsers"
+                 (click)="user.checked = !user.checked;determineAllUsersSelectedState();">
+                <div class="td-data-table-cell" *ngFor="let column of usersColumns"
+                     fxFlex="{{column.width}}">
+                    <div class="ellipsis" matTooltip="{{column.format ? column.format(user[column.name]) : user[column.name]}}">
+                        {{column.format ? column.format(user[column.name]) : user[column.name]}}
+                    </div>
+                </div>
+                <div class="td-data-table-cell">
+                    <mat-checkbox [(ngModel)]="user.checked"
+                                  [checked]="user.checked"
+                                  (change)="determineAllUsersSelectedState()"
+                                  (click)="user.checked = !user.checked;determineAllUsersSelectedState()">
+                    </mat-checkbox>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="mat-padding push-bottom-md" *ngIf="filteredUsers.length === 0" layout="row"
+         layout-align="center center">
+        <h3>All users belong to this group.</h3>
+    </div>
+    <div fxLayout="row">
+        <span fxFlex></span>
+        <button (click)="cancel()" color="fds-regular" mat-raised-button
+                i18n="Cancel addition of selected users to group|A button for cancelling the addition of selected users to a group in the registry.@@nf-admin-workflow-cancel-add-selected-users-to-group-button">
+            Cancel
+        </button>
+        <button [disabled]="isAddSelectedUsersToGroupDisabled" class="push-left-sm" (click)="addSelectedUsersToGroup()"
+                color="fds-primary" mat-raised-button
+                i18n="Add selected users to group button|A button for adding users to an existing group in the registry.@@nf-admin-workflow-add-selected-users-to-group-button">
+            Add
+        </button>
+    </div>
+</div>

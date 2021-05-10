@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <artifactId>nifi-registry-ranger</artifactId>
+        <groupId>org.apache.nifi.registry</groupId>
+        <version>1.14.0-SNAPSHOT</version>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+
+    <description>This module removes javax.ws.rs package from jersey-bundle-1.19.3.jar which is used by ranger-plugins-common.jar in order to address javax.ws.rs version mismatch between jersey-bundle-1.19.3.jar and NiFi Registry. NiFi Registry uses javax.ws.rs version 2.1. Without doing this, NiFi Registry encounters java.lang.LinkageError: ClassCastException: attempting to castjar:file:nifi-registry-xxx/work/jetty/nifi-registry-web-api-xxx.war/webapp/WEB-INF/lib/javax.ws.rs-api-2.1.jar!/javax/ws/rs/ext/RuntimeDelegate.classtojar:file:/home/koji/nifi-registry-xxx/./ext/ranger/lib/jersey-bundle-1.19.3.jar!/javax/ws/rs/ext/RuntimeDelegate.class</description>
+
+    <artifactId>nifi-registry-ranger-jersey-bundle</artifactId>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.sun.jersey</groupId>
+            <artifactId>jersey-bundle</artifactId>
+            <version>1.19.3</version>
+
+            <exclusions>
+                <exclusion>
+                    <groupId>javax.ws.rs</groupId>
+                    <artifactId>jsr311-api</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>2.4.3</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
+                            <filters>
+                                <filter>
+                                    <artifact>com.sun.jersey:jersey-bundle</artifact>
+                                    <excludes>
+                                        <exclude>javax/ws/rs/**</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>

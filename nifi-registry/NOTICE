@@ -1,0 +1,13 @@
+Apache NiFi Registry
+Copyright 2017-2020 The Apache Software Foundation
+
+This product includes software developed at
+The Apache Software Foundation (https://www.apache.org/).
+
+This includes derived works from the Apache NiFi (ASLv2 licensed) project (https://git-wip-us.apache.org/repos/asf?p=nifi.git):
+  Copyright 2015-2020 The Apache Software Foundation
+  This includes sources for bootstrapping, runtime, component API, security/authorization API
+
+This includes derived works from the Apache NiFi MiNiFi (ASLv2 licensed) project (https://git-wip-us.apache.org/repos/asf/nifi-minifi.git):
+  Copyright 2015-2019 The Apache Software Foundation
+  This includes build configuration for the Swagger UI.
