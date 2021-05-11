@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.authentication.single.user.writer;
 
-import org.apache.nifi.authentication.LoginCredentials;
+import org.apache.nifi.authentication.single.user.SingleUserCredentials;
 
 /**
  * Writer for Login Identity Providers Configuration
@@ -25,7 +25,7 @@ public interface LoginCredentialsWriter {
     /**
      * Write Login Credentials
      *
-     * @param loginCredentials Login Credentials
+     * @param singleUserCredentials Single User Credentials
      */
-    void writeLoginCredentials(LoginCredentials loginCredentials);
+    void writeLoginCredentials(SingleUserCredentials singleUserCredentials);
 }

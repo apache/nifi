@@ -15,6 +15,10 @@
 
 ## Latest changes
 
+### 1.14.0
+
+- Updated default container configuration to use HTTPS with Single User Authentication
+
 ### 1.12.0
 - The NiFi Toolkit has been added to the image under the path `/opt/nifi/nifi-toolkit-current` also set as the environment variable `NIFI_TOOLKIT_HOME`
 - The installation directory and related environment variables are changed to be version-agnostic to `/opt/nifi/nifi-current`:
@@ -62,29 +66,29 @@ The configuration scripts are suitable for at least 1.4.0+.
 
 ## Running a container
 
-### Standalone Instance, Unsecured
+### Standalone Instance secured with HTTPS and Single User Authentication
 The minimum to run a NiFi instance is as follows:
 
     docker run --name nifi \
-      -p 8080:8080 \
+      -p 8443:8443 \
       -d \
       apache/nifi:latest
 
-This will provide a running instance, exposing the instance UI to the host system on at port 8080,
-viewable at `http://localhost:8080/nifi`.
+This will provide a running instance, exposing the instance UI to the host system on at port 8443,
+viewable at `https://localhost:8443/nifi`.
 
 You can also pass in environment variables to change the NiFi communication ports and hostname using the Docker '-e' switch as follows:
 
     docker run --name nifi \
-      -p 9090:9090 \
+      -p 9443:9443 \
       -d \
-      -e NIFI_WEB_HTTP_PORT='9090' \
+      -e NIFI_WEB_HTTPS_PORT='9443' \
       apache/nifi:latest
 
 For a list of the environment variables recognised in this build, look into the .sh/secure.sh and .sh/start.sh scripts
 
-### Standalone Instance, Two-Way SSL
-In this configuration, the user will need to provide certificates and the associated configuration information.
+### Standalone Instance secured with HTTPS and Mutual TLS Authentication
+In this configuration, the user will need to provide certificates and associated configuration information.
 Of particular note, is the `AUTH` environment variable which is set to `tls`.  Additionally, the user must provide an
 the DN as provided by an accessing client certificate in the `INITIAL_ADMIN_IDENTITY` environment variable.
 This value will be used to seed the instance with an initial user with administrative privileges.
@@ -104,8 +108,8 @@ Finally, this command makes use of a volume to provide certificates on the host 
       -d \
       apache/nifi:latest
 
-### Standalone Instance, LDAP
-In this configuration, the user will need to provide certificates and the associated configuration information.  Optionally,
+### Standalone Instance secured with HTTPS and LDAP Authentication
+In this configuration, the user will need to provide certificates and associated configuration information.  Optionally,
 if the LDAP provider of interest is operating in LDAPS or START_TLS modes, certificates will additionally be needed.
 Of particular note, is the `AUTH` environment variable which is set to `ldap`.  Additionally, the user must provide a
 DN as provided by the configured LDAP server in the `INITIAL_ADMIN_IDENTITY` environment variable. This value will be

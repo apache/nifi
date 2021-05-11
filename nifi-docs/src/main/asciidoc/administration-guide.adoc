@@ -84,15 +84,14 @@ The following table lists the default ports used by NiFi and the corresponding p
 [options="header,footer"]
 |==================================================================================================================================================
 | Function                        |  Property                             | Default Value
-|HTTP Port                        | `nifi.web.http.port`                  | `8080`
-|HTTPS Port*                      | `nifi.web.https.port`                 | `9443`
+|HTTPS Port                       | `nifi.web.https.port`                 | `8443`
 |Remote Input Socket Port*        | `nifi.remote.input.socket.port`       | `10443`
 |Cluster Node Protocol Port*      | `nifi.cluster.node.protocol.port`     | `11443`
 |Cluster Node Load Balancing Port | `nifi.cluster.node.load.balance.port` | `6342`
 |Web HTTP Forwarding Port         | `nifi.web.http.port.forwarding`       | _none_
 |==================================================================================================================================================
 
-NOTE: The ports marked with an asterisk (*) have property values that are blank by default in _nifi.properties_.  The values shown in the table are the default values for these ports when <<toolkit-guide.adoc#tls_toolkit,TLS Toolkit>> is used to generate _nifi.properties_ for a secured NiFi instance.  The default Certificate Authority Port used by <<toolkit-guide.adoc#tls_toolkit,TLS Toolkit>> is `8443`.
+NOTE: The ports marked with an asterisk (*) have property values that are blank by default in _nifi.properties_.  The values shown in the table are the default values for these ports when <<toolkit-guide.adoc#tls_toolkit,TLS Toolkit>> is used to generate _nifi.properties_ for a secured NiFi instance.  The default Certificate Authority Port used by <<toolkit-guide.adoc#tls_toolkit,TLS Toolkit>> is `9443`.
 
 === Embedded ZooKeeper
 The following table lists the default ports used by an <<embedded_zookeeper>> and the corresponding property in the _zookeeper.properties_ file.
@@ -252,12 +251,12 @@ NiFi supports user authentication via client certificates, via username/password
 
 Username/password authentication is performed by a 'Login Identity Provider'. The Login Identity Provider is a pluggable mechanism for
 authenticating users via their username/password. Which Login Identity Provider to use is configured in the _nifi.properties_ file.
-Currently NiFi offers username/password with Login Identity Providers options for <<ldap_login_identity_provider>> and <<kerberos_login_identity_provider>>.
+Currently NiFi offers username/password with Login Identity Providers options for <<single_user_identity_provider>>, <<ldap_login_identity_provider>> and <<kerberos_login_identity_provider>>.
 
 The `nifi.login.identity.provider.configuration.file` property specifies the configuration file for Login Identity Providers.  By default, this property is set to `./conf/login-identity-providers.xml`.
 
 The `nifi.security.user.login.identity.provider` property indicates which of the configured Login Identity Provider should be
-used. By default, this property is not configured meaning that username/password must be explicitly enabled.
+used. The default value of this property is `single-user-provider` supporting authentication with a generated username and password.
 
 During OpenId Connect authentication, NiFi will redirect users to login with the Provider before returning to NiFi. NiFi will then
 call the Provider to obtain the user identity.
@@ -280,6 +279,37 @@ request is authenticated or rejected. In all three of these scenarios if the req
 authorization based on the requested resource.
 
 NOTE: NiFi does not perform user authentication over HTTP. Using HTTP, all users will be granted all roles.
+
+[[single_user_identity_provider]]
+=== Single User
+
+The default Single User Login Identity Provider supports automated generation of username and password credentials.
+
+The generated username will be a random UUID consisting of 36 characters. The generated password will be a random string
+consisting of 32 characters and stored using bcrypt hashing.
+
+The default configuration in _nifi.properties_ enables Single User authentication:
+
+---
+nifi.security.user.login.identity.provider=single-user-provider
+---
+
+The default _login-identity-providers.xml_ includes a blank provider definition:
+
+---
+<provider>
+   <identifier>single-user-provider</identifier>
+   <class>org.apache.nifi.authentication.single.user.SingleUserLoginIdentityProvider</class>
+   <property name="Username"/>
+   <property name="Password"/>
+</provider>
+---
+
+The following command can be used to change the Username and Password:
+
+```
+$ ./bin/nifi.sh set-single-user-credentials <username> <password>
+```
 
 [[ldap_login_identity_provider]]
 === Lightweight Directory Access Protocol (LDAP)
@@ -3516,8 +3546,8 @@ These properties pertain to the web-based User Interface.
 
 |====
 |*Property*|*Description*
-|`nifi.web.http.host`|The HTTP host. The default value is `127.0.0.1`.
-|`nifi.web.http.port`|The HTTP port. The default value is `8080`.
+|`nifi.web.http.host`|The HTTP host. The default value is blank.
+|`nifi.web.http.port`|The HTTP port. The default value is blank.
 |`nifi.web.http.port.forwarding`|The port which forwards incoming HTTP requests to `nifi.web.http.host`. This property is designed to be used with 'port forwarding', when NiFi has to be started by a non-root user for better security, yet it needs to be accessed via low port to go through a firewall. For example, to expose NiFi via HTTP protocol on port 80, but actually listening on port 8080, you need to configure OS level port forwarding such as `iptables` (Linux/Unix) or `pfctl` (macOS) that redirects requests from 80 to 8080. Then set `nifi.web.http.port` as 8080, and `nifi.web.http.port.forwarding` as 80. It is blank by default.
 |`nifi.web.http.network.interface`*|The name of the network interface to which NiFi should bind for HTTP requests. It is blank by default. +
  +
@@ -3529,8 +3559,8 @@ For example, to provide two additional network interfaces, a user could also spe
 `nifi.web.http.network.interface.eth1=eth1` +
  +
 Providing three total network interfaces, including  `nifi.web.http.network.interface.default`.
-|`nifi.web.https.host`|The HTTPS host. It is blank by default.
-|`nifi.web.https.port`|The HTTPS port. It is blank by default. When configuring NiFi to run securely, this port should be configured.
+|`nifi.web.https.host`|The HTTPS host. The default value is `127.0.0.1`.
+|`nifi.web.https.port`|The HTTPS port. The default value is `8443`.
 |`nifi.web.https.port.forwarding`|Same as `nifi.web.http.port.forwarding`, but with HTTPS for secure communication. It is blank by default.
 |`nifi.web.https.ciphersuites.include`|Cipher suites used to initialize the SSLContext of the Jetty HTTPS port.  If unspecified, the runtime SSLContext defaults are used.
 |`nifi.web.https.ciphersuites.exclude`|Cipher suites that may not be used by an SSL client to establish a connection to Jetty.  If unspecified, the runtime SSLContext defaults are used.

@@ -1008,7 +1008,7 @@ The following are available options:
 * `-g`,`--differentKeyAndKeystorePasswords`     Use different generated password for the key and the keystore
 * `-h`,`--help`                                 Print help and exit
 * `-k`,`--keySize <arg>`                        Number of bits for generated keys (default: `2048`)
-* `-p`,`--PORT <arg>`                           The port for the Certificate Authority to listen on (default: `8443`)
+* `-p`,`--PORT <arg>`                           The port for the Certificate Authority to listen on (default: `9443`)
 * `-s`,`--signingAlgorithm <arg>`               Algorithm to use for signing certificates (default: `SHA256WITHRSA`)
 * `-T`,`--keyStoreType <arg>`                   The type of keystores to generate (default: `jks`)
 * `-t`,`--token <arg>`                          The token to use to prevent MITM (required and must be same as one used by clients)
@@ -1033,7 +1033,7 @@ The following are available options:
 * `-g`,`--differentKeyAndKeystorePasswords`     Use different generated password for the key and the keystore
 * `-h`,`--help`                                 Print help and exit
 * `-k`,`--keySize <arg>`                        Number of bits for generated keys (default: `2048`)
-* `-p`,`--PORT <arg>`                           The port to use to communicate with the Certificate Authority (default: `8443`)
+* `-p`,`--PORT <arg>`                           The port to use to communicate with the Certificate Authority (default: `9443`)
 * `--subjectAlternativeNames <arg>`             Comma-separated list of domains to use as Subject Alternative Names in the certificate
 * `-T`,`--keyStoreType <arg>`                   The type of keystores to generate (default: `jks`)
 * `-t`,`--token <arg>`                          The token to use to prevent MITM (required and must be same as one used by CA)
