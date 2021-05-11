@@ -20,6 +20,7 @@ import com.amazonaws.services.kinesis.clientlibrary.interfaces.v2.IRecordProcess
 import com.amazonaws.services.kinesis.clientlibrary.lib.worker.InitialPositionInStream;
 import com.amazonaws.services.kinesis.clientlibrary.lib.worker.KinesisClientLibConfiguration;
 import com.amazonaws.services.kinesis.clientlibrary.lib.worker.Worker;
+import com.amazonaws.services.kinesis.clientlibrary.lib.worker.WorkerStateChangeListener;
 import com.amazonaws.services.kinesis.metrics.impl.NullMetricsFactory;
 import org.apache.commons.beanutils.BeanUtilsBean;
 import org.apache.commons.beanutils.ConvertUtilsBean2;
@@ -37,6 +38,7 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -80,6 +82,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
@@ -329,6 +333,8 @@ public class ConsumeKinesisStream extends AbstractKinesisStreamProcessor {
     private volatile boolean isRecordWriterSet;
 
     private volatile Worker worker;
+    final AtomicReference<WorkerStateChangeListener.WorkerState> workerState = new AtomicReference<>(null);
+    private final AtomicBoolean stopped = new AtomicBoolean(false);
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -465,6 +471,13 @@ public class ConsumeKinesisStream extends AbstractKinesisStreamProcessor {
         return validationResults;
     }
 
+    @OnScheduled
+    @Override
+    public void onScheduled(ProcessContext context) {
+        stopped.set(false);
+        super.onScheduled(context);
+    }
+
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) {
         if (worker == null) {
@@ -472,9 +485,15 @@ public class ConsumeKinesisStream extends AbstractKinesisStreamProcessor {
                 if (worker == null) {
                     final String workerId = generateWorkerId();
                     getLogger().info("Starting Kinesis Worker {}", workerId);
+                    // create worker (WorkerState will be CREATED)
                     worker = prepareWorker(context, sessionFactory, workerId);
+                    // initialise and start Worker (will set WorkerState to INITIALIZING and attempt to start)
                     new Thread(worker, WORKER_THREAD_NAME_TEMPLATE + workerId).start();
                 }
+            }
+        } else {
+            if (!stopped.get() && WorkerStateChangeListener.WorkerState.SHUT_DOWN == workerState.get()) {
+                throw new ProcessException("Worker has shutdown unexpectedly, possibly due to a configuration issue; check logs for details");
             }
         }
 
@@ -493,8 +512,13 @@ public class ConsumeKinesisStream extends AbstractKinesisStreamProcessor {
         if (worker != null) {
             synchronized (WORKER_LOCK) {
                 if (worker != null) {
+                    // indicate whether the processor has been Stopped; the Worker can be marked as SHUT_DOWN but still be waiting
+                    // for ShardConsumers/RecordProcessors to complete, etc.
+                    stopped.lazySet(true);
+
                     final boolean success = shutdownWorker(context);
                     worker = null;
+                    workerState.set(null);
 
                     if (!success) {
                         getLogger().warn("One or more problems while shutting down Kinesis Worker, see logs for details");
@@ -588,6 +612,7 @@ public class ConsumeKinesisStream extends AbstractKinesisStreamProcessor {
         final Worker.Builder workerBuilder = new Worker.Builder()
                 .config(kinesisClientLibConfiguration)
                 .kinesisClient(getClient())
+                .workerStateChangeListener(workerState::lazySet)
                 .recordProcessorFactory(factory);
 
         if (!isReportCloudWatchMetrics(context)) {

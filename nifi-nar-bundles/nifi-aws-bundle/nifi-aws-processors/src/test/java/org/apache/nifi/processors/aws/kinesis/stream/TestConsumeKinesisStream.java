@@ -22,10 +22,12 @@ import com.amazonaws.services.kinesis.clientlibrary.interfaces.v2.IRecordProcess
 import com.amazonaws.services.kinesis.clientlibrary.lib.worker.InitialPositionInStream;
 import com.amazonaws.services.kinesis.clientlibrary.lib.worker.KinesisClientLibConfiguration;
 import com.amazonaws.services.kinesis.clientlibrary.lib.worker.Worker;
+import com.amazonaws.services.kinesis.clientlibrary.lib.worker.WorkerStateChangeListener;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.json.JsonRecordSetWriter;
 import org.apache.nifi.json.JsonTreeReader;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors;
 import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderControllerService;
 import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderService;
@@ -39,6 +41,7 @@ import org.junit.Test;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
+import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
@@ -226,13 +229,18 @@ public class TestConsumeKinesisStream {
     }
 
     @Test
-    public void testRunWorkerWithCredentials() throws UnknownHostException, InitializationException {
-        runWorker(true);
+    public void testRunWorkerWithCredentials() throws UnknownHostException, InitializationException, InterruptedException {
+        runWorker(true, false);
     }
 
     @Test
-    public void testRunWorkerWithoutCredentials() throws UnknownHostException, InitializationException {
-        runWorker(false);
+    public void testRunWorkerUnexpectedShutdown() throws UnknownHostException, InitializationException, InterruptedException {
+        runWorker(true, true);
+    }
+
+    @Test
+    public void testRunWorkerWithoutCredentials() throws UnknownHostException, InitializationException, InterruptedException {
+        runWorker(false, false);
     }
 
     @Test
@@ -350,7 +358,7 @@ public class TestConsumeKinesisStream {
      * Trigger a run of the ConsumeKinesisStream processor, but expect the KCL Worker to fail (it needs connections to AWS resources)
      * Assert that our code is being called by checking log output. The ITConsumeKinesisStream integration tests prove actual AWS connectivity
      */
-    private void runWorker(final boolean withCredentials) throws UnknownHostException, InitializationException {
+    private void runWorker(final boolean withCredentials, final boolean waitForFailure) throws UnknownHostException, InitializationException, InterruptedException {
         final TestRunner mockConsumeKinesisStreamRunner = TestRunners.newTestRunner(MockConsumeKinesisStream.class);
 
         mockConsumeKinesisStreamRunner.setProperty(ConsumeKinesisStream.KINESIS_STREAM_NAME, "test-stream");
@@ -376,10 +384,13 @@ public class TestConsumeKinesisStream {
 
         // start the processor (but don't auto-shutdown to give Worker initialisation a chance to progress)
         mockConsumeKinesisStreamRunner.run(1, false);
+        final MockConsumeKinesisStream processor = ((MockConsumeKinesisStream) mockConsumeKinesisStreamRunner.getProcessor());
+
+        // WorkerState should get to INITIALIZING pretty quickly, but there's a change it will still be at CREATED by the time we get here
+        assertThat(processor.workerState.get(), anyOf(equalTo(WorkerStateChangeListener.WorkerState.INITIALIZING), equalTo(WorkerStateChangeListener.WorkerState.CREATED)));
 
         final String hostname = InetAddress.getLocalHost().getCanonicalHostName();
 
-        final MockConsumeKinesisStream processor = ((MockConsumeKinesisStream) mockConsumeKinesisStreamRunner.getProcessor());
         assertKinesisClientLibConfiguration(processor.kinesisClientLibConfiguration, withCredentials, hostname);
         assertThat(processor.workerBuilder.build().getApplicationName(), equalTo("test-application"));
 
@@ -400,31 +411,44 @@ public class TestConsumeKinesisStream {
         assertThat(mockConsumeKinesisStreamRunner.getLogger().getWarnMessages().isEmpty(), is(true));
         assertThat(mockConsumeKinesisStreamRunner.getLogger().getErrorMessages().isEmpty(), is(true));
 
-        // re-trigger the processor to ensure the Worker isn't re-initialised when already running
-        mockConsumeKinesisStreamRunner.run(1, false, false);
-        assertThat(mockConsumeKinesisStreamRunner.getLogger().getInfoMessages().stream()
-                .filter(logMessage -> logMessage.getMsg().contains(String.format("Starting Kinesis Worker %s", hostname))).count(), is(1L));
-        assertThat(mockConsumeKinesisStreamRunner.getLogger().getWarnMessages().isEmpty(), is(true));
-        assertThat(mockConsumeKinesisStreamRunner.getLogger().getErrorMessages().isEmpty(), is(true));
+        if (!waitForFailure) {
+            // re-trigger the processor to ensure the Worker isn't re-initialised when already running
+            mockConsumeKinesisStreamRunner.run(1, false, false);
+            assertThat(mockConsumeKinesisStreamRunner.getLogger().getInfoMessages().stream()
+                    .filter(logMessage -> logMessage.getMsg().contains(String.format("Starting Kinesis Worker %s", hostname))).count(), is(1L));
+            assertThat(mockConsumeKinesisStreamRunner.getLogger().getWarnMessages().isEmpty(), is(true));
+            assertThat(mockConsumeKinesisStreamRunner.getLogger().getErrorMessages().isEmpty(), is(true));
 
-        // stop the processor
-        mockConsumeKinesisStreamRunner.stop();
+            // stop the processor
+            mockConsumeKinesisStreamRunner.stop();
 
-        // confirm the processor worked through the stopConsuming method
-        assertThat(mockConsumeKinesisStreamRunner.getLogger().getInfoMessages().stream()
-                .anyMatch(logMessage -> logMessage.getMsg().endsWith("Requesting Kinesis Worker shutdown")), is(true));
-        assertThat(mockConsumeKinesisStreamRunner.getLogger().getInfoMessages().stream()
-                .anyMatch(logMessage -> logMessage.getMsg().endsWith("Kinesis Worker shutdown")), is(true));
+            // confirm the processor worked through the stopConsuming method
+            assertThat(mockConsumeKinesisStreamRunner.getLogger().getInfoMessages().stream()
+                    .anyMatch(logMessage -> logMessage.getMsg().endsWith("Requesting Kinesis Worker shutdown")), is(true));
+            assertThat(mockConsumeKinesisStreamRunner.getLogger().getInfoMessages().stream()
+                    .anyMatch(logMessage -> logMessage.getMsg().endsWith("Kinesis Worker shutdown")), is(true));
 
-        // LeaseCoordinator doesn't startup properly (can't create DynamoDB table during unit test) and therefore has a problem during shutdown
-        assertThat(mockConsumeKinesisStreamRunner.getLogger().getWarnMessages().size(), is(2));
-        assertThat(mockConsumeKinesisStreamRunner.getLogger().getWarnMessages().stream()
-                .anyMatch(logMessage -> logMessage.getMsg().endsWith(
-                        "Problem while shutting down Kinesis Worker: java.lang.NullPointerException: java.util.concurrent.ExecutionException: java.lang.NullPointerException"
-                )), is(true));
-        assertThat(mockConsumeKinesisStreamRunner.getLogger().getWarnMessages().stream()
-                .anyMatch(logMessage -> logMessage.getMsg().endsWith("One or more problems while shutting down Kinesis Worker, see logs for details")), is(true));
-        assertThat(mockConsumeKinesisStreamRunner.getLogger().getErrorMessages().isEmpty(), is(true));
+            // LeaseCoordinator doesn't startup properly (can't create DynamoDB table during unit test) and therefore has a problem during shutdown
+            assertThat(mockConsumeKinesisStreamRunner.getLogger().getWarnMessages().size(), is(2));
+            assertThat(mockConsumeKinesisStreamRunner.getLogger().getWarnMessages().stream()
+                    .anyMatch(logMessage -> logMessage.getMsg().endsWith(
+                            "Problem while shutting down Kinesis Worker: java.lang.NullPointerException: java.util.concurrent.ExecutionException: java.lang.NullPointerException"
+                    )), is(true));
+            assertThat(mockConsumeKinesisStreamRunner.getLogger().getWarnMessages().stream()
+                    .anyMatch(logMessage -> logMessage.getMsg().endsWith("One or more problems while shutting down Kinesis Worker, see logs for details")), is(true));
+            assertThat(mockConsumeKinesisStreamRunner.getLogger().getErrorMessages().isEmpty(), is(true));
+        } else {
+            for (int runs = 0; runs < 10; runs++) {
+                try {
+                    mockConsumeKinesisStreamRunner.run(1, false, false);
+                    Thread.sleep(1_000);
+                } catch (AssertionError e) {
+                    assertThat(e.getCause(), instanceOf(ProcessException.class));
+                    assertThat(e.getCause().getMessage(), equalTo("Worker has shutdown unexpectedly, possibly due to a configuration issue; check logs for details"));
+                    break;
+                }
+            }
+        }
     }
 
     private void assertKinesisClientLibConfiguration(final KinesisClientLibConfiguration kinesisClientLibConfiguration,
@@ -461,7 +485,9 @@ public class TestConsumeKinesisStream {
         assertThat(kinesisClientLibConfiguration.getParentShardPollIntervalMillis(), equalTo(1L));
     }
 
+    // public so TestRunners is able to see and instantiate the class for the tests
     public static class MockConsumeKinesisStream extends ConsumeKinesisStream {
+        // capture the WorkerBuilder and KinesisClientLibConfiguration for unit test assertions
         KinesisClientLibConfiguration kinesisClientLibConfiguration;
         Worker.Builder workerBuilder;
 
