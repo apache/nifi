@@ -52,7 +52,6 @@ public class KinesisRecordProcessorRecord extends AbstractKinesisRecordProcessor
     private RecordSetWriter writer;
     private OutputStream outputStream;
 
-    @SuppressWarnings("java:S107")
     public KinesisRecordProcessorRecord(final ProcessSessionFactory sessionFactory, final ComponentLog log, final String streamName,
                                         final String endpointPrefix, final String kinesisEndpoint,
                                         final long checkpointIntervalMillis, final long retryWaitMillis,

@@ -29,7 +29,6 @@ import java.util.List;
 import java.util.Map;
 
 public class KinesisRecordProcessorRaw extends AbstractKinesisRecordProcessor {
-    @SuppressWarnings("java:S107")
     public KinesisRecordProcessorRaw(final ProcessSessionFactory sessionFactory, final ComponentLog log, final String streamName,
                                      final String endpointPrefix, final String kinesisEndpoint,
                                      final long checkpointIntervalMillis, final long retryWaitMillis,

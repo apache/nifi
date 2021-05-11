@@ -50,8 +50,10 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
-import org.apache.nifi.processor.AbstractProcessor;
+import org.apache.nifi.processor.AbstractSessionFactoryProcessor;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -68,7 +70,7 @@ import org.apache.nifi.ssl.SSLContextService;
  *
  */
 @Deprecated
-public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceClient> extends AbstractProcessor {
+public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceClient> extends AbstractSessionFactoryProcessor {
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success")
             .description("FlowFiles are routed to success relationship").build();
@@ -169,7 +171,7 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
         for (final Regions region : Regions.values()) {
             values.add(createAllowableValue(region));
         }
-        return values.toArray(new AllowableValue[values.size()]);
+        return values.toArray(new AllowableValue[0]);
     }
 
     @Override
@@ -271,6 +273,28 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
         initializeRegionAndEndpoint(context);
     }
 
+    /*
+     * Allow optional override of onTrigger with the ProcessSessionFactory where required for AWS processors (e.g. ConsumeKinesisStream)
+     *
+     * @see AbstractProcessor
+     */
+    @Override
+    public void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) throws ProcessException {
+        final ProcessSession session = sessionFactory.createSession();
+        try {
+            onTrigger(context, session);
+            session.commit();
+        } catch (final Throwable t) {
+            session.rollback(true);
+            throw t;
+        }
+    }
+
+    /*
+     * Default to requiring the "standard" onTrigger with a single ProcessSession
+     */
+    public abstract void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException;
+
     protected void initializeRegionAndEndpoint(ProcessContext context) {
         // if the processor supports REGION, get the configured region.
         if (getSupportedPropertyDescriptors().contains(REGION)) {
@@ -291,7 +315,7 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
             final String urlstr = StringUtils.trimToEmpty(context.getProperty(ENDPOINT_OVERRIDE).evaluateAttributeExpressions().getValue());
 
             if (!urlstr.isEmpty()) {
-                getLogger().info("Overriding endpoint with {}", new Object[]{urlstr});
+                getLogger().info("Overriding endpoint with {}", urlstr);
 
                 if (urlstr.endsWith(".vpce.amazonaws.com")) {
                     String region = parseRegionForVPCE(urlstr);

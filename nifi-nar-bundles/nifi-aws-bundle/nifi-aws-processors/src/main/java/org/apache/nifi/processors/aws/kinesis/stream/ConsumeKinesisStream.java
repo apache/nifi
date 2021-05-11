@@ -122,7 +122,6 @@ import java.util.stream.Collectors;
 @SystemResourceConsideration(resource = SystemResource.NETWORK, description = "Kinesis Client Library will continually poll for new Records, " +
         "requesting up to a maximum number of Records/bytes per call. This can result in sustained network usage.")
 @SeeAlso(PutKinesisStream.class)
-@SuppressWarnings({"java:S110", "java:S2160", "java:S3077"})
 public class ConsumeKinesisStream extends AbstractKinesisStreamProcessor {
     static final AllowableValue TRIM_HORIZON = new AllowableValue(
             InitialPositionInStream.TRIM_HORIZON.toString(),
@@ -289,7 +288,6 @@ public class ConsumeKinesisStream extends AbstractKinesisStreamProcessor {
             )
     );
 
-    @SuppressWarnings({"java:S3599", "java:S1171"})
     private static final Map<String, PropertyDescriptor> DISALLOWED_DYNAMIC_KCL_PROPERTIES = new HashMap<String, PropertyDescriptor>(){{
         put("regionName", REGION);
         put("timestampAtInitialPositionInStream", STREAM_POSITION_TIMESTAMP);
@@ -379,7 +377,6 @@ public class ConsumeKinesisStream extends AbstractKinesisStreamProcessor {
                     .valid(false).build();
         }
 
-        @SuppressWarnings("java:S1192")
         final KinesisClientLibConfiguration kclTemp = new KinesisClientLibConfiguration("validate", "validate", null, "validate");
         try {
             final String propName = StringUtils.uncapitalize(subject);
@@ -545,7 +542,7 @@ public class ConsumeKinesisStream extends AbstractKinesisStreamProcessor {
      *  DISALLOWED_DYNAMIC_KCL_PROPERTIES list so Dynamic Properties can't be used to override the static properties
      */
     KinesisClientLibConfiguration prepareKinesisClientLibConfiguration(final ProcessContext context, final String workerId) {
-        @SuppressWarnings({"deprecated", "java:S1874"}) // use most of the defaults in the constructor chain rather than the mammoth constructor here
+        @SuppressWarnings("deprecated")
         final KinesisClientLibConfiguration kinesisClientLibConfiguration = new KinesisClientLibConfiguration(
                 getApplicationName(context),
                 getStreamName(context),
@@ -614,7 +611,7 @@ public class ConsumeKinesisStream extends AbstractKinesisStreamProcessor {
                     getLogger().info("Kinesis Worker shutdown");
                 }
             }
-        } catch (@SuppressWarnings("java:S2142") InterruptedException | TimeoutException | ExecutionException e) {
+        } catch (InterruptedException | TimeoutException | ExecutionException e) {
             getLogger().warn("Problem while shutting down Kinesis Worker: {}", e.getLocalizedMessage(), e);
             success = false;
         }

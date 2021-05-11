@@ -19,7 +19,6 @@ package org.apache.nifi.processors.aws.kinesis.stream.record;
 import com.amazonaws.services.kinesis.clientlibrary.exceptions.InvalidStateException;
 import com.amazonaws.services.kinesis.clientlibrary.exceptions.ShutdownException;
 import com.amazonaws.services.kinesis.clientlibrary.interfaces.IRecordProcessorCheckpointer;
-import com.amazonaws.services.kinesis.clientlibrary.interfaces.v2.IRecordProcessor;
 import com.amazonaws.services.kinesis.clientlibrary.types.ProcessRecordsInput;
 import com.amazonaws.services.kinesis.model.Record;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -76,7 +75,7 @@ public class TestKinesisRecordProcessorRecord {
     private final SharedSessionState sharedState = new SharedSessionState(runner.getProcessor(), new AtomicLong(0));
     private final MockProcessSession session = new MockProcessSession(sharedState, runner.getProcessor());
 
-    private IRecordProcessor fixture;
+    private AbstractKinesisRecordProcessor fixture;
     private final RecordReaderFactory reader = new JsonTreeReader();
     private final RecordSetWriterFactory writer = new JsonRecordSetWriter();
 
@@ -123,7 +122,7 @@ public class TestKinesisRecordProcessorRecord {
                 .withMillisBehindLatest(100L);
 
         // would checkpoint (but should skip because there are no records processed)
-        ((AbstractKinesisRecordProcessor) fixture).setNextCheckpointTimeInMillis(System.currentTimeMillis() - 10_000L);
+        fixture.setNextCheckpointTimeInMillis(System.currentTimeMillis() - 10_000L);
 
         fixture.processRecords(processRecordsInput);
 
@@ -175,8 +174,8 @@ public class TestKinesisRecordProcessorRecord {
         }
 
         // skip checkpoint
-        ((AbstractKinesisRecordProcessor) fixture).setNextCheckpointTimeInMillis(System.currentTimeMillis() + 10_000L);
-        ((AbstractKinesisRecordProcessor) fixture).setKinesisShardId("another-shard");
+        fixture.setNextCheckpointTimeInMillis(System.currentTimeMillis() + 10_000L);
+        fixture.setKinesisShardId("another-shard");
 
         when(processSessionFactory.createSession()).thenReturn(session);
         fixture.processRecords(processRecordsInput);
@@ -220,7 +219,7 @@ public class TestKinesisRecordProcessorRecord {
         when(kinesisRecord.getData()).thenThrow(new IllegalStateException("illegal state"));
         when(kinesisRecord.toString()).thenReturn("poison-pill");
 
-        ((AbstractKinesisRecordProcessor) fixture).setKinesisShardId("test-shard");
+        fixture.setKinesisShardId("test-shard");
 
         when(processSessionFactory.createSession()).thenReturn(session);
         fixture.processRecords(processRecordsInput);
@@ -275,7 +274,7 @@ public class TestKinesisRecordProcessorRecord {
         when(kinesisRecord.getSequenceNumber()).thenReturn("unparsable-sequence");
         when(kinesisRecord.getApproximateArrivalTimestamp()).thenReturn(null);
 
-        ((AbstractKinesisRecordProcessor) fixture).setKinesisShardId("test-shard");
+        fixture.setKinesisShardId("test-shard");
 
         when(processSessionFactory.createSession()).thenReturn(session);
         fixture.processRecords(processRecordsInput);

@@ -20,7 +20,6 @@ import com.amazonaws.services.kinesis.clientlibrary.exceptions.InvalidStateExcep
 import com.amazonaws.services.kinesis.clientlibrary.exceptions.ShutdownException;
 import com.amazonaws.services.kinesis.clientlibrary.exceptions.ThrottlingException;
 import com.amazonaws.services.kinesis.clientlibrary.interfaces.IRecordProcessorCheckpointer;
-import com.amazonaws.services.kinesis.clientlibrary.interfaces.v2.IRecordProcessor;
 import com.amazonaws.services.kinesis.clientlibrary.lib.worker.InitialPositionInStream;
 import com.amazonaws.services.kinesis.clientlibrary.lib.worker.ShutdownReason;
 import com.amazonaws.services.kinesis.clientlibrary.types.ExtendedSequenceNumber;
@@ -28,7 +27,6 @@ import com.amazonaws.services.kinesis.clientlibrary.types.InitializationInput;
 import com.amazonaws.services.kinesis.clientlibrary.types.ShutdownInput;
 import com.amazonaws.services.kinesis.model.Record;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processors.aws.kinesis.stream.ConsumeKinesisStream;
@@ -67,7 +65,7 @@ public class TestAbstractKinesisRecordProcessor {
 
     private final MockProcessSession session = new MockProcessSession(new SharedSessionState(runner.getProcessor(), new AtomicLong(0)), runner.getProcessor());
 
-    private IRecordProcessor fixture;
+    private AbstractKinesisRecordProcessor fixture;
 
     @Mock
     private IRecordProcessorCheckpointer checkpointer;
@@ -82,8 +80,13 @@ public class TestAbstractKinesisRecordProcessor {
         when(processSessionFactory.createSession()).thenReturn(session);
 
         // default test fixture will try operations twice with very little wait in between
-        fixture = new MockKinesisRecordProcessor(processSessionFactory, runner.getLogger(), "kinesis-test",
-                "endpoint-prefix", null, 10_000L, 1L, 2, DATE_TIME_FORMATTER);
+        fixture = new AbstractKinesisRecordProcessor(processSessionFactory, runner.getLogger(), "kinesis-test",
+                "endpoint-prefix", null, 10_000L, 1L, 2, DATE_TIME_FORMATTER) {
+            @Override
+            void processRecord(List<FlowFile> flowFiles, Record kinesisRecord, boolean lastRecord, ProcessSession session, StopWatch stopWatch) {
+                // intentionally blank
+            }
+        };
     }
 
     @After
@@ -101,8 +104,8 @@ public class TestAbstractKinesisRecordProcessor {
 
         fixture.initialize(initializationInput);
 
-        assertThat(((AbstractKinesisRecordProcessor) fixture).getNextCheckpointTimeInMillis() > System.currentTimeMillis(), is(true));
-        assertThat(((AbstractKinesisRecordProcessor) fixture).getKinesisShardId(), equalTo("shard-id"));
+        assertThat(fixture.getNextCheckpointTimeInMillis() > System.currentTimeMillis(), is(true));
+        assertThat(fixture.getKinesisShardId(), equalTo("shard-id"));
 
         // DEBUG messages don't have their fields replaced in the MockComponentLog
         assertThat(runner.getLogger().getDebugMessages().stream().anyMatch(logMessage -> logMessage.getMsg()
@@ -120,8 +123,8 @@ public class TestAbstractKinesisRecordProcessor {
 
         fixture.initialize(initializationInput);
 
-        assertThat(((AbstractKinesisRecordProcessor) fixture).getNextCheckpointTimeInMillis() > System.currentTimeMillis(), is(true));
-        assertThat(((AbstractKinesisRecordProcessor) fixture).getKinesisShardId(), equalTo("shard-id"));
+        assertThat(fixture.getNextCheckpointTimeInMillis() > System.currentTimeMillis(), is(true));
+        assertThat(fixture.getKinesisShardId(), equalTo("shard-id"));
 
         assertThat(runner.getLogger().getWarnMessages().stream().anyMatch(logMessage -> logMessage.getMsg()
                 .contains(String.format(
@@ -136,7 +139,7 @@ public class TestAbstractKinesisRecordProcessor {
                 .withShutdownReason(ShutdownReason.REQUESTED)
                 .withCheckpointer(checkpointer);
 
-        ((AbstractKinesisRecordProcessor) fixture).setKinesisShardId("test-shard");
+        fixture.setKinesisShardId("test-shard");
         fixture.shutdown(shutdownInput);
 
         verify(checkpointer, times(1)).checkpoint();
@@ -206,8 +209,8 @@ public class TestAbstractKinesisRecordProcessor {
                 .withShutdownReason(ShutdownReason.TERMINATE)
                 .withCheckpointer(checkpointer);
 
-        ((AbstractKinesisRecordProcessor) fixture).setKinesisShardId("test-shard");
-        ((AbstractKinesisRecordProcessor) fixture).setProcessingRecords(false);
+        fixture.setKinesisShardId("test-shard");
+        fixture.setProcessingRecords(false);
         fixture.shutdown(shutdownInput);
 
         verify(checkpointer, times(1)).checkpoint();
@@ -232,8 +235,8 @@ public class TestAbstractKinesisRecordProcessor {
                 .withShutdownReason(ShutdownReason.TERMINATE)
                 .withCheckpointer(checkpointer);
 
-        ((AbstractKinesisRecordProcessor) fixture).setKinesisShardId("test-shard");
-        ((AbstractKinesisRecordProcessor) fixture).setProcessingRecords(true);
+        fixture.setKinesisShardId("test-shard");
+        fixture.setProcessingRecords(true);
         fixture.shutdown(shutdownInput);
 
         verify(checkpointer, times(1)).checkpoint();
@@ -253,20 +256,5 @@ public class TestAbstractKinesisRecordProcessor {
         assertThat(runner.getLogger().getWarnMessages().stream().filter(logMessage -> logMessage.getMsg()
                 .endsWith("Record Processor for shard test-shard still running, but maximum wait time elapsed, checkpoint will be attempted"))
                 .count(), is(1L));
-    }
-
-    private static class MockKinesisRecordProcessor extends AbstractKinesisRecordProcessor {
-        @SuppressWarnings("java:S107")
-        public MockKinesisRecordProcessor(final ProcessSessionFactory sessionFactory, final ComponentLog log, final String streamName,
-                                          final String endpointPrefix, final String kinesisEndpoint, final long checkpointIntervalMillis, final long retryWaitMillis,
-                                          final int numRetries, final DateTimeFormatter dateTimeFormatter) {
-            super(sessionFactory, log, streamName, endpointPrefix, kinesisEndpoint, checkpointIntervalMillis, retryWaitMillis, numRetries, dateTimeFormatter);
-        }
-
-        @Override
-        void processRecord(final List<FlowFile> flowFiles, final Record kinesisRecord, final boolean lastRecord,
-                           final ProcessSession session, final StopWatch stopWatch) {
-            // intentionally blank
-        }
     }
 }

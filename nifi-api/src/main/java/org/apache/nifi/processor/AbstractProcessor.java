@@ -21,7 +21,7 @@ import org.apache.nifi.processor.exception.ProcessException;
 public abstract class AbstractProcessor extends AbstractSessionFactoryProcessor {
 
     @Override
-    public void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) throws ProcessException {
+    public final void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) throws ProcessException {
         final ProcessSession session = sessionFactory.createSession();
         try {
             onTrigger(context, session);

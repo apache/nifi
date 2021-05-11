@@ -19,7 +19,6 @@ package org.apache.nifi.processors.aws.kinesis.stream.record;
 import com.amazonaws.services.kinesis.clientlibrary.exceptions.InvalidStateException;
 import com.amazonaws.services.kinesis.clientlibrary.exceptions.ShutdownException;
 import com.amazonaws.services.kinesis.clientlibrary.interfaces.IRecordProcessorCheckpointer;
-import com.amazonaws.services.kinesis.clientlibrary.interfaces.v2.IRecordProcessor;
 import com.amazonaws.services.kinesis.clientlibrary.types.ProcessRecordsInput;
 import com.amazonaws.services.kinesis.model.Record;
 import org.apache.nifi.processor.ProcessSessionFactory;
@@ -68,7 +67,7 @@ public class TestKinesisRecordProcessorRaw {
     private final SharedSessionState sharedState = new SharedSessionState(runner.getProcessor(), new AtomicLong(0));
     private final MockProcessSession session = new MockProcessSession(sharedState, runner.getProcessor());
 
-    private IRecordProcessor fixture;
+    private AbstractKinesisRecordProcessor fixture;
 
     @Mock
     private IRecordProcessorCheckpointer checkpointer;
@@ -101,7 +100,7 @@ public class TestKinesisRecordProcessorRaw {
                 .withMillisBehindLatest(100L);
 
         // would checkpoint (but should skip because there are no records processed)
-        ((AbstractKinesisRecordProcessor) fixture).setNextCheckpointTimeInMillis(System.currentTimeMillis() - 10_000L);
+        fixture.setNextCheckpointTimeInMillis(System.currentTimeMillis() - 10_000L);
 
         fixture.processRecords(processRecordsInput);
 
@@ -152,8 +151,8 @@ public class TestKinesisRecordProcessorRaw {
         }
 
         // skip checkpoint
-        ((AbstractKinesisRecordProcessor) fixture).setNextCheckpointTimeInMillis(System.currentTimeMillis() + 10_000L);
-        ((AbstractKinesisRecordProcessor) fixture).setKinesisShardId("test-shard");
+        fixture.setNextCheckpointTimeInMillis(System.currentTimeMillis() + 10_000L);
+        fixture.setKinesisShardId("test-shard");
 
         when(processSessionFactory.createSession()).thenReturn(session);
         fixture.processRecords(processRecordsInput);
@@ -196,7 +195,7 @@ public class TestKinesisRecordProcessorRaw {
         when(kinesisRecord.getData()).thenThrow(new IllegalStateException("illegal state"));
         when(kinesisRecord.toString()).thenReturn("poison-pill");
 
-        ((AbstractKinesisRecordProcessor) fixture).setKinesisShardId("test-shard");
+        fixture.setKinesisShardId("test-shard");
 
         when(processSessionFactory.createSession()).thenReturn(session);
         fixture.processRecords(processRecordsInput);

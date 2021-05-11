@@ -42,7 +42,7 @@ public abstract class AbstractKinesisStreamProcessor extends AbstractBaseKinesis
      * Create client using aws credentials provider. This is the preferred way for creating clients
      */
     @Override
-    @SuppressWarnings({"deprecated", "java:S1874"}) // can't use AmazonKinesisClientBuilder because the resulting client is immutable
+    @SuppressWarnings("deprecated")
     protected AmazonKinesisClient createClient(final ProcessContext context, final AWSCredentialsProvider credentialsProvider, final ClientConfiguration config) {
         getLogger().info("Creating client using aws credentials provider");
 

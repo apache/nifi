@@ -73,7 +73,6 @@ public abstract class AbstractKinesisRecordProcessor implements IRecordProcessor
 
     private boolean processingRecords = false;
 
-    @SuppressWarnings("java:S107")
     AbstractKinesisRecordProcessor(final ProcessSessionFactory sessionFactory, final ComponentLog log, final String streamName,
                                    final String endpointPrefix, final String kinesisEndpoint,
                                    final long checkpointIntervalMillis, final long retryWaitMillis,
@@ -105,7 +104,6 @@ public abstract class AbstractKinesisRecordProcessor implements IRecordProcessor
         this.nextCheckpointTimeInMillis = System.currentTimeMillis() + checkpointIntervalMillis;
     }
 
-    @SuppressWarnings({"java:S3252"}) // ConsumeKinesisStream reference to REL_SUCCESS instead of deprecated AbstractAWSProcessor
     @Override
     public void processRecords(final ProcessRecordsInput processRecordsInput) {
         if (log.isDebugEnabled()) {
@@ -178,7 +176,7 @@ public abstract class AbstractKinesisRecordProcessor implements IRecordProcessor
             // backoff if we encounter an exception.
             try {
                 Thread.sleep(retryWaitMillis);
-            } catch (@SuppressWarnings("java:S2142") InterruptedException ie) {
+            } catch (InterruptedException ie) {
                 log.debug("Interrupted sleep during record processing back-off", ie);
             }
         }
@@ -247,7 +245,7 @@ public abstract class AbstractKinesisRecordProcessor implements IRecordProcessor
                 log.debug("Record Processor for shard {} still processing records, waiting before shutdown", kinesisShardId);
                 try {
                     Thread.sleep(retryWaitMillis);
-                } catch (@SuppressWarnings("java:S2142") InterruptedException ie) {
+                } catch (InterruptedException ie) {
                     log.debug("Interrupted sleep while waiting for record processing to complete before shutdown (TERMINATE)", ie);
                 }
             }
@@ -290,7 +288,7 @@ public abstract class AbstractKinesisRecordProcessor implements IRecordProcessor
 
                 try {
                     Thread.sleep(retryWaitMillis);
-                } catch (@SuppressWarnings("java:S2142") InterruptedException ie) {
+                } catch (InterruptedException ie) {
                     log.debug("Interrupted sleep during checkpoint back-off", ie);
                 }
             }
