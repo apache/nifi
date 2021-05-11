@@ -101,7 +101,7 @@ class CryptoKeyLoaderGroovyTest extends GroovyTestCase {
         // Arrange
         File unreadableFile = new File("src/test/resources/conf/bootstrap.unreadable_file_permissions.conf")
         Set<PosixFilePermission> originalPermissions = getFilePermissions(unreadableFile)
-        Files.setPosixFilePermissions(unreadableFile.toPath(), [] as Set)
+        setFilePermissions(unreadableFile.toPath(), [] as Set)
         try {
             assert !unreadableFile.canRead()
 
@@ -115,7 +115,7 @@ class CryptoKeyLoaderGroovyTest extends GroovyTestCase {
             assert msg == "Cannot read from bootstrap.conf"
         } finally {
             // Clean up to allow for indexing, etc.
-            Files.setPosixFilePermissions(unreadableFile.toPath(), originalPermissions)
+            setFilePermissions(unreadableFile, originalPermissions)
         }
     }
 
@@ -126,6 +126,16 @@ class CryptoKeyLoaderGroovyTest extends GroovyTestCase {
                     file.canExecute() ? PosixFilePermission.OWNER_EXECUTE : ""].findAll { it } as Set
         } else {
             return Files.getPosixFilePermissions(file?.toPath())
+        }
+    }
+
+    private static void setFilePermissions(File file, List<PosixFilePermission> permissions = []) {
+        if (SystemUtils.IS_OS_WINDOWS) {
+            file?.setReadable(permissions.contains(PosixFilePermission.OWNER_READ))
+            file?.setWritable(permissions.contains(PosixFilePermission.OWNER_WRITE))
+            file?.setExecutable(permissions.contains(PosixFilePermission.OWNER_EXECUTE))
+        } else {
+            Files.setPosixFilePermissions(file?.toPath(), permissions as Set)
         }
     }
 }
