@@ -65,67 +65,108 @@ Apache NiFi was made for dataflow. It supports highly configurable directed grap
 
 ## Getting Started
 
-- Read through the [quickstart guide for development](http://nifi.apache.org/quickstart.html).
-  It will include information on getting a local copy of the source, give pointers on issue
-  tracking, and provide some warnings about common problems with development environments.
-- For a more comprehensive guide to development and information about contributing to the project
-  read through the [NiFi Developer's Guide](http://nifi.apache.org/developer-guide.html).
+Read through the [quickstart guide for development](http://nifi.apache.org/quickstart.html).
+It will include information on getting a local copy of the source, give pointers on issue
+tracking, and provide some warnings about common problems with development environments.
 
-To build:
-- Execute `mvn clean install` or for parallel build execute `mvn -T 2.0C clean install`. On a
-  modest development laptop that is a couple of years old, the latter build takes a bit under ten
-  minutes. After a large amount of output you should eventually see a success message.
+For a more comprehensive guide to development and information about contributing to the project
+read through the [NiFi Developer's Guide](http://nifi.apache.org/developer-guide.html).
 
-        laptop:nifi myuser$ mvn -T 2.0C clean install
-        [INFO] Scanning for projects...
-        [INFO] Inspecting build with total of 115 modules...
-            ...tens of thousands of lines elided...
-        [INFO] ------------------------------------------------------------------------
-        [INFO] BUILD SUCCESS
-        [INFO] ------------------------------------------------------------------------
-        [INFO] Total time: 09:24 min (Wall Clock)
-        [INFO] Finished at: 2015-04-30T00:30:36-05:00
-        [INFO] Final Memory: 173M/1359M
-        [INFO] ------------------------------------------------------------------------
-- Execute `mvn clean install -DskipTests` to compile tests, but skip running them.
+### Building
 
-To deploy:
-- Change directory to 'nifi-assembly'. In the target directory, there should be a build of nifi.
+Run `mvn clean install` or for parallel build execute `mvn -T 2.0C clean install`.
 
-        laptop:nifi myuser$ cd nifi-assembly
-        laptop:nifi-assembly myuser$ ls -lhd target/nifi*
-        drwxr-xr-x  3 myuser  mygroup   102B Apr 30 00:29 target/nifi-1.0.0-SNAPSHOT-bin
-        -rw-r--r--  1 myuser  mygroup   144M Apr 30 00:30 target/nifi-1.0.0-SNAPSHOT-bin.tar.gz
-        -rw-r--r--  1 myuser  mygroup   144M Apr 30 00:30 target/nifi-1.0.0-SNAPSHOT-bin.zip
+The parallel build should take around fifteen minutes on modern hardware.
 
-- For testing ongoing development you could use the already unpacked build present in the directory
-  named "nifi-*version*-bin", where *version* is the current project version. To deploy in another
-  location make use of either the tarball or zipfile and unpack them wherever you like. The
-  distribution will be within a common parent directory named for the version.
+    laptop:nifi myuser$ mvn -T 2.0C clean install
+    [INFO] Scanning for projects...
+    [INFO] Inspecting build with total of 115 modules...
+        ...tens of thousands of lines elided...
+    [INFO] ------------------------------------------------------------------------
+    [INFO] BUILD SUCCESS
+    [INFO] ------------------------------------------------------------------------
+    [INFO] Total time: 09:24 min (Wall Clock)
+    [INFO] Finished at: 2015-04-30T00:30:36-05:00
+    [INFO] Final Memory: 173M/1359M
+    [INFO] ------------------------------------------------------------------------
 
-        laptop:nifi-assembly myuser$ mkdir ~/example-nifi-deploy
-        laptop:nifi-assembly myuser$ tar xzf target/nifi-*-bin.tar.gz -C ~/example-nifi-deploy
-        laptop:nifi-assembly myuser$ ls -lh ~/example-nifi-deploy/
-        total 0
-        drwxr-xr-x  10 myuser  mygroup   340B Apr 30 01:06 nifi-1.0.0-SNAPSHOT
+Run `mvn clean install -DskipTests` to skip unit test execution.
 
-To run NiFi:
-- Change directory to the location where you installed NiFi and run it.
+### Deploying
 
-        laptop:~ myuser$ cd ~/example-nifi-deploy/nifi-*
-        laptop:nifi-1.0.0-SNAPSHOT myuser$ ./bin/nifi.sh start
-  Issuing `bin/nifi.sh start` executes the `nifi.sh` script that starts NiFi in the background and then exits. If you want `nifi.sh` to wait for NiFi to finish scheduling all components before exiting, use the `--wait-for-init` flag with an optional timeout specified in seconds.
+Change directories to `nifi-assembly`. The `target` directory contains binary archives.
 
-        laptop:nifi-1.0.0-SNAPSHOT myuser$ ./bin/nifi.sh start --wait-for-init 120 
-- Direct your browser to http://localhost:8080/nifi/ and you should see a screen like this screenshot:
-  ![image of a NiFi dataflow canvas](nifi-docs/src/main/asciidoc/images/nifi_first_launch_screenshot.png?raw=true)
+    laptop:nifi myuser$ cd nifi-assembly
+    laptop:nifi-assembly myuser$ ls -lhd target/nifi*
+    drwxr-xr-x  3 myuser  mygroup   102B Apr 30 00:29 target/nifi-1.0.0-SNAPSHOT-bin
+    -rw-r--r--  1 myuser  mygroup   144M Apr 30 00:30 target/nifi-1.0.0-SNAPSHOT-bin.tar.gz
+    -rw-r--r--  1 myuser  mygroup   144M Apr 30 00:30 target/nifi-1.0.0-SNAPSHOT-bin.zip
 
-- For help building your first data flow see the [NiFi User Guide](http://nifi.apache.org/docs/nifi-docs/html/user-guide.html)
+Copy the `nifi-VERSION-bin.tar.gz` or `nifi-VERSION-bin.zip` to a separate deployment directory.
+Extracting the distribution will create a new directory named for the version.
 
-- If you are testing ongoing development, you will likely want to stop your instance.
+    laptop:nifi-assembly myuser$ mkdir ~/example-nifi-deploy
+    laptop:nifi-assembly myuser$ tar xzf target/nifi-*-bin.tar.gz -C ~/example-nifi-deploy
+    laptop:nifi-assembly myuser$ ls -lh ~/example-nifi-deploy/
+    total 0
+    drwxr-xr-x  10 myuser  mygroup   340B Apr 30 01:06 nifi-1.0.0-SNAPSHOT
 
-        laptop:~ myuser$ cd ~/example-nifi-deploy/nifi-*
-        laptop:nifi-1.0.0-SNAPSHOT myuser$ ./bin/nifi.sh stop
+### Starting
+
+Change directories to the deployment location and run the following command to start NiFi.
+
+    laptop:~ myuser$ cd ~/example-nifi-deploy/nifi-*
+    laptop:nifi-1.0.0-SNAPSHOT myuser$ ./bin/nifi.sh start
+  
+Running `bin/nifi.sh start` starts NiFi in the background and exits. Use `--wait-for-init` with an optional timeout in
+seconds to wait for a complete startup before exiting.
+
+    laptop:nifi-1.0.0-SNAPSHOT myuser$ ./bin/nifi.sh start --wait-for-init 120
+  
+### Authenticating
+
+The default configuration generates a random username and password on startup. NiFi writes the generated credentials
+to the application log located in `logs/nifi-app.log` under the NiFi installation directory.
+
+The following command can be used to find the generated credentials on operating systems with `grep` installed:
+
+    laptop:nifi-1.0.0-SNAPSHOT myuser$ grep Generated logs/nifi-app*log
+
+NiFi logs the generated credentials as follows:
+
+    Generated Username [USERNAME]
+    Generated Password [PASSWORD]
+
+The `USERNAME` will be a random UUID composed of 36 characters. The `PASSWORD` will be a random string composed of
+32 characters. The generated credentials will be stored in `conf/login-identity-providers.xml` with the password stored
+using bcrypt hashing. Record these credentials in a secure location for access to NiFi.
+  
+### Running
+
+Open the following link in a web browser to access NiFi: https://localhost:9443/nifi
+
+The web browser will display a warning message indicating a potential security risk due to the self-signed
+certificate NiFi generated during initialization. Accepting the potential security risk and continuing to load
+the interface is an option for initial development installations. Production deployments should provision a certificate
+from a trusted certificate authority and update the NiFi keystore and truststore configuration.
+
+Accessing NiFi after accepting the self-signed certificate will display the login screen.
+![NiFi Login Screen](nifi-docs/src/main/asciidoc/images/nifi-login.png?raw=true)
+
+Using the generated credentials, enter the value of `Generated Username` in the `User` field
+and the value of `Generated Password` in the `Password` field, then press `LOG IN` to access the system.
+![NiFi Flow Authenticated Screen](nifi-docs/src/main/asciidoc/images/nifi-flow-authenticated.png?raw=true)
+
+### Configuring
+
+The [NiFi User Guide](http://nifi.apache.org/docs/nifi-docs/html/user-guide.html) describes how to build a data flow.
+
+### Stopping
+
+Run the following command to stop NiFi:
+
+    laptop:~ myuser$ cd ~/example-nifi-deploy/nifi-*
+    laptop:nifi-1.0.0-SNAPSHOT myuser$ ./bin/nifi.sh stop
 
 ## MiNiFi subproject
 

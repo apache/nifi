@@ -53,7 +53,7 @@ public class SingleUserLoginIdentityProvider implements LoginIdentityProvider {
 
     private static final int RANDOM_BYTE_LENGTH = 24;
 
-    private static final long EXPIRATION = TimeUnit.HOURS.toMillis(1);
+    private static final long EXPIRATION = TimeUnit.HOURS.toMillis(8);
 
     protected PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
