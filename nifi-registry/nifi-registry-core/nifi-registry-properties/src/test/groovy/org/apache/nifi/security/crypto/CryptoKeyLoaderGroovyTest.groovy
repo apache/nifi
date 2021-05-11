@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.security.crypto
 
+import org.apache.commons.lang3.SystemUtils
 import org.apache.nifi.registry.security.crypto.CryptoKeyLoader
 import org.apache.nifi.registry.security.crypto.CryptoKeyProvider
 import org.bouncycastle.jce.provider.BouncyCastleProvider
@@ -99,7 +100,7 @@ class CryptoKeyLoaderGroovyTest extends GroovyTestCase {
     public void testShouldNotExtractKeyFromUnreadableBootstrapFile() throws Exception {
         // Arrange
         File unreadableFile = new File("src/test/resources/conf/bootstrap.unreadable_file_permissions.conf")
-        Set<PosixFilePermission> originalPermissions = Files.getPosixFilePermissions(unreadableFile.toPath())
+        Set<PosixFilePermission> originalPermissions = getFilePermissions(unreadableFile)
         Files.setPosixFilePermissions(unreadableFile.toPath(), [] as Set)
         try {
             assert !unreadableFile.canRead()
@@ -118,4 +119,13 @@ class CryptoKeyLoaderGroovyTest extends GroovyTestCase {
         }
     }
 
+    private static Set<PosixFilePermission> getFilePermissions(File file) {
+        if (SystemUtils.IS_OS_WINDOWS) {
+            return [file.canRead() ? PosixFilePermission.OWNER_READ : "",
+                    file.canWrite() ? PosixFilePermission.OWNER_WRITE : "",
+                    file.canExecute() ? PosixFilePermission.OWNER_EXECUTE : ""].findAll { it } as Set
+        } else {
+            return Files.getPosixFilePermissions(file?.toPath())
+        }
+    }
 }
