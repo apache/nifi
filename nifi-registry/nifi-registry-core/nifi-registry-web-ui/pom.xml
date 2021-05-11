@@ -304,6 +304,29 @@
     </build>
     <profiles>
         <profile>
+            <id>no-windows</id>
+            <activation>
+              <os>
+                <family>Windows</family>
+              </os>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>com.github.eirslett</groupId>
+                        <artifactId>frontend-maven-plugin</artifactId>
+                        <version>1.5</version>
+                        <executions>
+                            <execution>
+                                <id>javascript-tests</id> <!-- here there must be the same identifier as defined in <build><plugins> section -->
+                                <phase>none</phase> <!-- this disables plugin -->
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
             <id>jsUnitTests</id>
             <activation>
                 <activeByDefault>false</activeByDefault>
