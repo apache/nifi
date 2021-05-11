@@ -16,8 +16,7 @@
  */
 package org.apache.nifi.authentication.single.user.writer;
 
-import org.apache.nifi.authentication.LoginCredentials;
-import org.apache.nifi.authentication.single.user.SingleUserLoginIdentityProvider;
+import org.apache.nifi.authentication.single.user.SingleUserCredentials;
 
 import javax.xml.stream.XMLEventFactory;
 import javax.xml.stream.XMLEventReader;
@@ -71,10 +70,10 @@ public class StandardLoginCredentialsWriter implements LoginCredentialsWriter {
     }
 
     @Override
-    public void writeLoginCredentials(final LoginCredentials loginCredentials) {
+    public void writeLoginCredentials(final SingleUserCredentials singleUserCredentials) {
         try {
             final File updatedProvidersFile = File.createTempFile(PROVIDERS_PREFIX, PROVIDERS_SUFFIX);
-            writeLoginCredentials(loginCredentials, updatedProvidersFile);
+            writeLoginCredentials(singleUserCredentials, updatedProvidersFile);
             Files.move(updatedProvidersFile.toPath(), providersFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
         } catch (final IOException e) {
             throw new UncheckedIOException("Writing Login Identity Providers Failed", e);
@@ -83,19 +82,19 @@ public class StandardLoginCredentialsWriter implements LoginCredentialsWriter {
         }
     }
 
-    private void writeLoginCredentials(final LoginCredentials loginCredentials, final File updatedProvidersFile) throws IOException, XMLStreamException {
+    private void writeLoginCredentials(final SingleUserCredentials singleUserCredentials, final File updatedProvidersFile) throws IOException, XMLStreamException {
         try (final OutputStream outputStream = new FileOutputStream(updatedProvidersFile)) {
             final XMLEventWriter providersWriter = getProvidersWriter(outputStream);
             try (final InputStream inputStream = new FileInputStream(providersFile)) {
                 final XMLEventReader providersReader = getProvidersReader(inputStream);
-                updateLoginIdentityProviders(loginCredentials, providersReader, providersWriter);
+                updateLoginIdentityProviders(singleUserCredentials, providersReader, providersWriter);
                 providersReader.close();
             }
             providersWriter.close();
         }
     }
 
-    private void updateLoginIdentityProviders(final LoginCredentials credentials,
+    private void updateLoginIdentityProviders(final SingleUserCredentials singleUserCredentials,
                                               final XMLEventReader providersReader,
                                               final XMLEventWriter providersWriter) throws XMLStreamException {
         boolean processingSingleUserProvider = false;
@@ -109,7 +108,7 @@ public class StandardLoginCredentialsWriter implements LoginCredentialsWriter {
                 providersWriter.add(nextEvent);
                 if (nextEvent.isCharacters()) {
                     final String providerClass = nextEvent.asCharacters().getData();
-                    if (SingleUserLoginIdentityProvider.class.getName().equals(providerClass)) {
+                    if (singleUserCredentials.getProviderClass().equals(providerClass)) {
                         processingSingleUserProvider = true;
                     }
                 }
@@ -119,9 +118,9 @@ public class StandardLoginCredentialsWriter implements LoginCredentialsWriter {
 
             if (processingSingleUserProvider) {
                 if (isStartProperty(event, USERNAME_PROPERTY)) {
-                    processProperty(providersReader, providersWriter, credentials.getUsername());
+                    processProperty(providersReader, providersWriter, singleUserCredentials.getUsername());
                 } else if (isStartProperty(event, PASSWORD_PROPERTY)) {
-                    processProperty(providersReader, providersWriter, credentials.getPassword());
+                    processProperty(providersReader, providersWriter, singleUserCredentials.getPassword());
                 }
             }
         }

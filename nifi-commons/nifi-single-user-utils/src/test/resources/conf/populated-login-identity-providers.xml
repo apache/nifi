@@ -17,7 +17,7 @@
     <!-- Default Single User Provider -->
     <provider>
         <identifier>single-user-provider</identifier>
-        <class>org.apache.nifi.authentication.single.user.SingleUserLoginIdentityProvider</class>
+        <class>org.apache.nifi.authentication.single.user.SingleUserCredentials</class>
         <property name="Username">USERNAME</property>
         <property name="Password">PASSWORD</property>
     </provider>

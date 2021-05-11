@@ -119,13 +119,35 @@ and `sudo service nifi stop`. Additionally, the running status can be checked vi
 
 == I Started NiFi. Now What?
 
-Now that NiFi has been started, we can bring up the User Interface (UI) in order to create and monitor our dataflow.
-To get started, open a web browser and navigate to link:http://localhost:8080/nifi[`http://localhost:8080/nifi`^]. The port can be changed by
-editing the `nifi.properties` file in the NiFi `conf` directory, but the default port is 8080.
+The default installation generates a random username and password, writing the generated values to the application log.
+The application log is located in `logs/nifi-app.log` under the installation directory. The log file will contain lines
+with `Generated Username [USERNAME]` and `Generated Password [PASSWORD]` indicating the credentials needed for access.
+Search the application log for those lines and record the generated values in a secure location.
 
+The following command can be used to change the username and password:
+
+```
+$ ./bin/nifi.sh set-single-user-credentials <username> <password>
+```
+
+Now that NiFi has been started, we can bring up the User Interface (UI) in order to create and monitor our dataflow.
+To get started, open a web browser and navigate to link:https://localhost:8443/nifi[`https://localhost:8443/nifi`^]. The port can be changed by
+editing the `nifi.properties` file in the NiFi `conf` directory, but the default port is 8443.
+
+The web browser will display a warning message indicating a potential security risk due to the self-signed
+certificate NiFi generated during initialization. Accepting the potential security risk and continuing to load
+the interface is an option for development installations. The self-signed certificate will expire after 60 days.
+Production deployments should provision a certificate from a trusted authority and update the NiFi keystore and truststore configuration.
+
+Accessing NiFi after accepting the self-signed certificate will display the login screen.
+
+image:nifi-login.png["Login"]
+
+Using the generated credentials, enter the generated username in the `User` field
+and the generated password in the `Password` field, then press `LOG IN` to access the system.
 This will bring up the User Interface, which at this point is a blank canvas for orchestrating a dataflow:
 
-image:new-flow.png["New Flow"]
+image:nifi-flow-authenticated.png["New Flow Authenticated"]
 
 The UI has multiple tools to create and manage your first dataflow:
 

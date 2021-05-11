@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.authentication.single.user.writer;
 
-import org.apache.nifi.authentication.LoginCredentials;
+import org.apache.nifi.authentication.single.user.SingleUserCredentials;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -35,6 +35,8 @@ public class StandardLoginCredentialsWriterTest {
     private static final String POPULATED_PROVIDERS = "/conf/populated-login-identity-providers.xml";
 
     private static final String XML_SUFFIX = ".xml";
+
+    private static final String PROVIDER_CLASS = SingleUserCredentials.class.getName();
 
     @Test
     public void testWriteLoginCredentialsBlankProviders() throws IOException, URISyntaxException {
@@ -58,7 +60,7 @@ public class StandardLoginCredentialsWriterTest {
 
         final String username = UUID.randomUUID().toString();
         final String password = UUID.randomUUID().toString();
-        final LoginCredentials credentials = new LoginCredentials(username, password);
+        final SingleUserCredentials credentials = new SingleUserCredentials(username, password, PROVIDER_CLASS);
         writer.writeLoginCredentials(credentials);
 
         final String configuration = new String(Files.readAllBytes(configuredProvidersPath));

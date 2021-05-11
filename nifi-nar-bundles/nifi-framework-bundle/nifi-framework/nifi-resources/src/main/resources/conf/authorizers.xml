@@ -385,4 +385,15 @@
         <property name="Node Identity 1"></property>
     </authorizer>
     -->
+
+    <!--
+        Single User Authorizer requires the configuration of the SingleUserLoginIdentityProvider
+        in login-identity-provider.xml and in nifi.properties
+
+        The managed-authorizer should be used for production deployments
+    -->
+    <authorizer>
+        <identifier>single-user-authorizer</identifier>
+        <class>org.apache.nifi.authorization.single.user.SingleUserAuthorizer</class>
+    </authorizer>
 </authorizers>

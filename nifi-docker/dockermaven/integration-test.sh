@@ -40,14 +40,14 @@ docker run -d --name nifi-${TAG}-integration-test apache/nifi:${TAG}
 IP=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' nifi-${TAG}-integration-test)
 
 for i in $(seq 1 10) :; do
-    if docker exec nifi-${TAG}-integration-test bash -c "ss -ntl | grep 8080"; then
+    if docker exec nifi-${TAG}-integration-test bash -c "ss -ntl | grep 8443"; then
         break
     fi
     sleep 10
 done
 
 echo "Checking system diagnostics"
-test ${VERSION} = $(docker exec nifi-${TAG}-integration-test bash -c "curl -s $IP:8080/nifi-api/system-diagnostics | jq .systemDiagnostics.aggregateSnapshot.versionInfo.niFiVersion -r")
+test ${VERSION} = $(docker exec nifi-${TAG}-integration-test bash -c "curl -s -k $IP:8443/nifi-api/system-diagnostics | jq .systemDiagnostics.aggregateSnapshot.versionInfo.niFiVersion -r")
 
 echo "Checking current user with nifi-toolkit cli"
 test "anonymous" = $(docker exec nifi-${TAG}-integration-test bash -c '$NIFI_TOOLKIT_HOME/bin/cli.sh nifi current-user')

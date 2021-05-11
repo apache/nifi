@@ -42,9 +42,9 @@
             <version>1.14.0-SNAPSHOT</version>
         </dependency>
         <dependency>
-            <groupId>at.favre.lib</groupId>
-            <artifactId>bcrypt</artifactId>
-            <version>0.9.0</version>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-single-user-utils</artifactId>
+            <version>1.14.0-SNAPSHOT</version>
         </dependency>
     </dependencies>
 </project>

@@ -3,7 +3,7 @@
   "keyStoreType" : "jks",
   "token" : "myTestTokenUseSomethingStronger",
   "caHostname" : "localhost",
-  "port" : 8443,
+  "port" : 9443,
   "days" : 825,
   "keySize" : 2048,
   "keyPairAlgorithm" : "RSA",

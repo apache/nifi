@@ -349,6 +349,16 @@ run() {
         return;
     fi
 
+    if [ "$1" = "set-single-user-credentials" ]; then
+        run_command="'${JAVA}' -cp '${BOOTSTRAP_CLASSPATH}' '-Dnifi.properties.file.path=${NIFI_HOME}/conf/nifi.properties' 'org.apache.nifi.authentication.single.user.command.SetSingleUserCredentials'"
+        eval "cd ${NIFI_HOME}"
+        shift
+        eval "${run_command}" '"$@"'
+        EXIT_STATUS=$?
+        echo
+        return;
+    fi
+
     if [ "$1" = "stateless" ]; then
         STATELESS_JAVA_OPTS="${STATELESS_JAVA_OPTS:=-Xms1024m -Xmx1024m}"
 
@@ -445,7 +455,7 @@ case "$1" in
         install "$@"
         ;;
 
-    start|stop|decommission|run|status|is_loaded|dump|diagnostics|env|stateless|set-sensitive-properties-key)
+    start|stop|decommission|run|status|is_loaded|dump|diagnostics|env|stateless|set-sensitive-properties-key|set-single-user-credentials)
         main "$@"
         ;;
 
@@ -455,6 +465,6 @@ case "$1" in
         run "start"
         ;;
     *)
-        echo "Usage nifi {start|stop|decommission|run|restart|status|dump|diagnostics|install|stateless|set-sensitive-properties-key}"
+        echo "Usage nifi {start|stop|decommission|run|restart|status|dump|diagnostics|install|stateless|set-sensitive-properties-key|set-single-user-credentials}"
         ;;
 esac

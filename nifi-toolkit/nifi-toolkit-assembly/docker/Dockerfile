@@ -43,7 +43,7 @@ RUN chown -R nifi:nifi ${NIFI_TOOLKIT_BASE_DIR}
 USER nifi
 
 # Default port for TLS Toolkit CA Server
-EXPOSE 8443
+EXPOSE 9443
 
 WORKDIR ${NIFI_TOOLKIT_HOME}
 
