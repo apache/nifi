@@ -304,7 +304,7 @@
     </build>
     <profiles>
         <profile>
-            <id>no-windows</id>
+            <id>skip-windows</id>
             <activation>
               <os>
                 <family>Windows</family>
@@ -318,7 +318,19 @@
                         <version>1.5</version>
                         <executions>
                             <execution>
-                                <id>javascript-tests</id> <!-- here there must be the same identifier as defined in <build><plugins> section -->
+                                <id>install-node-and-npm</id> <!-- here there must be the same identifier as defined in <build><plugins> section -->
+                                <phase>none</phase> <!-- this disables plugin -->
+                            </execution>
+                            <execution>
+                                <id>npm-install</id> <!-- here there must be the same identifier as defined in <build><plugins> section -->
+                                <phase>none</phase> <!-- this disables plugin -->
+                            </execution>
+                            <execution>
+                                <id>npm</id> <!-- here there must be the same identifier as defined in <build><plugins> section -->
+                                <phase>none</phase> <!-- this disables plugin -->
+                            </execution>
+                            <execution>
+                                <id>package-web-ui</id> <!-- here there must be the same identifier as defined in <build><plugins> section -->
                                 <phase>none</phase> <!-- this disables plugin -->
                             </execution>
                         </executions>
