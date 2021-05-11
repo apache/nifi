@@ -20,6 +20,7 @@ import org.apache.commons.lang3.SystemUtils
 import org.apache.nifi.registry.security.crypto.CryptoKeyLoader
 import org.apache.nifi.registry.security.crypto.CryptoKeyProvider
 import org.bouncycastle.jce.provider.BouncyCastleProvider
+import org.junit.Assume
 import org.junit.BeforeClass
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -41,6 +42,8 @@ class CryptoKeyLoaderGroovyTest extends GroovyTestCase {
 
     @BeforeClass
     public static void setUpOnce() throws Exception {
+        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS)
+
         Security.addProvider(new BouncyCastleProvider())
 
         logger.metaClass.methodMissing = { String name, args ->
@@ -100,8 +103,8 @@ class CryptoKeyLoaderGroovyTest extends GroovyTestCase {
     public void testShouldNotExtractKeyFromUnreadableBootstrapFile() throws Exception {
         // Arrange
         File unreadableFile = new File("src/test/resources/conf/bootstrap.unreadable_file_permissions.conf")
-        Set<PosixFilePermission> originalPermissions = getFilePermissions(unreadableFile)
-        setFilePermissions(unreadableFile, [] as Set)
+        Set<PosixFilePermission> originalPermissions = Files.getPosixFilePermissions(unreadableFile.toPath())
+        Files.setPosixFilePermissions(unreadableFile.toPath(), [] as Set)
         try {
             assert !unreadableFile.canRead()
 
@@ -115,27 +118,8 @@ class CryptoKeyLoaderGroovyTest extends GroovyTestCase {
             assert msg == "Cannot read from bootstrap.conf"
         } finally {
             // Clean up to allow for indexing, etc.
-            setFilePermissions(unreadableFile, originalPermissions)
+            Files.setPosixFilePermissions(unreadableFile.toPath(), originalPermissions)
         }
     }
 
-    private static Set<PosixFilePermission> getFilePermissions(File file) {
-        if (SystemUtils.IS_OS_WINDOWS) {
-            return [file.canRead() ? PosixFilePermission.OWNER_READ : "",
-                    file.canWrite() ? PosixFilePermission.OWNER_WRITE : "",
-                    file.canExecute() ? PosixFilePermission.OWNER_EXECUTE : ""].findAll { it } as Set
-        } else {
-            return Files.getPosixFilePermissions(file?.toPath())
-        }
-    }
-
-    private static void setFilePermissions(File file, Set<PosixFilePermission> permissions = []) {
-        if (SystemUtils.IS_OS_WINDOWS) {
-            file?.setReadable(permissions.contains(PosixFilePermission.OWNER_READ))
-            file?.setWritable(permissions.contains(PosixFilePermission.OWNER_WRITE))
-            file?.setExecutable(permissions.contains(PosixFilePermission.OWNER_EXECUTE))
-        } else {
-            Files.setPosixFilePermissions(file?.toPath(), permissions)
-        }
-    }
 }

@@ -410,7 +410,7 @@ class NiFiPropertiesLoaderGroovyTest extends GroovyTestCase {
     void testShouldNotExtractKeyFromUnreadableBootstrapFile() throws Exception {
         // Arrange
         File unreadableFile = new File("src/test/resources/bootstrap_tests/unreadable_bootstrap/bootstrap.conf")
-        Set<PosixFilePermission> originalPermissions = getFilePermissions(unreadableFile)
+        Set<PosixFilePermission> originalPermissions = Files.getPosixFilePermissions(unreadableFile.toPath())
         Files.setPosixFilePermissions(unreadableFile.toPath(), [] as Set)
         assert !unreadableFile.canRead()
 
@@ -435,7 +435,7 @@ class NiFiPropertiesLoaderGroovyTest extends GroovyTestCase {
     void testShouldNotExtractKeyFromUnreadableConfDir() throws Exception {
         // Arrange
         File unreadableDir = new File("src/test/resources/bootstrap_tests/unreadable_conf")
-        Set<PosixFilePermission> originalPermissions = getFilePermissions(unreadableDir)
+        Set<PosixFilePermission> originalPermissions = Files.getPosixFilePermissions(unreadableDir.toPath())
         Files.setPosixFilePermissions(unreadableDir.toPath(), [] as Set)
         assert !unreadableDir.canRead()
 
@@ -510,15 +510,5 @@ class NiFiPropertiesLoaderGroovyTest extends GroovyTestCase {
         }
 
         assert readPropertiesAndValues == readPasswordPropertiesAndValues
-    }
-
-    private static Set<PosixFilePermission> getFilePermissions(File file) {
-        if (SystemUtils.IS_OS_WINDOWS) {
-            return [file.canRead() ? PosixFilePermission.OWNER_READ : "",
-                    file.canWrite() ? PosixFilePermission.OWNER_WRITE : "",
-                    file.canExecute() ? PosixFilePermission.OWNER_EXECUTE : ""].findAll { it } as Set
-        } else {
-            return Files.getPosixFilePermissions(file?.toPath())
-        }
     }
 }
