@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.lookup.script
 
-import org.apache.commons.io.FileUtils
 import org.apache.nifi.processor.AbstractProcessor
 import org.apache.nifi.processor.ProcessContext
 import org.apache.nifi.processor.ProcessSession
@@ -33,6 +32,11 @@ import org.junit.Test
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.Paths
+import java.nio.file.StandardCopyOption
+
 import static junit.framework.TestCase.assertEquals
 import static org.junit.Assert.assertFalse
 import static org.junit.Assert.assertTrue
@@ -40,7 +44,9 @@ import static org.junit.Assert.assertTrue
  * Unit tests for the ScriptedLookupService controller service
  */
 class TestScriptedLookupService {
-
+    private static final String GROOVY_SCRIPT = "test_lookup_inline.groovy"
+    private static final Path SOURCE_PATH = Paths.get("src/test/resources/groovy", GROOVY_SCRIPT)
+    private static final Path TARGET_PATH = Paths.get("target", GROOVY_SCRIPT)
     private static final Logger logger = LoggerFactory.getLogger(TestScriptedLookupService)
     ScriptedLookupService scriptedLookupService
     def scriptingComponent
@@ -51,7 +57,8 @@ class TestScriptedLookupService {
         logger.metaClass.methodMissing = {String name, args ->
             logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
         }
-        FileUtils.copyDirectory('src/test/resources' as File, 'target/test/resources' as File)
+        Files.copy(SOURCE_PATH, TARGET_PATH, StandardCopyOption.REPLACE_EXISTING)
+        TARGET_PATH.toFile().deleteOnExit()
     }
 
     @Before
@@ -70,7 +77,7 @@ class TestScriptedLookupService {
 
         runner.addControllerService("lookupService", scriptedLookupService);
         runner.setProperty(scriptedLookupService, "Script Engine", "Groovy");
-        runner.setProperty(scriptedLookupService, ScriptingComponentUtils.SCRIPT_FILE, 'target/test/resources/groovy/test_lookup_inline.groovy');
+        runner.setProperty(scriptedLookupService, ScriptingComponentUtils.SCRIPT_FILE, TARGET_PATH.toString());
         runner.setProperty(scriptedLookupService, ScriptingComponentUtils.SCRIPT_BODY, (String) null);
         runner.setProperty(scriptedLookupService, ScriptingComponentUtils.MODULES, (String) null);
         runner.enableControllerService(scriptedLookupService);
