@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.record.script
 
-import org.apache.commons.io.FileUtils
 import org.apache.nifi.processor.AbstractProcessor
 import org.apache.nifi.processor.ProcessContext
 import org.apache.nifi.processor.ProcessSession
@@ -29,12 +28,14 @@ import org.apache.nifi.util.MockComponentLog
 import org.apache.nifi.util.TestRunner
 import org.apache.nifi.util.TestRunners
 import org.junit.Before
-import org.junit.BeforeClass
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
+
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.Paths
+import java.nio.file.StandardCopyOption
 
 import static junit.framework.TestCase.assertEquals
 import static org.junit.Assert.*
@@ -43,20 +44,18 @@ import static org.junit.Assert.*
  */
 @RunWith(JUnit4.class)
 class ScriptedReaderTest {
+    private static final String READER_INLINE_SCRIPT = "test_record_reader_inline.groovy"
+    private static final String READER_XML_SCRIPT = "test_record_reader_xml.groovy"
+    private static final String READER_LOAD_SCRIPT = "test_record_reader_load_module.groovy"
+    private static final String TEST_JAR = "test.jar"
+    private static final String SOURCE_DIR = "src/test/resources"
+    private static final String GROOVY_DIR = "groovy"
+    private static final String JAR_DIR = "jar"
+    private static final String TARGET_DIR = "target"
 
-    private static final Logger logger = LoggerFactory.getLogger(ScriptedReaderTest)
     def recordReaderFactory
     def runner
     def scriptingComponent
-
-
-    @BeforeClass
-    static void setUpOnce() throws Exception {
-        logger.metaClass.methodMissing = {String name, args ->
-            logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
-        }
-        FileUtils.copyDirectory('src/test/resources' as File, 'target/test/resources' as File)
-    }
 
     @Before
     void setUp() {
@@ -73,9 +72,12 @@ class ScriptedReaderTest {
             }
         });
 
+        Path targetPath = Paths.get(TARGET_DIR, READER_INLINE_SCRIPT)
+        targetPath.toFile().deleteOnExit()
+        Files.copy(Paths.get(SOURCE_DIR, GROOVY_DIR, READER_INLINE_SCRIPT), targetPath, StandardCopyOption.REPLACE_EXISTING)
         runner.addControllerService("reader", recordReaderFactory);
         runner.setProperty(recordReaderFactory, "Script Engine", "Groovy");
-        runner.setProperty(recordReaderFactory, ScriptingComponentUtils.SCRIPT_FILE, 'target/test/resources/groovy/test_record_reader_inline.groovy');
+        runner.setProperty(recordReaderFactory, ScriptingComponentUtils.SCRIPT_FILE, targetPath.toString());
         runner.setProperty(recordReaderFactory, ScriptingComponentUtils.SCRIPT_BODY, (String) null);
         runner.setProperty(recordReaderFactory, ScriptingComponentUtils.MODULES, (String) null);
         runner.enableControllerService(recordReaderFactory);
@@ -103,9 +105,12 @@ class ScriptedReaderTest {
             }
         });
 
+        Path targetPath = Paths.get(TARGET_DIR, READER_XML_SCRIPT)
+        targetPath.toFile().deleteOnExit()
+        Files.copy(Paths.get(SOURCE_DIR, GROOVY_DIR, READER_XML_SCRIPT), targetPath, StandardCopyOption.REPLACE_EXISTING)
         runner.addControllerService("reader", recordReaderFactory);
         runner.setProperty(recordReaderFactory, "Script Engine", "Groovy");
-        runner.setProperty(recordReaderFactory, ScriptingComponentUtils.SCRIPT_FILE, 'target/test/resources/groovy/test_record_reader_xml.groovy');
+        runner.setProperty(recordReaderFactory, ScriptingComponentUtils.SCRIPT_FILE, targetPath.toString());
         runner.setProperty(recordReaderFactory, ScriptingComponentUtils.SCRIPT_BODY, (String) null);
         runner.setProperty(recordReaderFactory, ScriptingComponentUtils.MODULES, (String) null);
 
@@ -164,9 +169,12 @@ class ScriptedReaderTest {
             }
         });
 
+        Path targetPath = Paths.get(TARGET_DIR, READER_LOAD_SCRIPT)
+        targetPath.toFile().deleteOnExit()
+        Files.copy(Paths.get(SOURCE_DIR, GROOVY_DIR, READER_LOAD_SCRIPT), targetPath, StandardCopyOption.REPLACE_EXISTING)
         runner.addControllerService("reader", recordReaderFactory);
         runner.setProperty(recordReaderFactory, "Script Engine", "Groovy");
-        runner.setProperty(recordReaderFactory, ScriptingComponentUtils.SCRIPT_FILE, 'target/test/resources/groovy/test_record_reader_load_module.groovy');
+        runner.setProperty(recordReaderFactory, ScriptingComponentUtils.SCRIPT_FILE, targetPath.toString());
         runner.setProperty(recordReaderFactory, ScriptingComponentUtils.SCRIPT_BODY, (String) null);
         runner.setProperty(recordReaderFactory, ScriptingComponentUtils.MODULES, (String) null);
 
@@ -180,7 +188,10 @@ class ScriptedReaderTest {
         }
         assertTrue(enableFailed)
 
-        runner.setProperty(recordReaderFactory, "Module Directory", 'target/test/resources/jar/test.jar');
+        Path targetJar = Paths.get(TARGET_DIR, TEST_JAR)
+        targetJar.toFile().deleteOnExit()
+        Files.copy(Paths.get(SOURCE_DIR, JAR_DIR, TEST_JAR), targetJar, StandardCopyOption.REPLACE_EXISTING)
+        runner.setProperty(recordReaderFactory, "Module Directory", targetJar.toString());
         runner.enableControllerService(recordReaderFactory)
 
         byte[] contentBytes = 'Flow file content not used'.bytes

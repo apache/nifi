@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.record.script
 
-import org.apache.commons.io.FileUtils
 import org.apache.nifi.processor.AbstractProcessor
 import org.apache.nifi.processor.ProcessContext
 import org.apache.nifi.processor.ProcessSession
@@ -41,6 +40,11 @@ import org.junit.runners.JUnit4
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.Paths
+import java.nio.file.StandardCopyOption
+
 import static org.junit.Assert.assertEquals
 import static org.junit.Assert.assertNotNull
 
@@ -51,6 +55,9 @@ import static org.junit.Assert.assertNotNull
 class ScriptedRecordSetWriterTest {
 
     private static final Logger logger = LoggerFactory.getLogger(ScriptedRecordSetWriterTest)
+    private static final String INLINE_GROOVY_PATH = "test_record_writer_inline.groovy"
+    private static final String SOURCE_DIR = "src/test/resources/groovy"
+    private static final Path TARGET_PATH = Paths.get("target", INLINE_GROOVY_PATH)
     MockScriptedWriter recordSetWriterFactory
     def runner
     def scriptingComponent
@@ -61,7 +68,8 @@ class ScriptedRecordSetWriterTest {
         logger.metaClass.methodMissing = {String name, args ->
             logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
         }
-        FileUtils.copyDirectory('src/test/resources' as File, 'target/test/resources' as File)
+        Files.copy(Paths.get(SOURCE_DIR, INLINE_GROOVY_PATH), TARGET_PATH, StandardCopyOption.REPLACE_EXISTING)
+        TARGET_PATH.toFile().deleteOnExit()
     }
 
     @Before
@@ -81,7 +89,7 @@ class ScriptedRecordSetWriterTest {
 
         runner.addControllerService("writer", recordSetWriterFactory);
         runner.setProperty(recordSetWriterFactory, "Script Engine", "Groovy");
-        runner.setProperty(recordSetWriterFactory, ScriptingComponentUtils.SCRIPT_FILE, 'target/test/resources/groovy/test_record_writer_inline.groovy');
+        runner.setProperty(recordSetWriterFactory, ScriptingComponentUtils.SCRIPT_FILE, TARGET_PATH.toString());
         runner.setProperty(recordSetWriterFactory, ScriptingComponentUtils.SCRIPT_BODY, (String) null);
         runner.setProperty(recordSetWriterFactory, ScriptingComponentUtils.MODULES, (String) null);
         runner.enableControllerService(recordSetWriterFactory);
