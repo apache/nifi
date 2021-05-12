@@ -304,7 +304,7 @@
     </build>
     <profiles>
         <profile>
-            <id>skip-windows</id>
+            <id>nifi-registry-web-ui-skip-windows</id>
             <activation>
               <os>
                 <family>Windows</family>
@@ -315,23 +315,22 @@
                     <plugin>
                         <groupId>com.github.eirslett</groupId>
                         <artifactId>frontend-maven-plugin</artifactId>
-                        <version>1.5</version>
                         <executions>
                             <execution>
-                                <id>install-node-and-npm</id> <!-- here there must be the same identifier as defined in <build><plugins> section -->
-                                <phase>none</phase> <!-- this disables plugin -->
+                                <id>install-node-and-npm</id>
+                                <phase>none</phase>
                             </execution>
                             <execution>
-                                <id>npm-install</id> <!-- here there must be the same identifier as defined in <build><plugins> section -->
-                                <phase>none</phase> <!-- this disables plugin -->
+                                <id>npm-install</id>
+                                <phase>none</phase>
                             </execution>
                             <execution>
-                                <id>npm</id> <!-- here there must be the same identifier as defined in <build><plugins> section -->
-                                <phase>none</phase> <!-- this disables plugin -->
+                                <id>npm</id>
+                                <phase>none</phase>
                             </execution>
                             <execution>
-                                <id>package-web-ui</id> <!-- here there must be the same identifier as defined in <build><plugins> section -->
-                                <phase>none</phase> <!-- this disables plugin -->
+                                <id>package-web-ui</id>
+                                <phase>none</phase>
                             </execution>
                         </executions>
                     </plugin>
