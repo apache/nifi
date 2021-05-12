@@ -1024,6 +1024,35 @@
         },
 
         /**
+         * Determines if the specified selection is distributable (in a single action).
+         *
+         * @param {selection} selection     The selection
+         * @returns {boolean}
+         */
+        canDistribute: function(selection) {
+            var canDistribute = true;
+
+            // determine if the current selection is entirely connections
+            var selectedConnections = selection.filter(function(d) {
+                var connection = d3.select(this);
+                return nfCanvasUtils.isConnection(connection);
+            });
+
+            // require multiple selections besides connections
+            if (selection.size() - selectedConnections.size() < 3) {
+                canDistribute = false;
+            }
+
+            // require write permissions
+            if (nfCanvasUtils.canModify(selection) === false) {
+                canDistribute = false;
+            }
+
+            return canDistribute;
+        },
+
+
+        /**
          * Determines if the specified selection is colorable (in a single action).
          *
          * @param {selection} selection     The selection

@@ -408,6 +408,135 @@
          */
         deactivate: function (components) {
             components.classed('moveable', false).on('.drag', null);
+        },
+
+        ARRANGE: {
+            ACTION: {
+                ALIGN: 1,
+                DISTRIBUTE: 2
+            },
+            HORIZONTAL: {
+                NONE: 0,
+                LEFT: 1,
+                CENTER: 2,
+                RIGHT: 3
+            },
+            VERTICAL: {
+                NONE: 0,
+                TOP: 1,
+                CENTER: 2,
+                BOTTOM: 3
+            }
+        },
+
+        /**
+        * Arranges components on the grid evenly
+        *
+        * @param {selection} components
+        * @param action the action to do. 1 for align, 2 for distribute.
+        * @param h the horizontal option. 1 for left, 2 for center, 3 for right. 0 for no horizontal movement.
+        * @param v the vertical option. 1 for top, 2 for center, 3 for bottom. 0 for no vertical movement.
+        */
+        arrangeComponents: function (selection, action, h, v) {
+            var updates = d3.map();
+
+            // ensure every component is writable
+            if (nfCanvasUtils.canModify(selection) === false) {
+                nfDialog.showOkDialog({
+                    headerText: 'Component Position',
+                    dialogContent: 'Must be authorized to modify every component selected.'
+                });
+                return;
+            };
+
+            var deltas;
+
+            if (action == nfDraggable.ARRANGE.ACTION.DISTRIBUTE) {
+                var sortedHorizontal = selection.data().sort(function(a,b){
+                        return a.position.x + (h - 1) * a.dimensions.width / 2 - (b.position.x + (h - 1) * b.dimensions.width / 2);
+                });
+
+                var sortedVertical = selection.data().sort(function(a,b){
+                        return a.position.y + (v - 1) * a.dimensions.height / 2 - (b.position.y + (v - 1) * b.dimensions.height / 2);
+                });
+
+                var minX =  sortedHorizontal[0].position.x + (h - 1) * sortedHorizontal[0].dimensions.width / 2;
+                var maxX =  sortedHorizontal[sortedHorizontal.length - 1].position.x + (h - 1) * sortedHorizontal[sortedHorizontal.length - 1].dimensions.width / 2;
+                var distX = (maxX - minX) / (selection.size() - 1);
+
+                var minY =  sortedVertical[0].position.y + (v - 1) * sortedVertical[0].dimensions.height / 2;
+                var maxY =  sortedVertical[sortedVertical.length - 1].position.y + (v - 1) * sortedVertical[sortedVertical.length - 1].dimensions.height / 2;
+                var distY = (maxY - minY) / (selection.size() - 1);
+
+                deltas = sortedHorizontal.reduce(function(s, d, i) {
+                    var deltaX = h == 0 ? 0 : minX + distX * i - (d.position.x + (h - 1) * d.dimensions.width / 2 );
+                    return (s[d.id] = {x: deltaX}), s
+                }, {});
+
+                deltas = sortedVertical.reduce(function(s, d, i) {
+                    var deltaY = v == 0 ? 0 : minY + distY * i - (d.position.y + (v - 1) * d.dimensions.height / 2 );
+                    s[d.id].y = deltaY;
+                    return s;
+                }, deltas);
+            } else {
+                var minX = null, minY = null, maxX = null, maxY = null;
+
+                selection.each(function (d) {
+                    if (d.type !== "Connection") {
+                        if (minX === null || d.position.x < minX) {
+                            minX = d.position.x;
+                        }
+                        if (minY === null || d.position.y < minY) {
+                            minY = d.position.y;
+                        }
+                        var componentMaxX = d.position.x + d.dimensions.width;
+                        if (maxX === null || componentMaxX > maxX) {
+                            maxX = componentMaxX;
+                        }
+                        var componentMaxY = d.position.y + d.dimensions.height;
+                        if (maxY === null || componentMaxY > maxY) {
+                            maxY = componentMaxY;
+                        }
+                    }
+                });
+                deltas = selection.data().reduce(function(s, d) {
+                    var deltaX = h == 0 ? 0 : ((3 - h) * minX + (h - 1) * maxX - 2 * d.position.x - (h - 1) * d.dimensions.width) / 2 ;
+                    var deltaY = v == 0 ? 0 : ((3 - v) * minY + (v - 1) * maxY - 2 * d.position.y - (v - 1) * d.dimensions.height) / 2 ;
+                    return (s[d.id] = {x: deltaX, y: deltaY}), s
+                }, {});
+            };
+            selection.each(function(d) {
+                if (d.type !== "Connection") {
+                    var delta = deltas[d.id]
+
+                    if (!(delta.x == 0 && delta.y == 0)) {
+                        // consider any connections
+                        var connections = nfConnection.getComponentConnections(d.id);
+                        $.each(connections, function(_, connection) {
+                            var connectionSelection = d3.select('#id-' + connection.id);
+
+                            if (!updates.has(connection.id) && nfCanvasUtils.getConnectionSourceComponentId(connection) === nfCanvasUtils.getConnectionDestinationComponentId(connection)) {
+                                // this connection is self looping and hasn't been updated by the delta yet
+                                var connectionUpdate = nfDraggable.updateConnectionPosition(nfConnection.get(connection.id), delta);
+                                if (connectionUpdate !== null) {
+                                    updates.set(connection.id, connectionUpdate);
+                                }
+                            } else if (!updates.has(connection.id) && connectionSelection.classed('selected') && nfCanvasUtils.canModify(connectionSelection)) {
+                                // this is a selected connection that hasn't been updated by the delta yet
+                                if (nfCanvasUtils.getConnectionSourceComponentId(connection) === d.id || !isSourceSelected(connection, selection)) {
+                                    // the connection is either outgoing or incoming when the source of the connection is not part of the selection
+                                    var connectionUpdate = nfDraggable.updateConnectionPosition(nfConnection.get(connection.id), delta);
+                                    if (connectionUpdate !== null) {
+                                        updates.set(connection.id, connectionUpdate);
+                                    }
+                                }
+                            }
+                        });
+                        updates.set(d.id, nfDraggable.updateComponentPosition(d, delta));
+                    };
+                };
+            });
+            nfDraggable.refreshConnections(updates);
         }
     };
 

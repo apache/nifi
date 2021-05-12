@@ -213,6 +213,37 @@
             }).size() > 0;
     };
 
+    var prepareComponentMove = function (component, delta, updates) {
+        if (delta.x == 0 && delta.y == 0) {
+            return updates;
+        } else {
+            // consider any connections
+            var connections = nfConnection.getComponentConnections(component.id);
+            $.each(connections, function(_, connection) {
+                var connectionSelection = d3.select('#id-' + connection.id);
+
+                if (!updates.has(connection.id) && nfCanvasUtils.getConnectionSourceComponentId(connection) === nfCanvasUtils.getConnectionDestinationComponentId(connection)) {
+                    // this connection is self looping and hasn't been updated by the delta yet
+                    var connectionUpdate = nfDraggable.updateConnectionPosition(nfConnection.get(connection.id), delta);
+                    if (connectionUpdate !== null) {
+                        updates.set(connection.id, connectionUpdate);
+                    }
+                } else if (!updates.has(connection.id) && connectionSelection.classed('selected') && nfCanvasUtils.canModify(connectionSelection)) {
+                    // this is a selected connection that hasn't been updated by the delta yet
+                    if (nfCanvasUtils.getConnectionSourceComponentId(connection) === d.id || !isSourceSelected(connection, selection)) {
+                        // the connection is either outgoing or incoming when the source of the connection is not part of the selection
+                        var connectionUpdate = nfDraggable.updateConnectionPosition(nfConnection.get(connection.id), delta);
+                        if (connectionUpdate !== null) {
+                            updates.set(connection.id, connectionUpdate);
+                        }
+                    }
+                }
+            });
+            updates.set(component.id, nfDraggable.updateComponentPosition(component, delta));
+            return updates;
+        }
+    }
+
     var nfActions = {
         /**
          * Initializes the actions.
@@ -1739,71 +1770,17 @@
         },
 
         /**
-         * Aligns the components in the specified selection vertically along the center of the components.
+         * Aligns the components in the specified selection horizontally along the left of the components.
          *
          * @param {array} selection      The selection
          */
-        alignVertical: function (selection) {
-            var updates = d3.map();
-            // ensure every component is writable
-            if (nfCanvasUtils.canModify(selection) === false) {
-                nfDialog.showOkDialog({
-                    headerText: 'Component Position',
-                    dialogContent: 'Must be authorized to modify every component selected.'
-                });
-                return;
-            }
-            // determine the extent
-            var minX = null, maxX = null;
-            selection.each(function (d) {
-                if (d.type !== "Connection") {
-                    if (minX === null || d.position.x < minX) {
-                        minX = d.position.x;
-                    }
-                    var componentMaxX = d.position.x + d.dimensions.width;
-                    if (maxX === null || componentMaxX > maxX) {
-                        maxX = componentMaxX;
-                    }
-                }
-            });
-            var center = (minX + maxX) / 2;
-
-            // align all components left
-            selection.each(function(d) {
-                if (d.type !== "Connection") {
-                    var delta = {
-                        x: center - (d.position.x + d.dimensions.width / 2),
-                        y: 0
-                    };
-                    // if this component is already centered, no need to updated it
-                    if (delta.x !== 0) {
-                        // consider any connections
-                        var connections = nfConnection.getComponentConnections(d.id);
-                        $.each(connections, function(_, connection) {
-                            var connectionSelection = d3.select('#id-' + connection.id);
-
-                            if (!updates.has(connection.id) && nfCanvasUtils.getConnectionSourceComponentId(connection) === nfCanvasUtils.getConnectionDestinationComponentId(connection)) {
-                                // this connection is self looping and hasn't been updated by the delta yet
-                                var connectionUpdate = nfDraggable.updateConnectionPosition(nfConnection.get(connection.id), delta);
-                                if (connectionUpdate !== null) {
-                                    updates.set(connection.id, connectionUpdate);
-                                }
-                            } else if (!updates.has(connection.id) && connectionSelection.classed('selected') && nfCanvasUtils.canModify(connectionSelection)) {
-                                // this is a selected connection that hasn't been updated by the delta yet
-                                if (nfCanvasUtils.getConnectionSourceComponentId(connection) === d.id || !isSourceSelected(connection, selection)) {
-                                    // the connection is either outgoing or incoming when the source of the connection is not part of the selection
-                                    var connectionUpdate = nfDraggable.updateConnectionPosition(nfConnection.get(connection.id), delta);
-                                    if (connectionUpdate !== null) {
-                                        updates.set(connection.id, connectionUpdate);
-                                    }
-                                }
-                            }
-                        });
-                        updates.set(d.id, nfDraggable.updateComponentPosition(d, delta));
-                    }
-                }
-            });
-            nfDraggable.refreshConnections(updates);
+        alignHorizontalLeft: function (selection) {
+            nfDraggable.arrangeComponents(
+                selection,
+                nfDraggable.ARRANGE.ACTION.ALIGN,
+                nfDraggable.ARRANGE.HORIZONTAL.LEFT,
+                nfDraggable.ARRANGE.VERTICAL.NONE
+            );
         },
 
         /**
@@ -1811,70 +1788,154 @@
          *
          * @param {array} selection      The selection
          */
-        alignHorizontal: function (selection) {
-            var updates = d3.map();
-            // ensure every component is writable
-            if (nfCanvasUtils.canModify(selection) === false) {
-                nfDialog.showOkDialog({
-                    headerText: 'Component Position',
-                    dialogContent: 'Must be authorized to modify every component selected.'
-                });
-                return;
-            }
+        alignHorizontalCenter: function (selection) {
+            nfDraggable.arrangeComponents(
+                selection,
+                nfDraggable.ARRANGE.ACTION.ALIGN,
+                nfDraggable.ARRANGE.HORIZONTAL.CENTER,
+                nfDraggable.ARRANGE.VERTICAL.NONE
+            );
+        },
 
-            // determine the extent
-            var minY = null, maxY = null;
-            selection.each(function (d) {
-                if (d.type !== "Connection") {
-                    if (minY === null || d.position.y < minY) {
-                        minY = d.position.y;
-                    }
-                    var componentMaxY = d.position.y + d.dimensions.height;
-                    if (maxY === null || componentMaxY > maxY) {
-                        maxY = componentMaxY;
-                    }
-                }
-            });
-            var center = (minY + maxY) / 2;
+        /**
+         * Aligns the components in the specified selection horizontally along the right of the components.
+         *
+         * @param {array} selection      The selection
+         */
+        alignHorizontalRight: function (selection) {
+            nfDraggable.arrangeComponents(
+                selection,
+                nfDraggable.ARRANGE.ACTION.ALIGN,
+                nfDraggable.ARRANGE.HORIZONTAL.RIGHT,
+                nfDraggable.ARRANGE.VERTICAL.NONE
+            );
+        },
 
-            // align all components with top most component
-            selection.each(function(d) {
-                if (d.type !== "Connection") {
-                    var delta = {
-                        x: 0,
-                        y: center - (d.position.y + d.dimensions.height / 2)
-                    };
+        /**
+         * Aligns the components in the specified selection vertically along the top of the components.
+         *
+         * @param {array} selection      The selection
+         */
+        alignVerticalTop: function (selection) {
+            nfDraggable.arrangeComponents(
+                selection,
+                nfDraggable.ARRANGE.ACTION.ALIGN,
+                nfDraggable.ARRANGE.HORIZONTAL.NONE,
+                nfDraggable.ARRANGE.VERTICAL.TOP
+            );
+        },
 
-                    // if this component is already centered, no need to updated it
-                    if (delta.y !== 0) {
-                        // consider any connections
-                        var connections = nfConnection.getComponentConnections(d.id);
-                        $.each(connections, function(_, connection) {
-                            var connectionSelection = d3.select('#id-' + connection.id);
+        /**
+         * Aligns the components in the specified selection vertically along the center of the components.
+         *
+         * @param {array} selection      The selection
+         */
+        alignVerticalCenter: function (selection) {
+            nfDraggable.arrangeComponents(
+                selection,
+                nfDraggable.ARRANGE.ACTION.ALIGN,
+                nfDraggable.ARRANGE.HORIZONTAL.NONE,
+                nfDraggable.ARRANGE.VERTICAL.CENTER
+            );
+        },
 
-                            if (!updates.has(connection.id) && nfCanvasUtils.getConnectionSourceComponentId(connection) === nfCanvasUtils.getConnectionDestinationComponentId(connection)) {
-                                // this connection is self looping and hasn't been updated by the delta yet
-                                var connectionUpdate = nfDraggable.updateConnectionPosition(nfConnection.get(connection.id), delta);
-                                if (connectionUpdate !== null) {
-                                    updates.set(connection.id, connectionUpdate);
-                                }
-                            } else if (!updates.has(connection.id) && connectionSelection.classed('selected') && nfCanvasUtils.canModify(connectionSelection)) {
-                                // this is a selected connection that hasn't been updated by the delta yet
-                                if (nfCanvasUtils.getConnectionSourceComponentId(connection) === d.id || !isSourceSelected(connection, selection)) {
-                                    // the connection is either outgoing or incoming when the source of the connection is not part of the selection
-                                    var connectionUpdate = nfDraggable.updateConnectionPosition(nfConnection.get(connection.id), delta);
-                                    if (connectionUpdate !== null) {
-                                        updates.set(connection.id, connectionUpdate);
-                                    }
-                                }
-                            }
-                        });
-                        updates.set(d.id, nfDraggable.updateComponentPosition(d, delta));
-                    }
-                }
-            });
+        /**
+         * Aligns the components in the specified selection vertically along the right of the components.
+         *
+         * @param {array} selection      The selection
+         */
+        alignVerticalBottom: function (selection) {
+            nfDraggable.arrangeComponents(
+                selection,
+                nfDraggable.ARRANGE.ACTION.ALIGN,
+                nfDraggable.ARRANGE.HORIZONTAL.NONE,
+                nfDraggable.ARRANGE.VERTICAL.BOTTOM
+            );
+        },
 
-            nfDraggable.refreshConnections(updates);
+
+        /**
+         * Distributes the components in the specified selection vertically along the top of the components.
+         *
+         * @param {array} selection      The selection
+         */
+        distributeVerticalTop: function (selection) {
+            nfDraggable.arrangeComponents(
+                selection,
+                nfDraggable.ARRANGE.ACTION.DISTRIBUTE,
+                nfDraggable.ARRANGE.HORIZONTAL.NONE,
+                nfDraggable.ARRANGE.VERTICAL.TOP
+            );
+        },
+
+        /**
+         * Distributes the components in the specified selection vertically along the center of the components.
+         *
+         * @param {array} selection      The selection
+         */
+        distributeVerticalCenter: function (selection) {
+            nfDraggable.arrangeComponents(
+                selection,
+                nfDraggable.ARRANGE.ACTION.DISTRIBUTE,
+                nfDraggable.ARRANGE.HORIZONTAL.NONE,
+                nfDraggable.ARRANGE.VERTICAL.CENTER
+            );
+        },
+
+        /**
+         * Distributes the components in the specified selection vertically along the bottom of the components.
+         *
+         * @param {array} selection      The selection
+         */
+        distributeVerticalBottom: function (selection) {
+            nfDraggable.arrangeComponents(
+                selection,
+                nfDraggable.ARRANGE.ACTION.DISTRIBUTE,
+                nfDraggable.ARRANGE.HORIZONTAL.NONE,
+                nfDraggable.ARRANGE.VERTICAL.BOTTOM
+            );
+        },
+
+        /**
+         * Distributes the components in the specified selection horizontally along the left of the components.
+         *
+         * @param {array} selection      The selection
+         */
+        distributeHorizontalLeft: function (selection) {
+            nfDraggable.arrangeComponents(
+                selection,
+                nfDraggable.ARRANGE.ACTION.DISTRIBUTE,
+                nfDraggable.ARRANGE.HORIZONTAL.LEFT,
+                nfDraggable.ARRANGE.VERTICAL.NONE
+            );
+        },
+
+        /**
+         * Distributes the components in the specified selection horizontally along the center of the components.
+         *
+         * @param {array} selection      The selection
+         */
+        distributeHorizontalCenter: function (selection) {
+            nfDraggable.arrangeComponents(
+                selection,
+                nfDraggable.ARRANGE.ACTION.DISTRIBUTE,
+                nfDraggable.ARRANGE.HORIZONTAL.CENTER,
+                nfDraggable.ARRANGE.VERTICAL.NONE
+            );
+        },
+
+        /**
+         * Distributes the components in the specified selection horizontally along the right of the components.
+         *
+         * @param {array} selection      The selection
+         */
+        distributeHorizontalRight: function (selection) {
+               nfDraggable.arrangeComponents(
+                   selection,
+                   nfDraggable.ARRANGE.ACTION.DISTRIBUTE,
+                   nfDraggable.ARRANGE.HORIZONTAL.RIGHT,
+                   nfDraggable.ARRANGE.VERTICAL.NONE
+               );
         },
 
         /**

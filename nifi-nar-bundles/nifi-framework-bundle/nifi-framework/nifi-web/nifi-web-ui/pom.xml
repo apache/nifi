@@ -246,6 +246,11 @@
                                         <include>moment/README.md</include>
                                         <include>moment/LICENSE</include>
 
+                                        <!-- carbon icons -->
+                                        <include>@carbon/icons/svg/**/*</include>
+                                        <include>@carbon/icons/LICENSE</include>
+                                        <include>@carbon/icons/README.md</include>
+
                                     </includes>
                                 </resource>
                             </resources>
@@ -757,6 +762,7 @@
                                                 <include>${staging.dir}/css/parameter-contexts.css</include>
                                                 <include>${staging.dir}/css/settings.css</include>
                                                 <include>${staging.dir}/css/about.css</include>
+                                                <include>${staging.dir}/css/carbon.css</include>
                                                 <include>${staging.dir}/css/status-history.css</include>
                                             </includes>
                                         </aggregation>
