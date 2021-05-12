@@ -483,6 +483,9 @@ class TestPutDatabaseRecord {
 
         runner.assertTransferCount(PutDatabaseRecord.REL_SUCCESS, 0)
         runner.assertTransferCount(PutDatabaseRecord.REL_FAILURE, 1)
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutDatabaseRecord.REL_FAILURE).get(0);
+        flowFile.assertAttributeEquals('putdatabaserecord.error',
+                'java.sql.SQLException: Table PERSONS2 not found, ensure the Catalog, Schema, and/or Table Names match those in the database exactly')
     }
 
     @Test
