@@ -475,6 +475,7 @@ public class ConsumeKinesisStream extends AbstractKinesisStreamProcessor {
     @Override
     public void onScheduled(ProcessContext context) {
         stopped.set(false);
+        workerState.set(null);
         super.onScheduled(context);
     }
 
@@ -492,14 +493,15 @@ public class ConsumeKinesisStream extends AbstractKinesisStreamProcessor {
                 }
             }
         } else {
+            // after a Worker is registered successfully, nothing has to be done at onTrigger
+            // new sessions are created when new messages are consumed by the Worker
+            // and if the WorkerState is unexpectedly SHUT_DOWN, then we don't want to immediately re-enter onTrigger
+            context.yield();
+
             if (!stopped.get() && WorkerStateChangeListener.WorkerState.SHUT_DOWN == workerState.get()) {
                 throw new ProcessException("Worker has shutdown unexpectedly, possibly due to a configuration issue; check logs for details");
             }
         }
-
-        // after a Worker is registered successfully, nothing has to be done at onTrigger
-        // because new sessions are created when new messages are consumed by the Worker
-        context.yield();
     }
 
     @Override
@@ -514,7 +516,7 @@ public class ConsumeKinesisStream extends AbstractKinesisStreamProcessor {
                 if (worker != null) {
                     // indicate whether the processor has been Stopped; the Worker can be marked as SHUT_DOWN but still be waiting
                     // for ShardConsumers/RecordProcessors to complete, etc.
-                    stopped.lazySet(true);
+                    stopped.set(true);
 
                     final boolean success = shutdownWorker(context);
                     worker = null;
@@ -612,7 +614,7 @@ public class ConsumeKinesisStream extends AbstractKinesisStreamProcessor {
         final Worker.Builder workerBuilder = new Worker.Builder()
                 .config(kinesisClientLibConfiguration)
                 .kinesisClient(getClient())
-                .workerStateChangeListener(workerState::lazySet)
+                .workerStateChangeListener(workerState::set)
                 .recordProcessorFactory(factory);
 
         if (!isReportCloudWatchMetrics(context)) {

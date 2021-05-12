@@ -33,6 +33,7 @@ import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredential
 import org.apache.nifi.processors.aws.credentials.provider.service.AWSCredentialsProviderService;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.record.RecordFieldType;
+import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Before;
@@ -50,6 +51,7 @@ import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 
 public class TestConsumeKinesisStream {
     private final TestRunner runner = TestRunners.newTestRunner(ConsumeKinesisStream.class);
@@ -414,6 +416,9 @@ public class TestConsumeKinesisStream {
         if (!waitForFailure) {
             // re-trigger the processor to ensure the Worker isn't re-initialised when already running
             mockConsumeKinesisStreamRunner.run(1, false, false);
+            assertTrue(((MockProcessContext) mockConsumeKinesisStreamRunner.getProcessContext()).isYieldCalled());
+
+            // "Starting" log count remains at 1 from the initial startup above (the Logger doesn't get reset between processor calls)
             assertThat(mockConsumeKinesisStreamRunner.getLogger().getInfoMessages().stream()
                     .filter(logMessage -> logMessage.getMsg().contains(String.format("Starting Kinesis Worker %s", hostname))).count(), is(1L));
             assertThat(mockConsumeKinesisStreamRunner.getLogger().getWarnMessages().isEmpty(), is(true));
@@ -445,6 +450,7 @@ public class TestConsumeKinesisStream {
                 } catch (AssertionError e) {
                     assertThat(e.getCause(), instanceOf(ProcessException.class));
                     assertThat(e.getCause().getMessage(), equalTo("Worker has shutdown unexpectedly, possibly due to a configuration issue; check logs for details"));
+                    assertTrue(((MockProcessContext) mockConsumeKinesisStreamRunner.getProcessContext()).isYieldCalled());
                     break;
                 }
             }
