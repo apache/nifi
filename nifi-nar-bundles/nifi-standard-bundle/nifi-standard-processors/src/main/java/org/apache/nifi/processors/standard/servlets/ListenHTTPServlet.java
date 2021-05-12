@@ -111,6 +111,7 @@ public class ListenHTTPServlet extends HttpServlet {
     private Pattern authorizedPattern;
     private Pattern authorizedIssuerPattern;
     private Pattern headerPattern;
+    private Pattern attributePattern;
     private ConcurrentMap<String, FlowFileEntryTimeWrapper> flowFileMap;
     private StreamThrottler streamThrottler;
     private String basePath;
@@ -131,6 +132,7 @@ public class ListenHTTPServlet extends HttpServlet {
         this.authorizedPattern = (Pattern) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_AUTHORITY_PATTERN);
         this.authorizedIssuerPattern = (Pattern) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_AUTHORITY_ISSUER_PATTERN);
         this.headerPattern = (Pattern) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_HEADER_PATTERN);
+        this.attributePattern = (Pattern) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_ATTRIBUTE_PATTERN);
         this.flowFileMap = (ConcurrentMap<String, FlowFileEntryTimeWrapper>) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_FLOWFILE_MAP);
         this.streamThrottler = (StreamThrottler) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_STREAM_THROTTLER);
         this.basePath = (String) context.getAttribute(ListenHTTP.CONTEXT_ATTRIBUTE_BASE_PATH);
@@ -333,6 +335,10 @@ public class ListenHTTPServlet extends HttpServlet {
                         logger.debug("Record processing will not be utilized while processing with unpackager. Request URI: {}", request.getRequestURI());
                     }
                     attributes.putAll(unpackager.unpackageFlowFile(in, bos));
+
+                    if (attributePattern != null) {
+                        attributes.keySet().removeIf(attribute -> !attributePattern.matcher(attribute).matches());
+                    }
 
                     if (destinationIsLegacyNiFi) {
                         if (attributes.containsKey("nf.file.name")) {

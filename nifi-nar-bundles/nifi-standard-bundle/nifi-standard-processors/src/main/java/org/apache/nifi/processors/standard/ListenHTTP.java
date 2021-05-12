@@ -201,6 +201,14 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
         .required(false)
         .build();
+    public static final PropertyDescriptor FLOWFILE_ATTRIBUTES_REGEX = new PropertyDescriptor.Builder()
+            .name("FlowFile Attributes to receive as Attributes (Regex)")
+            .description("Specifies the Regular Expression that determines the names of incoming flowFile attributes to be passed along.  "
+                    + "Applies only when incoming data is a FlowFile.")
+            .defaultValue(".*")
+            .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
+            .required(false)
+            .build();
     public static final PropertyDescriptor RETURN_CODE = new PropertyDescriptor.Builder()
         .name("Return Code")
         .description("The HTTP return code returned after every HTTP call")
@@ -281,6 +289,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
             AUTHORIZED_ISSUER_DN_PATTERN,
             MAX_UNCONFIRMED_TIME,
             HEADERS_AS_ATTRIBUTES_REGEX,
+            FLOWFILE_ATTRIBUTES_REGEX,
             RETURN_CODE,
             MULTIPART_REQUEST_MAX_SIZE,
             MULTIPART_READ_BUFFER_SIZE,
@@ -300,6 +309,7 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
     public static final String CONTEXT_ATTRIBUTE_AUTHORITY_PATTERN = "authorityPattern";
     public static final String CONTEXT_ATTRIBUTE_AUTHORITY_ISSUER_PATTERN = "authorityIssuerPattern";
     public static final String CONTEXT_ATTRIBUTE_HEADER_PATTERN = "headerPattern";
+    public static final String CONTEXT_ATTRIBUTE_ATTRIBUTE_PATTERN = "attributePattern";
     public static final String CONTEXT_ATTRIBUTE_FLOWFILE_MAP = "flowFileMap";
     public static final String CONTEXT_ATTRIBUTE_STREAM_THROTTLER = "streamThrottler";
     public static final String CONTEXT_ATTRIBUTE_BASE_PATH = "basePath";
@@ -459,6 +469,11 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         if (context.getProperty(HEADERS_AS_ATTRIBUTES_REGEX).isSet()) {
             contextHandler.setAttribute(CONTEXT_ATTRIBUTE_HEADER_PATTERN, Pattern.compile(context.getProperty(HEADERS_AS_ATTRIBUTES_REGEX).getValue()));
         }
+
+        if (context.getProperty(FLOWFILE_ATTRIBUTES_REGEX).isSet()) {
+            contextHandler.setAttribute(CONTEXT_ATTRIBUTE_ATTRIBUTE_PATTERN, Pattern.compile(context.getProperty(FLOWFILE_ATTRIBUTES_REGEX).getValue()));
+        }
+
         try {
             server.start();
         } catch (Exception e) {

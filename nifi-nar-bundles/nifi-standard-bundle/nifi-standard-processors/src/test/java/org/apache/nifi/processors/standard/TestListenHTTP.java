@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.processors.standard;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -28,7 +30,9 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
 import javax.net.ssl.SSLContext;
@@ -58,6 +62,8 @@ import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.util.FlowFilePackager;
+import org.apache.nifi.util.FlowFilePackagerV3;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -655,6 +661,53 @@ public class TestListenHTTP {
         runner.setProperty(ListenHTTP.SSL_CONTEXT_SERVICE, SSL_CONTEXT_SERVICE_IDENTIFIER);
 
         runner.enableControllerService(sslContextService);
+    }
+
+    @Test
+    public void testFilterIncomingFlowFileAttributes() throws IOException {
+
+        runner.setProperty(ListenHTTP.PORT, Integer.toString(availablePort));
+        runner.setProperty(ListenHTTP.BASE_PATH, HTTP_BASE_PATH);
+        runner.setProperty(ListenHTTP.RETURN_CODE, Integer.toString(HttpServletResponse.SC_OK));
+        runner.setProperty(ListenHTTP.FLOWFILE_ATTRIBUTES_REGEX, "a.*");
+
+        final SSLContextService sslContextService = runner.getControllerService(SSL_CONTEXT_SERVICE_IDENTIFIER, SSLContextService.class);
+        final boolean isSecure = (sslContextService != null);
+
+        startWebServer();
+
+        final FlowFilePackager packager = new FlowFilePackagerV3();
+
+        final byte[] data = "Hello, World!".getBytes("UTF-8");
+        final Map<String, String> map = new HashMap<>();
+        map.put("abc", "cba");
+        map.put("foo", "bar");
+
+        final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        final ByteArrayInputStream in = new ByteArrayInputStream(data);
+        packager.packageFlowFile(in, baos, map, data.length);
+
+        final byte[] encoded = baos.toByteArray();
+
+        Request request =
+                new Request.Builder()
+                    .url(buildUrl(isSecure))
+                    .post(RequestBody.create(encoded, MediaType.parse("application/flowfile-v3")))
+                    .build();
+
+        final OkHttpClient client = getOkHttpClient(false, false);
+
+        try (Response response = client.newCall(request).execute()) {
+            Assert.assertTrue(String.format("Unexpected code: %s, body: %s", response.code(), response.body().string()), response.isSuccessful());
+        }
+
+        runner.assertAllFlowFilesTransferred(ListenHTTP.RELATIONSHIP_SUCCESS, 1);
+
+        List<MockFlowFile> flowFilesForRelationship = runner.getFlowFilesForRelationship(ListenHTTP.RELATIONSHIP_SUCCESS);
+        MockFlowFile mff = flowFilesForRelationship.get(0);
+        mff.assertAttributeExists("abc");
+        mff.assertAttributeEquals("abc", "cba");
+        mff.assertAttributeNotExists("foo");
     }
 
     @Test
