@@ -70,8 +70,7 @@ public abstract class AbstractAWSCredentialsProviderProcessor<ClientType extends
      * @param context the process context
      */
     protected void onScheduledUsingControllerService(ProcessContext context) {
-        final ClientType awsClient = createClient(context, getCredentialsProvider(context), createConfiguration(context));
-        this.client = awsClient;
+        this.client = createClient(context, getCredentialsProvider(context), createConfiguration(context));
         super.initializeRegionAndEndpoint(context);
 
      }

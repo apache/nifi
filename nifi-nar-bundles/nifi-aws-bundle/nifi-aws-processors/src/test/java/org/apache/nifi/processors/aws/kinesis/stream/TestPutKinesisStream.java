@@ -16,17 +16,16 @@
  */
 package org.apache.nifi.processors.aws.kinesis.stream;
 
-import static org.junit.Assert.assertNotNull;
-
-import java.util.List;
-
-import org.apache.nifi.processors.aws.kinesis.stream.PutKinesisStream;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.util.List;
+
+import static org.junit.Assert.assertNotNull;
 
 public class TestPutKinesisStream {
     private TestRunner runner;

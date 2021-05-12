@@ -173,6 +173,20 @@ public interface TestRunner {
 
     /**
      * Invokes all methods on the Processor that are annotated with the
+     * {@link org.apache.nifi.annotation.lifecycle.OnUnscheduled @OnUnscheduled} annotation. If
+     * any of these methods throws an Exception, the Unit Test will fail
+     */
+    void unSchedule();
+
+    /**
+     * Invokes all methods on the Processor that are annotated with the
+     * {@link org.apache.nifi.annotation.lifecycle.OnStopped @OnStopped} annotation. If
+     * any of these methods throws an Exception, the Unit Test will fail
+     */
+    void stop();
+
+    /**
+     * Invokes all methods on the Processor that are annotated with the
      * {@link org.apache.nifi.annotation.lifecycle.OnShutdown @OnShutdown} annotation. If
      * any of these methods throws an Exception, the Unit Test will fail
      */
