@@ -1136,6 +1136,7 @@
             // initialize the zoom behavior
             var behavior;
             var x = 0, y = 0, k = SCALE;
+            var backgroundGridVisibility = 2;
 
             return {
 
@@ -1290,13 +1291,28 @@
                     return k;
                 },
 
-                isBackgroundVisible: function () {
-                    return !backgroundGrid.classed('hidden');
+                getBackgroundGridVisibility: function() {
+                    return backgroundGridVisibility;
                 },
 
-                changeBackgroundVisiblity: function () {
-                   var isHidden = backgroundGrid.classed('hidden');
-                   return backgroundGrid.classed('hidden', !isHidden);
+                setBackgroundGridVisibility: function(level) {
+                    backgroundGridVisibility = level;
+                    if (level > 0) {
+                        d3.select('#grid path').attr('stroke-width',1);
+                    } else {
+                        d3.select('#grid path').attr('stroke-width',0);
+                    }
+
+                    if (level > 1) {
+                        d3.select('#smallGrid path').attr('stroke-width',0.5);
+                    } else {
+                        d3.select('#smallGrid path').attr('stroke-width',0);
+                    }
+                    nfCanvas.View.refresh({
+                        persist: true,
+                        refreshComponents: false,
+                        refreshBirdseye: false
+                    });
                 },
 
                 /**

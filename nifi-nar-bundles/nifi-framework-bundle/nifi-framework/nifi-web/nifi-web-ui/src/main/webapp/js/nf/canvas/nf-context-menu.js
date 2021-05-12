@@ -290,17 +290,29 @@
         return selection.empty();
     };
 
-    var isBackgroundVisible = function() {
-        return nfCanvasUtils.isBackgroundVisible();
+    /**
+     * Checks whether the background grid is not set to fully visible.
+     */
+     var isBackgroundGridNotVisible = function() {
+        return nfCanvasUtils.getBackgroundGridVisibility() !== 2;
     }
-
-    var isBackgroundHidden = function() {
-        return !nfCanvasUtils.isBackgroundVisible();
-    }
-
 
     /**
-     * Determines whether the componets in the specified selection support being moved to the front.
+     * Checks whether the background grid is not set to fully major ticks only.
+     */
+    var isBackgroundGridNotMajorTicksVisible = function() {
+        return nfCanvasUtils.getBackgroundGridVisibility() !== 1;
+    }
+
+    /**
+     * Checks whether the background grid is not set to hidden.
+     */
+    var isBackgroundGridNotHidden = function() {
+        return nfCanvasUtils.getBackgroundGridVisibility() !== 0;
+    }
+
+    /**
+     * Determines whether the components in the specified selection support being moved to the front.
      *
      * @param {selection} selection         The selection
      */
@@ -825,8 +837,11 @@
         {separator: true},
         {id: 'enter-group-menu-item', condition: isProcessGroup, menuItem: {clazz: 'fa fa-sign-in', text: 'Enter group', action: 'enterGroup'}},
         {separator: true},
-        {id: 'hide-grid-menu-item', condition: isBackgroundVisible, menuItem: {clazz: 'fa', text: 'Hide background grid', action: 'changeBackgroundVisiblity'}},
-        {id: 'show-grid-menu-item', condition: isBackgroundHidden, menuItem: {clazz: 'fa', text: 'Show background grid', action: 'changeBackgroundVisiblity'}},
+        {id: 'version-menu-item', groupMenuItem: {clazz: 'fa', text: 'Background grid'}, menuItems: [
+            {id: 'set-grid-visible-menu-item', condition: isBackgroundGridNotVisible, menuItem: {clazz: 'fa', text: 'Show full grid', action: 'setBackgroundGridVisible'}},
+            {id: 'set-grid-major-menu-item', condition: isBackgroundGridNotMajorTicksVisible, menuItem: {clazz: 'fa', text: 'Show only major ticks', action: 'setBackgroundGridMajorTicksVisible'}},
+            {id: 'set-grid-hidden-menu-item', condition: isBackgroundGridNotHidden, menuItem: {clazz: 'fa', text: 'Hide grid', action: 'setBackgroundGridHidden'}},
+        ]},
         {separator: true},
         {id: 'start-menu-item', condition: isRunnable, menuItem: {clazz: 'fa fa-play', text: 'Start', action: 'start'}},
         {id: 'stop-menu-item', condition: isStoppable, menuItem: {clazz: 'fa fa-stop', text: 'Stop', action: 'stop'}},

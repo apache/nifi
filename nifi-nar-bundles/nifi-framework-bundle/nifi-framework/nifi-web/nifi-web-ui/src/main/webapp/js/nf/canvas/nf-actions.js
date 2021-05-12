@@ -974,10 +974,24 @@
         },
 
         /**
-         * Change the visibility of the background grid.
+         * Sets the background grid to show the full grid.
          */
-        changeBackgroundVisiblity: function() {
-            return nfCanvasUtils.changeBackgroundVisiblity();
+        setBackgroundGridVisible: function() {
+            nfCanvasUtils.setBackgroundGridVisibility(2);
+        },
+
+        /**
+         * Sets the background grid to show only major ticks.
+         */
+        setBackgroundGridMajorTicksVisible: function() {
+            nfCanvasUtils.setBackgroundGridVisibility(1);
+        },
+
+        /**
+         * Sets the background grid to hidden.
+         */
+        setBackgroundGridHidden: function() {
+            nfCanvasUtils.setBackgroundGridVisibility(0);
         },
 
         // Defines an action for showing component details (like configuration but read only).

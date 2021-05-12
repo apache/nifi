@@ -1694,7 +1694,8 @@
             var item = {
                 scale: nfCanvas.View.getScale(),
                 translateX: translate[0],
-                translateY: translate[1]
+                translateY: translate[1],
+                backgroundGridVisibility: nfCanvas.View.getBackgroundGridVisibility()
             };
 
             // store the item
@@ -1780,9 +1781,10 @@
 
                 // ensure the item is valid
                 if (nfCommon.isDefinedAndNotNull(item)) {
-                    if (isFinite(item.scale) && isFinite(item.translateX) && isFinite(item.translateY)) {
+                    if (isFinite(item.scale) && isFinite(item.translateX) && isFinite(item.translateY) && isFinite(item.backgroundGridVisibility)) {
                         // restore previous view
                         nfCanvas.View.transform([item.translateX, item.translateY], item.scale);
+                        nfCanvas.View.setBackgroundGridVisibility(item.backgroundGridVisibility);
 
                         // mark the view was restore
                         viewRestored = true;
@@ -2214,13 +2216,24 @@
             return nfCanvas.CANVAS_OFFSET;
         },
 
-        isBackgroundVisible: function () {
-            return nfCanvas.View.isBackgroundVisible();                
+        /**
+         * Gets the background grid visibility level.
+         *
+         * @returns {integer} level     the visibility level (0 for no grid, 1 for major ticks only, 2 for all ticks)
+         */
+        getBackgroundGridVisibility: function () {
+            return nfCanvas.View.getBackgroundGridVisibility();
         },
 
-        changeBackgroundVisiblity: function() {
-            return nfCanvas.View.changeBackgroundVisiblity();    
-        }
+        /**
+         * Sets the background grid visibility level.
+         *
+         * @param {integer} level     the visibility level (0 for no grid, 1 for major ticks only, 2 for all ticks)
+         */
+        setBackgroundGridVisibility: function (level) {
+            nfCanvas.View.setBackgroundGridVisibility(level);
+        },
+
     };
     return nfCanvasUtils;
 }));
