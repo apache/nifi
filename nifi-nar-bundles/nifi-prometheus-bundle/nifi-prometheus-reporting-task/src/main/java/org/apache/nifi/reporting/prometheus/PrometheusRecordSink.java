@@ -93,7 +93,7 @@ public class PrometheusRecordSink extends AbstractControllerService implements R
     public void onScheduled(final ConfigurationContext context) {
         RECORD_REGISTRY.clear();
         SSLContextService sslContextService = context.getProperty(SSL_CONTEXT).asControllerService(SSLContextService.class);
-        final String metricsEndpointPort = context.getProperty(PrometheusMetricsUtil.METRICS_ENDPOINT_PORT).getValue();
+        final String metricsEndpointPort = context.getProperty(PrometheusMetricsUtil.METRICS_ENDPOINT_PORT).evaluateAttributeExpressions().getValue();
 
         try {
             List<Function<ReportingContext, CollectorRegistry>> metricsCollectors = new ArrayList<>();
@@ -119,7 +119,7 @@ public class PrometheusRecordSink extends AbstractControllerService implements R
             metricsCollectors.add(nifiMetrics);
 
             prometheusServer.setMetricsCollectors(metricsCollectors);
-            getLogger().info("Started JETTY server");
+            getLogger().info("Started Jetty server");
         } catch (Exception e) {
             // Don't allow this to finish successfully, onTrigger should not be called if the Jetty server wasn't started
             throw new ProcessException("Failed to start Jetty server", e);
