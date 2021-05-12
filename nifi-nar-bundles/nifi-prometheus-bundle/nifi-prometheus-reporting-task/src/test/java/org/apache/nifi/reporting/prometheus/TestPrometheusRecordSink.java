@@ -31,6 +31,7 @@ import org.apache.nifi.controller.ControllerServiceInitializationContext;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.prometheus.util.PrometheusMetricsUtil;
+import org.apache.nifi.registry.VariableDescriptor;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.WriteResult;
@@ -44,6 +45,7 @@ import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.state.MockStateManager;
 import org.apache.nifi.util.MockControllerServiceInitializationContext;
 import org.apache.nifi.util.MockPropertyValue;
+import org.apache.nifi.util.MockVariableRegistry;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -149,9 +151,11 @@ public class TestPrometheusRecordSink {
         final PrometheusRecordSink task = new PrometheusRecordSink();
         ConfigurationContext context = mock(ConfigurationContext.class);
         final StateManager stateManager = new MockStateManager(task);
-
+        final MockVariableRegistry variableRegistry = new MockVariableRegistry();
         final PropertyValue pValue = mock(StandardPropertyValue.class);
-        when(context.getProperty(PrometheusMetricsUtil.METRICS_ENDPOINT_PORT)).thenReturn(new MockPropertyValue(portString));
+
+        variableRegistry.setVariable(new VariableDescriptor("port"), portString);
+        when(context.getProperty(PrometheusMetricsUtil.METRICS_ENDPOINT_PORT)).thenReturn(new MockPropertyValue("${port}", null, variableRegistry));
         when(context.getProperty(PrometheusRecordSink.SSL_CONTEXT)).thenReturn(pValue);
         when(pValue.asControllerService(SSLContextService.class)).thenReturn(null);
 
