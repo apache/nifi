@@ -18,25 +18,6 @@
  */
 package org.apache.nifi.processors.solr;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.SortedMap;
-import java.util.TreeMap;
-import java.util.concurrent.TimeUnit;
-import javax.net.ssl.SSLContext;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.HttpClient;
@@ -77,6 +58,26 @@ import org.apache.solr.common.SolrDocument;
 import org.apache.solr.common.SolrInputDocument;
 import org.apache.solr.common.params.ModifiableSolrParams;
 import org.apache.solr.common.params.MultiMapSolrParams;
+
+import javax.net.ssl.SSLContext;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.SortedMap;
+import java.util.TreeMap;
+import java.util.concurrent.TimeUnit;
 
 public class SolrUtils {
 
@@ -248,9 +249,9 @@ public class SolrUtils {
         if (sslContextService != null) {
             final SSLContext sslContext = sslContextService.createContext();
             final SSLConnectionSocketFactory sslSocketFactory = new SSLConnectionSocketFactory(sslContext);
-            HttpClientUtil.setSchemaRegistryProvider(new HttpClientUtil.SchemaRegistryProvider() {
+            HttpClientUtil.setSocketFactoryRegistryProvider(new HttpClientUtil.SocketFactoryRegistryProvider() {
                 @Override
-                public Registry<ConnectionSocketFactory> getSchemaRegistry() {
+                public Registry<ConnectionSocketFactory> getSocketFactoryRegistry() {
                     RegistryBuilder<ConnectionSocketFactory> builder = RegistryBuilder.create();
                     builder.register("http", PlainConnectionSocketFactory.getSocketFactory());
                     builder.register("https", sslSocketFactory);
