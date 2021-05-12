@@ -680,14 +680,17 @@ public abstract class AbstractComponentNode implements ComponentNode {
 
     protected final Collection<ValidationResult> validateReferencedControllerServices(final ValidationContext validationContext) {
         final Set<PropertyDescriptor> propertyDescriptors = validationContext.getProperties().keySet();
-        if (propertyDescriptors == null) {
-            return Collections.emptyList();
-        }
 
+        final ConfigurableComponent component = getComponent();
         final Collection<ValidationResult> validationResults = new ArrayList<>();
         for (final PropertyDescriptor descriptor : propertyDescriptors) {
             if (descriptor.getControllerServiceDefinition() == null) {
                 // skip properties that aren't for a controller service
+                continue;
+            }
+
+            final boolean dependencySatisfied = validationContext.isDependencySatisfied(descriptor, component::getPropertyDescriptor);
+            if (!dependencySatisfied) {
                 continue;
             }
 
