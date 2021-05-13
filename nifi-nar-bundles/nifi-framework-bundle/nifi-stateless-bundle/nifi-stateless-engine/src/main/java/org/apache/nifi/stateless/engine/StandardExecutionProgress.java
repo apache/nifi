@@ -30,6 +30,7 @@ import org.apache.nifi.stateless.queue.DrainableFlowFileQueue;
 import org.apache.nifi.stateless.repository.ByteArrayContentRepository;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -143,7 +144,16 @@ public class StandardExecutionProgress implements ExecutionProgress {
 
                 final FlowFileRecord flowFileRecord = (FlowFileRecord) flowFile;
                 final ContentClaim contentClaim = flowFileRecord.getContentClaim();
-                return contentRepository.getBytes(contentClaim);
+                final byte[] contentClaimContents = contentRepository.getBytes(contentClaim);
+                final long offset = flowFileRecord.getContentClaimOffset();
+                final long size = flowFileRecord.getSize();
+
+                if (offset == 0 && size == contentClaimContents.length) {
+                    return contentClaimContents;
+                }
+
+                final byte[] flowFileContents = Arrays.copyOfRange(contentClaimContents, (int) offset, (int) (size + offset));
+                return flowFileContents;
             }
 
             @Override
