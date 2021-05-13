@@ -160,6 +160,7 @@ public class StatelessSystemIT {
 
         final StatelessBootstrap bootstrap = StatelessBootstrap.bootstrap(getEngineConfiguration());
         final StatelessDataflow dataflow = bootstrap.createDataflow(dataflowDefinition, Collections.emptyList());
+        dataflow.initialize();
 
         createdFlows.add(dataflow);
         return dataflow;
