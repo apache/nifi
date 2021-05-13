@@ -16,23 +16,29 @@
  */
 package org.apache.nifi.nar;
 
-import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Collection;
 
 /**
- * Contains necessary information for extensions of NAR auto loader functionality.
+ * Represents an external source where the NAR files might be acquired from. Used by the NAR auto loader functionality
+ * in order to poll an external source for new NAR files to load.
  */
-public interface NarAutoLoaderContext {
-
+public interface NarProvider {
     /**
-     * @return The directory where the auto loader works from.
+     * Initializes the NAR Provider based on the given set of properties.
      */
-    File getAutoLoadDirectory();
+    void initialize(NarProviderInitializationContext context);
 
     /**
-     * Returns with a parameter which might be used by the extensions.
+     * Performs a listing of all NAR's that are available.
      *
-     * @param name Name of the parameter.
-     * @return String representation of the parameter.
+     * @Return The result is a list of locations, where the format depends on the actual implementation.
      */
-    String getParameter(String name);
+    Collection<String> listNars() throws IOException;
+
+    /**
+     * Fetches the NAR at the given location. The location should be one of the values returned by <code>listNars()</code>.
+     */
+    InputStream fetchNarContents(String location) throws IOException;
 }

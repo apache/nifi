@@ -16,25 +16,15 @@
  */
 package org.apache.nifi.nar;
 
+import java.util.Map;
+
 /**
- * Represents an external source where the NAR files might be acquired from. Used by the NAR auto loader functionality
- * in order to poll an external source for new NAR files to load.
+ * Contains necessary information for extensions of NAR auto loader functionality.
  */
-public interface NarAutoLoaderExternalSource {
-    /**
-     * Starts the necessary resources. This might be a connection or other resource based on the nature of the external source.
-     *
-     * @param context Context which might contain setup or runtime information.
-     */
-    void start(NarAutoLoaderContext context);
+public interface NarProviderInitializationContext {
 
     /**
-     * Stops the used resources.
+     * @return Returns with the available parameters.
      */
-    void stop();
-
-    /**
-     * Polls the external source and if it finds NAR files not already loaded, the service acquires the files in order to load them.
-     */
-    void acquire();
+    Map<String, String> getParameters();
 }

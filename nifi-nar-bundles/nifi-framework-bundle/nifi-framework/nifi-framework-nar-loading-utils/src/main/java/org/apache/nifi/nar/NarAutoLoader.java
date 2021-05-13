@@ -27,15 +27,17 @@ import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.nio.file.StandardWatchEventKinds;
 import java.nio.file.WatchService;
+import java.util.HashSet;
 import java.util.Objects;
-import java.util.Optional;
+import java.util.Set;
 
 /**
  * Starts a thread to monitor the auto-load directory for new NARs.
  */
 public class NarAutoLoader {
     private static final Logger LOGGER = LoggerFactory.getLogger(NarAutoLoader.class);
-    private static final String NAR_AUTO_LOADER_TASK_TYPE_PROPERTY = "nifi.library.nar.autoload.externalsource";
+    private static final String NAR_PROVIDER_PREFIX = "nifi.nar.library.provider.";
+    private static final String IMPLEMENTATION_PROPERTY = "implementation";
 
     private static final long POLL_INTERVAL_MS = 5000;
 
@@ -43,7 +45,7 @@ public class NarAutoLoader {
     private final NarLoader narLoader;
     private final ExtensionManager extensionManager;
 
-    private volatile Optional<NarAutoLoaderExternalSourceTask> externalSourceTask = Optional.empty();
+    private volatile Set<NarProviderTask> narProviderTasks;
     private volatile NarAutoLoaderTask narAutoLoaderTask;
     private volatile boolean started = false;
 
@@ -79,35 +81,35 @@ public class NarAutoLoader {
         autoLoaderThread.setDaemon(true);
         autoLoaderThread.start();
 
-        final Optional<NarAutoLoaderExternalSource> externalSource = getExternalSource();
+        narProviderTasks = new HashSet<>();
 
-        if (externalSource.isPresent()) {
-            externalSourceTask = Optional.of(new NarAutoLoaderExternalSourceTask(externalSource.get(), 5000)); // TODO
-            final Thread externalSourceThread = new Thread(externalSourceTask.get());
-            externalSourceThread.setName("NAR Auto-Loader External Source Task");
-            externalSourceThread.setDaemon(true);
-            externalSourceThread.setContextClassLoader(externalSource.get().getClass().getClassLoader());
-            externalSourceThread.start();
+        for (final String externalSourceName : properties.getDirectSubsequentTokens(NAR_PROVIDER_PREFIX)) {
+            LOGGER.info("NAR Provider {} found in configuration", externalSourceName);
+
+            final NarProviderInitializationContext context = new PropertyBasedNarProviderInitializationContext(properties, externalSourceName);
+            final String implementationClass = properties.getProperty(NAR_PROVIDER_PREFIX + externalSourceName + "." + IMPLEMENTATION_PROPERTY);
+            final NarProvider provider = NarThreadContextClassLoader.createInstance(extensionManager, implementationClass, NarProvider.class, properties);
+            provider.initialize(context);
+
+            final NarProviderTask task = new NarProviderTask(provider, properties.getNarAutoLoadDirectory(), POLL_INTERVAL_MS);
+            narProviderTasks.add(task);
+
+            final Thread providerThread = new Thread(task);
+            providerThread.setName("NAR Provider Task - " + externalSourceName);
+            providerThread.setDaemon(true);
+            providerThread.setContextClassLoader(provider.getClass().getClassLoader());
+            providerThread.start();
         }
-    }
-
-    private Optional<NarAutoLoaderExternalSource> getExternalSource() throws IllegalAccessException, ClassNotFoundException, InstantiationException  {
-        final String loaderTaskType = properties.getProperty(NAR_AUTO_LOADER_TASK_TYPE_PROPERTY);
-
-        if (loaderTaskType == null) {
-            return Optional.empty();
-        }
-
-        final NarAutoLoaderExternalSource instance = NarThreadContextClassLoader.createInstance(extensionManager, loaderTaskType, NarAutoLoaderExternalSource.class, properties);
-        instance.start(new PropertyBasedNarAutoLoaderContext(properties));
-        return Optional.of(instance);
     }
 
     public synchronized void stop() {
         started = false;
         narAutoLoaderTask.stop();
         narAutoLoaderTask = null;
-        externalSourceTask.ifPresent(task -> task.stop());
+
+        narProviderTasks.forEach(task -> task.stop());
+        narProviderTasks = null;
+
         LOGGER.info("NAR Auto-Loader stopped");
     }
 }

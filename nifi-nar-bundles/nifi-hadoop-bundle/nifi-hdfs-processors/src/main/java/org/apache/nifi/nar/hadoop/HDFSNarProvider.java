@@ -25,8 +25,8 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.nifi.hadoop.SecurityUtil;
-import org.apache.nifi.nar.NarAutoLoaderContext;
-import org.apache.nifi.nar.NarAutoLoaderExternalSource;
+import org.apache.nifi.nar.NarProvider;
+import org.apache.nifi.nar.NarProviderInitializationContext;
 import org.apache.nifi.nar.hadoop.util.ExtensionFilter;
 import org.apache.nifi.processors.hadoop.ExtendedConfiguration;
 import org.apache.nifi.processors.hadoop.HdfsResources;
@@ -37,105 +37,104 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.net.SocketFactory;
-import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.URI;
-import java.nio.file.FileSystems;
-import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
 import java.security.PrivilegedExceptionAction;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 import java.util.stream.Collectors;
 
-public class HDFSNarAutoLoaderExternalSource implements NarAutoLoaderExternalSource {
-    private static final Logger LOGGER = LoggerFactory.getLogger(HDFSNarAutoLoaderExternalSource.class);
-    private static final String RESOURCES_PROPERTY = "nifi.library.nar.autoload.hdfs.resources";
-    private static final String SOURCE_DIRECTORY_PROPERTY = "nifi.library.nar.autoload.hdfs.source.directory";
+public class HDFSNarProvider implements NarProvider {
+    private static final Logger LOGGER = LoggerFactory.getLogger(HDFSNarProvider.class);
 
-    private static final String KERBEROS_PRINCIPAL_PROPERTY = "nifi.library.nar.autoload.hdfs.kerberos.principal";
-    private static final String KERBEROS_KEYTAB_PROPERTY = "nifi.library.nar.autoload.hdfs.kerberos.keytab";
-    private static final String KERBEROS_PASSWORD_PROPERTY = "nifi.library.nar.autoload.hdfs.kerberos.password";
+    private static final String RESOURCES_PARAMETER = "resources";
+    private static final String SOURCE_DIRECTORY_PARAMETER = "source.directory";
+    private static final String KERBEROS_PRINCIPAL_PARAMETER = "kerberos.principal";
+    private static final String KERBEROS_KEYTAB_PARAMETER = "kerberos.keytab";
+    private static final String KERBEROS_PASSWORD_PARAMETER = "kerberos.password";
 
     private static final String NAR_EXTENSION = "nar";
+    private static final String DELIMITER = "/";
     private static final int BUFFER_SIZE_DEFAULT = 4096;
     private static final Object RESOURCES_LOCK = new Object();
 
-    private volatile boolean started = false;
     private volatile List<String> resources = null;
     private volatile Path sourceDirectory = null;
 
-    private volatile NarAutoLoaderContext context;
+    private volatile NarProviderInitializationContext context;
 
-    public void start(final NarAutoLoaderContext context) {
-        resources = Arrays.stream(Objects.requireNonNull(context.getParameter(RESOURCES_PROPERTY)).split(",")).map(s -> s.trim()).collect(Collectors.toList());
+    private volatile boolean initialized = false;
+
+    public void initialize(final NarProviderInitializationContext context) {
+        resources = Arrays.stream(Objects.requireNonNull(context.getParameters().get(RESOURCES_PARAMETER)).split(",")).map(s -> s.trim()).collect(Collectors.toList());
 
         if (resources.isEmpty()) {
             throw new IllegalArgumentException("At least one HDFS configuration resource is necessary");
         }
 
-        sourceDirectory = new Path(Objects.requireNonNull(context.getParameter(SOURCE_DIRECTORY_PROPERTY)));
+        this.sourceDirectory = new Path(Objects.requireNonNull(context.getParameters().get(SOURCE_DIRECTORY_PARAMETER)));
         this.context = context;
-        started = true;
+        this.initialized = true;
     }
 
     @Override
-    public void stop() {
-        started = false;
+    public Collection<String> listNars() throws IOException {
+        if (!initialized) {
+            LOGGER.error("Provider is not initialized");
+        }
+
+        final HdfsResources hdfsResources = getHdfsResources();
+        final FileStatus[] fileStatuses = hdfsResources.getFileSystem().listStatus(sourceDirectory, new ExtensionFilter(NAR_EXTENSION));
+
+        final List<String> result = Arrays.stream(fileStatuses)
+            .filter(fileStatus -> fileStatus.isFile())
+            .map(fileStatus -> fileStatus.getPath().getName())
+            .collect(Collectors.toList());
+
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("The following nars were found: " + String.join(", ", result));
+        }
+
+        return result;
     }
 
     @Override
-    public void acquire() {
-        if (!started) {
-            LOGGER.error("External source is not started");
+    public InputStream fetchNarContents(final String location) throws IOException {
+        if (!initialized) {
+            LOGGER.error("Provider is not initialized");
+        }
+
+
+        final Path path = getNarLocation(location);
+        final HdfsResources hdfsResources = getHdfsResources();
+
+        if (!hdfsResources.getFileSystem().exists(path)) {
+            throw new IOException("Provider cannot find " + location);
         }
 
         try {
-            final HdfsResources hdfsResources = getHdfsResources();
-            final FileStatus[] fileStatuses = hdfsResources.getFileSystem().listStatus(sourceDirectory, new ExtensionFilter(NAR_EXTENSION));
-            final Set<String> loadedNars = getLoadedNars();
-
-            Arrays.stream(fileStatuses)
-                .filter(fileStatus -> fileStatus.isFile())
-                .filter(fileStatus -> !loadedNars.contains(fileStatus.getPath().getName()))
-                .forEach(fileStatus -> acquireFile(fileStatus, hdfsResources));
-        } catch (final Throwable e) {
-            LOGGER.error("Issue happened during acquiring NAR files from external source", e);
-        }
-    }
-
-    private Set<String> getLoadedNars() {
-        return Arrays.stream(context.getAutoLoadDirectory().listFiles(file -> file.isFile() && file.getName().toLowerCase().endsWith("." + NAR_EXTENSION)))
-            .map(file -> file.getName())
-            .collect(Collectors.toSet());
-    }
-
-    private void acquireFile(final FileStatus fileStatus, final HdfsResources hdfsResources) {
-        final FSDataInputStream inputStream;
-        try {
-            inputStream = hdfsResources.getUserGroupInformation()
-                    .doAs((PrivilegedExceptionAction<FSDataInputStream>) () -> hdfsResources.getFileSystem().open(fileStatus.getPath(), BUFFER_SIZE_DEFAULT));
-            final String targetFile = getTargetFile(fileStatus);
-            Files.copy(inputStream, new File(targetFile).toPath(), StandardCopyOption.REPLACE_EXISTING);
-            LOGGER.info("File " + fileStatus.getPath().getName() + " acquired successfully");
-        } catch (Throwable e) {
+            return hdfsResources.getUserGroupInformation()
+                .doAs((PrivilegedExceptionAction<FSDataInputStream>) () -> hdfsResources.getFileSystem().open(path, BUFFER_SIZE_DEFAULT));
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             LOGGER.error("Error during acquiring file", e);
-            e.printStackTrace();
+            throw new RuntimeException();
         }
     }
 
-    private String getTargetFile(final FileStatus fileStatus) {
-        String targetDirectoryPath = context.getAutoLoadDirectory().getAbsolutePath();
+    private Path getNarLocation(final String location) {
+        String result = sourceDirectory.toString();
 
-        if (!targetDirectoryPath.endsWith(FileSystems.getDefault().getSeparator())) {
-            targetDirectoryPath += FileSystems.getDefault().getSeparator();
+        if (!result.endsWith(DELIMITER)) {
+            result += DELIMITER;
         }
 
-        return targetDirectoryPath + fileStatus.getPath().getName();
+        return new Path(result + location);
     }
 
     private HdfsResources getHdfsResources() throws IOException {
@@ -161,9 +160,9 @@ public class HDFSNarAutoLoaderExternalSource implements NarAutoLoaderExternalSou
 
         synchronized (RESOURCES_LOCK) {
             if (SecurityUtil.isSecurityEnabled(config)) {
-                final String principal = context.getParameter(KERBEROS_PRINCIPAL_PROPERTY);
-                final String keyTab = context.getParameter(KERBEROS_KEYTAB_PROPERTY);
-                final String password = context.getParameter(KERBEROS_PASSWORD_PROPERTY); // TODO
+                final String principal = context.getParameters().get(KERBEROS_PRINCIPAL_PARAMETER);
+                final String keyTab = context.getParameters().get(KERBEROS_KEYTAB_PARAMETER);
+                final String password = context.getParameters().get(KERBEROS_PASSWORD_PARAMETER);
 
                 if (keyTab != null) {
                     kerberosUser = new KerberosKeytabUser(principal, keyTab);
