@@ -110,16 +110,11 @@ public class StatelessFlowFileQueue implements DrainableFlowFileQueue {
 
     @Override
     public long getMinLastQueueDate() {
-        boolean seen = false;
         long min = 0;
         for (FlowFileRecord flowFile : flowFiles) {
-            long lastQueueDate = flowFile.getLastQueueDate();
-            if (!seen || lastQueueDate < min) {
-                seen = true;
-                min = lastQueueDate;
-            }
+            min = min == 0 ? flowFile.getLastQueueDate() : Long.min(min, flowFile.getLastQueueDate());
         }
-        return seen ? min : 0L;
+        return min;
     }
 
     @Override

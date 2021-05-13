@@ -246,7 +246,7 @@ public abstract class AbstractEventAccess implements EventAccess {
             connStatus.setBackPressureObjectThreshold(conn.getFlowFileQueue().getBackPressureObjectThreshold());
             connStatus.setTotalQueuedDuration(conn.getFlowFileQueue().getTotalQueuedDuration(now));
             long minLastQueueDate = conn.getFlowFileQueue().getMinLastQueueDate();
-            connStatus.setMaxQueuedDuration(now - minLastQueueDate != 0 ? minLastQueueDate : now);
+            connStatus.setMaxQueuedDuration(minLastQueueDate == 0 ? 0 : now - minLastQueueDate);
 
             final FlowFileEvent connectionStatusReport = statusReport.getReportEntry(conn.getIdentifier());
             if (connectionStatusReport != null) {

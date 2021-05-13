@@ -963,39 +963,27 @@ public class SwappablePriorityQueue {
         readLock.lock();
         try {
             // We want the oldest timestamp, which will be the min
-            boolean seen = false;
-            Long min = null;
-            for (FlowFileRecord flowFileRecord : activeQueue) {
-                Long lastQueueDate = flowFileRecord.getLastQueueDate();
-                if (lastQueueDate != null) {
-                    if (!seen || lastQueueDate.compareTo(min) < 0) {
-                        seen = true;
-                        min = lastQueueDate;
-                    }
-                }
-            }
-
-            for (FlowFileRecord flowFileRecord : swapQueue) {
-                Long lastQueueDate = flowFileRecord.getLastQueueDate();
-                if (lastQueueDate != null) {
-                    if (!seen || lastQueueDate.compareTo(min) < 0) {
-                        seen = true;
-                        min = lastQueueDate;
-                    }
-                }
-            }
+            long min = getMinLastQueueDate(activeQueue, 0L);
+            min = Long.min(min, getMinLastQueueDate(swapQueue, min));
 
             for(Long minSwapQueueDate: minQueueDateInSwapLocation.values()) {
-                if(!seen || minSwapQueueDate.compareTo(min) < 0) {
-                    seen = true;
-                    min = minSwapQueueDate;
-                }
+                min = min == 0 ? minSwapQueueDate : Long.min(min, minSwapQueueDate);
             }
 
-            return seen ? min : 0L;
+            return min;
         } finally {
             readLock.unlock("Get Min Last Queue Date");
         }
+    }
+
+    private long getMinLastQueueDate(Iterable<FlowFileRecord> iterable, long defaultMin) {
+        long min = 0;
+
+        for (FlowFileRecord flowFileRecord : iterable) {
+            min = min == 0 ? flowFileRecord.getLastQueueDate() : Long.min(flowFileRecord.getLastQueueDate(), min);
+        }
+
+        return min == 0 ? defaultMin : min;
     }
 
     public long getTotalQueuedDuration(long fromTimestamp) {
@@ -1003,17 +991,11 @@ public class SwappablePriorityQueue {
         try {
             long sum = 0L;
             for (FlowFileRecord flowFileRecord : activeQueue) {
-                if ((flowFileRecord.getLastQueueDate() != null)) {
-                    long l = fromTimestamp - flowFileRecord.getLastQueueDate();
-                    sum += l;
-                }
+                sum += (fromTimestamp - flowFileRecord.getLastQueueDate());
             }
 
             for (FlowFileRecord flowFileRecord : swapQueue) {
-                if ((flowFileRecord.getLastQueueDate() != null)) {
-                    long l = fromTimestamp - flowFileRecord.getLastQueueDate();
-                    sum += l;
-                }
+                sum += (fromTimestamp - flowFileRecord.getLastQueueDate());
             }
 
             long totalSwappedQueueDate = 0L;
