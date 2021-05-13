@@ -44,7 +44,7 @@ public class StandardHashiCorpVaultCommunicationServiceIT {
 
     @Before
     public void init() {
-        vcs = new StandardHashiCorpVaultCommunicationService(new HashiCorpVaultProperties.VaultPropertiesBuilder()
+        vcs = new StandardHashiCorpVaultCommunicationService(new HashiCorpVaultProperties.HashiCorpVaultPropertiesBuilder()
                 .setAuthPropertiesFilename(System.getProperty("vault.auth.properties"))
                 .setUri("http://127.0.0.1:8200")
                 .build());

@@ -17,6 +17,7 @@
 package org.apache.nifi.vault.hashicorp.config;
 
 import org.springframework.context.support.StaticApplicationContext;
+import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 
@@ -26,6 +27,10 @@ import java.nio.file.Paths;
  * Basic ApplicationContext that defines resources as FileSystemResource objects.
  */
 public class HashiCorpVaultApplicationContext extends StaticApplicationContext {
+
+    public HashiCorpVaultApplicationContext(ConfigurableEnvironment env) {
+        this.setEnvironment(env);
+    }
 
     @Override
     public Resource getResource(String location) {

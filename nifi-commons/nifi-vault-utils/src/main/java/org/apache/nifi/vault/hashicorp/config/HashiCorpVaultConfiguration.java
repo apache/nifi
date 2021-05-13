@@ -16,24 +16,31 @@
  */
 package org.apache.nifi.vault.hashicorp.config;
 
-import org.springframework.core.env.Environment;
+import org.apache.nifi.vault.hashicorp.HashiCorpVaultConfigurationException;
+import org.springframework.core.env.ConfigurableEnvironment;
+import org.springframework.core.env.StandardEnvironment;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.support.ResourcePropertySource;
 import org.springframework.vault.config.EnvironmentVaultConfiguration;
+
+import java.io.IOException;
+import java.nio.file.Paths;
 
 /**
  * A Vault configuration that uses the NiFiVaultEnvironment.
  */
 public class HashiCorpVaultConfiguration extends EnvironmentVaultConfiguration {
 
-    private HashiCorpVaultEnvironment env;
+    public HashiCorpVaultConfiguration(final HashiCorpVaultProperties vaultProperties) throws HashiCorpVaultConfigurationException {
+        final ConfigurableEnvironment env = new StandardEnvironment();
 
-    public HashiCorpVaultConfiguration(final HashiCorpVaultProperties vaultProperties) {
-        this.env = new HashiCorpVaultEnvironment(vaultProperties);
-        this.setApplicationContext(new HashiCorpVaultApplicationContext());
+        try {
+            env.getPropertySources().addFirst(new ResourcePropertySource(new FileSystemResource(Paths.get(vaultProperties.getAuthPropertiesFilename()))));
+        } catch (IOException e) {
+            throw new HashiCorpVaultConfigurationException("Could not load auth properties", e);
+        }
+        env.getPropertySources().addFirst(new HashiCorpVaultPropertySource(vaultProperties));
+
+        this.setApplicationContext(new HashiCorpVaultApplicationContext(env));
     }
-
-    @Override
-    protected Environment getEnvironment() {
-        return env;
-    }
-
 }

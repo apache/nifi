@@ -16,20 +16,16 @@
  */
 package org.apache.nifi.vault.hashicorp.config;
 
+
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Allows a method to be associated with a Spring Vault property key.
+ * Marks a vault property that should be mapped to a Spring Vault property key.
  */
-@Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.METHOD)
+@Retention(RetentionPolicy.RUNTIME)
 public @interface HashiCorpVaultProperty {
-    /**
-     * The Spring Vault property key.
-     * @return The property key
-     */
-    public String key() default "";
 }

@@ -16,11 +16,15 @@
  */
 package org.apache.nifi.vault.hashicorp.config;
 
+import org.apache.nifi.vault.hashicorp.HashiCorpVaultConfigurationException;
+
+import java.io.File;
+import java.nio.file.Paths;
 import java.util.Objects;
 import java.util.Optional;
 
 /**
- * Properties to configure the VaultCommunicationService.  The only properties considered mandatory are uri and
+ * Properties to configure the HashiCorpVaultCommunicationService.  The only properties considered mandatory are uri and
  * authPropertiesFilename. See the following link for valid vault authentication properties (default is
  * vault.authentication=TOKEN, expecting a vault.token property to be supplied).
  *
@@ -30,93 +34,53 @@ import java.util.Optional;
 public class HashiCorpVaultProperties {
     public static final String HTTPS = "https";
     private final String uri;
-    private final String keystore;
-    private final String keystoreType;
-    private final String keystorePassword;
-    private final String truststore;
-    private final String truststoreType;
-    private final String truststorePassword;
     private final String authPropertiesFilename;
-    private final String enabledTlsCipherSuites;
-    private final String enabledTlsProtocols;
+    private final HashiCorpVaultSslProperties ssl;
     private final Optional<String> connectionTimeout;
     private final Optional<String> readTimeout;
 
-    private HashiCorpVaultProperties(final String uri, String keystore, final String keystoreType, final String keystorePassword, final String truststore,
-                                     final String truststoreType, final String truststorePassword, final String authPropertiesFilename,
+    private HashiCorpVaultProperties(final String uri, String keyStore, final String keyStoreType, final String keyStorePassword, final String trustStore,
+                                     final String trustStoreType, final String trustStorePassword, final String authPropertiesFilename,
                                      final String enabledTlsCipherSuites, final String enabledTlsProtocols, final String connectionTimeout, final String readTimeout) {
         Objects.requireNonNull(uri, "Vault URI is required");
         Objects.requireNonNull(authPropertiesFilename, "Vault auth properties filename is required");
         this.uri = uri;
-        this.keystore = keystore;
-        this.keystoreType = keystoreType;
-        this.keystorePassword = keystorePassword;
-        this.truststore = truststore;
-        this.truststoreType = truststoreType;
-        this.truststorePassword = truststorePassword;
         this.authPropertiesFilename = authPropertiesFilename;
-        this.enabledTlsCipherSuites = enabledTlsCipherSuites;
-        this.enabledTlsProtocols = enabledTlsProtocols;
+        this.ssl = new HashiCorpVaultSslProperties(keyStore, keyStoreType, keyStorePassword, trustStore, trustStoreType, trustStorePassword,
+                enabledTlsCipherSuites, enabledTlsProtocols);
         this.connectionTimeout = connectionTimeout == null ? Optional.empty() : Optional.of(connectionTimeout);
         this.readTimeout = readTimeout == null ? Optional.empty() : Optional.of(readTimeout);
 
         if (uri.startsWith(HTTPS)) {
-            Objects.requireNonNull(keystore, "Keystore is required with an https URI");
-            Objects.requireNonNull(keystorePassword, "Keystore password is required with an https URI");
-            Objects.requireNonNull(keystoreType, "Keystore type is required with an https URI");
-            Objects.requireNonNull(truststore, "Truststore is required with an https URI");
-            Objects.requireNonNull(truststorePassword, "Truststore password is required with an https URI");
-            Objects.requireNonNull(truststoreType, "Truststore type is required with an https URI");
+            Objects.requireNonNull(keyStore, "KeyStore is required with an https URI");
+            Objects.requireNonNull(keyStorePassword, "KeyStore password is required with an https URI");
+            Objects.requireNonNull(keyStoreType, "KeyStore type is required with an https URI");
+            Objects.requireNonNull(trustStore, "TrustStore is required with an https URI");
+            Objects.requireNonNull(trustStorePassword, "TrustStore password is required with an https URI");
+            Objects.requireNonNull(trustStoreType, "TrustStore type is required with an https URI");
+        }
+        validateAuthProperties();
+    }
+
+    private void validateAuthProperties() throws HashiCorpVaultConfigurationException {
+        final File authPropertiesFile = Paths.get(authPropertiesFilename).toFile();
+        if (!authPropertiesFile.exists()) {
+            throw new HashiCorpVaultConfigurationException(String.format("Auth properties file [%s] does not exist", authPropertiesFilename));
         }
     }
 
-    @HashiCorpVaultProperty(key = HashiCorpVaultEnvironment.VAULT_URI)
+    @HashiCorpVaultProperty
     public String getUri() {
         return uri;
     }
 
-    @HashiCorpVaultProperty(key = HashiCorpVaultEnvironment.VAULT_SSL_KEYSTORE)
-    public String getKeystore() {
-        return keystore;
-    }
-
-    @HashiCorpVaultProperty(key = HashiCorpVaultEnvironment.VAULT_SSL_KEYSTORE_TYPE)
-    public String getKeystoreType() {
-        return keystoreType;
-    }
-
-    @HashiCorpVaultProperty(key = HashiCorpVaultEnvironment.VAULT_SSL_KEYSTORE_PASSWORD)
-    public String getKeystorePassword() {
-        return keystorePassword;
-    }
-
-    @HashiCorpVaultProperty(key = HashiCorpVaultEnvironment.VAULT_SSL_TRUSTSTORE)
-    public String getTruststore() {
-        return truststore;
-    }
-
-    @HashiCorpVaultProperty(key = HashiCorpVaultEnvironment.VAULT_SSL_TRUSTSTORE_TYPE)
-    public String getTruststoreType() {
-        return truststoreType;
-    }
-
-    @HashiCorpVaultProperty(key = HashiCorpVaultEnvironment.VAULT_SSL_TRUSTSTORE_PASSWORD)
-    public String getTruststorePassword() {
-        return truststorePassword;
+    @HashiCorpVaultProperty
+    public HashiCorpVaultSslProperties getSsl() {
+        return ssl;
     }
 
     public String getAuthPropertiesFilename() {
         return authPropertiesFilename;
-    }
-
-    @HashiCorpVaultProperty(key = HashiCorpVaultEnvironment.VAULT_SSL_ENABLED_CIPHER_SUITES)
-    public String getEnabledTlsCipherSuites() {
-        return enabledTlsCipherSuites;
-    }
-
-    @HashiCorpVaultProperty(key = HashiCorpVaultEnvironment.VAULT_SSL_ENABLED_PROTOCOLS)
-    public String getEnabledTlsProtocols() {
-        return enabledTlsProtocols;
     }
 
     public Optional<String> getConnectionTimeout() {
@@ -128,16 +92,16 @@ public class HashiCorpVaultProperties {
     }
 
     /**
-     * Builder for VaultProperties.  The only properties that are considered mandatory are uri and authPropertiesFilename.
+     * Builder for HashiCorpVaultProperties.  The only properties that are considered mandatory are uri and authPropertiesFilename.
      */
-    public static class VaultPropertiesBuilder {
+    public static class HashiCorpVaultPropertiesBuilder {
         private String uri;
-        private String keystore;
-        private String keystoreType;
-        private String keystorePassword;
-        private String truststore;
-        private String truststoreType;
-        private String truststorePassword;
+        private String keyStore;
+        private String keyStoreType;
+        private String keyStorePassword;
+        private String trustStore;
+        private String trustStoreType;
+        private String trustStorePassword;
         private String authPropertiesFilename;
         private String enabledTlsCipherSuites;
         private String enabledTlsProtocols;
@@ -145,73 +109,73 @@ public class HashiCorpVaultProperties {
         private String readTimeout;
 
         /**
-         * Set the Vault URI (e.g., http://localhost:8200).  If using https protocol, the Keystore and Truststore
+         * Set the Vault URI (e.g., http://localhost:8200).  If using https protocol, the KeyStore and TrustStore
          * properties are expected to also be set.
          * @param uri Vault's URI
          * @return
          */
-        public VaultPropertiesBuilder setUri(String uri) {
+        public HashiCorpVaultPropertiesBuilder setUri(String uri) {
             this.uri = uri;
             return this;
         }
 
         /**
-         * Sets the path to the keystore.
-         * @param keystore Path to the keystore
+         * Sets the path to the keyStore.
+         * @param keyStore Path to the keyStore
          * @return
          */
-        public VaultPropertiesBuilder setKeystore(String keystore) {
-            this.keystore = keystore;
+        public HashiCorpVaultPropertiesBuilder setKeyStore(String keyStore) {
+            this.keyStore = keyStore;
             return this;
         }
 
         /**
-         * Sets keystore type (e.g., JKS, PKCS12).
-         * @param keystoreType Keystore type
+         * Sets keyStore type (e.g., JKS, PKCS12).
+         * @param keyStoreType KeyStore type
          * @return
          */
-        public VaultPropertiesBuilder setKeystoreType(String keystoreType) {
-            this.keystoreType = keystoreType;
+        public HashiCorpVaultPropertiesBuilder setKeyStoreType(String keyStoreType) {
+            this.keyStoreType = keyStoreType;
             return this;
         }
 
         /**
-         * Sets the keystore password.
-         * @param keystorePassword Keystore password
+         * Sets the keyStore password.
+         * @param keyStorePassword KeyStore password
          * @return
          */
-        public VaultPropertiesBuilder setKeystorePassword(String keystorePassword) {
-            this.keystorePassword = keystorePassword;
+        public HashiCorpVaultPropertiesBuilder setKeyStorePassword(String keyStorePassword) {
+            this.keyStorePassword = keyStorePassword;
             return this;
         }
 
         /**
-         * Sets the path to the truststore.
-         * @param truststore Path to the truststore
+         * Sets the path to the trustStore.
+         * @param trustStore Path to the trustStore
          * @return
          */
-        public VaultPropertiesBuilder setTruststore(String truststore) {
-            this.truststore = truststore;
+        public HashiCorpVaultPropertiesBuilder setTrustStore(String trustStore) {
+            this.trustStore = trustStore;
             return this;
         }
 
         /**
-         * Sets the truststore type (e.g., JKS, PKCS12).
-         * @param truststoreType Truststore type
+         * Sets the trustStore type (e.g., JKS, PKCS12).
+         * @param trustStoreType TrustStore type
          * @return
          */
-        public VaultPropertiesBuilder setTruststoreType(String truststoreType) {
-            this.truststoreType = truststoreType;
+        public HashiCorpVaultPropertiesBuilder setTrustStoreType(String trustStoreType) {
+            this.trustStoreType = trustStoreType;
             return this;
         }
 
         /**
-         * Sets the truststore passsword.
-         * @param truststorePassword Truststore password
+         * Sets the trustStore passsword.
+         * @param trustStorePassword TrustStore password
          * @return
          */
-        public VaultPropertiesBuilder setTruststorePassword(String truststorePassword) {
-            this.truststorePassword = truststorePassword;
+        public HashiCorpVaultPropertiesBuilder setTrustStorePassword(String trustStorePassword) {
+            this.trustStorePassword = trustStorePassword;
             return this;
         }
 
@@ -225,7 +189,7 @@ public class HashiCorpVaultProperties {
          *                               properties
          * @return
          */
-        public VaultPropertiesBuilder setAuthPropertiesFilename(String authPropertiesFilename) {
+        public HashiCorpVaultPropertiesBuilder setAuthPropertiesFilename(String authPropertiesFilename) {
             this.authPropertiesFilename = authPropertiesFilename;
             return this;
         }
@@ -235,7 +199,7 @@ public class HashiCorpVaultProperties {
          * @param enabledTlsCipherSuites Enabled TLS cipher suites (only these will be enabled)
          * @return
          */
-        public VaultPropertiesBuilder setEnabledTlsCipherSuites(String enabledTlsCipherSuites) {
+        public HashiCorpVaultPropertiesBuilder setEnabledTlsCipherSuites(String enabledTlsCipherSuites) {
             this.enabledTlsCipherSuites = enabledTlsCipherSuites;
             return this;
         }
@@ -245,7 +209,7 @@ public class HashiCorpVaultProperties {
          * @param enabledTlsProtocols Enabled TLS protocols (only these will be enabled)
          * @return
          */
-        public VaultPropertiesBuilder setEnabledTlsProtocols(String enabledTlsProtocols) {
+        public HashiCorpVaultPropertiesBuilder setEnabledTlsProtocols(String enabledTlsProtocols) {
             this.enabledTlsProtocols = enabledTlsProtocols;
             return this;
         }
@@ -255,7 +219,7 @@ public class HashiCorpVaultProperties {
          * @param connectionTimeout Connection timeout (default is 5 secs)
          * @return
          */
-        public VaultPropertiesBuilder setConnectionTimeout(String connectionTimeout) {
+        public HashiCorpVaultPropertiesBuilder setConnectionTimeout(String connectionTimeout) {
             this.connectionTimeout = connectionTimeout;
             return this;
         }
@@ -265,7 +229,7 @@ public class HashiCorpVaultProperties {
          * @param readTimeout Read timeout (default is 15 secs)
          * @return
          */
-        public VaultPropertiesBuilder setReadTimeout(String readTimeout) {
+        public HashiCorpVaultPropertiesBuilder setReadTimeout(String readTimeout) {
             this.readTimeout = readTimeout;
             return this;
         }
@@ -275,8 +239,8 @@ public class HashiCorpVaultProperties {
          * @return
          */
         public HashiCorpVaultProperties build() {
-            return new HashiCorpVaultProperties(uri, keystore, keystoreType, keystorePassword, truststore, truststoreType,
-                    truststorePassword, authPropertiesFilename, enabledTlsCipherSuites, enabledTlsProtocols, connectionTimeout, readTimeout);
+            return new HashiCorpVaultProperties(uri, keyStore, keyStoreType, keyStorePassword, trustStore, trustStoreType,
+                    trustStorePassword, authPropertiesFilename, enabledTlsCipherSuites, enabledTlsProtocols, connectionTimeout, readTimeout);
         }
     }
 }
