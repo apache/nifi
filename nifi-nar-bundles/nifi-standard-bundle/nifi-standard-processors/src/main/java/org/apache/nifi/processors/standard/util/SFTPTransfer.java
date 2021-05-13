@@ -187,6 +187,7 @@ public class SFTPTransfer implements FileTransfer {
             .description("A comma-separated list of Key Algorithms to allow your SFTP connection to use. Available options are: " + convertFactorySetToString(AVAILABLE_KEY_ALGORITHM_NAMES_SET))
             .defaultValue(convertFactorySetToString(AVAILABLE_KEY_ALGORITHM_NAMES_SET))
             .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.createRegexMatchingValidator(convertFactorySetToPattern(AVAILABLE_KEY_ALGORITHM_NAMES_SET)))
             .build();
 
@@ -196,6 +197,7 @@ public class SFTPTransfer implements FileTransfer {
             .description("A comma-separated list of Ciphers to allow your SFTP connection to use. Available options are: " + convertFactorySetToString(AVAILABLE_CIPHER_NAMES_SET))
             .defaultValue(convertFactorySetToString(AVAILABLE_CIPHER_NAMES_SET))
             .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.createRegexMatchingValidator(convertFactorySetToPattern(AVAILABLE_CIPHER_NAMES_SET)))
             .build();
 
@@ -206,6 +208,7 @@ public class SFTPTransfer implements FileTransfer {
                     + convertFactorySetToString(AVAILABLE_MESSAGE_AUTHENTICATION_CODE_NAMES_SET))
             .defaultValue(convertFactorySetToString(AVAILABLE_MESSAGE_AUTHENTICATION_CODE_NAMES_SET))
             .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.createRegexMatchingValidator(convertFactorySetToPattern(AVAILABLE_MESSAGE_AUTHENTICATION_CODE_NAMES_SET)))
             .build();
 
@@ -216,6 +219,7 @@ public class SFTPTransfer implements FileTransfer {
                     + convertFactorySetToString(AVAILABLE_KEY_EXCHANGE_ALGORITHM_NAMES_SET))
             .defaultValue(convertFactorySetToString(AVAILABLE_KEY_EXCHANGE_ALGORITHM_NAMES_SET))
             .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.createRegexMatchingValidator(convertFactorySetToPattern(AVAILABLE_KEY_EXCHANGE_ALGORITHM_NAMES_SET)))
             .build();
 
