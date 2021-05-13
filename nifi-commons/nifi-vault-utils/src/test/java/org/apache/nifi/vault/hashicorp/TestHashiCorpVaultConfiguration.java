@@ -18,7 +18,6 @@ package org.apache.nifi.vault.hashicorp;
 
 import org.apache.nifi.vault.hashicorp.config.HashiCorpVaultConfiguration;
 import org.apache.nifi.vault.hashicorp.config.HashiCorpVaultProperties;
-import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
