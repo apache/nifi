@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.vault.hashicorp.config;
 
+import org.apache.nifi.vault.hashicorp.config.lookup.BeanPropertyLookup;
+import org.apache.nifi.vault.hashicorp.config.lookup.PropertyLookup;
 import org.springframework.core.env.PropertySource;
 
 import java.util.Objects;
@@ -26,19 +28,19 @@ public class HashiCorpVaultPropertySource extends PropertySource<HashiCorpVaultP
     private static final String PREFIX = "vault";
     private static final Pattern DASH_LETTER_PATTERN = Pattern.compile("-[a-z]");
 
-    private HashiCorpVaultPropertyMapper propertyMapper;
+    private PropertyLookup propertyLookup;
 
     public HashiCorpVaultPropertySource(HashiCorpVaultProperties source) {
         super(HashiCorpVaultPropertySource.class.getName(), source);
 
-        propertyMapper = new HashiCorpVaultPropertyMapper(PREFIX, HashiCorpVaultProperties.class);
+        propertyLookup = new BeanPropertyLookup(PREFIX, HashiCorpVaultProperties.class, HashiCorpVaultProperty.class);
     }
 
     @Override
     public Object getProperty(final String key) {
         Objects.requireNonNull(key, "Property key cannot be null");
 
-        return propertyMapper.getPropertyValue(getPropertyKey(key), getSource());
+        return propertyLookup.getPropertyValue(getPropertyKey(key), getSource());
     }
 
     /**
