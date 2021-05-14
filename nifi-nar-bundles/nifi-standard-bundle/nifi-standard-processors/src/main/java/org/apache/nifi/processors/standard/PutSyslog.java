@@ -243,26 +243,30 @@ public class PutSyslog extends AbstractSyslogProcessor {
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         final int batchSize = context.getProperty(BATCH_SIZE).evaluateAttributeExpressions().asInteger();
         final List<FlowFile> flowFiles = session.get(batchSize);
-        for (final FlowFile flowFile : flowFiles) {
-            final StopWatch timer = new StopWatch(true);
-            final String syslogMessage = getSyslogMessage(context, flowFile);
-            if (isValid(syslogMessage)) {
-                try {
-                    eventSender.sendEvent(syslogMessage);
-                    timer.stop();
+        if (flowFiles.isEmpty()) {
+            context.yield();
+        } else {
+            for (final FlowFile flowFile : flowFiles) {
+                final StopWatch timer = new StopWatch(true);
+                final String syslogMessage = getSyslogMessage(context, flowFile);
+                if (isValid(syslogMessage)) {
+                    try {
+                        eventSender.sendEvent(syslogMessage);
+                        timer.stop();
 
-                    final long duration = timer.getDuration(TimeUnit.MILLISECONDS);
-                    session.getProvenanceReporter().send(flowFile, transitUri, duration, true);
+                        final long duration = timer.getDuration(TimeUnit.MILLISECONDS);
+                        session.getProvenanceReporter().send(flowFile, transitUri, duration, true);
 
-                    getLogger().debug("Send Completed {}", flowFile);
-                    session.transfer(flowFile, REL_SUCCESS);
-                } catch (final Exception e) {
-                    getLogger().error("Send Failed {}", flowFile, e);
-                    session.transfer(flowFile, REL_FAILURE);
+                        getLogger().debug("Send Completed {}", flowFile);
+                        session.transfer(flowFile, REL_SUCCESS);
+                    } catch (final Exception e) {
+                        getLogger().error("Send Failed {}", flowFile, e);
+                        session.transfer(flowFile, REL_FAILURE);
+                    }
+                } else {
+                    getLogger().debug("Syslog Message Invalid {}", flowFile);
+                    session.transfer(flowFile, REL_INVALID);
                 }
-            } else {
-                getLogger().debug("Syslog Message Invalid {}", flowFile);
-                session.transfer(flowFile, REL_INVALID);
             }
         }
     }

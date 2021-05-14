@@ -20,9 +20,9 @@ package org.apache.nifi.event.transport.message;
  * Byte Array Message with Sender
  */
 public class ByteArrayMessage {
-    private byte[] message;
+    private final byte[] message;
 
-    private String sender;
+    private final String sender;
 
     public ByteArrayMessage(final byte[] message, final String sender) {
         this.message = message;

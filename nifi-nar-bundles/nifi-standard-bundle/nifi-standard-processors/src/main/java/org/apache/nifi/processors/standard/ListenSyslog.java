@@ -145,7 +145,6 @@ public class ListenSyslog extends AbstractSyslogProcessor {
                 "The maximum number of Syslog events to add to a single FlowFile. If multiple events are available, they will be concatenated along with "
                 + "the <Message Delimiter> up to this configured maximum number of messages")
         .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .defaultValue("1")
         .required(true)
         .build();
@@ -173,6 +172,7 @@ public class ListenSyslog extends AbstractSyslogProcessor {
                     "messages will be received over a secure connection.")
         .required(false)
         .identifiesControllerService(RestrictedSSLContextService.class)
+        .dependsOn(PROTOCOL, TCP_VALUE)
         .build();
     public static final PropertyDescriptor CLIENT_AUTH = new PropertyDescriptor.Builder()
         .name("Client Auth")

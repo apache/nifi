@@ -53,7 +53,7 @@ class EventLoopGroupFactory {
         this.workerThreads = workerThreads;
     }
 
-    EventLoopGroup getEventLoopGroup() {
+    protected EventLoopGroup getEventLoopGroup() {
         return new NioEventLoopGroup(workerThreads, getThreadFactory());
     }
 

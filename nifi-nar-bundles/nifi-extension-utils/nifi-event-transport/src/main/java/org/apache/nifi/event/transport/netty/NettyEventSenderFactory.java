@@ -50,17 +50,17 @@ import java.util.function.Supplier;
 public class NettyEventSenderFactory<T> extends EventLoopGroupFactory implements EventSenderFactory<T> {
     private static final int MAX_PENDING_ACQUIRES = 1024;
 
-    private Duration timeout = Duration.ofSeconds(30);
-
-    private int maxConnections = Runtime.getRuntime().availableProcessors() * 2;
-
-    private Supplier<List<ChannelHandler>> handlerSupplier = () -> Collections.emptyList();
-
     private final String address;
 
     private final int port;
 
     private final TransportProtocol protocol;
+
+    private Duration timeout = Duration.ofSeconds(30);
+
+    private int maxConnections = Runtime.getRuntime().availableProcessors() * 2;
+
+    private Supplier<List<ChannelHandler>> handlerSupplier = () -> Collections.emptyList();
 
     private SSLContext sslContext;
 
@@ -151,12 +151,9 @@ public class NettyEventSenderFactory<T> extends EventLoopGroupFactory implements
     }
 
     private ChannelInitializer<Channel> getChannelInitializer() {
-        StandardChannelInitializer<Channel> channelInitializer;
-        if (sslContext == null) {
-            channelInitializer = new StandardChannelInitializer<>(handlerSupplier);
-        } else {
-            channelInitializer = new ClientSslStandardChannelInitializer<>(handlerSupplier, sslContext);
-        }
+        final StandardChannelInitializer<Channel> channelInitializer = sslContext == null
+                ? new StandardChannelInitializer<>(handlerSupplier)
+                : new ClientSslStandardChannelInitializer<>(handlerSupplier, sslContext);
         channelInitializer.setWriteTimeout(timeout);
         return channelInitializer;
     }
