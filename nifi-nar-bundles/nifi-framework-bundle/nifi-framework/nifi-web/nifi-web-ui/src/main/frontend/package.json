@@ -16,7 +16,6 @@
   "name": "apache-nifi",
   "description": "Apache NiFi 3rd party client side resources.",
   "dependencies": {
-    "@carbon/icons": "10.31.0",
     "JSON2": "0.1.0",
     "angular": "1.8.0",
     "angular-aria": "1.7.9",

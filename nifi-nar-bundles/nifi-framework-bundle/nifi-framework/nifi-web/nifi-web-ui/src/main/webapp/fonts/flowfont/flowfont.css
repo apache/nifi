@@ -1,11 +1,11 @@
 @font-face {
     font-family: 'flowfont';
-    src: url('./flowfont.eot?33669169');
-    src: url('./flowfont.eot?33669169#iefix') format('embedded-opentype'),
-    url('./flowfont.woff2?33669169') format('woff2'),
-    url('./flowfont.woff?33669169') format('woff'),
-    url('./flowfont.ttf?33669169') format('truetype'),
-    url('./flowfont.svg?33669169#flowfont') format('svg');
+    src: url('./flowfont.eot?12028136');
+    src: url('./flowfont.eot?12028136#iefix') format('embedded-opentype'),
+    url('./flowfont.woff2?12028136') format('woff2'),
+    url('./flowfont.woff?12028136') format('woff'),
+    url('./flowfont.ttf?12028136') format('truetype'),
+    url('./flowfont.svg?12028136#flowfont') format('svg');
     font-weight: normal;
     font-style: normal;
 }
@@ -15,7 +15,7 @@
 @media screen and (-webkit-min-device-pixel-ratio:0) {
   @font-face {
     font-family: 'flowfont';
-    src: url('../font/flowfont.svg?33669169#flowfont') format('svg');
+    src: url('./flowfont.svg?12028136#flowfont') format('svg');
   }
 }
 */
@@ -24,7 +24,7 @@
   font-family: "flowfont";
   font-style: normal;
   font-weight: normal;
-  speak: none;
+  speak: never;
  
   display: inline-block;
   text-decoration: inherit;
@@ -84,3 +84,15 @@
 .icon-connect-add:before { content: '\e835'; } /* '' */
 .icon-threads:before { content: '\e83f'; } /* '' */
 .icon-drop:before { content: '\e888'; } /* '' */
+.icon-align--horizontal-left:before { content: '\e890'; } /* '' */
+.icon-align--horizontal-center:before { content: '\e891'; } /* '' */
+.icon-align--horizontal-right:before { content: '\e892'; } /* '' */
+.icon-align--vertical-top:before { content: '\e893'; } /* '' */
+.icon-align--vertical-center:before { content: '\e894'; } /* '' */
+.icon-align--vertical-bottom:before { content: '\e895'; } /* '' */
+.icon-distribute--horizontal-left:before { content: '\e896'; } /* '' */
+.icon-distribute--horizontal-center:before { content: '\e897'; } /* '' */
+.icon-distribute--horizontal-right:before { content: '\e898'; } /* '' */
+.icon-distribute--vertical-top:before { content: '\e899'; } /* '' */
+.icon-distribute--vertical-center:before { content: '\e89a'; } /* '' */
+.icon-distribute--vertical-bottom:before { content: '\e89b'; } /* '' */
