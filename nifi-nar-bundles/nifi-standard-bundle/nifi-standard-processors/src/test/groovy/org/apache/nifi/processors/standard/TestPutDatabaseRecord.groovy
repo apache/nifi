@@ -483,6 +483,9 @@ class TestPutDatabaseRecord {
 
         runner.assertTransferCount(PutDatabaseRecord.REL_SUCCESS, 0)
         runner.assertTransferCount(PutDatabaseRecord.REL_FAILURE, 1)
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(PutDatabaseRecord.REL_FAILURE).get(0);
+        final String errorMessage = flowFile.getAttribute("putdatabaserecord.error")
+        assertTrue(errorMessage.contains("PERSONS2"))
     }
 
     @Test
