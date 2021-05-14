@@ -50,7 +50,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-@RequiresInstanceClassLoading
+@RequiresInstanceClassLoading(cloneAncestorResources = true)
 public class HDFSNarProvider implements NarProvider {
     private static final Logger LOGGER = LoggerFactory.getLogger(HDFSNarProvider.class);
 

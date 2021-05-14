@@ -37,13 +37,15 @@ final class NarProviderTask implements Runnable {
     private final String id = UUID.randomUUID().toString();
 
     private final NarProvider narProvider;
+    private final ClassLoader narProviderClassLoader;
     private final long pollTimeInMs;
     private final File extensionDirectory;
 
     private volatile boolean stopped = false;
 
-    NarProviderTask(final NarProvider narProvider, final File extensionDirectory, final long pollTimeInMs) {
+    NarProviderTask(final NarProvider narProvider, final ClassLoader narProviderClassLoader, final File extensionDirectory, final long pollTimeInMs) {
         this.narProvider = narProvider;
+        this.narProviderClassLoader = narProviderClassLoader;
         this.pollTimeInMs = pollTimeInMs;
         this.extensionDirectory = extensionDirectory;
     }
@@ -56,30 +58,40 @@ final class NarProviderTask implements Runnable {
             try {
                 LOGGER.debug("Task starts fetching NARs from provider");
                 final Set<String> loadedNars = getLoadedNars();
-                final Collection<String> availableNars = narProvider.listNars();
+                final Collection<String> availableNars;
+                try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(narProviderClassLoader)) {
+                    availableNars = narProvider.listNars();
+                }
 
                 for (final String availableNar : availableNars) {
                     if (!loadedNars.contains(availableNar)) {
                         final long startedAt = System.currentTimeMillis();
-                        final InputStream inputStream = narProvider.fetchNarContents(availableNar);
+                        final InputStream inputStream;
 
-                        final File tempFile = new File(extensionDirectory + File.separator + ".tmp_" + id + ".nar");
-                        final File targetFile = new File(extensionDirectory + File.separator + availableNar);
+                        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(narProviderClassLoader)) {
+                            inputStream = narProvider.fetchNarContents(availableNar);
+                        }
+
+                        final File tempFile = new File(extensionDirectory, ".tmp_" + id + ".nar");
+                        final File targetFile = new File(extensionDirectory, availableNar);
                         Files.copy(inputStream, tempFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
                         tempFile.renameTo(targetFile);
 
-                        LOGGER.info("Downloaded NAR {} i in {} ms", availableNar, (System.currentTimeMillis() - startedAt));
+                        LOGGER.info("Downloaded NAR {} in {} ms", availableNar, (System.currentTimeMillis() - startedAt));
                     }
                 }
 
                 LOGGER.debug("Task finished fetching NARs from provider");
+            } catch (final Throwable e) {
+                LOGGER.error("Error during reaching the external source", e);
+            }
+
+            try {
                 Thread.sleep(pollTimeInMs);
             } catch (final InterruptedException e) {
                 Thread.currentThread().interrupt();
                 LOGGER.warn("NAR autoloader external source task is interrupted");
                 stopped = true;
-            } catch (final Throwable e) {
-                LOGGER.error("Error during reaching the external source", e);
             }
         }
     }

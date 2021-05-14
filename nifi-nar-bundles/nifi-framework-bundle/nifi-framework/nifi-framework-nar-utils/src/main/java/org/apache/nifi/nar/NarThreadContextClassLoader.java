@@ -182,6 +182,7 @@ public class NarThreadContextClassLoader extends URLClassLoader {
         }
     }
 
+
     /**
      * Constructs an instance of the given type using either default no args
      * constructor or a constructor which takes a NiFiProperties object
@@ -197,7 +198,27 @@ public class NarThreadContextClassLoader extends URLClassLoader {
      * @throws ClassNotFoundException if the class cannot be found
      */
     public static <T> T createInstance(final ExtensionManager extensionManager, final String implementationClassName, final Class<T> typeDefinition, final NiFiProperties nifiProperties)
-            throws InstantiationException, IllegalAccessException, ClassNotFoundException {
+                                throws InstantiationException, IllegalAccessException, ClassNotFoundException {
+        return createInstance(extensionManager, implementationClassName, typeDefinition, nifiProperties, UUID.randomUUID().toString());
+    }
+
+    /**
+     * Constructs an instance of the given type using either default no args
+     * constructor or a constructor which takes a NiFiProperties object
+     * (preferred).
+     *
+     * @param <T> the type to create an instance for
+     * @param implementationClassName the implementation class name
+     * @param typeDefinition the type definition
+     * @param nifiProperties the NiFiProperties instance
+     * @param instanceId the UUID of the instance
+     * @return constructed instance
+     * @throws InstantiationException if there is an error instantiating the class
+     * @throws IllegalAccessException if there is an error accessing the type
+     * @throws ClassNotFoundException if the class cannot be found
+     */
+    public static <T> T createInstance(final ExtensionManager extensionManager, final String implementationClassName, final Class<T> typeDefinition, final NiFiProperties nifiProperties,
+                                       final String instanceId) throws InstantiationException, IllegalAccessException, ClassNotFoundException {
         final ClassLoader originalClassLoader = Thread.currentThread().getContextClassLoader();
         try {
             final List<Bundle> bundles = extensionManager.getBundles(implementationClassName);
@@ -209,13 +230,11 @@ public class NarThreadContextClassLoader extends URLClassLoader {
             }
 
             final Bundle bundle = bundles.get(0);
-            final ClassLoader bundleClassLoader = bundle.getClassLoader();
-            final Class<?> rawClass = Class.forName(implementationClassName, true, bundleClassLoader);
-
-            final ClassLoader instanceClassLoader = createClassLoader(implementationClassName, bundle, extensionManager);
+            final ClassLoader instanceClassLoader = createClassLoader(implementationClassName, instanceId, bundle, extensionManager);
+            final Class<?> instanceClass = Class.forName(implementationClassName, true, instanceClassLoader);
 
             Thread.currentThread().setContextClassLoader(instanceClassLoader);
-            final Class<?> desiredClass = rawClass.asSubclass(typeDefinition);
+            final Class<?> desiredClass = instanceClass.asSubclass(typeDefinition);
             if(nifiProperties == null){
                 return typeDefinition.cast(desiredClass.newInstance());
             }
@@ -245,7 +264,7 @@ public class NarThreadContextClassLoader extends URLClassLoader {
         }
     }
 
-    private static ClassLoader createClassLoader(final String implementationClassName, final Bundle bundle, final ExtensionManager extensionManager) throws ClassNotFoundException {
+    private static ClassLoader createClassLoader(final String implementationClassName, final String instanceId, final Bundle bundle, final ExtensionManager extensionManager) throws ClassNotFoundException {
         final ClassLoader bundleClassLoader = bundle.getClassLoader();
         final Class<?> rawClass = Class.forName(implementationClassName, true, bundleClassLoader);
 
@@ -261,9 +280,9 @@ public class NarThreadContextClassLoader extends URLClassLoader {
         narNativeLibDirs.add(narBundleClassLoader.getNARNativeLibDir());
         instanceUrls.addAll(Arrays.asList(narBundleClassLoader.getURLs()));
 
-        if (instanceClassLoadingAnnotation.cloneAncestorResources()) {
-            ClassLoader ancestorClassLoader = narBundleClassLoader.getParent();
+        ClassLoader ancestorClassLoader = narBundleClassLoader.getParent();
 
+        if (instanceClassLoadingAnnotation.cloneAncestorResources()) {
             while (ancestorClassLoader instanceof NarClassLoader) {
                 final Bundle ancestorNarBundle = extensionManager.getBundle(ancestorClassLoader);
 
@@ -281,6 +300,9 @@ public class NarThreadContextClassLoader extends URLClassLoader {
             }
         }
 
-        return new InstanceClassLoader(UUID.randomUUID().toString(), implementationClassName, instanceUrls, Collections.emptySet(), narNativeLibDirs, narBundleClassLoader);
+        final InstanceClassLoader instanceClassLoader = new InstanceClassLoader(instanceId, implementationClassName, instanceUrls,
+            Collections.emptySet(), narNativeLibDirs, ancestorClassLoader);
+        extensionManager.registerInstanceClassLoader(instanceId, instanceClassLoader);
+        return instanceClassLoader;
     }
 }

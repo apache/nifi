@@ -464,6 +464,11 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
     }
 
     @Override
+    public void registerInstanceClassLoader(final String instanceIdentifier, final InstanceClassLoader instanceClassLoader) {
+        instanceClassloaderLookup.putIfAbsent(instanceIdentifier, instanceClassLoader);
+    }
+
+    @Override
     public void closeURLClassLoader(final String instanceIdentifier, final ClassLoader classLoader) {
         if ((classLoader instanceof URLClassLoader)) {
             final URLClassLoader urlClassLoader = (URLClassLoader) classLoader;

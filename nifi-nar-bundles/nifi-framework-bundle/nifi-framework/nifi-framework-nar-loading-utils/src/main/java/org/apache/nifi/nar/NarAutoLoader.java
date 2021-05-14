@@ -30,6 +30,7 @@ import java.nio.file.WatchService;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
+import java.util.UUID;
 
 /**
  * Starts a thread to monitor the auto-load directory for new NARs.
@@ -88,10 +89,13 @@ public class NarAutoLoader {
 
             final NarProviderInitializationContext context = new PropertyBasedNarProviderInitializationContext(properties, externalSourceName);
             final String implementationClass = properties.getProperty(NAR_PROVIDER_PREFIX + externalSourceName + "." + IMPLEMENTATION_PROPERTY);
-            final NarProvider provider = NarThreadContextClassLoader.createInstance(extensionManager, implementationClass, NarProvider.class, properties);
+            final String providerId = UUID.randomUUID().toString();
+            final NarProvider provider = NarThreadContextClassLoader.createInstance(extensionManager, implementationClass, NarProvider.class, properties, providerId);
             provider.initialize(context);
 
-            final NarProviderTask task = new NarProviderTask(provider, properties.getNarAutoLoadDirectory(), POLL_INTERVAL_MS);
+            final ClassLoader instanceClassLoader = extensionManager.getInstanceClassLoader(providerId);
+            final ClassLoader providerClassLoader = instanceClassLoader == null ? provider.getClass().getClassLoader() : instanceClassLoader;
+            final NarProviderTask task = new NarProviderTask(provider, providerClassLoader, properties.getNarAutoLoadDirectory(), POLL_INTERVAL_MS);
             narProviderTasks.add(task);
 
             final Thread providerThread = new Thread(task);
@@ -107,7 +111,7 @@ public class NarAutoLoader {
         narAutoLoaderTask.stop();
         narAutoLoaderTask = null;
 
-        narProviderTasks.forEach(task -> task.stop());
+        narProviderTasks.forEach(NarProviderTask::stop);
         narProviderTasks = null;
 
         LOGGER.info("NAR Auto-Loader stopped");
