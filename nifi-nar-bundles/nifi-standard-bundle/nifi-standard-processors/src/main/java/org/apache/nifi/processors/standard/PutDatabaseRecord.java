@@ -611,7 +611,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
         final SchemaKey schemaKey = new PutDatabaseRecord.SchemaKey(catalog, schemaName, tableName);
         final TableSchema tableSchema = schemaCache.get(schemaKey, key -> {
             try {
-                final TableSchema schema = TableSchema.from(con, catalog, schemaName, tableName, settings.translateFieldNames, includePrimaryKeys);
+                final TableSchema schema = TableSchema.from(con, catalog, schemaName, tableName, settings.translateFieldNames, includePrimaryKeys, log);
                 getLogger().debug("Fetched Table Schema {} for table name {}", schema, tableName);
                 return schema;
             } catch (SQLException e) {
@@ -1415,7 +1415,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
         }
 
         public static TableSchema from(final Connection conn, final String catalog, final String schema, final String tableName,
-                                       final boolean translateColumnNames, final boolean includePrimaryKeys) throws SQLException {
+                                       final boolean translateColumnNames, final boolean includePrimaryKeys, ComponentLog log) throws SQLException {
             final DatabaseMetaData dmd = conn.getMetaData();
 
             try (final ResultSet colrs = dmd.getColumns(catalog, schema, tableName, "%")) {
@@ -1423,6 +1423,31 @@ public class PutDatabaseRecord extends AbstractProcessor {
                 while (colrs.next()) {
                     final ColumnDescription col = ColumnDescription.from(colrs);
                     cols.add(col);
+                }
+                // If no columns are found, check that the table exists
+                if (cols.isEmpty()) {
+                    try (final ResultSet tblrs = dmd.getTables(catalog, schema, tableName, null)) {
+                        List<String> qualifiedNameSegments = new ArrayList<>();
+                        if (catalog != null) {
+                            qualifiedNameSegments.add(catalog);
+                        }
+                        if (schema != null) {
+                            qualifiedNameSegments.add(schema);
+                        }
+                        if (tableName != null) {
+                            qualifiedNameSegments.add(tableName);
+                        }
+                        if (!tblrs.next()) {
+
+                            throw new SQLException("Table "
+                                    + String.join(".", qualifiedNameSegments)
+                                    + " not found, ensure the Catalog, Schema, and/or Table Names match those in the database exactly");
+                        } else {
+                            log.warn("Table "
+                                    + String.join(".", qualifiedNameSegments)
+                                    + " found but no columns were found, if this is not expected then check the user permissions for getting table metadata from the database");
+                        }
+                    }
                 }
 
                 final Set<String> primaryKeyColumns = new HashSet<>();
