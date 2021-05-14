@@ -154,13 +154,13 @@ public class TestHashiCorpVaultConfiguration {
         Assert.assertEquals(Arrays.asList(TEST_CIPHER_SUITE_VALUE), sslConfiguration.getEnabledCipherSuites());
     }
 
-    @Test(expected = NullPointerException.class)
+    @Test
     public void testInvalidTLS() {
         propertiesBuilder.setUri(URI_VALUE.replace("http", "https"));
-        this.runTest();
+        Assert.assertThrows(NullPointerException.class, () -> this.runTest());
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testMissingAuthToken() throws IOException {
         File authProperties = null;
         try {
@@ -169,7 +169,7 @@ public class TestHashiCorpVaultConfiguration {
             authProperties = writeVaultAuthProperties(props);
             propertiesBuilder.setAuthPropertiesFilename(authProperties.getAbsolutePath());
 
-            this.runTest();
+            Assert.assertThrows(IllegalArgumentException.class, () -> this.runTest());
         } finally {
             if (authProperties != null) {
                 Files.deleteIfExists(authProperties.toPath());
@@ -177,7 +177,7 @@ public class TestHashiCorpVaultConfiguration {
         }
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testMissingAuthType() throws IOException {
         File authProperties = null;
         try {
@@ -185,7 +185,7 @@ public class TestHashiCorpVaultConfiguration {
             authProperties = writeVaultAuthProperties(props);
             propertiesBuilder.setAuthPropertiesFilename(authProperties.getAbsolutePath());
 
-            this.runTest();
+            Assert.assertThrows(IllegalArgumentException.class, () -> this.runTest());
         } finally {
             if (authProperties != null) {
                 Files.deleteIfExists(authProperties.toPath());
