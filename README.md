@@ -153,8 +153,8 @@ from a trusted certificate authority and update the NiFi keystore and truststore
 Accessing NiFi after accepting the self-signed certificate will display the login screen.
 ![NiFi Login Screen](nifi-docs/src/main/asciidoc/images/nifi-login.png?raw=true)
 
-Using the generated credentials, enter the value of `Generated Username` in the `User` field
-and the value of `Generated Password` in the `Password` field, then press `LOG IN` to access the system.
+Using the generated credentials, enter the generated username in the `User` field
+and the generated password in the `Password` field, then press `LOG IN` to access the system.
 ![NiFi Flow Authenticated Screen](nifi-docs/src/main/asciidoc/images/nifi-flow-authenticated.png?raw=true)
 
 ### Configuring
