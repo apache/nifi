@@ -24,6 +24,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.net.NetUtils;
 import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.nifi.annotation.behavior.RequiresInstanceClassLoading;
 import org.apache.nifi.hadoop.SecurityUtil;
 import org.apache.nifi.nar.NarProvider;
 import org.apache.nifi.nar.NarProviderInitializationContext;
@@ -49,6 +50,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+@RequiresInstanceClassLoading
 public class HDFSNarProvider implements NarProvider {
     private static final Logger LOGGER = LoggerFactory.getLogger(HDFSNarProvider.class);
 
@@ -71,13 +73,21 @@ public class HDFSNarProvider implements NarProvider {
     private volatile boolean initialized = false;
 
     public void initialize(final NarProviderInitializationContext context) {
-        resources = Arrays.stream(Objects.requireNonNull(context.getParameters().get(RESOURCES_PARAMETER)).split(",")).map(s -> s.trim()).collect(Collectors.toList());
+        resources = Arrays.stream(Objects.requireNonNull(
+                context.getProperties().get(RESOURCES_PARAMETER)).split(",")).map(s -> s.trim()).filter(s -> !s.isEmpty()).collect(Collectors.toList());
 
         if (resources.isEmpty()) {
             throw new IllegalArgumentException("At least one HDFS configuration resource is necessary");
         }
 
-        this.sourceDirectory = new Path(Objects.requireNonNull(context.getParameters().get(SOURCE_DIRECTORY_PARAMETER)));
+        final String sourceDirectory = context.getProperties().get(SOURCE_DIRECTORY_PARAMETER);
+
+        if (sourceDirectory == null || sourceDirectory.isEmpty()) {
+            throw new IllegalArgumentException("Provider needs the source directory to be set");
+        }
+
+        this.sourceDirectory = new Path(sourceDirectory);
+
         this.context = context;
         this.initialized = true;
     }
@@ -89,18 +99,26 @@ public class HDFSNarProvider implements NarProvider {
         }
 
         final HdfsResources hdfsResources = getHdfsResources();
-        final FileStatus[] fileStatuses = hdfsResources.getFileSystem().listStatus(sourceDirectory, new ExtensionFilter(NAR_EXTENSION));
 
-        final List<String> result = Arrays.stream(fileStatuses)
-            .filter(fileStatus -> fileStatus.isFile())
-            .map(fileStatus -> fileStatus.getPath().getName())
-            .collect(Collectors.toList());
 
-        if (LOGGER.isDebugEnabled()) {
-            LOGGER.debug("The following nars were found: " + String.join(", ", result));
+        try {
+            final FileStatus[] fileStatuses = hdfsResources.getUserGroupInformation()
+                .doAs((PrivilegedExceptionAction<FileStatus[]>) () -> hdfsResources.getFileSystem().listStatus(sourceDirectory, new ExtensionFilter(NAR_EXTENSION)));
+
+            final List<String> result = Arrays.stream(fileStatuses)
+                .filter(fileStatus -> fileStatus.isFile())
+                .map(fileStatus -> fileStatus.getPath().getName())
+                .collect(Collectors.toList());
+
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("The following NARs were found: " + String.join(", ", result));
+            }
+
+            return result;
+        } catch (final InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IOException("Provider cannot list NARs", e);
         }
-
-        return result;
     }
 
     @Override
@@ -113,17 +131,16 @@ public class HDFSNarProvider implements NarProvider {
         final Path path = getNarLocation(location);
         final HdfsResources hdfsResources = getHdfsResources();
 
-        if (!hdfsResources.getFileSystem().exists(path)) {
-            throw new IOException("Provider cannot find " + location);
-        }
-
         try {
+            if (hdfsResources.getUserGroupInformation().doAs((PrivilegedExceptionAction<Boolean>) () -> !hdfsResources.getFileSystem().exists(path))) {
+                throw new IOException("Provider cannot find " + location);
+            }
+
             return hdfsResources.getUserGroupInformation()
                 .doAs((PrivilegedExceptionAction<FSDataInputStream>) () -> hdfsResources.getFileSystem().open(path, BUFFER_SIZE_DEFAULT));
-        } catch (InterruptedException e) {
+        } catch (final InterruptedException e) {
             Thread.currentThread().interrupt();
-            LOGGER.error("Error during acquiring file", e);
-            throw new RuntimeException();
+            throw new IOException("Error during acquiring file", e);
         }
     }
 
@@ -139,7 +156,7 @@ public class HDFSNarProvider implements NarProvider {
 
     private HdfsResources getHdfsResources() throws IOException {
         final Configuration config = new ExtendedConfiguration(LOGGER);
-        config.setClassLoader(this.getClass().getClassLoader());
+        config.setClassLoader(Thread.currentThread().getContextClassLoader());
 
         for (final String resource : resources) {
             config.addResource(new Path(resource));
@@ -160,9 +177,9 @@ public class HDFSNarProvider implements NarProvider {
 
         synchronized (RESOURCES_LOCK) {
             if (SecurityUtil.isSecurityEnabled(config)) {
-                final String principal = context.getParameters().get(KERBEROS_PRINCIPAL_PARAMETER);
-                final String keyTab = context.getParameters().get(KERBEROS_KEYTAB_PARAMETER);
-                final String password = context.getParameters().get(KERBEROS_PASSWORD_PARAMETER);
+                final String principal = context.getProperties().get(KERBEROS_PRINCIPAL_PARAMETER);
+                final String keyTab = context.getProperties().get(KERBEROS_KEYTAB_PARAMETER);
+                final String password = context.getProperties().get(KERBEROS_PASSWORD_PARAMETER);
 
                 if (keyTab != null) {
                     kerberosUser = new KerberosKeytabUser(principal, keyTab);

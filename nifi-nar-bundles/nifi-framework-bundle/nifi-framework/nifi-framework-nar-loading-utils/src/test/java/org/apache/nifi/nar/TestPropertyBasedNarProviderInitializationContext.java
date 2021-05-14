@@ -40,7 +40,7 @@ public class TestPropertyBasedNarProviderInitializationContext {
     public void testEmptyProperties() {
         // when
         final PropertyBasedNarProviderInitializationContext testSubject = new PropertyBasedNarProviderInitializationContext(properties, PROVIDER_NAME);
-        final Map<String, String> result = testSubject.getParameters();
+        final Map<String, String> result = testSubject.getProperties();
 
         // then
         Mockito.verify(properties, Mockito.times(1)).getPropertiesWithPrefix(PREFIX);
@@ -56,7 +56,7 @@ public class TestPropertyBasedNarProviderInitializationContext {
 
         // when
         final PropertyBasedNarProviderInitializationContext testSubject = new PropertyBasedNarProviderInitializationContext(properties, PROVIDER_NAME);
-        final Map<String, String> result = testSubject.getParameters();
+        final Map<String, String> result = testSubject.getProperties();
 
         // then
         Mockito.verify(properties, Mockito.times(1)).getPropertiesWithPrefix(PREFIX);
@@ -72,7 +72,7 @@ public class TestPropertyBasedNarProviderInitializationContext {
 
         // when
         final PropertyBasedNarProviderInitializationContext testSubject = new PropertyBasedNarProviderInitializationContext(properties, PROVIDER_NAME);
-        final Map<String, String> result = testSubject.getParameters();
+        final Map<String, String> result = testSubject.getProperties();
 
         // then
         Mockito.verify(properties, Mockito.times(1)).getPropertiesWithPrefix(PREFIX);
@@ -89,7 +89,7 @@ public class TestPropertyBasedNarProviderInitializationContext {
 
         // when
         final PropertyBasedNarProviderInitializationContext testSubject = new PropertyBasedNarProviderInitializationContext(properties, PROVIDER_NAME);
-        final Map<String, String> result = testSubject.getParameters();
+        final Map<String, String> result = testSubject.getProperties();
 
         // then
         Mockito.verify(properties, Mockito.times(1)).getPropertiesWithPrefix(PREFIX);

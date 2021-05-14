@@ -24,7 +24,7 @@ import java.util.Map;
 public interface NarProviderInitializationContext {
 
     /**
-     * @return Returns with the available parameters.
+     * @return Returns with the available properties.
      */
-    Map<String, String> getParameters();
+    Map<String, String> getProperties();
 }

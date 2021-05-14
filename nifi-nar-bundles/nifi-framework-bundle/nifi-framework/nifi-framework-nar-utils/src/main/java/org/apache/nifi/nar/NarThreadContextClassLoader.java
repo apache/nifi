@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.nar;
 
+import org.apache.nifi.annotation.behavior.RequiresInstanceClassLoading;
 import org.apache.nifi.authentication.LoginIdentityProvider;
 import org.apache.nifi.authorization.AccessPolicyProvider;
 import org.apache.nifi.authorization.Authorizer;
@@ -37,6 +38,7 @@ import org.apache.nifi.provenance.ProvenanceRepository;
 import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.util.NiFiProperties;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Constructor;
@@ -44,8 +46,13 @@ import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Enumeration;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 
 /**
  * THREAD SAFE
@@ -202,10 +209,12 @@ public class NarThreadContextClassLoader extends URLClassLoader {
             }
 
             final Bundle bundle = bundles.get(0);
-            final ClassLoader detectedClassLoaderForType = bundle.getClassLoader();
-            final Class<?> rawClass = Class.forName(implementationClassName, true, detectedClassLoaderForType);
+            final ClassLoader bundleClassLoader = bundle.getClassLoader();
+            final Class<?> rawClass = Class.forName(implementationClassName, true, bundleClassLoader);
 
-            Thread.currentThread().setContextClassLoader(detectedClassLoaderForType);
+            final ClassLoader instanceClassLoader = createClassLoader(implementationClassName, bundle, extensionManager);
+
+            Thread.currentThread().setContextClassLoader(instanceClassLoader);
             final Class<?> desiredClass = rawClass.asSubclass(typeDefinition);
             if(nifiProperties == null){
                 return typeDefinition.cast(desiredClass.newInstance());
@@ -234,5 +243,44 @@ public class NarThreadContextClassLoader extends URLClassLoader {
         } finally {
             Thread.currentThread().setContextClassLoader(originalClassLoader);
         }
+    }
+
+    private static ClassLoader createClassLoader(final String implementationClassName, final Bundle bundle, final ExtensionManager extensionManager) throws ClassNotFoundException {
+        final ClassLoader bundleClassLoader = bundle.getClassLoader();
+        final Class<?> rawClass = Class.forName(implementationClassName, true, bundleClassLoader);
+
+        final RequiresInstanceClassLoading instanceClassLoadingAnnotation = rawClass.getAnnotation(RequiresInstanceClassLoading.class);
+        if (instanceClassLoadingAnnotation == null) {
+            return bundleClassLoader;
+        }
+
+        final Set<URL> instanceUrls = new LinkedHashSet<>();
+        final Set<File> narNativeLibDirs = new LinkedHashSet<>();
+
+        final NarClassLoader narBundleClassLoader = (NarClassLoader) bundleClassLoader;
+        narNativeLibDirs.add(narBundleClassLoader.getNARNativeLibDir());
+        instanceUrls.addAll(Arrays.asList(narBundleClassLoader.getURLs()));
+
+        if (instanceClassLoadingAnnotation.cloneAncestorResources()) {
+            ClassLoader ancestorClassLoader = narBundleClassLoader.getParent();
+
+            while (ancestorClassLoader instanceof NarClassLoader) {
+                final Bundle ancestorNarBundle = extensionManager.getBundle(ancestorClassLoader);
+
+                // stop including ancestor resources when we reach one of the APIs, or when we hit the Jetty NAR
+                if (ancestorNarBundle == null || ancestorNarBundle.getBundleDetails().getCoordinate().getId().equals(NarClassLoaders.JETTY_NAR_ID)) {
+                    break;
+                }
+
+                final NarClassLoader ancestorNarClassLoader = (NarClassLoader) ancestorClassLoader;
+
+                narNativeLibDirs.add(ancestorNarClassLoader.getNARNativeLibDir());
+                Collections.addAll(instanceUrls, ancestorNarClassLoader.getURLs());
+
+                ancestorClassLoader = ancestorNarClassLoader.getParent();
+            }
+        }
+
+        return new InstanceClassLoader(UUID.randomUUID().toString(), implementationClassName, instanceUrls, Collections.emptySet(), narNativeLibDirs, narBundleClassLoader);
     }
 }

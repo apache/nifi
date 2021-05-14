@@ -62,13 +62,13 @@ final class NarProviderTask implements Runnable {
                     if (!loadedNars.contains(availableNar)) {
                         final long startedAt = System.currentTimeMillis();
                         final InputStream inputStream = narProvider.fetchNarContents(availableNar);
-                        // There is a random uuid for the case when multiple providers are in place
+
                         final File tempFile = new File(extensionDirectory + File.separator + ".tmp_" + id + ".nar");
                         final File targetFile = new File(extensionDirectory + File.separator + availableNar);
                         Files.copy(inputStream, tempFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
                         tempFile.renameTo(targetFile);
 
-                        LOGGER.info("Nar {} is opened in {}ms", availableNar, (System.currentTimeMillis() - startedAt));
+                        LOGGER.info("Downloaded NAR {} i in {} ms", availableNar, (System.currentTimeMillis() - startedAt));
                     }
                 }
 

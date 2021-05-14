@@ -31,20 +31,20 @@ public class PropertyBasedNarProviderInitializationContext implements NarProvide
     private static Set<String> GUARDED_PROPERTIES = new HashSet<>(Arrays.asList("implementation"));
     static final String BASIC_PREFIX = "nifi.nar.library.provider.";
 
-    private final Map<String, String> parameters;
+    private final Map<String, String> properties;
     private final String name;
 
     public PropertyBasedNarProviderInitializationContext(final NiFiProperties properties, final String name) {
-        this.parameters = extractParameters(properties, name);
+        this.properties = extractProperties(properties, name);
         this.name = name;
     }
 
     @Override
-    public Map<String, String> getParameters() {
-        return parameters;
+    public Map<String, String> getProperties() {
+        return properties;
     }
 
-    public Map<String, String> extractParameters(final NiFiProperties properties, final String name) {
+    public Map<String, String> extractProperties(final NiFiProperties properties, final String name) {
         final String prefix = BASIC_PREFIX + name + ".";
         final Map<String, String> candidates = properties.getPropertiesWithPrefix(prefix);
         final Map<String, String> result = new HashMap<>();
