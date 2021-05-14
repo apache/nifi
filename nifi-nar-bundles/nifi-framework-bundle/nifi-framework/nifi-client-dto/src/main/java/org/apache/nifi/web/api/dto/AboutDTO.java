@@ -109,7 +109,7 @@ public class AboutDTO {
     @XmlJavaTypeAdapter(TimezoneAdapter.class)
     @ApiModelProperty(
             value = "The timezone of the NiFi instance.",
-            readOnly = true,
+            accessMode = ApiModelProperty.AccessMode.READ_ONLY,
             dataType = "string"
     )
     public Date getTimezone() {

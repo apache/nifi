@@ -76,7 +76,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 public class AvroTypeUtil {
     private static final Logger logger = LoggerFactory.getLogger(AvroTypeUtil.class);
@@ -232,11 +231,15 @@ public class AvroTypeUtil {
                 final List<Schema> unionTypes = new ArrayList<>(options.size());
                 final Set<Type> typesAdded = new HashSet<>();
 
+                int optionCounter = 1;
                 for (final DataType option : options) {
                     final Schema optionSchema = buildAvroSchema(option, fieldName, fieldNamePrefix, false);
                     if (!typesAdded.contains(optionSchema.getType())) {
                         unionTypes.add(optionSchema);
                         typesAdded.add(optionSchema.getType());
+                    } else if (Type.RECORD.equals(optionSchema.getType()) && !unionTypes.contains(optionSchema)) {
+                        final Schema indexedOptionSchema = buildAvroSchema(option, fieldName + ++optionCounter, fieldNamePrefix, false);
+                        unionTypes.add(indexedOptionSchema);
                     }
                 }
 
@@ -896,10 +899,19 @@ public class AvroTypeUtil {
     private static Object convertUnionFieldValue(final Object originalValue, final Schema fieldSchema, final Function<Schema, Object> conversion, final String fieldName) {
         boolean foundNonNull = false;
 
+        // It is an extremely common case to have a UNION type because a field can be NULL or some other type. In this situation,
+        // we will have two possible types, and one of them will be null. When this happens, we can be much more efficient by simply
+        // determining the non-null type and converting to that.
+        final List<Schema> schemaTypes = fieldSchema.getTypes();
+        if (schemaTypes.size() == 2 && (schemaTypes.get(0).getType() == Type.NULL || schemaTypes.get(1).getType() == Type.NULL)) {
+            final Schema nonNullType = schemaTypes.get(0).getType() == Type.NULL ? schemaTypes.get(1) : schemaTypes.get(0);
+            return conversion.apply(nonNullType);
+        }
+
         Optional<Schema> mostSuitableType = DataTypeUtils.findMostSuitableType(
                 originalValue,
-                fieldSchema.getTypes().stream().filter(schema -> schema.getType() != Type.NULL).collect(Collectors.toList()),
-                subSchema -> AvroTypeUtil.determineDataType(subSchema)
+                getNonNullSubSchemas(fieldSchema),
+                AvroTypeUtil::determineDataType
         );
         if (mostSuitableType.isPresent()) {
             return conversion.apply(mostSuitableType.get());

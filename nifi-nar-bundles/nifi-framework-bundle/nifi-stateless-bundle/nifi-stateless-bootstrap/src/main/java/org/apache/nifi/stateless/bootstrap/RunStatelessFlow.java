@@ -102,6 +102,8 @@ public class RunStatelessFlow {
         final DataflowDefinition<?> dataflowDefinition = bootstrap.parseDataflowDefinition(flowDefinitionFile);
 
         final StatelessDataflow dataflow = bootstrap.createDataflow(dataflowDefinition, parameterOverrides);
+        dataflow.initialize();
+
         final StatelessDataflowValidation validation = dataflow.performValidation();
         if (!validation.isValid()) {
             logger.error(validation.toString());

@@ -16,16 +16,6 @@
  */
 package org.apache.nifi.ssl;
 
-import java.io.File;
-import java.net.MalformedURLException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManager;
-
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
@@ -34,6 +24,8 @@ import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
+import org.apache.nifi.components.resource.ResourceCardinality;
+import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.processor.exception.ProcessException;
@@ -46,6 +38,17 @@ import org.apache.nifi.security.util.StandardTlsConfiguration;
 import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.security.util.TlsException;
 import org.apache.nifi.util.StringUtils;
+
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
+import java.io.File;
+import java.net.MalformedURLException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
 @Tags({"ssl", "secure", "certificate", "keystore", "truststore", "jks", "p12", "pkcs12", "pkcs", "tls"})
 @CapabilityDescription("Standard implementation of the SSLContextService. Provides the ability to configure "
@@ -67,7 +70,7 @@ public class StandardSSLContextService extends AbstractControllerService impleme
             .name("Truststore Filename")
             .description("The fully-qualified filename of the Truststore")
             .defaultValue(null)
-            .addValidator(createFileExistsAndReadableValidator())
+            .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE)
             .sensitive(false)
             .build();
     public static final PropertyDescriptor TRUSTSTORE_TYPE = new PropertyDescriptor.Builder()
@@ -89,7 +92,7 @@ public class StandardSSLContextService extends AbstractControllerService impleme
             .name("Keystore Filename")
             .description("The fully-qualified filename of the Keystore")
             .defaultValue(null)
-            .addValidator(createFileExistsAndReadableValidator())
+            .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE)
             .sensitive(false)
             .build();
     public static final PropertyDescriptor KEYSTORE_TYPE = new PropertyDescriptor.Builder()
@@ -171,21 +174,6 @@ public class StandardSSLContextService extends AbstractControllerService impleme
         resetValidationCache();
     }
 
-    private static Validator createFileExistsAndReadableValidator() {
-        // Not using the FILE_EXISTS_VALIDATOR because the default is to allow expression language
-        return (subject, input, context) -> {
-            final File file = new File(input);
-            final boolean valid = file.exists() && file.canRead();
-            final String explanation = valid ? null : "File " + file + " does not exist or cannot be read";
-            return new ValidationResult.Builder()
-                    .subject(subject)
-                    .input(input)
-                    .valid(valid)
-                    .explanation(explanation)
-                    .build();
-        };
-    }
-
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return properties;
@@ -252,7 +240,7 @@ public class StandardSSLContextService extends AbstractControllerService impleme
             final TrustManager[] trustManagers = SslContextFactory.getTrustManagers(tlsConfiguration);
             return SslContextFactory.createSslContext(tlsConfiguration, trustManagers);
         } catch (final TlsException e) {
-            getLogger().error("Unable to create SSLContext: {}", new String[]{e.getLocalizedMessage()});
+            getLogger().error("Unable to create SSLContext: {}", e.getLocalizedMessage());
             throw new ProcessException("Unable to create SSLContext", e);
         }
     }
@@ -286,6 +274,24 @@ public class StandardSSLContextService extends AbstractControllerService impleme
     @Override
     public SSLContext createSSLContext(final ClientAuth clientAuth) throws ProcessException {
         return createContext();
+    }
+
+    /**
+     * Create X.509 Trust Manager using configured properties
+     *
+     * @return {@link X509TrustManager} initialized using configured properties
+     */
+    @Override
+    public X509TrustManager createTrustManager() {
+        try {
+            final X509TrustManager trustManager = SslContextFactory.getX509TrustManager(createTlsConfiguration());
+            if (trustManager == null) {
+                throw new ProcessException("X.509 Trust Manager not found using configured properties");
+            }
+            return trustManager;
+        } catch (final TlsException e) {
+            throw new ProcessException("Unable to create X.509 Trust Manager", e);
+        }
     }
 
     @Override

@@ -19,10 +19,12 @@ package org.apache.nifi.stateless.bootstrap;
 
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.nar.NarClassLoaders;
 import org.apache.nifi.nar.NarUnpacker;
 import org.apache.nifi.nar.SystemBundle;
 import org.apache.nifi.stateless.config.ParameterOverride;
 import org.apache.nifi.stateless.config.StatelessConfigurationException;
+import org.apache.nifi.stateless.engine.NarUnpackLock;
 import org.apache.nifi.stateless.engine.StatelessEngineConfiguration;
 import org.apache.nifi.stateless.flow.DataflowDefinition;
 import org.apache.nifi.stateless.flow.DataflowDefinitionParser;
@@ -47,6 +49,9 @@ import java.util.regex.Pattern;
 public class StatelessBootstrap {
     private static final Logger logger = LoggerFactory.getLogger(StatelessBootstrap.class);
     private static final Pattern STATELESS_NAR_PATTERN = Pattern.compile("nifi-stateless-nar-.*\\.nar-unpacked");
+    private static final String NIFI_GROUP = "org.apache.nifi";
+    private static final String NIFI_STATELESS_ARTIFACT_ID = "nifi-stateless-nar";
+    private static final String NIFI_JETTY_ARTIFACT_ID = "nifi-jetty-bundle";
     private final ClassLoader statelessClassLoader;
     private final StatelessEngineConfiguration engineConfiguration;
 
@@ -87,17 +92,20 @@ public class StatelessBootstrap {
             throw new IOException("Working Directory " + workingDirectory + " does not exist and could not be created");
         }
 
-
         final Bundle systemBundle = SystemBundle.create(narDirectory.getAbsolutePath(), ClassLoader.getSystemClassLoader());
         final File frameworkWorkingDir = new File(workingDirectory, "nifi-framework");
         final File extensionsWorkingDir = new File(workingDirectory, "extensions");
-        final File docsWorkingDir = new File(workingDirectory, "documentation");
         final List<Path> narDirectories = Collections.singletonList(narDirectory.toPath());
 
         // Unpack NARs
         final long unpackStart = System.currentTimeMillis();
         final Predicate<BundleCoordinate> narFilter = coordinate -> true;
-        NarUnpacker.unpackNars(systemBundle, frameworkWorkingDir, extensionsWorkingDir, docsWorkingDir, narDirectories, false, false, narFilter);
+        NarUnpackLock.lock();
+        try {
+            NarUnpacker.unpackNars(systemBundle, frameworkWorkingDir, extensionsWorkingDir, null, narDirectories, false, NarClassLoaders.FRAMEWORK_NAR_ID, false, false, narFilter);
+        } finally {
+            NarUnpackLock.unlock();
+        }
         final long unpackMillis = System.currentTimeMillis() - unpackStart;
         logger.info("Unpacked NAR files in {} millis", unpackMillis);
 
@@ -119,6 +127,16 @@ public class StatelessBootstrap {
         final URLClassLoader statelessClassLoader = new URLClassLoader(urls, rootClassLoader);
         Thread.currentThread().setContextClassLoader(statelessClassLoader);
         return new StatelessBootstrap(statelessClassLoader, engineConfiguration);
+    }
+
+    private static boolean isRequiredForBootstrap(final BundleCoordinate coordinate) {
+        final String group = coordinate.getGroup();
+        if (!NIFI_GROUP.equals(group)) {
+            return false;
+        }
+
+        final String artifactId = coordinate.getId();
+        return NIFI_JETTY_ARTIFACT_ID.equals(artifactId) || NIFI_STATELESS_ARTIFACT_ID.equals(artifactId);
     }
 
     private static File locateStatelessNarWorkingDirectory(final File workingDirectory) throws IOException {

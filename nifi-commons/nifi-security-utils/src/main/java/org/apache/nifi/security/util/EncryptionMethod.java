@@ -49,7 +49,8 @@ public enum EncryptionMethod {
     SHA_TWOFISH("PBEWITHSHAANDTWOFISH-CBC", "BC", false, false),
     PGP("PGP", "BC", false, false),
     PGP_ASCII_ARMOR("PGP-ASCII-ARMOR", "BC", false, false),
-    // New encryption methods which used keyed encryption
+    // AES/CBC/NoPadding supported for decryption
+    AES_CBC_NO_PADDING("AES/CBC/NoPadding", "BC", false, true),
     AES_CBC("AES/CBC/PKCS7Padding", "BC", false, true),
     AES_CTR("AES/CTR/NoPadding", "BC", false, true),
     AES_GCM("AES/GCM/NoPadding", "BC", false, true);

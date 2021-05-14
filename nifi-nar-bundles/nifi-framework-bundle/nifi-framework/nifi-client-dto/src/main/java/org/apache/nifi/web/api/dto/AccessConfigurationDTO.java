@@ -33,7 +33,7 @@ public class AccessConfigurationDTO {
      */
     @ApiModelProperty(
             value = "Indicates whether or not this NiFi supports user login.",
-            readOnly = true
+            accessMode = ApiModelProperty.AccessMode.READ_ONLY
     )
     public Boolean getSupportsLogin() {
         return supportsLogin;

@@ -38,7 +38,6 @@ class StorageStatusWritingTemplate extends QuestDbWritingTemplate<Pair<Instant, 
             for (final StorageStatus contentRepository : entry.getRight().getContentRepositories()) {
                 final long capturedAt = TimeUnit.MILLISECONDS.toMicros(entry.getLeft().toEpochMilli());
                 final TableWriter.Row row = tableWriter.newRow(capturedAt);
-                row.putTimestamp(0, capturedAt);
                 row.putSym(1, contentRepository.getName());
                 row.putShort(2, Integer.valueOf(0).shortValue());
                 row.putLong(3, contentRepository.getFreeSpace());
@@ -49,7 +48,6 @@ class StorageStatusWritingTemplate extends QuestDbWritingTemplate<Pair<Instant, 
             for (final StorageStatus provenanceRepository : entry.getRight().getProvenanceRepositories()) {
                 final long capturedAt = TimeUnit.MILLISECONDS.toMicros(entry.getLeft().toEpochMilli());
                 final TableWriter.Row row = tableWriter.newRow(capturedAt);
-                row.putTimestamp(0, capturedAt);
                 row.putSym(1, provenanceRepository.getName());
                 row.putShort(2, Integer.valueOf(1).shortValue());
                 row.putLong(3, provenanceRepository.getFreeSpace());

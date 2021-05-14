@@ -454,7 +454,7 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
         URI groupUri;
         try {
             groupUri = new URI(originalUri.getScheme(), originalUri.getUserInfo(), originalUri.getHost(),
-                    originalUri.getPort(), "/nifi-api/flow/process-groups/" + groupId + "/controller-services", "includeAncestorGroups=false,includeDescendantGroups=true", originalUri.getFragment());
+                    originalUri.getPort(), "/nifi-api/flow/process-groups/" + groupId + "/controller-services", "includeAncestorGroups=false&includeDescendantGroups=true", originalUri.getFragment());
         } catch (URISyntaxException e) {
             throw new RuntimeException(e);
         }
@@ -482,6 +482,7 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
             final Set<ControllerServiceEntity> serviceEntities = controllerServicesEntity.getControllerServices();
 
             final Map<String, AffectedComponentEntity> affectedServices = serviceEntities.stream()
+                    .filter(s -> serviceIds.contains(s.getId()))
                     .collect(Collectors.toMap(ControllerServiceEntity::getId, dtoFactory::createAffectedComponentEntity));
 
             if (isControllerServiceValidationComplete(serviceEntities, affectedServices)) {

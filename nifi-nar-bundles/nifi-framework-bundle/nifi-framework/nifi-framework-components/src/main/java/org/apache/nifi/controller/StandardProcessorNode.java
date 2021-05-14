@@ -1090,6 +1090,13 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                     break;
                 }
             }
+
+            // Ensure that execution node will not be misused
+            if (getExecutionNode() == ExecutionNode.PRIMARY && hasIncomingConnection()) {
+                results.add(new ValidationResult.Builder()
+                        .explanation("Processors with incoming connections cannot be scheduled for Primary Node Only.")
+                        .subject("Execution Node").valid(false).build());
+            }
         } catch (final Throwable t) {
             LOG.error("Failed to perform validation", t);
             results.add(new ValidationResult.Builder().explanation("Failed to run validation due to " + t.toString())

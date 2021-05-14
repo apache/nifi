@@ -24,7 +24,32 @@ import java.util.Map;
 import java.util.Set;
 
 public interface StatelessDataflow {
+    /**
+     * Triggers the dataflow to run, returning a DataflowTrigger that can be used to wait for the result
+     * @return a DataflowTrigger that can be used to wait for the result
+     *
+     * @throws IllegalStateException if called before {@link #initialize()} is called.
+     */
     DataflowTrigger trigger();
+
+    /**
+     * <p>
+     * Performs initialization necessary for triggering dataflows. These activities include, but are not limited to:
+     * </p>
+     *
+     * <ul>
+     *     <li>Component validation</li>
+     *     <li>Enabling Controller Services</li>
+     *     <li>Initializing processors (i.e., invoking @OnScheduled methods, etc.), but not triggering any Processors</li>
+     *     <li>Initializing Remote Process Groups so that they can be triggered</li>
+     *     <li>Scheduling Reporting Tasks to run</li>
+     * </ul>
+     *
+     * <p>
+     *     This method MUST be called prior to calling {@link #trigger()}.
+     * </p>
+     */
+    void initialize();
 
     void shutdown();
 

@@ -75,6 +75,11 @@ public class TestPropertiesFileFlowDefinitionParser {
             }
 
             @Override
+            public File getExtensionsDirectory() {
+                return null;
+            }
+
+            @Override
             public File getKrb5File() {
                 return null;
             }

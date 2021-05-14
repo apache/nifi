@@ -42,6 +42,8 @@ import static groovy.test.GroovyAssert.shouldFail
 class Argon2CipherProviderGroovyTest extends GroovyTestCase {
     private static final Logger logger = LoggerFactory.getLogger(Argon2CipherProviderGroovyTest.class)
 
+    private static final String PLAINTEXT = "ExactBlockSizeRequiredForProcess"
+
     private static List<EncryptionMethod> strongKDFEncryptionMethods
 
     private static final int DEFAULT_KEY_LENGTH = 128
@@ -85,8 +87,6 @@ class Argon2CipherProviderGroovyTest extends GroovyTestCase {
         final String PASSWORD = "shortPassword"
         final byte[] SALT = cipherProvider.generateSalt()
 
-        final String plaintext = "This is a plaintext message."
-
         // Act
         for (EncryptionMethod em : strongKDFEncryptionMethods) {
             logger.info("Using algorithm: ${em.getAlgorithm()}")
@@ -96,7 +96,7 @@ class Argon2CipherProviderGroovyTest extends GroovyTestCase {
             byte[] iv = cipher.getIV()
             logger.info("IV: ${Hex.encodeHexString(iv)}")
 
-            byte[] cipherBytes = cipher.doFinal(plaintext.getBytes("UTF-8"))
+            byte[] cipherBytes = cipher.doFinal(PLAINTEXT.getBytes("UTF-8"))
             logger.info("Cipher text: ${Hex.encodeHexString(cipherBytes)} ${cipherBytes.length}")
 
             cipher = cipherProvider.getCipher(em, PASSWORD, SALT, iv, DEFAULT_KEY_LENGTH, false)
@@ -105,7 +105,7 @@ class Argon2CipherProviderGroovyTest extends GroovyTestCase {
             logger.info("Recovered: ${recovered}")
 
             // Assert
-            assert plaintext.equals(recovered)
+            assert PLAINTEXT.equals(recovered)
         }
     }
 
@@ -210,8 +210,6 @@ class Argon2CipherProviderGroovyTest extends GroovyTestCase {
         final byte[] SALT = cipherProvider.generateSalt()
         final byte[] IV = Hex.decodeHex("01" * 16 as char[])
 
-        final String plaintext = "This is a plaintext message."
-
         // Act
         for (EncryptionMethod em : strongKDFEncryptionMethods) {
             logger.info("Using algorithm: ${em.getAlgorithm()}")
@@ -220,7 +218,7 @@ class Argon2CipherProviderGroovyTest extends GroovyTestCase {
             Cipher cipher = cipherProvider.getCipher(em, PASSWORD, SALT, IV, DEFAULT_KEY_LENGTH, true)
             logger.info("IV: ${Hex.encodeHexString(IV)}")
 
-            byte[] cipherBytes = cipher.doFinal(plaintext.getBytes("UTF-8"))
+            byte[] cipherBytes = cipher.doFinal(PLAINTEXT.getBytes("UTF-8"))
             logger.info("Cipher text: ${Hex.encodeHexString(cipherBytes)} ${cipherBytes.length}")
 
             cipher = cipherProvider.getCipher(em, PASSWORD, SALT, IV, DEFAULT_KEY_LENGTH, false)
@@ -229,7 +227,7 @@ class Argon2CipherProviderGroovyTest extends GroovyTestCase {
             logger.info("Recovered: ${recovered}")
 
             // Assert
-            assert plaintext.equals(recovered)
+            assert PLAINTEXT.equals(recovered)
         }
     }
 
@@ -244,8 +242,6 @@ class Argon2CipherProviderGroovyTest extends GroovyTestCase {
 
         final int LONG_KEY_LENGTH = 256
 
-        final String plaintext = "This is a plaintext message."
-
         // Act
         for (EncryptionMethod em : strongKDFEncryptionMethods) {
             logger.info("Using algorithm: ${em.getAlgorithm()}")
@@ -255,7 +251,7 @@ class Argon2CipherProviderGroovyTest extends GroovyTestCase {
             byte[] iv = cipher.getIV()
             logger.info("IV: ${Hex.encodeHexString(iv)}")
 
-            byte[] cipherBytes = cipher.doFinal(plaintext.getBytes("UTF-8"))
+            byte[] cipherBytes = cipher.doFinal(PLAINTEXT.getBytes("UTF-8"))
             logger.info("Cipher text: ${Hex.encodeHexString(cipherBytes)} ${cipherBytes.length}")
 
             cipher = cipherProvider.getCipher(em, PASSWORD, SALT, iv, LONG_KEY_LENGTH, false)
@@ -264,7 +260,7 @@ class Argon2CipherProviderGroovyTest extends GroovyTestCase {
             logger.info("Recovered: ${recovered}")
 
             // Assert
-            assert plaintext.equals(recovered)
+            assert PLAINTEXT.equals(recovered)
         }
     }
 
@@ -369,8 +365,6 @@ class Argon2CipherProviderGroovyTest extends GroovyTestCase {
         final byte[] SALT = cipherProvider.generateSalt()
         final byte[] IV = Hex.decodeHex("00" * 16 as char[])
 
-        final String plaintext = "This is a plaintext message."
-
         // Act
         for (EncryptionMethod em : strongKDFEncryptionMethods) {
             logger.info("Using algorithm: ${em.getAlgorithm()}")
@@ -379,7 +373,7 @@ class Argon2CipherProviderGroovyTest extends GroovyTestCase {
             Cipher cipher = cipherProvider.getCipher(em, PASSWORD, SALT, IV, DEFAULT_KEY_LENGTH, true)
             logger.info("IV: ${Hex.encodeHexString(IV)}")
 
-            byte[] cipherBytes = cipher.doFinal(plaintext.getBytes("UTF-8"))
+            byte[] cipherBytes = cipher.doFinal(PLAINTEXT.getBytes("UTF-8"))
             logger.info("Cipher text: ${Hex.encodeHexString(cipherBytes)} ${cipherBytes.length}")
 
             def msg = shouldFail(IllegalArgumentException) {
@@ -398,8 +392,6 @@ class Argon2CipherProviderGroovyTest extends GroovyTestCase {
         final String PASSWORD = "shortPassword"
         final byte[] SALT = cipherProvider.generateSalt()
         final byte[] IV = Hex.decodeHex("01" * 16 as char[])
-
-        final String PLAINTEXT = "This is a plaintext message."
 
         final def VALID_KEY_LENGTHS = AES_KEY_LENGTHS
         EncryptionMethod encryptionMethod = EncryptionMethod.AES_CBC
@@ -431,8 +423,6 @@ class Argon2CipherProviderGroovyTest extends GroovyTestCase {
         final String PASSWORD = "shortPassword"
         final byte[] SALT = cipherProvider.generateSalt()
         final byte[] IV = Hex.decodeHex("00" * 16 as char[])
-
-        final String PLAINTEXT = "This is a plaintext message."
 
         final def INVALID_KEY_LENGTHS = [-1, 40, 64, 112, 512]
         EncryptionMethod encryptionMethod = EncryptionMethod.AES_CBC

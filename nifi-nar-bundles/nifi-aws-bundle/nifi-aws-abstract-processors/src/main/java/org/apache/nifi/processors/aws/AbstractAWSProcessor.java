@@ -50,8 +50,10 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
-import org.apache.nifi.processor.AbstractProcessor;
+import org.apache.nifi.processor.AbstractSessionFactoryProcessor;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -68,7 +70,7 @@ import org.apache.nifi.ssl.SSLContextService;
  *
  */
 @Deprecated
-public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceClient> extends AbstractProcessor {
+public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceClient> extends AbstractSessionFactoryProcessor {
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success")
             .description("FlowFiles are routed to success relationship").build();
@@ -151,6 +153,8 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
     protected volatile ClientType client;
     protected volatile Region region;
 
+    private static final Pattern VPCE_ENDPOINT_PATTERN = Pattern.compile("^(?:.+[vpce-][a-z0-9-]+\\.)?([a-z0-9-]+)$");
+
     // If protocol is changed to be a property, ensure other uses are also changed
     protected static final Protocol DEFAULT_PROTOCOL = Protocol.HTTPS;
     protected static final String DEFAULT_USER_AGENT = "NiFi";
@@ -167,7 +171,7 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
         for (final Regions region : Regions.values()) {
             values.add(createAllowableValue(region));
         }
-        return values.toArray(new AllowableValue[values.size()]);
+        return values.toArray(new AllowableValue[0]);
     }
 
     @Override
@@ -265,10 +269,31 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
-        final ClientType awsClient = createClient(context, getCredentials(context), createConfiguration(context));
-        this.client = awsClient;
+        this.client = createClient(context, getCredentials(context), createConfiguration(context));
         initializeRegionAndEndpoint(context);
     }
+
+    /*
+     * Allow optional override of onTrigger with the ProcessSessionFactory where required for AWS processors (e.g. ConsumeKinesisStream)
+     *
+     * @see AbstractProcessor
+     */
+    @Override
+    public void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) throws ProcessException {
+        final ProcessSession session = sessionFactory.createSession();
+        try {
+            onTrigger(context, session);
+            session.commit();
+        } catch (final Throwable t) {
+            session.rollback(true);
+            throw t;
+        }
+    }
+
+    /*
+     * Default to requiring the "standard" onTrigger with a single ProcessSession
+     */
+    public abstract void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException;
 
     protected void initializeRegionAndEndpoint(ProcessContext context) {
         // if the processor supports REGION, get the configured region.
@@ -276,7 +301,9 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
             final String region = context.getProperty(REGION).getValue();
             if (region != null) {
                 this.region = Region.getRegion(Regions.fromName(region));
-                client.setRegion(this.region);
+                if (client != null) {
+                    client.setRegion(this.region);
+                }
             } else {
                 this.region = null;
             }
@@ -284,11 +311,11 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
 
         // if the endpoint override has been configured, set the endpoint.
         // (per Amazon docs this should only be configured at client creation)
-        if (getSupportedPropertyDescriptors().contains(ENDPOINT_OVERRIDE)) {
+        if (client != null && getSupportedPropertyDescriptors().contains(ENDPOINT_OVERRIDE)) {
             final String urlstr = StringUtils.trimToEmpty(context.getProperty(ENDPOINT_OVERRIDE).evaluateAttributeExpressions().getValue());
 
             if (!urlstr.isEmpty()) {
-                getLogger().info("Overriding endpoint with {}", new Object[]{urlstr});
+                getLogger().info("Overriding endpoint with {}", urlstr);
 
                 if (urlstr.endsWith(".vpce.amazonaws.com")) {
                     String region = parseRegionForVPCE(urlstr);
@@ -312,7 +339,6 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
     private String parseRegionForVPCE(String url) {
         int index = url.length() - ".vpce.amazonaws.com".length();
 
-        Pattern VPCE_ENDPOINT_PATTERN = Pattern.compile("^(?:.+[vpce-][a-z0-9-]+\\.)?([a-z0-9-]+)$");
         Matcher matcher = VPCE_ENDPOINT_PATTERN.matcher(url.substring(0, index));
 
         if (matcher.matches()) {
@@ -362,7 +388,6 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
         }
 
         return new AnonymousAWSCredentials();
-
     }
 
     @OnShutdown

@@ -31,7 +31,6 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.state.StateManager;
-import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.flowfile.FlowFile;
@@ -94,6 +93,7 @@ public class StandardProcessorTestRunner implements TestRunner {
     private final Map<String, MockComponentLog> controllerServiceLoggers = new HashMap<>();
     private final MockComponentLog logger;
     private boolean enforceReadStreamsClosed = true;
+    private boolean validateExpressionUsage = true;
 
     StandardProcessorTestRunner(final Processor processor) {
         this(processor, null);
@@ -146,6 +146,7 @@ public class StandardProcessorTestRunner implements TestRunner {
 
     @Override
     public void setValidateExpressionUsage(final boolean validate) {
+        this.validateExpressionUsage = validate;
         context.setValidateExpressionUsage(validate);
     }
 
@@ -222,33 +223,37 @@ public class StandardProcessorTestRunner implements TestRunner {
 
                     if (++finishedCount == 1) {
                         unscheduledRun = true;
-                        try {
-                            ReflectionUtils.invokeMethodsWithAnnotation(OnUnscheduled.class, processor, context);
-                        } catch (final Exception e) {
-                            Assert.fail("Could not invoke methods annotated with @OnUnscheduled annotation due to: " + e);
-                        }
+                        unSchedule();
                     }
                 } catch (final Exception e) {
                 }
             }
 
             if (!unscheduledRun) {
-                try {
-                    ReflectionUtils.invokeMethodsWithAnnotation(OnUnscheduled.class, processor, context);
-                } catch (final Exception e) {
-                    Assert.fail("Could not invoke methods annotated with @OnUnscheduled annotation due to: " + e);
-                }
+                unSchedule();
             }
 
             if (stopOnFinish) {
-                try {
-                    ReflectionUtils.invokeMethodsWithAnnotation(OnStopped.class, processor, context);
-                } catch (final Exception e) {
-                    Assert.fail("Could not invoke methods annotated with @OnStopped annotation due to: " + e);
-                }
+                stop();
             }
         } finally {
             context.disableExpressionValidation();
+        }
+    }
+
+    public void unSchedule() {
+        try {
+            ReflectionUtils.invokeMethodsWithAnnotation(OnUnscheduled.class, processor, context);
+        } catch (final Exception e) {
+            Assert.fail("Could not invoke methods annotated with @OnUnscheduled annotation due to: " + e);
+        }
+    }
+
+    public void stop() {
+        try {
+            ReflectionUtils.invokeMethodsWithAnnotation(OnStopped.class, processor, context);
+        } catch (final Exception e) {
+            Assert.fail("Could not invoke methods annotated with @OnStopped annotation due to: " + e);
         }
     }
 
@@ -693,8 +698,11 @@ public class StandardProcessorTestRunner implements TestRunner {
         }
 
         // ensure controller service is valid before enabling
-        final ValidationContext validationContext = new MockValidationContext(context).getControllerServiceValidationContext(service);
-        final Collection<ValidationResult> results = context.getControllerService(service.getIdentifier()).validate(validationContext);
+        final MockValidationContext mockValidationContext = new MockValidationContext(context, null, variableRegistry);
+        mockValidationContext.setValidateExpressions(validateExpressionUsage);
+        final ValidationContext serviceValidationContext = mockValidationContext.getControllerServiceValidationContext(service);
+
+        final Collection<ValidationResult> results = context.getControllerService(service.getIdentifier()).validate(serviceValidationContext);
 
         for (final ValidationResult result : results) {
             if (!result.isValid()) {
@@ -703,7 +711,8 @@ public class StandardProcessorTestRunner implements TestRunner {
         }
 
         try {
-            final ConfigurationContext configContext = new MockConfigurationContext(service, configuration.getProperties(), context,variableRegistry);
+            final MockConfigurationContext configContext = new MockConfigurationContext(service, configuration.getProperties(), context, variableRegistry);
+            configContext.setValidateExpressions(validateExpressionUsage);
             ReflectionUtils.invokeMethodsWithAnnotation(OnEnabled.class, service, configContext);
         } catch (final InvocationTargetException ite) {
             ite.getCause().printStackTrace();

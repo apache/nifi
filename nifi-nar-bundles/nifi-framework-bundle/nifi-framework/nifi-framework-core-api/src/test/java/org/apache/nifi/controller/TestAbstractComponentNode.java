@@ -52,6 +52,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Function;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -186,6 +187,7 @@ public class TestAbstractComponentNode {
         final PropertyValue propertyValue = Mockito.mock(PropertyValue.class);
         Mockito.when(propertyValue.getValue()).thenReturn(serviceIdentifier);
         Mockito.when(context.getProperty(Mockito.eq(property))).thenReturn(propertyValue);
+        Mockito.when(context.isDependencySatisfied(Mockito.any(PropertyDescriptor.class), Mockito.any(Function.class))).thenReturn(true);
         return context;
     }
 

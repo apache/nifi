@@ -329,7 +329,7 @@ public class WriteAheadStorePartition implements EventStorePartition {
                 final StorageSummary summaryWithIndex = new StorageSummary(writerSummary.getEventId(), writerSummary.getStorageLocation(), this.partitionName,
                     writerSummary.getBlockIndex(), writerSummary.getSerializedLength(), writerSummary.getBytesWritten());
                 locationMap.put(eventRecord, summaryWithIndex);
-                maxId = summaryWithIndex.getEventId();
+                maxId = Math.max(maxId, summaryWithIndex.getEventId());
                 numEvents++;
             }
 

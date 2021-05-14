@@ -35,6 +35,10 @@
         	compatible type, such as number. Additionally, if the schema does not contain one of the fields in the
         	parsed data, that field will be ignored. This can be used to filter out fields that are not of interest.
 		</p>
+
+        <p>
+        	Note: a <code>_raw</code> field is also added to preserve the original message.
+		</p>
 		
 		<p>
         	The Required Property is named <code>Grok Expression</code> and specifies how to parse each
@@ -47,11 +51,98 @@
         	produced by this Controller Service.
         </p>
         
+        <h2>No Match Behavior</h2>
+        
         <p>
         	If a line is encountered in the FlowFile that does not match the configured Grok Expression, it is assumed that the line
         	is part of the previous message. If the line is the start of a stack trace, then the entire stack trace is read in and assigned
-        	to a field named <code>STACK_TRACE</code>. Otherwise, the line is appended to the last field defined in the Grok Expression. This
-        	is done because typically the last field is a 'message' type of field, which can consist of new-lines.
+        	to a field named <code>STACK_TRACE</code>. Otherwise, the line will be processed according to the value defined in the "No Match 
+        	Behavior" property.
+        </p>
+        
+        <h3>Append to Previous Message</h3>
+        
+        <p>
+        	The line is appended to the last field defined in the Grok Expression. This is typically done because the last field is a 
+        	'message' type of field, which can consist of new-lines.
+        </p>
+        
+        <h3>Skip Line</h3>
+        
+        <p>
+        	The line is completely dismissed.
+        </p>
+        
+        <h3>Raw Line</h3>
+        
+        <p>
+        	The fields will be null except the <code>_raw</code> field that will contain the line allowing further processing downstream.
+        </p>
+        
+        <h2>
+        	Examples
+		</h2>
+		
+		<p>
+        	Assuming two messages (<code><6>Feb 28 12:00:00 192.168.0.1 aliyun[11111]: [error] Syslog test</code> and <code>This is a 
+        	bad message...</code>) with the Grok Expression <code><%{POSINT:priority}>%{SYSLOGTIMESTAMP:timestamp} %{SYSLOGHOST:hostname} 
+        	%{WORD:ident}%{GREEDYDATA:message}</code> ; and assuming a JSON Writer, the following results will be generated:
+        </p>
+        
+        <h3>Append to Previous Message</h3>
+        
+        <p>
+	        <code><pre>
+[ {
+  "priority" : "6",
+  "timestamp" : "Feb 28 12:00:00",
+  "hostname" : "192.168.0.1",
+  "ident" : "aliyun",
+  "message" : "[11111]: [error] Syslog test\nThis is a bad message...",
+  "stackTrace" : null,
+  "_raw" : "<6>Feb 28 12:00:00 192.168.0.1 aliyun[11111]: [error] Syslog test\nThis is a bad message..."
+} ]
+	        </pre></code>
+        </p>
+        
+        <h3>Skip Line</h3>
+        
+        <p>
+	        <code><pre>
+[ {
+  "priority" : "6",
+  "timestamp" : "Feb 28 12:00:00",
+  "hostname" : "192.168.0.1",
+  "ident" : "aliyun",
+  "message" : "[11111]: [error] Syslog test",
+  "stackTrace" : null,
+  "_raw" : "<6>Feb 28 12:00:00 192.168.0.1 aliyun[11111]: [error] Syslog test"
+} ]
+	        </pre></code>
+        </p>
+        
+        <h3>Raw Line</h3>
+        
+        <p>
+	        <code><pre>
+[ {
+  "priority" : "6",
+  "timestamp" : "Feb 28 12:00:00",
+  "hostname" : "192.168.0.1",
+  "ident" : "aliyun",
+  "message" : "[11111]: [error] Syslog test",
+  "stackTrace" : null,
+  "_raw" : "<6>Feb 28 12:00:00 192.168.0.1 aliyun[11111]: [error] Syslog test"
+}, {
+  "priority" : null,
+  "timestamp" : null,
+  "hostname" : null,
+  "ident" : null,
+  "message" : null,
+  "stackTrace" : null,
+  "_raw" : "This is a bad message..."
+} ]
+	        </pre></code>
         </p>
 
 

@@ -1,0 +1,299 @@
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the \"License\"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an \"AS IS\" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+MiNiFi Config Version: 3
+Flow Controller:
+  name: YAML-Conversion-Test
+  comment: ''
+Core Properties:
+  flow controller graceful shutdown period: 10 sec
+  flow service write delay interval: 500 ms
+  administrative yield duration: 30 sec
+  bored yield duration: 10 millis
+  max concurrent threads: 1
+  variable registry properties: ''
+FlowFile Repository:
+  partitions: 256
+  checkpoint interval: 2 mins
+  always sync: false
+  Swap:
+    threshold: 20000
+    in period: 5 sec
+    in threads: 1
+    out period: 5 sec
+    out threads: 4
+Content Repository:
+  implementation: org.apache.nifi.controller.repository.FileSystemRepository
+  content claim max appendable size: 10 MB
+  content claim max flow files: 100
+  always sync: false
+  content repository archive max retention period: 12 hours
+  content repository archive max usage percentage: 50%
+  content repository archive enabled: false
+Provenance Repository:
+  provenance rollover time: 1 min
+  implementation: org.apache.nifi.provenance.WriteAheadProvenanceRepository
+  provenance max storage time: 24 hours
+  provenance max storage size: 1 GB
+  provenance index shard size: 500 MB
+  provenance buffer size: 10000
+Component Status Repository:
+  buffer size: 1440
+  snapshot frequency: 1 min
+Security Properties:
+  keystore: ''
+  keystore type: ''
+  keystore password: ''
+  key password: ''
+  truststore: ''
+  truststore type: ''
+  truststore password: ''
+  ssl protocol: ''
+  Sensitive Props:
+    key:
+    algorithm: PBEWITHMD5AND256BITAES-CBC-OPENSSL
+    provider: BC
+Processors:
+- id: ad1c2a39-528a-3d19-a5d9-19d057d2a5ff
+  name: GenerateFlowFile
+  class: org.apache.nifi.processors.standard.GenerateFlowFile
+  max concurrent tasks: 1
+  scheduling strategy: TIMER_DRIVEN
+  scheduling period: 10 sec
+  penalization period: 30 sec
+  yield period: 1 sec
+  run duration nanos: 0
+  auto-terminated relationships list: []
+  Properties:
+    Batch Size: '1'
+    Data Format: Text
+    File Size: 0B
+    Unique FlowFiles: 'false'
+    character-set: UTF-8
+    generate-ff-custom-text: Test 1
+- id: dff4abc1-cc2e-3b31-a389-fa133f71be54
+  name: GenerateFlowFile
+  class: org.apache.nifi.processors.standard.GenerateFlowFile
+  max concurrent tasks: 1
+  scheduling strategy: TIMER_DRIVEN
+  scheduling period: 0 sec
+  penalization period: 30 sec
+  yield period: 1 sec
+  run duration nanos: 0
+  auto-terminated relationships list: []
+  Properties:
+    Batch Size: '1'
+    Data Format: Text
+    File Size: 0B
+    Unique FlowFiles: 'false'
+    character-set: UTF-8
+    generate-ff-custom-text: Test 2
+- id: 86a11150-4365-345f-b0f9-354723b24a83
+  name: UpdateAttribute
+  class: org.apache.nifi.processors.attributes.UpdateAttribute
+  max concurrent tasks: 1
+  scheduling strategy: TIMER_DRIVEN
+  scheduling period: 0 sec
+  penalization period: 30 sec
+  yield period: 1 sec
+  run duration nanos: 0
+  auto-terminated relationships list: []
+  Properties:
+    Store State: Do not store state
+Controller Services:
+- id: d4fd9704-a03e-3c1b-8537-96ff8bee3a83
+  name: StandardSSLContextService
+  type: org.apache.nifi.ssl.StandardSSLContextService
+  Properties:
+    SSL Protocol: TLS
+Process Groups:
+- id: 2b941c90-41c5-30fb-aee4-af56e9b161cf
+  name: Child PG 1
+  Processors:
+  - id: 19036357-7967-31bd-8f22-b79c47a1fb8c
+    name: GenerateFlowFile
+    class: org.apache.nifi.processors.standard.GenerateFlowFile
+    max concurrent tasks: 1
+    scheduling strategy: TIMER_DRIVEN
+    scheduling period: 10 sec
+    penalization period: 30 sec
+    yield period: 1 sec
+    run duration nanos: 0
+    auto-terminated relationships list: []
+    Properties:
+      Batch Size: '1'
+      Data Format: Text
+      File Size: 0B
+      Unique FlowFiles: 'false'
+      character-set: UTF-8
+      generate-ff-custom-text: Test 1
+  - id: e539129e-b02a-38cb-b441-95d5e37ac78a
+    name: GenerateFlowFile
+    class: org.apache.nifi.processors.standard.GenerateFlowFile
+    max concurrent tasks: 1
+    scheduling strategy: TIMER_DRIVEN
+    scheduling period: 0 sec
+    penalization period: 30 sec
+    yield period: 1 sec
+    run duration nanos: 0
+    auto-terminated relationships list: []
+    Properties:
+      Batch Size: '1'
+      Data Format: Text
+      File Size: 0B
+      Unique FlowFiles: 'false'
+      character-set: UTF-8
+      generate-ff-custom-text: Test 2
+  - id: b53d856b-9837-3e67-b312-95da56562bad
+    name: UpdateAttribute
+    class: org.apache.nifi.processors.attributes.UpdateAttribute
+    max concurrent tasks: 1
+    scheduling strategy: TIMER_DRIVEN
+    scheduling period: 0 sec
+    penalization period: 30 sec
+    yield period: 1 sec
+    run duration nanos: 0
+    auto-terminated relationships list:
+    - success
+    Properties:
+      Store State: Do not store state
+  Controller Services: []
+  Process Groups: []
+  Input Ports:
+  - id: 2f237f38-11d8-3fd7-bb89-356153922df6
+    name: Data-In
+  Output Ports:
+  - id: f0a9fd96-9be0-32a0-84b7-6871daceb0ee
+    name: Data-Out
+  Funnels:
+  - id: ecae133a-5087-3bff-a1bf-e1d1e9589eb5
+  Connections:
+  - id: 7d55b640-16e3-3c25-bf06-3750f1a538db
+    name: Data-In//Data-Out
+    source id: 2f237f38-11d8-3fd7-bb89-356153922df6
+    source relationship names:
+    - ''
+    destination id: f0a9fd96-9be0-32a0-84b7-6871daceb0ee
+    max work queue size: 10000
+    max work queue data size: 1 GB
+    flowfile expiration: 0 sec
+    queue prioritizer class: ''
+  - id: 61c76ad1-d4c7-3ca1-baed-bc4d6a906b23
+    name: Funnel//UpdateAttribute
+    source id: ecae133a-5087-3bff-a1bf-e1d1e9589eb5
+    source relationship names:
+    - ''
+    destination id: b53d856b-9837-3e67-b312-95da56562bad
+    max work queue size: 10000
+    max work queue data size: 1 GB
+    flowfile expiration: 0 sec
+    queue prioritizer class: ''
+  - id: 736b18a1-c523-3345-b2e9-bb54e2aeec25
+    name: GenerateFlowFile/success/Funnel
+    source id: e539129e-b02a-38cb-b441-95d5e37ac78a
+    source relationship names:
+    - success
+    destination id: ecae133a-5087-3bff-a1bf-e1d1e9589eb5
+    max work queue size: 10000
+    max work queue data size: 1 GB
+    flowfile expiration: 0 sec
+    queue prioritizer class: ''
+  - id: 7ca3c908-1eb7-33ed-89b1-94ac376c22aa
+    name: GenerateFlowFile/success/Funnel
+    source id: 19036357-7967-31bd-8f22-b79c47a1fb8c
+    source relationship names:
+    - success
+    destination id: ecae133a-5087-3bff-a1bf-e1d1e9589eb5
+    max work queue size: 10000
+    max work queue data size: 1 GB
+    flowfile expiration: 0 sec
+    queue prioritizer class: ''
+  Remote Process Groups: []
+Input Ports: []
+Output Ports: []
+Funnels:
+- id: b3ba295c-5947-3628-8991-930415e3e44d
+Connections:
+- id: 4be3a5c4-9c05-3080-8e86-0b90f369fc54
+  name: Data-Out//UpdateAttribute
+  source id: f0a9fd96-9be0-32a0-84b7-6871daceb0ee
+  source relationship names:
+  - ''
+  destination id: 86a11150-4365-345f-b0f9-354723b24a83
+  max work queue size: 10000
+  max work queue data size: 1 GB
+  flowfile expiration: 0 sec
+  queue prioritizer class: ''
+- id: e45a831d-1eb0-3adb-acf1-cbe8d8a95a79
+  name: Funnel//UpdateAttribute
+  source id: b3ba295c-5947-3628-8991-930415e3e44d
+  source relationship names:
+  - ''
+  destination id: 86a11150-4365-345f-b0f9-354723b24a83
+  max work queue size: 10000
+  max work queue data size: 1 GB
+  flowfile expiration: 0 sec
+  queue prioritizer class: ''
+- id: 87c2a77d-31be-3e84-a6c5-2f96cde3e0bd
+  name: GenerateFlowFile/success/Funnel
+  source id: ad1c2a39-528a-3d19-a5d9-19d057d2a5ff
+  source relationship names:
+  - success
+  destination id: b3ba295c-5947-3628-8991-930415e3e44d
+  max work queue size: 10000
+  max work queue data size: 1 GB
+  flowfile expiration: 0 sec
+  queue prioritizer class: ''
+- id: eca663c9-0f25-30d2-a509-122c8fa5ce30
+  name: GenerateFlowFile/success/Funnel
+  source id: dff4abc1-cc2e-3b31-a389-fa133f71be54
+  source relationship names:
+  - success
+  destination id: b3ba295c-5947-3628-8991-930415e3e44d
+  max work queue size: 10000
+  max work queue data size: 1 GB
+  flowfile expiration: 0 sec
+  queue prioritizer class: ''
+- id: 89e5dc19-de02-330d-b1cf-8062c14a24f9
+  name: UpdateAttribute/success/01621001-e0d3-1e29-565c-5af8d1aeb56f
+  source id: 86a11150-4365-345f-b0f9-354723b24a83
+  source relationship names:
+  - success
+  destination id: 01621001-e0d3-1e29-565c-5af8d1aeb56f
+  max work queue size: 10000
+  max work queue data size: 1 GB
+  flowfile expiration: 0 sec
+  queue prioritizer class: ''
+Remote Process Groups:
+- id: 2cb9cb6f-492c-327f-af03-4c0f9f75722b
+  name: NiFi Flow
+  url: http://localhost:8080/nifi
+  comment: ''
+  timeout: 30 sec
+  yield period: 10 sec
+  transport protocol: HTTP
+  proxy host: ''
+  proxy port: ''
+  proxy user: ''
+  proxy password: ''
+  local network interface: ''
+  Input Ports:
+  - id: 01621001-e0d3-1e29-565c-5af8d1aeb56f
+    name: Remote-In
+    comment: ''
+    max concurrent tasks: 1
+    use compression: false
+  Output Ports: []
+NiFi Properties Overrides: {}

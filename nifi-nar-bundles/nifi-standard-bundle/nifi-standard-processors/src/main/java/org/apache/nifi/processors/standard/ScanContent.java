@@ -16,24 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedReader;
-import java.io.Closeable;
-import java.io.DataInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.nio.charset.Charset;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.ReentrantLock;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -43,6 +25,8 @@ import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.resource.ResourceCardinality;
+import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
@@ -52,13 +36,30 @@ import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
-import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.util.file.monitor.LastModifiedMonitor;
 import org.apache.nifi.util.file.monitor.SynchronousFileWatcher;
 import org.apache.nifi.util.search.Search;
 import org.apache.nifi.util.search.SearchTerm;
 import org.apache.nifi.util.search.ahocorasick.AhoCorasick;
 import org.apache.nifi.util.search.ahocorasick.SearchState;
+
+import java.io.BufferedInputStream;
+import java.io.BufferedReader;
+import java.io.Closeable;
+import java.io.DataInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.ReentrantLock;
 
 @EventDriven
 @SideEffectFree
@@ -79,7 +80,7 @@ public class ScanContent extends AbstractProcessor {
             .name("Dictionary File")
             .description("The filename of the terms dictionary")
             .required(true)
-            .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
+            .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE)
             .build();
     public static final PropertyDescriptor DICTIONARY_ENCODING = new PropertyDescriptor.Builder()
             .name("Dictionary Encoding")
@@ -101,7 +102,7 @@ public class ScanContent extends AbstractProcessor {
                     + "term in the dictionary are routed to this relationship")
             .build();
 
-    public static final Charset UTF8 = Charset.forName("UTF-8");
+    public static final Charset UTF8 = StandardCharsets.UTF_8;
 
     private final AtomicReference<SynchronousFileWatcher> fileWatcherRef = new AtomicReference<>();
     private final AtomicReference<Search<byte[]>> searchRef = new AtomicReference<>();
@@ -154,16 +155,9 @@ public class ScanContent extends AbstractProcessor {
                 final Search<byte[]> search = new AhoCorasick<>();
                 final Set<SearchTerm<byte[]>> terms = new HashSet<>();
 
-                final InputStream inStream = Files.newInputStream(Paths.get(context.getProperty(DICTIONARY).getValue()), StandardOpenOption.READ);
+                try (final InputStream inStream = context.getProperty(DICTIONARY).asResource().read();
+                     final TermLoader termLoader = createTermLoader(context, inStream)) {
 
-                final TermLoader termLoader;
-                if (context.getProperty(DICTIONARY_ENCODING).getValue().equalsIgnoreCase(TEXT_ENCODING)) {
-                    termLoader = new TextualTermLoader(inStream);
-                } else {
-                    termLoader = new BinaryTermLoader(inStream);
-                }
-
-                try {
                     SearchTerm<byte[]> term;
                     while ((term = termLoader.nextTerm()) != null) {
                         terms.add(term);
@@ -173,14 +167,20 @@ public class ScanContent extends AbstractProcessor {
                     searchRef.set(search);
                     logger.info("Loaded search dictionary from {}", new Object[]{context.getProperty(DICTIONARY).getValue()});
                     return true;
-                } finally {
-                    termLoader.close();
                 }
             } finally {
                 dictionaryUpdateLock.unlock();
             }
         } else {
             return false;
+        }
+    }
+
+    private TermLoader createTermLoader(final ProcessContext context, final InputStream in) {
+        if (context.getProperty(DICTIONARY_ENCODING).getValue().equalsIgnoreCase(TEXT_ENCODING)) {
+            return new TextualTermLoader(in);
+        } else {
+            return new BinaryTermLoader(in);
         }
     }
 

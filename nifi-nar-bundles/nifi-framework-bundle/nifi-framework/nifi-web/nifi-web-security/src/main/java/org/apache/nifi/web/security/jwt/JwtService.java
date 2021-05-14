@@ -31,6 +31,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.admin.service.AdministrationException;
 import org.apache.nifi.admin.service.KeyService;
 import org.apache.nifi.key.Key;
+import org.apache.nifi.web.security.LogoutException;
 import org.apache.nifi.web.security.token.LoginAuthenticationToken;
 import org.slf4j.LoggerFactory;
 
@@ -186,7 +187,7 @@ public class JwtService {
      * @throws JwtException if there is a problem with the token input
      * @throws Exception if there is an issue logging the user out
      */
-    public void logOut(String token) {
+    public void logOut(String token) throws LogoutException {
         Jws<Claims> claims = parseTokenFromBase64EncodedString(token);
 
         // Get the key ID from the claims
@@ -199,13 +200,9 @@ public class JwtService {
         try {
             keyService.deleteKey(keyId);
         } catch (Exception e) {
-            logger.error("The key with key ID: " + keyId + " failed to be removed from the user database.");
-            throw e;
+            final String errorMessage = String.format("The key with key ID: %s failed to be removed from the user database.", keyId);
+            logger.error(errorMessage);
+            throw new LogoutException(errorMessage);
         }
-    }
-
-    public void logOutUsingAuthHeader(String authorizationHeader) {
-        String base64EncodedToken = JwtAuthenticationFilter.getTokenFromHeader(authorizationHeader);
-        logOut(base64EncodedToken);
     }
 }

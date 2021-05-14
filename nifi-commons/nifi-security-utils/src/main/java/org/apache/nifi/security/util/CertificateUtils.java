@@ -466,6 +466,23 @@ public final class CertificateUtils {
      */
     public static X509Certificate generateSelfSignedX509Certificate(KeyPair keyPair, String dn, String signingAlgorithm, int certificateDurationDays)
             throws CertificateException {
+        return generateSelfSignedX509Certificate(keyPair, dn, signingAlgorithm, certificateDurationDays, null);
+    }
+
+    /**
+     * Generates a self-signed {@link X509Certificate} suitable for use as a Certificate Authority.
+     *
+     * @param keyPair                 the {@link KeyPair} to generate the {@link X509Certificate} for
+     * @param dn                      the distinguished name to user for the {@link X509Certificate}
+     * @param signingAlgorithm        the signing algorithm to use for the {@link X509Certificate}
+     * @param certificateDurationDays the duration in days for which the {@link X509Certificate} should be valid
+     * @param dnsSubjectAlternativeNames An optional array of dnsName SANs
+     * @return a self-signed {@link X509Certificate} suitable for use as a Certificate Authority
+     * @throws CertificateException if there is an generating the new certificate
+     */
+    public static X509Certificate generateSelfSignedX509Certificate(KeyPair keyPair, String dn, String signingAlgorithm, int certificateDurationDays,
+                                                                    String[] dnsSubjectAlternativeNames)
+            throws CertificateException {
         try {
             ContentSigner sigGen = new JcaContentSignerBuilder(signingAlgorithm).setProvider(BouncyCastleProvider.PROVIDER_NAME).build(keyPair.getPrivate());
             SubjectPublicKeyInfo subPubKeyInfo = SubjectPublicKeyInfo.getInstance(keyPair.getPublic().getEncoded());
@@ -495,8 +512,20 @@ public final class CertificateUtils {
 
             // (3) subjectAlternativeName extension. Include CN as a SAN entry if it exists.
             final String cn = getCommonName(dn);
+            List<GeneralName> generalNames = new ArrayList<>();
             if (StringUtils.isNotBlank(cn)) {
-                certBuilder.addExtension(Extension.subjectAlternativeName, false, new GeneralNames(new GeneralName(GeneralName.dNSName, cn)));
+                generalNames.add(new GeneralName(GeneralName.dNSName, cn));
+            }
+            if (dnsSubjectAlternativeNames != null) {
+                for (String subjectAlternativeName : dnsSubjectAlternativeNames) {
+                    if (StringUtils.isNotBlank(subjectAlternativeName)) {
+                        generalNames.add(new GeneralName(GeneralName.dNSName, subjectAlternativeName));
+                    }
+                }
+            }
+            if (!generalNames.isEmpty()) {
+                certBuilder.addExtension(Extension.subjectAlternativeName, false, new GeneralNames(generalNames.toArray(
+                        new GeneralName[generalNames.size()])));
             }
 
             // Sign the certificate

@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.websocket.jetty;
 
-import org.apache.commons.codec.binary.Base64;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnDisabled;
@@ -46,6 +45,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -219,7 +219,7 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
                 throw new IllegalArgumentException(AUTH_CHARSET.getDisplayName() + " was not specified.");
             }
             final Charset charset = Charset.forName(charsetName);
-            final String base64String = Base64.encodeBase64String((userName + ":" + userPassword).getBytes(charset));
+            final String base64String = Base64.getEncoder().encodeToString((userName + ":" + userPassword).getBytes(charset));
             authorizationHeader = "Basic " + base64String;
         } else {
             authorizationHeader = null;

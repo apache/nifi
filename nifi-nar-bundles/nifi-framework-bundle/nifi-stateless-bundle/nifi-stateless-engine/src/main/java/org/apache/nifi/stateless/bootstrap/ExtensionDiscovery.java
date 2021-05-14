@@ -32,7 +32,8 @@ public class ExtensionDiscovery {
     private static final Logger logger = LoggerFactory.getLogger(ExtensionDiscovery.class);
 
     public static ExtensionDiscoveringManager discover(final File narWorkingDirectory, final ClassLoader systemClassLoader, final NarClassLoaders narClassLoaders) throws IOException {
-        final long discoveryStart = System.nanoTime();
+        logger.info("Initializing NAR ClassLoaders");
+
         try {
             narClassLoaders.init(systemClassLoader, null, narWorkingDirectory);
         } catch (final ClassNotFoundException cnfe) {
@@ -41,9 +42,9 @@ public class ExtensionDiscovery {
 
         final Set<Bundle> narBundles = narClassLoaders.getBundles();
 
+        final long discoveryStart = System.nanoTime();
         final StandardExtensionDiscoveringManager extensionManager = new StandardExtensionDiscoveringManager();
         extensionManager.discoverExtensions(narBundles);
-        extensionManager.logClassLoaderMapping();
 
         final long discoveryMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - discoveryStart);
         logger.info("Successfully discovered extensions in {} milliseconds", discoveryMillis);

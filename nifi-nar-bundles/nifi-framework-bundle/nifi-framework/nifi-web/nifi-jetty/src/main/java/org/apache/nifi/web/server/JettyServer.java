@@ -23,6 +23,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.NiFiServer;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleDetails;
+import org.apache.nifi.controller.DecommissionTask;
 import org.apache.nifi.controller.UninheritableFlowException;
 import org.apache.nifi.controller.serialization.FlowSerializationException;
 import org.apache.nifi.controller.serialization.FlowSynchronizationException;
@@ -58,6 +59,7 @@ import org.apache.nifi.web.security.headers.XContentTypeOptionsFilter;
 import org.apache.nifi.web.security.headers.XFrameOptionsFilter;
 import org.apache.nifi.web.security.headers.XSSProtectionFilter;
 import org.apache.nifi.web.security.requests.ContentLengthFilter;
+import org.apache.nifi.web.server.util.TrustStoreScanner;
 import org.eclipse.jetty.annotations.AnnotationConfiguration;
 import org.eclipse.jetty.deploy.App;
 import org.eclipse.jetty.deploy.DeploymentManager;
@@ -77,6 +79,7 @@ import org.eclipse.jetty.servlet.DefaultServlet;
 import org.eclipse.jetty.servlet.FilterHolder;
 import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.servlets.DoSFilter;
+import org.eclipse.jetty.util.ssl.KeyStoreScanner;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
 import org.eclipse.jetty.webapp.Configuration;
@@ -138,6 +141,10 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         return nameToTest.endsWith(".war") && pathname.isFile();
     };
 
+    // property parsing util
+    private static final String REGEX_SPLIT_PROPERTY = ",\\s*";
+    protected static final String JOIN_ARRAY = ", ";
+
     private Server server;
     private NiFiProperties props;
 
@@ -146,6 +153,8 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
     private ExtensionMapping extensionMapping;
     private NarAutoLoader narAutoLoader;
     private DiagnosticsFactory diagnosticsFactory;
+    private SslContextFactory.Server sslContextFactory;
+    private DecommissionTask decommissionTask;
 
     private WebAppContext webApiContext;
     private WebAppContext webDocsContext;
@@ -310,6 +319,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         // deploy the web apps
         return gzip(webAppContextHandlers);
     }
+
 
     @Override
     public void loadExtensionUis(final Set<Bundle> bundles) {
@@ -691,8 +701,10 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
      */
     private static void addDenialOfServiceFilters(String path, WebAppContext webAppContext, NiFiProperties props) {
         // Add the requests rate limiting filter to all requests
-        int maxWebRequestsPerSecond = determineMaxWebRequestsPerSecond(props);
-        addWebRequestRateLimitingFilter(path, webAppContext, maxWebRequestsPerSecond);
+        final int maxWebRequestsPerSecond = determineMaxWebRequestsPerSecond(props);
+        final long requestTimeoutInMilliseconds = determineRequestTimeoutInMilliseconds(props);
+        final String ipWhitelist = props.getWebRequestIpWhitelist();
+        addWebRequestLimitingFilter(path, webAppContext, maxWebRequestsPerSecond, ipWhitelist, requestTimeoutInMilliseconds);
 
         // Only add the ContentLengthFilter if the property is explicitly set (empty by default)
         int maxRequestSize = determineMaxRequestSize(props);
@@ -703,32 +715,52 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         }
     }
 
-    private static int determineMaxWebRequestsPerSecond(NiFiProperties props) {
+    private static int determineMaxWebRequestsPerSecond(final NiFiProperties props) {
         int defaultMaxRequestsPerSecond = Integer.parseInt(NiFiProperties.DEFAULT_WEB_MAX_REQUESTS_PER_SECOND);
         int configuredMaxRequestsPerSecond = 0;
         try {
             configuredMaxRequestsPerSecond = Integer.parseInt(props.getMaxWebRequestsPerSecond());
         } catch (final NumberFormatException e) {
-            logger.warn("Exception parsing property " + NiFiProperties.WEB_MAX_REQUESTS_PER_SECOND + "; using default value: " + defaultMaxRequestsPerSecond);
+            logger.warn("Exception parsing property [{}]; using default value: [{}]", NiFiProperties.WEB_MAX_REQUESTS_PER_SECOND, defaultMaxRequestsPerSecond);
         }
 
         return configuredMaxRequestsPerSecond > 0 ? configuredMaxRequestsPerSecond : defaultMaxRequestsPerSecond;
     }
 
+    private static long determineRequestTimeoutInMilliseconds(final NiFiProperties props) {
+        long defaultRequestTimeout = Math.round(FormatUtils.getPreciseTimeDuration(NiFiProperties.DEFAULT_WEB_REQUEST_TIMEOUT, TimeUnit.MILLISECONDS));
+        long configuredRequestTimeout = 0L;
+        try {
+            configuredRequestTimeout = Math.round(FormatUtils.getPreciseTimeDuration(props.getWebRequestTimeout(), TimeUnit.MILLISECONDS));
+        } catch (final NumberFormatException e) {
+            logger.warn("Exception parsing property [{}]; using default value: [{}]", NiFiProperties.WEB_REQUEST_TIMEOUT, defaultRequestTimeout);
+        }
+
+        return configuredRequestTimeout > 0 ? configuredRequestTimeout : defaultRequestTimeout;
+    }
+
     /**
      * Adds the {@link org.eclipse.jetty.servlets.DoSFilter} to the specified context and path. Limits incoming web requests to {@code maxWebRequestsPerSecond} per second.
+     * In order to allow clients to make more requests than the maximum rate, clients can be added to the {@code ipWhitelist}.
+     * The {@code requestTimeoutInMilliseconds} value limits requests to the given request timeout amount, and will close connections that run longer than this time.
      *
      * @param path the path to apply this filter
      * @param webAppContext the context to apply this filter
      * @param maxWebRequestsPerSecond the maximum number of allowed requests per second
+     * @param ipWhitelist a whitelist of IP addresses that should not be rate limited. Does not apply to request timeout
+     * @param requestTimeoutInMilliseconds the amount of time before a connection will be automatically closed
      */
-    private static void addWebRequestRateLimitingFilter(String path, WebAppContext webAppContext, int maxWebRequestsPerSecond) {
+    private static void addWebRequestLimitingFilter(String path, WebAppContext webAppContext, int maxWebRequestsPerSecond, final String ipWhitelist, long requestTimeoutInMilliseconds) {
         FilterHolder holder = new FilterHolder(DoSFilter.class);
         holder.setInitParameters(new HashMap<String, String>() {{
             put("maxRequestsPerSec", String.valueOf(maxWebRequestsPerSecond));
+            put("maxRequestMs", String.valueOf(requestTimeoutInMilliseconds));
+            put("ipWhitelist", String.valueOf(ipWhitelist));
         }});
         holder.setName(DoSFilter.class.getSimpleName());
-        logger.debug("Adding DoSFilter to context at path: " + path + " with max req/sec: " + maxWebRequestsPerSecond);
+
+        logger.debug("Adding DoSFilter to context at path: [{}] with max req/sec: [{}], request timeout: [{}] ms. Whitelisted IPs not subject to filter: [{}]",
+                path, maxWebRequestsPerSecond, requestTimeoutInMilliseconds, StringUtils.defaultIfEmpty(ipWhitelist, "none"));
         webAppContext.addFilter(holder, path, EnumSet.allOf(DispatcherType.class));
     }
 
@@ -854,6 +886,29 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         ServerConnectorCreator<Server, HttpConfiguration, ServerConnector> scc = (s, c) -> createUnconfiguredSslServerConnector(s, c, port);
 
         configureGenericConnector(server, httpConfiguration, hostname, port, connectorLabel, httpsNetworkInterfaces, scc);
+
+        if (props.isSecurityAutoReloadEnabled()) {
+            configureSslContextFactoryReloading(server);
+        }
+    }
+
+    /**
+     * Configures a KeyStoreScanner and TrustStoreScanner at the configured reload intervals.  This will
+     * reload the SSLContextFactory if any changes are detected to the keystore or truststore.
+     * @param server The Jetty server
+     */
+    private void configureSslContextFactoryReloading(Server server) {
+        final int scanIntervalSeconds = Double.valueOf(FormatUtils.getPreciseTimeDuration(
+                props.getSecurityAutoReloadInterval(), TimeUnit.SECONDS))
+                .intValue();
+
+        final KeyStoreScanner keyStoreScanner = new KeyStoreScanner(sslContextFactory);
+        keyStoreScanner.setScanInterval(scanIntervalSeconds);
+        server.addBean(keyStoreScanner);
+
+        final TrustStoreScanner trustStoreScanner = new TrustStoreScanner(sslContextFactory);
+        trustStoreScanner.setScanInterval(scanIntervalSeconds);
+        server.addBean(trustStoreScanner);
     }
 
     /**
@@ -982,6 +1037,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
     private SslContextFactory createSslContextFactory() {
         final SslContextFactory.Server serverContextFactory = new SslContextFactory.Server();
         configureSslContextFactory(serverContextFactory, props);
+        this.sslContextFactory = serverContextFactory;
         return serverContextFactory;
     }
 
@@ -989,6 +1045,22 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         // Explicitly exclude legacy TLS protocol versions
         contextFactory.setIncludeProtocols(TlsConfiguration.getCurrentSupportedTlsProtocolVersions());
         contextFactory.setExcludeProtocols("TLS", "TLSv1", "TLSv1.1", "SSL", "SSLv2", "SSLv2Hello", "SSLv3");
+
+        // on configuration, replace default application cipher suites with those configured
+        final String includeCipherSuitesProps = props.getProperty(NiFiProperties.WEB_HTTPS_CIPHERSUITES_INCLUDE);
+        if (StringUtils.isNotEmpty(includeCipherSuitesProps)) {
+            final String[] includeCipherSuites = includeCipherSuitesProps.split(REGEX_SPLIT_PROPERTY);
+            logger.info("Setting include cipher suites from configuration; parsed property = [{}].",
+                    StringUtils.join(includeCipherSuites, JOIN_ARRAY));
+            contextFactory.setIncludeCipherSuites(includeCipherSuites);
+        }
+        final String excludeCipherSuitesProps = props.getProperty(NiFiProperties.WEB_HTTPS_CIPHERSUITES_EXCLUDE);
+        if (StringUtils.isNotEmpty(excludeCipherSuitesProps)) {
+            final String[] excludeCipherSuites = excludeCipherSuitesProps.split(REGEX_SPLIT_PROPERTY);
+            logger.info("Setting exclude cipher suites from configuration; parsed property = [{}].",
+                    StringUtils.join(excludeCipherSuites, JOIN_ARRAY));
+            contextFactory.setExcludeCipherSuites(excludeCipherSuites);
+        }
 
         // require client auth when not supporting login, Kerberos service, or anonymous access
         if (props.isClientAuthRequiredForRestApi()) {
@@ -1102,6 +1174,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
                 }
 
                 diagnosticsFactory = webApplicationContext.getBean("diagnosticsFactory", DiagnosticsFactory.class);
+                decommissionTask = webApplicationContext.getBean("decommissionTask", DecommissionTask.class);
             }
 
             // ensure the web document war was loaded and provide the extension mapping
@@ -1173,6 +1246,11 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
     @Override
     public DiagnosticsFactory getThreadDumpFactory() {
         return new ThreadDumpDiagnosticsFactory();
+    }
+
+    @Override
+    public DecommissionTask getDecommissionTask() {
+        return decommissionTask;
     }
 
     private void performInjectionForComponentUis(final Collection<WebAppContext> componentUiExtensionWebContexts,

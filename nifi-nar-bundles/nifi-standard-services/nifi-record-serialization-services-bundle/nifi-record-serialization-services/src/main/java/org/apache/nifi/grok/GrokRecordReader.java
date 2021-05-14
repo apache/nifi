@@ -43,7 +43,7 @@ import io.krakens.grok.api.Match;
 public class GrokRecordReader implements RecordReader {
     private final BufferedReader reader;
     private final Grok grok;
-    private final boolean append;
+    private final NoMatchStrategy noMatchStrategy;
     private final RecordSchema schemaFromGrok;
     private RecordSchema schema;
 
@@ -60,11 +60,11 @@ public class GrokRecordReader implements RecordReader {
             + "(?:Suppressed\\: )|"
             + "(?:\\s+... \\d+ (?:more|common frames? omitted)$)");
 
-    public GrokRecordReader(final InputStream in, final Grok grok, final RecordSchema schema, final RecordSchema schemaFromGrok, final boolean append) {
+    public GrokRecordReader(final InputStream in, final Grok grok, final RecordSchema schema, final RecordSchema schemaFromGrok, final NoMatchStrategy noMatchStrategy) {
         this.reader = new BufferedReader(new InputStreamReader(in));
         this.grok = grok;
         this.schema = schema;
-        this.append = append;
+        this.noMatchStrategy = noMatchStrategy;
         this.schemaFromGrok = schemaFromGrok;
     }
 
@@ -91,6 +91,10 @@ public class GrokRecordReader implements RecordReader {
 
             final Match match = grok.match(line);
             valueMap = match.capture();
+
+            if((valueMap == null || valueMap.isEmpty()) && noMatchStrategy.equals(NoMatchStrategy.RAW)) {
+                break;
+            }
         }
 
         if (iterations == 0 && nextLine != null) {
@@ -104,14 +108,14 @@ public class GrokRecordReader implements RecordReader {
         while ((nextLine = reader.readLine()) != null) {
             final Match nextLineMatch = grok.match(nextLine);
             final Map<String, Object> nextValueMap = nextLineMatch.capture();
-            if (nextValueMap.isEmpty()) {
+            if (nextValueMap.isEmpty() && !noMatchStrategy.equals(NoMatchStrategy.RAW)) {
                 // next line did not match. Check if it indicates a Stack Trace. If so, read until
                 // the stack trace ends. Otherwise, append the next line to the last field in the record.
                 if (isStartOfStackTrace(nextLine)) {
                     stackTrace = readStackTrace(nextLine);
                     raw.append("\n").append(stackTrace);
                     break;
-                } else if (append) {
+                } else if (noMatchStrategy.equals(NoMatchStrategy.APPEND)) {
                     trailingText.append("\n").append(nextLine);
                     raw.append("\n").append(nextLine);
                 }
@@ -128,68 +132,73 @@ public class GrokRecordReader implements RecordReader {
 
     private Record createRecord(final Map<String, Object> valueMap, final StringBuilder trailingText, final String stackTrace, final String raw, final boolean coerceTypes, final boolean dropUnknown) {
         final Map<String, Object> converted = new HashMap<>();
-        for (final Map.Entry<String, Object> entry : valueMap.entrySet()) {
-            final String fieldName = entry.getKey();
-            final Object rawValue = entry.getValue();
 
-            final Object normalizedValue;
-            if (rawValue instanceof List) {
-                final List<?> list = (List<?>) rawValue;
-                final String[] array = new String[list.size()];
-                for (int i = 0; i < list.size(); i++) {
-                    final Object rawObject = list.get(i);
-                    array[i] = rawObject == null ? null : rawObject.toString();
-                }
-                normalizedValue = array;
-            } else {
-                normalizedValue = rawValue == null ? null : rawValue.toString();
-            }
+        if(valueMap != null && !valueMap.isEmpty()) {
 
-            final Optional<RecordField> optionalRecordField = schema.getField(fieldName);
+            for (final Map.Entry<String, Object> entry : valueMap.entrySet()) {
+                final String fieldName = entry.getKey();
+                final Object rawValue = entry.getValue();
 
-            final Object coercedValue;
-            if (coerceTypes && optionalRecordField.isPresent()) {
-                final RecordField field = optionalRecordField.get();
-                final DataType fieldType = field.getDataType();
-                coercedValue = convert(fieldType, normalizedValue, fieldName);
-            } else {
-                coercedValue = normalizedValue;
-            }
-
-            converted.put(fieldName, coercedValue);
-        }
-
-        // If there is any trailing text, determine the last column from the grok schema
-        // and then append the trailing text to it.
-        if (append && trailingText.length() > 0) {
-            String lastPopulatedFieldName = null;
-            final List<RecordField> schemaFields = schemaFromGrok.getFields();
-            for (int i = schemaFields.size() - 1; i >= 0; i--) {
-                final RecordField field = schemaFields.get(i);
-
-                Object value = converted.get(field.getFieldName());
-                if (value != null) {
-                    lastPopulatedFieldName = field.getFieldName();
-                    break;
+                final Object normalizedValue;
+                if (rawValue instanceof List) {
+                    final List<?> list = (List<?>) rawValue;
+                    final String[] array = new String[list.size()];
+                    for (int i = 0; i < list.size(); i++) {
+                        final Object rawObject = list.get(i);
+                        array[i] = rawObject == null ? null : rawObject.toString();
+                    }
+                    normalizedValue = array;
+                } else {
+                    normalizedValue = rawValue == null ? null : rawValue.toString();
                 }
 
-                for (final String alias : field.getAliases()) {
-                    value = converted.get(alias);
+                final Optional<RecordField> optionalRecordField = schema.getField(fieldName);
+
+                final Object coercedValue;
+                if (coerceTypes && optionalRecordField.isPresent()) {
+                    final RecordField field = optionalRecordField.get();
+                    final DataType fieldType = field.getDataType();
+                    coercedValue = convert(fieldType, normalizedValue, fieldName);
+                } else {
+                    coercedValue = normalizedValue;
+                }
+
+                converted.put(fieldName, coercedValue);
+            }
+
+            // If there is any trailing text, determine the last column from the grok schema
+            // and then append the trailing text to it.
+            if (noMatchStrategy.equals(NoMatchStrategy.APPEND) && trailingText.length() > 0) {
+                String lastPopulatedFieldName = null;
+                final List<RecordField> schemaFields = schemaFromGrok.getFields();
+                for (int i = schemaFields.size() - 1; i >= 0; i--) {
+                    final RecordField field = schemaFields.get(i);
+
+                    Object value = converted.get(field.getFieldName());
                     if (value != null) {
-                        lastPopulatedFieldName = alias;
+                        lastPopulatedFieldName = field.getFieldName();
                         break;
+                    }
+
+                    for (final String alias : field.getAliases()) {
+                        value = converted.get(alias);
+                        if (value != null) {
+                            lastPopulatedFieldName = alias;
+                            break;
+                        }
+                    }
+                }
+
+                if (lastPopulatedFieldName != null) {
+                    final Object value = converted.get(lastPopulatedFieldName);
+                    if (value == null) {
+                        converted.put(lastPopulatedFieldName, trailingText.toString());
+                    } else if (value instanceof String) { // if not a String it is a List and we will just drop the trailing text
+                        converted.put(lastPopulatedFieldName, (String) value + trailingText.toString());
                     }
                 }
             }
 
-            if (lastPopulatedFieldName != null) {
-                final Object value = converted.get(lastPopulatedFieldName);
-                if (value == null) {
-                    converted.put(lastPopulatedFieldName, trailingText.toString());
-                } else if (value instanceof String) { // if not a String it is a List and we will just drop the trailing text
-                    converted.put(lastPopulatedFieldName, (String) value + trailingText.toString());
-                }
-            }
         }
 
         converted.put(STACK_TRACE_COLUMN_NAME, stackTrace);

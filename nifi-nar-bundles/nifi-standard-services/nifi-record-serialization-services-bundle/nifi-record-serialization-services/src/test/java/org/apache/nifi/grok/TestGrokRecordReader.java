@@ -60,7 +60,7 @@ public class TestGrokRecordReader {
     public void testParseSingleLineLogMessages() throws GrokException, IOException, MalformedRecordException {
         try (final InputStream fis = new FileInputStream(new File("src/test/resources/grok/single-line-log-messages.txt"))) {
             final Grok grok = grokCompiler.compile("%{TIMESTAMP_ISO8601:timestamp} %{LOGLEVEL:level} %{GREEDYDATA:message}");
-            final GrokRecordReader deserializer = new GrokRecordReader(fis, grok, GrokReader.createRecordSchema(grok), GrokReader.createRecordSchema(grok), true);
+            final GrokRecordReader deserializer = new GrokRecordReader(fis, grok, GrokReader.createRecordSchema(grok), GrokReader.createRecordSchema(grok), NoMatchStrategy.APPEND);
 
             final String[] logLevels = new String[] {"INFO", "WARN", "ERROR", "FATAL", "FINE"};
             final String[] messages = new String[] {"Test Message 1", "Red", "Green", "Blue", "Yellow"};
@@ -93,7 +93,7 @@ public class TestGrokRecordReader {
         final String msg = "2016-08-04 13:26:32,473 INFO [Leader Election Notification Thread-1] o.a.n.LoggerClass \n"
             + "org.apache.nifi.exception.UnitTestException: Testing to ensure we are able to capture stack traces";
         final InputStream bais = new ByteArrayInputStream(msg.getBytes(StandardCharsets.UTF_8));
-        final GrokRecordReader deserializer = new GrokRecordReader(bais, grok, GrokReader.createRecordSchema(grok), GrokReader.createRecordSchema(grok), true);
+        final GrokRecordReader deserializer = new GrokRecordReader(bais, grok, GrokReader.createRecordSchema(grok), GrokReader.createRecordSchema(grok), NoMatchStrategy.APPEND);
 
         final Object[] values = deserializer.nextRecord().getValues();
 
@@ -116,7 +116,7 @@ public class TestGrokRecordReader {
     public void testParseNiFiSampleLog() throws IOException, GrokException, MalformedRecordException {
         try (final InputStream fis = new FileInputStream(new File("src/test/resources/grok/nifi-log-sample.log"))) {
             final Grok grok = grokCompiler.compile("%{TIMESTAMP_ISO8601:timestamp} %{LOGLEVEL:level} \\[%{DATA:thread}\\] %{DATA:class} %{GREEDYDATA:message}");
-            final GrokRecordReader deserializer = new GrokRecordReader(fis, grok, GrokReader.createRecordSchema(grok), GrokReader.createRecordSchema(grok), true);
+            final GrokRecordReader deserializer = new GrokRecordReader(fis, grok, GrokReader.createRecordSchema(grok), GrokReader.createRecordSchema(grok), NoMatchStrategy.APPEND);
             final String[] logLevels = new String[] {"INFO", "INFO", "INFO", "WARN", "WARN"};
 
             for (int i = 0; i < logLevels.length; i++) {
@@ -138,7 +138,7 @@ public class TestGrokRecordReader {
     public void testParseNiFiSampleMultilineWithStackTrace() throws IOException, GrokException, MalformedRecordException {
         try (final InputStream fis = new FileInputStream(new File("src/test/resources/grok/nifi-log-sample-multiline-with-stacktrace.log"))) {
             final Grok grok = grokCompiler.compile("%{TIMESTAMP_ISO8601:timestamp} %{LOGLEVEL:level} \\[%{DATA:thread}\\] %{DATA:class} %{GREEDYDATA:message}?");
-            final GrokRecordReader deserializer = new GrokRecordReader(fis, grok, GrokReader.createRecordSchema(grok), GrokReader.createRecordSchema(grok), true);
+            final GrokRecordReader deserializer = new GrokRecordReader(fis, grok, GrokReader.createRecordSchema(grok), GrokReader.createRecordSchema(grok), NoMatchStrategy.APPEND);
             final String[] logLevels = new String[] {"INFO", "INFO", "ERROR", "WARN", "WARN"};
 
             for (int i = 0; i < logLevels.length; i++) {
@@ -171,7 +171,7 @@ public class TestGrokRecordReader {
     public void testParseStackTrace() throws GrokException, IOException, MalformedRecordException {
         try (final InputStream fis = new FileInputStream(new File("src/test/resources/grok/error-with-stack-trace.log"))) {
             final Grok grok = grokCompiler.compile("%{TIMESTAMP_ISO8601:timestamp} %{LOGLEVEL:level} %{GREEDYDATA:message}");
-            final GrokRecordReader deserializer = new GrokRecordReader(fis, grok, GrokReader.createRecordSchema(grok), GrokReader.createRecordSchema(grok), true);
+            final GrokRecordReader deserializer = new GrokRecordReader(fis, grok, GrokReader.createRecordSchema(grok), GrokReader.createRecordSchema(grok), NoMatchStrategy.APPEND);
 
             final String[] logLevels = new String[] {"INFO", "ERROR", "INFO"};
             final String[] messages = new String[] {"message without stack trace",
@@ -236,7 +236,7 @@ public class TestGrokRecordReader {
             assertTrue(fieldNames.contains("stackTrace"));  // always implicitly there
             assertTrue(fieldNames.contains("_raw"));  // always implicitly there
 
-            final GrokRecordReader deserializer = new GrokRecordReader(in, grok, schema, schema, true);
+            final GrokRecordReader deserializer = new GrokRecordReader(in, grok, schema, schema, NoMatchStrategy.APPEND);
             final Record record = deserializer.nextRecord();
 
             assertEquals("May 22 15:58:23", record.getValue("timestamp"));
@@ -273,7 +273,7 @@ public class TestGrokRecordReader {
             assertTrue(fieldNames.contains("fourth"));
             assertTrue(fieldNames.contains("fifth"));
 
-            final GrokRecordReader deserializer = new GrokRecordReader(in, grok, schema, schema, false);
+            final GrokRecordReader deserializer = new GrokRecordReader(in, grok, schema, schema, NoMatchStrategy.SKIP);
             final Record record = deserializer.nextRecord();
 
             assertEquals("1", record.getValue("first"));
@@ -281,6 +281,51 @@ public class TestGrokRecordReader {
             assertEquals("3", record.getValue("third"));
             assertEquals("4", record.getValue("fourth"));
             assertEquals("5", record.getValue("fifth"));
+
+            assertNull(deserializer.nextRecord());
+            deserializer.close();
+        }
+    }
+
+    @Test
+    public void testRawUnmatchedRecordFirstLine() throws GrokException, IOException, MalformedRecordException {
+        final String nonMatchingRecord = "hello there";
+        final String matchingRecord = "1 2 3 4 5";
+
+        final String input = nonMatchingRecord + "\n" + matchingRecord;
+        final byte[] inputBytes = input.getBytes(StandardCharsets.UTF_8);
+
+        try (final InputStream in = new ByteArrayInputStream(inputBytes)) {
+            final Grok grok = grokCompiler.compile("%{NUMBER:first} %{NUMBER:second} %{NUMBER:third} %{NUMBER:fourth} %{NUMBER:fifth}");
+
+            final RecordSchema schema = GrokReader.createRecordSchema(grok);
+            final List<String> fieldNames = schema.getFieldNames();
+            assertEquals(7, fieldNames.size());
+            assertTrue(fieldNames.contains("first"));
+            assertTrue(fieldNames.contains("second"));
+            assertTrue(fieldNames.contains("third"));
+            assertTrue(fieldNames.contains("fourth"));
+            assertTrue(fieldNames.contains("fifth"));
+            assertTrue(fieldNames.contains("_raw"));
+
+            final GrokRecordReader deserializer = new GrokRecordReader(in, grok, schema, schema, NoMatchStrategy.RAW);
+            Record record = deserializer.nextRecord();
+
+            assertEquals(null, record.getValue("first"));
+            assertEquals(null, record.getValue("second"));
+            assertEquals(null, record.getValue("third"));
+            assertEquals(null, record.getValue("fourth"));
+            assertEquals(null, record.getValue("fifth"));
+            assertEquals("hello there", record.getValue("_raw"));
+
+            record = deserializer.nextRecord();
+
+            assertEquals("1", record.getValue("first"));
+            assertEquals("2", record.getValue("second"));
+            assertEquals("3", record.getValue("third"));
+            assertEquals("4", record.getValue("fourth"));
+            assertEquals("5", record.getValue("fifth"));
+            assertEquals("1 2 3 4 5", record.getValue("_raw"));
 
             assertNull(deserializer.nextRecord());
             deserializer.close();
@@ -306,8 +351,9 @@ public class TestGrokRecordReader {
             assertTrue(fieldNames.contains("third"));
             assertTrue(fieldNames.contains("fourth"));
             assertTrue(fieldNames.contains("fifth"));
+            assertTrue(fieldNames.contains("_raw"));
 
-            final GrokRecordReader deserializer = new GrokRecordReader(in, grok, schema, schema, false);
+            final GrokRecordReader deserializer = new GrokRecordReader(in, grok, schema, schema, NoMatchStrategy.SKIP);
             for (int i = 0; i < 2; i++) {
                 final Record record = deserializer.nextRecord();
 
@@ -316,7 +362,107 @@ public class TestGrokRecordReader {
                 assertEquals("3", record.getValue("third"));
                 assertEquals("4", record.getValue("fourth"));
                 assertEquals("5", record.getValue("fifth"));
+                assertEquals("1 2 3 4 5", record.getValue("_raw"));
             }
+
+            assertNull(deserializer.nextRecord());
+            deserializer.close();
+        }
+    }
+
+    @Test
+    public void testRawUnmatchedRecordMiddle() throws GrokException, IOException, MalformedRecordException {
+        final String nonMatchingRecord = "hello there";
+        final String matchingRecord = "1 2 3 4 5";
+
+        final String input = matchingRecord + "\n" + nonMatchingRecord + "\n" + matchingRecord;
+        final byte[] inputBytes = input.getBytes(StandardCharsets.UTF_8);
+
+        try (final InputStream in = new ByteArrayInputStream(inputBytes)) {
+            final Grok grok = grokCompiler.compile("%{NUMBER:first} %{NUMBER:second} %{NUMBER:third} %{NUMBER:fourth} %{NUMBER:fifth}");
+
+            final RecordSchema schema = GrokReader.createRecordSchema(grok);
+            final List<String> fieldNames = schema.getFieldNames();
+            assertEquals(7, fieldNames.size());
+            assertTrue(fieldNames.contains("first"));
+            assertTrue(fieldNames.contains("second"));
+            assertTrue(fieldNames.contains("third"));
+            assertTrue(fieldNames.contains("fourth"));
+            assertTrue(fieldNames.contains("fifth"));
+            assertTrue(fieldNames.contains("_raw"));
+
+            final GrokRecordReader deserializer = new GrokRecordReader(in, grok, schema, schema, NoMatchStrategy.RAW);
+            Record record = deserializer.nextRecord();
+
+            assertEquals("1", record.getValue("first"));
+            assertEquals("2", record.getValue("second"));
+            assertEquals("3", record.getValue("third"));
+            assertEquals("4", record.getValue("fourth"));
+            assertEquals("5", record.getValue("fifth"));
+            assertEquals("1 2 3 4 5", record.getValue("_raw"));
+
+            record = deserializer.nextRecord();
+
+            assertEquals(null, record.getValue("first"));
+            assertEquals(null, record.getValue("second"));
+            assertEquals(null, record.getValue("third"));
+            assertEquals(null, record.getValue("fourth"));
+            assertEquals(null, record.getValue("fifth"));
+            assertEquals("hello there", record.getValue("_raw"));
+
+            record = deserializer.nextRecord();
+
+            assertEquals("1", record.getValue("first"));
+            assertEquals("2", record.getValue("second"));
+            assertEquals("3", record.getValue("third"));
+            assertEquals("4", record.getValue("fourth"));
+            assertEquals("5", record.getValue("fifth"));
+            assertEquals("1 2 3 4 5", record.getValue("_raw"));
+
+            assertNull(deserializer.nextRecord());
+            deserializer.close();
+        }
+    }
+
+    @Test
+    public void testRawUnmatchedRecordlast() throws GrokException, IOException, MalformedRecordException {
+        final String nonMatchingRecord = "hello there";
+        final String matchingRecord = "1 2 3 4 5";
+
+        final String input = matchingRecord + "\n" + nonMatchingRecord;
+        final byte[] inputBytes = input.getBytes(StandardCharsets.UTF_8);
+
+        try (final InputStream in = new ByteArrayInputStream(inputBytes)) {
+            final Grok grok = grokCompiler.compile("%{NUMBER:first} %{NUMBER:second} %{NUMBER:third} %{NUMBER:fourth} %{NUMBER:fifth}");
+
+            final RecordSchema schema = GrokReader.createRecordSchema(grok);
+            final List<String> fieldNames = schema.getFieldNames();
+            assertEquals(7, fieldNames.size());
+            assertTrue(fieldNames.contains("first"));
+            assertTrue(fieldNames.contains("second"));
+            assertTrue(fieldNames.contains("third"));
+            assertTrue(fieldNames.contains("fourth"));
+            assertTrue(fieldNames.contains("fifth"));
+            assertTrue(fieldNames.contains("_raw"));
+
+            final GrokRecordReader deserializer = new GrokRecordReader(in, grok, schema, schema, NoMatchStrategy.RAW);
+            Record record = deserializer.nextRecord();
+
+            assertEquals("1", record.getValue("first"));
+            assertEquals("2", record.getValue("second"));
+            assertEquals("3", record.getValue("third"));
+            assertEquals("4", record.getValue("fourth"));
+            assertEquals("5", record.getValue("fifth"));
+            assertEquals("1 2 3 4 5", record.getValue("_raw"));
+
+            record = deserializer.nextRecord();
+
+            assertEquals(null, record.getValue("first"));
+            assertEquals(null, record.getValue("second"));
+            assertEquals(null, record.getValue("third"));
+            assertEquals(null, record.getValue("fourth"));
+            assertEquals(null, record.getValue("fifth"));
+            assertEquals("hello there", record.getValue("_raw"));
 
             assertNull(deserializer.nextRecord());
             deserializer.close();

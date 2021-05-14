@@ -35,7 +35,6 @@
     <properties>
         <yammer.metrics.version>2.2.0</yammer.metrics.version>
         <jolt.version>0.1.1</jolt.version>
-        <jersey.version>2.26</jersey.version>
     </properties>
     <dependencyManagement>
         <dependencies>
@@ -149,7 +148,7 @@
             <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
                 <artifactId>jackson-databind</artifactId>
-                <version>${jackson-databind.version}</version>
+                <version>${jackson.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
@@ -234,12 +233,12 @@
             <dependency>
                 <groupId>org.apache.activemq</groupId>
                 <artifactId>activemq-client</artifactId>
-                <version>5.15.11</version>
+                <version>5.15.14</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.activemq</groupId>
                 <artifactId>activemq-broker</artifactId>
-                <version>5.15.11</version>
+                <version>5.15.14</version>
                 <scope>test</scope>
             </dependency>
             <dependency>
@@ -255,7 +254,7 @@
             <dependency>
                 <groupId>org.apache.tika</groupId>
                 <artifactId>tika-core</artifactId>
-                <version>1.24</version>
+                <version>1.26</version>
             </dependency>
             <dependency>
                 <groupId>com.squareup.okhttp3</groupId>
@@ -303,13 +302,7 @@
             <dependency>
                 <groupId>com.fluenda</groupId>
                 <artifactId>ParCEFone</artifactId>
-                <version>1.2.6</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>org.slf4j</groupId>
-                        <artifactId>slf4j-log4j12</artifactId>
-                    </exclusion>
-                </exclusions>
+                <version>1.2.8</version>
             </dependency>
             <dependency>
                 <groupId>com.github.wnameless</groupId>
