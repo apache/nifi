@@ -32,7 +32,7 @@ public class TestPutAzureBlobStorage {
     @Test
     public void testIOExceptionDuringUploadTransfersToFailure() throws Exception {
         PutAzureBlobStorage processor = Mockito.spy(new PutAzureBlobStorage());
-        doThrow(IOException.class).when(processor).uploadBlob(any(), any(), any());
+        doThrow(IOException.class).when(processor).uploadBlob(any(), any(), any(), any());
 
         TestRunner runner = TestRunners.newTestRunner(processor);
         runner.setProperty(PutAzureBlobStorage.BLOB, "test");

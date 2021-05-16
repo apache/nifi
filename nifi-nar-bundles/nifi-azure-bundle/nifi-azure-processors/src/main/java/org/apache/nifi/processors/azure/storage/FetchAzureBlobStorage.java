@@ -23,10 +23,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Collection;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.microsoft.azure.storage.OperationContext;
+import org.apache.commons.codec.DecoderException;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -35,6 +37,8 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.DataUnit;
@@ -43,12 +47,14 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.azure.AbstractAzureBlobProcessor;
+import org.apache.nifi.processors.azure.storage.utils.AzureBlobClientSideEncryptionUtils;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudBlob;
 import com.microsoft.azure.storage.blob.CloudBlobClient;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
+import com.microsoft.azure.storage.blob.BlobRequestOptions;
 
 @Tags({ "azure", "microsoft", "cloud", "storage", "blob" })
 @CapabilityDescription("Retrieves contents of an Azure Storage Blob, writing the contents to the content of the FlowFile")
@@ -80,10 +86,20 @@ public class FetchAzureBlobStorage extends AbstractAzureBlobProcessor {
             .build();
 
     @Override
+    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+        final List<ValidationResult> results = new ArrayList<>(super.customValidate(validationContext));
+        results.addAll(AzureBlobClientSideEncryptionUtils.validateClientSideEncryptionProperties(validationContext));
+        return results;
+    }
+
+    @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        List<PropertyDescriptor> properties = new ArrayList<PropertyDescriptor>(super.getSupportedPropertyDescriptors());
+        List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
         properties.add(RANGE_START);
         properties.add(RANGE_LENGTH);
+        properties.add(AzureBlobClientSideEncryptionUtils.CSE_KEY_TYPE);
+        properties.add(AzureBlobClientSideEncryptionUtils.CSE_KEY_ID);
+        properties.add(AzureBlobClientSideEncryptionUtils.CSE_SYMMETRIC_KEY_HEX);
         return properties;
     }
 
@@ -112,11 +128,13 @@ public class FetchAzureBlobStorage extends AbstractAzureBlobProcessor {
             final Map<String, String> attributes = new HashMap<>();
             final CloudBlob blob = container.getBlockBlobReference(blobPath);
 
+            BlobRequestOptions blobRequestOptions = createBlobRequestOptions(context);
+
             // TODO - we may be able do fancier things with ranges and
             // distribution of download over threads, investigate
             flowFile = session.write(flowFile, os -> {
                 try {
-                    blob.downloadRange(rangeStart, rangeLength, os, null, null, operationContext);
+                    blob.downloadRange(rangeStart, rangeLength, os, null, blobRequestOptions, operationContext);
                 } catch (StorageException e) {
                     storedException.set(e);
                     throw new IOException(e);
@@ -133,7 +151,7 @@ public class FetchAzureBlobStorage extends AbstractAzureBlobProcessor {
             session.transfer(flowFile, REL_SUCCESS);
             final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
             session.getProvenanceReporter().fetch(flowFile, blob.getSnapshotQualifiedUri().toString(), transferMillis);
-        } catch (IllegalArgumentException | URISyntaxException | StorageException | ProcessException e) {
+        } catch (IllegalArgumentException | URISyntaxException | StorageException | ProcessException | DecoderException e) {
             if (e instanceof ProcessException && storedException.get() == null) {
                 throw (ProcessException) e;
             } else {

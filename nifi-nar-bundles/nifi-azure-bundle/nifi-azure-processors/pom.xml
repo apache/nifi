@@ -22,6 +22,7 @@
     <properties>
         <azure-eventhubs.version>3.2.1</azure-eventhubs.version>
         <azure-eventhubs-eph.version>3.2.1</azure-eventhubs-eph.version>
+        <azure-keyvault.version>1.2.4</azure-keyvault.version>
     </properties>
     <dependencies>
         <dependency>
@@ -82,6 +83,11 @@
             <groupId>com.microsoft.azure</groupId>
             <artifactId>azure-eventhubs</artifactId>
             <version>${azure-eventhubs.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.microsoft.azure</groupId>
+            <artifactId>azure-keyvault</artifactId>
+            <version>${azure-keyvault.version}</version>
         </dependency>
         <dependency>
             <groupId>com.microsoft.azure</groupId>
