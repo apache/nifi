@@ -20,7 +20,6 @@ import org.apache.nifi.processor.Processor;
 import org.apache.nifi.util.MockFlowFile;
 import org.junit.Before;
 import org.junit.Test;
-
 import java.util.concurrent.TimeUnit;
 
 public class ITListAzureBlobStorage extends AbstractAzureBlobStorageIT {
@@ -34,11 +33,11 @@ public class ITListAzureBlobStorage extends AbstractAzureBlobStorageIT {
     public void setUp() throws Exception {
         uploadTestBlob();
 
-        Thread.sleep(ListAzureBlobStorage.LISTING_LAG_MILLIS.get(TimeUnit.SECONDS));
+        Thread.sleep(ListAzureBlobStorage.LISTING_LAG_MILLIS.get(TimeUnit.SECONDS) * 2);
     }
 
     @Test
-    public void testListBlobs() {
+    public void testListBlobs() throws Exception {
         runner.assertValid();
         runner.run(1);
 

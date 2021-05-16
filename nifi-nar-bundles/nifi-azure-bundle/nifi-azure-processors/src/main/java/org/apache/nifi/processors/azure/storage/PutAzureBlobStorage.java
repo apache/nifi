@@ -26,11 +26,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Collection;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.microsoft.azure.storage.OperationContext;
+import org.apache.commons.codec.DecoderException;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -39,6 +41,8 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
@@ -46,6 +50,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.azure.AbstractAzureBlobProcessor;
+import org.apache.nifi.processors.azure.storage.utils.AzureBlobClientSideEncryptionUtils;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 
 import com.microsoft.azure.storage.StorageException;
@@ -53,6 +58,7 @@ import com.microsoft.azure.storage.blob.BlobProperties;
 import com.microsoft.azure.storage.blob.CloudBlob;
 import com.microsoft.azure.storage.blob.CloudBlobClient;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
+import com.microsoft.azure.storage.blob.BlobRequestOptions;
 
 @Tags({ "azure", "microsoft", "cloud", "storage", "blob" })
 @SeeAlso({ ListAzureBlobStorage.class, FetchAzureBlobStorage.class, DeleteAzureBlobStorage.class })
@@ -89,11 +95,21 @@ public class PutAzureBlobStorage extends AbstractAzureBlobProcessor {
             .build();
 
     @Override
+    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+        final List<ValidationResult> results = new ArrayList<>(super.customValidate(validationContext));
+        results.addAll(AzureBlobClientSideEncryptionUtils.validateClientSideEncryptionProperties(validationContext));
+        return results;
+    }
+
+    @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
         properties.remove(BLOB);
         properties.add(BLOB_NAME);
         properties.add(CREATE_CONTAINER);
+        properties.add(AzureBlobClientSideEncryptionUtils.CSE_KEY_TYPE);
+        properties.add(AzureBlobClientSideEncryptionUtils.CSE_KEY_ID);
+        properties.add(AzureBlobClientSideEncryptionUtils.CSE_SYMMETRIC_KEY_HEX);
         return properties;
     }
 
@@ -124,6 +140,8 @@ public class PutAzureBlobStorage extends AbstractAzureBlobProcessor {
             final OperationContext operationContext = new OperationContext();
             AzureStorageUtils.setProxy(operationContext, context);
 
+            BlobRequestOptions blobRequestOptions = createBlobRequestOptions(context);
+
             final Map<String, String> attributes = new HashMap<>();
             long length = flowFile.getSize();
             session.read(flowFile, rawIn -> {
@@ -142,7 +160,7 @@ public class PutAzureBlobStorage extends AbstractAzureBlobProcessor {
                 }
 
                 try {
-                    uploadBlob(blob, operationContext, in);
+                    uploadBlob(blob, operationContext, blobRequestOptions, in);
                     BlobProperties properties = blob.getProperties();
                     attributes.put("azure.container", containerName);
                     attributes.put("azure.primaryUri", blob.getSnapshotQualifiedUri().toString());
@@ -163,7 +181,7 @@ public class PutAzureBlobStorage extends AbstractAzureBlobProcessor {
             final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
             session.getProvenanceReporter().send(flowFile, blob.getSnapshotQualifiedUri().toString(), transferMillis);
 
-        } catch (IllegalArgumentException | URISyntaxException | StorageException | ProcessException e) {
+        } catch (IllegalArgumentException | URISyntaxException | StorageException | ProcessException | DecoderException e) {
             if (e instanceof ProcessException && storedException.get() == null) {
                 throw (ProcessException) e;
             } else {
@@ -177,8 +195,8 @@ public class PutAzureBlobStorage extends AbstractAzureBlobProcessor {
     }
 
     @VisibleForTesting
-    void uploadBlob(CloudBlob blob, OperationContext operationContext, InputStream in) throws StorageException, IOException {
-        blob.upload(in, -1, null, null, operationContext);
+    void uploadBlob(CloudBlob blob, OperationContext operationContext, BlobRequestOptions blobRequestOptions, InputStream in) throws StorageException, IOException {
+        blob.upload(in, -1, null, blobRequestOptions, operationContext);
     }
 
     // Used to help force Azure Blob SDK to write in blocks

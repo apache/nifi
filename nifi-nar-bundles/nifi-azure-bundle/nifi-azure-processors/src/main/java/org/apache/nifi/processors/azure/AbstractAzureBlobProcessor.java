@@ -16,13 +16,21 @@
  */
 package org.apache.nifi.processors.azure;
 
+import com.microsoft.azure.keyvault.cryptography.SymmetricKey;
+import com.microsoft.azure.storage.blob.BlobEncryptionPolicy;
+import com.microsoft.azure.storage.blob.BlobRequestOptions;
+import org.apache.commons.codec.DecoderException;
+import org.apache.commons.codec.binary.Hex;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.AbstractProcessor;
+import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.azure.storage.utils.AzureBlobClientSideEncryptionMethod;
+import org.apache.nifi.processors.azure.storage.utils.AzureBlobClientSideEncryptionUtils;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 
 import java.util.Arrays;
@@ -84,5 +92,25 @@ public abstract class AbstractAzureBlobProcessor extends AbstractProcessor {
     @Override
     public Set<Relationship> getRelationships() {
         return RELATIONSHIPS;
+    }
+
+    protected BlobRequestOptions createBlobRequestOptions(ProcessContext context) throws DecoderException {
+        final String cseKeyTypeValue = context.getProperty(AzureBlobClientSideEncryptionUtils.CSE_KEY_TYPE).getValue();
+        final AzureBlobClientSideEncryptionMethod cseKeyType = AzureBlobClientSideEncryptionMethod.valueOf(cseKeyTypeValue);
+
+        final String cseKeyId = context.getProperty(AzureBlobClientSideEncryptionUtils.CSE_KEY_ID).getValue();
+
+        final String cseSymmetricKeyHex = context.getProperty(AzureBlobClientSideEncryptionUtils.CSE_SYMMETRIC_KEY_HEX).getValue();
+
+        BlobRequestOptions blobRequestOptions = new BlobRequestOptions();
+
+        if (cseKeyType == AzureBlobClientSideEncryptionMethod.SYMMETRIC) {
+            byte[] keyBytes = Hex.decodeHex(cseSymmetricKeyHex.toCharArray());
+            SymmetricKey key = new SymmetricKey(cseKeyId, keyBytes);
+            BlobEncryptionPolicy policy = new BlobEncryptionPolicy(key, null);
+            blobRequestOptions.setEncryptionPolicy(policy);
+        }
+
+        return blobRequestOptions;
     }
 }
