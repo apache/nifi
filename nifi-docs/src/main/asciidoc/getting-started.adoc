@@ -125,8 +125,8 @@ with `Generated Username [USERNAME]` and `Generated Password [PASSWORD]` indicat
 Search the application log for those lines and record the generated values in a secure location.
 
 Now that NiFi has been started, we can bring up the User Interface (UI) in order to create and monitor our dataflow.
-To get started, open a web browser and navigate to link:https://localhost:9443/nifi[`https://localhost:9443/nifi`^]. The port can be changed by
-editing the `nifi.properties` file in the NiFi `conf` directory, but the default port is 9443.
+To get started, open a web browser and navigate to link:https://localhost:8443/nifi[`https://localhost:8443/nifi`^]. The port can be changed by
+editing the `nifi.properties` file in the NiFi `conf` directory, but the default port is 8443.
 
 The web browser will display a warning message indicating a potential security risk due to the self-signed
 certificate NiFi generated during initialization. Accepting the potential security risk and continuing to load

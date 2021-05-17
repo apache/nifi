@@ -143,7 +143,7 @@ using bcrypt hashing. Record these credentials in a secure location for access t
   
 ### Running
 
-Open the following link in a web browser to access NiFi: https://localhost:9443/nifi
+Open the following link in a web browser to access NiFi: https://localhost:8443/nifi
 
 The web browser will display a warning message indicating a potential security risk due to the self-signed
 certificate NiFi generated during initialization. Accepting the potential security risk and continuing to load

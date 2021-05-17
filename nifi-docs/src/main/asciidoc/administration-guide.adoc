@@ -85,7 +85,7 @@ The following table lists the default ports used by NiFi and the corresponding p
 |==================================================================================================================================================
 | Function                        |  Property                             | Default Value
 |HTTP Port*                       | `nifi.web.http.port`                  | `8080`
-|HTTPS Port                       | `nifi.web.https.port`                 | `9443`
+|HTTPS Port                       | `nifi.web.https.port`                 | `8443`
 |Remote Input Socket Port*        | `nifi.remote.input.socket.port`       | `10443`
 |Cluster Node Protocol Port*      | `nifi.cluster.node.protocol.port`     | `11443`
 |Cluster Node Load Balancing Port | `nifi.cluster.node.load.balance.port` | `6342`
@@ -3528,7 +3528,7 @@ For example, to provide two additional network interfaces, a user could also spe
  +
 Providing three total network interfaces, including  `nifi.web.http.network.interface.default`.
 |`nifi.web.https.host`|The HTTPS host. The default value is `127.0.0.1`.
-|`nifi.web.https.port`|The HTTPS port. The default value is `9443`.
+|`nifi.web.https.port`|The HTTPS port. The default value is `8443`.
 |`nifi.web.https.port.forwarding`|Same as `nifi.web.http.port.forwarding`, but with HTTPS for secure communication. It is blank by default.
 |`nifi.web.https.ciphersuites.include`|Cipher suites used to initialize the SSLContext of the Jetty HTTPS port.  If unspecified, the runtime SSLContext defaults are used.
 |`nifi.web.https.ciphersuites.exclude`|Cipher suites that may not be used by an SSL client to establish a connection to Jetty.  If unspecified, the runtime SSLContext defaults are used.
