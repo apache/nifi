@@ -585,27 +585,37 @@ public class AvroTypeUtil {
         final GenericRecord rec = new GenericData.Record(avroSchema);
         final RecordSchema recordSchema = record.getSchema();
 
-        for (final RecordField recordField : recordSchema.getFields()) {
-            final Object rawValue = record.getValue(recordField);
-
-            Pair<String, Field> fieldPair = lookupField(avroSchema, recordField);
-            final String fieldName = fieldPair.getLeft();
-            final Field field = fieldPair.getRight();
-            if (field == null) {
+        final Map<String, Object> recordValues = record.toMap();
+        for (final Map.Entry<String, Object> entry : recordValues.entrySet()) {
+            final Object rawValue = entry.getValue();
+            if (rawValue == null) {
                 continue;
             }
 
-            final Object converted = convertToAvroObject(rawValue, field.schema(), fieldName, charset);
-            rec.put(field.name(), converted);
-        }
-
-        // see if the Avro schema has any fields that aren't in the RecordSchema, and if those fields have a default
-        // value then we want to populate it in the GenericRecord being produced
-        for (final Field field : avroSchema.getFields()) {
-            final Optional<RecordField> recordField = recordSchema.getField(field.name());
-            if (!recordField.isPresent() && rec.get(field.name()) == null && field.defaultVal() != null) {
-                rec.put(field.name(), field.defaultVal());
+            final String rawFieldName = entry.getKey();
+            final Optional<RecordField> optionalRecordField = recordSchema.getField(rawFieldName);
+            if (!optionalRecordField.isPresent()) {
+                continue;
             }
+
+            final RecordField recordField = optionalRecordField.get();
+
+            final Field field;
+            final Field avroField = avroSchema.getField(rawFieldName);
+            if (avroField == null) {
+                final Pair<String, Field> fieldPair = lookupField(avroSchema, recordField);
+                field = fieldPair.getRight();
+
+                if (field == null) {
+                    continue;
+                }
+            } else {
+                field = avroField;
+            }
+
+            final String fieldName = field.name();
+            final Object converted = convertToAvroObject(rawValue, field.schema(), fieldName, charset);
+            rec.put(fieldName, converted);
         }
 
         return rec;
@@ -850,6 +860,10 @@ public class AvroTypeUtil {
                     throw new IllegalTypeConversionException(rawValue + " is not a possible value of the ENUM" + enums + ".");
                 }
             case STRING:
+                if (rawValue instanceof String) {
+                    return rawValue;
+                }
+
                 return DataTypeUtils.toString(rawValue, (String) null, charset);
         }
 
@@ -913,12 +927,19 @@ public class AvroTypeUtil {
         // we will have two possible types, and one of them will be null. When this happens, we can be much more efficient by simply
         // determining the non-null type and converting to that.
         final List<Schema> schemaTypes = fieldSchema.getTypes();
-        if (schemaTypes.size() == 2 && (schemaTypes.get(0).getType() == Type.NULL || schemaTypes.get(1).getType() == Type.NULL)) {
-            final Schema nonNullType = schemaTypes.get(0).getType() == Type.NULL ? schemaTypes.get(1) : schemaTypes.get(0);
-            return conversion.apply(nonNullType);
+        if (schemaTypes.size() == 2) {
+            final Schema firstSchema = schemaTypes.get(0);
+            final Schema secondSchema = schemaTypes.get(1);
+
+            if (firstSchema.getType() == Type.NULL) {
+                return conversion.apply(secondSchema);
+            }
+            if (secondSchema.getType() == Type.NULL) {
+                return conversion.apply(firstSchema);
+            }
         }
 
-        Optional<Schema> mostSuitableType = DataTypeUtils.findMostSuitableType(
+        final Optional<Schema> mostSuitableType = DataTypeUtils.findMostSuitableType(
                 originalValue,
                 getNonNullSubSchemas(fieldSchema),
                 AvroTypeUtil::determineDataType
