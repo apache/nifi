@@ -130,7 +130,7 @@ public class StatelessProcessSession extends StandardProcessSession {
         // Commit the session
         super.commit(checkpoint, asynchronous);
 
-        if (asynchronous) {
+        if (!requireSynchronousCommits) {
             queueFollowOnComponents();
             return;
         }

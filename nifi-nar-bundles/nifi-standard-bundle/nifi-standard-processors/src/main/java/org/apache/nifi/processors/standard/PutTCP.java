@@ -211,6 +211,7 @@ public class PutTCP extends AbstractPutEventProcessor {
 
             session.getProvenanceReporter().send(flowFile, transitUri, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
             session.transfer(flowFile, REL_SUCCESS);
+            session.commitAsync();
         } catch (Exception e) {
             onFailure(context, session, flowFile);
             getLogger().error("Exception while handling a process session, transferring {} to failure.", new Object[] { flowFile }, e);
@@ -238,6 +239,7 @@ public class PutTCP extends AbstractPutEventProcessor {
      */
     protected void onFailure(final ProcessContext context, final ProcessSession session, final FlowFile flowFile) {
         session.transfer(session.penalize(flowFile), REL_FAILURE);
+        session.commitAsync();
         context.yield();
     }
 

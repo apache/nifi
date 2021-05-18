@@ -119,15 +119,21 @@ public class ContentAcknowledgmentServlet extends HttpServlet {
                     + "transferring to 'success': {}",
                     new Object[]{flowFiles.size(), totalFlowFileSize, request.getRemoteHost(), request.getRemotePort(), foundSubject, transferTime, transferRate, flowFiles});
 
+            final String sendingSubject = foundSubject;
             final ProcessSession session = timeWrapper.getSession();
             session.transfer(flowFiles, ListenHTTP.RELATIONSHIP_SUCCESS);
-            session.commitAsync();
-
-            response.setStatus(HttpServletResponse.SC_OK);
-            response.flushBuffer();
+            session.commitAsync(() -> {
+                try {
+                    response.setStatus(HttpServletResponse.SC_OK);
+                    response.flushBuffer();
+                } catch (final Exception e) {
+                    logger.error("Received DELETE for HOLD with ID {} from Remote Host: [{}] Port [{}] SubjectDN [{}]. FlowFiles were released but failed to acknowledge them.",
+                        new Object[]{uuid, request.getRemoteHost(), request.getRemotePort(), sendingSubject, e.toString()});
+                }
+            });
         } catch (final Throwable t) {
             timeWrapper.getSession().rollback();
-            logger.error("received DELETE for HOLD with ID {} from Remote Host: [{}] Port [{}] SubjectDN [{}], but failed to process the request due to {}",
+            logger.error("Received DELETE for HOLD with ID {} from Remote Host: [{}] Port [{}] SubjectDN [{}], but failed to process the request due to {}",
                     new Object[]{uuid, request.getRemoteHost(), request.getRemotePort(), foundSubject, t.toString()});
             if (logger.isDebugEnabled()) {
                 logger.error("", t);
