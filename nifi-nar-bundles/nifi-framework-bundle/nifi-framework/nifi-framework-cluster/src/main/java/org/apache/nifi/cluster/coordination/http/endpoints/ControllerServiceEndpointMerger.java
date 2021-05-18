@@ -41,7 +41,7 @@ public class ControllerServiceEndpointMerger extends AbstractSingleEntityEndpoin
             return true;
         } else if ("PUT".equalsIgnoreCase(method) && CONTROLLER_SERVICE_RUN_STATUS_URI_PATTERN.matcher(uri.getPath()).matches()) {
             return true;
-        } else if ("POST".equalsIgnoreCase(method) && (CONTROLLER_CONTROLLER_SERVICES_URI.equals(uri.getPath()) || PROCESS_GROUPS_CONTROLLER_SERVICES_URI.matcher(uri.getPath()).matches())) {
+        } else if ("POST".equalsIgnoreCase(method) && (CONTROLLER_CONTROLLER_SERVICES_URI.endsWith(uri.getPath()) || PROCESS_GROUPS_CONTROLLER_SERVICES_URI.matcher(uri.getPath()).matches())) {
             return true;
         }
 

@@ -31,7 +31,7 @@ public class ControllerServiceTypesEndpointMerger extends AbstractNodeStatusEndp
 
     @Override
     public boolean canHandle(URI uri, String method) {
-        return "GET".equalsIgnoreCase(method) && CONTROLLER_SERVICE_TYPES_URI_PATTERN.equals(uri.getPath());
+        return "GET".equalsIgnoreCase(method) && CONTROLLER_SERVICE_TYPES_URI_PATTERN.endsWith(uri.getPath());
     }
 
     @Override

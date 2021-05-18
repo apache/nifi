@@ -36,7 +36,7 @@ public class ControllerServicesEndpointMerger implements EndpointResponseMerger 
 
     @Override
     public boolean canHandle(URI uri, String method) {
-        return "GET".equalsIgnoreCase(method) && (CONTROLLER_SERVICES_URI.equals(uri.getPath()) || PROCESS_GROUPS_CONTROLLER_SERVICES_URI.matcher(uri.getPath()).matches());
+        return "GET".equalsIgnoreCase(method) && (CONTROLLER_SERVICES_URI.endsWith(uri.getPath()) || PROCESS_GROUPS_CONTROLLER_SERVICES_URI.matcher(uri.getPath()).matches());
     }
 
     @Override
