@@ -39,7 +39,7 @@ public class ParameterContextUpdateEndpointMerger extends AbstractSingleEntityEn
     @Override
     public boolean canHandle(final URI uri, final String method) {
         return ("GET".equalsIgnoreCase(method) || "DELETE".equalsIgnoreCase(method)) && PARAMETER_CONTEXT_URI.matcher(uri.getPath()).matches()
-            || "POST".equalsIgnoreCase(method) && PARAMETER_CONTEXTS_URI.equals(method);
+            || "POST".equalsIgnoreCase(method) && PARAMETER_CONTEXTS_URI.endsWith(method);
     }
 
     @Override

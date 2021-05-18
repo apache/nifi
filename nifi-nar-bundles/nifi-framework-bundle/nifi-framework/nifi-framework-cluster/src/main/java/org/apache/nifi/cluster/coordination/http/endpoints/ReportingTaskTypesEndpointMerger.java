@@ -27,11 +27,11 @@ import java.util.Map;
 import java.util.Set;
 
 public class ReportingTaskTypesEndpointMerger extends AbstractNodeStatusEndpoint<ReportingTaskTypesEntity, Set<DocumentedTypeDTO>> {
-    public static final String REPORTING_TASK_TYPES_URI_PATTERN = "/nifi-api/flow/reporting-task-types";
+    private static final String REPORTING_TASK_TYPES_URI = "/nifi-api/flow/reporting-task-types";
 
     @Override
     public boolean canHandle(URI uri, String method) {
-        return "GET".equalsIgnoreCase(method) && REPORTING_TASK_TYPES_URI_PATTERN.equals(uri.getPath());
+        return "GET".equalsIgnoreCase(method) && REPORTING_TASK_TYPES_URI.endsWith(uri.getPath());
     }
 
     @Override

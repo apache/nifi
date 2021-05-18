@@ -80,7 +80,6 @@ language governing permissions and limitations under the License. -->
      -->
 
     <build>
-    <pluginManagement>
         <plugins>
             <plugin>
                 <groupId>io.swagger</groupId>
@@ -116,7 +115,6 @@ language governing permissions and limitations under the License. -->
                 </configuration>
             </plugin>
         </plugins>
-        </pluginManagement>
     </build>
     <profiles>
         <profile>

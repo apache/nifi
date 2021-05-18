@@ -29,9 +29,9 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 public class ReportingTaskEndpointMerger  extends AbstractSingleEntityEndpoint<ReportingTaskEntity> implements EndpointResponseMerger {
-    public static final String REPORTING_TASKS_URI = "/nifi-api/controller/reporting-tasks";
-    public static final Pattern REPORTING_TASK_URI_PATTERN = Pattern.compile(".*/nifi-api/reporting-tasks/[a-f0-9\\-]{36}");
-    public static final Pattern REPORTING_TASK_RUN_STATUS_URI_PATTERN = Pattern.compile(".*/nifi-api/reporting-tasks/[a-f0-9\\-]{36}/run-status");
+    private static final String REPORTING_TASKS_URI = "/nifi-api/controller/reporting-tasks";
+    private static final Pattern REPORTING_TASK_URI_PATTERN = Pattern.compile(".*/nifi-api/reporting-tasks/[a-f0-9\\-]{36}");
+    private static final Pattern REPORTING_TASK_RUN_STATUS_URI_PATTERN = Pattern.compile(".*/nifi-api/reporting-tasks/[a-f0-9\\-]{36}/run-status");
     private final ReportingTaskEntityMerger reportingTaskEntityMerger = new ReportingTaskEntityMerger();
 
     @Override
@@ -40,7 +40,7 @@ public class ReportingTaskEndpointMerger  extends AbstractSingleEntityEndpoint<R
             return true;
         } else if ("PUT".equalsIgnoreCase(method) && REPORTING_TASK_RUN_STATUS_URI_PATTERN.matcher(uri.getPath()).matches()) {
             return true;
-        } else if ("POST".equalsIgnoreCase(method) && REPORTING_TASKS_URI.equals(uri.getPath())) {
+        } else if ("POST".equalsIgnoreCase(method) && REPORTING_TASKS_URI.endsWith(uri.getPath())) {
             return true;
         }
 

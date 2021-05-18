@@ -40,12 +40,12 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 public class ProvenanceQueryEndpointMerger implements EndpointResponseMerger {
-    public static final String PROVENANCE_URI = "/nifi-api/provenance";
-    public static final Pattern PROVENANCE_QUERY_URI = Pattern.compile(".*/nifi-api/provenance/[a-f0-9\\-]{36}");
+    private static final String PROVENANCE_URI = "/nifi-api/provenance";
+    private static final Pattern PROVENANCE_QUERY_URI = Pattern.compile(".*/nifi-api/provenance/[a-f0-9\\-]{36}");
 
     @Override
     public boolean canHandle(URI uri, String method) {
-        if ("POST".equalsIgnoreCase(method) && PROVENANCE_URI.equals(uri.getPath())) {
+        if ("POST".equalsIgnoreCase(method) && PROVENANCE_URI.endsWith(uri.getPath())) {
             return true;
         } else if ("GET".equalsIgnoreCase(method) && PROVENANCE_QUERY_URI.matcher(uri.getPath()).matches()) {
             return true;

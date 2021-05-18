@@ -27,11 +27,11 @@ import java.util.Map;
 import java.util.Set;
 
 public class ProcessorTypesEndpointMerger extends AbstractNodeStatusEndpoint<ProcessorTypesEntity, Set<DocumentedTypeDTO>> {
-    public static final String PROCESSOR_TYPES_URI_PATTERN = "/nifi-api/flow/processor-types";
+    private static final String PROCESSOR_TYPES_URI_PATTERN = "/nifi-api/flow/processor-types";
 
     @Override
     public boolean canHandle(URI uri, String method) {
-        return "GET".equalsIgnoreCase(method) && PROCESSOR_TYPES_URI_PATTERN.equals(uri.getPath());
+        return "GET".equalsIgnoreCase(method) && PROCESSOR_TYPES_URI_PATTERN.endsWith(uri.getPath());
     }
 
     @Override

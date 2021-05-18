@@ -31,7 +31,7 @@ public class PrioritizerTypesEndpointMerger extends AbstractNodeStatusEndpoint<P
 
     @Override
     public boolean canHandle(URI uri, String method) {
-        return "GET".equalsIgnoreCase(method) && PRIORITIZER_TYPES_URI_PATTERN.equals(uri.getPath());
+        return "GET".equalsIgnoreCase(method) && PRIORITIZER_TYPES_URI_PATTERN.endsWith(uri.getPath());
     }
 
     @Override

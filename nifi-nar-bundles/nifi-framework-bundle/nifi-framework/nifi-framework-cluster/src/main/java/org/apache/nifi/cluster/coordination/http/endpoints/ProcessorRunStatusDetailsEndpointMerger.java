@@ -32,11 +32,11 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public class ProcessorRunStatusDetailsEndpointMerger implements EndpointResponseMerger {
-    public static final String RUN_STATUS_DETAILS_URI = "/nifi-api/processors/run-status-details/queries";
+    private static final String RUN_STATUS_DETAILS_URI = "/nifi-api/processors/run-status-details/queries";
 
     @Override
     public boolean canHandle(final URI uri, final String method) {
-        return "POST".equalsIgnoreCase(method) && RUN_STATUS_DETAILS_URI.equals(uri.getPath());
+        return "POST".equalsIgnoreCase(method) && RUN_STATUS_DETAILS_URI.endsWith(uri.getPath());
     }
 
     @Override
