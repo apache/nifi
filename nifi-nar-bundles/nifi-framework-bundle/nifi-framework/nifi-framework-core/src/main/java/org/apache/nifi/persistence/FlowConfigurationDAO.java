@@ -49,6 +49,7 @@ public interface FlowConfigurationDAO {
      *
      * @param controller a controller
      * @param dataFlow the flow to load
+     * @param flowService the flow service
      * @throws java.io.IOException
      *
      * @throws FlowSerializationException if proposed flow is not a valid flow configuration file
