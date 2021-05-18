@@ -25,7 +25,6 @@
     <packaging>jar</packaging>
 
     <build>
-    <pluginManagement>
         <plugins>
             <plugin>
                 <artifactId>maven-assembly-plugin</artifactId>
@@ -72,7 +71,6 @@
                 </configuration>
             </plugin>
         </plugins>
-        </pluginManagement>
     </build>
 
 
