@@ -64,18 +64,25 @@ public enum ConnectionStatusDescriptor {
         s -> Long.valueOf(s.getQueuedCount())),
 
     TOTAL_QUEUED_DURATION(
-            "totalQueuedDuration",
-            "Total Queued Duration (5 mins)",
-            "The cumulative queued duration, in milliseconds, of all FlowFiles that were transferred to this Connection in the past 5 minutes",
-            Formatter.COUNT,
-            s -> Long.valueOf(s.getTotalQueuedDuration())),
+        "totalQueuedDuration",
+        "Total Queued Duration (millis)",
+        "The sum of the amount of time that all FlowFiles in the Connection have been in the queue",
+        Formatter.COUNT,
+        ConnectionStatus::getTotalQueuedDuration),
 
     MAX_QUEUED_DURATION(
-            "maxQueuedDuration",
-            "Max Queued Duration (5 mins)",
-            "The max queued duration, in milliseconds, of any FlowFile that was transferred to this Connection in the past 5 minutes",
-            Formatter.COUNT,
-            s -> Long.valueOf(s.getMaxQueuedDuration()));
+        "maxQueuedDuration",
+        "Max Queued Duration (hr:min:sec)",
+        "The maximum amount of time that any FlowFile currently in this Connection has been in the queue",
+        Formatter.DURATION,
+        ConnectionStatus::getMaxQueuedDuration),
+
+    AVERAGE_QUEUED_DURATION(
+        "averageQueuedDuration",
+        "Average Queued Duration (hr:min:sec)",
+        "The average amount of time that each FlowFile currently in the Connection has been in the queue",
+        Formatter.DURATION,
+        s -> s.getQueuedCount() == 0 ? 0L : s.getTotalQueuedDuration() / s.getQueuedCount());
 
 
     private MetricDescriptor<ConnectionStatus> descriptor;
