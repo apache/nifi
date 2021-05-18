@@ -2532,7 +2532,6 @@ NiFi webapps on different nodes should have a separate `<Location>` entry simila
     RequestHeader add X-ProxyHost "proxy-host"
     RequestHeader add X-ProxyPort "proxy-port"
     ProxyPass http://node1-host[:port]/node1/nifi
-<<<<<<< Upstream, based on upstream/support/nifi-1.13
     ProxyPassReverse http://node1-host[:port]/node1/nifi
     ...
 </Location>
@@ -2555,32 +2554,6 @@ NiFi webapps on different nodes should have a separate `<Location>` entry simila
     ProxyPassReverse http://node2-host[:port]/node2/nifi
     ...
 </Location>
-=======
-    ProxyPassReverse http://node1-host[:port]//node1/nifi
-    ...
-</Location>
-...
-<Location "/node1/nifi-api">
-    ...
-    RequestHeader add X-ProxyScheme "http"
-    RequestHeader add X-ProxyHost "proxy-host"
-    RequestHeader add X-ProxyPort "proxy-port"
-    ProxyPass http://node1-host[:port]/node1/nifi-api
-    ProxyPassReverse http://node1-host[:port]/node1/nifi-api
-    ...
-</Location>
-...
-<Location "/node2/nifi">
-    ...
-    RequestHeader add X-ProxyScheme "http"
-    RequestHeader add X-ProxyHost "proxy-host"
-    RequestHeader add X-ProxyPort "proxy-port"
-    ProxyPass http://node2-host[:port]/node2/nifi
-    ProxyPassReverse http://node2-host[:port]/node2/nifi
-    ...
-</Location>
-...
->>>>>>> 8205692 Add description for new nifi.web.context.root property. Correct tab to spaces on text lines.
 <Location "/node2/nifi-api">
     ...
     RequestHeader add X-ProxyScheme "http"
