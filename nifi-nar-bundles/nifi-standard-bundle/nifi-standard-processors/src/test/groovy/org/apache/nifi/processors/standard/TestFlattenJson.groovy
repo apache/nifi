@@ -155,6 +155,77 @@ class TestFlattenJson {
     }
 
     @Test
+    void testFlattenModeKeepArrays() {
+        def testRunner = TestRunners.newTestRunner(FlattenJson.class)
+        def json = prettyPrint(toJson([
+                first: [
+                        second: [
+                                [
+                                        x: 1,
+                                        y: 2,
+                                        z: [3, 4, 5]
+                                ],
+                                [ 6, 7, 8],
+                                [
+                                        [9, 10],
+                                        11,
+                                        12
+                                ]
+                        ],
+                        "third" : [
+                                a: "b",
+                                c: "d",
+                                e: "f"
+                        ]
+                ]
+        ]))
+
+        testRunner.setProperty(FlattenJson.FLATTEN_MODE, FlattenJson.FLATTEN_MODE_KEEP_ARRAYS)
+        baseTest(testRunner, json,4) { parsed ->
+            assert parsed["first.second"] instanceof List   // [{x=1, y=2, z=[3, 4, 5]}, [6, 7, 8], [[9, 10], 11, 12]]
+            assert parsed["first.second"][1] == [6, 7, 8]
+            Assert.assertEquals("Separator not applied.", "b", parsed["first.third.a"])
+        }
+    }
+
+    @Test
+    void testFlattenModeKeepPrimitiveArrays() {
+        def testRunner = TestRunners.newTestRunner(FlattenJson.class)
+        def json = prettyPrint(toJson([
+                first: [
+                        second: [
+                                [
+                                        x: 1,
+                                        y: 2,
+                                        z: [3, 4, 5]
+                                ],
+                                [ 6, 7, 8],
+                                [
+                                        [9, 10],
+                                        11,
+                                        12
+                                ]
+                        ],
+                        "third" : [
+                                a: "b",
+                                c: "d",
+                                e: "f"
+                        ]
+                ]
+        ]))
+
+        testRunner.setProperty(FlattenJson.FLATTEN_MODE, FlattenJson.FLATTEN_MODE_KEEP_PRIMITIVE_ARRAYS)
+        baseTest(testRunner, json,10) { parsed ->
+            Assert.assertEquals("Separator not applied.", 1, parsed["first.second[0].x"])
+            Assert.assertEquals("Separator not applied.", [3, 4, 5], parsed["first.second[0].z"])
+            Assert.assertEquals("Separator not applied.", [9, 10], parsed["first.second[2][0]"])
+            Assert.assertEquals("Separator not applied.", 11, parsed["first.second[2][1]"])
+            Assert.assertEquals("Separator not applied.", 12, parsed["first.second[2][2]"])
+            Assert.assertEquals("Separator not applied.", "d", parsed["first.third.c"])
+        }
+    }
+
+    @Test
     void testFlattenModeDotNotation() {
         def testRunner = TestRunners.newTestRunner(FlattenJson.class)
         def json = prettyPrint(toJson([
@@ -201,6 +272,100 @@ class TestFlattenJson {
         testRunner.setProperty(FlattenJson.FLATTEN_MODE, FlattenJson.FLATTEN_MODE_NORMAL)
         baseTest(testRunner, json,1) { parsed ->
             Assert.assertEquals("Separator not applied.", "José", parsed["name"])
+        }
+    }
+
+    @Test
+    void testUnFlatten() {
+        def testRunner = TestRunners.newTestRunner(FlattenJson.class)
+        def json = prettyPrint(toJson([
+                "test.msg": "Hello, world",
+                "first.second.third":  [ "one", "two", "three", "four", "five" ]
+        ]))
+
+        testRunner.setProperty(FlattenJson.RETURN_TYPE, FlattenJson.RETURN_TYPE_UNFLATTEN)
+        baseTest(testRunner, json, 2) { parsed ->
+            assert parsed.test instanceof Map
+            assert parsed.test.msg == "Hello, world"
+            assert parsed.first.second.third == [ "one", "two", "three", "four", "five" ]
+        }
+    }
+
+    @Test
+    void testUnFlattenWithDifferentSeparator() {
+        def testRunner = TestRunners.newTestRunner(FlattenJson.class)
+        def json = prettyPrint(toJson([
+                "first_second_third":  [ "one", "two", "three", "four", "five" ]
+        ]))
+
+        testRunner.setProperty(FlattenJson.SEPARATOR, "_")
+        testRunner.setProperty(FlattenJson.RETURN_TYPE, FlattenJson.RETURN_TYPE_UNFLATTEN)
+        baseTest(testRunner, json, 1) { parsed ->
+            assert parsed.first instanceof Map
+            assert parsed.first.second.third == [ "one", "two", "three", "four", "five" ]
+        }
+    }
+
+    @Test
+    void testUnFlattenForKeepArraysMode() {
+        def testRunner = TestRunners.newTestRunner(FlattenJson.class)
+        def json = prettyPrint(toJson([
+                "a.b": 1,
+                "a.c": [
+                        false,
+                        ["i.j": [ false, true, "xy" ] ]
+                ]
+        ]))
+
+        testRunner.setProperty(FlattenJson.FLATTEN_MODE, FlattenJson.FLATTEN_MODE_KEEP_ARRAYS)
+        testRunner.setProperty(FlattenJson.RETURN_TYPE, FlattenJson.RETURN_TYPE_UNFLATTEN)
+        baseTest(testRunner, json, 1) { parsed ->
+            assert parsed.a instanceof Map
+            assert parsed.a.b == 1
+            assert parsed.a.c[0] == false
+            assert parsed.a.c[1].i instanceof Map
+            assert parsed.a.c[1].i.j == [false, true, "xy"]
+        }
+    }
+
+    @Test
+    void testUnFlattenForKeepPrimitiveArraysMode() {
+        def testRunner = TestRunners.newTestRunner(FlattenJson.class)
+        def json = prettyPrint(toJson([
+                "first.second[0].x": 1,
+                "first.second[0].y": 2,
+                "first.second[0].z": [3, 4, 5],
+                "first.second[1]": [6, 7, 8],
+                "first.second[2][0]": [9, 10],
+                "first.second[2][1]": 11,
+                "first.second[2][2]": 12,
+                "first.third.a": "b",
+                "first.third.c": "d",
+                "first.third.e": "f"
+        ]))
+
+        testRunner.setProperty(FlattenJson.FLATTEN_MODE, FlattenJson.FLATTEN_MODE_KEEP_PRIMITIVE_ARRAYS)
+        testRunner.setProperty(FlattenJson.RETURN_TYPE, FlattenJson.RETURN_TYPE_UNFLATTEN)
+        baseTest(testRunner, json, 1) { parsed ->
+            assert parsed.first instanceof Map
+            assert parsed.first.second[0].x == 1
+            assert parsed.first.second[2][0] == [9, 10]
+            assert parsed.first.third.c == "d"
+        }
+    }
+
+    @Test
+    void testUnFlattenForDotNotationMode() {
+        def testRunner = TestRunners.newTestRunner(FlattenJson.class)
+        def json = prettyPrint(toJson([
+                "first.second.third.0": ["one", "two", "three", "four", "five"]
+        ]))
+
+        testRunner.setProperty(FlattenJson.FLATTEN_MODE, FlattenJson.FLATTEN_MODE_DOT_NOTATION)
+        testRunner.setProperty(FlattenJson.RETURN_TYPE, FlattenJson.RETURN_TYPE_UNFLATTEN)
+        baseTest(testRunner, json,1) { parsed ->
+            assert parsed.first instanceof Map
+            assert parsed.first.second.third[0] == ["one", "two", "three", "four", "five"]
         }
     }
 }
