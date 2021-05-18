@@ -96,7 +96,7 @@
         <jackson.version>2.9.10</jackson.version>
         <jackson-databind.version>2.9.10.8</jackson-databind.version>
         <nifi.registry.version>0.8.0</nifi.registry.version>
-        <nifi.groovy.version>2.5.4</nifi.groovy.version>
+        <nifi.groovy.version>2.5.6</nifi.groovy.version>
         <surefire.version>2.22.2</surefire.version>
         <!-- The Hadoop version used by nifi-hadoop-libraries-nar and any NARs that depend on it, other NARs that need
             a specific version should override this property, or use a more specific property like abc.hadoop.version -->
