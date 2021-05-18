@@ -134,6 +134,7 @@ public abstract class AbstractCSVLookupService extends AbstractControllerService
         properties.add(CSVUtils.COMMENT_MARKER);
         properties.add(CSVUtils.ESCAPE_CHAR);
         properties.add(CSVUtils.TRIM_FIELDS);
+        properties.add(CSVUtils.IGNORE_SURROUNDING_SPACES);
     }
 
     public void onEnabled(final ConfigurationContext context) throws IOException, InitializationException {

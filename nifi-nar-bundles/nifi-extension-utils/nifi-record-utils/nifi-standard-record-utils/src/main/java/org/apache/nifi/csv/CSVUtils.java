@@ -121,11 +121,22 @@ public class CSVUtils {
         .build();
     public static final PropertyDescriptor TRIM_FIELDS = new PropertyDescriptor.Builder()
         .name("Trim Fields")
-        .description("Whether or not white space should be removed from the beginning and end of fields")
+        .description("Whether or not white space should be removed from the beginning and end of fields (corresponds to Apache CSVFormat#withTrim).")
         .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .allowableValues("true", "false")
         .defaultValue("true")
         .required(true)
+        .build();
+    public static final PropertyDescriptor IGNORE_SURROUNDING_SPACES = new PropertyDescriptor.Builder()
+        .name("ignore-surrounding-spaces")
+        .displayName("Ignore Surrounding Spaces")
+        .description("Whether or not spaces around values are ignored when parsing input (corresponds to Apache CSVFormat#withIgnoreSurroundingSpaces). " +
+                "\nNote: Apache Common parser with only trim-fields, will parse a single quoted field containing the value separator and surrounded by spaces (ex. '  \"abc,def\"') as " +
+                "two distinct fields. With this option, it will be parsed as a single field.")
+        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+        .allowableValues("true", "false")
+        .defaultValue("false")
+        .required(false)
         .build();
     public static final PropertyDescriptor CHARSET = new PropertyDescriptor.Builder()
         .name("csvutils-character-set")
@@ -278,7 +289,10 @@ public class CSVUtils {
         format = format.withEscape(escapeChar);
 
         format = format.withTrim(context.getProperty(TRIM_FIELDS).asBoolean());
-        format = format.withIgnoreSurroundingSpaces(context.getProperty(TRIM_FIELDS).asBoolean());
+        PropertyValue ignoreSurroudingSpaces = context.getProperty(IGNORE_SURROUNDING_SPACES);
+        if (ignoreSurroudingSpaces.isSet() && ignoreSurroudingSpaces.asBoolean()) {
+            format = format.withIgnoreSurroundingSpaces();
+        }
 
         if (context.getProperty(COMMENT_MARKER).isSet()) {
             final Character commentMarker = getCharUnescaped(context, COMMENT_MARKER, variables);

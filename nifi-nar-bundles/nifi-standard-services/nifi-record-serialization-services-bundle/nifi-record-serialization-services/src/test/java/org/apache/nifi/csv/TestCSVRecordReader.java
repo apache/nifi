@@ -27,6 +27,7 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.util.MockPropertyContext;
 import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -47,6 +48,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.TimeZone;
 
 import static org.junit.Assert.assertEquals;
@@ -56,7 +58,7 @@ import static org.junit.Assert.assertThrows;
 
 public class TestCSVRecordReader {
     private final DataType doubleDataType = RecordFieldType.DOUBLE.getDataType();
-    private final CSVFormat format = CSVFormat.DEFAULT.withFirstRecordAsHeader().withTrim().withIgnoreSurroundingSpaces().withQuote('"');
+    private final CSVFormat format = CSVFormat.DEFAULT.withFirstRecordAsHeader().withTrim().withQuote('"');
 
     private List<RecordField> getDefaultFields() {
         final List<RecordField> fields = new ArrayList<>();
@@ -618,7 +620,7 @@ public class TestCSVRecordReader {
         }
 
         // confirm duplicate headers cause an exception when requested
-        final CSVFormat disallowDuplicateHeadersFormat = CSVFormat.DEFAULT.withFirstRecordAsHeader().withTrim().withIgnoreSurroundingSpaces().withQuote('"').withAllowDuplicateHeaderNames(false);
+        final CSVFormat disallowDuplicateHeadersFormat = CSVFormat.DEFAULT.withFirstRecordAsHeader().withTrim().withQuote('"').withAllowDuplicateHeaderNames(false);
         try (final InputStream bais = new ByteArrayInputStream(inputData)) {
             final IllegalArgumentException iae = assertThrows(IllegalArgumentException.class, () -> createReader(bais, schema, disallowDuplicateHeadersFormat));
             assertEquals(
@@ -634,7 +636,7 @@ public class TestCSVRecordReader {
 
         char delimiter = StringEscapeUtils.unescapeJava("\u0001").charAt(0);
 
-        final CSVFormat format = CSVFormat.DEFAULT.withFirstRecordAsHeader().withTrim().withIgnoreSurroundingSpaces().withQuote('"').withDelimiter(delimiter);
+        final CSVFormat format = CSVFormat.DEFAULT.withFirstRecordAsHeader().withTrim().withQuote('"').withDelimiter(delimiter);
         final List<RecordField> fields = getDefaultFields();
         fields.replaceAll(f -> f.getFieldName().equals("balance") ? new RecordField("balance", doubleDataType) : f);
 
@@ -657,7 +659,7 @@ public class TestCSVRecordReader {
 
     @Test
     public void testQuote() throws IOException, MalformedRecordException {
-        final CSVFormat format = CSVFormat.RFC4180.withFirstRecordAsHeader().withTrim().withIgnoreSurroundingSpaces().withQuote('"');
+        final CSVFormat format = CSVFormat.RFC4180.withFirstRecordAsHeader().withTrim().withQuote('"');
         final String text = "\"name\"\n\"\"\"\"\n\"\"\"\"";
 
         final List<RecordField> fields = new ArrayList<>();
@@ -679,9 +681,25 @@ public class TestCSVRecordReader {
     }
 
     @Test
-    public void testTrimmedQuotedCommaBug() throws IOException, MalformedRecordException{
-        final CSVFormat format = CSVFormat.RFC4180.withFirstRecordAsHeader().withTrim().withIgnoreSurroundingSpaces().withQuote('"');
-        final String text = "A, B\n" + " \"a,a\" ,";
+    public void testSpacedQuotedFieldContainingValueSeparatorParsing() throws IOException, MalformedRecordException{
+        // CSV data
+        // - data field contain the value separator but the field is quoted so it shouldn't be interpreted, and quotes should be removed
+        // - data field is surrounded by spaces
+        final String text = "A, B\n" + " \"a,a\" ,\"bb\"";
+
+        final CSVFormat format = CSVUtils.createCSVFormat(
+                new MockPropertyContext(Map.of(
+                        // This first option should fix the parsing, without that the quoted field is parsed as
+                        // two different fields because it's the default behaviour of Apache Commons CSV Parser
+                        CSVUtils.IGNORE_SURROUNDING_SPACES, "true",
+
+                        CSVUtils.CSV_FORMAT, CSVUtils.CUSTOM.getValue(),
+                        CSVUtils.FIRST_LINE_IS_HEADER, "true",
+                        CSVUtils.QUOTE_CHAR, "\"",
+                        CSVUtils.VALUE_SEPARATOR, ",",
+                        CSVUtils.TRIM_FIELDS, "true"
+                )),
+                Map.of());
 
         final List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField("A", RecordFieldType.STRING.getDataType()));
@@ -694,7 +712,7 @@ public class TestCSVRecordReader {
 
             Record record = reader.nextRecord();
             assertEquals("a,a", record.getValue("A"));
-            assertNull(record.getValue("B"));
+            assertEquals("bb", record.getValue("B"));
         }
     }
 }

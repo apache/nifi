@@ -109,6 +109,7 @@ public class CSVReader extends SchemaRegistryService implements RecordReaderFact
         properties.add(CSVUtils.COMMENT_MARKER);
         properties.add(CSVUtils.NULL_STRING);
         properties.add(CSVUtils.TRIM_FIELDS);
+        properties.add(CSVUtils.IGNORE_SURROUNDING_SPACES);
         properties.add(CSVUtils.CHARSET);
         properties.add(CSVUtils.ALLOW_DUPLICATE_HEADER_NAMES);
         return properties;

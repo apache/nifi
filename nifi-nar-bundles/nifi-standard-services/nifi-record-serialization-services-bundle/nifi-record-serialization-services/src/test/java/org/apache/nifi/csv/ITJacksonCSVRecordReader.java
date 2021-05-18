@@ -38,7 +38,7 @@ import static org.junit.Assert.assertNotNull;
 
 public class ITJacksonCSVRecordReader {
 
-    private final CSVFormat format = CSVFormat.DEFAULT.withFirstRecordAsHeader().withTrim().withIgnoreSurroundingSpaces().withQuote('"');
+    private final CSVFormat format = CSVFormat.DEFAULT.withFirstRecordAsHeader().withTrim().withQuote('"');
 
     private List<RecordField> getDefaultFields() {
         final List<RecordField> fields = new ArrayList<>();
