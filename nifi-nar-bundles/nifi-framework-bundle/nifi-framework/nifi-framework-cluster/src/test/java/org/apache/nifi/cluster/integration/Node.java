@@ -141,7 +141,7 @@ public class Node {
 
 
     private static NodeIdentifier createNodeId() {
-        return new NodeIdentifier(UUID.randomUUID().toString(), "localhost", createPort(), "localhost", createPort(), "localhost", createPort(), "localhost", null, null, false, null);
+        return new NodeIdentifier(UUID.randomUUID().toString(), "localhost", createPort(), "localhost", createPort(), "localhost", createPort(), "localhost", null, null, false, (String)null);
     }
 
     /**

@@ -175,6 +175,6 @@ public class NodeIdentifierDescriptor {
                 getSocketAddress(), getSocketPort(),
                 getLoadBalanceAddress(), getLoadBalancePort(),
                 getSiteToSiteAddress(), getSiteToSitePort(), getSiteToSiteHttpApiPort(),
-                getSiteToSiteSecure(), getWebContextRoot(), getNodeIdentities());
+                getSiteToSiteSecure(), getNodeIdentities(), getWebContextRoot());
     }
 }

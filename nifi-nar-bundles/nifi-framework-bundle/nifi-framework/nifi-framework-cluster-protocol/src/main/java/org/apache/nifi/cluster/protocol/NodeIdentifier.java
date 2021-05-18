@@ -112,39 +112,64 @@ public class NodeIdentifier {
 
     private final Set<String> nodeIdentities;
 
-    public NodeIdentifier(final String id, final String apiAddress, final int apiPort, final String socketAddress, final int socketPort,
-                          final String siteToSiteAddress, final Integer siteToSitePort, final Integer siteToSiteHttpApiPort, final boolean siteToSiteSecure) {
-        this(id, apiAddress, apiPort, socketAddress, socketPort, socketAddress, NiFiProperties.DEFAULT_LOAD_BALANCE_PORT, siteToSiteAddress, siteToSitePort, siteToSiteHttpApiPort, siteToSiteSecure,
-                null, null);
+    public NodeIdentifier(final String id, final String apiAddress, final int apiPort,
+                          final String socketAddress, final int socketPort,
+                          final String siteToSiteAddress, final Integer siteToSitePort,
+                          final Integer siteToSiteHttpApiPort, final boolean siteToSiteSecure) {
+        this(id, apiAddress, apiPort,
+                socketAddress, socketPort,
+                socketAddress, NiFiProperties.DEFAULT_LOAD_BALANCE_PORT,
+                siteToSiteAddress, siteToSitePort,
+                siteToSiteHttpApiPort, siteToSiteSecure);
     }
 
-    public NodeIdentifier(final String id, final String apiAddress, final int apiPort, final String socketAddress, final int socketPort,
+    public NodeIdentifier(final String id, final String apiAddress, final int apiPort,
+                          final String socketAddress, final int socketPort,
                           final String loadBalanceAddress, final int loadBalancePort,
-                          final String siteToSiteAddress, final Integer siteToSitePort, final Integer siteToSiteHttpApiPort, final boolean siteToSiteSecure) {
-        this(id, apiAddress, apiPort, socketAddress, socketPort, loadBalanceAddress, loadBalancePort,
-                siteToSiteAddress, siteToSitePort, siteToSiteHttpApiPort, siteToSiteSecure, null, null);
+                          final String siteToSiteAddress, final Integer siteToSitePort,
+                          final Integer siteToSiteHttpApiPort, final boolean siteToSiteSecure) {
+        this(id, apiAddress, apiPort,
+                socketAddress, socketPort,
+                loadBalanceAddress, loadBalancePort,
+                siteToSiteAddress, siteToSitePort,
+                siteToSiteHttpApiPort, siteToSiteSecure,
+                (Set<String>)null);
     }
 
-    public NodeIdentifier(final String id, final String apiAddress, final int apiPort, final String socketAddress, final int socketPort,
+    public NodeIdentifier(final String id, final String apiAddress, final int apiPort,
+                          final String socketAddress, final int socketPort,
                           final String loadBalanceAddress, final int loadBalancePort,
-                          final String siteToSiteAddress, final Integer siteToSitePort, final Integer siteToSiteHttpApiPort, final boolean siteToSiteSecure,
-                          final String webRootContext) {
-        this(id, apiAddress, apiPort, socketAddress, socketPort, loadBalanceAddress, loadBalancePort,
-                siteToSiteAddress, siteToSitePort, siteToSiteHttpApiPort, siteToSiteSecure, webRootContext, null);
+                          final String siteToSiteAddress, final Integer siteToSitePort,
+                          final Integer siteToSiteHttpApiPort, final boolean siteToSiteSecure,
+                          final String webContextRoot) {
+        this(id, apiAddress, apiPort,
+          socketAddress, socketPort,
+          loadBalanceAddress, loadBalancePort,
+          siteToSiteAddress, siteToSitePort,
+          siteToSiteHttpApiPort, siteToSiteSecure,
+          (Set<String>)null, webContextRoot);
     }
 
-    public NodeIdentifier(final String id, final String apiAddress, final int apiPort, final String socketAddress, final int socketPort,
-            final String loadBalanceAddress, final int loadBalancePort,
-            final String siteToSiteAddress, final Integer siteToSitePort, final Integer siteToSiteHttpApiPort, final boolean siteToSiteSecure,
-            final Set<String> nodeIdentities) {
-        this(id, apiAddress, apiPort, socketAddress, socketPort, loadBalanceAddress, loadBalancePort,
-                siteToSiteAddress, siteToSitePort, siteToSiteHttpApiPort, siteToSiteSecure, null, null);
+    public NodeIdentifier(final String id, final String apiAddress, final int apiPort,
+                          final String socketAddress, final int socketPort,
+                          final String loadBalanceAddress, final int loadBalancePort,
+                          final String siteToSiteAddress, final Integer siteToSitePort,
+                          final Integer siteToSiteHttpApiPort, final boolean siteToSiteSecure,
+                          final Set<String> nodeIdentities) {
+        this(id, apiAddress, apiPort,
+                socketAddress, socketPort,
+                loadBalanceAddress, loadBalancePort,
+                siteToSiteAddress, siteToSitePort,
+                siteToSiteHttpApiPort, siteToSiteSecure,
+                nodeIdentities, (String)null);
     }
-    
-    public NodeIdentifier(final String id, final String apiAddress, final int apiPort, final String socketAddress, final int socketPort, 
-            final String loadBalanceAddress, final int loadBalancePort,
-            final String siteToSiteAddress, final Integer siteToSitePort, final Integer siteToSiteHttpApiPort, final boolean siteToSiteSecure, 
-        final String webContextRoot, final Set<String> nodeIdentities) {
+
+    public NodeIdentifier(final String id, final String apiAddress, final int apiPort,
+                         final String socketAddress, final int socketPort,
+                         final String loadBalanceAddress, final int loadBalancePort,
+                         final String siteToSiteAddress, final Integer siteToSitePort,
+                         final Integer siteToSiteHttpApiPort, final boolean siteToSiteSecure,
+                         final Set<String> nodeIdentities, final String webContextRoot) {
 
         if (StringUtils.isBlank(id)) {
             throw new IllegalArgumentException("Node ID may not be empty or null.");
@@ -320,10 +345,14 @@ public class NodeIdentifier {
     }
 
     public String getFullDescription() {
-        return "NodeIdentifier[UUID=" + id + ", API Address = " + apiAddress + ":" + apiPort + ", Cluster Socket Address = " + socketAddress + ":" + socketPort
-            + ", Load Balance Address = " + loadBalanceAddress + ":" + loadBalancePort + ", Site-to-Site Raw Address = " + siteToSiteAddress + ":" + siteToSitePort
-            + ", Site-to-Site HTTP Address = " + apiAddress + ":" + siteToSiteHttpApiPort + ", Site-to-Site Secure = " + siteToSiteSecure +
-            ", Web Context Root = " + webContextRoot + ", Node Identities = " + nodeIdentities + "]";
+        return "NodeIdentifier[UUID=" + id + ", API Address = " + apiAddress + ":" + apiPort
+                + ", Cluster Socket Address = " + socketAddress + ":" + socketPort
+                + ", Load Balance Address = " + loadBalanceAddress + ":" + loadBalancePort
+                + ", Site-to-Site Raw Address = " + siteToSiteAddress + ":" + siteToSitePort
+                + ", Site-to-Site HTTP Address = " + apiAddress + ":" + siteToSiteHttpApiPort
+                + ", Site-to-Site Secure = " + siteToSiteSecure
+                + ", Web Context Root = " + webContextRoot
+                + ", Node Identities = " + nodeIdentities + "]";
     }
 
 }
