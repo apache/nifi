@@ -234,9 +234,8 @@ public class ConvertAvroToORC extends AbstractProcessor {
                     try {
 
                         int recordCount = 0;
-                        GenericRecord currRecord = null;
                         while (reader.hasNext()) {
-                            currRecord = reader.next(currRecord);
+                            GenericRecord currRecord = reader.next();
                             List<Schema.Field> fields = currRecord.getSchema().getFields();
                             if (fields != null) {
                                 Object[] row = new Object[fields.size()];

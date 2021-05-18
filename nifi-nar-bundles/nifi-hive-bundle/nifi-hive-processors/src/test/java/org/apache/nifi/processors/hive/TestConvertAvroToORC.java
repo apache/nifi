@@ -53,6 +53,7 @@ import java.io.InputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -61,6 +62,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.TreeMap;
 
 import static org.junit.Assert.assertArrayEquals;
@@ -318,6 +320,78 @@ public class TestConvertAvroToORC {
         Object decimalFieldObject = inspector.getStructFieldData(o, inspector.getStructFieldRef("myDecimal"));
         assertTrue(decimalFieldObject instanceof HiveDecimalWritable);
         assertEquals(sampleBigDecimal, ((HiveDecimalWritable) decimalFieldObject).getHiveDecimal().bigDecimalValue());
+    }
+
+    @Test
+    public void test_onTrigger_complex_records_with_bigdecimals() throws Exception {
+
+        Map<String, Double> mapData1 = new TreeMap<String, Double>() {{
+            put("key1", 1.0);
+            put("key2", 2.0);
+        }};
+
+        DatumWriter<GenericData.Record> writer;
+        DataFileWriter<GenericData.Record> fileWriter = null;
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+
+        Random random = new Random();
+        double bigDecimalUpperRange = 200;
+        for (int i = 0; i < 1000; ++i) {
+            ByteBuffer bigDecimalAsBytes = toByteBuffer(new BigDecimal(random.nextDouble() * bigDecimalUpperRange).setScale(2, RoundingMode.HALF_UP));
+            GenericData.Record record = TestNiFiOrcUtils.buildComplexAvroRecord(null, mapData1, "XYZ", 4L, Arrays.asList(100, 200), bigDecimalAsBytes);
+            if (i == 0) {
+                writer = new GenericDatumWriter<>(record.getSchema());
+                fileWriter = new DataFileWriter<>(writer);
+                fileWriter.create(record.getSchema(), out);
+            }
+            fileWriter.append(record);
+        }
+
+        fileWriter.flush();
+        fileWriter.close();
+        out.close();
+
+        Map<String, String> attributes = new HashMap<String, String>() {{
+            put(CoreAttributes.FILENAME.key(), "test");
+        }};
+        runner.enqueue(out.toByteArray(), attributes);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ConvertAvroToORC.REL_SUCCESS, 1);
+
+        // Write the flow file out to disk, since the ORC Reader needs a path
+        MockFlowFile resultFlowFile = runner.getFlowFilesForRelationship(ConvertAvroToORC.REL_SUCCESS).get(0);
+        assertEquals("1000", resultFlowFile.getAttribute(ConvertAvroToORC.RECORD_COUNT_ATTRIBUTE));
+        assertEquals("test.orc", resultFlowFile.getAttribute(CoreAttributes.FILENAME.key()));
+        byte[] resultContents = runner.getContentAsByteArray(resultFlowFile);
+        FileOutputStream fos = new FileOutputStream("target/test1.orc");
+        fos.write(resultContents);
+        fos.flush();
+        fos.close();
+
+        Configuration conf = new Configuration();
+        FileSystem fs = FileSystem.getLocal(conf);
+        Reader reader = OrcFile.createReader(new Path("target/test1.orc"), OrcFile.readerOptions(conf).filesystem(fs));
+        RecordReader rows = reader.rows();
+        while (rows.hasNext()) {
+            Object o = rows.next(null);
+            assertNotNull(o);
+            assertTrue(o instanceof OrcStruct);
+            TypeInfo resultSchema = TestNiFiOrcUtils.buildComplexOrcSchema();
+            StructObjectInspector inspector = (StructObjectInspector) OrcStruct.createObjectInspector(resultSchema);
+
+            assertDecimalInRange(inspector.getStructFieldData(o, inspector.getStructFieldRef("myDecimal")), bigDecimalUpperRange);
+        }
+    }
+
+    private void assertDecimalInRange(Object decimalFieldObject, double range) {
+        assertTrue(decimalFieldObject instanceof HiveDecimalWritable);
+        double value = ((HiveDecimalWritable) decimalFieldObject).getHiveDecimal().bigDecimalValue().doubleValue();
+        assertTrue("expect " + value + " to be not higher than " + range, value <= range);
+    }
+
+    private ByteBuffer toByteBuffer(BigDecimal sampleBigDecimal) {
+        return ByteBuffer.wrap(sampleBigDecimal.unscaledValue().toByteArray());
     }
 
     @Test
