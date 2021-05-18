@@ -382,7 +382,8 @@ public class StandardStatelessFlow implements StatelessDataflow {
         final BlockingQueue<TriggerResult> resultQueue = new LinkedBlockingQueue<>();
 
         final ExecutionProgress executionProgress = new StandardExecutionProgress(rootGroup, internalFlowFileQueues, resultQueue,
-            (ByteArrayContentRepository) repositoryContextFactory.getContentRepository(), dataflowDefinition.getFailurePortNames(), tracker);
+            (ByteArrayContentRepository) repositoryContextFactory.getContentRepository(), dataflowDefinition.getFailurePortNames(), tracker,
+            stateManagerProvider);
 
         final AtomicReference<Future<?>> processFuture = new AtomicReference<>();
         final DataflowTrigger trigger = new DataflowTrigger() {
@@ -458,11 +459,13 @@ public class StandardStatelessFlow implements StatelessDataflow {
             logger.debug("Caught a TerminatedTaskException", tte);
             purge();
             tracker.triggerFailureCallbacks(tte);
+            stateManagerProvider.rollbackUpdates();
             resultQueue.offer(new CanceledTriggerResult());
         } catch (final Throwable t) {
             logger.error("Failed to execute dataflow", t);
             purge();
             tracker.triggerFailureCallbacks(t);
+            stateManagerProvider.rollbackUpdates();
             resultQueue.offer(new ExceptionalTriggerResult(t));
         }
     }
