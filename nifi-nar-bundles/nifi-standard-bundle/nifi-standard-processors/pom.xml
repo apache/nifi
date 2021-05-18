@@ -331,7 +331,7 @@
             <artifactId>ParCEFone</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.github.wnameless</groupId>
+            <groupId>com.github.wnameless.json</groupId>
             <artifactId>json-flattener</artifactId>
         </dependency>
         <dependency>
