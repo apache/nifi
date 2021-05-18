@@ -18,6 +18,7 @@ package org.apache.nifi.cluster.spring;
 
 import java.io.File;
 
+import org.apache.nifi.cluster.firewall.ClusterNodeFirewall;
 import org.apache.nifi.cluster.firewall.impl.FileBasedClusterNodeFirewall;
 import org.apache.nifi.util.NiFiProperties;
 import org.springframework.beans.factory.FactoryBean;
@@ -25,18 +26,20 @@ import org.springframework.beans.factory.FactoryBean;
 /**
  * Factory bean for creating a singleton FileBasedClusterNodeFirewall instance.
  */
-public class FileBasedClusterNodeFirewallFactoryBean implements FactoryBean<FileBasedClusterNodeFirewall> {
+public class FileBasedClusterNodeFirewallFactoryBean implements FactoryBean<ClusterNodeFirewall> {
 
-    private FileBasedClusterNodeFirewall firewall;
+    private ClusterNodeFirewall firewall;
 
     private NiFiProperties properties;
 
     @Override
-    public FileBasedClusterNodeFirewall getObject() throws Exception {
+    public ClusterNodeFirewall getObject() throws Exception {
         if (firewall == null) {
             final File config = properties.getClusterNodeFirewallFile();
             final File restoreDirectory = properties.getRestoreDirectory();
-            if (config != null) {
+            if (config == null) {
+                firewall = new PermitAllClusterNodeFirewall();
+            } else {
                 firewall = new FileBasedClusterNodeFirewall(config, restoreDirectory);
             }
         }
@@ -44,8 +47,8 @@ public class FileBasedClusterNodeFirewallFactoryBean implements FactoryBean<File
     }
 
     @Override
-    public Class<FileBasedClusterNodeFirewall> getObjectType() {
-        return FileBasedClusterNodeFirewall.class;
+    public Class<ClusterNodeFirewall> getObjectType() {
+        return ClusterNodeFirewall.class;
     }
 
     @Override
@@ -55,5 +58,13 @@ public class FileBasedClusterNodeFirewallFactoryBean implements FactoryBean<File
 
     public void setProperties(NiFiProperties properties) {
         this.properties = properties;
+    }
+
+    private static class PermitAllClusterNodeFirewall implements ClusterNodeFirewall {
+
+        @Override
+        public boolean isPermissible(final String hostOrIp) {
+            return true;
+        }
     }
 }
