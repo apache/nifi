@@ -24,17 +24,17 @@ import org.snmp4j.mp.SnmpConstants;
 public class V2cSNMPFactory extends AbstractSNMPFactory implements SNMPFactory {
 
     @Override
-    public boolean supports(int version) {
+    public boolean supports(final int version) {
         return SnmpConstants.version2c == version;
     }
 
     @Override
-    public Snmp createSnmpManagerInstance(SNMPConfiguration configuration) {
+    public Snmp createSnmpManagerInstance(final SNMPConfiguration configuration) {
         return createSnmpClient();
     }
 
     @Override
-    public Target createTargetInstance(SNMPConfiguration configuration) {
+    public Target createTargetInstance(final SNMPConfiguration configuration) {
         return createCommunityTarget(configuration);
     }
 }

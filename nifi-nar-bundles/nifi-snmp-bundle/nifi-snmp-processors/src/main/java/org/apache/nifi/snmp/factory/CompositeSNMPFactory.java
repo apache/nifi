@@ -32,7 +32,7 @@ public class CompositeSNMPFactory implements SNMPFactory {
     private static final List<SNMPFactory> FACTORIES;
 
     static {
-        List<SNMPFactory> factories = Arrays.asList(new V1SNMPFactory(), new V2cSNMPFactory(), new V3SNMPFactory());
+        final List<SNMPFactory> factories = Arrays.asList(new V1SNMPFactory(), new V2cSNMPFactory(), new V3SNMPFactory());
         FACTORIES = Collections.unmodifiableList(factories);
     }
 
@@ -51,7 +51,7 @@ public class CompositeSNMPFactory implements SNMPFactory {
     }
 
     @Override
-    public Target createTargetInstance(SNMPConfiguration configuration) {
+    public Target createTargetInstance(final SNMPConfiguration configuration) {
         final Optional<SNMPFactory> factory = getMatchingFactory(configuration.getVersion());
         if (!factory.isPresent()) {
             throw new InvalidSnmpVersionException(INVALID_SNMP_VERSION);

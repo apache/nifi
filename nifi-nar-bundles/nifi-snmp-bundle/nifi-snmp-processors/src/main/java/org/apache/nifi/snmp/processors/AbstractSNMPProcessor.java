@@ -31,14 +31,18 @@ import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.snmp.configuration.SNMPConfiguration;
 import org.apache.nifi.snmp.configuration.SNMPConfigurationBuilder;
 import org.apache.nifi.snmp.dto.SNMPSingleResponse;
+import org.apache.nifi.snmp.dto.SNMPValue;
+import org.apache.nifi.snmp.exception.SNMPException;
 import org.apache.nifi.snmp.logging.SLF4JLogFactory;
 import org.apache.nifi.snmp.operations.SNMPRequestHandler;
 import org.apache.nifi.snmp.operations.SNMPRequestHandlerFactory;
 import org.apache.nifi.snmp.utils.SNMPUtils;
 import org.snmp4j.log.LogFactory;
+import org.snmp4j.mp.SnmpConstants;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Base processor that uses SNMP4J client API.
@@ -51,34 +55,33 @@ abstract class AbstractSNMPProcessor extends AbstractProcessor {
         LogFactory.setLogFactory(new SLF4JLogFactory());
     }
 
-    private static final String SHA_2_BASED_AUTHENTICATION = "SHA-2 based authentication";
     private static final String SHA_2_ALGORITHM = "Provides authentication based on the HMAC-SHA-2 algorithm.";
-
+    private static final String NO_SUCH_OBJECT = "noSuchObject";
     // SNMP versions
     public static final AllowableValue SNMP_V1 = new AllowableValue("SNMPv1", "v1", "SNMP version 1");
     public static final AllowableValue SNMP_V2C = new AllowableValue("SNMPv2c", "v2c", "SNMP version 2c");
     public static final AllowableValue SNMP_V3 = new AllowableValue("SNMPv3", "v3", "SNMP version 3 with improved security");
 
     // SNMPv3 privacy protocols
-    public static final AllowableValue NO_AUTH_NO_PRIV = new AllowableValue("noAuthNoPriv", "No authentication or encryption",
+    public static final AllowableValue NO_AUTH_NO_PRIV = new AllowableValue("noAuthNoPriv", "noAuthNoPriv",
             "No authentication or encryption.");
-    public static final AllowableValue AUTH_NO_PRIV = new AllowableValue("authNoPriv", "Authentication without encryption",
+    public static final AllowableValue AUTH_NO_PRIV = new AllowableValue("authNoPriv", "authNoPriv",
             "Authentication without encryption.");
-    public static final AllowableValue AUTH_PRIV = new AllowableValue("authPriv", "Authentication and encryption",
+    public static final AllowableValue AUTH_PRIV = new AllowableValue("authPriv", "authPriv",
             "Authentication and encryption.");
 
     // SNMPv3 authentication protocols
-    public static final AllowableValue MD5 = new AllowableValue("MD5", "MD5 based authentication",
+    public static final AllowableValue MD5 = new AllowableValue("MD5", "MD5",
             "Provides authentication based on the HMAC-MD5 algorithm.");
-    public static final AllowableValue SHA = new AllowableValue("SHA", "SHA based authentication",
+    public static final AllowableValue SHA = new AllowableValue("SHA", "SHA",
             "Provides authentication based on the HMAC-SHA algorithm.");
-    public static final AllowableValue HMAC128SHA224 = new AllowableValue("HMAC128SHA224", SHA_2_BASED_AUTHENTICATION,
+    public static final AllowableValue HMAC128SHA224 = new AllowableValue("HMAC128SHA224", "SHA224",
             SHA_2_ALGORITHM);
-    public static final AllowableValue HMAC192SHA256 = new AllowableValue("HMAC192SHA256", SHA_2_BASED_AUTHENTICATION,
+    public static final AllowableValue HMAC192SHA256 = new AllowableValue("HMAC192SHA256", "SHA256",
             SHA_2_ALGORITHM);
-    public static final AllowableValue HMAC256SHA384 = new AllowableValue("HMAC256SHA384", SHA_2_BASED_AUTHENTICATION,
+    public static final AllowableValue HMAC256SHA384 = new AllowableValue("HMAC256SHA384", "SHA384",
             SHA_2_ALGORITHM);
-    public static final AllowableValue HMAC384SHA512 = new AllowableValue("HMAC384SHA512", SHA_2_BASED_AUTHENTICATION,
+    public static final AllowableValue HMAC384SHA512 = new AllowableValue("HMAC384SHA512", "SHA512",
             SHA_2_ALGORITHM);
 
     // SNMPv3 encryption
@@ -99,7 +102,7 @@ abstract class AbstractSNMPProcessor extends AbstractProcessor {
     public static final PropertyDescriptor AGENT_HOST = new PropertyDescriptor.Builder()
             .name("snmp-hostname")
             .displayName("SNMP Agent Hostname")
-            .description("Network address of the SNMP Agent.")
+            .description("Hostname or network address of the SNMP Agent.")
             .required(true)
             .defaultValue("localhost")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -108,7 +111,7 @@ abstract class AbstractSNMPProcessor extends AbstractProcessor {
     public static final PropertyDescriptor AGENT_PORT = new PropertyDescriptor.Builder()
             .name("snmp-port")
             .displayName("SNMP Agent Port")
-            .description("Numeric value identifying the port of SNMP Agent.")
+            .description("Port of the SNMP Agent.")
             .required(true)
             .defaultValue("161")
             .addValidator(StandardValidators.PORT_VALIDATOR)
@@ -224,7 +227,7 @@ abstract class AbstractSNMPProcessor extends AbstractProcessor {
     @OnScheduled
     public void initSnmpClient(final ProcessContext context) throws InitializationException {
         final int version = SNMPUtils.getVersion(context.getProperty(SNMP_VERSION).getValue());
-        SNMPConfiguration configuration;
+        final SNMPConfiguration configuration;
         try {
             configuration = new SNMPConfigurationBuilder()
                     .setAgentHost(context.getProperty(AGENT_HOST).getValue())
@@ -281,17 +284,29 @@ abstract class AbstractSNMPProcessor extends AbstractProcessor {
     }
 
     protected void processResponse(final ProcessSession processSession, FlowFile flowFile, final SNMPSingleResponse response,
-                                   final String provenanceAddress, final Relationship success, final Relationship failure) {
+                                   final String provenanceAddress, final Relationship success) {
         if (response.isValid()) {
             flowFile = processSession.putAllAttributes(flowFile, response.getAttributes());
             processSession.transfer(flowFile, success);
             processSession.getProvenanceReporter().receive(flowFile, provenanceAddress);
-
+            checkV3VariableBindings(response);
         } else {
             final String error = response.getErrorStatusText();
-            getLogger().error("SNMP Set failed, response error: {}", error);
-            flowFile = addAttribute(SNMPUtils.SNMP_PROP_PREFIX + "errorStatusText", error, flowFile, processSession);
-            processSession.transfer(processSession.penalize(flowFile), failure);
+            throw new SNMPException("SNMP request failed, response error: " + error);
+        }
+    }
+
+    private void checkV3VariableBindings(SNMPSingleResponse response) {
+        if (response.getVersion() == SnmpConstants.version3) {
+            final Optional<SNMPValue> firstVariableBinding = response.getVariableBindings().stream().findFirst();
+            if (firstVariableBinding.isPresent()) {
+                final String value = firstVariableBinding.get().getVariable();
+                if (NO_SUCH_OBJECT.equals(value)) {
+                    throw new SNMPException("SNMP Request failed, OID not found.");
+                }
+            } else {
+                throw new SNMPException("Empty SNMP response: no variable binding found.");
+            }
         }
     }
 }

@@ -167,7 +167,7 @@ public class GetSNMP extends AbstractSNMPProcessor {
         try {
             response = snmpRequestHandler.get(oid);
             final String provenanceAddress = response.getTargetAddress() + "/" + oid;
-            processResponse(processSession, flowFile, response, provenanceAddress, REL_SUCCESS, REL_FAILURE);
+            processResponse(processSession, flowFile, response, provenanceAddress, REL_SUCCESS);
         } catch (SNMPException e) {
             getLogger().error(e.getMessage());
             context.yield();

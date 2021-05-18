@@ -25,7 +25,7 @@ import org.snmp4j.Target;
 public final class SNMPRequestHandlerFactory {
 
     public static SNMPRequestHandler createStandardRequestHandler(final SNMPConfiguration configuration) {
-        SNMPFactory snmpFactory = new CompositeSNMPFactory();
+        final SNMPFactory snmpFactory = new CompositeSNMPFactory();
         final Snmp snmpClient = snmpFactory.createSnmpManagerInstance(configuration);
         final Target target = snmpFactory.createTargetInstance(configuration);
         return new StandardSNMPRequestHandler(snmpClient, target);

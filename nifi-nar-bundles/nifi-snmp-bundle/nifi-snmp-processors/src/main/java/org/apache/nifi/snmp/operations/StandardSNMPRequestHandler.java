@@ -86,7 +86,25 @@ final class StandardSNMPRequestHandler implements SNMPRequestHandler {
         if (subtree.isEmpty()) {
             throw new SNMPWalkException(String.format("The subtree associated with the specified OID %s is empty.", oid));
         }
+        if (isAgentNotAvailableOrOidNotFound(subtree)) {
+            throw new SNMPWalkException("Agent is not available. Please, if the agent is available and that " +
+                    "the processor's SNMP version matches the agent version.");
+        }
+        if (isLeafElement(subtree)) {
+            throw new SNMPWalkException(String.format("OID not found or it is a single leaf element. The leaf element " +
+                    "associated with this %s OID does not contain child OIDs. Please check if the OID exists in the agent " +
+                    "MIB or specify a parent OID with at least one child element", oid));
+        }
+
         return new SNMPTreeResponse(target, subtree);
+    }
+
+    private boolean isAgentNotAvailableOrOidNotFound(final List<TreeEvent> subtree) {
+        return subtree.size() == 1 && subtree.get(0).getVariableBindings() == null;
+    }
+
+    private boolean isLeafElement(final List<TreeEvent> subtree) {
+        return subtree.size() == 1 && subtree.get(0).getVariableBindings().length == 0;
     }
 
     /**

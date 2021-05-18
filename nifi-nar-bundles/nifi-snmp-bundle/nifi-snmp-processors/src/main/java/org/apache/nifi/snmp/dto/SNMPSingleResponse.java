@@ -29,7 +29,7 @@ public class SNMPSingleResponse {
     private final Target target;
     private final PDU responsePdu;
 
-    public SNMPSingleResponse(Target target, PDU responsePdu) {
+    public SNMPSingleResponse(final Target target, final PDU responsePdu) {
         this.target = target;
         this.responsePdu = responsePdu;
     }
@@ -56,5 +56,9 @@ public class SNMPSingleResponse {
 
     public String getTargetAddress() {
         return target.getAddress().toString();
+    }
+
+    public int getVersion() {
+        return target.getVersion();
     }
 }

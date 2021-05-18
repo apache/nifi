@@ -78,15 +78,6 @@ public class GetSNMPTest {
         assertEquals(OIDValue2, successFF.getAttribute(SNMPUtils.SNMP_PROP_PREFIX + readOnlyOID2.toString() + SNMPUtils.SNMP_PROP_DELIMITER + "4"));
     }
 
-    @Test
-    public void testInvalidPduResultsInFailure() {
-        final TestRunner runner = getTestRunner("1.3.6.1.4.1.32437.0", String.valueOf(snmpV1Agent.getPort()), GET);
-        runner.run();
-        final MockFlowFile failureFF = runner.getFlowFilesForRelationship(GetSNMP.REL_FAILURE).get(0);
-        assertNotNull(failureFF);
-        assertEquals("No such name", failureFF.getAttribute(SNMPUtils.SNMP_PROP_PREFIX + "errorStatusText"));
-    }
-
     private TestRunner getTestRunner(final String oid, final String port, final String strategy) {
         final TestRunner runner = TestRunners.newTestRunner(GetSNMP.class);
         runner.setProperty(GetSNMP.OID, oid);

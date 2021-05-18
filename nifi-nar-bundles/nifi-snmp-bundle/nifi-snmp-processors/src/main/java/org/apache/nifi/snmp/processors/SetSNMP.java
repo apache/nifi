@@ -97,7 +97,7 @@ public class SetSNMP extends AbstractSNMPProcessor {
         if (flowFile != null) {
             try {
                 final SNMPSingleResponse response = snmpRequestHandler.set(flowFile);
-                processResponse(processSession, flowFile, response, response.getTargetAddress(), REL_SUCCESS, REL_FAILURE);
+                processResponse(processSession, flowFile, response, response.getTargetAddress(), REL_SUCCESS);
             } catch (SNMPException e) {
                 getLogger().error(e.getMessage());
                 processError(context, processSession, flowFile, REL_FAILURE);

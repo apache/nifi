@@ -30,68 +30,68 @@ public class SNMPConfigurationBuilder {
     private String securityLevel;
     private String communityString;
 
-    public SNMPConfigurationBuilder setAgentHost(String agentHost) {
+    public SNMPConfigurationBuilder setAgentHost(final String agentHost) {
         this.agentHost = agentHost;
         return this;
     }
 
-    public SNMPConfigurationBuilder setAgentPort(String agentPort) {
+    public SNMPConfigurationBuilder setAgentPort(final String agentPort) {
         this.agentPort = agentPort;
         return this;
     }
 
-    public SNMPConfigurationBuilder setRetries(int retries) {
+    public SNMPConfigurationBuilder setRetries(final int retries) {
         this.retries = retries;
         return this;
     }
 
-    public SNMPConfigurationBuilder setTimeout(int timeout) {
+    public SNMPConfigurationBuilder setTimeout(final int timeout) {
         this.timeout = timeout;
         return this;
     }
 
-    public SNMPConfigurationBuilder setVersion(int version) {
+    public SNMPConfigurationBuilder setVersion(final int version) {
         this.version = version;
         return this;
     }
 
-    public SNMPConfigurationBuilder setAuthProtocol(String authProtocol) {
+    public SNMPConfigurationBuilder setAuthProtocol(final String authProtocol) {
         this.authProtocol = authProtocol;
         return this;
     }
 
-    public SNMPConfigurationBuilder setAuthPassphrase(String authPassphrase) {
+    public SNMPConfigurationBuilder setAuthPassphrase(final String authPassphrase) {
         this.authPassphrase = authPassphrase;
         return this;
     }
 
-    public SNMPConfigurationBuilder setPrivacyProtocol(String privacyProtocol) {
+    public SNMPConfigurationBuilder setPrivacyProtocol(final String privacyProtocol) {
         this.privacyProtocol = privacyProtocol;
         return this;
     }
 
-    public SNMPConfigurationBuilder setPrivacyPassphrase(String privacyPassphrase) {
+    public SNMPConfigurationBuilder setPrivacyPassphrase(final String privacyPassphrase) {
         this.privacyPassphrase = privacyPassphrase;
         return this;
     }
 
-    public SNMPConfigurationBuilder setSecurityName(String securityName) {
+    public SNMPConfigurationBuilder setSecurityName(final String securityName) {
         this.securityName = securityName;
         return this;
     }
 
-    public SNMPConfigurationBuilder setSecurityLevel(String securityLevel) {
+    public SNMPConfigurationBuilder setSecurityLevel(final String securityLevel) {
         this.securityLevel = securityLevel;
         return this;
     }
 
-    public SNMPConfigurationBuilder setCommunityString(String communityString) {
+    public SNMPConfigurationBuilder setCommunityString(final String communityString) {
         this.communityString = communityString;
         return this;
     }
 
     public SNMPConfiguration build() {
-        boolean isValid = agentHost != null && agentPort != null;
+        final boolean isValid = agentHost != null && agentPort != null;
         if (!isValid) {
             throw new IllegalStateException("Required properties are not set.");
         }

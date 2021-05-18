@@ -34,12 +34,12 @@ import java.util.Optional;
 public class V3SNMPFactory extends AbstractSNMPFactory implements SNMPFactory {
 
     @Override
-    public boolean supports(int version) {
+    public boolean supports(final int version) {
         return SnmpConstants.version3 == version;
     }
 
     @Override
-    public Snmp createSnmpManagerInstance(SNMPConfiguration configuration) {
+    public Snmp createSnmpManagerInstance(final SNMPConfiguration configuration) {
         final Snmp snmp = createSnmpClient();
 
         // If there's a USM instance associated with the MPv3 bound to this Snmp instance (like an agent running
@@ -70,7 +70,7 @@ public class V3SNMPFactory extends AbstractSNMPFactory implements SNMPFactory {
     }
 
     @Override
-    public Target createTargetInstance(SNMPConfiguration configuration) {
+    public Target createTargetInstance(final SNMPConfiguration configuration) {
         return createUserTarget(configuration);
     }
 }

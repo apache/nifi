@@ -68,15 +68,6 @@ public class SetSNMPTest {
         assertEquals(TEST_OID_VALUE, successFF.getAttribute(SNMPUtils.SNMP_PROP_PREFIX + TEST_OID.toString() + SNMPUtils.SNMP_PROP_DELIMITER + "4"));
     }
 
-    @Test
-    public void testSnmpSetWithInvalidOIDResultsInFailure() {
-        final TestRunner runner = getTestRunner(LOCALHOST, String.valueOf(snmpV1Agent.getPort()), INVALID_OID_FF_ATTRIBUTE, true);
-        runner.run();
-        final MockFlowFile failureFF = runner.getFlowFilesForRelationship(SetSNMP.REL_FAILURE).get(0);
-        assertNotNull(failureFF);
-    }
-
-
     private TestRunner getTestRunner(final String host, final String port, final String oid, final boolean withAttributes) {
         final SetSNMP processor = new SetSNMP();
         final TestRunner runner = TestRunners.newTestRunner(processor);
