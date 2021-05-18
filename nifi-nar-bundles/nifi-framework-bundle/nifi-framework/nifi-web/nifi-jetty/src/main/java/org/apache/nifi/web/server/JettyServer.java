@@ -606,10 +606,7 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
         webappContext.setMaxFormContentSize(600000);
 
         // add HTTP security headers to all responses
-<<<<<<< Upstream, based on upstream/support/nifi-1.13
-=======
         // TODO: Allow more granular path configuration (e.g. /nifi-api/site-to-site/ vs. /nifi-api/process-groups)
->>>>>>> 0457bce Resolve conflicts after merged with NIFI-7873-RC2 branch/nifi-1.13.0-rc2 tag
         final String ALL_PATHS = getWebContextRoot() + "/*";
         ArrayList<Class<? extends Filter>> filters =
                 new ArrayList<>(Arrays.asList(
@@ -636,16 +633,10 @@ public class JettyServer implements NiFiServer, ExtensionUiLoader {
     }
 
     private String getWebContextRoot() {
-<<<<<<< Upstream, based on upstream/support/nifi-1.13
-        // Place all webapps under the same root context to allow NiFi UI to continue working
-        // for the hardcoded contexts, e.g. /nifi, on different nodes in a cluster setup
-        // to work with different 
-=======
         // Place all webapps under the same root context to allow NiFi UI to be accessible
         // as a subpath under hardcoded contexts, e.g. /nifi, from different nodes in a cluster setup.
         // For example, nifi-api on node 1 and 2 can be bound to /node1/nifi-api and /node2/nifi-api
         // respectively.
->>>>>>> 0457bce Resolve conflicts after merged with NIFI-7873-RC2 branch/nifi-1.13.0-rc2 tag
         String contextRoot = props.getWebContextRoot();
         if (contextRoot != null && contextRoot.length() > 0) {
             // Remove the ending slash if present
