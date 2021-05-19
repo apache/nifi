@@ -52,7 +52,7 @@ public class TestZooKeeperStateServer {
     private static int clientPort;
 
     @BeforeClass
-    public static void setup() throws IOException, ConfigException {
+    public static void setup() throws IOException, ConfigException, InterruptedException {
         tempDir = Paths.get("target/TestZooKeeperStateServer");
         dataDir = tempDir.resolve("state");
         zkServerConfig = tempDir.resolve("zookeeper.properties");
@@ -62,7 +62,9 @@ public class TestZooKeeperStateServer {
 
         try (final PrintWriter writer = new PrintWriter(zkServerConfig.toFile())) {
             writer.println("tickTime=2000");
-            writer.println(String.format("dataDir=%s", dataDir));
+            // Force path separator to be "/" because it becomes "\" in Windows and ZK
+            // would ignore the separators and join all subpaths as one path.
+            writer.println(String.format("dataDir=%s", dataDir.toString().replace('\\', '/')));
             writer.println(String.format("clientPort=%d", clientPort));
             writer.println("initLimit=10");
             writer.println("syncLimit=5");
