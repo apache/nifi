@@ -276,13 +276,6 @@ abstract class AbstractSNMPProcessor extends AbstractProcessor {
         return flowFile;
     }
 
-    protected void processError(final ProcessContext context, final ProcessSession processSession, final FlowFile flowFile,
-                                final Relationship failure) {
-        processSession.transfer(processSession.penalize(flowFile), failure);
-        processSession.rollback();
-        context.yield();
-    }
-
     protected void processResponse(final ProcessSession processSession, FlowFile flowFile, final SNMPSingleResponse response,
                                    final String provenanceAddress, final Relationship success) {
         if (response.isValid()) {
@@ -295,10 +288,10 @@ abstract class AbstractSNMPProcessor extends AbstractProcessor {
                 }
                 throw new SNMPException("SNMPRequest failed, Report-PDU returned. " + reportPduErrorMessage.get());
             }
+            checkV2cV3VariableBindings(response);
             flowFile = processSession.putAllAttributes(flowFile, response.getAttributes());
             processSession.transfer(flowFile, success);
             processSession.getProvenanceReporter().receive(flowFile, provenanceAddress);
-            checkV2cV3VariableBindings(response);
         } else {
             final String error = response.getErrorStatusText();
             throw new SNMPException("SNMP request failed, response error: " + error);

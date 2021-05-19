@@ -100,27 +100,27 @@ public class SetSNMP extends AbstractSNMPProcessor {
                 processResponse(processSession, flowFile, response, response.getTargetAddress(), REL_SUCCESS);
             } catch (SNMPException e) {
                 getLogger().error(e.getMessage());
-                processError(context, processSession, flowFile, REL_FAILURE);
+                processError(context, processSession, flowFile);
             } catch (IOException e) {
                 getLogger().error("Failed to send request to the agent. Check if the agent supports the used version.");
-                processError(context, processSession, flowFile, REL_FAILURE);
+                processError(context, processSession, flowFile);
             }
         }
     }
 
-    /**
-     * @see org.apache.nifi.components.AbstractConfigurableComponent#getSupportedPropertyDescriptors()
-     */
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return PROPERTY_DESCRIPTORS;
     }
 
-    /**
-     * @see org.apache.nifi.processor.AbstractSessionFactoryProcessor#getRelationships()
-     */
     @Override
     public Set<Relationship> getRelationships() {
         return RELATIONSHIPS;
+    }
+
+
+    private void processError(final ProcessContext context, final ProcessSession processSession, final FlowFile flowFile) {
+        processSession.transfer(processSession.penalize(flowFile), REL_FAILURE);
+        context.yield();
     }
 }

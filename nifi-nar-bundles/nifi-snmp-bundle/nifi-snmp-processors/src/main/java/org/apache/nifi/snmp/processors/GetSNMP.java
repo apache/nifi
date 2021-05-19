@@ -162,10 +162,10 @@ public class GetSNMP extends AbstractSNMPProcessor {
 
     private void performSnmpGet(final ProcessContext context, final ProcessSession processSession, final String oid) {
         final SNMPSingleResponse response;
-        final FlowFile flowFile = processSession.create();
-        addAttribute(SNMPUtils.SNMP_PROP_PREFIX + "textualOid", context.getProperty(TEXTUAL_OID).getValue(), flowFile, processSession);
         try {
             response = snmpRequestHandler.get(oid);
+            final FlowFile flowFile = processSession.create();
+            addAttribute(SNMPUtils.SNMP_PROP_PREFIX + "textualOid", context.getProperty(TEXTUAL_OID).getValue(), flowFile, processSession);
             final String provenanceAddress = response.getTargetAddress() + "/" + oid;
             processResponse(processSession, flowFile, response, provenanceAddress, REL_SUCCESS);
         } catch (SNMPException e) {
