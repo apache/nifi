@@ -41,7 +41,6 @@ import org.snmp4j.log.LogFactory;
 import org.snmp4j.mp.SnmpConstants;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -288,17 +287,13 @@ abstract class AbstractSNMPProcessor extends AbstractProcessor {
                                    final String provenanceAddress, final Relationship success) {
         if (response.isValid()) {
             if (response.isReportPdu()) {
-                final List<String> reportPduErrorMessages = SNMPUtils.getReportPduErrorMessages(response.getVariableBindings());
-                reportPduErrorMessages
-                        .forEach(e -> getLogger().error(e));
-                final String errorMessage;
-                if (reportPduErrorMessages.isEmpty()) {
-                    errorMessage = "SNMP request failed, Report-PDU returned, but no error message found. " +
-                            "Please, check the OIDs in an online OID repository.";
-                } else {
-                    errorMessage = "SNMPRequest failed, Report-PDU returned. Check processor bulletins for more information.";
+                final String oid = response.getVariableBindings().get(0).getOid();
+                final Optional<String> reportPduErrorMessage = SNMPUtils.getErrorMessage(oid);
+                if (!reportPduErrorMessage.isPresent()) {
+                    throw new SNMPException(String.format("SNMP request failed, Report-PDU returned, but no error message found. " +
+                            "Please, check the OID %s in an online OID repository.", oid));
                 }
-                throw new SNMPException(errorMessage);
+                throw new SNMPException("SNMPRequest failed, Report-PDU returned. " + reportPduErrorMessage.get());
             }
             flowFile = processSession.putAllAttributes(flowFile, response.getAttributes());
             processSession.transfer(flowFile, success);

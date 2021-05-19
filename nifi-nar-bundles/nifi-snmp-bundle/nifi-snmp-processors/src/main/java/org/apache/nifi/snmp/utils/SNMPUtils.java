@@ -17,7 +17,6 @@
 package org.apache.nifi.snmp.utils;
 
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.snmp.dto.SNMPValue;
 import org.apache.nifi.snmp.exception.InvalidAuthProtocolException;
 import org.apache.nifi.snmp.exception.InvalidPrivProtocolException;
 import org.apache.nifi.snmp.exception.InvalidSnmpVersionException;
@@ -45,7 +44,6 @@ import org.snmp4j.smi.OctetString;
 import org.snmp4j.smi.Variable;
 import org.snmp4j.smi.VariableBinding;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -225,15 +223,6 @@ public final class SNMPUtils {
         return Optional.ofNullable(var);
     }
 
-    public static List<String> getReportPduErrorMessages(final List<SNMPValue> variableBindings) {
-        return variableBindings.stream()
-                .map(SNMPValue::getOid)
-                .map(SNMPUtils::getErrorMessage)
-                .filter(Optional::isPresent)
-                .map(Optional::get)
-                .collect(Collectors.toList());
-    }
-
     public static Optional<String> getErrorMessage(final String oid) {
         Optional<String> errorMessage = Optional.ofNullable(REPORT_MAP.get(oid));
         if (!errorMessage.isPresent() && oid.charAt(oid.length() - 1) == '0') {
@@ -241,12 +230,5 @@ public final class SNMPUtils {
             errorMessage = Optional.ofNullable(REPORT_MAP.get(cutLastOidValue));
         }
         return errorMessage.map(s -> oid + ": " + s);
-    }
-
-    public static String removeLastCharOptional(String s) {
-        return Optional.ofNullable(s)
-                .filter(str -> str.length() != 0)
-                .map(str -> str.substring(0, str.length() - 1))
-                .orElse(s);
     }
 }
