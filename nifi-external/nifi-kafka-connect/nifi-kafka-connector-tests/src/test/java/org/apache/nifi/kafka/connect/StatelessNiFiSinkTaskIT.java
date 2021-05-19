@@ -21,7 +21,9 @@ import org.apache.kafka.connect.errors.RetriableException;
 import org.apache.kafka.connect.sink.SinkRecord;
 import org.apache.kafka.connect.sink.SinkTaskContext;
 import org.junit.Assert;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestName;
 import org.mockito.Mockito;
 
 import java.io.File;
@@ -37,6 +39,9 @@ import static org.junit.Assert.assertTrue;
 
 public class StatelessNiFiSinkTaskIT {
     private final File DEFAULT_OUTPUT_DIRECTORY = new File("target/sink-output");
+
+    @Rule
+    public final TestName testName = new TestName();
 
     @Test
     public void testSimpleFlow() throws IOException {
@@ -136,6 +141,7 @@ public class StatelessNiFiSinkTaskIT {
         properties.put(StatelessKafkaConnectorUtil.FLOW_SNAPSHOT, "src/test/resources/flows/Write_To_File.json");
         properties.put(StatelessKafkaConnectorUtil.NAR_DIRECTORY, "target/nifi-kafka-connector-bin/nars");
         properties.put(StatelessKafkaConnectorUtil.WORKING_DIRECTORY, "target/nifi-kafka-connector-bin/working");
+        properties.put(StatelessKafkaConnectorUtil.DATAFLOW_NAME, testName.getMethodName());
         return properties;
     }
 

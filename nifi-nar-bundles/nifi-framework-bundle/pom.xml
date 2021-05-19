@@ -31,7 +31,6 @@
         <module>nifi-framework-nar</module>
         <module>nifi-server-nar</module>
         <module>nifi-headless-server-nar</module>
-        <module>nifi-stateless-bundle</module>
     </modules>
     <dependencyManagement>
         <dependencies>

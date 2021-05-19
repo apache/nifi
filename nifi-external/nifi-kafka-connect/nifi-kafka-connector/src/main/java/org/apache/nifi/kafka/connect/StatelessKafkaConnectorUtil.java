@@ -19,11 +19,15 @@ package org.apache.nifi.kafka.connect;
 
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.nifi.kafka.connect.validators.ConnectDirectoryExistsValidator;
-import org.apache.nifi.kafka.connect.validators.FlowSnapshotValidator;
 import org.apache.nifi.kafka.connect.validators.ConnectHttpUrlValidator;
+import org.apache.nifi.kafka.connect.validators.FlowSnapshotValidator;
+import org.apache.nifi.stateless.bootstrap.CompositeParameterProvider;
+import org.apache.nifi.stateless.bootstrap.EnvironmentVariableParameterProvider;
+import org.apache.nifi.stateless.bootstrap.ParameterOverrideProvider;
 import org.apache.nifi.stateless.bootstrap.StatelessBootstrap;
 import org.apache.nifi.stateless.config.ExtensionClientDefinition;
 import org.apache.nifi.stateless.config.ParameterOverride;
+import org.apache.nifi.stateless.config.ParameterProvider;
 import org.apache.nifi.stateless.config.SslContextDefinition;
 import org.apache.nifi.stateless.engine.StatelessEngineConfiguration;
 import org.apache.nifi.stateless.flow.DataflowDefinition;
@@ -184,7 +188,12 @@ public class StatelessKafkaConnectorUtil {
             }
 
             dataflowDefinition = bootstrap.parseDataflowDefinition(dataflowDefinitionProperties);
-            return bootstrap.createDataflow(dataflowDefinition, parameterOverrides);
+
+            final ParameterProvider configurationParameterProvider = new ParameterOverrideProvider(parameterOverrides);
+            final ParameterProvider environmentVariableProvider = new EnvironmentVariableParameterProvider();
+            final ParameterProvider compositeParameterProvider = new CompositeParameterProvider(Arrays.asList(configurationParameterProvider, environmentVariableProvider));
+
+            return bootstrap.createDataflow(dataflowDefinition, compositeParameterProvider);
         } catch (final Exception e) {
             throw new RuntimeException("Failed to bootstrap Stateless NiFi Engine", e);
         }
