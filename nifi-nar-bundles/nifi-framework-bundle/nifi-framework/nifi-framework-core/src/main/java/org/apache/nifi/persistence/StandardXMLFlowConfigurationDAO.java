@@ -16,21 +16,6 @@
  */
 package org.apache.nifi.persistence;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.zip.GZIPInputStream;
-import java.util.zip.GZIPOutputStream;
-
 import org.apache.nifi.cluster.protocol.DataFlow;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.MissingBundleException;
@@ -42,10 +27,23 @@ import org.apache.nifi.controller.serialization.FlowSynchronizer;
 import org.apache.nifi.controller.serialization.StandardFlowSerializer;
 import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.services.FlowService;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.file.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 
 public final class StandardXMLFlowConfigurationDAO implements FlowConfigurationDAO {
 
@@ -90,35 +88,9 @@ public final class StandardXMLFlowConfigurationDAO implements FlowConfigurationD
             throws IOException, FlowSerializationException, FlowSynchronizationException, UninheritableFlowException, MissingBundleException {
 
         final FlowSynchronizer flowSynchronizer = new StandardFlowSynchronizer(encryptor, nifiProperties, extensionManager);
+        controller.synchronize(flowSynchronizer, dataFlow, flowService);
 
-        // Used for formatting current date as part of backed up flow.xml.gz's file name
-        DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
-
-        // Make sure local flow XML is valid as it'd be loaded for initial cluster synchronization.
-        // If it's invalid, rename it to something else to allow cluster synchronization to proceed
-        // anyway and NiFi to come up with empty flow instead of dying out due to IOException
-        if (!controller.isFlowSynchronized() && !isValidFlowXml()) {
-            moveFlowXml(dateFormatter.format(LocalDateTime.now()) + ".malformed.gz", 
-                        "being malformed XML");
-        }
-
-        try {
-            controller.synchronize(flowSynchronizer, dataFlow);
-        } catch (UninheritableFlowException e) {
-            // For this error, the node can't be synchronized because its flow.xml.gz is in
-            // conflict with cluster flow. Instead of requiring manual removal of the file and 
-            // restarting NiFi, we just move the file out of the way as if the node has a blank
-            // flow to allow it to use the cluster flow.
-            boolean moved = moveFlowXml(dateFormatter.format(LocalDateTime.now()) + ".uninherited.gz", 
-                                        "cluster flow is uninheritable by local flow");
-            if (!moved) {
-                LOG.error("Failed to rename uninherited flow.xml.gz. Please remove or move it manually " +
-                          "and restart NiFi for this node to be synchronized with the cluster.");
-                return;
-            }
-        }
-
-        if (StandardFlowSynchronizer.isEmpty(dataFlow)) {
+        if (StandardFlowSynchronizer.isEmpty(dataFlow) || !isValidXml(dataFlow.getFlow())) {
             // If the dataflow is empty, we want to save it. We do this because when we start up a brand new cluster with no
             // dataflow, we need to ensure that the flow is consistent across all nodes in the cluster and that upon restart
             // of NiFi, the root group ID does not change. However, we don't always want to save it, because if the flow is
@@ -148,7 +120,7 @@ public final class StandardXMLFlowConfigurationDAO implements FlowConfigurationD
         } catch (IOException e) {
             // Just ignore the corrupt file. Cluster/FlowController synchronization will
             // overwrite it when time comes
-            LOG.warn(flowXmlPath.getFileName() + 
+            LOG.warn(flowXmlPath.getFileName() +
                     " is corrupt or has malformed XML. Ignored loading: " + e.toString());
         }
     }
@@ -202,7 +174,7 @@ public final class StandardXMLFlowConfigurationDAO implements FlowConfigurationD
         } catch (final FlowSerializationException fse) {
             throw new IOException(fse);
         }
-       
+
         // Validate the written temp file to be valid XML before updating the live file
         try (final InputStream inStream = Files.newInputStream(tempFile);
                 final InputStream gzipIn = new GZIPInputStream(inStream)) {
@@ -213,13 +185,13 @@ public final class StandardXMLFlowConfigurationDAO implements FlowConfigurationD
                 Files.deleteIfExists(configFile);
                 FileUtils.renameFile(tempFile.toFile(), configFile.toFile(), 5, true);
             } else {
-                throw new FlowSerializationException("Saving failed for " + 
+                throw new FlowSerializationException("Saving failed for " +
                         configFile.toFile().getName() + ": Invalid XML was written.");
             }
         } finally {
             Files.deleteIfExists(tempFile);
         }
-        
+
         if (archive) {
             try {
                 archiveManager.archive();
@@ -230,45 +202,5 @@ public final class StandardXMLFlowConfigurationDAO implements FlowConfigurationD
                 }
             }
         }
-    }
-    
-    /**
-     * Checks if the local flow is a valid XML.
-     * @return
-     */
-    private boolean isValidFlowXml() {
-        boolean valid = false;
-        try (final InputStream inStream = Files.newInputStream(flowXmlPath, StandardOpenOption.READ);
-                final InputStream gzipIn = new GZIPInputStream(inStream);
-                final ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
-            FileUtils.copy(gzipIn, baos);
-            valid = isValidXml(baos.toByteArray());
-        } catch (IOException e) {
-            LOG.warn(flowXmlPath.getFileName() + 
-                    " is corrupt or has malformed XML: " + e.toString());
-        }
-        return valid;
-    }
-
-    /**
-     * Moves or renames the local flow.xml.gz to the same file name 
-     * but with the specified extension.
-     * @param movedToFileExt
-     * @param reasonMessage
-     * @return
-     */
-    private boolean moveFlowXml(String movedToFileExt, String reasonMessage) {
-        String movedToFlowXmlName = flowXmlPath.toFile().getName() + movedToFileExt;
-        Path movedToFlowXmlPath = flowXmlPath.getParent().resolve(movedToFlowXmlName);
-        try {
-            FileUtils.renameFile(flowXmlPath.toFile(), movedToFlowXmlPath.toFile(), 3);
-            LOG.warn("Moved " + flowXmlPath.toFile().getName() + " to " + movedToFlowXmlName + 
-                     " for " + reasonMessage + ".");
-        } catch (IOException e) {
-            LOG.warn("Unable to move " + flowXmlPath.toFile().getName() + 
-                     " for " + reasonMessage + ": " + e.toString() + ".");
-            return false;
-        }
-        return true;
     }
 }
