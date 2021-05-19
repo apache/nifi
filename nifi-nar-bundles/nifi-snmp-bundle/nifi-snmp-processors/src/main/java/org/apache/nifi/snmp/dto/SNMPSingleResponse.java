@@ -63,6 +63,6 @@ public class SNMPSingleResponse {
     }
 
     public boolean isReportPdu() {
-        return responsePdu.getType() == -88;
+        return responsePdu.getType() == PDU.REPORT;
     }
 }
