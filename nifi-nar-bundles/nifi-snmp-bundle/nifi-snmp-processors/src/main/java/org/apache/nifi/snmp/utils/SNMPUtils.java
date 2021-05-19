@@ -17,6 +17,7 @@
 package org.apache.nifi.snmp.utils;
 
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.snmp.dto.SNMPValue;
 import org.apache.nifi.snmp.exception.InvalidAuthProtocolException;
 import org.apache.nifi.snmp.exception.InvalidPrivProtocolException;
 import org.apache.nifi.snmp.exception.InvalidSnmpVersionException;
@@ -44,6 +45,7 @@ import org.snmp4j.smi.OctetString;
 import org.snmp4j.smi.Variable;
 import org.snmp4j.smi.VariableBinding;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -68,10 +70,21 @@ public final class SNMPUtils {
     private static final Map<String, OID> AUTH_MAP;
     private static final Map<String, OID> PRIV_MAP;
     private static final Map<String, Integer> VERSION_MAP;
-
+    private static final Map<String, String> REPORT_MAP;
 
     private SNMPUtils() {
         // hide implicit constructor
+    }
+
+    static {
+        final Map<String, String> map = new HashMap<>();
+        map.put("1.3.6.1.6.3.15.1.1.1", "usmStatsUnsupportedSecLevels");
+        map.put("1.3.6.1.6.3.15.1.1.2", "usmStatsNotInTimeWindows");
+        map.put("1.3.6.1.6.3.15.1.1.3", "usmStatsUnknownUserNames");
+        map.put("1.3.6.1.6.3.15.1.1.4", "usmStatsUnknownEngineIDs");
+        map.put("1.3.6.1.6.3.15.1.1.5", "usmStatsWrongDigests");
+        map.put("1.3.6.1.6.3.15.1.1.6", "usmStatsDecryptionErrors");
+        REPORT_MAP = Collections.unmodifiableMap(map);
     }
 
     static {
@@ -210,5 +223,30 @@ public final class SNMPUtils {
             var = null;
         }
         return Optional.ofNullable(var);
+    }
+
+    public static List<String> getReportPduErrorMessages(final List<SNMPValue> variableBindings) {
+        return variableBindings.stream()
+                .map(SNMPValue::getOid)
+                .map(SNMPUtils::getErrorMessage)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .collect(Collectors.toList());
+    }
+
+    public static Optional<String> getErrorMessage(final String oid) {
+        Optional<String> errorMessage = Optional.ofNullable(REPORT_MAP.get(oid));
+        if (!errorMessage.isPresent() && oid.charAt(oid.length() - 1) == '0') {
+            final String cutLastOidValue = oid.substring(0, oid.length() - 2);
+            errorMessage = Optional.ofNullable(REPORT_MAP.get(cutLastOidValue));
+        }
+        return errorMessage.map(s -> oid + ": " + s);
+    }
+
+    public static String removeLastCharOptional(String s) {
+        return Optional.ofNullable(s)
+                .filter(str -> str.length() != 0)
+                .map(str -> str.substring(0, str.length() - 1))
+                .orElse(s);
     }
 }

@@ -61,4 +61,8 @@ public class SNMPSingleResponse {
     public int getVersion() {
         return target.getVersion();
     }
+
+    public boolean isReportPdu() {
+        return responsePdu.getType() == -88;
+    }
 }

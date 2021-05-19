@@ -41,6 +41,7 @@ import org.snmp4j.log.LogFactory;
 import org.snmp4j.mp.SnmpConstants;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -62,7 +63,7 @@ abstract class AbstractSNMPProcessor extends AbstractProcessor {
     public static final AllowableValue SNMP_V2C = new AllowableValue("SNMPv2c", "v2c", "SNMP version 2c");
     public static final AllowableValue SNMP_V3 = new AllowableValue("SNMPv3", "v3", "SNMP version 3 with improved security");
 
-    // SNMPv3 privacy protocols
+    // SNMPv3 security levels
     public static final AllowableValue NO_AUTH_NO_PRIV = new AllowableValue("noAuthNoPriv", "noAuthNoPriv",
             "No authentication or encryption.");
     public static final AllowableValue AUTH_NO_PRIV = new AllowableValue("authNoPriv", "authNoPriv",
@@ -225,7 +226,7 @@ abstract class AbstractSNMPProcessor extends AbstractProcessor {
     protected volatile SNMPRequestHandler snmpRequestHandler;
 
     @OnScheduled
-    public void initSnmpClient(final ProcessContext context) throws InitializationException {
+    public void initSnmpManager(final ProcessContext context) throws InitializationException {
         final int version = SNMPUtils.getVersion(context.getProperty(SNMP_VERSION).getValue());
         final SNMPConfiguration configuration;
         try {
@@ -286,18 +287,31 @@ abstract class AbstractSNMPProcessor extends AbstractProcessor {
     protected void processResponse(final ProcessSession processSession, FlowFile flowFile, final SNMPSingleResponse response,
                                    final String provenanceAddress, final Relationship success) {
         if (response.isValid()) {
+            if (response.isReportPdu()) {
+                final List<String> reportPduErrorMessages = SNMPUtils.getReportPduErrorMessages(response.getVariableBindings());
+                reportPduErrorMessages
+                        .forEach(e -> getLogger().error(e));
+                final String errorMessage;
+                if (reportPduErrorMessages.isEmpty()) {
+                    errorMessage = "SNMP request failed, Report-PDU returned, but no error message found. " +
+                            "Please, check the OIDs in an online OID repository.";
+                } else {
+                    errorMessage = "SNMPRequest failed, Report-PDU returned. Check processor bulletins for more information.";
+                }
+                throw new SNMPException(errorMessage);
+            }
             flowFile = processSession.putAllAttributes(flowFile, response.getAttributes());
             processSession.transfer(flowFile, success);
             processSession.getProvenanceReporter().receive(flowFile, provenanceAddress);
-            checkV3VariableBindings(response);
+            checkV2cV3VariableBindings(response);
         } else {
             final String error = response.getErrorStatusText();
             throw new SNMPException("SNMP request failed, response error: " + error);
         }
     }
 
-    private void checkV3VariableBindings(SNMPSingleResponse response) {
-        if (response.getVersion() == SnmpConstants.version3) {
+    private void checkV2cV3VariableBindings(SNMPSingleResponse response) {
+        if (response.getVersion() != SnmpConstants.version1) {
             final Optional<SNMPValue> firstVariableBinding = response.getVariableBindings().stream().findFirst();
             if (firstVariableBinding.isPresent()) {
                 final String value = firstVariableBinding.get().getVariable();
