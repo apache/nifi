@@ -37,7 +37,8 @@
         <module>nifi-docker</module>
         <module>nifi-system-tests</module>
         <module>minifi</module>
-  </modules>
+        <module>nifi-stateless</module>
+    </modules>
     <url>https://nifi.apache.org</url>
     <organization>
         <name>Apache NiFi Project</name>
