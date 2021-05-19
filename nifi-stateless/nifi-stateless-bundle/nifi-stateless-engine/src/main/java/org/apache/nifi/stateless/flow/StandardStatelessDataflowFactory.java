@@ -54,7 +54,7 @@ import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.security.util.EncryptionMethod;
 import org.apache.nifi.stateless.bootstrap.ExtensionDiscovery;
 import org.apache.nifi.stateless.config.ExtensionClientDefinition;
-import org.apache.nifi.stateless.config.ParameterOverride;
+import org.apache.nifi.stateless.config.ParameterProvider;
 import org.apache.nifi.stateless.config.SslConfigurationUtil;
 import org.apache.nifi.stateless.config.SslContextDefinition;
 import org.apache.nifi.stateless.config.StatelessConfigurationException;
@@ -93,7 +93,7 @@ public class StandardStatelessDataflowFactory implements StatelessDataflowFactor
 
     @Override
     public StatelessDataflow createDataflow(final StatelessEngineConfiguration engineConfiguration, final DataflowDefinition<VersionedFlowSnapshot> dataflowDefinition,
-                                            final List<ParameterOverride> parameterOverrides) throws IOException, StatelessConfigurationException {
+                                            final ParameterProvider parameterProvider) throws IOException, StatelessConfigurationException {
         final long start = System.currentTimeMillis();
 
         final VersionedFlowSnapshot flowSnapshot = dataflowDefinition.getFlowSnapshot();
@@ -219,7 +219,7 @@ public class StandardStatelessDataflowFactory implements StatelessDataflowFactor
             rootGroup.setName("root");
             flowManager.setRootGroup(rootGroup);
 
-            final StatelessDataflow dataflow = statelessEngine.createFlow(dataflowDefinition, parameterOverrides);
+            final StatelessDataflow dataflow = statelessEngine.createFlow(dataflowDefinition, parameterProvider);
             final long millis = System.currentTimeMillis() - start;
             logger.info("NiFi Stateless Engine and Dataflow created and initialized in {} millis", millis);
 

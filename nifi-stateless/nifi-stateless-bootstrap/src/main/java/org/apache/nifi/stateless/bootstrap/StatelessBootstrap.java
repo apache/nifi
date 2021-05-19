@@ -22,7 +22,7 @@ import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.nar.NarClassLoaders;
 import org.apache.nifi.nar.NarUnpacker;
 import org.apache.nifi.nar.SystemBundle;
-import org.apache.nifi.stateless.config.ParameterOverride;
+import org.apache.nifi.stateless.config.ParameterProvider;
 import org.apache.nifi.stateless.config.StatelessConfigurationException;
 import org.apache.nifi.stateless.engine.NarUnpackLock;
 import org.apache.nifi.stateless.engine.StatelessEngineConfiguration;
@@ -60,10 +60,10 @@ public class StatelessBootstrap {
         this.engineConfiguration = engineConfiguration;
     }
 
-    public <T> StatelessDataflow createDataflow(final DataflowDefinition<T> dataflowDefinition, final List<ParameterOverride> parameterOverrides)
+    public <T> StatelessDataflow createDataflow(final DataflowDefinition<T> dataflowDefinition, final ParameterProvider parameterProvider)
                 throws IOException, StatelessConfigurationException {
         final StatelessDataflowFactory<T> dataflowFactory = getSingleInstance(statelessClassLoader, StatelessDataflowFactory.class);
-        final StatelessDataflow dataflow = dataflowFactory.createDataflow(engineConfiguration, dataflowDefinition, parameterOverrides);
+        final StatelessDataflow dataflow = dataflowFactory.createDataflow(engineConfiguration, dataflowDefinition, parameterProvider);
         return dataflow;
     }
 

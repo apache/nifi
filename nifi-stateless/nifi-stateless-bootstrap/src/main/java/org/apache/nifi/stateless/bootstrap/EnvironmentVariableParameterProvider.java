@@ -15,15 +15,27 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.stateless.flow;
+package org.apache.nifi.stateless.bootstrap;
 
 import org.apache.nifi.stateless.config.ParameterProvider;
-import org.apache.nifi.stateless.config.StatelessConfigurationException;
-import org.apache.nifi.stateless.engine.StatelessEngineConfiguration;
 
-import java.io.IOException;
+import java.util.Map;
 
-public interface StatelessDataflowFactory<T> {
-    StatelessDataflow createDataflow(StatelessEngineConfiguration statelessEngineConfiguration, DataflowDefinition<T> dataflowDefinition,
-                                     ParameterProvider parameterProvider) throws IOException, StatelessConfigurationException;
+public class EnvironmentVariableParameterProvider implements ParameterProvider {
+    private final Map<String, String> environmentVariables = System.getenv();
+
+    @Override
+    public String getParameterValue(final String contextName, final String parameterName) {
+        String envValue = environmentVariables.get(contextName + ":" + parameterName);
+        if (envValue != null) {
+            return envValue;
+        }
+
+        return environmentVariables.get(parameterName);
+    }
+
+    @Override
+    public boolean isParameterDefined(final String contextName, final String parameterName) {
+        return getParameterValue(contextName, parameterName) != null;
+    }
 }

@@ -20,6 +20,7 @@ package org.apache.nifi.stateless;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.nifi.registry.flow.Bundle;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
+import org.apache.nifi.stateless.bootstrap.EmptyParameterProvider;
 import org.apache.nifi.stateless.bootstrap.StatelessBootstrap;
 import org.apache.nifi.stateless.config.ExtensionClientDefinition;
 import org.apache.nifi.stateless.config.ParameterContextDefinition;
@@ -170,7 +171,7 @@ public class StatelessSystemIT {
         };
 
         final StatelessBootstrap bootstrap = StatelessBootstrap.bootstrap(getEngineConfiguration());
-        final StatelessDataflow dataflow = bootstrap.createDataflow(dataflowDefinition, Collections.emptyList());
+        final StatelessDataflow dataflow = bootstrap.createDataflow(dataflowDefinition, new EmptyParameterProvider());
         dataflow.initialize();
 
         createdFlows.add(dataflow);

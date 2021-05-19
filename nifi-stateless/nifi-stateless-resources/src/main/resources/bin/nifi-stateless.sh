@@ -131,13 +131,14 @@ run() {
     LOG_PARAMS="-Dorg.apache.nifi.bootstrap.config.log.dir='${NIFI_LOG_DIR}'"
 
     # uncomment to allow debugging of the bootstrap process
-    # DEBUG_PARAMS="-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=8000"
+    # DEBUG_PARAMS="-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=8000"
 
     LAUNCH_PARAMS="${LOG_PARAMS} ${DEBUG_PARAMS}"
 
 
     # default to 1 GB heap
-    STATELESS_JAVA_OPTS="${STATELESS_JAVA_OPTS:=${LAUNCH_PARAMS} -Xms1024m -Xmx1024m}"
+    STATELESS_JAVA_OPTS="${STATELESS_JAVA_OPTS:=-Xms1024m -Xmx1024m}"
+    KILL_ON_OOME_OPTS="-XX:OnOutOfMemoryError='kill -TERM %p'"
 
     echo
     echo "Note: Use of this command is considered experimental. The commands and approach used may change from time to time."
@@ -146,7 +147,7 @@ run() {
     echo "NiFi home (NIFI_HOME): ${NIFI_HOME}"
     echo "Java options (STATELESS_JAVA_OPTS): ${STATELESS_JAVA_OPTS}"
     echo
-    run_nifi_cmd="'${JAVA}' '-Dlogback.configurationFile=${NIFI_HOME}/conf/stateless-logback.xml' -cp '${NIFI_HOME}/lib/*:${NIFI_HOME}/conf' ${STATELESS_JAVA_OPTS} 'org.apache.nifi.stateless.bootstrap.RunStatelessFlow'"
+    run_nifi_cmd="'${JAVA}' '-Dlogback.configurationFile=${NIFI_HOME}/conf/stateless-logback.xml' -cp '${NIFI_HOME}/lib/*:${NIFI_HOME}/conf' ${LAUNCH_PARAMS} ${KILL_ON_OOME_OPTS} ${STATELESS_JAVA_OPTS} 'org.apache.nifi.stateless.bootstrap.RunStatelessFlow'"
 
     eval "cd ${NIFI_HOME}"
     # Our arguments may have spaces (especially for passing parameters). The eval command will strip those out. To avoid that, we need to use "$@" to get the quotes in the arguments, and then

@@ -31,17 +31,15 @@ import org.apache.nifi.provenance.ProvenanceRepository;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.reporting.BulletinRepository;
-import org.apache.nifi.stateless.config.ParameterOverride;
+import org.apache.nifi.stateless.config.ParameterProvider;
 import org.apache.nifi.stateless.flow.DataflowDefinition;
 import org.apache.nifi.stateless.flow.StatelessDataflow;
-
-import java.util.List;
 
 public interface StatelessEngine<T> {
 
     void initialize(StatelessEngineInitializationContext initializationContext);
 
-    StatelessDataflow createFlow(DataflowDefinition<T> dataflowDefinition, List<ParameterOverride> parameterOverrides);
+    StatelessDataflow createFlow(DataflowDefinition<T> dataflowDefinition, ParameterProvider parameterProvider);
 
     ExtensionManager getExtensionManager();
 

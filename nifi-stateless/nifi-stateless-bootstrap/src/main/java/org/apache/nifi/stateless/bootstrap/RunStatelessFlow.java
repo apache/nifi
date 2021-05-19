@@ -18,6 +18,7 @@
 package org.apache.nifi.stateless.bootstrap;
 
 import org.apache.nifi.stateless.config.ParameterOverride;
+import org.apache.nifi.stateless.config.ParameterProvider;
 import org.apache.nifi.stateless.config.PropertiesFileEngineConfigurationParser;
 import org.apache.nifi.stateless.config.StatelessConfigurationException;
 import org.apache.nifi.stateless.engine.StatelessEngineConfiguration;
@@ -31,6 +32,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -102,7 +104,11 @@ public class RunStatelessFlow {
         final StatelessBootstrap bootstrap = StatelessBootstrap.bootstrap(engineConfiguration);
         final DataflowDefinition<?> dataflowDefinition = bootstrap.parseDataflowDefinition(flowDefinitionFile);
 
-        final StatelessDataflow dataflow = bootstrap.createDataflow(dataflowDefinition, parameterOverrides);
+        final ParameterProvider explicitParameterProvider = new ParameterOverrideProvider(parameterOverrides);
+        final ParameterProvider environmentParameterProvider = new EnvironmentVariableParameterProvider();
+        final ParameterProvider compositeProvider = new CompositeParameterProvider(Arrays.asList(explicitParameterProvider, environmentParameterProvider));
+
+        final StatelessDataflow dataflow = bootstrap.createDataflow(dataflowDefinition, compositeProvider);
         dataflow.initialize();
 
         final StatelessDataflowValidation validation = dataflow.performValidation();

@@ -101,14 +101,25 @@ different dataflows. The first would deliver data from Apache Kafka to HDFS and 
 to S3. Each of these dataflows should then use a separate Consumer Group for Kafka, which will result in each dataflow getting
 a copy of the same data.
 
-#### Merging Not Supported
+#### Support for Merging May Be Limited
 
 Because data in Stateless NiFi transits through the dataflow synchronously from start to finish, use of Processors
-that require multiple FlowFiles, such as MergeContent and MergeRecord, will not succeed. Instead, the Processor
-will continually be triggered to run with only a single FlowFile in its queue. Since that FlowFile will generally not
-be enough to fill a 'Bin' in MergeContent or MergeRecord, the FlowFile will remain in the queue. Stateless will continue
-to trigger the processor until the FlowFile is merged by itself (due to Processor's Max Bin Duration being reached).
-If no Max Bin Duration is configured, it will trigger continually without making progress.
+that require multiple FlowFiles, such as MergeContent and MergeRecord, may not be capable of receiving all of the data that is
+necessary in order to succeed. If a Processor has data queued up and is triggered, but fails to make any progress, the Stateless
+Engine will trigger the source processor again in order to provide additional data to the Processor.
+
+However, this can lead to a situation in which data is continually brought in, depending on how the Processor behaves. To avoid this,
+the amount of data that may be brought into a single invocation of the dataflow may be limited via configuration. If the dataflow configuration
+limits the amount of data per invocation to say 10 MB, but MergeContent is configured not to create a bin until at least 100 MB of data is
+available, the dataflow will continue to trigger MergeContent to run, without making any progress, until either the Max Bin Age is reached
+(if configured) or the dataflow times out.
+
+Additionally, depending on the context in which Stateless is run, triggering the source components may not provide additional data.
+For example, if Stateless is run in an enviornment where data is queued up in an Input Port and then the dataflow is triggered, subsequently
+triggering the Input Port to run will not produce additional data.
+
+As a result, it is important to ensure that any dataflows that contain logic to merge FlowFiles is configured with a Max Bin Age for MergeContent
+and MergeRecord.
 
 #### Failure Handling
 
@@ -167,11 +178,11 @@ only once. The dataflow configuration will be different for each dataflow that i
 An example of running stateless NiFi:
 
 ```
-bin/nifi.sh stateless -c /var/lib/nifi/stateless/config/stateless.properties /var/lib/nifi/stateless/flows/jms-to-kafka.properties
+bin/nifi.sh stateless -c -e /var/lib/nifi/stateless/config/stateless.properties -f /var/lib/nifi/stateless/flows/jms-to-kafka.properties
 ```
 
 Here, the `-c` option indicates that the flow should be continually triggered, not just triggered once.
-The last two arguments provide the properties file for the stateless engine and the properties file for hte dataflow, respectively.
+The last two sets of arguments provide the properties file for the stateless engine and the properties file for the dataflow, respectively.
 
 
 #### Engine Configuration
@@ -256,8 +267,9 @@ nifi.stateless.working.directory=/var/lib/nifi/work/stateless
 While the Engine Configuration above gives Stateless NiFi the necessary information for how to run the flow, the dataflow
 configuration provides it with the necessary information for what flow to run.
 
-The flow's location must be provided either by specifying a NiFi Registry URL, Bucket ID, and Flow ID (and optional version)
-or by specifying a local filename for the flow. Note that if using a local filename, the format of the file is not the same as
+The flow's location must be provided either by specifying a NiFi Registry URL, Bucket ID, and Flow ID (and optional version);
+by specifying a local filename for the flow; by specifying a URL for the flow; or by including a "stringified" version of the JSON flow definition itself.
+Note that if using a local filename, the format of the file is not the same as
 the `flow.xml.gz` file that NiFi uses but rather is the `Versioned Flow Snapshot` format that is used by the NiFi Registry.
 The easiest way to export a flow from NiFi onto local disk for use by Stateless NiFi is to right-click on a Process Group or
 the canvas in NiFi and choose `Downlaod Flow`.
@@ -271,6 +283,8 @@ The following properties are supported for specifying the location of a flow:
 | nifi.stateless.flow.id | The UUID of the flow in NiFi Registry. | 00000000-0000-0000-0000-000000000044 |
 | nifi.stateless.flow.version | The version of the dataflow to run. If not specified, will use the latest version of the flow. | 5 |
 | nifi.stateless.flow.snapshot.file | Instead of using the NiFi Registry to source the flow, the flow can be a local file. In this case, this provides the filename of the file. | /var/lib/nifi/flows/my-flow.json |
+| nifi.stateless.flow.snapshot.url | A URL that contains the Flow Definition to use. | https://gist.github.com/apache/223389cb6cbbd82985fbb8d429b58899 |
+| nifi.stateless.flow.snapshot.url.use.ssl.context | A boolean value indicating whether or not the SSL Context that is defined in the Engine Configuration properties file should be used when downloading the flow | false | 
 
 Stateless NiFi also allows the user to provide one or more Parameter Contexts to use in the dataflow:
 
@@ -296,6 +310,7 @@ require additional data in order to perform their tasks. For example, if we have
 later in the flow have a MergeContent processor, that MergeContent processor may not be able to perform its function with just one message. As a result, the source
 processor will be triggered again. This process will continue until either the MergeContent processor is able to make progress and empty its incoming FlowFile Queues
 OR until some threshold has been reached. These thresholds can be configured using the following properties:
+
 
 / Property Name / Description / Example Value /
 /---------------/-------------/---------------/
@@ -341,6 +356,7 @@ nifi.stateless.reporting.task.stats.frequency=30 sec
 ```
 
 ##### Failure Ports
+
 There is one additional property that is supported in the dataflow configuration:
 
 | Property Name | Description | Example Value |
@@ -428,3 +444,16 @@ bin/nifi.sh stateless -c -p "Kafka Parameter Context:Kafka Brokers:kafka-01:9092
 Note also that the Parameter Context Name and the Parameter Name may not include a colon character.
 The Parameter Value can include colon characters, as in the example here.
 
+Often times, though, the Parameter Context name is not particularly important, and we just want to provide a Parameter name.
+This can be done by simply leaving off the name of the Parameter Context. For example:
+
+```
+bin/nifi.sh stateless -c -p "Kafka Brokers:kafka-01:9092,kafka-02:9092,kafka-03:9092" -p "Kafka Topic:Sensor Data" /var/lib/nifi/stateless/config /stateless.properties
+```
+
+In this case, any Parameter Context that has a name of "Kafka Brokers" will have the parameter resolved to `kafka-01:9092,kafka-02:9092,kafka-03:9092`, regardless of the name
+of the Parameter Context.
+
+If a given Parameter is referenced and is not defined using the `-p` syntax, an environment variable may also be used to provide the value. However, environment variables typically are
+allowed to contain only letters, numbers, and underscores in their names. As a result, it is important that the Parameters' names also adhere to that same rule, or the environment variable
+will not be addressable. 

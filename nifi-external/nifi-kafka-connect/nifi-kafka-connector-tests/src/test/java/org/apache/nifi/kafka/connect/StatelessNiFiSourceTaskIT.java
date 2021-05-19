@@ -26,7 +26,9 @@ import org.apache.kafka.connect.storage.OffsetStorageReader;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.stateless.flow.StatelessDataflow;
 import org.junit.Assert;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestName;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -41,6 +43,9 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 public class StatelessNiFiSourceTaskIT {
+
+    @Rule
+    public final TestName testName = new TestName();
 
     @Test
     public void testSimpleFlow() throws InterruptedException {
@@ -250,6 +255,7 @@ public class StatelessNiFiSourceTaskIT {
         properties.put(StatelessKafkaConnectorUtil.FLOW_SNAPSHOT, "src/test/resources/flows/Generate_Data.json");
         properties.put(StatelessKafkaConnectorUtil.NAR_DIRECTORY, "target/nifi-kafka-connector-bin/nars");
         properties.put(StatelessKafkaConnectorUtil.WORKING_DIRECTORY, "target/nifi-kafka-connector-bin/working");
+        properties.put(StatelessKafkaConnectorUtil.DATAFLOW_NAME, testName.getMethodName());
         properties.put(StatelessNiFiSourceTask.STATE_MAP_KEY, "1");
 
         return properties;
