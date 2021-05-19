@@ -796,7 +796,7 @@ public class ThreadPoolRequestReplicator implements RequestReplicator {
         String uriPath = exampleUri.getPath();
         // Substitute context root in the URI with this node's.
         // Check for presence of context root but not just "/"
-        if (StringUtils.isNotBlank(nodeId.getWebContextRoot())) {
+        if (StringUtils.length(nodeId.getWebContextRoot()) > 1) {
             // Substitute the context root
             uriPath = uriPath.replaceAll("^/[^/]+", nodeId.getWebContextRoot());
         }
