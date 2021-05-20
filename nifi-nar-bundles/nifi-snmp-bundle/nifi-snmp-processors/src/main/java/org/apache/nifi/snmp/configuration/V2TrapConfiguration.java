@@ -14,16 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.snmp.exception;
+package org.apache.nifi.snmp.configuration;
 
-public class SNMPException extends RuntimeException {
+public class V2TrapConfiguration {
 
-    public SNMPException(final String errorMessage) {
-        super(errorMessage);
+    private final String trapOidValue;
+
+    public V2TrapConfiguration(final String trapOidValue) {
+        if (trapOidValue.isEmpty()) {
+            throw new IllegalArgumentException("Trap OID Value must be specified.");
+        }
+        this.trapOidValue = trapOidValue;
     }
 
-    public SNMPException(final Exception exception) {
-        super(exception);
+    public String getTrapOidValue() {
+        return trapOidValue;
     }
-
 }
