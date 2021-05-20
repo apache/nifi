@@ -26,7 +26,7 @@
     <artifactId>nifi-ignite-processors</artifactId>
     <packaging>jar</packaging>
     <properties>
-        <ignite.version>2.8.0</ignite.version>
+        <ignite.version>2.10.0</ignite.version>
     </properties>
 
     <dependencies>
