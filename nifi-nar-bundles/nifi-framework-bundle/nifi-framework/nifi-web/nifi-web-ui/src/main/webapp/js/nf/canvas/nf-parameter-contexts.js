@@ -206,6 +206,7 @@
 
         var parameterGrid = $('#parameter-table').data('gridInstance');
         var parameterData = parameterGrid.getData();
+        parameterGrid.setSelectedRows([]);
         parameterData.setItems([]);
 
         resetUsage();
