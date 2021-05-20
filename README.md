@@ -27,7 +27,7 @@ reliable system to process and distribute data.
 - [Features](#features)
 - [Requirements](#requirements)
 - [Getting Started](#getting-started)
-- [MiNiFi subproject](#minifi)
+- [MiNiFi subproject](#minifi-subproject)
 - [Getting Help](#getting-help)
 - [Documentation](#documentation)
 - [License](#license)
