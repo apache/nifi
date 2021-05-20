@@ -14,16 +14,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.snmp.exception;
+package org.apache.nifi.snmp.helper.configurations;
 
-public class SNMPException extends RuntimeException {
+import org.apache.nifi.snmp.configuration.SNMPConfiguration;
 
-    public SNMPException(final String errorMessage) {
-        super(errorMessage);
-    }
+public interface SNMPConfigurationFactory {
 
-    public SNMPException(final Exception exception) {
-        super(exception);
-    }
+    String DEFAULT_HOST = "127.0.0.1";
+    String COMMUNITY_STRING = "public";
+
+    SNMPConfiguration createSnmpGetSetConfiguration(int agentPort);
+
+    SNMPConfiguration createSnmpGetSetConfigWithCustomHost(final String host, final int agentPort);
+
+    SNMPConfiguration createSnmpListenTrapConfig(final int managerPort);
 
 }

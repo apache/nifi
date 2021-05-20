@@ -23,12 +23,19 @@
 <body>
 <h2>Summary</h2>
 <p>
-    This processor polls a SNMP agent to get information for a given OID (Strategy = GET) or for all the sub-tree
-    associated to a given OID
+    This processor polls a SNMP agent to get information for a given OID or OIDs (Strategy = GET) or for all the sub-tree
+    associated to a given OID or OIDs
     (Strategy = WALK). This processors supports SNMPv1, SNMPv2c and SNMPv3. The component is based on <a
         href="http://www.snmp4j.org/">SNMP4J</a>.
 </p>
 <p>
+    The processor can compile the SNMP Get PDU from the attributes of an input flowfile (multiple OIDs can be specified)
+    or from a single OID specified in the processor property. In the former case, the processor will only consider the
+    OIDs specified in the flowfile.
+    The processor is looking for attributes prefixed with <i>snmp$</i>. If such an attribute is found, the attribute name is split using
+    the $ character. The second element must respect the OID format to be considered as a valid OID. The flowfile attribute
+    value can be empty (it will be later filled with the retrieved value and written into the outgoing flowfile).
+
     When the processor is triggered, it sends the SNMP request and gets the information associated to request OID(s).
     Once response is received
     from the SNMP agent, a FlowFile is constructed. The FlowFile content is empty, all the information is written in the
