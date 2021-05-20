@@ -14,16 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.snmp.exception;
+package org.apache.nifi.snmp.factory.core;
 
-public class SNMPException extends RuntimeException {
+import org.apache.nifi.snmp.configuration.SNMPConfiguration;
+import org.snmp4j.CommunityTarget;
+import org.snmp4j.Target;
+import org.snmp4j.smi.OctetString;
 
-    public SNMPException(final String errorMessage) {
-        super(errorMessage);
+import java.util.Optional;
+
+public class V1V2cSNMPFactory extends SNMPManagerFactory implements SNMPContext {
+
+    @Override
+    public Target createTargetInstance(final SNMPConfiguration configuration) {
+        final Target communityTarget = new CommunityTarget();
+        setupTargetBasicProperties(communityTarget, configuration);
+        final String community = configuration.getCommunityString();
+
+        Optional.ofNullable(community).map(OctetString::new).ifPresent(communityTarget::setSecurityName);
+
+        return communityTarget;
     }
-
-    public SNMPException(final Exception exception) {
-        super(exception);
-    }
-
 }

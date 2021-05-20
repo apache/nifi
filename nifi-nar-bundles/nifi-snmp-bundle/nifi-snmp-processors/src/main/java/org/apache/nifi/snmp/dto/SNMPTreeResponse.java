@@ -26,6 +26,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class SNMPTreeResponse {
@@ -55,5 +56,12 @@ public class SNMPTreeResponse {
         events.stream()
                 .filter(TreeEvent::isError)
                 .forEach(event -> logger.error("Error occured in SNMP walk event: {}", event.getErrorMessage()));
+    }
+
+    public boolean isError() {
+        final Optional<TreeEvent> first = events.stream()
+                .filter(TreeEvent::isError)
+                .findFirst();
+        return first.isPresent();
     }
 }

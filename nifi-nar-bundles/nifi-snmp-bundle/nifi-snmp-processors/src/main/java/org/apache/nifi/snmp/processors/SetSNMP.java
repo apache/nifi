@@ -22,13 +22,16 @@ import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.snmp.dto.SNMPSingleResponse;
-import org.apache.nifi.snmp.exception.SNMPException;
+import org.apache.nifi.snmp.operations.SetSNMPHandler;
+import org.apache.nifi.snmp.processors.properties.BasicProperties;
+import org.apache.nifi.snmp.processors.properties.V3SecurityProperties;
 import org.apache.nifi.snmp.utils.SNMPUtils;
 
 import java.io.IOException;
@@ -36,19 +39,21 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 /**
- * Performs a SNMP Set operation based on attributes of incoming FlowFile.
+ * Performs an SNMP Set operation based on attributes of incoming FlowFile.
  * Upon each invocation of {@link #onTrigger(ProcessContext, ProcessSession)}
  * method, it will inspect attributes of FlowFile and look for attributes with
  * name formatted as "snmp$OID" to set the attribute value to this OID.
+ * The output {@link FlowFile} won't have any content.
  */
 @Tags({"snmp", "set", "oid"})
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @CapabilityDescription("Based on incoming FlowFile attributes, the processor will execute SNMP Set requests." +
         " When finding attributes with the name snmp$<OID>, the processor will attempt to set the value of" +
-        " the attribute to the corresponding OID given in the attribute name")
+        " the attribute to the corresponding OID given in the attribute name.")
 @WritesAttributes({
         @WritesAttribute(attribute = SNMPUtils.SNMP_PROP_PREFIX + "<OID>", description = "Response variable binding: OID (e.g. 1.3.6.1.4.1.343) and its value."),
         @WritesAttribute(attribute = SNMPUtils.SNMP_PROP_PREFIX + "errorIndex", description = "Denotes the variable binding in which the error occured."),
@@ -74,16 +79,16 @@ public class SetSNMP extends AbstractSNMPProcessor {
     private static final List<PropertyDescriptor> PROPERTY_DESCRIPTORS = Collections.unmodifiableList(Arrays.asList(
             AGENT_HOST,
             AGENT_PORT,
-            SNMP_VERSION,
-            SNMP_COMMUNITY,
-            SNMP_SECURITY_LEVEL,
-            SNMP_SECURITY_NAME,
-            SNMP_AUTH_PROTOCOL,
-            SNMP_AUTH_PASSWORD,
-            SNMP_PRIVACY_PROTOCOL,
-            SNMP_PRIVACY_PASSWORD,
-            SNMP_RETRIES,
-            SNMP_TIMEOUT
+            BasicProperties.SNMP_VERSION,
+            BasicProperties.SNMP_COMMUNITY,
+            V3SecurityProperties.SNMP_SECURITY_LEVEL,
+            V3SecurityProperties.SNMP_SECURITY_NAME,
+            V3SecurityProperties.SNMP_AUTH_PROTOCOL,
+            V3SecurityProperties.SNMP_AUTH_PASSWORD,
+            V3SecurityProperties.SNMP_PRIVACY_PROTOCOL,
+            V3SecurityProperties.SNMP_PRIVACY_PASSWORD,
+            BasicProperties.SNMP_RETRIES,
+            BasicProperties.SNMP_TIMEOUT
     ));
 
     private static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
@@ -91,19 +96,34 @@ public class SetSNMP extends AbstractSNMPProcessor {
             REL_FAILURE
     )));
 
+    private volatile SetSNMPHandler snmpHandler;
+
+    @OnScheduled
+    public void init(final ProcessContext context) {
+        initSnmpManager(context);
+        snmpHandler = new SetSNMPHandler(snmpResourceHandler);
+    }
+
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession processSession) {
         final FlowFile flowFile = processSession.get();
         if (flowFile != null) {
             try {
-                final SNMPSingleResponse response = snmpRequestHandler.set(flowFile);
-                processResponse(processSession, flowFile, response, response.getTargetAddress(), REL_SUCCESS);
-            } catch (SNMPException e) {
-                getLogger().error(e.getMessage());
-                processError(context, processSession, flowFile);
+                final Optional<SNMPSingleResponse> optionalResponse = snmpHandler.set(flowFile.getAttributes());
+                if (optionalResponse.isPresent()) {
+                    processSession.remove(flowFile);
+                    final FlowFile outgoingFlowFile = processSession.create();
+                    final SNMPSingleResponse response = optionalResponse.get();
+                    processSession.getProvenanceReporter().receive(outgoingFlowFile, "/set");
+                    handleResponse(context, processSession, outgoingFlowFile, response, REL_SUCCESS, REL_FAILURE, "/set");
+                } else {
+                    getLogger().warn("No SNMP specific attributes found in flowfile.");
+                    processSession.transfer(flowFile, REL_FAILURE);
+                }
             } catch (IOException e) {
                 getLogger().error("Failed to send request to the agent. Check if the agent supports the used version.");
-                processError(context, processSession, flowFile);
+                processSession.transfer(processSession.penalize(flowFile), REL_FAILURE);
+                context.yield();
             }
         }
     }
@@ -118,9 +138,13 @@ public class SetSNMP extends AbstractSNMPProcessor {
         return RELATIONSHIPS;
     }
 
+    @Override
+    protected String getTargetHost(ProcessContext processContext) {
+        return processContext.getProperty(AGENT_HOST).getValue();
+    }
 
-    private void processError(final ProcessContext context, final ProcessSession processSession, final FlowFile flowFile) {
-        processSession.transfer(processSession.penalize(flowFile), REL_FAILURE);
-        context.yield();
+    @Override
+    protected String getTargetPort(ProcessContext processContext) {
+        return processContext.getProperty(AGENT_PORT).getValue();
     }
 }

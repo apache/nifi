@@ -53,6 +53,11 @@ public abstract class TestAgent extends BaseAgent {
         this.address = String.format("udp:%s/%d", host, port);
     }
 
+    public void unregister() {
+        unregisterSnmpMIBs();
+        snmpMpdMib.unregisterMOs(server, getContext(snmpMpdMib));
+    }
+
     @Override
     protected void initTransportMappings() {
         transportMappings = new TransportMapping[1];

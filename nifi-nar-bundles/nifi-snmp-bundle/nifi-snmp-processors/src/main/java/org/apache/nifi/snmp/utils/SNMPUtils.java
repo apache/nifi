@@ -16,13 +16,13 @@
  */
 package org.apache.nifi.snmp.utils;
 
-import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.snmp.exception.InvalidAuthProtocolException;
 import org.apache.nifi.snmp.exception.InvalidPrivProtocolException;
 import org.apache.nifi.snmp.exception.InvalidSnmpVersionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.snmp4j.PDU;
+import org.snmp4j.PDUv1;
 import org.snmp4j.mp.SnmpConstants;
 import org.snmp4j.security.AuthHMAC128SHA224;
 import org.snmp4j.security.AuthHMAC192SHA256;
@@ -44,6 +44,7 @@ import org.snmp4j.smi.OctetString;
 import org.snmp4j.smi.Variable;
 import org.snmp4j.smi.VariableBinding;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -67,8 +68,8 @@ public final class SNMPUtils {
 
     private static final Map<String, OID> AUTH_MAP;
     private static final Map<String, OID> PRIV_MAP;
-    private static final Map<String, Integer> VERSION_MAP;
     private static final Map<String, String> REPORT_MAP;
+    private static final Map<String, Integer> VERSION_MAP;
 
     private SNMPUtils() {
         // hide implicit constructor
@@ -132,12 +133,18 @@ public final class SNMPUtils {
         return attributes;
     }
 
-    /**
-     * Method to construct {@link FlowFile} attributes from a vector of {@link VariableBinding}
-     *
-     * @param variableBindings list of {@link VariableBinding}
-     * @return the attributes map
-     */
+    public static Map<String, String> getV1TrapPduAttributeMap(final PDUv1 v1TrapPdu) {
+        final Map<String, String> trapAttributes = getPduAttributeMap(v1TrapPdu);
+
+        trapAttributes.computeIfAbsent(SNMP_PROP_PREFIX + "enterprise", v -> String.valueOf(v1TrapPdu.getEnterprise()));
+        trapAttributes.computeIfAbsent(SNMP_PROP_PREFIX + "agentAddress", v -> String.valueOf(v1TrapPdu.getAgentAddress()));
+        trapAttributes.computeIfAbsent(SNMP_PROP_PREFIX + "genericTrapType", v -> String.valueOf(v1TrapPdu.getGenericTrap()));
+        trapAttributes.computeIfAbsent(SNMP_PROP_PREFIX + "specificTrapType", v -> String.valueOf(v1TrapPdu.getSpecificTrap()));
+        trapAttributes.computeIfAbsent(SNMP_PROP_PREFIX + "timestamp", v -> String.valueOf(v1TrapPdu.getTimestamp()));
+
+        return trapAttributes;
+    }
+
     public static Map<String, String> createWalkOidValuesMap(final List<VariableBinding> variableBindings) {
         final Map<String, String> attributes = new HashMap<>();
         variableBindings.forEach(vb -> addAttributeFromVariable(vb, attributes));
@@ -159,44 +166,70 @@ public final class SNMPUtils {
         throw new InvalidAuthProtocolException("Invalid authentication protocol provided.");
     }
 
-    public static int getVersion(final String snmpVersion) {
-        return Optional.ofNullable(VERSION_MAP.get(snmpVersion))
-                .orElseThrow(() -> new InvalidSnmpVersionException("Invalid SNMP version provided."));
-    }
-
-    /**
-     * Method to construct {@link VariableBinding} based on {@link FlowFile}
-     * attributes in order to update the {@link PDU} that is going to be sent to
-     * the SNMP Agent.
-     *
-     * @param pdu        {@link PDU} to be sent
-     * @param attributes {@link FlowFile} attributes
-     * @return true if at least one {@link VariableBinding} has been created, false otherwise
-     */
     public static boolean addVariables(final PDU pdu, final Map<String, String> attributes) {
         boolean result = false;
-        for (Map.Entry<String, String> attributeEntry : attributes.entrySet()) {
-            if (attributeEntry.getKey().startsWith(SNMPUtils.SNMP_PROP_PREFIX)) {
-                final String[] splits = attributeEntry.getKey().split("\\" + SNMPUtils.SNMP_PROP_DELIMITER);
-                final String snmpPropName = splits[1];
-                final String snmpPropValue = attributeEntry.getValue();
-                if (SNMPUtils.OID_PATTERN.matcher(snmpPropName).matches()) {
-                    final Optional<Variable> var;
-                    if (splits.length == 2) { // no SMI syntax defined
-                        var = Optional.of(new OctetString(snmpPropValue));
-                    } else {
-                        final int smiSyntax = Integer.parseInt(splits[2]);
-                        var = SNMPUtils.stringToVariable(snmpPropValue, smiSyntax);
-                    }
-                    if (var.isPresent()) {
-                        final VariableBinding varBind = new VariableBinding(new OID(snmpPropName), var.get());
-                        pdu.add(varBind);
-                        result = true;
+        try {
+            for (Map.Entry<String, String> attributeEntry : attributes.entrySet()) {
+                if (attributeEntry.getKey().startsWith(SNMPUtils.SNMP_PROP_PREFIX)) {
+                    final String[] splits = attributeEntry.getKey().split("\\" + SNMPUtils.SNMP_PROP_DELIMITER);
+                    final String snmpPropName = splits[1];
+                    final String snmpPropValue = attributeEntry.getValue();
+                    if (SNMPUtils.OID_PATTERN.matcher(snmpPropName).matches()) {
+                        final Optional<Variable> var;
+                        if (splits.length == 2) { // no SMI syntax defined
+                            var = Optional.of(new OctetString(snmpPropValue));
+                        } else {
+                            final int smiSyntax = Integer.parseInt(splits[2]);
+                            var = SNMPUtils.stringToVariable(snmpPropValue, smiSyntax);
+                        }
+                        if (var.isPresent()) {
+                            final VariableBinding varBind = new VariableBinding(new OID(snmpPropName), var.get());
+                            pdu.add(varBind);
+                            result = true;
+                        }
                     }
                 }
             }
+        } catch (ArrayIndexOutOfBoundsException e) {
+            return false;
         }
         return result;
+    }
+
+    public static VariableBinding[] addGetVariables(final Map<String, String> attributes) {
+        List<VariableBinding> variableBindings = new ArrayList<>();
+        try {
+            for (Map.Entry<String, String> attributeEntry : attributes.entrySet()) {
+                if (attributeEntry.getKey().startsWith(SNMPUtils.SNMP_PROP_PREFIX)) {
+                    final String[] splits = attributeEntry.getKey().split("\\" + SNMPUtils.SNMP_PROP_DELIMITER);
+                    final String snmpPropName = splits[1];
+                    if (SNMPUtils.OID_PATTERN.matcher(snmpPropName).matches()) {
+                        variableBindings.add(new VariableBinding(new OID(snmpPropName)));
+                    }
+                }
+            }
+        } catch (ArrayIndexOutOfBoundsException e) {
+            return new VariableBinding[0];
+        }
+        return variableBindings.toArray(new VariableBinding[0]);
+    }
+
+    public static OID[] addWalkVariables(final Map<String, String> attributes) {
+        List<OID> oids = new ArrayList<>();
+        try {
+            for (Map.Entry<String, String> attributeEntry : attributes.entrySet()) {
+                if (attributeEntry.getKey().startsWith(SNMPUtils.SNMP_PROP_PREFIX)) {
+                    final String[] splits = attributeEntry.getKey().split("\\" + SNMPUtils.SNMP_PROP_DELIMITER);
+                    final String snmpPropName = splits[1];
+                    if (SNMPUtils.OID_PATTERN.matcher(snmpPropName).matches()) {
+                        oids.add(new OID(snmpPropName));
+                    }
+                }
+            }
+        } catch (ArrayIndexOutOfBoundsException e) {
+            return new OID[0];
+        }
+        return oids.toArray(new OID[0]);
     }
 
     private static void addAttributeFromVariable(final VariableBinding variableBinding, final Map<String, String> attributes) {
@@ -230,5 +263,10 @@ public final class SNMPUtils {
             errorMessage = Optional.ofNullable(REPORT_MAP.get(cutLastOidValue));
         }
         return errorMessage.map(s -> oid + ": " + s);
+    }
+
+    public static int getVersion(final String snmpVersion) {
+        return Optional.ofNullable(VERSION_MAP.get(snmpVersion))
+                .orElseThrow(() -> new InvalidSnmpVersionException("Invalid SNMP version provided."));
     }
 }

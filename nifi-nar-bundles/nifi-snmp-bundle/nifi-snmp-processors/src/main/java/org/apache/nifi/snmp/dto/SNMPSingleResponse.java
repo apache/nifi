@@ -38,7 +38,6 @@ public class SNMPSingleResponse {
         return responsePdu.getErrorStatus() == PDU.noError;
     }
 
-
     public Map<String, String> getAttributes() {
         return SNMPUtils.getPduAttributeMap(responsePdu);
     }
@@ -65,4 +64,5 @@ public class SNMPSingleResponse {
     public boolean isReportPdu() {
         return responsePdu.getType() == PDU.REPORT;
     }
+
 }

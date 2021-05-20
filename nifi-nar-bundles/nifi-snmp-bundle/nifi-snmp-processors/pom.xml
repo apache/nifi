@@ -51,6 +51,12 @@ language governing permissions and limitations under the License. -->
             <version>1.16.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>2.12.3</version>
+            <scope>compile</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -61,7 +67,7 @@ language governing permissions and limitations under the License. -->
                 <configuration>
                     <excludes>
                         <!-- test data -->
-                        <exclude>src/test/resources/testdata/*</exclude>
+                        <exclude>src/test/resources/*</exclude>
                     </excludes>
                 </configuration>
             </plugin>
