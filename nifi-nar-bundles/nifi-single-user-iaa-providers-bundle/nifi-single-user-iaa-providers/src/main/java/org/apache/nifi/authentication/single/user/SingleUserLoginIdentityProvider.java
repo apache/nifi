@@ -59,7 +59,7 @@ public class SingleUserLoginIdentityProvider implements LoginIdentityProvider {
 
     private File loginIdentityProviderConfigurationFile;
 
-    private LoginCredentials configuredCredentials;
+    private SingleUserCredentials configuredCredentials;
 
     /**
      * Set NiFi Properties using method injection
@@ -124,7 +124,7 @@ public class SingleUserLoginIdentityProvider implements LoginIdentityProvider {
             }
         } else {
             final String username = configurationContext.getProperty(USERNAME_PROPERTY);
-            configuredCredentials = new LoginCredentials(username, password);
+            configuredCredentials = new SingleUserCredentials(username, password, getClass().getName());
         }
     }
 
@@ -147,15 +147,16 @@ public class SingleUserLoginIdentityProvider implements LoginIdentityProvider {
         return new StandardLoginCredentialsWriter(loginIdentityProviderConfigurationFile);
     }
 
-    private LoginCredentials generateLoginCredentials() throws IOException {
+    private SingleUserCredentials generateLoginCredentials() throws IOException {
         final String username = UUID.randomUUID().toString();
         final String password = generatePassword();
 
         final String separator = System.lineSeparator();
         LOGGER.info("{}{}Generated Username [{}]{}Generated Password [{}]{}", separator, separator, username, separator, password, separator);
+        LOGGER.info("Run the following command to change credentials: nifi.sh set-single-user-credentials USERNAME PASSWORD");
 
         final String hashedPassword = passwordEncoder.encode(password.toCharArray());
-        return new LoginCredentials(username, hashedPassword);
+        return new SingleUserCredentials(username, hashedPassword, getClass().getName());
     }
 
     private boolean isPasswordVerified(final String password) {

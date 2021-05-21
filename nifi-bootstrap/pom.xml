@@ -52,6 +52,12 @@ language governing permissions and limitations under the License. -->
             <scope>runtime</scope>
         </dependency>
         <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-single-user-utils</artifactId>
+            <version>1.14.0-SNAPSHOT</version>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
             <groupId>javax.mail</groupId>
             <artifactId>mail</artifactId>
             <version>1.4.7</version>

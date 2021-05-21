@@ -124,6 +124,12 @@ The application log is located in `logs/nifi-app.log` under the installation dir
 with `Generated Username [USERNAME]` and `Generated Password [PASSWORD]` indicating the credentials needed for access.
 Search the application log for those lines and record the generated values in a secure location.
 
+The following command can be used to change the username and password:
+
+```
+$ ./bin/nifi.sh set-single-user-credentials <username> <password>
+```
+
 Now that NiFi has been started, we can bring up the User Interface (UI) in order to create and monitor our dataflow.
 To get started, open a web browser and navigate to link:https://localhost:8443/nifi[`https://localhost:8443/nifi`^]. The port can be changed by
 editing the `nifi.properties` file in the NiFi `conf` directory, but the default port is 8443.
