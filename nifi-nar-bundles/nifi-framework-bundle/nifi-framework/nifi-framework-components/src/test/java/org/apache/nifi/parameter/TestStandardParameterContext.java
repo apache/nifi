@@ -447,7 +447,7 @@ public class TestStandardParameterContext {
         }
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void testSetParameterContexts_foundCycle() {
         final StandardParameterContextManager parameterContextLookup = new StandardParameterContextManager();
         // Set up a hierarchy as follows:
@@ -467,6 +467,28 @@ public class TestStandardParameterContext {
 
         b.setInheritedParameterContexts(Arrays.asList(d, e));
 
+        Assert.assertThrows(IllegalStateException.class, () -> a.setInheritedParameterContexts(Arrays.asList(b, c)));
+    }
+
+    @Test
+    public void testSetParameterContexts_duplicationButNoCycle() {
+        final StandardParameterContextManager parameterContextLookup = new StandardParameterContextManager();
+        // Set up a hierarchy as follows:
+        //       a
+        //     /  |
+        //    b   c
+        //   / |
+        //  d  e
+        //  |
+        //  c (duplicate node, but not a cycle)
+        //
+        final ParameterContext a = createParameterContext("a", parameterContextLookup);
+        final ParameterContext b = createParameterContext("b", parameterContextLookup);
+        final ParameterContext c = createParameterContext("c", parameterContextLookup);
+        final ParameterContext d = createParameterContext("d", parameterContextLookup, c); // Here's the duplicate
+        final ParameterContext e = createParameterContext("e", parameterContextLookup);
+
+        b.setInheritedParameterContexts(Arrays.asList(d, e));
         a.setInheritedParameterContexts(Arrays.asList(b, c));
     }
 
@@ -539,6 +561,42 @@ public class TestStandardParameterContext {
 
         Assert.assertEquals("d.grandchild", effectiveParameters.get(grandchild).getValue());
         Assert.assertEquals("d", effectiveParameters.get(grandchild).getParameterContextId());
+    }
+
+    @Test
+    public void testGetEffectiveParameters_duplicateOverride() {
+        final StandardParameterContextManager parameterContextLookup = new StandardParameterContextManager();
+        // Set up a hierarchy as follows:
+        //       a
+        //     /  |
+        //    c   b
+        //        |
+        //        d
+        //        |
+        //        c
+        //
+        // Parameter priority should be: a, c, b, d
+        final ParameterContext a = createParameterContext("a", parameterContextLookup);
+
+        final ParameterContext b = createParameterContext("b", parameterContextLookup);
+        final ParameterDescriptor child = addParameter(b, "child", "b.child"); // Overridden by c.child since c comes first in the list
+
+        final ParameterContext c = createParameterContext("c", parameterContextLookup);
+        addParameter(c, "child", "c.child");
+
+        final ParameterContext d = createParameterContext("d", parameterContextLookup);
+        addParameter(d, "child", "d.child"); // Overridden by c.foo since c precedes d's ancestor b
+
+        a.setInheritedParameterContexts(Arrays.asList(c, b));
+        b.setInheritedParameterContexts(Arrays.asList(d));
+        d.setInheritedParameterContexts(Arrays.asList(c));
+
+        final Map<ParameterDescriptor, Parameter> effectiveParameters = a.getEffectiveParameters();
+
+        Assert.assertEquals(1, effectiveParameters.size());
+
+        Assert.assertEquals("c.child", effectiveParameters.get(child).getValue());
+        Assert.assertEquals("c", effectiveParameters.get(child).getParameterContextId());
     }
 
     @Test

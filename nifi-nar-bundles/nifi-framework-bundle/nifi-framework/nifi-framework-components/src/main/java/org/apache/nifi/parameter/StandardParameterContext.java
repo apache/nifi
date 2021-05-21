@@ -35,15 +35,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Stack;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -376,7 +374,9 @@ public class StandardParameterContext implements ParameterContext {
      * @param parameterContexts A list of proposed ParameterContexts
      */
     private void verifyNoCycles(final List<ParameterContext> parameterContexts) {
-        verifyNoCycles(new HashSet<String>(Arrays.asList(id)), parameterContexts);
+        final Stack<String> traversedIds = new Stack<>();
+        traversedIds.push(id);
+        verifyNoCycles(traversedIds, parameterContexts);
     }
 
     /**
@@ -386,15 +386,16 @@ public class StandardParameterContext implements ParameterContext {
      * @param parameterContexts The ParameterContexts for which to check for cycles
      * @throws IllegalStateException If a cycle was detected
      */
-    private void verifyNoCycles(final Collection<String> traversedIds, final List<ParameterContext> parameterContexts) {
+    private void verifyNoCycles(final Stack<String> traversedIds, final List<ParameterContext> parameterContexts) {
         for (ParameterContext parameterContext : parameterContexts) {
             final String id = parameterContext.getIdentifier();
             if (traversedIds.contains(id)) {
                 throw new IllegalStateException(String.format("Circular references in Parameter Contexts not allowed. [%s] was detected in a cycle.", parameterContext.getName()));
             }
 
-            traversedIds.add(id);
+            traversedIds.push(id);
             verifyNoCycles(traversedIds, parameterContext.getInheritedParameterContexts());
+            traversedIds.pop();
         }
     }
 
