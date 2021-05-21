@@ -58,10 +58,10 @@
     </properties>
 
     <repositories>
-        <!-- HTTP Repository for pentaho-aggdesigner-algorithm 5.1.5-jhyde required by calcite-1.2.0-incubating -->
+        <!-- HTTPS Repository for pentaho-aggdesigner-algorithm 5.1.5-jhyde required by calcite-1.2.0-incubating -->
         <repository>
-            <id>conjars</id>
-            <url>https://conjars.org/repo</url>
+            <id>pentaho</id>
+            <url>https://public.nexus.pentaho.org/repository/proxy-public-3rd-party-release</url>
         </repository>
     </repositories>
 
