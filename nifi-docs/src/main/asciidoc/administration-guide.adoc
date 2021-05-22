@@ -84,7 +84,6 @@ The following table lists the default ports used by NiFi and the corresponding p
 [options="header,footer"]
 |==================================================================================================================================================
 | Function                        |  Property                             | Default Value
-|HTTP Port*                       | `nifi.web.http.port`                  | `8080`
 |HTTPS Port                       | `nifi.web.https.port`                 | `8443`
 |Remote Input Socket Port*        | `nifi.remote.input.socket.port`       | `10443`
 |Cluster Node Protocol Port*      | `nifi.cluster.node.protocol.port`     | `11443`
@@ -92,7 +91,7 @@ The following table lists the default ports used by NiFi and the corresponding p
 |Web HTTP Forwarding Port         | `nifi.web.http.port.forwarding`       | _none_
 |==================================================================================================================================================
 
-NOTE: The ports marked with an asterisk (*) have property values that are blank by default in _nifi.properties_.  The values shown in the table are the default values for these ports when <<toolkit-guide.adoc#tls_toolkit,TLS Toolkit>> is used to generate _nifi.properties_ for a secured NiFi instance.  The default Certificate Authority Port used by <<toolkit-guide.adoc#tls_toolkit,TLS Toolkit>> is `8443`.
+NOTE: The ports marked with an asterisk (*) have property values that are blank by default in _nifi.properties_.  The values shown in the table are the default values for these ports when <<toolkit-guide.adoc#tls_toolkit,TLS Toolkit>> is used to generate _nifi.properties_ for a secured NiFi instance.  The default Certificate Authority Port used by <<toolkit-guide.adoc#tls_toolkit,TLS Toolkit>> is `9443`.
 
 === Embedded ZooKeeper
 The following table lists the default ports used by an <<embedded_zookeeper>> and the corresponding property in the _zookeeper.properties_ file.

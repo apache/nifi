@@ -27,7 +27,7 @@ import org.apache.nifi.util.StringUtils;
 public class TlsConfig {
     public static final String DEFAULT_HOSTNAME = "localhost";
     public static final String DEFAULT_KEY_STORE_TYPE = "jks";
-    public static final int DEFAULT_PORT = 8443;
+    public static final int DEFAULT_PORT = 9443;
     public static final int DEFAULT_DAYS = 825;
     public static final int DEFAULT_KEY_SIZE = 2048;
     public static final String DEFAULT_KEY_PAIR_ALGORITHM = "RSA";
