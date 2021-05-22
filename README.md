@@ -65,12 +65,12 @@ Apache NiFi was made for dataflow. It supports highly configurable directed grap
 
 ## Getting Started
 
-Read through the [quickstart guide for development](http://nifi.apache.org/quickstart.html).
+Read through the [quickstart guide for development](https://nifi.apache.org/quickstart.html).
 It will include information on getting a local copy of the source, give pointers on issue
 tracking, and provide some warnings about common problems with development environments.
 
 For a more comprehensive guide to development and information about contributing to the project
-read through the [NiFi Developer's Guide](http://nifi.apache.org/developer-guide.html).
+read through the [NiFi Developer's Guide](https://nifi.apache.org/developer-guide.html).
 
 ### Building
 
@@ -140,6 +140,10 @@ NiFi logs the generated credentials as follows:
 The `USERNAME` will be a random UUID composed of 36 characters. The `PASSWORD` will be a random string composed of
 32 characters. The generated credentials will be stored in `conf/login-identity-providers.xml` with the password stored
 using bcrypt hashing. Record these credentials in a secure location for access to NiFi.
+
+The random username and password can be replaced with custom credentials using the following command:
+
+    ./bin/nifi.sh set-single-user-credentials <username> <password>
   
 ### Running
 
@@ -159,7 +163,7 @@ and the generated password in the `Password` field, then press `LOG IN` to acces
 
 ### Configuring
 
-The [NiFi User Guide](http://nifi.apache.org/docs/nifi-docs/html/user-guide.html) describes how to build a data flow.
+The [NiFi User Guide](https://nifi.apache.org/docs/nifi-docs/html/user-guide.html) describes how to build a data flow.
 
 ### Stopping
 
@@ -226,32 +230,32 @@ docker run -d -v YOUR_CONFIG.YML:/opt/minifi/minifi-${minifi.version}/conf/confi
 
 ## Getting Help
 If you have questions, you can reach out to our mailing list: dev@nifi.apache.org
-([archive](http://mail-archives.apache.org/mod_mbox/nifi-dev)). For more interactive discussions, community members can often be found in the following locations:
+([archive](https://lists.apache.org/list.html?dev@nifi.apache.org)). For more interactive discussions, community members can often be found in the following locations:
 
 - Apache NiFi Slack Workspace: https://apachenifi.slack.com/
 
   New users can join the workspace using the following [invite link](https://s.apache.org/nifi-community-slack).
   
-- IRC: #nifi on [irc.freenode.net](http://webchat.freenode.net/?channels=#nifi)
+- IRC: #nifi on [irc.freenode.net](https://webchat.freenode.net/?channels=#nifi)
 
 To submit a feature request or bug report, please file a Jira at [https://issues.apache.org/jira/projects/NIFI/issues](https://issues.apache.org/jira/projects/NIFI/issues). If this is a **security vulnerability report**, please email [security@nifi.apache.org](mailto:security@nifi.apache.org) directly and review the [Apache NiFi Security Vulnerability Disclosure](https://nifi.apache.org/security.html) and [Apache Software Foundation Security](https://www.apache.org/security/committers.html) processes first. 
 
 ## Documentation
 
-See http://nifi.apache.org/ for the latest NiFi documentation.
+See https://nifi.apache.org/ for the latest NiFi documentation.
 
 See https://nifi.apache.org/minifi and https://cwiki.apache.org/confluence/display/MINIFI for the latest MiNiFi-specific documentation.
 
 ## License
 
 Except as otherwise noted this software is licensed under the
-[Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0.html)
+[Apache License, Version 2.0](https://www.apache.org/licenses/LICENSE-2.0.html)
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-  http://www.apache.org/licenses/LICENSE-2.0
+  https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -266,7 +270,7 @@ currently reside may have restrictions on the import, possession, use, and/or
 re-export to another country, of encryption software. BEFORE using any
 encryption software, please check your country's laws, regulations and
 policies concerning the import, possession, or use, and re-export of encryption
-software, to see if this is permitted. See <http://www.wassenaar.org/> for more
+software, to see if this is permitted. See <https://www.wassenaar.org/> for more
 information.
 
 The U.S. Government Department of Commerce, Bureau of Industry and Security
@@ -283,9 +287,9 @@ The following provides more details on the included cryptographic software:
 Apache NiFi uses BouncyCastle, JCraft Inc., and the built-in
 Java cryptography libraries for SSL, SSH, and the protection
 of sensitive configuration parameters. See
-http://bouncycastle.org/about.html
+https://bouncycastle.org/about.html
 http://www.jcraft.com/c-info.html
-http://www.oracle.com/us/products/export/export-regulations-345813.html
+https://www.oracle.com/corporate/security-practices/corporate/governance/global-trade-compliance.html
 for more details on each of these libraries cryptography features.
 
 [nifi]: https://nifi.apache.org/

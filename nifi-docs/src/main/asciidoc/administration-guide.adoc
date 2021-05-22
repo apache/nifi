@@ -251,12 +251,12 @@ NiFi supports user authentication via client certificates, via username/password
 
 Username/password authentication is performed by a 'Login Identity Provider'. The Login Identity Provider is a pluggable mechanism for
 authenticating users via their username/password. Which Login Identity Provider to use is configured in the _nifi.properties_ file.
-Currently NiFi offers username/password with Login Identity Providers options for <<ldap_login_identity_provider>> and <<kerberos_login_identity_provider>>.
+Currently NiFi offers username/password with Login Identity Providers options for <<single_user_identity_provider>>, <<ldap_login_identity_provider>> and <<kerberos_login_identity_provider>>.
 
 The `nifi.login.identity.provider.configuration.file` property specifies the configuration file for Login Identity Providers.  By default, this property is set to `./conf/login-identity-providers.xml`.
 
 The `nifi.security.user.login.identity.provider` property indicates which of the configured Login Identity Provider should be
-used. By default, this property is not configured meaning that username/password must be explicitly enabled.
+used. The default value of this property is `single-user-provider` supporting authentication with a generated username and password.
 
 During OpenId Connect authentication, NiFi will redirect users to login with the Provider before returning to NiFi. NiFi will then
 call the Provider to obtain the user identity.
@@ -279,6 +279,37 @@ request is authenticated or rejected. In all three of these scenarios if the req
 authorization based on the requested resource.
 
 NOTE: NiFi does not perform user authentication over HTTP. Using HTTP, all users will be granted all roles.
+
+[[single_user_identity_provider]]
+=== Single User
+
+The default Single User Login Identity Provider supports automated generation of username and password credentials.
+
+The generated username will be a random UUID consisting of 36 characters. The generated password will be a random string
+consisting of 32 characters and stored using bcrypt hashing.
+
+The default configuration in _nifi.properties_ enables Single User authentication:
+
+---
+nifi.security.user.login.identity.provider=single-user-provider
+---
+
+The default _login-identity-providers.xml_ includes a blank provider definition:
+
+---
+<provider>
+   <identifier>single-user-provider</identifier>
+   <class>org.apache.nifi.authentication.single.user.SingleUserLoginIdentityProvider</class>
+   <property name="Username"/>
+   <property name="Password"/>
+</provider>
+---
+
+The following command can be used to change the Username and Password:
+
+```
+$ ./bin/nifi.sh set-single-user-credentials <username> <password>
+```
 
 [[ldap_login_identity_provider]]
 === Lightweight Directory Access Protocol (LDAP)
