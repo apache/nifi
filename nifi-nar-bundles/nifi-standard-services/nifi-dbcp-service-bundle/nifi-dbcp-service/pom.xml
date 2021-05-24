@@ -21,6 +21,9 @@
     </parent>
     <artifactId>nifi-dbcp-service</artifactId>
     <packaging>jar</packaging>
+    <properties>
+        <derby.version>10.14.2.0</derby.version>
+    </properties>
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -88,24 +91,24 @@
         <dependency>
             <groupId>org.apache.derby</groupId>
             <artifactId>derby</artifactId>
-            <version>10.11.1.1</version>
+            <version>${derby.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.derby</groupId>
             <artifactId>derbynet</artifactId>
-            <version>10.11.1.1</version>
+            <version>${derby.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.derby</groupId>
             <artifactId>derbytools</artifactId>
-            <version>10.11.1.1</version>
+            <version>${derby.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.derby</groupId>
             <artifactId>derbyclient</artifactId>
-            <version>10.11.1.1</version>
+            <version>${derby.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
