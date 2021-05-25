@@ -74,6 +74,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
@@ -97,8 +99,10 @@ public class StandardStatelessFlow implements StatelessDataflow {
     private final ProcessScheduler processScheduler;
     private final AsynchronousCommitTracker tracker = new AsynchronousCommitTracker();
     private final TransactionThresholdMeter transactionThresholdMeter;
+    private final List<BackgroundTask> backgroundTasks = new ArrayList<>();
 
     private volatile ExecutorService runDataflowExecutor;
+    private volatile ScheduledExecutorService backgroundTaskExecutor;
     private volatile boolean initialized = false;
 
     public StandardStatelessFlow(final ProcessGroup rootGroup, final List<ReportingTaskNode> reportingTasks, final ControllerServiceProvider controllerServiceProvider,
@@ -212,21 +216,37 @@ public class StandardStatelessFlow implements StatelessDataflow {
             logger.info("Successfully initialized components in {} millis ({} millis to perform validation, {} millis for services to enable)",
                 initializationMillis, validationMillis, serviceEnableMillis);
 
-            runDataflowExecutor = Executors.newFixedThreadPool(1, r -> {
-                final Thread thread = Executors.defaultThreadFactory().newThread(r);
-                final String flowName = dataflowDefinition.getFlowName();
-                if (flowName == null) {
-                    thread.setName("Run Dataflow");
-                } else {
-                    thread.setName("Run Dataflow " + flowName);
-                }
+            // Create executor for dataflow
+            final String flowName = dataflowDefinition.getFlowName();
+            final String threadName = (flowName == null) ? "Run Dataflow" : "Run Dataflow " + flowName;
+            runDataflowExecutor = Executors.newFixedThreadPool(1, createNamedThreadFactory(threadName, false));
 
-                return thread;
-            });
+            // Periodically log component statuses
+            backgroundTaskExecutor = Executors.newScheduledThreadPool(1, createNamedThreadFactory("Background Tasks", true));
+            backgroundTasks.forEach(task -> backgroundTaskExecutor.scheduleWithFixedDelay(task.getTask(), task.getSchedulingPeriod(), task.getSchedulingPeriod(), task.getSchedulingUnit()));
         } catch (final Throwable t) {
             processScheduler.shutdown();
             throw t;
         }
+    }
+
+    private ThreadFactory createNamedThreadFactory(final String name, final boolean daemon) {
+        return (Runnable r) -> {
+            final Thread thread = Executors.defaultThreadFactory().newThread(r);
+            thread.setName(name);
+            thread.setDaemon(daemon);
+            return thread;
+        };
+    }
+
+    /**
+     * Schedules the given background task to run periodically after the dataflow has been initialized until it has been shutdown
+     * @param task the task to run
+     * @param period how often to run it
+     * @param unit the unit for the time period
+     */
+    public void scheduleBackgroundTask(final Runnable task, final long period, final TimeUnit unit) {
+        backgroundTasks.add(new BackgroundTask(task, period, unit));
     }
 
     private void waitForServicesEnabled(final ProcessGroup group) {
@@ -267,6 +287,9 @@ public class StandardStatelessFlow implements StatelessDataflow {
     public void shutdown() {
         if (runDataflowExecutor != null) {
             runDataflowExecutor.shutdown();
+        }
+        if (backgroundTaskExecutor != null) {
+            backgroundTaskExecutor.shutdown();
         }
 
         rootGroup.stopProcessing();
@@ -655,6 +678,30 @@ public class StandardStatelessFlow implements StatelessDataflow {
 
         public void setStateValues(final Map<String, String> stateValues) {
             this.stateValues = stateValues;
+        }
+    }
+
+    private static class BackgroundTask {
+        private final Runnable task;
+        private final long schedulingPeriod;
+        private final TimeUnit schedulingUnit;
+
+        public BackgroundTask(final Runnable task, final long schedulingPeriod, final TimeUnit schedulingUnit) {
+            this.task = task;
+            this.schedulingPeriod = schedulingPeriod;
+            this.schedulingUnit = schedulingUnit;
+        }
+
+        public Runnable getTask() {
+            return task;
+        }
+
+        public long getSchedulingPeriod() {
+            return schedulingPeriod;
+        }
+
+        public TimeUnit getSchedulingUnit() {
+            return schedulingUnit;
         }
     }
 }
