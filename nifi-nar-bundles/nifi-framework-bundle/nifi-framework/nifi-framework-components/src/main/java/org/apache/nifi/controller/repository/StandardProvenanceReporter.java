@@ -93,6 +93,10 @@ public class StandardProvenanceReporter implements InternalProvenanceReporter {
         for (final ProvenanceEventRecord event : events) {
             if (flowFileIds.contains(event.getFlowFileUuid())) {
                 toMove.add(event);
+            } else if (event.getEventType() == ProvenanceEventType.CLONE) {
+                if (flowFileIds.containsAll(event.getChildUuids())) {
+                    toMove.add(event);
+                }
             }
         }
 

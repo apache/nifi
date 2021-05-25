@@ -40,6 +40,7 @@ import org.apache.nifi.processor.FlowFileFilter.FlowFileFilterResult;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.FlowFileAccessException;
+import org.apache.nifi.processor.exception.FlowFileHandlingException;
 import org.apache.nifi.processor.exception.MissingFlowFileException;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
@@ -92,6 +93,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -305,6 +307,101 @@ public class StandardProcessSessionIT {
 
         verify(conn1, times(1)).poll(any(Set.class));
         verify(conn2, times(1)).poll(any(Set.class));
+    }
+
+    @Test
+    public void testFlowFileHandlingExceptionThrownIfMigratingChildNotParent() {
+        final StandardFlowFileRecord.Builder flowFileRecordBuilder = new StandardFlowFileRecord.Builder()
+            .id(1000L)
+            .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
+            .entryDate(System.currentTimeMillis());
+
+        flowFileQueue.put(flowFileRecordBuilder.build());
+
+        FlowFile flowFile = session.get();
+        assertNotNull(flowFile);
+
+        final List<FlowFile> children = new ArrayList<>();
+        for (int i=0; i < 3; i++) {
+            FlowFile child = session.create(flowFile);
+            children.add(child);
+        }
+
+        final ProcessSession secondSession = new StandardProcessSession(context, () -> false);
+        try {
+            session.migrate(secondSession, children);
+            Assert.fail("Expected a FlowFileHandlingException to be thrown because a child FlowFile was migrated while its parent was not");
+        } catch (final FlowFileHandlingException expected) {
+        }
+
+        try {
+            session.migrate(secondSession, Collections.singletonList(flowFile));
+            Assert.fail("Expected a FlowFileHandlingException to be thrown because parent was forked and then migrated without children");
+        } catch (final FlowFileHandlingException expected) {
+        }
+
+        try {
+            session.migrate(secondSession, Arrays.asList(flowFile, children.get(0), children.get(1)));
+            Assert.fail("Expected a FlowFileHandlingException to be thrown because parent was forked and then migrated without children");
+        } catch (final FlowFileHandlingException expected) {
+        }
+
+        // Should succeed when migrating all FlowFiles.
+        final List<FlowFile> allFlowFiles = new ArrayList<>();
+        allFlowFiles.add(flowFile);
+        allFlowFiles.addAll(children);
+        session.migrate(secondSession, allFlowFiles);
+        session.commit();
+
+        final Relationship relationship = new Relationship.Builder().name("A").build();
+        secondSession.transfer(allFlowFiles, relationship);
+        secondSession.commit();
+    }
+
+    @Test
+    public void testCloneForkChildMigrateCommit() throws IOException {
+        final StandardFlowFileRecord.Builder flowFileRecordBuilder = new StandardFlowFileRecord.Builder()
+            .id(1000L)
+            .addAttribute("uuid", "12345678-1234-1234-1234-123456789012")
+            .entryDate(System.currentTimeMillis());
+
+        flowFileQueue.put(flowFileRecordBuilder.build());
+
+        FlowFile flowFile = session.get();
+        assertNotNull(flowFile);
+
+        final ProcessSession secondSession = new StandardProcessSession(context, () -> false);
+
+        FlowFile clone = session.clone(flowFile);
+        session.migrate(secondSession, Collections.singletonList(clone));
+
+        final List<FlowFile> children = new ArrayList<>();
+        for (int i=0; i < 3; i++) {
+            FlowFile child = secondSession.create(clone);
+            children.add(child);
+        }
+
+        secondSession.transfer(children, Relationship.ANONYMOUS);
+        secondSession.remove(clone);
+        secondSession.commit();
+
+        session.remove(flowFile);
+        session.commit();
+
+        final List<ProvenanceEventRecord> provEvents = provenanceRepo.getEvents(0L, 1000);
+        assertEquals(3, provEvents.size());
+
+        final Map<ProvenanceEventType, List<ProvenanceEventRecord>> eventsByType = provEvents.stream().collect(Collectors.groupingBy(ProvenanceEventRecord::getEventType));
+        assertEquals(1, eventsByType.get(ProvenanceEventType.CLONE).size());
+        assertEquals(1, eventsByType.get(ProvenanceEventType.DROP).size());
+        assertEquals(1, eventsByType.get(ProvenanceEventType.FORK).size());
+
+        final ProvenanceEventRecord fork = eventsByType.get(ProvenanceEventType.FORK).get(0);
+        assertEquals(clone.getAttribute(CoreAttributes.UUID.key()), fork.getFlowFileUuid());
+        assertEquals(Collections.singletonList(clone.getAttribute(CoreAttributes.UUID.key())), fork.getParentUuids());
+
+        final Set<String> childUuids = children.stream().map(ff -> ff.getAttribute(CoreAttributes.UUID.key())).collect(Collectors.toSet());
+        assertEquals(childUuids, new HashSet<>(fork.getChildUuids()));
     }
 
     @Test
