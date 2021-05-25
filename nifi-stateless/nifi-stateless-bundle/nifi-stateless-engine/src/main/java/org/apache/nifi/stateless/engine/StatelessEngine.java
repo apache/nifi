@@ -23,6 +23,7 @@ import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ReloadComponent;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.kerberos.KerberosConfig;
+import org.apache.nifi.controller.repository.CounterRepository;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.encrypt.PropertyEncryptor;
@@ -68,4 +69,6 @@ public interface StatelessEngine<T> {
     ProvenanceRepository getProvenanceRepository();
 
     FlowFileEventRepository getFlowFileEventRepository();
+
+    CounterRepository getCounterRepository();
 }

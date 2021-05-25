@@ -119,7 +119,7 @@ public class ControllerStatusReportingTask extends AbstractReportingTask {
                 "Flow Files Out", "Bytes Read", "Bytes Written", "Tasks", "Proc Time");
         processorBorderLine = createLine(processorHeader);
 
-        counterHeader = String.format(COUNTER_LINE_FORMAT, "Context Context", "Counter Name", "Counter Value");
+        counterHeader = String.format(COUNTER_LINE_FORMAT, "Counter Context", "Counter Name", "Counter Value");
         counterBorderLine = createLine(counterHeader);
     }
 
@@ -227,6 +227,10 @@ public class ControllerStatusReportingTask extends AbstractReportingTask {
                         counterValue));
                 }
             }
+        }
+
+        for (final ProcessGroupStatus childGroupStatus : status.getProcessGroupStatus()) {
+            printCounterStatus(childGroupStatus, builder, showDeltas, divisor);
         }
     }
 

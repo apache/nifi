@@ -31,6 +31,8 @@ import org.apache.nifi.controller.ReloadComponent;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.kerberos.KerberosConfig;
+import org.apache.nifi.controller.reporting.LogComponentStatuses;
+import org.apache.nifi.controller.repository.CounterRepository;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.encrypt.PropertyEncryptor;
@@ -73,6 +75,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static java.util.Objects.requireNonNull;
@@ -93,6 +96,7 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
     private final FlowFileEventRepository flowFileEventRepository;
     private final ProvenanceRepository provenanceRepository;
     private final ExtensionRepository extensionRepository;
+    private final CounterRepository counterRepository;
 
     // Member Variables created/managed internally
     private final ReloadComponent reloadComponent;
@@ -118,6 +122,7 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
         this.flowFileEventRepository = requireNonNull(builder.flowFileEventRepository, "FlowFile Event Repository must be provided");
         this.provenanceRepository = requireNonNull(builder.provenanceRepository, "Provenance Repository must be provided");
         this.extensionRepository = requireNonNull(builder.extensionRepository, "Extension Repository must be provided");
+        this.counterRepository = requireNonNull(builder.counterRepository, "Counter Repository must be provided");
 
         this.reloadComponent = new StatelessReloadComponent(this);
         this.validationTrigger = new StandardValidationTrigger(new FlowEngine(1, "Component Validation", true), () -> true);
@@ -170,6 +175,10 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
         final List<ReportingTaskNode> reportingTaskNodes = createReportingTasks(dataflowDefinition);
         final StandardStatelessFlow dataflow = new StandardStatelessFlow(childGroup, reportingTaskNodes, controllerServiceProvider, processContextFactory,
             repositoryContextFactory, dataflowDefinition, stateManagerProvider, processScheduler);
+
+        final LogComponentStatuses logComponentStatuses = new LogComponentStatuses(flowFileEventRepository, counterRepository, flowManager);
+        dataflow.scheduleBackgroundTask(logComponentStatuses, 1, TimeUnit.MINUTES);
+
         return dataflow;
     }
 
@@ -491,6 +500,11 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
         return flowManager;
     }
 
+    @Override
+    public CounterRepository getCounterRepository() {
+        return counterRepository;
+    }
+
     public static class Builder {
         private ExtensionManager extensionManager = null;
         private BulletinRepository bulletinRepository = null;
@@ -503,6 +517,7 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
         private FlowFileEventRepository flowFileEventRepository = null;
         private ProvenanceRepository provenanceRepository = null;
         private ExtensionRepository extensionRepository = null;
+        private CounterRepository counterRepository = null;
 
         public Builder extensionManager(final ExtensionManager extensionManager) {
             this.extensionManager = extensionManager;
@@ -556,6 +571,11 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
 
         public Builder extensionRepository(final ExtensionRepository extensionRepository) {
             this.extensionRepository = extensionRepository;
+            return this;
+        }
+
+        public Builder counterRepository(final CounterRepository counterRepository) {
+            this.counterRepository = counterRepository;
             return this;
         }
 
