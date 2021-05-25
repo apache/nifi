@@ -238,15 +238,16 @@ public final class SnippetUtils {
         final Set<ProcessGroupDTO> processGroups = highestProcessGroupDTO.getContents().getProcessGroups();
         fillContentsByGroupMap(highestProcessGroupDTO, contentsByGroup);
 
-        // maintain a listing of visited groups starting with each group in the snippet. this is used to determine
-        // whether a referenced controller service should be included in the resulting snippet. if the service is
-        // defined at groupId or one of it's ancestors, its considered outside of this snippet and will only be included
-        // when the includeControllerServices is set to true. this happens above when considering the processors in this snippet
+        // Maintain a listing of visited groups starting with each group in the snippet.
+        // This is used to determine whether a referenced controller service should be included in the resulting snippet.
+        // If the service is defined at groupId or one of it's ancestors, its considered outside of this snippet
+        // and will only be included when the includeControllerServices is set to true.
+        // This happens above when considering the processors in this snippet.
         final Set<String> visitedGroupIds = new HashSet<>();
-        for (String groupIdentifier : contentsByGroup.keySet()) {
+        for (final String groupIdentifier : contentsByGroup.keySet()) {
 
-            // include this group in the ancestry for this snippet, services only get included if the includeControllerServices
-            // flag is set or if the service is defined within this groups hierarchy within the snippet
+            // Include this group in the ancestry for this snippet, services only get included if the includeControllerServices
+            // flag is set or if the service is defined within this groups hierarchy within the snippet.
             if (!groupIdentifier.equals(processGroup.getIdentifier())) {
                 visitedGroupIds.add(groupIdentifier);
             }
@@ -315,8 +316,8 @@ public final class SnippetUtils {
         return snippetDto;
     }
 
-    private void fillContentsByGroupMap(ProcessGroupDTO processGroup, Map<String, FlowSnippetDTO> contentByGroupMap) {
-        for (ProcessGroupDTO group: processGroup.getContents().getProcessGroups()) {
+    private void fillContentsByGroupMap(final ProcessGroupDTO processGroup, final Map<String, FlowSnippetDTO> contentByGroupMap) {
+        for (final ProcessGroupDTO group: processGroup.getContents().getProcessGroups()) {
             contentByGroupMap.put(group.getId(), group.getContents());
             fillContentsByGroupMap(group, contentByGroupMap);
         }
