@@ -171,6 +171,8 @@ public class StandardStatelessDataflowFactory implements StatelessDataflowFactor
                 }
             };
 
+            final CounterRepository counterRepo = new StandardCounterRepository();
+
             final File krb5File = engineConfiguration.getKrb5File();
             final KerberosConfig kerberosConfig = new KerberosConfig(null, null, krb5File);
             logger.info("Setting java.security.krb5.conf to {}", krb5File.getAbsolutePath());
@@ -188,6 +190,7 @@ public class StandardStatelessDataflowFactory implements StatelessDataflowFactor
                 .flowFileEventRepository(flowFileEventRepo)
                 .provenanceRepository(provenanceRepo)
                 .extensionRepository(extensionRepository)
+                .counterRepository(counterRepo)
                 .build();
 
             final StatelessFlowManager flowManager = new StatelessFlowManager(flowFileEventRepo, parameterContextManager, statelessEngine, () -> true, sslContext);
@@ -197,7 +200,6 @@ public class StandardStatelessDataflowFactory implements StatelessDataflowFactor
             final ProcessContextFactory processContextFactory = new CachingProcessContextFactory(rawProcessContextFactory);
             contentRepo = new ByteArrayContentRepository();
             flowFileRepo = new StatelessFlowFileRepository();
-            final CounterRepository counterRepo = new StandardCounterRepository();
 
             final RepositoryContextFactory repositoryContextFactory = new StatelessRepositoryContextFactory(contentRepo, flowFileRepo, flowFileEventRepo,
                 counterRepo, provenanceRepo, stateManagerProvider);
