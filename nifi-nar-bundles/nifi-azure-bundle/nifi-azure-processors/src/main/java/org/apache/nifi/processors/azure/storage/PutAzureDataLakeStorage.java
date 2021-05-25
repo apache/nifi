@@ -20,6 +20,7 @@ import com.azure.storage.file.datalake.DataLakeDirectoryClient;
 import com.azure.storage.file.datalake.DataLakeFileClient;
 import com.azure.storage.file.datalake.DataLakeFileSystemClient;
 import com.azure.storage.file.datalake.DataLakeServiceClient;
+import com.azure.storage.file.datalake.models.DataLakeRequestConditions;
 import com.azure.storage.file.datalake.models.DataLakeStorageException;
 import com.google.common.annotations.VisibleForTesting;
 import org.apache.commons.io.input.BoundedInputStream;
@@ -31,14 +32,18 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor;
+import org.apache.nifi.processors.azure.storage.utils.AzureTempFilePrefixValidator;
+import org.apache.nifi.util.StringUtils;
 
 import java.io.BufferedInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -84,12 +89,24 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
             .allowableValues(FAIL_RESOLUTION, REPLACE_RESOLUTION, IGNORE_RESOLUTION)
             .build();
 
+    public static final PropertyDescriptor TEMP_FILE_PREFIX = new PropertyDescriptor.Builder()
+            .name("azure-temp-file-prefix")
+            .displayName("Temp File Prefix for Azure")
+            .description("Optional and should be used together with ListAzureDataLakeStorage processor temp file prefix. " +
+                    "When provided temporary file names created for upload will start with this prefix.")
+            .required(false)
+            .defaultValue("${azure.temp.file.prefix}")
+            .addValidator(new AzureTempFilePrefixValidator())
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
+
     private List<PropertyDescriptor> properties;
 
     @Override
     protected void init(final ProcessorInitializationContext context) {
         final List<PropertyDescriptor> props = new ArrayList<>(super.getSupportedPropertyDescriptors());
         props.add(CONFLICT_RESOLUTION);
+        props.add(TEMP_FILE_PREFIX);
         properties = Collections.unmodifiableList(props);
     }
 
@@ -114,22 +131,20 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
             final DataLakeServiceClient storageClient = getStorageClient(context, flowFile);
             final DataLakeFileSystemClient fileSystemClient = storageClient.getFileSystemClient(fileSystem);
             final DataLakeDirectoryClient directoryClient = fileSystemClient.getDirectoryClient(directory);
-            final DataLakeFileClient fileClient;
+            DataLakeFileClient fileClient;
 
             final String conflictResolution = context.getProperty(CONFLICT_RESOLUTION).getValue();
             boolean overwrite = conflictResolution.equals(REPLACE_RESOLUTION);
+            final String tempFilePrefix = context.getProperty(TEMP_FILE_PREFIX).evaluateAttributeExpressions().getValue();
 
             try {
-                fileClient = directoryClient.createFile(fileName, overwrite);
-
-                final long length = flowFile.getSize();
-                if (length > 0) {
-                    try (final InputStream rawIn = session.read(flowFile); final BufferedInputStream bufferedIn = new BufferedInputStream(rawIn)) {
-                        uploadContent(fileClient, bufferedIn, length);
-                    } catch (Exception e) {
-                        removeTempFile(fileClient);
-                        throw e;
-                    }
+                if (tempFilePrefix.isEmpty()) {
+                    fileClient = directoryClient.createFile(fileName, overwrite);
+                    appendContent(flowFile, fileClient, session);
+                } else {
+                    fileClient = directoryClient.createFile(tempFilePrefix + fileName);
+                    appendContent(flowFile, fileClient, session);
+                    fileClient = renameFile(fileName, directoryClient.getDirectoryPath(), fileClient, overwrite);
                 }
 
                 final Map<String, String> attributes = new HashMap<>();
@@ -137,7 +152,7 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
                 attributes.put(ATTR_NAME_DIRECTORY, directory);
                 attributes.put(ATTR_NAME_FILENAME, fileName);
                 attributes.put(ATTR_NAME_PRIMARY_URI, fileClient.getFileUrl());
-                attributes.put(ATTR_NAME_LENGTH, String.valueOf(length));
+                attributes.put(ATTR_NAME_LENGTH, String.valueOf(flowFile.getSize()));
                 flowFile = session.putAllAttributes(flowFile, attributes);
 
                 session.transfer(flowFile, REL_SUCCESS);
@@ -165,11 +180,15 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
         }
     }
 
-    private void removeTempFile(DataLakeFileClient fileClient) {
-        try {
-            fileClient.delete();
-        } catch (Exception e) {
-            getLogger().error("Error while removing temp file on Azure Data Lake Storage", e);
+    private void appendContent(FlowFile flowFile, DataLakeFileClient fileClient, ProcessSession session) throws IOException {
+        final long length = flowFile.getSize();
+        if (length > 0) {
+            try (final InputStream rawIn = session.read(flowFile); final BufferedInputStream bufferedIn = new BufferedInputStream(rawIn)) {
+                uploadContent(fileClient, bufferedIn, length);
+            } catch (Exception e) {
+                removeTempFile(fileClient);
+                throw e;
+            }
         }
     }
 
@@ -191,5 +210,30 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
         }
 
         fileClient.flush(length);
+    }
+
+    private DataLakeFileClient renameFile(String fileName, String directoryPath, DataLakeFileClient fileClient, boolean overwrite) {
+        try {
+            final DataLakeRequestConditions destinationCondition = new DataLakeRequestConditions();
+            if (!overwrite) {
+                destinationCondition.setIfNoneMatch("*");
+            }
+            String destinationPath = StringUtils.isNotEmpty(directoryPath)
+                    ? directoryPath + "/" + fileName
+                    : fileName;
+            return fileClient.renameWithResponse(null, destinationPath, null, destinationCondition, null, null).getValue();
+        } catch (DataLakeStorageException dataLakeStorageException) {
+            getLogger().error("Error while renaming temp file on Azure Data Lake Storage", dataLakeStorageException);
+            removeTempFile(fileClient);
+            throw dataLakeStorageException;
+        }
+    }
+
+    private void removeTempFile(DataLakeFileClient fileClient) {
+        try {
+            fileClient.delete();
+        } catch (Exception e) {
+            getLogger().error("Error while removing temp file on Azure Data Lake Storage", e);
+        }
     }
 }

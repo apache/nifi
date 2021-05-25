@@ -27,8 +27,15 @@
 </p>
 
 <h3>File uploading and cleanup process</h3>
+<h4>There are two ways of file uploading:</h4>
+    <ol>
+    <li>Inline replacement, no prefix property provided.</li>
+    <li>Using a temporary file, prefix property provided.</li>
+</ol>
 
-<h4>New file</h4>
+<h4>When prefix not provided</h4>
+
+<h4>New file upload</h4>
 
 <ol>
     <li>An empty file is created.</li>
@@ -37,7 +44,7 @@
     <li>In case file deletion failure the empty file remains on the server.</li>
 </ol>
 
-<h4>Existing file</h4>
+<h4>Existing file upload</h4>
 
 <ul>
     <li>Processors with "fail" conflict resolution strategy will be directed to "Failure" relationship.</li>
@@ -49,6 +56,35 @@
         <li>Content is appended to file.</li>
         <li>In case append failure the file is deleted.</li>
         <li>In case file deletion failure the empty file remains on the server.</li>
+    </ol>
+</ul>
+
+<h4>When prefix is provided</h4>
+<p>Setting the same prefix in the ListAzureDataLakeStorage processor temporary files won't appear in the list results.</p>
+
+<h4>New file upload</h4>
+
+<ol>
+    <li>A temporary file is created with the given prefix.</li>
+    <li>Content is appended to temp file.</li>
+    <li>Temp file is renamed to its original name, the original file is overwritten.</li>
+    <li>In case of appending or renaming failure the temp file is deleted, the original file remains intact.</li>
+    <li>In case of file deletion failure both temp file and original file remain on the server.</li>
+</ol>
+
+<h4>Existing file upload</h4>
+
+<ul>
+    <li>Processors with "fail" conflict resolution strategy will be directed to "Failure" relationship.</li>
+     <li>Processors with "ignore" conflict resolution strategy will be directed to "Success" relationship.</li>
+    <li>Processors with "replace" conflict resolution strategy:</li>
+
+    <ol>
+        <li>A temporary file is created with the given prefix.</li>
+        <li>Content is appended to temp file.</li>
+        <li>Temp file is renamed to its original name, the original file is overwritten.</li>
+        <li>In case of appending or renaming failure the temp file is deleted, the original file remains intact.</li>
+        <li>In case of file deletion failure both temp file and original file remain on the server.</li>
     </ol>
 </ul>
 

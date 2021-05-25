@@ -20,6 +20,7 @@ import com.azure.storage.file.datalake.DataLakeFileSystemClient;
 import com.azure.storage.file.datalake.DataLakeServiceClient;
 import com.azure.storage.file.datalake.models.ListPathsOptions;
 import org.apache.commons.lang3.RegExUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -43,6 +44,7 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processor.util.list.AbstractListProcessor;
 import org.apache.nifi.processors.azure.storage.utils.ADLSFileInfo;
+import org.apache.nifi.processors.azure.storage.utils.AzureTempFilePrefixValidator;
 import org.apache.nifi.serialization.record.RecordSchema;
 
 import java.io.IOException;
@@ -129,6 +131,16 @@ public class ListAzureDataLakeStorage extends AbstractListProcessor<ADLSFileInfo
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
+    public static final PropertyDescriptor TEMP_FILE_PREFIX = new PropertyDescriptor.Builder()
+            .name("azure-temp-file-prefix")
+            .displayName("Temp File Prefix for Azure")
+            .description("Optional and should be used together with PutAzureDataLakeStorage processor temp file prefix. When provided files with the given prefix will be excluded from the file list.")
+            .required(false)
+            .defaultValue("${azure.temp.file.prefix}")
+            .addValidator(new AzureTempFilePrefixValidator())
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
+
     private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
             ADLS_CREDENTIALS_SERVICE,
             FILESYSTEM,
@@ -140,7 +152,8 @@ public class ListAzureDataLakeStorage extends AbstractListProcessor<ADLSFileInfo
             LISTING_STRATEGY,
             TRACKING_STATE_CACHE,
             TRACKING_TIME_WINDOW,
-            INITIAL_LISTING_TARGET));
+            INITIAL_LISTING_TARGET,
+            TEMP_FILE_PREFIX));
 
     private static final Set<PropertyDescriptor> LISTING_RESET_PROPERTIES = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
             ADLS_CREDENTIALS_SERVICE,
@@ -226,9 +239,11 @@ public class ListAzureDataLakeStorage extends AbstractListProcessor<ADLSFileInfo
             options.setRecursive(recurseSubdirectories);
 
             Pattern baseDirectoryPattern = Pattern.compile("^" + baseDirectory + "/?");
+            String tempFilePrefix = context.getProperty(TEMP_FILE_PREFIX).evaluateAttributeExpressions().getValue();
 
             List<ADLSFileInfo> listing = fileSystemClient.listPaths(options, null).stream()
                     .filter(pathItem -> !pathItem.isDirectory())
+                    .filter(pathItem -> tempFilePrefix.isEmpty() || !isTempFile(pathItem.getName(), tempFilePrefix))
                     .map(pathItem -> new ADLSFileInfo.Builder()
                             .fileSystem(fileSystem)
                             .filePath(pathItem.getName())
@@ -245,6 +260,10 @@ public class ListAzureDataLakeStorage extends AbstractListProcessor<ADLSFileInfo
             getLogger().error("Failed to list directory on Azure Data Lake Storage", e);
             throw new IOException(ExceptionUtils.getRootCause(e));
         }
+    }
+
+    private boolean isTempFile(String pathItemName, String tempFilePrefix) {
+        return pathItemName.startsWith(tempFilePrefix) || StringUtils.substringAfterLast(pathItemName, "/").startsWith(tempFilePrefix);
     }
 
     @Override
