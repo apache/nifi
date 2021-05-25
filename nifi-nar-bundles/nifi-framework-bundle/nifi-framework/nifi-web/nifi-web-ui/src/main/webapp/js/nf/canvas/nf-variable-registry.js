@@ -995,6 +995,8 @@
             url: '../nifi-api/process-groups/' + encodeURIComponent(processGroupId) + '/variable-registry',
             dataType: 'json'
         }).done(function (response) {
+            variablesCount = 0;
+
             $('#process-group-variable-registry').text(getScopeLabel(processGroupId));
             $('#variable-registry-process-group-id').text(processGroupId).data('revision', response.processGroupRevision);
 
@@ -1567,6 +1569,7 @@
 
         var variableGrid = $('#variable-registry-table').data('gridInstance');
         var variableData = variableGrid.getData();
+        variableGrid.setSelectedRows([]);
         variableData.setItems([]);
 
         var affectedProcessorContainer = $('#variable-registry-affected-processors');
