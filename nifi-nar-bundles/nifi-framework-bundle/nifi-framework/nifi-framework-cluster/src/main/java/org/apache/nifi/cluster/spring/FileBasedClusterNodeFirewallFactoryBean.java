@@ -32,14 +32,18 @@ public class FileBasedClusterNodeFirewallFactoryBean implements FactoryBean<Clus
 
     private NiFiProperties properties;
 
+    /**
+     * Get Cluster Node Firewall should return null when firewall file is not configured
+     *
+     * @return Cluster Node Firewall or null when file not configured
+     * @throws Exception Thrown on new FileBasedClusterNodeFirewall()
+     */
     @Override
     public ClusterNodeFirewall getObject() throws Exception {
         if (firewall == null) {
             final File config = properties.getClusterNodeFirewallFile();
             final File restoreDirectory = properties.getRestoreDirectory();
-            if (config == null) {
-                firewall = new PermitAllClusterNodeFirewall();
-            } else {
+            if (config != null) {
                 firewall = new FileBasedClusterNodeFirewall(config, restoreDirectory);
             }
         }
@@ -58,13 +62,5 @@ public class FileBasedClusterNodeFirewallFactoryBean implements FactoryBean<Clus
 
     public void setProperties(NiFiProperties properties) {
         this.properties = properties;
-    }
-
-    private static class PermitAllClusterNodeFirewall implements ClusterNodeFirewall {
-
-        @Override
-        public boolean isPermissible(final String hostOrIp) {
-            return true;
-        }
     }
 }

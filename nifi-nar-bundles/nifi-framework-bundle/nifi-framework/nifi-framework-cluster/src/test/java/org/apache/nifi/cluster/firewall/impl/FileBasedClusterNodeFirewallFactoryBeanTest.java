@@ -29,6 +29,7 @@ import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 
 public class FileBasedClusterNodeFirewallFactoryBeanTest {
     private static final String PROPERTIES_SUFFIX = ".firewall.properties";
@@ -53,7 +54,7 @@ public class FileBasedClusterNodeFirewallFactoryBeanTest {
     @Test
     public void testGetObjectClusterNodeFirewallFileNotConfigured() throws Exception {
         final ClusterNodeFirewall clusterNodeFirewall = factoryBean.getObject();
-        assertNotNull(clusterNodeFirewall);
+        assertNull(clusterNodeFirewall);
     }
 
     @Test
