@@ -1,0 +1,187 @@
+<?xml version="1.0"?>
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<assembly>
+    <id>bin</id>
+    <formats>
+        <format>dir</format>
+        <format>zip</format>
+        <format>tar.gz</format>
+    </formats>
+    <includeBaseDirectory>true</includeBaseDirectory>
+    <baseDirectory>nifi-registry-${project.version}</baseDirectory>
+
+    <dependencySets>
+        <!-- Write out the dependencies shared between bootstrap and the main app to lib/shared -->
+        <dependencySet>
+            <scope>runtime</scope>
+            <useProjectArtifact>false</useProjectArtifact>
+            <outputDirectory>lib/shared</outputDirectory>
+            <directoryMode>0770</directoryMode>
+            <fileMode>0664</fileMode>
+            <useTransitiveFiltering>true</useTransitiveFiltering>
+            <includes>
+                <include>nifi-registry-utils</include>
+                <include>commons-lang3</include>
+            </includes>
+        </dependencySet>
+
+        <!-- Write out the bootstrap lib component to its own dir -->
+        <dependencySet>
+            <scope>runtime</scope>
+            <useProjectArtifact>false</useProjectArtifact>
+            <outputDirectory>lib/bootstrap</outputDirectory>
+            <directoryMode>0770</directoryMode>
+            <fileMode>0664</fileMode>
+            <useTransitiveFiltering>true</useTransitiveFiltering>
+            <includes>
+                <include>nifi-registry-bootstrap</include>
+                <include>slf4j-api</include>
+                <include>logback-classic</include>
+            </includes>
+        </dependencySet>
+
+        <!-- Write out the libs for java11 to its own dir -->
+        <!-- TODO: remove these once minimum Java version is 11 and these can be bundle directly into the application -->
+        <dependencySet>
+            <scope>runtime</scope>
+            <useProjectArtifact>false</useProjectArtifact>
+            <outputDirectory>lib/java11</outputDirectory>
+            <directoryMode>0770</directoryMode>
+            <fileMode>0664</fileMode>
+            <useTransitiveFiltering>true</useTransitiveFiltering>
+            <includes>
+                <include>jakarta.xml.bind:jakarta.xml.bind-api</include>
+                <include>org.glassfish.jaxb:jaxb-runtime</include>
+            </includes>
+        </dependencySet>
+
+        <!-- Write out all dependency artifacts to lib directory -->
+        <dependencySet>
+            <scope>runtime</scope>
+            <useProjectArtifact>false</useProjectArtifact>
+            <outputDirectory>lib</outputDirectory>
+            <directoryMode>0770</directoryMode>
+            <fileMode>0664</fileMode>
+            <useTransitiveFiltering>true</useTransitiveFiltering>
+            <excludes>
+                <exclude>nifi-registry-resources</exclude>
+                <exclude>nifi-registry-bootstrap</exclude>
+                <exclude>nifi-registry-utils</exclude>
+                <exclude>nifi-registry-docs</exclude>
+                <exclude>nifi-registry-ranger-assembly</exclude>
+                <exclude>nifi-registry-aws-assembly</exclude>
+
+                <!-- Exclude any jaxb dependencies because they will be in lib/java11 -->
+                <!-- TODO: remove these once minimum Java version is 11 and these can be bundle directly into the application -->
+                <exclude>jakarta.xml.bind:jakarta.xml.bind-api</exclude>
+                <exclude>org.glassfish.jaxb:jaxb-runtime</exclude>
+            </excludes>
+        </dependencySet>
+        
+        <!-- Write out the conf directory contents -->
+        <dependencySet>
+            <scope>runtime</scope>
+            <useProjectArtifact>false</useProjectArtifact>
+            <outputDirectory>./</outputDirectory>
+            <directoryMode>0770</directoryMode>
+            <fileMode>0664</fileMode>
+            <useTransitiveFiltering>true</useTransitiveFiltering>
+            <includes>
+                <include>nifi-registry-resources</include>
+            </includes>
+            <unpack>true</unpack>
+            <unpackOptions>
+                <filtered>true</filtered>
+                <includes>
+                    <include>conf/*</include>
+                </includes>
+            </unpackOptions>
+        </dependencySet>
+
+        <!-- Write out the bin directory contents -->
+        <dependencySet>
+            <scope>runtime</scope>
+            <useProjectArtifact>false</useProjectArtifact>
+            <outputDirectory>./</outputDirectory>
+            <directoryMode>0770</directoryMode>
+            <fileMode>0770</fileMode>
+            <useTransitiveFiltering>true</useTransitiveFiltering>
+            <includes>
+                <include>nifi-registry-resources</include>
+            </includes>
+            <unpack>true</unpack>
+            <unpackOptions>
+                <filtered>true</filtered>
+                <includes>
+                    <include>bin/*</include>
+                </includes>
+            </unpackOptions>
+        </dependencySet>
+
+        <!-- Writes out the docs directory contents -->
+        <dependencySet>
+            <scope>runtime</scope>
+            <useProjectArtifact>false</useProjectArtifact>
+            <outputDirectory>docs/</outputDirectory>
+            <useTransitiveFiltering>true</useTransitiveFiltering>
+            <includes>
+                <include>nifi-registry-docs</include>
+            </includes>
+            <unpack>true</unpack>
+            <unpackOptions>
+                <filtered>false</filtered>
+                <excludes>
+                    <!-- LICENSE and NOTICE both covered by top-level -->
+                    <exclude>LICENSE</exclude>
+                    <exclude>NOTICE</exclude>
+                </excludes>
+            </unpackOptions>
+        </dependencySet>
+    </dependencySets>
+
+    <files>
+        <file>
+            <source>./README.md</source>
+            <outputDirectory>./</outputDirectory>
+            <destName>README</destName>
+            <fileMode>0644</fileMode>
+            <filtered>true</filtered>
+        </file>
+        <file>
+            <source>./LICENSE</source>
+            <outputDirectory>./</outputDirectory>
+            <destName>LICENSE</destName>
+            <fileMode>0644</fileMode>
+            <filtered>true</filtered>
+        </file>
+        <file>
+            <source>./NOTICE</source>
+            <outputDirectory>./</outputDirectory>
+            <destName>NOTICE</destName>
+            <fileMode>0644</fileMode>
+            <filtered>true</filtered>
+        </file>
+    </files>
+
+    <fileSets>
+        <fileSet>
+            <!-- Extensions are extracted by maven-dependency-plugin defined in pom.xml -->
+            <directory>${project.build.directory}/ext</directory>
+            <outputDirectory>ext</outputDirectory>
+        </fileSet>
+    </fileSets>
+
+</assembly>

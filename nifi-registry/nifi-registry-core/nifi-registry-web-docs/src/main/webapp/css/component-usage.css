@@ -1,0 +1,192 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+@import "https://fonts.googleapis.com/css?family=Open+Sans:300,300italic,400,400italic,600,600italic|Noto+Serif:400,400italic,700,700italic|Droid+Sans+Mono:400";
+
+html, html a {
+    -webkit-font-smoothing: antialiased;
+    text-shadow: 1px 1px 1px rgba(0,0,0,0.004);
+}
+
+body {
+    margin: 0 auto;
+    display: block;
+    font-family: "Open Sans","DejaVu Sans",sans-serif;
+	padding-left: 20px;
+}
+
+.title {
+    font-weight: bold;
+    color: #7a2518;
+    font-size: 18px;
+}
+
+.hidden {
+    display: none;
+}
+
+/* tables */
+
+table {
+	color:#666;
+	font-size:14px;
+	background:#eaebec;	
+	border:#ccc 1px solid;
+	-webkit-border-radius:3px;
+	border-radius:3px;
+	width: 100%;
+	word-wrap: break-word;
+}
+
+table th {
+	padding:11px 15px 12px 15px;
+	border-top:1px solid #fafafa;
+	border-bottom:1px solid #e0e0e0;
+
+	background: #ededed;
+}
+
+table th:first-child {
+	text-align: left;
+	padding-left:10px;
+}
+
+table th:last-child {
+	text-align: left;
+	padding-left:10px;
+}
+
+table tr:first-child th:first-child {
+	border-top-left-radius:3px;
+}
+
+table tr:first-child th:last-child {
+	border-top-right-radius:3px;
+}
+
+table tr {
+	text-align: center;
+	padding-left:10px;
+}
+
+table td:first-child {
+	text-align: left;
+	padding-left:10px;
+	border-left: 0;
+}
+
+table td:last-child {
+	text-align: left;
+	padding-left:10px;
+	border-left: 0;
+	vertical-align: top;
+	
+}
+
+table td {
+	padding:12px;
+	background: #fafafa;
+}
+
+table tr:last-child td {
+	border-bottom:0;
+}
+
+table tr:last-child td:first-child {
+	border-bottom-left-radius:3px;
+}
+
+table tr:last-child td:last-child {
+	border-bottom-right-radius:3px;
+}
+
+td#default-value, td#name, td#value {
+	max-width: 200px;
+}
+
+td#allowable-values {
+	max-width: 300px;
+}
+
+td#description {
+	vertical-align: middle;
+}
+
+td#bundle-info {
+    max-width: 50px;
+}
+
+/* links */
+
+a, a:link, a:visited {
+    cursor: pointer;
+    color: #2156a5;
+    text-decoration: none;
+    border: none;
+}
+
+a:hover, a:active {
+    color: #2156a5;
+    text-decoration: none;
+    border: none;
+}
+
+.clear {
+    clear: both;
+}
+
+/* p */
+
+p {
+    font-family: 'Noto Serif', 'DejaVu Serif', serif;
+    font-size: 16px;
+}
+
+p strong {
+    font-weight: bold;
+}
+
+/* ul li */
+td ul {
+	margin: 0px 0px 0px 0px;
+	padding-left: 20px;
+}
+ul li {
+	text-align: left;
+	display: list-item;    
+}
+
+ul li strong {
+    font-weight: bold;
+}
+
+h2 {
+    font-weight: normal;
+    color: #ba3925;
+}
+
+/* pre */
+
+pre {
+    font-size: 14px;
+    background-color: #fefefe;
+    border: 1px solid #ccc;
+    border-left: 6px solid #ccc;
+    color: #555;
+    margin-bottom: 10px;
+    padding: 5px 8px;
+}

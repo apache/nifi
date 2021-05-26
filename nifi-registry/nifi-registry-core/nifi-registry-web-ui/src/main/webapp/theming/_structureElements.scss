@@ -1,0 +1,252 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+body {
+  background: $grey12 url('assets/images/registry-logo-web-app.svg') no-repeat center center;
+  background-size: 40%;
+}
+
+#nifi-registry-login-perspective {
+  background: $grey12 url('assets/images/registry-logo-web-app.svg') no-repeat center center;
+  background-size: 40%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+#nifi-registry-not-found-perspective {
+  background: $grey12 url('assets/images/registry-logo-web-app.svg') no-repeat center center;
+  background-size: 40%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+#nf-registry-app-container {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+}
+
+#nifi-registry-logo {
+  height: 44px;
+}
+
+#nifi-registry-alerts-count {
+  border-radius: 50%;
+  background: $warnColor;
+  height: 14px;
+  width: 14px;
+  position: relative;
+  left: 9px;
+  color: #fff;
+  font-size: 9px;
+  text-align: center;
+  line-height: 14px;
+}
+
+#nifi-registry-toolbar {
+  min-width: 1045px;
+  position: absolute;
+  z-index: 1000;
+  background: $grey11;
+}
+
+#nifi-registry-toolbar .mat-icon-button {
+  color: $grey5;
+  font-size: 20px;
+  margin: 0;
+}
+
+#nifi-registry-toolbar .mat-select-value-text,
+#nifi-registry-toolbar .mat-select-arrow {
+  color: white;
+}
+
+#nifi-registry-toolbar span,
+#nifi-registry-toolbar .link {
+  color: $grey5;
+  font-weight: lighter;
+}
+
+#nf-registry-perspectives-container {
+  position: absolute;
+  top: 64px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  min-height: 370px;
+  min-width: 1045px;
+  overflow: auto;
+  background: $grey12;
+  background-size: 40%;
+}
+
+#current-user {
+  font-family: 'Roboto Slab';
+  font-style: normal;
+  font-weight: normal;
+  font-size: 12px;
+  max-width: 250px;
+  text-overflow: ellipsis;
+  line-height: normal;
+  overflow: hidden;
+  white-space: nowrap;
+  color: $grey5;
+}
+
+#logout-link-container,
+#login-link-container {
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+#loading-spinner {
+  position: absolute;
+  top: calc(50% - 50px);
+  left: calc(50% - 50px);
+  z-index: 2;
+}
+
+mat-sidenav {
+  width: 40%;
+  min-width: 418px;
+}
+
+.sidenav-content {
+  position: absolute;
+  bottom: 60px;
+  top: 80px;
+  right: 0;
+  left: 0;
+  overflow: auto;
+}
+
+.field-header {
+  font-size: 11px;
+  color: #999;
+  font-weight: 300;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+
+// TODO: remove after NIFI-6495 is available in NiFi FDS 0.3.0
+body[fds] .mat-menu-panel {
+    min-height: 40px;
+}
+
+// TODO: remove after NIFI-6535 is available in NiFi FDS 0.3.0
+fds-dialog-title {
+    font-size: 20px;
+    font-weight: 400;
+    color: rgba(0, 0, 0, 0.87);
+}
+
+// TODO: remove after NIFI-6535 is available in NiFi FDS 0.3.0
+body[fds] {
+    .mat-card-title {
+        font-weight: 400;
+        font-size: 20px;
+    }
+}
+
+// TODO: remove after NIFI-6540 is available in NiFi FDS 0.3.0
+body[fds] td-chips .mat-form-field-label-wrapper::after {
+    content: '\f0b0';
+    display: inline-table;
+    font-family: FontAwesome;
+    float: right;
+    margin: 9px 10px 0 0;
+    color: #999;
+}
+
+// TODO: remove after NIFI-6540 is available in NiFi FDS 0.3.0
+body[fds] input.mat-input-element:not([disabled]),
+body[fds] textarea.mat-input-element:not([disabled]) {
+    background-color: unset !important;
+}
+
+// TODO: remove after NIFI-6540 is available in NiFi FDS 0.3.0
+body[fds] td-chips .mat-form-field-appearance-legacy .mat-form-field-infix {
+    padding: 0;
+    border-top: 0;
+}
+
+// TODO: remove after NIFI-6540 is available in NiFi FDS 0.3.0
+body[fds] td-chips .mat-form-field {
+    top: 12px;
+}
+
+// TODO: remove after NIFI-6540 is available in NiFi FDS 0.3.0
+body[fds] .mat-basic-chip {
+    margin: 17px 8px 0 0 !important;
+}
+
+// TODO: remove after NIFI-6540 is available in NiFi FDS 0.3.0
+body[fds] .mat-form-field-empty.mat-form-field-label {
+    top: 21px !important;
+    color: $grey3;
+    font-weight: 300;
+}
+
+// TODO: remove after NIFI-6541 is available in NiFi FDS 0.3.0
+body[fds] .td-expansion-label {
+    font-size: 20px;
+}
+
+// TODO: remove after NIFI-6544 is available in NiFi FDS 0.3.0
+body[fds] .mat-checkbox-layout .mat-checkbox-label {
+    line-height: 24px !important;
+}
+
+// TODO: remove after NIFI-6544 is available in NiFi FDS 0.3.0
+body[fds] .mat-checkbox-inner-container {
+    margin-right: 8px !important;
+}
+
+// TODO: remove after NIFI-6548 is available in NiFi FDS 0.3.0
+body[fds] .mat-raised-button,
+body[fds] .mat-button {
+    min-width: 88px;
+}
+
+// TODO: remove after NIFI-6549 is available in NiFi FDS 0.3.0
+body[fds] .mat-form-field .mat-form-field-label {
+    color: $grey3;
+    font-weight: 300;
+}
+
+// TODO: remove after NIFI-6547 is available in NiFi FDS 0.3.0
+body[fds] .tab-toggle-group > .mat-button-toggle-checked.mat-button-toggle-appearance-standard {
+    color: rgba(0, 0, 0, 0.54);
+}
+
+// TODO: remove after NIFI-6547 is available in NiFi FDS 0.3.0
+body[fds] .tab-toggle-group > .mat-button-toggle-appearance-standard {
+    color: rgba(0, 0, 0, 0.38);
+    background: transparent;
+    border-left: 0;
+}
+
+// TODO: remove after NIFI-6547 is available in NiFi FDS 0.3.0
+body[fds] .tab-toggle-group > .mat-button-toggle-appearance-standard .mat-button-toggle-label-content {
+    line-height: 38px;
+}

@@ -1,0 +1,97 @@
+<!--
+Licensed to the Apache Software Foundation (ASF) under one or more
+contributor license agreements.  See the NOTICE file distributed with
+this work for additional information regarding copyright ownership.
+The ASF licenses this file to You under the Apache License, Version 2.0
+(the "License"); you may not use this file except in compliance with
+the License.  You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+<div id="nifi-registry-admin-create-bucket-dialog">
+    <div class="pad-bottom-md" fxLayout="row" fxLayoutAlign="space-between center">
+        <mat-card-title class="ellipsis">
+            New Policy
+        </mat-card-title>
+        <button mat-icon-button (click)="cancel()">
+            <mat-icon color="primary">close</mat-icon>
+        </button>
+    </div>
+    <div class="pad-bottom-md">
+        <div id="nifi-registry-users-administration-list-container-column-header" class="td-data-table">
+            <div class="td-data-table-column" (click)="sortUserAndGroups(column)"
+                 *ngFor="let column of nfRegistryService.userGroupsColumns"
+                 fxFlex="{{column.width}}">
+                {{column.label}}
+                <i *ngIf="column.active && column.sortable && column.sortOrder === 'ASC'" class="fa fa-caret-up"
+                   aria-hidden="true"></i>
+                <i *ngIf="column.active && column.sortable && column.sortOrder === 'DESC'" class="fa fa-caret-down"
+                   aria-hidden="true"></i>
+            </div>
+            <div class="td-data-table-column"></div>
+        </div>
+        <div id="nifi-registry-add-selected-users-to-group-list-container">
+            <div fxLayout="row" fxLayoutAlign="space-between center"  class="td-data-table-row" [ngClass]="{'selected' : (group.identity === userOrGroup.identity)}"
+                 *ngFor="let group of filteredUserGroups"
+                 (click)="select(group, 'group');">
+                <div class="td-data-table-cell" *ngFor="let column of nfRegistryService.userGroupsColumns"
+                     fxFlex="{{column.width}}">
+                    <div class="ellipsis" matTooltip="{{column.format ? column.format(group[column.name]) : group[column.name]}}">
+                        <i class="fa fa-users push-right-sm" aria-hidden="true"></i>{{column.format ?
+                        column.format(group[column.name]) : group[column.name]}}
+                    </div>
+                </div>
+                <div class="td-data-table-cell">
+                    <mat-checkbox [(checked)]="group.checked" (change)="change($event)">
+                    </mat-checkbox>
+                </div>
+            </div>
+            <div fxLayout="row" fxLayoutAlign="space-between center"  class="td-data-table-row" [ngClass]="{'selected' : (user.identity === userOrGroup.identity)}"
+                 *ngFor="let user of filteredUsers"
+                 (click)="select(user, 'user');">
+                <div class="td-data-table-cell" *ngFor="let column of nfRegistryService.userGroupsColumns"
+                     fxFlex="{{column.width}}">
+                    <div class="ellipsis" matTooltip="{{column.format ? column.format(user[column.name]) : user[column.name]}}">
+                        {{column.format ? column.format(user[column.name]) : user[column.name]}}
+                    </div>
+                </div>
+                <div class="td-data-table-cell">
+                    <mat-checkbox [(checked)]="user.checked" (change)="change($event)">
+                    </mat-checkbox>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div flex fxLayout="row" fxLayoutAlign="start center" class="pad-bottom-md">
+        <mat-checkbox [(checked)]="readCheckbox.checked && writeCheckbox.checked && deleteCheckbox.checked" (change)="toggleAllPermissions($event)">
+            <span class="description">All</span>
+        </mat-checkbox>
+        <mat-checkbox [(checked)]="readCheckbox.checked" #readCheckbox class="pad-left-md">
+            <span class="description">Read</span>
+        </mat-checkbox>
+        <mat-checkbox [(checked)]="writeCheckbox.checked" #writeCheckbox class="pad-left-md">
+            <span class="description">Write</span>
+        </mat-checkbox>
+        <mat-checkbox [(checked)]="deleteCheckbox.checked" #deleteCheckbox class="pad-left-md">
+            <span class="description">Delete</span>
+        </mat-checkbox>
+    </div>
+    <div fxLayout="row">
+        <span fxFlex></span>
+        <button (click)="cancel()" color="fds-regular" mat-raised-button
+                i18n="Cancel creation of new bucket policy|A button for cancelling the creation of a new bucket policy in the registry.@@nf-admin-workflow-cancel-bucket-policy-creation-button">
+            Cancel
+        </button>
+        <button [disabled]="(!userOrGroup.identity) || (!readCheckbox.checked && !writeCheckbox.checked && !deleteCheckbox.checked)" class="push-left-sm" (click)="applyPolicy()" color="fds-primary" mat-raised-button
+                i18n="Apply new bucket policy button|A button for applying a new bucket policy in the registry.@@nf-admin-workflow-apply-policy-to-bucket-button">
+            Apply
+        </button>
+    </div>
+</div>

@@ -1,0 +1,325 @@
+<extensionManifest>
+    <systemApiVersion>1.10.0-SNAPSHOT</systemApiVersion>
+    <extensions>
+        <extension>
+            <name>org.apache.nifi.dbcp.DBCPConnectionPoolLookup</name>
+            <type>CONTROLLER_SERVICE</type>
+            <deprecationNotice/>
+            <description>Provides a DBCPService that can be used to dynamically select another DBCPService. This service
+                requires an attribute named 'database.name' to be passed in when asking for a connection, and will throw
+                an exception if the attribute is missing. The value of 'database.name' will be used to select the
+                DBCPService that has been registered with that name. This will allow multiple DBCPServices to be defined
+                and registered, and then selected dynamically at runtime by tagging flow files with the appropriate
+                'database.name' attribute.
+            </description>
+            <tags>
+                <tag>dbcp</tag>
+                <tag>jdbc</tag>
+                <tag>database</tag>
+                <tag>connection</tag>
+                <tag>pooling</tag>
+                <tag>store</tag>
+            </tags>
+            <properties></properties>
+            <dynamicProperties>
+                <dynamicProperty>
+                    <name>The</name>
+                    <value>JDBC property value</value>
+                    <description></description>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                </dynamicProperty>
+            </dynamicProperties>
+            <stateful></stateful>
+            <restricted></restricted>
+            <inputRequirement></inputRequirement>
+            <systemResourceConsiderations></systemResourceConsiderations>
+            <seeAlso/>
+            <providedServiceAPIs>
+                <providedServiceAPI>
+                    <className>org.apache.nifi.dbcp.DBCPService</className>
+                    <groupId>org.apache.nifi</groupId>
+                    <artifactId>nifi-standard-services-api-nar</artifactId>
+                    <version>1.10.0-SNAPSHOT</version>
+                </providedServiceAPI>
+            </providedServiceAPIs>
+        </extension>
+        <extension>
+            <name>org.apache.nifi.dbcp.DBCPConnectionPool</name>
+            <type>CONTROLLER_SERVICE</type>
+            <deprecationNotice/>
+            <description>Provides Database Connection Pooling Service. Connections can be asked from pool and returned
+                after usage.
+            </description>
+            <tags>
+                <tag>dbcp</tag>
+                <tag>jdbc</tag>
+                <tag>database</tag>
+                <tag>connection</tag>
+                <tag>pooling</tag>
+                <tag>store</tag>
+            </tags>
+            <properties>
+                <property>
+                    <name>Database Connection URL</name>
+                    <displayName>Database Connection URL</displayName>
+                    <description>A database connection URL used to connect to a database. May contain database system
+                        name, host, port, database name and some parameters. The exact syntax of a database connection
+                        URL is specified by your DBMS.
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Database Driver Class Name</name>
+                    <displayName>Database Driver Class Name</displayName>
+                    <description>Database driver class name</description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>database-driver-locations</name>
+                    <displayName>Database Driver Location(s)</displayName>
+                    <description>Comma-separated list of files/folders and/or URLs containing the driver JAR and its
+                        dependencies (if any). For example '/var/tmp/mariadb-java-client-1.1.7.jar'
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>kerberos-credentials-service</name>
+                    <displayName>Kerberos Credentials Service</displayName>
+                    <description>Specifies the Kerberos Credentials Controller Service that should be used for
+                        authenticating with Kerberos
+                    </description>
+                    <defaultValue></defaultValue>
+                    <controllerServiceDefinition>
+                        <className>org.apache.nifi.kerberos.KerberosCredentialsService</className>
+                        <groupId>org.apache.nifi</groupId>
+                        <artifactId>org.apache.nifi:nifi-standard-services-api-nar:nar:1.10.0-SNAPSHOT</artifactId>
+                        <version>1.10.0-SNAPSHOT</version>
+                    </controllerServiceDefinition>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Database User</name>
+                    <displayName>Database User</displayName>
+                    <description>Database user name</description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Password</name>
+                    <displayName>Password</displayName>
+                    <description>The password for the database user</description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>true</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Max Wait Time</name>
+                    <displayName>Max Wait Time</displayName>
+                    <description>The maximum amount of time that the pool will wait (when there are no available
+                        connections) for a connection to be returned before failing, or -1 to wait indefinitely.
+                    </description>
+                    <defaultValue>500 millis</defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Max Total Connections</name>
+                    <displayName>Max Total Connections</displayName>
+                    <description>The maximum number of active connections that can be allocated from this pool at the
+                        same time, or negative for no limit.
+                    </description>
+                    <defaultValue>8</defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Validation-query</name>
+                    <displayName>Validation query</displayName>
+                    <description>Validation query used to validate connections before returning them. When connection is
+                        invalid, it get's dropped and new valid connection will be returned. Note!! Using validation
+                        might have some performance penalty.
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>dbcp-min-idle-conns</name>
+                    <displayName>Minimum Idle Connections</displayName>
+                    <description>The minimum number of connections that can remain idle in the pool, without extra ones
+                        being created, or zero to create none.
+                    </description>
+                    <defaultValue>0</defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>dbcp-max-idle-conns</name>
+                    <displayName>Max Idle Connections</displayName>
+                    <description>The maximum number of connections that can remain idle in the pool, without extra ones
+                        being released, or negative for no limit.
+                    </description>
+                    <defaultValue>8</defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>dbcp-max-conn-lifetime</name>
+                    <displayName>Max Connection Lifetime</displayName>
+                    <description>The maximum lifetime in milliseconds of a connection. After this time is exceeded the
+                        connection will fail the next activation, passivation or validation test. A value of zero or
+                        less means the connection has an infinite lifetime.
+                    </description>
+                    <defaultValue>-1</defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>dbcp-time-between-eviction-runs</name>
+                    <displayName>Time Between Eviction Runs</displayName>
+                    <description>The number of milliseconds to sleep between runs of the idle connection evictor thread.
+                        When non-positive, no idle connection evictor thread will be run.
+                    </description>
+                    <defaultValue>-1</defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>dbcp-min-evictable-idle-time</name>
+                    <displayName>Minimum Evictable Idle Time</displayName>
+                    <description>The minimum amount of time a connection may sit idle in the pool before it is eligible
+                        for eviction.
+                    </description>
+                    <defaultValue>30 mins</defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>dbcp-soft-min-evictable-idle-time</name>
+                    <displayName>Soft Minimum Evictable Idle Time</displayName>
+                    <description>The minimum amount of time a connection may sit idle in the pool before it is eligible
+                        for eviction by the idle connection evictor, with the extra condition that at least a minimum
+                        number of idle connections remain in the pool. When the not-soft version of this option is set
+                        to a positive value, it is examined first by the idle connection evictor: when idle connections
+                        are visited by the evictor, idle time is first compared against it (without considering the
+                        number of idle connections in the pool) and then against this soft option, including the minimum
+                        idle connections constraint.
+                    </description>
+                    <defaultValue>-1</defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+            </properties>
+            <dynamicProperties>
+                <dynamicProperty>
+                    <name>JDBC property name</name>
+                    <value>JDBC property value</value>
+                    <description>Specifies a property name and value to be set on the JDBC connection(s). If Expression
+                        Language is used, evaluation will be performed upon the controller service being enabled. Note
+                        that no flow file input (attributes, e.g.) is available for use in Expression Language
+                        constructs for these properties.
+                    </description>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                </dynamicProperty>
+            </dynamicProperties>
+            <stateful></stateful>
+            <restricted></restricted>
+            <inputRequirement></inputRequirement>
+            <systemResourceConsiderations></systemResourceConsiderations>
+            <seeAlso/>
+            <providedServiceAPIs>
+                <providedServiceAPI>
+                    <className>org.apache.nifi.dbcp.DBCPService</className>
+                    <groupId>org.apache.nifi</groupId>
+                    <artifactId>nifi-standard-services-api-nar</artifactId>
+                    <version>1.10.0-SNAPSHOT</version>
+                </providedServiceAPI>
+            </providedServiceAPIs>
+        </extension>
+    </extensions>
+</extensionManifest>

@@ -1,0 +1,171 @@
+<!--
+Licensed to the Apache Software Foundation (ASF) under one or more
+contributor license agreements.  See the NOTICE file distributed with
+this work for additional information regarding copyright ownership.
+The ASF licenses this file to You under the Apache License, Version 2.0
+(the "License"); you may not use this file except in compliance with
+the License.  You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+<div fxFill>
+    <div fxLayout="row" fxLayoutAlign="space-between center" class="pad-top-sm pad-bottom-md pad-left-md pad-right-md">
+        <mat-card-title class="ellipsis">
+            {{nfRegistryService.bucket.name}}
+        </mat-card-title>
+        <button mat-icon-button data-automation-id="nf-registry-manage-bucket-close-side-nav" (click)="closeSideNav()">
+            <mat-icon color="primary">close</mat-icon>
+        </button>
+    </div>
+    <div class="sidenav-content">
+        <div class="pad-left-md pad-right-md" flex fxLayoutAlign="start center">
+            <mat-form-field floatLabel="always" flex>
+                <input #bucketnameInput
+                       data-automation-id="nf-registry-manage-bucket-input-name"
+                       matInput
+                       [disabled]="!nfRegistryService.currentUser.resourcePermissions.buckets.canWrite"
+                       placeholder="Identity/Bucket Name"
+                       value="{{nfRegistryService.bucket.name}}"
+                       [(ngModel)]="bucketname">
+            </mat-form-field>
+            <button [disabled]="nfRegistryService.bucket.name === bucketname"
+                    (click)="updateBucketName(bucketnameInput.value)"
+                    data-automation-id="nf-registry-manage-bucket-save-side-nav"
+                    class="input-button"
+                    color="fds-regular"
+                    mat-raised-button>
+                Save
+            </button>
+        </div>
+        <div class="pad-left-md pad-right-md pad-bottom-sm">
+            <mat-checkbox #bundlePublicReadCheckbox
+                          [disabled]="!nfRegistryService.currentUser.resourcePermissions.buckets.canWrite || protocol === 'http:'"
+                          [(ngModel)]="allowPublicRead"
+                          (change)="toggleBucketPublicRead($event)">
+                Make publicly visible<i matTooltip="Allows read access to items in this bucket by unauthenticated users. Overrides any specific policies granting read access."
+                                    class="pad-left-sm fa fa-question-circle-o help-icon"></i>
+            </mat-checkbox>
+        </div>
+        <div class="pad-top-md pad-left-md pad-right-md">
+            <div class="pad-bottom-sm">
+                <mat-card-title class="ellipsis">
+                    Bundle Settings
+                </mat-card-title>
+            </div>
+            <div>
+                <mat-checkbox #bundleRedeployCheckbox
+                              [disabled]="!nfRegistryService.currentUser.resourcePermissions.buckets.canWrite"
+                              [(ngModel)]="allowBundleRedeploy"
+                              (change)="toggleBucketBundleRedeploy($event)">
+                    Allow bundle overwrite<i matTooltip="Allows released bundles in this bucket to be overwritten" class="pad-left-sm fa fa-question-circle-o help-icon"></i>
+                </mat-checkbox>
+            </div>
+        </div>
+        <div *ngIf="!nfRegistryService.currentUser.anonymous || nfRegistryService.currentUser.resourcePermissions.policies.canRead" class="pad-top-md pad-left-md pad-right-md">
+            <div flex fxLayout="row" fxLayoutAlign="space-between center">
+                <mat-card-title class="ellipsis">
+                    Policies ({{userIdentitiesWithPolicies.length + groupIdentitiesWithPolicies.length}})
+                </mat-card-title>
+                <button color="fds-secondary"
+                        [disabled]="nfRegistryService.currentUser.anonymous || !canEditBucketPolicies() || !nfRegistryService.currentUser.resourcePermissions.tenants.canRead"
+                        mat-raised-button
+                        (click)="addPolicy()">
+                    New Policy
+                </button>
+            </div>
+            <div id="nifi-registry-manage-bucket-list-container-column-header" fxLayout="row"
+                 fxLayoutAlign="space-between center" class="td-data-table">
+                <div class="td-data-table-column" (click)="sortBuckets(column)"
+                     *ngFor="let column of bucketPoliciesColumns"
+                     fxFlex="{{column.width}}">
+                    {{column.label}}
+                    <i *ngIf="column.active && column.sortable && column.sortOrder === 'ASC'" class="fa fa-caret-up"
+                       aria-hidden="true"></i>
+                    <i *ngIf="column.active && column.sortable && column.sortOrder === 'DESC'" class="fa fa-caret-down"
+                       aria-hidden="true"></i>
+                </div>
+                <div class="td-data-table-column"></div>
+            </div>
+            <div id="nifi-registry-manage-bucket-list-container">
+                <div fxLayout="row" fxLayoutAlign="space-between center" class="td-data-table-row"
+                     [ngClass]="{'selected' : row.checked}" *ngFor="let row of filteredGroupPermsData"
+                     (click)="row.checked = !row.checked">
+                    <div class="td-data-table-cell" *ngFor="let column of bucketPoliciesColumns"
+                         fxFlex="{{column.width}}">
+                        <div class="ellipsis"
+                             matTooltip="{{column.format ? column.format(row[column.name]) : row[column.name]}}">
+                            <i *ngIf="column.name === 'identity'" class="fa fa-users push-right-sm"
+                               aria-hidden="true"></i>{{column.format ? column.format(row[column.name]) :
+                            row[column.name]}}
+                        </div>
+                    </div>
+                    <div class="td-data-table-cell">
+                        <button (click)="editPolicy(row);row.checked = !row.checked;"
+                                [disabled]="!canEditBucketPolicies()"
+                                matTooltip="'Edit user policies of this bucket'" mat-icon-button color="accent">
+                            <i class="fa fa-pencil" aria-hidden="true"></i>
+                        </button>
+                        <button (click)="removePolicyFromBucket(row);row.checked = !row.checked;"
+                                [disabled]="!canEditBucketPolicies()"
+                                matTooltip="'Remove group policies from bucket'" mat-icon-button color="accent">
+                            <i class="fa fa-trash" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                </div>
+                <div fxLayout="row" fxLayoutAlign="space-between center" class="td-data-table-row"
+                     [ngClass]="{'selected' : row.checked}" *ngFor="let row of filteredUserPermsData"
+                     (click)="row.checked = !row.checked">
+                    <div class="td-data-table-cell" *ngFor="let column of bucketPoliciesColumns"
+                         fxFlex="{{column.width}}">
+                        <div class="ellipsis"
+                             matTooltip="{{column.format ? column.format(row[column.name]) : row[column.name]}}">
+                            {{column.format ? column.format(row[column.name]) : row[column.name]}}
+                        </div>
+                    </div>
+                    <div class="td-data-table-cell">
+                        <button (click)="editPolicy(row);row.checked = !row.checked;"
+                                matTooltip="'Edit user policies of this bucket'" mat-icon-button color="accent"
+                                [disabled]="!canEditBucketPolicies()">
+                            <i class="fa fa-pencil" aria-hidden="true"></i>
+                        </button>
+                        <button (click)="removePolicyFromBucket(row);row.checked = !row.checked;"
+                                matTooltip="'Remove user policies from this bucket'" mat-icon-button color="accent"
+                                [disabled]="!canEditBucketPolicies()">
+                            <i class="fa fa-trash" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="mat-padding"
+                     *ngIf="filteredUserPermsData.length === 0 && filteredGroupPermsData.length === 0"
+                     layout="row"
+                     layout-align="center center">
+                    <h3>No results to display.</h3>
+                </div>
+            </div>
+        </div>
+        <div class="pad-top-md pad-left-md pad-right-md">
+            <div class="pad-bottom-sm">
+                <mat-card-title class="ellipsis">
+                    About
+                </mat-card-title>
+            </div>
+            <div>
+                <span class="field-header">Bucket Identifier</span>
+                <div>
+                    <span class="ellipsis" matTooltip="{{nfRegistryService.bucket.identifier}}">{{nfRegistryService.bucket.identifier}}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <button id="nf-registry-workflow-bucket-permissions-side-nav-container" class="push-right-md" mat-raised-button
+            color="fds-primary"
+            (click)="closeSideNav()">Close
+    </button>
+</div>

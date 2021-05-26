@@ -1,0 +1,84 @@
+<extensionManifest>
+    <systemApiVersion>1.10.0-SNAPSHOT</systemApiVersion>
+    <extensions>
+        <extension>
+            <name>org.apache.nifi.reporting.ambari.AmbariReportingTask</name>
+            <type>REPORTING_TASK</type>
+            <deprecationNotice/>
+            <description>Publishes metrics from NiFi to Ambari Metrics Service (AMS). Due to how the Ambari Metrics
+                Service works, this reporting task should be scheduled to run every 60 seconds. Each iteration it will
+                send the metrics from the previous iteration, and calculate the current metrics to be sent on next
+                iteration. Scheduling this reporting task at a frequency other than 60 seconds may produce unexpected
+                results.
+            </description>
+            <tags>
+                <tag>reporting</tag>
+                <tag>ambari</tag>
+                <tag>metrics</tag>
+            </tags>
+            <properties>
+                <property>
+                    <name>Metrics Collector URL</name>
+                    <displayName>Metrics Collector URL</displayName>
+                    <description>The URL of the Ambari Metrics Collector Service</description>
+                    <defaultValue>http://localhost:6188/ws/v1/timeline/metrics</defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Application ID</name>
+                    <displayName>Application ID</displayName>
+                    <description>The Application ID to be included in the metrics sent to Ambari</description>
+                    <defaultValue>nifi</defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Hostname</name>
+                    <displayName>Hostname</displayName>
+                    <description>The Hostname of this NiFi instance to be included in the metrics sent to Ambari
+                    </description>
+                    <defaultValue>${hostname(true)}</defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Process Group ID</name>
+                    <displayName>Process Group ID</displayName>
+                    <description>If specified, the reporting task will send metrics about this process group only. If
+                        not, the root process group is used and global metrics are sent.
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+            </properties>
+            <dynamicProperties></dynamicProperties>
+            <stateful></stateful>
+            <restricted></restricted>
+            <inputRequirement></inputRequirement>
+            <systemResourceConsiderations></systemResourceConsiderations>
+            <seeAlso/>
+        </extension>
+    </extensions>
+</extensionManifest>

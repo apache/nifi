@@ -1,0 +1,3274 @@
+<extensionManifest>
+    <systemApiVersion>1.10.0-SNAPSHOT</systemApiVersion>
+    <extensions>
+        <extension>
+            <name>org.apache.nifi.processors.hadoop.MoveHDFS</name>
+            <type>PROCESSOR</type>
+            <deprecationNotice/>
+            <description>Rename existing files or a directory of files (non-recursive) on Hadoop Distributed File System
+                (HDFS).
+            </description>
+            <tags>
+                <tag>hadoop</tag>
+                <tag>HDFS</tag>
+                <tag>put</tag>
+                <tag>move</tag>
+                <tag>filesystem</tag>
+                <tag>moveHDFS</tag>
+            </tags>
+            <properties>
+                <property>
+                    <name>Hadoop Configuration Resources</name>
+                    <displayName>Hadoop Configuration Resources</displayName>
+                    <description>A file or comma separated list of files which contains the Hadoop file system
+                        configuration. Without this, Hadoop will search the classpath for a 'core-site.xml' and
+                        'hdfs-site.xml' file or will revert to a default configuration. To use swebhdfs, see 'Additional
+                        Details' section of PutHDFS's documentation.
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>kerberos-credentials-service</name>
+                    <displayName>Kerberos Credentials Service</displayName>
+                    <description>Specifies the Kerberos Credentials Controller Service that should be used for
+                        authenticating with Kerberos
+                    </description>
+                    <defaultValue></defaultValue>
+                    <controllerServiceDefinition>
+                        <className>org.apache.nifi.kerberos.KerberosCredentialsService</className>
+                        <groupId>org.apache.nifi</groupId>
+                        <artifactId>org.apache.nifi:nifi-standard-services-api-nar:nar:1.10.0-SNAPSHOT</artifactId>
+                        <version>1.10.0-SNAPSHOT</version>
+                    </controllerServiceDefinition>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Kerberos Principal</name>
+                    <displayName>Kerberos Principal</displayName>
+                    <description>Kerberos principal to authenticate as. Requires nifi.kerberos.krb5.file to be set in
+                        your nifi.properties
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Kerberos Keytab</name>
+                    <displayName>Kerberos Keytab</displayName>
+                    <description>Kerberos keytab associated with the principal. Requires nifi.kerberos.krb5.file to be
+                        set in your nifi.properties
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Kerberos Relogin Period</name>
+                    <displayName>Kerberos Relogin Period</displayName>
+                    <description>Period of time which should pass before attempting a kerberos relogin.
+
+                        This property has been deprecated, and has no effect on processing. Relogins now occur
+                        automatically.
+                    </description>
+                    <defaultValue>4 hours</defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Additional Classpath Resources</name>
+                    <displayName>Additional Classpath Resources</displayName>
+                    <description>A comma-separated list of paths to files and/or directories that will be added to the
+                        classpath. When specifying a directory, all files with in the directory will be added to the
+                        classpath, but further sub-directories will not be included.
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>true</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Conflict Resolution Strategy</name>
+                    <displayName>Conflict Resolution Strategy</displayName>
+                    <description>Indicates what should happen when a file with the same name already exists in the
+                        output directory
+                    </description>
+                    <defaultValue>fail</defaultValue>
+                    <allowableValues>
+                        <allowableValue>
+                            <displayName>replace</displayName>
+                            <value>replace</value>
+                            <description>Replaces the existing file if any.</description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>ignore</displayName>
+                            <value>ignore</value>
+                            <description>Failed rename operation stops processing and routes to success.</description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>fail</displayName>
+                            <value>fail</value>
+                            <description>Failing to rename a file routes to failure.</description>
+                        </allowableValue>
+                    </allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Input Directory or File</name>
+                    <displayName>Input Directory or File</displayName>
+                    <description>The HDFS directory from which files should be read, or a single file to read.
+                    </description>
+                    <defaultValue>${path}</defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>FLOWFILE_ATTRIBUTES</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Output Directory</name>
+                    <displayName>Output Directory</displayName>
+                    <description>The HDFS directory where the files will be moved to</description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>HDFS Operation</name>
+                    <displayName>HDFS Operation</displayName>
+                    <description>The operation that will be performed on the source file</description>
+                    <defaultValue>move</defaultValue>
+                    <allowableValues>
+                        <allowableValue>
+                            <displayName>move</displayName>
+                            <value>move</value>
+                            <description></description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>copy</displayName>
+                            <value>copy</value>
+                            <description></description>
+                        </allowableValue>
+                    </allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>File Filter Regex</name>
+                    <displayName>File Filter Regex</displayName>
+                    <description>A Java Regular Expression for filtering Filenames; if a filter is supplied then only
+                        files whose names match that Regular Expression will be fetched, otherwise all files will be
+                        fetched
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Ignore Dotted Files</name>
+                    <displayName>Ignore Dotted Files</displayName>
+                    <description>If true, files whose names begin with a dot (".") will be ignored</description>
+                    <defaultValue>true</defaultValue>
+                    <allowableValues>
+                        <allowableValue>
+                            <displayName>true</displayName>
+                            <value>true</value>
+                            <description></description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>false</displayName>
+                            <value>false</value>
+                            <description></description>
+                        </allowableValue>
+                    </allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Remote Owner</name>
+                    <displayName>Remote Owner</displayName>
+                    <description>Changes the owner of the HDFS file to this value after it is written. This only works
+                        if NiFi is running as a user that has HDFS super user privilege to change owner
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Remote Group</name>
+                    <displayName>Remote Group</displayName>
+                    <description>Changes the group of the HDFS file to this value after it is written. This only works
+                        if NiFi is running as a user that has HDFS super user privilege to change group
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+            </properties>
+            <dynamicProperties></dynamicProperties>
+            <relationships>
+                <relationship>
+                    <name>success</name>
+                    <description>Files that have been successfully renamed on HDFS are transferred to this
+                        relationship
+                    </description>
+                    <autoTerminated>false</autoTerminated>
+                </relationship>
+                <relationship>
+                    <name>failure</name>
+                    <description>Files that could not be renamed on HDFS are transferred to this relationship
+                    </description>
+                    <autoTerminated>false</autoTerminated>
+                </relationship>
+            </relationships>
+            <dynamicRelationship></dynamicRelationship>
+            <readsAttributes>
+                <readsAttribute>
+                    <name>filename</name>
+                    <description>The name of the file written to HDFS comes from the value of this attribute.
+                    </description>
+                </readsAttribute>
+            </readsAttributes>
+            <writesAttributes>
+                <writesAttribute>
+                    <name>filename</name>
+                    <description>The name of the file written to HDFS is stored in this attribute.</description>
+                </writesAttribute>
+                <writesAttribute>
+                    <name>absolute.hdfs.path</name>
+                    <description>The absolute path to the file on HDFS is stored in this attribute.</description>
+                </writesAttribute>
+            </writesAttributes>
+            <stateful></stateful>
+            <restricted>
+                <restrictions>
+                    <restriction>
+                        <requiredPermission>read filesystem</requiredPermission>
+                        <explanation>Provides operator the ability to retrieve any file that NiFi has access to in HDFS
+                            or the local filesystem.
+                        </explanation>
+                    </restriction>
+                    <restriction>
+                        <requiredPermission>write filesystem</requiredPermission>
+                        <explanation>Provides operator the ability to delete any file that NiFi has access to in HDFS or
+                            the local filesystem.
+                        </explanation>
+                    </restriction>
+                </restrictions>
+            </restricted>
+            <inputRequirement>INPUT_ALLOWED</inputRequirement>
+            <systemResourceConsiderations></systemResourceConsiderations>
+            <seeAlso>
+                <see>org.apache.nifi.processors.hadoop.PutHDFS</see>
+                <see>org.apache.nifi.processors.hadoop.GetHDFS</see>
+            </seeAlso>
+        </extension>
+        <extension>
+            <name>org.apache.nifi.processors.hadoop.GetHDFS</name>
+            <type>PROCESSOR</type>
+            <deprecationNotice/>
+            <description>Fetch files from Hadoop Distributed File System (HDFS) into FlowFiles. This Processor will
+                delete the file from HDFS after fetching it.
+            </description>
+            <tags>
+                <tag>hadoop</tag>
+                <tag>HDFS</tag>
+                <tag>get</tag>
+                <tag>fetch</tag>
+                <tag>ingest</tag>
+                <tag>source</tag>
+                <tag>filesystem</tag>
+            </tags>
+            <properties>
+                <property>
+                    <name>Hadoop Configuration Resources</name>
+                    <displayName>Hadoop Configuration Resources</displayName>
+                    <description>A file or comma separated list of files which contains the Hadoop file system
+                        configuration. Without this, Hadoop will search the classpath for a 'core-site.xml' and
+                        'hdfs-site.xml' file or will revert to a default configuration. To use swebhdfs, see 'Additional
+                        Details' section of PutHDFS's documentation.
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>kerberos-credentials-service</name>
+                    <displayName>Kerberos Credentials Service</displayName>
+                    <description>Specifies the Kerberos Credentials Controller Service that should be used for
+                        authenticating with Kerberos
+                    </description>
+                    <defaultValue></defaultValue>
+                    <controllerServiceDefinition>
+                        <className>org.apache.nifi.kerberos.KerberosCredentialsService</className>
+                        <groupId>org.apache.nifi</groupId>
+                        <artifactId>org.apache.nifi:nifi-standard-services-api-nar:nar:1.10.0-SNAPSHOT</artifactId>
+                        <version>1.10.0-SNAPSHOT</version>
+                    </controllerServiceDefinition>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Kerberos Principal</name>
+                    <displayName>Kerberos Principal</displayName>
+                    <description>Kerberos principal to authenticate as. Requires nifi.kerberos.krb5.file to be set in
+                        your nifi.properties
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Kerberos Keytab</name>
+                    <displayName>Kerberos Keytab</displayName>
+                    <description>Kerberos keytab associated with the principal. Requires nifi.kerberos.krb5.file to be
+                        set in your nifi.properties
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Kerberos Relogin Period</name>
+                    <displayName>Kerberos Relogin Period</displayName>
+                    <description>Period of time which should pass before attempting a kerberos relogin.
+
+                        This property has been deprecated, and has no effect on processing. Relogins now occur
+                        automatically.
+                    </description>
+                    <defaultValue>4 hours</defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Additional Classpath Resources</name>
+                    <displayName>Additional Classpath Resources</displayName>
+                    <description>A comma-separated list of paths to files and/or directories that will be added to the
+                        classpath. When specifying a directory, all files with in the directory will be added to the
+                        classpath, but further sub-directories will not be included.
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>true</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Directory</name>
+                    <displayName>Directory</displayName>
+                    <description>The HDFS directory from which files should be read</description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>FLOWFILE_ATTRIBUTES</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Recurse Subdirectories</name>
+                    <displayName>Recurse Subdirectories</displayName>
+                    <description>Indicates whether to pull files from subdirectories of the HDFS directory</description>
+                    <defaultValue>true</defaultValue>
+                    <allowableValues>
+                        <allowableValue>
+                            <displayName>true</displayName>
+                            <value>true</value>
+                            <description></description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>false</displayName>
+                            <value>false</value>
+                            <description></description>
+                        </allowableValue>
+                    </allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Keep Source File</name>
+                    <displayName>Keep Source File</displayName>
+                    <description>Determines whether to delete the file from HDFS after it has been successfully
+                        transferred. If true, the file will be fetched repeatedly. This is intended for testing only.
+                    </description>
+                    <defaultValue>false</defaultValue>
+                    <allowableValues>
+                        <allowableValue>
+                            <displayName>true</displayName>
+                            <value>true</value>
+                            <description></description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>false</displayName>
+                            <value>false</value>
+                            <description></description>
+                        </allowableValue>
+                    </allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>File Filter Regex</name>
+                    <displayName>File Filter Regex</displayName>
+                    <description>A Java Regular Expression for filtering Filenames; if a filter is supplied then only
+                        files whose names match that Regular Expression will be fetched, otherwise all files will be
+                        fetched
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Filter Match Name Only</name>
+                    <displayName>Filter Match Name Only</displayName>
+                    <description>If true then File Filter Regex will match on just the filename, otherwise subdirectory
+                        names will be included with filename in the regex comparison
+                    </description>
+                    <defaultValue>true</defaultValue>
+                    <allowableValues>
+                        <allowableValue>
+                            <displayName>true</displayName>
+                            <value>true</value>
+                            <description></description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>false</displayName>
+                            <value>false</value>
+                            <description></description>
+                        </allowableValue>
+                    </allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Ignore Dotted Files</name>
+                    <displayName>Ignore Dotted Files</displayName>
+                    <description>If true, files whose names begin with a dot (".") will be ignored</description>
+                    <defaultValue>true</defaultValue>
+                    <allowableValues>
+                        <allowableValue>
+                            <displayName>true</displayName>
+                            <value>true</value>
+                            <description></description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>false</displayName>
+                            <value>false</value>
+                            <description></description>
+                        </allowableValue>
+                    </allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Minimum File Age</name>
+                    <displayName>Minimum File Age</displayName>
+                    <description>The minimum age that a file must be in order to be pulled; any file younger than this
+                        amount of time (based on last modification date) will be ignored
+                    </description>
+                    <defaultValue>0 sec</defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Maximum File Age</name>
+                    <displayName>Maximum File Age</displayName>
+                    <description>The maximum age that a file must be in order to be pulled; any file older than this
+                        amount of time (based on last modification date) will be ignored
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Polling Interval</name>
+                    <displayName>Polling Interval</displayName>
+                    <description>Indicates how long to wait between performing directory listings</description>
+                    <defaultValue>0 sec</defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Batch Size</name>
+                    <displayName>Batch Size</displayName>
+                    <description>The maximum number of files to pull in each iteration, based on run schedule.
+                    </description>
+                    <defaultValue>100</defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>IO Buffer Size</name>
+                    <displayName>IO Buffer Size</displayName>
+                    <description>Amount of memory to use to buffer file contents during IO. This overrides the Hadoop
+                        Configuration
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Compression codec</name>
+                    <displayName>Compression codec</displayName>
+                    <description></description>
+                    <defaultValue>NONE</defaultValue>
+                    <allowableValues>
+                        <allowableValue>
+                            <displayName>NONE</displayName>
+                            <value>NONE</value>
+                            <description>No compression</description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>DEFAULT</displayName>
+                            <value>DEFAULT</value>
+                            <description>Default ZLIB compression</description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>BZIP</displayName>
+                            <value>BZIP</value>
+                            <description>BZIP compression</description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>GZIP</displayName>
+                            <value>GZIP</value>
+                            <description>GZIP compression</description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>LZ4</displayName>
+                            <value>LZ4</value>
+                            <description>LZ4 compression</description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>LZO</displayName>
+                            <value>LZO</value>
+                            <description>LZO compression - it assumes LD_LIBRARY_PATH has been set and jar is
+                                available
+                            </description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>SNAPPY</displayName>
+                            <value>SNAPPY</value>
+                            <description>Snappy compression</description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>AUTOMATIC</displayName>
+                            <value>AUTOMATIC</value>
+                            <description>Will attempt to automatically detect the compression codec.</description>
+                        </allowableValue>
+                    </allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+            </properties>
+            <dynamicProperties></dynamicProperties>
+            <relationships>
+                <relationship>
+                    <name>success</name>
+                    <description>All files retrieved from HDFS are transferred to this relationship</description>
+                    <autoTerminated>false</autoTerminated>
+                </relationship>
+            </relationships>
+            <dynamicRelationship></dynamicRelationship>
+            <readsAttributes></readsAttributes>
+            <writesAttributes>
+                <writesAttribute>
+                    <name>filename</name>
+                    <description>The name of the file that was read from HDFS.</description>
+                </writesAttribute>
+                <writesAttribute>
+                    <name>path</name>
+                    <description>The path is set to the relative path of the file's directory on HDFS. For example, if
+                        the Directory property is set to /tmp, then files picked up from /tmp will have the path
+                        attribute set to "./". If the Recurse Subdirectories property is set to true and a file is
+                        picked up from /tmp/abc/1/2/3, then the path attribute will be set to "abc/1/2/3".
+                    </description>
+                </writesAttribute>
+            </writesAttributes>
+            <stateful></stateful>
+            <restricted>
+                <restrictions>
+                    <restriction>
+                        <requiredPermission>read filesystem</requiredPermission>
+                        <explanation>Provides operator the ability to retrieve any file that NiFi has access to in HDFS
+                            or the local filesystem.
+                        </explanation>
+                    </restriction>
+                    <restriction>
+                        <requiredPermission>write filesystem</requiredPermission>
+                        <explanation>Provides operator the ability to delete any file that NiFi has access to in HDFS or
+                            the local filesystem.
+                        </explanation>
+                    </restriction>
+                </restrictions>
+            </restricted>
+            <inputRequirement>INPUT_FORBIDDEN</inputRequirement>
+            <systemResourceConsiderations></systemResourceConsiderations>
+            <seeAlso>
+                <see>org.apache.nifi.processors.hadoop.PutHDFS</see>
+                <see>org.apache.nifi.processors.hadoop.ListHDFS</see>
+            </seeAlso>
+        </extension>
+        <extension>
+            <name>org.apache.nifi.processors.hadoop.PutHDFS</name>
+            <type>PROCESSOR</type>
+            <deprecationNotice/>
+            <description>Write FlowFile data to Hadoop Distributed File System (HDFS)</description>
+            <tags>
+                <tag>hadoop</tag>
+                <tag>HDFS</tag>
+                <tag>put</tag>
+                <tag>copy</tag>
+                <tag>filesystem</tag>
+            </tags>
+            <properties>
+                <property>
+                    <name>Hadoop Configuration Resources</name>
+                    <displayName>Hadoop Configuration Resources</displayName>
+                    <description>A file or comma separated list of files which contains the Hadoop file system
+                        configuration. Without this, Hadoop will search the classpath for a 'core-site.xml' and
+                        'hdfs-site.xml' file or will revert to a default configuration. To use swebhdfs, see 'Additional
+                        Details' section of PutHDFS's documentation.
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>kerberos-credentials-service</name>
+                    <displayName>Kerberos Credentials Service</displayName>
+                    <description>Specifies the Kerberos Credentials Controller Service that should be used for
+                        authenticating with Kerberos
+                    </description>
+                    <defaultValue></defaultValue>
+                    <controllerServiceDefinition>
+                        <className>org.apache.nifi.kerberos.KerberosCredentialsService</className>
+                        <groupId>org.apache.nifi</groupId>
+                        <artifactId>org.apache.nifi:nifi-standard-services-api-nar:nar:1.10.0-SNAPSHOT</artifactId>
+                        <version>1.10.0-SNAPSHOT</version>
+                    </controllerServiceDefinition>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Kerberos Principal</name>
+                    <displayName>Kerberos Principal</displayName>
+                    <description>Kerberos principal to authenticate as. Requires nifi.kerberos.krb5.file to be set in
+                        your nifi.properties
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Kerberos Keytab</name>
+                    <displayName>Kerberos Keytab</displayName>
+                    <description>Kerberos keytab associated with the principal. Requires nifi.kerberos.krb5.file to be
+                        set in your nifi.properties
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Kerberos Relogin Period</name>
+                    <displayName>Kerberos Relogin Period</displayName>
+                    <description>Period of time which should pass before attempting a kerberos relogin.
+
+                        This property has been deprecated, and has no effect on processing. Relogins now occur
+                        automatically.
+                    </description>
+                    <defaultValue>4 hours</defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Additional Classpath Resources</name>
+                    <displayName>Additional Classpath Resources</displayName>
+                    <description>A comma-separated list of paths to files and/or directories that will be added to the
+                        classpath. When specifying a directory, all files with in the directory will be added to the
+                        classpath, but further sub-directories will not be included.
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>true</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Directory</name>
+                    <displayName>Directory</displayName>
+                    <description>The parent HDFS directory to which files should be written. The directory will be
+                        created if it doesn't exist.
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>FLOWFILE_ATTRIBUTES</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Conflict Resolution Strategy</name>
+                    <displayName>Conflict Resolution Strategy</displayName>
+                    <description>Indicates what should happen when a file with the same name already exists in the
+                        output directory
+                    </description>
+                    <defaultValue>fail</defaultValue>
+                    <allowableValues>
+                        <allowableValue>
+                            <displayName>replace</displayName>
+                            <value>replace</value>
+                            <description>Replaces the existing file if any.</description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>ignore</displayName>
+                            <value>ignore</value>
+                            <description>Ignores the flow file and routes it to success.</description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>fail</displayName>
+                            <value>fail</value>
+                            <description>Penalizes the flow file and routes it to failure.</description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>append</displayName>
+                            <value>append</value>
+                            <description>Appends to the existing file if any, creates a new file otherwise.
+                            </description>
+                        </allowableValue>
+                    </allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Block Size</name>
+                    <displayName>Block Size</displayName>
+                    <description>Size of each block as written to HDFS. This overrides the Hadoop Configuration
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>IO Buffer Size</name>
+                    <displayName>IO Buffer Size</displayName>
+                    <description>Amount of memory to use to buffer file contents during IO. This overrides the Hadoop
+                        Configuration
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Replication</name>
+                    <displayName>Replication</displayName>
+                    <description>Number of times that HDFS will replicate each file. This overrides the Hadoop
+                        Configuration
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Permissions umask</name>
+                    <displayName>Permissions umask</displayName>
+                    <description>A umask represented as an octal number which determines the permissions of files
+                        written to HDFS. This overrides the Hadoop property "fs.permission.umask-mode". If this property
+                        and "fs.permission.umask-mode" are undefined, the Hadoop default "022" will be used.
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Remote Owner</name>
+                    <displayName>Remote Owner</displayName>
+                    <description>Changes the owner of the HDFS file to this value after it is written. This only works
+                        if NiFi is running as a user that has HDFS super user privilege to change owner
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>FLOWFILE_ATTRIBUTES</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Remote Group</name>
+                    <displayName>Remote Group</displayName>
+                    <description>Changes the group of the HDFS file to this value after it is written. This only works
+                        if NiFi is running as a user that has HDFS super user privilege to change group
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>FLOWFILE_ATTRIBUTES</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Compression codec</name>
+                    <displayName>Compression codec</displayName>
+                    <description></description>
+                    <defaultValue>NONE</defaultValue>
+                    <allowableValues>
+                        <allowableValue>
+                            <displayName>NONE</displayName>
+                            <value>NONE</value>
+                            <description>No compression</description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>DEFAULT</displayName>
+                            <value>DEFAULT</value>
+                            <description>Default ZLIB compression</description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>BZIP</displayName>
+                            <value>BZIP</value>
+                            <description>BZIP compression</description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>GZIP</displayName>
+                            <value>GZIP</value>
+                            <description>GZIP compression</description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>LZ4</displayName>
+                            <value>LZ4</value>
+                            <description>LZ4 compression</description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>LZO</displayName>
+                            <value>LZO</value>
+                            <description>LZO compression - it assumes LD_LIBRARY_PATH has been set and jar is
+                                available
+                            </description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>SNAPPY</displayName>
+                            <value>SNAPPY</value>
+                            <description>Snappy compression</description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>AUTOMATIC</displayName>
+                            <value>AUTOMATIC</value>
+                            <description>Will attempt to automatically detect the compression codec.</description>
+                        </allowableValue>
+                    </allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+            </properties>
+            <dynamicProperties></dynamicProperties>
+            <relationships>
+                <relationship>
+                    <name>success</name>
+                    <description>Files that have been successfully written to HDFS are transferred to this
+                        relationship
+                    </description>
+                    <autoTerminated>false</autoTerminated>
+                </relationship>
+                <relationship>
+                    <name>failure</name>
+                    <description>Files that could not be written to HDFS for some reason are transferred to this
+                        relationship
+                    </description>
+                    <autoTerminated>false</autoTerminated>
+                </relationship>
+            </relationships>
+            <dynamicRelationship></dynamicRelationship>
+            <readsAttributes>
+                <readsAttribute>
+                    <name>filename</name>
+                    <description>The name of the file written to HDFS comes from the value of this attribute.
+                    </description>
+                </readsAttribute>
+            </readsAttributes>
+            <writesAttributes>
+                <writesAttribute>
+                    <name>filename</name>
+                    <description>The name of the file written to HDFS is stored in this attribute.</description>
+                </writesAttribute>
+                <writesAttribute>
+                    <name>absolute.hdfs.path</name>
+                    <description>The absolute path to the file on HDFS is stored in this attribute.</description>
+                </writesAttribute>
+            </writesAttributes>
+            <stateful></stateful>
+            <restricted>
+                <restrictions>
+                    <restriction>
+                        <requiredPermission>write filesystem</requiredPermission>
+                        <explanation>Provides operator the ability to delete any file that NiFi has access to in HDFS or
+                            the local filesystem.
+                        </explanation>
+                    </restriction>
+                </restrictions>
+            </restricted>
+            <inputRequirement>INPUT_REQUIRED</inputRequirement>
+            <systemResourceConsiderations></systemResourceConsiderations>
+            <seeAlso>
+                <see>org.apache.nifi.processors.hadoop.GetHDFS</see>
+            </seeAlso>
+        </extension>
+        <extension>
+            <name>org.apache.nifi.processors.hadoop.inotify.GetHDFSEvents</name>
+            <type>PROCESSOR</type>
+            <deprecationNotice/>
+            <description>This processor polls the notification events provided by the HdfsAdmin API. Since this uses the
+                HdfsAdmin APIs it is required to run as an HDFS super user. Currently there are six types of events
+                (append, close, create, metadata, rename, and unlink). Please see org.apache.hadoop.hdfs.inotify.Event
+                documentation for full explanations of each event. This processor will poll for new events based on a
+                defined duration. For each event received a new flow file will be created with the expected attributes
+                and the event itself serialized to JSON and written to the flow file's content. For example, if
+                event.type is APPEND then the content of the flow file will contain a JSON file containing the
+                information about the append event. If successful the flow files are sent to the 'success' relationship.
+                Be careful of where the generated flow files are stored. If the flow files are stored in one of
+                processor's watch directories there will be a never ending flow of events. It is also important to be
+                aware that this processor must consume all events. The filtering must happen within the processor. This
+                is because the HDFS admin's event notifications API does not have filtering.
+            </description>
+            <tags>
+                <tag>hadoop</tag>
+                <tag>events</tag>
+                <tag>inotify</tag>
+                <tag>notifications</tag>
+                <tag>filesystem</tag>
+            </tags>
+            <properties>
+                <property>
+                    <name>Hadoop Configuration Resources</name>
+                    <displayName>Hadoop Configuration Resources</displayName>
+                    <description>A file or comma separated list of files which contains the Hadoop file system
+                        configuration. Without this, Hadoop will search the classpath for a 'core-site.xml' and
+                        'hdfs-site.xml' file or will revert to a default configuration. To use swebhdfs, see 'Additional
+                        Details' section of PutHDFS's documentation.
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>kerberos-credentials-service</name>
+                    <displayName>Kerberos Credentials Service</displayName>
+                    <description>Specifies the Kerberos Credentials Controller Service that should be used for
+                        authenticating with Kerberos
+                    </description>
+                    <defaultValue></defaultValue>
+                    <controllerServiceDefinition>
+                        <className>org.apache.nifi.kerberos.KerberosCredentialsService</className>
+                        <groupId>org.apache.nifi</groupId>
+                        <artifactId>org.apache.nifi:nifi-standard-services-api-nar:nar:1.10.0-SNAPSHOT</artifactId>
+                        <version>1.10.0-SNAPSHOT</version>
+                    </controllerServiceDefinition>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Kerberos Principal</name>
+                    <displayName>Kerberos Principal</displayName>
+                    <description>Kerberos principal to authenticate as. Requires nifi.kerberos.krb5.file to be set in
+                        your nifi.properties
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Kerberos Keytab</name>
+                    <displayName>Kerberos Keytab</displayName>
+                    <description>Kerberos keytab associated with the principal. Requires nifi.kerberos.krb5.file to be
+                        set in your nifi.properties
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Kerberos Relogin Period</name>
+                    <displayName>Kerberos Relogin Period</displayName>
+                    <description>Period of time which should pass before attempting a kerberos relogin.
+
+                        This property has been deprecated, and has no effect on processing. Relogins now occur
+                        automatically.
+                    </description>
+                    <defaultValue>4 hours</defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Additional Classpath Resources</name>
+                    <displayName>Additional Classpath Resources</displayName>
+                    <description>A comma-separated list of paths to files and/or directories that will be added to the
+                        classpath. When specifying a directory, all files with in the directory will be added to the
+                        classpath, but further sub-directories will not be included.
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>true</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Poll Duration</name>
+                    <displayName>Poll Duration</displayName>
+                    <description>The time before the polling method returns with the next batch of events if they exist.
+                        It may exceed this amount of time by up to the time required for an RPC to the NameNode.
+                    </description>
+                    <defaultValue>1 second</defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>HDFS Path to Watch</name>
+                    <displayName>HDFS Path to Watch</displayName>
+                    <description>The HDFS path to get event notifications for. This property accepts both expression
+                        language and regular expressions. This will be evaluated during the OnScheduled phase.
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Ignore Hidden Files</name>
+                    <displayName>Ignore Hidden Files</displayName>
+                    <description>If true and the final component of the path associated with a given event starts with a
+                        '.' then that event will not be processed.
+                    </description>
+                    <defaultValue>false</defaultValue>
+                    <allowableValues>
+                        <allowableValue>
+                            <displayName>true</displayName>
+                            <value>true</value>
+                            <description></description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>false</displayName>
+                            <value>false</value>
+                            <description></description>
+                        </allowableValue>
+                    </allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Event Types to Filter On</name>
+                    <displayName>Event Types to Filter On</displayName>
+                    <description>A comma-separated list of event types to process. Valid event types are: append, close,
+                        create, metadata, rename, and unlink. Case does not matter.
+                    </description>
+                    <defaultValue>append, close, create, metadata, rename, unlink</defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>IOException Retries During Event Polling</name>
+                    <displayName>IOException Retries During Event Polling</displayName>
+                    <description>According to the HDFS admin API for event polling it is good to retry at least a few
+                        times. This number defines how many times the poll will be retried if it throws an IOException.
+                    </description>
+                    <defaultValue>3</defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+            </properties>
+            <dynamicProperties></dynamicProperties>
+            <relationships>
+                <relationship>
+                    <name>success</name>
+                    <description>A flow file with updated information about a specific event will be sent to this
+                        relationship.
+                    </description>
+                    <autoTerminated>false</autoTerminated>
+                </relationship>
+            </relationships>
+            <dynamicRelationship></dynamicRelationship>
+            <readsAttributes></readsAttributes>
+            <writesAttributes>
+                <writesAttribute>
+                    <name>mime.type</name>
+                    <description>This is always application/json.</description>
+                </writesAttribute>
+                <writesAttribute>
+                    <name>hdfs.inotify.event.type</name>
+                    <description>This will specify the specific HDFS notification event type. Currently there are six
+                        types of events (append, close, create, metadata, rename, and unlink).
+                    </description>
+                </writesAttribute>
+                <writesAttribute>
+                    <name>hdfs.inotify.event.path</name>
+                    <description>The specific path that the event is tied to.</description>
+                </writesAttribute>
+            </writesAttributes>
+            <stateful>
+                <description>The last used transaction id is stored. This is used</description>
+                <scopes>
+                    <scope>CLUSTER</scope>
+                </scopes>
+            </stateful>
+            <restricted></restricted>
+            <inputRequirement>INPUT_FORBIDDEN</inputRequirement>
+            <systemResourceConsiderations></systemResourceConsiderations>
+            <seeAlso>
+                <see>org.apache.nifi.processors.hadoop.GetHDFS</see>
+                <see>org.apache.nifi.processors.hadoop.FetchHDFS</see>
+                <see>org.apache.nifi.processors.hadoop.PutHDFS</see>
+                <see>org.apache.nifi.processors.hadoop.ListHDFS</see>
+            </seeAlso>
+        </extension>
+        <extension>
+            <name>org.apache.nifi.processors.hadoop.CreateHadoopSequenceFile</name>
+            <type>PROCESSOR</type>
+            <deprecationNotice/>
+            <description>Creates Hadoop Sequence Files from incoming flow files</description>
+            <tags>
+                <tag>hadoop</tag>
+                <tag>sequence file</tag>
+                <tag>create</tag>
+                <tag>sequencefile</tag>
+            </tags>
+            <properties>
+                <property>
+                    <name>Hadoop Configuration Resources</name>
+                    <displayName>Hadoop Configuration Resources</displayName>
+                    <description>A file or comma separated list of files which contains the Hadoop file system
+                        configuration. Without this, Hadoop will search the classpath for a 'core-site.xml' and
+                        'hdfs-site.xml' file or will revert to a default configuration. To use swebhdfs, see 'Additional
+                        Details' section of PutHDFS's documentation.
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>kerberos-credentials-service</name>
+                    <displayName>Kerberos Credentials Service</displayName>
+                    <description>Specifies the Kerberos Credentials Controller Service that should be used for
+                        authenticating with Kerberos
+                    </description>
+                    <defaultValue></defaultValue>
+                    <controllerServiceDefinition>
+                        <className>org.apache.nifi.kerberos.KerberosCredentialsService</className>
+                        <groupId>org.apache.nifi</groupId>
+                        <artifactId>org.apache.nifi:nifi-standard-services-api-nar:nar:1.10.0-SNAPSHOT</artifactId>
+                        <version>1.10.0-SNAPSHOT</version>
+                    </controllerServiceDefinition>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Kerberos Principal</name>
+                    <displayName>Kerberos Principal</displayName>
+                    <description>Kerberos principal to authenticate as. Requires nifi.kerberos.krb5.file to be set in
+                        your nifi.properties
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Kerberos Keytab</name>
+                    <displayName>Kerberos Keytab</displayName>
+                    <description>Kerberos keytab associated with the principal. Requires nifi.kerberos.krb5.file to be
+                        set in your nifi.properties
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Kerberos Relogin Period</name>
+                    <displayName>Kerberos Relogin Period</displayName>
+                    <description>Period of time which should pass before attempting a kerberos relogin.
+
+                        This property has been deprecated, and has no effect on processing. Relogins now occur
+                        automatically.
+                    </description>
+                    <defaultValue>4 hours</defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Additional Classpath Resources</name>
+                    <displayName>Additional Classpath Resources</displayName>
+                    <description>A comma-separated list of paths to files and/or directories that will be added to the
+                        classpath. When specifying a directory, all files with in the directory will be added to the
+                        classpath, but further sub-directories will not be included.
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>true</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>compression type</name>
+                    <displayName>Compression type</displayName>
+                    <description>Type of compression to use when creating Sequence File</description>
+                    <defaultValue></defaultValue>
+                    <allowableValues>
+                        <allowableValue>
+                            <displayName>NONE</displayName>
+                            <value>NONE</value>
+                            <description></description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>RECORD</displayName>
+                            <value>RECORD</value>
+                            <description></description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>BLOCK</displayName>
+                            <value>BLOCK</value>
+                            <description></description>
+                        </allowableValue>
+                    </allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Compression codec</name>
+                    <displayName>Compression codec</displayName>
+                    <description></description>
+                    <defaultValue>NONE</defaultValue>
+                    <allowableValues>
+                        <allowableValue>
+                            <displayName>NONE</displayName>
+                            <value>NONE</value>
+                            <description>No compression</description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>DEFAULT</displayName>
+                            <value>DEFAULT</value>
+                            <description>Default ZLIB compression</description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>BZIP</displayName>
+                            <value>BZIP</value>
+                            <description>BZIP compression</description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>GZIP</displayName>
+                            <value>GZIP</value>
+                            <description>GZIP compression</description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>LZ4</displayName>
+                            <value>LZ4</value>
+                            <description>LZ4 compression</description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>LZO</displayName>
+                            <value>LZO</value>
+                            <description>LZO compression - it assumes LD_LIBRARY_PATH has been set and jar is
+                                available
+                            </description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>SNAPPY</displayName>
+                            <value>SNAPPY</value>
+                            <description>Snappy compression</description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>AUTOMATIC</displayName>
+                            <value>AUTOMATIC</value>
+                            <description>Will attempt to automatically detect the compression codec.</description>
+                        </allowableValue>
+                    </allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+            </properties>
+            <dynamicProperties></dynamicProperties>
+            <relationships>
+                <relationship>
+                    <name>success</name>
+                    <description>Generated Sequence Files are sent to this relationship</description>
+                    <autoTerminated>false</autoTerminated>
+                </relationship>
+                <relationship>
+                    <name>failure</name>
+                    <description>Incoming files that failed to generate a Sequence File are sent to this relationship
+                    </description>
+                    <autoTerminated>false</autoTerminated>
+                </relationship>
+            </relationships>
+            <dynamicRelationship></dynamicRelationship>
+            <readsAttributes></readsAttributes>
+            <writesAttributes></writesAttributes>
+            <stateful></stateful>
+            <restricted></restricted>
+            <inputRequirement>INPUT_REQUIRED</inputRequirement>
+            <systemResourceConsiderations></systemResourceConsiderations>
+            <seeAlso>
+                <see>org.apache.nifi.processors.hadoop.PutHDFS</see>
+            </seeAlso>
+        </extension>
+        <extension>
+            <name>org.apache.nifi.processors.hadoop.FetchHDFS</name>
+            <type>PROCESSOR</type>
+            <deprecationNotice/>
+            <description>Retrieves a file from HDFS. The content of the incoming FlowFile is replaced by the content of
+                the file in HDFS. The file in HDFS is left intact without any changes being made to it.
+            </description>
+            <tags>
+                <tag>hadoop</tag>
+                <tag>hdfs</tag>
+                <tag>get</tag>
+                <tag>ingest</tag>
+                <tag>fetch</tag>
+                <tag>source</tag>
+            </tags>
+            <properties>
+                <property>
+                    <name>Hadoop Configuration Resources</name>
+                    <displayName>Hadoop Configuration Resources</displayName>
+                    <description>A file or comma separated list of files which contains the Hadoop file system
+                        configuration. Without this, Hadoop will search the classpath for a 'core-site.xml' and
+                        'hdfs-site.xml' file or will revert to a default configuration. To use swebhdfs, see 'Additional
+                        Details' section of PutHDFS's documentation.
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>kerberos-credentials-service</name>
+                    <displayName>Kerberos Credentials Service</displayName>
+                    <description>Specifies the Kerberos Credentials Controller Service that should be used for
+                        authenticating with Kerberos
+                    </description>
+                    <defaultValue></defaultValue>
+                    <controllerServiceDefinition>
+                        <className>org.apache.nifi.kerberos.KerberosCredentialsService</className>
+                        <groupId>org.apache.nifi</groupId>
+                        <artifactId>org.apache.nifi:nifi-standard-services-api-nar:nar:1.10.0-SNAPSHOT</artifactId>
+                        <version>1.10.0-SNAPSHOT</version>
+                    </controllerServiceDefinition>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Kerberos Principal</name>
+                    <displayName>Kerberos Principal</displayName>
+                    <description>Kerberos principal to authenticate as. Requires nifi.kerberos.krb5.file to be set in
+                        your nifi.properties
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Kerberos Keytab</name>
+                    <displayName>Kerberos Keytab</displayName>
+                    <description>Kerberos keytab associated with the principal. Requires nifi.kerberos.krb5.file to be
+                        set in your nifi.properties
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Kerberos Relogin Period</name>
+                    <displayName>Kerberos Relogin Period</displayName>
+                    <description>Period of time which should pass before attempting a kerberos relogin.
+
+                        This property has been deprecated, and has no effect on processing. Relogins now occur
+                        automatically.
+                    </description>
+                    <defaultValue>4 hours</defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Additional Classpath Resources</name>
+                    <displayName>Additional Classpath Resources</displayName>
+                    <description>A comma-separated list of paths to files and/or directories that will be added to the
+                        classpath. When specifying a directory, all files with in the directory will be added to the
+                        classpath, but further sub-directories will not be included.
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>true</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>HDFS Filename</name>
+                    <displayName>HDFS Filename</displayName>
+                    <description>The name of the HDFS file to retrieve</description>
+                    <defaultValue>${path}/${filename}</defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>FLOWFILE_ATTRIBUTES</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Compression codec</name>
+                    <displayName>Compression codec</displayName>
+                    <description></description>
+                    <defaultValue>NONE</defaultValue>
+                    <allowableValues>
+                        <allowableValue>
+                            <displayName>NONE</displayName>
+                            <value>NONE</value>
+                            <description>No compression</description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>DEFAULT</displayName>
+                            <value>DEFAULT</value>
+                            <description>Default ZLIB compression</description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>BZIP</displayName>
+                            <value>BZIP</value>
+                            <description>BZIP compression</description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>GZIP</displayName>
+                            <value>GZIP</value>
+                            <description>GZIP compression</description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>LZ4</displayName>
+                            <value>LZ4</value>
+                            <description>LZ4 compression</description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>LZO</displayName>
+                            <value>LZO</value>
+                            <description>LZO compression - it assumes LD_LIBRARY_PATH has been set and jar is
+                                available
+                            </description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>SNAPPY</displayName>
+                            <value>SNAPPY</value>
+                            <description>Snappy compression</description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>AUTOMATIC</displayName>
+                            <value>AUTOMATIC</value>
+                            <description>Will attempt to automatically detect the compression codec.</description>
+                        </allowableValue>
+                    </allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+            </properties>
+            <dynamicProperties></dynamicProperties>
+            <relationships>
+                <relationship>
+                    <name>success</name>
+                    <description>FlowFiles will be routed to this relationship once they have been updated with the
+                        content of the HDFS file
+                    </description>
+                    <autoTerminated>false</autoTerminated>
+                </relationship>
+                <relationship>
+                    <name>comms.failure</name>
+                    <description>FlowFiles will be routed to this relationship if the content of the HDFS file cannot be
+                        retrieve due to a communications failure. This generally indicates that the Fetch should be
+                        tried again.
+                    </description>
+                    <autoTerminated>false</autoTerminated>
+                </relationship>
+                <relationship>
+                    <name>failure</name>
+                    <description>FlowFiles will be routed to this relationship if the content of the HDFS file cannot be
+                        retrieved and trying again will likely not be helpful. This would occur, for instance, if the
+                        file is not found or if there is a permissions issue
+                    </description>
+                    <autoTerminated>false</autoTerminated>
+                </relationship>
+            </relationships>
+            <dynamicRelationship></dynamicRelationship>
+            <readsAttributes></readsAttributes>
+            <writesAttributes>
+                <writesAttribute>
+                    <name>hdfs.failure.reason</name>
+                    <description>When a FlowFile is routed to 'failure', this attribute is added indicating why the file
+                        could not be fetched from HDFS
+                    </description>
+                </writesAttribute>
+            </writesAttributes>
+            <stateful></stateful>
+            <restricted>
+                <restrictions>
+                    <restriction>
+                        <requiredPermission>read filesystem</requiredPermission>
+                        <explanation>Provides operator the ability to retrieve any file that NiFi has access to in HDFS
+                            or the local filesystem.
+                        </explanation>
+                    </restriction>
+                </restrictions>
+            </restricted>
+            <inputRequirement>INPUT_REQUIRED</inputRequirement>
+            <systemResourceConsiderations></systemResourceConsiderations>
+            <seeAlso>
+                <see>org.apache.nifi.processors.hadoop.ListHDFS</see>
+                <see>org.apache.nifi.processors.hadoop.GetHDFS</see>
+                <see>org.apache.nifi.processors.hadoop.PutHDFS</see>
+            </seeAlso>
+        </extension>
+        <extension>
+            <name>org.apache.nifi.processors.hadoop.DeleteHDFS</name>
+            <type>PROCESSOR</type>
+            <deprecationNotice/>
+            <description>Deletes one or more files or directories from HDFS. The path can be provided as an attribute
+                from an incoming FlowFile, or a statically set path that is periodically removed. If this processor has
+                an incoming connection, itwill ignore running on a periodic basis and instead rely on incoming FlowFiles
+                to trigger a delete. Note that you may use a wildcard character to match multiple files or directories.
+                If there are no incoming connections no flowfiles will be transfered to any output relationships. If
+                there is an incoming flowfile then provided there are no detected failures it will be transferred to
+                success otherwise it will be sent to false. If knowledge of globbed files deleted is necessary use
+                ListHDFS first to produce a specific list of files to delete.
+            </description>
+            <tags>
+                <tag>hadoop</tag>
+                <tag>HDFS</tag>
+                <tag>delete</tag>
+                <tag>remove</tag>
+                <tag>filesystem</tag>
+            </tags>
+            <properties>
+                <property>
+                    <name>Hadoop Configuration Resources</name>
+                    <displayName>Hadoop Configuration Resources</displayName>
+                    <description>A file or comma separated list of files which contains the Hadoop file system
+                        configuration. Without this, Hadoop will search the classpath for a 'core-site.xml' and
+                        'hdfs-site.xml' file or will revert to a default configuration. To use swebhdfs, see 'Additional
+                        Details' section of PutHDFS's documentation.
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>kerberos-credentials-service</name>
+                    <displayName>Kerberos Credentials Service</displayName>
+                    <description>Specifies the Kerberos Credentials Controller Service that should be used for
+                        authenticating with Kerberos
+                    </description>
+                    <defaultValue></defaultValue>
+                    <controllerServiceDefinition>
+                        <className>org.apache.nifi.kerberos.KerberosCredentialsService</className>
+                        <groupId>org.apache.nifi</groupId>
+                        <artifactId>org.apache.nifi:nifi-standard-services-api-nar:nar:1.10.0-SNAPSHOT</artifactId>
+                        <version>1.10.0-SNAPSHOT</version>
+                    </controllerServiceDefinition>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Kerberos Principal</name>
+                    <displayName>Kerberos Principal</displayName>
+                    <description>Kerberos principal to authenticate as. Requires nifi.kerberos.krb5.file to be set in
+                        your nifi.properties
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Kerberos Keytab</name>
+                    <displayName>Kerberos Keytab</displayName>
+                    <description>Kerberos keytab associated with the principal. Requires nifi.kerberos.krb5.file to be
+                        set in your nifi.properties
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Kerberos Relogin Period</name>
+                    <displayName>Kerberos Relogin Period</displayName>
+                    <description>Period of time which should pass before attempting a kerberos relogin.
+
+                        This property has been deprecated, and has no effect on processing. Relogins now occur
+                        automatically.
+                    </description>
+                    <defaultValue>4 hours</defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Additional Classpath Resources</name>
+                    <displayName>Additional Classpath Resources</displayName>
+                    <description>A comma-separated list of paths to files and/or directories that will be added to the
+                        classpath. When specifying a directory, all files with in the directory will be added to the
+                        classpath, but further sub-directories will not be included.
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>true</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>file_or_directory</name>
+                    <displayName>Path</displayName>
+                    <description>The HDFS file or directory to delete. A wildcard expression may be used to only delete
+                        certain files
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>FLOWFILE_ATTRIBUTES</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>recursive</name>
+                    <displayName>Recursive</displayName>
+                    <description>Remove contents of a non-empty directory recursively</description>
+                    <defaultValue>true</defaultValue>
+                    <allowableValues>
+                        <allowableValue>
+                            <displayName>true</displayName>
+                            <value>true</value>
+                            <description></description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>false</displayName>
+                            <value>false</value>
+                            <description></description>
+                        </allowableValue>
+                    </allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+            </properties>
+            <dynamicProperties></dynamicProperties>
+            <relationships>
+                <relationship>
+                    <name>success</name>
+                    <description>When an incoming flowfile is used then if there are no errors invoking delete the
+                        flowfile will route here.
+                    </description>
+                    <autoTerminated>false</autoTerminated>
+                </relationship>
+                <relationship>
+                    <name>failure</name>
+                    <description>When an incoming flowfile is used and there is a failure while deleting then the
+                        flowfile will route here.
+                    </description>
+                    <autoTerminated>false</autoTerminated>
+                </relationship>
+            </relationships>
+            <dynamicRelationship></dynamicRelationship>
+            <readsAttributes></readsAttributes>
+            <writesAttributes>
+                <writesAttribute>
+                    <name>hdfs.filename</name>
+                    <description>HDFS file to be deleted. If multiple files are deleted, then only the last filename is
+                        set.
+                    </description>
+                </writesAttribute>
+                <writesAttribute>
+                    <name>hdfs.path</name>
+                    <description>HDFS Path specified in the delete request. If multiple paths are deleted, then only the
+                        last path is set.
+                    </description>
+                </writesAttribute>
+                <writesAttribute>
+                    <name>hdfs.error.message</name>
+                    <description>HDFS error message related to the hdfs.error.code</description>
+                </writesAttribute>
+            </writesAttributes>
+            <stateful></stateful>
+            <restricted>
+                <restrictions>
+                    <restriction>
+                        <requiredPermission>write filesystem</requiredPermission>
+                        <explanation>Provides operator the ability to delete any file that NiFi has access to in HDFS or
+                            the local filesystem.
+                        </explanation>
+                    </restriction>
+                </restrictions>
+            </restricted>
+            <inputRequirement>INPUT_ALLOWED</inputRequirement>
+            <systemResourceConsiderations></systemResourceConsiderations>
+            <seeAlso>
+                <see>org.apache.nifi.processors.hadoop.ListHDFS</see>
+                <see>org.apache.nifi.processors.hadoop.PutHDFS</see>
+            </seeAlso>
+        </extension>
+        <extension>
+            <name>org.apache.nifi.processors.hadoop.GetHDFSSequenceFile</name>
+            <type>PROCESSOR</type>
+            <deprecationNotice/>
+            <description>Fetch sequence files from Hadoop Distributed File System (HDFS) into FlowFiles</description>
+            <tags>
+                <tag>hadoop</tag>
+                <tag>HDFS</tag>
+                <tag>get</tag>
+                <tag>fetch</tag>
+                <tag>ingest</tag>
+                <tag>source</tag>
+                <tag>sequence file</tag>
+            </tags>
+            <properties>
+                <property>
+                    <name>Hadoop Configuration Resources</name>
+                    <displayName>Hadoop Configuration Resources</displayName>
+                    <description>A file or comma separated list of files which contains the Hadoop file system
+                        configuration. Without this, Hadoop will search the classpath for a 'core-site.xml' and
+                        'hdfs-site.xml' file or will revert to a default configuration. To use swebhdfs, see 'Additional
+                        Details' section of PutHDFS's documentation.
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>kerberos-credentials-service</name>
+                    <displayName>Kerberos Credentials Service</displayName>
+                    <description>Specifies the Kerberos Credentials Controller Service that should be used for
+                        authenticating with Kerberos
+                    </description>
+                    <defaultValue></defaultValue>
+                    <controllerServiceDefinition>
+                        <className>org.apache.nifi.kerberos.KerberosCredentialsService</className>
+                        <groupId>org.apache.nifi</groupId>
+                        <artifactId>org.apache.nifi:nifi-standard-services-api-nar:nar:1.10.0-SNAPSHOT</artifactId>
+                        <version>1.10.0-SNAPSHOT</version>
+                    </controllerServiceDefinition>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Kerberos Principal</name>
+                    <displayName>Kerberos Principal</displayName>
+                    <description>Kerberos principal to authenticate as. Requires nifi.kerberos.krb5.file to be set in
+                        your nifi.properties
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Kerberos Keytab</name>
+                    <displayName>Kerberos Keytab</displayName>
+                    <description>Kerberos keytab associated with the principal. Requires nifi.kerberos.krb5.file to be
+                        set in your nifi.properties
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Kerberos Relogin Period</name>
+                    <displayName>Kerberos Relogin Period</displayName>
+                    <description>Period of time which should pass before attempting a kerberos relogin.
+
+                        This property has been deprecated, and has no effect on processing. Relogins now occur
+                        automatically.
+                    </description>
+                    <defaultValue>4 hours</defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Additional Classpath Resources</name>
+                    <displayName>Additional Classpath Resources</displayName>
+                    <description>A comma-separated list of paths to files and/or directories that will be added to the
+                        classpath. When specifying a directory, all files with in the directory will be added to the
+                        classpath, but further sub-directories will not be included.
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>true</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Directory</name>
+                    <displayName>Directory</displayName>
+                    <description>The HDFS directory from which files should be read</description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>FLOWFILE_ATTRIBUTES</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Recurse Subdirectories</name>
+                    <displayName>Recurse Subdirectories</displayName>
+                    <description>Indicates whether to pull files from subdirectories of the HDFS directory</description>
+                    <defaultValue>true</defaultValue>
+                    <allowableValues>
+                        <allowableValue>
+                            <displayName>true</displayName>
+                            <value>true</value>
+                            <description></description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>false</displayName>
+                            <value>false</value>
+                            <description></description>
+                        </allowableValue>
+                    </allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Keep Source File</name>
+                    <displayName>Keep Source File</displayName>
+                    <description>Determines whether to delete the file from HDFS after it has been successfully
+                        transferred. If true, the file will be fetched repeatedly. This is intended for testing only.
+                    </description>
+                    <defaultValue>false</defaultValue>
+                    <allowableValues>
+                        <allowableValue>
+                            <displayName>true</displayName>
+                            <value>true</value>
+                            <description></description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>false</displayName>
+                            <value>false</value>
+                            <description></description>
+                        </allowableValue>
+                    </allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>File Filter Regex</name>
+                    <displayName>File Filter Regex</displayName>
+                    <description>A Java Regular Expression for filtering Filenames; if a filter is supplied then only
+                        files whose names match that Regular Expression will be fetched, otherwise all files will be
+                        fetched
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Filter Match Name Only</name>
+                    <displayName>Filter Match Name Only</displayName>
+                    <description>If true then File Filter Regex will match on just the filename, otherwise subdirectory
+                        names will be included with filename in the regex comparison
+                    </description>
+                    <defaultValue>true</defaultValue>
+                    <allowableValues>
+                        <allowableValue>
+                            <displayName>true</displayName>
+                            <value>true</value>
+                            <description></description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>false</displayName>
+                            <value>false</value>
+                            <description></description>
+                        </allowableValue>
+                    </allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Ignore Dotted Files</name>
+                    <displayName>Ignore Dotted Files</displayName>
+                    <description>If true, files whose names begin with a dot (".") will be ignored</description>
+                    <defaultValue>true</defaultValue>
+                    <allowableValues>
+                        <allowableValue>
+                            <displayName>true</displayName>
+                            <value>true</value>
+                            <description></description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>false</displayName>
+                            <value>false</value>
+                            <description></description>
+                        </allowableValue>
+                    </allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Minimum File Age</name>
+                    <displayName>Minimum File Age</displayName>
+                    <description>The minimum age that a file must be in order to be pulled; any file younger than this
+                        amount of time (based on last modification date) will be ignored
+                    </description>
+                    <defaultValue>0 sec</defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Maximum File Age</name>
+                    <displayName>Maximum File Age</displayName>
+                    <description>The maximum age that a file must be in order to be pulled; any file older than this
+                        amount of time (based on last modification date) will be ignored
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Polling Interval</name>
+                    <displayName>Polling Interval</displayName>
+                    <description>Indicates how long to wait between performing directory listings</description>
+                    <defaultValue>0 sec</defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Batch Size</name>
+                    <displayName>Batch Size</displayName>
+                    <description>The maximum number of files to pull in each iteration, based on run schedule.
+                    </description>
+                    <defaultValue>100</defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>IO Buffer Size</name>
+                    <displayName>IO Buffer Size</displayName>
+                    <description>Amount of memory to use to buffer file contents during IO. This overrides the Hadoop
+                        Configuration
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Compression codec</name>
+                    <displayName>Compression codec</displayName>
+                    <description></description>
+                    <defaultValue>NONE</defaultValue>
+                    <allowableValues>
+                        <allowableValue>
+                            <displayName>NONE</displayName>
+                            <value>NONE</value>
+                            <description>No compression</description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>DEFAULT</displayName>
+                            <value>DEFAULT</value>
+                            <description>Default ZLIB compression</description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>BZIP</displayName>
+                            <value>BZIP</value>
+                            <description>BZIP compression</description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>GZIP</displayName>
+                            <value>GZIP</value>
+                            <description>GZIP compression</description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>LZ4</displayName>
+                            <value>LZ4</value>
+                            <description>LZ4 compression</description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>LZO</displayName>
+                            <value>LZO</value>
+                            <description>LZO compression - it assumes LD_LIBRARY_PATH has been set and jar is
+                                available
+                            </description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>SNAPPY</displayName>
+                            <value>SNAPPY</value>
+                            <description>Snappy compression</description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>AUTOMATIC</displayName>
+                            <value>AUTOMATIC</value>
+                            <description>Will attempt to automatically detect the compression codec.</description>
+                        </allowableValue>
+                    </allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>FlowFile Content</name>
+                    <displayName>FlowFile Content</displayName>
+                    <description>Indicate if the content is to be both the key and value of the Sequence File, or just
+                        the value.
+                    </description>
+                    <defaultValue>VALUE ONLY</defaultValue>
+                    <allowableValues>
+                        <allowableValue>
+                            <displayName>VALUE ONLY</displayName>
+                            <value>VALUE ONLY</value>
+                            <description></description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>KEY VALUE PAIR</displayName>
+                            <value>KEY VALUE PAIR</value>
+                            <description></description>
+                        </allowableValue>
+                    </allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+            </properties>
+            <dynamicProperties></dynamicProperties>
+            <relationships>
+                <relationship>
+                    <name>success</name>
+                    <description>All files retrieved from HDFS are transferred to this relationship</description>
+                    <autoTerminated>false</autoTerminated>
+                </relationship>
+            </relationships>
+            <dynamicRelationship></dynamicRelationship>
+            <readsAttributes></readsAttributes>
+            <writesAttributes>
+                <writesAttribute>
+                    <name>filename</name>
+                    <description>The name of the file that was read from HDFS.</description>
+                </writesAttribute>
+                <writesAttribute>
+                    <name>path</name>
+                    <description>The path is set to the relative path of the file's directory on HDFS. For example, if
+                        the Directory property is set to /tmp, then files picked up from /tmp will have the path
+                        attribute set to "./". If the Recurse Subdirectories property is set to true and a file is
+                        picked up from /tmp/abc/1/2/3, then the path attribute will be set to "abc/1/2/3".
+                    </description>
+                </writesAttribute>
+            </writesAttributes>
+            <stateful></stateful>
+            <restricted>
+                <restrictions>
+                    <restriction>
+                        <requiredPermission>read filesystem</requiredPermission>
+                        <explanation>Provides operator the ability to retrieve any file that NiFi has access to in HDFS
+                            or the local filesystem.
+                        </explanation>
+                    </restriction>
+                    <restriction>
+                        <requiredPermission>write filesystem</requiredPermission>
+                        <explanation>Provides operator the ability to delete any file that NiFi has access to in HDFS or
+                            the local filesystem.
+                        </explanation>
+                    </restriction>
+                </restrictions>
+            </restricted>
+            <inputRequirement>INPUT_FORBIDDEN</inputRequirement>
+            <systemResourceConsiderations></systemResourceConsiderations>
+            <seeAlso>
+                <see>org.apache.nifi.processors.hadoop.PutHDFS</see>
+            </seeAlso>
+        </extension>
+        <extension>
+            <name>org.apache.nifi.processors.hadoop.GetHDFSFileInfo</name>
+            <type>PROCESSOR</type>
+            <deprecationNotice/>
+            <description>Retrieves a listing of files and directories from HDFS. This processor creates a FlowFile(s)
+                that represents the HDFS file/dir with relevant information. Main purpose of this processor to provide
+                functionality similar to HDFS Client, i.e. count, du, ls, test, etc. Unlike ListHDFS, this processor is
+                stateless, supports incoming connections and provides information on a dir level.
+            </description>
+            <tags>
+                <tag>hadoop</tag>
+                <tag>HDFS</tag>
+                <tag>get</tag>
+                <tag>list</tag>
+                <tag>ingest</tag>
+                <tag>source</tag>
+                <tag>filesystem</tag>
+            </tags>
+            <properties>
+                <property>
+                    <name>Hadoop Configuration Resources</name>
+                    <displayName>Hadoop Configuration Resources</displayName>
+                    <description>A file or comma separated list of files which contains the Hadoop file system
+                        configuration. Without this, Hadoop will search the classpath for a 'core-site.xml' and
+                        'hdfs-site.xml' file or will revert to a default configuration. To use swebhdfs, see 'Additional
+                        Details' section of PutHDFS's documentation.
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>kerberos-credentials-service</name>
+                    <displayName>Kerberos Credentials Service</displayName>
+                    <description>Specifies the Kerberos Credentials Controller Service that should be used for
+                        authenticating with Kerberos
+                    </description>
+                    <defaultValue></defaultValue>
+                    <controllerServiceDefinition>
+                        <className>org.apache.nifi.kerberos.KerberosCredentialsService</className>
+                        <groupId>org.apache.nifi</groupId>
+                        <artifactId>org.apache.nifi:nifi-standard-services-api-nar:nar:1.10.0-SNAPSHOT</artifactId>
+                        <version>1.10.0-SNAPSHOT</version>
+                    </controllerServiceDefinition>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Kerberos Principal</name>
+                    <displayName>Kerberos Principal</displayName>
+                    <description>Kerberos principal to authenticate as. Requires nifi.kerberos.krb5.file to be set in
+                        your nifi.properties
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Kerberos Keytab</name>
+                    <displayName>Kerberos Keytab</displayName>
+                    <description>Kerberos keytab associated with the principal. Requires nifi.kerberos.krb5.file to be
+                        set in your nifi.properties
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Kerberos Relogin Period</name>
+                    <displayName>Kerberos Relogin Period</displayName>
+                    <description>Period of time which should pass before attempting a kerberos relogin.
+
+                        This property has been deprecated, and has no effect on processing. Relogins now occur
+                        automatically.
+                    </description>
+                    <defaultValue>4 hours</defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Additional Classpath Resources</name>
+                    <displayName>Additional Classpath Resources</displayName>
+                    <description>A comma-separated list of paths to files and/or directories that will be added to the
+                        classpath. When specifying a directory, all files with in the directory will be added to the
+                        classpath, but further sub-directories will not be included.
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>true</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>gethdfsfileinfo-full-path</name>
+                    <displayName>Full path</displayName>
+                    <description>A directory to start listing from, or a file's full path.</description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>FLOWFILE_ATTRIBUTES</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>gethdfsfileinfo-recurse-subdirs</name>
+                    <displayName>Recurse Subdirectories</displayName>
+                    <description>Indicates whether to list files from subdirectories of the HDFS directory</description>
+                    <defaultValue>true</defaultValue>
+                    <allowableValues>
+                        <allowableValue>
+                            <displayName>true</displayName>
+                            <value>true</value>
+                            <description></description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>false</displayName>
+                            <value>false</value>
+                            <description></description>
+                        </allowableValue>
+                    </allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>gethdfsfileinfo-dir-filter</name>
+                    <displayName>Directory Filter</displayName>
+                    <description>Regex. Only directories whose names match the given regular expression will be picked
+                        up. If not provided, any filter would be apply (performance considerations).
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>FLOWFILE_ATTRIBUTES</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>gethdfsfileinfo-file-filter</name>
+                    <displayName>File Filter</displayName>
+                    <description>Regex. Only files whose names match the given regular expression will be picked up. If
+                        not provided, any filter would be apply (performance considerations).
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>FLOWFILE_ATTRIBUTES</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>gethdfsfileinfo-file-exclude-filter</name>
+                    <displayName>Exclude Files</displayName>
+                    <description>Regex. Files whose names match the given regular expression will not be picked up. If
+                        not provided, any filter won't be apply (performance considerations).
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>FLOWFILE_ATTRIBUTES</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>gethdfsfileinfo-ignore-dotted-dirs</name>
+                    <displayName>Ignore Dotted Directories</displayName>
+                    <description>If true, directories whose names begin with a dot (".") will be ignored</description>
+                    <defaultValue>true</defaultValue>
+                    <allowableValues>
+                        <allowableValue>
+                            <displayName>true</displayName>
+                            <value>true</value>
+                            <description></description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>false</displayName>
+                            <value>false</value>
+                            <description></description>
+                        </allowableValue>
+                    </allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>gethdfsfileinfo-ignore-dotted-files</name>
+                    <displayName>Ignore Dotted Files</displayName>
+                    <description>If true, files whose names begin with a dot (".") will be ignored</description>
+                    <defaultValue>true</defaultValue>
+                    <allowableValues>
+                        <allowableValue>
+                            <displayName>true</displayName>
+                            <value>true</value>
+                            <description></description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>false</displayName>
+                            <value>false</value>
+                            <description></description>
+                        </allowableValue>
+                    </allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>gethdfsfileinfo-group</name>
+                    <displayName>Group Results</displayName>
+                    <description>Groups HDFS objects</description>
+                    <defaultValue>gethdfsfileinfo-group-all</defaultValue>
+                    <allowableValues>
+                        <allowableValue>
+                            <displayName>All</displayName>
+                            <value>gethdfsfileinfo-group-all</value>
+                            <description>Group all results into a single flowfile.</description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>Parent Directory</displayName>
+                            <value>gethdfsfileinfo-group-parent-dir</value>
+                            <description>Group HDFS objects by their parent directories only. Processor will generate
+                                flowfile for each directory (if recursive). If 'Recurse Subdirectories' property set to
+                                'false', then will have the same effect as 'All'
+                            </description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>None</displayName>
+                            <value>gethdfsfileinfo-group-none</value>
+                            <description>Don't group results. Generate flowfile per each HDFS object.</description>
+                        </allowableValue>
+                    </allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>gethdfsfileinfo-destination</name>
+                    <displayName>Destination</displayName>
+                    <description>Sets the destination for the resutls. When set to 'Content', attributes of flowfile
+                        won't be used for storing results.
+                    </description>
+                    <defaultValue>gethdfsfileinfo-dest-content</defaultValue>
+                    <allowableValues>
+                        <allowableValue>
+                            <displayName>Attributes</displayName>
+                            <value>gethdfsfileinfo-dest-attr</value>
+                            <description>Details of given HDFS object will be stored in attributes of flowfile. WARNING:
+                                In case when scan finds thousands or millions of objects, having huge values in
+                                attribute could impact flow file repo and GC/heap usage. Use content destination for
+                                such cases.
+                            </description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>Content</displayName>
+                            <value>gethdfsfileinfo-dest-content</value>
+                            <description>Details of given HDFS object will be stored in a content in JSON format
+                            </description>
+                        </allowableValue>
+                    </allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+            </properties>
+            <dynamicProperties></dynamicProperties>
+            <relationships>
+                <relationship>
+                    <name>success</name>
+                    <description>All successfully generated FlowFiles are transferred to this relationship</description>
+                    <autoTerminated>false</autoTerminated>
+                </relationship>
+                <relationship>
+                    <name>not found</name>
+                    <description>If no objects are found, original FlowFile are transferred to this relationship
+                    </description>
+                    <autoTerminated>false</autoTerminated>
+                </relationship>
+                <relationship>
+                    <name>failure</name>
+                    <description>All failed attempts to access HDFS will be routed to this relationship</description>
+                    <autoTerminated>false</autoTerminated>
+                </relationship>
+                <relationship>
+                    <name>original</name>
+                    <description>Original FlowFiles are transferred to this relationship</description>
+                    <autoTerminated>false</autoTerminated>
+                </relationship>
+            </relationships>
+            <dynamicRelationship></dynamicRelationship>
+            <readsAttributes></readsAttributes>
+            <writesAttributes>
+                <writesAttribute>
+                    <name>hdfs.objectName</name>
+                    <description>The name of the file/dir found on HDFS.</description>
+                </writesAttribute>
+                <writesAttribute>
+                    <name>hdfs.path</name>
+                    <description>The path is set to the absolute path of the object's parent directory on HDFS. For
+                        example, if an object is a directory 'foo', under directory '/bar' then 'hdfs.objectName' will
+                        have value 'foo', and 'hdfs.path' will be '/bar'
+                    </description>
+                </writesAttribute>
+                <writesAttribute>
+                    <name>hdfs.type</name>
+                    <description>The type of an object. Possible values: directory, file, link</description>
+                </writesAttribute>
+                <writesAttribute>
+                    <name>hdfs.owner</name>
+                    <description>The user that owns the object in HDFS</description>
+                </writesAttribute>
+                <writesAttribute>
+                    <name>hdfs.group</name>
+                    <description>The group that owns the object in HDFS</description>
+                </writesAttribute>
+                <writesAttribute>
+                    <name>hdfs.lastModified</name>
+                    <description>The timestamp of when the object in HDFS was last modified, as milliseconds since
+                        midnight Jan 1, 1970 UTC
+                    </description>
+                </writesAttribute>
+                <writesAttribute>
+                    <name>hdfs.length</name>
+                    <description>In case of files: The number of bytes in the file in HDFS. In case of dirs: Retuns
+                        storage space consumed by directory.
+                    </description>
+                </writesAttribute>
+                <writesAttribute>
+                    <name>hdfs.count.files</name>
+                    <description>In case of type='directory' will represent total count of files under this dir. Won't
+                        be populated to other types of HDFS objects.
+                    </description>
+                </writesAttribute>
+                <writesAttribute>
+                    <name>hdfs.count.dirs</name>
+                    <description>In case of type='directory' will represent total count of directories under this dir
+                        (including itself). Won't be populated to other types of HDFS objects.
+                    </description>
+                </writesAttribute>
+                <writesAttribute>
+                    <name>hdfs.replication</name>
+                    <description>The number of HDFS replicas for the file</description>
+                </writesAttribute>
+                <writesAttribute>
+                    <name>hdfs.permissions</name>
+                    <description>The permissions for the object in HDFS. This is formatted as 3 characters for the
+                        owner, 3 for the group, and 3 for other users. For example rw-rw-r--
+                    </description>
+                </writesAttribute>
+                <writesAttribute>
+                    <name>hdfs.status</name>
+                    <description>The status contains comma separated list of file/dir paths, which couldn't be
+                        listed/accessed. Status won't be set if no errors occured.
+                    </description>
+                </writesAttribute>
+                <writesAttribute>
+                    <name>hdfs.full.tree</name>
+                    <description>When destination is 'attribute', will be populated with full tree of HDFS directory in
+                        JSON format.WARNING: In case when scan finds thousands or millions of objects, having huge
+                        values in attribute could impact flow file repo and GC/heap usage. Use content destination for
+                        such cases
+                    </description>
+                </writesAttribute>
+            </writesAttributes>
+            <stateful></stateful>
+            <restricted></restricted>
+            <inputRequirement>INPUT_ALLOWED</inputRequirement>
+            <systemResourceConsiderations></systemResourceConsiderations>
+            <seeAlso>
+                <see>org.apache.nifi.processors.hadoop.ListHDFS</see>
+                <see>org.apache.nifi.processors.hadoop.GetHDFS</see>
+                <see>org.apache.nifi.processors.hadoop.FetchHDFS</see>
+                <see>org.apache.nifi.processors.hadoop.PutHDFS</see>
+            </seeAlso>
+        </extension>
+        <extension>
+            <name>org.apache.nifi.processors.hadoop.ListHDFS</name>
+            <type>PROCESSOR</type>
+            <deprecationNotice/>
+            <description>Retrieves a listing of files from HDFS. Each time a listing is performed, the files with the
+                latest timestamp will be excluded and picked up during the next execution of the processor. This is done
+                to ensure that we do not miss any files, or produce duplicates, in the cases where files with the same
+                timestamp are written immediately before and after a single execution of the processor. For each file
+                that is listed in HDFS, this processor creates a FlowFile that represents the HDFS file to be fetched in
+                conjunction with FetchHDFS. This Processor is designed to run on Primary Node only in a cluster. If the
+                primary node changes, the new Primary Node will pick up where the previous node left off without
+                duplicating all of the data. Unlike GetHDFS, this Processor does not delete any data from HDFS.
+            </description>
+            <tags>
+                <tag>hadoop</tag>
+                <tag>HDFS</tag>
+                <tag>get</tag>
+                <tag>list</tag>
+                <tag>ingest</tag>
+                <tag>source</tag>
+                <tag>filesystem</tag>
+            </tags>
+            <properties>
+                <property>
+                    <name>Hadoop Configuration Resources</name>
+                    <displayName>Hadoop Configuration Resources</displayName>
+                    <description>A file or comma separated list of files which contains the Hadoop file system
+                        configuration. Without this, Hadoop will search the classpath for a 'core-site.xml' and
+                        'hdfs-site.xml' file or will revert to a default configuration. To use swebhdfs, see 'Additional
+                        Details' section of PutHDFS's documentation.
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>kerberos-credentials-service</name>
+                    <displayName>Kerberos Credentials Service</displayName>
+                    <description>Specifies the Kerberos Credentials Controller Service that should be used for
+                        authenticating with Kerberos
+                    </description>
+                    <defaultValue></defaultValue>
+                    <controllerServiceDefinition>
+                        <className>org.apache.nifi.kerberos.KerberosCredentialsService</className>
+                        <groupId>org.apache.nifi</groupId>
+                        <artifactId>org.apache.nifi:nifi-standard-services-api-nar:nar:1.10.0-SNAPSHOT</artifactId>
+                        <version>1.10.0-SNAPSHOT</version>
+                    </controllerServiceDefinition>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Kerberos Principal</name>
+                    <displayName>Kerberos Principal</displayName>
+                    <description>Kerberos principal to authenticate as. Requires nifi.kerberos.krb5.file to be set in
+                        your nifi.properties
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Kerberos Keytab</name>
+                    <displayName>Kerberos Keytab</displayName>
+                    <description>Kerberos keytab associated with the principal. Requires nifi.kerberos.krb5.file to be
+                        set in your nifi.properties
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Kerberos Relogin Period</name>
+                    <displayName>Kerberos Relogin Period</displayName>
+                    <description>Period of time which should pass before attempting a kerberos relogin.
+
+                        This property has been deprecated, and has no effect on processing. Relogins now occur
+                        automatically.
+                    </description>
+                    <defaultValue>4 hours</defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>VARIABLE_REGISTRY</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Additional Classpath Resources</name>
+                    <displayName>Additional Classpath Resources</displayName>
+                    <description>A comma-separated list of paths to files and/or directories that will be added to the
+                        classpath. When specifying a directory, all files with in the directory will be added to the
+                        classpath, but further sub-directories will not be included.
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>true</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Distributed Cache Service</name>
+                    <displayName>Distributed Cache Service</displayName>
+                    <description>This property is ignored. State will be stored in the LOCAL or CLUSTER scope by the
+                        State Manager based on NiFi's configuration.
+                    </description>
+                    <defaultValue></defaultValue>
+                    <controllerServiceDefinition>
+                        <className>org.apache.nifi.distributed.cache.client.DistributedMapCacheClient</className>
+                        <groupId>org.apache.nifi</groupId>
+                        <artifactId>org.apache.nifi:nifi-standard-services-api-nar:nar:1.10.0-SNAPSHOT</artifactId>
+                        <version>1.10.0-SNAPSHOT</version>
+                    </controllerServiceDefinition>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Directory</name>
+                    <displayName>Directory</displayName>
+                    <description>The HDFS directory from which files should be read</description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>true</expressionLanguageSupported>
+                    <expressionLanguageScope>FLOWFILE_ATTRIBUTES</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>Recurse Subdirectories</name>
+                    <displayName>Recurse Subdirectories</displayName>
+                    <description>Indicates whether to list files from subdirectories of the HDFS directory</description>
+                    <defaultValue>true</defaultValue>
+                    <allowableValues>
+                        <allowableValue>
+                            <displayName>true</displayName>
+                            <value>true</value>
+                            <description></description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>false</displayName>
+                            <value>false</value>
+                            <description></description>
+                        </allowableValue>
+                    </allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>File Filter</name>
+                    <displayName>File Filter</displayName>
+                    <description>Only files whose names match the given regular expression will be picked up
+                    </description>
+                    <defaultValue>[^\.].*</defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>file-filter-mode</name>
+                    <displayName>File Filter Mode</displayName>
+                    <description>Determines how the regular expression in File Filter will be used when retrieving
+                        listings.
+                    </description>
+                    <defaultValue>filter-mode-directories-and-files</defaultValue>
+                    <allowableValues>
+                        <allowableValue>
+                            <displayName>Directories and Files</displayName>
+                            <value>filter-mode-directories-and-files</value>
+                            <description>Filtering will be applied to the names of directories and files. If Recurse
+                                Subdirectories is set to true, only subdirectories with a matching name will be searched
+                                for files that match the regular expression defined in File Filter.
+                            </description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>Files Only</displayName>
+                            <value>filter-mode-files-only</value>
+                            <description>Filtering will only be applied to the names of files. If Recurse Subdirectories
+                                is set to true, the entire subdirectory tree will be searched for files that match the
+                                regular expression defined in File Filter.
+                            </description>
+                        </allowableValue>
+                        <allowableValue>
+                            <displayName>Full Path</displayName>
+                            <value>filter-mode-full-path</value>
+                            <description>Filtering will be applied to the full path of files. If Recurse Subdirectories
+                                is set to true, the entire subdirectory tree will be searched for files in which the
+                                full path of the file matches the regular expression defined in File Filter.
+                            </description>
+                        </allowableValue>
+                    </allowableValues>
+                    <required>true</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>minimum-file-age</name>
+                    <displayName>Minimum File Age</displayName>
+                    <description>The minimum age that a file must be in order to be pulled; any file younger than this
+                        amount of time (based on last modification date) will be ignored
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+                <property>
+                    <name>maximum-file-age</name>
+                    <displayName>Maximum File Age</displayName>
+                    <description>The maximum age that a file must be in order to be pulled; any file older than this
+                        amount of time (based on last modification date) will be ignored. Minimum value is 100ms.
+                    </description>
+                    <defaultValue></defaultValue>
+                    <allowableValues></allowableValues>
+                    <required>false</required>
+                    <sensitive>false</sensitive>
+                    <expressionLanguageSupported>false</expressionLanguageSupported>
+                    <expressionLanguageScope>NONE</expressionLanguageScope>
+                    <dynamicallyModifiesClasspath>false</dynamicallyModifiesClasspath>
+                    <dynamic>false</dynamic>
+                </property>
+            </properties>
+            <dynamicProperties></dynamicProperties>
+            <relationships>
+                <relationship>
+                    <name>success</name>
+                    <description>All FlowFiles are transferred to this relationship</description>
+                    <autoTerminated>false</autoTerminated>
+                </relationship>
+            </relationships>
+            <dynamicRelationship></dynamicRelationship>
+            <readsAttributes></readsAttributes>
+            <writesAttributes>
+                <writesAttribute>
+                    <name>filename</name>
+                    <description>The name of the file that was read from HDFS.</description>
+                </writesAttribute>
+                <writesAttribute>
+                    <name>path</name>
+                    <description>The path is set to the absolute path of the file's directory on HDFS. For example, if
+                        the Directory property is set to /tmp, then files picked up from /tmp will have the path
+                        attribute set to "./". If the Recurse Subdirectories property is set to true and a file is
+                        picked up from /tmp/abc/1/2/3, then the path attribute will be set to "/tmp/abc/1/2/3".
+                    </description>
+                </writesAttribute>
+                <writesAttribute>
+                    <name>hdfs.owner</name>
+                    <description>The user that owns the file in HDFS</description>
+                </writesAttribute>
+                <writesAttribute>
+                    <name>hdfs.group</name>
+                    <description>The group that owns the file in HDFS</description>
+                </writesAttribute>
+                <writesAttribute>
+                    <name>hdfs.lastModified</name>
+                    <description>The timestamp of when the file in HDFS was last modified, as milliseconds since
+                        midnight Jan 1, 1970 UTC
+                    </description>
+                </writesAttribute>
+                <writesAttribute>
+                    <name>hdfs.length</name>
+                    <description>The number of bytes in the file in HDFS</description>
+                </writesAttribute>
+                <writesAttribute>
+                    <name>hdfs.replication</name>
+                    <description>The number of HDFS replicas for hte file</description>
+                </writesAttribute>
+                <writesAttribute>
+                    <name>hdfs.permissions</name>
+                    <description>The permissions for the file in HDFS. This is formatted as 3 characters for the owner,
+                        3 for the group, and 3 for other users. For example rw-rw-r--
+                    </description>
+                </writesAttribute>
+            </writesAttributes>
+            <stateful>
+                <description>After performing a listing of HDFS files, the latest timestamp of all the files listed and
+                    the latest timestamp of all the files transferred are both stored. This allows the Processor to list
+                    only files that have been added or modified after this date the next time that the Processor is run,
+                    without having to store all of the actual filenames/paths which could lead to performance problems.
+                    State is stored across the cluster so that this Processor can be run on Primary Node only and if a
+                    new Primary Node is selected, the new node can pick up where the previous node left off, without
+                    duplicating the data.
+                </description>
+                <scopes>
+                    <scope>CLUSTER</scope>
+                </scopes>
+            </stateful>
+            <restricted></restricted>
+            <inputRequirement>INPUT_FORBIDDEN</inputRequirement>
+            <systemResourceConsiderations></systemResourceConsiderations>
+            <seeAlso>
+                <see>org.apache.nifi.processors.hadoop.GetHDFS</see>
+                <see>org.apache.nifi.processors.hadoop.FetchHDFS</see>
+                <see>org.apache.nifi.processors.hadoop.PutHDFS</see>
+            </seeAlso>
+        </extension>
+    </extensions>
+</extensionManifest>
