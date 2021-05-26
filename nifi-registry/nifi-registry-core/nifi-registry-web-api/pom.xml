@@ -1,0 +1,515 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>org.apache.nifi.registry</groupId>
+        <artifactId>nifi-registry-core</artifactId>
+        <version>1.14.0-SNAPSHOT</version>
+    </parent>
+    <artifactId>nifi-registry-web-api</artifactId>
+    <version>1.14.0-SNAPSHOT</version>
+    <packaging>war</packaging>
+
+    <properties>
+        <swagger.source.dir>${project.basedir}/src/main/resources/swagger</swagger.source.dir>
+        <swagger.generated.dir>${project.build.directory}/swagger</swagger.generated.dir>
+        <asciidoc.source.dir>${project.basedir}/src/main/asciidoc</asciidoc.source.dir>
+        <asciidoc.generated.dir>${project.build.directory}/asciidoc</asciidoc.generated.dir>
+        <docs.dir>${project.build.directory}/${project.artifactId}-${project.version}/docs/</docs.dir>
+    </properties>
+
+    <build>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+            </resource>
+        </resources>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <version>${spring.boot.version}</version>
+            </plugin>
+            <plugin>
+                <artifactId>maven-war-plugin</artifactId>
+                <configuration>
+                    <failOnMissingWebXml>false</failOnMissingWebXml>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>com.github.kongchen</groupId>
+                <artifactId>swagger-maven-plugin</artifactId>
+                <version>3.1.6</version>
+                <executions>
+                    <execution>
+                        <phase>compile</phase>
+                        <goals>
+                            <goal>generate</goal>
+                        </goals>
+                        <configuration>
+                            <apiSources>
+                                <apiSource>
+                                    <locations>
+                                        <location>org.apache.nifi.registry.web.api</location>
+                                    </locations>
+                                    <schemes>
+                                        <scheme>http</scheme>
+                                        <scheme>https</scheme>
+                                    </schemes>
+                                    <basePath>/nifi-registry-api</basePath>
+                                    <info>
+                                        <title>Apache NiFi Registry REST API</title>
+                                        <version>${project.version}</version>
+                                        <description>
+                                            The REST API provides an interface to a registry with operations for saving, versioning, reading NiFi flows and components.
+                                        </description>
+                                        <contact>
+                                            <name>Apache NiFi Registry</name>
+                                            <email>dev@nifi.apache.org</email>
+                                            <url>https://nifi.apache.org</url>
+                                        </contact>
+                                        <license>
+                                            <url>https://www.apache.org/licenses/LICENSE-2.0.html</url>
+                                            <name>Apache 2.0 License</name>
+                                        </license>
+                                        <termsOfService>As described in the license</termsOfService>
+                                    </info>
+                                    <securityDefinitions>
+                                        <securityDefinition>
+                                            <jsonPath>${swagger.source.dir}/security-definitions.json</jsonPath>
+                                        </securityDefinition>
+                                    </securityDefinitions>
+                                    <templatePath>classpath:/templates/index.html.hbs</templatePath>
+                                    <outputPath>${docs.dir}/rest-api/index.html</outputPath>
+                                    <swaggerDirectory>${swagger.generated.dir}</swaggerDirectory>
+                                </apiSource>
+                            </apiSources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <artifactId>maven-resources-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>copy-resources</id>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${docs.dir}/rest-api/images</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>src/main/resources/images</directory>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>com.googlecode.maven-download-plugin</groupId>
+                <artifactId>download-maven-plugin</artifactId>
+                <version>1.2.1</version>
+                <executions>
+                    <execution>
+                        <id>download-swagger-ui</id>
+                        <!-- This plugin downloads swagger UI static assets during the build, to be
+                             served by the web app to render the dynamically generated Swagger spec.
+                             For offline development, or to build without the swagger UI, activate
+                             the "no-swagger-ui" maven profile during the build with the "-P" flag -->
+                        <goals>
+                            <goal>wget</goal>
+                        </goals>
+                        <configuration>
+                            <url>https://github.com/swagger-api/swagger-ui/archive/v${swagger.ui.version}.tar.gz</url>
+                            <unpack>true</unpack>
+                            <outputDirectory>${project.build.directory}</outputDirectory>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>1.8</version>
+                <executions>
+                    <execution>
+                        <id>bundle-swagger-ui</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <target>
+                                <sequential>
+                                    <echo>Copy static Swagger UI files to target</echo>
+                                    <copy todir="${project.build.directory}/classes/static/swagger">
+                                        <fileset dir="${project.build.directory}/swagger-ui-${swagger.ui.version}/dist">
+                                            <include name="**" />
+                                        </fileset>
+                                    </copy>
+                                    <echo>Disable schema validation by removing validatorUrl</echo>
+                                    <replace token="https://online.swagger.io/validator" value="" dir="${project.build.directory}/classes/static/swagger">
+                                        <include name="swagger-ui-bundle.js" />
+                                        <include name="swagger-ui-standalone-preset.js" />
+                                    </replace>
+                                    <echo>Rename 'index.html' to 'ui.html'</echo>
+                                    <move file="${project.build.directory}/classes/static/swagger/index.html" tofile="${project.build.directory}/classes/static/swagger/ui.html" />
+                                    <echo>Replace default swagger.json location</echo>
+                                    <replace token="http://petstore.swagger.io/v2/swagger.json" value="/nifi-registry-api/swagger/swagger.json" dir="${project.build.directory}/classes/static/swagger">
+                                        <include name="ui.html" />
+                                    </replace>
+                                    <echo>Copy swagger.json into static assets folder</echo>
+                                    <copy todir="${project.build.directory}/classes/static/swagger">
+                                        <fileset dir="${project.build.directory}/swagger">
+                                            <include name="*.json" />
+                                        </fileset>
+                                    </copy>
+                                </sequential>
+                            </target>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <!-- Generates asciidoc files from swagger.json -->
+            <plugin>
+                <groupId>io.github.swagger2markup</groupId>
+                <artifactId>swagger2markup-maven-plugin</artifactId>
+                <version>1.3.3</version>
+                <executions>
+                    <execution>
+                        <phase>compile</phase>
+                        <goals>
+                            <goal>convertSwagger2markup</goal>
+                        </goals>
+                        <configuration>
+                            <swaggerInput>${swagger.generated.dir}/swagger.json</swaggerInput>
+                            <outputDir>${asciidoc.generated.dir}</outputDir>
+                            <config>
+                                <swagger2markup.markupLanguage>ASCIIDOC</swagger2markup.markupLanguage>
+                                <swagger2markup.pathsGroupedBy>TAGS</swagger2markup.pathsGroupedBy>
+                                <swagger2markup.generatedExamplesEnabled>true</swagger2markup.generatedExamplesEnabled>
+                            </config>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <!-- Generates rest-api.html from rest-api.adoc and places it in docs dir within WAR -->
+            <plugin>
+                <groupId>org.asciidoctor</groupId>
+                <artifactId>asciidoctor-maven-plugin</artifactId>
+                <version>1.5.7.1</version>
+                <configuration>
+                    <sourceDirectory>${asciidoc.source.dir}</sourceDirectory>
+                    <sourceDocumentName>rest-api.adoc</sourceDocumentName>
+                    <attributes>
+                        <doctype>article</doctype>
+                        <toc />
+                        <toclevels>3</toclevels>
+                        <numbered />
+                        <hardbreaks />
+                        <sectlinks />
+                        <sectanchors />
+                        <revnumber>${project.version}</revnumber>
+                        <organization>Apache NiFi</organization>
+                        <generated>${asciidoc.generated.dir}</generated>
+                    </attributes>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>output-html</id>
+                        <phase>compile</phase>
+                        <goals>
+                            <goal>process-asciidoc</goal>
+                        </goals>
+                        <configuration>
+                            <backend>html5</backend>
+                            <outputDirectory>${docs.dir}/rest-api</outputDirectory>
+                            <outputFile>rest-api.html</outputFile>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+    <profiles>
+        <profile>
+            <id>no-swagger-ui</id>
+            <!-- Activate this profile with "-P no-swagger-ui" to disable the Swagger UI
+                 static assets from being downloaded and bundled with the web api WAR. -->
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>com.googlecode.maven-download-plugin</groupId>
+                        <artifactId>download-maven-plugin</artifactId>
+                        <version>1.2.1</version>
+                        <executions>
+                            <execution>
+                                <id>download-swagger-ui</id>
+                                <phase>none</phase>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-antrun-plugin</artifactId>
+                        <version>1.8</version>
+                        <executions>
+                            <execution>
+                                <id>bundle-swagger-ui</id>
+                                <phase>none</phase>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
+            <!-- This profile provides configuration to allow NiFi Registry to be compiled on JDKs above 1.8. -->
+            <id>jigsaw</id>
+            <activation>
+                <jdk>(1.8,)</jdk>
+            </activation>
+            <!-- These dependencies would normally be transitive deps of framework and data model, but we want to
+                redeclare them with provided scope so that they don't end up in WEB-INF/lib of the WAR, they will
+                be added to the lib/java11 directory and added to the classpath based on the JVM being used -->
+            <dependencies>
+                <dependency>
+                    <groupId>jakarta.xml.bind</groupId>
+                    <artifactId>jakarta.xml.bind-api</artifactId>
+                    <scope>provided</scope>
+                </dependency>
+                <dependency>
+                    <groupId>org.glassfish.jaxb</groupId>
+                    <artifactId>jaxb-runtime</artifactId>
+                    <scope>provided</scope>
+                </dependency>
+            </dependencies>
+        </profile>
+    </profiles>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+            <version>${spring.boot.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-jersey</artifactId>
+            <version>${spring.boot.version}</version>
+            <exclusions>
+                <!-- spring-boot-starter-jersey brings in a Spring 4.x version of spring-aop which causes problems -->
+                <exclusion>
+                    <groupId>org.springframework</groupId>
+                    <artifactId>spring-aop</artifactId>
+                </exclusion>
+                <!-- JDK 8 will already have jaxb-api, and JDKs above 8 we activate a profile to include it -->
+                <exclusion>
+                    <groupId>javax.xml.bind</groupId>
+                    <artifactId>jaxb-api</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <!-- Exclude micrometer-core because it creates a class cast issue with logback, revisit later -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+            <version>${spring.boot.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>io.micrometer</groupId>
+                    <artifactId>micrometer-core</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.security.kerberos</groupId>
+            <artifactId>spring-security-kerberos-core</artifactId>
+            <version>1.0.1.RELEASE</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.springframework</groupId>
+                    <artifactId>spring-core</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.springframework.security</groupId>
+                    <artifactId>spring-security-core</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <!-- Must be marked provided in order to produce a correct WAR -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-tomcat</artifactId>
+            <version>${spring.boot.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi.registry</groupId>
+            <artifactId>nifi-registry-framework</artifactId>
+            <version>1.14.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi.registry</groupId>
+            <artifactId>nifi-registry-revision-spring-jdbc</artifactId>
+            <version>1.14.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi.registry</groupId>
+            <artifactId>nifi-registry-revision-entity-service</artifactId>
+            <version>1.14.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi.registry</groupId>
+            <artifactId>nifi-registry-properties</artifactId>
+            <version>1.14.0-SNAPSHOT</version>
+            <scope>provided</scope> <!-- This will be in the lib directory -->
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi.registry</groupId>
+            <artifactId>nifi-registry-security-api</artifactId>
+            <version>1.14.0-SNAPSHOT</version>
+            <scope>provided</scope> <!-- This will be in lib directory -->
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi.registry</groupId>
+            <artifactId>nifi-registry-provider-api</artifactId>
+            <version>1.14.0-SNAPSHOT</version>
+            <scope>provided</scope> <!-- This will be in lib directory -->
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi.registry</groupId>
+            <artifactId>nifi-registry-security-utils</artifactId>
+            <version>1.14.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>javax.servlet</groupId>
+            <artifactId>javax.servlet-api</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.swagger</groupId>
+            <artifactId>swagger-annotations</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.glassfish.jersey.media</groupId>
+            <artifactId>jersey-media-multipart</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt</artifactId>
+            <version>0.7.0</version>
+        </dependency>
+        <!-- Test Dependencies -->
+        <dependency>
+            <groupId>org.apache.nifi.registry</groupId>
+            <artifactId>nifi-registry-test</artifactId>
+            <version>1.14.0-SNAPSHOT</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.nifi.registry</groupId>
+            <artifactId>nifi-registry-client</artifactId>
+            <version>1.14.0-SNAPSHOT</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-jetty</artifactId>
+            <version>${spring.boot.version}</version>
+            <scope>test</scope>
+	    <exclusions>
+                <exclusion>
+                    <groupId>org.eclipse.jetty.websocket</groupId>
+                    <artifactId>websocket-server</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.eclipse.jetty.websocket</groupId>
+                    <artifactId>javax-websocket-server-impl</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>com.unboundid</groupId>
+            <artifactId>unboundid-ldapsdk</artifactId>
+            <version>3.2.1</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.spockframework</groupId>
+            <artifactId>spock-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.codehaus.groovy</groupId>
+            <artifactId>groovy-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.spockframework</groupId>
+            <artifactId>spock-core</artifactId>
+            <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.codehaus.groovy</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>cglib</groupId>
+            <artifactId>cglib-nodep</artifactId>
+            <version>2.2.2</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.jetty</groupId>
+            <artifactId>jetty-util</artifactId>
+            <version>${jetty.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.nimbusds</groupId>
+            <artifactId>oauth2-oidc-sdk</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.codehaus.groovy</groupId>
+            <artifactId>groovy-json</artifactId>
+            <version>2.5.4</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.codehaus.groovy</groupId>
+            <artifactId>groovy</artifactId>
+            <version>2.5.4</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+</project>

@@ -1,0 +1,442 @@
+//
+// Licensed to the Apache Software Foundation (ASF) under one or more
+// contributor license agreements.  See the NOTICE file distributed with
+// this work for additional information regarding copyright ownership.
+// The ASF licenses this file to You under the Apache License, Version 2.0
+// (the "License"); you may not use this file except in compliance with
+// the License.  You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+= Apache NiFi Registry User Guide
+Apache NiFi Team <dev@nifi.apache.org>
+:homepage: https://nifi.apache.org
+
+
+== Introduction
+Apache NiFi Registry—a subproject of Apache NiFi—is a complementary application that provides a central location for storage and management of shared resources across one or more instances of NiFi and/or MiNiFi.
+
+The first implementation of the Registry supports versioned flows.  Process group level dataflows created in NiFi can be placed under version control and stored in a registry. The registry organizes where flows are stored and manages the permissions to access, create, modify or delete them.
+
+See the link:administration-guide.html[System Administrator’s Guide] for information about Registry system requirements, installation, and configuration. Once NiFi Registry is installed, use a supported web browser to view the UI.
+
+
+== Browser Support
+[options="header"]
+|======================
+|Browser  |Version
+|Chrome   |Current and Current - 1
+|FireFox  |Current and Current - 1
+|Safari   |Current and Current - 1
+|======================
+
+Current and Current - 1 indicates that the UI is supported in the current stable release of that browser and the preceding one. For instance, if the current stable release is 62.X then the officially supported versions will be 62.X and 61.X.
+
+For Safari, which releases major versions much less frequently, Current and Current - 1 simply represent the two latest releases.
+
+The supported browser versions are driven by the capabilities the UI employs and the dependencies it uses. UI features will be developed and tested against the supported browsers. Any problem using a supported browser should be reported to Apache NiFi.
+
+=== Unsupported Browsers
+
+While the UI may run successfully in unsupported browsers, it is not actively tested against them. Additionally, the UI is designed as a desktop experience and is not currently supported in mobile browsers.
+
+=== Viewing the UI in Variably Sized Browsers
+In most environments, all of the UI is visible in your browser. However, the UI has a responsive design that allows you to scroll through screens as needed, in smaller sized browsers or tablet environments.
+
+NOTE: The minimum recommended screen size is 1080px X 445px.
+
+== Terminology
+
+*Flow*: A process group level NiFi dataflow that has been placed under version control and saved to the Registry.
+
+*Bundle*: A binary artifact containing one or more extensions that can be run in NiFi or MiNiFi.
+
+*Bucket*: A container that stores and organizes versioned items, such as flows and bundles.
+
+*Policy*: Defines a user or group's ability to perform a given action.
+
+
+[[User_Interface]]
+== NiFi Registry User Interface
+
+The NiFi Registry UI displays the shared resources available and provides mechanisms for creating and administering users/groups, buckets and policies.
+
+When the application is started, the user is able to navigate to the UI by going to the default address of `http://<hostname>:18080/nifi-registry` in a web browser. There are no permissions configured by default, so anyone is able to view and modify the flows and buckets. For information on securing the system, see the link:administration-guide.html[System Administrator’s Guide].
+
+When an administrator navigates to the UI for the first time, the registry is empty as there are no flow resources available to share yet:
+
+image::nifi-registry-components.png["NiFi Registry Components"]
+
+The Buckets menu is available at the top left of the screen.  It allows the user to display flows based on which bucket they are contained in.  On the top right of the screen is the Settings button (image:iconSettings.png["Settings Icon"]) which accesses functionality for managing users, groups, buckets and policies.  Next to the Settings button is the Help button (image:iconHelp.png["Help Icon"]) which accesses the NiFi Registry Documentation.
+
+[[logging-in]]
+== Logging In
+
+If NiFi Registry is configured to run securely, users will have to be granted permissions to buckets by an administrator. For information on configuring NiFi Registry to run securely, see the link:administration-guide.html[System Administrator’s Guide].
+
+If the user is logging in with their username/password they will be presented with a screen to do so.
+
+image::loginRegistry.png["NiFi Registry Login"]
+
+
+== Manage Flows
+
+=== View a Flow
+Flows in all buckets are listed in the main window of the UI by default.  If the registry is secured, only the flows in the buckets that the user has access to are listed.
+
+image::flows_all.png["All Flows"]
+
+To see the flows in a particular bucket, select that bucket from the drop-down menu at the top left of the UI.
+
+image::bucket_menu.png["Bucket Menu"]
+
+Click on a flow to see its Description and Change Log:
+
+image::flow_change_log.png["Flow Change Log"]
+
+The Change Log includes all versions that were saved for a flow.  Clicking on the version reveals details about when the version was saved, which user committed the save, and any comments entered by the user.
+
+==== Sorting & Filtering Flows
+Flows can be sorted alphabetically by Name (ascending or descending) or by Update (newest or oldest) using the drop-down at the top right of the UI.
+
+image::flows_sort_menu.png["Flows Sort Menu"]
+
+The flow list can be filtered by:
+
+* flow name
+* flow description
+* flow ID
+* bucket name
+* bucket ID
+
+Here is an example filtering by flow name:
+
+image::flows_filter_by_name.png["Flows Filter By Name"]
+
+=== Delete a Flow
+To delete a flow from the registry:
+
+1. Click on the flow to see its details.
+2. Select the "Actions" drop-down and click the "Delete" menu option.
++
+image::flow_delete_action.png["Flow Delete Action"]
+3. Select "Delete" to confirm.
++
+image::flow_delete_confirm.png["Flow Delete Confirm"]
+
+WARNING:  It is possible to delete a flow that is actively being used in NiFi.
+
+
+== Manage Buckets
+
+To manage buckets, enter the Administration section of the Registry by clicking the Settings button (image:iconSettings.png["Settings Icon"]) on the top right of the UI.  The Buckets window appears by default.
+
+=== Sorting & Filtering Buckets
+Buckets can be sorted alphabetically by Name (ascending or descending) using the up/down arrows.
+
+image::buckets_sort_by_name.png["Buckets Sort By Name"]
+
+The buckets listed can be filtered by:
+
+* bucket name
+* bucket description
+* bucket ID
+
+Here is an example filtering by bucket name:
+
+image::buckets_filter_by_name.png["Buckets Filter By Name"]
+
+=== Create a Bucket
+1. Select the "New Bucket" button.
++
+image::new_bucket_button.png["New Bucket Button"]
+2. Enter the desired bucket name and select the "Create" button.
++
+image::new_bucket_dialog.png["New Bucket Dialog"]
+
+NOTE: Check "Make publicly available" to allow read access to items in the bucket by unauthenticated users. This will override any specific <<bucket_policies,bucket policies>> granting read access.
+
+NOTE: To quickly create multiple buckets, check "Keep this dialog open after creating bucket".
+
+
+=== Delete a Bucket
+1. Select the Delete button (image:iconDelete.png["Delete Icon"]) in the row of the bucket.
++
+image::delete_bucket_single.png["Delete Single Bucket"]
+2. From the Delete Bucket dialog, select "Delete".
++
+image::delete_bucket_dialog.png["Delete Bucket Dialog"]
+
+=== Delete Multiple Buckets
+1. Select the checkboxes in the rows of the desired buckets to delete.
++
+image::check_multiple_buckets.png["Check Multiple Buckets"]
+2. Select the "Actions" drop-down and click the "Delete" option.
++
+image::delete_multiple_buckets.png["Delete Multiple Buckets"]
+3. From the Delete Buckets dialog, select "Delete".
++
+image::delete_buckets_dialog.png["Delete Buckets Dialog"]
+
+=== Edit a Bucket Name
+1. Select the Manage button (image:iconManage.png["Manage Icon"]) in the row of the bucket.
++
+image::manage_bucket.png["Manage Bucket"]
+2. Enter a new name for the bucket and select the "Save" button.
++
+image::bucket_nav_name_edit.png["Edit Bucket Name"]
+
+=== Make a Bucket Publicly Visible
+To allow read access to items in a bucket by unauthenticated users, select the "Make publicly visible" checkbox.
+
+image::bucket_nav_make_public.png["Make Bucket Public"]
+
+This setting will override any specific policies granting read access to the bucket.
+
+=== Allow Bundles in a Bucket to be Overwritten
+To allow released bundles in a bucket to be overwritten, select the "Allow bundle overwrite" checkbox.
+
+image::bucket_nav_allow_bundle_overwrite.png["Allow Bundle Overwrite"]
+
+Currently, the only supported bundle type is a link:https://nifi.apache.org/docs/nifi-docs/html/developer-guide.html#nars[NiFi Archive (NAR)]. By default, buckets do not allow the re-release of released NARs. This setting explicitly allows the same version of a NAR to be uploaded to a bucket.
+
+For more information on bundles, see the <<manage_bundles>> section.
+
+[[bucket_policies]]
+=== Bucket Policies
+Bucket policies define user privileges on buckets/flows in the Registry and in NiFi.  The available permissions are:
+
+* *All* - In the Registry, the assigned user is able to view and delete flows in the bucket. In NiFi, the selected user is able to import flows from the bucket and commit changes to flows in the bucket.
+
+* *Read* - In the Registry, the assigned user is able to view flows in the bucket. In NiFi, the selected user is able to import flows from the bucket.
+
+* *Write* - In NiFi, the assigned user is able to commit changes to flows in the bucket.
+
+* *Delete* - In the Registry, the assigned user is able to delete flows in the bucket.
+
+NOTE: Users would typically have Read permissions at a minimum.  A user with Write permission would not commit changes to a flow if they were not able to import it initially.  A user with Delete permission would not delete a flow if they could not view it.
+
+NOTE: If a user has a bucket policy and the group that the user is in also has a policy, all policies are used to determine access.  For example, assume User1 is in Group1, User1 has READ privileges on Bucket1 and Group1 has READ privileges on Bucket2. In this scenario, User1 will have READ privileges on both Bucket1 and Bucket2.
+
+==== Create a Bucket Policy
+1. Select the Manage button (image:iconManage.png["Manage Icon"]) in the row of the bucket.
+2. Select the "New Policy" button.
++
+image::new_bucket_policy_create.png["Create New Bucket Policy"]
+3. Select a user, check the desired permissions and select the "Apply" button:
++
+image::new_bucket_policy_user_permission.png["New Bucket Policy User and Permissions"]
+4. The policy is added to the bucket:
++
+image::new_bucket_policy_added.png["New Bucket Policy Added"]
+
+==== Delete a Bucket Policy
+1. Select the Manage button (image:iconManage.png["Manage Icon"]) in the row of the bucket.
+2. Select the Delete button (image:iconDelete.png["Delete Icon"]) in the row of the policy.
++
+image::delete_bucket_policy.png["Delete Policy"]
+3. From the Delete Policy dialog, select "Delete".
++
+image::delete_bucket_policy_dialog.png["Delete Policy Dialog"]
+
+
+== Manage Users & Groups
+
+To manage users/groups, enter the Administration section of the Registry by clicking the Settings button (image:iconSettings.png["Settings Icon"]) on the top right of the UI.  Select Users from the top menu to open the Users window.
+
+=== Sorting & Filtering Users/Groups
+Users/groups can be sorted alphabetically by Name (ascending or descending) using the up/down arrows.
+
+image::users_sort_by_name.png["Users Sort By Name"]
+
+The Users/groups listed can be filtered by:
+
+* user name
+* user ID
+* group name
+* group ID
+
+Here is an example of filtering by user name:
+
+image::users_filter_by_name.png["Users Filter By Name"]
+
+=== Add a User
+1. Select the "Add User" button.
++
+image::add_user_button.png["Add User"]
+2. Enter the desired username or appropriate Identity information. Select the "Add" button.
++
+image::add_user_dialog.png["New User Dialog"]
+
+NOTE: To quickly create multiple users, check "Keep this dialog open after adding user".
+
+=== Delete a User
+1. Select the Delete button (image:iconDelete.png["Delete Icon"]) in the row of the user.
++
+image::delete_user_single.png["Delete Single User"]
+2. From the Delete User dialog, select "Delete".
++
+image::delete_user_dialog.png["Delete User Dialog"]
+
+=== Delete Multiple Users
+1. Select the checkboxes in the rows of the desired users to delete.
++
+image::check_multiple_users.png["Check Multiple Users"]
+2. Select the "Actions" drop-down and click the "Delete" option.
++
+image::delete_multiple_users.png["Delete Multiple Users"]
+3. From the Delete Users dialog, select "Delete".
++
+image::delete_users_groups_dialog.png["Delete Users Dialog"]
+
+
+=== Edit a User Name
+1. Select the Manage button (image:iconManage.png["Manage Icon"]) in the row of the user.
++
+image::manage_user.png["Manage User"]
+2. Enter a new user name and select the "Save" button.
++
+image::user_nav_name_edit.png["Edit User Name"]
+
+WARNING: Some users cannot have their names edited.  For example, those defined by LDAP.  These users will be specially highlighted in the list.
+
+image::users_non_configurable.png["Non-configurable Users"]
+
+=== Special Privileges
+Special privileges are additional permissions that allow a user to manage or access certain aspects of the Registry.  The special privileges are:
+
+* *Can manage buckets* - Allow a user to manage all buckets in the registry, as well as provide the user access to all buckets from a connected system (e.g., NiFi).
+
+* *Can manage users* - Allow a user to manage all registry users and groups.
+
+* *Can manage policies* - Allow a user to grant all registry users read, write, and delete permission to a bucket.
+
+* *Can proxy user requests* - Allow a connected system (e.g., NiFi) to process requests of authorized users of that system. For example, if dev and prod NiFi clusters are connected to the same NiFi Registry instance, privileges can be set to allow the dev NiFi cluster to only update versioned flows while limiting the prod NiFi to only download flows.
+
+==== Grant Special Privileges to a User
+1. Select the Manage button (image:iconManage.png["Manage Icon"]) in the row of the user.
++
+image::manage_user.png["Manage User"]
+2. Check the desired privileges:
++
+image::user_special_privileges.png["User Special Privileges"]
+3. Changes made to special privileges are automatically saved.
+
+== Manage Groups
+
+=== Add an Empty Group
+1. With no users checked, select the "Actions" drop-down and click the "Create new group" option.
++
+image::create_new_group.png["Create New Group"]
+2. Enter a name for the Group and select the "Create" button.
++
+image::create_new_group_dialog.png["Create New Group Dialog"]
+
+NOTE: To quickly create multiple empty groups, check "Keep this dialog open after creating group".
+
+
+=== Add User to a Group
+1. Select the Manage button (image:iconManage.png["Manage Icon"]) in the row of the user.
+2. Select the "Add To Group" button.
++
+image::user_nav_add_to_group.png["Add User to Group"]
+3. In the "Add User to Groups" dialog, select the group(s) to add the user to.  Select the "Add" button when all desired groups have been selected.
++
+image::add_user_to_groups_dialog.png["Add User to Groups Dialog"]
+4.  The user is added to the group:
++
+image::group_added.png["Group Added"]
+
+NOTE:  Groups cannot contain other groups.
+
+=== Create a New Group with Selected Users
+1. Select the checkboxes in the rows of the desired users. From the "Actions" drop-down, click the "Create new group" option.
++
+image::select_users_create_new_group.png["Select Users for New Group"]
+2. Enter a name for the Group and select the "Create" button.
++
+image::select_users_create_new_group_dialog.png["Create New Group Dialog"]
+3. The new group is created with the selected users as members:
++
+image::select_users_new_group_added.png["New Group Added with Selected Users"]
+
+=== Remove a User from a Group
+There are two ways to remove a user from a group.
+
+==== User Window
+1. Select the Manage button (image:iconManage.png["Manage Icon"]) in the row of the user.
+2. In the Membership section of the window, select the Remove button (image:iconDelete.png["Delete Icon"]) in the row of the group.
++
+image::remove_group_from_user.png["Remove Group From User"]
+
+==== Group Window
+1. Select the Manage button (image:iconManage.png["Manage Icon"]) in the row of the group. The Members tab is selected by default.
+2. In the Membership section of the window, select the Remove button (image:iconDelete.png["Delete Icon"]) in the row of the user.
++
+image::remove_user_from_group.png["Remove User From Group"]
+
+=== Other Group Level Actions
+
+Editing group names, deleting groups, adding policies to/deleting policies from groups and granting special privileges to groups follow similar procedures described earlier for corresponding user level actions.
+
+[[manage_bundles]]
+== Manage Bundles
+
+Bundles can be managed through the REST API.
+
+=== Upload Bundle
+
+A bundle can be uploaded to a bucket by making a `POST` request to the following REST end-point:
+
+  /nifi-registry-api/buckets/<bucketId>/bundles/<bundleType>
+
+Replace `bucketId` with the id of the bucket where the bundle is being uploaded to and `bundleType` with the type of bundle being uploaded. Currently, the only supported bundle type is a link:https://nifi.apache.org/docs/nifi-docs/html/developer-guide.html#nars[NiFi Archive (NAR)] which can be specified as `nifi-nar`.
+
+The `Content-Type` of the request is expected to be `multipart/form-data`. An example of using `curl` to upload `my-processors-1.0.0.nar` would be the following:
+
+  curl -v -F file=@/path/to/my-processors-1.0.0.nar http://localhost:18080/nifi-registry-api/buckets/de8e08c9-592d-4e10-affe-b3752698f1d9/bundles/nifi-nar
+
+NOTE: In order to upload a NAR to NiFi Registry, it must contain the file _META-INF/docs/extension-manifest.xml_ which is produced by the NAR Maven plugin, starting with version 1.3.0.
+
+=== Download Bundle
+
+There are two ways to download a bundle.
+
+==== Bundle Coordinates
+
+A bundle can be downloaded by using the combination of the bucket name and bundle coordinates, where bundle coordinates are the group, artifact, and version of the bundle.
+
+To download a bundle by its coordinates, a `GET` request can be made to the following end-point:
+
+  /nifi-registry-api/extension-repository/{bucketName}/{groupId}/{artifactId}/{version}/content
+
+The `Content-Type` of the response is `application/octet-stream`.
+
+An example of using `curl` to download `my-processors-1.0.0.nar` from the `Test` bucket would be the following:
+
+  curl http://localhost:18080/nifi-registry-api/extension-repository/Test/com.test/my-processors/1.0.0/content > my-processors-1.0.0.nar
+
+
+==== Bundle Id
+
+A bundle can be downloaded by using the combination of its unique id and version. The unique id is an id assigned to the bundle when the first version of the bundle is uploaded to NiFi Registry. This id is returned in the response of a successful upload.
+
+To download a bundle by its id and version, a `GET` request can be made to the following end-point:
+
+  /nifi-registry-api/bundles/{bundleId}/versions/{version}/content
+
+The `Content-Type` of the response is `application/octet-stream`.
+
+An example of using `curl` to download `my-processors-1.0.0.nar` by id and version would be the following:
+
+  curl http://localhost:18080/nifi-registry-api/bundles/3db78035-e3ba-4cbf-820e-022f292bd68c/versions/1.0.0/content > my-processors-1.0.0.nar
+
+=== Additional Actions
+
+For additional actions that can be performed related to bundles, please consult the link:rest-api.html[REST API documentation].
