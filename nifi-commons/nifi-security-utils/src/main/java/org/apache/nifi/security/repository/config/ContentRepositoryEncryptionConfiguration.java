@@ -18,13 +18,10 @@ package org.apache.nifi.security.repository.config;
 
 import java.util.Map;
 import org.apache.nifi.security.repository.RepositoryType;
+import org.apache.nifi.security.util.KeyStoreUtils;
 import org.apache.nifi.util.NiFiProperties;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class ContentRepositoryEncryptionConfiguration extends RepositoryEncryptionConfiguration {
-    private static final Logger logger = LoggerFactory.getLogger(ContentRepositoryEncryptionConfiguration.class);
-
     /**
      * Contructor which accepts a {@link NiFiProperties} object and extracts the relevant
      * property values directly.
@@ -36,7 +33,8 @@ public class ContentRepositoryEncryptionConfiguration extends RepositoryEncrypti
                 niFiProperties.getProperty(NiFiProperties.CONTENT_REPOSITORY_ENCRYPTION_KEY_PROVIDER_LOCATION),
                 niFiProperties.getContentRepositoryEncryptionKeyId(),
                 niFiProperties.getContentRepositoryEncryptionKeys(),
-                niFiProperties.getProperty(NiFiProperties.CONTENT_REPOSITORY_IMPLEMENTATION)
+                niFiProperties.getProperty(NiFiProperties.CONTENT_REPOSITORY_IMPLEMENTATION),
+                niFiProperties.getProperty(NiFiProperties.CONTENT_REPOSITORY_ENCRYPTION_KEY_PROVIDER_PASSWORD)
         );
     }
 
@@ -48,17 +46,21 @@ public class ContentRepositoryEncryptionConfiguration extends RepositoryEncrypti
      * @param encryptionKeyId the active encryption key id
      * @param encryptionKeys the map of available keys
      * @param repositoryImplementation the repository implementation class
+     * @param keyProviderPassword Key Provider Password used based on provider implementation
      */
-    public ContentRepositoryEncryptionConfiguration(String keyProviderImplementation,
-                                                    String keyProviderLocation,
-                                                    String encryptionKeyId,
-                                                    Map<String, String> encryptionKeys,
-                                                    String repositoryImplementation) {
+    public ContentRepositoryEncryptionConfiguration(final String keyProviderImplementation,
+                                                    final String keyProviderLocation,
+                                                    final String encryptionKeyId,
+                                                    final Map<String, String> encryptionKeys,
+                                                    final String repositoryImplementation,
+                                                    final String keyProviderPassword) {
         this.keyProviderImplementation = keyProviderImplementation;
         this.keyProviderLocation = keyProviderLocation;
         this.encryptionKeyId = encryptionKeyId;
         this.encryptionKeys = encryptionKeys;
         this.repositoryImplementation = repositoryImplementation;
         this.repositoryType = RepositoryType.CONTENT;
+        this.keyStoreType = KeyStoreUtils.getKeystoreTypeFromExtension(keyProviderLocation).getType();
+        this.keyProviderPassword = keyProviderPassword;
     }
 }

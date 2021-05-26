@@ -92,7 +92,7 @@ class EncryptedSequentialAccessWriteAheadLogTest extends GroovyTestCase {
         dataOutputStream = new DataOutputStream(byteArrayOutputStream)
         wrappedSerDe = new SchemaRepositoryRecordSerde(claimManager, new NoOpFieldCache())
 
-        flowFileREC = new FlowFileRepositoryEncryptionConfiguration(KPI, KPL, KEY_ID, KEYS, REPO_IMPL)
+        flowFileREC = new FlowFileRepositoryEncryptionConfiguration(KPI, KPL, KEY_ID, KEYS, REPO_IMPL, null)
 
         esrrs = new EncryptedSchemaRepositoryRecordSerde(wrappedSerDe, flowFileREC)
     }

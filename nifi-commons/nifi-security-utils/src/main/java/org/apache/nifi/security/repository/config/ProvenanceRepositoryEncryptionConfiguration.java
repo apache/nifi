@@ -18,13 +18,10 @@ package org.apache.nifi.security.repository.config;
 
 import java.util.Map;
 import org.apache.nifi.security.repository.RepositoryType;
+import org.apache.nifi.security.util.KeyStoreUtils;
 import org.apache.nifi.util.NiFiProperties;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class ProvenanceRepositoryEncryptionConfiguration extends RepositoryEncryptionConfiguration {
-    private static final Logger logger = LoggerFactory.getLogger(ProvenanceRepositoryEncryptionConfiguration.class);
-
     /**
      * Constructor which accepts a {@link NiFiProperties} object and extracts the relevant
      * property values directly.
@@ -36,7 +33,8 @@ public class ProvenanceRepositoryEncryptionConfiguration extends RepositoryEncry
                 niFiProperties.getProperty(NiFiProperties.PROVENANCE_REPO_ENCRYPTION_KEY_PROVIDER_LOCATION),
                 niFiProperties.getProvenanceRepoEncryptionKeyId(),
                 niFiProperties.getProvenanceRepoEncryptionKeys(),
-                niFiProperties.getProperty(NiFiProperties.PROVENANCE_REPO_IMPLEMENTATION_CLASS)
+                niFiProperties.getProperty(NiFiProperties.PROVENANCE_REPO_IMPLEMENTATION_CLASS),
+                niFiProperties.getProperty(NiFiProperties.PROVENANCE_REPO_ENCRYPTION_KEY_PROVIDER_PASSWORD)
         );
     }
 
@@ -48,17 +46,21 @@ public class ProvenanceRepositoryEncryptionConfiguration extends RepositoryEncry
      * @param encryptionKeyId the active encryption key id
      * @param encryptionKeys the map of available keys
      * @param repositoryImplementation the repository implementation class
+     * @param keyProviderPassword Key Provider Password used based on provider implementation
      */
-    public ProvenanceRepositoryEncryptionConfiguration(String keyProviderImplementation,
-                                                       String keyProviderLocation,
-                                                       String encryptionKeyId,
-                                                       Map<String, String> encryptionKeys,
-                                                       String repositoryImplementation) {
+    public ProvenanceRepositoryEncryptionConfiguration(final String keyProviderImplementation,
+                                                       final String keyProviderLocation,
+                                                       final String encryptionKeyId,
+                                                       final Map<String, String> encryptionKeys,
+                                                       final String repositoryImplementation,
+                                                       final String keyProviderPassword) {
         this.keyProviderImplementation = keyProviderImplementation;
         this.keyProviderLocation = keyProviderLocation;
         this.encryptionKeyId = encryptionKeyId;
         this.encryptionKeys = encryptionKeys;
         this.repositoryImplementation = repositoryImplementation;
         this.repositoryType = RepositoryType.CONTENT;
+        this.keyStoreType = KeyStoreUtils.getKeystoreTypeFromExtension(keyProviderLocation).getType();
+        this.keyProviderPassword = keyProviderPassword;
     }
 }

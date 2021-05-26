@@ -59,6 +59,7 @@ public class RepositoryConfiguration {
     private String keyId;
     private String keyProviderImplementation;
     private String keyProviderLocation;
+    private String keyProviderPassword;
 
     private List<SearchableField> searchableFields = new ArrayList<>();
     private List<SearchableField> searchableAttributes = new ArrayList<>();
@@ -409,6 +410,13 @@ public class RepositoryConfiguration {
         this.keyProviderLocation = keyProviderLocation;
     }
 
+    public String getKeyProviderPassword() {
+        return keyProviderPassword;
+    }
+
+    public void setKeyProviderPassword(final String keyProviderPassword) {
+        this.keyProviderPassword = keyProviderPassword;
+    }
 
     public int getDebugFrequency() {
         return debugFrequency;
@@ -519,6 +527,7 @@ public class RepositoryConfiguration {
             config.setKeyId(nifiProperties.getProperty(NiFiProperties.PROVENANCE_REPO_ENCRYPTION_KEY_ID));
             config.setKeyProviderImplementation(nifiProperties.getProperty(NiFiProperties.PROVENANCE_REPO_ENCRYPTION_KEY_PROVIDER_IMPLEMENTATION_CLASS));
             config.setKeyProviderLocation(nifiProperties.getProperty(NiFiProperties.PROVENANCE_REPO_ENCRYPTION_KEY_PROVIDER_LOCATION));
+            config.setKeyProviderPassword(nifiProperties.getProperty(NiFiProperties.PROVENANCE_REPO_ENCRYPTION_KEY_PROVIDER_PASSWORD));
         }
 
         return config;

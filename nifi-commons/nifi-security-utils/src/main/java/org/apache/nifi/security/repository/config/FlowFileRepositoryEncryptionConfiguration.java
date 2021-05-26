@@ -18,13 +18,10 @@ package org.apache.nifi.security.repository.config;
 
 import java.util.Map;
 import org.apache.nifi.security.repository.RepositoryType;
+import org.apache.nifi.security.util.KeyStoreUtils;
 import org.apache.nifi.util.NiFiProperties;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class FlowFileRepositoryEncryptionConfiguration extends RepositoryEncryptionConfiguration {
-    private static final Logger logger = LoggerFactory.getLogger(FlowFileRepositoryEncryptionConfiguration.class);
-
     /**
      * Constructor which accepts a {@link NiFiProperties} object and extracts the relevant
      * property values directly.
@@ -36,7 +33,8 @@ public class FlowFileRepositoryEncryptionConfiguration extends RepositoryEncrypt
                 niFiProperties.getProperty(NiFiProperties.FLOWFILE_REPOSITORY_ENCRYPTION_KEY_PROVIDER_LOCATION),
                 niFiProperties.getFlowFileRepoEncryptionKeyId(),
                 niFiProperties.getFlowFileRepoEncryptionKeys(),
-                niFiProperties.getProperty(NiFiProperties.FLOWFILE_REPOSITORY_WAL_IMPLEMENTATION)
+                niFiProperties.getProperty(NiFiProperties.FLOWFILE_REPOSITORY_WAL_IMPLEMENTATION),
+                niFiProperties.getProperty(NiFiProperties.FLOWFILE_REPOSITORY_ENCRYPTION_KEY_PROVIDER_PASSWORD)
         );
     }
 
@@ -51,17 +49,21 @@ public class FlowFileRepositoryEncryptionConfiguration extends RepositoryEncrypt
      * @param encryptionKeyId the active encryption key id
      * @param encryptionKeys the map of available keys
      * @param repositoryImplementation the write ahead log implementation
+     * @param keyProviderPassword Key Provider Password
      */
-    public FlowFileRepositoryEncryptionConfiguration(String keyProviderImplementation,
-                                                     String keyProviderLocation,
-                                                     String encryptionKeyId,
-                                                     Map<String, String> encryptionKeys,
-                                                     String repositoryImplementation) {
+    public FlowFileRepositoryEncryptionConfiguration(final String keyProviderImplementation,
+                                                     final String keyProviderLocation,
+                                                     final String encryptionKeyId,
+                                                     final Map<String, String> encryptionKeys,
+                                                     final String repositoryImplementation,
+                                                     final String keyProviderPassword) {
         this.keyProviderImplementation = keyProviderImplementation;
         this.keyProviderLocation = keyProviderLocation;
         this.encryptionKeyId = encryptionKeyId;
         this.encryptionKeys = encryptionKeys;
         this.repositoryImplementation = repositoryImplementation;
         this.repositoryType = RepositoryType.FLOWFILE;
+        this.keyStoreType = KeyStoreUtils.getKeystoreTypeFromExtension(keyProviderLocation).getType();
+        this.keyProviderPassword = keyProviderPassword;
     }
 }

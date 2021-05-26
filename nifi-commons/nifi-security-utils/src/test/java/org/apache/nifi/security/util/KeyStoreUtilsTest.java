@@ -21,6 +21,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
@@ -31,8 +32,12 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.UUID;
 
+import org.apache.commons.lang3.StringUtils;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -46,13 +51,20 @@ public class KeyStoreUtilsTest {
     private static final String ALIAS = "alias";
     private static final String KEY_ALGORITHM = "RSA";
     private static final String SUBJECT_DN = "CN=localhost";
+    private static final String SECRET_KEY_ALGORITHM = "AES";
+    private static final String KEY_PROTECTION_ALGORITHM = "PBEWithHmacSHA256AndAES_256";
+    private static final String HYPHEN_SEPARATOR = "-";
+
     private static KeyPair keyPair;
     private static X509Certificate certificate;
+    private static SecretKey secretKey;
 
     @BeforeClass
     public static void generateKeysAndCertificates() throws NoSuchAlgorithmException, CertificateException {
         keyPair = KeyPairGenerator.getInstance(KEY_ALGORITHM).generateKeyPair();
         certificate = CertificateUtils.generateSelfSignedX509Certificate(keyPair, SUBJECT_DN, SIGNING_ALGORITHM, DURATION_DAYS);
+        final byte[] encodedKey = StringUtils.remove(UUID.randomUUID().toString(), HYPHEN_SEPARATOR).getBytes(StandardCharsets.UTF_8);
+        secretKey = new SecretKeySpec(encodedKey, SECRET_KEY_ALGORITHM);
     }
 
     @Test
@@ -91,6 +103,21 @@ public class KeyStoreUtilsTest {
         }
     }
 
+    @Test
+    public void testKeystoreTypesSecretKeyEntry() throws GeneralSecurityException, IOException {
+        for (final KeystoreType keystoreType : KeystoreType.values()) {
+            if (KeyStoreUtils.isSecretKeyEntrySupported(keystoreType)) {
+                final KeyStore sourceKeyStore = KeyStoreUtils.getSecretKeyStore(keystoreType.getType());
+                final KeyStore destinationKeyStore = KeyStoreUtils.getSecretKeyStore(keystoreType.getType());
+                try {
+                    assertSecretKeyStoredLoaded(sourceKeyStore, destinationKeyStore);
+                } catch (final GeneralSecurityException e) {
+                    throw new GeneralSecurityException(String.format("Keystore Type [%s] Failed", keystoreType), e);
+                }
+            }
+        }
+    }
+
     private void assertCertificateEntryStoredLoaded(final KeyStore sourceKeyStore, final KeyStore destinationKeyStore) throws GeneralSecurityException, IOException {
         sourceKeyStore.load(null, null);
         sourceKeyStore.setCertificateEntry(ALIAS, certificate);
@@ -115,11 +142,30 @@ public class KeyStoreUtilsTest {
         assertEquals(String.format("[%s] Public Key not matched", sourceKeyStore.getType()), keyPair.getPublic(), entryCertificateChain[0].getPublicKey());
     }
 
+    private void assertSecretKeyStoredLoaded(final KeyStore sourceKeyStore, final KeyStore destinationKeyStore) throws GeneralSecurityException, IOException {
+        sourceKeyStore.load(null, null);
+        final KeyStore.ProtectionParameter protection = getProtectionParameter(sourceKeyStore.getType());
+        sourceKeyStore.setEntry(ALIAS, new KeyStore.SecretKeyEntry(secretKey), protection);
+
+        final KeyStore copiedKeyStore = copyKeyStore(sourceKeyStore, destinationKeyStore);
+        final KeyStore.Entry entry = copiedKeyStore.getEntry(ALIAS, protection);
+        assertTrue(String.format("[%s] Secret Key entry not found", sourceKeyStore.getType()), entry instanceof KeyStore.SecretKeyEntry);
+    }
+
     private KeyStore copyKeyStore(final KeyStore sourceKeyStore, final KeyStore destinationKeyStore) throws GeneralSecurityException, IOException {
         final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         sourceKeyStore.store(byteArrayOutputStream, STORE_PASSWORD);
 
         destinationKeyStore.load(new ByteArrayInputStream(byteArrayOutputStream.toByteArray()), STORE_PASSWORD);
         return destinationKeyStore;
+    }
+
+    private KeyStore.ProtectionParameter getProtectionParameter(final String keyStoreType) {
+        if (KeystoreType.PKCS12.getType().equals(keyStoreType)) {
+            // Select Key Protection Algorithm for PKCS12 to avoid unsupported algorithm on Java 1.8.0.292
+            return new KeyStore.PasswordProtection(KEY_PASSWORD, KEY_PROTECTION_ALGORITHM, null);
+        } else {
+            return new KeyStore.PasswordProtection(KEY_PASSWORD);
+        }
     }
 }

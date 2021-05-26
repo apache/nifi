@@ -34,5 +34,11 @@
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-volatile-provenance-repository</artifactId>
         </dependency>
+        <!-- Override provided scope to include in NAR -->
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-security-utils-api</artifactId>
+            <scope>compile</scope>
+        </dependency>
     </dependencies>
 </project>

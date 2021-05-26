@@ -17,8 +17,6 @@
 package org.apache.nifi.security.repository.config;
 
 import java.util.Map;
-import javax.crypto.SecretKey;
-import org.apache.nifi.security.kms.CryptoUtils;
 import org.apache.nifi.security.kms.FileBasedKeyProvider;
 import org.apache.nifi.security.kms.KeyProvider;
 import org.apache.nifi.security.kms.StaticKeyProvider;
@@ -37,6 +35,8 @@ public abstract class RepositoryEncryptionConfiguration {
     Map<String, String> encryptionKeys;
     String repositoryImplementation;
     RepositoryType repositoryType;
+    String keyStoreType;
+    String keyProviderPassword;
 
     /**
      * Returns the class name of the {@link KeyProvider} implementation used.
@@ -72,7 +72,6 @@ public abstract class RepositoryEncryptionConfiguration {
      * {@link StaticKeyProvider}. For
      * {@link FileBasedKeyProvider}, this method will return an
      * empty map because the keys must be loaded using the {@code root key} to decrypt them
-     * via {@link CryptoUtils#readKeys(String, SecretKey)}.
      *
      * @return a map of key ids & keys
      * @see NiFiProperties#getContentRepositoryEncryptionKeys()
@@ -98,6 +97,24 @@ public abstract class RepositoryEncryptionConfiguration {
      */
     public RepositoryType getRepositoryType() {
         return repositoryType;
+    }
+
+    /**
+     * Get Key Store Type for Key Store implementation
+     *
+     * @return Key Store Type
+     */
+    public String getKeyStoreType() {
+        return keyStoreType;
+    }
+
+    /**
+     * Get Key Provider Password
+     *
+     * @return Key Provider Password
+     */
+    public String getKeyProviderPassword() {
+        return keyProviderPassword;
     }
 
     public static RepositoryEncryptionConfiguration fromNiFiProperties(NiFiProperties niFiProperties, RepositoryType repositoryType) {

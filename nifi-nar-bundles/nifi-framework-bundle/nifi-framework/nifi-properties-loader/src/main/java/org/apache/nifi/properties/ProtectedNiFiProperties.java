@@ -48,8 +48,16 @@ class ProtectedNiFiProperties extends NiFiProperties implements ProtectedPropert
     public static final String ADDITIONAL_SENSITIVE_PROPERTIES_KEY = "nifi.sensitive.props.additional.keys";
 
     // Default list of "sensitive" property keys
-    public static final List<String> DEFAULT_SENSITIVE_PROPERTIES = new ArrayList<>(asList(SECURITY_KEY_PASSWD,
-            SECURITY_KEYSTORE_PASSWD, SECURITY_TRUSTSTORE_PASSWD, SENSITIVE_PROPS_KEY, PROVENANCE_REPO_ENCRYPTION_KEY));
+    public static final List<String> DEFAULT_SENSITIVE_PROPERTIES = new ArrayList<>(asList(
+            SECURITY_KEY_PASSWD,
+            SECURITY_KEYSTORE_PASSWD,
+            SECURITY_TRUSTSTORE_PASSWD,
+            SENSITIVE_PROPS_KEY,
+            PROVENANCE_REPO_ENCRYPTION_KEY,
+            PROVENANCE_REPO_ENCRYPTION_KEY_PROVIDER_PASSWORD,
+            FLOWFILE_REPOSITORY_ENCRYPTION_KEY_PROVIDER_PASSWORD,
+            CONTENT_REPOSITORY_ENCRYPTION_KEY_PROVIDER_PASSWORD
+    ));
 
     public ProtectedNiFiProperties() {
         this(new NiFiProperties());

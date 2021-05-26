@@ -2934,6 +2934,34 @@ key5=c6FzfnKm7UR7xqI2NFpZ+fEKBfSU7+1NvRw+XWQ9U39MONWqk5gvoyOCdFR1kUgeg46jrN5dGXk
 
 Each line defines a key ID and then the Base64-encoded cipher text of a 16 byte IV and wrapped AES-128, AES-192, or AES-256 key depending on the JCE policies available. The individual keys are wrapped by AES/GCM encryption using the **root key** defined by `nifi.bootstrap.sensitive.key` in _conf/bootstrap.conf_.
 
+===== KeyStoreKeyProvider
+The `KeyStoreKeyProvider` implementation reads from a standard `java.security.KeyStore` using the configured password to load AES Secret Key entries.
+
+The provider supports the following Keystore Types:
+
+* BCFKS
+* PKCS12
+
+The keystore filename extension must be either `.p12` indicating PKCS12 or `.bcfks` indicating BCFKS.
+
+The `keytool` command can be used to generate an AES-256 Secret Key stored in a PKCS12 file for repository encryption:
+
+...
+keytool -genseckey -alias primary-key -keyalg AES -keysize 256 -keystore repository.p12 -storetype PKCS12
+...
+
+Enter a keystore password when prompted. The same value must be used for both the keystore password and key password.
+The keystore password will be used in the provider configuration properties.
+
+The following configuration properties support using a PKCS12 keystore with a Secret Key:
+
+...
+nifi.provenance.repository.encryption.key.provider.implementation=org.apache.nifi.security.kms.KeyStoreKeyProvider
+nifi.provenance.repository.encryption.key.provider.location=./conf/repository.p12
+nifi.provenance.repository.encryption.key.provider.password=KEYSTORE_PASSWORD
+nifi.provenance.repository.encryption.key.id=primary-key
+...
+
 [[provenance-repository-key-rotation]]
 ===== Key Rotation
 Simply update _nifi.properties_ to reference a new key ID in `nifi.provenance.repository.encryption.key.id`. Previously-encrypted events can still be decrypted as long as that key is still available in the key definition file or `nifi.provenance.repository.encryption.key.id.<OldKeyID>` as the key ID is serialized alongside the encrypted record.
@@ -3012,6 +3040,34 @@ key5=c6FzfnKm7UR7xqI2NFpZ+fEKBfSU7+1NvRw+XWQ9U39MONWqk5gvoyOCdFR1kUgeg46jrN5dGXk
 ....
 
 Each line defines a key ID and then the Base64-encoded cipher text of a 16 byte IV and wrapped AES-128, AES-192, or AES-256 key depending on the JCE policies available. The individual keys are wrapped by AES/GCM encryption using the **root key** defined by `nifi.bootstrap.sensitive.key` in _conf/bootstrap.conf_.
+
+==== KeyStoreKeyProvider
+The `KeyStoreKeyProvider` implementation reads from a standard `java.security.KeyStore` using the configured password to load AES Secret Key entries.
+
+The provider supports the following Keystore Types:
+
+* BCFKS
+* PKCS12
+
+The keystore filename extension must be either `.p12` indicating PKCS12 or `.bcfks` indicating BCFKS.
+
+The `keytool` command can be used to generate an AES-256 Secret Key stored in a PKCS12 file for repository encryption:
+
+...
+keytool -genseckey -alias primary-key -keyalg AES -keysize 256 -keystore repository.p12 -storetype PKCS12
+...
+
+Enter a keystore password when prompted. The same value must be used for both the keystore password and key password.
+The keystore password will be used in the provider configuration properties.
+
+The following configuration properties support using a PKCS12 keystore with a Secret Key:
+
+...
+nifi.content.repository.encryption.key.provider.implementation=org.apache.nifi.security.kms.KeyStoreKeyProvider
+nifi.content.repository.encryption.key.provider.location=./conf/repository.p12
+nifi.content.repository.encryption.key.provider.password=KEYSTORE_PASSWORD
+nifi.content.repository.encryption.key.id=primary-key
+...
 
 .Data Protection vs. Key Protection
 ****
@@ -3098,6 +3154,34 @@ key5=c6FzfnKm7UR7xqI2NFpZ+fEKBfSU7+1NvRw+XWQ9U39MONWqk5gvoyOCdFR1kUgeg46jrN5dGXk
 ....
 
 Each line defines a key ID and then the Base64-encoded cipher text of a 16 byte IV and wrapped AES-128, AES-192, or AES-256 key depending on the JCE policies available. The individual keys are wrapped by AES/GCM encryption using the **root key** defined by `nifi.bootstrap.sensitive.key` in _conf/bootstrap.conf_.
+
+==== KeyStoreKeyProvider
+The `KeyStoreKeyProvider` implementation reads from a standard `java.security.KeyStore` using the configured password to load AES Secret Key entries.
+
+The provider supports the following Keystore Types:
+
+* BCFKS
+* PKCS12
+
+The keystore filename extension must be either `.p12` indicating PKCS12 or `.bcfks` indicating BCFKS.
+
+The `keytool` command can be used to generate an AES-256 Secret Key stored in a PKCS12 file for repository encryption:
+
+...
+keytool -genseckey -alias primary-key -keyalg AES -keysize 256 -keystore repository.p12 -storetype PKCS12
+...
+
+Enter a keystore password when prompted. The same value must be used for both the keystore password and key password.
+The keystore password will be used in the provider configuration properties.
+
+The following configuration properties support using a PKCS12 keystore with a Secret Key:
+
+...
+nifi.flowfile.repository.encryption.key.provider.implementation=org.apache.nifi.security.kms.KeyStoreKeyProvider
+nifi.flowfile.repository.encryption.key.provider.location=./conf/repository.p12
+nifi.flowfile.repository.encryption.key.provider.password=KEYSTORE_PASSWORD
+nifi.flowfile.repository.encryption.key.id=primary-key
+...
 
 [[flowfile-repository-key-rotation]]
 ==== Key Rotation
