@@ -41,7 +41,10 @@ class ProtectedNiFiPropertiesGroovyTest extends GroovyTestCase {
             "nifi.security.keystorePasswd",
             "nifi.security.keyPasswd",
             "nifi.security.truststorePasswd",
-            "nifi.provenance.repository.encryption.key"
+            "nifi.provenance.repository.encryption.key",
+            "nifi.provenance.repository.encryption.key.provider.password",
+            "nifi.flowfile.repository.encryption.key.provider.password",
+            "nifi.content.repository.encryption.key.provider.password"
     ]
 
     final def COMMON_ADDITIONAL_SENSITIVE_PROPERTIES = [

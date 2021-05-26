@@ -43,6 +43,7 @@
         <module>nifi-rocksdb-utils</module>
         <module>nifi-schema-utils</module>
         <module>nifi-security-kerberos</module>
+        <module>nifi-security-kms</module>
         <module>nifi-security-socket-ssl</module>
         <module>nifi-security-utils-api</module>
         <module>nifi-security-utils</module>

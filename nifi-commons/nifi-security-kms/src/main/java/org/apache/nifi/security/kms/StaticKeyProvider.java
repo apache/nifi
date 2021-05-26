@@ -18,28 +18,25 @@ package org.apache.nifi.security.kms;
 
 import java.security.KeyManagementException;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import javax.crypto.SecretKey;
-import javax.naming.OperationNotSupportedException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
- * Reference implementation for static key provider (used during tests).
+ * Static Key Provider stores Secret Keys in memory based on initialized configuration properties
  */
 public class StaticKeyProvider implements KeyProvider {
-    private static final Logger logger = LoggerFactory.getLogger(StaticKeyProvider.class);
+    private final Map<String, SecretKey> keys;
 
-    private Map<String, SecretKey> keys = new HashMap<>();
-
-    public StaticKeyProvider(String keyId, String keyHex) throws KeyManagementException {
-        this.keys.put(keyId, CryptoUtils.formKeyFromHex(keyHex));
-    }
-
-    public StaticKeyProvider(Map<String, SecretKey> keys) throws KeyManagementException {
-        this.keys.putAll(keys);
+    /**
+     * Static Key Provider constructor of Map of Key Identifier to Secret Key
+     *
+     * @param keys Map of Key Identifier to Secret Key
+     */
+    public StaticKeyProvider(final Map<String, SecretKey> keys) {
+        this.keys = Collections.unmodifiableMap(Objects.requireNonNull(keys, "Keys required"));
     }
 
     /**
@@ -47,16 +44,15 @@ public class StaticKeyProvider implements KeyProvider {
      *
      * @param keyId the key identifier
      * @return the key
-     * @throws KeyManagementException if the key cannot be retrieved
+     * @throws KeyManagementException Thrown when Secret Key not found for Key Identifier
      */
     @Override
-    public SecretKey getKey(String keyId) throws KeyManagementException {
-        logger.debug("Attempting to get key: " + keyId);
-        if (keyExists(keyId)) {
-            return keys.get(keyId);
-        } else {
-            throw new KeyManagementException("No key available for " + keyId);
+    public SecretKey getKey(final String keyId) throws KeyManagementException {
+        final SecretKey secretKey = keys.get(keyId);
+        if (secretKey == null) {
+            throw new KeyManagementException(String.format("Secret Key [%s] not found", keyId));
         }
+        return secretKey;
     }
 
     /**
@@ -66,7 +62,7 @@ public class StaticKeyProvider implements KeyProvider {
      * @return true if the key can be used
      */
     @Override
-    public boolean keyExists(String keyId) {
+    public boolean keyExists(final String keyId) {
         return keys.containsKey(keyId);
     }
 
@@ -78,19 +74,5 @@ public class StaticKeyProvider implements KeyProvider {
     @Override
     public List<String> getAvailableKeyIds() {
         return new ArrayList<>(keys.keySet());
-    }
-
-    /**
-     * Adds the key to the provider and associates it with the given ID. Some implementations may not allow this operation.
-     *
-     * @param keyId the key identifier
-     * @param key   the key
-     * @return true if the key was successfully added
-     * @throws OperationNotSupportedException if this implementation doesn't support adding keys
-     * @throws KeyManagementException         if the key is invalid, the ID conflicts, etc.
-     */
-    @Override
-    public boolean addKey(String keyId, SecretKey key) throws OperationNotSupportedException, KeyManagementException {
-        throw new OperationNotSupportedException("This implementation does not allow adding keys");
     }
 }
