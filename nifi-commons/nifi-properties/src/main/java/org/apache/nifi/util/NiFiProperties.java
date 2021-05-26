@@ -102,6 +102,7 @@ public class NiFiProperties extends ApplicationProperties {
     public static final String CONTENT_REPOSITORY_ENCRYPTION_KEY_ID = "nifi.content.repository.encryption.key.id";
     public static final String CONTENT_REPOSITORY_ENCRYPTION_KEY_PROVIDER_IMPLEMENTATION_CLASS = "nifi.content.repository.encryption.key.provider.implementation";
     public static final String CONTENT_REPOSITORY_ENCRYPTION_KEY_PROVIDER_LOCATION = "nifi.content.repository.encryption.key.provider.location";
+    public static final String CONTENT_REPOSITORY_ENCRYPTION_KEY_PROVIDER_PASSWORD = "nifi.content.repository.encryption.key.provider.password";
 
     // flowfile repository properties
     public static final String FLOWFILE_REPOSITORY_IMPLEMENTATION = "nifi.flowfile.repository.implementation";
@@ -113,6 +114,7 @@ public class NiFiProperties extends ApplicationProperties {
     public static final String FLOWFILE_REPOSITORY_ENCRYPTION_KEY_ID = "nifi.flowfile.repository.encryption.key.id";
     public static final String FLOWFILE_REPOSITORY_ENCRYPTION_KEY_PROVIDER_IMPLEMENTATION_CLASS = "nifi.flowfile.repository.encryption.key.provider.implementation";
     public static final String FLOWFILE_REPOSITORY_ENCRYPTION_KEY_PROVIDER_LOCATION = "nifi.flowfile.repository.encryption.key.provider.location";
+    public static final String FLOWFILE_REPOSITORY_ENCRYPTION_KEY_PROVIDER_PASSWORD = "nifi.flowfile.repository.encryption.key.provider.password";
     public static final String FLOWFILE_SWAP_MANAGER_IMPLEMENTATION = "nifi.swap.manager.implementation";
     public static final String QUEUE_SWAP_THRESHOLD = "nifi.queue.swap.threshold";
 
@@ -135,6 +137,7 @@ public class NiFiProperties extends ApplicationProperties {
     public static final String PROVENANCE_REPO_ENCRYPTION_KEY_ID = "nifi.provenance.repository.encryption.key.id";
     public static final String PROVENANCE_REPO_ENCRYPTION_KEY_PROVIDER_IMPLEMENTATION_CLASS = "nifi.provenance.repository.encryption.key.provider.implementation";
     public static final String PROVENANCE_REPO_ENCRYPTION_KEY_PROVIDER_LOCATION = "nifi.provenance.repository.encryption.key.provider.location";
+    public static final String PROVENANCE_REPO_ENCRYPTION_KEY_PROVIDER_PASSWORD = "nifi.provenance.repository.encryption.key.provider.password";
     public static final String PROVENANCE_REPO_DEBUG_FREQUENCY = "nifi.provenance.repository.debug.frequency";
 
     // status repository properties
@@ -1614,8 +1617,7 @@ public class NiFiProperties extends ApplicationProperties {
 
     /**
      * Returns a map of keyId -> key in hex loaded from the {@code nifi.properties} file if a
-     * {@code StaticKeyProvider} is defined. If {@code FileBasedKeyProvider} is defined, use
-     * {@code CryptoUtils#readKeys()} instead -- this method will return an empty map.
+     * {@code StaticKeyProvider} is defined. If {@code FileBasedKeyProvider} is defined this method will return an empty map.
      *
      * @return a Map of the keys identified by key ID
      */
@@ -1746,8 +1748,7 @@ public class NiFiProperties extends ApplicationProperties {
 
     /**
      * Returns a map of keyId -> key in hex loaded from the {@code nifi.properties} file if a
-     * {@code StaticKeyProvider} is defined. If {@code FileBasedKeyProvider} is defined, use
-     * {@code CryptoUtils#readKeys()} instead -- this method will return an empty map.
+     * {@code StaticKeyProvider} is defined. If {@code FileBasedKeyProvider} is defined this method will return an empty map.
      *
      * @return a Map of the keys identified by key ID
      */
@@ -1778,8 +1779,7 @@ public class NiFiProperties extends ApplicationProperties {
 
     /**
      * Returns a map of keyId -> key in hex loaded from the {@code nifi.properties} file if a
-     * {@code StaticKeyProvider} is defined. If {@code FileBasedKeyProvider} is defined, use
-     * {@code CryptoUtils#readKeys()} instead -- this method will return an empty map.
+     * {@code StaticKeyProvider} is defined. If {@code FileBasedKeyProvider} is defined this method will return an empty map.
      *
      * @return a Map of the keys identified by key ID
      */

@@ -19,10 +19,8 @@ package org.apache.nifi.security.kms;
 import java.security.KeyManagementException;
 import java.util.List;
 import javax.crypto.SecretKey;
-import javax.naming.OperationNotSupportedException;
 
 public interface KeyProvider {
-
     /**
      * Returns the key identified by this ID or throws an exception if one is not available.
      *
@@ -46,17 +44,4 @@ public interface KeyProvider {
      * @return a List of keyIds (empty list if none are available)
      */
      List<String> getAvailableKeyIds();
-
-    /**
-     * Adds the key to the provider and associates it with the given ID. Some implementations may not allow this operation.
-     *
-     * @param keyId the key identifier
-     * @param key the key
-     * @return true if the key was successfully added
-     * @throws OperationNotSupportedException if this implementation doesn't support adding keys
-     * @throws KeyManagementException if the key is invalid, the ID conflicts, etc.
-     */
-     boolean addKey(String keyId, SecretKey key) throws OperationNotSupportedException, KeyManagementException;
-
-     // TODO: Add #getActiveKeyId() method
 }
