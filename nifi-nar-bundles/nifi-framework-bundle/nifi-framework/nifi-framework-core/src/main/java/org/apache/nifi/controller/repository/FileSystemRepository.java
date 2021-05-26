@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.controller.repository;
 
-import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaim;
@@ -36,9 +35,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
+import java.io.Closeable;
 import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -552,11 +553,6 @@ public class FileSystemRepository implements ContentRepository {
         return containerPath.resolve(resourceClaim.getSection()).resolve(resourceClaim.getId());
     }
 
-    public Path getPath(final ResourceClaim resourceClaim, final boolean verifyExists) throws ContentNotFoundException {
-        final ContentClaim contentClaim = new StandardContentClaim(resourceClaim, 0L);
-        return getPath(contentClaim, verifyExists);
-    }
-
     public Path getPath(final ContentClaim claim, final boolean verifyExists) throws ContentNotFoundException {
         final ResourceClaim resourceClaim = claim.getResourceClaim();
         final Path containerPath = containers.get(resourceClaim.getContainer());
@@ -580,6 +576,35 @@ public class FileSystemRepository implements ContentRepository {
             }
         }
         return resolvedPath;
+    }
+
+    private InputStream getInputStream(final ResourceClaim resourceClaim) {
+        final ContentClaim contentClaim = new StandardContentClaim(resourceClaim, 0L);
+        return getInputStream(contentClaim);
+    }
+
+    private InputStream getInputStream(final ContentClaim claim) {
+        final ResourceClaim resourceClaim = claim.getResourceClaim();
+        final Path containerPath = containers.get(resourceClaim.getContainer());
+        if (containerPath == null) {
+            throw new ContentNotFoundException(claim);
+        }
+
+        // Create the Path that points to the data
+        final Path resolvedPath = containerPath.resolve(resourceClaim.getSection()).resolve(resourceClaim.getId());
+
+        try {
+            return new FileInputStream(resolvedPath.toFile());
+        } catch (final FileNotFoundException fnfe) {
+            // If this occurs, we will also check the archive directory.
+        }
+
+        final Path archivePath = getArchivePath(resourceClaim);
+        try {
+            return new FileInputStream(archivePath.toFile());
+        } catch (final FileNotFoundException fnfe) {
+            throw new ContentNotFoundException(claim, fnfe);
+        }
     }
 
     @Override
@@ -885,9 +910,7 @@ public class FileSystemRepository implements ContentRepository {
             return new ByteArrayInputStream(new byte[0]);
         }
 
-        final Path path = getPath(claim, true);
-        final FileInputStream fis = new FileInputStream(path.toFile());
-        return fis;
+        return getInputStream(claim);
     }
 
     @Override
@@ -895,12 +918,15 @@ public class FileSystemRepository implements ContentRepository {
         if (claim == null) {
             return new ByteArrayInputStream(new byte[0]);
         }
-        final Path path = getPath(claim, true);
-        final FileInputStream fis = new FileInputStream(path.toFile());
+
+        final InputStream fis = getInputStream(claim);
         if (claim.getOffset() > 0L) {
             try {
                 StreamUtils.skip(fis, claim.getOffset());
             } catch (final EOFException eof) {
+                closeQuietly(fis);
+
+                final Path path = getPath(claim, false);
                 final long resourceClaimBytes;
                 try {
                     resourceClaimBytes = Files.size(path);
@@ -911,7 +937,7 @@ public class FileSystemRepository implements ContentRepository {
 
                 throw new ContentNotFoundException(claim, "Content Claim has an offset of " + claim.getOffset() + " but Resource Claim " + path + " is only " + resourceClaimBytes + " bytes");
             } catch (final IOException ioe) {
-                IOUtils.closeQuietly(fis);
+                closeQuietly(fis);
                 throw ioe;
             }
         }
@@ -928,6 +954,18 @@ public class FileSystemRepository implements ContentRepository {
             return new LimitedInputStream(fis, claim::getLength);
         } else {
             return fis;
+        }
+    }
+
+    private void closeQuietly(final Closeable closeable) {
+        if (closeable == null) {
+            return;
+        }
+
+        try {
+            closeable.close();
+        } catch (final IOException ioe) {
+            LOG.warn("Failed to close {}", closeable, ioe);
         }
     }
 
