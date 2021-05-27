@@ -21,11 +21,7 @@ import com.nimbusds.jwt.JWTClaimsSet
 import com.nimbusds.jwt.PlainJWT
 import com.nimbusds.oauth2.sdk.AuthorizationCode
 import com.nimbusds.oauth2.sdk.AuthorizationCodeGrant
-import com.nimbusds.oauth2.sdk.auth.ClientAuthentication
-import com.nimbusds.oauth2.sdk.auth.ClientAuthenticationMethod
-import com.nimbusds.oauth2.sdk.auth.ClientSecretBasic
-import com.nimbusds.oauth2.sdk.auth.ClientSecretPost
-import com.nimbusds.oauth2.sdk.auth.Secret
+import com.nimbusds.oauth2.sdk.auth.*
 import com.nimbusds.oauth2.sdk.http.HTTPRequest
 import com.nimbusds.oauth2.sdk.http.HTTPResponse
 import com.nimbusds.oauth2.sdk.id.ClientID
@@ -67,10 +63,15 @@ class StandardOidcIdentityProviderGroovyIT extends GroovyTestCase {
     private static final Key SIGNING_KEY = new Key(id: 1, identity: "signingKey", key: "mock-signing-key-value")
 
     private static int getAvailablePort() throws IOException {
-        SocketChannel socket = SocketChannel.open()
-        socket.setOption(StandardSocketOptions.SO_REUSEADDR, true)
-        socket.bind(new InetSocketAddress("localhost", 0))
-        return socket.socket().getLocalPort()
+        SocketChannel socket;
+        try {
+            socket = SocketChannel.open()
+            socket.setOption(StandardSocketOptions.SO_REUSEADDR, true)
+            socket.bind(new InetSocketAddress("localhost", 0))
+            return socket.socket().getLocalPort()
+        } finally {
+            socket.close()
+        }
     }
 
     private static final String HOST = "https://localhost:" + getAvailablePort()
@@ -443,7 +444,7 @@ class StandardOidcIdentityProviderGroovyIT extends GroovyTestCase {
         }
 
         // Assert
-        assert msg =~ "Connection refused" || msg =~ "Operation timed out"
+        assert msg =~ "Connection refused"
     }
 
     @Test
