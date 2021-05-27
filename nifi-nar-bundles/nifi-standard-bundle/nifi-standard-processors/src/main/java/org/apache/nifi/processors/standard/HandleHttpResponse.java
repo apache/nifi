@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.standard;
 
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -26,6 +27,7 @@ import java.util.regex.Pattern;
 
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -35,6 +37,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.http.HttpContextMap;
@@ -52,7 +55,7 @@ import org.apache.nifi.util.StopWatch;
 @CapabilityDescription("Sends an HTTP Response to the Requestor that generated a FlowFile. This Processor is designed to be used in conjunction with "
         + "the HandleHttpRequest in order to create a web service.")
 @DynamicProperty(name = "An HTTP header name", value = "An HTTP header value",
-                    description = "These HTTPHeaders are set in the HTTP Response",
+                    description = "These HTTP Headers are set in the HTTP Response",
                     expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
 @ReadsAttributes({
     @ReadsAttribute(attribute = HTTPUtils.HTTP_CONTEXT_ID, description = "The value of this attribute is used to lookup the HTTP Response so that the "
@@ -72,12 +75,23 @@ public class HandleHttpResponse extends AbstractProcessor {
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
+
+    public static final PropertyDescriptor STATUS_MESSAGE = new PropertyDescriptor.Builder()
+            .name("HTTP Status Message")
+            .description("The HTTP Status Message to use when responding to the HTTP Request. If this property is specified, it will be used " +
+                    "regardless of the content of incoming flowfiles.")
+            .required(false)
+            .addValidator(Validator.VALID)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .build();
+
     public static final PropertyDescriptor HTTP_CONTEXT_MAP = new PropertyDescriptor.Builder()
             .name("HTTP Context Map")
             .description("The HTTP Context Map Controller Service to use for caching the HTTP Request Information")
             .required(true)
             .identifiesControllerService(HttpContextMap.class)
             .build();
+
     public static final PropertyDescriptor ATTRIBUTES_AS_HEADERS_REGEX = new PropertyDescriptor.Builder()
             .name("Attributes to add to the HTTP Response (Regex)")
             .description("Specifies the Regular Expression that determines the names of FlowFile attributes that should be added to the HTTP response")
@@ -89,6 +103,7 @@ public class HandleHttpResponse extends AbstractProcessor {
             .name("success")
             .description("FlowFiles will be routed to this Relationship after the response has been successfully sent to the requestor")
             .build();
+
     public static final Relationship REL_FAILURE = new Relationship.Builder()
             .name("failure")
             .description("FlowFiles will be routed to this Relationship if the Processor is unable to respond to the requestor. This may happen, "
@@ -99,6 +114,7 @@ public class HandleHttpResponse extends AbstractProcessor {
     public final List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(STATUS_CODE);
+        properties.add(STATUS_MESSAGE);
         properties.add(HTTP_CONTEXT_MAP);
         properties.add(ATTRIBUTES_AS_HEADERS_REGEX);
         return properties;
@@ -134,15 +150,14 @@ public class HandleHttpResponse extends AbstractProcessor {
 
         final String contextIdentifier = flowFile.getAttribute(HTTPUtils.HTTP_CONTEXT_ID);
         if (contextIdentifier == null) {
-            getLogger().warn("Failed to respond to HTTP request for {} because FlowFile did not have an '" + HTTPUtils.HTTP_CONTEXT_ID + "' attribute",
-                    new Object[]{flowFile});
+            getLogger().warn("Failed to respond to HTTP request for {} because FlowFile did not have an '" + HTTPUtils.HTTP_CONTEXT_ID + "' attribute", flowFile);
             session.transfer(flowFile, REL_FAILURE);
             return;
         }
 
         final String statusCodeValue = context.getProperty(STATUS_CODE).evaluateAttributeExpressions(flowFile).getValue();
-        if (!isNumber(statusCodeValue)) {
-            getLogger().error("Failed to respond to HTTP request for {} because status code was '{}', which is not a valid number", new Object[]{flowFile, statusCodeValue});
+        if (!StringUtils.isNumeric(statusCodeValue)) {
+            getLogger().error("Failed to respond to HTTP request for {} because status code was '{}', which is not a valid number", flowFile, statusCodeValue);
             session.transfer(flowFile, REL_FAILURE);
             return;
         }
@@ -151,7 +166,7 @@ public class HandleHttpResponse extends AbstractProcessor {
         final HttpServletResponse response = contextMap.getResponse(contextIdentifier);
         if (response == null) {
             getLogger().error("Failed to respond to HTTP request for {} because FlowFile had an '{}' attribute of {} but could not find an HTTP Response Object for this identifier",
-                    new Object[]{flowFile, HTTPUtils.HTTP_CONTEXT_ID, contextIdentifier});
+                    flowFile, HTTPUtils.HTTP_CONTEXT_ID, contextIdentifier);
             session.transfer(flowFile, REL_FAILURE);
             return;
         }
@@ -165,7 +180,7 @@ public class HandleHttpResponse extends AbstractProcessor {
                 final String headerName = descriptor.getName();
                 final String headerValue = context.getProperty(descriptor).evaluateAttributeExpressions(flowFile).getValue();
 
-                if (!headerValue.trim().isEmpty()) {
+                if (!StringUtils.isBlank(headerValue)) {
                     response.setHeader(headerName, headerValue);
                 }
             }
@@ -178,28 +193,34 @@ public class HandleHttpResponse extends AbstractProcessor {
             final Map<String, String> attributes = flowFile.getAttributes();
             for (final Map.Entry<String, String> entry : attributes.entrySet()) {
                 final String key = entry.getKey();
-                if (pattern.matcher(key).matches()) {
-                    if (!entry.getValue().trim().isEmpty()){
-                        response.setHeader(entry.getKey(), entry.getValue());
-                    }
+                final String value = entry.getValue();
+                if (pattern.matcher(key).matches() && !StringUtils.isBlank(value)) {
+                    response.setHeader(key, value);
                 }
             }
         }
 
         try {
-            session.exportTo(flowFile, response.getOutputStream());
-            response.flushBuffer();
+            final String statusMessage = context.getProperty(STATUS_MESSAGE).evaluateAttributeExpressions(flowFile).getValue();
+            try(OutputStream out = response.getOutputStream()){
+                if (statusMessage == null) {
+                    session.exportTo(flowFile, response.getOutputStream());
+                } else {
+                    out.write(statusMessage.getBytes());
+                }
+                response.flushBuffer();
+            }
         } catch (final ProcessException e) {
-            getLogger().error("Failed to respond to HTTP request for {} due to {}", new Object[]{flowFile, e});
+            getLogger().error("Failed to respond to HTTP request for {} due to {}", flowFile, e);
             try {
                 contextMap.complete(contextIdentifier);
             } catch (final RuntimeException ce) {
-                getLogger().error("Failed to complete HTTP Transaction for {} due to {}", new Object[]{flowFile, ce});
+                getLogger().error("Failed to complete HTTP Transaction for {} due to {}", flowFile, ce);
             }
             session.transfer(flowFile, REL_FAILURE);
             return;
         } catch (final Exception e) {
-            getLogger().error("Failed to respond to HTTP request for {} due to {}", new Object[]{flowFile, e});
+            getLogger().error("Failed to respond to HTTP request for {} due to {}", flowFile, e);
             session.transfer(flowFile, REL_FAILURE);
             return;
         }
@@ -207,27 +228,13 @@ public class HandleHttpResponse extends AbstractProcessor {
         try {
             contextMap.complete(contextIdentifier);
         } catch (final RuntimeException ce) {
-            getLogger().error("Failed to complete HTTP Transaction for {} due to {}", new Object[]{flowFile, ce});
+            getLogger().error("Failed to complete HTTP Transaction for {} due to {}", flowFile, ce);
             session.transfer(flowFile, REL_FAILURE);
             return;
         }
 
         session.getProvenanceReporter().send(flowFile, HTTPUtils.getURI(flowFile.getAttributes()), stopWatch.getElapsed(TimeUnit.MILLISECONDS));
-        getLogger().info("Successfully responded to HTTP Request for {} with status code {}", new Object[]{flowFile, statusCode});
+        getLogger().info("Successfully responded to HTTP Request for {} with status code {}", flowFile, statusCode);
         session.transfer(flowFile, REL_SUCCESS);
-    }
-
-    private static boolean isNumber(final String value) {
-        if (value.length() == 0) {
-            return false;
-        }
-
-        for (int i = 0; i < value.length(); i++) {
-            if (!Character.isDigit(value.charAt(i))) {
-                return false;
-            }
-        }
-
-        return true;
     }
 }

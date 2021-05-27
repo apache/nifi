@@ -16,10 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.HashMap;
@@ -44,11 +40,16 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processors.standard.util.HTTPUtils;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.Mockito;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 public class TestHandleHttpResponse {
 
@@ -95,6 +96,140 @@ public class TestHandleHttpResponse {
         assertEquals("hello", contextMap.headersSent.get("my-attr"));
         assertNull(contextMap.headersSent.get("no-valid-attr"));
         assertEquals(HTTP_STATUS_CREATED, contextMap.statusCode);
+        assertEquals(1, contextMap.getCompletionCount());
+        assertTrue(contextMap.headersWithNoValue.isEmpty());
+    }
+
+    @Test
+    public void testStatusMessage() throws InitializationException, IOException {
+        final TestRunner runner = TestRunners.newTestRunner(HandleHttpResponse.class);
+        final String statusMessage = "STATUS MESSAGE";
+
+        final MockHttpContextMap contextMap = new MockHttpContextMap(HTTP_REQUEST_ID, null, null);
+        runner.addControllerService(CONTEXT_MAP_ID, contextMap);
+        runner.enableControllerService(contextMap);
+        runner.setProperty(HandleHttpResponse.HTTP_CONTEXT_MAP, CONTEXT_MAP_ID);
+        runner.setProperty(HandleHttpResponse.STATUS_MESSAGE, statusMessage);
+        runner.setProperty(HandleHttpResponse.STATUS_CODE, "${status.code}");
+        runner.setProperty("my-attr", "${my-attr}");
+        runner.setProperty("no-valid-attr", "${no-valid-attr}");
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put(HTTPUtils.HTTP_CONTEXT_ID, HTTP_REQUEST_ID);
+        attributes.put(HTTPUtils.HTTP_REQUEST_URI, "/test");
+        attributes.put(HTTPUtils.HTTP_LOCAL_NAME, "server");
+        attributes.put(HTTPUtils.HTTP_PORT, "8443");
+        attributes.put(HTTPUtils.HTTP_REMOTE_HOST, "client");
+        attributes.put(HTTPUtils.HTTP_SSL_CERT, "sslDN");
+        attributes.put("my-attr", "hello");
+        attributes.put("status.code", Integer.toString(HTTP_STATUS_CREATED));
+
+        runner.enqueue(FLOW_FILE_CONTENT.getBytes(), attributes);
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(HandleHttpResponse.REL_SUCCESS, 1);
+        final MockFlowFile mockFlowFile = runner.getFlowFilesForRelationship(HandleHttpResponse.REL_SUCCESS).get(0);
+        mockFlowFile.assertContentEquals(FLOW_FILE_CONTENT.getBytes("UTF-8"));
+
+        assertEquals(1, runner.getProvenanceEvents().size());
+        assertEquals(ProvenanceEventType.SEND, runner.getProvenanceEvents().get(0).getEventType());
+        assertEquals("https://client@server:8443/test", runner.getProvenanceEvents().get(0).getTransitUri());
+
+        assertEquals(statusMessage, contextMap.outputStream.toString());
+        assertEquals("hello", contextMap.headersSent.get("my-attr"));
+        assertNull(contextMap.headersSent.get("no-valid-attr"));
+        assertEquals(HTTP_STATUS_CREATED, contextMap.statusCode);
+        assertEquals(1, contextMap.getCompletionCount());
+        assertTrue(contextMap.headersWithNoValue.isEmpty());
+    }
+
+    @Test
+    public void testStatusMessageFromEL() throws InitializationException, IOException {
+        final TestRunner runner = TestRunners.newTestRunner(HandleHttpResponse.class);
+        final String statusMessage = "STATUS MESSAGE";
+
+        final MockHttpContextMap contextMap = new MockHttpContextMap(HTTP_REQUEST_ID, null, null);
+        runner.addControllerService(CONTEXT_MAP_ID, contextMap);
+        runner.enableControllerService(contextMap);
+        runner.setProperty(HandleHttpResponse.HTTP_CONTEXT_MAP, CONTEXT_MAP_ID);
+        runner.setProperty(HandleHttpResponse.STATUS_MESSAGE, "${status.message}");
+        runner.setProperty(HandleHttpResponse.STATUS_CODE, "${status.code}");
+        runner.setProperty("my-attr", "${my-attr}");
+        runner.setProperty("no-valid-attr", "${no-valid-attr}");
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put(HTTPUtils.HTTP_CONTEXT_ID, HTTP_REQUEST_ID);
+        attributes.put(HTTPUtils.HTTP_REQUEST_URI, "/test");
+        attributes.put(HTTPUtils.HTTP_LOCAL_NAME, "server");
+        attributes.put(HTTPUtils.HTTP_PORT, "8443");
+        attributes.put(HTTPUtils.HTTP_REMOTE_HOST, "client");
+        attributes.put(HTTPUtils.HTTP_SSL_CERT, "sslDN");
+        attributes.put("my-attr", "hello");
+        attributes.put("status.message", statusMessage);
+        attributes.put("status.code", Integer.toString(HTTP_STATUS_CREATED));
+
+        runner.enqueue(FLOW_FILE_CONTENT.getBytes(), attributes);
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(HandleHttpResponse.REL_SUCCESS, 1);
+        final MockFlowFile mockFlowFile = runner.getFlowFilesForRelationship(HandleHttpResponse.REL_SUCCESS).get(0);
+        mockFlowFile.assertContentEquals(FLOW_FILE_CONTENT.getBytes("UTF-8"));
+
+        assertEquals(1, runner.getProvenanceEvents().size());
+        assertEquals(ProvenanceEventType.SEND, runner.getProvenanceEvents().get(0).getEventType());
+        assertEquals("https://client@server:8443/test", runner.getProvenanceEvents().get(0).getTransitUri());
+
+        assertEquals(statusMessage, contextMap.outputStream.toString());
+        assertEquals("hello", contextMap.headersSent.get("my-attr"));
+        assertNull(contextMap.headersSent.get("no-valid-attr"));
+        assertEquals(HTTP_STATUS_CREATED, contextMap.statusCode);
+        assertEquals(1, contextMap.getCompletionCount());
+        assertTrue(contextMap.headersWithNoValue.isEmpty());
+    }
+
+    @Test
+    public void testEmptyStatusMessageFromEL() throws InitializationException, IOException {
+        final TestRunner runner = TestRunners.newTestRunner(HandleHttpResponse.class);
+        final String statusMessage = "";
+
+        final MockHttpContextMap contextMap = new MockHttpContextMap(HTTP_REQUEST_ID, null, null);
+        runner.addControllerService(CONTEXT_MAP_ID, contextMap);
+        runner.enableControllerService(contextMap);
+        runner.setProperty(HandleHttpResponse.HTTP_CONTEXT_MAP, CONTEXT_MAP_ID);
+        runner.setProperty(HandleHttpResponse.STATUS_MESSAGE, "${status.message}");
+        runner.setProperty(HandleHttpResponse.STATUS_CODE, "${status.code}");
+        runner.setProperty("my-attr", "${my-attr}");
+        runner.setProperty("no-valid-attr", "${no-valid-attr}");
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put(HTTPUtils.HTTP_CONTEXT_ID, HTTP_REQUEST_ID);
+        attributes.put(HTTPUtils.HTTP_REQUEST_URI, "/test");
+        attributes.put(HTTPUtils.HTTP_LOCAL_NAME, "server");
+        attributes.put(HTTPUtils.HTTP_PORT, "8443");
+        attributes.put(HTTPUtils.HTTP_REMOTE_HOST, "client");
+        attributes.put(HTTPUtils.HTTP_SSL_CERT, "sslDN");
+        attributes.put("my-attr", "No Content");
+        //attributes.put("status.message", statusMessage);
+        attributes.put("status.code", "204");
+
+        runner.enqueue(FLOW_FILE_CONTENT.getBytes(), attributes);
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(HandleHttpResponse.REL_SUCCESS, 1);
+        final MockFlowFile mockFlowFile = runner.getFlowFilesForRelationship(HandleHttpResponse.REL_SUCCESS).get(0);
+        mockFlowFile.assertContentEquals(FLOW_FILE_CONTENT.getBytes("UTF-8"));
+
+        assertEquals(1, runner.getProvenanceEvents().size());
+        assertEquals(ProvenanceEventType.SEND, runner.getProvenanceEvents().get(0).getEventType());
+        assertEquals("https://client@server:8443/test", runner.getProvenanceEvents().get(0).getTransitUri());
+
+        assertEquals(statusMessage, contextMap.outputStream.toString());
+        assertEquals("No Content", contextMap.headersSent.get("my-attr"));
+        assertNull(contextMap.headersSent.get("no-valid-attr"));
+        assertEquals(204, contextMap.statusCode);
         assertEquals(1, contextMap.getCompletionCount());
         assertTrue(contextMap.headersWithNoValue.isEmpty());
     }
