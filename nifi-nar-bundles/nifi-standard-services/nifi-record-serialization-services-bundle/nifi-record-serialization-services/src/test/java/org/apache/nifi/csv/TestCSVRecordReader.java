@@ -19,6 +19,7 @@ package org.apache.nifi.csv;
 
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.text.StringEscapeUtils;
+import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.SimpleRecordSchema;
@@ -47,6 +48,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
@@ -685,21 +687,21 @@ public class TestCSVRecordReader {
         // CSV data
         // - data field contain the value separator but the field is quoted so it shouldn't be interpreted, and quotes should be removed
         // - data field is surrounded by spaces
-        final String text = "A, B\n" + " \"a,a\" ,\"bb\"";
+        final String text = "A, B\n" + " \"a,a\" ,bb";
 
+        final Map<PropertyDescriptor, String> properties = new HashMap<>();
+        // This first option should fix the parsing. Without that the quoted field is parsed as
+        // two different fields because it's the default behaviour of Apache Commons CSV Parser
+        properties.put(CSVUtils.IGNORE_SURROUNDING_SPACES, "true");
+
+        properties.put(CSVUtils.CSV_FORMAT, CSVUtils.CUSTOM.getValue());
+        properties.put(CSVUtils.FIRST_LINE_IS_HEADER, "true");
+        properties.put(CSVUtils.QUOTE_CHAR, "\"");
+        properties.put(CSVUtils.VALUE_SEPARATOR, ",");
+        properties.put(CSVUtils.TRIM_FIELDS, "true");
         final CSVFormat format = CSVUtils.createCSVFormat(
-                new MockPropertyContext(Map.of(
-                        // This first option should fix the parsing, without that the quoted field is parsed as
-                        // two different fields because it's the default behaviour of Apache Commons CSV Parser
-                        CSVUtils.IGNORE_SURROUNDING_SPACES, "true",
-
-                        CSVUtils.CSV_FORMAT, CSVUtils.CUSTOM.getValue(),
-                        CSVUtils.FIRST_LINE_IS_HEADER, "true",
-                        CSVUtils.QUOTE_CHAR, "\"",
-                        CSVUtils.VALUE_SEPARATOR, ",",
-                        CSVUtils.TRIM_FIELDS, "true"
-                )),
-                Map.of());
+                new MockPropertyContext(properties),
+                new HashMap<>());
 
         final List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField("A", RecordFieldType.STRING.getDataType()));
