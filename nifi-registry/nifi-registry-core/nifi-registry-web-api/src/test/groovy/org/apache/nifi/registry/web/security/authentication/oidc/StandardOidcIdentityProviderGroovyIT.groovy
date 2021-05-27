@@ -58,17 +58,34 @@ import org.junit.runners.JUnit4
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
+import java.nio.channels.SocketChannel
+
 @RunWith(JUnit4.class)
-class StandardOidcIdentityProviderGroovyTest extends GroovyTestCase {
-    private static final Logger logger = LoggerFactory.getLogger(StandardOidcIdentityProviderGroovyTest.class)
+class StandardOidcIdentityProviderGroovyIT extends GroovyTestCase {
+    private static final Logger logger = LoggerFactory.getLogger(StandardOidcIdentityProviderGroovyIT.class)
 
     private static final Key SIGNING_KEY = new Key(id: 1, identity: "signingKey", key: "mock-signing-key-value")
+
+    private static int getAvailablePort() throws IOException {
+        SocketChannel socket;
+        try {
+            socket = SocketChannel.open()
+            socket.setOption(StandardSocketOptions.SO_REUSEADDR, true)
+            socket.bind(new InetSocketAddress("localhost", 0))
+            return socket.socket().getLocalPort()
+        } finally {
+            socket.close()
+        }
+    }
+
+    private static final String HOST = "https://localhost:" + getAvailablePort()
+    private static final String OIDC_URL = HOST + "/oidc"
 
     /*
     Unlike NiFiProperties, NiFiRegistryProperties extends java.util.Properties, which ultimately implements java.util.Map<>, so map coercion cannot be used here. Setting the raw properties does allow for the same outcomes.
      */
     private static final Map<String, String> DEFAULT_NIFI_PROPERTIES = [
-            (NiFiRegistryProperties.SECURITY_USER_OIDC_DISCOVERY_URL)         : "https://localhost/oidc",
+            (NiFiRegistryProperties.SECURITY_USER_OIDC_DISCOVERY_URL)         : OIDC_URL,
             (NiFiRegistryProperties.SECURITY_IDENTITY_PROVIDER)               : "", // Makes isLoginIdentityProviderEnabled => false
             (NiFiRegistryProperties.SECURITY_USER_OIDC_CONNECT_TIMEOUT)       : "1000",
             (NiFiRegistryProperties.SECURITY_USER_OIDC_READ_TIMEOUT)          : "1000",
@@ -162,8 +179,8 @@ class StandardOidcIdentityProviderGroovyTest extends GroovyTestCase {
         // Arrange
         StandardOidcIdentityProvider soip = new StandardOidcIdentityProvider(mockJwtService, mockNiFiRegistryProperties)
 
-        Issuer mockIssuer = new Issuer("https://localhost/oidc")
-        URI mockURI = new URI("https://localhost/oidc")
+        Issuer mockIssuer = new Issuer(OIDC_URL)
+        URI mockURI = new URI(OIDC_URL)
         OIDCProviderMetadata metadata = new OIDCProviderMetadata(mockIssuer, [SubjectType.PUBLIC], mockURI)
 
         soip.oidcProviderMetadata = metadata
@@ -199,8 +216,8 @@ class StandardOidcIdentityProviderGroovyTest extends GroovyTestCase {
         // Mock collaborators
         StandardOidcIdentityProvider soip = new StandardOidcIdentityProvider(mockJwtService, mockNiFiRegistryProperties)
 
-        Issuer mockIssuer = new Issuer("https://localhost/oidc")
-        URI mockURI = new URI("https://localhost/oidc")
+        Issuer mockIssuer = new Issuer(OIDC_URL)
+        URI mockURI = new URI(OIDC_URL)
         OIDCProviderMetadata metadata = new OIDCProviderMetadata(mockIssuer, [SubjectType.PUBLIC], mockURI)
         soip.oidcProviderMetadata = metadata
 
@@ -236,8 +253,8 @@ class StandardOidcIdentityProviderGroovyTest extends GroovyTestCase {
         StandardOidcIdentityProvider soip = new StandardOidcIdentityProvider(mockJwtService, mockNiFiRegistryProperties)
 
         // Mock AuthorizationGrant
-        Issuer mockIssuer = new Issuer("https://localhost/oidc")
-        URI mockURI = new URI("https://localhost/oidc")
+        Issuer mockIssuer = new Issuer(OIDC_URL)
+        URI mockURI = new URI(OIDC_URL)
         AuthorizationCode mockCode = new AuthorizationCode("ABCDE")
         def mockAuthGrant = new AuthorizationCodeGrant(mockCode, mockURI)
 
@@ -252,7 +269,7 @@ class StandardOidcIdentityProviderGroovyTest extends GroovyTestCase {
         soip.clientId = CLIENT_ID
         soip.clientSecret = CLIENT_SECRET
         soip.oidcProviderMetadata["tokenEndpointAuthMethods"] = [ClientAuthenticationMethod.CLIENT_SECRET_BASIC]
-        soip.oidcProviderMetadata["tokenEndpointURI"] = new URI("https://localhost/token")
+        soip.oidcProviderMetadata["tokenEndpointURI"] = new URI(HOST + "/token")
 
         // Mock ClientAuthentication
         def clientAuthentication = soip.createClientAuthentication()
@@ -265,7 +282,7 @@ class StandardOidcIdentityProviderGroovyTest extends GroovyTestCase {
         // Assert
         assert httpRequest.getMethod().name() == "POST"
         assert httpRequest.query =~ "code=${mockCode.value}"
-        String encodedUri = URLEncoder.encode("https://localhost/oidc", "UTF-8")
+        String encodedUri = URLEncoder.encode(OIDC_URL, "UTF-8")
         assert httpRequest.query =~ "redirect_uri=${encodedUri}&grant_type=authorization_code"
     }
 
@@ -274,8 +291,8 @@ class StandardOidcIdentityProviderGroovyTest extends GroovyTestCase {
         // Arrange
         StandardOidcIdentityProvider soip = new StandardOidcIdentityProvider(mockJwtService, mockNiFiRegistryProperties)
 
-        Issuer mockIssuer = new Issuer("https://localhost/oidc")
-        URI mockURI = new URI("https://localhost/oidc")
+        Issuer mockIssuer = new Issuer(OIDC_URL)
+        URI mockURI = new URI(OIDC_URL)
 
         OIDCProviderMetadata metadata = new OIDCProviderMetadata(mockIssuer, [SubjectType.PUBLIC], mockURI)
         soip.oidcProviderMetadata = metadata
@@ -298,8 +315,8 @@ class StandardOidcIdentityProviderGroovyTest extends GroovyTestCase {
         // Arrange
         StandardOidcIdentityProvider soip = new StandardOidcIdentityProvider(mockJwtService, mockNiFiRegistryProperties)
 
-        Issuer mockIssuer = new Issuer("https://localhost/oidc")
-        URI mockURI = new URI("https://localhost/oidc")
+        Issuer mockIssuer = new Issuer(OIDC_URL)
+        URI mockURI = new URI(OIDC_URL)
 
         OIDCProviderMetadata metadata = new OIDCProviderMetadata(mockIssuer, [SubjectType.PUBLIC], mockURI)
         soip.oidcProviderMetadata = metadata
@@ -323,15 +340,15 @@ class StandardOidcIdentityProviderGroovyTest extends GroovyTestCase {
         // Arrange
         StandardOidcIdentityProvider soip = new StandardOidcIdentityProvider(mockJwtService, mockNiFiRegistryProperties)
 
-        Issuer mockIssuer = new Issuer("https://localhost/oidc")
-        URI mockURI = new URI("https://localhost/oidc")
+        Issuer mockIssuer = new Issuer(OIDC_URL)
+        URI mockURI = new URI(OIDC_URL)
 
         OIDCProviderMetadata metadata = new OIDCProviderMetadata(mockIssuer, [SubjectType.PUBLIC], mockURI)
         soip.oidcProviderMetadata = metadata
 
         def errorBody = [error            : "Failure to authenticate",
                          error_description: "The provided username and password were not correct",
-                         error_uri        : "https://localhost/oidc/error"]
+                         error_uri        : OIDC_URL + "/error"]
         HTTPRequest mockUserInfoRequest = mockHttpRequest(errorBody, 500, "HTTP ERROR")
 
         // Act
@@ -484,7 +501,7 @@ class StandardOidcIdentityProviderGroovyTest extends GroovyTestCase {
 
         // Mock OIDC provider metadata
         Issuer mockIssuer = new Issuer("mockIssuer")
-        URI mockURI = new URI("https://localhost/oidc")
+        URI mockURI = new URI(OIDC_URL)
         OIDCProviderMetadata metadata = new OIDCProviderMetadata(mockIssuer, [SubjectType.PUBLIC], mockURI)
         soip.oidcProviderMetadata = metadata
 
@@ -496,8 +513,8 @@ class StandardOidcIdentityProviderGroovyTest extends GroovyTestCase {
         soip.clientId = CLIENT_ID
         soip.clientSecret = CLIENT_SECRET
         soip.oidcProviderMetadata["tokenEndpointAuthMethods"] = [ClientAuthenticationMethod.CLIENT_SECRET_BASIC]
-        soip.oidcProviderMetadata["tokenEndpointURI"] = new URI("https://localhost/oidc/token")
-        soip.oidcProviderMetadata["userInfoEndpointURI"] = new URI("https://localhost/oidc/userInfo")
+        soip.oidcProviderMetadata["tokenEndpointURI"] = new URI(OIDC_URL + "/token")
+        soip.oidcProviderMetadata["userInfoEndpointURI"] = new URI(OIDC_URL + "/userInfo")
 
         // Mock token validator
         IDTokenValidator mockTokenValidator = new IDTokenValidator(mockIssuer, CLIENT_ID) {
@@ -558,7 +575,7 @@ class StandardOidcIdentityProviderGroovyTest extends GroovyTestCase {
                                                String status = "HTTP Response",
                                                Map<String, String> headers = [:],
                                                HTTPRequest.Method method = HTTPRequest.Method.GET,
-                                               URL url = new URL("https://localhost/oidc")) {
+                                               URL url = new URL(OIDC_URL)) {
         new HTTPRequest(method, url) {
             HTTPResponse send() {
                 HTTPResponse mockResponse = new HTTPResponse(statusCode)
@@ -574,7 +591,7 @@ class StandardOidcIdentityProviderGroovyTest extends GroovyTestCase {
     class MockOIDCProviderMetadata extends OIDCProviderMetadata {
 
         MockOIDCProviderMetadata() {
-            super([:] as Issuer, [SubjectType.PUBLIC] as List<SubjectType>, new URI("https://localhost"))
+            super([:] as Issuer, [SubjectType.PUBLIC] as List<SubjectType>, new URI(HOST))
         }
     }
 }
