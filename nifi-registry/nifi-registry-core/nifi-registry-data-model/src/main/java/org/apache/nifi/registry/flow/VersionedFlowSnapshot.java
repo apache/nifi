@@ -19,6 +19,7 @@ package org.apache.nifi.registry.flow;
 
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
+import org.apache.nifi.flow.VersionedProcessGroup;
 import org.apache.nifi.registry.bucket.Bucket;
 
 import javax.validation.Valid;

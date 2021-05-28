@@ -14,21 +14,36 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.registry.flow;
 
-import java.util.Map;
+package org.apache.nifi.flow;
 
-/**
- * A component that has property descriptors and can be configured with values for those properties.
- */
-public interface VersionedConfigurableComponent {
+public enum ComponentType {
 
-    Map<String,VersionedPropertyDescriptor> getPropertyDescriptors();
+    CONNECTION("Connection"),
+    PROCESSOR("Processor"),
+    PROCESS_GROUP("Process Group"),
+    REMOTE_PROCESS_GROUP("Remote Process Group"),
+    INPUT_PORT("Input Port"),
+    OUTPUT_PORT("Output Port"),
+    REMOTE_INPUT_PORT("Remote Input Port"),
+    REMOTE_OUTPUT_PORT("Remote Output Port"),
+    FUNNEL("Funnel"),
+    LABEL("Label"),
+    CONTROLLER_SERVICE("Controller Service");
 
-    void setPropertyDescriptors(Map<String,VersionedPropertyDescriptor> propertyDescriptors);
 
-    Map<String,String> getProperties();
+    private final String typeName;
 
-    void setProperties(Map<String,String> properties);
+    private ComponentType(final String typeName) {
+        this.typeName = typeName;
+    }
 
+    public String getTypeName() {
+        return typeName;
+    }
+
+    @Override
+    public String toString() {
+        return typeName;
+    }
 }

@@ -13,22 +13,40 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi</artifactId>
-        <version>1.15.0-SNAPSHOT</version>
+        <version>1.14.0-SNAPSHOT</version>
     </parent>
-    <artifactId>nifi-api</artifactId>
-    <packaging>jar</packaging>
 
-    <!-- This module should kept to having no dependencies except nifi-versioned-components -->
+    <artifactId>nifi-versioned-components</artifactId>
+
+    <profiles>
+        <profile>
+            <id>nifi-versioned-components_jigsaw</id>
+            <activation>
+                <jdk>(1.8,)</jdk>
+            </activation>
+            <dependencies>
+                <dependency>
+                    <groupId>javax.xml.bind</groupId>
+                    <artifactId>jaxb-api</artifactId>
+                </dependency>
+            </dependencies>
+        </profile>
+    </profiles>
+
+    <!-- This module should kept to having no dependencies -->
     <dependencies>
         <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-versioned-components</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <groupId>io.swagger</groupId>
+            <artifactId>swagger-annotations</artifactId>
+            <version>1.5.16</version>
+            <scope>provided</scope>
         </dependency>
     </dependencies>
- </project>
+</project>
