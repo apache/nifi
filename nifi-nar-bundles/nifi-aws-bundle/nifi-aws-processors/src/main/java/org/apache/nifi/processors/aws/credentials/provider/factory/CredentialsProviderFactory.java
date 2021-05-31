@@ -31,7 +31,7 @@ import org.apache.nifi.processors.aws.credentials.provider.factory.strategies.Na
 import org.apache.nifi.processors.aws.credentials.provider.factory.strategies.AnonymousCredentialsStrategy;
 import org.apache.nifi.processors.aws.credentials.provider.factory.strategies.ImplicitDefaultCredentialsStrategy;
 import org.apache.nifi.processors.aws.credentials.provider.factory.strategies.AssumeRoleCredentialsStrategy;
-
+import org.apache.nifi.processors.aws.credentials.provider.factory.strategies.AssumeRoleWithWebIdentityStrategy;
 import com.amazonaws.auth.AWSCredentialsProvider;
 
 
@@ -62,7 +62,9 @@ public class CredentialsProviderFactory {
         strategies.add(new ImplicitDefaultCredentialsStrategy());
 
         // Derived Credential Strategies
+        strategies.add(new AssumeRoleWithWebIdentityStrategy());
         strategies.add(new AssumeRoleCredentialsStrategy());
+
     }
 
     public CredentialsStrategy selectPrimaryStrategy(final Map<PropertyDescriptor, String> properties) {

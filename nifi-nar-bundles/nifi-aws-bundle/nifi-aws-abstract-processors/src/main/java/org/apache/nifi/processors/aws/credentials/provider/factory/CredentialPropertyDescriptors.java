@@ -194,4 +194,13 @@ public class CredentialPropertyDescriptors {
                     "this property to \"sts.cn-north-1.amazonaws.com.cn\" when you are requesting session credentials " +
                     "for services in China(Beijing) region or to \"sts.us-gov-west-1.amazonaws.com\" for GovCloud.")
             .build();
+    public static final PropertyDescriptor ASSUME_ROLE_WITH_WEB_IDENTITY_TOKEN_FILENAME = new PropertyDescriptor.Builder()
+            .name("assume-role-with-web-identity-token-filename")
+            .displayName("STS Web Identity Token filename")
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .sensitive(false)
+            .description("The filename containing the AWS Security Token Service (STS) Web Identity Token, convenient for AWS EKS service accounts ")
+            .build();
 }

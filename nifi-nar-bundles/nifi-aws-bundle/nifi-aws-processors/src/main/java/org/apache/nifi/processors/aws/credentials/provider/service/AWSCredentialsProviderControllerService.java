@@ -62,6 +62,7 @@ public class AWSCredentialsProviderControllerService extends AbstractControllerS
 
     public static final PropertyDescriptor ASSUME_ROLE_ARN = CredentialPropertyDescriptors.ASSUME_ROLE_ARN;
     public static final PropertyDescriptor ASSUME_ROLE_NAME = CredentialPropertyDescriptors.ASSUME_ROLE_NAME;
+    public static final PropertyDescriptor ASSUME_ROLE_WITH_WEB_IDENTITY_TOKEN_FILENAME = CredentialPropertyDescriptors.ASSUME_ROLE_WITH_WEB_IDENTITY_TOKEN_FILENAME;
     public static final PropertyDescriptor MAX_SESSION_TIME = CredentialPropertyDescriptors.MAX_SESSION_TIME;
 
     private static final List<PropertyDescriptor> properties;
@@ -81,6 +82,7 @@ public class AWSCredentialsProviderControllerService extends AbstractControllerS
         props.add(ASSUME_ROLE_PROXY_HOST);
         props.add(ASSUME_ROLE_PROXY_PORT);
         props.add(ASSUME_ROLE_STS_ENDPOINT);
+        props.add(ASSUME_ROLE_WITH_WEB_IDENTITY_TOKEN_FILENAME);
         properties = Collections.unmodifiableList(props);
     }
 
