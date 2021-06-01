@@ -53,6 +53,7 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -86,6 +87,10 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
     private final Map<String, InstanceClassLoader> instanceClassloaderLookup = new ConcurrentHashMap<>();
 
     public StandardExtensionDiscoveringManager() {
+        this(Collections.emptyList());
+    }
+
+    public StandardExtensionDiscoveringManager(final Collection<Class<? extends ConfigurableComponent>> additionalExtensionTypes) {
         definitionMap.put(Processor.class, new HashSet<>());
         definitionMap.put(FlowFilePrioritizer.class, new HashSet<>());
         definitionMap.put(ReportingTask.class, new HashSet<>());
@@ -102,6 +107,8 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
         definitionMap.put(StateProvider.class, new HashSet<>());
         definitionMap.put(StatusAnalyticsModel.class, new HashSet<>());
         definitionMap.put(NarProvider.class, new HashSet<>());
+
+        additionalExtensionTypes.forEach(type -> definitionMap.putIfAbsent(type, new HashSet<>()));
     }
 
     @Override
@@ -250,10 +257,11 @@ public class StandardExtensionDiscoveringManager implements ExtensionDiscovering
 
 
     protected void initializeTempComponent(final ConfigurableComponent configurableComponent) {
-        ConfigurableComponentInitializer initializer = null;
         try {
-            initializer = ConfigurableComponentInitializerFactory.createComponentInitializer(this, configurableComponent.getClass());
-            initializer.initialize(configurableComponent);
+            final ConfigurableComponentInitializer initializer = ConfigurableComponentInitializerFactory.createComponentInitializer(this, configurableComponent.getClass());
+            if (initializer != null) {
+                initializer.initialize(configurableComponent);
+            }
         } catch (final InitializationException e) {
             logger.warn(String.format("Unable to initialize component %s due to %s", configurableComponent.getClass().getName(), e.getMessage()));
         }

@@ -15,13 +15,11 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.stateless.bootstrap;
-
-import org.apache.nifi.stateless.config.ParameterProvider;
+package org.apache.nifi.stateless.parameter;
 
 import java.util.Map;
 
-public class EnvironmentVariableParameterProvider implements ParameterProvider {
+public class EnvironmentVariableParameterProvider extends AbstractParameterProvider implements ParameterProvider {
     private final Map<String, String> environmentVariables = System.getenv();
 
     @Override

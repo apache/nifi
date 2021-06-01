@@ -17,15 +17,17 @@
 
 package org.apache.nifi.stateless.config;
 
-public interface ParameterProvider {
+import java.util.HashMap;
+import java.util.Map;
 
-    /**
-     * Given a Parameter Context Name and a Parameter Name, returns the value of the parameter
-     * @param contextName the name of the Parameter Context
-     * @param parameterName the name of the Parameter
-     * @return the value for the Parameter, or <code>null</code> if no value has been specified
-     */
-    String getParameterValue(String contextName, String parameterName);
+public class ParameterProviderDefinition extends ConfigurableExtensionDefinition {
+    private Map<String, String> propertyValues = new HashMap<>();
 
-    boolean isParameterDefined(String contextName, String parameterName);
+    public Map<String, String> getPropertyValues() {
+        return propertyValues;
+    }
+
+    public void setPropertyValues(final Map<String, String> propertyValues) {
+        this.propertyValues = propertyValues;
+    }
 }

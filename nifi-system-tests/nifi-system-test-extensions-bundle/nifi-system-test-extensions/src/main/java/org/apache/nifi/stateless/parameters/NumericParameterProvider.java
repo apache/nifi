@@ -15,41 +15,36 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.stateless.bootstrap;
+package org.apache.nifi.stateless.parameters;
 
-import org.apache.nifi.stateless.config.ParameterProvider;
+import org.apache.nifi.stateless.parameter.AbstractParameterProvider;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
-public class CompositeParameterProvider implements ParameterProvider {
-    private final List<ParameterProvider> parameterProviders;
+public class NumericParameterProvider extends AbstractParameterProvider {
+    private final Map<String, String> parameterValues = new HashMap<>();
 
-    public CompositeParameterProvider(final List<ParameterProvider> providers) {
-        this.parameterProviders = new ArrayList<>(providers);
+    {
+        parameterValues.put("zero", "0");
+        parameterValues.put("one", "1");
+        parameterValues.put("two", "2");
+        parameterValues.put("three", "3");
+        parameterValues.put("four", "4");
+        parameterValues.put("five", "5");
+        parameterValues.put("six", "6");
+        parameterValues.put("seven", "7");
+        parameterValues.put("eight", "8");
+        parameterValues.put("nine", "9");
     }
 
     @Override
     public String getParameterValue(final String contextName, final String parameterName) {
-        for (final ParameterProvider provider : parameterProviders) {
-            final String value = provider.getParameterValue(contextName, parameterName);
-            if (value != null) {
-                return value;
-            }
-        }
-
-        return null;
+        return parameterValues.get(parameterName);
     }
 
     @Override
     public boolean isParameterDefined(final String contextName, final String parameterName) {
-        for (final ParameterProvider provider : parameterProviders) {
-            final boolean defined = provider.isParameterDefined(contextName, parameterName);
-            if (defined) {
-                return true;
-            }
-        }
-
-        return false;
+        return parameterValues.containsKey(parameterName);
     }
 }

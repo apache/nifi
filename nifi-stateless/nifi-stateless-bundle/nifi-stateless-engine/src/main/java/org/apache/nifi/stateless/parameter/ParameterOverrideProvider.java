@@ -15,19 +15,56 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.stateless.bootstrap;
+package org.apache.nifi.stateless.parameter;
 
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.Validator;
 import org.apache.nifi.stateless.config.ParameterOverride;
-import org.apache.nifi.stateless.config.ParameterProvider;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
-public class ParameterOverrideProvider implements ParameterProvider {
-    private final List<ParameterOverride> parameterOverrides;
+public class ParameterOverrideProvider extends AbstractParameterProvider implements ParameterProvider {
+    // Effectively final
+    private List<ParameterOverride> parameterOverrides;
 
-    public ParameterOverrideProvider(final List<ParameterOverride> overrides) {
-        this.parameterOverrides = overrides;
+    @Override
+    public void init(final ParameterProviderInitializationContext context) {
+        parameterOverrides = parseConfiguration(context);
+    }
+
+    @Override
+    protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
+        return new PropertyDescriptor.Builder()
+            .name(propertyDescriptorName)
+            .addValidator(Validator.VALID)
+            .build();
+    }
+
+    private List<ParameterOverride> parseConfiguration(final ParameterProviderInitializationContext context) {
+        final List<ParameterOverride> overrides = new ArrayList<>();
+
+        final Map<String, String> properties = context.getAllProperties();
+        for (final Map.Entry<String, String> entry : properties.entrySet()) {
+            final String propertyName = entry.getKey();
+            final String propertyValue = entry.getValue();
+
+            final ParameterOverride override;
+            if (propertyName.contains(":")) {
+                final String[] splits = propertyName.split(":", 2);
+                final String contextName = splits[0];
+                final String parameterName = splits[1];
+                override = new ParameterOverride(contextName, parameterName, propertyValue);
+            } else {
+                override = new ParameterOverride(propertyName, propertyValue);
+            }
+
+            overrides.add(override);
+        }
+
+        return overrides;
     }
 
     @Override
