@@ -49,7 +49,7 @@
         <dependency>
             <groupId>org.bouncycastle</groupId>
             <artifactId>bcprov-jdk15on</artifactId>
-            <version>${bouncycastle.version}</version>
+            <version>${org.bouncycastle.version}</version>
         </dependency>
         <dependency>
             <groupId>org.codehaus.groovy</groupId>
@@ -65,7 +65,7 @@
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-simple</artifactId>
-            <version>1.7.12</version>
+            <version>${org.slf4j.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
