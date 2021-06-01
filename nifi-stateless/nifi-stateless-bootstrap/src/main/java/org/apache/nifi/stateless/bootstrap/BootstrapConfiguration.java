@@ -20,7 +20,6 @@ package org.apache.nifi.stateless.bootstrap;
 import org.apache.nifi.stateless.config.ParameterOverride;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -36,7 +35,7 @@ public class BootstrapConfiguration {
     private static final String DEFAULT_ENGINE_CONFIG_FILE = "./conf/stateless.properties";
     private static final String DEFAULT_FLOW_CONFIG_FILE = "./conf/env-flow-config.properties";
 
-    private static final Pattern PARAMETER_OVERRIDE_PATTERN = Pattern.compile("(?<!\\\\):");
+    private static final Pattern PARAMETER_OVERRIDE_PATTERN = Pattern.compile( "(?<!\\\\):"  );
     private static final String PARAMETER_OVERRIDE_FLAG = "-p";
     private static final String RUN_CONTINUOUS_SHORT_FLAG = "-c";
     private static final String RUN_CONTINUOUS_LONG_FLAG = "--continuous";
@@ -60,16 +59,16 @@ public class BootstrapConfiguration {
         System.out.println();
         System.out.println();
         System.out.println("Options:");
-        System.out.println(PARAMETER_OVERRIDE_FLAG + " <context name>:<parameter name>:<parameter value>");
+        System.out.println(PARAMETER_OVERRIDE_FLAG + " <context name>:<parameter name>=<parameter value>");
         System.out.println("    Specifies a parameter value to use. If the parameter is present in the provided flow configuration file, the value provided here will take precedence.");
         System.out.println("    For example, to specify that the 'Foo' parameter of the Parameter Context with name 'bar' should have a value of 'BAZ', use:");
-        System.out.println("    -p bar:Foo:BAZ");
+        System.out.println("    -p bar:Foo=BAZ");
         System.out.println();
         System.out.println("    Multiple Parameters may be specified in this way. For example:");
-        System.out.println("    -p bar:Foo:BAZ -p \"My Context:My Parameter:My Value\"");
+        System.out.println("    -p bar:Foo=BAZ -p \"My Context:My Parameter=My Value\"");
         System.out.println();
-        System.out.println("    If a Parameter name or value or Parameter Context name has a colon in it, it may be escaped using the \\ character:");
-        System.out.println("    -p \"My Context:My Parameter:Use ratio of 1\\:1");
+        System.out.println("    If a Parameter Context name has a colon in it, it may be escaped using the \\ character. Parameter names and values do not need to be escaped:");
+        System.out.println("    -p \"My\\:Context:My:Parameter=Use ratio of 1:1");
         System.out.println();
         System.out.println(RUN_CONTINUOUS_SHORT_FLAG);
         System.out.println(RUN_CONTINUOUS_LONG_FLAG);
@@ -113,7 +112,7 @@ public class BootstrapConfiguration {
         return runContinuous;
     }
 
-    static BootstrapConfiguration fromCommandLineArgs(final String[] args) throws FileNotFoundException {
+    static BootstrapConfiguration fromCommandLineArgs(final String[] args) {
         // Create configuration and parse arguments.
         final BootstrapConfiguration configuration = new BootstrapConfiguration();
         configuration.parseArguments(args);
@@ -185,32 +184,34 @@ public class BootstrapConfiguration {
         }
 
         // Validate the Flow Configuration File
-        if (flowConfigFilename == null) {
-            throw new IllegalArgumentException(String.format("No Flow Conf Configuration File was specified - please specify a filename using the %s or %s command-line argument " +
-                    "or by specifying the %s Environment Variable",
-                    FLOW_CONFIGURATION_FILE_LONG_FLAG, FLOW_CONFIGURATION_FILE_SHORT_FLAG, FLOW_CONFIGURATION_FILE_ENV_VAR));
-        }
-
         flowDefinitionFile = new File(flowConfigFilename);
         if (!flowDefinitionFile.exists()) {
             throw new IllegalArgumentException(String.format("Cannot find Flow Configuration File %s - please ensure that the file exists and appropriate permissions are in place for allowing " +
                     "access to the file, or otherwise specify a different filename using the %s or %s command-line argument or by specifying the %s Environment Variable",
                 flowDefinitionFile.getAbsolutePath(), FLOW_CONFIGURATION_FILE_LONG_FLAG, FLOW_CONFIGURATION_FILE_SHORT_FLAG, FLOW_CONFIGURATION_FILE_ENV_VAR));
         }
-
     }
 
-    private ParameterOverride parseOverride(final String argument) {
-        final String[] splits = argument.split(PARAMETER_OVERRIDE_PATTERN.pattern(), 3);
+    ParameterOverride parseOverride(final String argument) {
+        final String[] nameAndValueSplits = argument.split("=", 2);
+        if (nameAndValueSplits.length == 1) {
+            throw new IllegalArgumentException("Invalid parameter: argument has no equals sign: " + argument);
+        }
 
-        if (splits.length == 2) {
-            final String parameterName = splits[0].replace("\\:", ":");
-            final String parameterValue = splits[1].replace("\\:", ":");
-            return new ParameterOverride(parameterName, parameterValue);
-        } else if (splits.length == 3) {
+        final String contextAndParameterName = nameAndValueSplits[0];
+        if (contextAndParameterName.trim().isEmpty()) {
+            throw new IllegalArgumentException("Invalid parameter: argument has no parameter name: " + argument);
+        }
+
+        final String parameterValue = nameAndValueSplits[1];
+
+        final String[] splits = contextAndParameterName.split(PARAMETER_OVERRIDE_PATTERN.pattern(), 2);
+
+        if (splits.length == 1) {
+            return new ParameterOverride(contextAndParameterName, parameterValue);
+        } else if (splits.length == 2) {
             final String contextName = splits[0].replace("\\:", ":");
-            final String parameterName = splits[1].replace("\\:", ":");
-            final String parameterValue = splits[2].replace("\\:", ":");
+            final String parameterName = splits[1];
             return new ParameterOverride(contextName, parameterName, parameterValue);
         }
 

@@ -304,6 +304,10 @@ nifi.stateless.parameters.kafka.Kafka Brokers=kafka-01:9092,kafka-02:9092,kafka-
 Note that while Java properties files typically do not allow for spaces in property names, Stateless parses the properties
 files in a way that does allow for spaces, so that Parameter names, etc. may allow for spaces.
 
+There are times, however, when we do not want to provide the list of Parameters in the dataflow properties file. We may want to fetch the Parameters from some file or
+an external service. For this reason, Stateless supports a notion of a Parameter Provider. A Parameter Provider is an extension point that can be used to retrieve Parameters
+from elsewhere. For information on how to configure Parameter Provider, see the [Passing Parameters](#passing-parameters) section below.
+
 When a stateless dataflow is triggered, it can also be important to consider how much data should be allowed to enter the dataflow for a given invocation.
 Typically, this consists of a single FlowFile at a time or a single batch of FlowFiles at a time, depending on the source processor. However, some processors may
 require additional data in order to perform their tasks. For example, if we have a dataflow whose source processor brings in a single message from a JMS Queue, and
@@ -427,28 +431,29 @@ Additionally, there may be sensitive parameters that users prefer not to include
 Environment Variables, for example.
 
 These parameters may be passed when running NiFi via the `bin/nifi.sh` script by passing a `-p` argument.
-When used, the `-p` argument must be followed by an argument in the format `<context name>:<parameter name>:<parameter value>`
+When used, the `-p` argument must be followed by an argument in the format `[<context name>:]<parameter name>=<parameter value>`
 For example:
 
 ```
-bin/nifi.sh stateless -c -p "Kafka Parameter Context:Kafka Topic:Sensor Data" /var/lib/nifi/stateless/config/stateless.properties /var/lib/nifi/stateless/flows/jms-to-kafka.properties
+bin/nifi.sh stateless -c -p "Kafka Parameter Context:Kafka Topic=Sensor Data" /var/lib/nifi/stateless/config/stateless.properties /var/lib/nifi/stateless/flows/jms-to-kafka.properties
 ```
 
 Note that because of the spaces in the Parameter/Context name and the Parameter value, the argument is quoted.
 Multiple Parameters may be passed using this syntax:
 
 ```
-bin/nifi.sh stateless -c -p "Kafka Parameter Context:Kafka Brokers:kafka-01:9092,kafka-02:9092,kafka-03:9092" -p "Kafka Parameter Context:Kafka Topic:Sensor Data" /var/lib/nifi/stateless/config /stateless.properties
+bin/nifi.sh stateless -c -p "Kafka Parameter Context:Kafka Brokers=kafka-01:9092,kafka-02:9092,kafka-03:9092" -p "Kafka Parameter Context:Kafka Topic=Sensor Data" /var/lib/nifi/stateless/config /stateless.properties
 ```
 
-Note also that the Parameter Context Name and the Parameter Name may not include a colon character.
-The Parameter Value can include colon characters, as in the example here.
+If the name of the Parameter Context contains a colon, it must be escaped using a backslash.
+The name of the Parameter Context and the name of the Parameter may not include an equals sign (=).
+The Parameter Value can include colon characters, as well as equals, as in the example here.
 
 Often times, though, the Parameter Context name is not particularly important, and we just want to provide a Parameter name.
 This can be done by simply leaving off the name of the Parameter Context. For example:
 
 ```
-bin/nifi.sh stateless -c -p "Kafka Brokers:kafka-01:9092,kafka-02:9092,kafka-03:9092" -p "Kafka Topic:Sensor Data" /var/lib/nifi/stateless/config /stateless.properties
+bin/nifi.sh stateless -c -p "Kafka Brokers=kafka-01:9092,kafka-02:9092,kafka-03:9092" -p "Kafka Topic=Sensor Data" /var/lib/nifi/stateless/config /stateless.properties
 ```
 
 In this case, any Parameter Context that has a name of "Kafka Brokers" will have the parameter resolved to `kafka-01:9092,kafka-02:9092,kafka-03:9092`, regardless of the name
@@ -456,4 +461,24 @@ of the Parameter Context.
 
 If a given Parameter is referenced and is not defined using the `-p` syntax, an environment variable may also be used to provide the value. However, environment variables typically are
 allowed to contain only letters, numbers, and underscores in their names. As a result, it is important that the Parameters' names also adhere to that same rule, or the environment variable
-will not be addressable. 
+will not be addressable.
+
+At times, none of the built-in capabilities for resolving Parameters are ideal, though. In these situations, we can use a custom Parameter Provider in order to source Parameter values from elsewhere.
+To configure a custom Parameter Provider, we must configure it similarly to Reporting Tasks, using a common key to indicate which Parameter Provider the property belongs to.
+The following properties are supported:
+
+| Property Name | Description | Example Value |
+|---------------|-------------|---------------|
+| nifi.stateless.parameter.provider.\<key>.name | The name of the Parameter Provider | My Secret Parameter Provider
+| nifi.stateless.parameter.provider.\<key>.type | The type of the Parameter Provider. This may be the fully qualified classname or the simple name, if only a single class exists with the simple name | MySecretParameterProvider |
+| nifi.stateless.parameter.provider.\<key>.bundle | The bundle that holds the Parameter Provider. If not specified, the bundle will be automatically identified, if there exists exactly one bundle with the reporting task. However, if no Bundle is specified, none will be downloaded and if more than 1 is already available, the Parameter Provider cannot be created. The format is \<group id>:\<artifact id>:\<version> | org.apache.nifi:nifi-standard-nar:1.14.0 |
+| nifi.stateless.parameter.provider.\<key>.properties.\<property name> | One or more Parameter Provider properties may be configured using this syntax | Any valid value for the corresponding property |
+
+An example Parameter Provider might be configured as follows:
+
+```
+nifi.stateless.parameter.provider.Props File Provider.name=My Custom Properties File Parameter Provider
+nifi.stateless.parameter.provider.Props File Provider.type=com.myorg.nifi.parameters.custom.MyCustomPropertiesFileParameterProvider
+nifi.stateless.parameter.provider.Props File Provider.bundle=com.myorg:nifi-custom-parameter-provider-nar:0.0.1
+nifi.stateless.parameter.provider.Props File Provider.properties.Filename=/tmp/parameters.properties
+```

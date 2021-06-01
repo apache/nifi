@@ -15,11 +15,27 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.stateless.bootstrap;
+package org.apache.nifi.stateless.parameters;
 
-import org.apache.nifi.stateless.config.ParameterProvider;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.stateless.parameter.AbstractParameterProvider;
 
-public class EmptyParameterProvider implements ParameterProvider {
+import java.util.Collection;
+import java.util.Collections;
+
+public class InvalidParameterProvider extends AbstractParameterProvider {
+
+    @Override
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
+        final ValidationResult validationResult = new ValidationResult.Builder()
+            .valid(false)
+            .explanation("This Parameter Provider is never valid")
+            .build();
+
+        return Collections.singleton(validationResult);
+    }
+
     @Override
     public String getParameterValue(final String contextName, final String parameterName) {
         return null;

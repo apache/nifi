@@ -15,27 +15,35 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.stateless.flow;
+package org.apache.nifi.stateless.config;
 
-import org.apache.nifi.stateless.config.ParameterContextDefinition;
-import org.apache.nifi.stateless.config.ParameterProviderDefinition;
-import org.apache.nifi.stateless.config.ReportingTaskDefinition;
+public class ConfigurableExtensionDefinition {
+    private String name;
+    private String type;
+    private String bundleCoordinates;
 
-import java.util.List;
-import java.util.Set;
+    public String getType() {
+        return type;
+    }
 
-public interface DataflowDefinition<T> {
-    T getFlowSnapshot();
+    public void setType(final String type) {
+        this.type = type;
+    }
 
-    String getFlowName();
+    public String getBundleCoordinates() {
+        return bundleCoordinates;
+    }
 
-    Set<String> getFailurePortNames();
+    public void setBundleCoordinates(final String bundleCoordinates) {
+        this.bundleCoordinates = bundleCoordinates;
+    }
 
-    List<ParameterContextDefinition> getParameterContexts();
+    public String getName() {
+        return name;
+    }
 
-    List<ReportingTaskDefinition> getReportingTaskDefinitions();
+    public void setName(final String name) {
+        this.name = name;
+    }
 
-    List<ParameterProviderDefinition> getParameterProviderDefinitions();
-
-    TransactionThresholds getTransactionThresholds();
 }

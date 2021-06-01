@@ -29,10 +29,13 @@ import org.apache.nifi.stateless.StatelessSystemIT;
 import org.apache.nifi.stateless.VersionedFlowBuilder;
 import org.apache.nifi.stateless.config.ParameterContextDefinition;
 import org.apache.nifi.stateless.config.ParameterDefinition;
+import org.apache.nifi.stateless.config.ParameterProviderDefinition;
 import org.apache.nifi.stateless.config.StatelessConfigurationException;
 import org.apache.nifi.stateless.flow.DataflowTrigger;
 import org.apache.nifi.stateless.flow.StatelessDataflow;
+import org.apache.nifi.stateless.flow.TransactionThresholds;
 import org.apache.nifi.stateless.flow.TriggerResult;
+import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -46,6 +49,170 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 public class ParameterContextIT extends StatelessSystemIT {
+
+    @Test
+    public void testCustomParameterProvider() throws IOException, StatelessConfigurationException, InterruptedException {
+        final VersionedFlowBuilder flowBuilder = new VersionedFlowBuilder();
+        final VersionedPort outPort = flowBuilder.createOutputPort("Out");
+        final VersionedProcessor generate = flowBuilder.createSimpleProcessor("GenerateFlowFile");
+
+        generate.setProperties(Collections.singletonMap("Batch Size", "#{three}"));
+        flowBuilder.createConnection(generate, outPort, "success");
+
+        final VersionedFlowSnapshot flowSnapshot = flowBuilder.getFlowSnapshot();
+
+        // Define the Parameter Context to use
+        final ParameterProviderDefinition numericParameterProvider = new ParameterProviderDefinition();
+        numericParameterProvider.setName("Numeric Parameter Provider");
+        numericParameterProvider.setType("org.apache.nifi.stateless.parameters.NumericParameterProvider");
+        final List<ParameterProviderDefinition> parameterProviders = Collections.singletonList(numericParameterProvider);
+
+        // Create a Parameter Context & set it on the root group.
+        final VersionedParameterContext parameterContext = flowBuilder.createParameterContext("Context 1");
+        parameterContext.getParameters().add(createVersionedParameter("three", "-1"));  // Set value to -1. This should be overridden by the Numeric Parameter Context.
+        flowBuilder.getRootGroup().setParameterContextName("Context 1");
+
+        // Startup the dataflow
+        final StatelessDataflow dataflow = loadDataflow(flowSnapshot, Collections.emptyList(), parameterProviders, Collections.emptySet(), TransactionThresholds.SINGLE_FLOWFILE);
+
+        final DataflowTrigger trigger = dataflow.trigger();
+        final TriggerResult result = trigger.getResult();
+        final List<FlowFile> outputFlowFiles = result.getOutputFlowFiles().get("Out");
+        assertEquals(3, outputFlowFiles.size());
+        result.acknowledge();
+    }
+
+
+    @Test
+    public void testInvalidParameterProvider() {
+        final VersionedFlowBuilder flowBuilder = new VersionedFlowBuilder();
+        final VersionedPort outPort = flowBuilder.createOutputPort("Out");
+        final VersionedProcessor generate = flowBuilder.createSimpleProcessor("GenerateFlowFile");
+
+        generate.setProperties(Collections.singletonMap("Batch Size", "#{three}"));
+        flowBuilder.createConnection(generate, outPort, "success");
+
+        final VersionedFlowSnapshot flowSnapshot = flowBuilder.getFlowSnapshot();
+
+        // Define the Parameter Context to use
+        final ParameterProviderDefinition numericParameterProvider = new ParameterProviderDefinition();
+        numericParameterProvider.setName("Invalid Parameter Provider");
+        numericParameterProvider.setType("org.apache.nifi.stateless.parameters.InvalidParameterProvider");
+        final List<ParameterProviderDefinition> parameterProviders = Collections.singletonList(numericParameterProvider);
+
+        // Create a Parameter Context & set it on the root group.
+        final VersionedParameterContext parameterContext = flowBuilder.createParameterContext("Context 1");
+        parameterContext.getParameters().add(createVersionedParameter("three", "-1"));  // Set value to -1. This should be overridden by the Numeric Parameter Context.
+        flowBuilder.getRootGroup().setParameterContextName("Context 1");
+
+        Assert.assertThrows(IllegalStateException.class, () -> {
+            loadDataflow(flowSnapshot, Collections.emptyList(), parameterProviders, Collections.emptySet(), TransactionThresholds.SINGLE_FLOWFILE);
+        });
+    }
+
+
+    @Test
+    public void testParameterProviderWithRequiredPropertyNotSet() throws IOException, StatelessConfigurationException {
+        final VersionedFlowBuilder flowBuilder = new VersionedFlowBuilder();
+        final VersionedPort outPort = flowBuilder.createOutputPort("Out");
+        final VersionedProcessor generate = flowBuilder.createSimpleProcessor("GenerateFlowFile");
+
+        generate.setProperties(Collections.singletonMap("Batch Size", "#{three}"));
+        flowBuilder.createConnection(generate, outPort, "success");
+
+        final VersionedFlowSnapshot flowSnapshot = flowBuilder.getFlowSnapshot();
+
+        // Define the Parameter Context to use
+        final ParameterProviderDefinition numericParameterProvider = new ParameterProviderDefinition();
+        numericParameterProvider.setName("Parameter Provider With Properties");
+        numericParameterProvider.setType("org.apache.nifi.stateless.parameters.ParameterProviderWithProperties");
+        final List<ParameterProviderDefinition> parameterProviders = Collections.singletonList(numericParameterProvider);
+
+        // Create a Parameter Context & set it on the root group.
+        final VersionedParameterContext parameterContext = flowBuilder.createParameterContext("Context 1");
+        parameterContext.getParameters().add(createVersionedParameter("three", "1"));  // Set value to -1. This should be overridden by the Numeric Parameter Context.
+        flowBuilder.getRootGroup().setParameterContextName("Context 1");
+
+        Assert.assertThrows(IllegalStateException.class, () -> {
+            loadDataflow(flowSnapshot, Collections.emptyList(), parameterProviders, Collections.emptySet(), TransactionThresholds.SINGLE_FLOWFILE);
+        });
+    }
+
+    @Test
+    public void testParameterProviderWithRequiredPropertySet() throws IOException, StatelessConfigurationException {
+        final VersionedFlowBuilder flowBuilder = new VersionedFlowBuilder();
+        final VersionedPort outPort = flowBuilder.createOutputPort("Out");
+        final VersionedProcessor generate = flowBuilder.createSimpleProcessor("GenerateFlowFile");
+
+        generate.setProperties(Collections.singletonMap("Batch Size", "#{three}"));
+        flowBuilder.createConnection(generate, outPort, "success");
+
+        final VersionedFlowSnapshot flowSnapshot = flowBuilder.getFlowSnapshot();
+
+        // Define the Parameter Context to use
+        final ParameterProviderDefinition numericParameterProvider = new ParameterProviderDefinition();
+        numericParameterProvider.setName("Parameter Provider With Properties");
+        numericParameterProvider.setType("org.apache.nifi.stateless.parameters.ParameterProviderWithProperties");
+        numericParameterProvider.setPropertyValues(Collections.singletonMap("Required", "Hello"));
+        final List<ParameterProviderDefinition> parameterProviders = Collections.singletonList(numericParameterProvider);
+
+        // Create a Parameter Context & set it on the root group.
+        final VersionedParameterContext parameterContext = flowBuilder.createParameterContext("Context 1");
+        parameterContext.getParameters().add(createVersionedParameter("three", "1"));  // Set value to -1. This should be overridden by the Numeric Parameter Context.
+        flowBuilder.getRootGroup().setParameterContextName("Context 1");
+
+        loadDataflow(flowSnapshot, Collections.emptyList(), parameterProviders, Collections.emptySet(), TransactionThresholds.SINGLE_FLOWFILE);
+    }
+
+    @Test
+    public void testParameterProviderCanAccessPropertyValues() throws IOException, StatelessConfigurationException, InterruptedException {
+        final VersionedFlowBuilder flowBuilder = new VersionedFlowBuilder();
+        final VersionedPort outPort = flowBuilder.createOutputPort("Out");
+        final VersionedProcessor generate = flowBuilder.createSimpleProcessor("GenerateFlowFile");
+
+        generate.setProperties(Collections.singletonMap("Batch Size", "#{Required}"));
+        flowBuilder.createConnection(generate, outPort, "success");
+
+        final VersionedFlowSnapshot flowSnapshot = flowBuilder.getFlowSnapshot();
+
+        // Define the Parameter Context to use
+        final Map<String, String> providerProperties = new HashMap<>();
+        providerProperties.put("Required", "3");
+        providerProperties.put("Optional", "7");
+
+        final ParameterProviderDefinition numericParameterProvider = new ParameterProviderDefinition();
+        numericParameterProvider.setName("Parameter Provider With Properties");
+        numericParameterProvider.setType("org.apache.nifi.stateless.parameters.ParameterProviderWithProperties");
+        numericParameterProvider.setPropertyValues(providerProperties);
+        final List<ParameterProviderDefinition> parameterProviders = Collections.singletonList(numericParameterProvider);
+
+        // Create a Parameter Context & set it on the root group.
+        final VersionedParameterContext parameterContext = flowBuilder.createParameterContext("Context 1");
+        parameterContext.getParameters().add(createVersionedParameter("Required", "1"));  // Set value to -1. This should be overridden by the Numeric Parameter Context.
+        parameterContext.getParameters().add(createVersionedParameter("Optional", "1"));  // Set value to -1. This should be overridden by the Numeric Parameter Context.
+        flowBuilder.getRootGroup().setParameterContextName("Context 1");
+
+        final StatelessDataflow dataflowWithRequiredParam = loadDataflow(flowSnapshot, Collections.emptyList(), parameterProviders, Collections.emptySet(), TransactionThresholds.SINGLE_FLOWFILE);
+
+        final DataflowTrigger requiredTrigger = dataflowWithRequiredParam.trigger();
+        final TriggerResult requiredResult = requiredTrigger.getResult();
+        final List<FlowFile> requiredOutputFlowFiles = requiredResult.getOutputFlowFiles().get("Out");
+        assertEquals(3, requiredOutputFlowFiles.size());
+        requiredResult.acknowledge();
+
+        dataflowWithRequiredParam.shutdown();
+
+        // Test with Optional parameter referenced
+        generate.setProperties(Collections.singletonMap("Batch Size", "#{Optional}"));
+        final StatelessDataflow dataflowWithOptionalParam = loadDataflow(flowSnapshot, Collections.emptyList(), parameterProviders, Collections.emptySet(), TransactionThresholds.SINGLE_FLOWFILE);
+
+        final DataflowTrigger optionalTrigger = dataflowWithOptionalParam.trigger();
+        final TriggerResult optionalResult = optionalTrigger.getResult();
+        final List<FlowFile> optionalOutputFlowFiles = optionalResult.getOutputFlowFiles().get("Out");
+        assertEquals(7, optionalOutputFlowFiles.size());
+        optionalResult.acknowledge();
+    }
+
 
     @Test
     public void testMultipleParameterContexts() throws IOException, StatelessConfigurationException, InterruptedException {

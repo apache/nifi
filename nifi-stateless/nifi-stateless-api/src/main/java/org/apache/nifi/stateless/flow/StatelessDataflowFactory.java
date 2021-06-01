@@ -17,13 +17,11 @@
 
 package org.apache.nifi.stateless.flow;
 
-import org.apache.nifi.stateless.config.ParameterProvider;
 import org.apache.nifi.stateless.config.StatelessConfigurationException;
 import org.apache.nifi.stateless.engine.StatelessEngineConfiguration;
 
 import java.io.IOException;
 
 public interface StatelessDataflowFactory<T> {
-    StatelessDataflow createDataflow(StatelessEngineConfiguration statelessEngineConfiguration, DataflowDefinition<T> dataflowDefinition,
-                                     ParameterProvider parameterProvider) throws IOException, StatelessConfigurationException;
+    StatelessDataflow createDataflow(StatelessEngineConfiguration statelessEngineConfiguration, DataflowDefinition<T> dataflowDefinition) throws IOException, StatelessConfigurationException;
 }

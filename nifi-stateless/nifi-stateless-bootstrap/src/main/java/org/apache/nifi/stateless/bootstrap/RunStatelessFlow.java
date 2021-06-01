@@ -18,7 +18,6 @@
 package org.apache.nifi.stateless.bootstrap;
 
 import org.apache.nifi.stateless.config.ParameterOverride;
-import org.apache.nifi.stateless.config.ParameterProvider;
 import org.apache.nifi.stateless.config.PropertiesFileEngineConfigurationParser;
 import org.apache.nifi.stateless.config.StatelessConfigurationException;
 import org.apache.nifi.stateless.engine.StatelessEngineConfiguration;
@@ -32,9 +31,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 public class RunStatelessFlow {
     private static final Logger logger = LoggerFactory.getLogger(RunStatelessFlow.class);
@@ -82,19 +79,9 @@ public class RunStatelessFlow {
     }
 
     private static void triggerOnce(final StatelessDataflow dataflow) throws InterruptedException {
-        final long triggerStart = System.nanoTime();
-
         final DataflowTrigger trigger = dataflow.trigger();
         final TriggerResult result = trigger.getResult();
         result.acknowledge();
-
-        final long triggerNanos = System.nanoTime() - triggerStart;
-        final long triggerMillis = TimeUnit.NANOSECONDS.toMillis(triggerNanos);
-        if (triggerMillis > 0) {
-            logger.info("Ran dataflow in {} millis", triggerMillis);
-        } else {
-            logger.info("Ran dataflow in {} nanoseconds", triggerNanos);
-        }
     }
 
     public static StatelessDataflow createDataflow(final StatelessEngineConfiguration engineConfiguration, final File flowDefinitionFile, final List<ParameterOverride> parameterOverrides)
@@ -102,13 +89,9 @@ public class RunStatelessFlow {
         final long initializeStart = System.currentTimeMillis();
 
         final StatelessBootstrap bootstrap = StatelessBootstrap.bootstrap(engineConfiguration);
-        final DataflowDefinition<?> dataflowDefinition = bootstrap.parseDataflowDefinition(flowDefinitionFile);
+        final DataflowDefinition<?> dataflowDefinition = bootstrap.parseDataflowDefinition(flowDefinitionFile, parameterOverrides);
 
-        final ParameterProvider explicitParameterProvider = new ParameterOverrideProvider(parameterOverrides);
-        final ParameterProvider environmentParameterProvider = new EnvironmentVariableParameterProvider();
-        final ParameterProvider compositeProvider = new CompositeParameterProvider(Arrays.asList(explicitParameterProvider, environmentParameterProvider));
-
-        final StatelessDataflow dataflow = bootstrap.createDataflow(dataflowDefinition, compositeProvider);
+        final StatelessDataflow dataflow = bootstrap.createDataflow(dataflowDefinition);
         dataflow.initialize();
 
         final StatelessDataflowValidation validation = dataflow.performValidation();

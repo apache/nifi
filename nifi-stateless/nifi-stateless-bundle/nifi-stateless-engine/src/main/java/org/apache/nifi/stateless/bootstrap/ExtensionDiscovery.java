@@ -20,11 +20,13 @@ import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.nar.ExtensionDiscoveringManager;
 import org.apache.nifi.nar.NarClassLoaders;
 import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
+import org.apache.nifi.stateless.parameter.ParameterProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -43,7 +45,7 @@ public class ExtensionDiscovery {
         final Set<Bundle> narBundles = narClassLoaders.getBundles();
 
         final long discoveryStart = System.nanoTime();
-        final StandardExtensionDiscoveringManager extensionManager = new StandardExtensionDiscoveringManager();
+        final StandardExtensionDiscoveringManager extensionManager = new StandardExtensionDiscoveringManager(Collections.singleton(ParameterProvider.class));
         extensionManager.discoverExtensions(narBundles);
 
         final long discoveryMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - discoveryStart);

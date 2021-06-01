@@ -22,7 +22,7 @@ import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.nar.NarClassLoaders;
 import org.apache.nifi.nar.NarUnpacker;
 import org.apache.nifi.nar.SystemBundle;
-import org.apache.nifi.stateless.config.ParameterProvider;
+import org.apache.nifi.stateless.config.ParameterOverride;
 import org.apache.nifi.stateless.config.StatelessConfigurationException;
 import org.apache.nifi.stateless.engine.NarUnpackLock;
 import org.apache.nifi.stateless.engine.StatelessEngineConfiguration;
@@ -60,22 +60,24 @@ public class StatelessBootstrap {
         this.engineConfiguration = engineConfiguration;
     }
 
-    public <T> StatelessDataflow createDataflow(final DataflowDefinition<T> dataflowDefinition, final ParameterProvider parameterProvider)
+    public <T> StatelessDataflow createDataflow(final DataflowDefinition<T> dataflowDefinition)
                 throws IOException, StatelessConfigurationException {
         final StatelessDataflowFactory<T> dataflowFactory = getSingleInstance(statelessClassLoader, StatelessDataflowFactory.class);
-        final StatelessDataflow dataflow = dataflowFactory.createDataflow(engineConfiguration, dataflowDefinition, parameterProvider);
+        final StatelessDataflow dataflow = dataflowFactory.createDataflow(engineConfiguration, dataflowDefinition);
         return dataflow;
     }
 
-    public DataflowDefinition<?> parseDataflowDefinition(final File flowDefinitionFile) throws StatelessConfigurationException, IOException {
+    public DataflowDefinition<?> parseDataflowDefinition(final File flowDefinitionFile, final List<ParameterOverride> parameterOverrides)
+                throws StatelessConfigurationException, IOException {
         final DataflowDefinitionParser dataflowDefinitionParser = getSingleInstance(statelessClassLoader, DataflowDefinitionParser.class);
-        final DataflowDefinition<?> dataflowDefinition = dataflowDefinitionParser.parseFlowDefinition(flowDefinitionFile, engineConfiguration);
+        final DataflowDefinition<?> dataflowDefinition = dataflowDefinitionParser.parseFlowDefinition(flowDefinitionFile, engineConfiguration, parameterOverrides);
         return dataflowDefinition;
     }
 
-    public DataflowDefinition<?> parseDataflowDefinition(final Map<String, String> flowDefinitionProperties) throws StatelessConfigurationException, IOException {
+    public DataflowDefinition<?> parseDataflowDefinition(final Map<String, String> flowDefinitionProperties, final List<ParameterOverride> parameterOverrides)
+                throws StatelessConfigurationException, IOException {
         final DataflowDefinitionParser dataflowDefinitionParser = getSingleInstance(statelessClassLoader, DataflowDefinitionParser.class);
-        final DataflowDefinition<?> dataflowDefinition = dataflowDefinitionParser.parseFlowDefinition(flowDefinitionProperties, engineConfiguration);
+        final DataflowDefinition<?> dataflowDefinition = dataflowDefinitionParser.parseFlowDefinition(flowDefinitionProperties, engineConfiguration, parameterOverrides);
         return dataflowDefinition;
     }
 
