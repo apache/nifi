@@ -122,7 +122,7 @@ public final class AzureStorageUtils {
             .displayName("SAS Token")
             .description("Shared Access Signature token, including the leading '?'. Specify either SAS Token (recommended) or Account Key. " +
                     "There are certain risks in allowing the SAS token to be stored as a flowfile " +
-                    "attribute. While it does provide for a more flexible flow by allowing the account name to " +
+                    "attribute. While it does provide for a more flexible flow by allowing the SAS Token to " +
                     "be fetched dynamically from a flowfile attribute, care must be taken to restrict access to " +
                     "the event provenance data (e.g. by strictly controlling the policies governing provenance for this Processor). " +
                     "In addition, the provenance repositories may be put on encrypted disk partitions.")

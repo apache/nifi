@@ -328,6 +328,28 @@ public class TestADLSCredentialsControllerService {
     }
 
     @Test
+    public void testGetCredentialsDetailsWithSasTokenUsingEL() throws Exception {
+        // GIVEN
+        configureAccountName();
+        configureSasTokenUsingEL();
+
+        runner.enableControllerService(credentialsService);
+
+        // WHEN
+        ADLSCredentialsDetails actual = credentialsService.getCredentialsDetails(new HashMap<>());
+
+        // THEN
+        assertEquals(ACCOUNT_NAME_VALUE, actual.getAccountName());
+        assertEquals(SAS_TOKEN_VALUE, actual.getSasToken());
+        assertNull(actual.getAccountKey());
+        assertFalse(actual.getUseManagedIdentity());
+        assertNotNull(actual.getEndpointSuffix());
+        assertNull(actual.getServicePrincipalTenantId());
+        assertNull(actual.getServicePrincipalClientId());
+        assertNull(actual.getServicePrincipalClientSecret());
+    }
+
+    @Test
     public void testGetCredentialsDetailsWithUseManagedIdentity() throws Exception {
         // GIVEN
         configureAccountName();
@@ -415,6 +437,11 @@ public class TestADLSCredentialsControllerService {
 
     private void configureSasToken() {
         runner.setProperty(credentialsService, ADLSCredentialsControllerService.SAS_TOKEN, SAS_TOKEN_VALUE);
+    }
+
+    private void configureSasTokenUsingEL() {
+        String variableName = "sas.token";
+        configurePropertyUsingEL(ADLSCredentialsControllerService.SAS_TOKEN, variableName, SAS_TOKEN_VALUE);
     }
 
     private void configureUseManagedIdentity() {

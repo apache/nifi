@@ -72,7 +72,7 @@ public class ADLSCredentialsControllerService extends AbstractControllerService 
 
     public static final PropertyDescriptor SAS_TOKEN = new PropertyDescriptor.Builder()
             .fromPropertyDescriptor(AzureStorageUtils.PROP_SAS_TOKEN)
-            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
     public static final PropertyDescriptor USE_MANAGED_IDENTITY = new PropertyDescriptor.Builder()
