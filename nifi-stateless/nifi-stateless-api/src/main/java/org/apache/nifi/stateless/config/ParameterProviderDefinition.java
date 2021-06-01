@@ -15,18 +15,19 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.stateless.bootstrap;
+package org.apache.nifi.stateless.config;
 
-import org.apache.nifi.stateless.config.ParameterProvider;
+import java.util.HashMap;
+import java.util.Map;
 
-public class EmptyParameterProvider implements ParameterProvider {
-    @Override
-    public String getParameterValue(final String contextName, final String parameterName) {
-        return null;
+public class ParameterProviderDefinition extends ConfigurableExtensionDefinition {
+    private Map<String, String> propertyValues = new HashMap<>();
+
+    public Map<String, String> getPropertyValues() {
+        return propertyValues;
     }
 
-    @Override
-    public boolean isParameterDefined(final String contextName, final String parameterName) {
-        return false;
+    public void setPropertyValues(final Map<String, String> propertyValues) {
+        this.propertyValues = propertyValues;
     }
 }

@@ -41,6 +41,7 @@ import org.apache.nifi.extensions.ExtensionRepository;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.nar.ExtensionDefinition;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.nar.InstanceClassLoader;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterDescriptor;
@@ -53,13 +54,17 @@ import org.apache.nifi.registry.flow.VersionedProcessGroup;
 import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.reporting.ReportingTask;
 import org.apache.nifi.scheduling.SchedulingStrategy;
+import org.apache.nifi.stateless.config.ConfigurableExtensionDefinition;
 import org.apache.nifi.stateless.config.ParameterContextDefinition;
 import org.apache.nifi.stateless.config.ParameterDefinition;
-import org.apache.nifi.stateless.config.ParameterProvider;
+import org.apache.nifi.stateless.config.ParameterProviderDefinition;
 import org.apache.nifi.stateless.config.ReportingTaskDefinition;
 import org.apache.nifi.stateless.flow.DataflowDefinition;
 import org.apache.nifi.stateless.flow.StandardStatelessFlow;
 import org.apache.nifi.stateless.flow.StatelessDataflow;
+import org.apache.nifi.stateless.parameter.CompositeParameterProvider;
+import org.apache.nifi.stateless.parameter.ParameterProvider;
+import org.apache.nifi.stateless.parameter.ParameterProviderInitializationContext;
 import org.apache.nifi.stateless.repository.RepositoryContextFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -138,7 +143,7 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
     }
 
     @Override
-    public StatelessDataflow createFlow(final DataflowDefinition<VersionedFlowSnapshot> dataflowDefinition, final ParameterProvider parameterProvider) {
+    public StatelessDataflow createFlow(final DataflowDefinition<VersionedFlowSnapshot> dataflowDefinition) {
         if (!this.initialized) {
             throw new IllegalStateException("Cannot create Flow without first initializing Stateless Engine");
         }
@@ -158,6 +163,8 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
         rootGroup.addProcessGroup(childGroup);
 
         childGroup.updateFlow(dataflowDefinition.getFlowSnapshot(), "stateless-component-id-seed", false, true, true);
+
+        final ParameterProvider parameterProvider = createParameterProvider(dataflowDefinition);
 
         // Map existing parameter contexts by name
         final Set<ParameterContext> parameterContexts = flowManager.getParameterContextManager().getParameterContexts();
@@ -182,12 +189,60 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
         return dataflow;
     }
 
+    private ParameterProvider createParameterProvider(final DataflowDefinition<?> dataflowDefinition) {
+        // Create a Provider for each definition
+        final List<ParameterProvider> providers = new ArrayList<>();
+        for (final ParameterProviderDefinition definition : dataflowDefinition.getParameterProviderDefinitions()) {
+            providers.add(createParameterProvider(definition));
+        }
+
+        // Create a Composite Parameter Provider that wraps all of the others.
+        return new CompositeParameterProvider(providers);
+    }
+
+    private ParameterProvider createParameterProvider(final ParameterProviderDefinition definition) {
+        final BundleCoordinate bundleCoordinate = determineBundleCoordinate(definition);
+        final Bundle bundle = extensionManager.getBundle(bundleCoordinate);
+        if (bundle == null) {
+            throw new IllegalStateException("Unable to find bundle for coordinate " + bundleCoordinate.getCoordinate());
+        }
+
+        final String providerType = definition.getType();
+
+        final String providerId = UUID.randomUUID().toString();
+        final InstanceClassLoader classLoader = extensionManager.createInstanceClassLoader(providerType, providerId, bundle, Collections.emptySet());
+
+        try {
+            final Class<?> rawClass = Class.forName(providerType, true, classLoader);
+            Thread.currentThread().setContextClassLoader(classLoader);
+
+            final ParameterProvider parameterProvider = (ParameterProvider) rawClass.newInstance();
+
+            final Map<String, String> properties = Collections.unmodifiableMap(definition.getPropertyValues());
+            final ParameterProviderInitializationContext initializationContext = new StandardParameterProviderInitializationContext(parameterProvider, properties, providerId);
+
+            parameterProvider.initialize(initializationContext);
+            return parameterProvider;
+        } catch (final Exception e) {
+            throw new IllegalStateException("Could not create Parameter Provider " + definition.getName() + " of type " + definition.getType(), e);
+        }
+    }
+
     private void loadNecessaryExtensions(final DataflowDefinition<VersionedFlowSnapshot> dataflowDefinition) {
         final VersionedProcessGroup group = dataflowDefinition.getFlowSnapshot().getFlowContents();
         final Set<BundleCoordinate> requiredBundles = gatherRequiredBundles(group);
 
         for (final ReportingTaskDefinition reportingTaskDefinition : dataflowDefinition.getReportingTaskDefinitions()) {
             final BundleCoordinate coordinate = parseBundleCoordinate(reportingTaskDefinition);
+            if (coordinate == null) {
+                continue;
+            }
+
+            requiredBundles.add(coordinate);
+        }
+
+        for (final ParameterProviderDefinition parameterProviderDefinition : dataflowDefinition.getParameterProviderDefinitions()) {
+            final BundleCoordinate coordinate = parseBundleCoordinate(parameterProviderDefinition);
             if (coordinate == null) {
                 continue;
             }
@@ -291,10 +346,11 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
         return resolved;
     }
 
-    private BundleCoordinate determineBundleCoordinate(final ReportingTaskDefinition taskDefinition) {
+
+    private BundleCoordinate determineBundleCoordinate(final ConfigurableExtensionDefinition taskDefinition) {
         final String explicitCoordinates = taskDefinition.getBundleCoordinates();
         if (explicitCoordinates != null && !explicitCoordinates.trim().isEmpty()) {
-            final String resolvedClassName = resolveReportingTaskClassName(taskDefinition);
+            final String resolvedClassName = resolveExtensionClassName(taskDefinition);
             taskDefinition.setType(resolvedClassName);
 
             final BundleCoordinate coordinate = parseBundleCoordinate(taskDefinition);
@@ -306,23 +362,23 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
         if (!specifiedType.contains(".")) {
             final List<Bundle> possibleBundles = extensionManager.getBundles(taskDefinition.getType());
             if (possibleBundles.isEmpty()) {
-                logger.debug("Could not find Reporting Task type of <{}>. Will try to find matching Reporting Task type based on class name", specifiedType);
+                logger.debug("Could not find extension type of <{}>. Will try to find matching Reporting Task type based on class name", specifiedType);
 
-                resolvedClassName = resolveReportingTaskClassName(taskDefinition);
+                resolvedClassName = resolveExtensionClassName(taskDefinition);
                 taskDefinition.setType(resolvedClassName);
-                logger.info("Resolved Reporting Task class {} to {}", specifiedType, resolvedClassName);
+                logger.info("Resolved extension class {} to {}", specifiedType, resolvedClassName);
             }
         }
 
         final List<Bundle> possibleBundles = extensionManager.getBundles(resolvedClassName);
         if (possibleBundles.isEmpty()) {
-            throw new IllegalArgumentException("Reporting Task '" + taskDefinition.getName() + "' (" + taskDefinition.getType() +
+            throw new IllegalArgumentException("Extension '" + taskDefinition.getName() + "' (" + taskDefinition.getType() +
                 ") does not specify a Bundle and no Bundles could be found for type " + taskDefinition.getType());
         }
 
         if (possibleBundles.size() > 1) {
-            throw new IllegalArgumentException("Reporting Task '" + taskDefinition.getName() + "' (" + taskDefinition.getType() +
-                ") does not specify a Bundle and multiple Bundles exist for this type. The reporting task must specify a bundle to use.");
+            throw new IllegalArgumentException("Extension '" + taskDefinition.getName() + "' (" + taskDefinition.getType() +
+                ") does not specify a Bundle and multiple Bundles exist for this type. The extension must specify a bundle to use.");
         }
 
         final Bundle bundle = possibleBundles.get(0);
@@ -330,23 +386,24 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
         return coordinate;
     }
 
-    private BundleCoordinate parseBundleCoordinate(final ReportingTaskDefinition taskDefinition) {
-        final String specifiedCoordinates = taskDefinition.getBundleCoordinates();
+    private BundleCoordinate parseBundleCoordinate(final ConfigurableExtensionDefinition extensionDefinition) {
+        final String specifiedCoordinates = extensionDefinition.getBundleCoordinates();
         if (specifiedCoordinates == null) {
             return null;
         }
 
         final String[] splits = specifiedCoordinates.split(":", 3);
         if (splits.length != 3) {
-            throw new IllegalArgumentException("Reporting Task '" + taskDefinition.getName() + "' (" + taskDefinition.getType() + ") specifies bundle as '" + specifiedCoordinates + "', but this " +
-                "is not a valid Bundle format. Format should be <group>:<id>:<version>");
+            throw new IllegalArgumentException("Reporting Task '" + extensionDefinition.getName() + "' (" + extensionDefinition.getType() + ") specifies bundle as '" +
+                specifiedCoordinates + "', but this " + "is not a valid Bundle format. Format should be <group>:<id>:<version>");
         }
 
         return new BundleCoordinate(splits[0], splits[1], splits[2]);
     }
 
-    private String resolveReportingTaskClassName(final ReportingTaskDefinition taskDefinition) {
-        final String specifiedType = taskDefinition.getType();
+
+    private String resolveExtensionClassName(final ConfigurableExtensionDefinition extensionDefinition) {
+        final String specifiedType = extensionDefinition.getType();
         if (specifiedType.contains(".")) {
             return specifiedType;
         }
@@ -365,13 +422,13 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
         }
 
         if (possibleResolvedClassNames.isEmpty()) {
-            throw new IllegalArgumentException("Reporting Task '" + taskDefinition.getName() + "' (" + taskDefinition.getType() + ") does not specify a Bundle, and no Reporting Task" +
-                " implementations exist with a class name of " + taskDefinition.getType() + ".");
+            throw new IllegalArgumentException("Reporting Task '" + extensionDefinition.getName() + "' (" + extensionDefinition.getType() + ") does not specify a Bundle, and no Reporting Task" +
+                " implementations exist with a class name of " + extensionDefinition.getType() + ".");
         }
 
         if (possibleResolvedClassNames.size() > 1) {
-            throw new IllegalArgumentException("Reporting Task '" + taskDefinition.getName() + "' (" + taskDefinition.getType() + ") does not specify a Bundle, and no Reporting Task" +
-                " implementations exist with a class name of " + taskDefinition.getType() + ". Perhaps you meant one of: " + possibleResolvedClassNames);
+            throw new IllegalArgumentException("Reporting Task '" + extensionDefinition.getName() + "' (" + extensionDefinition.getType() + ") does not specify a Bundle, and no Reporting Task" +
+                " implementations exist with a class name of " + extensionDefinition.getType() + ". Perhaps you meant one of: " + possibleResolvedClassNames);
         }
 
         return possibleResolvedClassNames.iterator().next();

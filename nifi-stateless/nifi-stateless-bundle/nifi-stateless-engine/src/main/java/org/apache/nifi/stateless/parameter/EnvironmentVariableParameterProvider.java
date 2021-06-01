@@ -15,17 +15,25 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.stateless.config;
+package org.apache.nifi.stateless.parameter;
 
-public interface ParameterProvider {
+import java.util.Map;
 
-    /**
-     * Given a Parameter Context Name and a Parameter Name, returns the value of the parameter
-     * @param contextName the name of the Parameter Context
-     * @param parameterName the name of the Parameter
-     * @return the value for the Parameter, or <code>null</code> if no value has been specified
-     */
-    String getParameterValue(String contextName, String parameterName);
+public class EnvironmentVariableParameterProvider extends AbstractParameterProvider implements ParameterProvider {
+    private final Map<String, String> environmentVariables = System.getenv();
 
-    boolean isParameterDefined(String contextName, String parameterName);
+    @Override
+    public String getParameterValue(final String contextName, final String parameterName) {
+        String envValue = environmentVariables.get(contextName + ":" + parameterName);
+        if (envValue != null) {
+            return envValue;
+        }
+
+        return environmentVariables.get(parameterName);
+    }
+
+    @Override
+    public boolean isParameterDefined(final String contextName, final String parameterName) {
+        return getParameterValue(contextName, parameterName) != null;
+    }
 }

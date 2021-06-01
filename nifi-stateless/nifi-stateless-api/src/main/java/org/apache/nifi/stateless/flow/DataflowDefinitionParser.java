@@ -17,15 +17,19 @@
 
 package org.apache.nifi.stateless.flow;
 
+import org.apache.nifi.stateless.config.ParameterOverride;
 import org.apache.nifi.stateless.config.StatelessConfigurationException;
 import org.apache.nifi.stateless.engine.StatelessEngineConfiguration;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 
 public interface DataflowDefinitionParser {
-    DataflowDefinition<?> parseFlowDefinition(File configurationFile, StatelessEngineConfiguration engineConfiguration) throws StatelessConfigurationException, IOException;
+    DataflowDefinition<?> parseFlowDefinition(File configurationFile, StatelessEngineConfiguration engineConfiguration, List<ParameterOverride> parameterOverrides)
+        throws StatelessConfigurationException, IOException;
 
-    DataflowDefinition<?> parseFlowDefinition(Map<String, String> configurationProperties, StatelessEngineConfiguration engineConfiguration) throws StatelessConfigurationException, IOException;
+    DataflowDefinition<?> parseFlowDefinition(Map<String, String> configurationProperties, StatelessEngineConfiguration engineConfiguration, List<ParameterOverride> parameterOverrides)
+        throws StatelessConfigurationException, IOException;
 }

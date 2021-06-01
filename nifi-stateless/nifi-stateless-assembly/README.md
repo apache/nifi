@@ -427,28 +427,29 @@ Additionally, there may be sensitive parameters that users prefer not to include
 Environment Variables, for example.
 
 These parameters may be passed when running NiFi via the `bin/nifi.sh` script by passing a `-p` argument.
-When used, the `-p` argument must be followed by an argument in the format `<context name>:<parameter name>:<parameter value>`
+When used, the `-p` argument must be followed by an argument in the format `[<context name>:]<parameter name>=<parameter value>`
 For example:
 
 ```
-bin/nifi.sh stateless -c -p "Kafka Parameter Context:Kafka Topic:Sensor Data" /var/lib/nifi/stateless/config/stateless.properties /var/lib/nifi/stateless/flows/jms-to-kafka.properties
+bin/nifi.sh stateless -c -p "Kafka Parameter Context:Kafka Topic=Sensor Data" /var/lib/nifi/stateless/config/stateless.properties /var/lib/nifi/stateless/flows/jms-to-kafka.properties
 ```
 
 Note that because of the spaces in the Parameter/Context name and the Parameter value, the argument is quoted.
 Multiple Parameters may be passed using this syntax:
 
 ```
-bin/nifi.sh stateless -c -p "Kafka Parameter Context:Kafka Brokers:kafka-01:9092,kafka-02:9092,kafka-03:9092" -p "Kafka Parameter Context:Kafka Topic:Sensor Data" /var/lib/nifi/stateless/config /stateless.properties
+bin/nifi.sh stateless -c -p "Kafka Parameter Context:Kafka Brokers=kafka-01:9092,kafka-02:9092,kafka-03:9092" -p "Kafka Parameter Context:Kafka Topic=Sensor Data" /var/lib/nifi/stateless/config /stateless.properties
 ```
 
-Note also that the Parameter Context Name and the Parameter Name may not include a colon character.
-The Parameter Value can include colon characters, as in the example here.
+If the name of the Parameter Context contains a colon, it must be escaped using a backslash.
+The name of the Parameter Context and the name of the Parameter may not include an equals sign (=).
+The Parameter Value can include colon characters, as well as equals, as in the example here.
 
 Often times, though, the Parameter Context name is not particularly important, and we just want to provide a Parameter name.
 This can be done by simply leaving off the name of the Parameter Context. For example:
 
 ```
-bin/nifi.sh stateless -c -p "Kafka Brokers:kafka-01:9092,kafka-02:9092,kafka-03:9092" -p "Kafka Topic:Sensor Data" /var/lib/nifi/stateless/config /stateless.properties
+bin/nifi.sh stateless -c -p "Kafka Brokers=kafka-01:9092,kafka-02:9092,kafka-03:9092" -p "Kafka Topic=Sensor Data" /var/lib/nifi/stateless/config /stateless.properties
 ```
 
 In this case, any Parameter Context that has a name of "Kafka Brokers" will have the parameter resolved to `kafka-01:9092,kafka-02:9092,kafka-03:9092`, regardless of the name

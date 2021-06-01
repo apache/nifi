@@ -15,27 +15,10 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.stateless.bootstrap;
+package org.apache.nifi.stateless.parameter;
 
-import org.apache.nifi.stateless.config.ParameterProvider;
+import org.apache.nifi.context.PropertyContext;
 
-import java.util.Map;
-
-public class EnvironmentVariableParameterProvider implements ParameterProvider {
-    private final Map<String, String> environmentVariables = System.getenv();
-
-    @Override
-    public String getParameterValue(final String contextName, final String parameterName) {
-        String envValue = environmentVariables.get(contextName + ":" + parameterName);
-        if (envValue != null) {
-            return envValue;
-        }
-
-        return environmentVariables.get(parameterName);
-    }
-
-    @Override
-    public boolean isParameterDefined(final String contextName, final String parameterName) {
-        return getParameterValue(contextName, parameterName) != null;
-    }
+public interface ParameterProviderInitializationContext extends PropertyContext {
+    String getIdentifier();
 }

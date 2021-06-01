@@ -36,6 +36,8 @@ import org.apache.nifi.stateless.flow.DataflowDefinition;
 import org.apache.nifi.stateless.flow.DataflowDefinitionParser;
 import org.apache.nifi.stateless.flow.StandardDataflowDefinition;
 import org.apache.nifi.stateless.flow.TransactionThresholds;
+import org.apache.nifi.stateless.parameter.EnvironmentVariableParameterProvider;
+import org.apache.nifi.stateless.parameter.ParameterOverrideProvider;
 import org.apache.nifi.util.FormatUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,6 +54,7 @@ import java.io.InputStreamReader;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -71,6 +74,7 @@ public class PropertiesFileFlowDefinitionParser implements DataflowDefinitionPar
     // After the name of the parameter context, it may or may not have a ".<parameter name>" component, then an equals (=) and a value.
     private static final Pattern PARAMETER_CONTEXT_PATTERN = Pattern.compile("\\Qnifi.stateless.parameters.\\E(.*?)(\\..*)?");
     private static final Pattern REPORTING_TASK_PATTERN = Pattern.compile("\\Qnifi.stateless.reporting.task.\\E(.*?)\\.(.*)");
+    private static final Pattern PARAMETER_PROVIDER_PATTERN = Pattern.compile("\\Qnifi.stateless.parameter.provider.\\E(.*?)\\.(.*)");
 
     // Any property value of the form env{...} can be used to reference an environment variable. For example, env{ABC} references the ABC environment variable.
     private static final Pattern ENV_VARIABLE_PATTERN = Pattern.compile("env\\{(.*)}");
@@ -91,14 +95,14 @@ public class PropertiesFileFlowDefinitionParser implements DataflowDefinitionPar
     private static final String TRANSACTION_THRESHOLD_TIME = "nifi.stateless.transaction.thresholds.time";
 
 
-    public DataflowDefinition<VersionedFlowSnapshot> parseFlowDefinition(final File propertiesFile, final StatelessEngineConfiguration engineConfig)
+    public DataflowDefinition<VersionedFlowSnapshot> parseFlowDefinition(final File propertiesFile, final StatelessEngineConfiguration engineConfig, final List<ParameterOverride> parameterOverrides)
                         throws IOException, StatelessConfigurationException {
         final Map<String, String> properties = readPropertyValues(propertiesFile);
-        return parseFlowDefinition(properties, engineConfig);
+        return parseFlowDefinition(properties, engineConfig, parameterOverrides);
     }
 
-    public DataflowDefinition<VersionedFlowSnapshot> parseFlowDefinition(final Map<String, String> properties, final StatelessEngineConfiguration engineConfig)
-                        throws IOException, StatelessConfigurationException {
+    public DataflowDefinition<VersionedFlowSnapshot> parseFlowDefinition(final Map<String, String> properties, final StatelessEngineConfiguration engineConfig,
+                                                                         final List<ParameterOverride> parameterOverrides) throws IOException, StatelessConfigurationException {
 
         // A common problem is users accidentally including whitespace at the beginning or end of property values.
         // We can't just blindly trim the white space because it may be relevant. For example, there may be a Parameter
@@ -110,6 +114,7 @@ public class PropertiesFileFlowDefinitionParser implements DataflowDefinitionPar
         final VersionedFlowSnapshot flowSnapshot = fetchVersionedFlowSnapshot(properties, engineConfig.getSslContext());
         final List<ParameterContextDefinition> parameterContextDefinitions = getParameterContexts(properties);
         final List<ReportingTaskDefinition> reportingTaskDefinitions = getReportingTasks(properties);
+        final List<ParameterProviderDefinition> parameterProviderDefinitions = getParameterProviders(properties, parameterOverrides);
         final TransactionThresholds transactionThresholds = getTransactionThresholds(properties);
 
         final String rootGroupName = flowSnapshot.getFlowContents().getName();
@@ -121,6 +126,7 @@ public class PropertiesFileFlowDefinitionParser implements DataflowDefinitionPar
             .failurePortNames(failurePortNames)
             .parameterContexts(parameterContextDefinitions)
             .reportingTasks(reportingTaskDefinitions)
+            .parameterProviders(parameterProviderDefinitions)
             .transactionThresholds(transactionThresholds)
             .build();
     }
@@ -172,6 +178,80 @@ public class PropertiesFileFlowDefinitionParser implements DataflowDefinitionPar
         }
 
         return new ArrayList<>(reportingTaskDefinitions.values());
+    }
+
+    private List<ParameterProviderDefinition> getParameterProviders(final Map<String, String> properties, final List<ParameterOverride> parameterOverrides) {
+        final Map<String, ParameterProviderDefinition> parameterProviderDefinitions = new LinkedHashMap<>();
+
+        for (final String propertyName : properties.keySet()) {
+            final Matcher matcher = PARAMETER_PROVIDER_PATTERN.matcher(propertyName);
+            if (!matcher.matches()) {
+                continue;
+            }
+
+            // For a property name like:
+            // nifi.stateless.parameter.provider.abc.name=hello
+            // We consider 'abc' the <parameter provider key> and 'name' the <relative property name>
+            final String parameterProviderKey = matcher.group(1);
+            final ParameterProviderDefinition definition = parameterProviderDefinitions.computeIfAbsent(parameterProviderKey, key -> new ParameterProviderDefinition());
+            final String relativePropertyName = matcher.group(2);
+            final String propertyValue = properties.get(propertyName);
+
+            if (relativePropertyName.startsWith("properties.")) {
+                if (relativePropertyName.length() < 12) {
+                    logger.warn("Encountered unexpected property <" + propertyName + "> in flow definition. This property will be ignored.");
+                    continue;
+                }
+
+                final String providerPropertyName = relativePropertyName.substring(11);
+                definition.getPropertyValues().put(providerPropertyName, propertyValue);
+            } else {
+                switch (relativePropertyName) {
+                    case "name":
+                        definition.setName(propertyValue);
+                        break;
+                    case "type":
+                        definition.setType(propertyValue);
+                        break;
+                    case "bundle":
+                        definition.setBundleCoordinates(propertyValue);
+                        break;
+                    default:
+                        logger.warn("Encountered unexpected property <" + propertyName + "> in flow definition. This property will be ignored.");
+                        break;
+                }
+            }
+        }
+
+        parameterProviderDefinitions.put("Default Parameter Override Provider", createParameterOverrideProvider(parameterOverrides));
+        parameterProviderDefinitions.put("Default Environment Variable Provider", createEnvironmentVariableProvider());
+
+        return new ArrayList<>(parameterProviderDefinitions.values());
+    }
+
+    private ParameterProviderDefinition createEnvironmentVariableProvider() {
+        final ParameterProviderDefinition overrideProvider = new ParameterProviderDefinition();
+        overrideProvider.setType(EnvironmentVariableParameterProvider.class.getName());
+        overrideProvider.setName("Environment Variable Parameter Provider");
+        overrideProvider.setPropertyValues(Collections.emptyMap());
+        return overrideProvider;
+    }
+
+    private ParameterProviderDefinition createParameterOverrideProvider(final List<ParameterOverride> parameterOverrides) {
+        final ParameterProviderDefinition overrideProvider = new ParameterProviderDefinition();
+        overrideProvider.setType(ParameterOverrideProvider.class.getName());
+        overrideProvider.setName("Parameter Override Provider");
+
+        final Map<String, String> propertyValues = new LinkedHashMap<>();
+        for (final ParameterOverride override : parameterOverrides) {
+            final String contextName = override.getContextName();
+            final String parameterName = override.getParameterName();
+            final String propertyName = contextName == null ? parameterName : contextName + ":" + parameterName;
+            propertyValues.put(propertyName, override.getParameterValue());
+        }
+
+        overrideProvider.setPropertyValues(propertyValues);
+        return overrideProvider;
     }
 
     private List<ParameterContextDefinition> getParameterContexts(final Map<String, String> properties) {

@@ -15,14 +15,12 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.stateless.bootstrap;
-
-import org.apache.nifi.stateless.config.ParameterProvider;
+package org.apache.nifi.stateless.parameter;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class CompositeParameterProvider implements ParameterProvider {
+public class CompositeParameterProvider extends AbstractParameterProvider implements ParameterProvider {
     private final List<ParameterProvider> parameterProviders;
 
     public CompositeParameterProvider(final List<ParameterProvider> providers) {

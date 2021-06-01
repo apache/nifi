@@ -15,27 +15,21 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.stateless.flow;
+package org.apache.nifi.stateless.parameter;
 
-import org.apache.nifi.stateless.config.ParameterContextDefinition;
-import org.apache.nifi.stateless.config.ParameterProviderDefinition;
-import org.apache.nifi.stateless.config.ReportingTaskDefinition;
+import org.apache.nifi.components.ConfigurableComponent;
 
-import java.util.List;
-import java.util.Set;
+public interface ParameterProvider extends ConfigurableComponent {
 
-public interface DataflowDefinition<T> {
-    T getFlowSnapshot();
+    void initialize(ParameterProviderInitializationContext context);
 
-    String getFlowName();
+    /**
+     * Given a Parameter Context Name and a Parameter Name, returns the value of the parameter
+     * @param contextName the name of the Parameter Context
+     * @param parameterName the name of the Parameter
+     * @return the value for the Parameter, or <code>null</code> if no value has been specified
+     */
+    String getParameterValue(String contextName, String parameterName);
 
-    Set<String> getFailurePortNames();
-
-    List<ParameterContextDefinition> getParameterContexts();
-
-    List<ReportingTaskDefinition> getReportingTaskDefinitions();
-
-    List<ParameterProviderDefinition> getParameterProviderDefinitions();
-
-    TransactionThresholds getTransactionThresholds();
+    boolean isParameterDefined(String contextName, String parameterName);
 }

@@ -23,6 +23,7 @@ import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
 import org.apache.nifi.registry.flow.VersionedProcessGroup;
 import org.apache.nifi.registry.flow.VersionedProcessor;
 import org.apache.nifi.stateless.config.ParameterContextDefinition;
+import org.apache.nifi.stateless.config.ParameterProviderDefinition;
 import org.apache.nifi.stateless.config.ReportingTaskDefinition;
 
 import java.util.Collections;
@@ -37,6 +38,7 @@ public class StandardDataflowDefinition implements DataflowDefinition<VersionedF
     private final Set<String> failurePortNames;
     private final List<ParameterContextDefinition> parameterContexts;
     private final List<ReportingTaskDefinition> reportingTaskDefinitions;
+    private final List<ParameterProviderDefinition> parameterProviderDefinitions;
     private final TransactionThresholds transactionThresholds;
     private final String flowName;
 
@@ -46,6 +48,7 @@ public class StandardDataflowDefinition implements DataflowDefinition<VersionedF
         parameterContexts = builder.parameterContexts == null ? Collections.emptyList() : builder.parameterContexts;
         reportingTaskDefinitions = builder.reportingTaskDefinitions == null ? Collections.emptyList() : builder.reportingTaskDefinitions;
         transactionThresholds = builder.transactionThresholds == null ? TransactionThresholds.SINGLE_FLOWFILE : builder.transactionThresholds;
+        parameterProviderDefinitions = builder.parameterProviderDefinitions == null ? Collections.emptyList() : builder.parameterProviderDefinitions;
         flowName = builder.flowName;
     }
 
@@ -72,6 +75,11 @@ public class StandardDataflowDefinition implements DataflowDefinition<VersionedF
     @Override
     public List<ReportingTaskDefinition> getReportingTaskDefinitions() {
         return reportingTaskDefinitions;
+    }
+
+    @Override
+    public List<ParameterProviderDefinition> getParameterProviderDefinitions() {
+        return parameterProviderDefinitions;
     }
 
     @Override
@@ -105,6 +113,7 @@ public class StandardDataflowDefinition implements DataflowDefinition<VersionedF
         private Set<String> failurePortNames;
         private List<ParameterContextDefinition> parameterContexts;
         private List<ReportingTaskDefinition> reportingTaskDefinitions;
+        private List<ParameterProviderDefinition> parameterProviderDefinitions;
         private TransactionThresholds transactionThresholds;
         private String flowName;
 
@@ -130,6 +139,11 @@ public class StandardDataflowDefinition implements DataflowDefinition<VersionedF
 
         public Builder reportingTasks(final List<ReportingTaskDefinition> reportingTasks) {
             this.reportingTaskDefinitions = reportingTasks;
+            return this;
+        }
+
+        public Builder parameterProviders(final List<ParameterProviderDefinition> parameterProviders) {
+            this.parameterProviderDefinitions = parameterProviders;
             return this;
         }
 
