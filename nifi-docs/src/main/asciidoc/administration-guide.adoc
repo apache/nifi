@@ -3764,6 +3764,22 @@ These properties determine the behavior of the internal NiFi predictive analytic
 
 |====
 
+[[runtime_monitoring_properties]]
+=== Runtime Monitoring Properties
+
+Long-Running Task Monitor periodically checks the NiFi processor executor threads and produces warning logs and bulletin messages for those that have been running for a longer period of time.
+It can be used to detect possibly stuck / hanging processor tasks.
+Please note the performance impact of the task monitor: it creates a thread dump for every run that may affect the normal flow execution.
+The Long-Running Task Monitor can be disabled via defining no values for its properties, and it is disabled by default.
+To enable it, both `nifi.monitor.long.running.task.schedule` and `nifi.monitor.long.running.task.threshold` properties need to be configured with valid time periods.
+
+|====
+|*Property*|*Description*
+|`nifi.monitor.long.running.task.schedule`|The time period between successive executions of the Long-Running Task Monitor (e.g. `1 min`).
+|`nifi.monitor.long.running.task.threshold`|The time period beyond which a task is considered long-running, i.e. stuck / hanging (e.g. `5 mins`).
+
+|====
+
 [[custom_properties]]
 === Custom Properties
 

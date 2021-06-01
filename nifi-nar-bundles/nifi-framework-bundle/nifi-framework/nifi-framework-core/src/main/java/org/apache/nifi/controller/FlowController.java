@@ -311,7 +311,7 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
     private final StandardFlowManager flowManager;
     private final RepositoryContextFactory repositoryContextFactory;
     private final RingBufferGarbageCollectionLog gcLog;
-    private final FlowEngine longRunningTaskMonitorThreadPool;
+    private final Optional<FlowEngine> longRunningTaskMonitorThreadPool;
 
     /**
      * true if controller is configured to operate in a clustered environment
@@ -781,7 +781,9 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
             loadBalanceClientThreadPool = null;
         }
 
-        longRunningTaskMonitorThreadPool = new FlowEngine(1, "Long Running Task Monitor", true);
+        longRunningTaskMonitorThreadPool = isLongRunningTaskMonitorEnabled()
+                ? Optional.of(new FlowEngine(1, "Long Running Task Monitor", true))
+                : Optional.empty();
     }
 
     @Override
@@ -1104,23 +1106,32 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
     }
 
     private void scheduleLongRunningTaskMonitor() {
-        final long scheduleMillis = parseDurationPropertyToMillis(NiFiProperties.MONITOR_LONG_RUNNING_TASK_SCHEDULE, NiFiProperties.DEFAULT_MONITOR_LONG_RUNNING_TASK_SCHEDULE);
-        final long thresholdMillis = parseDurationPropertyToMillis(NiFiProperties.MONITOR_LONG_RUNNING_TASK_THRESHOLD, NiFiProperties.DEFAULT_MONITOR_LONG_RUNNING_TASK_THRESHOLD);
+        longRunningTaskMonitorThreadPool.ifPresent(flowEngine -> {
+            try {
+                final long scheduleMillis = parseDurationPropertyToMillis(NiFiProperties.MONITOR_LONG_RUNNING_TASK_SCHEDULE);
+                final long thresholdMillis = parseDurationPropertyToMillis(NiFiProperties.MONITOR_LONG_RUNNING_TASK_THRESHOLD);
 
-        LongRunningTaskMonitor longRunningTaskMonitor = new LongRunningTaskMonitor(getFlowManager(), createEventReporter(), thresholdMillis);
-        longRunningTaskMonitorThreadPool.scheduleWithFixedDelay(longRunningTaskMonitor, scheduleMillis, scheduleMillis, TimeUnit.MILLISECONDS);
+                LongRunningTaskMonitor longRunningTaskMonitor = new LongRunningTaskMonitor(getFlowManager(), createEventReporter(), thresholdMillis);
+                longRunningTaskMonitorThreadPool.get().scheduleWithFixedDelay(longRunningTaskMonitor, scheduleMillis, scheduleMillis, TimeUnit.MILLISECONDS);
+            } catch (Exception e) {
+                LOG.warn("Could not initialize LongRunningTaskMonitor.", e);
+            }
+        });
     }
 
-    private long parseDurationPropertyToMillis(String propertyName, String defaultValue) {
-        long durationMillis;
+    private long parseDurationPropertyToMillis(String propertyName) {
         try {
             final String duration = nifiProperties.getProperty(propertyName);
-            durationMillis = (long) FormatUtils.getPreciseTimeDuration(duration, TimeUnit.MILLISECONDS);
+            return (long) FormatUtils.getPreciseTimeDuration(duration, TimeUnit.MILLISECONDS);
         } catch (final Exception e) {
-            LOG.warn("Could not retrieve value for {}. This property has been set to '{}'", propertyName, defaultValue);
-            durationMillis = (long) FormatUtils.getPreciseTimeDuration(defaultValue, TimeUnit.MILLISECONDS);
+            LOG.warn("Could not retrieve value for {}. Valid values e.g. 60 secs or 1 min.", propertyName);
+            throw e;
         }
-        return durationMillis;
+    }
+
+    private boolean isLongRunningTaskMonitorEnabled() {
+        return StringUtils.isNotBlank(nifiProperties.getProperty(NiFiProperties.MONITOR_LONG_RUNNING_TASK_SCHEDULE))
+                && StringUtils.isNotBlank(nifiProperties.getProperty(NiFiProperties.MONITOR_LONG_RUNNING_TASK_THRESHOLD));
     }
 
     public boolean isStartAfterInitialization(final Connectable component) {
