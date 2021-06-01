@@ -141,7 +141,7 @@
             <dependency>
                 <groupId>org.glassfish.jersey.media</groupId>
                 <artifactId>jersey-media-multipart</artifactId>
-                <version>${jersey.server.version}</version>
+                <version>${jersey.version}</version>
             </dependency>
             <!-- open id connect - override transitive dependency version ranges -->
             <dependency>
