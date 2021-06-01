@@ -146,8 +146,9 @@ public final class SnippetUtils {
         // we are talking only about the DTO objects that make up the snippet. We do not actually modify the Process Group or the
         // Controller Services in our flow themselves!)
         final Set<ControllerServiceDTO> allServicesReferenced = new HashSet<>();
-        final Map<String, FlowSnippetDTO> contentsByGroup = new HashMap<>();
-        contentsByGroup.put(processGroup.getIdentifier(), snippetDto);
+        final Map<String, ProcessGroupDTO> contentsByGroup = new HashMap<>();
+        final ProcessGroupDTO highestProcessGroupDTO = dtoFactory.createProcessGroupDto(processGroup, recurse);
+        contentsByGroup.put(processGroup.getIdentifier(), highestProcessGroupDTO);
 
         // add any processors
         final Set<ControllerServiceDTO> controllerServices = new HashSet<>();
@@ -235,25 +236,33 @@ public final class SnippetUtils {
         }
 
         // add any process groups
-        final ProcessGroupDTO highestProcessGroupDTO = dtoFactory.createProcessGroupDto(processGroup, recurse);
-        fillContentsByGroupMap(highestProcessGroupDTO, contentsByGroup);
         final Set<ProcessGroupDTO> processGroups = new LinkedHashSet<>();
         if (!snippet.getProcessGroups().isEmpty()) {
+            Set<String> snippetGroupIds = snippet.getProcessGroups().keySet();
+
+            for (final ProcessGroupDTO group: highestProcessGroupDTO.getContents().getProcessGroups()) {
+                if (snippetGroupIds.contains(group.getId())) {
+                    contentsByGroup.put(group.getId(), group);
+                    addChildren(group, contentsByGroup);
+                }
+            }
+
             for (final String childGroupId : snippet.getProcessGroups().keySet()) {
                 final ProcessGroup childGroup = processGroup.getProcessGroup(childGroupId);
                 if (childGroup == null) {
                     throw new IllegalStateException("A process group in this snippet could not be found.");
                 }
 
-                final ProcessGroupDTO childGroupDto = dtoFactory.createProcessGroupDto(childGroup, recurse);
-                processGroups.add(childGroupDto);
+                ProcessGroupDTO childGroupDto = contentsByGroup.get(childGroupId);
 
                 // maintain a listing of visited groups starting with each group in the snippet. this is used to determine
                 // whether a referenced controller service should be included in the resulting snippet. if the service is
                 // defined at groupId or one of it's ancestors, its considered outside of this snippet and will only be included
                 // when the includeControllerServices is set to true. this happens above when considering the processors in this snippet
                 final Set<String> visitedGroupIds = new HashSet<>();
-                addControllerServices(childGroup, childGroupDto, allServicesReferenced, includeControllerServices, visitedGroupIds, contentsByGroup, processGroup.getIdentifier());
+                addControllerServices(childGroup, childGroupDto.getContents(), allServicesReferenced, includeControllerServices, visitedGroupIds, contentsByGroup, processGroup.getIdentifier());
+
+                processGroups.add(childGroupDto);
             }
         }
 
@@ -282,7 +291,7 @@ public final class SnippetUtils {
         components.addAll((Set) remoteProcessGroups);
         normalizeCoordinates(components);
 
-        Set<ControllerServiceDTO> updatedControllerServices = snippetDto.getControllerServices();
+        Set<ControllerServiceDTO> updatedControllerServices = contentsByGroup.get(processGroup.getIdentifier()).getContents().getControllerServices();
         if (updatedControllerServices == null) {
             updatedControllerServices = new HashSet<>();
         }
@@ -301,10 +310,10 @@ public final class SnippetUtils {
         return snippetDto;
     }
 
-    private void fillContentsByGroupMap(final ProcessGroupDTO processGroup, final Map<String, FlowSnippetDTO> contentByGroupMap) {
+    private void addChildren(final ProcessGroupDTO processGroup, final Map<String, ProcessGroupDTO> contentByGroupMap) {
         for (final ProcessGroupDTO group: processGroup.getContents().getProcessGroups()) {
-            contentByGroupMap.put(group.getId(), group.getContents());
-            fillContentsByGroupMap(group, contentByGroupMap);
+            contentByGroupMap.put(group.getId(), group);
+            addChildren(group, contentByGroupMap);
         }
     }
 
@@ -313,20 +322,13 @@ public final class SnippetUtils {
      * adds them to the given servicesByGroup map
      *
      * @param group the Process Group to start from
-     * @param dto the DTO representation of the Process Group
+     * @param contents Process Group's contents
      * @param allServicesReferenced a Set of all Controller Service DTO's that have already been referenced; used to dedupe services
      * @param contentsByGroup a Map of Process Group ID to the Process Group's contents
      * @param highestGroupId the UUID of the 'highest' process group in the snippet
      */
-    private void addControllerServices(final ProcessGroup group, final ProcessGroupDTO dto, final Set<ControllerServiceDTO> allServicesReferenced,
-        final boolean includeControllerServices, final Set<String> visitedGroupIds, final Map<String, FlowSnippetDTO> contentsByGroup, final String highestGroupId) {
-
-        final FlowSnippetDTO contents = dto.getContents();
-        contents.getControllerServices().addAll(contentsByGroup.get(dto.getId()).getControllerServices());
-        contentsByGroup.put(dto.getId(), contents);
-        if (contents == null) {
-            return;
-        }
+    private void addControllerServices(final ProcessGroup group, final FlowSnippetDTO contents, final Set<ControllerServiceDTO> allServicesReferenced,
+        final boolean includeControllerServices, final Set<String> visitedGroupIds, final Map<String, ProcessGroupDTO> contentsByGroup, final String highestGroupId) {
 
         // include this group in the ancestry for this snippet, services only get included if the includeControllerServices
         // flag is set or if the service is defined within this groups hierarchy within the snippet
@@ -341,7 +343,7 @@ public final class SnippetUtils {
                     final String svcGroupId = svc.getParentGroupId();
                     final String destinationGroupId = contentsByGroup.containsKey(svcGroupId) ? svcGroupId : highestGroupId;
                     svc.setParentGroupId(destinationGroupId);
-                    final FlowSnippetDTO snippetDto = contentsByGroup.get(destinationGroupId);
+                    final FlowSnippetDTO snippetDto = contentsByGroup.get(destinationGroupId).getContents();
                     if (snippetDto != null) {
                         Set<ControllerServiceDTO> services = snippetDto.getControllerServices();
                         if (services == null) {
@@ -364,7 +366,7 @@ public final class SnippetUtils {
                 continue;
             }
 
-            addControllerServices(childGroup, childDto, allServicesReferenced, includeControllerServices, visitedGroupIds, contentsByGroup, highestGroupId);
+            addControllerServices(childGroup, childDto.getContents(), allServicesReferenced, includeControllerServices, visitedGroupIds, contentsByGroup, highestGroupId);
         }
     }
 
