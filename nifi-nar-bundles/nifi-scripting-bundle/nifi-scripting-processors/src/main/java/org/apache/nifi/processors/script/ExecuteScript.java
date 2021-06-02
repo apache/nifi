@@ -150,35 +150,6 @@ public class ExecuteScript extends AbstractSessionFactoryProcessor implements Se
         return scriptingComponentHelper.customValidate(validationContext);
     }
 
-
-    /**
-     * Handles changes to this processor's properties. If changes are made to
-     * script- or engine-related properties, the script will be reloaded.
-     *
-     * @param descriptor of the modified property
-     * @param oldValue non-null property value (previous)
-     * @param newValue the new property value or if null indicates the property
-     */
-    @Override
-    public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
-
-        if (ScriptingComponentUtils.SCRIPT_FILE.equals(descriptor)
-                || ScriptingComponentUtils.SCRIPT_BODY.equals(descriptor)
-                || ScriptingComponentUtils.MODULES.equals(descriptor)
-                || scriptingComponentHelper.SCRIPT_ENGINE.equals(descriptor)) {
-
-            // Reset the configurator on change, this can indicate to the configurator to recompile the script on next init()
-            String scriptEngineName = scriptingComponentHelper.getScriptEngineName();
-            if (scriptEngineName != null) {
-                ScriptEngineConfigurator configurator =
-                        scriptingComponentHelper.scriptEngineConfiguratorMap.get(scriptEngineName.toLowerCase());
-                if (configurator != null) {
-                    configurator.reset();
-                }
-            }
-        }
-    }
-
     /**
      * Performs setup operations when the processor is scheduled to run. This includes evaluating the processor's
      * properties, as well as reloading the script (from file or the "Script Body" property)
@@ -189,9 +160,6 @@ public class ExecuteScript extends AbstractSessionFactoryProcessor implements Se
     public void setup(final ProcessContext context) {
         scriptingComponentHelper.setupVariables(context);
 
-        // Create a script engine for each possible task
-        int maxTasks = context.getMaxConcurrentTasks();
-        scriptingComponentHelper.setup(maxTasks, getLogger());
         scriptToRun = scriptingComponentHelper.getScriptBody();
 
         try {
@@ -203,6 +171,10 @@ public class ExecuteScript extends AbstractSessionFactoryProcessor implements Se
         } catch (IOException ioe) {
             throw new ProcessException(ioe);
         }
+
+        // Create a script engine for each possible task
+        int maxTasks = context.getMaxConcurrentTasks();
+        scriptingComponentHelper.setupScriptRunners(maxTasks, scriptToRun, getLogger());
     }
 
     /**
@@ -223,14 +195,15 @@ public class ExecuteScript extends AbstractSessionFactoryProcessor implements Se
                 scriptingComponentHelper.createResources();
             }
         }
-        ScriptEngine scriptEngine = scriptingComponentHelper.engineQ.poll();
+        ScriptRunner scriptRunner = scriptingComponentHelper.scriptRunnerQ.poll();
         ComponentLog log = getLogger();
-        if (scriptEngine == null) {
+        if (scriptRunner == null) {
             // No engine available so nothing more to do here
             return;
         }
         ProcessSession session = sessionFactory.createSession();
         try {
+            ScriptEngine scriptEngine = scriptRunner.getScriptEngine();
 
             try {
                 Bindings bindings = scriptEngine.getBindings(ScriptContext.ENGINE_SCOPE);
@@ -253,31 +226,16 @@ public class ExecuteScript extends AbstractSessionFactoryProcessor implements Se
                     }
                 }
 
-                scriptEngine.setBindings(bindings, ScriptContext.ENGINE_SCOPE);
-
-                // Execute any engine-specific configuration before the script is evaluated
-                ScriptEngineConfigurator configurator =
-                        scriptingComponentHelper.scriptEngineConfiguratorMap.get(scriptingComponentHelper.getScriptEngineName().toLowerCase());
-
-                // Evaluate the script with the configurator (if it exists) or the engine
-                if (configurator != null) {
-                    configurator.init(scriptEngine, scriptToRun, scriptingComponentHelper.getModules());
-                    configurator.eval(scriptEngine, scriptToRun, scriptingComponentHelper.getModules());
-                } else {
-                    scriptEngine.eval(scriptToRun);
-                }
+                scriptRunner.run(bindings);
 
                 // Commit this session for the user. This plus the outermost catch statement mimics the behavior
                 // of AbstractProcessor. This class doesn't extend AbstractProcessor in order to share a base
                 // class with InvokeScriptedProcessor
                 session.commitAsync();
+                scriptingComponentHelper.scriptRunnerQ.offer(scriptRunner);
             } catch (ScriptException e) {
-                // Reset the configurator on error, this can indicate to the configurator to recompile the script on next init()
-                ScriptEngineConfigurator configurator =
-                        scriptingComponentHelper.scriptEngineConfiguratorMap.get(scriptingComponentHelper.getScriptEngineName().toLowerCase());
-                if (configurator != null) {
-                    configurator.reset();
-                }
+                // Create a new ScriptRunner to replace the one that caused an exception
+                scriptingComponentHelper.setupScriptRunners(1, scriptToRun, getLogger());
 
                 // The below 'session.rollback(true)' reverts any changes made during this session (all FlowFiles are
                 // restored back to their initial session state and back to their original queues after being penalized).
@@ -295,8 +253,6 @@ public class ExecuteScript extends AbstractSessionFactoryProcessor implements Se
             // the flow file from the session binding (ff = session.get()).
             session.rollback(true);
             throw t;
-        } finally {
-            scriptingComponentHelper.engineQ.offer(scriptEngine);
         }
     }
 

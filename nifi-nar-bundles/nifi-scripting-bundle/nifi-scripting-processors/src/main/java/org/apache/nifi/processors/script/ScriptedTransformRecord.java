@@ -172,10 +172,6 @@ public class ScriptedTransformRecord extends AbstractProcessor implements Search
         }
 
         scriptingComponentHelper.setupVariables(context);
-
-        // Create a script engine for each possible task
-        final int maxTasks = context.getMaxConcurrentTasks();
-        scriptingComponentHelper.setup(maxTasks, getLogger());
         scriptToRun = scriptingComponentHelper.getScriptBody();
 
         if (scriptToRun == null && scriptingComponentHelper.getScriptPath() != null) {
@@ -183,6 +179,11 @@ public class ScriptedTransformRecord extends AbstractProcessor implements Search
                 scriptToRun = IOUtils.toString(scriptStream, Charset.defaultCharset());
             }
         }
+
+        // Create a script runner for each possible task
+        final int maxTasks = context.getMaxConcurrentTasks();
+        scriptingComponentHelper.setupScriptRunners(maxTasks, scriptToRun, getLogger());
+
         // Always compile when first run
         compiledScriptRef.set(null);
     }
@@ -195,8 +196,8 @@ public class ScriptedTransformRecord extends AbstractProcessor implements Search
             return;
         }
 
-        final ScriptEngine scriptEngine = scriptingComponentHelper.engineQ.poll();
-        if (scriptEngine == null) {
+        final ScriptRunner scriptRunner = scriptingComponentHelper.scriptRunnerQ.poll();
+        if (scriptRunner == null) {
             // This shouldn't happen. But just in case.
             session.rollback();
             return;
@@ -205,6 +206,7 @@ public class ScriptedTransformRecord extends AbstractProcessor implements Search
         try {
             final ScriptEvaluator evaluator;
             try {
+                ScriptEngine scriptEngine = scriptRunner.getScriptEngine();
                 evaluator = createEvaluator(scriptEngine, flowFile);
             } catch (final ScriptException se) {
                 getLogger().error("Failed to initialize script engine", se);
@@ -214,7 +216,7 @@ public class ScriptedTransformRecord extends AbstractProcessor implements Search
 
             transform(flowFile, evaluator, context, session);
         } finally {
-            scriptingComponentHelper.engineQ.offer(scriptEngine);
+            scriptingComponentHelper.scriptRunnerQ.offer(scriptRunner);
         }
     }
 

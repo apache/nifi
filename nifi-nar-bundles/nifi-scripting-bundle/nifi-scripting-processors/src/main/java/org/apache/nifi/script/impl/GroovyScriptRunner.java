@@ -16,10 +16,12 @@
  */
 package org.apache.nifi.script.impl;
 
+import javax.script.Bindings;
+import javax.script.ScriptContext;
 import javax.script.ScriptEngine;
 import javax.script.ScriptException;
 
-public class GroovyScriptEngineConfigurator extends AbstractModuleClassloaderConfigurator {
+public class GroovyScriptRunner extends BaseScriptRunner {
 
     private static final String PRELOADS =
             "import org.apache.nifi.components.*\n"
@@ -34,26 +36,18 @@ public class GroovyScriptEngineConfigurator extends AbstractModuleClassloaderCon
                     + "import org.apache.nifi.record.sink.*\n"
                     + "import org.apache.nifi.lookup.*\n";
 
-    private ScriptEngine scriptEngine;
+    public GroovyScriptRunner(ScriptEngine engine, String scriptBody, String[] modulePaths) {
+        super(engine, scriptBody, modulePaths);
+    }
 
     @Override
     public String getScriptEngineName() {
         return "Groovy";
     }
 
-
-
     @Override
-    public Object init(ScriptEngine engine, String scriptBody, String[] modulePaths) throws ScriptException {
-        // No need to compile the script here, Groovy does it under the hood and its CompiledScript object just
-        // calls engine.eval() the same as we do in the eval() method below
-        scriptEngine = engine;
-        return scriptEngine;
-    }
-
-    @Override
-    public Object eval(ScriptEngine engine, String scriptBody, String[] modulePaths) throws ScriptException {
-        scriptEngine = engine;
-        return engine.eval(PRELOADS + scriptBody);
+    public void run(Bindings bindings) throws ScriptException {
+        scriptEngine.setBindings(bindings, ScriptContext.ENGINE_SCOPE);
+        scriptEngine.eval(PRELOADS + scriptBody);
     }
 }
