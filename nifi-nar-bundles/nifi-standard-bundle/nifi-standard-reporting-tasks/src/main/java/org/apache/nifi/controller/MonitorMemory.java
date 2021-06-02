@@ -36,6 +36,7 @@ import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryPoolMXBean;
 import java.lang.management.MemoryUsage;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -90,14 +91,20 @@ import java.util.stream.Collectors;
         + " that the memory pool is exceeding this threshold.")
 public class MonitorMemory extends AbstractReportingTask {
 
+    private static final List<String> GC_OLD_GEN_POOLS = Arrays.asList("Tenured Gen", "PS Old Gen", "G1 Old Gen", "CMS Old Gen", "ZHeap");
     private static final AllowableValue[] memPoolAllowableValues;
+    private static String defaultMemoryPool;
 
     static {
         // Only allow memory pool beans that support usage thresholds, otherwise we wouldn't report anything anyway
         List<MemoryPoolMXBean> memoryPoolBeans = ManagementFactory.getMemoryPoolMXBeans().stream().filter(MemoryPoolMXBean::isUsageThresholdSupported).collect(Collectors.toList());
         memPoolAllowableValues = new AllowableValue[memoryPoolBeans.size()];
         for (int i = 0; i < memPoolAllowableValues.length; i++) {
-            memPoolAllowableValues[i] = new AllowableValue(memoryPoolBeans.get(i).getName());
+            final String poolName = memoryPoolBeans.get(i).getName();
+            if (defaultMemoryPool == null && GC_OLD_GEN_POOLS.contains(poolName)) {
+                defaultMemoryPool = poolName;
+            }
+            memPoolAllowableValues[i] = new AllowableValue(poolName);
         }
     }
 
@@ -110,6 +117,7 @@ public class MonitorMemory extends AbstractReportingTask {
                     + " running host platform and JVM")
             .required(true)
             .allowableValues(memPoolAllowableValues)
+            .defaultValue(defaultMemoryPool)
             .build();
     public static final PropertyDescriptor THRESHOLD_PROPERTY = new PropertyDescriptor.Builder()
             .name("Usage Threshold")
