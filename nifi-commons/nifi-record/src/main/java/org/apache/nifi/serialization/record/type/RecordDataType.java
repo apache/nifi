@@ -17,10 +17,14 @@
 
 package org.apache.nifi.serialization.record.type;
 
+import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.DataType;
+import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.function.Supplier;
 
@@ -52,6 +56,13 @@ public class RecordDataType extends DataType {
             }
         }
         return childSchema;
+    }
+
+    @Override
+    public void remove(RecordField field) {
+        List<RecordField> fieldsThatRemain = new ArrayList<>(childSchema.getFields());
+        fieldsThatRemain.remove(field);
+        childSchema = new SimpleRecordSchema(fieldsThatRemain);
     }
 
     @Override

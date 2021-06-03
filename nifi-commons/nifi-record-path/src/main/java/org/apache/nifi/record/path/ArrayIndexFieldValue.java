@@ -60,6 +60,11 @@ public class ArrayIndexFieldValue extends StandardFieldValue {
     }
 
     @Override
+    public void remove() {
+
+    }
+
+    @Override
     public int hashCode() {
         return Objects.hash(getValue(), getField(), getParent(), index);
     }

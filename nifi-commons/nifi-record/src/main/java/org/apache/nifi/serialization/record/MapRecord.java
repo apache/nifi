@@ -328,6 +328,42 @@ public class MapRecord implements Record {
         }
     }
 
+    private void removeFieldFromSchema(final RecordField field) {
+        final List<RecordField> fieldsThatRemain = new ArrayList<>(schema.getFields());
+        fieldsThatRemain.remove(field);
+        schema = new SimpleRecordSchema(fieldsThatRemain);
+    }
+
+    @Override
+    public boolean remove(final RecordField field) {
+        final Optional<RecordField> existingField = resolveField(field);
+
+        if (existingField.isPresent()) {
+            removeFieldFromSchema(existingField.get());
+            values.remove(existingField.get().getFieldName());
+            return true;
+        }
+
+        return false;
+    }
+
+    @Override
+    public void regenerateSchema() {
+        final List<RecordField> schemaFields = new ArrayList<>(schema.getFieldCount());
+
+        for (RecordField schemaField : schema.getFields()) {
+            Object fieldValue = getValue(schemaField);
+            if (fieldValue != null && fieldValue instanceof Record) {
+                Record childRecord = (Record) fieldValue;
+                schemaFields.add(new RecordField(schemaField.getFieldName(), RecordFieldType.RECORD.getRecordDataType(childRecord.getSchema()), schemaField.isNullable()));
+            } else {
+                schemaFields.add(schemaField);
+            }
+        }
+
+        schema = new SimpleRecordSchema(schemaFields);
+    }
+
     @Override
     public void setValue(final String fieldName, final Object value) {
         final Optional<RecordField> existingField = setValueAndGetField(fieldName, value);
@@ -445,9 +481,6 @@ public class MapRecord implements Record {
     public void incorporateSchema(RecordSchema other) {
         this.schema = DataTypeUtils.merge(this.schema, other);
     }
-
-
-
 
     @Override
     public void incorporateInactiveFields() {

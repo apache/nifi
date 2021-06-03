@@ -36,6 +36,10 @@ public class DataType {
         return fieldType;
     }
 
+    public void remove(RecordField field) {
+
+    }
+
     @Override
     public int hashCode() {
         return 31 + 41 * getFieldType().hashCode() + 41 * (getFormat() == null ? 0 : getFormat().hashCode());

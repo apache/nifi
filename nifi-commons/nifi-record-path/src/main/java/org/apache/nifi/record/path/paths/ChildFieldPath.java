@@ -27,6 +27,7 @@ import org.apache.nifi.record.path.util.Filters;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
+import org.apache.nifi.serialization.record.type.RecordDataType;
 
 public class ChildFieldPath extends RecordPathSegment {
     private final String childName;
@@ -41,6 +42,11 @@ public class ChildFieldPath extends RecordPathSegment {
         return new StandardFieldValue(null, field, parent);
     }
 
+    private FieldValue missingChild(final FieldValue parent, final RecordField childField) {
+        final RecordField field = new RecordField(childName, childField.getDataType(), childField.isNullable());
+        return new StandardFieldValue(null, field, parent);
+    }
+
     private FieldValue getChild(final FieldValue fieldValue) {
         if (!Filters.isRecord(fieldValue)) {
             return missingChild(fieldValue);
@@ -48,12 +54,31 @@ public class ChildFieldPath extends RecordPathSegment {
 
         final Record record = (Record) fieldValue.getValue();
         if(record == null) {
-            return missingChild(fieldValue);
+            RecordField parent = fieldValue.getField();
+            if (parent != null) {
+                if (parent.getDataType() instanceof RecordDataType) {
+                    Optional<RecordField> childFieldOptional = ((RecordDataType) parent.getDataType()).getChildSchema().getField(childName);
+                    if (childFieldOptional.isPresent()) {
+                        return missingChild(fieldValue, childFieldOptional.get());
+                    } else {
+                        return missingChild(fieldValue);
+                    }
+                } else {
+                    return missingChild(fieldValue);
+                }
+            } else {
+                return missingChild(fieldValue);
+            }
         }
 
         final Object value = record.getValue(childName);
         if (value == null) {
-            return missingChild(fieldValue);
+            final Optional<RecordField> childFieldOptional = record.getSchema().getField(childName);
+            if (childFieldOptional.isPresent()) {
+                return missingChild(fieldValue, childFieldOptional.get());
+            } else {
+                return missingChild(fieldValue);
+            }
         }
 
         final Optional<RecordField> field = record.getSchema().getField(childName);

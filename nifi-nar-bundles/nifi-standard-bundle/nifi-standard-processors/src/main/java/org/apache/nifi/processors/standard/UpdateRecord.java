@@ -159,14 +159,21 @@ public class UpdateRecord extends AbstractRecordProcessor {
 
             if (evaluateValueAsRecordPath) {
                 final String replacementValue = context.getProperty(recordPathText).evaluateAttributeExpressions(flowFile).getValue();
-                final RecordPath replacementRecordPath = recordPathCache.getCompiled(replacementValue);
-
-                // If we have an Absolute RecordPath, we need to evaluate the RecordPath only once against the Record.
-                // If the RecordPath is a Relative Path, then we have to evaluate it against each FieldValue.
-                if (replacementRecordPath.isAbsolute()) {
-                    record = processAbsolutePath(replacementRecordPath, result.getSelectedFields(), record);
+                if ("".equals(replacementValue)) {
+                    List<FieldValue> selectedFields = result.getSelectedFields().collect(Collectors.toList());
+                    for (FieldValue field : selectedFields) {
+                        field.remove();
+                    }
                 } else {
-                    record = processRelativePath(replacementRecordPath, result.getSelectedFields(), record);
+                    final RecordPath replacementRecordPath = recordPathCache.getCompiled(replacementValue);
+
+                    // If we have an Absolute RecordPath, we need to evaluate the RecordPath only once against the Record.
+                    // If the RecordPath is a Relative Path, then we have to evaluate it against each FieldValue.
+                    if (replacementRecordPath.isAbsolute()) {
+                        record = processAbsolutePath(replacementRecordPath, result.getSelectedFields(), record);
+                    } else {
+                        record = processRelativePath(replacementRecordPath, result.getSelectedFields(), record);
+                    }
                 }
             } else {
                 final PropertyValue replacementValue = context.getProperty(recordPathText);
