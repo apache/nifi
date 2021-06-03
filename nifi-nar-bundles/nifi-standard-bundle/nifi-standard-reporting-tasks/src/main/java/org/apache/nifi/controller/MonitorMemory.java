@@ -41,7 +41,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 /**
  * Reporting task used to monitor usage of memory after Garbage Collection has
