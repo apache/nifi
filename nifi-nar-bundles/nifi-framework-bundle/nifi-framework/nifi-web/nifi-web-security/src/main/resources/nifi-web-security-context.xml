@@ -119,7 +119,7 @@
     </bean>
 
     <!-- logout -->
-    <bean id="logoutRequestManager" class="org.apache.nifi.web.security.logout.LogoutRequestManager"/>
+    <bean id="logoutRequestManager" class="org.apache.nifi.web.security.logout.LogoutRequestManager" scope="singleton"/>
 
     <!-- anonymous -->
     <bean id="anonymousAuthenticationProvider" class="org.apache.nifi.web.security.anonymous.NiFiAnonymousAuthenticationProvider">

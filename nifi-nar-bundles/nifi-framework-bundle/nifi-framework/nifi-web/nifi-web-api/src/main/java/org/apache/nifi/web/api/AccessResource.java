@@ -50,6 +50,7 @@ import org.apache.nifi.web.security.jwt.NiFiBearerTokenResolver;
 import org.apache.nifi.web.security.kerberos.KerberosService;
 import org.apache.nifi.web.security.knox.KnoxService;
 import org.apache.nifi.web.security.logout.LogoutRequest;
+import org.apache.nifi.web.security.logout.LogoutRequestManager;
 import org.apache.nifi.web.security.otp.OtpService;
 import org.apache.nifi.web.security.token.LoginAuthenticationToken;
 import org.apache.nifi.web.security.token.NiFiAuthenticationToken;
@@ -63,6 +64,7 @@ import org.springframework.security.authentication.AuthenticationServiceExceptio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.authentication.preauth.x509.X509PrincipalExtractor;
+import org.springframework.web.util.WebUtils;
 
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
@@ -107,33 +109,7 @@ public class AccessResource extends ApplicationResource {
     private OtpService otpService;
     private KnoxService knoxService;
     private KerberosService kerberosService;
-
-
-//    Subresource locator: obtains the subresource Employee
-//    from the path /employeeinfo/employees/{empid}
-//    @Path("/employees/{empid}")
-//    public Employee getEmployee(@PathParam("empid") String id) {
-//        // Find the Employee based on the id path parameter
-//        Employee emp = ...;
-//        ...
-//        return emp;
-//    }
-
-
-//
-//    @GET
-//    @Consumes(MediaType.WILDCARD)
-//    @Produces(MediaType.WILDCARD)
-//    @Path("oidc/logoutCallback")
-//    @ApiOperation(
-//            value = "Redirect/callback URI for processing the result of the OpenId Connect logout sequence.",
-//            notes = NON_GUARANTEED_ENDPOINT
-//    )
-//    public void oidcLogoutCallback(@Context HttpServletRequest httpServletRequest, @Context HttpServletResponse httpServletResponse) throws Exception {
-//        // only consider user specific access over https
-//
-//    }
-
+    protected LogoutRequestManager logoutRequestManager;
 
     /**
      * Retrieves the access configuration for this NiFi.
@@ -602,6 +578,7 @@ public class AccessResource extends ApplicationResource {
 
             // create a LogoutRequest and tell the LogoutRequestManager about it for later retrieval
             final LogoutRequest logoutRequest = new LogoutRequest(UUID.randomUUID().toString(), mappedUserIdentity);
+            logoutRequestManager.start(logoutRequest);
 
             // generate a cookie to store the logout request identifier
             final Cookie cookie = new Cookie(LOGOUT_REQUEST_IDENTIFIER, logoutRequest.getRequestIdentifier());
@@ -621,6 +598,54 @@ public class AccessResource extends ApplicationResource {
         }
     }
 
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.WILDCARD)
+    @Path("/logout/complete")
+    @ApiOperation(
+            value = "Completes the logout sequence by removing the cached Logout Request and Cookie if they existed and redirects to /nifi/login.",
+            notes = NON_GUARANTEED_ENDPOINT
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(code = 200, message = "User was logged out successfully."),
+                    @ApiResponse(code = 401, message = "Authentication token provided was empty or not in the correct JWT format."),
+                    @ApiResponse(code = 500, message = "Client failed to log out."),
+            }
+    )
+    public void logOutComplete(@Context HttpServletRequest httpServletRequest, @Context HttpServletResponse httpServletResponse) throws Exception {
+        if (!httpServletRequest.isSecure()) {
+            throw new IllegalStateException("User authentication/authorization is only supported when running over HTTPS.");
+        }
+
+        // complete the logout request by removing the cookie and cached request, if they were present
+        completeLogoutRequest(httpServletResponse);
+
+        // redirect to logout landing page
+        httpServletResponse.sendRedirect(getNiFiLogoutCompleteUri());
+    }
+
+    LogoutRequest completeLogoutRequest(final HttpServletResponse httpServletResponse) {
+        LogoutRequest logoutRequest = null;
+
+        // check if a logout request identifier is present and if so complete the request
+        final String logoutRequestIdentifier = WebUtils.getCookie(httpServletRequest, LOGOUT_REQUEST_IDENTIFIER).getValue();
+        if (logoutRequestIdentifier != null) {
+            logoutRequest = logoutRequestManager.complete(logoutRequestIdentifier);
+        }
+
+        if (logoutRequest == null) {
+            logger.warn("Logout request did not exist for identifier: " + logoutRequestIdentifier);
+        } else {
+            logger.info("Completed logout request for " + logoutRequest.getMappedUserIdentity());
+        }
+
+        // remove the cookie if it existed
+        removeLogoutRequestCookie(httpServletResponse);
+
+        return logoutRequest;
+    }
+
     long validateTokenExpiration(long proposedTokenExpiration, String identity) {
         final long maxExpiration = TimeUnit.MILLISECONDS.convert(12, TimeUnit.HOURS);
         final long minExpiration = TimeUnit.MILLISECONDS.convert(1, TimeUnit.MINUTES);
@@ -638,8 +663,15 @@ public class AccessResource extends ApplicationResource {
         return proposedTokenExpiration;
     }
 
-    // setters
+    String getNiFiLogoutCompleteUri() {
+        return getNiFiUri() + "logout-complete";
+    }
 
+    void removeLogoutRequestCookie(final HttpServletResponse httpServletResponse) {
+        removeCookie(httpServletResponse, LOGOUT_REQUEST_IDENTIFIER);
+    }
+
+    // setters
     public void setLoginIdentityProvider(LoginIdentityProvider loginIdentityProvider) {
         this.loginIdentityProvider = loginIdentityProvider;
     }
@@ -679,5 +711,9 @@ public class AccessResource extends ApplicationResource {
     private void logOutUser(HttpServletRequest httpServletRequest) {
         final String jwt = new NiFiBearerTokenResolver().resolve(httpServletRequest);
         jwtService.logOut(jwt);
+    }
+
+    public void setLogoutRequestManager(LogoutRequestManager logoutRequestManager) {
+        this.logoutRequestManager = logoutRequestManager;
     }
 }

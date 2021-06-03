@@ -90,9 +90,19 @@ public class OIDCAccessResource extends AccessResource {
 
     private OidcService oidcService;
     private JwtService jwtService;
+    private CloseableHttpClient httpClient;
 
     public OIDCAccessResource() {
+        RequestConfig config = RequestConfig.custom()
+                .setConnectTimeout(msTimeout)
+                .setConnectionRequestTimeout(msTimeout)
+                .setSocketTimeout(msTimeout)
+                .build();
 
+        httpClient = HttpClientBuilder
+                .create()
+                .setDefaultRequestConfig(config)
+                .build();
     }
 
     @GET
@@ -443,16 +453,6 @@ public class OIDCAccessResource extends AccessResource {
      */
     private void revokeEndpointRequest(@Context HttpServletResponse httpServletResponse, String accessToken, URI revokeEndpoint) throws IOException {
 
-        RequestConfig config = RequestConfig.custom()
-                .setConnectTimeout(msTimeout)
-                .setConnectionRequestTimeout(msTimeout)
-                .setSocketTimeout(msTimeout)
-                .build();
-
-        CloseableHttpClient httpClient = HttpClientBuilder
-                .create()
-                .setDefaultRequestConfig(config)
-                .build();
         HttpPost httpPost = new HttpPost(revokeEndpoint);
 
         List<NameValuePair> params = new ArrayList<>();
@@ -515,7 +515,6 @@ public class OIDCAccessResource extends AccessResource {
     }
 
     private void checkOidcState(HttpServletResponse httpServletResponse, final String oidcRequestIdentifier, AuthenticationSuccessResponse successfulOidcResponse, boolean isLogin) throws Exception {
-
         // confirm state
         final State state = successfulOidcResponse.getState();
         if (state == null || !oidcService.isStateValid(oidcRequestIdentifier, state)) {

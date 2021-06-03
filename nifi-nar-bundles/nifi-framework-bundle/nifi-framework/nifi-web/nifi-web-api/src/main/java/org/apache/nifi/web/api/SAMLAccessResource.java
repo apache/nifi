@@ -18,8 +18,6 @@ package org.apache.nifi.web.api;
 
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiResponse;
-import io.swagger.annotations.ApiResponses;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.admin.service.IdpUserGroupService;
 import org.apache.nifi.authentication.exception.AuthenticationNotSupportedException;
@@ -28,7 +26,6 @@ import org.apache.nifi.authorization.util.IdentityMappingUtil;
 import org.apache.nifi.idp.IdpType;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.security.logout.LogoutRequest;
-import org.apache.nifi.web.security.logout.LogoutRequestManager;
 import org.apache.nifi.web.security.saml.SAMLCredentialStore;
 import org.apache.nifi.web.security.saml.SAMLEndpoints;
 import org.apache.nifi.web.security.saml.SAMLService;
@@ -72,12 +69,11 @@ public class SAMLAccessResource extends AccessResource {
     private static final String SAML_METADATA_MEDIA_TYPE = "application/samlmetadata+xml";
     private static final String LOGOUT_REQUEST_IDENTIFIER_NOT_FOUND = "The logout request identifier was not found in the request. Unable to continue.";
     private static final String LOGOUT_REQUEST_NOT_FOUND_FOR_GIVEN_IDENTIFIER = "No logout request was found for the given identifier. Unable to continue.";
+    private static final boolean LOGGING_IN = true;
 
     private SAMLService samlService;
     private SAMLStateManager samlStateManager;
     private SAMLCredentialStore samlCredentialStore;
-    private LogoutRequestManager logoutRequestManager;
-
     private IdpUserGroupService idpUserGroupService;
 
     @GET
@@ -118,17 +114,7 @@ public class SAMLAccessResource extends AccessResource {
     public void samlLoginRequest(@Context HttpServletRequest httpServletRequest,
                                  @Context HttpServletResponse httpServletResponse) throws Exception {
 
-        // only consider user specific access over https
-        if (!httpServletRequest.isSecure()) {
-            forwardToLoginMessagePage(httpServletRequest, httpServletResponse, AUTHENTICATION_NOT_ENABLED_MSG);
-            return;
-        }
-
-        // ensure saml is enabled
-        if (!samlService.isSamlEnabled()) {
-            forwardToLoginMessagePage(httpServletRequest, httpServletResponse, SAMLService.SAML_SUPPORT_IS_NOT_CONFIGURED);
-            return;
-        }
+        assert(isSamlEnabled(httpServletRequest, httpServletResponse, LOGGING_IN));
 
         // ensure saml service provider is initialized
         initializeSamlServiceProvider();
@@ -167,17 +153,7 @@ public class SAMLAccessResource extends AccessResource {
                                           @Context HttpServletResponse httpServletResponse,
                                           MultivaluedMap<String, String> formParams) throws Exception {
 
-        // only consider user specific access over https
-        if (!httpServletRequest.isSecure()) {
-            forwardToLoginMessagePage(httpServletRequest, httpServletResponse, AUTHENTICATION_NOT_ENABLED_MSG);
-            return;
-        }
-
-        // ensure saml is enabled
-        if (!samlService.isSamlEnabled()) {
-            forwardToLoginMessagePage(httpServletRequest, httpServletResponse, SAMLService.SAML_SUPPORT_IS_NOT_CONFIGURED);
-            return;
-        }
+        assert(isSamlEnabled(httpServletRequest, httpServletResponse, LOGGING_IN));
 
         // process the response from the idp...
         final Map<String, String> parameters = getParameterMap(formParams);
@@ -196,17 +172,7 @@ public class SAMLAccessResource extends AccessResource {
                                               @Context HttpServletResponse httpServletResponse,
                                               @Context UriInfo uriInfo) throws Exception {
 
-        // only consider user specific access over https
-        if (!httpServletRequest.isSecure()) {
-            forwardToLoginMessagePage(httpServletRequest, httpServletResponse, AUTHENTICATION_NOT_ENABLED_MSG);
-            return;
-        }
-
-        // ensure saml is enabled
-        if (!samlService.isSamlEnabled()) {
-            forwardToLoginMessagePage(httpServletRequest, httpServletResponse, SAMLService.SAML_SUPPORT_IS_NOT_CONFIGURED);
-            return;
-        }
+        assert(isSamlEnabled(httpServletRequest, httpServletResponse, LOGGING_IN));
 
         // process the response from the idp...
         final Map<String, String> parameters = getParameterMap(uriInfo.getQueryParameters());
@@ -343,16 +309,7 @@ public class SAMLAccessResource extends AccessResource {
     public void samlSingleLogoutRequest(@Context HttpServletRequest httpServletRequest,
                                         @Context HttpServletResponse httpServletResponse) throws Exception {
 
-        // only consider user specific access over https
-        if (!httpServletRequest.isSecure()) {
-            throw new AuthenticationNotSupportedException(AUTHENTICATION_NOT_ENABLED_MSG);
-        }
-
-        // ensure saml is enabled
-        if (!samlService.isSamlEnabled()) {
-            forwardToLogoutMessagePage(httpServletRequest, httpServletResponse, SAMLService.SAML_SUPPORT_IS_NOT_CONFIGURED);
-            return;
-        }
+        assert(isSamlEnabled(httpServletRequest, httpServletResponse, !LOGGING_IN));
 
         // ensure the logout request identifier is present
         final String logoutRequestIdentifier = WebUtils.getCookie(httpServletRequest, LOGOUT_REQUEST_IDENTIFIER).getValue();
@@ -402,16 +359,7 @@ public class SAMLAccessResource extends AccessResource {
                                                      @Context HttpServletResponse httpServletResponse,
                                                      @Context UriInfo uriInfo) throws Exception {
 
-        // only consider user specific access over https
-        if (!httpServletRequest.isSecure()) {
-            throw new AuthenticationNotSupportedException(AUTHENTICATION_NOT_ENABLED_MSG);
-        }
-
-        // ensure saml is enabled
-        if (!samlService.isSamlEnabled()) {
-            forwardToLogoutMessagePage(httpServletRequest, httpServletResponse, SAMLService.SAML_SUPPORT_IS_NOT_CONFIGURED);
-            return;
-        }
+        assert(isSamlEnabled(httpServletRequest, httpServletResponse, !LOGGING_IN));
 
         // process the SLO request
         final Map<String, String> parameters = getParameterMap(uriInfo.getQueryParameters());
@@ -430,16 +378,7 @@ public class SAMLAccessResource extends AccessResource {
                                                  @Context HttpServletResponse httpServletResponse,
                                                  MultivaluedMap<String, String> formParams) throws Exception {
 
-        // only consider user specific access over https
-        if (!httpServletRequest.isSecure()) {
-            throw new AuthenticationNotSupportedException(AUTHENTICATION_NOT_ENABLED_MSG);
-        }
-
-        // ensure saml is enabled
-        if (!samlService.isSamlEnabled()) {
-            forwardToLogoutMessagePage(httpServletRequest, httpServletResponse, SAMLService.SAML_SUPPORT_IS_NOT_CONFIGURED);
-            return;
-        }
+        assert(isSamlEnabled(httpServletRequest, httpServletResponse, !LOGGING_IN));
 
         // process the SLO request
         final Map<String, String> parameters = getParameterMap(formParams);
@@ -514,16 +453,7 @@ public class SAMLAccessResource extends AccessResource {
     public void samlLocalLogout(@Context HttpServletRequest httpServletRequest,
                                 @Context HttpServletResponse httpServletResponse) throws Exception {
 
-        // only consider user specific access over https
-        if (!httpServletRequest.isSecure()) {
-            throw new AuthenticationNotSupportedException(AUTHENTICATION_NOT_ENABLED_MSG);
-        }
-
-        // ensure saml is enabled
-        if (!samlService.isSamlEnabled()) {
-            forwardToLogoutMessagePage(httpServletRequest, httpServletResponse, SAMLService.SAML_SUPPORT_IS_NOT_CONFIGURED);
-            return;
-        }
+        assert(isSamlEnabled(httpServletRequest, httpServletResponse, !LOGGING_IN));
 
         // complete the logout request if one exists
         final LogoutRequest completedLogoutRequest = completeLogoutRequest(httpServletResponse);
@@ -563,61 +493,25 @@ public class SAMLAccessResource extends AccessResource {
         removeCookie(httpServletResponse, SAML_REQUEST_IDENTIFIER);
     }
 
-    private String getNiFiLogoutCompleteUri() {
-        return getNiFiUri() + "logout-complete";
-    }
+    private boolean isSamlEnabled(final HttpServletRequest httpServletRequest, final HttpServletResponse httpServletResponse, boolean isLogin) throws Exception {
+        final String pageTitle = getForwardPageTitle(isLogin);
 
-
-    @GET
-    @Consumes(MediaType.WILDCARD)
-    @Produces(MediaType.WILDCARD)
-    @Path("/logout/complete")
-    @ApiOperation(
-            value = "Completes the logout sequence by removing the cached Logout Request and Cookie if they existed and redirects to /nifi/login.",
-            notes = NON_GUARANTEED_ENDPOINT
-    )
-    @ApiResponses(
-            value = {
-                    @ApiResponse(code = 200, message = "User was logged out successfully."),
-                    @ApiResponse(code = 401, message = "Authentication token provided was empty or not in the correct JWT format."),
-                    @ApiResponse(code = 500, message = "Client failed to log out."),
-            }
-    )
-    public void logOutComplete(@Context HttpServletRequest httpServletRequest, @Context HttpServletResponse httpServletResponse) throws Exception {
+        // only consider user specific access over https
         if (!httpServletRequest.isSecure()) {
-            throw new IllegalStateException("User authentication/authorization is only supported when running over HTTPS.");
+            forwardToMessagePage(httpServletRequest, httpServletResponse, pageTitle, AUTHENTICATION_NOT_ENABLED_MSG);
+            return false;
         }
 
-        // complete the logout request by removing the cookie and cached request, if they were present
-        completeLogoutRequest(httpServletResponse);
-
-        // redirect to logout landing page
-        httpServletResponse.sendRedirect(getNiFiLogoutCompleteUri());
+        // ensure saml is enabled
+        if (!samlService.isSamlEnabled()) {
+            forwardToMessagePage(httpServletRequest, httpServletResponse, pageTitle, SAMLService.SAML_SUPPORT_IS_NOT_CONFIGURED);
+            return false;
+        }
+        return true;
     }
 
-    private LogoutRequest completeLogoutRequest(final HttpServletResponse httpServletResponse) {
-        LogoutRequest logoutRequest = null;
-
-        // check if a logout request identifier is present and if so complete the request
-        final String logoutRequestIdentifier = WebUtils.getCookie(httpServletRequest, LOGOUT_REQUEST_IDENTIFIER).getValue();
-        if (logoutRequestIdentifier != null) {
-            logoutRequest = logoutRequestManager.complete(logoutRequestIdentifier);
-        }
-
-        if (logoutRequest == null) {
-            logger.warn("Logout request did not exist for identifier: " + logoutRequestIdentifier);
-        } else {
-            logger.info("Completed logout request for " + logoutRequest.getMappedUserIdentity());
-        }
-
-        // remove the cookie if it existed
-        removeLogoutRequestCookie(httpServletResponse);
-
-        return logoutRequest;
-    }
-
-    void removeLogoutRequestCookie(final HttpServletResponse httpServletResponse) {
-        removeCookie(httpServletResponse, LOGOUT_REQUEST_IDENTIFIER);
+    private String getForwardPageTitle(boolean isLogin) {
+        return isLogin ? ApplicationResource.LOGIN_ERROR_TITLE : ApplicationResource.LOGOUT_ERROR_TITLE;
     }
 
     public void setSamlService(SAMLService samlService) {
@@ -634,10 +528,6 @@ public class SAMLAccessResource extends AccessResource {
 
     public void setIdpUserGroupService(IdpUserGroupService idpUserGroupService) {
         this.idpUserGroupService = idpUserGroupService;
-    }
-
-    public void setLogoutRequestManager(LogoutRequestManager logoutRequestManager) {
-        this.logoutRequestManager = logoutRequestManager;
     }
 
     public void setProperties(final NiFiProperties properties) {

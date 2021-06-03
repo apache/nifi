@@ -575,6 +575,7 @@
         <property name="flowController" ref="flowController" />
     </bean>
     <bean id="accessResource" class="org.apache.nifi.web.api.AccessResource" scope="singleton">
+        <property name="logoutRequestManager" ref="logoutRequestManager" />
         <property name="loginIdentityProvider" ref="loginIdentityProvider"/>
         <property name="knoxService" ref="knoxService"/>
         <property name="x509AuthenticationProvider" ref="x509AuthenticationProvider"/>
@@ -590,10 +591,10 @@
         <property name="flowController" ref="flowController" />
     </bean>
     <bean id="samlResource" class="org.apache.nifi.web.api.SAMLAccessResource" scope="singleton">
+        <property name="logoutRequestManager" ref="logoutRequestManager" />
         <property name="samlService" ref="samlService" />
         <property name="samlStateManager" ref="samlStateManager"/>
         <property name="samlCredentialStore" ref="samlCredentialStore"/>
-        <property name="logoutRequestManager" ref="logoutRequestManager" />
         <property name="idpUserGroupService" ref="idpUserGroupService" />
         <property name="properties" ref="nifiProperties"/>
     </bean>
