@@ -17,12 +17,13 @@
 
 package org.apache.nifi.record.path.filter;
 
-import java.util.Optional;
-import java.util.stream.Stream;
-
 import org.apache.nifi.record.path.FieldValue;
 import org.apache.nifi.record.path.RecordPathEvaluationContext;
+import org.apache.nifi.record.path.StandardFieldValue;
 import org.apache.nifi.record.path.paths.RecordPathSegment;
+
+import java.util.Optional;
+import java.util.stream.Stream;
 
 public abstract class BinaryOperatorFilter implements RecordPathFilter {
     private final RecordPathSegment lhs;
@@ -51,6 +52,28 @@ public abstract class BinaryOperatorFilter implements RecordPathFilter {
         return lhsStream.filter(fieldVal -> {
             final boolean result = test(fieldVal, value);
             return invert ? !result : result;
+        });
+    }
+
+    @Override
+    public Stream<FieldValue> mapToBoolean(final RecordPathEvaluationContext context) {
+        final Stream<FieldValue> rhsStream = rhs.evaluate(context);
+        final Optional<FieldValue> firstMatch = rhsStream
+            .filter(fieldVal -> fieldVal.getValue() != null)
+            .findFirst();
+
+        if (!firstMatch.isPresent()) {
+            return Stream.empty();
+        }
+
+        final FieldValue fieldValue = firstMatch.get();
+        final Object value = fieldValue.getValue();
+
+        final Stream<FieldValue> lhsStream = lhs.evaluate(context);
+        return lhsStream.map(fieldVal -> {
+            final boolean result = test(fieldVal, value);
+            final FieldValue mapped = new StandardFieldValue(result, fieldVal.getField(), fieldVal.getParent().orElse(null));
+            return mapped;
         });
     }
 
