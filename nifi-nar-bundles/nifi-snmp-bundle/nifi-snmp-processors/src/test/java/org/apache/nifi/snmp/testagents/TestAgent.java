@@ -44,19 +44,19 @@ public abstract class TestAgent extends BaseAgent {
 
     protected static final String BOOT_COUNTER_NAME_TEMPLATE = "target/bootCounter%s_%s.agent";
     protected static final String CONFIG_NAME_TEMPLATE = "target/conf%s_%s.agent";
-    protected final String host;
+    protected final String address;
     protected final int port;
 
     public TestAgent(final File bootCounterFile, final File configFile, final CommandProcessor commandProcessor, final String host) {
         super(bootCounterFile, configFile, commandProcessor);
-        port = NetworkUtils.availablePort();
-        this.host = host + "/" + port;
+        port = NetworkUtils.getAvailableUdpPort();
+        this.address = String.format("udp:%s/%d", host, port);
     }
 
     @Override
     protected void initTransportMappings() {
         transportMappings = new TransportMapping[1];
-        final Address transportAddress = GenericAddress.parse(host);
+        final Address transportAddress = GenericAddress.parse(address);
         final TransportMapping<? extends Address> transportMapping = TransportMappings.getInstance().createTransportMapping(transportAddress);
         transportMappings[0] = transportMapping;
     }
