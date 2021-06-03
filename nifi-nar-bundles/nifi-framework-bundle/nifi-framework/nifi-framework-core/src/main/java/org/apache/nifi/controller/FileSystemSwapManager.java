@@ -119,6 +119,13 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
         this.flowFileRepository = initializationContext.getFlowFileRepository();
     }
 
+    protected InputStream getInputStream(final File file) throws IOException {
+        return new FileInputStream(file);
+    }
+
+    protected OutputStream getOutputStream(final File file) throws IOException {
+        return new FileOutputStream(file);
+    }
 
     @Override
     public String swapOut(final List<FlowFileRecord> toSwap, final FlowFileQueue flowFileQueue, final String partitionName) throws IOException {
@@ -135,14 +142,14 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
         final String swapLocation = swapFile.getAbsolutePath();
 
         final SwapSerializer serializer = new SchemaSwapSerializer();
-        try (final FileOutputStream fos = new FileOutputStream(swapTempFile);
-            final OutputStream out = new BufferedOutputStream(fos)) {
+        try (final OutputStream os = getOutputStream(swapTempFile);
+            final OutputStream out = new BufferedOutputStream(os)) {
             out.write(MAGIC_HEADER);
             final DataOutputStream dos = new DataOutputStream(out);
             dos.writeUTF(serializer.getSerializationName());
 
             serializer.serializeFlowFiles(toSwap, flowFileQueue, swapLocation, out);
-            fos.getFD().sync();
+            out.flush();
         } catch (final IOException ioe) {
             // we failed to write out the entire swap file. Delete the temporary file, if we can.
             swapTempFile.delete();
@@ -188,8 +195,8 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
             throw new FileNotFoundException("Failed to swap in FlowFiles from external storage location " + swapLocation + " into FlowFile Queue because the file could not be found");
         }
 
-        try (final InputStream fis = new FileInputStream(swapFile);
-                final InputStream bis = new BufferedInputStream(fis);
+        try (final InputStream is = getInputStream(swapFile);
+                final InputStream bis = new BufferedInputStream(is);
                 final DataInputStream in = new DataInputStream(bis)) {
 
             final SwapDeserializer deserializer = createSwapDeserializer(in);
@@ -318,7 +325,7 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
             }
 
             // Read the queue identifier from the swap file to check if the swap file is for this queue
-            try (final InputStream fis = new FileInputStream(swapFile);
+            try (final InputStream fis = getInputStream(swapFile);
                     final InputStream bufferedIn = new BufferedInputStream(fis);
                     final DataInputStream in = new DataInputStream(bufferedIn)) {
 
@@ -351,7 +358,7 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
         final File swapFile = new File(swapLocation);
 
         // read record from disk via the swap file
-        try (final InputStream fis = new FileInputStream(swapFile);
+        try (final InputStream fis = getInputStream(swapFile);
                 final InputStream bufferedIn = new BufferedInputStream(fis);
                 final DataInputStream in = new DataInputStream(bufferedIn)) {
 

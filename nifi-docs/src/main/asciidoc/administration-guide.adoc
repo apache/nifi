@@ -2961,7 +2961,8 @@ available again. These properties govern how that process occurs.
 
 |====
 |*Property*|*Description*
-|`nifi.swap.manager.implementation`|The Swap Manager implementation. The default value is `org.apache.nifi.controller.FileSystemSwapManager` and should not be changed.
+|`nifi.swap.manager.implementation`| The Swap Manager implementation. The default value is `org.apache.nifi.controller.FileSystemSwapManager`.
+There is also an experimental implementation, `org.apache.nifi.controller.FileSystemSwapManagerEncrypt`, that encrypts the swap file content on disk, using the configured FlowFile encryption key.
 |`nifi.queue.swap.threshold`|The queue threshold at which NiFi starts to swap FlowFile information to disk. The default value is `20000`.
 |====
 
