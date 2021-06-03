@@ -91,21 +91,23 @@ import java.util.stream.Collectors;
         + " that the memory pool is exceeding this threshold.")
 public class MonitorMemory extends AbstractReportingTask {
 
-    private static final List<String> GC_OLD_GEN_POOLS = Arrays.asList("Tenured Gen", "PS Old Gen", "G1 Old Gen", "CMS Old Gen", "ZHeap");
+    private static final List<String> GC_OLD_GEN_POOLS = Collections.unmodifiableList(Arrays.asList("Tenured Gen", "PS Old Gen", "G1 Old Gen", "CMS Old Gen", "ZHeap"));
     private static final AllowableValue[] memPoolAllowableValues;
     private static String defaultMemoryPool;
 
     static {
         // Only allow memory pool beans that support usage thresholds, otherwise we wouldn't report anything anyway
-        List<MemoryPoolMXBean> memoryPoolBeans = ManagementFactory.getMemoryPoolMXBeans().stream().filter(MemoryPoolMXBean::isUsageThresholdSupported).collect(Collectors.toList());
-        memPoolAllowableValues = new AllowableValue[memoryPoolBeans.size()];
-        for (int i = 0; i < memPoolAllowableValues.length; i++) {
-            final String poolName = memoryPoolBeans.get(i).getName();
-            if (defaultMemoryPool == null && GC_OLD_GEN_POOLS.contains(poolName)) {
-                defaultMemoryPool = poolName;
-            }
-            memPoolAllowableValues[i] = new AllowableValue(poolName);
-        }
+        memPoolAllowableValues = ManagementFactory.getMemoryPoolMXBeans()
+                .stream()
+                .filter(MemoryPoolMXBean::isUsageThresholdSupported)
+                .map(MemoryPoolMXBean::getName)
+                .map(AllowableValue::new)
+                .toArray(AllowableValue[]::new);
+        defaultMemoryPool = Arrays.stream(memPoolAllowableValues)
+                .map(AllowableValue::getValue)
+                .filter(GC_OLD_GEN_POOLS::contains)
+                .findFirst()
+                .orElse(null);
     }
 
     public static final PropertyDescriptor MEMORY_POOL_PROPERTY = new PropertyDescriptor.Builder()
