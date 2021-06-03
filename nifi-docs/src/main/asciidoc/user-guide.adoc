@@ -2924,7 +2924,7 @@ key5=c6FzfnKm7UR7xqI2NFpZ+fEKBfSU7+1NvRw+XWQ9U39MONWqk5gvoyOCdFR1kUgeg46jrN5dGXk
 Each line defines a key ID and then the Base64-encoded cipher text of a 16 byte IV and wrapped AES-128, AES-192, or AES-256 key depending on the JCE policies available. The individual keys are wrapped by AES/GCM encryption using the **root key** defined by `nifi.bootstrap.sensitive.key` in _conf/bootstrap.conf_.
 
 ===== KeyStoreKeyProvider
-The `KeyStoreKeyProvider` implementation reads from an encrypted keystore using the configured password to load AES Secret Key entries.
+The `KeyStoreKeyProvider` implementation reads from a standard `java.security.KeyStore` using the configured password to load AES Secret Key entries.
 
 The provider supports the following Keystore Types:
 
@@ -3031,7 +3031,7 @@ key5=c6FzfnKm7UR7xqI2NFpZ+fEKBfSU7+1NvRw+XWQ9U39MONWqk5gvoyOCdFR1kUgeg46jrN5dGXk
 Each line defines a key ID and then the Base64-encoded cipher text of a 16 byte IV and wrapped AES-128, AES-192, or AES-256 key depending on the JCE policies available. The individual keys are wrapped by AES/GCM encryption using the **root key** defined by `nifi.bootstrap.sensitive.key` in _conf/bootstrap.conf_.
 
 ==== KeyStoreKeyProvider
-The `KeyStoreKeyProvider` implementation reads from an encrypted keystore using the configured password to load AES Secret Key entries.
+The `KeyStoreKeyProvider` implementation reads from a standard `java.security.KeyStore` using the configured password to load AES Secret Key entries.
 
 The provider supports the following Keystore Types:
 
@@ -3145,7 +3145,7 @@ key5=c6FzfnKm7UR7xqI2NFpZ+fEKBfSU7+1NvRw+XWQ9U39MONWqk5gvoyOCdFR1kUgeg46jrN5dGXk
 Each line defines a key ID and then the Base64-encoded cipher text of a 16 byte IV and wrapped AES-128, AES-192, or AES-256 key depending on the JCE policies available. The individual keys are wrapped by AES/GCM encryption using the **root key** defined by `nifi.bootstrap.sensitive.key` in _conf/bootstrap.conf_.
 
 ==== KeyStoreKeyProvider
-The `KeyStoreKeyProvider` implementation reads from an encrypted keystore using the configured password to load AES Secret Key entries.
+The `KeyStoreKeyProvider` implementation reads from a standard `java.security.KeyStore` using the configured password to load AES Secret Key entries.
 
 The provider supports the following Keystore Types:
 

@@ -42,9 +42,9 @@ import java.util.Properties;
 public class StandardFileBasedKeyReader implements FileBasedKeyReader {
     protected static final String CIPHER_ALGORITHM = "AES/GCM/NoPadding";
 
-    protected static final int IV_LENGTH = 16;
+    protected static final int IV_LENGTH_BYTES = 16;
 
-    protected static final int TAG_SIZE = 128;
+    protected static final int TAG_SIZE_BITS = 128;
 
     private static final Base64.Decoder DECODER = Base64.getDecoder();
 
@@ -85,7 +85,7 @@ public class StandardFileBasedKeyReader implements FileBasedKeyReader {
     private SecretKey readSecretKey(final String keyId, final String encodedProperty, final SecretKey rootKey) {
         final byte[] encryptedProperty = DECODER.decode(encodedProperty);
         final Cipher cipher = getCipher(keyId, encryptedProperty, rootKey);
-        final byte[] encryptedSecretKey = Arrays.copyOfRange(encryptedProperty, IV_LENGTH, encryptedProperty.length);
+        final byte[] encryptedSecretKey = Arrays.copyOfRange(encryptedProperty, IV_LENGTH_BYTES, encryptedProperty.length);
         try {
             final byte[] secretKey = cipher.doFinal(encryptedSecretKey);
             return new SecretKeySpec(secretKey, SECRET_KEY_ALGORITHM);
@@ -95,10 +95,10 @@ public class StandardFileBasedKeyReader implements FileBasedKeyReader {
     }
 
     private Cipher getCipher(final String keyId, final byte[] encryptedProperty, final SecretKey rootKey) {
-        final byte[] initializationVector = Arrays.copyOfRange(encryptedProperty, 0, IV_LENGTH);
+        final byte[] initializationVector = Arrays.copyOfRange(encryptedProperty, 0, IV_LENGTH_BYTES);
         final Cipher cipher = getCipher();
         try {
-            cipher.init(Cipher.DECRYPT_MODE, rootKey, new GCMParameterSpec(TAG_SIZE, initializationVector));
+            cipher.init(Cipher.DECRYPT_MODE, rootKey, new GCMParameterSpec(TAG_SIZE_BITS, initializationVector));
         } catch (final InvalidAlgorithmParameterException|InvalidKeyException e) {
             throw new KeyReaderException(String.format("Cipher initialization failed for Key Identifier [%s]", keyId), e);
         }

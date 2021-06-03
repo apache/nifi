@@ -538,22 +538,6 @@ public class KeyStoreUtils {
      * @param keyPassword      the key password
      * @param keyStorePath     the keystore path
      * @param keyStoreType     the keystore type
-     * @return a {@link X509Certificate}
-     */
-    private static X509Certificate createKeyStoreAndGetX509Certificate(
-            final String alias, final String keyStorePassword, final String keyPassword, final String keyStorePath,
-            final KeystoreType keyStoreType) throws IOException, KeyStoreException, NoSuchAlgorithmException, CertificateException {
-        return createKeyStoreAndGetX509Certificate(alias, keyStorePassword, keyPassword, keyStorePath, keyStoreType, CERT_DURATION_DAYS,
-                null);
-    }
-    /**
-     * Loads the Keystore and returns a X509 Certificate with the given values.
-     *
-     * @param alias            the certificate alias
-     * @param keyStorePassword the keystore password
-     * @param keyPassword      the key password
-     * @param keyStorePath     the keystore path
-     * @param keyStoreType     the keystore type
      * @param dnsSubjectAlternativeNames An optional array of dnsName SANs
      * @param certDurationDays     the duration of the validity of the certificate, in days
      * @return a {@link X509Certificate}

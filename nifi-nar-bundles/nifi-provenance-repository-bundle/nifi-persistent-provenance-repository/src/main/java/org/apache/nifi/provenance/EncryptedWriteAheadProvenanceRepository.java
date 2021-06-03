@@ -124,7 +124,7 @@ public class EncryptedWriteAheadProvenanceRepository extends WriteAheadProvenanc
         super.init(recordWriterFactory, recordReaderFactory, eventReporter, authorizer, resourceFactory);
     }
 
-    private KeyProvider buildKeyProvider() throws KeyManagementException, IOException {
+    private KeyProvider buildKeyProvider() throws IOException {
         final RepositoryConfiguration config = getConfig();
         final RepositoryEncryptionConfiguration configuration = new ProvenanceRepositoryEncryptionConfiguration(
                 config.getKeyProviderImplementation(),
