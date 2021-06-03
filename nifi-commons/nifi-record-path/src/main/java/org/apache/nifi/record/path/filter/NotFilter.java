@@ -17,10 +17,13 @@
 
 package org.apache.nifi.record.path.filter;
 
-import java.util.stream.Stream;
-
 import org.apache.nifi.record.path.FieldValue;
 import org.apache.nifi.record.path.RecordPathEvaluationContext;
+import org.apache.nifi.record.path.StandardFieldValue;
+import org.apache.nifi.serialization.record.RecordField;
+import org.apache.nifi.serialization.record.RecordFieldType;
+
+import java.util.stream.Stream;
 
 public class NotFilter implements RecordPathFilter {
     private final RecordPathFilter filter;
@@ -34,5 +37,10 @@ public class NotFilter implements RecordPathFilter {
         return filter.filter(context, !invert);
     }
 
+    @Override
+    public Stream<FieldValue> mapToBoolean(final RecordPathEvaluationContext context) {
+        return filter.mapToBoolean(context)
+            .map(fieldValue -> new StandardFieldValue(!Boolean.TRUE.equals(fieldValue.getValue()), new RecordField("not()", RecordFieldType.BOOLEAN.getDataType()), null));
+    }
 
 }

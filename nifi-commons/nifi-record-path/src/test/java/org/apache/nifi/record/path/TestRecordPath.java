@@ -1880,6 +1880,28 @@ public class TestRecordPath {
         assertEquals(Uuid5Util.fromString(input, null), value);
     }
 
+    @Test
+    public void testPredicateAsPath() {
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
+        fields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
+
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        final Map<String, Object> values = new HashMap<>();
+        values.put("id", 48);
+        values.put("name", null);
+        final Record record = new MapRecord(schema, values);
+
+        assertEquals(Boolean.TRUE, RecordPath.compile("isEmpty( /name )").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals(Boolean.FALSE, RecordPath.compile("isEmpty( /id )").evaluate(record).getSelectedFields().findFirst().get().getValue());
+
+        assertEquals(Boolean.TRUE, RecordPath.compile("/id = 48").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals(Boolean.FALSE, RecordPath.compile("/id > 48").evaluate(record).getSelectedFields().findFirst().get().getValue());
+
+        assertEquals(Boolean.FALSE, RecordPath.compile("not(/id = 48)").evaluate(record).getSelectedFields().findFirst().get().getValue());
+    }
+
     private List<RecordField> getDefaultFields() {
         final List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));

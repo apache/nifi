@@ -17,11 +17,14 @@
 
 package org.apache.nifi.record.path.filter;
 
-import java.util.stream.Stream;
-
 import org.apache.nifi.record.path.FieldValue;
 import org.apache.nifi.record.path.RecordPathEvaluationContext;
+import org.apache.nifi.record.path.StandardFieldValue;
 import org.apache.nifi.record.path.paths.RecordPathSegment;
+import org.apache.nifi.serialization.record.RecordField;
+import org.apache.nifi.serialization.record.RecordFieldType;
+
+import java.util.stream.Stream;
 
 public abstract class FunctionFilter implements RecordPathFilter {
     private final RecordPathSegment recordPath;
@@ -34,6 +37,12 @@ public abstract class FunctionFilter implements RecordPathFilter {
     public Stream<FieldValue> filter(final RecordPathEvaluationContext context, final boolean invert) {
         return recordPath.evaluate(context)
             .filter(fv -> invert ? !test(fv, context) : test(fv, context));
+    }
+
+    @Override
+    public Stream<FieldValue> mapToBoolean(final RecordPathEvaluationContext context) {
+        return recordPath.evaluate(context)
+            .map(fv -> new StandardFieldValue(test(fv, context), new RecordField("<function>", RecordFieldType.BOOLEAN.getDataType()), null));
     }
 
     protected abstract boolean test(FieldValue fieldValue, final RecordPathEvaluationContext context);

@@ -41,6 +41,7 @@ import org.apache.nifi.record.path.functions.Coalesce;
 import org.apache.nifi.record.path.functions.Concat;
 import org.apache.nifi.record.path.functions.EscapeJson;
 import org.apache.nifi.record.path.functions.FieldName;
+import org.apache.nifi.record.path.functions.FilterFunction;
 import org.apache.nifi.record.path.functions.Format;
 import org.apache.nifi.record.path.functions.Hash;
 import org.apache.nifi.record.path.functions.PadLeft;
@@ -102,6 +103,18 @@ public class RecordPathCompiler {
         for (int i = 0; i < pathTree.getChildCount(); i++) {
             final Tree child = pathTree.getChild(i);
             parent = RecordPathCompiler.buildPath(child, parent, absolute);
+        }
+
+        // If the given path tree is an operator, create a Filter Function that will be responsible for returning true/false based on the provided operation
+        switch (pathTree.getType()) {
+            case EQUAL:
+            case NOT_EQUAL:
+            case LESS_THAN:
+            case LESS_THAN_EQUAL:
+            case GREATER_THAN:
+            case GREATER_THAN_EQUAL:
+                final RecordPathFilter filter = createFilter(pathTree, null, absolute);
+                return new FilterFunction(pathTree.getText(), filter, absolute);
         }
 
         return parent;
@@ -363,6 +376,17 @@ public class RecordPathCompiler {
                         }
 
                         return new Coalesce(argPaths, absolute);
+                    }
+                    case "not":
+                    case "contains":
+                    case "containsRegex":
+                    case "endsWith":
+                    case "startsWith":
+                    case "isBlank":
+                    case "isEmpty":
+                    case "matchesRegex": {
+                        final RecordPathFilter filter = createFilter(tree, null, absolute);
+                        return new FilterFunction(functionName, filter, absolute);
                     }
                     default: {
                         throw new RecordPathException("Invalid function call: The '" + functionName + "' function does not exist or can only "
