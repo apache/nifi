@@ -32,11 +32,11 @@ public class CapturingLogger implements Logger {
 
     private final Logger logger;
 
-    private final List<LogMessage> traceMessages = new ArrayList<>();
-    private final List<LogMessage> debugMessages = new ArrayList<>();
-    private final List<LogMessage> infoMessages = new ArrayList<>();
-    private final List<LogMessage> warnMessages = new ArrayList<>();
-    private final List<LogMessage> errorMessages = new ArrayList<>();
+    private final List<LogMessage> traceMessages = Collections.synchronizedList(new ArrayList<>());
+    private final List<LogMessage> debugMessages = Collections.synchronizedList(new ArrayList<>());
+    private final List<LogMessage> infoMessages = Collections.synchronizedList(new ArrayList<>());
+    private final List<LogMessage> warnMessages = Collections.synchronizedList(new ArrayList<>());
+    private final List<LogMessage> errorMessages = Collections.synchronizedList(new ArrayList<>());
 
     public CapturingLogger(final Logger logger) {
         this.logger = logger;
