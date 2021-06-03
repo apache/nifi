@@ -457,7 +457,7 @@ public final class StandardConnection implements Connection, ConnectionEventList
 
         public StandardConnection build() {
             if (processGroup == null) {
-                throw new IllegalStateException("Cannot build a Connection without a Procss Group");
+                throw new IllegalStateException("Cannot build a Connection without a Process Group");
             }
             if (source == null) {
                 throw new IllegalStateException("Cannot build a Connection without a Source");

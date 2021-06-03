@@ -367,7 +367,7 @@ public class ProcessGroupDTO extends ComponentDTO {
         this.flowfileConcurrency = flowfileConcurrency;
     }
 
-    @ApiModelProperty(value = "The Oubound Policy that is used for determining how FlowFiles should be transferred out of the Process Group.",
+    @ApiModelProperty(value = "The Outbound Policy that is used for determining how FlowFiles should be transferred out of the Process Group.",
         allowableValues = "STREAM_WHEN_AVAILABLE, BATCH_OUTPUT")
     public String getFlowfileOutboundPolicy() {
         return flowfileOutboundPolicy;
