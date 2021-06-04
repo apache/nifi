@@ -40,6 +40,7 @@ import org.apache.avro.Schema;
 import org.apache.nifi.avro.AvroTypeUtil;
 import org.apache.nifi.json.JsonTreeReader;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.schema.access.SchemaAccessUtils;
 import org.apache.nifi.serialization.SimpleRecordSchema;
@@ -275,7 +276,7 @@ class MockPutAzureCosmosDBRecord extends PutAzureCosmosDBRecord {
     }
 
     @Override
-    protected void bulkInsert(List<Map<String, Object>> records ) throws CosmosException{
+    protected void bulkInsert(List<Map<String, Object>> records,  String partitionKeyField) throws CosmosException, ProcessException {
         this.mockBackend.addAll(records);
     }
 
