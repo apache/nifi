@@ -851,7 +851,7 @@ The following record path expression would decode the String using Base64:
 | `base64Decode(/name)` | John
 |==========================================================
 
-=== jsonEscape
+=== escapeJson
 
 JSON Stringifies a Record, Array or simple field (e.g. String), using the UTF-8 character set. For example, given a schema such as:
 
@@ -885,12 +885,12 @@ The following record path expression would convert the record into an escaped JS
 
 |==========================================================
 | RecordPath | Return value
-| `jsonEscape(/person)` | "{\"person\":{\"name\":\"John\",\"age\":30}}"
-| `jsonEscape(/person/firstName)` | "\"John\""
-| `jsonEscape(/person/age)` | "30"
+| `escapeJson(/person)` | "{\"person\":{\"name\":\"John\",\"age\":30}}"
+| `escapeJson(/person/firstName)` | "\"John\""
+| `escapeJson(/person/age)` | "30"
 |==========================================================
 
-=== jsonUnescape
+=== unescapeJson
 
 Converts a stringified JSON element to a Record, Array or simple field (e.g. String), using the UTF-8 character set. For example, given a schema such as:
 
@@ -921,7 +921,7 @@ The following record path expression would populate the record with unescaped JS
 
 |==========================================================
 | RecordPath | Return value
-| `jsonUnescape(/json_str)` | {"person": {"name": "John", "age": 30}}"
+| `unescapeJson(/json_str)` | {"person": {"name": "John", "age": 30}}"
 |==========================================================
 
 Given a record such as:
@@ -936,7 +936,7 @@ The following record path expression would return:
 
 |==========================================================
 | RecordPath | Return value
-| `jsonUnescape(/json_str)` | "John"
+| `unescapeJson(/json_str)` | "John"
 |==========================================================
 
 Note that the target schema must be pre-defined if the unescaped JSON is to be set in a Record's fields - Infer Schema will not currently do this automatically.
