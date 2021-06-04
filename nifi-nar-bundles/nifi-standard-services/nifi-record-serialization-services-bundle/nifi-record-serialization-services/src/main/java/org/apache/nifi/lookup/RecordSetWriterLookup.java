@@ -17,14 +17,13 @@
 
 package org.apache.nifi.lookup;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.AbstractControllerService;
@@ -44,60 +43,86 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @Tags({"lookup", "result", "set", "writer", "serializer", "record", "recordset", "row"})
 @SeeAlso({ReaderLookup.class})
-@CapabilityDescription("Provides a RecordSetWriterFactory that can be used to dynamically select another RecordSetWriterFactory. This service " +
-        "requires a variable named 'recordsetwriter.name' to be passed in when asking for a schema or record set writer, and will throw an exception " +
-        "if the variable is missing. The value of 'recordsetwriter.name' will be used to select the RecordSetWriterFactory that has been " +
-        "registered with that name. This will allow multiple RecordSetWriterFactory's to be defined and registered, and then selected " +
-        "dynamically at runtime by tagging flow files with the appropriate 'recordsetwriter.name' variable.")
+@CapabilityDescription("Provides a RecordSetWriterFactory that can be used to dynamically select another RecordSetWriterFactory. " +
+    "This will allow multiple RecordSetWriterFactory's to be defined and registered, and then selected " +
+    "dynamically at runtime by tagging FlowFiles with the attributes and referencing those attributes in the Service to Use property.")
 @DynamicProperty(name = "Name of the RecordSetWriter", value = "A RecordSetWriterFactory controller service", expressionLanguageScope = ExpressionLanguageScope.NONE,
         description = "")
 public class RecordSetWriterLookup extends AbstractControllerService implements RecordSetWriterFactory {
 
-    public static final String RECORDWRITER_NAME_VARIABLE = "recordsetwriter.name";
+    static final PropertyDescriptor SERVICE_TO_USE = new PropertyDescriptor.Builder()
+        .name("Service to Use")
+        .displayName("Service to Use")
+        .description("Specifies the name of the user-defined property whose associated Controller Service should be used.")
+        .required(true)
+        .defaultValue("${recordsetwriter.name}")
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .build();
+
 
     private volatile Map<String,RecordSetWriterFactory> recordSetWriterFactoryMap;
+    private volatile PropertyValue serviceToUseValue;
 
     @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
         return new PropertyDescriptor.Builder()
                 .name(propertyDescriptorName)
-                .description("The RecordSetWriterFactory to return when recordwriter.name = '" + propertyDescriptorName + "'")
+                .description("The RecordSetWriterFactory  to return when '" + propertyDescriptorName + "' is the chosen Record Reader")
                 .identifiesControllerService(RecordSetWriterFactory.class)
-                .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
                 .build();
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext context) {
+    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+        return Collections.singletonList(SERVICE_TO_USE);
+    }
+
+    @Override
+    protected Collection<ValidationResult> customValidate(final ValidationContext context) {
         final List<ValidationResult> results = new ArrayList<>();
 
-        int numDefinedServices = 0;
+        final Set<String> serviceNames = new HashSet<>();
         for (final PropertyDescriptor descriptor : context.getProperties().keySet()) {
             if (descriptor.isDynamic()) {
-                numDefinedServices++;
+                serviceNames.add(descriptor.getName());
             }
 
             final String referencedId = context.getProperty(descriptor).getValue();
             if (this.getIdentifier().equals(referencedId)) {
                 results.add(new ValidationResult.Builder()
-                        .subject(descriptor.getDisplayName())
-                        .explanation("the current service cannot be registered as a RecordSetWriterFactory to lookup")
-                        .valid(false)
-                        .build());
+                    .subject(descriptor.getDisplayName())
+                    .explanation("The current service cannot be registered as a RecordSetWriter to lookup")
+                    .valid(false)
+                    .build());
             }
         }
 
-        if (numDefinedServices == 0) {
+        if (serviceNames.isEmpty()) {
             results.add(new ValidationResult.Builder()
-                    .subject(this.getClass().getSimpleName())
-                    .explanation("at least one RecordSetWriterFactory must be defined via dynamic properties")
+                .subject(this.getClass().getSimpleName())
+                .explanation("At least one RecordSetWriter must be defined via dynamic properties")
+                .valid(false)
+                .build());
+        }
+
+        final PropertyValue serviceToUseValue = context.getProperty(SERVICE_TO_USE);
+        if (!serviceToUseValue.isExpressionLanguagePresent()) {
+            final String selectedValue = serviceToUseValue.getValue();
+            if (!serviceNames.contains(selectedValue)) {
+                results.add(new ValidationResult.Builder()
+                    .subject(SERVICE_TO_USE.getDisplayName())
+                    .explanation("No service is defined with the name <" + selectedValue + ">")
                     .valid(false)
                     .build());
+            }
         }
 
         return results;
@@ -115,11 +140,7 @@ public class RecordSetWriterLookup extends AbstractControllerService implements 
         }
 
         recordSetWriterFactoryMap = Collections.unmodifiableMap(serviceMap);
-    }
-
-    @OnDisabled
-    public void onDisabled() {
-        recordSetWriterFactoryMap = null;
+        serviceToUseValue = context.getProperty(SERVICE_TO_USE);
     }
 
 
@@ -129,33 +150,19 @@ public class RecordSetWriterLookup extends AbstractControllerService implements 
     }
 
     @Override
-    public RecordSetWriter createWriter(ComponentLog logger, RecordSchema schema, OutputStream out) {
-        throw new UnsupportedOperationException("Cannot lookup RecordSetWriterFactory without variables");
-    }
-
-    @Override
     public RecordSetWriter createWriter(ComponentLog logger, RecordSchema schema, OutputStream out, Map<String, String> variables) throws SchemaNotFoundException, IOException {
         return getRecordSetWriterFactory(variables).createWriter(logger, schema, out, variables);
     }
 
     private RecordSetWriterFactory getRecordSetWriterFactory(Map<String, String> variables){
-        if (variables == null) {
-            throw new UnsupportedOperationException("Cannot lookup RecordSetWriterFactory without variables");
+        final String serviceName = serviceToUseValue.evaluateAttributeExpressions(variables).getValue();
+        if (serviceName.trim().isEmpty()) {
+            throw new ProcessException("Unable to determine which Record Writer to use: after evaluating the property value against supplied variables, got an empty value");
         }
 
-        if (!variables.containsKey(RECORDWRITER_NAME_VARIABLE)) {
-            throw new ProcessException("Attributes must contain an variables name '" + RECORDWRITER_NAME_VARIABLE + "'");
-        }
-
-        final String recordSetWriterName = variables.get(RECORDWRITER_NAME_VARIABLE);
-        if (StringUtils.isBlank(recordSetWriterName)) {
-            throw new ProcessException(RECORDWRITER_NAME_VARIABLE + " cannot be null or blank");
-        }
-
-        final RecordSetWriterFactory recordSetWriterFactory = recordSetWriterFactoryMap.get(recordSetWriterName);
+        final RecordSetWriterFactory recordSetWriterFactory = recordSetWriterFactoryMap.get(serviceName);
         if (recordSetWriterFactory == null) {
-            throw new ProcessException("No RecordSetWriterFactory was found for " + RECORDWRITER_NAME_VARIABLE
-                    + "'" + recordSetWriterName + "'");
+            throw new ProcessException("No Record Writer was configured with the name <" + serviceName + ">");
         }
 
         return recordSetWriterFactory;
