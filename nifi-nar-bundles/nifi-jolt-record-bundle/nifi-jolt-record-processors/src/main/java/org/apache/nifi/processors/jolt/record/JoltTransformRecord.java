@@ -333,7 +333,7 @@ public class JoltTransformRecord extends AbstractProcessor {
                 final JoltTransform transform = getTransform(context, original);
                 final List<Record >transformedFirstRecords = transform(firstRecord, transform);
 
-                if (transformedFirstRecords == null) {
+                if (transformedFirstRecords.isEmpty()) {
                     throw new ProcessException("Error transforming the first record");
                 }
 
@@ -419,13 +419,15 @@ public class JoltTransformRecord extends AbstractProcessor {
         final List<Record> recordList = new ArrayList<>();
 
         if (normalizedRecordValues == null) {
-            return null;
+            return recordList;
         }
 
         // If the top-level object is an array, return a list of the records inside. Otherwise return a singleton list with the single transformed record
         if (normalizedRecordValues instanceof Object[]) {
             for (Object o : (Object[]) normalizedRecordValues) {
-                recordList.add(DataTypeUtils.toRecord(o, "r"));
+                if (o != null) {
+                    recordList.add(DataTypeUtils.toRecord(o, "r"));
+                }
             }
         } else {
             recordList.add(DataTypeUtils.toRecord(normalizedRecordValues, "r"));
