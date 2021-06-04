@@ -29,7 +29,7 @@
         <azure-storage.version>8.4.0</azure-storage.version>
         <azure.core.version>1.6.0</azure.core.version>
         <azure.identity.version>1.0.6</azure.identity.version>
-        <azure-cosmos.version>4.2.0</azure-cosmos.version>
+        <azure-cosmos.version>4.8.0</azure-cosmos.version>
     </properties>
 
     <modules>

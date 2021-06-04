@@ -18,11 +18,16 @@ package org.apache.nifi.processors.azure.cosmos.document;
 
 import com.azure.cosmos.CosmosContainer;
 import com.azure.cosmos.CosmosException;
-import com.azure.cosmos.implementation.ConflictException;
+import com.azure.cosmos.TransactionalBatch;
+import com.azure.cosmos.TransactionalBatchResponse;
+import com.azure.cosmos.models.CosmosItemRequestOptions;
+import com.azure.cosmos.models.PartitionKey;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
+import org.apache.nifi.annotation.configuration.DefaultSettings;
 import org.apache.nifi.annotation.behavior.SystemResource;
 import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -45,10 +50,12 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -62,6 +69,7 @@ import java.util.UUID;
         "schema to read an incoming record set from the body of a Flowfile and then inserts those records into " +
         "a configured Cosmos DB Container.")
 @SystemResourceConsideration(resource = SystemResource.MEMORY)
+@DefaultSettings(yieldDuration = "30 sec", penaltyDuration = "1 min")
 public class PutAzureCosmosDBRecord extends AbstractAzureCosmosDBProcessor {
 
     private String conflictHandlingStrategy;
@@ -123,17 +131,53 @@ public class PutAzureCosmosDBRecord extends AbstractAzureCosmosDBProcessor {
         return propertyDescriptors;
     }
 
-    protected void bulkInsert(final List<Map<String, Object>> records) throws CosmosException{
-        // In the future, this method will be replaced by calling createItems API
-        // for example, this.container.createItems(records);
-        // currently, no createItems API available in Azure Cosmos Java SDK
+    private void insertWithTransactionalBatch(final List<Map<String, Object>> records, String partitionKeyField) throws CosmosException, ProcessException {
         final ComponentLog logger = getLogger();
         final CosmosContainer container = getContainer();
-        for (Map<String, Object> record : records){
+        if (records.size() > 0) {
+            final Map<String, Object> firstRecord = records.get(0);
+            final String recordPartitionKeyValue = (String)firstRecord.get(partitionKeyField);
+            final TransactionalBatch tBatch = TransactionalBatch.createTransactionalBatch(new PartitionKey(recordPartitionKeyValue));
+            for (Map<String, Object> record : records) {
+                if (conflictHandlingStrategy != null && conflictHandlingStrategy.equals(UPSERT_CONFLICT.getValue())){
+                    tBatch.upsertItemOperation(record);
+                } else {
+                    tBatch.createItemOperation(record);
+                }
+            }
             try {
-                container.createItem(record);
-            } catch (ConflictException e) {
-                // insert with unique id is expected. In case conflict occurs, use the selected strategy.
+                final TransactionalBatchResponse response = container.executeTransactionalBatch(tBatch);
+                if (!response.isSuccessStatusCode()) {
+                    logger.error("TransactionalBatchResponse status code: " +  response.getStatusCode());
+                    if (response.getStatusCode() == 409) {
+                        if (conflictHandlingStrategy != null && conflictHandlingStrategy.equals(IGNORE_CONFLICT.getValue())) {
+                            // ignore conflict
+                            return;
+                        }
+                    }
+                    String errMsg = response.getErrorMessage();
+                    if (errMsg == null) {
+                        errMsg = "TransactionalBatchResponse status code: " +  response.getStatusCode();
+                    }
+                    throw new ProcessException(errMsg);
+                }
+            } catch (CosmosException e) {
+                logger.error("batchResponse-> statusCode: " + e.getStatusCode() + ", subStatusCode: "  + e.getSubStatusCode());
+                throw e;
+            }
+        }
+    }
+
+    private void insertRecord(final Map<String, Object> record, String partitionKeyField) throws CosmosException, ProcessException {
+        final ComponentLog logger = getLogger();
+        final CosmosContainer container = getContainer();
+        final CosmosItemRequestOptions cosmosItemRequestOptions = new CosmosItemRequestOptions();
+        cosmosItemRequestOptions.setContentResponseOnWriteEnabled(false);
+        try {
+            container.createItem(record, new PartitionKey((String)record.get(partitionKeyField)), cosmosItemRequestOptions);
+        } catch (CosmosException e) {
+            if (e.getStatusCode() == 409) {
+                // insert with an unique id is expected. In case conflict occurs, use the selected strategy.
                 // By default, it will ignore.
                 if (conflictHandlingStrategy != null && conflictHandlingStrategy.equals(UPSERT_CONFLICT.getValue())){
                     container.upsertItem(record);
@@ -142,7 +186,55 @@ public class PutAzureCosmosDBRecord extends AbstractAzureCosmosDBProcessor {
                         logger.debug("Ignoring duplicate based on selected conflict resolution strategy");
                     }
                 }
+            } else {
+                throw e;
             }
+        }
+    }
+
+    private void chooseInsertMethodAndRun(final List<Map<String, Object>> bin, String partitionKeyField) throws CosmosException, ProcessException {
+        final ComponentLog logger = getLogger();
+        try {
+            if (bin.size() == 1) {
+                insertRecord(bin.get(0), partitionKeyField);
+            } else {
+                insertWithTransactionalBatch(bin, partitionKeyField);
+            }
+        } catch (CosmosException e) {
+            final String errMsg = String.format("CosmosException status code is %d while handling bin size = %d", e.getStatusCode(), bin.size());
+            logger.error(errMsg);
+            if(e.getStatusCode() == 429) { // request being throttled
+                logger.error("Status 429 -> Increase Azure Cosmo RU for your workload");
+            }
+            throw e;
+        }
+    }
+
+    protected void bulkInsert(final List<Map<String, Object>> records, String partitionKeyField) throws CosmosException, ProcessException {
+
+        Comparator<Map<String,Object>> sortByPartitonKeyFiled = new Comparator<Map<String, Object>>() {
+            public int compare(final Map<String, Object> o1, final Map<String, Object> o2) {
+                return (o1.get(partitionKeyField).toString()).compareTo(o2.get(partitionKeyField).toString());
+            }
+        };
+        records.sort(sortByPartitonKeyFiled);
+        String lastPartitionKeyValue = "";
+        List<Map<String, Object>> bin = new ArrayList<>();
+        for (Map<String, Object> record : records) {
+            String recordPartitionKeyValue = (String)record.get(partitionKeyField);
+            if (!lastPartitionKeyValue.equals(recordPartitionKeyValue)) {
+                if (bin.size() > 0) {
+                    // flush out bin and then clear bin
+                    chooseInsertMethodAndRun(bin, partitionKeyField);
+                    bin = new ArrayList<>();
+                }
+            }
+            bin.add(record);
+            lastPartitionKeyValue = recordPartitionKeyValue;
+        }
+        if (bin.size() > 0) {
+            // insert any leftover at last
+            chooseInsertMethodAndRun(bin, partitionKeyField);
         }
     }
 
@@ -160,7 +252,7 @@ public class PutAzureCosmosDBRecord extends AbstractAzureCosmosDBProcessor {
         final String partitionKeyField = context.getProperty(PARTITION_KEY).getValue();
         List<Map<String, Object>> batch = new ArrayList<>();
         int ceiling = context.getProperty(INSERT_BATCH_SIZE).asInteger();
-        boolean error = false;
+        boolean error = false, yield = false;
         try (final InputStream inStream = session.read(flowFile);
              final RecordReader reader = recordParserFactory.createRecordReader(flowFile, inStream, getLogger())) {
 
@@ -189,18 +281,33 @@ public class PutAzureCosmosDBRecord extends AbstractAzureCosmosDBProcessor {
                 }
                 batch.add(contentMap);
                 if (batch.size() == ceiling) {
-                    bulkInsert(batch);
+                    bulkInsert(batch, partitionKeyField);
                     batch = new ArrayList<>();
                 }
             }
             if (!error && batch.size() > 0) {
-                bulkInsert(batch);
+                bulkInsert(batch, partitionKeyField);
             }
-        } catch (SchemaNotFoundException | MalformedRecordException | IOException | CosmosException e) {
+        } catch (CosmosException e)  {
+            final int statusCode =  e.getStatusCode();
+            logger.error("statusCode: " + statusCode + ", subStatusCode: "  + e.getSubStatusCode());
+
+            if (statusCode == 429) {
+                logger.error("Failure due to server-side throttling. Increase RU setting for your workload");
+                yield = true;
+            } else if (statusCode == 410) {
+                logger.error("A request to change the throughput is currently in progress");
+                yield = true;
+            } else {
+                error = true;
+            }
+        } catch (ProcessException | SchemaNotFoundException | MalformedRecordException | IOException e) {
             logger.error("PutAzureCosmoDBRecord failed with error: {}", new Object[]{e.getMessage()}, e);
             error = true;
         } finally {
-            if (!error) {
+            if (yield) {
+                context.yield();
+            } else if (!error) {
                 session.getProvenanceReporter().send(flowFile, getURI(context));
                 session.transfer(flowFile, REL_SUCCESS);
             } else {
