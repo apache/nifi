@@ -851,6 +851,96 @@ The following record path expression would decode the String using Base64:
 | `base64Decode(/name)` | John
 |==========================================================
 
+=== jsonEscape
+
+JSON Stringifies a Record, Array or simple field (e.g. String), using the UTF-8 character set. For example, given a schema such as:
+
+----
+{
+  "type": "record",
+  "name": "events",
+  "fields": [{
+    "name": "person",
+    "type": "record",
+    "fields": [
+      { "name": "name", "type": "string" },
+      { "name": "age", "type": "int" }
+    ]
+  }]
+}
+----
+
+and a record such as:
+
+----
+{
+  "person": {
+    "name" : "John",
+    "age" : 30
+  }
+}
+----
+
+The following record path expression would convert the record into an escaped JSON String:
+
+|==========================================================
+| RecordPath | Return value
+| `jsonEscape(/person)` | "{\"person\":{\"name\":\"John\",\"age\":30}}"
+| `jsonEscape(/person/firstName)` | "\"John\""
+| `jsonEscape(/person/age)` | "30"
+|==========================================================
+
+=== jsonUnescape
+
+Converts a stringified JSON element to a Record, Array or simple field (e.g. String), using the UTF-8 character set. For example, given a schema such as:
+
+----
+{
+  "type": "record",
+  "name": "events",
+  "fields": [{
+    "name": "person",
+    "type": "record",
+    "fields": [
+      { "name": "name", "type": "string" },
+      { "name": "age", "type": "int" }
+    ]
+  }]
+}
+----
+
+and a record such as:
+
+----
+{
+  "json_str": "{\"person\":{\"name\":\"John\",\"age\":30}}"
+}
+----
+
+The following record path expression would populate the record with unescaped JSON fields:
+
+|==========================================================
+| RecordPath | Return value
+| `jsonUnescape(/json_str)` | {"person": {"name": "John", "age": 30}}"
+|==========================================================
+
+Given a record such as:
+
+----
+{
+  "json_str": "\"John\""
+}
+----
+
+The following record path expression would return:
+
+|==========================================================
+| RecordPath | Return value
+| `jsonUnescape(/json_str)` | "John"
+|==========================================================
+
+Note that the target schema must be pre-defined if the unescaped JSON is to be set in a Record's fields - Infer Schema will not currently do this automatically.
+
 === hash
 
 Converts a String using a hash algorithm.  For example, given a schema such as:
