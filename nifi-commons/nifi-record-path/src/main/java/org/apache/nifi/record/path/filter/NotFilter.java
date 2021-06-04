@@ -20,6 +20,8 @@ package org.apache.nifi.record.path.filter;
 import org.apache.nifi.record.path.FieldValue;
 import org.apache.nifi.record.path.RecordPathEvaluationContext;
 import org.apache.nifi.record.path.StandardFieldValue;
+import org.apache.nifi.serialization.record.RecordField;
+import org.apache.nifi.serialization.record.RecordFieldType;
 
 import java.util.stream.Stream;
 
@@ -38,7 +40,7 @@ public class NotFilter implements RecordPathFilter {
     @Override
     public Stream<FieldValue> mapToBoolean(final RecordPathEvaluationContext context) {
         return filter.mapToBoolean(context)
-            .map(fieldValue -> new StandardFieldValue(!Boolean.TRUE.equals(fieldValue.getValue()), fieldValue.getField(), fieldValue.getParent().orElse(null)));
+            .map(fieldValue -> new StandardFieldValue(!Boolean.TRUE.equals(fieldValue.getValue()), new RecordField("not()", RecordFieldType.BOOLEAN.getDataType()), null));
     }
 
 }

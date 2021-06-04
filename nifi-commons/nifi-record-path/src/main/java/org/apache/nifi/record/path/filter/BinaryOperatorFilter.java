@@ -21,6 +21,8 @@ import org.apache.nifi.record.path.FieldValue;
 import org.apache.nifi.record.path.RecordPathEvaluationContext;
 import org.apache.nifi.record.path.StandardFieldValue;
 import org.apache.nifi.record.path.paths.RecordPathSegment;
+import org.apache.nifi.serialization.record.RecordField;
+import org.apache.nifi.serialization.record.RecordFieldType;
 
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -72,7 +74,7 @@ public abstract class BinaryOperatorFilter implements RecordPathFilter {
         final Stream<FieldValue> lhsStream = lhs.evaluate(context);
         return lhsStream.map(fieldVal -> {
             final boolean result = test(fieldVal, value);
-            final FieldValue mapped = new StandardFieldValue(result, fieldVal.getField(), fieldVal.getParent().orElse(null));
+            final FieldValue mapped = new StandardFieldValue(result, new RecordField(getOperator(), RecordFieldType.BOOLEAN.getDataType()), null);
             return mapped;
         });
     }
