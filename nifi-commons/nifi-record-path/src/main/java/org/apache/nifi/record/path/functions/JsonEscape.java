@@ -30,13 +30,13 @@ import org.apache.nifi.serialization.record.util.DataTypeUtils;
 
 import java.util.stream.Stream;
 
-public class EscapeJson extends RecordPathSegment {
+public class JsonEscape extends RecordPathSegment {
     private final RecordPathSegment recordPath;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public EscapeJson(final RecordPathSegment recordPath, final boolean absolute) {
-        super("escapeJson", null, absolute);
+    public JsonEscape(final RecordPathSegment recordPath, final boolean absolute) {
+        super("jsonEscape", null, absolute);
         this.recordPath = recordPath;
     }
 

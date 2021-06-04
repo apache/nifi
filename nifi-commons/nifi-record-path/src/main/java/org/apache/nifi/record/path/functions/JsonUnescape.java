@@ -34,13 +34,13 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.stream.Stream;
 
-public class UnescapeJson extends RecordPathSegment {
+public class JsonUnescape extends RecordPathSegment {
     private final RecordPathSegment recordPath;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public UnescapeJson(final RecordPathSegment recordPath, final boolean absolute) {
-        super("unescapeJson", null, absolute);
+    public JsonUnescape(final RecordPathSegment recordPath, final boolean absolute) {
+        super("jsonUnescape", null, absolute);
         this.recordPath = recordPath;
     }
 
@@ -60,10 +60,10 @@ public class UnescapeJson extends RecordPathSegment {
 
                             return new StandardFieldValue(convertFieldValue(value, fv.getField().getFieldName(), dataType), fv.getField(), fv.getParent().orElse(null));
                         } catch (IOException e) {
-                            throw new RecordPathException("Unable to serialise Record Path value as JSON String", e);
+                            throw new RecordPathException("Unable to deserialise JSON String into Record Path value", e);
                         }
                     } else {
-                        throw new IllegalArgumentException("Argument supplied to unescapeJson must be a String");
+                        throw new IllegalArgumentException("Argument supplied to jsonUnescape must be a String");
                     }
                 });
     }
