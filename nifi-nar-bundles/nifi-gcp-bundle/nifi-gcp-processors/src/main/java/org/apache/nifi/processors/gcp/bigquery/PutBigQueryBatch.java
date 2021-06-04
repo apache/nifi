@@ -257,16 +257,18 @@ public class PutBigQueryBatch extends AbstractBigQueryProcessor {
         }
 
         final String projectId = context.getProperty(PROJECT_ID).evaluateAttributeExpressions().getValue();
+        final String designateProjectId = context.getProperty(DESIGNATE_PROJECT_ID).evaluateAttributeExpressions().getValue();
         final String dataset = context.getProperty(DATASET).evaluateAttributeExpressions(flowFile).getValue();
         final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions(flowFile).getValue();
         final String type = context.getProperty(SOURCE_TYPE).evaluateAttributeExpressions(flowFile).getValue();
 
         final TableId tableId;
-        if (StringUtils.isEmpty(projectId)) {
-            tableId = TableId.of(dataset, tableName);
-        } else {
-            tableId = TableId.of(projectId, dataset, tableName);
+        String targetProjectId = projectId;
+        if (!StringUtils.isEmpty(designateProjectId)) {
+            targetProjectId = designateProjectId;
         }
+
+        tableId = targetProjectId != null ? TableId.of(targetProjectId, dataset, tableName) : TableId.of(dataset, tableName);
 
         try {
 

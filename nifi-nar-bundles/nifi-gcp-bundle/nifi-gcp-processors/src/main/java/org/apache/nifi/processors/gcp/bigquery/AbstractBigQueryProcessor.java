@@ -60,6 +60,15 @@ public abstract class AbstractBigQueryProcessor extends AbstractGCPProcessor<Big
     public static final Set<Relationship> relationships = Collections.unmodifiableSet(
             new HashSet<>(Arrays.asList(REL_SUCCESS, REL_FAILURE)));
 
+    public static final PropertyDescriptor DESIGNATE_PROJECT_ID = new PropertyDescriptor.Builder()
+            .name(BigQueryAttributes.DESIGNATE_PROJECT_ID_ATTR)
+            .displayName("Designate Project ID")
+            .description(BigQueryAttributes.DESIGNATE_PROJECT_ID_DESC)
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
+            .build();
+
     public static final PropertyDescriptor DATASET = new PropertyDescriptor.Builder()
             .name(BigQueryAttributes.DATASET_ATTR)
             .displayName("Dataset")
@@ -99,6 +108,7 @@ public abstract class AbstractBigQueryProcessor extends AbstractGCPProcessor<Big
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return ImmutableList.<PropertyDescriptor> builder()
                 .addAll(super.getSupportedPropertyDescriptors())
+                .add(DESIGNATE_PROJECT_ID)
                 .add(DATASET)
                 .add(TABLE_NAME)
                 .add(IGNORE_UNKNOWN)
