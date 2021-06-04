@@ -441,7 +441,6 @@ public class StandardFlowService implements FlowService, ProtocolHandler {
     @Override
     public void load(final DataFlow dataFlow) throws IOException, FlowSerializationException, FlowSynchronizationException, UninheritableFlowException, MissingBundleException {
         if (configuredForClustering) {
-            // Get the proposed flow by serializing the flow controller which now has the synced version from above
             DataFlow proposedFlow = null;
             try {
                 // Create the initial flow from disk if it exists, or from serializing the empty root group in flow controller
