@@ -34,13 +34,13 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.stream.Stream;
 
-public class JsonUnescape extends RecordPathSegment {
+public class UnescapeJson extends RecordPathSegment {
     private final RecordPathSegment recordPath;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    public JsonUnescape(final RecordPathSegment recordPath, final boolean absolute) {
-        super("jsonUnescape", null, absolute);
+    public UnescapeJson(final RecordPathSegment recordPath, final boolean absolute) {
+        super("unescapeJson", null, absolute);
         this.recordPath = recordPath;
     }
 
@@ -63,7 +63,7 @@ public class JsonUnescape extends RecordPathSegment {
                             throw new RecordPathException("Unable to deserialise JSON String into Record Path value", e);
                         }
                     } else {
-                        throw new IllegalArgumentException("Argument supplied to jsonUnescape must be a String");
+                        throw new IllegalArgumentException("Argument supplied to unescapeJson must be a String");
                     }
                 });
     }

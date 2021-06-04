@@ -39,7 +39,7 @@ import org.apache.nifi.record.path.functions.Base64Decode;
 import org.apache.nifi.record.path.functions.Base64Encode;
 import org.apache.nifi.record.path.functions.Coalesce;
 import org.apache.nifi.record.path.functions.Concat;
-import org.apache.nifi.record.path.functions.JsonEscape;
+import org.apache.nifi.record.path.functions.EscapeJson;
 import org.apache.nifi.record.path.functions.FieldName;
 import org.apache.nifi.record.path.functions.Format;
 import org.apache.nifi.record.path.functions.Hash;
@@ -60,7 +60,7 @@ import org.apache.nifi.record.path.functions.ToString;
 import org.apache.nifi.record.path.functions.ToUpperCase;
 import org.apache.nifi.record.path.functions.TrimString;
 import org.apache.nifi.record.path.functions.UUID5;
-import org.apache.nifi.record.path.functions.JsonUnescape;
+import org.apache.nifi.record.path.functions.UnescapeJson;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -310,13 +310,13 @@ public class RecordPathCompiler {
                         final RecordPathSegment[] args = getArgPaths(argumentListTree, 1, functionName, absolute);
                         return new Base64Decode(args[0], absolute);
                     }
-                    case "jsonEscape": {
+                    case "escapeJson": {
                         final RecordPathSegment[] args = getArgPaths(argumentListTree, 1, functionName, absolute);
-                        return new JsonEscape(args[0], absolute);
+                        return new EscapeJson(args[0], absolute);
                     }
-                    case "jsonUnescape": {
+                    case "unescapeJson": {
                         final RecordPathSegment[] args = getArgPaths(argumentListTree, 1, functionName, absolute);
-                        return new JsonUnescape(args[0], absolute);
+                        return new UnescapeJson(args[0], absolute);
                     }
                     case "hash":{
                         final RecordPathSegment[] args = getArgPaths(argumentListTree, 2, functionName, absolute);
