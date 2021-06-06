@@ -37,32 +37,29 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.nio.file.Path;
 import java.security.GeneralSecurityException;
 import java.security.SecureRandom;
 
 /**
  * <p>
- * An implementation of the {@link FlowFileSwapManager} that swaps FlowFiles
- * to/from local disk.  The swap file is encrypted using AES/CTR, using the
- * encryption key defined in nifi.properties.
+ * An implementation of {@link FlowFileSwapManager} that swaps FlowFiles
+ * to/from local disk.  The swap file is encrypted using AES/GCM, using the
+ * encryption key defined in nifi.properties for the FlowFile repository.
  * </p>
  */
 @SuppressWarnings("unused")  // instantiation via reflection in product
-public class FileSystemSwapManagerEncrypt extends FileSystemSwapManager {
+public class EncryptedFileSystemSwapManager extends FileSystemSwapManager {
 
-    private static final Logger logger = LoggerFactory.getLogger(FileSystemSwapManagerEncrypt.class);
+    private static final String CIPHER_TRANSFORMATION = "AES/GCM/NoPadding";
+    private static final int SIZE_IV_AES_BYTES = 16;
+    private static final int SIZE_TAG_GCM_BITS = 128;
+
+    private static final Logger logger = LoggerFactory.getLogger(EncryptedFileSystemSwapManager.class);
+    private static final SecureRandom secureRandom = new SecureRandom();
 
     private final SecretKey secretKey;
 
-    /**
-     * Default no args constructor for service loading only.
-     */
-    public FileSystemSwapManagerEncrypt() {
-        throw new IllegalStateException("ctor not supported; nifi properties not available");
-    }
-
-    public FileSystemSwapManagerEncrypt(final NiFiProperties nifiProperties)
+    public EncryptedFileSystemSwapManager(final NiFiProperties nifiProperties)
             throws IOException, EncryptionException, GeneralSecurityException {
         super(nifiProperties);
         // acquire reference to FlowFileRepository key
@@ -75,43 +72,34 @@ public class FileSystemSwapManagerEncrypt extends FileSystemSwapManager {
         this.secretKey = keyProvider.getKey(configuration.getEncryptionKeyId());
     }
 
-    public FileSystemSwapManagerEncrypt(final Path flowFileRepoPath) {
-        throw new IllegalStateException("ctor not supported; nifi properties not available");
-    }
-
     protected InputStream getInputStream(final File file) throws IOException {
         final FileInputStream fis = new FileInputStream(file);
         try {
             final byte[] iv = new byte[SIZE_IV_AES_BYTES];
-            final int countIV = fis.read(iv);
-            if (countIV != SIZE_IV_AES_BYTES) {
+            final int ivBytesRead = fis.read(iv);
+            if (ivBytesRead != SIZE_IV_AES_BYTES) {
                 throw new IOException(String.format(
-                        "problem reading IV [expected=%d, actual=%d]", SIZE_IV_AES_BYTES, countIV));
+                        "problem reading IV [expected=%d, actual=%d]", SIZE_IV_AES_BYTES, ivBytesRead));
             }
-            final Cipher cipher = Cipher.getInstance(TRANSFORMATION);
+            final Cipher cipher = Cipher.getInstance(CIPHER_TRANSFORMATION);
             cipher.init(Cipher.DECRYPT_MODE, secretKey, new GCMParameterSpec(SIZE_TAG_GCM_BITS, iv));
             return new CipherInputStream(fis, cipher);
         } catch (GeneralSecurityException e) {
-            throw new IOException(e);
+            throw new IOException(String.format("Preparing Cipher Failed for File [%s]", file.getAbsolutePath()), e);
         }
     }
 
     protected OutputStream getOutputStream(final File file) throws IOException {
         final byte[] iv = new byte[SIZE_IV_AES_BYTES];
-        new SecureRandom().nextBytes(iv);
+        secureRandom.nextBytes(iv);
         final FileOutputStream fos = new FileOutputStream(file);
         fos.write(iv);
         try {
-            final Cipher cipher = Cipher.getInstance(TRANSFORMATION);
+            final Cipher cipher = Cipher.getInstance(CIPHER_TRANSFORMATION);
             cipher.init(Cipher.ENCRYPT_MODE, secretKey, new GCMParameterSpec(SIZE_TAG_GCM_BITS, iv));
             return new CipherOutputStream(fos, cipher);
         } catch (GeneralSecurityException e) {
-            throw new IOException(e);
+            throw new IOException(String.format("Preparing Cipher Failed for File [%s]", file.getAbsolutePath()), e);
         }
     }
-
-    private static final String ALGORITHM = "AES";
-    private static final String TRANSFORMATION = "AES/GCM/NoPadding";
-    private static final int SIZE_IV_AES_BYTES = 16;
-    private static final int SIZE_TAG_GCM_BITS = 128;
 }
