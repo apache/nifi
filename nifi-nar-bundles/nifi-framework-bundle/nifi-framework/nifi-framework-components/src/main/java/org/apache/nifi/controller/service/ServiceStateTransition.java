@@ -77,18 +77,28 @@ public class ServiceStateTransition {
             logger.debug("{} transitioned to ENABLED", controllerServiceNode);
 
             enabledFutures.forEach(future -> future.complete(null));
-
-            final List<ComponentNode> referencingComponents = controllerServiceReference.findRecursiveReferences(ComponentNode.class);
-            for (final ComponentNode component : referencingComponents) {
-                component.performValidation();
-            }
-
-            stateChangeCondition.signalAll();
-
-            return true;
         } finally {
             writeLock.unlock();
         }
+
+        // We want to perform validation against other components outside of the write lock. Component validation could be expensive
+        // and more importantly could reference other controller services, which could result in a dead lock if we run the validation
+        // while holding this.writeLock.
+        final List<ComponentNode> referencingComponents = controllerServiceReference.findRecursiveReferences(ComponentNode.class);
+        for (final ComponentNode component : referencingComponents) {
+            component.performValidation();
+        }
+
+        // Now that the write lock was relinquished in order to perform validation on referencing components, we must re-acquire it
+        // in order to signal that a state change has completed.
+        writeLock.lock();
+        try {
+            stateChangeCondition.signalAll();
+        } finally {
+            writeLock.unlock();
+        }
+
+        return true;
     }
 
     public boolean transitionToDisabling(final ControllerServiceState expectedState, final CompletableFuture<?> disabledFuture) {
