@@ -319,9 +319,14 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
                 getLogger().info("Overriding endpoint with {}", urlstr);
 
                 if (urlstr.endsWith(".vpce.amazonaws.com")) {
-                    String region = parseRegionForVPCE(urlstr);
+                    // handling vpce endpoints
+                    // falling back to the configured region if the parse fails
+                    // e.g. in case of https://vpce-***-***.sqs.{region}.vpce.amazonaws.com
+                    String region = parseRegionForVPCE(urlstr, this.region.getName());
                     this.client.setEndpoint(urlstr, this.client.getServiceName(), region);
                 } else {
+                    // handling non-vpce custom endpoints where the AWS library can parse the region out
+                    // e.g. https://sqs.{region}.***.***.***.gov
                     this.client.setEndpoint(urlstr);
                 }
             }
@@ -335,9 +340,9 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
         is an AWS PrivateLink so this method does the job of parsing the region name and
         returning it.
 
-        Refer NIFI-5456 & NIFI-5893
+        Refer NIFI-5456, NIFI-5893 & NIFI-8662
      */
-    private String parseRegionForVPCE(String url) {
+    private String parseRegionForVPCE(String url, String configuredRegion) {
         int index = url.length() - ".vpce.amazonaws.com".length();
 
         Matcher matcher = VPCE_ENDPOINT_PATTERN.matcher(url.substring(0, index));
@@ -345,8 +350,8 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
         if (matcher.matches()) {
             return matcher.group(1);
         } else {
-            getLogger().warn("Unable to get a match with the VPCE endpoint pattern; defaulting the region to us-east-1...");
-            return "us-east-1";
+            getLogger().info("Unable to get a match with the VPCE endpoint pattern; using the configured region: " + configuredRegion);
+            return configuredRegion;
         }
     }
 
