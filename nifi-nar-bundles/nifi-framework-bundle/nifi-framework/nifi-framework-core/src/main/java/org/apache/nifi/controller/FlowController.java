@@ -1124,7 +1124,7 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
             final String duration = nifiProperties.getProperty(propertyName);
             return (long) FormatUtils.getPreciseTimeDuration(duration, TimeUnit.MILLISECONDS);
         } catch (final Exception e) {
-            LOG.warn("Could not retrieve value for {}.", propertyName);
+            LOG.warn("Could not retrieve value for {}. Valid values e.g. 60 secs or 1 min.", propertyName);
             throw e;
         }
     }
