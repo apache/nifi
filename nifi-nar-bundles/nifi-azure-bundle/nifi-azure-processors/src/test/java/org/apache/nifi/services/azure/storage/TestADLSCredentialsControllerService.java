@@ -329,16 +329,12 @@ public class TestADLSCredentialsControllerService {
 
     @Test
     public void testGetCredentialsDetailsWithSasTokenUsingEL() throws Exception {
-        // GIVEN
         configureAccountName();
         configureSasTokenUsingEL();
 
         runner.enableControllerService(credentialsService);
 
-        // WHEN
         ADLSCredentialsDetails actual = credentialsService.getCredentialsDetails(new HashMap<>());
-
-        // THEN
         assertEquals(ACCOUNT_NAME_VALUE, actual.getAccountName());
         assertEquals(SAS_TOKEN_VALUE, actual.getSasToken());
         assertNull(actual.getAccountKey());

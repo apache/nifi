@@ -67,6 +67,7 @@ public class ADLSCredentialsControllerService extends AbstractControllerService 
 
     public static final PropertyDescriptor ACCOUNT_KEY = new PropertyDescriptor.Builder()
             .fromPropertyDescriptor(AzureStorageUtils.ACCOUNT_KEY)
+            .description(AzureStorageUtils.ACCOUNT_KEY_BASE_DESCRIPTION)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
 
