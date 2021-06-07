@@ -23,7 +23,6 @@ import org.apache.nifi.nar.ExtensionManagerHolder
 import org.apache.nifi.nar.ExtensionMapping
 import org.apache.nifi.nar.SystemBundle
 import org.apache.nifi.processor.DataUnit
-import org.apache.nifi.properties.StandardNiFiProperties
 import org.apache.nifi.security.util.StandardTlsConfiguration
 import org.apache.nifi.security.util.TlsConfiguration
 import org.apache.nifi.security.util.TlsPlatform
@@ -50,6 +49,11 @@ import org.junit.contrib.java.lang.system.SystemErrRule
 import org.junit.contrib.java.lang.system.SystemOutRule
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
+import org.mockito.ArgumentCaptor
+import org.mockito.ArgumentMatchers
+import org.mockito.Mockito
+import org.mockito.invocation.InvocationOnMock
+import org.mockito.stubbing.Answer
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -87,7 +91,7 @@ class JettyServerGroovyTest extends GroovyTestCase {
     // These protocol versions should not ever be supported
     static private final List<String> LEGACY_TLS_PROTOCOLS = ["TLS", "TLSv1", "TLSv1.1", "SSL", "SSLv2", "SSLv2Hello", "SSLv3"]
 
-    NiFiProperties httpsProps = new StandardNiFiProperties(rawProperties: new Properties([
+    NiFiProperties httpsProps = new NiFiProperties(new Properties([
             (NiFiProperties.WEB_HTTPS_PORT)            : HTTPS_PORT as String,
             (NiFiProperties.WEB_HTTPS_HOST)            : HTTPS_HOSTNAME,
             (NiFiProperties.SECURITY_KEYSTORE)         : KEYSTORE_PATH,
@@ -134,15 +138,16 @@ class JettyServerGroovyTest extends GroovyTestCase {
                 (NiFiProperties.WEB_HTTPS_HOST): "secure.host.com",
                 (NiFiProperties.WEB_THREADS)   : NiFiProperties.DEFAULT_WEB_THREADS
         ]
-        NiFiProperties mockProps = [
-                getPort    : { -> 8080 },
-                getSslPort : { -> 8443 },
-                getProperty: { String prop ->
-                    String value = badProps[prop] ?: "no_value"
-                    logger.mock("getProperty(${prop}) -> ${value}")
-                    value
-                },
-        ] as StandardNiFiProperties
+        NiFiProperties mockProps = Mockito.mock(NiFiProperties.class)
+        Mockito.when(mockProps.getPort()).thenReturn(8080)
+        Mockito.when(mockProps.getSslPort()).thenReturn(8443)
+
+        Mockito.when(mockProps.getProperty(ArgumentMatchers.anyString())).thenAnswer(new Answer<Object>() {
+            @Override
+            Object answer(InvocationOnMock invocation) throws Throwable {
+                badProps[(String) invocation.getArgument(0)] ?: "no_value"
+            }
+        })
 
         // Act
         boolean bothConfigsPresent = JettyServer.bothHttpAndHttpsConnectorsConfigured(mockProps)
@@ -170,7 +175,7 @@ class JettyServerGroovyTest extends GroovyTestCase {
                     logger.mock("getProperty(${prop}) -> ${value}")
                     value
                 },
-        ] as StandardNiFiProperties
+        ] as NiFiProperties
 
         Map httpsMap = [
                 (NiFiProperties.WEB_HTTP_HOST) : null,
@@ -184,7 +189,7 @@ class JettyServerGroovyTest extends GroovyTestCase {
                     logger.mock("getProperty(${prop}) -> ${value}")
                     value
                 },
-        ] as StandardNiFiProperties
+        ] as NiFiProperties
 
         // Act
         boolean bothConfigsPresentForHttp = JettyServer.bothHttpAndHttpsConnectorsConfigured(httpProps)
@@ -221,7 +226,7 @@ class JettyServerGroovyTest extends GroovyTestCase {
                 getWebThreads      : { -> NiFiProperties.DEFAULT_WEB_THREADS },
                 getWebMaxHeaderSize: { -> NiFiProperties.DEFAULT_WEB_MAX_HEADER_SIZE },
                 isHTTPSConfigured  : { -> true }
-        ] as StandardNiFiProperties
+        ] as NiFiProperties
 
         // The web server should fail to start and exit Java
         exit.expectSystemExitWithStatus(1)
@@ -253,7 +258,7 @@ class JettyServerGroovyTest extends GroovyTestCase {
         // Arrange
         final String externalHostname = "localhost"
 
-        NiFiProperties httpsProps = new StandardNiFiProperties(rawProperties: new Properties([
+        NiFiProperties httpsProps = new NiFiProperties(new Properties([
                 (NiFiProperties.WEB_HTTPS_PORT): HTTPS_PORT as String,
                 (NiFiProperties.WEB_HTTPS_HOST): externalHostname,
                 (NiFiProperties.SECURITY_KEYSTORE): "src/test/resources/multiple_cert_keystore.p12",
@@ -285,7 +290,7 @@ class JettyServerGroovyTest extends GroovyTestCase {
         // Arrange
         final String externalHostname = "localhost"
 
-        NiFiProperties httpsProps = new StandardNiFiProperties(rawProperties: new Properties([
+        NiFiProperties httpsProps = new NiFiProperties(new Properties([
                 (NiFiProperties.WEB_HTTPS_PORT): HTTPS_PORT as String,
                 (NiFiProperties.WEB_HTTPS_HOST): externalHostname,
                 (NiFiProperties.SECURITY_KEYSTORE): "src/test/resources/multiple_cert_keystore.jks",
@@ -308,7 +313,7 @@ class JettyServerGroovyTest extends GroovyTestCase {
         jetty.stop()
     }
 
-    private static JettyServer createJettyServer(StandardNiFiProperties httpsProps) {
+    private static JettyServer createJettyServer(NiFiProperties httpsProps) {
         Server internalServer = new Server()
         JettyServer jetty = new JettyServer(internalServer, httpsProps)
         jetty.systemBundle = SystemBundle.create(httpsProps)
@@ -323,7 +328,7 @@ class JettyServerGroovyTest extends GroovyTestCase {
         // Arrange
         final String externalHostname = "localhost"
 
-        NiFiProperties httpsProps = new StandardNiFiProperties(rawProperties: new Properties([
+        NiFiProperties httpsProps = new NiFiProperties(new Properties([
                 (NiFiProperties.WEB_HTTPS_PORT): HTTPS_PORT as String,
                 (NiFiProperties.WEB_HTTPS_HOST): externalHostname,
         ]))
@@ -462,7 +467,7 @@ class JettyServerGroovyTest extends GroovyTestCase {
                 (NiFiProperties.WEB_HTTP_HOST)       : "localhost",
                 (NiFiProperties.WEB_MAX_CONTENT_SIZE): "1 MB",
         ]
-        NiFiProperties mockProps = new StandardNiFiProperties(new Properties(defaultProps))
+        NiFiProperties mockProps = new NiFiProperties(new Properties(defaultProps))
 
         List<FilterHolder> filters = []
         def mockWebContext = [
@@ -505,7 +510,7 @@ class JettyServerGroovyTest extends GroovyTestCase {
                 (NiFiProperties.WEB_HTTP_PORT): "8080",
                 (NiFiProperties.WEB_HTTP_HOST): "localhost",
         ]
-        NiFiProperties mockProps = new StandardNiFiProperties(new Properties(defaultProps))
+        NiFiProperties mockProps = new NiFiProperties(new Properties(defaultProps))
 
         List<FilterHolder> filters = []
         def mockWebContext = [

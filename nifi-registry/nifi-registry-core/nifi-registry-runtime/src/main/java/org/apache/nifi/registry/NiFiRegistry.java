@@ -16,10 +16,10 @@
  */
 package org.apache.nifi.registry;
 
+import org.apache.nifi.properties.SensitivePropertyProtectionException;
 import org.apache.nifi.registry.jetty.JettyServer;
 import org.apache.nifi.registry.properties.NiFiRegistryProperties;
 import org.apache.nifi.registry.properties.NiFiRegistryPropertiesLoader;
-import org.apache.nifi.registry.properties.SensitivePropertyProtectionException;
 import org.apache.nifi.registry.security.crypto.BootstrapFileCryptoKeyProvider;
 import org.apache.nifi.registry.security.crypto.CryptoKeyProvider;
 import org.apache.nifi.registry.security.crypto.MissingCryptoKeyException;
@@ -42,13 +42,6 @@ public class NiFiRegistry {
 
     public static final String BOOTSTRAP_PORT_PROPERTY = "nifi.registry.bootstrap.listen.port";
 
-    public static final String NIFI_REGISTRY_PROPERTIES_FILE_PATH_PROPERTY = "nifi.registry.properties.file.path";
-    public static final String NIFI_REGISTRY_BOOTSTRAP_FILE_PATH_PROPERTY = "nifi.registry.bootstrap.config.file.path";
-    public static final String NIFI_REGISTRY_BOOTSTRAP_DOCS_DIR_PROPERTY = "nifi.registry.bootstrap.config.docs.dir";
-
-    public static final String RELATIVE_BOOTSTRAP_FILE_LOCATION = "conf/bootstrap.conf";
-    public static final String RELATIVE_PROPERTIES_FILE_LOCATION = "conf/nifi-registry.properties";
-    public static final String RELATIVE_DOCS_LOCATION = "docs";
 
     private final JettyServer server;
     private final BootstrapListener bootstrapListener;
@@ -106,7 +99,8 @@ public class NiFiRegistry {
         SLF4JBridgeHandler.removeHandlersForRootLogger();
         SLF4JBridgeHandler.install();
 
-        final String docsDir = System.getProperty(NIFI_REGISTRY_BOOTSTRAP_DOCS_DIR_PROPERTY, RELATIVE_DOCS_LOCATION);
+        final String docsDir = System.getProperty(NiFiRegistryProperties.NIFI_REGISTRY_BOOTSTRAP_DOCS_DIR_PROPERTY,
+                NiFiRegistryProperties.RELATIVE_DOCS_LOCATION);
 
         final long startTime = System.nanoTime();
         server = new JettyServer(properties, masterKeyProvider, docsDir);
@@ -168,7 +162,8 @@ public class NiFiRegistry {
     }
 
     public static CryptoKeyProvider getMasterKeyProvider() {
-        final String bootstrapConfigFilePath = System.getProperty(NIFI_REGISTRY_BOOTSTRAP_FILE_PATH_PROPERTY, RELATIVE_BOOTSTRAP_FILE_LOCATION);
+        final String bootstrapConfigFilePath = System.getProperty(NiFiRegistryProperties.NIFI_REGISTRY_BOOTSTRAP_FILE_PATH_PROPERTY,
+                NiFiRegistryProperties.RELATIVE_BOOTSTRAP_FILE_LOCATION);
         CryptoKeyProvider masterKeyProvider = new BootstrapFileCryptoKeyProvider(bootstrapConfigFilePath);
         LOGGER.info("Read property protection key from {}", bootstrapConfigFilePath);
         return masterKeyProvider;
@@ -186,7 +181,8 @@ public class NiFiRegistry {
         try {
             try {
                 // Load properties using key. If properties are protected and key missing, throw RuntimeException
-                final String nifiRegistryPropertiesFilePath = System.getProperty(NIFI_REGISTRY_PROPERTIES_FILE_PATH_PROPERTY, RELATIVE_PROPERTIES_FILE_LOCATION);
+                final String nifiRegistryPropertiesFilePath = System.getProperty(NiFiRegistryProperties.NIFI_REGISTRY_PROPERTIES_FILE_PATH_PROPERTY,
+                        NiFiRegistryProperties.RELATIVE_PROPERTIES_FILE_LOCATION);
                 final NiFiRegistryProperties properties = NiFiRegistryPropertiesLoader.withKey(key).load(nifiRegistryPropertiesFilePath);
                 LOGGER.info("Loaded {} properties", properties.size());
                 return properties;

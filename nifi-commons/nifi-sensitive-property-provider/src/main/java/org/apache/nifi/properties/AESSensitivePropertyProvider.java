@@ -16,6 +16,21 @@
  */
 package org.apache.nifi.properties;
 
+import org.apache.commons.lang3.StringUtils;
+import org.bouncycastle.util.encoders.Base64;
+import org.bouncycastle.util.encoders.DecoderException;
+import org.bouncycastle.util.encoders.EncoderException;
+import org.bouncycastle.util.encoders.Hex;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.crypto.BadPaddingException;
+import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
@@ -25,46 +40,49 @@ import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
-import javax.crypto.BadPaddingException;
-import javax.crypto.Cipher;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.NoSuchPaddingException;
-import javax.crypto.SecretKey;
-import javax.crypto.spec.IvParameterSpec;
-import javax.crypto.spec.SecretKeySpec;
-import org.apache.commons.lang3.StringUtils;
-import org.bouncycastle.util.encoders.Base64;
-import org.bouncycastle.util.encoders.DecoderException;
-import org.bouncycastle.util.encoders.EncoderException;
-import org.bouncycastle.util.encoders.Hex;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-public class AESSensitivePropertyProvider implements SensitivePropertyProvider {
+public class AESSensitivePropertyProvider extends AbstractSensitivePropertyProvider {
     private static final Logger logger = LoggerFactory.getLogger(AESSensitivePropertyProvider.class);
 
     private static final String IMPLEMENTATION_NAME = "AES Sensitive Property Provider";
-    private static final String IMPLEMENTATION_KEY = "aes/gcm/";
     private static final String ALGORITHM = "AES/GCM/NoPadding";
     private static final String PROVIDER = "BC";
     private static final String DELIMITER = "||"; // "|" is not a valid Base64 character, so ensured not to be present in cipher text
     private static final int IV_LENGTH = 12;
     private static final int MIN_CIPHER_TEXT_LENGTH = IV_LENGTH * 4 / 3 + DELIMITER.length() + 1;
 
-    private Cipher cipher;
+    private final Cipher cipher;
     private final SecretKey key;
+    private final int keySize;
 
-    public AESSensitivePropertyProvider(String keyHex) throws NoSuchPaddingException, NoSuchAlgorithmException, NoSuchProviderException {
-        byte[] key = validateKey(keyHex);
+    AESSensitivePropertyProvider(final byte[] keyHex) {
+        this(keyHex == null ? "" : Hex.toHexString(keyHex));
+    }
+
+    AESSensitivePropertyProvider(final String keyHex) {
+        super(null);
+
+        byte[] keyBytes = validateKey(keyHex);
 
         try {
-            cipher = Cipher.getInstance(ALGORITHM, PROVIDER);
+            this.cipher = Cipher.getInstance(ALGORITHM, PROVIDER);
             // Only store the key if the cipher was initialized successfully
-            this.key = new SecretKeySpec(key, "AES");
+            this.key = new SecretKeySpec(keyBytes, "AES");
+            this.keySize = getKeySize(Hex.toHexString(this.key.getEncoded()));
         } catch (NoSuchAlgorithmException | NoSuchProviderException | NoSuchPaddingException e) {
             logger.error("Encountered an error initializing the {}: {}", IMPLEMENTATION_NAME, e.getMessage());
             throw new SensitivePropertyProtectionException("Error initializing the protection cipher", e);
         }
+    }
+
+    @Override
+    protected SensitivePropertyProtectionScheme getProtectionScheme() {
+        return SensitivePropertyProtectionScheme.AES_GCM;
+    }
+
+    @Override
+    protected boolean isSupported(final BootstrapProperties bootstrapProperties) {
+        return true; // AES protection is always supported
     }
 
     private byte[] validateKey(String keyHex) {
@@ -82,10 +100,6 @@ public class AESSensitivePropertyProvider implements SensitivePropertyProvider {
             throw new SensitivePropertyProtectionException("The key (" + key.length * 8 + " bits) must be a valid length: " + StringUtils.join(validKeyLengthsAsStrings, ", "));
         }
         return key;
-    }
-
-    public AESSensitivePropertyProvider(byte[] key) throws NoSuchPaddingException, NoSuchAlgorithmException, NoSuchProviderException {
-        this(key == null ? "" : Hex.toHexString(key));
     }
 
     private static String formatHexKey(String input) {
@@ -122,32 +136,18 @@ public class AESSensitivePropertyProvider implements SensitivePropertyProvider {
     }
 
     /**
-     * Returns the name of the underlying implementation.
-     *
-     * @return the name of this sensitive property provider
-     */
-    @Override
-    public String getName() {
-        return IMPLEMENTATION_NAME;
-    }
-
-    /**
      * Returns the key used to identify the provider implementation in {@code nifi.properties}.
      *
      * @return the key to persist in the sibling property
      */
     @Override
     public String getIdentifierKey() {
-        return IMPLEMENTATION_KEY + getKeySize(Hex.toHexString(key.getEncoded()));
+        return getProtectionScheme().getIdentifier(String.valueOf(keySize));
     }
 
-    private int getKeySize(String key) {
-        if (StringUtils.isBlank(key)) {
-            return 0;
-        } else {
-            // A key in hexadecimal format has one char per nibble (4 bits)
-            return formatHexKey(key).length() * 4;
-        }
+    private static int getKeySize(final String key) {
+        // A key in hexadecimal format has one char per nibble (4 bits)
+        return StringUtils.isBlank(key) ? 0 : formatHexKey(key).length() * 4;
     }
 
     /**
@@ -158,8 +158,8 @@ public class AESSensitivePropertyProvider implements SensitivePropertyProvider {
      * @throws SensitivePropertyProtectionException if there is an exception encrypting the value
      */
     @Override
-    public String protect(String unprotectedValue) throws SensitivePropertyProtectionException {
-        if (unprotectedValue == null || unprotectedValue.trim().length() == 0) {
+    public String protect(final String unprotectedValue) throws SensitivePropertyProtectionException {
+        if (StringUtils.isBlank(unprotectedValue)) {
             throw new IllegalArgumentException("Cannot encrypt an empty value");
         }
 
@@ -185,7 +185,7 @@ public class AESSensitivePropertyProvider implements SensitivePropertyProvider {
         }
     }
 
-    private String base64Encode(byte[] input) {
+    private String base64Encode(final byte[] input) {
         return Base64.toBase64String(input).replaceAll("=", "");
     }
 
@@ -195,7 +195,7 @@ public class AESSensitivePropertyProvider implements SensitivePropertyProvider {
      * @return the IV
      */
     private byte[] generateIV() {
-        byte[] iv = new byte[IV_LENGTH];
+        final byte[] iv = new byte[IV_LENGTH];
         new SecureRandom().nextBytes(iv);
         return iv;
     }
@@ -208,7 +208,7 @@ public class AESSensitivePropertyProvider implements SensitivePropertyProvider {
      * @throws SensitivePropertyProtectionException if there is an error decrypting the cipher text
      */
     @Override
-    public String unprotect(String protectedValue) throws SensitivePropertyProtectionException {
+    public String unprotect(final String protectedValue) throws SensitivePropertyProtectionException {
         if (protectedValue == null || protectedValue.trim().length() < MIN_CIPHER_TEXT_LENGTH) {
             throw new IllegalArgumentException("Cannot decrypt a cipher text shorter than " + MIN_CIPHER_TEXT_LENGTH + " chars");
         }
@@ -216,28 +216,27 @@ public class AESSensitivePropertyProvider implements SensitivePropertyProvider {
         if (!protectedValue.contains(DELIMITER)) {
             throw new IllegalArgumentException("The cipher text does not contain the delimiter " + DELIMITER + " -- it should be of the form Base64(IV) || Base64(cipherText)");
         }
+        final String trimmedProtectedValue = protectedValue.trim();
 
-        protectedValue = protectedValue.trim();
-
-        final String IV_B64 = protectedValue.substring(0, protectedValue.indexOf(DELIMITER));
-        byte[] iv = Base64.decode(IV_B64);
+        final String armoredIV = trimmedProtectedValue.substring(0, trimmedProtectedValue.indexOf(DELIMITER));
+        final byte[] iv = Base64.decode(armoredIV);
         if (iv.length < IV_LENGTH) {
-            throw new IllegalArgumentException("The IV (" + iv.length + " bytes) must be at least " + IV_LENGTH + " bytes");
+            throw new IllegalArgumentException(String.format("The IV (%s bytes) must be at least %s bytes", iv.length, IV_LENGTH));
         }
 
-        String CIPHERTEXT_B64 = protectedValue.substring(protectedValue.indexOf(DELIMITER) + 2);
+        String armoredCipherText = trimmedProtectedValue.substring(trimmedProtectedValue.indexOf(DELIMITER) + 2);
 
         // Restore the = padding if necessary to reconstitute the GCM MAC check
-        if (CIPHERTEXT_B64.length() % 4 != 0) {
-            final int paddedLength = CIPHERTEXT_B64.length() + 4 - (CIPHERTEXT_B64.length() % 4);
-            CIPHERTEXT_B64 = StringUtils.rightPad(CIPHERTEXT_B64, paddedLength, '=');
+        if (armoredCipherText.length() % 4 != 0) {
+            final int paddedLength = armoredCipherText.length() + 4 - (armoredCipherText.length() % 4);
+            armoredCipherText = StringUtils.rightPad(armoredCipherText, paddedLength, '=');
         }
 
         try {
-            byte[] cipherBytes = Base64.decode(CIPHERTEXT_B64);
+            final byte[] cipherBytes = Base64.decode(armoredCipherText);
 
             cipher.init(Cipher.DECRYPT_MODE, this.key, new IvParameterSpec(iv));
-            byte[] plainBytes = cipher.doFinal(cipherBytes);
+            final byte[] plainBytes = cipher.doFinal(cipherBytes);
             logger.debug(getName() + " decrypted a sensitive value successfully");
             return new String(plainBytes, StandardCharsets.UTF_8);
         } catch (BadPaddingException | IllegalBlockSizeException | DecoderException | InvalidAlgorithmParameterException | InvalidKeyException e) {

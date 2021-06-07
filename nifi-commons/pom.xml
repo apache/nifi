@@ -35,7 +35,9 @@
         <module>nifi-metrics</module>
         <module>nifi-parameter</module>
         <module>nifi-property-encryptor</module>
+        <module>nifi-property-utils</module>
         <module>nifi-properties</module>
+        <module>nifi-sensitive-property-provider</module>
         <module>nifi-record</module>
         <module>nifi-record-path</module>
         <module>nifi-rocksdb-utils</module>

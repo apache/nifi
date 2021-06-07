@@ -17,7 +17,7 @@
 package org.apache.nifi.web.server
 
 import org.apache.commons.lang3.StringUtils
-import org.apache.nifi.properties.StandardNiFiProperties
+
 import org.apache.nifi.util.NiFiProperties
 import org.junit.After
 import org.junit.Before
@@ -112,7 +112,7 @@ class HostHeaderHandlerTest extends GroovyTestCase {
                 (NiFiProperties.WEB_HTTPS_HOST): DEFAULT_HOSTNAME,
                 (NiFiProperties.WEB_HTTPS_PORT): "${DEFAULT_PORT}".toString(),
         ])
-        NiFiProperties simpleProperties = new StandardNiFiProperties(rawProps)
+        NiFiProperties simpleProperties = new NiFiProperties(rawProps)
 
         // Act
         HostHeaderHandler handler = new HostHeaderHandler(simpleProperties)
@@ -141,7 +141,7 @@ class HostHeaderHandlerTest extends GroovyTestCase {
                 (NiFiProperties.WEB_HTTPS_PORT): "${DEFAULT_PORT}".toString(),
                 (NiFiProperties.WEB_PROXY_HOST): concatenatedHosts
         ])
-        NiFiProperties simpleProperties = new StandardNiFiProperties(rawProps)
+        NiFiProperties simpleProperties = new NiFiProperties(rawProps)
 
         HostHeaderHandler handler = new HostHeaderHandler(simpleProperties)
         logger.info("Handler: ${handler}")
@@ -190,7 +190,7 @@ class HostHeaderHandlerTest extends GroovyTestCase {
                 (NiFiProperties.WEB_HTTPS_PORT): "${DEFAULT_PORT}".toString(),
                 (NiFiProperties.WEB_PROXY_HOST): concatenatedHosts
         ])
-        NiFiProperties simpleProperties = new StandardNiFiProperties(rawProps)
+        NiFiProperties simpleProperties = new NiFiProperties(rawProps)
 
         HostHeaderHandler handler = new HostHeaderHandler(simpleProperties)
         logger.info("Handler: ${handler}")
@@ -236,7 +236,7 @@ class HostHeaderHandlerTest extends GroovyTestCase {
                 (NiFiProperties.WEB_HTTPS_PORT): "${DEFAULT_PORT}".toString(),
                 (NiFiProperties.WEB_PROXY_HOST): concatenatedHosts
         ])
-        NiFiProperties simpleProperties = new StandardNiFiProperties(rawProps)
+        NiFiProperties simpleProperties = new NiFiProperties(rawProps)
 
         HostHeaderHandler handler = new HostHeaderHandler(simpleProperties)
         logger.info("Handler: ${handler}")

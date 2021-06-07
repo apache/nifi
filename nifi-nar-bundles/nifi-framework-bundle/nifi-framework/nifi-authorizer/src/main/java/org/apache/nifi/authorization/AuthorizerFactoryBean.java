@@ -16,8 +16,37 @@
  */
 package org.apache.nifi.authorization;
 
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.authorization.annotation.AuthorizerContext;
+import org.apache.nifi.authorization.exception.AuthorizationAccessException;
+import org.apache.nifi.authorization.exception.AuthorizerCreationException;
+import org.apache.nifi.authorization.exception.AuthorizerDestructionException;
+import org.apache.nifi.authorization.generated.Authorizers;
+import org.apache.nifi.authorization.generated.Property;
+import org.apache.nifi.bundle.Bundle;
+import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.properties.SensitivePropertyHolder;
+import org.apache.nifi.properties.SensitivePropertyProtectionException;
+import org.apache.nifi.security.xml.XmlUtils;
+import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.DisposableBean;
+import org.springframework.beans.factory.FactoryBean;
+import org.xml.sax.SAXException;
+
+import javax.xml.XMLConstants;
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBElement;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Unmarshaller;
+import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLStreamReader;
+import javax.xml.transform.stream.StreamSource;
+import javax.xml.validation.Schema;
+import javax.xml.validation.SchemaFactory;
 import java.io.File;
-import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -29,51 +58,19 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import javax.xml.XMLConstants;
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBElement;
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Unmarshaller;
-import javax.xml.stream.XMLStreamException;
-import javax.xml.stream.XMLStreamReader;
-import javax.xml.transform.stream.StreamSource;
-import javax.xml.validation.Schema;
-import javax.xml.validation.SchemaFactory;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.authorization.annotation.AuthorizerContext;
-import org.apache.nifi.authorization.exception.AuthorizationAccessException;
-import org.apache.nifi.authorization.exception.AuthorizerCreationException;
-import org.apache.nifi.authorization.exception.AuthorizerDestructionException;
-import org.apache.nifi.authorization.generated.Authorizers;
-import org.apache.nifi.authorization.generated.Property;
-import org.apache.nifi.bundle.Bundle;
-import org.apache.nifi.nar.ExtensionManager;
-import org.apache.nifi.properties.AESSensitivePropertyProviderFactory;
-import org.apache.nifi.properties.SensitivePropertyProtectionException;
-import org.apache.nifi.properties.SensitivePropertyProvider;
-import org.apache.nifi.properties.SensitivePropertyProviderFactory;
-import org.apache.nifi.security.kms.CryptoUtils;
-import org.apache.nifi.security.xml.XmlUtils;
-import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.DisposableBean;
-import org.springframework.beans.factory.FactoryBean;
-import org.xml.sax.SAXException;
 
 /**
  * Factory bean for loading the configured authorizer.
  */
-public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, UserGroupProviderLookup, AccessPolicyProviderLookup, AuthorizerLookup {
+public class AuthorizerFactoryBean extends SensitivePropertyHolder
+        implements FactoryBean, DisposableBean, UserGroupProviderLookup, AccessPolicyProviderLookup, AuthorizerLookup {
 
     private static final Logger logger = LoggerFactory.getLogger(AuthorizerFactoryBean.class);
     private static final String AUTHORIZERS_XSD = "/authorizers.xsd";
     private static final String JAXB_GENERATED_PATH = "org.apache.nifi.authorization.generated";
     private static final JAXBContext JAXB_CONTEXT = initializeJaxbContext();
 
-    private static SensitivePropertyProviderFactory SENSITIVE_PROPERTY_PROVIDER_FACTORY;
-    private static SensitivePropertyProvider SENSITIVE_PROPERTY_PROVIDER;
+    private NiFiProperties properties;
 
     /**
      * Load the JAXBContext.
@@ -87,11 +84,18 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, UserG
     }
 
     private Authorizer authorizer;
-    private NiFiProperties properties;
     private ExtensionManager extensionManager;
     private final Map<String, UserGroupProvider> userGroupProviders = new HashMap<>();
     private final Map<String, AccessPolicyProvider> accessPolicyProviders = new HashMap<>();
     private final Map<String, Authorizer> authorizers = new HashMap<>();
+
+    public NiFiProperties getProperties() {
+        return properties;
+    }
+
+    public void setProperties(NiFiProperties properties) {
+        this.properties = properties;
+    }
 
     @Override
     public UserGroupProvider getUserGroupProvider(String identifier) {
@@ -111,12 +115,12 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, UserG
     @Override
     public Object getObject() throws Exception {
         if (authorizer == null) {
-            if (properties.getSslPort() == null) {
+            if (getProperties().getSslPort() == null) {
                 // use a default authorizer... only allowable when running not securely
                 authorizer = createDefaultAuthorizer();
             } else {
                 // look up the authorizer to use
-                final String authorizerIdentifier = properties.getProperty(NiFiProperties.SECURITY_USER_AUTHORIZER);
+                final String authorizerIdentifier = getProperties().getProperty(NiFiProperties.SECURITY_USER_AUTHORIZER);
 
                 // ensure the authorizer class name was specified
                 if (StringUtils.isBlank(authorizerIdentifier)) {
@@ -202,7 +206,7 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, UserG
     }
 
     private Authorizers loadAuthorizersConfiguration() throws Exception {
-        final File authorizersConfigurationFile = properties.getAuthorizerConfigurationFile();
+        final File authorizersConfigurationFile = getProperties().getAuthorizerConfigurationFile();
 
         // load the authorizers from the specified file
         if (authorizersConfigurationFile.exists()) {
@@ -409,7 +413,7 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, UserG
                         // look for well known types
                         if (NiFiProperties.class.isAssignableFrom(argumentType)) {
                             // nifi properties injection
-                            method.invoke(instance, properties);
+                            method.invoke(instance, getProperties());
                         }
                     }
                 } finally {
@@ -440,7 +444,7 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, UserG
                         // look for well known types
                         if (NiFiProperties.class.isAssignableFrom(fieldType)) {
                             // nifi properties injection
-                            field.set(instance, properties);
+                            field.set(instance, getProperties());
                         }
                     }
 
@@ -480,26 +484,8 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, UserG
         };
     }
 
-    private String decryptValue(String cipherText, String encryptionScheme) throws SensitivePropertyProtectionException {
-        initializeSensitivePropertyProvider(encryptionScheme);
-        return SENSITIVE_PROPERTY_PROVIDER.unprotect(cipherText);
-    }
-
-    private static void initializeSensitivePropertyProvider(String encryptionScheme) throws SensitivePropertyProtectionException {
-        if (SENSITIVE_PROPERTY_PROVIDER == null || !SENSITIVE_PROPERTY_PROVIDER.getIdentifierKey().equalsIgnoreCase(encryptionScheme)) {
-            try {
-                String keyHex = getRootKey();
-                SENSITIVE_PROPERTY_PROVIDER_FACTORY = new AESSensitivePropertyProviderFactory(keyHex);
-                SENSITIVE_PROPERTY_PROVIDER = SENSITIVE_PROPERTY_PROVIDER_FACTORY.getProvider();
-            } catch (IOException e) {
-                logger.error("Error extracting root key from bootstrap.conf for login identity provider decryption", e);
-                throw new SensitivePropertyProtectionException("Could not read root key from bootstrap.conf");
-            }
-        }
-    }
-
-    private static String getRootKey() throws IOException {
-        return CryptoUtils.extractKeyFromBootstrapFile();
+    private String decryptValue(final String cipherText, final String protectionScheme) throws SensitivePropertyProtectionException {
+        return getSensitivePropertyProviderFactory().getProvider(protectionScheme).unprotect(cipherText);
     }
 
     @Override
@@ -553,10 +539,6 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, UserG
             List<String> errorMessages = errors.stream().map(Throwable::toString).collect(Collectors.toList());
             throw new AuthorizerDestructionException("One or more providers encountered a pre-destruction error: " + StringUtils.join(errorMessages, "; "), errors.get(0));
         }
-    }
-
-    public void setProperties(NiFiProperties properties) {
-        this.properties = properties;
     }
 
     public void setExtensionManager(ExtensionManager extensionManager) {

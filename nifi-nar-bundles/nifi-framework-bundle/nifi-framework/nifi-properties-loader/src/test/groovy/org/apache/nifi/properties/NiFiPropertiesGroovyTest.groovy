@@ -28,8 +28,8 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
 @RunWith(JUnit4.class)
-class StandardNiFiPropertiesGroovyTest extends GroovyTestCase {
-    private static final Logger logger = LoggerFactory.getLogger(StandardNiFiPropertiesGroovyTest.class)
+class NiFiPropertiesGroovyTest extends GroovyTestCase {
+    private static final Logger logger = LoggerFactory.getLogger(NiFiPropertiesGroovyTest.class)
 
     private static String originalPropertiesPath = System.getProperty(NiFiProperties.PROPERTIES_FILE_PATH)
     private static final String PREK = NiFiProperties.PROVENANCE_REPO_ENCRYPTION_KEY
@@ -63,18 +63,18 @@ class StandardNiFiPropertiesGroovyTest extends GroovyTestCase {
         }
     }
 
-    private static StandardNiFiProperties loadFromFile(String propertiesFilePath) {
+    private static NiFiProperties loadFromFile(String propertiesFilePath) {
         String filePath
         try {
-            filePath = StandardNiFiPropertiesGroovyTest.class.getResource(propertiesFilePath).toURI().getPath()
+            filePath = NiFiPropertiesGroovyTest.class.getResource(propertiesFilePath).toURI().getPath()
         } catch (URISyntaxException ex) {
-            throw new RuntimeException("Cannot load properties file due to "
-                    + ex.getLocalizedMessage(), ex)
+            throw new RuntimeException("Cannot load properties file due to " +
+                    ex.getLocalizedMessage(), ex)
         }
 
         System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, filePath)
 
-        StandardNiFiProperties properties = new StandardNiFiProperties()
+        NiFiProperties properties = new NiFiProperties()
 
         // clear out existing properties
         for (String prop : properties.stringPropertyNames()) {
@@ -86,8 +86,8 @@ class StandardNiFiPropertiesGroovyTest extends GroovyTestCase {
             inStream = new BufferedInputStream(new FileInputStream(filePath))
             properties.load(inStream)
         } catch (final Exception ex) {
-            throw new RuntimeException("Cannot load properties file due to "
-                    + ex.getLocalizedMessage(), ex)
+            throw new RuntimeException("Cannot load properties file due to " +
+                    ex.getLocalizedMessage(), ex)
         } finally {
             if (null != inStream) {
                 try {
@@ -108,7 +108,7 @@ class StandardNiFiPropertiesGroovyTest extends GroovyTestCase {
         // Arrange
 
         // Act
-        NiFiProperties niFiProperties = new StandardNiFiProperties()
+        NiFiProperties niFiProperties = new NiFiProperties()
         logger.info("niFiProperties has ${niFiProperties.size()} properties: ${niFiProperties.getPropertyKeys()}")
 
         // Assert
@@ -125,7 +125,7 @@ class StandardNiFiPropertiesGroovyTest extends GroovyTestCase {
         assert rawProperties.size() == 1
 
         // Act
-        NiFiProperties niFiProperties = new StandardNiFiProperties(rawProperties)
+        NiFiProperties niFiProperties = new NiFiProperties(rawProperties)
         logger.info("niFiProperties has ${niFiProperties.size()} properties: ${niFiProperties.getPropertyKeys()}")
 
         // Assert
@@ -142,9 +142,9 @@ class StandardNiFiPropertiesGroovyTest extends GroovyTestCase {
         assert rawProperties.size() == 1
 
         // Act
-        NiFiProperties niFiProperties = new StandardNiFiProperties(rawProperties)
+        NiFiProperties niFiProperties = new NiFiProperties(rawProperties)
         logger.info("niFiProperties has ${niFiProperties.size()} properties: ${niFiProperties.getPropertyKeys()}")
-        NiFiProperties emptyProperties = new StandardNiFiProperties()
+        NiFiProperties emptyProperties = new NiFiProperties()
         logger.info("emptyProperties has ${emptyProperties.size()} properties: ${emptyProperties.getPropertyKeys()}")
 
         // Assert
@@ -163,7 +163,7 @@ class StandardNiFiPropertiesGroovyTest extends GroovyTestCase {
         final String KEY_HEX = "0123456789ABCDEFFEDCBA9876543210"
         rawProperties.setProperty(PREKID, KEY_ID)
         rawProperties.setProperty(PREK, KEY_HEX)
-        NiFiProperties niFiProperties = new StandardNiFiProperties(rawProperties)
+        NiFiProperties niFiProperties = new NiFiProperties(rawProperties)
         logger.info("niFiProperties has ${niFiProperties.size()} properties: ${niFiProperties.getPropertyKeys()}")
 
         // Act
@@ -196,7 +196,7 @@ class StandardNiFiPropertiesGroovyTest extends GroovyTestCase {
         rawProperties.setProperty(PREK, KEY_HEX)
         rawProperties.setProperty("${PREK}.id.${KEY_ID_2}", KEY_HEX_2)
         rawProperties.setProperty("${PREK}.id.${KEY_ID_3}", KEY_HEX_3)
-        NiFiProperties niFiProperties = new StandardNiFiProperties(rawProperties)
+        NiFiProperties niFiProperties = new NiFiProperties(rawProperties)
         logger.info("niFiProperties has ${niFiProperties.size()} properties: ${niFiProperties.getPropertyKeys()}")
 
         // Act
@@ -236,7 +236,7 @@ class StandardNiFiPropertiesGroovyTest extends GroovyTestCase {
         rawProperties.setProperty(FFREK, "")
         rawProperties.setProperty("${FFREK}.id.${KEY_ID}", KEY_HEX)
         rawProperties.setProperty("${FFREK}.id.${KEY_ID_2}", KEY_HEX_2)
-        NiFiProperties niFiProperties = new StandardNiFiProperties(rawProperties)
+        NiFiProperties niFiProperties = new NiFiProperties(rawProperties)
         logger.info("niFiProperties has ${niFiProperties.size()} properties: ${niFiProperties.getPropertyKeys()}")
 
         // Act
@@ -276,7 +276,7 @@ class StandardNiFiPropertiesGroovyTest extends GroovyTestCase {
 //        rawProperties.setProperty(FFREK, "")
         rawProperties.setProperty("${FFREK}.id.${KEY_ID}", KEY_HEX)
         rawProperties.setProperty("${FFREK}.id.${KEY_ID_2}", KEY_HEX_2)
-        NiFiProperties niFiProperties = new StandardNiFiProperties(rawProperties)
+        NiFiProperties niFiProperties = new NiFiProperties(rawProperties)
         logger.info("niFiProperties has ${niFiProperties.size()} properties: ${niFiProperties.getPropertyKeys()}")
 
         // Act
@@ -318,7 +318,7 @@ class StandardNiFiPropertiesGroovyTest extends GroovyTestCase {
 //        rawProperties.setProperty(FFREK, "")
         rawProperties.setProperty("${FFREK}.${KEY_ID}", KEY_HEX)
         rawProperties.setProperty("${FFREK}.${KEY_ID_2}", KEY_HEX_2)
-        NiFiProperties niFiProperties = new StandardNiFiProperties(rawProperties)
+        NiFiProperties niFiProperties = new NiFiProperties(rawProperties)
         logger.info("niFiProperties has ${niFiProperties.size()} properties: ${niFiProperties.getPropertyKeys()}")
 
         // Act
@@ -365,7 +365,7 @@ class StandardNiFiPropertiesGroovyTest extends GroovyTestCase {
         rawProperties.setProperty(FFREK, KEY_HEX_DUP)
         rawProperties.setProperty("${FFREK}.id.${KEY_ID}", KEY_HEX)
         rawProperties.setProperty("${FFREK}.id.${KEY_ID_2}", KEY_HEX_2)
-        NiFiProperties niFiProperties = new StandardNiFiProperties(rawProperties)
+        NiFiProperties niFiProperties = new NiFiProperties(rawProperties)
         logger.info("niFiProperties has ${niFiProperties.size()} properties: ${niFiProperties.getPropertyKeys()}")
 
         // Act
@@ -412,7 +412,7 @@ class StandardNiFiPropertiesGroovyTest extends GroovyTestCase {
         rawProperties.setProperty("${FFREK}.id.${KEY_ID}", KEY_HEX)
         rawProperties.setProperty(FFREK, KEY_HEX_DUP)
         rawProperties.setProperty(FFREKID, KEY_ID_2)
-        NiFiProperties niFiProperties = new StandardNiFiProperties(rawProperties)
+        NiFiProperties niFiProperties = new NiFiProperties(rawProperties)
         logger.info("niFiProperties has ${niFiProperties.size()} properties: ${niFiProperties.getPropertyKeys()}")
 
         // Act
@@ -445,7 +445,7 @@ class StandardNiFiPropertiesGroovyTest extends GroovyTestCase {
         rawProperties.setProperty("${PREK}.id.${KEY_ID}", KEY_HEX)
         rawProperties.setProperty("${PREK}.id.${KEY_ID_2}", KEY_HEX_2)
         rawProperties.setProperty("${PREK}.id.${KEY_ID_3}", KEY_HEX_3)
-        NiFiProperties niFiProperties = new StandardNiFiProperties(rawProperties)
+        NiFiProperties niFiProperties = new NiFiProperties(rawProperties)
         logger.info("niFiProperties has ${niFiProperties.size()} properties: ${niFiProperties.getPropertyKeys()}")
 
         // Act
@@ -467,7 +467,7 @@ class StandardNiFiPropertiesGroovyTest extends GroovyTestCase {
     void testShouldGetProvenanceRepoEncryptionKeysWithNoneDefined() throws Exception {
         // Arrange
         Properties rawProperties = new Properties()
-        NiFiProperties niFiProperties = new StandardNiFiProperties(rawProperties)
+        NiFiProperties niFiProperties = new NiFiProperties(rawProperties)
         logger.info("niFiProperties has ${niFiProperties.size()} properties: ${niFiProperties.getPropertyKeys()}")
 
         // Act
@@ -492,7 +492,7 @@ class StandardNiFiPropertiesGroovyTest extends GroovyTestCase {
         final String KEY_ID = "arbitraryKeyId"
 
         rawProperties.setProperty(PREKID, KEY_ID)
-        NiFiProperties niFiProperties = new StandardNiFiProperties(rawProperties)
+        NiFiProperties niFiProperties = new NiFiProperties(rawProperties)
         logger.info("niFiProperties has ${niFiProperties.size()} properties: ${niFiProperties.getPropertyKeys()}")
 
         // Act
@@ -527,7 +527,7 @@ class StandardNiFiPropertiesGroovyTest extends GroovyTestCase {
         rawProperties.setProperty("${PREK}.id.${KEY_ID_3}", KEY_HEX_3)
         rawProperties.setProperty(NiFiProperties.PROVENANCE_REPO_ENCRYPTION_KEY_PROVIDER_IMPLEMENTATION_CLASS, "some.class.provider")
         rawProperties.setProperty(NiFiProperties.PROVENANCE_REPO_ENCRYPTION_KEY_PROVIDER_LOCATION, "some://url")
-        NiFiProperties niFiProperties = new StandardNiFiProperties(rawProperties)
+        NiFiProperties niFiProperties = new NiFiProperties(rawProperties)
         logger.info("niFiProperties has ${niFiProperties.size()} properties: ${niFiProperties.getPropertyKeys()}")
 
         // Act
@@ -553,7 +553,7 @@ class StandardNiFiPropertiesGroovyTest extends GroovyTestCase {
         final String KEY_HEX = "0123456789ABCDEFFEDCBA9876543210"
         rawProperties.setProperty(CREKID, KEY_ID)
         rawProperties.setProperty(CREK, KEY_HEX)
-        NiFiProperties niFiProperties = new StandardNiFiProperties(rawProperties)
+        NiFiProperties niFiProperties = new NiFiProperties(rawProperties)
         logger.info("niFiProperties has ${niFiProperties.size()} properties: ${niFiProperties.getPropertyKeys()}")
 
         // Act
@@ -586,7 +586,7 @@ class StandardNiFiPropertiesGroovyTest extends GroovyTestCase {
         rawProperties.setProperty(CREK, KEY_HEX)
         rawProperties.setProperty("${CREK}.id.${KEY_ID_2}", KEY_HEX_2)
         rawProperties.setProperty("${CREK}.id.${KEY_ID_3}", KEY_HEX_3)
-        NiFiProperties niFiProperties = new StandardNiFiProperties(rawProperties)
+        NiFiProperties niFiProperties = new NiFiProperties(rawProperties)
         logger.info("niFiProperties has ${niFiProperties.size()} properties: ${niFiProperties.getPropertyKeys()}")
 
         // Act
@@ -619,7 +619,7 @@ class StandardNiFiPropertiesGroovyTest extends GroovyTestCase {
         rawProperties.setProperty("${CREK}.id.${KEY_ID}", KEY_HEX)
         rawProperties.setProperty("${CREK}.id.${KEY_ID_2}", KEY_HEX_2)
         rawProperties.setProperty("${CREK}.id.${KEY_ID_3}", KEY_HEX_3)
-        NiFiProperties niFiProperties = new StandardNiFiProperties(rawProperties)
+        NiFiProperties niFiProperties = new NiFiProperties(rawProperties)
         logger.info("niFiProperties has ${niFiProperties.size()} properties: ${niFiProperties.getPropertyKeys()}")
 
         // Act
@@ -641,7 +641,7 @@ class StandardNiFiPropertiesGroovyTest extends GroovyTestCase {
     void testShouldGetContentRepositoryEncryptionKeysWithNoneDefined() throws Exception {
         // Arrange
         Properties rawProperties = new Properties()
-        NiFiProperties niFiProperties = new StandardNiFiProperties(rawProperties)
+        NiFiProperties niFiProperties = new NiFiProperties(rawProperties)
         logger.info("niFiProperties has ${niFiProperties.size()} properties: ${niFiProperties.getPropertyKeys()}")
 
         // Act
@@ -666,7 +666,7 @@ class StandardNiFiPropertiesGroovyTest extends GroovyTestCase {
         final String KEY_ID = "arbitraryKeyId"
 
         rawProperties.setProperty(CREKID, KEY_ID)
-        NiFiProperties niFiProperties = new StandardNiFiProperties(rawProperties)
+        NiFiProperties niFiProperties = new NiFiProperties(rawProperties)
         logger.info("niFiProperties has ${niFiProperties.size()} properties: ${niFiProperties.getPropertyKeys()}")
 
         // Act
@@ -701,7 +701,7 @@ class StandardNiFiPropertiesGroovyTest extends GroovyTestCase {
         rawProperties.setProperty("${CREK}.id.${KEY_ID_3}", KEY_HEX_3)
         rawProperties.setProperty(NiFiProperties.CONTENT_REPOSITORY_ENCRYPTION_KEY_PROVIDER_IMPLEMENTATION_CLASS, "some.class.provider")
         rawProperties.setProperty(NiFiProperties.CONTENT_REPOSITORY_ENCRYPTION_KEY_PROVIDER_LOCATION, "some://url")
-        NiFiProperties niFiProperties = new StandardNiFiProperties(rawProperties)
+        NiFiProperties niFiProperties = new NiFiProperties(rawProperties)
         logger.info("niFiProperties has ${niFiProperties.size()} properties: ${niFiProperties.getPropertyKeys()}")
 
         // Act
@@ -724,7 +724,7 @@ class StandardNiFiPropertiesGroovyTest extends GroovyTestCase {
         // Arrange
         String noLeadingSlash = "some/context/path"
         Properties rawProps = new Properties(["nifi.web.proxy.context.path": noLeadingSlash])
-        NiFiProperties props = new StandardNiFiProperties(rawProps)
+        NiFiProperties props = new NiFiProperties(rawProps)
         logger.info("Created a NiFiProperties instance with raw context path property [${noLeadingSlash}]")
 
         // Act
@@ -740,7 +740,7 @@ class StandardNiFiPropertiesGroovyTest extends GroovyTestCase {
         // Arrange
         String leadingSlash = "/some/context/path"
         Properties rawProps = new Properties(["nifi.web.proxy.context.path": leadingSlash])
-        NiFiProperties props = new StandardNiFiProperties(rawProps)
+        NiFiProperties props = new NiFiProperties(rawProps)
         logger.info("Created a NiFiProperties instance with raw context path property [${leadingSlash}]")
 
         // Act
@@ -760,7 +760,7 @@ class StandardNiFiPropertiesGroovyTest extends GroovyTestCase {
         List<String> paths = [noLeadingSlash, leadingSlash, leadingAndTrailingSlash]
         String combinedPaths = paths.join(",")
         Properties rawProps = new Properties(["nifi.web.proxy.context.path": combinedPaths])
-        NiFiProperties props = new StandardNiFiProperties(rawProps)
+        NiFiProperties props = new NiFiProperties(rawProps)
         logger.info("Created a NiFiProperties instance with raw context path property [${noLeadingSlash}]")
 
         // Act
@@ -780,7 +780,7 @@ class StandardNiFiPropertiesGroovyTest extends GroovyTestCase {
         // Arrange
         String leadingSlash = "/some/context/path"
         Properties rawProps = new Properties(["nifi.web.proxy.context.path": leadingSlash])
-        NiFiProperties props = new StandardNiFiProperties(rawProps)
+        NiFiProperties props = new NiFiProperties(rawProps)
         logger.info("Created a NiFiProperties instance with raw context path property [${leadingSlash}]")
 
         // Act
@@ -801,7 +801,7 @@ class StandardNiFiPropertiesGroovyTest extends GroovyTestCase {
         List<String> paths = [noLeadingSlash, leadingSlash, leadingAndTrailingSlash]
         String combinedPaths = paths.join(",")
         Properties rawProps = new Properties(["nifi.web.proxy.context.path": combinedPaths])
-        NiFiProperties props = new StandardNiFiProperties(rawProps)
+        NiFiProperties props = new NiFiProperties(rawProps)
         logger.info("Created a NiFiProperties instance with raw context path property [${noLeadingSlash}]")
 
         // Act
@@ -818,7 +818,7 @@ class StandardNiFiPropertiesGroovyTest extends GroovyTestCase {
         // Arrange
         String empty = ""
         Properties rawProps = new Properties(["nifi.web.proxy.context.path": empty])
-        NiFiProperties props = new StandardNiFiProperties(rawProps)
+        NiFiProperties props = new NiFiProperties(rawProps)
         logger.info("Created a NiFiProperties instance with raw context path property [${empty}]")
 
         // Act
@@ -834,7 +834,7 @@ class StandardNiFiPropertiesGroovyTest extends GroovyTestCase {
         // Arrange
         String extraSpaceHostname = "somehost.com  "
         Properties rawProps = new Properties(["nifi.web.proxy.host": extraSpaceHostname])
-        NiFiProperties props = new StandardNiFiProperties(rawProps)
+        NiFiProperties props = new NiFiProperties(rawProps)
         logger.info("Created a NiFiProperties instance with raw proxy host property [${extraSpaceHostname}]")
 
         // Act
@@ -851,7 +851,7 @@ class StandardNiFiPropertiesGroovyTest extends GroovyTestCase {
         // Arrange
         String hostname = "somehost.com"
         Properties rawProps = new Properties(["nifi.web.proxy.host": hostname])
-        NiFiProperties props = new StandardNiFiProperties(rawProps)
+        NiFiProperties props = new NiFiProperties(rawProps)
         logger.info("Created a NiFiProperties instance with raw proxy host property [${hostname}]")
 
         // Act
@@ -872,7 +872,7 @@ class StandardNiFiPropertiesGroovyTest extends GroovyTestCase {
         List<String> hosts = [extraSpaceHostname, normalHostname, hostnameWithPort, extraSpaceHostnameWithPort]
         String combinedHosts = hosts.join(",")
         Properties rawProps = new Properties(["nifi.web.proxy.host": combinedHosts])
-        NiFiProperties props = new StandardNiFiProperties(rawProps)
+        NiFiProperties props = new NiFiProperties(rawProps)
         logger.info("Created a NiFiProperties instance with raw proxy host property [${combinedHosts}]")
 
         // Act
@@ -893,7 +893,7 @@ class StandardNiFiPropertiesGroovyTest extends GroovyTestCase {
         // Arrange
         String normalHostname = "someotherhost.com"
         Properties rawProps = new Properties(["nifi.web.proxy.host": normalHostname])
-        NiFiProperties props = new StandardNiFiProperties(rawProps)
+        NiFiProperties props = new NiFiProperties(rawProps)
         logger.info("Created a NiFiProperties instance with raw proxy host property [${normalHostname}]")
 
         // Act
@@ -915,7 +915,7 @@ class StandardNiFiPropertiesGroovyTest extends GroovyTestCase {
         List<String> hosts = [extraSpaceHostname, normalHostname, hostnameWithPort, extraSpaceHostnameWithPort]
         String combinedHosts = hosts.join(",")
         Properties rawProps = new Properties(["nifi.web.proxy.host": combinedHosts])
-        NiFiProperties props = new StandardNiFiProperties(rawProps)
+        NiFiProperties props = new NiFiProperties(rawProps)
         logger.info("Created a NiFiProperties instance with raw proxy host property [${combinedHosts}]")
 
         // Act
@@ -932,7 +932,7 @@ class StandardNiFiPropertiesGroovyTest extends GroovyTestCase {
         // Arrange
         String empty = ""
         Properties rawProps = new Properties(["nifi.web.proxy.host": empty])
-        NiFiProperties props = new StandardNiFiProperties(rawProps)
+        NiFiProperties props = new NiFiProperties(rawProps)
         logger.info("Created a NiFiProperties instance with raw proxy host property [${empty}]")
 
         // Act
@@ -948,7 +948,7 @@ class StandardNiFiPropertiesGroovyTest extends GroovyTestCase {
         // Arrange
         String empty = ""
         Properties rawProps = new Properties(["nifi.web.proxy.host": empty])
-        NiFiProperties props = new StandardNiFiProperties(rawProps)
+        NiFiProperties props = new NiFiProperties(rawProps)
         logger.info("Created a NiFiProperties instance with raw proxy host property [${empty}]")
 
         // Act
@@ -997,7 +997,7 @@ class StandardNiFiPropertiesGroovyTest extends GroovyTestCase {
     void testWebMaxContentSizeShouldDefaultToEmpty() {
         // Arrange
         Properties rawProps = new Properties(["nifi.web.max.content.size": ""])
-        NiFiProperties props = new StandardNiFiProperties(rawProps)
+        NiFiProperties props = new NiFiProperties(rawProps)
         logger.info("Created a NiFiProperties instance with empty web max content size property")
 
         // Act

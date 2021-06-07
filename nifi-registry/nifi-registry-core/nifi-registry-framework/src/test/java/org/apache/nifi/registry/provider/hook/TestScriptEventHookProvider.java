@@ -28,6 +28,7 @@ import org.mockito.Mockito;
 import javax.sql.DataSource;
 
 import java.net.URL;
+import java.util.Properties;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -36,8 +37,9 @@ public class TestScriptEventHookProvider {
 
     @Test(expected = ProviderCreationException.class)
     public void testBadScriptProvider() {
-        final NiFiRegistryProperties props = new NiFiRegistryProperties();
-        props.setProperty(NiFiRegistryProperties.PROVIDERS_CONFIGURATION_FILE, "src/test/resources/provider/hook/bad-script-provider.xml");
+        final Properties properties = new Properties();
+        properties.setProperty(NiFiRegistryProperties.PROVIDERS_CONFIGURATION_FILE, "src/test/resources/provider/hook/bad-script-provider.xml");
+        final NiFiRegistryProperties props = new NiFiRegistryProperties(properties);
 
         final ExtensionManager extensionManager = Mockito.mock(ExtensionManager.class);
         when(extensionManager.getExtensionClassLoader(any(String.class)))

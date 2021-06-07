@@ -33,6 +33,13 @@ public interface SensitivePropertyProvider {
     String getIdentifierKey();
 
     /**
+     * Returns whether this SensitivePropertyProvider is supported with the current system
+     * configuration.
+     * @return Whether this SensitivePropertyProvider is supported
+     */
+    boolean isSupported();
+
+    /**
      * Returns the "protected" form of this value. This is a form which can safely be persisted in the {@code nifi.properties} file without compromising the value.
      * An encryption-based provider would return a cipher text, while a remote-lookup provider could return a unique ID to retrieve the secured value.
      *

@@ -478,7 +478,7 @@ public class FlowController implements ReportingTaskProvider, Authorizable, Node
 
         try {
             // Form the container object from the properties
-            TlsConfiguration tlsConfiguration = StandardTlsConfiguration.fromNiFiProperties(nifiProperties);
+            TlsConfiguration tlsConfiguration = StandardTlsConfiguration.fromNiFiProperties(nifiProperties.toBasicProperties());
             this.sslContext = SslContextFactory.createSslContext(tlsConfiguration);
         } catch (TlsException e) {
             LOG.error("Unable to start the flow controller because the TLS configuration was invalid: {}", e.getLocalizedMessage());

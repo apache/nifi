@@ -18,42 +18,36 @@ package org.apache.nifi.properties;
 
 import java.util.Enumeration;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
-import org.apache.nifi.util.NiFiProperties;
 
-public class StandardNiFiProperties extends NiFiProperties {
+public abstract class ApplicationPropertiesBase implements ApplicationProperties {
 
-    private Properties rawProperties = new Properties();
+    private final Properties rawProperties = new Properties();
 
-    public StandardNiFiProperties() {
-        this(null);
+    public ApplicationPropertiesBase(final Properties properties) {
+        rawProperties.putAll(properties);
     }
 
-    public StandardNiFiProperties(Properties props) {
-        this.rawProperties = props == null ? new Properties() : props;
+    public ApplicationPropertiesBase(final Map<String, String> properties) {
+        rawProperties.putAll(properties);
     }
 
-    /**
-     * Retrieves the property value for the given property key.
-     *
-     * @param key the key of property value to lookup
-     * @return value of property at given key or null if not found
-     */
     @Override
-    public String getProperty(String key) {
+    public String getProperty(final String key) {
         return rawProperties.getProperty(key);
     }
 
-    /**
-     * Retrieves all known property keys.
-     *
-     * @return all known property keys
-     */
+    @Override
+    public String getProperty(final String key, String defaultValue) {
+        return rawProperties.getProperty(key, defaultValue);
+    }
+
     @Override
     public Set<String> getPropertyKeys() {
         Set<String> propertyNames = new HashSet<>();
-        Enumeration e = getRawProperties().propertyNames();
+        Enumeration e = rawProperties.propertyNames();
         for (; e.hasMoreElements(); ){
             propertyNames.add((String) e.nextElement());
         }
@@ -61,21 +55,15 @@ public class StandardNiFiProperties extends NiFiProperties {
         return propertyNames;
     }
 
-    Properties getRawProperties() {
-        if (this.rawProperties == null) {
-            this.rawProperties = new Properties();
-        }
-
-        return this.rawProperties;
+    @Override
+    public Properties toBasicProperties() {
+        final Properties properties = new Properties();
+        getPropertyKeys().forEach(key -> properties.setProperty(key, getProperty(key)));
+        return properties;
     }
 
     @Override
     public int size() {
-        return getRawProperties().size();
-    }
-
-    @Override
-    public String toString() {
-        return "StandardNiFiProperties instance with " + size() + " properties";
+        return rawProperties.size();
     }
 }

@@ -24,6 +24,7 @@ import org.apache.commons.cli.Options
 import org.apache.commons.cli.ParseException
 import org.apache.commons.lang3.StringUtils
 import org.apache.nifi.properties.NiFiPropertiesLoader
+import org.apache.nifi.security.kms.CryptoUtils
 import org.apache.nifi.toolkit.admin.AbstractAdminTool
 import org.apache.nifi.toolkit.admin.client.ClientFactory
 import org.apache.nifi.toolkit.admin.client.NiFiClientFactory
@@ -88,7 +89,7 @@ public class NotificationTool extends AbstractAdminTool {
             logger.info("Loading nifi properties for host information")
         }
 
-        final String key = NiFiPropertiesLoader.extractKeyFromBootstrapFile(bootstrapConfFile)
+        final String key = CryptoUtils.extractKeyFromBootstrapFile(bootstrapConfFile)
         final NiFiProperties niFiProperties = NiFiPropertiesLoader.withKey(key).load(nifiPropertiesFile)
         final Client client =  clientFactory.getClient(niFiProperties,nifiInstallDir)
         final String url = NiFiClientUtil.getUrl(niFiProperties,NOTIFICATION_ENDPOINT)
