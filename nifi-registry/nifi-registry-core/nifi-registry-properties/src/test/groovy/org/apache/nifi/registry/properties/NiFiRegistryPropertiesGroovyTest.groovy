@@ -52,8 +52,8 @@ class NiFiRegistryPropertiesGroovyTest extends GroovyTestCase {
         try {
             filePath = NiFiRegistryPropertiesGroovyTest.class.getResource(propertiesFilePath).toURI().getPath()
         } catch (URISyntaxException ex) {
-            throw new RuntimeException("Cannot load properties file due to "
-                    + ex.getLocalizedMessage(), ex)
+            throw new RuntimeException("Cannot load properties file due to " +
+                    ex.getLocalizedMessage(), ex)
         }
 
         NiFiRegistryProperties properties = new NiFiRegistryProperties()
@@ -66,8 +66,8 @@ class NiFiRegistryPropertiesGroovyTest extends GroovyTestCase {
             return properties
         } catch (final Exception ex) {
             logger.error("Cannot load properties file due to " + ex.getLocalizedMessage())
-            throw new RuntimeException("Cannot load properties file due to "
-                    + ex.getLocalizedMessage(), ex)
+            throw new RuntimeException("Cannot load properties file due to " +
+                    ex.getLocalizedMessage(), ex)
         }
     }
 
@@ -106,8 +106,9 @@ class NiFiRegistryPropertiesGroovyTest extends GroovyTestCase {
         // Arrange
 
         // Act
-        NiFiRegistryProperties properties = new NiFiRegistryProperties()
-        properties.setProperty("key", "value")
+        Properties props = new Properties()
+        props.setProperty("key", "value")
+        NiFiRegistryProperties properties = new NiFiRegistryProperties(props)
         logger.info("niFiProperties has ${properties.size()} properties: ${properties.getPropertyKeys()}")
         NiFiRegistryProperties emptyProperties = new NiFiRegistryProperties()
         logger.info("emptyProperties has ${emptyProperties.size()} properties: ${emptyProperties.getPropertyKeys()}")

@@ -17,10 +17,7 @@
 package org.apache.nifi.authorization
 
 import org.apache.nifi.authorization.generated.Property
-import org.apache.nifi.properties.AESSensitivePropertyProvider
 import org.bouncycastle.jce.provider.BouncyCastleProvider
-import org.junit.After
-import org.junit.AfterClass
 import org.junit.Before
 import org.junit.BeforeClass
 import org.junit.Test
@@ -52,8 +49,10 @@ class AuthorizerFactoryBeanTest extends GroovyTestCase {
 
     private static final String PASSWORD = "thisIsABadPassword"
 
+    private AuthorizerFactoryBean bean
+
     @BeforeClass
-    public static void setUpOnce() throws Exception {
+    static void setUpOnce() throws Exception {
         Security.addProvider(new BouncyCastleProvider())
 
         logger.metaClass.methodMissing = { String name, args ->
@@ -61,27 +60,14 @@ class AuthorizerFactoryBeanTest extends GroovyTestCase {
         }
     }
 
-    @AfterClass
-    public static void tearDownOnce() throws Exception {
-    }
-
     @Before
-    public void setUp() throws Exception {
-        AuthorizerFactoryBean.SENSITIVE_PROPERTY_PROVIDER = new AESSensitivePropertyProvider(KEY_HEX)
-    }
-
-    @After
-    public void tearDown() throws Exception {
-        AuthorizerFactoryBean.SENSITIVE_PROPERTY_PROVIDER = null
-        AuthorizerFactoryBean.SENSITIVE_PROPERTY_PROVIDER_FACTORY = null
+    void setUp() throws Exception {
+        bean = new AuthorizerFactoryBean()
+        bean.configureSensitivePropertyProviderFactory(KEY_HEX, null)
     }
 
     private static boolean isUnlimitedStrengthCryptoAvailable() {
         Cipher.getMaxAllowedKeyLength("AES") > 128
-    }
-
-    private static int getKeyLength(String keyHex = KEY_HEX) {
-        keyHex?.size() * 4
     }
 
     @Test
@@ -91,7 +77,7 @@ class AuthorizerFactoryBeanTest extends GroovyTestCase {
         logger.info("Cipher text: ${CIPHER_TEXT}")
 
         // Act
-        String decrypted = new AuthorizerFactoryBean().decryptValue(CIPHER_TEXT, ENCRYPTION_SCHEME)
+        String decrypted = bean.decryptValue(CIPHER_TEXT, ENCRYPTION_SCHEME)
         logger.info("Decrypted ${CIPHER_TEXT} -> ${decrypted}")
 
         // Assert
@@ -107,7 +93,6 @@ class AuthorizerFactoryBeanTest extends GroovyTestCase {
         List<Property> properties = [managerPasswordProperty]
 
         logger.info("Manager Password property: ${managerPasswordProperty.dump()}")
-        def bean = new AuthorizerFactoryBean()
 
         // Act
         def context = bean.loadAuthorizerConfiguration(identifier, properties)

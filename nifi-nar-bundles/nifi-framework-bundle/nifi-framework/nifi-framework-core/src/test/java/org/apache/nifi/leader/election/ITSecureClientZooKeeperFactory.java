@@ -16,22 +16,18 @@
  */
 package org.apache.nifi.leader.election;
 
-import org.apache.curator.retry.RetryOneTime;
-import org.apache.curator.test.InstanceSpec;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
-
-import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.properties.StandardNiFiProperties;
-import org.apache.nifi.controller.cluster.ZooKeeperClientConfig;
+import org.apache.curator.retry.RetryOneTime;
+import org.apache.curator.test.InstanceSpec;
 import org.apache.nifi.controller.cluster.SecureClientZooKeeperFactory;
+import org.apache.nifi.controller.cluster.ZooKeeperClientConfig;
 import org.apache.nifi.security.util.CertificateUtils;
-
+import org.apache.nifi.util.NiFiProperties;
 import org.apache.zookeeper.common.ClientX509Util;
 import org.apache.zookeeper.data.Stat;
 import org.apache.zookeeper.server.ServerCnxnFactory;
 import org.apache.zookeeper.server.ZooKeeperServer;
-
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -42,7 +38,6 @@ import java.net.InetSocketAddress;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.security.cert.CertificateException;
 import java.security.GeneralSecurityException;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
@@ -50,6 +45,7 @@ import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.Certificate;
+import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.List;
@@ -218,7 +214,7 @@ public class ITSecureClientZooKeeperFactory {
         properties.setProperty(NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE_TYPE, trustStoreType);
         properties.setProperty(NiFiProperties.ZOOKEEPER_SECURITY_TRUSTSTORE_PASSWD, trustStorePassword);
 
-        return new StandardNiFiProperties(properties);
+        return new NiFiProperties(properties);
     }
 
     public static X509Certificate createKeyStore(final String alias,

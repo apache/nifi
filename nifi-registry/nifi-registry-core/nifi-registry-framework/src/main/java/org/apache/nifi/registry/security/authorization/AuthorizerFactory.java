@@ -18,12 +18,12 @@ package org.apache.nifi.registry.security.authorization;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Validate;
+import org.apache.nifi.properties.SensitivePropertyProtectionException;
+import org.apache.nifi.properties.SensitivePropertyProvider;
 import org.apache.nifi.registry.extension.ExtensionClassLoader;
 import org.apache.nifi.registry.extension.ExtensionCloseable;
 import org.apache.nifi.registry.extension.ExtensionManager;
 import org.apache.nifi.registry.properties.NiFiRegistryProperties;
-import org.apache.nifi.registry.properties.SensitivePropertyProtectionException;
-import org.apache.nifi.registry.properties.SensitivePropertyProvider;
 import org.apache.nifi.registry.security.authorization.annotation.AuthorizerContext;
 import org.apache.nifi.registry.security.authorization.exception.AuthorizationAccessException;
 import org.apache.nifi.registry.security.authorization.exception.UninheritableAuthorizationsException;

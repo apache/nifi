@@ -23,6 +23,7 @@ import org.apache.nifi.properties.NiFiPropertiesLoader
 import org.apache.nifi.security.util.CertificateUtils
 import org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone
 import org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandaloneCommandLine
+import org.apache.nifi.util.NiFiBootstrapUtils
 import org.apache.nifi.util.NiFiProperties
 import org.bouncycastle.asn1.x500.X500Name
 import org.bouncycastle.asn1.x500.X500NameBuilder
@@ -90,7 +91,7 @@ class NiFiClientFactorySpec extends Specification {
 
         def bootstrapConfFile = "src/test/resources/notify/conf/bootstrap.conf"
         def nifiPropertiesFile = "src/test/resources/notify/conf/nifi-secured.properties"
-        def key = NiFiPropertiesLoader.extractKeyFromBootstrapFile(bootstrapConfFile)
+        def key = NiFiBootstrapUtils.extractKeyFromBootstrapFile(bootstrapConfFile)
         def NiFiProperties niFiProperties = NiFiPropertiesLoader.withKey(key).load(nifiPropertiesFile)
         def clientFactory = new NiFiClientFactory()
 

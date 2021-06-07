@@ -17,6 +17,7 @@
 package org.apache.nifi.properties
 
 import org.apache.commons.lang3.SystemUtils
+import org.apache.nifi.util.NiFiBootstrapUtils
 import org.apache.nifi.util.NiFiProperties
 import org.apache.nifi.util.file.FileUtils
 import org.bouncycastle.jce.provider.BouncyCastleProvider
@@ -89,7 +90,6 @@ class NiFiPropertiesLoaderGroovyTest extends GroovyTestCase {
 //        if (ProtectedNiFiProperties.@localProviderCache) {
 //            ProtectedNiFiProperties.@localProviderCache = [:]
 //        }
-        NiFiPropertiesLoader.@sensitivePropertyProviderFactory = null
     }
 
     @AfterClass
@@ -124,31 +124,6 @@ class NiFiPropertiesLoaderGroovyTest extends GroovyTestCase {
     }
 
     @Test
-    void testShouldGetDefaultProviderKey() throws Exception {
-        // Arrange
-        final String EXPECTED_PROVIDER_KEY = "aes/gcm/${Cipher.getMaxAllowedKeyLength("AES") > 128 ? 256 : 128}"
-        logger.info("Expected provider key: ${EXPECTED_PROVIDER_KEY}")
-
-        // Act
-        String defaultKey = NiFiPropertiesLoader.getDefaultProviderKey()
-        logger.info("Default key: ${defaultKey}")
-        // Assert
-        assert defaultKey == EXPECTED_PROVIDER_KEY
-    }
-
-    @Test
-    void testShouldInitializeSensitivePropertyProviderFactory() throws Exception {
-        // Arrange
-        NiFiPropertiesLoader niFiPropertiesLoader = new NiFiPropertiesLoader()
-
-        // Act
-        niFiPropertiesLoader.initializeSensitivePropertyProviderFactory()
-
-        // Assert
-        assert niFiPropertiesLoader.@sensitivePropertyProviderFactory
-    }
-
-    @Test
     void testShouldLoadUnprotectedPropertiesFromFile() throws Exception {
         // Arrange
         File unprotectedFile = new File("src/test/resources/conf/nifi.properties")
@@ -161,7 +136,7 @@ class NiFiPropertiesLoaderGroovyTest extends GroovyTestCase {
         assert niFiProperties.size() > 0
 
         // Ensure it is not a ProtectedNiFiProperties
-        assert niFiProperties instanceof StandardNiFiProperties
+        assert !(niFiProperties instanceof ProtectedNiFiProperties)
     }
 
     @Test
@@ -180,7 +155,7 @@ class NiFiPropertiesLoaderGroovyTest extends GroovyTestCase {
         assert niFiProperties.size() > 0
 
         // Ensure it is not a ProtectedNiFiProperties
-        assert niFiProperties instanceof StandardNiFiProperties
+        assert !(niFiProperties instanceof ProtectedNiFiProperties)
     }
 
     @Test
@@ -193,13 +168,13 @@ class NiFiPropertiesLoaderGroovyTest extends GroovyTestCase {
         logger.info("Set ${NiFiProperties.PROPERTIES_FILE_PATH} to ${protectedFile.absolutePath}")
 
         // Act
-        def msg = shouldFail(IOException) {
+        def msg = shouldFail(SensitivePropertyProtectionException) {
             NiFiProperties niFiProperties = NiFiPropertiesLoader.loadDefaultWithKeyFromBootstrap()
         }
         logger.expected(msg)
 
         // Assert
-        assert msg =~ "Cannot read from bootstrap.conf"
+        assert msg =~ "Could not read root key from bootstrap.conf"
     }
 
     @Test
@@ -308,7 +283,7 @@ class NiFiPropertiesLoaderGroovyTest extends GroovyTestCase {
         assert niFiProperties.size() > 0
 
         // Ensure it is not a ProtectedNiFiProperties
-        assert niFiProperties instanceof StandardNiFiProperties
+        assert !(niFiProperties instanceof ProtectedNiFiProperties)
     }
 
     @Test
@@ -348,7 +323,7 @@ class NiFiPropertiesLoaderGroovyTest extends GroovyTestCase {
         }
 
         // Ensure it is not a ProtectedNiFiProperties
-        assert niFiProperties instanceof StandardNiFiProperties
+        assert !(niFiProperties instanceof ProtectedNiFiProperties)
     }
 
     @Test
@@ -358,7 +333,7 @@ class NiFiPropertiesLoaderGroovyTest extends GroovyTestCase {
         System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, defaultNiFiPropertiesFilePath)
 
         // Act
-        String key = NiFiPropertiesLoader.extractKeyFromBootstrapFile()
+        String key = NiFiBootstrapUtils.extractKeyFromBootstrapFile()
 
         // Assert
         assert key == KEY_HEX
@@ -371,7 +346,7 @@ class NiFiPropertiesLoaderGroovyTest extends GroovyTestCase {
         System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, defaultNiFiPropertiesFilePath)
 
         // Act
-        String key = NiFiPropertiesLoader.extractKeyFromBootstrapFile()
+        String key = NiFiBootstrapUtils.extractKeyFromBootstrapFile()
 
         // Assert
         assert key == ""
@@ -384,7 +359,7 @@ class NiFiPropertiesLoaderGroovyTest extends GroovyTestCase {
         System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, defaultNiFiPropertiesFilePath)
 
         // Act
-        String key = NiFiPropertiesLoader.extractKeyFromBootstrapFile()
+        String key = NiFiBootstrapUtils.extractKeyFromBootstrapFile()
 
         // Assert
         assert key == ""
@@ -398,7 +373,7 @@ class NiFiPropertiesLoaderGroovyTest extends GroovyTestCase {
 
         // Act
         def msg = shouldFail(IOException) {
-            String key = NiFiPropertiesLoader.extractKeyFromBootstrapFile()
+            String key = NiFiBootstrapUtils.extractKeyFromBootstrapFile()
         }
         logger.expected(msg)
 
@@ -419,7 +394,7 @@ class NiFiPropertiesLoaderGroovyTest extends GroovyTestCase {
 
         // Act
         def msg = shouldFail(IOException) {
-            String key = NiFiPropertiesLoader.extractKeyFromBootstrapFile()
+            String key = NiFiBootstrapUtils.extractKeyFromBootstrapFile()
         }
         logger.expected(msg)
 
@@ -444,7 +419,7 @@ class NiFiPropertiesLoaderGroovyTest extends GroovyTestCase {
 
         // Act
         def msg = shouldFail(IOException) {
-            String key = NiFiPropertiesLoader.extractKeyFromBootstrapFile()
+            String key = NiFiBootstrapUtils.extractKeyFromBootstrapFile()
         }
         logger.expected(msg)
 

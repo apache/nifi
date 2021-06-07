@@ -68,7 +68,7 @@
         <property name="Manager Password"></property>
 
         <property name="TLS - Keystore"></property>
-        <property name="TLS - Keystore Password"></property>
+        <property name="TLS - Keystore Password" encrypted=""></property>
         <property name="TLS - Keystore Type"></property>
         <property name="TLS - Truststore"></property>
         <property name="TLS - Truststore Password"></property>

@@ -168,7 +168,8 @@ public class NiFiTestServer {
     }
 
     public Client getClient() throws TlsException {
-        return WebUtils.createClient(null, org.apache.nifi.security.util.SslContextFactory.createSslContext(StandardTlsConfiguration.fromNiFiProperties(properties)));
+        return WebUtils.createClient(null, org.apache.nifi.security.util.SslContextFactory.createSslContext(StandardTlsConfiguration
+                .fromNiFiProperties(properties)));
     }
 
     /**

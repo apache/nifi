@@ -35,6 +35,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import javax.sql.DataSource;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
 
@@ -179,9 +180,11 @@ public class TestDatabaseUserGroupProvider extends DatabaseBaseTest {
 
     @Test
     public void testOnConfiguredAppliesIdentityMappingsToInitialUsers() {
+        final Properties props = new Properties();
         // Set up an identity mapping for kerberos principals
-        properties.setProperty("nifi.registry.security.identity.mapping.pattern.kerb", "^(.*?)@(.*?)$");
-        properties.setProperty("nifi.registry.security.identity.mapping.value.kerb", "$1");
+        props.setProperty("nifi.registry.security.identity.mapping.pattern.kerb", "^(.*?)@(.*?)$");
+        props.setProperty("nifi.registry.security.identity.mapping.value.kerb", "$1");
+        properties = new NiFiRegistryProperties(props);
 
         identityMapper = new DefaultIdentityMapper(properties);
         ((DatabaseUserGroupProvider)userGroupProvider).setIdentityMapper(identityMapper);

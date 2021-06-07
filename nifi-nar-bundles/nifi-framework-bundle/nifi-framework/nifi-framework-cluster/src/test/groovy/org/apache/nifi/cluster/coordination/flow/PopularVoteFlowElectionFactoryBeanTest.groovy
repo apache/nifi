@@ -18,7 +18,7 @@ package org.apache.nifi.cluster.coordination.flow
 
 import org.apache.nifi.encrypt.PropertyEncryptor
 import org.apache.nifi.encrypt.PropertyEncryptorFactory
-import org.apache.nifi.properties.StandardNiFiProperties
+
 import org.apache.nifi.security.util.EncryptionMethod
 import org.apache.nifi.util.NiFiProperties
 import org.junit.Before
@@ -51,7 +51,7 @@ class PopularVoteFlowElectionFactoryBeanTest extends GroovyTestCase {
     }
 
     NiFiProperties mockProperties(Map<String, String> defaults = [:]) {
-        def mockProps = new StandardNiFiProperties(new Properties([
+        def mockProps = new NiFiProperties(new Properties([
                 (NiFiProperties.SENSITIVE_PROPS_ALGORITHM):DEFAULT_ENCRYPTION_METHOD.algorithm,
                 (NiFiProperties.SENSITIVE_PROPS_PROVIDER):DEFAULT_ENCRYPTION_METHOD.provider,
         ] + defaults))

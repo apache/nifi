@@ -42,7 +42,7 @@ class NiFiRegistryAuthorizersXmlEncryptor extends XmlEncryptor {
      *   .*?</userGroupProvider>          -> find everything as needed up until and including occurrence of '</userGroupProvider>'
      */
 
-    NiFiRegistryAuthorizersXmlEncryptor(SensitivePropertyProvider encryptionProvider, SensitivePropertyProvider decryptionProvider) {
+    NiFiRegistryAuthorizersXmlEncryptor(final SensitivePropertyProvider encryptionProvider, final SensitivePropertyProvider decryptionProvider) {
         super(encryptionProvider, decryptionProvider)
     }
 

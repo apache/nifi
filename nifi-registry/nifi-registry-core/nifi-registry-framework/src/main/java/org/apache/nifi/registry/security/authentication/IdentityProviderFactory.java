@@ -17,10 +17,10 @@
 package org.apache.nifi.registry.security.authentication;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.properties.SensitivePropertyProtectionException;
+import org.apache.nifi.properties.SensitivePropertyProvider;
 import org.apache.nifi.registry.extension.ExtensionManager;
 import org.apache.nifi.registry.properties.NiFiRegistryProperties;
-import org.apache.nifi.registry.properties.SensitivePropertyProtectionException;
-import org.apache.nifi.registry.properties.SensitivePropertyProvider;
 import org.apache.nifi.registry.security.authentication.annotation.IdentityProviderContext;
 import org.apache.nifi.registry.security.authentication.generated.IdentityProviders;
 import org.apache.nifi.registry.security.authentication.generated.Property;

@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.provenance;
 
-import org.apache.commons.codec.DecoderException;
-import org.apache.commons.codec.binary.Hex;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.provenance.serialization.RecordReaders;
@@ -35,7 +33,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
 import java.io.IOException;
 import java.security.KeyManagementException;
 
@@ -89,7 +86,7 @@ public class EncryptedWriteAheadProvenanceRepository extends WriteAheadProvenanc
             try {
                 KeyProvider keyProvider;
                 if (KeyProviderFactory.requiresRootKey(getConfig().getKeyProviderImplementation())) {
-                    SecretKey rootKey = getRootKey();
+                    SecretKey rootKey = CryptoUtils.getRootKey();
                     keyProvider = buildKeyProvider(rootKey);
                 } else {
                     keyProvider = buildKeyProvider();
@@ -150,16 +147,5 @@ public class EncryptedWriteAheadProvenanceRepository extends WriteAheadProvenanc
         }
 
         return KeyProviderFactory.buildKeyProvider(implementationClassName, config.getKeyProviderLocation(), config.getKeyId(), config.getEncryptionKeys(), rootKey);
-    }
-
-    private static SecretKey getRootKey() throws KeyManagementException {
-        try {
-            // Get the root encryption key from bootstrap.conf
-            String rootKeyHex = CryptoUtils.extractKeyFromBootstrapFile();
-            return new SecretKeySpec(Hex.decodeHex(rootKeyHex.toCharArray()), "AES");
-        } catch (IOException | DecoderException e) {
-            logger.error("Encountered an error: ", e);
-            throw new KeyManagementException(e);
-        }
     }
 }

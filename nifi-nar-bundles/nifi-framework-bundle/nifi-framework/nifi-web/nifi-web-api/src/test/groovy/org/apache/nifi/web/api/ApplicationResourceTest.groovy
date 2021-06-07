@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.api
 
-import org.apache.nifi.properties.StandardNiFiProperties
+
 import org.apache.nifi.util.NiFiProperties
 import org.glassfish.jersey.uri.internal.JerseyUriBuilder
 import org.junit.After
@@ -109,7 +109,7 @@ class ApplicationResourceTest extends GroovyTestCase {
 
         resource.setHttpServletRequest(mockRequest)
         resource.setUriInfo(mockUriInfo)
-        resource.properties = new StandardNiFiProperties()
+        resource.properties = new NiFiProperties()
 
         resource
     }
@@ -136,7 +136,7 @@ class ApplicationResourceTest extends GroovyTestCase {
         // Arrange
         ApplicationResource resource = buildApplicationResource()
         logger.info("Allowed path(s): ${ALLOWED_PATH}")
-        NiFiProperties niFiProperties = new StandardNiFiProperties([(PROXY_CONTEXT_PATH_PROP): ALLOWED_PATH] as Properties)
+        NiFiProperties niFiProperties = new NiFiProperties([(PROXY_CONTEXT_PATH_PROP): ALLOWED_PATH] as Properties)
         resource.properties = niFiProperties
 
         // Act
@@ -153,7 +153,7 @@ class ApplicationResourceTest extends GroovyTestCase {
         ApplicationResource resource = buildApplicationResource()
         String multipleAllowedPaths = [ALLOWED_PATH, "another/path", "a/third/path"].join(",")
         logger.info("Allowed path(s): ${multipleAllowedPaths}")
-        NiFiProperties niFiProperties = new StandardNiFiProperties([(PROXY_CONTEXT_PATH_PROP): multipleAllowedPaths] as Properties)
+        NiFiProperties niFiProperties = new NiFiProperties([(PROXY_CONTEXT_PATH_PROP): multipleAllowedPaths] as Properties)
         resource.properties = niFiProperties
 
         // Act
@@ -203,7 +203,7 @@ class ApplicationResourceTest extends GroovyTestCase {
         // Arrange
         ApplicationResource resource = buildApplicationResource([FORWARDED_CONTEXT_HTTP_HEADER])
         logger.info("Allowed path(s): ${ALLOWED_PATH}")
-        NiFiProperties niFiProperties = new StandardNiFiProperties([(PROXY_CONTEXT_PATH_PROP): ALLOWED_PATH] as Properties)
+        NiFiProperties niFiProperties = new NiFiProperties([(PROXY_CONTEXT_PATH_PROP): ALLOWED_PATH] as Properties)
         resource.properties = niFiProperties
 
         // Act
@@ -219,7 +219,7 @@ class ApplicationResourceTest extends GroovyTestCase {
         // Arrange
         ApplicationResource resource = buildApplicationResource([FORWARDED_PREFIX_HTTP_HEADER])
         logger.info("Allowed path(s): ${ALLOWED_PATH}")
-        NiFiProperties niFiProperties = new StandardNiFiProperties([(PROXY_CONTEXT_PATH_PROP): ALLOWED_PATH] as Properties)
+        NiFiProperties niFiProperties = new NiFiProperties([(PROXY_CONTEXT_PATH_PROP): ALLOWED_PATH] as Properties)
         resource.properties = niFiProperties
 
         // Act
@@ -236,7 +236,7 @@ class ApplicationResourceTest extends GroovyTestCase {
         ApplicationResource resource = buildApplicationResource([FORWARDED_CONTEXT_HTTP_HEADER])
         String multipleAllowedPaths = [ALLOWED_PATH, "another/path", "a/third/path"].join(",")
         logger.info("Allowed path(s): ${multipleAllowedPaths}")
-        NiFiProperties niFiProperties = new StandardNiFiProperties([(PROXY_CONTEXT_PATH_PROP): multipleAllowedPaths] as Properties)
+        NiFiProperties niFiProperties = new NiFiProperties([(PROXY_CONTEXT_PATH_PROP): multipleAllowedPaths] as Properties)
         resource.properties = niFiProperties
 
         // Act
@@ -253,7 +253,7 @@ class ApplicationResourceTest extends GroovyTestCase {
         ApplicationResource resource = buildApplicationResource([FORWARDED_PREFIX_HTTP_HEADER])
         String multipleAllowedPaths = [ALLOWED_PATH, "another/path", "a/third/path"].join(",")
         logger.info("Allowed path(s): ${multipleAllowedPaths}")
-        NiFiProperties niFiProperties = new StandardNiFiProperties([(PROXY_CONTEXT_PATH_PROP): multipleAllowedPaths] as Properties)
+        NiFiProperties niFiProperties = new NiFiProperties([(PROXY_CONTEXT_PATH_PROP): multipleAllowedPaths] as Properties)
         resource.properties = niFiProperties
 
         // Act

@@ -33,12 +33,12 @@
         <module>nifi-docs</module>
         <module>nifi-maven-archetypes</module>
         <module>nifi-external</module>
-        <module>nifi-toolkit</module>
         <module>nifi-docker</module>
         <module>nifi-system-tests</module>
         <module>minifi</module>
         <module>nifi-stateless</module>
         <module>nifi-registry</module>
+        <module>nifi-toolkit</module>
     </modules>
     <url>https://nifi.apache.org</url>
     <organization>

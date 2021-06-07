@@ -18,7 +18,7 @@
 
 package org.apache.nifi.cluster.coordination.http.replication.okhttp
 
-import org.apache.nifi.properties.StandardNiFiProperties
+
 import org.apache.nifi.util.NiFiProperties
 import org.junit.BeforeClass
 import org.junit.Test
@@ -38,13 +38,13 @@ class OkHttpReplicationClientTest extends GroovyTestCase {
         }
     }
 
-    private static StandardNiFiProperties mockNiFiProperties() {
+    private static NiFiProperties mockNiFiProperties() {
         [getClusterNodeConnectionTimeout: { -> "10 ms" },
          getClusterNodeReadTimeout      : { -> "10 ms" },
          getProperty                    : { String prop ->
              logger.mock("Requested getProperty(${prop}) -> \"\"")
              ""
-         }] as StandardNiFiProperties
+         }] as NiFiProperties
     }
 
     @Test
@@ -150,7 +150,7 @@ class OkHttpReplicationClientTest extends GroovyTestCase {
                 (NiFiProperties.WEB_HTTPS_HOST)            : "localhost",
                 (NiFiProperties.WEB_HTTPS_PORT)            : "51552",
         ]
-        NiFiProperties mockNiFiProperties = new StandardNiFiProperties(new Properties(propsMap))
+        NiFiProperties mockNiFiProperties = new NiFiProperties(new Properties(propsMap))
 
         // Act
         OkHttpReplicationClient client = new OkHttpReplicationClient(mockNiFiProperties)
@@ -173,7 +173,7 @@ class OkHttpReplicationClientTest extends GroovyTestCase {
                 (NiFiProperties.WEB_HTTPS_HOST)            : "localhost",
                 (NiFiProperties.WEB_HTTPS_PORT)            : "51552",
         ]
-        NiFiProperties mockNiFiProperties = new StandardNiFiProperties(new Properties(flowfileEncryptionProps))
+        NiFiProperties mockNiFiProperties = new NiFiProperties(new Properties(flowfileEncryptionProps))
 
         // Act
         OkHttpReplicationClient client = new OkHttpReplicationClient(mockNiFiProperties)
@@ -197,7 +197,7 @@ class OkHttpReplicationClientTest extends GroovyTestCase {
                 (NiFiProperties.WEB_HTTPS_HOST)            : "localhost",
                 (NiFiProperties.WEB_HTTPS_PORT)            : "51552",
         ]
-        NiFiProperties mockNiFiProperties = new StandardNiFiProperties(new Properties(propsMap))
+        NiFiProperties mockNiFiProperties = new NiFiProperties(new Properties(propsMap))
 
         // Act
         OkHttpReplicationClient client = new OkHttpReplicationClient(mockNiFiProperties)
@@ -221,7 +221,7 @@ class OkHttpReplicationClientTest extends GroovyTestCase {
                 (NiFiProperties.WEB_HTTPS_HOST)            : "localhost",
                 (NiFiProperties.WEB_HTTPS_PORT)            : "51552",
         ]
-        NiFiProperties mockNiFiProperties = new StandardNiFiProperties(new Properties(propsMap))
+        NiFiProperties mockNiFiProperties = new NiFiProperties(new Properties(propsMap))
 
         // Act
         OkHttpReplicationClient client = new OkHttpReplicationClient(mockNiFiProperties)
@@ -248,13 +248,13 @@ class OkHttpReplicationClientTest extends GroovyTestCase {
         ] + propsMap
 
 
-        NiFiProperties mockNiFiProperties = new StandardNiFiProperties(new Properties(propsMap))
-        NiFiProperties mockTLSNiFiProperties = new StandardNiFiProperties(new Properties(tlsPropsMap))
+        NiFiProperties mockNiFiProperties = new NiFiProperties(new Properties(propsMap))
+        NiFiProperties mockTLSNiFiProperties = new NiFiProperties(new Properties(tlsPropsMap))
 
         // Remove the keystore password to create an invalid configuration
         Map invalidTlsPropsMap = tlsPropsMap
         invalidTlsPropsMap.remove(NiFiProperties.SECURITY_KEYSTORE_PASSWD)
-        NiFiProperties mockInvalidTLSNiFiProperties = new StandardNiFiProperties(new Properties(invalidTlsPropsMap))
+        NiFiProperties mockInvalidTLSNiFiProperties = new NiFiProperties(new Properties(invalidTlsPropsMap))
 
         // Act
         OkHttpReplicationClient client = new OkHttpReplicationClient(mockNiFiProperties)

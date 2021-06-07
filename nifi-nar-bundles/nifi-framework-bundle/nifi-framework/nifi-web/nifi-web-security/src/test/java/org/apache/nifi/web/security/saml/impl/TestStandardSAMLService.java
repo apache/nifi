@@ -28,6 +28,8 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.File;
+import java.util.Arrays;
+import java.util.HashSet;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -72,6 +74,15 @@ public class TestStandardSAMLService {
         when(properties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE)).thenReturn("src/test/resources/saml/truststore.jks");
         when(properties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD)).thenReturn("passwordpassword");
         when(properties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_TYPE)).thenReturn("JKS");
+        when(properties.getPropertyKeys()).thenReturn(new HashSet<>(Arrays.asList(
+                NiFiProperties.SECURITY_KEYSTORE,
+                NiFiProperties.SECURITY_KEYSTORE_PASSWD,
+                NiFiProperties.SECURITY_KEY_PASSWD,
+                NiFiProperties.SECURITY_KEYSTORE_TYPE,
+                NiFiProperties.SECURITY_TRUSTSTORE,
+                NiFiProperties.SECURITY_TRUSTSTORE_PASSWD,
+                NiFiProperties.SECURITY_TRUSTSTORE_TYPE
+        )));
 
         when(properties.isSamlEnabled()).thenReturn(true);
         when(properties.getSamlServiceProviderEntityId()).thenReturn(spEntityId);

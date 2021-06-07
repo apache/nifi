@@ -16,19 +16,15 @@
  */
 package org.apache.nifi.controller.state.server;
 
-import org.apache.curator.retry.RetryOneTime;
-import org.apache.curator.test.InstanceSpec;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
-
+import org.apache.curator.retry.RetryOneTime;
+import org.apache.curator.test.InstanceSpec;
 import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.properties.StandardNiFiProperties;
-
 import org.apache.zookeeper.client.FourLetterWordMain;
 import org.apache.zookeeper.common.X509Exception.SSLContextException;
 import org.apache.zookeeper.data.Stat;
 import org.apache.zookeeper.server.quorum.QuorumPeerConfig.ConfigException;
-
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -73,7 +69,7 @@ public class TestZooKeeperStateServer {
         properties.setProperty(NiFiProperties.STATE_MANAGEMENT_ZOOKEEPER_PROPERTIES, zkServerConfig.toString());
         properties.setProperty(NiFiProperties.STATE_MANAGEMENT_START_EMBEDDED_ZOOKEEPER, Boolean.TRUE.toString());
 
-        zkServer = ZooKeeperStateServer.create(new StandardNiFiProperties(properties));
+        zkServer = ZooKeeperStateServer.create(new NiFiProperties(properties));
 
         if (zkServer != null) zkServer.start();
     }

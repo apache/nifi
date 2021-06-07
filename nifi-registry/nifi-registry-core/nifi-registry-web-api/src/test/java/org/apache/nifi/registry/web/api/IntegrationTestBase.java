@@ -40,6 +40,7 @@ import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.Properties;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -176,17 +177,17 @@ public abstract class IntegrationTestBase {
      * @param propertiesFilePath The location of the properties file
      * @return A NiFIRegistryProperties instance based on the properties file contents
      */
-    static NiFiRegistryProperties loadNiFiRegistryProperties(String propertiesFilePath) {
-        NiFiRegistryProperties properties = new NiFiRegistryProperties();
+    static NiFiRegistryProperties loadNiFiRegistryProperties(final String propertiesFilePath) {
+        final Properties props = new Properties();
         try (final FileReader reader = new FileReader(propertiesFilePath)) {
-            properties.load(reader);
+            props.load(reader);
+            return new NiFiRegistryProperties(props);
         } catch (final IOException ioe) {
             throw new RuntimeException("Unable to load properties: " + ioe, ioe);
         }
-        return properties;
     }
 
-    private static Client createClientFromConfig(NiFiRegistryClientConfig registryClientConfig) {
+    private static Client createClientFromConfig(final NiFiRegistryClientConfig registryClientConfig) {
 
         final ClientConfig clientConfig = new ClientConfig();
         clientConfig.register(jacksonJaxbJsonProvider());

@@ -18,13 +18,9 @@ package org.apache.nifi.web.security.spring
 
 import org.apache.nifi.authentication.generated.Property
 import org.apache.nifi.authentication.generated.Provider
-import org.apache.nifi.properties.AESSensitivePropertyProvider
 import org.bouncycastle.jce.provider.BouncyCastleProvider
-import org.junit.After
-import org.junit.AfterClass
 import org.junit.Before
 import org.junit.BeforeClass
-import org.junit.Ignore
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
@@ -54,8 +50,10 @@ class LoginIdentityProviderFactoryBeanTest extends GroovyTestCase {
 
     private static final String PASSWORD = "thisIsABadPassword"
 
+    private LoginIdentityProviderFactoryBean bean
+
     @BeforeClass
-    public static void setUpOnce() throws Exception {
+    static void setUpOnce() throws Exception {
         Security.addProvider(new BouncyCastleProvider())
 
         logger.metaClass.methodMissing = { String name, args ->
@@ -63,45 +61,14 @@ class LoginIdentityProviderFactoryBeanTest extends GroovyTestCase {
         }
     }
 
-    @AfterClass
-    public static void tearDownOnce() throws Exception {
-    }
-
     @Before
-    public void setUp() throws Exception {
-        LoginIdentityProviderFactoryBean.SENSITIVE_PROPERTY_PROVIDER = new AESSensitivePropertyProvider(KEY_HEX)
-    }
-
-    @After
-    public void tearDown() throws Exception {
-        LoginIdentityProviderFactoryBean.SENSITIVE_PROPERTY_PROVIDER = null
-        LoginIdentityProviderFactoryBean.SENSITIVE_PROPERTY_PROVIDER_FACTORY = null
+    void setUp() {
+        bean = new LoginIdentityProviderFactoryBean()
+        bean.configureSensitivePropertyProviderFactory(KEY_HEX, null)
     }
 
     private static boolean isUnlimitedStrengthCryptoAvailable() {
         Cipher.getMaxAllowedKeyLength("AES") > 128
-    }
-
-    private static int getKeyLength(String keyHex = KEY_HEX) {
-        keyHex?.size() * 4
-    }
-
-    @Ignore("Can't test without overloading static metaClass method")
-    @Test
-    void testShouldInitializeSensitivePropertyProvider() {
-        // Arrange
-        assert !LoginIdentityProviderFactoryBean.SENSITIVE_PROPERTY_PROVIDER
-        assert !LoginIdentityProviderFactoryBean.SENSITIVE_PROPERTY_PROVIDER_FACTORY
-
-        logger.info("Encryption scheme: ${ENCRYPTION_SCHEME}")
-
-        // Act
-        LoginIdentityProviderFactoryBean.initializeSensitivePropertyProvider(ENCRYPTION_SCHEME)
-
-        // Assert
-        assert LoginIdentityProviderFactoryBean.SENSITIVE_PROPERTY_PROVIDER
-        assert LoginIdentityProviderFactoryBean.SENSITIVE_PROPERTY_PROVIDER_FACTORY
-        assert LoginIdentityProviderFactoryBean.SENSITIVE_PROPERTY_PROVIDER.getIdentifierKey() == ENCRYPTION_SCHEME
     }
 
     @Test
@@ -111,7 +78,7 @@ class LoginIdentityProviderFactoryBeanTest extends GroovyTestCase {
         logger.info("Cipher text: ${CIPHER_TEXT}")
 
         // Act
-        String decrypted = new LoginIdentityProviderFactoryBean().decryptValue(CIPHER_TEXT, ENCRYPTION_SCHEME)
+        String decrypted = bean.decryptValue(CIPHER_TEXT, ENCRYPTION_SCHEME)
         logger.info("Decrypted ${CIPHER_TEXT} -> ${decrypted}")
 
         // Assert
@@ -129,7 +96,6 @@ class LoginIdentityProviderFactoryBeanTest extends GroovyTestCase {
         encryptedProvider.property = [managerPasswordProperty]
 
         logger.info("Manager Password property: ${managerPasswordProperty.dump()}")
-        def bean = new LoginIdentityProviderFactoryBean()
 
         // Act
         def context = bean.loadLoginIdentityProviderConfiguration(encryptedProvider)

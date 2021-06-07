@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.util;
 
+import org.apache.nifi.properties.ApplicationProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,7 +47,7 @@ import java.util.stream.Stream;
  * this class or passing it along. Its use should be refactored and minimized
  * over time.
  */
-public abstract class NiFiProperties {
+public class NiFiProperties extends ApplicationProperties {
     private static final Logger logger = LoggerFactory.getLogger(NiFiProperties.class);
 
     // core properties
@@ -392,20 +393,17 @@ public abstract class NiFiProperties {
     public static final int DEFAULT_COMPONENT_STATUS_REPOSITORY_PERSIST_COMPONENT_DAYS = 3;
     public static final String DEFAULT_COMPONENT_STATUS_REPOSITORY_PERSIST_LOCATION = "./status_repository";
 
-    /**
-     * Retrieves the property value for the given property key.
-     *
-     * @param key the key of property value to lookup
-     * @return value of property at given key or null if not found
-     */
-    public abstract String getProperty(String key);
+    public NiFiProperties() {
+        this(Collections.EMPTY_MAP);
+    }
 
-    /**
-     * Retrieves all known property keys.
-     *
-     * @return all known property keys
-     */
-    public abstract Set<String> getPropertyKeys();
+    public NiFiProperties(final Map<String, String> props) {
+        super(props);
+    }
+
+    public NiFiProperties(final Properties props) {
+        super(props);
+    }
 
     // getters for core properties //
     public File getFlowConfigurationFile() {
@@ -1591,14 +1589,10 @@ public abstract class NiFiProperties {
     }
 
     public boolean isTlsConfigurationPresent() {
-        return StringUtils.isNotBlank(getProperty(NiFiProperties.SECURITY_KEYSTORE))
-            && getProperty(NiFiProperties.SECURITY_KEYSTORE_PASSWD) != null
-            && StringUtils.isNotBlank(getProperty(NiFiProperties.SECURITY_TRUSTSTORE))
-            && getProperty(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD) != null;
-    }
-
-    public int size() {
-        return getPropertyKeys().size();
+        return StringUtils.isNotBlank(getProperty(SECURITY_KEYSTORE))
+            && getProperty(SECURITY_KEYSTORE_PASSWD) != null
+            && StringUtils.isNotBlank(getProperty(SECURITY_TRUSTSTORE))
+            && getProperty(SECURITY_TRUSTSTORE_PASSWD) != null;
     }
 
     public String getFlowFileRepoEncryptionKeyId() {
@@ -2026,6 +2020,11 @@ public abstract class NiFiProperties {
             public Set<String> getPropertyKeys() {
                 return properties.stringPropertyNames();
             }
+
+            @Override
+            public int size() {
+                return getPropertyKeys().size();
+            }
         };
     }
 
@@ -2076,5 +2075,10 @@ public abstract class NiFiProperties {
             throw new IllegalArgumentException(remoteInputHost + " is not a correct value for " + REMOTE_INPUT_HOST + ". It should be a valid hostname without protocol or port.");
         }
         // Other properties to validate...
+    }
+
+    @Override
+    public String toString() {
+        return "NiFiProperties instance with " + size() + " properties";
     }
 }

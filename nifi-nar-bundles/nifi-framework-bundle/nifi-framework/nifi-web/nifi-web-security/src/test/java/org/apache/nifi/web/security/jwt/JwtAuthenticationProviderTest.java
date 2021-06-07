@@ -28,7 +28,6 @@ import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserDetails;
 import org.apache.nifi.idp.IdpType;
 import org.apache.nifi.idp.IdpUserGroup;
-import org.apache.nifi.properties.StandardNiFiProperties;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.security.InvalidAuthenticationException;
 import org.apache.nifi.web.security.token.LoginAuthenticationToken;
@@ -87,7 +86,7 @@ public class JwtAuthenticationProviderTest {
         Properties props = new Properties();
         props.put(properties.SECURITY_IDENTITY_MAPPING_PATTERN_PREFIX, "^(.*?)@(.*?)$");
         props.put(properties.SECURITY_IDENTITY_MAPPING_VALUE_PREFIX, "$1");
-        properties = new StandardNiFiProperties(props);
+        properties = new NiFiProperties(props);
 
         jwtAuthenticationProvider = new JwtAuthenticationProvider(jwtService, properties, authorizer, idpUserGroupService);
     }

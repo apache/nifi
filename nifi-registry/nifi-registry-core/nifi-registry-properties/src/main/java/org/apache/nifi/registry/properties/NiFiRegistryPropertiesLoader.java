@@ -16,25 +16,33 @@
  */
 package org.apache.nifi.registry.properties;
 
+import org.apache.nifi.properties.SensitivePropertyProtectionException;
+import org.apache.nifi.properties.SensitivePropertyProvider;
+import org.apache.nifi.properties.SensitivePropertyProviderFactory;
+import org.apache.nifi.properties.StandardSensitivePropertyProviderFactory;
+import org.apache.nifi.registry.properties.util.NiFiRegistryBootstrapUtils;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.crypto.Cipher;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
-import java.security.NoSuchAlgorithmException;
+import java.security.Security;
+import java.util.Properties;
 
 public class NiFiRegistryPropertiesLoader {
 
     private static final Logger logger = LoggerFactory.getLogger(NiFiRegistryPropertiesLoader.class);
+
+    private static final String APPLICATION_PATH = "nifi.registry";
 
     private static final String RELATIVE_PATH = "conf/nifi-registry.properties";
 
     private String keyHex;
 
     // Future enhancement: allow for external registration of new providers
-    private static SensitivePropertyProviderFactory sensitivePropertyProviderFactory;
+    private SensitivePropertyProviderFactory sensitivePropertyProviderFactory;
 
     /**
      * Returns an instance of the loader configured with the key.
@@ -46,7 +54,7 @@ public class NiFiRegistryPropertiesLoader {
      * @param keyHex the key used to encrypt any sensitive properties
      * @return the configured loader
      */
-    public static NiFiRegistryPropertiesLoader withKey(String keyHex) {
+    public static NiFiRegistryPropertiesLoader withKey(final String keyHex) {
         NiFiRegistryPropertiesLoader loader = new NiFiRegistryPropertiesLoader();
         loader.setKeyHex(keyHex);
         return loader;
@@ -54,12 +62,12 @@ public class NiFiRegistryPropertiesLoader {
 
     /**
      * Sets the hexadecimal key used to unprotect properties encrypted with
-     * {@link AESSensitivePropertyProvider}. If the key has already been set,
+     * {@link SensitivePropertyProvider}. If the key has already been set,
      * calling this method will throw a {@link RuntimeException}.
      *
      * @param keyHex the key in hexadecimal format
      */
-    public void setKeyHex(String keyHex) {
+    public void setKeyHex(final String keyHex) {
         if (this.keyHex == null || this.keyHex.trim().isEmpty()) {
             this.keyHex = keyHex;
         } else {
@@ -67,21 +75,18 @@ public class NiFiRegistryPropertiesLoader {
         }
     }
 
-    private static String getDefaultProviderKey() {
-        try {
-            return "aes/gcm/" + (Cipher.getMaxAllowedKeyLength("AES") > 128 ? "256" : "128");
-        } catch (NoSuchAlgorithmException e) {
-            return "aes/gcm/128";
+    private SensitivePropertyProviderFactory getSensitivePropertyProviderFactory() {
+        if (sensitivePropertyProviderFactory == null) {
+            sensitivePropertyProviderFactory = StandardSensitivePropertyProviderFactory
+                    .withKeyAndBootstrapSupplier(keyHex, () -> {
+                        try {
+                            return NiFiRegistryBootstrapUtils.loadBootstrapProperties();
+                        } catch (IOException e) {
+                            throw new SensitivePropertyProtectionException("Could not load bootstrap.conf for sensitive property provider configuration.", e);
+                        }
+                    });
         }
-    }
-
-    private void initializeSensitivePropertyProviderFactory() {
-        sensitivePropertyProviderFactory = new AESSensitivePropertyProviderFactory(keyHex);
-    }
-
-    private SensitivePropertyProvider getSensitivePropertyProvider() {
-        initializeSensitivePropertyProviderFactory();
-        return sensitivePropertyProviderFactory.getProvider();
+        return sensitivePropertyProviderFactory;
     }
 
     /**
@@ -100,11 +105,12 @@ public class NiFiRegistryPropertiesLoader {
             throw new IllegalArgumentException("NiFi Registry properties file missing or unreadable");
         }
 
-        final NiFiRegistryProperties rawProperties = new NiFiRegistryProperties();
+        final Properties rawProperties = new Properties();
         try (final FileReader reader = new FileReader(file)) {
             rawProperties.load(reader);
+            final NiFiRegistryProperties innerProperties = new NiFiRegistryProperties(rawProperties);
             logger.info("Loaded {} properties from {}", rawProperties.size(), file.getAbsolutePath());
-            ProtectedNiFiRegistryProperties protectedNiFiRegistryProperties = new ProtectedNiFiRegistryProperties(rawProperties);
+            ProtectedNiFiRegistryProperties protectedNiFiRegistryProperties = new ProtectedNiFiRegistryProperties(innerProperties);
             return protectedNiFiRegistryProperties;
         } catch (final IOException ioe) {
             logger.error("Cannot load properties file due to " + ioe.getLocalizedMessage());
@@ -120,13 +126,16 @@ public class NiFiRegistryPropertiesLoader {
      * @param file the File containing the serialized properties
      * @return the NiFiProperties instance
      */
-    public NiFiRegistryProperties load(File file) {
-        ProtectedNiFiRegistryProperties protectedNiFiRegistryProperties = readProtectedPropertiesFromDisk(file);
-        if (protectedNiFiRegistryProperties.hasProtectedKeys()) {
-            protectedNiFiRegistryProperties.addSensitivePropertyProvider(getSensitivePropertyProvider());
+    public NiFiRegistryProperties load(final File file) {
+        final ProtectedNiFiRegistryProperties protectedNiFiProperties = readProtectedPropertiesFromDisk(file);
+        if (protectedNiFiProperties.hasProtectedKeys()) {
+            Security.addProvider(new BouncyCastleProvider());
+            getSensitivePropertyProviderFactory()
+                    .getSupportedSensitivePropertyProviders()
+                    .forEach(protectedNiFiProperties::addSensitivePropertyProvider);
         }
 
-        return protectedNiFiRegistryProperties.getUnprotectedProperties();
+        return protectedNiFiProperties.getUnprotectedProperties();
     }
 
     /**
