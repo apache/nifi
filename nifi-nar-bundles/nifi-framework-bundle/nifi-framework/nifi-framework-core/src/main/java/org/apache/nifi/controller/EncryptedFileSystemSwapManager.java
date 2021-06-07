@@ -47,7 +47,6 @@ import java.security.SecureRandom;
  * encryption key defined in nifi.properties for the FlowFile repository.
  * </p>
  */
-@SuppressWarnings("unused")  // instantiation via reflection in product
 public class EncryptedFileSystemSwapManager extends FileSystemSwapManager {
 
     private static final String CIPHER_TRANSFORMATION = "AES/GCM/NoPadding";
