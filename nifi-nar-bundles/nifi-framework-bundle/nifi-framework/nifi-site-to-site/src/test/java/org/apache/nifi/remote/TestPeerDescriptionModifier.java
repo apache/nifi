@@ -17,7 +17,6 @@
 package org.apache.nifi.remote;
 
 import org.apache.nifi.attribute.expression.language.exception.AttributeExpressionLanguageException;
-import org.apache.nifi.properties.StandardNiFiProperties;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.util.NiFiProperties;
 import org.junit.Test;
@@ -37,7 +36,7 @@ public class TestPeerDescriptionModifier {
     @Test
     public void testNoConfiguration() {
         Properties props = new Properties();
-        final NiFiProperties properties = new StandardNiFiProperties(props);
+        final NiFiProperties properties = new NiFiProperties(props);
         final PeerDescriptionModifier modifier = new PeerDescriptionModifier(properties);
         assertFalse(modifier.isModificationNeeded(SiteToSiteTransportProtocol.RAW));
         assertFalse(modifier.isModificationNeeded(SiteToSiteTransportProtocol.HTTP));
@@ -47,7 +46,7 @@ public class TestPeerDescriptionModifier {
     public void testInvalidNoHostname() {
         Properties props = new Properties();
         props.put("nifi.remote.route.raw.no-host.when", "true");
-        final NiFiProperties properties = new StandardNiFiProperties(props);
+        final NiFiProperties properties = new NiFiProperties(props);
         try {
             new PeerDescriptionModifier(properties);
             fail("Should throw an Exception");
@@ -61,7 +60,7 @@ public class TestPeerDescriptionModifier {
         Properties props = new Properties();
         props.put("nifi.remote.route.raw.no-port.when", "true");
         props.put("nifi.remote.route.raw.no-port.hostname", "proxy.example.com");
-        final NiFiProperties properties = new StandardNiFiProperties(props);
+        final NiFiProperties properties = new NiFiProperties(props);
         try {
             new PeerDescriptionModifier(properties);
             fail("Should throw an Exception");
@@ -78,7 +77,7 @@ public class TestPeerDescriptionModifier {
         props.put("nifi.remote.route.raw.invalid-name.port", "8081");
         props.put("nifi.remote.route.raw.invalid-name.secure", "true");
         props.put("nifi.remote.route.raw.invalid-name.unsupported", "true");
-        final NiFiProperties properties = new StandardNiFiProperties(props);
+        final NiFiProperties properties = new NiFiProperties(props);
         try {
             new PeerDescriptionModifier(properties);
             fail("Should throw an Exception");
@@ -93,7 +92,7 @@ public class TestPeerDescriptionModifier {
     public void testInvalidPropertyKeyNoProtocol() {
         Properties props = new Properties();
         props.put("nifi.remote.route.", "true");
-        final NiFiProperties properties = new StandardNiFiProperties(props);
+        final NiFiProperties properties = new NiFiProperties(props);
         try {
             new PeerDescriptionModifier(properties);
             fail("Should throw an Exception");
@@ -108,7 +107,7 @@ public class TestPeerDescriptionModifier {
     public void testInvalidPropertyKeyNoName() {
         Properties props = new Properties();
         props.put("nifi.remote.route.http.", "true");
-        final NiFiProperties properties = new StandardNiFiProperties(props);
+        final NiFiProperties properties = new NiFiProperties(props);
         try {
             new PeerDescriptionModifier(properties);
             fail("Should throw an Exception");
@@ -125,7 +124,7 @@ public class TestPeerDescriptionModifier {
         props.put("nifi.remote.route.raw.invalid-el.when", "${nonExistingFunction()}");
         props.put("nifi.remote.route.raw.invalid-el.hostname", "proxy.example.com");
         props.put("nifi.remote.route.raw.invalid-el.port", "8081");
-        final NiFiProperties properties = new StandardNiFiProperties(props);
+        final NiFiProperties properties = new NiFiProperties(props);
         final PeerDescriptionModifier modifier = new PeerDescriptionModifier(properties);
 
         final PeerDescription source = new PeerDescription("client", 12345, true);
@@ -146,7 +145,7 @@ public class TestPeerDescriptionModifier {
         props.put("nifi.remote.route.raw.no-port.when", "true");
         props.put("nifi.remote.route.raw.no-port.hostname", "proxy.example.com");
         props.put("nifi.remote.route.raw.no-port.port", "8443");
-        final NiFiProperties properties = new StandardNiFiProperties(props);
+        final NiFiProperties properties = new NiFiProperties(props);
         final PeerDescriptionModifier modifier = new PeerDescriptionModifier(properties);
 
         final PeerDescription source = new PeerDescription("client", 12345, true);
@@ -178,7 +177,7 @@ public class TestPeerDescriptionModifier {
         props.put("nifi.remote.input.socket.port", "8081");
         props.put("nifi.remote.input.http.enabled", "true");
 
-        final NiFiProperties properties = new StandardNiFiProperties(props);
+        final NiFiProperties properties = new NiFiProperties(props);
         final PeerDescriptionModifier modifier = new PeerDescriptionModifier(properties);
 
         // For requests coming from the proxy server, modify target description,
@@ -230,7 +229,7 @@ public class TestPeerDescriptionModifier {
         props.put("nifi.remote.input.socket.port", "8081");
         props.put("nifi.remote.input.http.enabled", "true");
 
-        final NiFiProperties properties = new StandardNiFiProperties(props);
+        final NiFiProperties properties = new NiFiProperties(props);
         final PeerDescriptionModifier modifier = new PeerDescriptionModifier(properties);
 
         // For requests coming from the proxy server, modify target description,
@@ -284,7 +283,7 @@ public class TestPeerDescriptionModifier {
         props.put("nifi.remote.input.http.enabled", "true");
 
 
-        final NiFiProperties properties = new StandardNiFiProperties(props);
+        final NiFiProperties properties = new NiFiProperties(props);
         final PeerDescriptionModifier modifier = new PeerDescriptionModifier(properties);
 
         // For requests coming from the proxy server, modify target description,

@@ -174,42 +174,24 @@ public class StandardTlsConfiguration implements TlsConfiguration {
     // Static factory method from NiFiProperties
 
     /**
-     * Returns a {@link org.apache.nifi.security.util.TlsConfiguration} instantiated from the relevant {@link NiFiProperties} properties.
+     * Returns a {@link org.apache.nifi.security.util.TlsConfiguration} instantiated from the relevant NiFi properties.
      *
      * @param niFiProperties the NiFi properties
      * @return a populated TlsConfiguration container object
      */
-    public static TlsConfiguration fromNiFiProperties(NiFiProperties niFiProperties) {
-        Objects.requireNonNull("The NiFi properties cannot be null");
-
-        String keystorePath = niFiProperties.getProperty(NiFiProperties.SECURITY_KEYSTORE);
-        String keystorePassword = niFiProperties.getProperty(NiFiProperties.SECURITY_KEYSTORE_PASSWD);
-        String keyPassword = niFiProperties.getProperty(NiFiProperties.SECURITY_KEY_PASSWD);
-        String keystoreType = niFiProperties.getProperty(NiFiProperties.SECURITY_KEYSTORE_TYPE);
-        String truststorePath = niFiProperties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE);
-        String truststorePassword = niFiProperties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD);
-        String truststoreType = niFiProperties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_TYPE);
-        String protocol = TLS_PROTOCOL_VERSION;
-
-        final StandardTlsConfiguration tlsConfiguration = new StandardTlsConfiguration(keystorePath, keystorePassword, keyPassword,
-                keystoreType, truststorePath, truststorePassword,
-                truststoreType, protocol);
-        if (logger.isDebugEnabled()) {
-            logger.debug("Instantiating TlsConfiguration from NiFi properties: {}, {}, {}, {}, {}, {}, {}, {}",
-                    keystorePath, tlsConfiguration.getKeystorePasswordForLogging(), tlsConfiguration.getKeyPasswordForLogging(), keystoreType,
-                    truststorePath, tlsConfiguration.getTruststorePasswordForLogging(), truststoreType, protocol);
-        }
-
-        return tlsConfiguration;
+    public static TlsConfiguration fromNiFiProperties(final NiFiProperties niFiProperties) {
+        final Properties properties = new Properties();
+        niFiProperties.getPropertyKeys().forEach(key -> properties.setProperty(key, niFiProperties.getProperty(key)));
+        return fromNiFiProperties(properties);
     }
 
     /**
-     * Returns a {@link org.apache.nifi.security.util.TlsConfiguration} instantiated from the relevant {@link NiFiProperties} properties.
+     * Returns a {@link org.apache.nifi.security.util.TlsConfiguration} instantiated from the relevant NiFi properties.
      *
      * @param niFiProperties the NiFi properties, as a simple java.util.Properties object
      * @return a populated TlsConfiguration container object
      */
-    public static TlsConfiguration fromNiFiProperties(Properties niFiProperties) {
+    public static TlsConfiguration fromNiFiProperties(final Properties niFiProperties) {
         Objects.requireNonNull("The NiFi properties cannot be null");
 
         String keystorePath = niFiProperties.getProperty(NiFiProperties.SECURITY_KEYSTORE);

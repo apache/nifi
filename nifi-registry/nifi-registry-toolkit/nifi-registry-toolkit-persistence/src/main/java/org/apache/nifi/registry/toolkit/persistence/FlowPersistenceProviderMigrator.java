@@ -41,6 +41,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import javax.sql.DataSource;
+import java.util.Properties;
 
 public class FlowPersistenceProviderMigrator {
     private static final Logger log = LoggerFactory.getLogger(FlowPersistenceProviderMigrator.class);
@@ -91,12 +92,13 @@ public class FlowPersistenceProviderMigrator {
         new FlowPersistenceProviderMigrator().doMigrate(fromMetadataService, fromPersistenceProvider, toPersistenceProvider);
     }
 
-    private static NiFiRegistryProperties createToProperties(CommandLine commandLine, NiFiRegistryProperties fromProperties) {
-        NiFiRegistryProperties toProperties = new NiFiRegistryProperties();
-        for (String propertyKey : fromProperties.getPropertyKeys()) {
-            toProperties.setProperty(propertyKey, fromProperties.getProperty(propertyKey));
+    private static NiFiRegistryProperties createToProperties(final CommandLine commandLine, final NiFiRegistryProperties fromProperties) {
+        final Properties props = new Properties();
+        for (final String propertyKey : fromProperties.getPropertyKeys()) {
+            props.setProperty(propertyKey, fromProperties.getProperty(propertyKey));
         }
-        toProperties.setProperty(NiFiRegistryProperties.PROVIDERS_CONFIGURATION_FILE, commandLine.getOptionValue('t'));
+        props.setProperty(NiFiRegistryProperties.PROVIDERS_CONFIGURATION_FILE, commandLine.getOptionValue('t'));
+        final NiFiRegistryProperties toProperties = new NiFiRegistryProperties(props);
         return toProperties;
     }
 

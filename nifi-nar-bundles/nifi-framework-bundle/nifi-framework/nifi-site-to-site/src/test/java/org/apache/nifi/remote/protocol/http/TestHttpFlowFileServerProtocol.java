@@ -25,7 +25,6 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.properties.StandardNiFiProperties;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.remote.HttpRemoteSiteListener;
@@ -109,7 +108,7 @@ public class TestHttpFlowFileServerProtocol {
 
     private HttpFlowFileServerProtocol getDefaultHttpFlowFileServerProtocol() {
         final StandardVersionNegotiator versionNegotiator = new StandardVersionNegotiator(5, 4, 3, 2, 1);
-        return new StandardHttpFlowFileServerProtocol(versionNegotiator, new StandardNiFiProperties());
+        return new StandardHttpFlowFileServerProtocol(versionNegotiator, new NiFiProperties());
     }
 
     @Test
@@ -367,7 +366,7 @@ public class TestHttpFlowFileServerProtocol {
             sessionState.getFlowFileQueue().offer(flowFile);
         }
 
-        final HttpRemoteSiteListener remoteSiteListener = HttpRemoteSiteListener.getInstance(new StandardNiFiProperties());
+        final HttpRemoteSiteListener remoteSiteListener = HttpRemoteSiteListener.getInstance(new NiFiProperties());
 
         serverProtocol.handshake(peer);
         assertTrue(serverProtocol.isHandshakeSuccessful());
@@ -522,7 +521,7 @@ public class TestHttpFlowFileServerProtocol {
     }
 
     private void receiveFlowFiles(final HttpFlowFileServerProtocol serverProtocol, final String transactionId, final Peer peer, final DataPacket ... dataPackets) throws IOException {
-        final HttpRemoteSiteListener remoteSiteListener = HttpRemoteSiteListener.getInstance(new StandardNiFiProperties());
+        final HttpRemoteSiteListener remoteSiteListener = HttpRemoteSiteListener.getInstance(new NiFiProperties());
         final HttpServerCommunicationsSession commsSession = (HttpServerCommunicationsSession) peer.getCommunicationsSession();
 
         serverProtocol.handshake(peer);

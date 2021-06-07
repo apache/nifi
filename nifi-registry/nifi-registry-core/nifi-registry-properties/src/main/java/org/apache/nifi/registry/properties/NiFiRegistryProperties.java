@@ -17,13 +17,14 @@
 package org.apache.nifi.registry.properties;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.properties.ApplicationProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Enumeration;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -31,11 +32,20 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class NiFiRegistryProperties extends Properties {
+public class NiFiRegistryProperties extends ApplicationProperties {
 
     private static final Logger logger = LoggerFactory.getLogger(NiFiRegistryProperties.class);
 
+    public static final String NIFI_REGISTRY_PROPERTIES_FILE_PATH_PROPERTY = "nifi.registry.properties.file.path";
+    public static final String NIFI_REGISTRY_BOOTSTRAP_FILE_PATH_PROPERTY = "nifi.registry.bootstrap.config.file.path";
+    public static final String NIFI_REGISTRY_BOOTSTRAP_DOCS_DIR_PROPERTY = "nifi.registry.bootstrap.config.docs.dir";
+
+    public static final String RELATIVE_BOOTSTRAP_FILE_LOCATION = "conf/bootstrap.conf";
+    public static final String RELATIVE_PROPERTIES_FILE_LOCATION = "conf/nifi-registry.properties";
+    public static final String RELATIVE_DOCS_LOCATION = "docs";
+
     // Keys
+    public static final String PROPERTIES_FILE_PATH = "nifi.registry.properties.file.path";
     public static final String WEB_WAR_DIR = "nifi.registry.web.war.directory";
     public static final String WEB_HTTP_PORT = "nifi.registry.web.http.port";
     public static final String WEB_HTTP_HOST = "nifi.registry.web.http.host";
@@ -119,11 +129,15 @@ public class NiFiRegistryProperties extends Properties {
     public static final String DEFAULT_SECURITY_USER_OIDC_READ_TIMEOUT = "5 secs";
 
     public NiFiRegistryProperties() {
-        super();
+        this(Collections.EMPTY_MAP);
     }
 
-    public NiFiRegistryProperties(Map<String, String> props) {
-        this.putAll(props);
+    public NiFiRegistryProperties(final Map<String, String> props) {
+        super(props);
+    }
+
+    public NiFiRegistryProperties(final Properties props) {
+        super(props);
     }
 
     public int getWebThreads() {
@@ -297,27 +311,12 @@ public class NiFiRegistryProperties extends Properties {
 
     public Set<String> getExtensionsDirs() {
         final Set<String> extensionDirs = new HashSet<>();
-        stringPropertyNames().stream().filter(key -> key.startsWith(EXTENSION_DIR_PREFIX)).forEach(key -> extensionDirs.add(getProperty(key)));
+        getPropertyKeys().stream().filter(key -> key.startsWith(EXTENSION_DIR_PREFIX)).forEach(key -> extensionDirs.add(getProperty(key)));
         return extensionDirs;
     }
 
     public boolean areRevisionsEnabled() {
         return Boolean.parseBoolean(getPropertyAsTrimmedString(REVISIONS_ENABLED));
-    }
-
-    /**
-     * Retrieves all known property keys.
-     *
-     * @return all known property keys
-     */
-    public Set<String> getPropertyKeys() {
-        Set<String> propertyNames = new HashSet<>();
-        Enumeration e = this.propertyNames();
-        for (; e.hasMoreElements(); ){
-            propertyNames.add((String) e.nextElement());
-        }
-
-        return propertyNames;
     }
 
     // Helper functions for common ways of interpreting property values

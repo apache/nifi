@@ -96,7 +96,7 @@ public class SecureNiFiConfigUtil {
      * @throws IOException can be thrown when writing keystores to disk
      * @throws RuntimeException indicates a security exception while generating keystores
      */
-    public static void configureSecureNiFiProperties(String nifiPropertiesFilename, Logger cmdLogger) throws IOException, RuntimeException {
+    public static void configureSecureNiFiProperties(final String nifiPropertiesFilename, final Logger cmdLogger) throws IOException, RuntimeException {
         final File propertiesFile = new File(nifiPropertiesFilename);
         final Properties nifiProperties = loadProperties(propertiesFile);
 
@@ -111,7 +111,7 @@ public class SecureNiFiConfigUtil {
         boolean truststoreExists = fileExists(truststorePath);
 
         if (!keystoreExists && !truststoreExists) {
-            TlsConfiguration tlsConfiguration = null;
+            TlsConfiguration tlsConfiguration;
             cmdLogger.info("Generating Self-Signed Certificate: Expires on {}", LocalDate.now().plus(CERT_DURATION_DAYS, ChronoUnit.DAYS));
             try {
                 String[] subjectAlternativeNames = getSubjectAlternativeNames(nifiProperties, cmdLogger);
