@@ -91,7 +91,8 @@ import static org.apache.nifi.util.StringUtils.isEmpty;
 })
 public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
 
-    private static final String FORMAT_STORAGE_CONNECTION_STRING = "DefaultEndpointsProtocol=https;AccountName=%s;AccountKey=%s";
+    private static final String FORMAT_STORAGE_CONNECTION_STRING_FOR_KEY = "DefaultEndpointsProtocol=https;AccountName=%s;AccountKey=%s";
+    private static final String FORMAT_STORAGE_CONNECTION_STRING_FOR_TOKEN = "BlobEndpoint=https://%s.blob.core.windows.net/;SharedAccessSignature=%s";
 
     static final PropertyDescriptor NAMESPACE = new PropertyDescriptor.Builder()
             .name("event-hub-namespace")
@@ -228,7 +229,16 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
             .sensitive(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .required(true)
+            .required(false)
+            .build();
+    static final PropertyDescriptor STORAGE_SAS_TOKEN = new PropertyDescriptor.Builder()
+            .name("storage-sas-token")
+            .displayName("Storage SAS Token")
+            .description("The Azure Storage SAS token to store event hub consumer group state. Always starts with a ? character.")
+            .sensitive(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .required(false)
             .build();
     static final PropertyDescriptor STORAGE_CONTAINER_NAME = new PropertyDescriptor.Builder()
             .name("storage-container-name")
@@ -261,7 +271,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
                 NAMESPACE, EVENT_HUB_NAME, ACCESS_POLICY_NAME, POLICY_PRIMARY_KEY, USE_MANAGED_IDENTITY, CONSUMER_GROUP, CONSUMER_HOSTNAME,
                 RECORD_READER, RECORD_WRITER,
                 INITIAL_OFFSET, PREFETCH_COUNT, BATCH_SIZE, RECEIVE_TIMEOUT,
-                STORAGE_ACCOUNT_NAME, STORAGE_ACCOUNT_KEY, STORAGE_CONTAINER_NAME
+                STORAGE_ACCOUNT_NAME, STORAGE_ACCOUNT_KEY, STORAGE_SAS_TOKEN, STORAGE_CONTAINER_NAME
         ));
 
         Set<Relationship> relationships = new HashSet<>();
@@ -324,11 +334,32 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
         final List<ValidationResult> results = new ArrayList<>();
         final ControllerService recordReader = validationContext.getProperty(RECORD_READER).asControllerService();
         final ControllerService recordWriter = validationContext.getProperty(RECORD_WRITER).asControllerService();
+        final String storageAccountKey = validationContext.getProperty(STORAGE_ACCOUNT_KEY).evaluateAttributeExpressions().getValue();
+        final String storageSasToken = validationContext.getProperty(STORAGE_SAS_TOKEN).evaluateAttributeExpressions().getValue();
+
         if ((recordReader != null && recordWriter == null) || (recordReader == null && recordWriter != null)) {
             results.add(new ValidationResult.Builder()
                     .subject("Record Reader and Writer")
                     .explanation(String.format("Both %s and %s should be set in order to write FlowFiles as Records.",
                             RECORD_READER.getDisplayName(), RECORD_WRITER.getDisplayName()))
+                    .valid(false)
+                    .build());
+        }
+
+        if (storageAccountKey == null && storageSasToken == null) {
+            results.add(new ValidationResult.Builder()
+                    .subject("Storage Account Key or Storage SAS Token")
+                    .explanation(String.format("Either %s or %s should be set.",
+                            STORAGE_ACCOUNT_KEY.getDisplayName(), STORAGE_SAS_TOKEN.getDisplayName()))
+                    .valid(false)
+                    .build());
+        }
+
+        if (storageAccountKey != null && storageSasToken != null) {
+            results.add(new ValidationResult.Builder()
+                    .subject("Storage Account Key or Storage SAS Token")
+                    .explanation(String.format("%s and %s should not be set at the same time.",
+                            STORAGE_ACCOUNT_KEY.getDisplayName(), STORAGE_SAS_TOKEN.getDisplayName()))
                     .valid(false)
                     .build());
         }
@@ -579,12 +610,6 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
         final String eventHubName = context.getProperty(EVENT_HUB_NAME).evaluateAttributeExpressions().getValue();
         validateRequiredProperty(EVENT_HUB_NAME, eventHubName);
 
-        final String storageAccountName = context.getProperty(STORAGE_ACCOUNT_NAME).evaluateAttributeExpressions().getValue();
-        validateRequiredProperty(STORAGE_ACCOUNT_NAME, storageAccountName);
-
-        final String storageAccountKey = context.getProperty(STORAGE_ACCOUNT_KEY).evaluateAttributeExpressions().getValue();
-        validateRequiredProperty(STORAGE_ACCOUNT_KEY, storageAccountKey);
-
 
         final String consumerHostname = orDefault(context.getProperty(CONSUMER_HOSTNAME).evaluateAttributeExpressions().getValue(),
                 EventProcessorHost.createHostName("nifi"));
@@ -617,7 +642,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
                 .evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS);
         options.setReceiveTimeOut(Duration.ofMillis(receiveTimeoutMillis));
 
-        final String storageConnectionString = String.format(FORMAT_STORAGE_CONNECTION_STRING, storageAccountName, storageAccountKey);
+        final String storageConnectionString = createStorageConnectionString(context);
 
         final String connectionString;
         final boolean useManagedIdentity = context.getProperty(USE_MANAGED_IDENTITY).asBoolean();
@@ -630,6 +655,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
             validateRequiredProperty(POLICY_PRIMARY_KEY, sasKey);
             connectionString = AzureEventHubUtils.getSharedAccessSignatureConnectionString(namespaceName, eventHubName, sasName, sasKey);
         }
+
         eventProcessorHost = EventProcessorHost.EventProcessorHostBuilder
                                 .newBuilder(consumerHostname, consumerGroupName)
                                 .useAzureStorageCheckpointLeaseManager(storageConnectionString, containerName, null)
@@ -643,6 +669,19 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
         });
 
         eventProcessorHost.registerEventProcessorFactory(new EventProcessorFactory(), options).get();
+    }
+
+    private String createStorageConnectionString(final ProcessContext context) {
+        final String storageAccountName = context.getProperty(STORAGE_ACCOUNT_NAME).evaluateAttributeExpressions().getValue();
+        validateRequiredProperty(STORAGE_ACCOUNT_NAME, storageAccountName);
+
+        final String storageAccountKey = context.getProperty(STORAGE_ACCOUNT_KEY).evaluateAttributeExpressions().getValue();
+        final String storageSasToken = context.getProperty(STORAGE_SAS_TOKEN).evaluateAttributeExpressions().getValue();
+
+        if (storageAccountKey != null) {
+            return String.format(FORMAT_STORAGE_CONNECTION_STRING_FOR_KEY, storageAccountName, storageAccountKey);
+        }
+        return String.format(FORMAT_STORAGE_CONNECTION_STRING_FOR_TOKEN, storageAccountName, storageSasToken);
     }
 
     private String orDefault(String value, String defaultValue) {
