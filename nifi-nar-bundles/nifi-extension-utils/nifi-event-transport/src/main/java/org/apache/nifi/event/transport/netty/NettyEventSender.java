@@ -80,7 +80,7 @@ class NettyEventSender<T> implements EventSender<T> {
         try {
             channelPool.close();
         } finally {
-            group.shutdownGracefully();
+            group.shutdownGracefully().syncUninterruptibly();
         }
     }
 

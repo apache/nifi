@@ -41,6 +41,7 @@ import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -165,6 +166,10 @@ public class TestListenSyslog {
         sendMessages(protocol, port, LineEnding.UNIX, VALID_MESSAGE);
 
         runner.run(1, STOP_ON_FINISH_ENABLED, INITIALIZE_DISABLED);
+
+        final List<MockFlowFile> invalidFlowFiles = runner.getFlowFilesForRelationship(ListenSyslog.REL_INVALID);
+        assertTrue("Invalid FlowFiles found", invalidFlowFiles.isEmpty());
+
         final List<MockFlowFile> successFlowFiles = runner.getFlowFilesForRelationship(ListenSyslog.REL_SUCCESS);
         assertEquals("Success FlowFiles not matched", 1, successFlowFiles.size());
 
