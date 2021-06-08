@@ -91,8 +91,8 @@ import static org.apache.nifi.util.StringUtils.isEmpty;
 })
 public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
 
-    private static final String FORMAT_STORAGE_CONNECTION_STRING_FOR_KEY = "DefaultEndpointsProtocol=https;AccountName=%s;AccountKey=%s";
-    private static final String FORMAT_STORAGE_CONNECTION_STRING_FOR_TOKEN = "BlobEndpoint=https://%s.blob.core.windows.net/;SharedAccessSignature=%s";
+    private static final String FORMAT_STORAGE_CONNECTION_STRING_FOR_ACCOUNT_KEY = "DefaultEndpointsProtocol=https;AccountName=%s;AccountKey=%s";
+    private static final String FORMAT_STORAGE_CONNECTION_STRING_FOR_SAS_TOKEN = "BlobEndpoint=https://%s.blob.core.windows.net/;SharedAccessSignature=%s";
 
     static final PropertyDescriptor NAMESPACE = new PropertyDescriptor.Builder()
             .name("event-hub-namespace")
@@ -348,8 +348,9 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
 
         if (storageAccountKey == null && storageSasToken == null) {
             results.add(new ValidationResult.Builder()
-                    .subject("Storage Account Key or Storage SAS Token")
-                    .explanation(String.format("Either %s or %s should be set.",
+                    .subject(String.format("%s or %s",
+                            STORAGE_ACCOUNT_KEY.getDisplayName(), STORAGE_SAS_TOKEN.getDisplayName()))
+                    .explanation(String.format("either %s or %s should be set.",
                             STORAGE_ACCOUNT_KEY.getDisplayName(), STORAGE_SAS_TOKEN.getDisplayName()))
                     .valid(false)
                     .build());
@@ -357,7 +358,8 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
 
         if (storageAccountKey != null && storageSasToken != null) {
             results.add(new ValidationResult.Builder()
-                    .subject("Storage Account Key or Storage SAS Token")
+                    .subject(String.format("%s or %s",
+                            STORAGE_ACCOUNT_KEY.getDisplayName(), STORAGE_SAS_TOKEN.getDisplayName()))
                     .explanation(String.format("%s and %s should not be set at the same time.",
                             STORAGE_ACCOUNT_KEY.getDisplayName(), STORAGE_SAS_TOKEN.getDisplayName()))
                     .valid(false)
@@ -679,9 +681,9 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
         final String storageSasToken = context.getProperty(STORAGE_SAS_TOKEN).evaluateAttributeExpressions().getValue();
 
         if (storageAccountKey != null) {
-            return String.format(FORMAT_STORAGE_CONNECTION_STRING_FOR_KEY, storageAccountName, storageAccountKey);
+            return String.format(FORMAT_STORAGE_CONNECTION_STRING_FOR_ACCOUNT_KEY, storageAccountName, storageAccountKey);
         }
-        return String.format(FORMAT_STORAGE_CONNECTION_STRING_FOR_TOKEN, storageAccountName, storageSasToken);
+        return String.format(FORMAT_STORAGE_CONNECTION_STRING_FOR_SAS_TOKEN, storageAccountName, storageSasToken);
     }
 
     private String orDefault(String value, String defaultValue) {

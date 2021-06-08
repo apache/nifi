@@ -166,6 +166,36 @@ public class TestConsumeAzureEventHub {
     }
 
     @Test
+    public void testProcessorConfigValidityWithTokenSet() {
+        TestRunner testRunner = TestRunners.newTestRunner(processor);
+        testRunner.setProperty(ConsumeAzureEventHub.EVENT_HUB_NAME,eventHubName);
+        testRunner.assertNotValid();
+        testRunner.setProperty(ConsumeAzureEventHub.NAMESPACE,namespaceName);
+        testRunner.assertNotValid();
+        testRunner.setProperty(ConsumeAzureEventHub.ACCESS_POLICY_NAME, policyName);
+        testRunner.setProperty(ConsumeAzureEventHub.POLICY_PRIMARY_KEY, policyKey);
+        testRunner.assertNotValid();
+        testRunner.setProperty(ConsumeAzureEventHub.STORAGE_ACCOUNT_NAME, storageAccountName);
+        testRunner.setProperty(ConsumeAzureEventHub.STORAGE_SAS_TOKEN, storageSasToken);
+        testRunner.assertValid();
+    }
+
+    @Test
+    public void testProcessorConfigValidityWithStorageKeySet() {
+        TestRunner testRunner = TestRunners.newTestRunner(processor);
+        testRunner.setProperty(ConsumeAzureEventHub.EVENT_HUB_NAME,eventHubName);
+        testRunner.assertNotValid();
+        testRunner.setProperty(ConsumeAzureEventHub.NAMESPACE,namespaceName);
+        testRunner.assertNotValid();
+        testRunner.setProperty(ConsumeAzureEventHub.ACCESS_POLICY_NAME, policyName);
+        testRunner.setProperty(ConsumeAzureEventHub.POLICY_PRIMARY_KEY, policyKey);
+        testRunner.assertNotValid();
+        testRunner.setProperty(ConsumeAzureEventHub.STORAGE_ACCOUNT_NAME, storageAccountName);
+        testRunner.setProperty(ConsumeAzureEventHub.STORAGE_ACCOUNT_KEY, storageAccountKey);
+        testRunner.assertValid();
+    }
+
+    @Test
     public void testReceivedApplicationProperties() throws Exception {
         final EventData singleEvent = EventData.create("one".getBytes(StandardCharsets.UTF_8));
         singleEvent.getProperties().put("event-sender", "Apache NiFi");
@@ -183,7 +213,7 @@ public class TestConsumeAzureEventHub {
 
     @Test
     public void testReceiveOne() throws Exception {
-        final Iterable<EventData> eventDataList = Collections.singletonList(EventData.create("one" .getBytes(StandardCharsets.UTF_8)));
+        final Iterable<EventData> eventDataList = Collections.singletonList(EventData.create("one".getBytes(StandardCharsets.UTF_8)));
         eventProcessor.onEvents(partitionContext, eventDataList);
 
         processSession.assertCommitted();
