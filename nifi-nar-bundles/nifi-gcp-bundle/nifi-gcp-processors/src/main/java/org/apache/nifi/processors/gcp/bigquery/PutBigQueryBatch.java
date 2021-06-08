@@ -257,7 +257,7 @@ public class PutBigQueryBatch extends AbstractBigQueryProcessor {
         }
 
         final String projectId = context.getProperty(PROJECT_ID).evaluateAttributeExpressions().getValue();
-        final String designateProjectId = context.getProperty(DESIGNATE_PROJECT_ID).evaluateAttributeExpressions().getValue();
+        final String designateProjectId = context.getProperty(DESIGNATE_PROJECT_ID).evaluateAttributeExpressions(flowFile).getValue();
         final String dataset = context.getProperty(DATASET).evaluateAttributeExpressions(flowFile).getValue();
         final String tableName = context.getProperty(TABLE_NAME).evaluateAttributeExpressions(flowFile).getValue();
         final String type = context.getProperty(SOURCE_TYPE).evaluateAttributeExpressions(flowFile).getValue();

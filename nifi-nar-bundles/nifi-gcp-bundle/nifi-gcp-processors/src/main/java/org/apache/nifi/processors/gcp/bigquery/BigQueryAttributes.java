@@ -52,8 +52,8 @@ public class BigQueryAttributes {
             + "no bad record is ignored.";
 
     public static final String DESIGNATE_PROJECT_ID_ATTR = "bq.designate.project.id";
-    public static final String DESIGNATE_PROJECT_ID_DESC = "Sets the designate project id that BigqQuery can use current project resource to "
-            + "manipulate the designate proejct.";
+    public static final String DESIGNATE_PROJECT_ID_DESC = "Sets the designate project id that BigQuery can use current project resource to "
+            + "manipulate the designate project.";
 
     public static final String DATASET_ATTR = "bq.dataset";
     public static final String DATASET_DESC = "BigQuery dataset name (Note - The dataset must exist in GCP)";
