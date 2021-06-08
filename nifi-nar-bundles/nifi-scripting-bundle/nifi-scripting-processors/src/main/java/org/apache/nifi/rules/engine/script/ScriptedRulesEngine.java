@@ -106,7 +106,7 @@ public class ScriptedRulesEngine extends AbstractScriptedControllerService imple
             }
 
             if (scriptRunner == null) {
-                throw new ProcessException("No script engine available!");
+                throw new ProcessException("No script runner available!");
             }
             // get the engine and ensure its invocable
             ScriptEngine scriptEngine = scriptRunner.getScriptEngine();

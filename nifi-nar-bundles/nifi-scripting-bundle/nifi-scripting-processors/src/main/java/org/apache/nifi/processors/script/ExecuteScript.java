@@ -120,7 +120,7 @@ public class ExecuteScript extends AbstractSessionFactoryProcessor implements Se
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         synchronized (scriptingComponentHelper.isInitialized) {
             if (!scriptingComponentHelper.isInitialized.get()) {
-                scriptingComponentHelper.createResources();
+                scriptingComponentHelper.createResources(false);
             }
         }
 
@@ -192,7 +192,7 @@ public class ExecuteScript extends AbstractSessionFactoryProcessor implements Se
     public void onTrigger(ProcessContext context, ProcessSessionFactory sessionFactory) throws ProcessException {
         synchronized (scriptingComponentHelper.isInitialized) {
             if (!scriptingComponentHelper.isInitialized.get()) {
-                scriptingComponentHelper.createResources();
+                scriptingComponentHelper.createResources(false);
             }
         }
         ScriptRunner scriptRunner = scriptingComponentHelper.scriptRunnerQ.poll();
@@ -235,7 +235,7 @@ public class ExecuteScript extends AbstractSessionFactoryProcessor implements Se
                 scriptingComponentHelper.scriptRunnerQ.offer(scriptRunner);
             } catch (ScriptException e) {
                 // Create a new ScriptRunner to replace the one that caused an exception
-                scriptingComponentHelper.setupScriptRunners(1, scriptToRun, getLogger());
+                scriptingComponentHelper.setupScriptRunners(false, 1, scriptToRun, getLogger());
 
                 // The below 'session.rollback(true)' reverts any changes made during this session (all FlowFiles are
                 // restored back to their initial session state and back to their original queues after being penalized).
@@ -266,7 +266,7 @@ public class ExecuteScript extends AbstractSessionFactoryProcessor implements Se
         // Create the resources whether or not they have been created already, this method is guaranteed to have the instance classloader set
         // as the thread context class loader. Other methods that call createResources() may be called from other threads with different
         // classloaders
-        scriptingComponentHelper.createResources();
+        scriptingComponentHelper.createResources(false);
     }
 
     @Override

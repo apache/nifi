@@ -28,6 +28,7 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processors.script.ScriptRunner;
 import org.apache.nifi.util.StringUtils;
 
+import javax.script.Invocable;
 import javax.script.ScriptEngineFactory;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
@@ -131,11 +132,15 @@ public class ScriptingComponentHelper {
         return results;
     }
 
+    public void createResources() {
+        createResources(true);
+    }
+
     /**
      * This method creates all resources needed for the script processor to function, such as script engines,
      * script file reloader threads, etc.
      */
-    public void createResources() {
+    public void createResources(final boolean requireInvocable) {
         descriptors = new ArrayList<>();
         // The following is required for JRuby, should be transparent to everything else.
         // Note this is not done in a ScriptRunner, as it is too early in the lifecycle. The
@@ -149,8 +154,10 @@ public class ScriptingComponentHelper {
             scriptEngineFactoryMap = new HashMap<>(scriptEngineFactories.size());
             List<AllowableValue> engineList = new LinkedList<>();
             for (ScriptEngineFactory factory : scriptEngineFactories) {
-                engineList.add(new AllowableValue(factory.getLanguageName()));
-                scriptEngineFactoryMap.put(factory.getLanguageName(), factory);
+                if (!requireInvocable || factory.getScriptEngine() instanceof Invocable) {
+                    engineList.add(new AllowableValue(factory.getLanguageName()));
+                    scriptEngineFactoryMap.put(factory.getLanguageName(), factory);
+                }
             }
 
             // Sort the list by name so the list always looks the same.
@@ -196,16 +203,22 @@ public class ScriptingComponentHelper {
         return path != null && Files.isRegularFile(Paths.get(path));
     }
 
+    public void setupScriptRunners(final int numberOfScriptEngines, final String scriptToRun, final ComponentLog log) {
+        setupScriptRunners(true, numberOfScriptEngines, scriptToRun, log);
+    }
+
     /**
-     * Configures the specified script engine. First, the engine is loaded and instantiated using the JSR-223
+     * Configures the specified script engine(s) as a queue of ScriptRunners. First, the engine is loaded and instantiated using the JSR-223
      * javax.script APIs. Then, if any script configurators have been defined for this engine, their init() method is
      * called, and the configurator is saved for future calls.
      *
      * @param numberOfScriptEngines number of engines to setup
-     * @see org.apache.nifi.processors.script.ScriptEngineConfigurator
+     * @see org.apache.nifi.processors.script.ScriptRunner
      */
-    public void setupScriptRunners(int numberOfScriptEngines, String scriptToRun, ComponentLog log) {
-        scriptRunnerQ = new LinkedBlockingQueue<>(numberOfScriptEngines);
+    public void setupScriptRunners(final boolean newQ, final int numberOfScriptEngines, final String scriptToRun, final ComponentLog log) {
+        if (newQ) {
+            scriptRunnerQ = new LinkedBlockingQueue<>(numberOfScriptEngines);
+        }
         ClassLoader originalContextClassLoader = Thread.currentThread().getContextClassLoader();
         try {
             if (StringUtils.isBlank(scriptEngineName)) {
