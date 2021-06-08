@@ -45,9 +45,11 @@ class NettyEventServer implements EventServer {
     @Override
     public void shutdown() {
         try {
-            channel.close().syncUninterruptibly();
+            if (channel.isOpen()) {
+                channel.close().syncUninterruptibly();
+            }
         } finally {
-            group.shutdownGracefully();
+            group.shutdownGracefully().syncUninterruptibly();
         }
     }
 }
