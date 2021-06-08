@@ -199,8 +199,14 @@ public class SingleFlowFileConcurrencyIT extends NiFiSystemIT {
         waitForQueueCount(inputToSecondOut.getId(), 1);
         assertEquals(1, getConnectionQueueSize(inputToSecondOut.getId()));
 
+        // Stop processor so that it won't generate data upon restart
+        getNifiClient().getProcessorClient().stopProcessor(generate);
+
         // Everything is queued up at an Output Port so the first Output Port should run and its queue should become empty.
         waitForQueueCount(inputToOutput.getId(), 0);
+
+        // Wait a bit before shutting down so that nifi has a chance to save the changes to the flow
+        Thread.sleep(2000L);
 
         // Restart nifi.
         getNiFiInstance().stop();
