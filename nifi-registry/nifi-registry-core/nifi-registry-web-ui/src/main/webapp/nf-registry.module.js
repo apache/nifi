@@ -52,6 +52,9 @@ import {
     NfRegistryUsersAdministrationAuthGuard,
     NfRegistryWorkflowsAdministrationAuthGuard
 } from 'services/nf-registry.auth-guard.service';
+import NfRegistryImportVersionedFlow from './components/explorer/grid-list/dialogs/import-versioned-flow/nf-registry-import-versioned-flow';
+import NfRegistryImportNewFlow from './components/explorer/grid-list/dialogs/import-new-flow/nf-registry-import-new-flow';
+import NfRegistryExportVersionedFlow from './components/explorer/grid-list/dialogs/export-versioned-flow/nf-registry-export-versioned-flow';
 
 function NfRegistryModule() {
 }
@@ -89,7 +92,10 @@ NfRegistryModule.annotations = [
             NfRegistryDropletGridListViewer,
             NfPageNotFoundComponent,
             NfLoginComponent,
-            NfUserLoginComponent
+            NfUserLoginComponent,
+            NfRegistryExportVersionedFlow,
+            NfRegistryImportVersionedFlow,
+            NfRegistryImportNewFlow
         ],
         entryComponents: [
             NfRegistryAddUser,
@@ -99,7 +105,10 @@ NfRegistryModule.annotations = [
             NfRegistryAddUsersToGroup,
             NfRegistryAddPolicyToBucket,
             NfRegistryEditBucketPolicy,
-            NfUserLoginComponent
+            NfUserLoginComponent,
+            NfRegistryExportVersionedFlow,
+            NfRegistryImportVersionedFlow,
+            NfRegistryImportNewFlow
         ],
         providers: [
             NfRegistryService,

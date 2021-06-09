@@ -1,0 +1,53 @@
+<!--
+Licensed to the Apache Software Foundation (ASF) under one or more
+contributor license agreements.  See the NOTICE file distributed with
+this work for additional information regarding copyright ownership.
+The ASF licenses this file to You under the Apache License, Version 2.0
+(the "License"); you may not use this file except in compliance with
+the License.  You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+<div id="nifi-registry-export-versioned-flow-dialog">
+    <div class="pad-bottom-md" fxLayout="row" fxLayoutAlign="space-between center">
+        <mat-card-title>
+            Export Version
+        </mat-card-title>
+        <button mat-icon-button (click)="cancel()">
+            <mat-icon color="primary">close</mat-icon>
+        </button>
+    </div>
+    <div fxLayout="column" fxLayoutAlign="space-between start" class="pad-bottom-sm">
+        <div class="pad-bottom-sm label-name">
+            <label>Choose Version</label>
+        </div>
+        <div class="fill-available-width bucket-dropdown-field">
+            <mat-form-field appearance="fill" fxFlex>
+                <mat-select panelClass="bucket-dropdown-select" [(value)]="selectedVersion">
+                    <mat-option *ngFor="let snapshotMeta of droplet.snapshotMetadata" [value]="snapshotMeta.version">
+                        <span *ngIf="snapshotMeta === droplet.snapshotMetadata[0]">Latest (Version {{snapshotMeta.version}})</span>
+                        <span *ngIf="snapshotMeta != droplet.snapshotMetadata[0]">Version {{snapshotMeta.version}}</span>
+                    </mat-option>
+                </mat-select>
+            </mat-form-field>
+        </div>
+    </div>
+    <div fxLayout="row">
+        <span fxFlex></span>
+        <button (click)="cancel()" color="fds-regular" mat-raised-button
+                i18n="Cancel export of versioned flow selection|A button for cancelling the versioned flow selection to export in the registry.">
+            Cancel
+        </button>
+        <button class="push-left-sm" data-automation-id="export-versioned-flow-button" (click)="exportVersion()"
+                color="fds-primary" mat-raised-button i18n="Cancel export of versioned flow selection|A button for cancelling the versioned flow selection to export in the registry.">
+            Export
+        </button>
+    </div>
+</div>

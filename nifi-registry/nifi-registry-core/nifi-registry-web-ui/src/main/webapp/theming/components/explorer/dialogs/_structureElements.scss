@@ -1,0 +1,220 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+$gray: #666;
+$light-gray: #999;
+$dark-gray: #ced3d7;
+$teal-gray: #6b8791;
+
+.label-name {
+    font-weight: 500;
+    color: $gray;
+}
+
+.version-count {
+    font-weight: 500;
+    padding: 9px 18px;
+    margin-left: 5px;
+    border-radius: 17px;
+    background-color: #eee;
+    color: $gray;
+}
+
+#flow-version-name {
+    border: none;
+    height: 34px;
+    outline: 0;
+    font-family: Roboto, sans-serif;
+    font-size: 14px;
+    color: $gray;
+
+    span {
+        overflow: hidden;
+    }
+}
+
+#flow-name {
+    border: none;
+    height: 34px;
+    outline: 0;
+    font-family: Roboto, sans-serif;
+    font-size: 14px;
+    color: $gray;
+
+    span {
+        overflow: hidden;
+    }
+}
+
+#new-data-flow-version-placeholder {
+    border: none;
+    outline: 0;
+    color: $light-gray;
+    font-family: Roboto, sans-serif;
+    font-size: 14px;
+    font-weight: 300;
+}
+
+#select-flow-file-button,
+#select-flow-version-file-button {
+    position: absolute;
+    right: 16px;
+    top: 8px;
+    border: none;
+    background-color: transparent;
+    cursor: pointer;
+
+    i {
+        color: $teal-gray;
+        padding: 9px 5px;
+        outline: none;
+    }
+
+    span {
+        text-transform: uppercase;
+        color: $teal-gray;
+    }
+}
+
+input#upload-flow-file-field,
+input#upload-versioned-flow-file-field {
+    display: none;
+}
+
+#flow-version-comments {
+    padding-bottom: 26px;
+
+    textarea {
+        width: 515px;
+        height: 48px;
+        border: solid 1px #cfd3d7;
+        border-radius: 2px;
+        padding: 9px 16px 9px 12px;
+        resize: none;
+        color: $gray;
+    }
+}
+
+#new-flow-description {
+    textarea {
+        width: 515px;
+        height: 48px;
+        border: solid 1px #cfd3d7;
+        border-radius: 2px;
+        padding: 9px 16px 9px 12px;
+        color: $gray;
+    }
+}
+
+#flow-version-comments,
+#new-flow-description {
+    textarea:focus {
+        outline: 0;
+        border-color: $teal-gray;
+    }
+}
+
+#versioned-flow-file-upload-message-container,
+#new-flow-file-upload-message-container {
+    & span.file-upload-message {
+        font-size: 12px;
+        color: $light-gray;
+    }
+
+    i {
+        font-size: 15px;
+    }
+}
+
+#nifi-registry-export-versioned-flow-dialog .bucket-dropdown-field .mat-select-value {
+    color: $gray;
+}
+
+.bucket-dropdown-field .mat-form-field-appearance-fill {
+    .mat-form-field-infix {
+        border: 0;
+        padding: 0.68em 0;
+
+        .mat-select-value-text {
+            color: $gray;
+        }
+
+        .mat-select-placeholder {
+            font-weight: 300;
+        }
+    }
+
+    .mat-select-arrow-wrapper {
+        transform: none;
+    }
+
+    .mat-form-field-flex {
+        border: 1px solid $dark-gray;
+        background-color: transparent;
+        border-radius: 2px;
+        padding-top: 0;
+    }
+}
+
+.bucket-dropdown-select {
+    .mat-select-panel {
+        color: $gray;
+    }
+}
+
+#new-flow-definition,
+#flow-version-definition {
+    mat-form-field {
+        line-height: 28px;
+    }
+
+    .mat-form-field-infix {
+        border-top: 0;
+    }
+
+    input.mat-input-element {
+        &.file-hover-error {
+            border: solid 1px #ef6162;
+        }
+
+        &.file-hover-valid {
+            border: solid 1px #2ab377;
+        }
+    }
+}
+
+#new-flow-container .mat-form-field-appearance-fill .mat-form-field-infix {
+    color: $light-gray;
+}
+
+input[type=text]#flow-version-definition-input,
+input[type=text]#new-flow-definition-input {
+    padding-right: 125px;
+    width: 373px;
+    text-overflow: ellipsis;
+    cursor: pointer;
+}
+
+body[fds] .fds-primary-dropdown-button-menu.fds-primary-dropdown-button-menu .mat-menu-item:focus:not([disabled]) {
+    color: rgba(0, 0, 0, 0.87);
+    background-color: rgba(0, 0, 0, 0.04);
+}
+
+body[fds] .fds-primary-dropdown-button-menu.fds-primary-dropdown-button-menu .mat-menu-item:hover:not([disabled]) {
+    color: #fff;
+    background-color: #915d69;
+}

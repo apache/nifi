@@ -17,9 +17,13 @@
 
 import { TdDataTableService } from '@covalent/core/data-table';
 import { Router } from '@angular/router';
+import { MatDialog } from '@angular/material';
 import { FdsDialogService, FdsSnackBarService } from '@nifi-fds/core';
 import NfRegistryApi from 'services/nf-registry.api.js';
 import NfStorage from 'services/nf-storage.service.js';
+import NfRegistryExportVersionedFlow from '../components/explorer/grid-list/dialogs/export-versioned-flow/nf-registry-export-versioned-flow';
+import NfRegistryImportVersionedFlow from '../components/explorer/grid-list/dialogs/import-versioned-flow/nf-registry-import-versioned-flow';
+import NfRegistryImportNewFlow from '../components/explorer/grid-list/dialogs/import-new-flow/nf-registry-import-new-flow';
 
 /**
  * NfRegistryService constructor.
@@ -30,9 +34,10 @@ import NfStorage from 'services/nf-storage.service.js';
  * @param router                The angular router module.
  * @param fdsDialogService      The FDS dialog service.
  * @param fdsSnackBarService    The FDS snack bar service module.
+ * @param matDialog             The angular material dialog module.
  * @constructor
  */
-function NfRegistryService(nfRegistryApi, nfStorage, tdDataTableService, router, fdsDialogService, fdsSnackBarService) {
+function NfRegistryService(nfRegistryApi, nfStorage, tdDataTableService, router, fdsDialogService, fdsSnackBarService, matDialog) {
     var self = this;
     this.registry = {
         name: 'NiFi Registry',
@@ -52,6 +57,7 @@ function NfRegistryService(nfRegistryApi, nfStorage, tdDataTableService, router,
     this.dialogService = fdsDialogService;
     this.snackBarService = fdsSnackBarService;
     this.dataTableService = tdDataTableService;
+    this.matDialog = matDialog;
 
     // data table column definitions
     this.userColumns = [
@@ -133,9 +139,28 @@ function NfRegistryService(nfRegistryApi, nfStorage, tdDataTableService, router,
     ];
     this.dropletActions = [
         {
-            name: 'Delete',
+            name: 'Import new version',
+            icon: 'fa fa-upload',
+            tooltip: 'Import new flow version',
+            disabled: function (droplet) {
+                return !droplet.permissions.canWrite;
+            }
+        },
+        {
+            name: 'Export version',
+            icon: 'fa fa-download',
+            tooltip: 'Export flow version',
+            disabled: function (droplet) {
+                return !droplet.permissions.canRead;
+            }
+        },
+        {
+            name: 'Delete flow',
             icon: 'fa fa-trash',
-            tooltip: 'Delete'
+            tooltip: 'Delete',
+            disabled: function (droplet) {
+                return !droplet.permissions.canDelete;
+            }
         }
     ];
     this.disableMultiDeleteAction = false;
@@ -394,48 +419,125 @@ NfRegistryService.prototype = {
     },
 
     /**
+     * Delete the latest flow snapshot.
+     *
+     * @param droplet       The droplet object.
+     */
+    deleteDroplet: function (droplet) {
+        var self = this;
+        this.dialogService.openConfirm({
+            title: 'Delete Flow',
+            message: 'All versions of this ' + droplet.type.toLowerCase() + ' will be deleted.',
+            cancelButton: 'Cancel',
+            acceptButton: 'Delete',
+            acceptButtonColor: 'fds-warn'
+        }).afterClosed().subscribe(
+            function (accept) {
+                if (accept) {
+                    var deleteUrl = droplet.link.href;
+                    if (droplet.type === 'Flow') {
+                        deleteUrl = deleteUrl + '?version=' + droplet.revision.version;
+                    }
+                    self.api.deleteDroplet(deleteUrl).subscribe(function (response) {
+                        if (!response.status || response.status === 200) {
+                            self.droplets = self.droplets.filter(function (d) {
+                                return (d.identifier !== droplet.identifier);
+                            });
+                            self.snackBarService.openCoaster({
+                                title: 'Success',
+                                message: 'All versions of this ' + droplet.type.toLowerCase() + ' have been deleted.',
+                                verticalPosition: 'bottom',
+                                horizontalPosition: 'right',
+                                icon: 'fa fa-check-circle-o',
+                                color: '#1EB475',
+                                duration: 3000
+                            });
+                            self.droplet = {};
+                            self.filterDroplets();
+                        }
+                    });
+                }
+            }
+        );
+    },
+
+    /**
+     * Opens the export version dialog.
+     *
+     * @param droplet       The droplet object.
+     */
+    openExportVersionedFlowDialog: function (droplet) {
+        this.matDialog.open(NfRegistryExportVersionedFlow, {
+            disableClose: true,
+            width: '400px',
+            data: {
+                droplet: droplet
+            }
+        });
+    },
+
+    /**
+     * Opens the import new flow dialog.
+     *
+     * @param buckets       The buckets object.
+     * @param activeBucket  The active bucket object.
+     */
+    openImportNewFlowDialog: function (buckets, activeBucket) {
+        var self = this;
+        this.matDialog.open(NfRegistryImportNewFlow, {
+            disableClose: true,
+            width: '550px',
+            data: {
+                buckets: buckets,
+                activeBucket: activeBucket
+            }
+        }).afterClosed().subscribe(function (flowUri) {
+            if (flowUri != null) {
+                self.router.navigateByUrl('explorer/grid-list/' + flowUri);
+            }
+        });
+    },
+
+    /**
+     * Opens the import new version dialog.
+     *
+     * @param droplet       The droplet object.
+     */
+    openImportVersionedFlowDialog: function (droplet) {
+        var self = this;
+
+        this.matDialog.open(NfRegistryImportVersionedFlow, {
+            disableClose: true,
+            width: '550px',
+            data: {
+                droplet: droplet
+            }
+        }).afterClosed().subscribe(function () {
+            self.getDropletSnapshotMetadata(droplet);
+        });
+    },
+
+    /**
      * Execute the given droplet action.
      *
      * @param action        The action object.
      * @param droplet       The droplet object the `action` will act upon.
      */
     executeDropletAction: function (action, droplet) {
-        var self = this;
-        if (action.name.toLowerCase() === 'delete') {
-            this.dialogService.openConfirm({
-                title: 'Delete ' + droplet.type.toLowerCase(),
-                message: 'All versions of this ' + droplet.type.toLowerCase() + ' will be deleted.',
-                cancelButton: 'Cancel',
-                acceptButton: 'Delete',
-                acceptButtonColor: 'fds-warn'
-            }).afterClosed().subscribe(
-                function (accept) {
-                    if (accept) {
-                        var deleteUrl = droplet.link.href;
-                        if (droplet.type === 'Flow') {
-                            deleteUrl = deleteUrl + '?version=' + droplet.revision.version;
-                        }
-                        self.api.deleteDroplet(deleteUrl).subscribe(function (response) {
-                            if (!response.status || response.status === 200) {
-                                self.droplets = self.droplets.filter(function (d) {
-                                    return (d.identifier !== droplet.identifier);
-                                });
-                                self.snackBarService.openCoaster({
-                                    title: 'Success',
-                                    message: 'All versions of this ' + droplet.type.toLowerCase() + ' have been deleted.',
-                                    verticalPosition: 'bottom',
-                                    horizontalPosition: 'right',
-                                    icon: 'fa fa-check-circle-o',
-                                    color: '#1EB475',
-                                    duration: 3000
-                                });
-                                self.droplet = {};
-                                self.filterDroplets();
-                            }
-                        });
-                    }
-                }
-            );
+        switch (action.name.toLowerCase()) {
+        case 'import new version':
+            // Opens the import versioned flow dialog
+            this.openImportVersionedFlowDialog(droplet);
+            break;
+        case 'export version':
+            // Opens the export flow version dialog
+            this.openExportVersionedFlowDialog(droplet);
+            break;
+        case 'delete flow':
+            // Deletes the entire data flow
+            this.deleteDroplet(droplet);
+            break;
+        default: // do nothing
         }
     },
 
@@ -631,6 +733,22 @@ NfRegistryService.prototype = {
         this.isMultiBucketActionsDisabled = !((selected > 0));
 
         this.getAutoCompleteBuckets();
+    },
+
+    /**
+     * Gets the buckets the user has permissions to write.
+     *
+     * @param buckets       The buckets object.
+     */
+    filterWritableBuckets: function (buckets) {
+        var writableBuckets = [];
+
+        buckets.forEach(function (b) {
+            if (b.permissions.canWrite) {
+                writableBuckets.push(b);
+            }
+        });
+        return writableBuckets;
     },
 
     /**
@@ -1213,7 +1331,8 @@ NfRegistryService.parameters = [
     TdDataTableService,
     Router,
     FdsDialogService,
-    FdsSnackBarService
+    FdsSnackBarService,
+    MatDialog
 ];
 
 export default NfRegistryService;

@@ -22,6 +22,12 @@ import NfRegistryApi from 'services/nf-registry.api';
 import NfRegistryService from 'services/nf-registry.service';
 import { Router } from '@angular/router';
 import { FdsDialogService } from '@nifi-fds/core';
+import NfRegistryExportVersionedFlow
+    from '../components/explorer/grid-list/dialogs/export-versioned-flow/nf-registry-export-versioned-flow';
+import NfRegistryImportVersionedFlow
+    from '../components/explorer/grid-list/dialogs/import-versioned-flow/nf-registry-import-versioned-flow';
+import NfRegistryImportNewFlow
+    from '../components/explorer/grid-list/dialogs/import-new-flow/nf-registry-import-new-flow';
 
 
 describe('NfRegistry Service isolated unit tests', function () {
@@ -702,7 +708,12 @@ describe('NfRegistry Service w/ Angular testing utils', function () {
 
     it('should execute the `delete` droplet action.', function () {
         //Setup the nfRegistryService state for this test
-        nfRegistryService.droplets = [{identifier: '2e04b4fb-9513-47bb-aa74-1ae34616bfdc'}];
+        nfRegistryService.droplets = [
+            {
+                identifier: '2e04b4fb-9513-47bb-aa74-1ae34616bfdc',
+                permissions: {canDelete: true, canRead: true, canWrite: true}
+            }
+        ];
 
         //Spy
         spyOn(nfRegistryService.dialogService, 'openConfirm').and.returnValue({
@@ -716,17 +727,18 @@ describe('NfRegistry Service w/ Angular testing utils', function () {
         });
 
         // The function to test
-        nfRegistryService.executeDropletAction({name: 'delete'}, {
+        nfRegistryService.executeDropletAction({name: 'delete flow'}, {
             identifier: '2e04b4fb-9513-47bb-aa74-1ae34616bfdc',
             type: 'testTYPE',
-            link: {href: 'testhref'}
+            link: {href: 'testhref'},
+            permissions: {canDelete: true, canRead: true, canWrite: true}
         });
 
         //assertions
         expect(nfRegistryService.droplets.length).toBe(0);
         expect(nfRegistryService.filterDroplets).toHaveBeenCalled();
         const openConfirmCall = nfRegistryService.dialogService.openConfirm.calls.first();
-        expect(openConfirmCall.args[0].title).toBe('Delete testtype');
+        expect(openConfirmCall.args[0].title).toBe('Delete Flow');
         const deleteDropletCall = nfRegistryApi.deleteDroplet.calls.first();
         expect(deleteDropletCall.args[0]).toBe('testhref');
     });
@@ -795,10 +807,10 @@ describe('NfRegistry Service w/ Angular testing utils', function () {
         }).and.returnValue(of({identifier: '2e04b4fb-9513-47bb-aa74-1ae34616bfdc', link: null}));
 
         // object to be updated by the test
-        const bucket = {identifier: '999', revision: { version: 0}};
+        const bucket = {identifier: '999', revision: {version: 0}};
 
         // set up the bucket to be deleted
-        nfRegistryService.buckets = [bucket, {identifier: 1, revision: { version: 0}}];
+        nfRegistryService.buckets = [bucket, {identifier: 1, revision: {version: 0}}];
 
         // The function to test
         nfRegistryService.executeBucketAction({name: 'delete'}, bucket);
@@ -850,7 +862,7 @@ describe('NfRegistry Service w/ Angular testing utils', function () {
         const user = {identifier: '999', revision: {version: 0}};
 
         // set up the user to be deleted
-        nfRegistryService.users = [user, {identifier: 1, revision: { version: 0}}];
+        nfRegistryService.users = [user, {identifier: 1, revision: {version: 0}}];
 
         // The function to test
         nfRegistryService.executeUserAction({name: 'delete'}, user);
@@ -1023,10 +1035,10 @@ describe('NfRegistry Service w/ Angular testing utils', function () {
         }).and.returnValue(of({identifier: 999, link: null}));
 
         // object to be updated by the test
-        const bucket = {identifier: 999, checked: true, revision: { version: 0}};
+        const bucket = {identifier: 999, checked: true, revision: {version: 0}};
 
         // set up the bucket to be deleted
-        nfRegistryService.buckets = [bucket, {identifier: 1, revision: { version: 0}}];
+        nfRegistryService.buckets = [bucket, {identifier: 1, revision: {version: 0}}];
         nfRegistryService.filteredBuckets = nfRegistryService.buckets;
 
         // The function to test
@@ -1065,13 +1077,13 @@ describe('NfRegistry Service w/ Angular testing utils', function () {
         }).and.returnValue(of({identifier: 99, link: null}));
 
         // object to be updated by the test
-        const group = {identifier: 999, checked: true, revision: { version: 0}};
-        const user = {identifier: 999, checked: true, revision: { version: 0}};
+        const group = {identifier: 999, checked: true, revision: {version: 0}};
+        const user = {identifier: 999, checked: true, revision: {version: 0}};
 
         // set up the group to be deleted
-        nfRegistryService.groups = [group, {identifier: 1, revision: { version: 0}}];
+        nfRegistryService.groups = [group, {identifier: 1, revision: {version: 0}}];
         nfRegistryService.filteredUserGroups = nfRegistryService.groups;
-        nfRegistryService.users = [user, {identifier: 12, revision: { version: 0}}];
+        nfRegistryService.users = [user, {identifier: 12, revision: {version: 0}}];
         nfRegistryService.filteredUsers = nfRegistryService.users;
 
         // The function to test
@@ -1090,5 +1102,113 @@ describe('NfRegistry Service w/ Angular testing utils', function () {
         expect(nfRegistryService.groups[0].identifier).toBe(1);
         expect(nfRegistryService.users.length).toBe(1);
         expect(nfRegistryService.users[0].identifier).toBe(12);
+    });
+
+    it('should open the Export Version dialog.', function () {
+        //Setup the nfRegistryService state for this test
+        var droplet = {
+            identifier: '2e04b4fb-9513-47bb-aa74-1ae34616bfdc',
+            type: 'testTYPE',
+            link: {href: 'testhref'},
+            permissions: {canDelete: true, canRead: true, canWrite: true}
+        };
+
+        //Spy
+        spyOn(nfRegistryService.matDialog, 'open');
+
+        nfRegistryService.executeDropletAction({name: 'export version'}, droplet);
+        expect(nfRegistryService.matDialog.open).toHaveBeenCalledWith(NfRegistryExportVersionedFlow, {
+            disableClose: true,
+            width: '400px',
+            data: {
+                droplet: droplet
+            }
+        });
+    });
+
+    it('should open the Import Versioned Flow dialog.', function () {
+        //Setup the nfRegistryService state for this test
+        var droplet = {
+            identifier: '2e04b4fb-9513-47bb-aa74-1ae34616bfdc',
+            type: 'testTYPE',
+            link: {href: 'testhref'},
+            permissions: {canDelete: true, canRead: true, canWrite: true}
+        };
+
+        //Spy
+        spyOn(nfRegistryService.matDialog, 'open').and.returnValue({
+            afterClosed: function () {
+                return of(true);
+            }
+        });
+
+        nfRegistryService.executeDropletAction({name: 'import new version'}, droplet);
+        expect(nfRegistryService.matDialog.open).toHaveBeenCalledWith(NfRegistryImportVersionedFlow, {
+            disableClose: true,
+            width: '550px',
+            data: {
+                droplet: droplet
+            }
+        });
+    });
+
+    it('should open the Import New Flow dialog.', function () {
+        //Setup the nfRegistryService state for this test
+        nfRegistryService.buckets = [{
+            identifier: '2e04b4fb-9513-47bb-aa74-1ae34616bfdc',
+            name: 'Bucket #1',
+            checked: true,
+            permissions: {canDelete: true, canRead: true, canWrite: false}
+        }, {
+            identifier: '5c04b4fb-9513-47bb-aa74-1ae34616bfdc',
+            name: 'Bucket #2',
+            checked: true,
+            permissions: {canDelete: true, canRead: true, canWrite: true}
+        }];
+
+        nfRegistryService.bucket = {
+            identifier: '5c04b4fb-9513-47bb-aa74-1ae34616bfdc',
+            name: 'Bucket #2',
+            checked: true,
+            permissions: {canDelete: true, canRead: true, canWrite: true}
+        };
+
+        //Spy
+        spyOn(nfRegistryService.matDialog, 'open').and.returnValue({
+            afterClosed: function () {
+                return of(true);
+            }
+        });
+
+        nfRegistryService.openImportNewFlowDialog(nfRegistryService.buckets, nfRegistryService.bucket);
+        expect(nfRegistryService.matDialog.open).toHaveBeenCalledWith(NfRegistryImportNewFlow, {
+            disableClose: true,
+            width: '550px',
+            data: {
+                buckets: nfRegistryService.buckets,
+                activeBucket: nfRegistryService.bucket
+            }
+        });
+    });
+
+    it('should filter writable buckets.', function () {
+        nfRegistryService.buckets = [{
+            identifier: '2e04b4fb-9513-47bb-aa74-1ae34616bfdc',
+            name: 'Bucket #1',
+            checked: true,
+            permissions: {canDelete: true, canRead: true, canWrite: false}
+        }, {
+            identifier: '5c04b4fb-9513-47bb-aa74-1ae34616bfdc',
+            name: 'Bucket #2',
+            checked: true,
+            permissions: {canDelete: true, canRead: true, canWrite: true}
+        }];
+
+        // The function to test
+        const writableBuckets = nfRegistryService.filterWritableBuckets(nfRegistryService.buckets);
+
+        // assertions
+        expect(writableBuckets.length).toBe(1);
+        expect(writableBuckets[0].name).toBe('Bucket #2');
     });
 });
