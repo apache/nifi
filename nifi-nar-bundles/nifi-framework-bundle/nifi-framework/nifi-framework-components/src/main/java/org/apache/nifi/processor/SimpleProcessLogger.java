@@ -460,7 +460,6 @@ public class SimpleProcessLogger implements ComponentLog {
         for (Throwable t = throwable; t != null; t = t.getCause()) {
             causes.push(t.toString());
         }
-        Collections.reverse(causes);
         return causes.stream().collect(Collectors.joining(System.lineSeparator() + CAUSES));
     }
 

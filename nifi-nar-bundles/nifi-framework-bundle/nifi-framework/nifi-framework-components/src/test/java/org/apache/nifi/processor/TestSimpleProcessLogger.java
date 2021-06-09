@@ -35,9 +35,9 @@ import static org.mockito.Mockito.when;
 public class TestSimpleProcessLogger {
 
     private static final String NEW_LINE_ARROW = "\u2517\u25B6";
-    private static final String EXPECTED_CAUSES = "java.lang.RuntimeException: first" + System.lineSeparator() +
+    private static final String EXPECTED_CAUSES = "java.lang.RuntimeException: third" + System.lineSeparator() +
             NEW_LINE_ARROW + " causes: java.lang.RuntimeException: second" + System.lineSeparator() +
-            NEW_LINE_ARROW + " causes: java.lang.RuntimeException: third";
+            NEW_LINE_ARROW + " causes: java.lang.RuntimeException: first";
 
     private final Exception e = new RuntimeException("first", new RuntimeException("second", new RuntimeException("third")));
 
