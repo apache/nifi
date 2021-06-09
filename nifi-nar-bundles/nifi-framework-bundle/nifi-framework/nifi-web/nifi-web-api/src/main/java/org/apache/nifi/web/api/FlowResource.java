@@ -910,16 +910,16 @@ public class FlowResource extends ApplicationResource {
                         OperationAuthorizable.authorizeOperation(authorizable, authorizer, NiFiUserUtils.getNiFiUser());
                     });
                 },
-            () -> serviceFacade.verifyActivateControllerServices(id, desiredState, requestComponentRevisions.keySet()),
+                () -> serviceFacade.verifyActivateControllerServices(id, desiredState, requestComponentRevisions.keySet()),
                 (revisions, scheduleComponentsEntity) -> {
-                final ControllerServiceState serviceState = ControllerServiceState.valueOf(scheduleComponentsEntity.getState());
+                    final ControllerServiceState serviceState = ControllerServiceState.valueOf(scheduleComponentsEntity.getState());
 
                     final Map<String, RevisionDTO> componentsToSchedule = scheduleComponentsEntity.getComponents();
                     final Map<String, Revision> componentRevisions =
                             componentsToSchedule.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, e -> getRevision(e.getValue(), e.getKey())));
 
                     // update the controller services
-                final ActivateControllerServicesEntity entity = serviceFacade.activateControllerServices(id, serviceState, componentRevisions);
+                    final ActivateControllerServicesEntity entity = serviceFacade.activateControllerServices(id, serviceState, componentRevisions);
                     return generateOkResponse(entity).build();
                 }
         );

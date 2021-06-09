@@ -244,7 +244,11 @@ public class NiFiClientUtil {
         while (true) {
             final ParameterContextUpdateRequestEntity entity = nifiClient.getParamContextClient().getParamContextUpdateRequest(contextId, requestId);
             if (entity.getRequest().isComplete()) {
-                return;
+                if (entity.getRequest().getFailureReason() == null) {
+                    return;
+                }
+
+                throw new RuntimeException("Parameter Context Update failed: " + entity.getRequest().getFailureReason());
             }
 
             Thread.sleep(100L);
