@@ -45,6 +45,23 @@
                 <artifactId>netty</artifactId>
                 <version>3.7.1.Final</version>
             </dependency>
+            <!-- Override snapshot versions of javax.el -->
+            <dependency>
+                <groupId>org.glassfish</groupId>
+                <artifactId>javax.el</artifactId>
+                <version>3.0.1-b12</version>
+            </dependency>
+            <!-- Override Apache Calcite version to avoid deprecated dependencies -->
+            <dependency>
+                <groupId>org.apache.calcite</groupId>
+                <artifactId>calcite-avatica</artifactId>
+                <version>${calcite.avatica.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.calcite</groupId>
+                <artifactId>calcite-core</artifactId>
+                <version>${calcite.version}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -55,15 +72,9 @@
         <hive12.hadoop.version>2.6.2</hive12.hadoop.version>
         <hive3.version>3.1.2</hive3.version>
         <hive.version>${hive3.version}</hive.version>
+        <calcite.version>1.27.0</calcite.version>
+        <calcite.avatica.version>1.6.0</calcite.avatica.version>
     </properties>
-
-    <repositories>
-        <!-- HTTPS Repository for pentaho-aggdesigner-algorithm 5.1.5-jhyde required by calcite-1.2.0-incubating -->
-        <repository>
-            <id>pentaho</id>
-            <url>https://public.nexus.pentaho.org/repository/proxy-public-3rd-party-release</url>
-        </repository>
-    </repositories>
 
     <build>
         <plugins>
