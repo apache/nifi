@@ -229,10 +229,10 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         verifyTaskActive();
 
         if (!readRecursionSet.isEmpty()) {
-            throw new IllegalStateException();
+            throw new IllegalStateException("Cannot commit session while reading from FlowFile");
         }
         if (!writeRecursionSet.isEmpty()) {
-            throw new IllegalStateException();
+            throw new IllegalStateException("Cannot commit session while writing to FlowFile");
         }
 
         for (final StandardRepositoryRecord record : records.values()) {
@@ -242,7 +242,9 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
 
             final Relationship relationship = record.getTransferRelationship();
             if (relationship == null) {
-                throw new FlowFileHandlingException(record.getCurrent() + " transfer relationship not specified");
+                final String createdThisSession = record.getOriginalQueue() == null ? "was created" : "was not created";
+                throw new FlowFileHandlingException(record.getCurrent() + " transfer relationship not specified. This FlowFile " + createdThisSession + " in this session and was not transferred " +
+                    "to any Relationship via ProcessSession.transfer()");
             }
 
             final Collection<Connection> destinations = context.getConnections(relationship);
@@ -368,6 +370,8 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             } catch (final Throwable t2) {
                 LOG.error("Failed to roll back session {} for {}", this, connectableDescription, t2);
             }
+
+            throw t;
         }
     }
 
@@ -388,7 +392,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                 onFailure.accept(t);
             }
 
-            return;
+            throw t;
         }
 
         if (onSuccess != null) {

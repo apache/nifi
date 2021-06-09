@@ -53,6 +53,50 @@ public class AsyncCommitCallbackIT extends StatelessSystemIT {
         Files.deleteIfExists(replacementFile.toPath());
     }
 
+    @Test
+    public void testCommitFailureCallbackWhenDownstreamProcessorFails() throws IOException, StatelessConfigurationException, InterruptedException {
+        final File failureOutputFile = new File("target/failure-output.txt");
+        Files.deleteIfExists(failureOutputFile.toPath());
+
+        final VersionedFlowBuilder builder = new VersionedFlowBuilder();
+        final VersionedProcessor generate = builder.createSimpleProcessor("GenerateFlowFile");
+        final Map<String, String> generateProperties = new HashMap<>();
+        generateProperties.put("File to Write on Commit Failure", failureOutputFile.getAbsolutePath());
+        generate.setProperties(generateProperties);
+
+        final VersionedProcessor throwException = builder.createSimpleProcessor("ThrowProcessException");
+        builder.createConnection(generate, throwException, "success");
+
+        final StatelessDataflow dataflow = loadDataflow(builder.getFlowSnapshot());
+        final DataflowTrigger trigger = dataflow.trigger();
+        final TriggerResult result = trigger.getResult();
+        assertTrue(result.getFailureCause().isPresent());
+
+        assertTrue(failureOutputFile.exists());
+    }
+
+    @Test
+    public void testCommitFailureCallbackWhenDownstreamProcessorSessionCommitFails() throws IOException, StatelessConfigurationException, InterruptedException {
+        final File failureOutputFile = new File("target/failure-output.txt");
+        Files.deleteIfExists(failureOutputFile.toPath());
+
+        final VersionedFlowBuilder builder = new VersionedFlowBuilder();
+        final VersionedProcessor generate = builder.createSimpleProcessor("GenerateFlowFile");
+        final Map<String, String> generateProperties = new HashMap<>();
+        generateProperties.put("File to Write on Commit Failure", failureOutputFile.getAbsolutePath());
+        generate.setProperties(generateProperties);
+
+        final VersionedProcessor throwException = builder.createSimpleProcessor("DoNotTransferFlowFile");
+        builder.createConnection(generate, throwException, "success");
+
+        final StatelessDataflow dataflow = loadDataflow(builder.getFlowSnapshot());
+        final DataflowTrigger trigger = dataflow.trigger();
+        final TriggerResult result = trigger.getResult();
+        assertTrue(result.getFailureCause().isPresent());
+
+        assertTrue(failureOutputFile.exists());
+    }
+
     @Test(timeout = 10_000)
     public void testCleanupAfterFlowFilesTerminated() throws IOException, StatelessConfigurationException, InterruptedException {
         testCleanupAfterFlowFilesTerminated("asynchronous");
