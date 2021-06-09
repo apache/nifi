@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.registry.web.api;
 
+import java.io.File;
 import org.apache.nifi.registry.bucket.BucketItemType;
 import org.apache.nifi.registry.flow.VersionedFlow;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
@@ -34,15 +35,19 @@ import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import static org.apache.nifi.registry.web.api.IntegrationTestUtils.assertBucketsEqual;
 import static org.apache.nifi.registry.web.api.IntegrationTestUtils.assertFlowSnapshotMetadataEqual;
 import static org.apache.nifi.registry.web.api.IntegrationTestUtils.assertFlowSnapshotsEqual;
 import static org.apache.nifi.registry.web.api.IntegrationTestUtils.assertFlowsEqual;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 @Sql(executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD, scripts = {"classpath:db/clearDB.sql", "classpath:db/FlowsIT.sql"})
 public class FlowsIT extends UnsecuredITBase {
+
+    private static final int LATEST_VERSION = -1;
 
     @Test
     public void testGetFlowsEmpty() throws Exception {
@@ -541,4 +546,171 @@ public class FlowsIT extends UnsecuredITBase {
 
     }
 
+    @Test
+    public void testImportVersionedFlowSnapshot() {
+        final RevisionInfo initialRevision = new RevisionInfo("FlowsIT", 0L);
+
+        // Create a versionedFlowSnapshot to export
+        // Given: an empty Bucket "3" (see FlowsIT.sql) with a newly created flow
+
+        final String bucketId = "3";
+        final VersionedFlow flow = new VersionedFlow();
+        flow.setBucketIdentifier(bucketId);
+        flow.setName("Test Flow for creating snapshots");
+        flow.setDescription("This is a randomly named flow created by an integration test for the purpose of holding snapshots.");
+        flow.setRevision(initialRevision);
+
+        final VersionedFlow createdFlow = client
+                .target(createURL("buckets/{bucketId}/flows"))
+                .resolveTemplate("bucketId", bucketId)
+                .request()
+                .post(Entity.entity(flow, MediaType.APPLICATION_JSON), VersionedFlow.class);
+        final String flowId = createdFlow.getIdentifier();
+
+        // Create snapshotMetadata
+        final VersionedFlowSnapshotMetadata flowSnapshotMetadata = new VersionedFlowSnapshotMetadata();
+        flowSnapshotMetadata.setBucketIdentifier(bucketId);
+        flowSnapshotMetadata.setFlowIdentifier(flowId);
+        flowSnapshotMetadata.setComments("This is a snapshot created by an integration test.");
+
+        // Create a VersionedFlowSnapshot
+        final VersionedFlowSnapshot flowSnapshot = new VersionedFlowSnapshot();
+        flowSnapshot.setSnapshotMetadata(flowSnapshotMetadata);
+        flowSnapshot.setFlowContents(new VersionedProcessGroup()); // an empty root process group
+        flowSnapshot.getFlowContents().setName("Test Flow name");
+        flowSnapshot.getSnapshotMetadata().setVersion(LATEST_VERSION);
+
+        final VersionedFlowSnapshot createdFlowSnapshot = client
+                .target(createURL("buckets/{bucketId}/flows/{flowId}/versions"))
+                .resolveTemplate("bucketId", bucketId)
+                .resolveTemplate("flowId", flowId)
+                .request()
+                .post(Entity.entity(flowSnapshot, MediaType.APPLICATION_JSON), VersionedFlowSnapshot.class);
+
+        assertNotNull(createdFlowSnapshot.getFlow());
+
+        final VersionedFlowSnapshot importedFlowSnapshot = client
+                .target(createURL("buckets/{bucketId}/flows/{flowId}/versions/import"))
+                .resolveTemplate("bucketId", bucketId)
+                .resolveTemplate("flowId", flowId)
+                .request()
+                .post(Entity.entity(createdFlowSnapshot, MediaType.APPLICATION_JSON), VersionedFlowSnapshot.class);
+
+        assertNotNull(importedFlowSnapshot);
+        assertEquals(bucketId, importedFlowSnapshot.getSnapshotMetadata().getBucketIdentifier());
+        assertEquals(flowId, importedFlowSnapshot.getSnapshotMetadata().getFlowIdentifier());
+        assertEquals(2, importedFlowSnapshot.getSnapshotMetadata().getVersion());
+
+        // =========== Import a Versioned Flow Snapshot ===========
+
+        // GET the versioned Flow that was just imported
+
+        final VersionedFlowSnapshotMetadata[] versionedFlowSnapshots = client
+                        .target(createURL("buckets/{bucketId}/flows/{flowId}/versions"))
+                        .resolveTemplate("bucketId", bucketId)
+                        .resolveTemplate("flowId", flowId)
+                        .request().get(VersionedFlowSnapshotMetadata[].class);
+        assertNotNull(versionedFlowSnapshots);
+        assertEquals(2, versionedFlowSnapshots.length);
+        assertFlowSnapshotMetadataEqual(importedFlowSnapshot.getSnapshotMetadata(), versionedFlowSnapshots[0], true);
+
+        // GET the imported versionedFlowSnapshot by link
+
+        final VersionedFlowSnapshot importedFlowSnapshotByLink = client
+                .target(createURL(versionedFlowSnapshots[0].getLink().getUri().toString()))
+                .request()
+                .get(VersionedFlowSnapshot.class);
+        assertFlowSnapshotsEqual(importedFlowSnapshot, importedFlowSnapshotByLink, true);
+
+        // =========== Import another version ===========
+
+        final File testSnapshotFile = new File("src/test/resources/test-versioned-flow-snapshot.json");
+
+        // Imported Flow id = 2
+        final String importedFlowId = importedFlowSnapshot.getSnapshotMetadata().getFlowIdentifier();
+        // Imported Bucket id = 3
+        final String importedBucketId = importedFlowSnapshot.getSnapshotMetadata().getBucketIdentifier();
+
+        WebTarget clientRequestTarget = client
+                .target(createURL("buckets/{bucketId}/flows/{flowId}/versions/import"))
+                .resolveTemplate("bucketId", importedBucketId)
+                .resolveTemplate("flowId", importedFlowId);
+
+        final VersionedFlowSnapshot nextImportedFlowSnapshot = clientRequestTarget
+                .request(MediaType.APPLICATION_JSON)
+                .header("content-type", MediaType.APPLICATION_JSON)
+                .header("comments", "This is a test version")
+                .post(Entity.entity(testSnapshotFile, MediaType.APPLICATION_JSON), VersionedFlowSnapshot.class);
+
+        assertNotNull(nextImportedFlowSnapshot);
+        assertBucketsEqual(importedFlowSnapshot.getBucket(), nextImportedFlowSnapshot.getBucket(), true);
+        assertEquals(importedFlowId, nextImportedFlowSnapshot.getSnapshotMetadata().getFlowIdentifier());
+        assertEquals(3, nextImportedFlowSnapshot.getSnapshotMetadata().getVersion());
+    }
+
+    @Test
+    public void testExportVersionedFlowSnapshot() {
+        final RevisionInfo initialRevision = new RevisionInfo("FlowsIT", 0L);
+
+        // Create a versionedFlowSnapshot to export
+        // Given: an empty Bucket "2" (see FlowsIT.sql) with a newly created flow
+
+        final String bucketId = "2";
+        final VersionedFlow flow = new VersionedFlow();
+        flow.setBucketIdentifier(bucketId);
+        flow.setName("Test Flow for creating snapshots");
+        flow.setDescription("This is a randomly named flow created by an integration test for the purpose of holding snapshots.");
+        flow.setRevision(initialRevision);
+
+        final VersionedFlow createdFlow = client
+                .target(createURL("buckets/{bucketId}/flows"))
+                .resolveTemplate("bucketId", bucketId)
+                .request()
+                .post(Entity.entity(flow, MediaType.APPLICATION_JSON), VersionedFlow.class);
+        final String flowId = createdFlow.getIdentifier();
+
+        // Create snapshotMetadata
+        final VersionedFlowSnapshotMetadata flowSnapshotMetadata = new VersionedFlowSnapshotMetadata();
+        flowSnapshotMetadata.setBucketIdentifier(bucketId);
+        flowSnapshotMetadata.setFlowIdentifier(flowId);
+        flowSnapshotMetadata.setComments("This is a snapshot created by an integration test.");
+
+        // Create a VersionedFlowSnapshot
+        final VersionedFlowSnapshot flowSnapshot = new VersionedFlowSnapshot();
+        flowSnapshot.setSnapshotMetadata(flowSnapshotMetadata);
+        flowSnapshot.setFlowContents(new VersionedProcessGroup()); // an empty root process group
+        flowSnapshot.getFlowContents().setName("Test Flow name");
+        flowSnapshot.getSnapshotMetadata().setVersion(LATEST_VERSION);
+
+        final VersionedFlowSnapshot createdFlowSnapshot = client
+                .target(createURL("buckets/{bucketId}/flows/{flowId}/versions"))
+                .resolveTemplate("bucketId", bucketId)
+                .resolveTemplate("flowId", flowId)
+                .request()
+                .post(Entity.entity(flowSnapshot, MediaType.APPLICATION_JSON), VersionedFlowSnapshot.class);
+
+        assertNotNull(createdFlowSnapshot.getFlow());
+        assertEquals(1, createdFlowSnapshot.getFlow().getVersionCount());
+
+        // Get the version number
+        final Integer testVersionNumber = createdFlowSnapshot.getSnapshotMetadata().getVersion();
+
+        // Test the exportVersionedFlow method with the version that was just created
+        final VersionedFlowSnapshot exportedVersionedFlowSnapshot = client
+                .target(createURL("buckets/{bucketId}/flows/{flowId}/versions/{versionNumber: \\d+}/export"))
+                .resolveTemplate("bucketId", bucketId)
+                .resolveTemplate("flowId", flowId)
+                .resolveTemplate("versionNumber", testVersionNumber)
+                .request()
+                .get(VersionedFlowSnapshot.class);
+
+        assertNotNull(exportedVersionedFlowSnapshot);
+        assertEquals(createdFlowSnapshot.getSnapshotMetadata().getVersion(),
+                exportedVersionedFlowSnapshot.getSnapshotMetadata().getVersion());
+        assertNull(exportedVersionedFlowSnapshot.getBucket());
+        assertNull(exportedVersionedFlowSnapshot.getFlow());
+        assertNull(exportedVersionedFlowSnapshot.getSnapshotMetadata().getFlowIdentifier());
+        assertNull(exportedVersionedFlowSnapshot.getSnapshotMetadata().getBucketIdentifier());
+        assertNull(exportedVersionedFlowSnapshot.getSnapshotMetadata().getLink());
+    }
 }
