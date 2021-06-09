@@ -252,7 +252,7 @@ public abstract class AbstractS3Processor extends AbstractAWSCredentialsProvider
         if (region == null) {
             return  DEFAULT_PROTOCOL.toString() + "://s3.amazonaws.com/" + bucket + "/" + key;
         } else {
-            final String endpoint = region.getServiceEndpoint("s3");
+            final String endpoint = region.getServiceEndpoint(s3.getEndpointPrefix());
             return DEFAULT_PROTOCOL.toString() + "://" + endpoint + "/" + bucket + "/" + key;
         }
     }
