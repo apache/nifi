@@ -307,6 +307,7 @@ public abstract class NiFiSystemIT {
         try {
             return getNifiClient().getFlowClient().getConnectionStatus(connectionId, true);
         } catch (final Exception e) {
+            e.printStackTrace();
             Assert.fail("Failed to obtain connection status");
             return null;
         }

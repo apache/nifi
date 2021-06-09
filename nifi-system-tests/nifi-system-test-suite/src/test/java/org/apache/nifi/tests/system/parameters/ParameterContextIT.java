@@ -416,6 +416,31 @@ public class ParameterContextIT extends NiFiSystemIT {
         }
     }
 
+    @Test
+    public void testParamChangeWhileReferencingControllerServiceEnabling() throws NiFiClientException, IOException, InterruptedException {
+        final ParameterContextEntity createdContextEntity = createParameterContext("sleep", "7 sec");
+
+        // Set the Parameter Context on the root Process Group
+        setParameterContext("root", createdContextEntity);
+
+        final ControllerServiceEntity serviceEntity = createControllerService(TEST_CS_PACKAGE + ".StandardSleepService", "root", NIFI_GROUP_ID, TEST_EXTENSIONS_ARTIFACT_ID, getNiFiVersion());
+
+        // Set service's sleep time to the parameter.
+        serviceEntity.getComponent().setProperties(Collections.singletonMap("@OnEnablend Sleep Time", "#{sleep}"));
+        getNifiClient().getControllerServicesClient().updateControllerService(serviceEntity);
+
+        // Enable the service. It should take 7 seconds for the service to fully enable.
+        getClientUtil().enableControllerService(serviceEntity);
+
+        // Wait for the service to reach of state of ENABLING but not enabled. We want to change the parameter that it references while it's enabling.
+        getClientUtil().waitForControllerServiceState(serviceEntity.getParentGroupId(), "ENABLING", Collections.emptyList());
+
+        // While the service is enabling, change the parameter
+        final ParameterContextUpdateRequestEntity paramUpdateRequestEntity = updateParameterContext(createdContextEntity, "sleep", "1 sec");
+
+        // Wait for the update to complete
+        getClientUtil().waitForParameterContextRequestToComplete(createdContextEntity.getId(), paramUpdateRequestEntity.getRequest().getRequestId());
+    }
 
     @Test
     public void testProcessorRestartedWhenParameterChanged() throws NiFiClientException, IOException, InterruptedException {
