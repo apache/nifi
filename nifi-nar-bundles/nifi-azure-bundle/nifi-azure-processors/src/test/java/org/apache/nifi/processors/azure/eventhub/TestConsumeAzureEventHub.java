@@ -77,7 +77,7 @@ public class TestConsumeAzureEventHub {
     private static final String policyKey = "test-pk";
     private static final String storageAccountName = "test-sa";
     private static final String storageAccountKey = "test-sa-key";
-    private static final String storageSasToken = "test-sa-token";
+    private static final String storageSasToken = "?test-sa-token";
 
     private ConsumeAzureEventHub.EventProcessor eventProcessor;
     private MockProcessSession processSession;

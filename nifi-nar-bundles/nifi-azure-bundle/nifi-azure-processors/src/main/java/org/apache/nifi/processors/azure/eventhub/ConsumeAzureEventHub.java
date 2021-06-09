@@ -74,6 +74,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
 
 import static org.apache.nifi.util.StringUtils.isEmpty;
 
@@ -91,6 +92,7 @@ import static org.apache.nifi.util.StringUtils.isEmpty;
 })
 public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
 
+    private static final Pattern SAS_TOKEN_PATTERN = Pattern.compile("^\\?.*$");
     private static final String FORMAT_STORAGE_CONNECTION_STRING_FOR_ACCOUNT_KEY = "DefaultEndpointsProtocol=https;AccountName=%s;AccountKey=%s";
     private static final String FORMAT_STORAGE_CONNECTION_STRING_FOR_SAS_TOKEN = "BlobEndpoint=https://%s.blob.core.windows.net/;SharedAccessSignature=%s";
 
@@ -236,7 +238,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
             .displayName("Storage SAS Token")
             .description("The Azure Storage SAS token to store event hub consumer group state. Always starts with a ? character.")
             .sensitive(true)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .addValidator(StandardValidators.createRegexMatchingValidator(SAS_TOKEN_PATTERN))
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .required(false)
             .build();
@@ -346,7 +348,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
                     .build());
         }
 
-        if (storageAccountKey == null && storageSasToken == null) {
+        if (!StringUtils.isNotBlank(storageAccountKey) && !StringUtils.isNotBlank(storageSasToken)) {
             results.add(new ValidationResult.Builder()
                     .subject(String.format("%s or %s",
                             STORAGE_ACCOUNT_KEY.getDisplayName(), STORAGE_SAS_TOKEN.getDisplayName()))
@@ -356,7 +358,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
                     .build());
         }
 
-        if (storageAccountKey != null && storageSasToken != null) {
+        if (StringUtils.isNotBlank(storageAccountKey) && StringUtils.isNotBlank(storageSasToken)) {
             results.add(new ValidationResult.Builder()
                     .subject(String.format("%s or %s",
                             STORAGE_ACCOUNT_KEY.getDisplayName(), STORAGE_SAS_TOKEN.getDisplayName()))
