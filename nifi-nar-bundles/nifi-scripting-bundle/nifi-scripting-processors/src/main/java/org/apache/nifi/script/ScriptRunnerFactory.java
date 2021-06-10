@@ -77,48 +77,50 @@ public class ScriptRunnerFactory {
      */
     public URL[] getModuleURLsForClasspath(String scriptEngineName, String[] modulePaths, ComponentLog log) {
 
-        if ("Clojure".equals(scriptEngineName)
-                || "Groovy".equals(scriptEngineName)
-                || "ECMAScript".equals(scriptEngineName)) {
-
-            List<URL> additionalClasspath = new LinkedList<>();
-            if (modulePaths != null) {
-                for (String modulePathString : modulePaths) {
-                    File modulePath = new File(modulePathString);
-
-                    if (modulePath.exists()) {
-                        // Add the URL of this path
-                        try {
-                            additionalClasspath.add(modulePath.toURI().toURL());
-                        } catch (MalformedURLException mue) {
-                            log.warn("{} is not a valid file/folder, ignoring", new Object[]{modulePath.getAbsolutePath()}, mue);
-                        }
-
-                        // If the path is a directory, we need to scan for JARs and add them to the classpath
-                        if (modulePath.isDirectory()) {
-                            File[] jarFiles = modulePath.listFiles((dir, name) -> (name != null && name.endsWith(".jar")));
-
-                            if (jarFiles != null) {
-                                // Add each to the classpath
-                                for (File jarFile : jarFiles) {
-                                    try {
-                                        additionalClasspath.add(jarFile.toURI().toURL());
-
-                                    } catch (MalformedURLException mue) {
-                                        log.warn("{} is not a valid file/folder, ignoring", new Object[]{modulePath.getAbsolutePath()}, mue);
-                                    }
-                                }
-                            }
-                        }
-                    } else {
-                        log.warn("{} does not exist, ignoring", modulePath.getAbsolutePath());
-                    }
-                }
-            }
-            return additionalClasspath.toArray(new URL[0]);
-        } else {
+        if (!"Clojure".equals(scriptEngineName)
+                && !"Groovy".equals(scriptEngineName)
+                && "ECMAScript".equals(scriptEngineName)) {
             return new URL[0];
         }
-    }
 
+        List<URL> additionalClasspath = new LinkedList<>();
+
+        if (modulePaths == null) {
+            return new URL[0];
+        }
+        for (String modulePathString : modulePaths) {
+            File modulePath = new File(modulePathString);
+
+            if (modulePath.exists()) {
+                // Add the URL of this path
+                try {
+                    additionalClasspath.add(modulePath.toURI().toURL());
+                } catch (MalformedURLException mue) {
+                    log.warn("{} is not a valid file/folder, ignoring", new Object[]{modulePath.getAbsolutePath()}, mue);
+                }
+
+                // If the path is a directory, we need to scan for JARs and add them to the classpath
+                if (!modulePath.isDirectory()) {
+                    continue;
+                }
+                File[] jarFiles = modulePath.listFiles((dir, name) -> (name != null && name.endsWith(".jar")));
+
+                if (jarFiles == null) {
+                    continue;
+                }
+                // Add each to the classpath
+                for (File jarFile : jarFiles) {
+                    try {
+                        additionalClasspath.add(jarFile.toURI().toURL());
+
+                    } catch (MalformedURLException mue) {
+                        log.warn("{} is not a valid file/folder, ignoring", new Object[]{modulePath.getAbsolutePath()}, mue);
+                    }
+                }
+            } else {
+                log.warn("{} does not exist, ignoring", modulePath.getAbsolutePath());
+            }
+        }
+        return additionalClasspath.toArray(new URL[0]);
+    }
 }

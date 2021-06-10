@@ -21,7 +21,7 @@ import javax.script.ScriptEngine;
 import javax.script.ScriptException;
 
 /**
- * This class offers methods to perform Javascript-specific operations during the script runner lifecycle.
+ * This class offers methods to perform operations during the script runner lifecycle.
  */
 public class GenericScriptRunner extends BaseScriptRunner {
 

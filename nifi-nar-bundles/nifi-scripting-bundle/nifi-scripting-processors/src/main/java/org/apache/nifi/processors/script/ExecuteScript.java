@@ -52,7 +52,6 @@ import org.apache.nifi.search.Searchable;
 import javax.script.Bindings;
 import javax.script.ScriptContext;
 import javax.script.ScriptEngine;
-import javax.script.ScriptException;
 import javax.script.SimpleBindings;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -233,7 +232,7 @@ public class ExecuteScript extends AbstractSessionFactoryProcessor implements Se
                 // class with InvokeScriptedProcessor
                 session.commitAsync();
                 scriptingComponentHelper.scriptRunnerQ.offer(scriptRunner);
-            } catch (ScriptException e) {
+            } catch (Throwable t) {
                 // Create a new ScriptRunner to replace the one that caused an exception
                 scriptingComponentHelper.setupScriptRunners(false, 1, scriptToRun, getLogger());
 
@@ -243,7 +242,7 @@ public class ExecuteScript extends AbstractSessionFactoryProcessor implements Se
                 // cause resource exhaustion. In case a user does not want to yield, it can be set to 0s in the processor
                 // configuration.
                 context.yield();
-                throw new ProcessException(e);
+                throw new ProcessException(t);
             }
         } catch (final Throwable t) {
             // Mimic AbstractProcessor behavior here
