@@ -348,7 +348,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
                     .build());
         }
 
-        if (!StringUtils.isNotBlank(storageAccountKey) && !StringUtils.isNotBlank(storageSasToken)) {
+        if (StringUtils.isBlank(storageAccountKey) && StringUtils.isBlank(storageSasToken)) {
             results.add(new ValidationResult.Builder()
                     .subject(String.format("%s or %s",
                             STORAGE_ACCOUNT_KEY.getDisplayName(), STORAGE_SAS_TOKEN.getDisplayName()))
