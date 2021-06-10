@@ -28,10 +28,10 @@ public abstract class AbstractSensitivePropertyProvider implements SensitiveProp
     }
 
     /**
-     * Return the appropriate SensitivePropertyProtectionScheme for this provider.
-     * @return The SensitivePropertyProtectionScheme
+     * Return the appropriate PropertyProtectionScheme for this provider.
+     * @return The PropertyProtectionScheme
      */
-    protected abstract SensitivePropertyProtectionScheme getProtectionScheme();
+    protected abstract PropertyProtectionScheme getProtectionScheme();
 
     /**
      * Return true if this SensitivePropertyProvider is supported, given the provided

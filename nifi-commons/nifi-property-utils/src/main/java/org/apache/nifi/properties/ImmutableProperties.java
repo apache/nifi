@@ -16,21 +16,35 @@
  */
 package org.apache.nifi.properties;
 
-import java.util.Collection;
+import java.util.Set;
 
-public interface SensitivePropertyProviderFactory {
-
-    /**
-     * Gives the appropriate SensitivePropertyProvider, given a protection scheme.
-     * @param protectionScheme The protection scheme to use
-     * @return The appropriate SensitivePropertyProvider
-     */
-    SensitivePropertyProvider getProvider(PropertyProtectionScheme protectionScheme);
+/**
+ * A base interface for providing an immutable set of properties.
+ */
+public interface ImmutableProperties {
 
     /**
-     * Returns a collection of all supported sensitive property providers.
-     * @return The supported sensitive property providers
+     * Retrieves the property value for the given property key.
+     *
+     * @param key the key of property value to lookup
+     * @return value of property at given key or null if not found
      */
-    Collection<SensitivePropertyProvider> getSupportedSensitivePropertyProviders();
+    String getProperty(String key);
+
+    /**
+     * Retrieves the property value for the given property key.
+     *
+     * @param key the key of property value to lookup
+     * @param defaultValue The default value to use if the property does not exist
+     * @return value of property at given key or null if not found
+     */
+    String getProperty(String key, String defaultValue);
+
+    /**
+     * Retrieves all known property keys.
+     *
+     * @return all known property keys
+     */
+    Set<String> getPropertyKeys();
 
 }

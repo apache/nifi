@@ -14,10 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.security.crypto
+package org.apache.nifi.registry.properties.util
 
 import org.apache.commons.lang3.SystemUtils
-import org.apache.nifi.registry.security.crypto.CryptoKeyLoader
 import org.apache.nifi.registry.security.crypto.CryptoKeyProvider
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.junit.Assume
@@ -33,9 +32,9 @@ import java.nio.file.attribute.PosixFilePermission
 import java.security.Security
 
 @RunWith(JUnit4.class)
-class CryptoKeyLoaderGroovyTest extends GroovyTestCase {
+class NiFiRegistryBootstrapUtilsGroovyTest extends GroovyTestCase {
 
-    private static final Logger logger = LoggerFactory.getLogger(CryptoKeyLoaderGroovyTest.class)
+    private static final Logger logger = LoggerFactory.getLogger(NiFiRegistryBootstrapUtilsGroovyTest.class)
 
     private static final String KEY_HEX_128 = "0123456789ABCDEFFEDCBA9876543210"
     private static final String KEY_HEX_256 = KEY_HEX_128 * 2
@@ -57,7 +56,7 @@ class CryptoKeyLoaderGroovyTest extends GroovyTestCase {
         final String expectedKey = KEY_HEX_256
 
         // Act
-        String key = CryptoKeyLoader.extractKeyFromBootstrapFile("src/test/resources/conf/bootstrap.conf")
+        String key = NiFiRegistryBootstrapUtils.extractKeyFromBootstrapFile("src/test/resources/conf/bootstrap.conf")
 
         // Assert
         assert key == expectedKey
@@ -68,7 +67,7 @@ class CryptoKeyLoaderGroovyTest extends GroovyTestCase {
         // Arrange
 
         // Act
-        String key = CryptoKeyLoader.extractKeyFromBootstrapFile("src/test/resources/conf/bootstrap.with_missing_key_line.conf")
+        String key = NiFiRegistryBootstrapUtils.extractKeyFromBootstrapFile("src/test/resources/conf/bootstrap.with_missing_key_line.conf")
 
         // Assert
         assert key == CryptoKeyProvider.EMPTY_KEY
@@ -79,7 +78,7 @@ class CryptoKeyLoaderGroovyTest extends GroovyTestCase {
         // Arrange
 
         // Act
-        String key = CryptoKeyLoader.extractKeyFromBootstrapFile("src/test/resources/conf/bootstrap.with_missing_key.conf")
+        String key = NiFiRegistryBootstrapUtils.extractKeyFromBootstrapFile("src/test/resources/conf/bootstrap.with_missing_key.conf")
 
         // Assert
         assert key == CryptoKeyProvider.EMPTY_KEY
@@ -91,7 +90,7 @@ class CryptoKeyLoaderGroovyTest extends GroovyTestCase {
 
         // Act
         def msg = shouldFail(IOException) {
-            CryptoKeyLoader.extractKeyFromBootstrapFile("src/test/resources/conf/bootstrap.missing.conf")
+            NiFiRegistryBootstrapUtils.extractKeyFromBootstrapFile("src/test/resources/conf/bootstrap.missing.conf")
         }
         logger.info(msg)
 
@@ -110,7 +109,7 @@ class CryptoKeyLoaderGroovyTest extends GroovyTestCase {
 
             // Act
             def msg = shouldFail(IOException) {
-                CryptoKeyLoader.extractKeyFromBootstrapFile("src/test/resources/conf/bootstrap.unreadable_file_permissions.conf")
+                NiFiRegistryBootstrapUtils.extractKeyFromBootstrapFile("src/test/resources/conf/bootstrap.unreadable_file_permissions.conf")
             }
             logger.info(msg)
 

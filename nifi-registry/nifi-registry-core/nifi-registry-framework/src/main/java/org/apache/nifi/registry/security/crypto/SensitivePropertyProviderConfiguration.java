@@ -16,10 +16,11 @@
  */
 package org.apache.nifi.registry.security.crypto;
 
+import org.apache.nifi.properties.PropertyProtectionScheme;
 import org.apache.nifi.properties.SensitivePropertyProtectionException;
-import org.apache.nifi.properties.SensitivePropertyProtectionScheme;
 import org.apache.nifi.properties.SensitivePropertyProvider;
 import org.apache.nifi.properties.StandardSensitivePropertyProviderFactory;
+import org.apache.nifi.registry.properties.util.NiFiRegistryBootstrapUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,8 +33,7 @@ import java.io.IOException;
 public class SensitivePropertyProviderConfiguration {
     private static final Logger logger = LoggerFactory.getLogger(SensitivePropertyProviderConfiguration.class);
 
-    private static final SensitivePropertyProtectionScheme DEFAULT_SCHEME = SensitivePropertyProtectionScheme.AES_GCM;
-    private static final String APPLICATION_PREFIX = "nifi.registry";
+    private static final PropertyProtectionScheme DEFAULT_SCHEME = PropertyProtectionScheme.AES_GCM;
 
     @Autowired(required = false)
     private CryptoKeyProvider masterKeyProvider;
@@ -58,7 +58,7 @@ public class SensitivePropertyProviderConfiguration {
             return StandardSensitivePropertyProviderFactory
                     .withKeyAndBootstrapSupplier(masterKeyProvider.getKey(), () -> {
                         try {
-                            return CryptoKeyLoader.loadBootstrapProperties();
+                            return NiFiRegistryBootstrapUtils.loadBootstrapProperties();
                         } catch (IOException e) {
                             throw new SensitivePropertyProtectionException("Error creating Sensitive Property Provider", e);
                         }

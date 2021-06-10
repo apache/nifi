@@ -17,7 +17,7 @@
 package org.apache.nifi.properties
 
 import org.apache.commons.lang3.SystemUtils
-import org.apache.nifi.security.kms.CryptoUtils
+import org.apache.nifi.util.NiFiBootstrapUtils
 import org.apache.nifi.util.NiFiProperties
 import org.apache.nifi.util.file.FileUtils
 import org.bouncycastle.jce.provider.BouncyCastleProvider
@@ -136,7 +136,7 @@ class NiFiPropertiesLoaderGroovyTest extends GroovyTestCase {
         assert niFiProperties.size() > 0
 
         // Ensure it is not a ProtectedNiFiProperties
-        assert niFiProperties instanceof NiFiProperties
+        assert !(niFiProperties instanceof ProtectedNiFiProperties)
     }
 
     @Test
@@ -155,7 +155,7 @@ class NiFiPropertiesLoaderGroovyTest extends GroovyTestCase {
         assert niFiProperties.size() > 0
 
         // Ensure it is not a ProtectedNiFiProperties
-        assert niFiProperties instanceof NiFiProperties
+        assert !(niFiProperties instanceof ProtectedNiFiProperties)
     }
 
     @Test
@@ -283,7 +283,7 @@ class NiFiPropertiesLoaderGroovyTest extends GroovyTestCase {
         assert niFiProperties.size() > 0
 
         // Ensure it is not a ProtectedNiFiProperties
-        assert niFiProperties instanceof NiFiProperties
+        assert !(niFiProperties instanceof ProtectedNiFiProperties)
     }
 
     @Test
@@ -323,7 +323,7 @@ class NiFiPropertiesLoaderGroovyTest extends GroovyTestCase {
         }
 
         // Ensure it is not a ProtectedNiFiProperties
-        assert niFiProperties instanceof NiFiProperties
+        assert !(niFiProperties instanceof ProtectedNiFiProperties)
     }
 
     @Test
@@ -333,7 +333,7 @@ class NiFiPropertiesLoaderGroovyTest extends GroovyTestCase {
         System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, defaultNiFiPropertiesFilePath)
 
         // Act
-        String key = CryptoUtils.extractKeyFromBootstrapFile()
+        String key = NiFiBootstrapUtils.extractKeyFromBootstrapFile()
 
         // Assert
         assert key == KEY_HEX
@@ -346,7 +346,7 @@ class NiFiPropertiesLoaderGroovyTest extends GroovyTestCase {
         System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, defaultNiFiPropertiesFilePath)
 
         // Act
-        String key = CryptoUtils.extractKeyFromBootstrapFile()
+        String key = NiFiBootstrapUtils.extractKeyFromBootstrapFile()
 
         // Assert
         assert key == ""
@@ -359,7 +359,7 @@ class NiFiPropertiesLoaderGroovyTest extends GroovyTestCase {
         System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, defaultNiFiPropertiesFilePath)
 
         // Act
-        String key = CryptoUtils.extractKeyFromBootstrapFile()
+        String key = NiFiBootstrapUtils.extractKeyFromBootstrapFile()
 
         // Assert
         assert key == ""
@@ -373,7 +373,7 @@ class NiFiPropertiesLoaderGroovyTest extends GroovyTestCase {
 
         // Act
         def msg = shouldFail(IOException) {
-            String key = CryptoUtils.extractKeyFromBootstrapFile()
+            String key = NiFiBootstrapUtils.extractKeyFromBootstrapFile()
         }
         logger.expected(msg)
 
@@ -394,7 +394,7 @@ class NiFiPropertiesLoaderGroovyTest extends GroovyTestCase {
 
         // Act
         def msg = shouldFail(IOException) {
-            String key = CryptoUtils.extractKeyFromBootstrapFile()
+            String key = NiFiBootstrapUtils.extractKeyFromBootstrapFile()
         }
         logger.expected(msg)
 
@@ -419,7 +419,7 @@ class NiFiPropertiesLoaderGroovyTest extends GroovyTestCase {
 
         // Act
         def msg = shouldFail(IOException) {
-            String key = CryptoUtils.extractKeyFromBootstrapFile()
+            String key = NiFiBootstrapUtils.extractKeyFromBootstrapFile()
         }
         logger.expected(msg)
 

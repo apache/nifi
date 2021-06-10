@@ -16,13 +16,12 @@
  */
 package org.apache.nifi.cluster.protocol.spring;
 
+import java.util.concurrent.TimeUnit;
 import org.apache.nifi.io.socket.ServerSocketConfiguration;
 import org.apache.nifi.security.util.StandardTlsConfiguration;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.springframework.beans.factory.FactoryBean;
-
-import java.util.concurrent.TimeUnit;
 
 /**
  * Factory bean for creating a singleton ServerSocketConfiguration instance.

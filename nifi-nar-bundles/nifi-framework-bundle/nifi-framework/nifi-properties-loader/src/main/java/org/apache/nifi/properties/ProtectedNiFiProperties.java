@@ -36,7 +36,7 @@ import static java.util.Arrays.asList;
  * This encapsulates the sensitive property access logic from external consumers
  * of {@code NiFiProperties}.
  */
-class ProtectedNiFiProperties extends NiFiProperties implements ProtectedApplicationProperties<NiFiProperties>,
+class ProtectedNiFiProperties extends NiFiProperties implements ProtectedProperties<NiFiProperties>,
         SensitivePropertyProtector<ProtectedNiFiProperties, NiFiProperties> {
     private static final Logger logger = LoggerFactory.getLogger(ProtectedNiFiProperties.class);
 
@@ -63,7 +63,7 @@ class ProtectedNiFiProperties extends NiFiProperties implements ProtectedApplica
     public ProtectedNiFiProperties(final NiFiProperties props) {
         this.underlyingProperties = props;
         this.propertyProtectionDelegate = new ApplicationPropertiesProtector<>(this);
-        logger.debug("Loaded {} properties (including {} protection schemes) into ProtectedNiFiProperties", getUnderlyingProperties()
+        logger.debug("Loaded {} properties (including {} protection schemes) into ProtectedNiFiProperties", getApplicationProperties()
                 .getPropertyKeys().size(), getProtectedPropertyKeys().size());
     }
 
@@ -99,8 +99,7 @@ class ProtectedNiFiProperties extends NiFiProperties implements ProtectedApplica
      *
      * @return the internal properties
      */
-    @Override
-    public NiFiProperties getUnderlyingProperties() {
+    public NiFiProperties getApplicationProperties() {
         if (this.underlyingProperties == null) {
             this.underlyingProperties = new NiFiProperties();
         }
@@ -121,7 +120,7 @@ class ProtectedNiFiProperties extends NiFiProperties implements ProtectedApplica
      */
     @Override
     public String getProperty(String key) {
-        return getUnderlyingProperties().getProperty(key);
+        return getApplicationProperties().getProperty(key);
     }
 
     /**
@@ -183,11 +182,6 @@ class ProtectedNiFiProperties extends NiFiProperties implements ProtectedApplica
     }
 
     @Override
-    public int getPercentOfSensitivePropertiesProtected() {
-        return propertyProtectionDelegate.getPercentOfSensitivePropertiesProtected();
-    }
-
-    @Override
     public boolean isPropertySensitive(final String key) {
         return propertyProtectionDelegate.isPropertySensitive(key);
     }
@@ -210,11 +204,6 @@ class ProtectedNiFiProperties extends NiFiProperties implements ProtectedApplica
     @Override
     public Map<String, SensitivePropertyProvider> getSensitivePropertyProviders() {
         return propertyProtectionDelegate.getSensitivePropertyProviders();
-    }
-
-    @Override
-    public Properties toBasicProperties() {
-        return underlyingProperties.toBasicProperties();
     }
 
     /**

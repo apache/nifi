@@ -32,8 +32,9 @@ import org.apache.nifi.authentication.generated.Provider;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
-import org.apache.nifi.properties.SensitivePropertyHolder;
+import org.apache.nifi.properties.PropertyProtectionScheme;
 import org.apache.nifi.properties.SensitivePropertyProtectionException;
+import org.apache.nifi.properties.SensitivePropertyProviderFactoryAware;
 import org.apache.nifi.security.xml.XmlUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
@@ -63,7 +64,7 @@ import java.util.Map;
 /**
  *
  */
-public class LoginIdentityProviderFactoryBean extends SensitivePropertyHolder
+public class LoginIdentityProviderFactoryBean extends SensitivePropertyProviderFactoryAware
         implements FactoryBean, DisposableBean, LoginIdentityProviderLookup {
 
     private static final Logger logger = LoggerFactory.getLogger(LoginIdentityProviderFactoryBean.class);
@@ -88,10 +89,6 @@ public class LoginIdentityProviderFactoryBean extends SensitivePropertyHolder
     private LoginIdentityProvider loginIdentityProvider;
     private final Map<String, LoginIdentityProvider> loginIdentityProviders = new HashMap<>();
 
-    public NiFiProperties getProperties() {
-        return properties;
-    }
-
     public void setProperties(NiFiProperties properties) {
         this.properties = properties;
     }
@@ -105,7 +102,7 @@ public class LoginIdentityProviderFactoryBean extends SensitivePropertyHolder
     public Object getObject() throws Exception {
         if (loginIdentityProvider == null) {
             // look up the login identity provider to use
-            final String loginIdentityProviderIdentifier = getProperties().getProperty(NiFiProperties.SECURITY_USER_LOGIN_IDENTITY_PROVIDER);
+            final String loginIdentityProviderIdentifier = properties.getProperty(NiFiProperties.SECURITY_USER_LOGIN_IDENTITY_PROVIDER);
 
             // ensure the login identity provider class name was specified
             if (StringUtils.isNotBlank(loginIdentityProviderIdentifier)) {
@@ -136,7 +133,7 @@ public class LoginIdentityProviderFactoryBean extends SensitivePropertyHolder
     }
 
     private LoginIdentityProviders loadLoginIdentityProvidersConfiguration() throws Exception {
-        final File loginIdentityProvidersConfigurationFile = getProperties().getLoginIdentityProviderConfigurationFile();
+        final File loginIdentityProvidersConfigurationFile = properties.getLoginIdentityProviderConfigurationFile();
 
         // load the users from the specified file
         if (loginIdentityProvidersConfigurationFile.exists()) {
@@ -223,7 +220,8 @@ public class LoginIdentityProviderFactoryBean extends SensitivePropertyHolder
     }
 
     private String decryptValue(final String cipherText, final String protectionScheme) throws SensitivePropertyProtectionException {
-        return getSensitivePropertyProviderFactory().getProvider(protectionScheme).unprotect(cipherText);
+        return getSensitivePropertyProviderFactory().getProvider(PropertyProtectionScheme.fromIdentifier(protectionScheme))
+                .unprotect(cipherText);
     }
 
     private void performMethodInjection(final LoginIdentityProvider instance, final Class loginIdentityProviderClass)
@@ -245,7 +243,7 @@ public class LoginIdentityProviderFactoryBean extends SensitivePropertyHolder
                         // look for well known types
                         if (NiFiProperties.class.isAssignableFrom(argumentType)) {
                             // nifi properties injection
-                            method.invoke(instance, getProperties());
+                            method.invoke(instance, properties);
                         }
                     }
                 } finally {
@@ -276,7 +274,7 @@ public class LoginIdentityProviderFactoryBean extends SensitivePropertyHolder
                         // look for well known types
                         if (NiFiProperties.class.isAssignableFrom(fieldType)) {
                             // nifi properties injection
-                            field.set(instance, getProperties());
+                            field.set(instance, properties);
                         }
                     }
 

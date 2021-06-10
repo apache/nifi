@@ -1097,7 +1097,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         int originalProtectedPropertyCount = protectedProperties.getProtectedPropertyKeys().size()
 
         protectedProperties.addSensitivePropertyProvider(DEFAULT_PROVIDER_FACTORY.getProvider(ConfigEncryptionTool.DEFAULT_PROTECTION_SCHEME))
-        NiFiProperties encryptedProperties = protectedProperties.getUnderlyingProperties()
+        NiFiProperties encryptedProperties = protectedProperties.getApplicationProperties()
         int protectedPropertyCount = ProtectedNiFiProperties.countProtectedProperties(encryptedProperties)
         logger.info("Counted ${protectedPropertyCount} protected keys")
 

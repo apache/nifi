@@ -16,91 +16,18 @@
  */
 package org.apache.nifi.properties;
 
+import java.util.Map;
 import java.util.Properties;
-import java.util.Set;
 
 /**
- * A base interface for configuration properties of an application (e.g. NiFi or NiFi Registry).
+ * A tagging class that represents the main configuration properties for an application (e.g. NiFi or NiFi Registry).
  */
-public interface ApplicationProperties {
+public class ApplicationProperties extends StandardImmutableProperties {
+    public ApplicationProperties(Properties properties) {
+        super(properties);
+    }
 
-    /**
-     * Retrieves the property value for the given property key.
-     *
-     * @param key the key of property value to lookup
-     * @return value of property at given key or null if not found
-     */
-    String getProperty(String key);
-
-    /**
-     * Retrieves the property value for the given property key.
-     *
-     * @param key the key of property value to lookup
-     * @param defaultValue The default value to use if the property does not exist
-     * @return value of property at given key or null if not found
-     */
-    String getProperty(String key, String defaultValue);
-
-    /**
-     * Retrieves all known property keys.
-     *
-     * @return all known property keys
-     */
-    Set<String> getPropertyKeys();
-
-    /**
-     * Returns the number of properties.
-     * @return The number of properties
-     */
-    int size();
-
-    /**
-     * Returns the application properties in a basic Properties object.
-     * @return The basic Properties object
-     */
-    Properties toBasicProperties();
-
-    // Following are specific properties expected for all applications
-
-    /**
-     * Keystore path for TLS configuration
-     * @return The keystore path
-     */
-    String getKeyStorePath();
-
-    /**
-     * Keystore type for TLS configuration
-     * @return The keystore type
-     */
-    String getKeyStoreType();
-
-    /**
-     * Keystore password for TLS configuration
-     * @return The keystore password
-     */
-    String getKeyStorePassword();
-
-    /**
-     * Key password for TLS configuration
-     * @return The key password
-     */
-    String getKeyPassword();
-
-    /**
-     * Truststore path for TLS configuration
-     * @return The truststore path
-     */
-    String getTrustStorePath();
-
-    /**
-     * Truststore type for TLS configuration
-     * @return The truststore type
-     */
-    String getTrustStoreType();
-
-    /**
-     * Truststore password for TLS configuration
-     * @return The truststore password
-     */
-    String getTrustStorePassword();
+    public ApplicationProperties(Map<String, String> properties) {
+        super(properties);
+    }
 }

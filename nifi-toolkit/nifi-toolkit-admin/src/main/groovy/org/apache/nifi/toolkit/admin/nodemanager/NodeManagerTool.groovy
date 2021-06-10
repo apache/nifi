@@ -23,12 +23,12 @@ import org.apache.commons.cli.Option
 import org.apache.commons.cli.Options
 import org.apache.commons.cli.ParseException
 import org.apache.nifi.properties.NiFiPropertiesLoader
-import org.apache.nifi.security.kms.CryptoUtils
 import org.apache.nifi.toolkit.admin.AbstractAdminTool
 import org.apache.nifi.toolkit.admin.client.ClientFactory
 import org.apache.nifi.toolkit.admin.client.NiFiClientFactory
 import org.apache.nifi.toolkit.admin.client.NiFiClientUtil
 import org.apache.nifi.toolkit.admin.util.AdminUtil
+import org.apache.nifi.util.NiFiBootstrapUtils
 import org.apache.nifi.util.NiFiProperties
 import org.apache.nifi.util.StringUtils
 import org.apache.nifi.web.api.dto.NodeDTO
@@ -272,7 +272,7 @@ public class NodeManagerTool extends AbstractAdminTool {
                 String nifiConfDir = AdminUtil.getRelativeDirectory(bootstrapProperties.getProperty("conf.dir"), bootstrapConf.getCanonicalFile().getParentFile().getParentFile().getCanonicalPath())
                 String nifiLibDir = AdminUtil.getRelativeDirectory(bootstrapProperties.getProperty("lib.dir"), bootstrapConf.getCanonicalFile().getParentFile().getParentFile().getCanonicalPath())
                 String nifiPropertiesFileName = nifiConfDir + File.separator +"nifi.properties"
-                final String key = CryptoUtils.extractKeyFromBootstrapFile(bootstrapConfFileName)
+                final String key = NiFiBootstrapUtils.extractKeyFromBootstrapFile(bootstrapConfFileName)
                 final NiFiProperties niFiProperties = NiFiPropertiesLoader.withKey(key).load(nifiPropertiesFileName)
                 final String operation = commandLine.getOptionValue(OPERATION)
 

@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.registry.security.crypto;
 
+import org.apache.nifi.registry.properties.util.NiFiRegistryBootstrapUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -62,7 +63,7 @@ public class BootstrapFileCryptoKeyProvider implements CryptoKeyProvider {
     @Override
     public String getKey() throws MissingCryptoKeyException {
         try {
-            return CryptoKeyLoader.extractKeyFromBootstrapFile(this.bootstrapFile);
+            return NiFiRegistryBootstrapUtils.extractKeyFromBootstrapFile(this.bootstrapFile);
         } catch (IOException ioe) {
             final String errMsg = "Loading the master crypto key from bootstrap file '" + bootstrapFile + "' failed due to IOException.";
             logger.warn(errMsg);

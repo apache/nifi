@@ -40,21 +40,23 @@ import static java.util.Arrays.asList;
  * @param <T> The type of protected application properties
  * @param <U> The type of standard application properties that backs the protected application properties
  */
-public class ApplicationPropertiesProtector<T extends ProtectedApplicationProperties<U>, U extends ApplicationProperties>
+public class ApplicationPropertiesProtector<T extends ProtectedProperties<U>, U extends ApplicationProperties>
         implements SensitivePropertyProtector<T, U> {
+    public static final String PROTECTED_KEY_SUFFIX = ".protected";
+
     private static final Logger logger = LoggerFactory.getLogger(ApplicationPropertiesProtector.class);
 
-    private T protectedApplicationProperties;
+    private T protectedProperties;
 
     private Map<String, SensitivePropertyProvider> localProviderCache = new HashMap<>();
 
     /**
-     * Creates an instance containing the provided {@link ProtectedApplicationProperties}.
+     * Creates an instance containing the provided {@link ProtectedProperties}.
      *
-     * @param protectedApplicationProperties the ProtectedApplicationProperties to contain
+     * @param protectedProperties the ProtectedProperties to contain
      */
-    public ApplicationPropertiesProtector(final T protectedApplicationProperties) {
-        this.protectedApplicationProperties = protectedApplicationProperties;
+    public ApplicationPropertiesProtector(final T protectedProperties) {
+        this.protectedProperties = protectedProperties;
         logger.debug("Loaded {} properties (including {} protection schemes) into {}", getPropertyKeysIncludingProtectionSchemes().size(),
                 getProtectedPropertyKeys().size(), this.getClass().getName());
     }
@@ -77,7 +79,7 @@ public class ApplicationPropertiesProtector<T extends ProtectedApplicationProper
             throw new IllegalArgumentException("Cannot find protection key for null key");
         }
 
-        return key + ".protected";
+        return key + PROTECTED_KEY_SUFFIX;
     }
 
     /**
@@ -88,7 +90,7 @@ public class ApplicationPropertiesProtector<T extends ProtectedApplicationProper
     @Override
     public Set<String> getPropertyKeys() {
         Set<String> filteredKeys = getPropertyKeysIncludingProtectionSchemes();
-        filteredKeys.removeIf(p -> p.endsWith(".protected"));
+        filteredKeys.removeIf(p -> p.endsWith(PROTECTED_KEY_SUFFIX));
         return filteredKeys;
     }
 
@@ -99,7 +101,7 @@ public class ApplicationPropertiesProtector<T extends ProtectedApplicationProper
 
     @Override
     public Set<String> getPropertyKeysIncludingProtectionSchemes() {
-        return protectedApplicationProperties.getUnderlyingProperties().getPropertyKeys();
+        return protectedProperties.getApplicationProperties().getPropertyKeys();
     }
 
     /**
@@ -121,23 +123,23 @@ public class ApplicationPropertiesProtector<T extends ProtectedApplicationProper
     }
 
     private String getProperty(final String key) {
-        return protectedApplicationProperties.getUnderlyingProperties().getProperty(key);
+        return protectedProperties.getApplicationProperties().getProperty(key);
     }
 
     private String getAdditionalSensitivePropertiesKeys() {
-        return getProperty(protectedApplicationProperties.getAdditionalSensitivePropertiesKeysName());
+        return getProperty(protectedProperties.getAdditionalSensitivePropertiesKeysName());
     }
 
     private String getAdditionalSensitivePropertiesKeysName() {
-        return protectedApplicationProperties.getAdditionalSensitivePropertiesKeysName();
+        return protectedProperties.getAdditionalSensitivePropertiesKeysName();
     }
 
     @Override
     public List<String> getSensitivePropertyKeys() {
         final String additionalPropertiesString = getAdditionalSensitivePropertiesKeys();
-        final String additionalPropertiesKeyName = protectedApplicationProperties.getAdditionalSensitivePropertiesKeysName();
+        final String additionalPropertiesKeyName = protectedProperties.getAdditionalSensitivePropertiesKeysName();
         if (additionalPropertiesString == null || additionalPropertiesString.trim().isEmpty()) {
-            return protectedApplicationProperties.getDefaultSensitiveProperties();
+            return protectedProperties.getDefaultSensitiveProperties();
         } else {
             List<String> additionalProperties = splitMultipleProperties(additionalPropertiesString);
             /* Remove this key if it was accidentally provided as a sensitive key
@@ -147,7 +149,7 @@ public class ApplicationPropertiesProtector<T extends ProtectedApplicationProper
                 logger.warn("The key '{}' contains itself. This is poor practice and should be removed", additionalPropertiesKeyName);
                 additionalProperties.remove(additionalPropertiesKeyName);
             }
-            additionalProperties.addAll(protectedApplicationProperties.getDefaultSensitiveProperties());
+            additionalProperties.addAll(protectedProperties.getDefaultSensitiveProperties());
             return additionalProperties;
         }
     }
@@ -200,11 +202,6 @@ public class ApplicationPropertiesProtector<T extends ProtectedApplicationProper
     }
 
     @Override
-    public int getPercentOfSensitivePropertiesProtected() {
-        return (int) Math.round(getProtectedPropertyKeys().size() / ((double) getPopulatedSensitivePropertyKeys().size()) * 100);
-    }
-
-    @Override
     public boolean isPropertySensitive(final String key) {
         // If the explicit check for ADDITIONAL_SENSITIVE_PROPERTIES_KEY is not here, this will loop infinitely
         return key != null && !key.equals(getAdditionalSensitivePropertiesKeysName()) && getSensitivePropertyKeys().contains(key.trim());
@@ -226,10 +223,9 @@ public class ApplicationPropertiesProtector<T extends ProtectedApplicationProper
     @Override
     public U getUnprotectedProperties() throws SensitivePropertyProtectionException {
         if (hasProtectedKeys()) {
-            logger.info("There are {} protected properties of {} sensitive properties ({}%)",
+            logger.info("There are {} protected properties of {} sensitive properties",
                     getProtectedPropertyKeys().size(),
-                    getSensitivePropertyKeys().size(),
-                    getPercentOfSensitivePropertiesProtected());
+                    getSensitivePropertyKeys().size());
 
             final Properties rawProperties = new Properties();
 
@@ -241,7 +237,7 @@ public class ApplicationPropertiesProtector<T extends ProtectedApplicationProper
                  * 2. protected keys -- unprotect and copy
                  * 3. normal keys -- copy over
                  */
-                if (key.endsWith(".protected")) {
+                if (key.endsWith(PROTECTED_KEY_SUFFIX)) {
                     // Do nothing
                 } else if (isPropertyProtected(key)) {
                     try {
@@ -264,12 +260,12 @@ public class ApplicationPropertiesProtector<T extends ProtectedApplicationProper
                 }
             }
 
-            final U unprotected = protectedApplicationProperties.createApplicationProperties(rawProperties);
+            final U unprotected = protectedProperties.createApplicationProperties(rawProperties);
 
             return unprotected;
         } else {
             logger.debug("No protected properties");
-            return protectedApplicationProperties.getUnderlyingProperties();
+            return protectedProperties.getApplicationProperties();
         }
     }
 
@@ -332,17 +328,17 @@ public class ApplicationPropertiesProtector<T extends ProtectedApplicationProper
         if (isPropertyProtected(key)) {
             final String protectionScheme = getProperty(getProtectionKey(key));
 
-            // No provider registered for this scheme, so just return the value
+            // No provider registered for this scheme
             if (!isProviderAvailable(protectionScheme)) {
-                logger.warn("No provider available for {} so passing the protected {} value back", protectionScheme, key);
-                return retrievedValue;
+                throw new IllegalStateException(String.format("No provider available for " + key));
             }
 
             try {
                 final SensitivePropertyProvider sensitivePropertyProvider = getSensitivePropertyProvider(protectionScheme);
                 return sensitivePropertyProvider.unprotect(retrievedValue);
             } catch (SensitivePropertyProtectionException e) {
-                throw new SensitivePropertyProtectionException("Error unprotecting value for " + key, e.getCause());
+                logger.error("Error unprotecting value for " + key, e);
+                throw e;
             } catch (IllegalArgumentException e) {
                 throw new SensitivePropertyProtectionException("Error unprotecting value for " + key, e);
             }

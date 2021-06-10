@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.properties;
 
-import org.apache.nifi.security.kms.CryptoUtils;
+import org.apache.nifi.util.NiFiBootstrapUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,7 +35,7 @@ public class StandardSensitivePropertyProviderFactory implements SensitiveProper
 
     private final Optional<String> keyHex;
     private final Supplier<BootstrapProperties> bootstrapPropertiesSupplier;
-    private final Map<SensitivePropertyProtectionScheme, SensitivePropertyProvider> providerMap;
+    private final Map<PropertyProtectionScheme, SensitivePropertyProvider> providerMap;
 
     /**
      * Creates a StandardSensitivePropertyProviderFactory using the default bootstrap.conf location and
@@ -88,7 +88,7 @@ public class StandardSensitivePropertyProviderFactory implements SensitiveProper
     private BootstrapProperties getBootstrapProperties() {
         return Optional.ofNullable(bootstrapPropertiesSupplier.get()).orElseGet(() -> {
             try {
-                return CryptoUtils.loadBootstrapProperties("");
+                return NiFiBootstrapUtils.loadBootstrapProperties();
             } catch (final IOException e) {
                 logger.error("Error extracting root key from bootstrap.conf for login identity provider decryption", e);
                 throw new SensitivePropertyProtectionException("Could not read root key from bootstrap.conf");
@@ -97,7 +97,7 @@ public class StandardSensitivePropertyProviderFactory implements SensitiveProper
     }
 
     @Override
-    public SensitivePropertyProvider getProvider(final SensitivePropertyProtectionScheme protectionScheme) throws SensitivePropertyProtectionException {
+    public SensitivePropertyProvider getProvider(final PropertyProtectionScheme protectionScheme) throws SensitivePropertyProtectionException {
         Objects.requireNonNull(protectionScheme, "Protection scheme is required");
         // Only look up the secret key, which can perform a disk read, if this provider actually requires one
         final String keyHex = protectionScheme.requiresSecretKey() ? getKeyHex() : null;
@@ -111,13 +111,8 @@ public class StandardSensitivePropertyProviderFactory implements SensitiveProper
     }
 
     @Override
-    public SensitivePropertyProvider getProvider(final String protectionSchemeIdentifier) {
-        return getProvider(SensitivePropertyProtectionScheme.fromIdentifier(protectionSchemeIdentifier));
-    }
-
-    @Override
     public Collection<SensitivePropertyProvider> getSupportedSensitivePropertyProviders() {
-        return Arrays.stream(SensitivePropertyProtectionScheme.values())
+        return Arrays.stream(PropertyProtectionScheme.values())
                 .map(this::getProvider)
                 .filter(SensitivePropertyProvider::isSupported)
                 .collect(Collectors.toList());

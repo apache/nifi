@@ -19,12 +19,10 @@ package org.apache.nifi.toolkit.encryptconfig
 import groovy.cli.commons.CliBuilder
 import groovy.cli.commons.OptionAccessor
 import org.apache.commons.cli.HelpFormatter
-import org.apache.nifi.properties.BootstrapProperties
 import org.apache.nifi.properties.ConfigEncryptionTool
-import org.apache.nifi.properties.SensitivePropertyProtectionScheme
+import org.apache.nifi.properties.PropertyProtectionScheme
 import org.apache.nifi.properties.SensitivePropertyProvider
 import org.apache.nifi.properties.StandardSensitivePropertyProviderFactory
-import org.apache.nifi.registry.security.crypto.CryptoKeyLoader
 import org.apache.nifi.toolkit.encryptconfig.util.BootstrapUtil
 import org.apache.nifi.toolkit.encryptconfig.util.PropertiesEncryptor
 import org.apache.nifi.toolkit.encryptconfig.util.ToolUtilities
@@ -212,7 +210,7 @@ class DecryptMode implements ToolMode {
         OptionAccessor rawOptions
 
         Configuration.KeySource keySource
-        SensitivePropertyProtectionScheme protectionScheme = ConfigEncryptionTool.DEFAULT_PROTECTION_SCHEME
+        PropertyProtectionScheme protectionScheme = ConfigEncryptionTool.DEFAULT_PROTECTION_SCHEME
         String key
         SensitivePropertyProvider decryptionProvider
         String inputBootstrapPath
@@ -288,7 +286,7 @@ class DecryptMode implements ToolMode {
         private void determineProtectionScheme() {
 
             if (rawOptions.S) {
-                protectionScheme = SensitivePropertyProtectionScheme.valueOf(rawOptions.S)
+                protectionScheme = PropertyProtectionScheme.valueOf(rawOptions.S)
             }
         }
 

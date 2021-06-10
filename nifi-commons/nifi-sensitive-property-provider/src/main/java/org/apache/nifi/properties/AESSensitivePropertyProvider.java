@@ -76,8 +76,8 @@ public class AESSensitivePropertyProvider extends AbstractSensitivePropertyProvi
     }
 
     @Override
-    protected SensitivePropertyProtectionScheme getProtectionScheme() {
-        return SensitivePropertyProtectionScheme.AES_GCM;
+    protected PropertyProtectionScheme getProtectionScheme() {
+        return PropertyProtectionScheme.AES_GCM;
     }
 
     @Override

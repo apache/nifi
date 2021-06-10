@@ -22,20 +22,25 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
 
-public class BootstrapProperties {
+/**
+ * Properties representing bootstrap.conf.
+ */
+public class BootstrapProperties extends StandardImmutableProperties {
     private static final String PROPERTY_KEY_FORMAT = "%s.%s";
     private static final String BOOTSTRAP_SENSITIVE_KEY = "bootstrap.sensitive.key";
 
     private final String propertyPrefix;
-    private final Properties properties;
     private final Path configFilePath;
 
     public BootstrapProperties(final String propertyPrefix, final Properties properties, final Path configFilePath) {
-        Objects.requireNonNull(propertyPrefix, "Property prefix is required");
+        super(new Properties());
+
         Objects.requireNonNull(properties, "Properties are required");
-        this.propertyPrefix = propertyPrefix;
+        this.propertyPrefix = Objects.requireNonNull(propertyPrefix, "Property prefix is required");
         this.configFilePath = configFilePath;
-        this.properties = filterProperties(properties);
+
+        this.filterProperties(properties);
+
     }
 
     /**
@@ -49,9 +54,9 @@ public class BootstrapProperties {
     /**
      * Includes only the properties starting with the propertyPrefix.
      * @param properties Unfiltered properties
-     * @return The filtered properties
      */
-    private Properties filterProperties(final Properties properties) {
+    private void filterProperties(final Properties properties) {
+        getRawProperties().clear();
         final Properties filteredProperties = new Properties();
         for(final Enumeration<Object> e = properties.keys() ; e.hasMoreElements(); ) {
             final String key = e.nextElement().toString();
@@ -59,20 +64,11 @@ public class BootstrapProperties {
                 filteredProperties.put(key, properties.getProperty(key));
             }
         }
-        return filteredProperties;
+        getRawProperties().putAll(filteredProperties);
     }
 
     private String getPropertyKey(final String subKey) {
         return String.format(PROPERTY_KEY_FORMAT, propertyPrefix, subKey);
-    }
-
-    /**
-     * Retrieves the value of the property by the full property key.
-     * @param key The property key in the bootstrap configuration
-     * @return The value of the property
-     */
-    public String getProperty(final String key) {
-        return properties.getProperty(key);
     }
 
     /**

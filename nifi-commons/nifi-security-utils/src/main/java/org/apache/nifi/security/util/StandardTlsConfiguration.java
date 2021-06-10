@@ -180,7 +180,9 @@ public class StandardTlsConfiguration implements TlsConfiguration {
      * @return a populated TlsConfiguration container object
      */
     public static TlsConfiguration fromNiFiProperties(final NiFiProperties niFiProperties) {
-        return fromNiFiProperties(niFiProperties.toBasicProperties());
+        final Properties properties = new Properties();
+        niFiProperties.getPropertyKeys().forEach(key -> properties.setProperty(key, niFiProperties.getProperty(key)));
+        return fromNiFiProperties(properties);
     }
 
     /**

@@ -24,7 +24,7 @@ import java.util.Properties;
  * are protected.
  * @param <T> The ApplicationProperties type
  */
-public interface ProtectedApplicationProperties<T extends ApplicationProperties> {
+public interface ProtectedProperties<T extends ApplicationProperties> {
 
     /**
      * Additional sensitive properties keys
@@ -45,10 +45,10 @@ public interface ProtectedApplicationProperties<T extends ApplicationProperties>
     List<String> getDefaultSensitiveProperties();
 
     /**
-     * Returns the underlying application properties.
-     * @return The underlying properties
+     * Returns the application properties.
+     * @return The application properties
      */
-    T getUnderlyingProperties();
+    T getApplicationProperties();
 
     /**
      * Create a new ApplicationProperties object of the generic type.

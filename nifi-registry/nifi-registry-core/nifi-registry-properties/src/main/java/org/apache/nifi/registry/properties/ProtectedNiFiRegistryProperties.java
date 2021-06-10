@@ -18,9 +18,9 @@ package org.apache.nifi.registry.properties;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.properties.ApplicationPropertiesProtector;
-import org.apache.nifi.properties.SensitivePropertyProtector;
-import org.apache.nifi.properties.ProtectedApplicationProperties;
+import org.apache.nifi.properties.ProtectedProperties;
 import org.apache.nifi.properties.SensitivePropertyProtectionException;
+import org.apache.nifi.properties.SensitivePropertyProtector;
 import org.apache.nifi.properties.SensitivePropertyProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,7 +40,7 @@ import static java.util.Arrays.asList;
  * This encapsulates the sensitive property access logic from external consumers
  * of {@code NiFiRegistryProperties}.
  */
-class ProtectedNiFiRegistryProperties extends NiFiRegistryProperties implements ProtectedApplicationProperties<NiFiRegistryProperties>,
+class ProtectedNiFiRegistryProperties extends NiFiRegistryProperties implements ProtectedProperties<NiFiRegistryProperties>,
         SensitivePropertyProtector<ProtectedNiFiRegistryProperties, NiFiRegistryProperties> {
     private static final Logger logger = LoggerFactory.getLogger(ProtectedNiFiRegistryProperties.class);
 
@@ -69,7 +69,7 @@ class ProtectedNiFiRegistryProperties extends NiFiRegistryProperties implements 
     public ProtectedNiFiRegistryProperties(final NiFiRegistryProperties props) {
         this.underlyingProperties = props;
         this.propertyProtectionDelegate = new ApplicationPropertiesProtector<>(this);
-        logger.debug("Loaded {} properties (including {} protection schemes) into ProtectedNiFiRegistryProperties", getUnderlyingProperties()
+        logger.debug("Loaded {} properties (including {} protection schemes) into ProtectedNiFiRegistryProperties", getApplicationProperties()
                 .getPropertyKeys().size(), getProtectedPropertyKeys().size());
     }
 
@@ -97,7 +97,7 @@ class ProtectedNiFiRegistryProperties extends NiFiRegistryProperties implements 
      * @return the internal properties
      */
     @Override
-    public NiFiRegistryProperties getUnderlyingProperties() {
+    public NiFiRegistryProperties getApplicationProperties() {
         if (this.underlyingProperties == null) {
             this.underlyingProperties = new NiFiRegistryProperties();
         }
@@ -118,7 +118,7 @@ class ProtectedNiFiRegistryProperties extends NiFiRegistryProperties implements 
      */
     @Override
     public String getProperty(String key) {
-        return getUnderlyingProperties().getProperty(key);
+        return getApplicationProperties().getProperty(key);
     }
 
     /**
@@ -180,11 +180,6 @@ class ProtectedNiFiRegistryProperties extends NiFiRegistryProperties implements 
     }
 
     @Override
-    public int getPercentOfSensitivePropertiesProtected() {
-        return propertyProtectionDelegate.getPercentOfSensitivePropertiesProtected();
-    }
-
-    @Override
     public boolean isPropertySensitive(final String key) {
         return propertyProtectionDelegate.isPropertySensitive(key);
     }
@@ -207,11 +202,6 @@ class ProtectedNiFiRegistryProperties extends NiFiRegistryProperties implements 
     @Override
     public Map<String, SensitivePropertyProvider> getSensitivePropertyProviders() {
         return propertyProtectionDelegate.getSensitivePropertyProviders();
-    }
-
-    @Override
-    public Properties toBasicProperties() {
-        return getUnderlyingProperties().toBasicProperties();
     }
 
     @Override

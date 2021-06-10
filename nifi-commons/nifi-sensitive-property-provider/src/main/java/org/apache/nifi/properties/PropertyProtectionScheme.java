@@ -23,10 +23,10 @@ import java.util.Objects;
  * A scheme for protecting sensitive properties.  Each scheme is intended to be backed by an implementation of
  * SensitivePropertyProvider.
  */
-public enum SensitivePropertyProtectionScheme {
-    AES_GCM("aes/gcm/[0-9]+", "aes/gcm/%s", "AES Sensitive Property Provider", true);
+public enum PropertyProtectionScheme {
+    AES_GCM("aes/gcm/(128|192|256)", "aes/gcm/%s", "AES Sensitive Property Provider", true);
 
-    SensitivePropertyProtectionScheme(final String identifierPattern, final String identifierFormat, final String name, final boolean requiresSecretKey) {
+    PropertyProtectionScheme(final String identifierPattern, final String identifierFormat, final String name, final boolean requiresSecretKey) {
         this.identifierPattern = identifierPattern;
         this.identifierFormat = identifierFormat;
         this.name = name;
@@ -39,9 +39,9 @@ public enum SensitivePropertyProtectionScheme {
     private final boolean requiresSecretKey;
 
     /**
-     * Returns a the identifier of the SensitivePropertyProtectionScheme.
+     * Returns a the identifier of the PropertyProtectionScheme.
      * @param args scheme-specific arguments used to fill in the formatted identifierPattern
-     * @return The identifier of the SensitivePropertyProtectionScheme
+     * @return The identifier of the PropertyProtectionScheme
      */
     public String getIdentifier(final String... args) {
         return String.format(identifierFormat, args);
@@ -56,7 +56,7 @@ public enum SensitivePropertyProtectionScheme {
     }
 
     /**
-     * Returns the name of the SensitivePropertyProtectionScheme.
+     * Returns the name of the PropertyProtectionScheme.
      * @return The name
      */
     public String getName() {
@@ -64,14 +64,14 @@ public enum SensitivePropertyProtectionScheme {
     }
 
     /**
-     * Returns the SensitivePropertyProtectionScheme matching the provided name.
-     * @param identifier The unique SensitivePropertyProtectionScheme identifier
-     * @return The matching SensitivePropertyProtectionScheme
+     * Returns the PropertyProtectionScheme matching the provided name.
+     * @param identifier The unique PropertyProtectionScheme identifier
+     * @return The matching PropertyProtectionScheme
      * @throws IllegalArgumentException If the name was not recognized
      */
-    public static SensitivePropertyProtectionScheme fromIdentifier(final String identifier) {
+    public static PropertyProtectionScheme fromIdentifier(final String identifier) {
         Objects.requireNonNull(identifier, "Identifier must be specified");
-        return Arrays.stream(SensitivePropertyProtectionScheme.values())
+        return Arrays.stream(PropertyProtectionScheme.values())
                 .filter(scheme -> identifier.matches(scheme.identifierPattern))
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("Unrecognized protection scheme :" + identifier));

@@ -22,10 +22,10 @@ import java.util.Set;
 
 /**
  * Encapsulates methods needed to protect application properties.
- * @param <T> The ProtectedApplicationProperties type
+ * @param <T> The ProtectedProperties type
  * @param <U> The ApplicationProperties type
  */
-public interface SensitivePropertyProtector<T extends ProtectedApplicationProperties<U>, U extends ApplicationProperties> {
+public interface SensitivePropertyProtector<T extends ProtectedProperties<U>, U extends ApplicationProperties> {
 
     /**
      * Returns the number of properties, excluding protection scheme properties.
@@ -102,16 +102,9 @@ public interface SensitivePropertyProtector<T extends ProtectedApplicationProper
     Map<String, SensitivePropertyProvider> getSensitivePropertyProviders();
 
     /**
-     * Returns a percentage of the total number of populated properties marked as sensitive that are currently protected.
-     *
-     * @return the percent of sensitive properties marked as protected
-     */
-    int getPercentOfSensitivePropertiesProtected();
-
-    /**
      * Returns true if the property identified by this key is considered sensitive in this instance of {@code ApplicationProperties}.
      * Some properties are sensitive by default, while others can be specified by
-     * {@link ProtectedApplicationProperties#getAdditionalSensitivePropertiesKeys()}.
+     * {@link ProtectedProperties#getAdditionalSensitivePropertiesKeys()}.
      *
      * @param key the key
      * @return true if it is sensitive

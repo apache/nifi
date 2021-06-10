@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.properties;
 
-import org.apache.nifi.security.kms.CryptoUtils;
+import org.apache.nifi.util.NiFiBootstrapUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.slf4j.Logger;
@@ -48,7 +48,7 @@ public class NiFiPropertiesLoader {
     private static final String MIGRATION_INSTRUCTIONS = "See Admin Guide section [Updating the Sensitive Properties Key]";
     private static final String PROPERTIES_KEY_MESSAGE = String.format("Sensitive Properties Key [%s] not found: %s", NiFiProperties.SENSITIVE_PROPS_KEY, MIGRATION_INSTRUCTIONS);
 
-    private final String defaultPropertiesFilePath = CryptoUtils.getDefaultFilePath();
+    private final String defaultPropertiesFilePath = NiFiBootstrapUtils.getDefaultApplicationPropertiesFilePath();
     private NiFiProperties instance;
     private String keyHex;
 

@@ -18,7 +18,7 @@ package org.apache.nifi.toolkit.encryptconfig
 
 
 import org.apache.nifi.properties.NiFiPropertiesLoader
-import org.apache.nifi.properties.SensitivePropertyProtectionScheme
+import org.apache.nifi.properties.PropertyProtectionScheme
 import org.apache.nifi.properties.SensitivePropertyProvider
 import org.apache.nifi.toolkit.encryptconfig.util.BootstrapUtil
 import org.apache.nifi.util.NiFiProperties
@@ -184,7 +184,7 @@ class EncryptConfigMainTest extends GroovyTestCase {
                 "-v"]
 
         SensitivePropertyProvider spp = org.apache.nifi.properties.StandardSensitivePropertyProviderFactory.withKey(TestUtil.KEY_HEX)
-                .getProvider(SensitivePropertyProtectionScheme.AES_GCM)
+                .getProvider(PropertyProtectionScheme.AES_GCM)
 
         exit.checkAssertionAfterwards(new Assertion() {
             void checkAssertion() {

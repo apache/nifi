@@ -22,15 +22,18 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
-public abstract class ApplicationPropertiesBase implements ApplicationProperties {
+/**
+ * A Properties-backed implementation of ImmutableProperties.
+ */
+public class StandardImmutableProperties implements ImmutableProperties {
 
     private final Properties rawProperties = new Properties();
 
-    public ApplicationPropertiesBase(final Properties properties) {
+    public StandardImmutableProperties(final Properties properties) {
         rawProperties.putAll(properties);
     }
 
-    public ApplicationPropertiesBase(final Map<String, String> properties) {
+    public StandardImmutableProperties(final Map<String, String> properties) {
         rawProperties.putAll(properties);
     }
 
@@ -55,14 +58,14 @@ public abstract class ApplicationPropertiesBase implements ApplicationProperties
         return propertyNames;
     }
 
-    @Override
-    public Properties toBasicProperties() {
-        final Properties properties = new Properties();
-        getPropertyKeys().forEach(key -> properties.setProperty(key, getProperty(key)));
-        return properties;
+    protected Properties getRawProperties() {
+        return rawProperties;
     }
 
-    @Override
+    /**
+     * Returns the size of the properties.
+     * @return The size of the properties (number of keys)
+     */
     public int size() {
         return rawProperties.size();
     }

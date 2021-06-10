@@ -38,6 +38,7 @@ import static org.junit.Assert.assertTrue;
 
 public class StandardSensitivePropertyProviderFactoryTest {
 
+    private static final String AES_GCM_128 = "aes/gcm/128";
     private SensitivePropertyProviderFactory factory;
 
     private static final String BOOTSTRAP_KEY_HEX = "0123456789ABCDEFFEDCBA9876543210";
@@ -108,31 +109,31 @@ public class StandardSensitivePropertyProviderFactoryTest {
     public void testAES_GCM() throws IOException {
         configureDefaultFactory();
 
-        final SensitivePropertyProvider spp = factory.getProvider(SensitivePropertyProtectionScheme.AES_GCM);
+        final SensitivePropertyProvider spp = factory.getProvider(PropertyProtectionScheme.AES_GCM);
         assertNotNull(spp);
         assertTrue(spp.isSupported());
 
         final String cleartext = "test";
         assertEquals(cleartext, spp.unprotect(spp.protect(cleartext)));
         assertNotEquals(cleartext, spp.protect(cleartext));
-        assertEquals("aes/gcm/128", spp.getIdentifierKey());
+        assertEquals(AES_GCM_128, spp.getIdentifierKey());
 
         // Key is now different
         configureAdHocKeyFactory();
-        final SensitivePropertyProvider sppAdHocKey = factory.getProvider(SensitivePropertyProtectionScheme.AES_GCM);
+        final SensitivePropertyProvider sppAdHocKey = factory.getProvider(PropertyProtectionScheme.AES_GCM);
         assertNotNull(sppAdHocKey);
         assertTrue(sppAdHocKey.isSupported());
-        assertEquals("aes/gcm/128", sppAdHocKey.getIdentifierKey());
+        assertEquals(AES_GCM_128, sppAdHocKey.getIdentifierKey());
 
         assertNotEquals(spp.protect(cleartext), sppAdHocKey.protect(cleartext));
         assertEquals(cleartext, sppAdHocKey.unprotect(sppAdHocKey.protect(cleartext)));
 
         // This should use the same keyHex as the second one
         configureAdHocKeyAndPropertiesFactory();
-        final SensitivePropertyProvider sppKeyProperties = factory.getProvider(SensitivePropertyProtectionScheme.AES_GCM);
+        final SensitivePropertyProvider sppKeyProperties = factory.getProvider(PropertyProtectionScheme.AES_GCM);
         assertNotNull(sppKeyProperties);
         assertTrue(sppKeyProperties.isSupported());
-        assertEquals("aes/gcm/128", sppKeyProperties.getIdentifierKey());
+        assertEquals(AES_GCM_128, sppKeyProperties.getIdentifierKey());
 
         assertEquals(cleartext, sppKeyProperties.unprotect(sppKeyProperties.protect(cleartext)));
     }

@@ -25,8 +25,9 @@ import org.apache.nifi.authorization.generated.Authorizers;
 import org.apache.nifi.authorization.generated.Property;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.nar.ExtensionManager;
-import org.apache.nifi.properties.SensitivePropertyHolder;
+import org.apache.nifi.properties.PropertyProtectionScheme;
 import org.apache.nifi.properties.SensitivePropertyProtectionException;
+import org.apache.nifi.properties.SensitivePropertyProviderFactoryAware;
 import org.apache.nifi.security.xml.XmlUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
@@ -62,7 +63,7 @@ import java.util.stream.Collectors;
 /**
  * Factory bean for loading the configured authorizer.
  */
-public class AuthorizerFactoryBean extends SensitivePropertyHolder
+public class AuthorizerFactoryBean extends SensitivePropertyProviderFactoryAware
         implements FactoryBean, DisposableBean, UserGroupProviderLookup, AccessPolicyProviderLookup, AuthorizerLookup {
 
     private static final Logger logger = LoggerFactory.getLogger(AuthorizerFactoryBean.class);
@@ -89,11 +90,7 @@ public class AuthorizerFactoryBean extends SensitivePropertyHolder
     private final Map<String, AccessPolicyProvider> accessPolicyProviders = new HashMap<>();
     private final Map<String, Authorizer> authorizers = new HashMap<>();
 
-    public NiFiProperties getProperties() {
-        return properties;
-    }
-
-    public void setProperties(NiFiProperties properties) {
+    public void setProperties(final NiFiProperties properties) {
         this.properties = properties;
     }
 
@@ -115,12 +112,12 @@ public class AuthorizerFactoryBean extends SensitivePropertyHolder
     @Override
     public Object getObject() throws Exception {
         if (authorizer == null) {
-            if (getProperties().getSslPort() == null) {
+            if (properties.getSslPort() == null) {
                 // use a default authorizer... only allowable when running not securely
                 authorizer = createDefaultAuthorizer();
             } else {
                 // look up the authorizer to use
-                final String authorizerIdentifier = getProperties().getProperty(NiFiProperties.SECURITY_USER_AUTHORIZER);
+                final String authorizerIdentifier = properties.getProperty(NiFiProperties.SECURITY_USER_AUTHORIZER);
 
                 // ensure the authorizer class name was specified
                 if (StringUtils.isBlank(authorizerIdentifier)) {
@@ -206,7 +203,7 @@ public class AuthorizerFactoryBean extends SensitivePropertyHolder
     }
 
     private Authorizers loadAuthorizersConfiguration() throws Exception {
-        final File authorizersConfigurationFile = getProperties().getAuthorizerConfigurationFile();
+        final File authorizersConfigurationFile = properties.getAuthorizerConfigurationFile();
 
         // load the authorizers from the specified file
         if (authorizersConfigurationFile.exists()) {
@@ -413,7 +410,7 @@ public class AuthorizerFactoryBean extends SensitivePropertyHolder
                         // look for well known types
                         if (NiFiProperties.class.isAssignableFrom(argumentType)) {
                             // nifi properties injection
-                            method.invoke(instance, getProperties());
+                            method.invoke(instance, properties);
                         }
                     }
                 } finally {
@@ -444,7 +441,7 @@ public class AuthorizerFactoryBean extends SensitivePropertyHolder
                         // look for well known types
                         if (NiFiProperties.class.isAssignableFrom(fieldType)) {
                             // nifi properties injection
-                            field.set(instance, getProperties());
+                            field.set(instance, properties);
                         }
                     }
 
@@ -485,7 +482,7 @@ public class AuthorizerFactoryBean extends SensitivePropertyHolder
     }
 
     private String decryptValue(final String cipherText, final String protectionScheme) throws SensitivePropertyProtectionException {
-        return getSensitivePropertyProviderFactory().getProvider(protectionScheme).unprotect(cipherText);
+        return getSensitivePropertyProviderFactory().getProvider(PropertyProtectionScheme.fromIdentifier(protectionScheme)).unprotect(cipherText);
     }
 
     @Override

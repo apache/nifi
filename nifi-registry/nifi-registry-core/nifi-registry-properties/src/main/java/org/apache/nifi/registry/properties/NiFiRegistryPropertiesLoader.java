@@ -20,7 +20,7 @@ import org.apache.nifi.properties.SensitivePropertyProtectionException;
 import org.apache.nifi.properties.SensitivePropertyProvider;
 import org.apache.nifi.properties.SensitivePropertyProviderFactory;
 import org.apache.nifi.properties.StandardSensitivePropertyProviderFactory;
-import org.apache.nifi.registry.security.crypto.CryptoKeyLoader;
+import org.apache.nifi.registry.properties.util.NiFiRegistryBootstrapUtils;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -80,7 +80,7 @@ public class NiFiRegistryPropertiesLoader {
             sensitivePropertyProviderFactory = StandardSensitivePropertyProviderFactory
                     .withKeyAndBootstrapSupplier(keyHex, () -> {
                         try {
-                            return CryptoKeyLoader.loadBootstrapProperties();
+                            return NiFiRegistryBootstrapUtils.loadBootstrapProperties();
                         } catch (IOException e) {
                             throw new SensitivePropertyProtectionException("Could not load bootstrap.conf for sensitive property provider configuration.", e);
                         }

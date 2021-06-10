@@ -14,23 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.properties;
+package org.apache.nifi.util;
 
-import java.util.Collection;
+import org.apache.nifi.properties.AbstractBootstrapPropertiesLoader;
 
-public interface SensitivePropertyProviderFactory {
+public class NiFiBootstrapPropertiesLoader extends AbstractBootstrapPropertiesLoader {
+    @Override
+    protected String getApplicationPrefix() {
+        return "nifi";
+    }
 
-    /**
-     * Gives the appropriate SensitivePropertyProvider, given a protection scheme.
-     * @param protectionScheme The protection scheme to use
-     * @return The appropriate SensitivePropertyProvider
-     */
-    SensitivePropertyProvider getProvider(PropertyProtectionScheme protectionScheme);
+    @Override
+    protected String getApplicationPropertiesFilename() {
+        return "nifi.properties";
+    }
 
-    /**
-     * Returns a collection of all supported sensitive property providers.
-     * @return The supported sensitive property providers
-     */
-    Collection<SensitivePropertyProvider> getSupportedSensitivePropertyProviders();
-
+    @Override
+    protected String getApplicationPropertiesFilePathSystemProperty() {
+        return NiFiProperties.PROPERTIES_FILE_PATH;
+    }
 }

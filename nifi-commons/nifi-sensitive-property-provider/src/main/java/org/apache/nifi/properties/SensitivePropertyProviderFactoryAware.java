@@ -19,9 +19,9 @@ package org.apache.nifi.properties;
 import java.util.function.Supplier;
 
 /**
- * A base class that encapsulates some level of sensitive properties.
+ * Provides a default SensitivePropertyProviderFactory to subclasses.
  */
-public class SensitivePropertyHolder {
+public class SensitivePropertyProviderFactoryAware {
 
     private SensitivePropertyProviderFactory sensitivePropertyProviderFactory;
 

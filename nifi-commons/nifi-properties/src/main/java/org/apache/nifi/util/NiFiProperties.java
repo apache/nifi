@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.util;
 
-import org.apache.nifi.properties.ApplicationPropertiesBase;
+import org.apache.nifi.properties.ApplicationProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,7 +47,7 @@ import java.util.stream.Stream;
  * this class or passing it along. Its use should be refactored and minimized
  * over time.
  */
-public class NiFiProperties extends ApplicationPropertiesBase {
+public class NiFiProperties extends ApplicationProperties {
     private static final Logger logger = LoggerFactory.getLogger(NiFiProperties.class);
 
     // core properties
@@ -1589,45 +1589,10 @@ public class NiFiProperties extends ApplicationPropertiesBase {
     }
 
     public boolean isTlsConfigurationPresent() {
-        return StringUtils.isNotBlank(getKeyStorePath())
-            && getKeyStorePassword() != null
-            && StringUtils.isNotBlank(getTrustStorePath())
-            && getTrustStorePassword() != null;
-    }
-
-    @Override
-    public String getKeyStorePath() {
-        return getProperty(SECURITY_KEYSTORE);
-    }
-
-    @Override
-    public String getKeyStoreType() {
-        return getProperty(SECURITY_KEYSTORE_TYPE);
-    }
-
-    @Override
-    public String getKeyStorePassword() {
-        return getProperty(SECURITY_KEYSTORE_PASSWD);
-    }
-
-    @Override
-    public String getKeyPassword() {
-        return getProperty(SECURITY_KEY_PASSWD);
-    }
-
-    @Override
-    public String getTrustStorePath() {
-        return getProperty(SECURITY_TRUSTSTORE);
-    }
-
-    @Override
-    public String getTrustStoreType() {
-        return getProperty(SECURITY_TRUSTSTORE_TYPE);
-    }
-
-    @Override
-    public String getTrustStorePassword() {
-        return getProperty(SECURITY_TRUSTSTORE_PASSWD);
+        return StringUtils.isNotBlank(getProperty(SECURITY_KEYSTORE))
+            && getProperty(SECURITY_KEYSTORE_PASSWD) != null
+            && StringUtils.isNotBlank(getProperty(SECURITY_TRUSTSTORE))
+            && getProperty(SECURITY_TRUSTSTORE_PASSWD) != null;
     }
 
     public String getFlowFileRepoEncryptionKeyId() {

@@ -20,12 +20,10 @@ import groovy.cli.commons.CliBuilder
 import groovy.cli.commons.OptionAccessor
 import org.apache.commons.cli.HelpFormatter
 import org.apache.commons.cli.Options
-import org.apache.nifi.properties.BootstrapProperties
 import org.apache.nifi.properties.ConfigEncryptionTool
-import org.apache.nifi.properties.SensitivePropertyProtectionScheme
+import org.apache.nifi.properties.PropertyProtectionScheme
 import org.apache.nifi.properties.SensitivePropertyProvider
 import org.apache.nifi.properties.StandardSensitivePropertyProviderFactory
-import org.apache.nifi.registry.security.crypto.CryptoKeyLoader
 import org.apache.nifi.toolkit.encryptconfig.util.BootstrapUtil
 import org.apache.nifi.toolkit.encryptconfig.util.NiFiRegistryAuthorizersXmlEncryptor
 import org.apache.nifi.toolkit.encryptconfig.util.NiFiRegistryIdentityProvidersXmlEncryptor
@@ -193,7 +191,7 @@ class NiFiRegistryMode implements ToolMode {
         cli.S(longOpt: 'protectionScheme',
                 args: 1,
                 argName: 'protectionScheme',
-                "Selects the protection scheme for encrypted properties.  Valid values are: [${SensitivePropertyProtectionScheme.values().join(", ")}] (default is ${ConfigEncryptionTool.DEFAULT_PROTECTION_SCHEME.name()})")
+                "Selects the protection scheme for encrypted properties.  Valid values are: [${PropertyProtectionScheme.values().join(", ")}] (default is ${ConfigEncryptionTool.DEFAULT_PROTECTION_SCHEME.name()})")
 
         // Options for the old password or key, if running the tool to migrate keys
         cli._(longOpt: 'oldPassword',
@@ -261,9 +259,9 @@ class NiFiRegistryMode implements ToolMode {
         boolean usingPassword
         boolean usingBootstrapKey
 
-        SensitivePropertyProtectionScheme protectionScheme
+        PropertyProtectionScheme protectionScheme
         String encryptionKey
-        SensitivePropertyProtectionScheme oldProtectionScheme
+        PropertyProtectionScheme oldProtectionScheme
         String decryptionKey
 
         SensitivePropertyProvider encryptionProvider
@@ -355,7 +353,7 @@ class NiFiRegistryMode implements ToolMode {
         private void determineProtectionScheme() {
 
             if (rawOptions.S) {
-                protectionScheme = SensitivePropertyProtectionScheme.valueOf(rawOptions.S)
+                protectionScheme = PropertyProtectionScheme.valueOf(rawOptions.S)
             } else {
                 protectionScheme = ConfigEncryptionTool.DEFAULT_PROTECTION_SCHEME
             }
@@ -363,7 +361,7 @@ class NiFiRegistryMode implements ToolMode {
         private void determineOldProtectionScheme() {
 
             if (rawOptions.H) {
-                oldProtectionScheme = SensitivePropertyProtectionScheme.valueOf(rawOptions.H)
+                oldProtectionScheme = PropertyProtectionScheme.valueOf(rawOptions.H)
             } else {
                 oldProtectionScheme = ConfigEncryptionTool.DEFAULT_PROTECTION_SCHEME
             }

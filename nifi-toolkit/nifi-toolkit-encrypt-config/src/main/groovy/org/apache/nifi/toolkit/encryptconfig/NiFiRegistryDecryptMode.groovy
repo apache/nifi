@@ -18,9 +18,8 @@ package org.apache.nifi.toolkit.encryptconfig
 
 import groovy.cli.commons.CliBuilder
 import org.apache.nifi.properties.ConfigEncryptionTool
-import org.apache.nifi.properties.SensitivePropertyProtectionScheme
+import org.apache.nifi.properties.PropertyProtectionScheme
 import org.apache.nifi.properties.StandardSensitivePropertyProviderFactory
-import org.apache.nifi.registry.security.crypto.CryptoKeyLoader
 import org.apache.nifi.toolkit.encryptconfig.util.BootstrapUtil
 import org.apache.nifi.toolkit.encryptconfig.util.ToolUtilities
 import org.slf4j.Logger
@@ -76,7 +75,7 @@ class NiFiRegistryDecryptMode extends DecryptMode {
             config.fileType = FileType.properties  // disables auto-detection, which is still experimental
 
             if (options.S) {
-                config.protectionScheme = SensitivePropertyProtectionScheme.valueOf((String) options.S)
+                config.protectionScheme = PropertyProtectionScheme.valueOf((String) options.S)
             }
 
             // one of [-p, -k, -b]

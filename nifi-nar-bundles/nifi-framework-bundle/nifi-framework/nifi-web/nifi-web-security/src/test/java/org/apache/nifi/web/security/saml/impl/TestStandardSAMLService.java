@@ -28,7 +28,8 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.File;
-import java.util.Properties;
+import java.util.Arrays;
+import java.util.HashSet;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -66,15 +67,22 @@ public class TestStandardSAMLService {
         final File idpMetadataFile = new File("src/test/resources/saml/sso-circle-meta.xml");
         final String baseUrl = "https://localhost:8443/nifi-api";
 
-        final Properties rawProperties = new Properties();
-        rawProperties.setProperty(NiFiProperties.SECURITY_KEYSTORE, "src/test/resources/saml/keystore.jks");
-        rawProperties.setProperty(NiFiProperties.SECURITY_KEYSTORE_PASSWD, "passwordpassword");
-        rawProperties.setProperty(NiFiProperties.SECURITY_KEY_PASSWD, "passwordpassword");
-        rawProperties.setProperty(NiFiProperties.SECURITY_KEYSTORE_TYPE, "JKS");
-        rawProperties.setProperty(NiFiProperties.SECURITY_TRUSTSTORE, "src/test/resources/saml/truststore.jks");
-        rawProperties.setProperty(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD, "passwordpassword");
-        rawProperties.setProperty(NiFiProperties.SECURITY_TRUSTSTORE_TYPE, "JKS");
-        when(properties.toBasicProperties()).thenReturn(rawProperties);
+        when(properties.getProperty(NiFiProperties.SECURITY_KEYSTORE)).thenReturn("src/test/resources/saml/keystore.jks");
+        when(properties.getProperty(NiFiProperties.SECURITY_KEYSTORE_PASSWD)).thenReturn("passwordpassword");
+        when(properties.getProperty(NiFiProperties.SECURITY_KEY_PASSWD)).thenReturn("passwordpassword");
+        when(properties.getProperty(NiFiProperties.SECURITY_KEYSTORE_TYPE)).thenReturn("JKS");
+        when(properties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE)).thenReturn("src/test/resources/saml/truststore.jks");
+        when(properties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD)).thenReturn("passwordpassword");
+        when(properties.getProperty(NiFiProperties.SECURITY_TRUSTSTORE_TYPE)).thenReturn("JKS");
+        when(properties.getPropertyKeys()).thenReturn(new HashSet<>(Arrays.asList(
+                NiFiProperties.SECURITY_KEYSTORE,
+                NiFiProperties.SECURITY_KEYSTORE_PASSWD,
+                NiFiProperties.SECURITY_KEY_PASSWD,
+                NiFiProperties.SECURITY_KEYSTORE_TYPE,
+                NiFiProperties.SECURITY_TRUSTSTORE,
+                NiFiProperties.SECURITY_TRUSTSTORE_PASSWD,
+                NiFiProperties.SECURITY_TRUSTSTORE_TYPE
+        )));
 
         when(properties.isSamlEnabled()).thenReturn(true);
         when(properties.getSamlServiceProviderEntityId()).thenReturn(spEntityId);
