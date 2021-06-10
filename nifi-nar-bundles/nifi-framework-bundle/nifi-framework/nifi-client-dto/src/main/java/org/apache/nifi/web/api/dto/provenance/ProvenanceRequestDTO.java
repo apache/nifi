@@ -40,6 +40,7 @@ public class ProvenanceRequestDTO {
 
     private Boolean summarize;
     private Boolean incrementalResults;
+    private Boolean countExcessResults;
 
     /**
      * @return the search terms to use for this search
@@ -171,5 +172,21 @@ public class ProvenanceRequestDTO {
 
     public void setSummarize(Boolean summarize) {
         this.summarize = summarize;
+    }
+
+    /**
+     * @return whether results beyond limit are counted. If false, query stops when maxResults is reached.
+     * This property is false by default.
+     */
+    @ApiModelProperty(
+            value = "Whether results beyond limit are counted. If false, query stops"
+                    + " when maxResults is reached. This property is false by default."
+    )
+    public Boolean getCountExcessResults() {
+        return countExcessResults;
+    }
+
+    public void setCountExcessResults(Boolean countExcessResults) {
+        this.countExcessResults = countExcessResults;
     }
 }

@@ -590,6 +590,47 @@ public class TestLuceneEventIndex {
         assertEquals(event2, matchingEvents.get(0));
     }
 
+    @Test(timeout = 5000)
+    public void testCountExcessResults() throws InterruptedException {
+        final RepositoryConfiguration repoConfig = createConfig();
+        repoConfig.setDesiredIndexSize(1L);
+        final IndexManager indexManager = new StandardIndexManager(repoConfig);
+
+        final LuceneEventIndex index = new LuceneEventIndex(repoConfig, indexManager, 750, EventReporter.NO_OP);
+        final ArrayListEventStore eventStore = new ArrayListEventStore();
+        index.initialize(eventStore);
+
+        for (int i=0;i<750;i++) {
+            StorageResult storageResult = eventStore.addEvent(createEvent());
+            index.addEvents(storageResult.getStorageLocations());
+        }
+
+
+        final Query query = new Query(UUID.randomUUID().toString());
+        query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.ComponentID, "component-1", null));
+        query.setCountExcessResults(true);
+        query.setMaxResults(500);
+
+        while (index.getMaxEventId("1") < 749 ) {
+            Thread.sleep(500L); // avoid crushing the CPU
+        }
+        final QuerySubmission submission = index.submitQuery(query, EventAuthorizer.GRANT_ALL, "unit test user");
+        assertNotNull(submission);
+
+        QueryResult result = submission.getResult();
+        assertNotNull(result);
+        result.awaitCompletion(1000, TimeUnit.MILLISECONDS);
+
+        assertTrue(result.isFinished());
+        assertNull(result.getError());
+
+        List<ProvenanceEventRecord> matchingEvents = result.getMatchingEvents();
+        assertNotNull(matchingEvents);
+
+        assertEquals(500, matchingEvents.size());
+        assertEquals(750, result.getTotalHitCount());
+    }
+
     private RepositoryConfiguration createConfig() {
         return createConfig(1);
     }

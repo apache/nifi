@@ -444,6 +444,15 @@
                                 search['maximumFileSize'] = maxFileSize;
                             }
 
+                            var countExcessResultsField = 'countExcessResults';
+                            var countExcessResults = $('#provenance-search-full-result-count').hasClass('checkbox-checked');
+                            if (countExcessResults == true){
+                                search[countExcessResultsField] = true;
+                            } else {
+                                search[countExcessResultsField] = false;
+                            }
+
+
                             // limit search to a specific node
                             if (isClustered) {
                                 var searchLocation = $('#provenance-search-location').combo('getSelectedOption');

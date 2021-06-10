@@ -22,6 +22,7 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.Sort;
 import org.apache.lucene.search.SortField;
 import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.search.TopFieldCollector;
 import org.apache.nifi.provenance.ProgressiveResult;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.SearchableFields;
@@ -57,10 +58,11 @@ public class QueryTask implements Runnable {
     private final EventStore eventStore;
     private final EventAuthorizer authorizer;
     private final EventTransformer transformer;
+    private final boolean countExcessResults;
 
     public QueryTask(final Query query, final ProgressiveResult result, final int maxResults, final IndexManager indexManager,
         final File indexDir, final EventStore eventStore, final EventAuthorizer authorizer,
-        final EventTransformer unauthorizedTransformer) {
+        final EventTransformer unauthorizedTransformer, final boolean countExcessResults) {
         this.query = query;
         this.queryResult = result;
         this.maxResults = maxResults;
@@ -69,11 +71,12 @@ public class QueryTask implements Runnable {
         this.eventStore = eventStore;
         this.authorizer = authorizer;
         this.transformer = unauthorizedTransformer;
+        this.countExcessResults = countExcessResults;
     }
 
     @Override
     public void run() {
-        if (queryResult.getTotalHitCount() >= maxResults) {
+        if (foundEnoughRecords()) {
             logger.debug("Will not query lucene index {} because maximum results have already been obtained", indexDir);
             queryResult.update(Collections.emptyList(), 0L);
             return;
@@ -111,7 +114,7 @@ public class QueryTask implements Runnable {
             final long startNanos = System.nanoTime();
 
             // If max number of results are retrieved, do not bother querying lucene
-            if (queryResult.getTotalHitCount() >= maxResults) {
+            if (foundEnoughRecords()) {
                 logger.debug("Will not query lucene index {} because maximum results have already been obtained", indexDir);
                 queryResult.update(Collections.emptyList(), 0L);
                 return;
@@ -129,8 +132,12 @@ public class QueryTask implements Runnable {
 
                 // Sort based on document id, descending. This gives us most recent events first.
                 final Sort sort = new Sort(new SortField(null, SortField.Type.DOC, true));
+                final int totalHitsThreshold = countExcessResults ? Integer.MAX_VALUE : maxResults;
 
-                topDocs = searcher.getIndexSearcher().search(query, maxResults, sort);
+                final TopFieldCollector topFieldCollector = TopFieldCollector.create(sort, maxResults, totalHitsThreshold);
+
+                searcher.getIndexSearcher().search(query, topFieldCollector);
+                topDocs = topFieldCollector.topDocs();
             } catch (final Exception e) {
                 logger.error("Failed to query Lucene for index " + indexDir, e);
                 queryResult.setError("Failed to query Lucene for index " + indexDir + " due to " + e);
@@ -141,7 +148,7 @@ public class QueryTask implements Runnable {
             }
 
             // If max number of results are retrieved, do not bother reading docs
-            if (queryResult.getTotalHitCount() >= maxResults) {
+            if (foundEnoughRecords()) {
                 logger.debug("Will not read events from store for {} because maximum results have already been obtained", indexDir);
                 queryResult.update(Collections.emptyList(), 0L);
                 return;
@@ -211,4 +218,7 @@ public class QueryTask implements Runnable {
         return new Tuple<>(events, totalHits);
     }
 
+    private boolean foundEnoughRecords(){
+        return !countExcessResults && queryResult.getTotalHitCount() >= maxResults;
+    }
 }

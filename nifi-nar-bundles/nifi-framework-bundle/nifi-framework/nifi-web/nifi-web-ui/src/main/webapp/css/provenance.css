@@ -156,6 +156,14 @@ div.searchable-checkbox-tooltip {
 	margin-bottom: 11px;
 }
 
+.full-result-count {
+    float: left;
+    font-size: 13px;
+    font-family: Roboto;
+    font-weight: 500;
+    color: #775351;
+}
+
 .start-date-setting, .start-time-setting, .end-date-setting, .end-time-setting {
     float: left;
     width: 49%;

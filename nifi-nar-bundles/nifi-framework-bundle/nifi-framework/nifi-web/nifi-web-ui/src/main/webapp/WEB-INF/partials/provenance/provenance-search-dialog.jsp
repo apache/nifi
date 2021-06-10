@@ -87,6 +87,16 @@
             </div>
             <div class="clear"></div>
         </div>
+        <div class="setting">
+            <div class="full-result-count">
+                <div class="nf-checkbox checkbox-unchecked" id="provenance-search-full-result-count"></div>
+                <div class="nf-checkbox-label">
+                    Count results beyond limit
+                    <div class="fa fa-question-circle" title="Count all results found, even beyond 1000 result limit. Increases load and query time."></div>
+                </div>
+            </div>
+            <div class="clear"></div>
+        </div>
         <div id="provenance-search-location-container" class="setting">
             <div class="setting-name">
                 Search location

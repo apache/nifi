@@ -67,7 +67,7 @@ public class LatestEventsPerProcessorQuery implements CachedQuery {
         }
 
         List<Long> eventIds = ringBuffer.asList();
-        if (eventIds.size() > query.getMaxResults()) {
+        if ( !query.shouldCountExtraResults() && eventIds.size() > query.getMaxResults()) {
             eventIds = eventIds.subList(0, query.getMaxResults());
         }
 

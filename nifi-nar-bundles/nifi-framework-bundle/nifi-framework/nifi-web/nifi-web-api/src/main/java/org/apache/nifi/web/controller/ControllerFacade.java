@@ -1069,6 +1069,10 @@ public class ControllerFacade implements Authorizable {
 
             // set the max results desired
             query.setMaxResults(requestDto.getMaxResults());
+
+            if (requestDto.getCountExcessResults() != null) {
+                query.setCountExcessResults(requestDto.getCountExcessResults());
+            }
         }
 
         // submit the query to the provenance repository
@@ -1115,6 +1119,7 @@ public class ControllerFacade implements Authorizable {
             requestDto.setMinimumFileSize(query.getMinFileSize());
             requestDto.setMaximumFileSize(query.getMaxFileSize());
             requestDto.setMaxResults(query.getMaxResults());
+            requestDto.setCountExcessResults(query.shouldCountExtraResults());
             if (query.getSearchTerms() != null) {
                 final Map<String, ProvenanceSearchValueDTO> searchTerms = new HashMap<>();
                 for (final SearchTerm searchTerm : query.getSearchTerms()) {
@@ -1143,7 +1148,8 @@ public class ControllerFacade implements Authorizable {
                 resultsDto.setProvenanceEvents(events);
             }
 
-            if (requestDto.getMaxResults() != null && queryResult.getTotalHitCount() >= requestDto.getMaxResults()) {
+            if (requestDto.getMaxResults() != null && queryResult.getTotalHitCount() >= requestDto.getMaxResults()
+                    && ! Boolean.TRUE.equals(requestDto.getCountExcessResults())) {
                 resultsDto.setTotalCount(requestDto.getMaxResults().longValue());
                 resultsDto.setTotal(FormatUtils.formatCount(requestDto.getMaxResults().longValue()) + "+");
             } else {

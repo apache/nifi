@@ -42,7 +42,7 @@ public class LatestEventsQuery implements CachedQuery {
 
         if (query.getSearchTerms().isEmpty() && query.getStartDate() == null && query.getEndDate() == null) {
             final List<Long> eventList = latestRecords.asList();
-            if (eventList.size() > query.getMaxResults()) {
+            if ( ! query.shouldCountExtraResults() && eventList.size() > query.getMaxResults()) {
                 return Optional.of(eventList.subList(0, query.getMaxResults()));
             } else {
                 return Optional.of(eventList);

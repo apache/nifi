@@ -183,7 +183,8 @@ public class ProvenanceQueryEndpointMerger implements EndpointResponseMerger {
             results.setErrors(errors);
         }
 
-        if (clientDto.getRequest().getMaxResults() != null && totalRecords >= clientDto.getRequest().getMaxResults()) {
+        if (clientDto.getRequest().getMaxResults() != null && totalRecords >= clientDto.getRequest().getMaxResults()
+                && ! Boolean.TRUE.equals(clientDto.getRequest().getCountExcessResults())) {
             results.setTotalCount(clientDto.getRequest().getMaxResults().longValue());
             results.setTotal(FormatUtils.formatCount(clientDto.getRequest().getMaxResults().longValue()) + "+");
         } else {

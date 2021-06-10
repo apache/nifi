@@ -86,11 +86,11 @@ public class StandardQueryResult implements QueryResult, ProgressiveResult {
             // we truly don't have enough records to reach the max results, or that
             // the user is not authorized to see some of the results. Either way,
             // we want to report the number of events that we find AND that the user
-            // is allowed to see, so we report matching record count, or up to max results.
+            // is allowed to see, so we report matching record count, or total hit count.
             if (matchingRecords.size() < query.getMaxResults()) {
                 return matchingRecords.size();
             } else {
-                return query.getMaxResults();
+                return hitCount;
             }
         } finally {
             readLock.unlock();
@@ -126,7 +126,7 @@ public class StandardQueryResult implements QueryResult, ProgressiveResult {
     public boolean isFinished() {
         readLock.lock();
         try {
-            return numCompletedSteps >= numSteps || canceled || matchingRecords.size() >= query.getMaxResults();
+            return numCompletedSteps >= numSteps || canceled || foundEnoughRecords();
         } finally {
             readLock.unlock();
         }
@@ -184,7 +184,7 @@ public class StandardQueryResult implements QueryResult, ProgressiveResult {
             numCompletedSteps++;
             updateExpiration();
 
-            if (numCompletedSteps >= numSteps || this.matchingRecords.size() >= query.getMaxResults()) {
+            if (numCompletedSteps >= numSteps || foundEnoughRecords()) {
                 final long searchNanos = System.nanoTime() - creationNanos;
                 queryTime = TimeUnit.MILLISECONDS.convert(searchNanos, TimeUnit.NANOSECONDS);
                 queryComplete = true;
@@ -238,5 +238,9 @@ public class StandardQueryResult implements QueryResult, ProgressiveResult {
         public int compare(final ProvenanceEventRecord o1, final ProvenanceEventRecord o2) {
             return Long.compare(o2.getEventId(), o1.getEventId());
         }
+    }
+
+    private boolean foundEnoughRecords(){
+        return !query.shouldCountExtraResults() && this.matchingRecords.size() >= query.getMaxResults();
     }
 }

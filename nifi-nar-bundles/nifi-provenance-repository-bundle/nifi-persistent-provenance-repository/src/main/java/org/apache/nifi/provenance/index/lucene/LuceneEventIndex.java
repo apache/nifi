@@ -559,7 +559,7 @@ public class LuceneEventIndex implements EventIndex {
 
             for (final File indexDir : indexDirectories) {
                 queryExecutor.submit(new QueryTask(lineageQuery, submission.getResult(), MAX_LINEAGE_NODES, indexManager, indexDir,
-                    eventStore, eventAuthorizer, EventTransformer.PLACEHOLDER_TRANSFORMER));
+                    eventStore, eventAuthorizer, EventTransformer.PLACEHOLDER_TRANSFORMER, false));
             }
         }
 
@@ -651,7 +651,7 @@ public class LuceneEventIndex implements EventIndex {
 
             for (final File indexDir : indexDirectories) {
                 queryExecutor.submit(new QueryTask(luceneQuery, submission.getResult(), query.getMaxResults(), indexManager, indexDir,
-                    eventStore, authorizer, EventTransformer.EMPTY_TRANSFORMER));
+                    eventStore, authorizer, EventTransformer.EMPTY_TRANSFORMER, query.shouldCountExtraResults()));
             }
         }
 

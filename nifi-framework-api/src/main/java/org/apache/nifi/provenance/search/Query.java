@@ -32,6 +32,7 @@ public class Query {
     private String minFileSize;
     private String maxFileSize;
     private int maxResults = 1000;
+    private boolean countExtraResults = false;
 
     public Query(final String identifier) {
         this.identifier = Objects.requireNonNull(identifier);
@@ -87,6 +88,14 @@ public class Query {
 
     public String getMaxFileSize() {
         return maxFileSize;
+    }
+
+    public boolean shouldCountExtraResults() {
+        return countExtraResults;
+    }
+
+    public void setCountExcessResults(boolean countExtraResults) {
+        this.countExtraResults = countExtraResults;
     }
 
     @Override
