@@ -716,7 +716,7 @@ class ProtectedNiFiPropertiesGroovyTest extends GroovyTestCase {
         assert properties.getSensitivePropertyProviders().isEmpty()
 
         // Act
-        def msg = shouldFail(IllegalArgumentException) {
+        def msg = shouldFail(NullPointerException) {
             properties.addSensitivePropertyProvider(null)
         }
         logger.expected(msg)

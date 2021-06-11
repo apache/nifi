@@ -46,7 +46,7 @@ class ProtectedNiFiRegistryProperties extends NiFiRegistryProperties implements 
 
     private SensitivePropertyProtector<ProtectedNiFiRegistryProperties, NiFiRegistryProperties> propertyProtectionDelegate;
 
-    private NiFiRegistryProperties underlyingProperties;
+    private NiFiRegistryProperties applicationProperties;
 
     // Additional "sensitive" property key
     public static final String ADDITIONAL_SENSITIVE_PROPERTIES_KEY = "nifi.registry.sensitive.props.additional.keys";
@@ -67,7 +67,7 @@ class ProtectedNiFiRegistryProperties extends NiFiRegistryProperties implements 
      * @param props the NiFiRegistryProperties to contain
      */
     public ProtectedNiFiRegistryProperties(final NiFiRegistryProperties props) {
-        this.underlyingProperties = props;
+        this.applicationProperties = props;
         this.propertyProtectionDelegate = new ApplicationPropertiesProtector<>(this);
         logger.debug("Loaded {} properties (including {} protection schemes) into ProtectedNiFiRegistryProperties", getApplicationProperties()
                 .getPropertyKeys().size(), getProtectedPropertyKeys().size());
@@ -98,11 +98,11 @@ class ProtectedNiFiRegistryProperties extends NiFiRegistryProperties implements 
      */
     @Override
     public NiFiRegistryProperties getApplicationProperties() {
-        if (this.underlyingProperties == null) {
-            this.underlyingProperties = new NiFiRegistryProperties();
+        if (this.applicationProperties == null) {
+            this.applicationProperties = new NiFiRegistryProperties();
         }
 
-        return this.underlyingProperties;
+        return this.applicationProperties;
     }
 
     @Override

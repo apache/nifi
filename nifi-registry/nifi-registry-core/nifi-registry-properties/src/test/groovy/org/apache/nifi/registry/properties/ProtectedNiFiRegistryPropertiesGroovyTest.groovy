@@ -38,8 +38,8 @@ import javax.crypto.Cipher
 import java.security.Security
 
 @RunWith(JUnit4.class)
-class ProtectedNiFiPropertiesGroovyTest extends GroovyTestCase {
-    private static final Logger logger = LoggerFactory.getLogger(ProtectedNiFiPropertiesGroovyTest.class)
+class ProtectedNiFiRegistryPropertiesGroovyTest extends GroovyTestCase {
+    private static final Logger logger = LoggerFactory.getLogger(ProtectedNiFiRegistryPropertiesGroovyTest.class)
 
     private static final String KEYSTORE_PASSWORD_KEY = NiFiRegistryProperties.SECURITY_KEYSTORE_PASSWD
     private static final String KEY_PASSWORD_KEY = NiFiRegistryProperties.SECURITY_KEY_PASSWD
@@ -116,7 +116,7 @@ class ProtectedNiFiPropertiesGroovyTest extends GroovyTestCase {
     private static File fileForResource(String resourcePath) {
         String filePath
         try {
-            URL resourceURL = ProtectedNiFiPropertiesGroovyTest.class.getResource(resourcePath)
+            URL resourceURL = ProtectedNiFiRegistryPropertiesGroovyTest.class.getResource(resourcePath)
             if (!resourceURL) {
                 throw new RuntimeException("File ${resourcePath} not found in class resources, cannot load.")
             }
@@ -556,7 +556,7 @@ class ProtectedNiFiPropertiesGroovyTest extends GroovyTestCase {
         assert properties.getSensitivePropertyProviders().isEmpty()
 
         // Act
-        def msg = shouldFail(IllegalArgumentException) {
+        def msg = shouldFail(NullPointerException) {
             properties.addSensitivePropertyProvider(null)
         }
         logger.info(msg)

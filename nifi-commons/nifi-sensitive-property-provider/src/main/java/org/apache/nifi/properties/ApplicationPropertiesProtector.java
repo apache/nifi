@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -175,16 +176,6 @@ public class ApplicationPropertiesProtector<T extends ProtectedProperties<U>, U 
     public Map<String, String> getProtectedPropertyKeys() {
         final List<String> sensitiveKeys = getSensitivePropertyKeys();
 
-        // This is the Java 8 way, but can likely be optimized (and not sure of correctness)
-        // Map<String, String> protectedProperties = sensitiveKeys.stream().filter(key ->
-        // getProperty(getProtectionKey(key)) != null).collect(Collectors.toMap(Function.identity(), key ->
-        // getProperty(getProtectionKey(key))));
-
-        // Groovy
-        // Map<String, String> groovyProtectedProperties = sensitiveKeys.collectEntries { key ->
-        // [(key): getProperty(getProtectionKey(key))] }.findAll { k, v -> v }
-
-        // Traditional way
         final Map<String, String> traditionalProtectedProperties = new HashMap<>();
         for (final String key : sensitiveKeys) {
             final String protection = getProperty(getProtectionKey(key));
@@ -223,7 +214,7 @@ public class ApplicationPropertiesProtector<T extends ProtectedProperties<U>, U 
     @Override
     public U getUnprotectedProperties() throws SensitivePropertyProtectionException {
         if (hasProtectedKeys()) {
-            logger.info("There are {} protected properties of {} sensitive properties",
+            logger.debug("Protected Properties [{}] Sensitive Properties [{}]",
                     getProtectedPropertyKeys().size(),
                     getSensitivePropertyKeys().size());
 
@@ -271,6 +262,7 @@ public class ApplicationPropertiesProtector<T extends ProtectedProperties<U>, U 
 
     @Override
     public void addSensitivePropertyProvider(final SensitivePropertyProvider sensitivePropertyProvider) {
+        Objects.requireNonNull(sensitivePropertyProvider, "Cannot add null SensitivePropertyProvider");
         if (sensitivePropertyProvider == null) {
             throw new IllegalArgumentException("Cannot add null SensitivePropertyProvider");
         }

@@ -25,7 +25,7 @@ import java.util.Properties;
 /**
  * Properties representing bootstrap.conf.
  */
-public class BootstrapProperties extends StandardImmutableProperties {
+public class BootstrapProperties extends StandardReadableProperties {
     private static final String PROPERTY_KEY_FORMAT = "%s.%s";
     private static final String BOOTSTRAP_SENSITIVE_KEY = "bootstrap.sensitive.key";
 

@@ -19,9 +19,9 @@ package org.apache.nifi.properties;
 import java.util.Set;
 
 /**
- * A base interface for providing an immutable set of properties.
+ * A base interface for providing a readable set of properties.
  */
-public interface ImmutableProperties {
+public interface ReadableProperties {
 
     /**
      * Retrieves the property value for the given property key.

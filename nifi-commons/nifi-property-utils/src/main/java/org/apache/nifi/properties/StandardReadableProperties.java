@@ -23,17 +23,17 @@ import java.util.Properties;
 import java.util.Set;
 
 /**
- * A Properties-backed implementation of ImmutableProperties.
+ * A Properties-backed implementation of ReadableProperties.
  */
-public class StandardImmutableProperties implements ImmutableProperties {
+public class StandardReadableProperties implements ReadableProperties {
 
     private final Properties rawProperties = new Properties();
 
-    public StandardImmutableProperties(final Properties properties) {
+    public StandardReadableProperties(final Properties properties) {
         rawProperties.putAll(properties);
     }
 
-    public StandardImmutableProperties(final Map<String, String> properties) {
+    public StandardReadableProperties(final Map<String, String> properties) {
         rawProperties.putAll(properties);
     }
 

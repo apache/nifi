@@ -42,7 +42,7 @@ class ProtectedNiFiProperties extends NiFiProperties implements ProtectedPropert
 
     private SensitivePropertyProtector<ProtectedNiFiProperties, NiFiProperties> propertyProtectionDelegate;
 
-    private NiFiProperties underlyingProperties;
+    private NiFiProperties applicationProperties;
 
     // Additional "sensitive" property key
     public static final String ADDITIONAL_SENSITIVE_PROPERTIES_KEY = "nifi.sensitive.props.additional.keys";
@@ -61,7 +61,7 @@ class ProtectedNiFiProperties extends NiFiProperties implements ProtectedPropert
      * @param props the NiFiProperties to contain
      */
     public ProtectedNiFiProperties(final NiFiProperties props) {
-        this.underlyingProperties = props;
+        this.applicationProperties = props;
         this.propertyProtectionDelegate = new ApplicationPropertiesProtector<>(this);
         logger.debug("Loaded {} properties (including {} protection schemes) into ProtectedNiFiProperties", getApplicationProperties()
                 .getPropertyKeys().size(), getProtectedPropertyKeys().size());
@@ -100,11 +100,11 @@ class ProtectedNiFiProperties extends NiFiProperties implements ProtectedPropert
      * @return the internal properties
      */
     public NiFiProperties getApplicationProperties() {
-        if (this.underlyingProperties == null) {
-            this.underlyingProperties = new NiFiProperties();
+        if (this.applicationProperties == null) {
+            this.applicationProperties = new NiFiProperties();
         }
 
-        return this.underlyingProperties;
+        return this.applicationProperties;
     }
 
     @Override
