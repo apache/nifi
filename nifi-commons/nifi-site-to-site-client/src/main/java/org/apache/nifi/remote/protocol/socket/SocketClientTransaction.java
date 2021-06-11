@@ -83,11 +83,11 @@ public class SocketClientTransaction extends AbstractTransaction {
     }
 
     @Override
-    protected void writeTransactionResponse(ResponseCode response, String explanation) throws IOException {
+    protected void writeTransactionResponse(ResponseCode response, String explanation, boolean flush) throws IOException {
         if(explanation == null){
-            response.writeResponse(dos);
+            response.writeResponse(dos, flush);
         } else {
-            response.writeResponse(dos, explanation);
+            response.writeResponse(dos, explanation, flush);
         }
     }
 }
