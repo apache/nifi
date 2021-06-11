@@ -37,6 +37,7 @@ public class JacksonExtensionManifestParser implements ExtensionManifestParser {
         this.mapper = new XmlMapper();
         this.mapper.registerModule(new JaxbAnnotationModule());
         this.mapper.configure(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY, true);
+        this.mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     }
 
     @Override
