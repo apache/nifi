@@ -139,8 +139,14 @@ Set how long sockets stay in a TIMED_WAIT state when closed::
 You don't want your sockets to sit and linger too long given that you want to be
 able to quickly setup and teardown new sockets.  It is a good idea to read more about
 it and adjust to something like
+
+for kernel 2.6
 ----
 sudo sysctl -w net.ipv4.netfilter.ip_conntrack_tcp_timeout_time_wait="1"
+----
+for kernel 3.0
+----
+sudo sysctl -w net.netfilter.nf_conntrack_tcp_timeout_time_wait="1"
 ----
 
 Tell Linux you never want NiFi to swap::
