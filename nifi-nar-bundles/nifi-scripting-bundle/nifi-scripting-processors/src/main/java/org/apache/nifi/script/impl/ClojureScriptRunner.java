@@ -18,10 +18,12 @@ package org.apache.nifi.script.impl;
 
 import org.apache.nifi.processors.script.engine.ClojureScriptEngine;
 
+import javax.script.Bindings;
+import javax.script.ScriptContext;
 import javax.script.ScriptEngine;
 import javax.script.ScriptException;
 
-public class ClojureScriptEngineConfigurator extends AbstractModuleClassloaderConfigurator {
+public class ClojureScriptRunner extends BaseScriptRunner {
 
     private static final String PRELOADS =
             "(:import \n"
@@ -37,37 +39,30 @@ public class ClojureScriptEngineConfigurator extends AbstractModuleClassloaderCo
                     + "[org.apache.nifi.processor.exception FlowFileAccessException FlowFileHandlingException MissingFlowFileException ProcessException]\n"
                     + "[org.apache.nifi.processor.io InputStreamCallback OutputStreamCallback StreamCallback]\n"
                     + "[org.apache.nifi.processor.util FlowFileFilters StandardValidators]\n"
-                    + "[org.apache.nifi.processors.script ExecuteScript InvokeScriptedProcessor ScriptEngineConfigurator]\n"
+                    + "[org.apache.nifi.processors.script ExecuteScript InvokeScriptedProcessor ScriptRunner]\n"
                     + "[org.apache.nifi.script ScriptingComponentHelper ScriptingComponentUtils]\n"
                     + "[org.apache.nifi.logging ComponentLog]\n"
                     + "[org.apache.nifi.lookup LookupService RecordLookupService StringLookupService LookupFailureException]\n"
                     + "[org.apache.nifi.record.sink RecordSinkService]\n"
                     + ")\n";
 
-
-    private ScriptEngine scriptEngine;
+    public ClojureScriptRunner(ScriptEngine engine, String scriptBody, String[] modulePaths) {
+        super(engine, scriptBody, modulePaths);
+    }
 
     @Override
     public String getScriptEngineName() {
         return "Clojure";
     }
 
-
     @Override
-    public Object init(ScriptEngine engine, String scriptBody, String[] modulePaths) throws ScriptException {
-        scriptEngine = engine;
-        return scriptEngine;
-    }
-
-    @Override
-    public Object eval(ScriptEngine engine, String scriptBody, String[] modulePaths) throws ScriptException {
-        scriptEngine = engine;
-        StringBuilder sb = new StringBuilder("(ns ");
-        sb.append(((ClojureScriptEngine) scriptEngine).getNamespace());
-        sb.append(" ");
-        sb.append(PRELOADS);
-        sb.append(")\n");
-        sb.append(scriptBody);
-        return engine.eval(sb.toString());
+    public void run(Bindings bindings) throws ScriptException {
+        String sb = "(ns " + ((ClojureScriptEngine) scriptEngine).getNamespace() +
+                " " +
+                PRELOADS +
+                ")\n" +
+                scriptBody;
+        scriptEngine.setBindings(bindings, ScriptContext.ENGINE_SCOPE);
+        scriptEngine.eval(sb);
     }
 }

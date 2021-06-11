@@ -51,6 +51,7 @@ import org.apache.nifi.script.ScriptingComponentUtils;
 import org.apache.nifi.script.impl.FilteredPropertiesValidationContextAdapter;
 
 import javax.script.Invocable;
+import javax.script.ScriptContext;
 import javax.script.ScriptEngine;
 import javax.script.ScriptException;
 import java.io.File;
@@ -93,7 +94,7 @@ public class InvokeScriptedProcessor extends AbstractSessionFactoryProcessor {
 
     private final AtomicBoolean scriptNeedsReload = new AtomicBoolean(true);
 
-    private volatile ScriptEngine scriptEngine = null;
+    private volatile ScriptRunner scriptRunner = null;
     private volatile String kerberosServicePrincipal = null;
     private volatile File kerberosConfigFile = null;
     private volatile File kerberosServiceKeytab = null;
@@ -152,8 +153,7 @@ public class InvokeScriptedProcessor extends AbstractSessionFactoryProcessor {
                 scriptingComponentHelper.createResources();
             }
         }
-        List<PropertyDescriptor> supportedPropertyDescriptors = new ArrayList<>();
-        supportedPropertyDescriptors.addAll(scriptingComponentHelper.getDescriptors());
+        List<PropertyDescriptor> supportedPropertyDescriptors = new ArrayList<>(scriptingComponentHelper.getDescriptors());
 
         final Processor instance = processor.get();
         if (instance != null) {
@@ -213,16 +213,6 @@ public class InvokeScriptedProcessor extends AbstractSessionFactoryProcessor {
     }
 
     public void setup() {
-        // Create a single script engine, the Processor object is reused by each task
-        if(scriptEngine == null) {
-            scriptingComponentHelper.setup(1, getLogger());
-            scriptEngine = scriptingComponentHelper.engineQ.poll();
-        }
-
-        if (scriptEngine == null) {
-            throw new ProcessException("No script engine available!");
-        }
-
         if (scriptNeedsReload.get() || processor.get() == null) {
             if (ScriptingComponentHelper.isFile(scriptingComponentHelper.getScriptPath())) {
                 reloadScriptFile(scriptingComponentHelper.getScriptPath());
@@ -254,7 +244,7 @@ public class InvokeScriptedProcessor extends AbstractSessionFactoryProcessor {
                 || ScriptingComponentUtils.MODULES.equals(descriptor)
                 || scriptingComponentHelper.SCRIPT_ENGINE.equals(descriptor)) {
             scriptNeedsReload.set(true);
-            scriptEngine = null; //reset engine. This happens only when a processor is stopped, so there won't be any performance impact in run-time.
+            scriptRunner = null; //reset engine. This happens only when a processor is stopped, so there won't be any performance impact in run-time.
         } else if (instance != null) {
             // If the script provides a Processor, call its onPropertyModified() method
             try {
@@ -342,20 +332,22 @@ public class InvokeScriptedProcessor extends AbstractSessionFactoryProcessor {
         final Collection<ValidationResult> results = new HashSet<>();
 
         try {
+            // Create a single script engine, the Processor object is reused by each task
+            if (scriptRunner == null) {
+                scriptingComponentHelper.setupScriptRunners(1, scriptBody, getLogger());
+                scriptRunner = scriptingComponentHelper.scriptRunnerQ.poll();
+            }
+
+            if (scriptRunner == null) {
+                throw new ProcessException("No script runner available!");
+            }
             // get the engine and ensure its invocable
+            ScriptEngine scriptEngine = scriptRunner.getScriptEngine();
             if (scriptEngine instanceof Invocable) {
                 final Invocable invocable = (Invocable) scriptEngine;
 
-                // Find a custom configurator and invoke their eval() method
-                ScriptEngineConfigurator configurator = scriptingComponentHelper.scriptEngineConfiguratorMap.get(scriptingComponentHelper.getScriptEngineName().toLowerCase());
-                if (configurator != null) {
-                    configurator.reset();
-                    configurator.init(scriptEngine, scriptBody, scriptingComponentHelper.getModules());
-                    configurator.eval(scriptEngine, scriptBody, scriptingComponentHelper.getModules());
-                } else {
-                    // evaluate the script
-                    scriptEngine.eval(scriptBody);
-                }
+                // evaluate the script
+                scriptRunner.run(scriptEngine.getBindings(ScriptContext.ENGINE_SCOPE));
 
                 // get configured processor from the script (if it exists)
                 final Object obj = scriptEngine.get("processor");
@@ -579,32 +571,37 @@ public class InvokeScriptedProcessor extends AbstractSessionFactoryProcessor {
         invokeScriptedProcessorMethod("onStopped", context);
         scriptingComponentHelper.stop();
         processor.set(null);
-        scriptEngine = null;
+        scriptRunner = null;
     }
 
     private void invokeScriptedProcessorMethod(String methodName, Object... params) {
         // Run the scripted processor's method here, if it exists
-        if (scriptEngine instanceof Invocable) {
-            final Invocable invocable = (Invocable) scriptEngine;
-            final Object obj = scriptEngine.get("processor");
-            if (obj != null) {
+        if (scriptRunner != null) {
+            final ScriptEngine scriptEngine = scriptRunner.getScriptEngine();
+            if (scriptEngine instanceof Invocable) {
+                final Invocable invocable = (Invocable) scriptEngine;
+                final Object obj = scriptEngine.get("processor");
+                if (obj != null) {
 
-                ComponentLog logger = getLogger();
-                try {
-                    invocable.invokeMethod(obj, methodName, params);
-                } catch (final NoSuchMethodException nsme) {
-                    if (logger.isDebugEnabled()) {
-                        logger.debug("Configured script Processor does not contain the method " + methodName);
+                    ComponentLog logger = getLogger();
+                    try {
+                        invocable.invokeMethod(obj, methodName, params);
+                    } catch (final NoSuchMethodException nsme) {
+                        if (logger.isDebugEnabled()) {
+                            logger.debug("Configured script Processor does not contain the method " + methodName);
+                        }
+                    } catch (final Exception e) {
+                        // An error occurred during onScheduled, propagate it up
+                        logger.error("Error while executing the scripted processor's method " + methodName, e);
+                        if (e instanceof ProcessException) {
+                            throw (ProcessException) e;
+                        }
+                        throw new ProcessException(e);
                     }
-                } catch (final Exception e) {
-                    // An error occurred during onScheduled, propagate it up
-                    logger.error("Error while executing the scripted processor's method " + methodName, e);
-                    if (e instanceof ProcessException) {
-                        throw (ProcessException) e;
-                    }
-                    throw new ProcessException(e);
                 }
             }
+        } else {
+            throw new ProcessException("Error creating ScriptRunner");
         }
     }
 }

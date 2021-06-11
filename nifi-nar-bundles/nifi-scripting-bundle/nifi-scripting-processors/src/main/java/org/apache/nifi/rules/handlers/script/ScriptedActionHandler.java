@@ -28,7 +28,6 @@ import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processors.script.ScriptEngineConfigurator;
 import org.apache.nifi.rules.Action;
 import org.apache.nifi.rules.ActionHandler;
 import org.apache.nifi.rules.PropertyContextActionHandler;
@@ -36,6 +35,8 @@ import org.apache.nifi.script.AbstractScriptedControllerService;
 import org.apache.nifi.script.ScriptingComponentHelper;
 
 import javax.script.Invocable;
+import javax.script.ScriptContext;
+import javax.script.ScriptEngine;
 import javax.script.ScriptException;
 import java.util.Collection;
 import java.util.Collections;
@@ -77,16 +78,6 @@ public class ScriptedActionHandler extends AbstractScriptedControllerService imp
     }
 
     public void setup() {
-        // Create a single script engine, the component object is reused by each task
-        if (scriptEngine == null) {
-            scriptingComponentHelper.setup(1, getLogger());
-            scriptEngine = scriptingComponentHelper.engineQ.poll();
-        }
-
-        if (scriptEngine == null) {
-            throw new ProcessException("No script engine available!");
-        }
-
         if (scriptNeedsReload.get() || actionHandler.get() == null) {
             if (ScriptingComponentHelper.isFile(scriptingComponentHelper.getScriptPath())) {
                 reloadScriptFile(scriptingComponentHelper.getScriptPath());
@@ -110,23 +101,26 @@ public class ScriptedActionHandler extends AbstractScriptedControllerService imp
         final Collection<ValidationResult> results = new HashSet<>();
 
         try {
+            // Create a single script engine, the Processor object is reused by each task
+            if (scriptRunner == null) {
+                scriptingComponentHelper.setupScriptRunners(1, scriptBody, getLogger());
+                scriptRunner = scriptingComponentHelper.scriptRunnerQ.poll();
+            }
+
+            if (scriptRunner == null) {
+                throw new ProcessException("No script runner available!");
+            }
             // get the engine and ensure its invocable
+            ScriptEngine scriptEngine = scriptRunner.getScriptEngine();
             if (scriptEngine instanceof Invocable) {
                 final Invocable invocable = (Invocable) scriptEngine;
 
-                // Find a custom configurator and invoke their eval() method
-                ScriptEngineConfigurator configurator = scriptingComponentHelper.scriptEngineConfiguratorMap.get(scriptingComponentHelper.getScriptEngineName().toLowerCase());
-                if (configurator != null) {
-                    configurator.reset();
-                    configurator.init(scriptEngine, scriptBody, scriptingComponentHelper.getModules());
-                    configurator.eval(scriptEngine, scriptBody, scriptingComponentHelper.getModules());
-                } else {
-                    // evaluate the script
-                    scriptEngine.eval(scriptBody);
-                }
+                // evaluate the script
+                scriptRunner.run(scriptEngine.getBindings(ScriptContext.ENGINE_SCOPE));
+
 
                 // get configured processor from the script (if it exists)
-                final Object obj = scriptEngine.get("actionHandler");
+                final Object obj = scriptRunner.getScriptEngine().get("actionHandler");
                 if (obj != null) {
                     final ComponentLog logger = getLogger();
 
@@ -190,53 +184,63 @@ public class ScriptedActionHandler extends AbstractScriptedControllerService imp
         super.onEnabled(context);
 
         // Call an non-interface method onEnabled(context), to allow a scripted ActionHandler the chance to set up as necessary
-        final Invocable invocable = (Invocable) scriptEngine;
-        if (configurationContext != null) {
-            try {
-                // Get the actual object from the script engine, versus the proxy stored in ActionHandler. The object may have additional methods,
-                // where ActionHandler is a proxied interface
-                final Object obj = scriptEngine.get("actionHandler");
-                if (obj != null) {
-                    try {
-                        invocable.invokeMethod(obj, "onEnabled", context);
-                    } catch (final NoSuchMethodException nsme) {
-                        if (getLogger().isDebugEnabled()) {
-                            getLogger().debug("Configured script ActionHandler does not contain an onEnabled() method.");
+        if (scriptRunner != null) {
+            final ScriptEngine scriptEngine = scriptRunner.getScriptEngine();
+            final Invocable invocable = (Invocable) scriptEngine;
+            if (configurationContext != null) {
+                try {
+                    // Get the actual object from the script engine, versus the proxy stored in ActionHandler. The object may have additional methods,
+                    // where ActionHandler is a proxied interface
+                    final Object obj = scriptRunner.getScriptEngine().get("actionHandler");
+                    if (obj != null) {
+                        try {
+                            invocable.invokeMethod(obj, "onEnabled", context);
+                        } catch (final NoSuchMethodException nsme) {
+                            if (getLogger().isDebugEnabled()) {
+                                getLogger().debug("Configured script ActionHandler does not contain an onEnabled() method.");
+                            }
                         }
+                    } else {
+                        throw new ScriptException("No ActionHandler was defined by the script.");
                     }
-                } else {
-                    throw new ScriptException("No ActionHandler was defined by the script.");
+                } catch (ScriptException se) {
+                    throw new ProcessException("Error executing onEnabled(context) method", se);
                 }
-            } catch (ScriptException se) {
-                throw new ProcessException("Error executing onEnabled(context) method", se);
             }
+        } else {
+            throw new ProcessException("Error creating ScriptRunner");
         }
     }
 
 
     public void execute(PropertyContext context, Action action, Map<String, Object> facts) {
         // Attempt to call a non-ActionHandler interface method (i.e. execute(context, action, facts) from PropertyContextActionHandler)
-        final Invocable invocable = (Invocable) scriptEngine;
+        if (scriptRunner != null) {
+            final ScriptEngine scriptEngine = scriptRunner.getScriptEngine();
+            final Invocable invocable = (Invocable) scriptEngine;
 
-        try {
-            // Get the actual object from the script engine, versus the proxy stored in ActionHandler. The object may have additional methods,
-            // where ActionHandler is a proxied interface
-            final Object obj = scriptEngine.get("actionHandler");
-            if (obj != null) {
-                try {
-                    invocable.invokeMethod(obj, "execute", context, action, facts);
-                } catch (final NoSuchMethodException nsme) {
-                    if (getLogger().isDebugEnabled()) {
-                        getLogger().debug("Configured script ActionHandler is not a PropertyContextActionHandler and has no execute(context, action, facts) method, falling back to"
-                        + "execute(action, facts).");
+            try {
+                // Get the actual object from the script engine, versus the proxy stored in ActionHandler. The object may have additional methods,
+                // where ActionHandler is a proxied interface
+                final Object obj = scriptRunner.getScriptEngine().get("actionHandler");
+                if (obj != null) {
+                    try {
+                        invocable.invokeMethod(obj, "execute", context, action, facts);
+                    } catch (final NoSuchMethodException nsme) {
+                        if (getLogger().isDebugEnabled()) {
+                            getLogger().debug("Configured script ActionHandler is not a PropertyContextActionHandler and has no execute(context, action, facts) method, falling back to"
+                                    + "execute(action, facts).");
+                        }
+                        execute(action, facts);
                     }
-                    execute(action, facts);
+                } else {
+                    throw new ScriptException("No ActionHandler was defined by the script.");
                 }
-            } else {
-                throw new ScriptException("No ActionHandler was defined by the script.");
+            } catch (ScriptException se) {
+                throw new ProcessException("Error executing onEnabled(context) method: " + se.getMessage(), se);
             }
-        } catch (ScriptException se) {
-            throw new ProcessException("Error executing onEnabled(context) method: " + se.getMessage(), se);
+        } else {
+            throw new ProcessException("Error creating ScriptRunner");
         }
     }
 

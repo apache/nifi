@@ -16,13 +16,18 @@
  */
 package org.apache.nifi.script.impl;
 
+import javax.script.Bindings;
 import javax.script.ScriptEngine;
 import javax.script.ScriptException;
 
 /**
- * This class offers methods to perform Javascript-specific operations during the script engine lifecycle.
+ * This class offers methods to perform Javascript-specific operations during the script runner lifecycle.
  */
-public class JavascriptScriptEngineConfigurator extends AbstractModuleClassloaderConfigurator {
+public class JavascriptScriptRunner extends BaseScriptRunner {
+
+    public JavascriptScriptRunner(ScriptEngine engine, String scriptBody, String[] modulePaths) {
+        super(engine, scriptBody, modulePaths);
+    }
 
     @Override
     public String getScriptEngineName() {
@@ -30,13 +35,7 @@ public class JavascriptScriptEngineConfigurator extends AbstractModuleClassloade
     }
 
     @Override
-    public Object init(ScriptEngine engine, String scriptBody, String[] modulePaths) throws ScriptException {
-        // No initialization methods needed at present
-        return engine;
-    }
-
-    @Override
-    public Object eval(ScriptEngine engine, String scriptBody, String[] modulePaths) throws ScriptException {
-        return engine.eval(scriptBody);
+    public void run(Bindings bindings) throws ScriptException {
+        scriptEngine.eval(scriptBody);
     }
 }

@@ -96,11 +96,12 @@ class ScriptedReportingTaskTest {
         task.onTrigger context
 
         // This script should return a variable x with the number of events and a variable e with the first event
-        def se = task.scriptEngine
+        def sr = task.scriptRunner
+        def se = sr.scriptEngine
         assertEquals 3, se.x
         assertEquals '1234', se.e.componentId
         assertEquals 'xyz', se.e.attributes.abc
-        task.offerScriptEngine(se)
+        task.offerScriptRunner(sr)
     }
 
     private ProvenanceEventRecord createProvenanceEvent(final long id) {
@@ -138,10 +139,11 @@ class ScriptedReportingTaskTest {
 
         task.setup configurationContext
         task.onTrigger context
-        def se = task.scriptEngine
+        def sr = task.scriptRunner
+        def se = sr.scriptEngine
         // This script should store a variable called x with a map of stats to values
         assertTrue se.x?.uptime >= 0
-        task.offerScriptEngine(se)
+        task.offerScriptRunner(sr)
 
     }
 
@@ -171,20 +173,21 @@ class ScriptedReportingTaskTest {
 
         task.setup configurationContext
         task.onTrigger context
-        def se = task.scriptEngine
+        def sr = task.scriptRunner
+        def se = sr.scriptEngine
         // This script should store a variable called x with a map of stats to values
         assertTrue se.x?.uptime >= 0
-        task.offerScriptEngine(se)
+        task.offerScriptRunner(sr)
 
     }
 
     class MockScriptedReportingTask extends ScriptedReportingTask implements AccessibleScriptingComponentHelper {
-        def getScriptEngine() {
-            return scriptingComponentHelper.engineQ.poll()
+        def getScriptRunner() {
+            return scriptingComponentHelper.scriptRunnerQ.poll()
         }
 
-        def offerScriptEngine(engine) {
-            scriptingComponentHelper.engineQ.offer(engine)
+        def offerScriptRunner(runner) {
+            scriptingComponentHelper.scriptRunnerQ.offer(runner)
         }
 
         @Override
