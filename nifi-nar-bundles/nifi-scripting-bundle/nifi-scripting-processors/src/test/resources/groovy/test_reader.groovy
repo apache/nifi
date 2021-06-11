@@ -1,11 +1,3 @@
-import org.apache.nifi.components.PropertyDescriptor
-import org.apache.nifi.components.ValidationResult
-import org.apache.nifi.processor.ProcessContext
-import org.apache.nifi.processor.ProcessSessionFactory
-import org.apache.nifi.processor.ProcessorInitializationContext
-import org.apache.nifi.processor.Relationship
-import org.apache.nifi.processor.exception.ProcessException
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -67,7 +59,7 @@ class GroovyProcessor implements Processor {
         def session = sessionFactory.createSession()
         def flowFile = session.get();
         if (flowFile == null) {
-            return;
+            return
         }
         flowFile = session.putAttribute(flowFile, 'from-content', setAttributeFromThisInOnScheduled)
         // transfer
@@ -102,4 +94,4 @@ class GroovyProcessor implements Processor {
     }
 }
 
-processor = new GroovyProcessor();
+processor = new GroovyProcessor()

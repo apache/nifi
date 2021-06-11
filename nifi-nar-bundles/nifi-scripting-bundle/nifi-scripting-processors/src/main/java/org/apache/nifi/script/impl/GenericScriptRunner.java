@@ -14,29 +14,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.processors.script;
+package org.apache.nifi.script.impl;
 
-
-import org.apache.nifi.logging.ComponentLog;
-
+import javax.script.Bindings;
 import javax.script.ScriptEngine;
 import javax.script.ScriptException;
-import java.net.URL;
 
 /**
- * This interface describes callback methods used by the ExecuteScript/InvokeScript processors to perform
- * engine-specific tasks at various points in the engine lifecycle.
+ * This class offers methods to perform operations during the script runner lifecycle.
  */
-public interface ScriptEngineConfigurator {
+public class GenericScriptRunner extends BaseScriptRunner {
 
-    String getScriptEngineName();
+    private String engineName = "Unknown";
 
-    URL[] getModuleURLsForClasspath(String[] modulePaths, ComponentLog log);
+    public GenericScriptRunner(ScriptEngine engine, String scriptBody, String[] modulePaths) {
+        super(engine, scriptBody, modulePaths);
+        this.engineName = engine.getFactory().getEngineName();
+    }
 
-    Object init(ScriptEngine engine, String scriptBody, String[] modulePaths) throws ScriptException;
+    @Override
+    public String getScriptEngineName() {
+        return engineName;
+    }
 
-    Object eval(ScriptEngine engine, String scriptBody, String[] modulePaths) throws ScriptException;
-
-    default void reset() {
+    @Override
+    public void run(Bindings bindings) throws ScriptException {
+        scriptEngine.eval(scriptBody);
     }
 }

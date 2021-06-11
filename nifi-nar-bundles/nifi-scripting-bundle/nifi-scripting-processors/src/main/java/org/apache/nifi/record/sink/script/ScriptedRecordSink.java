@@ -30,7 +30,6 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.script.ScriptEngineConfigurator;
 import org.apache.nifi.record.sink.RecordSinkService;
 import org.apache.nifi.script.AbstractScriptedControllerService;
 import org.apache.nifi.script.ScriptingComponentHelper;
@@ -38,6 +37,8 @@ import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.RecordSet;
 
 import javax.script.Invocable;
+import javax.script.ScriptContext;
+import javax.script.ScriptEngine;
 import javax.script.ScriptException;
 import java.io.IOException;
 import java.lang.reflect.UndeclaredThrowableException;
@@ -104,16 +105,6 @@ public class ScriptedRecordSink extends AbstractScriptedControllerService implem
     }
 
     public void setup() {
-        // Create a single script engine, the Processor object is reused by each task
-        if (scriptEngine == null) {
-            scriptingComponentHelper.setup(1, getLogger());
-            scriptEngine = scriptingComponentHelper.engineQ.poll();
-        }
-
-        if (scriptEngine == null) {
-            throw new ProcessException("No script engine available!");
-        }
-
         if (scriptNeedsReload.get() || recordSink.get() == null) {
             if (ScriptingComponentHelper.isFile(scriptingComponentHelper.getScriptPath())) {
                 reloadScriptFile(scriptingComponentHelper.getScriptPath());
@@ -137,23 +128,26 @@ public class ScriptedRecordSink extends AbstractScriptedControllerService implem
         final Collection<ValidationResult> results = new HashSet<>();
 
         try {
+            // Create a single script engine, the Processor object is reused by each task
+            if (scriptRunner == null) {
+                scriptingComponentHelper.setupScriptRunners(1, scriptBody, getLogger());
+                scriptRunner = scriptingComponentHelper.scriptRunnerQ.poll();
+            }
+
+            if (scriptRunner == null) {
+                throw new ProcessException("No script runner available!");
+            }
             // get the engine and ensure its invocable
+            ScriptEngine scriptEngine = scriptRunner.getScriptEngine();
             if (scriptEngine instanceof Invocable) {
                 final Invocable invocable = (Invocable) scriptEngine;
 
-                // Find a custom configurator and invoke their eval() method
-                ScriptEngineConfigurator configurator = scriptingComponentHelper.scriptEngineConfiguratorMap.get(scriptingComponentHelper.getScriptEngineName().toLowerCase());
-                if (configurator != null) {
-                    configurator.reset();
-                    configurator.init(scriptEngine, scriptBody, scriptingComponentHelper.getModules());
-                    configurator.eval(scriptEngine, scriptBody, scriptingComponentHelper.getModules());
-                } else {
-                    // evaluate the script
-                    scriptEngine.eval(scriptBody);
-                }
+                // evaluate the script
+                scriptRunner.run(scriptEngine.getBindings(ScriptContext.ENGINE_SCOPE));
+
 
                 // get configured processor from the script (if it exists)
-                final Object obj = scriptEngine.get("recordSink");
+                final Object obj = scriptRunner.getScriptEngine().get("recordSink");
                 if (obj != null) {
                     final ComponentLog logger = getLogger();
 
@@ -217,26 +211,31 @@ public class ScriptedRecordSink extends AbstractScriptedControllerService implem
         super.onEnabled(context);
 
         // Call an non-interface method onEnabled(context), to allow a scripted RecordSinkService the chance to set up as necessary
-        final Invocable invocable = (Invocable) scriptEngine;
-        if (configurationContext != null) {
-            try {
-                // Get the actual object from the script engine, versus the proxy stored in RecordSinkService. The object may have additional methods,
-                // where RecordSinkService is a proxied interface
-                final Object obj = scriptEngine.get("recordSink");
-                if (obj != null) {
-                    try {
-                        invocable.invokeMethod(obj, "onEnabled", context);
-                    } catch (final NoSuchMethodException nsme) {
-                        if (getLogger().isDebugEnabled()) {
-                            getLogger().debug("Configured script RecordSinkService does not contain an onEnabled() method.");
+        if (scriptRunner != null) {
+            final ScriptEngine scriptEngine = scriptRunner.getScriptEngine();
+            final Invocable invocable = (Invocable) scriptEngine;
+            if (configurationContext != null) {
+                try {
+                    // Get the actual object from the script engine, versus the proxy stored in RecordSinkService. The object may have additional methods,
+                    // where RecordSinkService is a proxied interface
+                    final Object obj = scriptRunner.getScriptEngine().get("recordSink");
+                    if (obj != null) {
+                        try {
+                            invocable.invokeMethod(obj, "onEnabled", context);
+                        } catch (final NoSuchMethodException nsme) {
+                            if (getLogger().isDebugEnabled()) {
+                                getLogger().debug("Configured script RecordSinkService does not contain an onEnabled() method.");
+                            }
                         }
+                    } else {
+                        throw new ScriptException("No RecordSinkService was defined by the script.");
                     }
-                } else {
-                    throw new ScriptException("No RecordSinkService was defined by the script.");
+                } catch (ScriptException se) {
+                    throw new ProcessException("Error executing onEnabled(context) method: " + se.getMessage(), se);
                 }
-            } catch (ScriptException se) {
-                throw new ProcessException("Error executing onEnabled(context) method: " + se.getMessage(), se);
             }
+        } else {
+            throw new ProcessException("Error creating ScriptRunner");
         }
     }
 
