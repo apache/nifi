@@ -156,7 +156,7 @@ public class SecureNiFiConfigUtil {
         addSubjectAlternativeName(nifiProperties, NiFiProperties.REMOTE_INPUT_HOST, dnsSubjectAlternativeNames);
         addSubjectAlternativeName(nifiProperties, NiFiProperties.WEB_HTTPS_HOST, dnsSubjectAlternativeNames);
         addSubjectAlternativeName(nifiProperties, NiFiProperties.WEB_PROXY_HOST, dnsSubjectAlternativeNames);
-        addSubjectAlternativeName(nifiProperties, NiFiProperties.LOAD_BALANCE_ADDRESS, dnsSubjectAlternativeNames);
+        addSubjectAlternativeName(nifiProperties, NiFiProperties.LOAD_BALANCE_HOST, dnsSubjectAlternativeNames);
 
         // Not necessary to add as a SAN
         dnsSubjectAlternativeNames.remove(LOCALHOST_NAME);

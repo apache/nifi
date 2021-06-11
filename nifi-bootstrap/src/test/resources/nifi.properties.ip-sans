@@ -20,7 +20,7 @@ nifi.flow.configuration.file=./target/flow.xml.gz
 
 nifi.remote.input.host=1.2.3.4
 nifi.web.proxy.host=1.2.3.5
-nifi.cluster.load.balance.address=1.2.3.6
+nifi.cluster.load.balance.host=1.2.3.6
 
 # web properties #
 nifi.web.http.host=

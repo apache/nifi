@@ -247,7 +247,7 @@ public class NiFiProperties extends ApplicationProperties {
     public static final String FLOW_ELECTION_MAX_CANDIDATES = "nifi.cluster.flow.election.max.candidates";
 
     // cluster load balance properties
-    public static final String LOAD_BALANCE_ADDRESS = "nifi.cluster.load.balance.address";
+    public static final String LOAD_BALANCE_HOST = "nifi.cluster.load.balance.host";
     public static final String LOAD_BALANCE_PORT = "nifi.cluster.load.balance.port";
     public static final String LOAD_BALANCE_CONNECTIONS_PER_NODE = "nifi.cluster.load.balance.connections.per.node";
     public static final String LOAD_BALANCE_MAX_THREAD_COUNT = "nifi.cluster.load.balance.max.thread.count";
@@ -821,16 +821,16 @@ public class NiFiProperties extends ApplicationProperties {
 
     public InetSocketAddress getClusterLoadBalanceAddress() {
         try {
-            String address = getProperty(LOAD_BALANCE_ADDRESS);
-            if (StringUtils.isBlank(address)) {
-                address = getProperty(CLUSTER_NODE_ADDRESS);
+            String host = getProperty(LOAD_BALANCE_HOST);
+            if (StringUtils.isBlank(host)) {
+                host = getProperty(CLUSTER_NODE_ADDRESS);
             }
-            if (StringUtils.isBlank(address)) {
-                address = "localhost";
+            if (StringUtils.isBlank(host)) {
+                host = "localhost";
             }
 
             final int port = getIntegerProperty(LOAD_BALANCE_PORT, DEFAULT_LOAD_BALANCE_PORT);
-            return InetSocketAddress.createUnresolved(address, port);
+            return InetSocketAddress.createUnresolved(host, port);
         } catch (final Exception e) {
             throw new RuntimeException("Invalid load balance address/port due to: " + e, e);
         }
