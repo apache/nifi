@@ -24,6 +24,7 @@ public class VersionedPropertyDescriptor {
     private String displayName;
     private boolean identifiesControllerService;
     private boolean sensitive;
+    private VersionedResourceDefinition resourceDefinition;
 
     @ApiModelProperty("The name of the property")
     public String getName() {
@@ -59,5 +60,14 @@ public class VersionedPropertyDescriptor {
 
     public void setSensitive(boolean sensitive) {
         this.sensitive = sensitive;
+    }
+
+    @ApiModelProperty("Returns the Resource Definition that defines which type(s) of resource(s) this property references, if any")
+    public VersionedResourceDefinition getResourceDefinition() {
+        return resourceDefinition;
+    }
+
+    public void setResourceDefinition(final VersionedResourceDefinition resourceDefinition) {
+        this.resourceDefinition = resourceDefinition;
     }
 }
