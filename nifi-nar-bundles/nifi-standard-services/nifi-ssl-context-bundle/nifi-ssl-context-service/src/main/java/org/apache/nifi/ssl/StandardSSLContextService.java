@@ -27,8 +27,10 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.components.resource.ResourceCardinality;
 import org.apache.nifi.components.resource.ResourceType;
+import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
@@ -63,6 +65,7 @@ public class StandardSSLContextService extends AbstractControllerService impleme
     public static final PropertyDescriptor TRUSTSTORE = new PropertyDescriptor.Builder()
             .name("Truststore Filename")
             .description("The fully-qualified filename of the Truststore")
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .defaultValue(null)
             .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE)
             .sensitive(false)
@@ -85,6 +88,7 @@ public class StandardSSLContextService extends AbstractControllerService impleme
     public static final PropertyDescriptor KEYSTORE = new PropertyDescriptor.Builder()
             .name("Keystore Filename")
             .description("The fully-qualified filename of the Keystore")
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .defaultValue(null)
             .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE)
             .sensitive(false)
@@ -149,8 +153,10 @@ public class StandardSSLContextService extends AbstractControllerService impleme
         configContext = context;
 
         final Collection<ValidationResult> results = new ArrayList<>();
-        results.addAll(validateStore(context.getProperties(), KeystoreValidationGroup.KEYSTORE));
-        results.addAll(validateStore(context.getProperties(), KeystoreValidationGroup.TRUSTSTORE));
+
+        final Map<PropertyDescriptor, String> properties = evaluateProperties(context.getProperties(), context);
+        results.addAll(validateStore(properties, KeystoreValidationGroup.KEYSTORE));
+        results.addAll(validateStore(properties, KeystoreValidationGroup.TRUSTSTORE));
 
         if (!results.isEmpty()) {
             final StringBuilder sb = new StringBuilder(this + " is not valid due to:");
@@ -185,12 +191,22 @@ public class StandardSSLContextService extends AbstractControllerService impleme
             }
         }
 
-        results.addAll(validateStore(validationContext.getProperties(), KeystoreValidationGroup.KEYSTORE));
-        results.addAll(validateStore(validationContext.getProperties(), KeystoreValidationGroup.TRUSTSTORE));
+        final Map<PropertyDescriptor, String> properties = evaluateProperties(validationContext.getProperties(), validationContext);
+        results.addAll(validateStore(properties, KeystoreValidationGroup.KEYSTORE));
+        results.addAll(validateStore(properties, KeystoreValidationGroup.TRUSTSTORE));
 
         isValidated = results.isEmpty();
 
         return results;
+    }
+
+    private Map<PropertyDescriptor, String> evaluateProperties(final Map<PropertyDescriptor, String> properties, final PropertyContext context) {
+        for (final PropertyDescriptor pd : properties.keySet()) {
+            if (pd.isExpressionLanguageSupported() && context.getProperty(pd).isSet()) {
+                properties.put(pd, context.getProperty(pd).evaluateAttributeExpressions().getValue());
+            }
+        }
+        return properties;
     }
 
     private void resetValidationCache() {
@@ -289,7 +305,7 @@ public class StandardSSLContextService extends AbstractControllerService impleme
 
     @Override
     public String getTrustStoreFile() {
-        return configContext.getProperty(TRUSTSTORE).getValue();
+        return configContext.getProperty(TRUSTSTORE).evaluateAttributeExpressions().getValue();
     }
 
     @Override
@@ -310,7 +326,7 @@ public class StandardSSLContextService extends AbstractControllerService impleme
 
     @Override
     public String getKeyStoreFile() {
-        return configContext.getProperty(KEYSTORE).getValue();
+        return configContext.getProperty(KEYSTORE).evaluateAttributeExpressions().getValue();
     }
 
     @Override
@@ -582,6 +598,6 @@ public class StandardSSLContextService extends AbstractControllerService impleme
             allowableValues.add(new AllowableValue(supportedProtocol, supportedProtocol, description));
         }
 
-        return allowableValues.toArray(new AllowableValue[allowableValues.size()]);
+        return allowableValues.toArray(new AllowableValue[0]);
     }
 }
