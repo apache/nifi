@@ -224,7 +224,7 @@
         <nifi.cluster.flow.election.max.candidates />
 
         <!-- nifi.properties: cluster load balance properties -->
-        <nifi.cluster.load.balance.host />
+        <nifi.cluster.load.balance.address />
         <nifi.cluster.load.balance.port>6342</nifi.cluster.load.balance.port>
         <nifi.cluster.load.balance.connections.per.node>1</nifi.cluster.load.balance.connections.per.node>
         <nifi.cluster.load.balance.max.thread.count>8</nifi.cluster.load.balance.max.thread.count>

@@ -82,7 +82,7 @@ public class ConnectionLoadBalanceServer {
             serverSocket = createServerSocket();
         } catch (final Exception e) {
             throw new IOException("Could not begin listening for incoming connections in order to load balance data across the cluster. Please verify the values of the " +
-                    "'nifi.cluster.load.balance.port' and 'nifi.cluster.load.balance.host' properties as well as the 'nifi.security.*' properties", e);
+                    "'nifi.cluster.load.balance.port' and 'nifi.cluster.load.balance.address' properties as well as the 'nifi.security.*' properties", e);
         }
 
         acceptConnection = new AcceptConnection(serverSocket);

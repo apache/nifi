@@ -1095,7 +1095,7 @@ Optional command to execute all steps together using the toolkit pattern syntax:
 * `cp -R /etc/nifi-toolkit-1.11.4/node3.nifi/* node3.nifi/conf/.` -- Copies the `node3` files
 . Modify the `nifi.properties` file for each node to set the appropriate ports and enable the embedded link:https://zookeeper.apache.org/[ZooKeeper^] server. *If the nodes are being deployed to separate physical or virtual machines (such that each is treated as an independent host for networking), modifying the ports is not required, but enabling the embedded ZooKeeper servers is*. If the nodes are being deployed on the same machine such that the ports cannot conflict, all parts of this step are required. This port selection convention follows the pattern defined at the top of this section, where the last digit corresponds to the node identifier. For more information on ZooKeeper configuration for NiFi, see link:administration-guide.html#embedded_zookeeper[NiFi Administrator's Guide: Embedded ZooKeeper^].
 +
-NOTE: The `nifi.cluster.load.balance.host=` entry must be manually populated here because it was added after the TLS Toolkit was last updated. The toolkit correctly populates the hostname in all other necessary properties.
+NOTE: The `nifi.cluster.load.balance.address=` entry must be manually populated here because it was added after the TLS Toolkit was last updated. The toolkit correctly populates the hostname in all other necessary properties.
 
 * `$EDITOR node1.nifi/conf/nifi.properties` -- Opens the `nifi.properties` file in a text editor
 * Update the following lines:
@@ -1104,7 +1104,7 @@ NOTE: The `nifi.cluster.load.balance.host=` entry must be manually populated her
 ** `nifi.web.https.port=9443` -> `nifi.web.https.port=9441`
 ** `nifi.cluster.is.node=false` -> `nifi.cluster.is.node=true`
 ** `nifi.cluster.node.protocol.port=11443` -> `nifi.cluster.node.protocol.port=11441`
-** `nifi.cluster.load.balance.host=` -> `nifi.cluster.load.balance.host=node1.nifi`
+** `nifi.cluster.load.balance.address=` -> `nifi.cluster.load.balance.address=node1.nifi`
 ** `nifi.cluster.load.balance.port=6342` -> `nifi.cluster.load.balance.port=6341`
 ** `nifi.zookeeper.connect.string=` -> `nifi.zookeeper.connect.string=node1.nifi:2181,node2.nifi:2182,node3.nifi:2183`
 * `$EDITOR node2.nifi/conf/nifi.properties` -- Opens the `nifi.properties` file in a text editor. _Note that the `nifi.cluster.load.balance.port=6342` does not need to change for `node2` and is included for completeness_
@@ -1114,7 +1114,7 @@ NOTE: The `nifi.cluster.load.balance.host=` entry must be manually populated her
 ** `nifi.web.https.port=9443` -> `nifi.web.https.port=9442`
 ** `nifi.cluster.is.node=false` -> `nifi.cluster.is.node=true`
 ** `nifi.cluster.node.protocol.port=11443` -> `nifi.cluster.node.protocol.port=11442`
-** `nifi.cluster.load.balance.host=` -> `nifi.cluster.load.balance.host=node2.nifi`
+** `nifi.cluster.load.balance.address=` -> `nifi.cluster.load.balance.address=node2.nifi`
 ** `nifi.cluster.load.balance.port=6342` -> `nifi.cluster.load.balance.port=6342`
 ** `nifi.zookeeper.connect.string=` -> `nifi.zookeeper.connect.string=node1.nifi:2181,node2.nifi:2182,node3.nifi:2183`
 * `$EDITOR node3.nifi/conf/nifi.properties` -- Opens the `nifi.properties` file in a text editor. _Note that some of the ports do not need to change for `node3` and are included for completeness_
@@ -1124,7 +1124,7 @@ NOTE: The `nifi.cluster.load.balance.host=` entry must be manually populated her
 ** `nifi.web.https.port=9443` -> `nifi.web.https.port=9443`
 ** `nifi.cluster.is.node=false` -> `nifi.cluster.is.node=true`
 ** `nifi.cluster.node.protocol.port=11443` -> `nifi.cluster.node.protocol.port=11443`
-** `nifi.cluster.load.balance.host=` -> `nifi.cluster.load.balance.host=node3.nifi`
+** `nifi.cluster.load.balance.address=` -> `nifi.cluster.load.balance.address=node3.nifi`
 ** `nifi.cluster.load.balance.port=6342` -> `nifi.cluster.load.balance.port=6343`
 ** `nifi.zookeeper.connect.string=` -> `nifi.zookeeper.connect.string=node1.nifi:2181,node2.nifi:2182,node3.nifi:2183`
 . Update the `zookeeper.properties` file on each node. This file contains the addresses of each embedded ZooKeeper server in the cluster. The `zookeeper.properties` file can be identical on each embedded ZooKeeper server (assuming no other changes were made), so the modified file will be copied to the other nodes.
