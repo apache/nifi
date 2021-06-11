@@ -1,0 +1,15 @@
+<extensionManifest>
+    <systemApiVersion>1.8.0</systemApiVersion>
+    <extensions>
+        <extension>
+            <name>org.apache.nifi.processors.TestProcessor1</name>
+            <type>PROCESSOR</type>
+            <description>Test processor 1.</description>
+            <tags>
+                <tag>test</tag>
+                <tag>processor</tag>
+            </tags>
+            <UNKNOWN>UNKNOWN ELEMENT</UNKNOWN>
+        </extension>
+    </extensions>
+</extensionManifest>
