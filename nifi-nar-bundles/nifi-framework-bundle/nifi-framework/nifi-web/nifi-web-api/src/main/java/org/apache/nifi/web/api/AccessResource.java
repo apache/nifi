@@ -1158,7 +1158,7 @@ public class AccessResource extends ApplicationResource {
                     @ApiResponse(code = 500, message = "Unable to determine access status because an unexpected error occurred.")
             }
     )
-    public Response getAccessStatus(@Context HttpServletRequest httpServletRequest) {
+    public Response getAccessStatus(@Context HttpServletRequest httpServletRequest, @Context HttpServletResponse httpServletResponse) {
 
         // only consider user specific access over https
         if (!httpServletRequest.isSecure()) {
@@ -1192,8 +1192,12 @@ public class AccessResource extends ApplicationResource {
                         // attempt authorize to /flow
                         accessStatus.setStatus(AccessStatusDTO.Status.ACTIVE.name());
                         accessStatus.setMessage("You are already logged in.");
-                    } catch (JwtException e) {
-                        throw new InvalidAuthenticationException(e.getMessage(), e);
+                    } catch (final InvalidAuthenticationException iae) {
+                        if (WebUtils.getCookie(httpServletRequest, NiFiBearerTokenResolver.JWT_COOKIE_NAME) != null) {
+                            removeCookie(httpServletResponse, NiFiBearerTokenResolver.JWT_COOKIE_NAME);
+                        }
+
+                        throw iae;
                     }
                 }
             } else {
@@ -1553,7 +1557,8 @@ public class AccessResource extends ApplicationResource {
         LogoutRequest logoutRequest = null;
 
         // check if a logout request identifier is present and if so complete the request
-        final String logoutRequestIdentifier = WebUtils.getCookie(httpServletRequest, LOGOUT_REQUEST_IDENTIFIER).getValue();
+        final Cookie cookie = WebUtils.getCookie(httpServletRequest, LOGOUT_REQUEST_IDENTIFIER);
+        final String logoutRequestIdentifier = cookie == null ? null : cookie.getValue();
         if (logoutRequestIdentifier != null) {
             logoutRequest = logoutRequestManager.complete(logoutRequestIdentifier);
         }
