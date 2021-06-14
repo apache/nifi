@@ -283,7 +283,7 @@ public abstract class AbstractHive3QLProcessor extends AbstractSessionFactoryPro
     protected Set<TableName> findTableNames(final String query) {
         final ASTNode node;
         try {
-            node = new ParseDriver().parse(normalize(query));
+            node = new ParseDriver().parse(normalize(query)).getTree();
         } catch (ParseException e) {
             // If failed to parse the query, just log a message, but continue.
             getLogger().debug("Failed to parse query: {} due to {}", new Object[]{query, e}, e);
