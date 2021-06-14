@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.bootstrap.util;
 
+import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.security.util.KeyStoreUtils;
 import org.apache.nifi.security.util.StandardTlsConfiguration;
@@ -35,10 +36,14 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.security.GeneralSecurityException;
+import java.security.KeyStore;
+import java.security.cert.Certificate;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
+import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -117,6 +122,17 @@ public class SecureNiFiConfigUtil {
                 String[] subjectAlternativeNames = getSubjectAlternativeNames(nifiProperties, cmdLogger);
                 tlsConfiguration = KeyStoreUtils.createTlsConfigAndNewKeystoreTruststore(StandardTlsConfiguration
                         .fromNiFiProperties(nifiProperties), CERT_DURATION_DAYS, subjectAlternativeNames);
+                final KeyStore keyStore = KeyStoreUtils.loadKeyStore(tlsConfiguration.getKeystorePath(),
+                        tlsConfiguration.getKeystorePassword().toCharArray(), tlsConfiguration.getKeystoreType().getType());
+                final Enumeration<String> aliases = keyStore.aliases();
+                while (aliases.hasMoreElements()) {
+                    final String alias = aliases.nextElement();
+                    final Certificate certificate = keyStore.getCertificate(alias);
+                    if (certificate != null) {
+                        final String sha256 = DigestUtils.sha256Hex(certificate.getEncoded());
+                        cmdLogger.info("Generated Self-Signed Certificate SHA-256: {}", sha256.toUpperCase(Locale.ROOT));
+                    }
+                }
             } catch (GeneralSecurityException e) {
                 throw new RuntimeException(e);
             }
