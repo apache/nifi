@@ -72,7 +72,7 @@ import static org.junit.Assert.fail;
 public class TestAvroTypeUtil {
 
     @Test
-    @Ignore
+    @Ignore("Performance test meant for manually testing only before/after changes in order to measure performance difference caused by changes.")
     public void testCreateAvroRecordPerformance() throws IOException {
         final List<RecordField> fields = new ArrayList<>();
         for (int i=0; i < 100; i++) {
