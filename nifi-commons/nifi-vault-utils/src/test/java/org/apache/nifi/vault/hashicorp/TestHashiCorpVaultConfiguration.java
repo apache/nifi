@@ -18,6 +18,7 @@ package org.apache.nifi.vault.hashicorp;
 
 import org.apache.nifi.vault.hashicorp.config.HashiCorpVaultConfiguration;
 import org.apache.nifi.vault.hashicorp.config.HashiCorpVaultProperties;
+import org.apache.nifi.vault.hashicorp.config.HashiCorpVaultPropertySource;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
@@ -113,13 +114,13 @@ public class TestHashiCorpVaultConfiguration {
         }
     }
 
-    public void runTest() {
-        config = new HashiCorpVaultConfiguration(propertiesBuilder.build());
+    public void runTest(final String expectedScheme) {
+        config = new HashiCorpVaultConfiguration(new HashiCorpVaultPropertySource(propertiesBuilder.build()));
 
         VaultEndpoint endpoint = config.vaultEndpoint();
         Assert.assertEquals("localhost", endpoint.getHost());
         Assert.assertEquals(8200, endpoint.getPort());
-        Assert.assertEquals("http", endpoint.getScheme());
+        Assert.assertEquals(expectedScheme, endpoint.getScheme());
 
         ClientAuthentication clientAuthentication = config.clientAuthentication();
         Assert.assertNotNull(clientAuthentication);
@@ -127,7 +128,7 @@ public class TestHashiCorpVaultConfiguration {
 
     @Test
     public void testBasicProperties() {
-        this.runTest();
+        this.runTest("http");
     }
 
     @Test
@@ -140,8 +141,9 @@ public class TestHashiCorpVaultConfiguration {
         propertiesBuilder.setTrustStoreType(TRUSTSTORE_TYPE_VALUE);
         propertiesBuilder.setEnabledTlsProtocols(TLS_V_1_3_VALUE);
         propertiesBuilder.setEnabledTlsCipherSuites(TEST_CIPHER_SUITE_VALUE);
+        propertiesBuilder.setUri(URI_VALUE.replace("http", "https"));
 
-        this.runTest();
+        this.runTest("https");
 
         SslConfiguration sslConfiguration = config.sslConfiguration();
         Assert.assertEquals(keystoreFile.toFile().getAbsolutePath(), sslConfiguration.getKeyStoreConfiguration().getResource().getFile().getAbsolutePath());
@@ -157,7 +159,7 @@ public class TestHashiCorpVaultConfiguration {
     @Test
     public void testInvalidTLS() {
         propertiesBuilder.setUri(URI_VALUE.replace("http", "https"));
-        Assert.assertThrows(NullPointerException.class, () -> this.runTest());
+        Assert.assertThrows(NullPointerException.class, () -> this.runTest("https"));
     }
 
     @Test
@@ -169,7 +171,7 @@ public class TestHashiCorpVaultConfiguration {
             authProperties = writeVaultAuthProperties(props);
             propertiesBuilder.setAuthPropertiesFilename(authProperties.getAbsolutePath());
 
-            Assert.assertThrows(IllegalArgumentException.class, () -> this.runTest());
+            Assert.assertThrows(IllegalArgumentException.class, () -> this.runTest("http"));
         } finally {
             if (authProperties != null) {
                 Files.deleteIfExists(authProperties.toPath());
@@ -185,7 +187,7 @@ public class TestHashiCorpVaultConfiguration {
             authProperties = writeVaultAuthProperties(props);
             propertiesBuilder.setAuthPropertiesFilename(authProperties.getAbsolutePath());
 
-            Assert.assertThrows(IllegalArgumentException.class, () -> this.runTest());
+            Assert.assertThrows(IllegalArgumentException.class, () -> this.runTest("http"));
         } finally {
             if (authProperties != null) {
                 Files.deleteIfExists(authProperties.toPath());

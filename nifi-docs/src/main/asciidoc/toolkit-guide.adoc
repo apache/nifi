@@ -434,13 +434,15 @@ The following are available options when targeting NiFi:
  * `-u`,`--outputAuthorizers <file>`             The destination _authorizers.xml_ file containing protected config values (will not modify input _authorizers.xml_)
  * `-f`,`--flowXml <file>`                       The _flow.xml.gz_ file currently protected with old password (will be overwritten unless `-g` is specified)
  * `-g`,`--outputFlowXml <file>`                 The destination _flow.xml.gz_ file containing protected config values (will not modify input _flow.xml.gz_)
- * `-b`,`--bootstrapConf <file>`                 The _bootstrap.conf_ file to persist root key
+ * `-b`,`--bootstrapConf <file>`                 The bootstrap.conf file to persist root key and to optionally provide any configuration for the protection scheme.
+ * `-S`,`--protectionScheme <protectionScheme>`  Selects the protection scheme for encrypted properties.  Valid values are: [AES_GCM, HASHICORP_VAULT_TRANSIT] (default is AES_GCM)
  * `-k`,`--key <keyhex>`                         The raw hexadecimal key to use to encrypt the sensitive properties
  * `-e`,`--oldKey <keyhex>`                      The old raw hexadecimal key to use during key migration
+ * `-H`,`--oldProtectionScheme <protectionScheme>` The old protection scheme to use during encryption migration (see --protectionScheme for possible values).  Default is AES_GCM
  * `-p`,`--password <password>`                  The password from which to derive the key to use to encrypt the sensitive properties
  * `-w`,`--oldPassword <password>`            The old password from which to derive the key during migration
  * `-r`,`--useRawKey`                            If provided, the secure console will prompt for the raw key value in hexadecimal form
- * `-m`,`--migrate`                              If provided, the _nifi.properties_ and/or _login-identity-providers.xml_ sensitive properties will be re-encrypted with a new key
+ * `-m`,`--migrate`                              If provided, the _nifi.properties_ and/or _login-identity-providers.xml_ sensitive properties will be re-encrypted with the new scheme
  * `-x`,`--encryptFlowXmlOnly`                   If provided, the properties in _flow.xml.gz_ will be re-encrypted with a new key but the _nifi.properties_ and/or _login-identity-providers.xml_ files will not be modified
  * `-s`,`--propsKey <password|keyhex>`           The password or key to use to encrypt the sensitive processor properties in _flow.xml.gz_
  * `-A`,`--newFlowAlgorithm <algorithm>`         The algorithm to use to encrypt the sensitive processor properties in _flow.xml.gz_
@@ -454,9 +456,11 @@ The following are available options when targeting NiFi Registry using the `--ni
  * `-v`,`--verbose`                              Sets verbose mode (default false)
  * `-p`,`--password <password>`                  Protect the files using a password-derived key. If an argument is not provided to this flag, interactive mode will be triggered to prompt the user to enter the password.
  * `-k`,`--key <keyhex>`                         Protect the files using a raw hexadecimal key. If an argument is not provided to this flag, interactive mode will be triggered to prompt the user to enter the key.
+ * `-S`,`--protectionScheme <protectionScheme>`  Selects the protection scheme for encrypted properties.  Valid values are: [AES_GCM, HASHICORP_VAULT_TRANSIT]  (default is AES_GCM)
  * `--oldPassword <password>`                    If the input files are already protected using a password-derived key, this specifies the old password so that the files can be unprotected before re-protecting.
  * `--oldKey <keyhex>`                           If the input files are already protected using a key, this specifies the raw hexadecimal key so that the files can be unprotected before re-protecting.
- * `-b`,`--bootstrapConf <file>`                 The _bootstrap.conf_ file containing no root key or an existing root key. If a new password or key is specified (using `-p` or `-k`) and no output _bootstrap.conf_ file is specified, then this file will be overwritten to persist the new root key.
+ * `-H`,`--oldProtectionScheme <protectionScheme>`The old protection scheme to use during encryption migration (see --protectionScheme for possible values).  Default is AES_GCM.
+ * `-b`,`--bootstrapConf <file>`                 The _bootstrap.conf_ file containing no root key or an existing root key, and any other protection scheme configuration properties. If a new password or key is specified (using -p or -k) and no output _bootstrap.conf_ file is specified, then this file will be overwritten to persist the new master key.
  * `-B`,`--outputBootstrapConf <file>`           The destination _bootstrap.conf_ file to persist root key. If specified, the input _bootstrap.conf_ will not be modified.
  * `-r`,`--nifiRegistryProperties <file>`        The _nifi-registry.properties_ file containing unprotected config values, overwritten if no output file specified.
  * `-R`,`--outputNifiRegistryProperties <file>`  The destination _nifi-registry.properties_ file containing protected config values.
@@ -465,6 +469,40 @@ The following are available options when targeting NiFi Registry using the `--ni
  * `-i`,`--identityProvidersXml <file>`          The _identity-providers.xml_ file containing unprotected config values, overwritten if no output file specified.
  * `-I`,`--outputIdentityProvidersXml <file>`    The destination _identity-providers.xml_ file containing protected config values.
  * `--decrypt`                                    Can be used with `-r` to decrypt a previously encrypted NiFi Registry Properties file. Decrypted content is printed to STDOUT.
+
+=== Protection Schemes
+The protection scheme can be selected during encryption using the `--protectionScheme` flag.  During migration, the former protection scheme is specified using the `--oldProtectionScheme` flag.  This distinction allows a set of protected configuration files to be migrated not only to a new key, but to a completely different protection scheme.
+
+==== AES_GCM
+The default protection scheme, `AES-G/CM` simply encrypts sensitive properties and marks their protection as either `aes/gcm/256` or `aes/gcm/256` as appropriate.  This protection is all done within NiFi itself.
+
+==== HASHICORP_VAULT_TRANSIT
+This protection scheme uses HashiCorp Vault's Transit Secrets Engine (https://www.vaultproject.io/docs/secrets/transit) to outsource encryption to a configured Vault server. All HashiCorp Vault configuration is stored in the `bootstrap-hashicorp-vault.conf` file, as referenced in the `bootstrap.conf` of a NiFi or NiFi Registry instance.  Therefore, when using the HASHICORP_VAULT_TRANSIT protection scheme, the `nifi(.registry)?.bootstrap.protection.hashicorp.vault.conf` property in the `bootstrap.conf` specified using the `-b` flag must be available to the Encrypt Configuration Tool and must be configured as follows:
+
+===== Required properties
+[options="header,footer"]
+|===
+|Property Name|Description|Default
+|`vault.uri`|The HashiCorp Vault URI (e.g., `https://vault-server:8200`).  If not set, this provider will be disabled.|_none_
+|`vault.authentication.properties.file`|Filename of a properties file containing Vault authentication properties.  See the `Authentication-specific property keys` section of https://docs.spring.io/spring-vault/docs/2.3.x/reference/html/#vault.core.environment-vault-configuration for all authentication property keys. If not set, all Spring Vault authentication properties must be configured directly in bootstrap-hashicorp-vault.conf.|_none_
+|`vault.transit.path`|The HashiCorp Vault `path` specifying the Transit Secrets Engine (e.g., `nifi-transit`).  Valid characters include alphanumeric, dash, and underscore.  If not set, this provider will be disabled.|_none_
+|===
+
+===== Optional properties
+[options="header,footer"]
+|===
+|Property Name|Description|Default
+|`vault.connection.timeout`|The connection timeout of the Vault client|`5 secs`
+|`vault.read.timeout`|The read timeout of the Vault client|`15 secs`
+|`vault.ssl.enabledCipherSuites`|A comma-separated list of the enabled TLS cipher suites|_none_
+|`vault.ssl.enabledProtocols`|A comma-separated list of the enabled TLS protocols|_none_
+|`vault.ssl.key-store`|Path to a keystore.  Required if the Vault server is TLS-enabled|_none_
+|`vault.ssl.key-store-type`|Keystore type (JKS, BCFKS or PKCS12).  Required if the Vault server is TLS-enabled|_none_
+|`vault.ssl.key-store-password`|Keystore password.  Required if the Vault server is TLS-enabled|_none_
+|`vault.ssl.trust-store`|Path to a truststore.  Required if the Vault server is TLS-enabled|_none_
+|`vault.ssl.trust-store-type`|Truststore type (JKS, BCFKS or PKCS12).  Required if the Vault server is TLS-enabled|_none_
+|`vault.ssl.trust-store-password`|Truststore password.  Required if the Vault server is TLS-enabled|_none_
+|===
 
 === Examples
 
@@ -658,6 +696,8 @@ for each phase (old vs. new), and any combination is sufficient:
 * old password -> new key
 * old password -> new password
 
+In order to change the protection scheme (e.g., migrating from AES encryption to Vault encryption), specify the `--protectionScheme`
+and `--oldProtectionScheme` in the migration command.
 
 == File Manager
 The File Manager utility (invoked as `./bin/file-manager.sh` or `bin\file-manager.bat`) allows system administrators to take a backup of an existing NiFi installation, install a new version of NiFi in a designated location (while migrating any previous configuration settings) or restore an installation from a previous backup. File Manager supports NiFi version 1.0.0 and higher.

@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.properties;
 
+import org.apache.commons.io.FilenameUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.junit.AfterClass;
@@ -23,8 +24,10 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.internal.util.io.IOUtil;
 
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.Security;
@@ -32,8 +35,10 @@ import java.util.Properties;
 import java.util.function.Supplier;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 public class StandardSensitivePropertyProviderFactoryTest {
@@ -45,8 +50,9 @@ public class StandardSensitivePropertyProviderFactoryTest {
     private static final String AD_HOC_KEY_HEX = "123456789ABCDEFFEDCBA98765432101";
 
     private static Path tempConfDir;
-    private static Path mockBootstrapConf;
-    private static Path mockNifiProperties;
+    private static Path bootstrapConf;
+    private static Path hashicorpVaultBootstrapConf;
+    private static Path nifiProperties;
 
     private static NiFiProperties niFiProperties;
 
@@ -54,23 +60,28 @@ public class StandardSensitivePropertyProviderFactoryTest {
     public static void initOnce() throws IOException {
         Security.addProvider(new BouncyCastleProvider());
         tempConfDir = Files.createTempDirectory("conf");
-        mockBootstrapConf = Files.createTempFile("bootstrap", ".conf").toAbsolutePath();
+        bootstrapConf = Files.createTempFile("bootstrap", ".conf").toAbsolutePath();
+        hashicorpVaultBootstrapConf = Files.createTempFile("bootstrap-hashicorp-vault", ".conf").toAbsolutePath();
 
-        mockNifiProperties = Files.createTempFile("nifi", ".properties").toAbsolutePath();
+        nifiProperties = Files.createTempFile("nifi", ".properties").toAbsolutePath();
 
-        mockBootstrapConf = Files.move(mockBootstrapConf, tempConfDir.resolve("bootstrap.conf"));
-        mockNifiProperties = Files.move(mockNifiProperties, tempConfDir.resolve("nifi.properties"));
+        bootstrapConf = Files.move(bootstrapConf, tempConfDir.resolve("bootstrap.conf"));
+        nifiProperties = Files.move(nifiProperties, tempConfDir.resolve("nifi.properties"));
 
-        IOUtil.writeText("nifi.bootstrap.sensitive.key=" + BOOTSTRAP_KEY_HEX, mockBootstrapConf.toFile());
-        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, mockNifiProperties.toString());
+        final String bootstrapConfText = String.format("%s=%s\n%s=%s",
+                "nifi.bootstrap.sensitive.key", BOOTSTRAP_KEY_HEX,
+                "nifi.bootstrap.protection.hashicorp.vault.conf", FilenameUtils.separatorsToUnix(hashicorpVaultBootstrapConf.toString()));
+        IOUtil.writeText(bootstrapConfText, bootstrapConf.toFile());
+        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, FilenameUtils.separatorsToUnix(nifiProperties.toString()));
 
         niFiProperties = new NiFiProperties();
     }
 
     @AfterClass
     public static void tearDownOnce() throws IOException {
-        Files.deleteIfExists(mockBootstrapConf);
-        Files.deleteIfExists(mockNifiProperties);
+        Files.deleteIfExists(bootstrapConf);
+        Files.deleteIfExists(hashicorpVaultBootstrapConf);
+        Files.deleteIfExists(nifiProperties);
         Files.deleteIfExists(tempConfDir);
         System.clearProperty(NiFiProperties.PROPERTIES_FILE_PATH);
     }
@@ -99,10 +110,60 @@ public class StandardSensitivePropertyProviderFactoryTest {
 
     private Supplier<BootstrapProperties> mockBootstrapProperties() throws IOException {
         final Properties bootstrapProperties = new Properties();
-        try (final InputStream inputStream = Files.newInputStream(mockBootstrapConf)) {
+        try (final InputStream inputStream = Files.newInputStream(bootstrapConf)) {
             bootstrapProperties.load(inputStream);
-            return () -> new BootstrapProperties("nifi", bootstrapProperties, mockBootstrapConf);
+            return () -> new BootstrapProperties("nifi", bootstrapProperties, bootstrapConf);
         }
+    }
+
+    private void configureHashicorpVault(final Properties properties) throws IOException {
+        try (OutputStream out = new FileOutputStream(hashicorpVaultBootstrapConf.toFile())) {
+            properties.store(out, "HashiCorpVault test");
+        }
+    }
+
+    @Test
+    public void testHashicorpVaultTransit() throws IOException {
+        configureDefaultFactory();
+        final Properties properties = new Properties();
+        properties.put("vault.transit.path", "nifi-transit");
+        configureHashicorpVault(properties);
+
+        final SensitivePropertyProvider spp = factory.getProvider(PropertyProtectionScheme.HASHICORP_VAULT_TRANSIT);
+    }
+
+    @Test
+    public void testHashicorpVaultTransit_isSupported() throws IOException {
+        configureDefaultFactory();
+        final Properties properties = new Properties();
+        properties.put("vault.transit.path", "nifi-transit");
+        properties.put("vault.uri", "http://localhost:8200");
+        properties.put("vault.token", "test-token");
+        configureHashicorpVault(properties);
+
+        SensitivePropertyProvider spp = factory.getProvider(PropertyProtectionScheme.HASHICORP_VAULT_TRANSIT);
+        assertTrue(spp.isSupported());
+
+        properties.remove("vault.uri");
+        configureHashicorpVault(properties);
+        configureDefaultFactory();
+        spp = factory.getProvider(PropertyProtectionScheme.HASHICORP_VAULT_TRANSIT);
+        assertFalse(spp.isSupported());
+
+        properties.put("vault.uri", "http://localhost:8200");
+        properties.remove("vault.transit.path");
+        spp = factory.getProvider(PropertyProtectionScheme.HASHICORP_VAULT_TRANSIT);
+        assertFalse(spp.isSupported());
+    }
+
+    @Test
+    public void testHashicorpVaultTransit_invalidCharacters() throws IOException {
+        configureDefaultFactory();
+        final Properties properties = new Properties();
+        properties.put("vault.transit.path", "invalid/characters");
+        configureHashicorpVault(properties);
+
+        assertThrows(SensitivePropertyProtectionException.class, () -> factory.getProvider(PropertyProtectionScheme.HASHICORP_VAULT_TRANSIT));
     }
 
     @Test

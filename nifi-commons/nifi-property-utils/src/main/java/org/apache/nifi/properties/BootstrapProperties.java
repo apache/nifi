@@ -17,17 +17,29 @@
 package org.apache.nifi.properties;
 
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Enumeration;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.Set;
 
 /**
  * Properties representing bootstrap.conf.
  */
 public class BootstrapProperties extends StandardReadableProperties {
     private static final String PROPERTY_KEY_FORMAT = "%s.%s";
-    private static final String BOOTSTRAP_SENSITIVE_KEY = "bootstrap.sensitive.key";
+
+    public enum BootstrapPropertyKey {
+        SENSITIVE_KEY("bootstrap.sensitive.key"),
+        HASHICORP_VAULT_SENSITIVE_PROPERTY_PROVIDER_CONF("bootstrap.protection.hashicorp.vault.conf");
+
+        private final String key;
+
+        BootstrapPropertyKey(final String key) {
+            this.key = key;
+        }
+    }
 
     private final String propertyPrefix;
     private final Path configFilePath;
@@ -41,6 +53,29 @@ public class BootstrapProperties extends StandardReadableProperties {
 
         this.filterProperties(properties);
 
+    }
+
+    /**
+     * Ensures that blank or empty properties are returned as null.
+     * @param key The property key
+     * @param defaultValue The default value to use if the value is null or empty
+     * @return The property value (null if empty or blank)
+     */
+    @Override
+    public String getProperty(final String key, final String defaultValue) {
+        final String property = super.getProperty(key, defaultValue);
+        return isBlank(property) ? null : property;
+    }
+
+    /**
+     * Ensures that blank or empty properties are returned as null.
+     * @param key The property key
+     * @return The property value (null if empty or blank)
+     */
+    @Override
+    public String getProperty(final String key) {
+        final String property = super.getProperty(key);
+        return isBlank(property) ? null : property;
     }
 
     /**
@@ -72,15 +107,45 @@ public class BootstrapProperties extends StandardReadableProperties {
     }
 
     /**
-     * Returns the bootstrap sensitive key.
-     * @return The bootstrap sensitive key
+     * Returns the optional property value with the given BootstrapPropertyKey.
+     * @param key A BootstrapPropertyKey, representing properties in bootstrap.conf
+     * @return The property value
      */
-    public Optional<String> getBootstrapSensitiveKey() {
-        return Optional.ofNullable(getProperty(getPropertyKey(BOOTSTRAP_SENSITIVE_KEY)));
+    public Optional<String> getProperty(final BootstrapPropertyKey key) {
+        return Optional.ofNullable(getProperty(getPropertyKey(key.key)));
     }
 
     @Override
     public String toString() {
         return String.format("Bootstrap properties [%s] with prefix [%s]", configFilePath, propertyPrefix);
+    }
+
+    /**
+     * An empty instance of BootstrapProperties.
+     */
+    public static final BootstrapProperties EMPTY = new BootstrapProperties("", new Properties(), Paths.get("conf/bootstrap.conf")) {
+        @Override
+        public Set<String> getPropertyKeys() {
+            return null;
+        }
+
+        @Override
+        public String getProperty(String key) {
+            return null;
+        }
+
+        @Override
+        public String getProperty(String key, String defaultValue) {
+            return null;
+        }
+
+        @Override
+        public int size() {
+            return 0;
+        }
+    };
+
+    private static boolean isBlank(final String string) {
+        return (string == null) || string.isEmpty() || string.trim().isEmpty();
     }
 }

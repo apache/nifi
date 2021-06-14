@@ -20,10 +20,13 @@ import groovy.cli.commons.CliBuilder
 import groovy.cli.commons.OptionAccessor
 import org.apache.commons.cli.HelpFormatter
 import org.apache.commons.cli.Options
+import org.apache.nifi.properties.BootstrapProperties
 import org.apache.nifi.properties.ConfigEncryptionTool
 import org.apache.nifi.properties.PropertyProtectionScheme
+import org.apache.nifi.properties.SensitivePropertyProtectionException
 import org.apache.nifi.properties.SensitivePropertyProvider
 import org.apache.nifi.properties.StandardSensitivePropertyProviderFactory
+import org.apache.nifi.registry.properties.util.NiFiRegistryBootstrapUtils
 import org.apache.nifi.toolkit.encryptconfig.util.BootstrapUtil
 import org.apache.nifi.toolkit.encryptconfig.util.NiFiRegistryAuthorizersXmlEncryptor
 import org.apache.nifi.toolkit.encryptconfig.util.NiFiRegistryIdentityProvidersXmlEncryptor
@@ -32,6 +35,8 @@ import org.apache.nifi.toolkit.encryptconfig.util.ToolUtilities
 import org.apache.nifi.util.console.TextDevices
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+
+import java.util.function.Supplier
 
 class NiFiRegistryMode implements ToolMode {
 
@@ -43,6 +48,19 @@ class NiFiRegistryMode implements ToolMode {
     NiFiRegistryMode() {
         cli = cliBuilder()
         verboseEnabled = false
+    }
+
+    static Supplier<BootstrapProperties> getBootstrapSupplier(final String bootstrapConfPath) {
+        new Supplier<BootstrapProperties>() {
+            @Override
+            BootstrapProperties get() {
+                try {
+                    NiFiRegistryBootstrapUtils.loadBootstrapProperties(bootstrapConfPath)
+                } catch (final IOException e) {
+                    throw new SensitivePropertyProtectionException(e.getCause(), e)
+                }
+            }
+        }
     }
 
     @Override
@@ -318,12 +336,12 @@ class NiFiRegistryMode implements ToolMode {
                 throw new RuntimeException("Failed to configure tool, could not determine encryption key. Must provide -p, -k, or -b. If using -b, bootstrap.conf argument must already contain root key.")
             }
             encryptionProvider = StandardSensitivePropertyProviderFactory
-                    .withKeyAndBootstrapSupplier(encryptionKey, ConfigEncryptionTool.getBootstrapSupplier(inputBootstrapPath))
-                    .getProvider(oldProtectionScheme)
+                    .withKeyAndBootstrapSupplier(encryptionKey, getBootstrapSupplier(inputBootstrapPath))
+                    .getProvider(protectionScheme)
 
             decryptionProvider = decryptionKey ? StandardSensitivePropertyProviderFactory
-                    .withKeyAndBootstrapSupplier(decryptionKey, ConfigEncryptionTool.getBootstrapSupplier(inputBootstrapPath))
-                    .getProvider(protectionScheme) : null
+                    .withKeyAndBootstrapSupplier(decryptionKey, getBootstrapSupplier(inputBootstrapPath))
+                    .getProvider(oldProtectionScheme) : null
 
             if (handlingNiFiRegistryProperties) {
                 propertiesEncryptor = new NiFiRegistryPropertiesEncryptor(encryptionProvider, decryptionProvider)

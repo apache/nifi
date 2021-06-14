@@ -31,7 +31,6 @@ import org.apache.nifi.encrypt.PropertyEncryptor
 import org.apache.nifi.encrypt.PropertyEncryptorFactory
 import org.apache.nifi.flow.encryptor.FlowEncryptor
 import org.apache.nifi.flow.encryptor.StandardFlowEncryptor
-import org.apache.nifi.registry.properties.util.NiFiRegistryBootstrapUtils
 import org.apache.nifi.toolkit.tls.commandLine.CommandLineParseException
 import org.apache.nifi.toolkit.tls.commandLine.ExitCode
 import org.apache.nifi.util.NiFiBootstrapUtils
@@ -599,7 +598,8 @@ class ConfigEncryptionTool {
     }
 
     private NiFiPropertiesLoader getNiFiPropertiesLoader(final String keyHex) {
-        return protectionScheme.requiresSecretKey() ? NiFiPropertiesLoader.withKey(keyHex) : new NiFiPropertiesLoader()
+        return protectionScheme.requiresSecretKey() || migrationProtectionScheme.requiresSecretKey()
+                ? NiFiPropertiesLoader.withKey(keyHex) : new NiFiPropertiesLoader()
     }
 
     /**
@@ -1566,7 +1566,7 @@ class ConfigEncryptionTool {
             @Override
             BootstrapProperties get() {
                 try {
-                    NiFiRegistryBootstrapUtils.loadBootstrapProperties(bootstrapConfPath)
+                    NiFiBootstrapUtils.loadBootstrapProperties(bootstrapConfPath)
                 } catch (final IOException e) {
                     throw new SensitivePropertyProtectionException(e.getCause(), e)
                 }

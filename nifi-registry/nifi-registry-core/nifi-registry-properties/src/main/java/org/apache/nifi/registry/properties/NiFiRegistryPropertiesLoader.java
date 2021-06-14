@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.registry.properties;
 
-import org.apache.nifi.properties.SensitivePropertyProtectionException;
+import org.apache.nifi.properties.BootstrapProperties;
 import org.apache.nifi.properties.SensitivePropertyProvider;
 import org.apache.nifi.properties.SensitivePropertyProviderFactory;
 import org.apache.nifi.properties.StandardSensitivePropertyProviderFactory;
@@ -82,7 +82,8 @@ public class NiFiRegistryPropertiesLoader {
                         try {
                             return NiFiRegistryBootstrapUtils.loadBootstrapProperties();
                         } catch (IOException e) {
-                            throw new SensitivePropertyProtectionException("Could not load bootstrap.conf for sensitive property provider configuration.", e);
+                            logger.debug("Cannot read bootstrap.conf -- file is missing or not readable.  Defaulting to empty bootstrap.conf");
+                            return BootstrapProperties.EMPTY;
                         }
                     });
         }

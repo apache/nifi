@@ -290,6 +290,8 @@ class NiFiPropertiesLoaderGroovyTest extends GroovyTestCase {
     void testShouldLoadUnprotectedPropertiesFromProtectedFile() throws Exception {
         // Arrange
         File protectedFile = new File("src/test/resources/conf/nifi_with_sensitive_properties_protected_aes.properties")
+
+        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, protectedFile.path)
         NiFiPropertiesLoader niFiPropertiesLoader = NiFiPropertiesLoader.withKey(KEY_HEX)
 
         final def EXPECTED_PLAIN_VALUES = [
@@ -378,7 +380,7 @@ class NiFiPropertiesLoaderGroovyTest extends GroovyTestCase {
         logger.expected(msg)
 
         // Assert
-        assert msg == "Cannot read from bootstrap.conf"
+        assert msg =~ "Cannot read from .*bootstrap.conf"
     }
 
     @Test
@@ -399,7 +401,7 @@ class NiFiPropertiesLoaderGroovyTest extends GroovyTestCase {
         logger.expected(msg)
 
         // Assert
-        assert msg == "Cannot read from bootstrap.conf"
+        assert msg =~ "Cannot read from .*bootstrap.conf"
 
         // Clean up to allow for indexing, etc.
         Files.setPosixFilePermissions(unreadableFile.toPath(), originalPermissions)

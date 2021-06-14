@@ -95,7 +95,7 @@ class NiFiRegistryBootstrapUtilsGroovyTest extends GroovyTestCase {
         logger.info(msg)
 
         // Assert
-        assert msg == "Cannot read from bootstrap.conf"
+        assert msg =~ "Cannot read from .*bootstrap.missing.conf"
     }
 
     @Test
@@ -114,7 +114,7 @@ class NiFiRegistryBootstrapUtilsGroovyTest extends GroovyTestCase {
             logger.info(msg)
 
             // Assert
-            assert msg == "Cannot read from bootstrap.conf"
+            assert msg =~ "Cannot read from .*bootstrap.unreadable_file_permissions.conf"
         } finally {
             // Clean up to allow for indexing, etc.
             Files.setPosixFilePermissions(unreadableFile.toPath(), originalPermissions)

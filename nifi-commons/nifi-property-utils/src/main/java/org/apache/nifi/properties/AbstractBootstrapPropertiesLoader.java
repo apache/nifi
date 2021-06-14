@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.properties;
 
+import org.apache.nifi.properties.BootstrapProperties.BootstrapPropertyKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,6 +25,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Objects;
 import java.util.Properties;
 
 /**
@@ -74,14 +76,27 @@ public abstract class AbstractBootstrapPropertiesLoader {
      * @throws IOException If the file is not readable
      */
     public BootstrapProperties loadBootstrapProperties(final String bootstrapPath) throws IOException {
-        final Properties properties = new Properties();
         final Path bootstrapFilePath = getBootstrapFile(bootstrapPath).toPath();
-        try (final InputStream bootstrapInput = Files.newInputStream(bootstrapFilePath)) {
+       return loadBootstrapProperties(bootstrapFilePath, getApplicationPrefix());
+    }
+
+    /**
+     * Loads a properties file into a BootstrapProperties object.
+     * @param bootstrapPath The path to the properties file
+     * @param propertyPrefix The property prefix to enforce
+     * @return The BootstrapProperties
+     * @throws IOException If the properties file could not be read
+     */
+    public static BootstrapProperties loadBootstrapProperties(final Path bootstrapPath, final String propertyPrefix) throws IOException {
+        Objects.requireNonNull(bootstrapPath, "Bootstrap path must be provided");
+        Objects.requireNonNull(propertyPrefix, "Property prefix must be provided");
+
+        final Properties properties = new Properties();
+        try (final InputStream bootstrapInput = Files.newInputStream(bootstrapPath)) {
             properties.load(bootstrapInput);
-            return new BootstrapProperties(getApplicationPrefix(), properties, bootstrapFilePath);
+            return new BootstrapProperties(propertyPrefix, properties, bootstrapPath);
         } catch (final IOException e) {
-            logger.error("Cannot read from bootstrap.conf file at {}", bootstrapFilePath);
-            throw new IOException("Cannot read from bootstrap.conf", e);
+            throw new IOException("Cannot read from " + bootstrapPath, e);
         }
     }
 
@@ -97,7 +112,7 @@ public abstract class AbstractBootstrapPropertiesLoader {
     public String extractKeyFromBootstrapFile(final String bootstrapPath) throws IOException {
         final BootstrapProperties bootstrapProperties = loadBootstrapProperties(bootstrapPath);
 
-        return bootstrapProperties.getBootstrapSensitiveKey().orElseGet(() -> {
+        return bootstrapProperties.getProperty(BootstrapPropertyKey.SENSITIVE_KEY).orElseGet(() -> {
             logger.warn("No encryption key present in the bootstrap.conf file at {}", bootstrapProperties.getConfigFilePath());
             return "";
         });
@@ -121,8 +136,7 @@ public abstract class AbstractBootstrapPropertiesLoader {
             if (confDir.exists() && confDir.canRead()) {
                 expectedBootstrapFile = new File(confDir, BOOTSTRAP_CONF);
             } else {
-                logger.error("Cannot read from bootstrap.conf file at {} -- conf/ directory is missing or permissions are incorrect", confDir.getAbsolutePath());
-                throw new IOException("Cannot read from bootstrap.conf");
+                throw new IOException(String.format("Cannot read %s directory for %s", confDir, bootstrapPath));
             }
         } else {
             expectedBootstrapFile = new File(bootstrapPath);
@@ -131,8 +145,7 @@ public abstract class AbstractBootstrapPropertiesLoader {
         if (expectedBootstrapFile.exists() && expectedBootstrapFile.canRead()) {
             return expectedBootstrapFile;
         } else {
-            logger.error("Cannot read from bootstrap.conf file at {} -- file is missing or permissions are incorrect", expectedBootstrapFile.getAbsolutePath());
-            throw new IOException("Cannot read from bootstrap.conf");
+            throw new IOException("Cannot read from " + expectedBootstrapFile.getAbsolutePath());
         }
     }
 

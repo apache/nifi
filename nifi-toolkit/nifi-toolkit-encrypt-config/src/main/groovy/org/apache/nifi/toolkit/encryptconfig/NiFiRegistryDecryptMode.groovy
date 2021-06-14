@@ -17,7 +17,6 @@
 package org.apache.nifi.toolkit.encryptconfig
 
 import groovy.cli.commons.CliBuilder
-import org.apache.nifi.properties.ConfigEncryptionTool
 import org.apache.nifi.properties.PropertyProtectionScheme
 import org.apache.nifi.properties.StandardSensitivePropertyProviderFactory
 import org.apache.nifi.toolkit.encryptconfig.util.BootstrapUtil
@@ -117,7 +116,7 @@ class NiFiRegistryDecryptMode extends DecryptMode {
             }
 
             config.decryptionProvider = StandardSensitivePropertyProviderFactory
-                    .withKeyAndBootstrapSupplier(config.key, ConfigEncryptionTool.getBootstrapSupplier(config.inputBootstrapPath))
+                    .withKeyAndBootstrapSupplier(config.key, NiFiRegistryMode.getBootstrapSupplier(config.inputBootstrapPath))
                     .getProvider(config.protectionScheme)
 
             run(config)

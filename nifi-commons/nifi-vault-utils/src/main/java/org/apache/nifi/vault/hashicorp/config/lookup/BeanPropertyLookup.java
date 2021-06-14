@@ -17,10 +17,10 @@
 package org.apache.nifi.vault.hashicorp.config.lookup;
 
 import org.apache.nifi.vault.hashicorp.HashiCorpVaultConfigurationException;
+import org.apache.nifi.vault.hashicorp.config.HashiCorpVaultProperty;
 import org.springframework.beans.BeanUtils;
 
 import java.beans.PropertyDescriptor;
-import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
 import java.util.Map;
@@ -34,24 +34,25 @@ public class BeanPropertyLookup extends PropertyLookup {
 
     private final Map<String, PropertyLookup> propertyLookupMap;
 
-    public BeanPropertyLookup(final String prefix, final Class<?> beanClass, final Class<? extends Annotation> propertyFilter) {
-        this(prefix, beanClass, propertyFilter, null);
+    public BeanPropertyLookup(final String prefix, final Class<?> beanClass) {
+        this(prefix, beanClass, null);
     }
 
-    private BeanPropertyLookup(final String prefix, final Class<?> beanClass, final Class<? extends Annotation> propertyFilter,
-                               final PropertyDescriptor propertyDescriptor) {
+    private BeanPropertyLookup(final String prefix, final Class<?> beanClass, final PropertyDescriptor propertyDescriptor) {
         super(propertyDescriptor);
         propertyLookupMap = Arrays.stream(BeanUtils.getPropertyDescriptors(beanClass))
-                .filter(pd -> pd.getReadMethod().getAnnotation(propertyFilter) != null)
+                .filter(pd -> pd.getReadMethod().getAnnotation(HashiCorpVaultProperty.class) != null)
                 .collect(Collectors.toMap(
                         pd -> getPropertyKey(prefix, pd),
                         pd -> pd.getReadMethod().getReturnType().equals(String.class) ? new ValuePropertyLookup(pd)
-                                : new BeanPropertyLookup(getPropertyKey(prefix, pd), pd.getReadMethod().getReturnType(), propertyFilter, pd)
+                                : new BeanPropertyLookup(getPropertyKey(prefix, pd), pd.getReadMethod().getReturnType(), pd)
                 ));
     }
 
     private static String getPropertyKey(final String prefix, final PropertyDescriptor propertyDescriptor) {
-        return prefix == null ? propertyDescriptor.getDisplayName() : String.join(SEPARATOR, prefix, propertyDescriptor.getDisplayName());
+        final HashiCorpVaultProperty propertyAnnotation = propertyDescriptor.getReadMethod().getAnnotation(HashiCorpVaultProperty.class);
+        final String unqualifiedPropertyKey = !propertyAnnotation.key().isEmpty() ? propertyAnnotation.key() : propertyDescriptor.getDisplayName();
+        return prefix == null ? unqualifiedPropertyKey: String.join(SEPARATOR, prefix, unqualifiedPropertyKey);
     }
 
     @Override

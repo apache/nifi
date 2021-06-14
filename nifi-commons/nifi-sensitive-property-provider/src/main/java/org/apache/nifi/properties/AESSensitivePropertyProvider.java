@@ -81,7 +81,7 @@ public class AESSensitivePropertyProvider extends AbstractSensitivePropertyProvi
     }
 
     @Override
-    protected boolean isSupported(final BootstrapProperties bootstrapProperties) {
+    public boolean isSupported() {
         return true; // AES protection is always supported
     }
 

@@ -33,14 +33,6 @@ public abstract class AbstractSensitivePropertyProvider implements SensitiveProp
      */
     protected abstract PropertyProtectionScheme getProtectionScheme();
 
-    /**
-     * Return true if this SensitivePropertyProvider is supported, given the provided
-     * Bootstrap properties.
-     * @param bootstrapProperties The Bootstrap properties
-     * @return True if this SensitivePropertyProvider is supported
-     */
-    protected abstract boolean isSupported(BootstrapProperties bootstrapProperties);
-
     @Override
     public String getName() {
         return getProtectionScheme().getName();
@@ -54,10 +46,5 @@ public abstract class AbstractSensitivePropertyProvider implements SensitiveProp
     @Override
     public String getIdentifierKey() {
         return getProtectionScheme().getIdentifier();
-    }
-
-    @Override
-    public boolean isSupported() {
-        return isSupported(bootstrapProperties);
     }
 }
