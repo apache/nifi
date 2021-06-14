@@ -202,62 +202,8 @@ public class MockComponentLog implements ComponentLog {
     }
 
     @Override
-    public void log(LogLevel level, String msg) {
-        switch (level) {
-            case WARN:
-                warn(msg);
-                break;
-            case DEBUG:
-                debug(msg);
-                break;
-            case INFO:
-                info(msg);
-                break;
-            case ERROR:
-                error(msg);
-                break;
-            case TRACE:
-                trace(msg);
-                break;
-            case FATAL:
-                error(msg);
-                break;
-            case NONE:
-                info(msg);
-                break;
-        }
-    }
-
-    @Override
     public void log(LogLevel level, String msg, Object[] os, Throwable t) {
 
-    }
-
-    @Override
-    public void log(LogMessage msg) {
-        switch (msg.getLogLevel()) {
-            case WARN:
-                warn(msg);
-                break;
-            case DEBUG:
-                debug(msg);
-                break;
-            case INFO:
-                info(msg);
-                break;
-            case ERROR:
-                error(msg);
-                break;
-            case TRACE:
-                trace(msg);
-                break;
-            case FATAL:
-                error(msg);
-                break;
-            case NONE:
-                info(msg);
-                break;
-        }
     }
 
     public String getInfoMessage() {

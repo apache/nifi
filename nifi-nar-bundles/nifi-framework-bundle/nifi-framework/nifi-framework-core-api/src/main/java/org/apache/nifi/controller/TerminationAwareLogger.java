@@ -22,8 +22,9 @@ import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.logging.LogMessage;
 
 public class TerminationAwareLogger implements ComponentLog {
+
+    private static final String TERMINATED_TASK_PREFIX = "[Terminated Process] - ";
     private final ComponentLog logger;
-    private final String TERMINATED_TASK_PREFIX = "[Terminated Process] - ";
     private volatile boolean terminated = false;
 
     public TerminationAwareLogger(final ComponentLog logger) {
@@ -41,6 +42,8 @@ public class TerminationAwareLogger implements ComponentLog {
     private String getMessage(String originalMessage, LogLevel logLevel) {
         return TERMINATED_TASK_PREFIX + logLevel.name() + " - " + originalMessage;
     }
+
+
 
     @Override
     public void warn(String msg, Throwable t) {
@@ -84,19 +87,7 @@ public class TerminationAwareLogger implements ComponentLog {
 
     @Override
     public void warn(LogMessage logMessage) {
-        String msg = logMessage.getMessage();
-        Throwable t = logMessage.getThrowable();
-        Object[] os = logMessage.getObjects();
-
-        if (os != null && t != null) {
-            warn(msg, os, t);
-        } else if (os != null) {
-            warn(msg, os);
-        } else if (t != null) {
-            warn(msg, t);
-        } else {
-            warn(msg);
-        }
+        logWithLogMessage(LogLevel.WARN, logMessage);
     }
 
     @Override
@@ -141,19 +132,7 @@ public class TerminationAwareLogger implements ComponentLog {
 
     @Override
     public void trace(LogMessage logMessage) {
-        String msg = logMessage.getMessage();
-        Throwable t = logMessage.getThrowable();
-        Object[] os = logMessage.getObjects();
-
-        if (os != null && t != null) {
-            trace(msg, os, t);
-        } else if (os != null) {
-            trace(msg, os);
-        } else if (t != null) {
-            trace(msg, t);
-        } else {
-            trace(msg);
-        }
+        logWithLogMessage(LogLevel.TRACE, logMessage);
     }
 
     @Override
@@ -223,19 +202,7 @@ public class TerminationAwareLogger implements ComponentLog {
 
     @Override
     public void info(LogMessage logMessage) {
-        String msg = logMessage.getMessage();
-        Throwable t = logMessage.getThrowable();
-        Object[] os = logMessage.getObjects();
-
-        if (os != null && t != null) {
-            info(msg, os, t);
-        } else if (os != null) {
-            info(msg, os);
-        } else if (t != null) {
-            info(msg, t);
-        } else {
-            info(msg);
-        }
+        logWithLogMessage(LogLevel.INFO, logMessage);
     }
 
     @Override
@@ -285,19 +252,7 @@ public class TerminationAwareLogger implements ComponentLog {
 
     @Override
     public void error(LogMessage logMessage) {
-        String msg = logMessage.getMessage();
-        Throwable t = logMessage.getThrowable();
-        Object[] os = logMessage.getObjects();
-
-        if (os != null && t != null) {
-            error(msg, os, t);
-        } else if (os != null) {
-            error(msg, os);
-        } else if (t != null) {
-            error(msg, t);
-        } else {
-            error(msg);
-        }
+        logWithLogMessage(LogLevel.ERROR, logMessage);
     }
 
     @Override
@@ -341,8 +296,8 @@ public class TerminationAwareLogger implements ComponentLog {
     }
 
     @Override
-    public void debug(LogMessage message) {
-
+    public void debug(LogMessage logMessage) {
+        logWithLogMessage(LogLevel.DEBUG, logMessage);
     }
 
     @Override
@@ -383,23 +338,5 @@ public class TerminationAwareLogger implements ComponentLog {
         }
 
         logger.log(level, msg, os, t);
-    }
-
-    @Override
-    public void log(LogMessage logMessage) {
-        LogLevel logLevel = logMessage.getLogLevel();
-        String msg = logMessage.getMessage();
-        Throwable t = logMessage.getThrowable();
-        Object[] os = logMessage.getObjects();
-
-        if (os != null && t != null) {
-            log(logLevel, msg, os, t);
-        } else if (os != null) {
-            log(logLevel, msg, os);
-        } else if (t != null) {
-            log(logLevel, msg, t);
-        } else {
-            log(logLevel, msg);
-        }
     }
 }

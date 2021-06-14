@@ -27,70 +27,65 @@ import java.util.Locale;
 
 public class LogMessage {
 
+    private final long time;
     private final String message;
     private final LogLevel logLevel;
     private final Throwable throwable;
     private final FlowFile flowFile;
     private final Object[] objects;
-    private long time;
 
     public static final String DATE_TIME_FORMAT = "yyyy-MM-dd HH:mm:ss.SSS";
     public static final String TO_STRING_FORMAT = "%1$s %2$s - %3$s";
 
     public static class Builder {
 
-        private long millisSinceEpoch;
-        private LogLevel level;
+        private final long time;
+        private final LogLevel logLevel;
         private String message;
         private Throwable throwable;
         private FlowFile flowFile;
         private Object[] objects;
 
-        public Builder setMillisSinceEpoch(long millisSinceEpoch) {
-            this.millisSinceEpoch = millisSinceEpoch;
-            return this;
+        public Builder(final long time, final LogLevel logLevel) {
+            this.time = time;
+            this.logLevel = logLevel;
         }
 
-        public Builder setLevel(LogLevel level) {
-            this.level = level;
-            return this;
-        }
-
-        public Builder setMessage(String message) {
+        public Builder message(String message) {
             this.message = message;
             return this;
         }
 
-        public Builder setThrowable(Throwable throwable) {
+        public Builder throwable(Throwable throwable) {
             this.throwable = throwable;
             return this;
         }
 
-        public Builder setFlowFile(FlowFile flowFile) {
+        public Builder flowFile(FlowFile flowFile) {
             this.flowFile = flowFile;
             return this;
         }
 
-        public Builder setObjectsFile(Object[] objects) {
+        public Builder objects(Object[] objects) {
             this.objects = objects;
             return this;
         }
 
         public LogMessage createLogMessage() {
-            return new LogMessage(millisSinceEpoch, level, message, throwable, flowFile, objects);
+            return new LogMessage(time, logLevel, message, throwable, flowFile, objects);
         }
     }
 
-    private LogMessage(final long millisSinceEpoch, final LogLevel logLevel, final String message, final Throwable throwable, final FlowFile flowFile, final Object[] objects) {
+    private LogMessage(final long time, final LogLevel logLevel, final String message, final Throwable throwable, final FlowFile flowFile, final Object[] objects) {
         this.logLevel = logLevel;
         this.throwable = throwable;
         this.message = message;
-        this.time = millisSinceEpoch;
+        this.time = time;
         this.flowFile = flowFile;
         this.objects = objects;
     }
 
-    public long getMillisSinceEpoch() {
+    public long getTime() {
         return time;
     }
 
@@ -114,10 +109,6 @@ public class LogMessage {
         return objects;
     }
 
-    public void setTime(long time) {
-        this.time = time;
-    }
-
     @Override
     public String toString() {
         final DateFormat dateFormat = new SimpleDateFormat(DATE_TIME_FORMAT, Locale.US);
@@ -128,7 +119,7 @@ public class LogMessage {
             final StringWriter sw = new StringWriter();
             final PrintWriter pw = new PrintWriter(sw);
             throwable.printStackTrace(pw);
-            formattedMsg += "\n" + sw.toString();
+            formattedMsg += System.lineSeparator() + sw.toString();
         }
 
         return formattedMsg;

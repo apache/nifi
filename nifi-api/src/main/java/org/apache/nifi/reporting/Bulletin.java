@@ -19,12 +19,16 @@ package org.apache.nifi.reporting;
 import org.apache.nifi.flowfile.FlowFile;
 
 import java.util.Date;
+import java.util.Objects;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * A Bulletin is a construct that represents a message that is to be displayed
  * to users to notify of a specific (usually fleeting) event.
  */
 public class Bulletin implements Comparable<Bulletin> {
+
+    private static final AtomicLong bulletinId = new AtomicLong(-1);
 
     private final Date timestamp;
     private final long id;
@@ -60,13 +64,12 @@ public class Bulletin implements Comparable<Bulletin> {
 
     public static class Builder {
 
+        private long id;
         private final Date timestamp;
-        private final long id;
         private String nodeAddress;
         private String level;
         private String category;
         private String message;
-
         private String groupId;
         private String groupName;
         private String groupPath;
@@ -76,66 +79,66 @@ public class Bulletin implements Comparable<Bulletin> {
         private FlowFile flowFile;
 
         public Builder() {
-            this.id = BulletinIdProvider.getUniqueId();
             timestamp = new Date();
         }
 
-        public Builder setNodeAddress(String nodeAddress) {
+        public Builder nodeAddress(String nodeAddress) {
             this.nodeAddress = nodeAddress;
             return this;
         }
 
-        public Builder setLevel(String level) {
+        public Builder level(String level) {
             this.level = level;
             return this;
         }
 
-        public Builder setCategory(String category) {
+        public Builder category(String category) {
             this.category = category;
             return this;
         }
 
-        public Builder setMessage(String message) {
+        public Builder message(String message) {
             this.message = message;
             return this;
         }
 
-        public Builder setGroupId(String groupId) {
+        public Builder groupId(String groupId) {
             this.groupId = groupId;
             return this;
         }
 
-        public Builder setGroupName(String groupName) {
+        public Builder groupName(String groupName) {
             this.groupName = groupName;
             return this;
         }
 
-        public Builder setGroupPath(String groupPath) {
+        public Builder groupPath(String groupPath) {
             this.groupPath = groupPath;
             return this;
         }
 
-        public Builder setSourceId(String sourceId) {
+        public Builder sourceId(String sourceId) {
             this.sourceId = sourceId;
             return this;
         }
 
-        public Builder setSourceName(String sourceName) {
+        public Builder sourceName(String sourceName) {
             this.sourceName = sourceName;
             return this;
         }
 
-        public Builder setSourceType(ComponentType sourceType) {
+        public Builder sourceType(ComponentType sourceType) {
             this.sourceType = sourceType;
             return this;
         }
 
-        public Builder setFlowFile(FlowFile flowFile) {
+        public Builder flowfile(FlowFile flowFile) {
             this.flowFile = flowFile;
             return this;
         }
 
-        public Bulletin createBulletin() {
+        public Bulletin build() {
+            this.id = bulletinId.incrementAndGet();
             return new Bulletin(this);
         }
     }
@@ -194,7 +197,34 @@ public class Bulletin implements Comparable<Bulletin> {
 
     @Override
     public String toString() {
-        return "Bulletin{" + "id=" + id + ", message=" + message + ", sourceName=" + sourceName + ", sourceType=" + sourceType + '}';
+        return "Bulletin{" +
+                "timestamp=" + timestamp +
+                ", id=" + id +
+                ", nodeAddress='" + nodeAddress + '\'' +
+                ", level='" + level + '\'' +
+                ", category='" + category + '\'' +
+                ", message='" + message + '\'' +
+                ", groupId='" + groupId + '\'' +
+                ", groupName='" + groupName + '\'' +
+                ", groupPath='" + groupPath + '\'' +
+                ", sourceId='" + sourceId + '\'' +
+                ", sourceName='" + sourceName + '\'' +
+                ", sourceType=" + sourceType +
+                ", flowFile=" + flowFile +
+                '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Bulletin bulletin = (Bulletin) o;
+        return id == bulletin.id;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id);
     }
 
     @Override

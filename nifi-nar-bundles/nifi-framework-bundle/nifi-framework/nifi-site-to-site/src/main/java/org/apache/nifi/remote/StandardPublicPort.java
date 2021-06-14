@@ -129,15 +129,15 @@ public class StandardPublicPort extends AbstractPort implements PublicPort {
                 final String sourceName = StandardPublicPort.this.getName();
                 final ComponentType componentType = direction == TransferDirection.RECEIVE ? ComponentType.INPUT_PORT : ComponentType.OUTPUT_PORT;
                 Bulletin bulletin = new Bulletin.Builder()
-                        .setGroupId(groupId)
-                        .setGroupName(groupName)
-                        .setSourceId(sourceId)
-                        .setSourceType(componentType)
-                        .setSourceName(sourceName)
-                        .setCategory(category)
-                        .setLevel(severity.name())
-                        .setMessage(message)
-                        .createBulletin();
+                        .groupId(groupId)
+                        .groupName(groupName)
+                        .sourceId(sourceId)
+                        .sourceType(componentType)
+                        .sourceName(sourceName)
+                        .category(category)
+                        .level(severity.name())
+                        .message(message)
+                        .build();
                 bulletinRepository.addBulletin(bulletin);
             }
         };

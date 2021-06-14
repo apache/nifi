@@ -35,15 +35,15 @@ public class BulletinAdapter extends XmlAdapter<AdaptedBulletin, Bulletin> {
             return BulletinFactory.createSystemBulletin(b.getCategory(), b.getLevel(), b.getMessage());
         } else {
             return new Bulletin.Builder()
-                    .setGroupId(b.getGroupId())
-                    .setGroupName(b.getGroupName())
-                    .setSourceId(b.getSourceId())
-                    .setSourceType(b.getSourceType())
-                    .setSourceName(b.getSourceName())
-                    .setCategory(b.getCategory())
-                    .setLevel(b.getLevel())
-                    .setMessage(b.getMessage())
-                    .createBulletin();
+                    .groupId(b.getGroupId())
+                    .groupName(b.getGroupName())
+                    .sourceId(b.getSourceId())
+                    .sourceType(b.getSourceType())
+                    .sourceName(b.getSourceName())
+                    .category(b.getCategory())
+                    .level(b.getLevel())
+                    .message(b.getMessage())
+                    .build();
         }
     }
 

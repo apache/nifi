@@ -31,16 +31,16 @@ public final class BulletinFactory {
         final String groupPath = buildGroupPath(group);
 
         return new Bulletin.Builder()
-                .setGroupId(groupId)
-                .setGroupName(groupName)
-                .setSourceId(connectable.getIdentifier())
-                .setSourceType(type)
-                .setSourceName(connectable.getName())
-                .setCategory(category)
-                .setLevel(severity)
-                .setMessage(message)
-                .setGroupPath(groupPath)
-                .createBulletin();
+                .groupId(groupId)
+                .groupName(groupName)
+                .sourceId(connectable.getIdentifier())
+                .sourceType(type)
+                .sourceName(connectable.getName())
+                .category(category)
+                .level(severity)
+                .message(message)
+                .groupPath(groupPath)
+                .build();
     }
 
     private static String buildGroupPath(ProcessGroup group) {
@@ -59,11 +59,11 @@ public final class BulletinFactory {
 
     public static Bulletin createSystemBulletin(final String category, final String severity, final String message) {
         return new Bulletin.Builder()
-                .setSourceType(ComponentType.FLOW_CONTROLLER)
-                .setCategory(category)
-                .setLevel(severity)
-                .setMessage(message)
-                .createBulletin();
+                .sourceType(ComponentType.FLOW_CONTROLLER)
+                .category(category)
+                .level(severity)
+                .message(message)
+                .build();
     }
 
     public static ComponentType getSourceType(Connectable connectable) {

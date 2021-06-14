@@ -46,12 +46,12 @@ public class ProcessorLogObserver implements LogObserver {
         final ComponentType componentType = BulletinFactory.getSourceType(processorNode);
 
         Bulletin bulletin = new Bulletin.Builder()
-                .setSourceType(componentType)
-                .setCategory(CATEGORY)
-                .setLevel(bulletinLevel)
-                .setMessage(message.getMessage())
-                .setFlowFile(message.getFlowFile())
-                .createBulletin();
+                .sourceType(componentType)
+                .category(CATEGORY)
+                .level(bulletinLevel)
+                .message(message.getMessage())
+                .flowfile(message.getFlowFile())
+                .build();
 
         bulletinRepository.addBulletin(bulletin);
     }

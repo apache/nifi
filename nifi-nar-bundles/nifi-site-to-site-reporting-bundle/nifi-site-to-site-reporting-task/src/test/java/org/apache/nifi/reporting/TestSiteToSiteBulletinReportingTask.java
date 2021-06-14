@@ -82,16 +82,16 @@ public class TestSiteToSiteBulletinReportingTask {
         // creating the list of bulletins
         final List<Bulletin> bulletins = new ArrayList<>();
         Bulletin bulletin = new Bulletin.Builder()
-                .setGroupId("group-id")
-                .setGroupName("group-name")
-                .setGroupPath("group-path")
-                .setSourceId("source-id")
-                .setSourceName("source-name")
-                .setSourceType(ComponentType.PROCESSOR)
-                .setCategory("category")
-                .setLevel("severity")
-                .setMessage("message")
-                .createBulletin();
+                .groupId("group-id")
+                .groupName("group-name")
+                .groupPath("group-path")
+                .sourceId("source-id")
+                .sourceName("source-name")
+                .sourceType(ComponentType.PROCESSOR)
+                .category("category")
+                .level("severity")
+                .message("message")
+                .build();
         bulletins.add(bulletin);
 
         // mock the access to the list of bulletins
@@ -140,13 +140,13 @@ public class TestSiteToSiteBulletinReportingTask {
         // creating the list of bulletins
         final List<Bulletin> bulletins = new ArrayList<>();
         Bulletin bulletin = new Bulletin.Builder()
-                .setGroupId("group-id")
-                .setSourceId("source-id")
-                .setSourceName("source-name")
-                .setCategory("category")
-                .setLevel("severity")
-                .setMessage("message")
-                .createBulletin();
+                .groupId("group-id")
+                .sourceId("source-id")
+                .sourceName("source-name")
+                .category("category")
+                .level("severity")
+                .message("message")
+                .build();
         bulletins.add(bulletin);
 
         // mock the access to the list of bulletins

@@ -44,15 +44,15 @@ public class ControllerServiceLogObserver implements LogObserver {
         final String groupName = pg == null ? null : pg.getName();
 
         Bulletin bulletin = new Bulletin.Builder()
-                .setGroupId(groupId)
-                .setGroupName(groupName)
-                .setSourceId(serviceNode.getIdentifier())
-                .setSourceType(ComponentType.CONTROLLER_SERVICE)
-                .setSourceName(serviceNode.getName())
-                .setCategory("Log Message")
-                .setLevel(bulletinLevel)
-                .setMessage(message.getMessage())
-                .createBulletin();
+                .groupId(groupId)
+                .groupName(groupName)
+                .sourceId(serviceNode.getIdentifier())
+                .sourceType(ComponentType.CONTROLLER_SERVICE)
+                .sourceName(serviceNode.getName())
+                .category("Log Message")
+                .level(bulletinLevel)
+                .message(message.getMessage())
+                .build();
 
         bulletinRepository.addBulletin(bulletin);
     }

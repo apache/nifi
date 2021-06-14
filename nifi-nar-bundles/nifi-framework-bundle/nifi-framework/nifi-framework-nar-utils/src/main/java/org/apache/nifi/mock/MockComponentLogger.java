@@ -129,25 +129,13 @@ public class MockComponentLogger implements ComponentLog {
 
     @Override
     public void info(String msg, Object[] os, Throwable t) {
-        logger.trace(msg, os);
-        logger.trace("", t);
+        logger.info(msg, os);
+        logger.info("", t);
     }
 
     @Override
     public void info(LogMessage logMessage) {
-        String msg = logMessage.getMessage();
-        Throwable t = logMessage.getThrowable();
-        Object[] os = logMessage.getObjects();
-
-        if (os != null && t != null) {
-            info(msg, os, t);
-        } else if (os != null) {
-            info(msg, os);
-        } else if (t != null) {
-            info(msg, t);
-        } else {
-            info(msg);
-        }
+        logWithLogMessage(LogLevel.INFO, logMessage);
     }
 
     @Override
@@ -178,19 +166,7 @@ public class MockComponentLogger implements ComponentLog {
 
     @Override
     public void error(LogMessage logMessage) {
-        String msg = logMessage.getMessage();
-        Throwable t = logMessage.getThrowable();
-        Object[] os = logMessage.getObjects();
-
-        if (os != null && t != null) {
-            error(msg, os, t);
-        } else if (os != null) {
-            error(msg, os);
-        } else if (t != null) {
-            error(msg, t);
-        } else {
-            error(msg);
-        }
+        logWithLogMessage(LogLevel.ERROR, logMessage);
     }
 
     @Override
@@ -216,128 +192,6 @@ public class MockComponentLogger implements ComponentLog {
 
     @Override
     public void debug(LogMessage logMessage) {
-        String msg = logMessage.getMessage();
-        Throwable t = logMessage.getThrowable();
-        Object[] os = logMessage.getObjects();
-
-        if (os != null && t != null) {
-            debug(msg, os, t);
-        } else if (os != null) {
-            debug(msg, os);
-        } else if (t != null) {
-            debug(msg, t);
-        } else {
-            debug(msg);
-        }
-    }
-
-    @Override
-    public void log(LogLevel level, String msg, Throwable t) {
-        switch (level) {
-            case DEBUG:
-                debug(msg, t);
-                break;
-            case ERROR:
-            case FATAL:
-                error(msg, t);
-                break;
-            case INFO:
-                info(msg, t);
-                break;
-            case TRACE:
-                trace(msg, t);
-                break;
-            case WARN:
-                warn(msg, t);
-                break;
-        }
-    }
-
-    @Override
-    public void log(LogLevel level, String msg, Object[] os) {
-        switch (level) {
-            case DEBUG:
-                debug(msg, os);
-                break;
-            case ERROR:
-            case FATAL:
-                error(msg, os);
-                break;
-            case INFO:
-                info(msg, os);
-                break;
-            case TRACE:
-                trace(msg, os);
-                break;
-            case WARN:
-                warn(msg, os);
-                break;
-        }
-    }
-
-    @Override
-    public void log(LogLevel level, String msg) {
-        switch (level) {
-            case DEBUG:
-                debug(msg);
-                break;
-            case ERROR:
-            case FATAL:
-                error(msg);
-                break;
-            case INFO:
-                info(msg);
-                break;
-            case TRACE:
-                trace(msg);
-                break;
-            case WARN:
-                warn(msg);
-                break;
-        }
-    }
-
-    @Override
-    public void log(LogLevel level, String msg, Object[] os, Throwable t) {
-        switch (level) {
-            case DEBUG:
-                debug(msg, os, t);
-                break;
-            case ERROR:
-            case FATAL:
-                error(msg, os, t);
-                break;
-            case INFO:
-                info(msg, os, t);
-                break;
-            case TRACE:
-                trace(msg, os, t);
-                break;
-            case WARN:
-                warn(msg, os, t);
-                break;
-        }
-    }
-
-    @Override
-    public void log(LogMessage message) {
-        switch (message.getLogLevel()) {
-            case DEBUG:
-                debug(message);
-                break;
-            case ERROR:
-            case FATAL:
-                error(message);
-                break;
-            case INFO:
-                info(message);
-                break;
-            case TRACE:
-                trace(message);
-                break;
-            case WARN:
-                warn(message);
-                break;
-        }
+        logWithLogMessage(LogLevel.DEBUG, logMessage);
     }
 }

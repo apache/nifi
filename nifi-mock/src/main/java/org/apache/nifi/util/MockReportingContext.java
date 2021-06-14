@@ -101,12 +101,12 @@ public class MockReportingContext extends MockControllerServiceLookup implements
     @Override
     public Bulletin createBulletin(final String componentId, final String category, final Severity severity, final String message) {
         final Bulletin bulletin = new Bulletin.Builder()
-                .setSourceId(componentId)
-                .setSourceName("test processor")
-                .setCategory(category)
-                .setLevel(severity.name())
-                .setMessage(message)
-                .createBulletin();
+                .sourceId(componentId)
+                .sourceName("test processor")
+                .category(category)
+                .level(severity.name())
+                .message(message)
+                .build();
         List<Bulletin> bulletins = componentBulletinsCreated.computeIfAbsent(componentId, k -> new ArrayList<>());
         bulletins.add(bulletin);
         return bulletin;

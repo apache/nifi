@@ -169,15 +169,15 @@ public class StandardRemoteProcessGroup implements RemoteProcessGroup {
                 final String sourceId = StandardRemoteProcessGroup.this.getIdentifier();
                 final String sourceName = StandardRemoteProcessGroup.this.getName();
                 Bulletin bulletin = new Bulletin.Builder()
-                        .setGroupId(groupId)
-                        .setGroupName(groupName)
-                        .setSourceId(sourceId)
-                        .setSourceType(ComponentType.REMOTE_PROCESS_GROUP)
-                        .setSourceName(sourceName)
-                        .setCategory(category)
-                        .setLevel(severity.name())
-                        .setMessage(message)
-                        .createBulletin();
+                        .groupId(groupId)
+                        .groupName(groupName)
+                        .sourceId(sourceId)
+                        .sourceType(ComponentType.REMOTE_PROCESS_GROUP)
+                        .sourceName(sourceName)
+                        .category(category)
+                        .level(severity.name())
+                        .message(message)
+                        .build();
                 bulletinRepository.addBulletin(bulletin);
             }
         };

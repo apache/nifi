@@ -27,8 +27,8 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.helpers.MessageFormatter;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -37,7 +37,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class StandardLogRepository implements LogRepository {
 
-    private final Map<LogLevel, Collection<LogObserver>> observers = new HashMap<>();
+    private final EnumMap<LogLevel, Collection<LogObserver>> observers = new EnumMap<>(LogLevel.class);
     private final Map<String, LogObserver> observerLookup = new HashMap<>();
 
     private final ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
@@ -50,7 +50,6 @@ public class StandardLogRepository implements LogRepository {
 
     @Override
     public void addLogMessage(LogMessage logMessage) {
-        logMessage.setTime(System.currentTimeMillis());
         LogLevel logLevel = logMessage.getLogLevel();
 
         final Collection<LogObserver> logObservers = observers.get(logLevel);
@@ -71,10 +70,9 @@ public class StandardLogRepository implements LogRepository {
         replaceThrowablesWithMessage(params);
         final Optional<FlowFile> flowFile = getFlowFileFromObjects(params);
         final String formattedMessage = MessageFormatter.arrayFormat(format, params).getMessage();
-        final LogMessage logMessage = new LogMessage.Builder()
-                .setLevel(level)
-                .setMessage(formattedMessage)
-                .setFlowFile(flowFile.orElse(null))
+        final LogMessage logMessage = new LogMessage.Builder(System.currentTimeMillis(), level)
+                .message(formattedMessage)
+                .flowFile(flowFile.orElse(null))
                 .createLogMessage();
         addLogMessage(logMessage);
     }
@@ -84,17 +82,21 @@ public class StandardLogRepository implements LogRepository {
         replaceThrowablesWithMessage(params);
         final Optional<FlowFile> flowFile = getFlowFileFromObjects(params);
         final String formattedMessage = MessageFormatter.arrayFormat(format, params, t).getMessage();
-        final LogMessage logMessage = new LogMessage.Builder()
-                .setLevel(level)
-                .setMessage(formattedMessage)
-                .setThrowable(t)
-                .setFlowFile(flowFile.orElse(null))
+        final LogMessage logMessage = new LogMessage.Builder(System.currentTimeMillis(), level)
+                .message(formattedMessage)
+                .throwable(t)
+                .flowFile(flowFile.orElse(null))
                 .createLogMessage();
         addLogMessage(logMessage);
     }
 
     private Optional<FlowFile> getFlowFileFromObjects(Object[] params) {
-        return Arrays.stream(params).filter(s -> s instanceof FlowFile).map(f -> (FlowFile) f).findFirst();
+        for (Object param : params) {
+            if (param instanceof FlowFile) {
+                return Optional.of((FlowFile) param);
+            }
+        }
+        return Optional.empty();
     }
 
     private void replaceThrowablesWithMessage(final Object[] params) {

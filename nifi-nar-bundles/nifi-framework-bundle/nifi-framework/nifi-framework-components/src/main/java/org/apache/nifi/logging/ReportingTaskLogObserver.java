@@ -38,13 +38,13 @@ public class ReportingTaskLogObserver implements LogObserver {
         final String bulletinLevel = message.getLogLevel() == LogLevel.WARN ? Severity.WARNING.name() : message.getLogLevel().toString();
 
         final Bulletin bulletin = new Bulletin.Builder()
-                .setSourceId(taskNode.getIdentifier())
-                .setSourceType(ComponentType.REPORTING_TASK)
-                .setSourceName(taskNode.getName())
-                .setCategory("Log Message")
-                .setLevel(bulletinLevel)
-                .setMessage(message.getMessage())
-                .createBulletin();
+                .sourceId(taskNode.getIdentifier())
+                .sourceType(ComponentType.REPORTING_TASK)
+                .sourceName(taskNode.getName())
+                .category("Log Message")
+                .level(bulletinLevel)
+                .message(message.getMessage())
+                .build();
 
         bulletinRepository.addBulletin(bulletin);
     }

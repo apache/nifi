@@ -111,13 +111,124 @@ public interface ComponentLog {
 
     void debug(LogMessage message);
 
-    void log(LogLevel level, String msg, Throwable t);
+    default void log(LogLevel level, String msg, Throwable t) {
+        switch (level) {
+            case DEBUG:
+                debug(msg, t);
+                break;
+            case ERROR:
+            case FATAL:
+                error(msg, t);
+                break;
+            case INFO:
+                info(msg, t);
+                break;
+            case TRACE:
+                trace(msg, t);
+                break;
+            case WARN:
+                warn(msg, t);
+                break;
+        }
+    }
 
-    void log(LogLevel level, String msg, Object... os);
+    default void log(LogLevel level, String msg, Object... os) {
+        switch (level) {
+            case DEBUG:
+                debug(msg, os);
+                break;
+            case ERROR:
+            case FATAL:
+                error(msg, os);
+                break;
+            case INFO:
+                info(msg, os);
+                break;
+            case TRACE:
+                trace(msg, os);
+                break;
+            case WARN:
+                warn(msg, os);
+                break;
+        }
+    }
 
-    void log(LogLevel level, String msg);
+    default void log(LogLevel level, String msg) {
+        switch (level) {
+            case DEBUG:
+                debug(msg);
+                break;
+            case ERROR:
+            case FATAL:
+                error(msg);
+                break;
+            case INFO:
+                info(msg);
+                break;
+            case TRACE:
+                trace(msg);
+                break;
+            case WARN:
+                warn(msg);
+                break;
+        }
+    }
 
-    void log(LogLevel level, String msg, Object[] os, Throwable t);
+    default void log(LogLevel level, String msg, Object[] os, Throwable t) {
+        switch (level) {
+            case DEBUG:
+                debug(msg, os, t);
+                break;
+            case ERROR:
+            case FATAL:
+                error(msg, os, t);
+                break;
+            case INFO:
+                info(msg, os, t);
+                break;
+            case TRACE:
+                trace(msg, os, t);
+                break;
+            case WARN:
+                warn(msg, os, t);
+                break;
+        }
+    }
 
-    void log(LogMessage message);
+    default void log(LogMessage message) {
+        switch (message.getLogLevel()) {
+            case DEBUG:
+                debug(message);
+                break;
+            case ERROR:
+            case FATAL:
+                error(message);
+                break;
+            case INFO:
+                info(message);
+                break;
+            case TRACE:
+                trace(message);
+                break;
+            case WARN:
+                warn(message);
+                break;
+        }
+    }
+
+    default void logWithLogMessage(LogLevel level, LogMessage logMessage) {
+        String msg = logMessage.getMessage();
+        Throwable t = logMessage.getThrowable();
+        Object[] os = logMessage.getObjects();
+
+        if (os != null && t != null) {
+            log(level, msg, os, t);
+        } else if (os != null) {
+            log(level, msg, os);
+        } else if (t != null) {
+            log(level, msg, t);
+        } else {
+            log(level, msg);
+        }
+    }
 }

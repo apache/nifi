@@ -48,7 +48,7 @@ public class TestNodeBulletinProcessingStrategy {
     }
 
     private Bulletin createBulletin() {
-        return new Bulletin.Builder().createBulletin();
+        return new Bulletin.Builder().build();
     }
 
 }
