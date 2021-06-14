@@ -667,6 +667,46 @@ public class StandardValidators {
         };
     }
 
+    public static Validator createRegexMatchingValidatorWithEL(final Pattern pattern, final String validationMessage) {
+        return new Validator() {
+            @Override
+            public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
+                final PropertyValue prefixProperty = context.newPropertyValue(input);
+                final String prefix;
+                if (prefixProperty.isExpressionLanguagePresent()) {
+                    try {
+                        prefix = prefixProperty.evaluateAttributeExpressions().getValue();
+                    } catch (final Exception e) {
+                        return new ValidationResult.Builder()
+                                .subject(subject)
+                                .valid(false)
+                                .explanation("Failed to evaluate the Attribute Expression Language due to " + e.toString())
+                                .build();
+                    }
+                } else {
+                    prefix = prefixProperty.getValue();
+                }
+
+                if (pattern.matcher(prefix).matches()) {
+                    return new ValidationResult.Builder()
+                            .subject(subject)
+                            .valid(true)
+                            .build();
+                } else {
+                    return new ValidationResult.Builder()
+                            .subject(subject)
+                            .valid(false)
+                            .explanation(validationMessage)
+                            .build();
+                }
+            }
+        };
+    }
+
+    public static Validator createRegexMatchingValidatorWithEL(final Pattern pattern) {
+        return createRegexMatchingValidatorWithEL(pattern, "Value does not match regular expression: " + pattern.pattern());
+    }
+
     /**
      * Creates a @{link Validator} that ensure that a value is a valid Java
      * Regular Expression with at least <code>minCapturingGroups</code>
