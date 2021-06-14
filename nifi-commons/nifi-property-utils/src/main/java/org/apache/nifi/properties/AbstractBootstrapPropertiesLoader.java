@@ -24,6 +24,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Objects;
 import java.util.Properties;
 
 /**
@@ -74,13 +76,27 @@ public abstract class AbstractBootstrapPropertiesLoader {
      * @throws IOException If the file is not readable
      */
     public BootstrapProperties loadBootstrapProperties(final String bootstrapPath) throws IOException {
-        final Properties properties = new Properties();
         final Path bootstrapFilePath = getBootstrapFile(bootstrapPath).toPath();
-        try (final InputStream bootstrapInput = Files.newInputStream(bootstrapFilePath)) {
+       return loadBootstrapProperties(bootstrapFilePath, getApplicationPrefix());
+    }
+
+    /**
+     * Loads a properties file into a BootstrapProperties object.
+     * @param bootstrapPath The path to the properties file
+     * @param propertyPrefix The property prefix to enforce
+     * @return The BootstrapProperties
+     * @throws IOException If the properties file could not be read
+     */
+    public static BootstrapProperties loadBootstrapProperties(final Path bootstrapPath, final String propertyPrefix) throws IOException {
+        Objects.requireNonNull(bootstrapPath, "Bootstrap path must be provided");
+        Objects.requireNonNull(propertyPrefix, "Property prefix must be provided");
+
+        final Properties properties = new Properties();
+        try (final InputStream bootstrapInput = Files.newInputStream(bootstrapPath)) {
             properties.load(bootstrapInput);
-            return new BootstrapProperties(getApplicationPrefix(), properties, bootstrapFilePath);
+            return new BootstrapProperties(propertyPrefix, properties, bootstrapPath);
         } catch (final IOException e) {
-            logger.error("Cannot read from bootstrap.conf file at {}", bootstrapFilePath);
+            logger.error("Cannot read from bootstrap.conf file at {}", bootstrapPath);
             throw new IOException("Cannot read from bootstrap.conf", e);
         }
     }

@@ -24,9 +24,19 @@ import java.nio.charset.StandardCharsets;
  * Uses the HashiCorp Vault Transit Secrets Engine to encrypt sensitive values at rest.
  */
 public class HashiCorpVaultTransitSensitivePropertyProvider extends AbstractHashiCorpVaultSensitivePropertyProvider {
+    private static final String TRANSIT_PATH = "vault.transit.path";
 
     HashiCorpVaultTransitSensitivePropertyProvider(final BootstrapProperties bootstrapProperties) {
-        super(bootstrapProperties, () -> bootstrapProperties.getHashiCorpVaultTransitPath().orElse(null));
+        super(bootstrapProperties);
+    }
+
+    @Override
+    protected String getSecretsEnginePath(final BootstrapProperties vaultBootstrapProperties) {
+        if (vaultBootstrapProperties == null) {
+            return null;
+        }
+
+        return vaultBootstrapProperties.getProperty(TRANSIT_PATH);
     }
 
     @Override
@@ -35,8 +45,8 @@ public class HashiCorpVaultTransitSensitivePropertyProvider extends AbstractHash
     }
 
     @Override
-    protected boolean hasRequiredSecretsEngineProperties(final BootstrapProperties bootstrapProperties) {
-        return bootstrapProperties.getHashiCorpVaultTransitPath().isPresent();
+    protected boolean hasRequiredSecretsEngineProperties(final BootstrapProperties vaultBootstrapProperties) {
+        return getSecretsEnginePath(vaultBootstrapProperties) != null;
     }
 
     /**

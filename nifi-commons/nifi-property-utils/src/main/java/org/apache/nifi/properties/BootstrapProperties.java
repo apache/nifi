@@ -32,19 +32,7 @@ public class BootstrapProperties extends StandardReadableProperties {
     private static final String BOOTSTRAP_SENSITIVE_KEY = "bootstrap.sensitive.key";
 
     // HashiCorp Vault Sensitive Property Provider configuration
-    private static final String BOOTSTRAP_SPP_HASHICORP_VAULT_TRANSIT_PATH = "bootstrap.sensitive.props.hashicorp.vault.transit.path";
-    private static final String BOOTSTRAP_SPP_HASHICORP_VAULT_URI = "bootstrap.sensitive.props.hashicorp.vault.uri";
-    private static final String BOOTSTRAP_SPP_HASHICORP_VAULT_AUTH_PROPS_FILE = "bootstrap.sensitive.props.hashicorp.vault.auth.props.file";
-    private static final String BOOTSTRAP_SPP_HASHICORP_VAULT_CONNECTION_TIMEOUT = "bootstrap.sensitive.props.hashicorp.vault.connection.timeout";
-    private static final String BOOTSTRAP_SPP_HASHICORP_VAULT_READ_TIMEOUT = "bootstrap.sensitive.props.hashicorp.vault.read.timeout";
-    private static final String BOOTSTRAP_SPP_HASHICORP_VAULT_ENABLED_TLS_CIPHER_SUITES = "bootstrap.sensitive.props.hashicorp.vault.enabled.tls.cipher.suites";
-    private static final String BOOTSTRAP_SPP_HASHICORP_VAULT_ENABLED_TLS_PROTOCOLS = "bootstrap.sensitive.props.hashicorp.vault.enabled.tls.protocols";
-    private static final String BOOTSTRAP_SPP_HASHICORP_VAULT_KEYSTORE = "bootstrap.sensitive.props.hashicorp.vault.keystore";
-    private static final String BOOTSTRAP_SPP_HASHICORP_VAULT_KEYSTORE_TYPE = "bootstrap.sensitive.props.hashicorp.vault.keystoreType";
-    private static final String BOOTSTRAP_SPP_HASHICORP_VAULT_KEYSTORE_PASSWD = "bootstrap.sensitive.props.hashicorp.vault.keystorePasswd";
-    private static final String BOOTSTRAP_SPP_HASHICORP_VAULT_TRUSTSTORE = "bootstrap.sensitive.props.hashicorp.vault.truststore";
-    private static final String BOOTSTRAP_SPP_HASHICORP_VAULT_TRUSTSTORE_TYPE = "bootstrap.sensitive.props.hashicorp.vault.truststoreType";
-    private static final String BOOTSTRAP_SPP_HASHICORP_VAULT_TRUSTSTORE_PASSWD = "bootstrap.sensitive.props.hashicorp.vault.truststorePasswd";
+    private static final String BOOTSTRAP_SPP_HASHICORP_VAULT_PROPERTIES = "bootstrap.sensitive.props.hashicorp.vault.properties";
 
     private final String propertyPrefix;
     private final Path configFilePath;
@@ -120,107 +108,11 @@ public class BootstrapProperties extends StandardReadableProperties {
     }
 
     /**
-     * Returns the Secrets Engine path for a HashiCorp Vault Transit Sensitive Property Provider.
-     * @return The Vault path of the Transit Secrets Engine
+     * Returns the location of the HashiCorp Vault sensitive property provider
+     * @return The location of the HashiCorp Vault sensitive property provider
      */
-    public Optional<String> getHashiCorpVaultTransitPath() {
-        return Optional.ofNullable(getProperty(getPropertyKey(BOOTSTRAP_SPP_HASHICORP_VAULT_TRANSIT_PATH)));
-    }
-
-    /**
-     * Returns the Vault URI for a HashiCorp Vault Sensitive Property Provider.
-     * @return The Vault URI
-     */
-    public Optional<String> getHashiCorpVaultUri() {
-        return Optional.ofNullable(getProperty(getPropertyKey(BOOTSTRAP_SPP_HASHICORP_VAULT_URI)));
-    }
-
-    /**
-     * Returns the Authentication properties filename for a HashiCorp Vault Sensitive Property Provider.
-     * @return The Authentication properties filename
-     */
-    public Optional<String> getHashiCorpVaultAuthPropsFilename() {
-        return Optional.ofNullable(getProperty(getPropertyKey(BOOTSTRAP_SPP_HASHICORP_VAULT_AUTH_PROPS_FILE)));
-    }
-
-    /**
-     * Returns the read timeout for a HashiCorp Vault Sensitive Property Provider.
-     * @return The read timeout
-     */
-    public Optional<String> getHashiCorpVaultReadTimeout() {
-        return Optional.ofNullable(getProperty(getPropertyKey(BOOTSTRAP_SPP_HASHICORP_VAULT_READ_TIMEOUT)));
-    }
-
-    /**
-     * Returns the connection timeout for a HashiCorp Vault Sensitive Property Provider.
-     * @return The connection timeout
-     */
-    public Optional<String> getHashiCorpVaultConnectionTimeout() {
-        return Optional.ofNullable(getProperty(getPropertyKey(BOOTSTRAP_SPP_HASHICORP_VAULT_CONNECTION_TIMEOUT)));
-    }
-
-    /**
-     * Returns the enabled TLS cipher suites for a HashiCorp Vault Sensitive Property Provider.
-     * @return The enabled TLS cipher suites
-     */
-    public Optional<String> getHashiCorpVaultEnabledTlsCipherSuites() {
-        return Optional.ofNullable(getProperty(getPropertyKey(BOOTSTRAP_SPP_HASHICORP_VAULT_ENABLED_TLS_CIPHER_SUITES)));
-    }
-
-    /**
-     * Returns the enabled TLS protocols for a HashiCorp Vault Sensitive Property Provider.
-     * @return The enabled TLS protocols
-     */
-    public Optional<String> getHashiCorpVaultEnabledTlsProtocols() {
-        return Optional.ofNullable(getProperty(getPropertyKey(BOOTSTRAP_SPP_HASHICORP_VAULT_ENABLED_TLS_PROTOCOLS)));
-    }
-
-    /**
-     * Returns the keystore path for a HashiCorp Vault Sensitive Property Provider.
-     * @return The keystore path
-     */
-    public Optional<String> getHashiCorpVaultKeystore() {
-        return Optional.ofNullable(getProperty(getPropertyKey(BOOTSTRAP_SPP_HASHICORP_VAULT_KEYSTORE)));
-    }
-
-    /**
-     * Returns the keystore type for a HashiCorp Vault Sensitive Property Provider.
-     * @return The keystore type
-     */
-    public Optional<String> getHashiCorpVaultKeystoreType() {
-        return Optional.ofNullable(getProperty(getPropertyKey(BOOTSTRAP_SPP_HASHICORP_VAULT_KEYSTORE_TYPE)));
-    }
-
-    /**
-     * Returns the keystore password for a HashiCorp Vault Sensitive Property Provider.
-     * @return The keystore password
-     */
-    public Optional<String> getHashiCorpVaultKeystorePassword() {
-        return Optional.ofNullable(getProperty(getPropertyKey(BOOTSTRAP_SPP_HASHICORP_VAULT_KEYSTORE_PASSWD)));
-    }
-
-    /**
-     * Returns the truststore path for a HashiCorp Vault Sensitive Property Provider.
-     * @return The truststore path
-     */
-    public Optional<String> getHashiCorpVaultTruststore() {
-        return Optional.ofNullable(getProperty(getPropertyKey(BOOTSTRAP_SPP_HASHICORP_VAULT_TRUSTSTORE)));
-    }
-
-    /**
-     * Returns the truststore type for a HashiCorp Vault Sensitive Property Provider.
-     * @return The truststore type
-     */
-    public Optional<String> getHashiCorpVaultTruststoreType() {
-        return Optional.ofNullable(getProperty(getPropertyKey(BOOTSTRAP_SPP_HASHICORP_VAULT_TRUSTSTORE_TYPE)));
-    }
-
-    /**
-     * Returns the truststore password for a HashiCorp Vault Sensitive Property Provider.
-     * @return The truststore password
-     */
-    public Optional<String> getHashiCorpVaultTruststorePassword() {
-        return Optional.ofNullable(getProperty(getPropertyKey(BOOTSTRAP_SPP_HASHICORP_VAULT_TRUSTSTORE_PASSWD)));
+    public Optional<String> getHashiCorpVaultPropertiesFile() {
+        return Optional.ofNullable(getProperty(getPropertyKey(BOOTSTRAP_SPP_HASHICORP_VAULT_PROPERTIES)));
     }
 
     @Override
@@ -255,5 +147,13 @@ public class BootstrapProperties extends StandardReadableProperties {
 
     private static boolean isBlank(final String string) {
         return (string == null) || string.isEmpty() || string.trim().isEmpty();
+    }
+
+    /**
+     * Returns the property prefix for these properties (e.g., 'nifi').
+     * @return The property prefix
+     */
+    public String getPropertyPrefix() {
+        return propertyPrefix;
     }
 }

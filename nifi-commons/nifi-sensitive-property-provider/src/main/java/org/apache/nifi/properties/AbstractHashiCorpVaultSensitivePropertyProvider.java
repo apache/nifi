@@ -20,40 +20,81 @@ import org.apache.nifi.vault.hashicorp.HashiCorpVaultCommunicationService;
 import org.apache.nifi.vault.hashicorp.StandardHashiCorpVaultCommunicationService;
 import org.apache.nifi.vault.hashicorp.config.HashiCorpVaultProperties;
 
-import java.util.function.Supplier;
+import java.io.IOException;
+import java.nio.file.Paths;
+import java.util.Optional;
 
 public abstract class AbstractHashiCorpVaultSensitivePropertyProvider extends AbstractSensitivePropertyProvider {
+    private static final String VAULT_PREFIX = "vault";
+
+    private static final String URI = "vault.uri";
+    private static final String AUTH_PROPS_FILE = "vault.auth.props.file";
+    private static final String CONNECTION_TIMEOUT = "vault.connection.timeout";
+    private static final String READ_TIMEOUT = "vault.read.timeout";
+    private static final String ENABLED_TLS_CIPHER_SUITES = "vault.enabled.tls.cipher.suites";
+    private static final String ENABLED_TLS_PROTOCOLS = "vault.enabled.tls.protocols";
+    private static final String KEYSTORE = "vault.keystore";
+    private static final String KEYSTORE_TYPE = "vault.keystoreType";
+    private static final String KEYSTORE_PASSWD = "vault.keystorePasswd";
+    private static final String TRUSTSTORE = "vault.truststore";
+    private static final String TRUSTSTORE_TYPE = "vault.truststoreType";
+    private static final String TRUSTSTORE_PASSWD = "vault.truststorePasswd";
 
     private final String path;
     private final HashiCorpVaultCommunicationService vaultCommunicationService;
+    private final BootstrapProperties vaultBootstrapProperties;
 
-    AbstractHashiCorpVaultSensitivePropertyProvider(final BootstrapProperties bootstrapProperties, final Supplier<String> pathSupplier) {
+    AbstractHashiCorpVaultSensitivePropertyProvider(final BootstrapProperties bootstrapProperties) {
         super(bootstrapProperties);
-        path = pathSupplier.get();
 
-        if (hasRequiredVaultProperties(bootstrapProperties)) {
-            vaultCommunicationService = new StandardHashiCorpVaultCommunicationService(getVaultProperties(bootstrapProperties));
+        vaultBootstrapProperties = getVaultBootstrapProperties(bootstrapProperties);
+        path = getSecretsEnginePath(vaultBootstrapProperties);
+        if (hasRequiredVaultProperties()) {
+            vaultCommunicationService = new StandardHashiCorpVaultCommunicationService(getVaultProperties());
         } else {
             vaultCommunicationService = null;
         }
     }
 
-    private static HashiCorpVaultProperties getVaultProperties(final BootstrapProperties bootstrapProperties) {
+    /**
+     * Return the configured Secrets Engine path for this sensitive property provider.
+     * @param vaultBootstrapProperties The Properties from the file located at bootstrap.sensitive.props.hashicorp.vault.properties
+     * @return The Secrets Engine path
+     */
+    protected abstract String getSecretsEnginePath(final BootstrapProperties vaultBootstrapProperties);
+
+    private static BootstrapProperties getVaultBootstrapProperties(final BootstrapProperties bootstrapProperties) {
+        final BootstrapProperties vaultBootstrapProperties;
+        if (bootstrapProperties.getHashiCorpVaultPropertiesFile().isPresent()) {
+            final String vaultPropertiesFilename = bootstrapProperties.getHashiCorpVaultPropertiesFile().get();
+            try {
+                vaultBootstrapProperties = AbstractBootstrapPropertiesLoader.loadBootstrapProperties(
+                        Paths.get(vaultPropertiesFilename), VAULT_PREFIX);
+            } catch (IOException e) {
+                throw new SensitivePropertyProtectionException("Could not load " + vaultPropertiesFilename, e);
+            }
+        } else {
+            vaultBootstrapProperties = null;
+        }
+        return vaultBootstrapProperties;
+    }
+
+    private HashiCorpVaultProperties getVaultProperties() {
         final HashiCorpVaultProperties.HashiCorpVaultPropertiesBuilder builder = new HashiCorpVaultProperties.HashiCorpVaultPropertiesBuilder();
-        bootstrapProperties.getHashiCorpVaultUri().ifPresent(uri -> builder.setUri(uri));
-        bootstrapProperties.getHashiCorpVaultAuthPropsFilename().ifPresent(filename -> builder.setAuthPropertiesFilename(filename));
+        Optional.ofNullable(vaultBootstrapProperties.getProperty(URI)).ifPresent(builder::setUri);
+        Optional.ofNullable(vaultBootstrapProperties.getProperty(AUTH_PROPS_FILE)).ifPresent(builder::setAuthPropertiesFilename);
 
-        bootstrapProperties.getHashiCorpVaultEnabledTlsProtocols().ifPresent(enabledProtocols -> builder.setEnabledTlsProtocols(enabledProtocols));
-        bootstrapProperties.getHashiCorpVaultEnabledTlsCipherSuites().ifPresent(enabledCipherSuites -> builder.setEnabledTlsCipherSuites(enabledCipherSuites));
-        bootstrapProperties.getHashiCorpVaultKeystore().ifPresent(keystore -> builder.setKeyStore(keystore));
-        bootstrapProperties.getHashiCorpVaultKeystoreType().ifPresent(keystoreType -> builder.setKeyStoreType(keystoreType));
-        bootstrapProperties.getHashiCorpVaultKeystorePassword().ifPresent(keystorePassword -> builder.setKeyStorePassword(keystorePassword));
-        bootstrapProperties.getHashiCorpVaultTruststore().ifPresent(truststore -> builder.setTrustStore(truststore));
-        bootstrapProperties.getHashiCorpVaultTruststoreType().ifPresent(truststoreType -> builder.setTrustStoreType(truststoreType));
-        bootstrapProperties.getHashiCorpVaultTruststorePassword().ifPresent(truststorePassword -> builder.setTrustStorePassword(truststorePassword));
+        Optional.ofNullable(vaultBootstrapProperties.getProperty(ENABLED_TLS_PROTOCOLS)).ifPresent(builder::setEnabledTlsProtocols);
+        Optional.ofNullable(vaultBootstrapProperties.getProperty(ENABLED_TLS_CIPHER_SUITES)).ifPresent(builder::setEnabledTlsCipherSuites);
+        Optional.ofNullable(vaultBootstrapProperties.getProperty(KEYSTORE)).ifPresent(builder::setKeyStore);
+        Optional.ofNullable(vaultBootstrapProperties.getProperty(KEYSTORE_TYPE)).ifPresent(builder::setKeyStoreType);
+        Optional.ofNullable(vaultBootstrapProperties.getProperty(KEYSTORE_PASSWD)).ifPresent(builder::setKeyStorePassword);
+        Optional.ofNullable(vaultBootstrapProperties.getProperty(TRUSTSTORE)).ifPresent(builder::setTrustStore);
+        Optional.ofNullable(vaultBootstrapProperties.getProperty(TRUSTSTORE_TYPE)).ifPresent(builder::setTrustStoreType);
+        Optional.ofNullable(vaultBootstrapProperties.getProperty(TRUSTSTORE_PASSWD)).ifPresent(builder::setTrustStorePassword);
 
-        bootstrapProperties.getHashiCorpVaultReadTimeout().ifPresent(timeout -> builder.setReadTimeout(timeout));
-        bootstrapProperties.getHashiCorpVaultConnectionTimeout().ifPresent(timeout -> builder.setConnectionTimeout(timeout));
+        Optional.ofNullable(vaultBootstrapProperties.getProperty(READ_TIMEOUT)).ifPresent(builder::setReadTimeout);
+        Optional.ofNullable(vaultBootstrapProperties.getProperty(CONNECTION_TIMEOUT)).ifPresent(builder::setConnectionTimeout);
 
         return builder.build();
     }
@@ -74,21 +115,30 @@ public abstract class AbstractHashiCorpVaultSensitivePropertyProvider extends Ab
     }
 
     @Override
-    protected boolean isSupported(final BootstrapProperties bootstrapProperties) {
-        return hasRequiredVaultProperties(bootstrapProperties);
+    public boolean isSupported() {
+        return hasRequiredVaultProperties();
     }
 
-    private boolean hasRequiredVaultProperties(final BootstrapProperties bootstrapProperties) {
-        return bootstrapProperties.getHashiCorpVaultUri().isPresent()
-                && bootstrapProperties.getHashiCorpVaultAuthPropsFilename().isPresent();
+    /**
+     * Returns the Vault-specific bootstrap properties (e.g., bootstrap-vault.properties)
+     * @return The Vault-specific bootstrap properties
+     */
+    protected BootstrapProperties getVaultBootstrapProperties() {
+        return vaultBootstrapProperties;
+    }
+
+    private boolean hasRequiredVaultProperties() {
+        return vaultBootstrapProperties != null
+                && (vaultBootstrapProperties.getProperty(URI) != null)
+                && (vaultBootstrapProperties.getProperty(AUTH_PROPS_FILE) != null);
     }
 
     /**
      * Return true if the relevant Secrets Engine-specific properties are configured.
-     * @param bootstrapProperties Bootstrap properties
+     * @param vaultBootstrapProperties The Vault-specific bootstrap properties
      * @return true if the relevant Secrets Engine-specific properties are configured
      */
-    protected abstract boolean hasRequiredSecretsEngineProperties(final BootstrapProperties bootstrapProperties);
+    protected abstract boolean hasRequiredSecretsEngineProperties(final BootstrapProperties vaultBootstrapProperties);
 
     /**
      * Returns the key used to identify the provider implementation in {@code nifi.properties},
