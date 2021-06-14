@@ -16,27 +16,21 @@
  */
 package org.apache.nifi.vault.hashicorp;
 
-import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.vault.hashicorp.config.HashiCorpVaultConfiguration;
 import org.apache.nifi.vault.hashicorp.config.HashiCorpVaultProperties;
+import org.apache.nifi.vault.hashicorp.config.HashiCorpVaultPropertySource;
+import org.springframework.core.env.PropertySource;
 import org.springframework.vault.authentication.SimpleSessionManager;
 import org.springframework.vault.client.ClientHttpRequestFactoryFactory;
 import org.springframework.vault.core.VaultTemplate;
 import org.springframework.vault.core.VaultTransitOperations;
 import org.springframework.vault.support.Ciphertext;
-import org.springframework.vault.support.ClientOptions;
 import org.springframework.vault.support.Plaintext;
-import org.springframework.vault.support.SslConfiguration;
-
-import java.time.Duration;
-import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Implements the VaultCommunicationService using Spring Vault
  */
 public class StandardHashiCorpVaultCommunicationService implements HashiCorpVaultCommunicationService {
-    private static final String HTTPS = "https";
 
     private final HashiCorpVaultConfiguration vaultConfiguration;
     private final VaultTemplate vaultTemplate;
@@ -44,42 +38,26 @@ public class StandardHashiCorpVaultCommunicationService implements HashiCorpVaul
 
     /**
      * Creates a VaultCommunicationService that uses Spring Vault.
-     * @param vaultProperties Properties to configure the service
+     * @param propertySources Property sources to configure the service
      * @throws HashiCorpVaultConfigurationException If the configuration was invalid
      */
-    public StandardHashiCorpVaultCommunicationService(final HashiCorpVaultProperties vaultProperties) throws HashiCorpVaultConfigurationException {
-        this.vaultConfiguration = new HashiCorpVaultConfiguration(vaultProperties);
-
-        final SslConfiguration sslConfiguration = vaultProperties.getUri().contains(HTTPS)
-                ? vaultConfiguration.sslConfiguration() : SslConfiguration.unconfigured();
-
-        final ClientOptions clientOptions = getClientOptions(vaultProperties);
+    public StandardHashiCorpVaultCommunicationService(final PropertySource<?>... propertySources) throws HashiCorpVaultConfigurationException {
+        vaultConfiguration = new HashiCorpVaultConfiguration(propertySources);
 
         vaultTemplate = new VaultTemplate(vaultConfiguration.vaultEndpoint(),
-                ClientHttpRequestFactoryFactory.create(clientOptions, sslConfiguration),
+                ClientHttpRequestFactoryFactory.create(vaultConfiguration.clientOptions(), vaultConfiguration.sslConfiguration()),
                 new SimpleSessionManager(vaultConfiguration.clientAuthentication()));
 
         transitOperations = vaultTemplate.opsForTransit();
     }
 
-    private static ClientOptions getClientOptions(HashiCorpVaultProperties vaultProperties) {
-        final ClientOptions clientOptions = new ClientOptions();
-        Duration readTimeoutDuration = clientOptions.getReadTimeout();
-        Duration connectionTimeoutDuration = clientOptions.getConnectionTimeout();
-        final Optional<String> configuredReadTimeout = vaultProperties.getReadTimeout();
-        if (configuredReadTimeout.isPresent()) {
-            readTimeoutDuration = getDuration(configuredReadTimeout.get());
-        }
-        final Optional<String> configuredConnectionTimeout = vaultProperties.getConnectionTimeout();
-        if (configuredConnectionTimeout.isPresent()) {
-            connectionTimeoutDuration = getDuration(configuredConnectionTimeout.get());
-        }
-        return new ClientOptions(connectionTimeoutDuration, readTimeoutDuration);
-    }
-
-    private static Duration getDuration(String formattedDuration) {
-        final double duration = FormatUtils.getPreciseTimeDuration(formattedDuration, TimeUnit.MILLISECONDS);
-        return Duration.ofMillis(Double.valueOf(duration).longValue());
+    /**
+     * Creates a VaultCommunicationService that uses Spring Vault.
+     * @param vaultProperties Properties to configure the service
+     * @throws HashiCorpVaultConfigurationException If the configuration was invalid
+     */
+    public StandardHashiCorpVaultCommunicationService(final HashiCorpVaultProperties vaultProperties) throws HashiCorpVaultConfigurationException {
+        this(new HashiCorpVaultPropertySource(vaultProperties));
     }
 
     @Override

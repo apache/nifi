@@ -24,7 +24,8 @@ import java.util.Objects;
  * SensitivePropertyProvider.
  */
 public enum PropertyProtectionScheme {
-    AES_GCM("aes/gcm/(128|192|256)", "aes/gcm/%s", "AES Sensitive Property Provider", true);
+    AES_GCM("aes/gcm/(128|192|256)", "aes/gcm/%s", "AES Sensitive Property Provider", true),
+    HASHICORP_VAULT_TRANSIT("hashicorp/vault/transit/[a-zA-Z0-9_-]+", "hashicorp/vault/transit/%s", "HashiCorp Vault Transit Engine Sensitive Property Provider", false);
 
     PropertyProtectionScheme(final String identifierPattern, final String identifierFormat, final String name, final boolean requiresSecretKey) {
         this.identifierPattern = identifierPattern;
