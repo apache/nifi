@@ -290,6 +290,8 @@ class NiFiPropertiesLoaderGroovyTest extends GroovyTestCase {
     void testShouldLoadUnprotectedPropertiesFromProtectedFile() throws Exception {
         // Arrange
         File protectedFile = new File("src/test/resources/conf/nifi_with_sensitive_properties_protected_aes.properties")
+
+        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, protectedFile.path)
         NiFiPropertiesLoader niFiPropertiesLoader = NiFiPropertiesLoader.withKey(KEY_HEX)
 
         final def EXPECTED_PLAIN_VALUES = [

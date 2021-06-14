@@ -90,8 +90,8 @@ public class StandardSensitivePropertyProviderFactory implements SensitiveProper
             try {
                 return NiFiBootstrapUtils.loadBootstrapProperties();
             } catch (final IOException e) {
-                logger.error("Error extracting root key from bootstrap.conf for login identity provider decryption", e);
-                throw new SensitivePropertyProtectionException("Could not read root key from bootstrap.conf");
+                logger.warn("Could not load bootstrap.conf from disk, so using empty bootstrap.conf", e);
+                return BootstrapProperties.EMPTY;
             }
         });
     }
@@ -104,7 +104,8 @@ public class StandardSensitivePropertyProviderFactory implements SensitiveProper
         switch (protectionScheme) {
             case AES_GCM:
                 return providerMap.computeIfAbsent(protectionScheme, s -> new AESSensitivePropertyProvider(keyHex));
-            // Other providers may choose to pass getBootstrapProperties() into the constructor
+            case HASHICORP_VAULT_TRANSIT:
+                return providerMap.computeIfAbsent(protectionScheme, s -> new HashiCorpVaultTransitSensitivePropertyProvider(getBootstrapProperties()));
             default:
                 throw new SensitivePropertyProtectionException("Unsupported protection scheme " + protectionScheme);
         }
