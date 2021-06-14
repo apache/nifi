@@ -16,12 +16,13 @@
  */
 package org.apache.nifi.jaxb;
 
-import javax.xml.bind.annotation.adapters.XmlAdapter;
-
 import org.apache.nifi.events.BulletinFactory;
 import org.apache.nifi.reporting.Bulletin;
 
+import javax.xml.bind.annotation.adapters.XmlAdapter;
+
 /**
+ *
  */
 public class BulletinAdapter extends XmlAdapter<AdaptedBulletin, Bulletin> {
 
@@ -30,9 +31,8 @@ public class BulletinAdapter extends XmlAdapter<AdaptedBulletin, Bulletin> {
         if (b == null) {
             return null;
         }
-        // TODO - timestamp is overridden here with a new timestamp... address?
         if (b.getSourceId() == null) {
-            return BulletinFactory.createSystemBulletin(b.getCategory(), b.getLevel(), b.getMessage());
+            return BulletinFactory.createSystemBulletin(b.getCategory(), b.getLevel(), b.getMessage(), b.getTimestamp());
         } else {
             return new Bulletin.Builder()
                     .groupId(b.getGroupId())
@@ -48,7 +48,7 @@ public class BulletinAdapter extends XmlAdapter<AdaptedBulletin, Bulletin> {
     }
 
     @Override
-    public AdaptedBulletin marshal(final Bulletin b) throws Exception {
+    public AdaptedBulletin marshal(final Bulletin b) {
         if (b == null) {
             return null;
         }

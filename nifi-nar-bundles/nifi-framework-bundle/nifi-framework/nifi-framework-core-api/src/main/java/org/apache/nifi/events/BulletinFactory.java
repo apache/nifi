@@ -21,6 +21,8 @@ import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.reporting.Bulletin;
 import org.apache.nifi.reporting.ComponentType;
 
+import java.util.Date;
+
 public final class BulletinFactory {
 
     public static Bulletin createSystemBulletin(final Connectable connectable, final String category, final String severity, final String message) {
@@ -60,6 +62,16 @@ public final class BulletinFactory {
     public static Bulletin createSystemBulletin(final String category, final String severity, final String message) {
         return new Bulletin.Builder()
                 .sourceType(ComponentType.FLOW_CONTROLLER)
+                .category(category)
+                .level(severity)
+                .message(message)
+                .build();
+    }
+
+    public static Bulletin createSystemBulletin(final String category, final String severity, final String message, final Date timestamp) {
+        return new Bulletin.Builder()
+                .sourceType(ComponentType.FLOW_CONTROLLER)
+                .timestamp(timestamp)
                 .category(category)
                 .level(severity)
                 .message(message)

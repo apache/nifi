@@ -65,7 +65,7 @@ public class Bulletin implements Comparable<Bulletin> {
     public static class Builder {
 
         private long id;
-        private final Date timestamp;
+        private Date timestamp;
         private String nodeAddress;
         private String level;
         private String category;
@@ -78,8 +78,9 @@ public class Bulletin implements Comparable<Bulletin> {
         private ComponentType sourceType;
         private FlowFile flowFile;
 
-        public Builder() {
-            timestamp = new Date();
+        public Builder timestamp(Date timestamp) {
+            this.timestamp = timestamp;
+            return this;
         }
 
         public Builder nodeAddress(String nodeAddress) {
@@ -139,6 +140,9 @@ public class Bulletin implements Comparable<Bulletin> {
 
         public Bulletin build() {
             this.id = bulletinId.incrementAndGet();
+            if (timestamp == null) {
+                timestamp = new Date();
+            }
             return new Bulletin(this);
         }
     }
