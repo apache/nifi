@@ -144,7 +144,7 @@ Accessing NiFi after accepting the self-signed certificate will display the logi
 image:nifi-login.png["Login"]
 
 Using the generated credentials, enter the generated username in the `User` field
-and the generated password in the `Password` field, then press `LOG IN` to access the system.
+and the generated password in the `Password` field, then select `LOG IN` to access the system.
 This will bring up the User Interface, which at this point is a blank canvas for orchestrating a dataflow:
 
 image:nifi-flow-authenticated.png["New Flow Authenticated"]
