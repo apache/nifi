@@ -159,7 +159,7 @@ Accessing NiFi after accepting the self-signed certificate will display the logi
 ![NiFi Login Screen](nifi-docs/src/main/asciidoc/images/nifi-login.png?raw=true)
 
 Using the generated credentials, enter the generated username in the `User` field
-and the generated password in the `Password` field, then press `LOG IN` to access the system.
+and the generated password in the `Password` field, then select `LOG IN` to access the system.
 ![NiFi Flow Authenticated Screen](nifi-docs/src/main/asciidoc/images/nifi-flow-authenticated.png?raw=true)
 
 ### Configuring
@@ -235,38 +235,39 @@ Registry—a subproject of Apache NiFi—is a complementary application that pro
 
 ### Getting Registry Started
 
-1) Build nifi
-    See [Gettin Started](#getting-started) for NiFi
+1) Build NiFi (see [Getting Started for NiFi](#getting-started) )
     
-    or
+or
     
-    Build only the Registry subproject:
-    
-            cd nifi/nifi-registry
-            mvn clean install
-    
-    If you wish to enable style and license checks, specify the contrib-check profile:
-        
-            mvn clean install -Pcontrib-check
+Build only the Registry subproject:
 
-3) Start Registry
+    cd nifi/nifi-registry
+    mvn clean install
 
-        cd nifi-registry/nifi-registry-assembly/target/nifi-registry-<VERSION>-bin/nifi-registry-<VERSION>/
-        ./bin/nifi-registry.sh start
-   
-   Note that the application web server can take a while to load before it is accessible.   
+    
+If you wish to enable style and license checks, specify the contrib-check profile:
 
-4) Accessing the application web UI
+    mvn clean install -Pcontrib-check
+
+
+2) Start Registry
+
+    cd nifi-registry/nifi-registry-assembly/target/nifi-registry-<VERSION>-bin/nifi-registry-<VERSION>/
+    ./bin/nifi-registry.sh start
+
+Note that the application web server can take a while to load before it is accessible.   
+
+3) Accessing the application web UI
  
-    With the default settings, the application UI will be available at [http://localhost:18080/nifi-registry](http://localhost:18080/nifi-registry) 
+With the default settings, the application UI will be available at [http://localhost:18080/nifi-registry](http://localhost:18080/nifi-registry) 
    
-5) Accessing the application REST API
+4) Accessing the application REST API
 
-    If you wish to test against the application REST API, you can access the REST API directly. With the default settings, the base URL of the REST API will be at `http://localhost:18080/nifi-registry-api`. A UI for testing the REST API will be available at [http://localhost:18080/nifi-registry-api/swagger/ui.html](http://localhost:18080/nifi-registry-api/swagger/ui.html) 
+If you wish to test against the application REST API, you can access the REST API directly. With the default settings, the base URL of the REST API will be at `http://localhost:18080/nifi-registry-api`. A UI for testing the REST API will be available at [http://localhost:18080/nifi-registry-api/swagger/ui.html](http://localhost:18080/nifi-registry-api/swagger/ui.html) 
 
-6) Accessing the application logs
+5) Accessing the application logs
 
-    Logs will be available in `logs/nifi-registry-app.log`
+Logs will be available in `logs/nifi-registry-app.log`
 
 ### Database Testing
 
@@ -325,6 +326,8 @@ See https://nifi.apache.org/ for the latest NiFi documentation.
 
 See https://nifi.apache.org/minifi and https://cwiki.apache.org/confluence/display/MINIFI for the latest MiNiFi-specific documentation.
 
+See https://nifi.apache.org/registry for the latest Registry-specific documentation.
+
 ## License
 
 Except as otherwise noted this software is licensed under the
@@ -366,9 +369,11 @@ The following provides more details on the included cryptographic software:
 Apache NiFi uses BouncyCastle, JCraft Inc., and the built-in
 Java cryptography libraries for SSL, SSH, and the protection
 of sensitive configuration parameters. See
-https://bouncycastle.org/about.html
-http://www.jcraft.com/c-info.html
-https://www.oracle.com/corporate/security-practices/corporate/governance/global-trade-compliance.html
+
+- https://bouncycastle.org/about.html
+- http://www.jcraft.com/c-info.html
+- https://www.oracle.com/corporate/security-practices/corporate/governance/global-trade-compliance.html
+
 for more details on each of these libraries cryptography features.
 
 [nifi]: https://nifi.apache.org/

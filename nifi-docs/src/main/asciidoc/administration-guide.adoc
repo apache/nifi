@@ -290,20 +290,20 @@ consisting of 32 characters and stored using bcrypt hashing.
 
 The default configuration in _nifi.properties_ enables Single User authentication:
 
----
+----
 nifi.security.user.login.identity.provider=single-user-provider
----
+----
 
 The default _login-identity-providers.xml_ includes a blank provider definition:
 
----
+----
 <provider>
    <identifier>single-user-provider</identifier>
    <class>org.apache.nifi.authentication.single.user.SingleUserLoginIdentityProvider</class>
    <property name="Username"/>
    <property name="Password"/>
 </provider>
----
+----
 
 The following command can be used to change the Username and Password:
 
