@@ -221,10 +221,30 @@ public class StandardParameterContext implements ParameterContext {
     public Optional<Parameter> getParameter(final ParameterDescriptor parameterDescriptor) {
         readLock.lock();
         try {
-            return Optional.ofNullable(parameters.get(parameterDescriptor));
+            // When Expression Language is used, the Parameter may require being escaped.
+            // This is the case, for instance, if a Parameter name has a space in it.
+            // Because of this, we may have a case where we attempt to get a Parameter by name
+            // and that Parameter name is enclosed within single tick marks, as a way of escaping
+            // the name via the Expression Language. In this case, we want to strip out those
+            // escaping tick marks and use just the raw name for looking up the Parameter.
+            final ParameterDescriptor unescaped = unescape(parameterDescriptor);
+            return Optional.ofNullable(parameters.get(unescaped));
         } finally {
             readLock.unlock();
         }
+    }
+
+    private ParameterDescriptor unescape(final ParameterDescriptor descriptor) {
+        final String parameterName = descriptor.getName().trim();
+        if ((parameterName.startsWith("'") && parameterName.endsWith("'")) || (parameterName.startsWith("\"") && parameterName.endsWith("\""))) {
+            final String stripped = parameterName.substring(1, parameterName.length() - 1);
+            return new ParameterDescriptor.Builder()
+                .from(descriptor)
+                .name(stripped)
+                .build();
+        }
+
+        return descriptor;
     }
 
     @Override
