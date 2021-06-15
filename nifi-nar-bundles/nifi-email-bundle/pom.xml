@@ -24,18 +24,27 @@
     <artifactId>nifi-email-bundle</artifactId>
     <packaging>pom</packaging>
     <description>NiFi Email Processor Set</description>
-	
+    <properties>
+        <spring.version>5.3.8</spring.version>
+    </properties>
     <modules>
         <module>nifi-email-processors</module>
         <module>nifi-email-nar</module>
     </modules>
-	
+
     <dependencyManagement>
         <dependencies>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-email-processors</artifactId>
                 <version>1.14.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework</groupId>
+                <artifactId>spring-framework-bom</artifactId>
+                <version>${spring.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
             </dependency>
         </dependencies>
     </dependencyManagement>
