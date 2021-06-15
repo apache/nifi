@@ -57,7 +57,9 @@ public interface ComponentLog {
 
     void warn(String msg);
 
-    void warn(LogMessage logMessage);
+    default void warn(LogMessage logMessage) {
+        logWithLogMessage(LogLevel.WARN, logMessage);
+    }
 
     void trace(String msg, Throwable t);
 
@@ -67,7 +69,9 @@ public interface ComponentLog {
 
     void trace(String msg, Object[] os, Throwable t);
 
-    void trace(LogMessage logMessage);
+    default void trace(LogMessage logMessage) {
+        logWithLogMessage(LogLevel.TRACE, logMessage);
+    }
 
     boolean isWarnEnabled();
 
@@ -87,7 +91,9 @@ public interface ComponentLog {
 
     void info(String msg, Object[] os, Throwable t);
 
-    void info(LogMessage message);
+    default void info(LogMessage logMessage) {
+        logWithLogMessage(LogLevel.INFO, logMessage);
+    }
 
     String getName();
 
@@ -99,7 +105,9 @@ public interface ComponentLog {
 
     void error(String msg, Object[] os, Throwable t);
 
-    void error(LogMessage message);
+    default void error(LogMessage logMessage) {
+        logWithLogMessage(LogLevel.ERROR, logMessage);
+    }
 
     void debug(String msg, Throwable t);
 
@@ -109,7 +117,9 @@ public interface ComponentLog {
 
     void debug(String msg);
 
-    void debug(LogMessage message);
+    default void debug(LogMessage logMessage) {
+        logWithLogMessage(LogLevel.ERROR, logMessage);
+    }
 
     default void log(LogLevel level, String msg, Throwable t) {
         switch (level) {

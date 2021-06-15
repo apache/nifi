@@ -17,15 +17,12 @@
 package org.apache.nifi.mock;
 
 import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.logging.LogLevel;
-import org.apache.nifi.logging.LogMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * Stubs out the functionality of a ComponentLog so that it can
  * be used during initialization of a component.
- *
  */
 public class MockComponentLogger implements ComponentLog {
 
@@ -54,12 +51,6 @@ public class MockComponentLogger implements ComponentLog {
     }
 
     @Override
-    public void warn(LogMessage logMessage) {
-        logger.warn(logMessage.getMessage(), logMessage.getObjects());
-        logger.warn("", logMessage.getThrowable());
-    }
-
-    @Override
     public void trace(String msg, Throwable t) {
         logger.trace(msg, t);
     }
@@ -78,12 +69,6 @@ public class MockComponentLogger implements ComponentLog {
     public void trace(String msg, Object[] os, Throwable t) {
         logger.trace(msg, os);
         logger.trace("", t);
-    }
-
-    @Override
-    public void trace(LogMessage logMessage) {
-        logger.trace(logMessage.getMessage(), logMessage.getObjects());
-        logger.trace("", logMessage.getThrowable());
     }
 
     @Override
@@ -134,11 +119,6 @@ public class MockComponentLogger implements ComponentLog {
     }
 
     @Override
-    public void info(LogMessage logMessage) {
-        logWithLogMessage(LogLevel.INFO, logMessage);
-    }
-
-    @Override
     public String getName() {
         return logger.getName();
     }
@@ -165,11 +145,6 @@ public class MockComponentLogger implements ComponentLog {
     }
 
     @Override
-    public void error(LogMessage logMessage) {
-        logWithLogMessage(LogLevel.ERROR, logMessage);
-    }
-
-    @Override
     public void debug(String msg, Throwable t) {
         logger.debug(msg, t);
     }
@@ -188,10 +163,5 @@ public class MockComponentLogger implements ComponentLog {
     @Override
     public void debug(String msg) {
         logger.debug(msg);
-    }
-
-    @Override
-    public void debug(LogMessage logMessage) {
-        logWithLogMessage(LogLevel.DEBUG, logMessage);
     }
 }

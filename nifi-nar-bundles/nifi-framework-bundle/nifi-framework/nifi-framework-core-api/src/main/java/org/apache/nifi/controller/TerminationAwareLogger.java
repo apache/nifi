@@ -19,7 +19,6 @@ package org.apache.nifi.controller;
 
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.logging.LogLevel;
-import org.apache.nifi.logging.LogMessage;
 
 public class TerminationAwareLogger implements ComponentLog {
 
@@ -42,7 +41,6 @@ public class TerminationAwareLogger implements ComponentLog {
     private String getMessage(String originalMessage, LogLevel logLevel) {
         return TERMINATED_TASK_PREFIX + logLevel.name() + " - " + originalMessage;
     }
-
 
 
     @Override
@@ -86,11 +84,6 @@ public class TerminationAwareLogger implements ComponentLog {
     }
 
     @Override
-    public void warn(LogMessage logMessage) {
-        logWithLogMessage(LogLevel.WARN, logMessage);
-    }
-
-    @Override
     public void trace(String msg, Throwable t) {
         if (isTerminated()) {
             logger.trace(getMessage(msg, LogLevel.TRACE), t);
@@ -128,11 +121,6 @@ public class TerminationAwareLogger implements ComponentLog {
         }
 
         logger.trace(msg, os, t);
-    }
-
-    @Override
-    public void trace(LogMessage logMessage) {
-        logWithLogMessage(LogLevel.TRACE, logMessage);
     }
 
     @Override
@@ -201,11 +189,6 @@ public class TerminationAwareLogger implements ComponentLog {
     }
 
     @Override
-    public void info(LogMessage logMessage) {
-        logWithLogMessage(LogLevel.INFO, logMessage);
-    }
-
-    @Override
     public String getName() {
         return logger.getName();
     }
@@ -251,11 +234,6 @@ public class TerminationAwareLogger implements ComponentLog {
     }
 
     @Override
-    public void error(LogMessage logMessage) {
-        logWithLogMessage(LogLevel.ERROR, logMessage);
-    }
-
-    @Override
     public void debug(String msg, Throwable t) {
         if (isTerminated()) {
             logger.debug(getMessage(msg, LogLevel.DEBUG), t);
@@ -293,11 +271,6 @@ public class TerminationAwareLogger implements ComponentLog {
         }
 
         logger.debug(msg);
-    }
-
-    @Override
-    public void debug(LogMessage logMessage) {
-        logWithLogMessage(LogLevel.DEBUG, logMessage);
     }
 
     @Override

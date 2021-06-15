@@ -117,6 +117,7 @@ public class SimpleProcessLogger implements ComponentLog {
     @Override
     public void warn(LogMessage logMessage) {
         if (isWarnEnabled()) {
+            logWithLogMessage(LogLevel.WARN, logMessage);
             logRepository.addLogMessage(logMessage);
         }
     }
@@ -173,6 +174,7 @@ public class SimpleProcessLogger implements ComponentLog {
     @Override
     public void trace(LogMessage logMessage) {
         if (isTraceEnabled()) {
+            logWithLogMessage(LogLevel.TRACE, logMessage);
             logRepository.addLogMessage(logMessage);
         }
     }
@@ -258,9 +260,10 @@ public class SimpleProcessLogger implements ComponentLog {
     }
 
     @Override
-    public void info(LogMessage message) {
+    public void info(LogMessage logMessage) {
         if (isInfoEnabled()) {
-            logRepository.addLogMessage(message);
+            logWithLogMessage(LogLevel.INFO, logMessage);
+            logRepository.addLogMessage(logMessage);
         }
     }
 
@@ -323,8 +326,11 @@ public class SimpleProcessLogger implements ComponentLog {
     }
 
     @Override
-    public void error(LogMessage message) {
-        logRepository.addLogMessage(message);
+    public void error(LogMessage logMessage) {
+        if (isErrorEnabled()) {
+            logWithLogMessage(LogLevel.ERROR, logMessage);
+            logRepository.addLogMessage(logMessage);
+        }
     }
 
     private Object[] addProcessorAndThrowable(final Object[] os, final Throwable t) {
@@ -398,9 +404,10 @@ public class SimpleProcessLogger implements ComponentLog {
     }
 
     @Override
-    public void debug(LogMessage message) {
+    public void debug(LogMessage logMessage) {
         if (isDebugEnabled()) {
-            logRepository.addLogMessage(message);
+            logWithLogMessage(LogLevel.DEBUG, logMessage);
+            logRepository.addLogMessage(logMessage);
         }
     }
 

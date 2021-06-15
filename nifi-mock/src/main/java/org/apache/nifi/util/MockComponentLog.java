@@ -16,11 +16,11 @@
  */
 package org.apache.nifi.util;
 
-import java.util.List;
 import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.logging.LogLevel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.List;
 
 public class MockComponentLog implements ComponentLog {
 
@@ -149,11 +149,6 @@ public class MockComponentLog implements ComponentLog {
     }
 
     @Override
-    public void warn(org.apache.nifi.logging.LogMessage logMessage) {
-        logWithLogMessage(LogLevel.WARN, logMessage);
-    }
-
-    @Override
     public void trace(String msg, Throwable t) {
         msg = "{} " + msg;
         final Object[] os = {component};
@@ -181,11 +176,6 @@ public class MockComponentLog implements ComponentLog {
 
         logger.trace(msg, os);
         logger.trace("", t);
-    }
-
-    @Override
-    public void trace(org.apache.nifi.logging.LogMessage logMessage) {
-        logWithLogMessage(LogLevel.TRACE, logMessage);
     }
 
     @Override
@@ -252,11 +242,6 @@ public class MockComponentLog implements ComponentLog {
     }
 
     @Override
-    public void info(org.apache.nifi.logging.LogMessage logMessage) {
-        logWithLogMessage(LogLevel.INFO, logMessage);
-    }
-
-    @Override
     public String getName() {
         return logger.getName();
     }
@@ -300,11 +285,6 @@ public class MockComponentLog implements ComponentLog {
     }
 
     @Override
-    public void error(org.apache.nifi.logging.LogMessage logMessage) {
-        logWithLogMessage(LogLevel.ERROR, logMessage);
-    }
-
-    @Override
     public void debug(String msg, Throwable t) {
         msg = "{} " + msg;
         final Object[] os = {component};
@@ -337,10 +317,5 @@ public class MockComponentLog implements ComponentLog {
         final Object[] os = {component};
 
         logger.debug(msg, os);
-    }
-
-    @Override
-    public void debug(org.apache.nifi.logging.LogMessage logMessage) {
-        logWithLogMessage(LogLevel.DEBUG, logMessage);
     }
 }
