@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.bootstrap.util;
 
-import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.security.util.KeyStoreUtils;
@@ -130,8 +129,8 @@ public class SecureNiFiConfigUtil {
                     final String alias = aliases.nextElement();
                     final Certificate certificate = keyStore.getCertificate(alias);
                     if (certificate != null) {
-                        final byte[] sha256 = DigestUtils.getSha256Digest().digest(certificate.getEncoded());
-                        cmdLogger.info("SHA256(self-signed-certificate) = {}", Hex.encodeHexString(sha256).toUpperCase(Locale.ROOT));
+                        final String sha256 = DigestUtils.sha256Hex(certificate.getEncoded());
+                        cmdLogger.info("Generated Self-Signed Certificate SHA-256: {}", sha256.toUpperCase(Locale.ROOT));
                     }
                 }
             } catch (GeneralSecurityException e) {
