@@ -28,7 +28,7 @@
 
     <properties>
         <spring.data.redis.version>2.5.0</spring.data.redis.version>
-        <spring.version>5.3.6</spring.version>
+        <spring.version>5.3.8</spring.version>
         <jedis.version>3.6.0</jedis.version>
     </properties>
 
