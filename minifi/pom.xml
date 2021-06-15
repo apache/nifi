@@ -91,7 +91,7 @@ limitations under the License.
     <properties>
         <inceptionYear>2016</inceptionYear>
         <jersey.version>2.29</jersey.version>
-        <spring.version>5.3.6</spring.version>
+        <spring.version>5.3.8</spring.version>
         <spring.security.version>5.4.6</spring.security.version>
         <system.rules.version>1.16.1</system.rules.version>
         <aws.sdk.version>1.11.172</aws.sdk.version>
