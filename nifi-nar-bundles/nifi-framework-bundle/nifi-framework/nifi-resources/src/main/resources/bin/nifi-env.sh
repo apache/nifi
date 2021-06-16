@@ -26,12 +26,13 @@
 #export JAVA_HOME=/usr/java/jdk1.8.0/
 
 setOrDefault() {
-  declare envvar="$1" default="$2"
+  envvar="$1"
+  default="$2"
 
-  local res="$envvar"
-  if [ -z "$envvar" ] || [ "$NIFI_OVERRIDE_NIFIENV" != "true" ]
+  res="$default"
+  if [ -n "$envvar" ] && [ "$NIFI_OVERRIDE_NIFIENV" = "true" ]
   then
-    res="$default"
+    res="$envvar"
   fi
 
   echo "$res"
