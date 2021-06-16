@@ -16,16 +16,21 @@
  */
 package org.apache.nifi.processors.standard.util;
 
+import net.schmizz.sshj.SSHClient;
 import net.schmizz.sshj.DefaultConfig;
 import net.schmizz.sshj.common.Factory;
 import net.schmizz.sshj.sftp.Response;
 import net.schmizz.sshj.sftp.SFTPClient;
 import net.schmizz.sshj.sftp.SFTPException;
+import net.schmizz.sshj.userauth.method.AuthKeyboardInteractive;
+import net.schmizz.sshj.userauth.method.AuthMethod;
+import net.schmizz.sshj.userauth.method.AuthPassword;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.mock.MockComponentLogger;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockPropertyContext;
 import org.apache.nifi.util.MockPropertyValue;
@@ -37,10 +42,16 @@ import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
@@ -58,14 +69,14 @@ public class TestSFTPTransfer {
         final ComponentLog componentLog = mock(ComponentLog.class);
         return new SFTPTransfer(processContext, componentLog) {
             @Override
-            protected SFTPClient getSFTPClient(FlowFile flowFile) throws IOException {
+            protected SFTPClient getSFTPClient(FlowFile flowFile) {
                 return sftpClient;
             }
         };
     }
 
     @Test
-    public void testEnsureDirectoryExistsAlreadyExisted() throws IOException, SFTPException {
+    public void testEnsureDirectoryExistsAlreadyExisted() throws IOException {
         final ProcessContext processContext = mock(ProcessContext.class);
         final SFTPClient sftpClient = mock(SFTPClient.class);
         final SFTPTransfer sftpTransfer = createSftpTransfer(processContext, sftpClient);
@@ -78,7 +89,7 @@ public class TestSFTPTransfer {
     }
 
     @Test
-    public void testEnsureDirectoryExistsFailedToStat() throws IOException, SFTPException {
+    public void testEnsureDirectoryExistsFailedToStat() throws IOException {
         final ProcessContext processContext = mock(ProcessContext.class);
         final SFTPClient sftpClient = mock(SFTPClient.class);
         // stat for the parent was successful, simulating that dir2 exists, but no dir3.
@@ -99,7 +110,7 @@ public class TestSFTPTransfer {
     }
 
     @Test
-    public void testEnsureDirectoryExistsNotExisted() throws IOException, SFTPException {
+    public void testEnsureDirectoryExistsNotExisted() throws IOException {
         final ProcessContext processContext = mock(ProcessContext.class);
         final SFTPClient sftpClient = mock(SFTPClient.class);
         // stat for the parent was successful, simulating that dir2 exists, but no dir3.
@@ -117,7 +128,7 @@ public class TestSFTPTransfer {
     }
 
     @Test
-    public void testEnsureDirectoryExistsParentNotExisted() throws IOException, SFTPException {
+    public void testEnsureDirectoryExistsParentNotExisted() throws IOException {
         final ProcessContext processContext = mock(ProcessContext.class);
         final SFTPClient sftpClient = mock(SFTPClient.class);
 
@@ -139,7 +150,7 @@ public class TestSFTPTransfer {
     }
 
     @Test
-    public void testEnsureDirectoryExistsNotExistedFailedToCreate() throws IOException, SFTPException {
+    public void testEnsureDirectoryExistsNotExistedFailedToCreate() throws IOException {
         final ProcessContext processContext = mock(ProcessContext.class);
         final SFTPClient sftpClient = mock(SFTPClient.class);
 
@@ -165,7 +176,7 @@ public class TestSFTPTransfer {
     }
 
     @Test
-    public void testEnsureDirectoryExistsBlindlyNotExisted() throws IOException, SFTPException {
+    public void testEnsureDirectoryExistsBlindlyNotExisted() throws IOException {
         final ProcessContext processContext = mock(ProcessContext.class);
         when(processContext.getProperty(SFTPTransfer.DISABLE_DIRECTORY_LISTING)).thenReturn(new MockPropertyValue("true"));
 
@@ -181,7 +192,7 @@ public class TestSFTPTransfer {
     }
 
     @Test
-    public void testEnsureDirectoryExistsBlindlyParentNotExisted() throws IOException, SFTPException {
+    public void testEnsureDirectoryExistsBlindlyParentNotExisted() throws IOException {
         final ProcessContext processContext = mock(ProcessContext.class);
         when(processContext.getProperty(SFTPTransfer.DISABLE_DIRECTORY_LISTING)).thenReturn(new MockPropertyValue("true"));
 
@@ -211,7 +222,7 @@ public class TestSFTPTransfer {
     }
 
     @Test
-    public void testEnsureDirectoryExistsBlindlyAlreadyExisted() throws IOException, SFTPException {
+    public void testEnsureDirectoryExistsBlindlyAlreadyExisted() throws IOException {
         final ProcessContext processContext = mock(ProcessContext.class);
         when(processContext.getProperty(SFTPTransfer.DISABLE_DIRECTORY_LISTING)).thenReturn(new MockPropertyValue("true"));
 
@@ -230,7 +241,7 @@ public class TestSFTPTransfer {
     }
 
     @Test
-    public void testEnsureDirectoryExistsBlindlyFailed() throws IOException, SFTPException {
+    public void testEnsureDirectoryExistsBlindlyFailed() throws IOException {
         final ProcessContext processContext = mock(ProcessContext.class);
         when(processContext.getProperty(SFTPTransfer.DISABLE_DIRECTORY_LISTING)).thenReturn(new MockPropertyValue("true"));
 
@@ -281,5 +292,43 @@ public class TestSFTPTransfer {
         assertEquals(allowedKeyAlgorithm, defaultConfig.getKeyAlgorithms().get(0).getName());
         assertEquals(allowedKeyExchangeAlgorithm, defaultConfig.getKeyExchangeFactories().get(0).getName());
         assertEquals(allowedMac, defaultConfig.getMACFactories().get(0).getName());
+    }
+
+    @Test
+    public void testGetAuthMethodsPassword() {
+        final String password = UUID.randomUUID().toString();
+        final ProcessContext processContext = mock(ProcessContext.class);
+        when(processContext.getProperty(SFTPTransfer.PASSWORD)).thenReturn(new MockPropertyValue(password));
+        when(processContext.getProperty(SFTPTransfer.PRIVATE_KEY_PATH)).thenReturn(new MockPropertyValue(null));
+
+        final SFTPClient sftpClient = mock(SFTPClient.class);
+        final SFTPTransfer sftpTransfer = createSftpTransfer(processContext, sftpClient);
+
+        final SSHClient sshClient = new SSHClient();
+        final List<AuthMethod> authMethods = sftpTransfer.getAuthMethods(sshClient, null);
+        assertFalse("Authentication Methods not found", authMethods.isEmpty());
+
+        final Optional<AuthMethod> authPassword = authMethods.stream().filter(authMethod -> authMethod instanceof AuthPassword).findFirst();
+        assertTrue("Password Authentication not found", authPassword.isPresent());
+
+        final Optional<AuthMethod> authKeyboardInteractive = authMethods.stream().filter(authMethod -> authMethod instanceof AuthKeyboardInteractive).findFirst();
+        assertTrue("Keyboard Interactive Authentication not found", authKeyboardInteractive.isPresent());
+    }
+
+    @Test
+    public void testGetAuthMethodsPrivateKeyLoadFailed() throws IOException {
+        final File privateKeyFile = File.createTempFile(TestSFTPTransfer.class.getSimpleName(), ".key");
+        privateKeyFile.deleteOnExit();
+
+        final ProcessContext processContext = mock(ProcessContext.class);
+        when(processContext.getProperty(SFTPTransfer.PASSWORD)).thenReturn(new MockPropertyValue(null));
+        when(processContext.getProperty(SFTPTransfer.PRIVATE_KEY_PATH)).thenReturn(new MockPropertyValue(privateKeyFile.getAbsolutePath()));
+        when(processContext.getProperty(SFTPTransfer.PRIVATE_KEY_PASSPHRASE)).thenReturn(new MockPropertyValue(null));
+
+        final SFTPClient sftpClient = mock(SFTPClient.class);
+        final SFTPTransfer sftpTransfer = createSftpTransfer(processContext, sftpClient);
+
+        final SSHClient sshClient = new SSHClient();
+        assertThrows(ProcessException.class, () -> sftpTransfer.getAuthMethods(sshClient, null));
     }
 }
