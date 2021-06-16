@@ -375,6 +375,11 @@ public class StandardSAMLService implements SAMLService {
                         final String groupName = valueXSString.getValue();
                         LOGGER.debug("Found group {} for {}", groupName, userIdentity);
                         groups.add(groupName);
+                    } else if (value instanceof XSAnyImpl) {
+                        final XSAnyImpl valueXSAnyImpl = (XSAnyImpl) value;
+                        final String groupName = valueXSAnyImpl.getTextContent();
+                        LOGGER.debug("Found group {} for {}", groupName, userIdentity);
+                        groups.add(groupName);
                     } else {
                         LOGGER.debug("Value was not XSString, but was " + value.getClass().getCanonicalName());
                     }
