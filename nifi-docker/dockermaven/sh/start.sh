@@ -19,6 +19,19 @@ scripts_dir='/opt/nifi/scripts'
 
 [ -f "${scripts_dir}/common.sh" ] && . "${scripts_dir}/common.sh"
 
+# Override JVM memory settings
+if [ ! -z "${NIFI_JVM_HEAP_INIT}" ]; then
+    prop_replace 'java.arg.2'       "-Xms${NIFI_JVM_HEAP_INIT}" ${nifi_bootstrap_file}
+fi
+
+if [ ! -z "${NIFI_JVM_HEAP_MAX}" ]; then
+    prop_replace 'java.arg.3'       "-Xmx${NIFI_JVM_HEAP_MAX}" ${nifi_bootstrap_file}
+fi
+
+if [ ! -z "${NIFI_JVM_DEBUGGER}" ]; then
+    uncomment "java.arg.debug" ${nifi_bootstrap_file}
+fi
+
 # Establish baseline properties
 prop_replace 'nifi.web.http.port'               "${NIFI_WEB_HTTP_PORT:-8080}"
 prop_replace 'nifi.web.http.host'               "${NIFI_WEB_HTTP_HOST:-$HOSTNAME}"
@@ -40,6 +53,15 @@ prop_replace 'nifi.zookeeper.connect.string'                "${NIFI_ZK_CONNECT_S
 prop_replace 'nifi.zookeeper.root.node'                     "${NIFI_ZK_ROOT_NODE:-/nifi}"
 prop_replace 'nifi.cluster.flow.election.max.wait.time'     "${NIFI_ELECTION_MAX_WAIT:-5 mins}"
 prop_replace 'nifi.cluster.flow.election.max.candidates'    "${NIFI_ELECTION_MAX_CANDIDATES:-}"
+prop_replace 'nifi.web.proxy.context.path'                  "${NIFI_WEB_PROXY_CONTEXT_PATH:-}"
+
+# Set analytics properties
+prop_replace 'nifi.analytics.predict.enabled'                   "${NIFI_ANALYTICS_PREDICT_ENABLED:-false}"
+prop_replace 'nifi.analytics.predict.interval'                  "${NIFI_ANALYTICS_PREDICT_INTERVAL:-3 mins}"
+prop_replace 'nifi.analytics.query.interval'                    "${NIFI_ANALYTICS_QUERY_INTERVAL:-5 mins}"
+prop_replace 'nifi.analytics.connection.model.implementation'   "${NIFI_ANALYTICS_MODEL_IMPLEMENTATION:-org.apache.nifi.controller.status.analytics.models.OrdinaryLeastSquares}"
+prop_replace 'nifi.analytics.connection.model.score.name'       "${NIFI_ANALYTICS_MODEL_SCORE_NAME:-rSquared}"
+prop_replace 'nifi.analytics.connection.model.score.threshold'  "${NIFI_ANALYTICS_MODEL_SCORE_THRESHOLD:-.90}"
 
 . "${scripts_dir}/update_cluster_state_management.sh"
 
@@ -53,7 +75,6 @@ case ${AUTH} in
         echo 'Enabling LDAP user authentication'
         # Reference ldap-provider in properties
         prop_replace 'nifi.security.user.login.identity.provider' 'ldap-provider'
-        prop_replace 'nifi.security.needClientAuth' 'WANT'
 
         . "${scripts_dir}/secure.sh"
         . "${scripts_dir}/update_login_providers.sh"

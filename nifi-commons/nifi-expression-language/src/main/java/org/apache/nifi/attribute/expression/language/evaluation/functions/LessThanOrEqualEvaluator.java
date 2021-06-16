@@ -16,8 +16,7 @@
  */
 package org.apache.nifi.attribute.expression.language.evaluation.functions;
 
-import java.util.Map;
-
+import org.apache.nifi.attribute.expression.language.EvaluationContext;
 import org.apache.nifi.attribute.expression.language.evaluation.BooleanEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.BooleanQueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
@@ -34,13 +33,13 @@ public class LessThanOrEqualEvaluator extends BooleanEvaluator {
     }
 
     @Override
-    public QueryResult<Boolean> evaluate(final Map<String, String> attributes) {
-        final Number subjectValue = subject.evaluate(attributes).getValue();
+    public QueryResult<Boolean> evaluate(final EvaluationContext evaluationContext) {
+        final Number subjectValue = subject.evaluate(evaluationContext).getValue();
         if (subjectValue == null) {
             return new BooleanQueryResult(false);
         }
 
-        final Number comparisonValue = comparison.evaluate(attributes).getValue();
+        final Number comparisonValue = comparison.evaluate(evaluationContext).getValue();
         if (comparisonValue == null) {
             return new BooleanQueryResult(false);
         }

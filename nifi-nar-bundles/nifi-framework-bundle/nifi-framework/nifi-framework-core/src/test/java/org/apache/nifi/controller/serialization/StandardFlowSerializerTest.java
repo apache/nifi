@@ -16,16 +16,6 @@
  */
 package org.apache.nifi.controller.serialization;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.nio.charset.StandardCharsets;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
 import org.apache.commons.io.FileUtils;
 import org.apache.nifi.admin.service.AuditService;
 import org.apache.nifi.authorization.AbstractPolicyBasedAuthorizer;
@@ -36,7 +26,8 @@ import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.encrypt.StringEncryptor;
-import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.nar.ExtensionDiscoveringManager;
+import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
 import org.apache.nifi.nar.SystemBundle;
 import org.apache.nifi.provenance.MockProvenanceRepository;
 import org.apache.nifi.registry.VariableRegistry;
@@ -50,16 +41,33 @@ import org.junit.Test;
 import org.mockito.Mockito;
 import org.w3c.dom.Document;
 
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 public class StandardFlowSerializerTest {
 
     private static final String RAW_COMMENTS
             = "<tagName> \"This\" is an ' example with many characters that need to be filtered and escaped \u0002 in it. \u007f \u0086 " + Character.MIN_SURROGATE;
     private static final String SERIALIZED_COMMENTS
             = "&lt;tagName&gt; \"This\" is an ' example with many characters that need to be filtered and escaped  in it. &#127; &#134; ";
+    private static final String RAW_VARIABLE_NAME = "Name with \u0001 escape needed";
+    private static final String SERIALIZED_VARIABLE_NAME = "Name with  escape needed";
+    private static final String RAW_VARIABLE_VALUE = "Value with \u0001 escape needed";
+    private static final String SERIALIZED_VARIABLE_VALUE = "Value with  escape needed";
+
     private volatile String propsFile = StandardFlowSerializerTest.class.getResource("/standardflowserializertest.nifi.properties").getFile();
 
     private FlowController controller;
     private Bundle systemBundle;
+    private ExtensionDiscoveringManager extensionManager;
     private StandardFlowSerializer serializer;
 
     @Before
@@ -78,14 +86,15 @@ public class StandardFlowSerializerTest {
 
         // use the system bundle
         systemBundle = SystemBundle.create(nifiProperties);
-        ExtensionManager.discoverExtensions(systemBundle, Collections.emptySet());
+        extensionManager = new StandardExtensionDiscoveringManager();
+        extensionManager.discoverExtensions(systemBundle, Collections.emptySet());
 
         final AbstractPolicyBasedAuthorizer authorizer = new MockPolicyBasedAuthorizer();
         final VariableRegistry variableRegistry = new FileBasedVariableRegistry(nifiProperties.getVariableRegistryPropertiesPaths());
 
         final BulletinRepository bulletinRepo = Mockito.mock(BulletinRepository.class);
         controller = FlowController.createStandaloneInstance(flowFileEventRepo, nifiProperties, authorizer,
-            auditService, encryptor, bulletinRepo, variableRegistry, Mockito.mock(FlowRegistryClient.class));
+            auditService, encryptor, bulletinRepo, variableRegistry, Mockito.mock(FlowRegistryClient.class), extensionManager);
 
         serializer = new StandardFlowSerializer(encryptor);
     }
@@ -98,9 +107,13 @@ public class StandardFlowSerializerTest {
 
     @Test
     public void testSerializationEscapingAndFiltering() throws Exception {
-        final ProcessorNode dummy = controller.createProcessor(DummyScheduledProcessor.class.getName(), UUID.randomUUID().toString(), systemBundle.getBundleDetails().getCoordinate());
+        final ProcessorNode dummy = controller.getFlowManager().createProcessor(DummyScheduledProcessor.class.getName(),
+            UUID.randomUUID().toString(), systemBundle.getBundleDetails().getCoordinate());
+
         dummy.setComments(RAW_COMMENTS);
-        controller.getRootGroup().addProcessor(dummy);
+        controller.getFlowManager().getRootGroup().addProcessor(dummy);
+
+        controller.getFlowManager().getRootGroup().setVariables(Collections.singletonMap(RAW_VARIABLE_NAME, RAW_VARIABLE_VALUE));
 
         // serialize the controller
         final ByteArrayOutputStream os = new ByteArrayOutputStream();
@@ -111,5 +124,10 @@ public class StandardFlowSerializerTest {
         final String serializedFlow = os.toString(StandardCharsets.UTF_8.name());
         assertTrue(serializedFlow.contains(SERIALIZED_COMMENTS));
         assertFalse(serializedFlow.contains(RAW_COMMENTS));
+        assertTrue(serializedFlow.contains(SERIALIZED_VARIABLE_NAME));
+        assertFalse(serializedFlow.contains(RAW_VARIABLE_NAME));
+        assertTrue(serializedFlow.contains(SERIALIZED_VARIABLE_VALUE));
+        assertFalse(serializedFlow.contains(RAW_VARIABLE_VALUE));
+        assertFalse(serializedFlow.contains("\u0001"));
     }
 }

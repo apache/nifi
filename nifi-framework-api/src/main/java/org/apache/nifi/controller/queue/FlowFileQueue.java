@@ -16,17 +16,16 @@
  */
 package org.apache.nifi.controller.queue;
 
-import java.io.IOException;
-import java.util.Collection;
-import java.util.List;
-import java.util.Queue;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.controller.repository.SwapSummary;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.processor.FlowFileFilter;
+
+import java.io.IOException;
+import java.util.Collection;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 public interface FlowFileQueue {
 
@@ -58,8 +57,6 @@ public interface FlowFileQueue {
      * the FlowFiles on restart.
      */
     void purgeSwapFiles();
-
-    int getSwapFileCount();
 
     /**
      * Resets the comparator used by this queue to maintain order.
@@ -108,32 +105,20 @@ public interface FlowFileQueue {
      */
     boolean isActiveQueueEmpty();
 
-    /**
-     * Returns a QueueSize that represents all FlowFiles that are 'unacknowledged'. A FlowFile
-     * is considered to be unacknowledged if it has been pulled from the queue by some component
-     * but the session that pulled the FlowFile has not yet been committed or rolled back.
-     *
-     * @return a QueueSize that represents all FlowFiles that are 'unacknowledged'.
-     */
-    QueueSize getUnacknowledgedQueueSize();
-
-    QueueSize getActiveQueueSize();
-
-    QueueSize getSwapQueueSize();
-
     void acknowledge(FlowFileRecord flowFile);
 
     void acknowledge(Collection<FlowFileRecord> flowFiles);
+
+    /**
+     * @return <code>true</code> if at least one FlowFile is unacknowledged, <code>false</code> if all FlowFiles that have been dequeued have been acknowledged
+     */
+    boolean isUnacknowledgedFlowFile();
 
     /**
      * @return true if maximum queue size has been reached or exceeded; false
      *         otherwise
      */
     boolean isFull();
-
-    boolean isAnyActiveFlowFilePenalized();
-
-    boolean isAllActiveFlowFilesPenalized();
 
     /**
      * places the given file into the queue
@@ -163,18 +148,6 @@ public interface FlowFileQueue {
      */
     List<FlowFileRecord> poll(int maxResults, Set<FlowFileRecord> expiredRecords);
 
-    /**
-     * Drains flow files from the given source queue into the given destination
-     * list.
-     *
-     * @param sourceQueue queue to drain from
-     * @param destination Collection to drain to
-     * @param maxResults max number to drain
-     * @param expiredRecords for expired records
-     * @return size (bytes) of flow files drained from queue
-     */
-    long drainQueue(Queue<FlowFileRecord> sourceQueue, List<FlowFileRecord> destination, int maxResults, Set<FlowFileRecord> expiredRecords);
-
     List<FlowFileRecord> poll(FlowFileFilter filter, Set<FlowFileRecord> expiredRecords);
 
     String getFlowFileExpiration();
@@ -187,7 +160,7 @@ public interface FlowFileQueue {
      * Initiates a request to drop all FlowFiles in this queue. This method returns
      * a DropFlowFileStatus that can be used to determine the current state of the request.
      * Additionally, the DropFlowFileStatus provides a request identifier that can then be
-     * passed to the {@link #getDropFlowFileStatus(String)} and {@link #cancelDropFlowFileStatus(String)}
+     * passed to the {@link #getDropFlowFileStatus(String)} and {@link #cancelDropFlowFileRequest(String)}
      * methods in order to obtain the status later or cancel a request
      *
      * @param requestIdentifier the identifier of the Drop FlowFile Request
@@ -200,7 +173,7 @@ public interface FlowFileQueue {
 
     /**
      * Returns the current status of a Drop FlowFile Request that was initiated via the
-     * {@link #dropFlowFiles()} method that has the given identifier
+     * {@link #dropFlowFiles(String, String)} method that has the given identifier
      *
      * @param requestIdentifier the identifier of the Drop FlowFile Request
      * @return the status for the request with the given identifier, or <code>null</code> if no
@@ -244,7 +217,7 @@ public interface FlowFileQueue {
     ListFlowFileStatus listFlowFiles(String requestIdentifier, int maxResults);
 
     /**
-     * Returns the current status of a List FlowFile Request that was initiated via the {@link #listFlowFiles(String)}
+     * Returns the current status of a List FlowFile Request that was initiated via the {@link #listFlowFiles(String, int)}
      * method that has the given identifier
      *
      * @param requestIdentifier the identifier of the Drop FlowFile Request
@@ -282,4 +255,48 @@ public interface FlowFileQueue {
      * @throws IllegalStateException if the queue is not in a state in which a listing can be performed
      */
     void verifyCanList() throws IllegalStateException;
+
+    /**
+     * Returns diagnostic information about the queue
+     */
+    QueueDiagnostics getQueueDiagnostics();
+
+    void lock();
+
+    void unlock();
+
+    void setLoadBalanceStrategy(LoadBalanceStrategy strategy, String partitioningAttribute);
+
+    /**
+     * Offloads the flowfiles in the queue to other nodes.  This disables the queue from partition flowfiles locally.
+     * <p>
+     * This operation is a no-op if the node that contains this queue is not in a cluster.
+     */
+    void offloadQueue();
+
+    /**
+     * Resets a queue that has previously been offloaded.  This allows the queue to partition flowfiles locally, and
+     * has no other effect on processors or remote process groups.
+     * <p>
+     * This operation is a no-op if the queue is not currently offloaded or the node that contains this queue is not
+     * clustered.
+     */
+    void resetOffloadedQueue();
+
+    LoadBalanceStrategy getLoadBalanceStrategy();
+
+    void setLoadBalanceCompression(LoadBalanceCompression compression);
+
+    LoadBalanceCompression getLoadBalanceCompression();
+
+    String getPartitioningAttribute();
+
+    void startLoadBalancing();
+
+    void stopLoadBalancing();
+
+    /**
+     * @return <code>true</code> if the queue is actively transferring data to another node, <code>false</code> otherwise
+     */
+    boolean isActivelyLoadBalancing();
 }

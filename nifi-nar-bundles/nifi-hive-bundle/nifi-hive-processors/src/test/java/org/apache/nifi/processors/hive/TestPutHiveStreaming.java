@@ -34,7 +34,10 @@ import org.apache.hive.hcatalog.streaming.StreamingException;
 import org.apache.hive.hcatalog.streaming.TransactionBatch;
 import org.apache.nifi.hadoop.KerberosProperties;
 import org.apache.nifi.hadoop.SecurityUtil;
+import org.apache.nifi.kerberos.KerberosContext;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.security.krb.KerberosPasswordUser;
+import org.apache.nifi.security.krb.KerberosUser;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -44,6 +47,7 @@ import org.apache.nifi.util.hive.HiveOptions;
 import org.apache.nifi.util.hive.HiveWriter;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.AdditionalMatchers;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -66,8 +70,10 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -98,10 +104,14 @@ public class TestPutHiveStreaming {
         processor = new MockPutHiveStreaming();
         hiveConfigurator = mock(HiveConfigurator.class);
         hiveConf = mock(HiveConf.class);
-        when(hiveConfigurator.getConfigurationFromFiles(anyString())).thenReturn(hiveConf);
+        when(hiveConfigurator.getConfigurationFromFiles(AdditionalMatchers.or(anyString(), isNull()))).thenReturn(hiveConf);
         processor.hiveConfigurator = hiveConfigurator;
         processor.setKerberosProperties(kerberosPropsWithFile);
-        runner = TestRunners.newTestRunner(processor);
+        KerberosContext mockKerberosContext = mock(KerberosContext.class);
+        when(mockKerberosContext.getKerberosConfigurationFile()).thenReturn(kerberosPropsWithFile.getKerberosConfigFile());
+        when(mockKerberosContext.getKerberosServiceKeytab()).thenReturn(null);
+        when(mockKerberosContext.getKerberosServicePrincipal()).thenReturn(null);
+        runner = TestRunners.newTestRunner(processor, mockKerberosContext);
     }
 
     @Test
@@ -116,23 +126,27 @@ public class TestPutHiveStreaming {
     }
 
     @Test
-    public void testUgiGetsCleared() {
+    public void testUgiAndKerberosUserGetsCleared() {
         runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
         runner.setProperty(PutHiveStreaming.DB_NAME, "default");
         runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
         processor.ugi = mock(UserGroupInformation.class);
+        processor.kerberosUserReference.set(new KerberosPasswordUser("user", "password"));
         runner.run();
         assertNull(processor.ugi);
+        assertNull(processor.kerberosUserReference.get());
     }
 
     @Test
     public void testUgiGetsSetIfSecure() throws AuthenticationFailedException, IOException {
         when(hiveConf.get(SecurityUtil.HADOOP_SECURITY_AUTHENTICATION)).thenReturn(SecurityUtil.KERBEROS);
         ugi = mock(UserGroupInformation.class);
-        when(hiveConfigurator.authenticate(eq(hiveConf), anyString(), anyString())).thenReturn(ugi);
+        when(hiveConfigurator.authenticate(eq(hiveConf), any(KerberosUser.class))).thenReturn(ugi);
         runner.setProperty(PutHiveStreaming.METASTORE_URI, "thrift://localhost:9083");
         runner.setProperty(PutHiveStreaming.DB_NAME, "default");
         runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
+        runner.setProperty(kerberosPropsWithFile.getKerberosKeytab(), "src/test/resources/fake.keytab");
+        runner.setProperty(kerberosPropsWithFile.getKerberosPrincipal(), "principal");
         Map<String, Object> user1 = new HashMap<String, Object>() {
             {
                 put("name", "Joe");
@@ -161,7 +175,7 @@ public class TestPutHiveStreaming {
         runner.setProperty(PutHiveStreaming.TABLE_NAME, "users");
         runner.setProperty(PutHiveStreaming.HIVE_CONFIGURATION_RESOURCES, "src/test/resources/core-site-security.xml, src/test/resources/hive-site-security.xml");
         runner.setProperty(kerberosPropsWithFile.getKerberosPrincipal(), "test@REALM");
-        runner.setProperty(kerberosPropsWithFile.getKerberosKeytab(), "src/test/resources/fake.keytab");
+        runner.setProperty(kerberosPropsWithFile.getKerberosKeytab(), "src/test/resources/missing.keytab");
         runner.run();
     }
 
@@ -1035,6 +1049,10 @@ public class TestPutHiveStreaming {
             this.generateExceptionOnFlushAndClose = generateExceptionOnFlushAndClose;
         }
 
+        @Override
+        UserGroupInformation getUgi() {
+            return ugi;
+        }
     }
 
     private class MockHiveWriter extends HiveWriter {

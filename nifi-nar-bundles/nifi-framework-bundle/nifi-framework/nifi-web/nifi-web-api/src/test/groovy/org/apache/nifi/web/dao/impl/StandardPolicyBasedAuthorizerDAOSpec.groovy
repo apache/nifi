@@ -157,6 +157,29 @@ class StandardPolicyBasedAuthorizerDAOSpec extends Specification {
     }
 
     @Unroll
+    def "GetAccessPoliciesForUser: access policy contains identifier of missing group"() {
+        given:
+        def authorizer = mockAuthorizer()
+        def dao = new StandardPolicyBasedAuthorizerDAO(authorizer)
+        def group1 = new Group.Builder().identifier("group-id-1").name("Group One").addUser("user-id-1").build()
+        def apBuilder = new AccessPolicy.Builder().resource('/fake/resource').action(RequestAction.WRITE)
+        def ap1 = apBuilder.identifier('policy-id-1').addUser('user-id-1').build()
+        def ap2 = apBuilder.identifier('policy-id-2').clearUsers().addGroup('group-id-1').build()
+        def ap3 = apBuilder.identifier('policy-id-3').clearUsers().clearGroups().addGroup('id-of-missing-group').build()
+        def accessPolicies = new HashSet([ap1, ap2, ap3])
+
+        when:
+        def result = dao.getAccessPoliciesForUser('user-id-1')
+
+        then:
+        1 * authorizer.getAccessPolicies() >> accessPolicies
+        1 * authorizer.getGroup('group-id-1') >> group1
+        1 * authorizer.getGroup('id-of-missing-group') >> null
+        0 * _
+        assert result?.equals(new HashSet<AccessPolicy>([ap1, ap2]))
+    }
+
+    @Unroll
     def "GetAccessPolicy: failure"() {
         given:
         def authorizer = mockAuthorizer()

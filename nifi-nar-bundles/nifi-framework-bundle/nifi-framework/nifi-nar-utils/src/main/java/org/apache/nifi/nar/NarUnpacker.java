@@ -16,6 +16,16 @@
  */
 package org.apache.nifi.nar;
 
+import org.apache.nifi.bundle.Bundle;
+import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.util.FileUtils;
+import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.util.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import static java.lang.String.format;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileFilter;
@@ -26,6 +36,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
@@ -41,19 +52,12 @@ import java.util.jar.Attributes;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
-import org.apache.nifi.bundle.Bundle;
-import org.apache.nifi.bundle.BundleCoordinate;
-import org.apache.nifi.util.FileUtils;
-import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.util.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  *
  */
 public final class NarUnpacker {
-
+    public static final String BUNDLED_DEPENDENCIES_DIRECTORY = "NAR-INF/bundled-dependencies";
     private static final Logger logger = LoggerFactory.getLogger(NarUnpacker.class);
     private static String HASH_FILENAME = "nar-md5sum";
     private static final FileFilter NAR_FILTER = new FileFilter() {
@@ -72,6 +76,7 @@ public final class NarUnpacker {
         final Map<File, BundleCoordinate> unpackedNars = new HashMap<>();
 
         try {
+            File unpackedJetty = null;
             File unpackedFramework = null;
             final Set<File> unpackedExtensions = new HashSet<>();
             final List<File> narFiles = new ArrayList<>();
@@ -103,29 +108,26 @@ public final class NarUnpacker {
 
                     // get the manifest for this nar
                     try (final JarFile nar = new JarFile(narFile)) {
-                        final Manifest manifest = nar.getManifest();
-
-                        // lookup the nar id
-                        final Attributes attributes = manifest.getMainAttributes();
-                        final String groupId = attributes.getValue(NarManifestEntry.NAR_GROUP.getManifestName());
-                        final String narId = attributes.getValue(NarManifestEntry.NAR_ID.getManifestName());
-                        final String version = attributes.getValue(NarManifestEntry.NAR_VERSION.getManifestName());
-
+                        BundleCoordinate bundleCoordinate = createBundleCoordinate(nar.getManifest());
                         // determine if this is the framework
-                        if (NarClassLoaders.FRAMEWORK_NAR_ID.equals(narId)) {
+                        if (NarClassLoaders.FRAMEWORK_NAR_ID.equals(bundleCoordinate.getId())) {
                             if (unpackedFramework != null) {
                                 throw new IllegalStateException("Multiple framework NARs discovered. Only one framework is permitted.");
                             }
 
                             // unpack the framework nar
                             unpackedFramework = unpackNar(narFile, frameworkWorkingDir);
+                        } else if (NarClassLoaders.JETTY_NAR_ID.equals(bundleCoordinate.getId())) {
+                            if (unpackedJetty != null) {
+                                throw new IllegalStateException("Multiple Jetty NARs discovered. Only one Jetty NAR is permitted.");
+                            }
+
+                            // unpack and record the Jetty nar
+                            unpackedJetty = unpackNar(narFile, extensionsWorkingDir);
+                            unpackedExtensions.add(unpackedJetty);
                         } else {
+                            // unpack and record the extension nar
                             final File unpackedExtension = unpackNar(narFile, extensionsWorkingDir);
-
-                            // record the current bundle
-                            unpackedNars.put(unpackedExtension, new BundleCoordinate(groupId, narId, version));
-
-                            // unpack the extension nar
                             unpackedExtensions.add(unpackedExtension);
                         }
                     }
@@ -136,6 +138,13 @@ public final class NarUnpacker {
                     throw new IllegalStateException("No framework NAR found.");
                 } else if (!unpackedFramework.canRead()) {
                     throw new IllegalStateException("Framework NAR cannot be read.");
+                }
+
+                // ensure we've found the jetty nar
+                if (unpackedJetty == null) {
+                    throw new IllegalStateException("No Jetty NAR found.");
+                } else if (!unpackedJetty.canRead()) {
+                    throw new IllegalStateException("Jetty NAR cannot be read.");
                 }
 
                 // Determine if any nars no longer exist and delete their working directories. This happens
@@ -173,6 +182,7 @@ public final class NarUnpacker {
                 }
             }
 
+            unpackedNars.putAll(createUnpackedNarBundleCoordinateMap(extensionsWorkingDir));
             final ExtensionMapping extensionMapping = new ExtensionMapping();
             mapExtensions(unpackedNars, docsWorkingDir, extensionMapping);
 
@@ -190,15 +200,50 @@ public final class NarUnpacker {
         return null;
     }
 
+    /**
+     * Creates a map containing the nar directory mapped to it's bundle-coordinate.
+     * @param extensionsWorkingDir where to find extensions
+     * @return map of coordinates for bundles
+     */
+    private static Map<File, BundleCoordinate> createUnpackedNarBundleCoordinateMap(File extensionsWorkingDir) {
+        Map<File, BundleCoordinate> result = new HashMap<>();
+        File[] unpackedDirs = extensionsWorkingDir.listFiles(file -> file.isDirectory() && file.getName().endsWith("nar-unpacked"));
+        for (File unpackedDir : unpackedDirs) {
+            Path mf = Paths.get(unpackedDir.getAbsolutePath(), "META-INF", "MANIFEST.MF");
+            try(InputStream is = Files.newInputStream(mf)) {
+                Manifest manifest = new Manifest(is);
+                BundleCoordinate bundleCoordinate = createBundleCoordinate(manifest);
+                result.put(unpackedDir, bundleCoordinate);
+            } catch (IOException e) {
+                logger.error(format("Unable to parse NAR information from unpacked nar directory [%s].", unpackedDir.getAbsoluteFile()), e);
+            }
+        }
+        return result;
+    }
+
+    private static BundleCoordinate createBundleCoordinate(Manifest manifest) {
+        Attributes mainAttributes = manifest.getMainAttributes();
+        String groupId = mainAttributes.getValue(NarManifestEntry.NAR_GROUP.getManifestName());
+        String narId = mainAttributes.getValue(NarManifestEntry.NAR_ID.getManifestName());
+        String version = mainAttributes.getValue(NarManifestEntry.NAR_VERSION.getManifestName());
+        BundleCoordinate bundleCoordinate = new BundleCoordinate(groupId, narId, version);
+        return bundleCoordinate;
+    }
+
     private static void mapExtensions(final Map<File, BundleCoordinate> unpackedNars, final File docsDirectory, final ExtensionMapping mapping) throws IOException {
         for (final Map.Entry<File, BundleCoordinate> entry : unpackedNars.entrySet()) {
             final File unpackedNar = entry.getKey();
             final BundleCoordinate bundleCoordinate = entry.getValue();
 
-            final File bundledDependencies = new File(unpackedNar, "NAR-INF/bundled-dependencies");
+            final File bundledDependencies = new File(unpackedNar, BUNDLED_DEPENDENCIES_DIRECTORY);
 
             unpackBundleDocs(docsDirectory, mapping, bundleCoordinate, bundledDependencies);
         }
+    }
+
+    public static void mapExtension(final File unpackedNar, final BundleCoordinate bundleCoordinate, final File docsDirectory, final ExtensionMapping mapping) throws IOException {
+        final File bundledDependencies = new File(unpackedNar, BUNDLED_DEPENDENCIES_DIRECTORY);
+        unpackBundleDocs(docsDirectory, mapping, bundleCoordinate, bundledDependencies);
     }
 
     private static void unpackBundleDocs(final File docsDirectory, final ExtensionMapping mapping, final BundleCoordinate bundleCoordinate, final File bundledDirectory) throws IOException {
@@ -220,7 +265,7 @@ public final class NarUnpacker {
      * @return the directory to the unpacked NAR
      * @throws IOException if unable to explode nar
      */
-    private static File unpackNar(final File nar, final File baseWorkingDirectory) throws IOException {
+    public static File unpackNar(final File nar, final File baseWorkingDirectory) throws IOException {
         final File narWorkingDirectory = new File(baseWorkingDirectory, nar.getName() + "-unpacked");
 
         // if the working directory doesn't exist, unpack the nar
@@ -262,7 +307,7 @@ public final class NarUnpacker {
                 JarEntry jarEntry = jarEntries.nextElement();
                 String name = jarEntry.getName();
                 if(name.contains("META-INF/bundled-dependencies")){
-                    name = name.replace("META-INF/bundled-dependencies", "NAR-INF/bundled-dependencies");
+                    name = name.replace("META-INF/bundled-dependencies", BUNDLED_DEPENDENCIES_DIRECTORY);
                 }
                 File f = new File(workingDirectory, name);
                 if (jarEntry.isDirectory()) {

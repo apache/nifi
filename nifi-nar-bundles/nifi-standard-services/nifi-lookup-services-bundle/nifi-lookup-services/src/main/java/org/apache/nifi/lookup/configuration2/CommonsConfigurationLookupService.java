@@ -47,6 +47,7 @@ import org.apache.nifi.lookup.LookupFailureException;
 import org.apache.nifi.lookup.StringLookupService;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.security.xml.XXEValidator;
 
 /**
  * This abstract class defines a generic {@link LookupService} backed by an
@@ -66,6 +67,7 @@ public abstract class CommonsConfigurationLookupService<T extends FileBasedConfi
             .description("A configuration file")
             .required(true)
             .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
+            .addValidator(new XXEValidator())
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 

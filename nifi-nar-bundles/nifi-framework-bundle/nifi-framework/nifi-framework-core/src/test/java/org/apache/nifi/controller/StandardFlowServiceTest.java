@@ -16,6 +16,14 @@
  */
 package org.apache.nifi.controller;
 
+import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
 import org.apache.commons.io.IOUtils;
 import org.apache.nifi.admin.service.AuditService;
 import org.apache.nifi.authorization.Authorizer;
@@ -26,6 +34,8 @@ import org.apache.nifi.controller.serialization.ScheduledStateLookup;
 import org.apache.nifi.controller.serialization.StandardFlowSerializer;
 import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.events.VolatileBulletinRepository;
+import org.apache.nifi.nar.ExtensionDiscoveringManager;
+import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.registry.variable.FileBasedVariableRegistry;
@@ -46,15 +56,6 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.w3c.dom.Document;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-
-import static org.junit.Assert.fail;
-import static org.mockito.Mockito.mock;
-
 /**
  */
 @Ignore
@@ -69,6 +70,7 @@ public class StandardFlowServiceTest {
     private StringEncryptor mockEncryptor;
     private RevisionManager revisionManager;
     private VariableRegistry variableRegistry;
+    private ExtensionManager extensionManager;
 
     @BeforeClass
     public static void setupSuite() {
@@ -77,7 +79,7 @@ public class StandardFlowServiceTest {
 
     @Before
     public void setup() throws Exception {
-        properties = NiFiProperties.createBasicNiFiProperties(null, null);
+        properties = NiFiProperties.createBasicNiFiProperties(null);
 
 
 
@@ -86,8 +88,9 @@ public class StandardFlowServiceTest {
         authorizer = mock(Authorizer.class);
         mockAuditService = mock(AuditService.class);
         revisionManager = mock(RevisionManager.class);
+        extensionManager = mock(ExtensionDiscoveringManager.class);
         flowController = FlowController.createStandaloneInstance(mockFlowFileEventRepository, properties, authorizer, mockAuditService, mockEncryptor,
-                                        new VolatileBulletinRepository(), variableRegistry, mock(FlowRegistryClient.class));
+                                        new VolatileBulletinRepository(), variableRegistry, mock(FlowRegistryClient.class), extensionManager);
         flowService = StandardFlowService.createStandaloneInstance(flowController, properties, mockEncryptor, revisionManager, authorizer);
     }
 

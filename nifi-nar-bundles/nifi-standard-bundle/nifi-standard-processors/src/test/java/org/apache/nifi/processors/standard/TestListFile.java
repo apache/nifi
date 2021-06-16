@@ -17,10 +17,25 @@
 
 package org.apache.nifi.processors.standard;
 
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import org.apache.commons.lang3.SystemUtils;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.util.list.AbstractListProcessor;
+import org.apache.nifi.processor.util.list.ListProcessorTestWatcher;
+import org.apache.nifi.processors.standard.util.FileInfo;
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.Assume;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Ignore;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.runner.Description;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -28,6 +43,7 @@ import java.io.IOException;
 import java.nio.file.FileStore;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -38,29 +54,17 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.state.Scope;
-import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.util.list.AbstractListProcessor;
-import org.apache.nifi.processor.util.list.ListProcessorTestWatcher;
-import org.apache.nifi.processors.standard.util.FileInfo;
-import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.runner.Description;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 public class TestListFile {
+
+    private static boolean isMillisecondSupported = false;
 
     private final String TESTDIR = "target/test/data/in";
     private final File testDir = new File(TESTDIR);
@@ -101,6 +105,16 @@ public class TestListFile {
             }
         }
     };
+
+    @BeforeClass
+    public static void setupClass() throws Exception {
+        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
+
+        // This only has to be done once.
+        final File file = Files.createTempFile(Paths.get("target/"), "TestListFile", null).toFile();
+        file.setLastModified(325990917351L);
+        isMillisecondSupported = file.lastModified() % 1_000 > 0;
+    }
 
     @Before
     public void setUp() throws Exception {
@@ -145,7 +159,6 @@ public class TestListFile {
         runner.clearTransferState();
 
         final List<File> files = listFiles(testDir);
-        final boolean isMillisecondSupported = files.stream().anyMatch(file -> file.lastModified() % 1_000 > 0);
         final Long lagMillis;
         if (isMillisecondSupported) {
             lagMillis = AbstractListProcessor.LISTING_LAG_MILLIS.get(TimeUnit.MILLISECONDS);
@@ -160,12 +173,45 @@ public class TestListFile {
         dumpState.dumpState(startedAtMillis);
     }
 
+
     @Test
-    public void testGetRelationships() throws Exception {
-        Set<Relationship> relationships = processor.getRelationships();
-        assertEquals(1, relationships.size());
-        assertEquals(AbstractListProcessor.REL_SUCCESS, relationships.toArray()[0]);
+    @Ignore("Intended only for manual testing, as is very expensive to run as a unit test. Performs listing of 1,000,000 files (doesn't actually create the files, though - injects them in) to " +
+        "ensure performance is not harmed")
+    public void testPerformanceOnLargeListing() {
+        final List<Path> paths = new ArrayList<>(1_000_000);
+        final File base = new File("target");
+
+        for (int firstLevel=0; firstLevel < 1000; firstLevel++) {
+            final File dir = new File(base, String.valueOf(firstLevel));
+
+            for (int secondLevel = 0; secondLevel < 1000; secondLevel++) {
+                final File file = new File(dir, String.valueOf(secondLevel));
+                paths.add(file.toPath());
+            }
+        }
+
+        processor = new ListFile();
+
+        runner = TestRunners.newTestRunner(processor);
+        runner.setProperty(AbstractListProcessor.TARGET_SYSTEM_TIMESTAMP_PRECISION, AbstractListProcessor.PRECISION_SECONDS.getValue());
+        runner.setProperty(ListFile.TRACK_PERFORMANCE, "true");
+        runner.setProperty(ListFile.MAX_TRACKED_FILES, "100000");
+        runner.setProperty(ListFile.DIRECTORY, "target");
+
+        runner.run();
+
+        final ListFile.PerformanceTracker tracker = processor.getPerformanceTracker();
+        assertEquals(100_000, tracker.getTrackedFileCount());
+
+        final ListFile.MonitorActiveTasks monitorActiveTasks = new ListFile.MonitorActiveTasks(tracker, runner.getLogger(), 1000, 1000, 1);
+
+        while (tracker.getTrackedFileCount() > 0) {
+            monitorActiveTasks.run();
+        }
+
+        assertEquals(0, tracker.getTrackedFileCount());
     }
+
 
     @Test
     public void testGetPath() {
@@ -246,6 +292,11 @@ public class TestListFile {
                 assertTrue(file2.setLastModified(time2millis));
                 assertTrue(file3.setLastModified(time4millis));
             }
+
+            assertTrue(file1.lastModified() > time3millis && file1.lastModified() <= time0millis);
+            assertTrue(file2.lastModified() > time3millis && file2.lastModified() < time1millis);
+            assertTrue(file3.lastModified() < time3millis);
+
             try {
                 runNext();
             } catch (InterruptedException e) {
@@ -405,6 +456,91 @@ public class TestListFile {
         final List<MockFlowFile> successFiles2 = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
         assertEquals(1, successFiles2.size());
     }
+
+    @Test
+    public void testListWithUnreadableFiles() throws Exception {
+        final File file1 = new File(TESTDIR + "/unreadable.txt");
+        assertTrue(file1.createNewFile());
+        assertTrue(file1.setReadable(false));
+
+        final File file2 = new File(TESTDIR + "/readable.txt");
+        assertTrue(file2.createNewFile());
+
+        final long now = getTestModifiedTime();
+        assertTrue(file1.setLastModified(now));
+        assertTrue(file2.setLastModified(now));
+
+        runner.setProperty(ListFile.DIRECTORY, testDir.getAbsolutePath());
+        runner.setProperty(ListFile.FILE_FILTER, ".*");
+        runNext();
+
+        final List<MockFlowFile> successFiles = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
+        assertEquals(1, successFiles.size());
+    }
+
+    @Test
+    public void testListWithinUnreadableDirectory() throws Exception {
+        final File subdir = new File(TESTDIR + "/subdir");
+        assertTrue(subdir.mkdir());
+        assertTrue(subdir.setReadable(false));
+
+        final File file1 = new File(TESTDIR + "/subdir/unreadable.txt");
+        assertTrue(file1.createNewFile());
+        assertTrue(file1.setReadable(false));
+
+        final File file2 = new File(TESTDIR + "/subdir/readable.txt");
+        assertTrue(file2.createNewFile());
+
+        final File file3 = new File(TESTDIR + "/secondReadable.txt");
+        assertTrue(file3.createNewFile());
+
+        final long now = getTestModifiedTime();
+        assertTrue(file1.setLastModified(now));
+        assertTrue(file2.setLastModified(now));
+        assertTrue(file3.setLastModified(now));
+
+        runner.setProperty(ListFile.DIRECTORY, testDir.getAbsolutePath());
+        runner.setProperty(ListFile.FILE_FILTER, ".*");
+        runNext();
+
+        final List<MockFlowFile> successFiles = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
+        assertEquals(1, successFiles.size());
+        assertEquals("secondReadable.txt", successFiles.get(0).getAttribute("filename"));
+
+        subdir.setReadable(true);
+    }
+
+    @Test
+    public void testListingNeedsSufficientPrivilegesAndFittingFilter() throws Exception {
+        final File file = new File(TESTDIR + "/file.txt");
+        assertTrue(file.createNewFile());
+        runner.setProperty(ListFile.DIRECTORY, testDir.getAbsolutePath());
+
+        // Run with privileges but without fitting filter
+        runner.setProperty(ListFile.FILE_FILTER, "willBeFilteredOut");
+        assertTrue(file.setLastModified(getTestModifiedTime()));
+        runNext();
+
+        final List<MockFlowFile> successFiles1 = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
+        assertEquals(0, successFiles1.size());
+
+        // Run with privileges and with fitting filter
+        runner.setProperty(ListFile.FILE_FILTER, "file.*");
+        assertTrue(file.setLastModified(getTestModifiedTime()));
+        runNext();
+
+        final List<MockFlowFile> successFiles2 = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
+        assertEquals(1, successFiles2.size());
+
+        // Run without privileges and with fitting filter
+        assertTrue(file.setReadable(false));
+        assertTrue(file.setLastModified(getTestModifiedTime()));
+        runNext();
+
+        final List<MockFlowFile> successFiles3 = runner.getFlowFilesForRelationship(ListFile.REL_SUCCESS);
+        assertEquals(0, successFiles3.size());
+    }
+
 
     @Test
     public void testFilterFilePattern() throws Exception {
@@ -636,14 +772,14 @@ public class TestListFile {
 
     @Test
     public void testIsListingResetNecessary() throws Exception {
-        assertEquals(true, processor.isListingResetNecessary(ListFile.DIRECTORY));
-        assertEquals(true, processor.isListingResetNecessary(ListFile.RECURSE));
-        assertEquals(true, processor.isListingResetNecessary(ListFile.FILE_FILTER));
-        assertEquals(true, processor.isListingResetNecessary(ListFile.PATH_FILTER));
-        assertEquals(true, processor.isListingResetNecessary(ListFile.MIN_AGE));
-        assertEquals(true, processor.isListingResetNecessary(ListFile.MAX_AGE));
-        assertEquals(true, processor.isListingResetNecessary(ListFile.MIN_SIZE));
-        assertEquals(true, processor.isListingResetNecessary(ListFile.MAX_SIZE));
+        assertTrue(processor.isListingResetNecessary(ListFile.DIRECTORY));
+        assertTrue(processor.isListingResetNecessary(ListFile.RECURSE));
+        assertTrue(processor.isListingResetNecessary(ListFile.FILE_FILTER));
+        assertTrue(processor.isListingResetNecessary(ListFile.PATH_FILTER));
+        assertTrue(processor.isListingResetNecessary(ListFile.MIN_AGE));
+        assertTrue(processor.isListingResetNecessary(ListFile.MAX_AGE));
+        assertTrue(processor.isListingResetNecessary(ListFile.MIN_SIZE));
+        assertTrue(processor.isListingResetNecessary(ListFile.MAX_SIZE));
         assertEquals(true, processor.isListingResetNecessary(ListFile.IGNORE_HIDDEN_FILES));
         assertEquals(false, processor.isListingResetNecessary(new PropertyDescriptor.Builder().name("x").build()));
     }
@@ -707,6 +843,14 @@ public class TestListFile {
         age3millis = 15000L;
         age4millis = 20000L;
         age5millis = 100000L;
+
+        // Allow for bigger gaps since the lag is 2s w/o milliseconds.
+        if (!isMillisecondSupported) {
+            age1millis *= 2;
+            age2millis *= 2;
+            age3millis *= 2;
+            age4millis *= 2;
+        }
 
         time0millis = syncTime - age0millis;
         time1millis = syncTime - age1millis;

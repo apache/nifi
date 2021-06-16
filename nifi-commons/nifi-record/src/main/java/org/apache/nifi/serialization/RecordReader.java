@@ -17,12 +17,12 @@
 
 package org.apache.nifi.serialization;
 
-import java.io.Closeable;
-import java.io.IOException;
-
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.RecordSet;
+
+import java.io.Closeable;
+import java.io.IOException;
 
 /**
  * <p>
@@ -47,7 +47,7 @@ public interface RecordReader extends Closeable {
      * @throws SchemaValidationException if a Record contains a field that violates the schema and cannot be coerced into the appropriate field type.
      */
     default Record nextRecord() throws IOException, MalformedRecordException {
-        return nextRecord(true, true);
+        return nextRecord(true, false);
     }
 
     /**

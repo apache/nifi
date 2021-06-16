@@ -13,22 +13,22 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-        <version>1.8.0-SNAPSHOT</version>
+        <version>1.12.0-SNAPSHOT</version>
     </parent>
 
-    <groupId>org.apache.nifi</groupId>
     <artifactId>nifi-atlas-bundle</artifactId>
-    <version>1.8.0-SNAPSHOT</version>
     <packaging>pom</packaging>
+
     <properties>
-        <atlas.version>0.8.1</atlas.version>
+        <atlas.version>2.0.0</atlas.version>
     </properties>
+
     <modules>
         <module>nifi-atlas-reporting-task</module>
         <module>nifi-atlas-nar</module>
@@ -39,85 +39,17 @@
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-atlas-reporting-task</artifactId>
-                <version>1.8.0-SNAPSHOT</version>
+                <version>1.12.0-SNAPSHOT</version>
             </dependency>
-            <dependency>
-                <groupId>org.apache.nifi</groupId>
-                <artifactId>nifi-client-dto</artifactId>
-                <version>1.8.0-SNAPSHOT</version>
-            </dependency>
+
             <dependency>
                 <groupId>org.apache.atlas</groupId>
-                <artifactId>atlas-client</artifactId>
+                <artifactId>atlas-client-v2</artifactId>
                 <version>${atlas.version}</version>
                 <exclusions>
                     <exclusion>
                         <groupId>org.slf4j</groupId>
                         <artifactId>slf4j-log4j12</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>org.slf4j</groupId>
-                        <artifactId>jul-to-slf4j</artifactId>
-                    </exclusion>
-                    <!--
-                        <exclusion>
-                            <groupId>log4j</groupId>
-                            <artifactId>log4j</artifactId>
-                        </exclusion>
-                        <exclusion>
-                            <groupId>org.apache.hadoop</groupId>
-                            <artifactId>hadoop-minikdc</artifactId>
-                        </exclusion>
-                        <exclusion>
-                            <groupId>org.apache.hadoop</groupId>
-                            <artifactId>hadoop-annotations</artifactId>
-                        </exclusion>
-                        <!-
-                            Exclude these Atlas typesystem to reduce dependency size.
-                            Use atlas-intg and atlas-common instead.
-                        ->
-                        <exclusion>
-                            <groupId>org.apache.atlas</groupId>
-                            <artifactId>atlas-typesystem</artifactId>
-                        </exclusion>
-                    -->
-                </exclusions>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.atlas</groupId>
-                <artifactId>atlas-intg</artifactId>
-                <version>${atlas.version}</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>org.slf4j</groupId>
-                        <artifactId>slf4j-log4j12</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>org.slf4j</groupId>
-                        <artifactId>jul-to-slf4j</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>log4j</groupId>
-                        <artifactId>log4j</artifactId>
-                    </exclusion>
-                </exclusions>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.atlas</groupId>
-                <artifactId>atlas-common</artifactId>
-                <version>${atlas.version}</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>org.slf4j</groupId>
-                        <artifactId>slf4j-log4j12</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>org.slf4j</groupId>
-                        <artifactId>jul-to-slf4j</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>log4j</groupId>
-                        <artifactId>log4j</artifactId>
                     </exclusion>
                 </exclusions>
             </dependency>
@@ -130,12 +62,10 @@
                         <groupId>org.slf4j</groupId>
                         <artifactId>slf4j-log4j12</artifactId>
                     </exclusion>
-                    <!--
                     <exclusion>
                         <groupId>log4j</groupId>
                         <artifactId>log4j</artifactId>
                     </exclusion>
-                    -->
                 </exclusions>
             </dependency>
         </dependencies>

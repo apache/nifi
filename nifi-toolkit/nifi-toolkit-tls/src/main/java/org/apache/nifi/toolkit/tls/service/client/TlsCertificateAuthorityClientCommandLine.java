@@ -24,9 +24,14 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
 import org.apache.commons.cli.CommandLine;
 import org.apache.nifi.toolkit.tls.commandLine.CommandLineParseException;
 import org.apache.nifi.toolkit.tls.commandLine.ExitCode;
+import org.apache.nifi.toolkit.tls.configuration.InstanceDefinition;
 import org.apache.nifi.toolkit.tls.configuration.TlsClientConfig;
 import org.apache.nifi.toolkit.tls.service.BaseCertificateAuthorityCommandLine;
 import org.apache.nifi.toolkit.tls.util.InputStreamFactory;
@@ -47,7 +52,7 @@ public class TlsCertificateAuthorityClientCommandLine extends BaseCertificateAut
     private final InputStreamFactory inputStreamFactory;
 
     private String certificateDirectory;
-    private String domainAlternativeNames;
+    private List<InstanceDefinition> domainAlternativeNames;
 
     public TlsCertificateAuthorityClientCommandLine() {
         this(FileInputStream::new);
@@ -112,7 +117,20 @@ public class TlsCertificateAuthorityClientCommandLine extends BaseCertificateAut
     protected CommandLine doParse(String[] args) throws CommandLineParseException {
         CommandLine commandLine = super.doParse(args);
         certificateDirectory = commandLine.getOptionValue(CERTIFICATE_DIRECTORY, DEFAULT_CERTIFICATE_DIRECTORY);
-        domainAlternativeNames = commandLine.getOptionValue(SUBJECT_ALTERNATIVE_NAMES);
+
+        if (commandLine.hasOption(SUBJECT_ALTERNATIVE_NAMES)) {
+            domainAlternativeNames = Collections.unmodifiableList(
+                    InstanceDefinition.createDefinitions(
+                            null,
+                            Arrays.stream(commandLine.getOptionValues(SUBJECT_ALTERNATIVE_NAMES)).flatMap(s -> Arrays.stream(s.split(",")).map(String::trim)),
+                            null,
+                            null,
+                            null
+                            ));
+        } else {
+            domainAlternativeNames = Collections.EMPTY_LIST;
+        }
+
         return commandLine;
     }
 
@@ -120,8 +138,11 @@ public class TlsCertificateAuthorityClientCommandLine extends BaseCertificateAut
         return certificateDirectory;
     }
 
-    public String getDomainAlternativeNames() {
-        return domainAlternativeNames;
+    public List<String> getDomainAlternativeNames() {
+        if (domainAlternativeNames == null) {
+            domainAlternativeNames = Collections.EMPTY_LIST;
+        }
+        return domainAlternativeNames.stream().map(InstanceDefinition::getHostname).collect(Collectors.toList());
     }
 
     public TlsClientConfig createClientConfig() throws IOException {

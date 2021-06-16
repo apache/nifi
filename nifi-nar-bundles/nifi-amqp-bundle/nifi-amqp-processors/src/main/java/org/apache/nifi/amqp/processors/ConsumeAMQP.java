@@ -194,6 +194,13 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
 
             return amqpConsumer;
         } catch (final IOException ioe) {
+            try {
+                connection.close();
+                getLogger().warn("Closed connection at port " + connection.getPort());
+            } catch (final IOException ioeClose) {
+                throw new ProcessException("Failed to close connection at port " + connection.getPort());
+            }
+
             throw new ProcessException("Failed to connect to AMQP Broker", ioe);
         }
     }

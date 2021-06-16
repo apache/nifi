@@ -44,7 +44,7 @@ public class InstanceIdentifierTest {
 
     @Test
     public void testExtractHostnamesLowGreaterThanHigh() {
-        testExtractHostnames("test[3-1]");
+        testExtractHostnames("test[3-1]", "test3", "test2", "test1");
     }
 
     @Test

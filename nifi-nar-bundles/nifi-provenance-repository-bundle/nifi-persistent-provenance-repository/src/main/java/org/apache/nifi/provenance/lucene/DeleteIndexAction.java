@@ -16,10 +16,6 @@
  */
 package org.apache.nifi.provenance.lucene;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.List;
-
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.Term;
 import org.apache.nifi.provenance.IndexConfiguration;
@@ -30,6 +26,10 @@ import org.apache.nifi.provenance.serialization.RecordReader;
 import org.apache.nifi.provenance.serialization.RecordReaders;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.List;
 
 public class DeleteIndexAction implements ExpirationAction {
 
@@ -66,7 +66,7 @@ public class DeleteIndexAction implements ExpirationAction {
                 final IndexWriter indexWriter = writer.getIndexWriter();
                 indexWriter.deleteDocuments(term);
                 indexWriter.commit();
-                final int docsLeft = indexWriter.numDocs();
+                final int docsLeft = indexWriter.getDocStats().numDocs;
                 deleteDir = docsLeft <= 0;
                 logger.debug("After expiring {}, there are {} docs left for index {}", expiredFile, docsLeft, indexingDirectory);
             } finally {

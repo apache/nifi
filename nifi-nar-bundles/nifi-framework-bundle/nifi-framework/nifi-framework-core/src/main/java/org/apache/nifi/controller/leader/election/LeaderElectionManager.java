@@ -17,6 +17,9 @@
 
 package org.apache.nifi.controller.leader.election;
 
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
 public interface LeaderElectionManager {
     /**
      * Starts managing leader elections for all registered roles
@@ -94,4 +97,41 @@ public interface LeaderElectionManager {
      * @return <code>true</code> if a leader has been elected, <code>false</code> otherwise.
      */
     boolean isLeaderElected(String roleName);
+
+    /**
+     * Returns a Map of Role Name to the number of times that the leader has been detected as changing in the given time period. Note that
+     * the amount of time that these counts is stored and the precision is implementation specific.
+     *
+     * @param  duration the duration
+     * @param  timeUnit the time unit
+     * @return a Mapping of role to the number of times that the leader for that role has changed
+     */
+    Map<String, Integer> getLeadershipChangeCount(long duration, TimeUnit timeUnit);
+
+    /**
+     * Returns the average amount of time it has taken to poll the leader election service in the past 5 minutes.
+     * @param timeUnit the desired time unit
+     * @return the average amount of time it has taken to poll the leader election service, or <code>-1</code> if this is not supported
+     */
+    long getAveragePollTime(TimeUnit timeUnit);
+
+    /**
+     * Returns the minimum amount of time any poll of the leader election service has taken in the past 5 minutes.
+     * @param timeUnit the desired time unit
+     * @return the minimum amount of time any poll of the leader election service has taken, or <code>-1</code> if this is not supported
+     */
+    long getMinPollTime(TimeUnit timeUnit);
+
+    /**
+     * Returns the maximum amount of time any poll of the leader election service has taken in the past 5 minutes.
+     * @param timeUnit the desired time unit
+     * @return the maximum amount of time any poll of the leader election service has taken, or <code>-1</code> if this is not supported
+     */
+    long getMaxPollTime(TimeUnit timeUnit);
+
+    /**
+     * Returns the number of times that the leader election service has been polled in the past 5 minutes
+     * @return the number of times that the leader election service has been polled in the past 5 minutes, or <code>-1</code> if this is not supported
+     */
+    long getPollCount();
 }

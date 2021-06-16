@@ -109,6 +109,33 @@
     };
 
     /**
+     * Validates the configured settings.
+     *
+     * @argument {object} configuration       The settings to validate
+     */
+    var validateSettings = function (configuration) {
+        var errors = [];
+
+        // ensure numeric fields are specified correctly
+        if (nfCommon.isDefinedAndNotNull(configuration['maxTimerDrivenThreadCount']) && !$.isNumeric(configuration['maxTimerDrivenThreadCount'])) {
+            errors.push('Maximum Timer Driven Thread Count must be an integer value');
+        }
+        if (nfCommon.isDefinedAndNotNull(configuration['maxEventDrivenThreadCount']) && !$.isNumeric(configuration['maxEventDrivenThreadCount'])) {
+            errors.push('Maximum Event Driven Thread Count must be an integer value');
+        }
+
+        if (errors.length > 0) {
+            nfDialog.showOkDialog({
+                dialogContent: nfCommon.formatUnorderedList(errors),
+                headerText: 'Configuration Error'
+            });
+            return false;
+        } else {
+            return true;
+        }
+    };
+
+    /**
      * Saves the settings for the controller.
      *
      * @param version
@@ -116,35 +143,38 @@
     var saveSettings = function (version) {
         // marshal the configuration details
         var configuration = marshalConfiguration();
-        var entity = {
-            'revision': nfClient.getRevision({
-                'revision': {
-                    'version': version
-                }
-            }),
-            'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
-            'component': configuration
-        };
+        // ensure settings are valid as far as we can tell
+        if (validateSettings(configuration)) {
+            var entity = {
+                'revision': nfClient.getRevision({
+                    'revision': {
+                        'version': version
+                    }
+                }),
+                'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
+                'component': configuration
+            };
 
-        // save the new configuration details
-        $.ajax({
-            type: 'PUT',
-            url: config.urls.controllerConfig,
-            data: JSON.stringify(entity),
-            dataType: 'json',
-            contentType: 'application/json'
-        }).done(function (response) {
-            // close the settings dialog
-            nfDialog.showOkDialog({
-                headerText: 'Settings',
-                dialogContent: 'Settings successfully applied.'
-            });
+            // save the new configuration details
+            $.ajax({
+                type: 'PUT',
+                url: config.urls.controllerConfig,
+                data: JSON.stringify(entity),
+                dataType: 'json',
+                contentType: 'application/json'
+            }).done(function (response) {
+                // close the settings dialog
+                nfDialog.showOkDialog({
+                    headerText: 'Settings',
+                    dialogContent: 'Settings successfully applied.'
+                });
 
-            // register the click listener for the save button
-            $('#settings-save').off('click').on('click', function () {
-                saveSettings(response.revision.version);
-            });
-        }).fail(nfErrorHandler.handleAjaxError);
+                // register the click listener for the save button
+                $('#settings-save').off('click').on('click', function () {
+                    saveSettings(response.revision.version);
+                });
+            }).fail(nfErrorHandler.handleConfigurationUpdateAjaxError);
+        }
     }
 
     /**
@@ -519,10 +549,11 @@
             var row = registriesData.getRowById(registryEntity.id);
             nfFilteredDialogCommon.choseRow(registriesGrid, row);
             registriesGrid.scrollRowIntoView(row);
-        }).fail(nfErrorHandler.handleAjaxError);
 
-        // hide the dialog
-        $('#registry-configuration-dialog').modal('hide');
+            // hide the dialog
+            $('#registry-configuration-dialog').modal('hide');
+        }).fail(nfErrorHandler.handleConfigurationUpdateAjaxError);
+
 
         return addRegistry;
     };
@@ -560,10 +591,10 @@
             registriesData.updateItem(registryId, $.extend({
                 type: 'Registry'
             }, registryEntity));
-        }).fail(nfErrorHandler.handleAjaxError);
 
-        // hide the dialog
-        $('#registry-configuration-dialog').modal('hide');
+            // hide the dialog
+            $('#registry-configuration-dialog').modal('hide');
+        }).fail(nfErrorHandler.handleConfigurationUpdateAjaxError);
 
         return updateRegistry;
     };
@@ -1006,23 +1037,19 @@
         };
 
         var reportingTaskRunStatusFormatter = function (row, cell, value, columnDef, dataContext) {
-            if (!dataContext.permissions.canRead) {
-                return '';
-            }
-
             // determine the appropriate label
             var icon = '', label = '';
-            if (dataContext.component.validationStatus === 'VALIDATING') {
+            if (dataContext.status.validationStatus === 'VALIDATING') {
                 icon = 'validating fa fa-spin fa-circle-notch';
                 label = 'Validating';
-            } else if (dataContext.component.validationStatus === 'INVALID') {
+            } else if (dataContext.status.validationStatus === 'INVALID') {
                 icon = 'invalid fa fa-warning';
                 label = 'Invalid';
             } else {
-                if (dataContext.component.state === 'STOPPED') {
+                if (dataContext.status.runStatus === 'STOPPED') {
                     label = 'Stopped';
                     icon = 'fa fa-stop stopped';
-                } else if (dataContext.component.state === 'RUNNING') {
+                } else if (dataContext.status.runStatus === 'RUNNING') {
                     label = 'Running';
                     icon = 'fa fa-play running';
                 } else {
@@ -1033,8 +1060,8 @@
 
             // include the active thread count if appropriate
             var activeThreadCount = '';
-            if (nfCommon.isDefinedAndNotNull(dataContext.component.activeThreadCount) && dataContext.component.activeThreadCount > 0) {
-                activeThreadCount = '(' + dataContext.component.activeThreadCount + ')';
+            if (nfCommon.isDefinedAndNotNull(dataContext.status.activeThreadCount) && dataContext.status.activeThreadCount > 0) {
+                activeThreadCount = '(' + dataContext.status.activeThreadCount + ')';
             }
 
             // format the markup
@@ -1045,29 +1072,38 @@
         var reportingTaskActionFormatter = function (row, cell, value, columnDef, dataContext) {
             var markup = '';
 
-            if (dataContext.permissions.canRead && dataContext.permissions.canWrite) {
-                if (dataContext.component.state === 'RUNNING') {
+            var canWrite = dataContext.permissions.canWrite;
+            var canRead = dataContext.permissions.canRead;
+            var canOperate = dataContext.operatePermissions.canWrite || canWrite;
+            var isStopped = dataContext.status.runStatus === 'STOPPED';
+
+            if (dataContext.status.runStatus === 'RUNNING') {
+                if (canOperate) {
                     markup += '<div title="Stop" class="pointer stop-reporting-task fa fa-stop"></div>';
-                } else if (dataContext.component.state === 'STOPPED' || dataContext.component.state === 'DISABLED') {
+                }
+
+            } else if (isStopped || dataContext.status.runStatus === 'DISABLED') {
+
+                if (canRead && canWrite) {
                     markup += '<div title="Edit" class="pointer edit-reporting-task fa fa-pencil"></div>';
-
-                    // support starting when stopped and no validation errors
-                    if (dataContext.component.state === 'STOPPED' && nfCommon.isEmpty(dataContext.component.validationErrors)) {
-                        markup += '<div title="Start" class="pointer start-reporting-task fa fa-play"></div>';
-                    }
-
-                    if (dataContext.component.multipleVersionsAvailable === true) {
-                        markup += '<div title="Change Version" class="pointer change-version-reporting-task fa fa-exchange"></div>';
-                    }
-
-                    if (nfCommon.canModifyController()) {
-                        markup += '<div title="Remove" class="pointer delete-reporting-task fa fa-trash"></div>';
-                    }
                 }
 
-                if (dataContext.component.persistsState === true) {
-                    markup += '<div title="View State" class="pointer view-state-reporting-task fa fa-tasks"></div>';
+                // support starting when stopped and no validation errors
+                if (canOperate && dataContext.status.runStatus === 'STOPPED' && dataContext.status.validationStatus === 'VALID') {
+                    markup += '<div title="Start" class="pointer start-reporting-task fa fa-play"></div>';
                 }
+
+                if (canRead && canWrite && dataContext.component.multipleVersionsAvailable === true) {
+                    markup += '<div title="Change Version" class="pointer change-version-reporting-task fa fa-exchange"></div>';
+                }
+
+                if (canRead && canWrite && nfCommon.canModifyController()) {
+                    markup += '<div title="Remove" class="pointer delete-reporting-task fa fa-trash"></div>';
+                }
+            }
+
+            if (canRead && canWrite && dataContext.component.persistsState === true) {
+                markup += '<div title="View State" class="pointer view-state-reporting-task fa fa-tasks"></div>';
             }
 
             // allow policy configuration conditionally
@@ -1173,7 +1209,7 @@
                 } else if (target.hasClass('delete-reporting-task')) {
                     nfReportingTask.promptToDeleteReportingTask(reportingTaskEntity);
                 } else if (target.hasClass('view-state-reporting-task')) {
-                    var canClear = reportingTaskEntity.component.state === 'STOPPED' && reportingTaskEntity.component.activeThreadCount === 0;
+                    var canClear = reportingTaskEntity.status.runStatus === 'STOPPED' && reportingTaskEntity.status.activeThreadCount === 0;
                     nfComponentState.showState(reportingTaskEntity, canClear);
                 } else if (target.hasClass('change-version-reporting-task')) {
                     nfComponentVersion.promptForVersionChange(reportingTaskEntity);
@@ -1193,11 +1229,11 @@
 
                     // open the documentation for this reporting task
                     nfShell.showPage('../nifi-docs/documentation?' + $.param({
-                            select: reportingTaskEntity.component.type,
-                            group: reportingTaskEntity.component.bundle.group,
-                            artifact: reportingTaskEntity.component.bundle.artifact,
-                            version: reportingTaskEntity.component.bundle.version
-                        })).done(function () {
+                        select: reportingTaskEntity.component.type,
+                        group: reportingTaskEntity.component.bundle.group,
+                        artifact: reportingTaskEntity.component.bundle.artifact,
+                        version: reportingTaskEntity.component.bundle.version
+                    })).done(function () {
                         nfSettings.showSettings();
                     });
                 }

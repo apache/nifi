@@ -18,7 +18,6 @@ package org.apache.nifi.processors.standard;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.Path;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -189,12 +188,9 @@ public abstract class GetFileTransfer extends AbstractProcessor {
                 try {
                     FlowFile flowFile = session.create();
                     final StopWatch stopWatch = new StopWatch(false);
-                    try (final InputStream in = transfer.getInputStream(file.getFullPathFileName())) {
-                        stopWatch.start();
-                        flowFile = session.importFrom(in, flowFile);
-                        stopWatch.stop();
-                    }
-                    transfer.flush();
+                    stopWatch.start();
+                    flowFile = transfer.getRemoteFile(file.getFullPathFileName(), flowFile, session);
+                    stopWatch.stop();
                     final long millis = stopWatch.getDuration(TimeUnit.MILLISECONDS);
                     final String dataRate = stopWatch.calculateDataRate(flowFile.getSize());
                     flowFile = session.putAttribute(flowFile, this.getClass().getSimpleName().toLowerCase() + ".remote.source", hostname);

@@ -18,6 +18,7 @@ package org.wali;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.util.Map;
 
@@ -150,5 +151,38 @@ public interface SerDe<T> {
      * @throws IOException if unable to close resources
      */
     default void close() throws IOException {
+    }
+
+    /**
+     * Optional method that a SerDe can support that indicates that the contents of the next update should be found
+     * in the given external File.
+     *
+     * @param externalFile the file that contains the update information
+     * @param out the DataOutputStream to write the external file reference to
+     * @throws IOException if unable to write the update
+     * @throws UnsupportedOperationException if this SerDe does not support this operation
+     */
+    default void writeExternalFileReference(File externalFile, DataOutputStream out) throws IOException {
+        throw new UnsupportedOperationException();
+    }
+
+    /**
+     * Indicates whether or not a call to {@link #writeExternalFileReference(File, DataOutputStream)} is valid for this implementation
+     * @return <code>true</code> if calls to {@link #writeExternalFileReference(File, DataOutputStream)} are supported, <code>false</code> if calling
+     * the method will result in an {@link UnsupportedOperationException} being thrown.
+     */
+    default boolean isWriteExternalFileReferenceSupported() {
+        return false;
+    }
+
+    /**
+     * If the last call to read data from this SerDe resulted in data being read from an External File, and there is more data in that External File,
+     * then this method will return <code>true</code>. Otherwise, it will return <code>false</code>.
+     *
+     * @return <code>true</code> if more data available in External File, <code>false</code> otherwise.
+     * @throws IOException if unable to read from External File to determine data availability
+     */
+    default boolean isMoreInExternalFile() throws IOException {
+        return false;
     }
 }

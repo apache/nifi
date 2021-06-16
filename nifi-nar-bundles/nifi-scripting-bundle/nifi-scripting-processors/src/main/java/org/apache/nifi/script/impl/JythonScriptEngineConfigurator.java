@@ -18,6 +18,7 @@ package org.apache.nifi.script.impl;
 
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processors.script.ScriptEngineConfigurator;
+import org.python.core.PyString;
 
 import javax.script.ScriptEngine;
 import javax.script.ScriptException;
@@ -41,6 +42,16 @@ public class JythonScriptEngineConfigurator implements ScriptEngineConfigurator 
 
     @Override
     public Object init(ScriptEngine engine, String[] modulePaths) throws ScriptException {
+        if (engine != null) {
+            // Need to import the module path inside the engine, in order to pick up
+            // other Python/Jython modules.
+            engine.eval("import sys");
+            if (modulePaths != null) {
+                for (String modulePath : modulePaths) {
+                    engine.eval("sys.path.append(" + PyString.encode_UnicodeEscape(modulePath, true) + ")");
+                }
+            }
+        }
         return null;
     }
 
@@ -48,14 +59,6 @@ public class JythonScriptEngineConfigurator implements ScriptEngineConfigurator 
     public Object eval(ScriptEngine engine, String scriptBody, String[] modulePaths) throws ScriptException {
         Object returnValue = null;
         if (engine != null) {
-            // Need to import the module path inside the engine, in order to pick up
-            // other Python/Jython modules
-            engine.eval("import sys");
-            if (modulePaths != null) {
-                for (String modulePath : modulePaths) {
-                    engine.eval("sys.path.append('" + modulePath + "')");
-                }
-            }
             returnValue = engine.eval(scriptBody);
         }
         return returnValue;

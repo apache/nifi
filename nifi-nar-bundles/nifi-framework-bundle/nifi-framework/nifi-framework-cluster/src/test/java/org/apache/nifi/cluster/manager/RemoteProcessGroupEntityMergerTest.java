@@ -40,9 +40,13 @@ public class RemoteProcessGroupEntityMergerTest {
         final NodeIdentifier node1 = new NodeIdentifier("node-1", "host-1", 8080, "host-1", 19998, null, null, null, false);
         final NodeIdentifier node2 = new NodeIdentifier("node-2", "host-2", 8081, "host-2", 19999, null, null, null, false);
 
-        final PermissionsDTO permissed = new PermissionsDTO();
-        permissed.setCanRead(true);
-        permissed.setCanWrite(true);
+        final PermissionsDTO permissions = new PermissionsDTO();
+        permissions.setCanRead(true);
+        permissions.setCanWrite(true);
+
+        final PermissionsDTO opsPermissions = new PermissionsDTO();
+        opsPermissions.setCanRead(false);
+        opsPermissions.setCanWrite(false);
 
         final RemoteProcessGroupStatusDTO status = new RemoteProcessGroupStatusDTO();
         status.setAggregateSnapshot(new RemoteProcessGroupStatusSnapshotDTO());
@@ -71,7 +75,8 @@ public class RemoteProcessGroupEntityMergerTest {
         rpg1.setContents(contents1);
 
         final RemoteProcessGroupEntity entity1 = new RemoteProcessGroupEntity();
-        entity1.setPermissions(permissed);
+        entity1.setPermissions(permissions);
+        entity1.setOperatePermissions(opsPermissions);
         entity1.setStatus(status);
         entity1.setComponent(rpg1);
 
@@ -99,7 +104,8 @@ public class RemoteProcessGroupEntityMergerTest {
         rpg2.setContents(contents2);
 
         final RemoteProcessGroupEntity entity2 = new RemoteProcessGroupEntity();
-        entity2.setPermissions(permissed);
+        entity2.setPermissions(permissions);
+        entity2.setOperatePermissions(opsPermissions);
         entity2.setStatus(status);
         entity2.setComponent(rpg2);
 
@@ -115,5 +121,84 @@ public class RemoteProcessGroupEntityMergerTest {
         assertEquals("in1", entity1.getComponent().getContents().getInputPorts().iterator().next().getName());
         assertEquals(1, entity1.getComponent().getContents().getOutputPorts().size());
         assertEquals("out1", entity1.getComponent().getContents().getOutputPorts().iterator().next().getName());
+    }
+
+    @Test
+    public void testNoPortsAvailableOnOneNode() throws Exception {
+        final NodeIdentifier node1 = new NodeIdentifier("node-1", "host-1", 8080, "host-1", 19998, null, null, null, false);
+        final NodeIdentifier node2 = new NodeIdentifier("node-2", "host-2", 8081, "host-2", 19999, null, null, null, false);
+
+        final PermissionsDTO permissions = new PermissionsDTO();
+        permissions.setCanRead(true);
+        permissions.setCanWrite(true);
+
+        final PermissionsDTO opsPermissions = new PermissionsDTO();
+        opsPermissions.setCanRead(false);
+        opsPermissions.setCanWrite(false);
+
+        final RemoteProcessGroupStatusDTO status = new RemoteProcessGroupStatusDTO();
+        status.setAggregateSnapshot(new RemoteProcessGroupStatusSnapshotDTO());
+
+        final RemoteProcessGroupPortDTO in1_1 = new RemoteProcessGroupPortDTO();
+        in1_1.setName("in1");
+
+        final RemoteProcessGroupPortDTO in1_2 = new RemoteProcessGroupPortDTO();
+        in1_2.setName("in2");
+
+        final Set<RemoteProcessGroupPortDTO> inputs1 = new HashSet<>();
+        inputs1.add(in1_1);
+        inputs1.add(in1_2);
+
+        final RemoteProcessGroupPortDTO out1_1 = new RemoteProcessGroupPortDTO();
+        out1_1.setName("out1");
+
+        final Set<RemoteProcessGroupPortDTO> outputs1 = new HashSet<>();
+        outputs1.add(out1_1);
+
+        final RemoteProcessGroupContentsDTO contents1 = new RemoteProcessGroupContentsDTO();
+        contents1.setInputPorts(inputs1);
+        contents1.setOutputPorts(outputs1);
+
+        final RemoteProcessGroupDTO rpg1 = new RemoteProcessGroupDTO();
+        rpg1.setContents(contents1);
+        rpg1.setInputPortCount(2);
+        rpg1.setOutputPortCount(1);
+
+        final RemoteProcessGroupEntity entity1 = new RemoteProcessGroupEntity();
+        entity1.setPermissions(permissions);
+        entity1.setOperatePermissions(opsPermissions);
+        entity1.setStatus(status);
+        entity1.setComponent(rpg1);
+
+        final Set<RemoteProcessGroupPortDTO> inputs2 = new HashSet<>();
+        final Set<RemoteProcessGroupPortDTO> outputs2 = new HashSet<>();
+
+        final RemoteProcessGroupContentsDTO contents2 = new RemoteProcessGroupContentsDTO();
+        contents2.setInputPorts(inputs2);
+        contents2.setOutputPorts(outputs2);
+
+        final RemoteProcessGroupDTO rpg2 = new RemoteProcessGroupDTO();
+        rpg2.setContents(contents2);
+        rpg2.setInputPortCount(0);
+        rpg2.setOutputPortCount(0);
+
+        final RemoteProcessGroupEntity entity2 = new RemoteProcessGroupEntity();
+        entity2.setPermissions(permissions);
+        entity2.setOperatePermissions(opsPermissions);
+        entity2.setStatus(status);
+        entity2.setComponent(rpg2);
+
+        final Map<NodeIdentifier, RemoteProcessGroupEntity> nodeMap = new HashMap<>();
+        nodeMap.put(node1, entity1);
+        nodeMap.put(node2, entity2);
+
+        final RemoteProcessGroupEntityMerger merger = new RemoteProcessGroupEntityMerger();
+        merger.merge(entity1, nodeMap);
+
+        // should only include ports in common to all rpg's
+        assertEquals(0, entity1.getComponent().getContents().getInputPorts().size());
+        assertEquals(0, entity1.getComponent().getContents().getOutputPorts().size());
+        assertEquals(0, entity1.getComponent().getInputPortCount().intValue());
+        assertEquals(0, entity1.getComponent().getOutputPortCount().intValue());
     }
 }

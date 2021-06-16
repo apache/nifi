@@ -72,6 +72,7 @@ public class GetFTP extends GetFileTransfer {
         properties.add(FTPTransfer.PATH_FILTER_REGEX);
         properties.add(FTPTransfer.POLLING_INTERVAL);
         properties.add(FTPTransfer.RECURSIVE_SEARCH);
+        properties.add(FTPTransfer.FOLLOW_SYMLINK);
         properties.add(FTPTransfer.IGNORE_DOTTED_FILES);
         properties.add(FTPTransfer.DELETE_ORIGINAL);
         properties.add(FTPTransfer.CONNECTION_TIMEOUT);

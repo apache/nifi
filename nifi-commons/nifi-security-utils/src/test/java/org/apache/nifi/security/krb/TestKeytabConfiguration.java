@@ -39,7 +39,7 @@ public class TestKeytabConfiguration {
         assertEquals(1, entries.length);
 
         final AppConfigurationEntry entry = entries[0];
-        assertEquals(KeytabConfiguration.SUN_KRB5_LOGIN_MODULE, entry.getLoginModuleName());
+        assertEquals(ConfigurationUtil.SUN_KRB5_LOGIN_MODULE, entry.getLoginModuleName());
         assertEquals(principal, entry.getOptions().get("principal"));
         assertEquals(keytab, entry.getOptions().get("keyTab"));
     }

@@ -20,9 +20,10 @@ package org.apache.nifi.util.orc;
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
 import org.apache.avro.generic.GenericData;
-import org.apache.avro.util.Utf8;
 import org.apache.hadoop.hive.ql.io.orc.NiFiOrcUtils;
+import org.apache.hadoop.hive.serde2.io.HiveDecimalWritable;
 import org.apache.hadoop.hive.serde2.objectinspector.UnionObject;
+import org.apache.hadoop.hive.serde2.typeinfo.DecimalTypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoFactory;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoUtils;
@@ -31,8 +32,17 @@ import org.apache.hadoop.io.FloatWritable;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
+import org.apache.nifi.avro.AvroTypeUtil;
+import org.apache.nifi.serialization.record.DataType;
+import org.apache.nifi.serialization.record.MapRecord;
+import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordField;
+import org.apache.nifi.serialization.record.RecordFieldType;
+import org.apache.nifi.serialization.record.RecordSchema;
+import org.junit.Assert;
 import org.junit.Test;
 
+import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -61,20 +71,19 @@ public class TestNiFiOrcUtils {
         };
 
         // Build a fake Avro record with all types
-        Schema testSchema = buildPrimitiveAvroSchema();
-        List<Schema.Field> fields = testSchema.getFields();
+        RecordSchema testSchema = buildPrimitiveRecordSchema();
+        List<RecordField> fields = testSchema.getFields();
         for (int i = 0; i < fields.size(); i++) {
-            assertEquals(expectedTypes[i], NiFiOrcUtils.getOrcField(fields.get(i).schema(), false));
+            assertEquals(expectedTypes[i], NiFiOrcUtils.getOrcField(fields.get(i).getDataType(), false));
         }
-
     }
 
     @Test
     public void test_getOrcField_union_optional_type() {
         final SchemaBuilder.FieldAssembler<Schema> builder = SchemaBuilder.record("testRecord").namespace("any.data").fields();
         builder.name("union").type().unionOf().nullBuilder().endNull().and().booleanType().endUnion().noDefault();
-        Schema testSchema = builder.endRecord();
-        TypeInfo orcType = NiFiOrcUtils.getOrcField(testSchema.getField("union").schema(), false);
+        RecordSchema testSchema = AvroTypeUtil.createSchema(builder.endRecord());
+        TypeInfo orcType = NiFiOrcUtils.getOrcField(testSchema.getField("union").get().getDataType(), false);
         assertEquals(TypeInfoCreator.createBoolean(), orcType);
     }
 
@@ -82,8 +91,8 @@ public class TestNiFiOrcUtils {
     public void test_getOrcField_union() {
         final SchemaBuilder.FieldAssembler<Schema> builder = SchemaBuilder.record("testRecord").namespace("any.data").fields();
         builder.name("union").type().unionOf().intType().and().booleanType().endUnion().noDefault();
-        Schema testSchema = builder.endRecord();
-        TypeInfo orcType = NiFiOrcUtils.getOrcField(testSchema.getField("union").schema(), false);
+        RecordSchema testSchema = AvroTypeUtil.createSchema(builder.endRecord());
+        TypeInfo orcType = NiFiOrcUtils.getOrcField(testSchema.getField("union").get().getDataType(), false);
         assertEquals(
                 TypeInfoFactory.getUnionTypeInfo(Arrays.asList(
                         TypeInfoCreator.createInt(),
@@ -95,8 +104,8 @@ public class TestNiFiOrcUtils {
     public void test_getOrcField_map() {
         final SchemaBuilder.FieldAssembler<Schema> builder = SchemaBuilder.record("testRecord").namespace("any.data").fields();
         builder.name("map").type().map().values().doubleType().noDefault();
-        Schema testSchema = builder.endRecord();
-        TypeInfo orcType = NiFiOrcUtils.getOrcField(testSchema.getField("map").schema(), true);
+        RecordSchema testSchema = AvroTypeUtil.createSchema(builder.endRecord());
+        TypeInfo orcType = NiFiOrcUtils.getOrcField(testSchema.getField("map").get().getDataType(), true);
         assertEquals(
                 TypeInfoFactory.getMapTypeInfo(
                         TypeInfoCreator.createString(),
@@ -108,8 +117,8 @@ public class TestNiFiOrcUtils {
     public void test_getOrcField_nested_map() {
         final SchemaBuilder.FieldAssembler<Schema> builder = SchemaBuilder.record("testRecord").namespace("any.data").fields();
         builder.name("map").type().map().values().map().values().doubleType().noDefault();
-        Schema testSchema = builder.endRecord();
-        TypeInfo orcType = NiFiOrcUtils.getOrcField(testSchema.getField("map").schema(), false);
+        RecordSchema testSchema = AvroTypeUtil.createSchema(builder.endRecord());
+        TypeInfo orcType = NiFiOrcUtils.getOrcField(testSchema.getField("map").get().getDataType(), false);
         assertEquals(
                 TypeInfoFactory.getMapTypeInfo(TypeInfoCreator.createString(),
                         TypeInfoFactory.getMapTypeInfo(TypeInfoCreator.createString(), TypeInfoCreator.createDouble())),
@@ -120,8 +129,8 @@ public class TestNiFiOrcUtils {
     public void test_getOrcField_array() {
         final SchemaBuilder.FieldAssembler<Schema> builder = SchemaBuilder.record("testRecord").namespace("any.data").fields();
         builder.name("array").type().array().items().longType().noDefault();
-        Schema testSchema = builder.endRecord();
-        TypeInfo orcType = NiFiOrcUtils.getOrcField(testSchema.getField("array").schema(), false);
+        RecordSchema testSchema = AvroTypeUtil.createSchema(builder.endRecord());
+        TypeInfo orcType = NiFiOrcUtils.getOrcField(testSchema.getField("array").get().getDataType(), false);
         assertEquals(
                 TypeInfoFactory.getListTypeInfo(TypeInfoCreator.createLong()),
                 orcType);
@@ -131,8 +140,8 @@ public class TestNiFiOrcUtils {
     public void test_getOrcField_complex_array() {
         final SchemaBuilder.FieldAssembler<Schema> builder = SchemaBuilder.record("testRecord").namespace("any.data").fields();
         builder.name("Array").type().array().items().map().values().floatType().noDefault();
-        Schema testSchema = builder.endRecord();
-        TypeInfo orcType = NiFiOrcUtils.getOrcField(testSchema.getField("Array").schema(), true);
+        RecordSchema testSchema = AvroTypeUtil.createSchema(builder.endRecord());
+        TypeInfo orcType = NiFiOrcUtils.getOrcField(testSchema.getField("Array").get().getDataType(), true);
         assertEquals(
                 TypeInfoFactory.getListTypeInfo(TypeInfoFactory.getMapTypeInfo(TypeInfoCreator.createString(), TypeInfoCreator.createFloat())),
                 orcType);
@@ -144,9 +153,9 @@ public class TestNiFiOrcUtils {
         builder.name("Int").type().intType().noDefault();
         builder.name("Long").type().longType().longDefault(1L);
         builder.name("Array").type().array().items().stringType().noDefault();
-        Schema testSchema = builder.endRecord();
+        RecordSchema testSchema = AvroTypeUtil.createSchema(builder.endRecord());
         // Normalize field names for Hive, assert that their names are now lowercase
-        TypeInfo orcType = NiFiOrcUtils.getOrcField(testSchema, true);
+        TypeInfo orcType = NiFiOrcUtils.getOrcSchema(testSchema, true);
         assertEquals(
                 TypeInfoFactory.getStructTypeInfo(
                         Arrays.asList("int", "long", "array"),
@@ -161,13 +170,27 @@ public class TestNiFiOrcUtils {
     public void test_getOrcField_enum() {
         final SchemaBuilder.FieldAssembler<Schema> builder = SchemaBuilder.record("testRecord").namespace("any.data").fields();
         builder.name("enumField").type().enumeration("enum").symbols("a", "b", "c").enumDefault("a");
-        Schema testSchema = builder.endRecord();
-        TypeInfo orcType = NiFiOrcUtils.getOrcField(testSchema.getField("enumField").schema(), true);
+        RecordSchema testSchema = AvroTypeUtil.createSchema(builder.endRecord());
+        TypeInfo orcType = NiFiOrcUtils.getOrcField(testSchema.getField("enumField").get().getDataType(), true);
         assertEquals(TypeInfoCreator.createString(), orcType);
     }
 
+
     @Test
-    public void test_getPrimitiveOrcTypeFromPrimitiveAvroType() {
+    public void test_getOrcField_decimal() {
+        // given
+        final DecimalTypeInfo expected = TypeInfoFactory.getDecimalTypeInfo(4, 2);
+        final DataType decimalDataType = RecordFieldType.DECIMAL.getDecimalDataType(4, 2);
+
+        // when
+        final TypeInfo orcField = NiFiOrcUtils.getOrcField(decimalDataType, false);
+
+        // then
+        Assert.assertEquals(expected, orcField);
+    }
+
+    @Test
+    public void test_getPrimitiveOrcTypeFromPrimitiveFieldType() {
         // Expected ORC types
         TypeInfo[] expectedTypes = {
                 TypeInfoCreator.createInt(),
@@ -179,17 +202,20 @@ public class TestNiFiOrcUtils {
                 TypeInfoCreator.createString(),
         };
 
-        Schema testSchema = buildPrimitiveAvroSchema();
-        List<Schema.Field> fields = testSchema.getFields();
+        RecordSchema testSchema = buildPrimitiveRecordSchema();
+        List<RecordField> fields = testSchema.getFields();
         for (int i = 0; i < fields.size(); i++) {
-            assertEquals(expectedTypes[i], NiFiOrcUtils.getPrimitiveOrcTypeFromPrimitiveAvroType(fields.get(i).schema().getType()));
+            // Skip Binary as it is a primitive type in Avro but a complex type (array[byte]) in the NiFi Record API
+            if (i == 5) {
+                continue;
+            }
+            assertEquals(expectedTypes[i], NiFiOrcUtils.getPrimitiveOrcTypeFromPrimitiveFieldType(fields.get(i).getDataType()));
         }
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void test_getPrimitiveOrcTypeFromPrimitiveAvroType_badType() {
-        Schema.Type nonPrimitiveType = Schema.Type.ARRAY;
-        NiFiOrcUtils.getPrimitiveOrcTypeFromPrimitiveAvroType(nonPrimitiveType);
+    public void test_getPrimitiveOrcTypeFromPrimitiveFieldType_badType() {
+        NiFiOrcUtils.getPrimitiveOrcTypeFromPrimitiveFieldType(RecordFieldType.ARRAY.getDataType());
     }
 
     @Test
@@ -198,6 +224,7 @@ public class TestNiFiOrcUtils {
         assertTrue(NiFiOrcUtils.convertToORCObject(null, 1L, true) instanceof LongWritable);
         assertTrue(NiFiOrcUtils.convertToORCObject(null, 1.0f, true) instanceof FloatWritable);
         assertTrue(NiFiOrcUtils.convertToORCObject(null, 1.0, true) instanceof DoubleWritable);
+        assertTrue(NiFiOrcUtils.convertToORCObject(null, BigDecimal.valueOf(1L), true) instanceof HiveDecimalWritable);
         assertTrue(NiFiOrcUtils.convertToORCObject(null, new int[]{1, 2, 3}, true) instanceof List);
         assertTrue(NiFiOrcUtils.convertToORCObject(null, Arrays.asList(1, 2, 3), true) instanceof List);
         Map<String, Float> map = new HashMap<>();
@@ -213,7 +240,7 @@ public class TestNiFiOrcUtils {
     }
 
     @Test
-    public void test_getHiveTypeFromAvroType_primitive() {
+    public void test_getHiveTypeFromFieldType_primitive() {
         // Expected ORC types
         String[] expectedTypes = {
                 "INT",
@@ -225,15 +252,15 @@ public class TestNiFiOrcUtils {
                 "STRING",
         };
 
-        Schema testSchema = buildPrimitiveAvroSchema();
-        List<Schema.Field> fields = testSchema.getFields();
+        RecordSchema testSchema = buildPrimitiveRecordSchema();
+        List<RecordField> fields = testSchema.getFields();
         for (int i = 0; i < fields.size(); i++) {
-            assertEquals(expectedTypes[i], NiFiOrcUtils.getHiveTypeFromAvroType(fields.get(i).schema(), false));
+            assertEquals(expectedTypes[i], NiFiOrcUtils.getHiveTypeFromFieldType(fields.get(i).getDataType(), false));
         }
     }
 
     @Test
-    public void test_getHiveTypeFromAvroType_complex() {
+    public void test_getHiveTypeFromFieldType_complex() {
         // Expected ORC types
         String[] expectedTypes = {
                 "INT",
@@ -243,46 +270,45 @@ public class TestNiFiOrcUtils {
                 "ARRAY<INT>"
         };
 
-        Schema testSchema = buildComplexAvroSchema();
-        List<Schema.Field> fields = testSchema.getFields();
+        RecordSchema testSchema = buildComplexRecordSchema();
+        List<RecordField> fields = testSchema.getFields();
         for (int i = 0; i < fields.size(); i++) {
-            assertEquals(expectedTypes[i], NiFiOrcUtils.getHiveTypeFromAvroType(fields.get(i).schema(), false));
+            assertEquals(expectedTypes[i], NiFiOrcUtils.getHiveTypeFromFieldType(fields.get(i).getDataType(), false));
         }
 
         assertEquals("STRUCT<myInt:INT, myMap:MAP<STRING, DOUBLE>, myEnum:STRING, myLongOrFloat:UNIONTYPE<BIGINT, FLOAT>, myIntList:ARRAY<INT>>",
-                NiFiOrcUtils.getHiveTypeFromAvroType(testSchema, false));
+                NiFiOrcUtils.getHiveSchema(testSchema, false));
     }
 
     @Test
     public void test_generateHiveDDL_primitive() {
-        Schema avroSchema = buildPrimitiveAvroSchema();
-        String ddl = NiFiOrcUtils.generateHiveDDL(avroSchema, "myHiveTable", false);
-        assertEquals("CREATE EXTERNAL TABLE IF NOT EXISTS myHiveTable (int INT, long BIGINT, boolean BOOLEAN, float FLOAT, double DOUBLE, bytes BINARY, string STRING)"
+        RecordSchema schema = buildPrimitiveRecordSchema();
+        String ddl = NiFiOrcUtils.generateHiveDDL(schema, "myHiveTable", false);
+        assertEquals("CREATE EXTERNAL TABLE IF NOT EXISTS `myHiveTable` (`int` INT, `long` BIGINT, `boolean` BOOLEAN, `float` FLOAT, `double` DOUBLE, `bytes` BINARY, `string` STRING)"
                 + " STORED AS ORC", ddl);
     }
 
     @Test
     public void test_generateHiveDDL_complex() {
-        Schema avroSchema = buildComplexAvroSchema();
-        String ddl = NiFiOrcUtils.generateHiveDDL(avroSchema, "myHiveTable", false);
-        assertEquals("CREATE EXTERNAL TABLE IF NOT EXISTS myHiveTable "
-                + "(myInt INT, myMap MAP<STRING, DOUBLE>, myEnum STRING, myLongOrFloat UNIONTYPE<BIGINT, FLOAT>, myIntList ARRAY<INT>)"
+        RecordSchema schema = buildComplexRecordSchema();
+        String ddl = NiFiOrcUtils.generateHiveDDL(schema, "myHiveTable", false);
+        assertEquals("CREATE EXTERNAL TABLE IF NOT EXISTS `myHiveTable` "
+                + "(`myInt` INT, `myMap` MAP<STRING, DOUBLE>, `myEnum` STRING, `myLongOrFloat` UNIONTYPE<BIGINT, FLOAT>, `myIntList` ARRAY<INT>)"
                 + " STORED AS ORC", ddl);
     }
 
     @Test
     public void test_generateHiveDDL_complex_normalize() {
-        Schema avroSchema = buildComplexAvroSchema();
-        String ddl = NiFiOrcUtils.generateHiveDDL(avroSchema, "myHiveTable", true);
-        assertEquals("CREATE EXTERNAL TABLE IF NOT EXISTS myHiveTable "
-                + "(myint INT, mymap MAP<STRING, DOUBLE>, myenum STRING, mylongorfloat UNIONTYPE<BIGINT, FLOAT>, myintlist ARRAY<INT>)"
+        RecordSchema schema = buildComplexRecordSchema();
+        String ddl = NiFiOrcUtils.generateHiveDDL(schema, "myHiveTable", true);
+        assertEquals("CREATE EXTERNAL TABLE IF NOT EXISTS `myHiveTable` "
+                + "(`myint` INT, `mymap` MAP<STRING, DOUBLE>, `myenum` STRING, `mylongorfloat` UNIONTYPE<BIGINT, FLOAT>, `myintlist` ARRAY<INT>)"
                 + " STORED AS ORC", ddl);
     }
 
     @Test
     public void test_convertToORCObject() {
-        Schema schema = SchemaBuilder.enumeration("myEnum").symbols("x", "y", "z");
-        List<Object> objects = Arrays.asList(new Utf8("Hello"), new GenericData.EnumSymbol(schema, "x"));
+        List<Object> objects = Arrays.asList("Hello", "x");
         objects.forEach((avroObject) -> {
             Object o = NiFiOrcUtils.convertToORCObject(TypeInfoUtils.getTypeInfoFromTypeString("uniontype<bigint,string>"), avroObject, true);
             assertTrue(o instanceof UnionObject);
@@ -297,7 +323,7 @@ public class TestNiFiOrcUtils {
     }
 
     @Test
-    public void test_getHiveTypeFromAvroType_complex_normalize() {
+    public void test_getHiveTypeFromFieldType_complex_normalize() {
         // Expected ORC types
         String[] expectedTypes = {
                 "INT",
@@ -307,22 +333,22 @@ public class TestNiFiOrcUtils {
                 "ARRAY<INT>"
         };
 
-        Schema testSchema = buildComplexAvroSchema();
-        List<Schema.Field> fields = testSchema.getFields();
+        RecordSchema testSchema = buildComplexRecordSchema();
+        List<RecordField> fields = testSchema.getFields();
         for (int i = 0; i < fields.size(); i++) {
-            assertEquals(expectedTypes[i], NiFiOrcUtils.getHiveTypeFromAvroType(fields.get(i).schema(), true));
+            assertEquals(expectedTypes[i], NiFiOrcUtils.getHiveTypeFromFieldType(fields.get(i).getDataType(), true));
         }
 
         assertEquals("STRUCT<myint:INT, mymap:MAP<STRING, DOUBLE>, myenum:STRING, mylongorfloat:UNIONTYPE<BIGINT, FLOAT>, myintlist:ARRAY<INT>>",
-                NiFiOrcUtils.getHiveTypeFromAvroType(testSchema, true));
+                NiFiOrcUtils.getHiveSchema(testSchema, true));
     }
 
     //////////////////
     // Helper methods
     //////////////////
 
-    public static Schema buildPrimitiveAvroSchema() {
-        // Build a fake Avro record with all primitive types
+    public static RecordSchema buildPrimitiveRecordSchema() {
+        // Build a fake record with all primitive types
         final SchemaBuilder.FieldAssembler<Schema> builder = SchemaBuilder.record("test.record").namespace("any.data").fields();
         builder.name("int").type().intType().noDefault();
         builder.name("long").type().longType().longDefault(1L);
@@ -331,12 +357,12 @@ public class TestNiFiOrcUtils {
         builder.name("double").type().doubleType().doubleDefault(0.0);
         builder.name("bytes").type().bytesType().noDefault();
         builder.name("string").type().stringType().stringDefault("default");
-        return builder.endRecord();
+        return AvroTypeUtil.createSchema(builder.endRecord());
     }
 
-    public static GenericData.Record buildPrimitiveAvroRecord(int i, long l, boolean b, float f, double d, ByteBuffer bytes, String string) {
-        Schema schema = buildPrimitiveAvroSchema();
-        GenericData.Record row = new GenericData.Record(schema);
+    public static Record buildPrimitiveRecord(int i, long l, boolean b, float f, double d, ByteBuffer bytes, String string) {
+        RecordSchema schema = buildPrimitiveRecordSchema();
+        Map<String, Object> row = new HashMap<>();
         row.put("int", i);
         row.put("long", l);
         row.put("boolean", b);
@@ -344,7 +370,7 @@ public class TestNiFiOrcUtils {
         row.put("double", d);
         row.put("bytes", bytes);
         row.put("string", string);
-        return row;
+        return new MapRecord(schema, row);
     }
 
     public static TypeInfo buildPrimitiveOrcSchema() {
@@ -359,7 +385,7 @@ public class TestNiFiOrcUtils {
                         TypeInfoCreator.createString()));
     }
 
-    public static Schema buildComplexAvroSchema() {
+    public static RecordSchema buildComplexRecordSchema() {
         // Build a fake Avro record with nested  types
         final SchemaBuilder.FieldAssembler<Schema> builder = SchemaBuilder.record("complex.record").namespace("any.data").fields();
         builder.name("myInt").type().unionOf().nullType().and().intType().endUnion().nullDefault();
@@ -367,18 +393,18 @@ public class TestNiFiOrcUtils {
         builder.name("myEnum").type().enumeration("myEnum").symbols("ABC", "DEF", "XYZ").enumDefault("ABC");
         builder.name("myLongOrFloat").type().unionOf().longType().and().floatType().endUnion().noDefault();
         builder.name("myIntList").type().array().items().intType().noDefault();
-        return builder.endRecord();
+        return AvroTypeUtil.createSchema(builder.endRecord());
     }
 
-    public static GenericData.Record buildComplexAvroRecord(Integer i, Map<String, Double> m, String e, Object unionVal, List<Integer> intArray) {
-        Schema schema = buildComplexAvroSchema();
-        GenericData.Record row = new GenericData.Record(schema);
+    public static Record buildComplexAvroRecord(Integer i, Map<String, Double> m, String e, Object unionVal, List<Integer> intArray) {
+        RecordSchema schema = buildComplexRecordSchema();
+        Map<String, Object> row = new HashMap<>();
         row.put("myInt", i);
         row.put("myMap", m);
         row.put("myEnum", e);
         row.put("myLongOrFloat", unionVal);
         row.put("myIntList", intArray);
-        return row;
+        return new MapRecord(schema, row);
     }
 
     public static TypeInfo buildComplexOrcSchema() {

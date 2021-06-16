@@ -18,13 +18,17 @@ package org.apache.nifi.processors.gcp.pubsub;
 
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.ServiceOptions;
+
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.gcp.AbstractGCPProcessor;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
@@ -62,4 +66,21 @@ public abstract class AbstractGCPubSubProcessor extends AbstractGCPProcessor {
     protected ServiceOptions getServiceOptions(ProcessContext context, GoogleCredentials credentials) {
         return null;
     }
+
+    @Override
+    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+        final Collection<ValidationResult> results = super.customValidate(validationContext);
+
+        final boolean projectId = validationContext.getProperty(PROJECT_ID).isSet();
+        if (!projectId) {
+            results.add(new ValidationResult.Builder()
+                    .subject(PROJECT_ID.getName())
+                    .valid(false)
+                    .explanation("The Project ID must be set for this processor.")
+                    .build());
+        }
+
+        return results;
+    }
+
 }

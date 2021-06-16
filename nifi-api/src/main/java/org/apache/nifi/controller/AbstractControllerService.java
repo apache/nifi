@@ -33,6 +33,7 @@ public abstract class AbstractControllerService extends AbstractConfigurableComp
     private StateManager stateManager;
     private volatile ConfigurationContext configurationContext;
     private volatile boolean enabled = false;
+    private NodeTypeProvider nodeTypeProvider;
 
     @Override
     public final void initialize(final ControllerServiceInitializationContext context) throws InitializationException {
@@ -40,6 +41,7 @@ public abstract class AbstractControllerService extends AbstractConfigurableComp
         serviceLookup = context.getControllerServiceLookup();
         logger = context.getLogger();
         stateManager = context.getStateManager();
+        nodeTypeProvider = context.getNodeTypeProvider();
         init(context);
     }
 
@@ -54,6 +56,14 @@ public abstract class AbstractControllerService extends AbstractConfigurableComp
      */
     protected final ControllerServiceLookup getControllerServiceLookup() {
         return serviceLookup;
+    }
+
+    /**
+     * @return the {@link NodeTypeProvider} that was passed to the
+     * {@link #init(ControllerServiceInitializationContext)} method
+     */
+    protected final NodeTypeProvider getNodeTypeProvider() {
+        return nodeTypeProvider;
     }
 
     /**

@@ -57,8 +57,8 @@
 
     // default dimensions for each type of component
     var dimensions = {
-        width: 350,
-        height: 130
+        width: 352,
+        height: 128
     };
 
     // ---------------------------------

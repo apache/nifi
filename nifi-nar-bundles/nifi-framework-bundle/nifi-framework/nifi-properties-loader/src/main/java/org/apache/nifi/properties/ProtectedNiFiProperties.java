@@ -524,6 +524,8 @@ class ProtectedNiFiProperties extends StandardNiFiProperties {
                 return sensitivePropertyProvider.unprotect(retrievedValue);
             } catch (SensitivePropertyProtectionException e) {
                 throw new SensitivePropertyProtectionException("Error unprotecting value for " + key, e.getCause());
+            } catch (IllegalArgumentException e) {
+                throw new SensitivePropertyProtectionException("Error unprotecting value for " + key, e);
             }
         }
         return retrievedValue;

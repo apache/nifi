@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.toolkit.cli;
 
+import org.apache.commons.lang3.SystemUtils;
 import org.apache.nifi.registry.client.NiFiRegistryClient;
 import org.apache.nifi.toolkit.cli.api.ClientFactory;
 import org.apache.nifi.toolkit.cli.api.Command;
@@ -33,6 +34,7 @@ import org.apache.nifi.toolkit.cli.impl.session.SessionVariable;
 import org.jline.reader.Candidate;
 import org.jline.reader.LineReader;
 import org.jline.reader.impl.DefaultParser;
+import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -53,6 +55,7 @@ public class TestCLICompleter {
 
     @BeforeClass
     public static void setupCompleter() {
+        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
         final Session session = new InMemorySession();
         final ClientFactory<NiFiClient> niFiClientFactory = new NiFiClientFactory();
         final ClientFactory<NiFiRegistryClient> nifiRegClientFactory = new NiFiRegistryClientFactory();

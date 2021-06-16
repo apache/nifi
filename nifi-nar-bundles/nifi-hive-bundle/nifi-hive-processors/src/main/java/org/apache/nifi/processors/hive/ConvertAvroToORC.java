@@ -283,8 +283,8 @@ public class ConvertAvroToORC extends AbstractProcessor {
             session.transfer(flowFile, REL_SUCCESS);
             session.getProvenanceReporter().modifyContent(flowFile, "Converted "+totalRecordCount.get()+" records", System.currentTimeMillis() - startTime);
 
-        } catch (final ProcessException pe) {
-            getLogger().error("Failed to convert {} from Avro to ORC due to {}; transferring to failure", new Object[]{flowFile, pe});
+        } catch (ProcessException | IllegalArgumentException e) {
+            getLogger().error("Failed to convert {} from Avro to ORC due to {}; transferring to failure", new Object[]{flowFile, e});
             session.transfer(flowFile, REL_FAILURE);
         }
     }

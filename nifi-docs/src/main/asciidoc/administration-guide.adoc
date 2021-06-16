@@ -19,10 +19,11 @@ Apache NiFi Team <dev@nifi.apache.org>
 :homepage: http://nifi.apache.org
 :linkattrs:
 
+[[system_requirements]]
 == System Requirements
 Apache NiFi can run on something as simple as a laptop, but it can also be clustered across many enterprise-class servers. Therefore, the amount of hardware and memory needed will depend on the size and nature of the dataflow involved. The data is stored on disk while NiFi is processing it. So NiFi needs to have sufficient disk space allocated for its various repositories, particularly the content repository, flowfile repository, and provenance repository (see the <<system_properties>> section for more information about these repositories). NiFi has the following minimum system requirements:
 
-* Requires Java 8 or newer
+* Requires Java 8 or Java 11
 * Supported Operating Systems:
 ** Linux
 ** Unix
@@ -34,7 +35,7 @@ Apache NiFi can run on something as simple as a laptop, but it can also be clust
 ** Google Chrome:  Current & (Current - 1)
 ** Safari:  Current & (Current - 1)
 
-**Note** Under sustained and extremely high throughput the CodeCache settings may need to be tuned to avoid sudden performance loss.  See the <<bootstrap_properties>> section for more information.
+NOTE: Under sustained and extremely high throughput the CodeCache settings may need to be tuned to avoid sudden performance loss.  See the <<bootstrap_properties>> section for more information.
 
 == How to install and start NiFi
 
@@ -43,11 +44,11 @@ Apache NiFi can run on something as simple as a laptop, but it can also be clust
 ** Make any desired edits in files found under `<installdir>/conf`
 *** At a minimum, we recommend editing the _nifi.properties_ file and entering a password for the `nifi.sensitive.props.key` (see <<system_properties>> below)
 ** From the `<installdir>/bin` directory, execute the following commands by typing `./nifi.sh <command>`:
-*** start: starts NiFi in the background
-*** stop: stops NiFi that is running in the background
-*** status: provides the current status of NiFi
-*** run: runs NiFi in the foreground and waits for a Ctrl-C to initiate shutdown of NiFi
-*** install: installs NiFi as a service that can then be controlled via
+*** `start`: starts NiFi in the background
+*** `stop`: stops NiFi that is running in the background
+*** `status`: provides the current status of NiFi
+*** `run`: runs NiFi in the foreground and waits for a Ctrl-C to initiate shutdown of NiFi
+*** `install`: installs NiFi as a service that can then be controlled via
 **** `service nifi start`
 **** `service nifi stop`
 **** `service nifi status`
@@ -73,9 +74,38 @@ When NiFi first starts up, the following files and directories are created:
 
 See the <<system_properties>> section of this guide for more information about configuring NiFi repositories and configuration files.
 
+== Port Configuration
+
+=== NiFi
+The following table lists the default ports used by NiFi and the corresponding property in the _nifi.properties_ file.
+
+[options="header,footer"]
+|==================================================================================================================================================
+| Function                        |  Property                             | Default Value
+|HTTP Port                        | `nifi.web.http.port`                  | `8080`
+|HTTPS Port*                      | `nifi.web.https.port`                 | `9443`
+|Remote Input Socket Port*        | `nifi.remote.input.socket.port`       | `10443`
+|Cluster Node Protocol Port*      | `nifi.cluster.node.protocol.port`     | `11443`
+|Cluster Node Load Balancing Port | `nifi.cluster.node.load.balance.port` | `6342`
+|Web HTTP Forwarding Port         | `nifi.web.http.port.forwarding`       | _none_
+|==================================================================================================================================================
+
+NOTE: The ports marked with an asterisk (*) have property values that are blank by default in _nifi.properties_.  The values shown in the table are the default values for these ports when <<toolkit-guide.adoc#tls_toolkit,TLS Toolkit>> is used to generate _nifi.properties_ for a secured NiFi instance.  The default Certificate Authority Port used by <<toolkit-guide.adoc#tls_toolkit,TLS Toolkit>> is `8443`.
+
+=== Embedded Zookeeper
+The following table lists the default ports used by an <<embedded_zookeeper>> and the corresponding property in the _zookeeper.properties_ file.
+
+[options="header,footer"]
+|==================================================================================================================================================
+| Function                                         | Property       | Default Value
+|Zookeeper Client Port (Deprecated: client port is no longer specified on a separate line as of NiFi 1.10.x)                             | `clientPort`   | `2181`
+|Zookeeper Server Quorum and Leader Election Ports | `server.1`     | _none_
+|==================================================================================================================================================
+
+NOTE: Commented examples for the Zookeeper server ports are included in the _zookeeper.properties_ file in the form `server.N=nifi-nodeN-hostname:2888:3888;2181`.
 
 == Configuration Best Practices
-NOTE: If you are running on Linux, consider these best practices. Typical Linux defaults are not necessarily well-tuned for the needs of an IO intensive application like NiFi.  For all of these areas, your distribution's requirements may vary. Use these sections as advice, but
+If you are running on Linux, consider these best practices. Typical Linux defaults are not necessarily well-tuned for the needs of an IO intensive application like NiFi.  For all of these areas, your distribution's requirements may vary. Use these sections as advice, but
 consult your distribution-specific documentation for how best to achieve these recommendations.
 
 Maximum File Handles::
@@ -123,6 +153,15 @@ For the partitions handling the various NiFi repos, turn off things like `atime`
 Doing so can cause a surprising bump in throughput.  Edit the `/etc/fstab` file
 and for the partition(s) of interest, add the `noatime` option.
 
+== Recommended Antivirus Exclusions
+Antivirus software can take a long time to scan large directories and the numerous files within them. Additionally, if the antivirus software locks files or directories during a scan, those resources are unavailable to NiFi processes, causing latency or unavailability of these resources in a NiFi instance/cluster. To prevent these performance and reliability issues from occurring, it is highly recommended to configure your antivirus software to skip scans on the following NiFi directories:
+
+* `content_repository`
+* `flowfile_repository`
+* `logs`
+* `provenance_repository`
+* `state`
+
 [[security_configuration]]
 == Security Configuration
 
@@ -139,7 +178,6 @@ NiFi provides several different configuration options for security purposes. The
 |`nifi.security.truststore` | Filename of the Truststore that will be used to authorize those connecting to NiFi.  A secured instance with no Truststore will refuse all incoming connections.
 |`nifi.security.truststoreType` | The type of the Truststore. Must be either `PKCS12` or `JKS`.  JKS is the preferred type, PKCS12 files will be loaded with BouncyCastle provider.
 |`nifi.security.truststorePasswd` | The password for the Truststore.
-|`nifi.security.needClientAuth` | Set to `true` to specify that connecting clients must authenticate themselves. This property is used by the NiFi cluster protocol to indicate that nodes in the cluster will be authenticated and must have certificates that are trusted by the Truststores. If not set, the default value is `true`.
 |==================================================================================================================================================
 
 Once the above properties have been configured, we can enable the User Interface to be accessed over HTTPS instead of HTTP. This is accomplished
@@ -150,460 +188,25 @@ properties can be specified.
 
 NOTE: It is important when enabling HTTPS that the `nifi.web.http.port` property be unset. NiFi only supports running on HTTP *or* HTTPS, not both simultaneously.
 
-Similar to `nifi.security.needClientAuth`, the web server can be configured to require certificate based client authentication for users accessing
-the User Interface. In order to do this it must be configured to not support username/password authentication using  <<ldap_login_identity_provider>> or <<kerberos_login_identity_provider>>. Either of these options
-will configure the web server to WANT certificate based client authentication. This will allow it to support users with certificates and those without
-that may be logging in with their credentials or those accessing anonymously. If username/password authentication and anonymous access are not configured,
-the web server will REQUIRE certificate based client authentication. See <<user_authentication>> for more details.
+NiFi's web server will REQUIRE certificate based client authentication for users accessing the User Interface when not configured with an alternative
+authentication mechanism which would require one way SSL (for instance LDAP, OpenId Connect, etc). Enabling an alternative authentication mechanism will
+configure the web server to WANT certificate base client authentication. This will allow it to support users with certificates and those without that
+may be logging in with credentials. See <<user_authentication>> for more details.
 
 Now that the User Interface has been secured, we can easily secure Site-to-Site connections and inner-cluster communications, as well. This is
-accomplished by setting the `nifi.remote.input.secure` and `nifi.cluster.protocol.is.secure` properties, respectively, to `true`.
+accomplished by setting the `nifi.remote.input.secure` and `nifi.cluster.protocol.is.secure` properties, respectively, to `true`. These communications
+will always REQUIRE two way SSL as the nodes will use their configured keystore/truststore for authentication.
 
-
+[[tls_generation_toolkit]]
 === TLS Generation Toolkit
 
-In order to facilitate the secure setup of NiFi, you can use the `tls-toolkit` command line utility to automatically generate the required keystores, truststore, and relevant configuration files. This is especially useful for securing multiple NiFi nodes, which can be a tedious and error-prone process.
+In order to facilitate the secure setup of NiFi, you can use the `tls-toolkit` command line utility to automatically generate the required keystores, truststore, and relevant configuration files. This is especially useful for securing multiple NiFi nodes, which can be a tedious and error-prone process. For more information, see the <<toolkit-guide.adoc#tls_toolkit,TLS Toolkit>> section in the link:toolkit-guide.html[NiFi Toolkit Guide]. Related topics include:
 
-Wildcard certificates (i.e. two nodes `node1.nifi.apache.org` and `node2.nifi.apache.org` being assigned the same certificate with a CN or SAN entry of `+*.nifi.apache.org+`) are *not officially supported* and *not recommended*. There are numerous disadvantages to using wildcard certificates, and a cluster working with wildcard certificates has occurred in previous versions out of lucky accidents, not intentional support. Wildcard SAN entries are acceptable *if* each cert maintains an additional unique SAN entry and CN entry.
+* <<toolkit-guide.adoc#wildcard_certificates,Wildcard Certificates>>
+* <<toolkit-guide.adoc#tls_operation_modes,Operation Modes: Standalone and Client/Server>>
+* <<toolkit-guide.adoc#tls_intermediate_ca,Using An Existing Intermediate Certificate Authority>>
+* <<toolkit-guide.adoc#additional_certificate_commands,Additional Certificate Commands>>
 
-==== Potential issues with wildcard certificates
-
-* In many places throughout the codebase, cluster communications use certificate identities many times to identify a node, and if the certificate simply presents a wildcard DN, that doesn’t resolve to a specific node
-* Admins may need to provide a custom node identity in _authorizers.xml_ for `*.nifi.apache.org` because all proxy actions only resolve to the cert DN (see <<user_authentication>>)
-* Admins have no traceability into which node performed an action because they all resolve to the same DN
-* Admins running multiple instances on the same machine using different ports to identify them can accidentally put `node1` hostname with `node2` port, and the address will resolve fine because it’s using the same certificate, but the host header handler will block it because the `node1` hostname is (correctly) not listed as an acceptable host for `node2` instance
-* If the wildcard certificate is compromised, all nodes are compromised
-
-NOTE: JKS keystores and truststores are recommended for NiFi.  This tool allows the specification of other keystore types on the command line but will ignore a type of PKCS12 for use as the truststore because that format has some compatibility issues between BouncyCastle and Oracle implementations.
-
-The `tls-toolkit` command line tool has two primary modes of operation:
-
-1. Standalone -- generates the certificate authority, keystores, truststores, and _nifi.properties_ files in one command.
-2. Client/Server mode -- uses a Certificate Authority Server that accepts Certificate Signing Requests from clients, signs them, and sends the resulting certificates back.  Both client and server validate the other’s identity through a shared secret.
-
-==== Standalone
-Standalone mode is invoked by running `./bin/tls-toolkit.sh standalone -h` which prints the usage information along with descriptions of options that can be specified.
-
-You can use the following command line options with the `tls-toolkit` in standalone mode:
-
-* `-a`,`--keyAlgorithm <arg>`                   Algorithm to use for generated keys (default: `RSA`)
-* `--additionalCACertificate <arg>`             Path to additional CA certificate (used to sign toolkit CA certificate) in PEM format if necessary
-* `-B`,`--clientCertPassword <arg>`             Password for client certificate. Must either be one value or one for each client DN (auto-generate if not specified)
-* `-c`,`--certificateAuthorityHostname <arg>`   Hostname of NiFi Certificate Authority (default: `localhost`)
-* `-C`,`--clientCertDn <arg>`                   Generate client certificate suitable for use in browser with specified DN (Can be specified multiple times)
-* `-d`,`--days <arg>`                           Number of days issued certificate should be valid for (default: `1095`)
-* `-f`,`--nifiPropertiesFile <arg>`             Base _nifi.properties_ file to update (Embedded file identical to the one in a default NiFi install will be used if not specified)
-* `-g`,`--differentKeyAndKeystorePasswords`     Use different generated password for the key and the keystore
-* `-G`,`--globalPortSequence <arg>`             Use sequential ports that are calculated for all hosts according to the provided hostname expressions (Can be specified multiple times, MUST BE SAME FROM RUN TO RUN)
-* `-h`,`--help`                                 Print help and exit
-* `-k`,`--keySize <arg>`                        Number of bits for generated keys (default: `2048`)
-* `-K`,`--keyPassword <arg>`                    Key password to use. Must either be one value or one for each host (auto-generate if not specified)
-* `-n`,`--hostnames <arg>`                      Comma separated list of hostnames
-* `--nifiDnPrefix <arg>`                        String to prepend to hostname(s) when determining DN (default: `CN=`)
-* `--nifiDnSuffix <arg>`                        String to append to hostname(s) when determining DN (default: `, OU=NIFI`)
-* `-o`,`--outputDirectory <arg>`                The directory to output keystores, truststore, config files (default: `../bin`)
-* `-O`,`--isOverwrite`                          Overwrite existing host output
-* `-P`,`--trustStorePassword <arg>`             Keystore password to use. Must either be one value or one for each host (auto-generate if not specified)
-* `-s`,`--signingAlgorithm <arg>`               Algorithm to use for signing certificates (default: `SHA256WITHRSA`)
-* `-S`,`--keyStorePassword <arg>`               Keystore password to use. Must either be one value or one for each host (auto-generate if not specified)
-* `--subjectAlternativeNames <arg>`             Comma-separated list of domains to use as Subject Alternative Names in the certificate
-* `-T`,`--keyStoreType <arg>`                   The type of keystores to generate (default: `jks`)
-
-
-Hostname Patterns:
-
-* Square brackets can be used in order to easily specify a range of hostnames. Example: `[01-20]`
-* Parentheses can be used in order to specify that more than one NiFi instance will run on the given host(s). Example: `(5)`
-
-Examples:
-
-Create 4 sets of keystore, truststore, _nifi.properties_ for localhost along with a client certificate with the given DN:
-----
-bin/tls-toolkit.sh standalone -n 'localhost(4)' -C 'CN=username,OU=NIFI'
-----
-
-Create keystore, truststore, _nifi.properties_ for 10 NiFi hostnames in each of 4 subdomains:
-----
-bin/tls-toolkit.sh standalone -n 'nifi[01-10].subdomain[1-4].domain'
-----
-
-Create 2 sets of keystore, truststore, _nifi.properties_ for 10 NiFi hostnames in each of 4 subdomains along with a client certificate with the given DN:
-----
-bin/tls-toolkit.sh standalone -n 'nifi[01-10].subdomain[1-4].domain(2)' -C 'CN=username,OU=NIFI'
-----
-
-==== Client/Server
-Client/Server mode relies on a long-running Certificate Authority (CA) to issue certificates. The CA can be stopped when you’re not bringing nodes online.
-
-
-===== Server
-
-The CA server is invoked by running `./bin/tls-toolkit.sh server -h` which prints the usage information along with descriptions of options that can be specified.
-
-You can use the following command line options with the `tls-toolkit` in server mode:
-
-* `-a`,`--keyAlgorithm <arg>`                   Algorithm to use for generated keys (default: `RSA`)
-* `--configJsonIn <arg>`                        The place to read configuration info from (defaults to the value of configJson), implies useConfigJson if set (default: `configJson` value)
-* `-d`,`--days <arg>`                           Number of days issued certificate should be valid for (default: `1095`)
-* `-D`,`--dn <arg>`                             The dn to use for the CA certificate (default: `CN=YOUR_CA_HOSTNAME,OU=NIFI`)
-* `-f`,`--configJson <arg>`                     The place to write configuration info (default: `config.json`)
-* `-F`,`--useConfigJson`                        Flag specifying that all configuration is read from `configJson` to facilitate automated use (otherwise `configJson` will only be written to)
-* `-g`,`--differentKeyAndKeystorePasswords`     Use different generated password for the key and the keystore
-* `-h`,`--help`                                 Print help and exit
-* `-k`,`--keySize <arg>`                        Number of bits for generated keys (default: `2048`)
-* `-p`,`--PORT <arg>`                           The port for the Certificate Authority to listen on (default: `8443`)
-* `-s`,`--signingAlgorithm <arg>`               Algorithm to use for signing certificates (default: `SHA256WITHRSA`)
-* `-T`,`--keyStoreType <arg>`                   The type of keystores to generate (default: `jks`)
-* `-t`,`--token <arg>`                          The token to use to prevent MITM (required and must be same as one used by clients)
-
-===== Client
-
-The client can be used to request new Certificates from the CA. The client utility generates a keypair and Certificate Signing Request (CSR) and sends the CSR to the Certificate Authority. The client is invoked by running `./bin/tls-toolkit.sh client -h` which prints the usage information along with descriptions of options that can be specified.
-
-You can use the following command line options with the `tls-toolkit` in client mode:
-
-* `-a`,`--keyAlgorithm <arg>`                   Algorithm to use for generated keys (default: `RSA`)
-* `-c`,`--certificateAuthorityHostname <arg>`   Hostname of NiFi Certificate Authority (default: `localhost`)
-* `-C`,`--certificateDirectory <arg>`           The directory to write the CA certificate (default: `.`)
-* `--configJsonIn <arg>`                        The place to read configuration info from, implies `useConfigJson` if set (default: `configJson` value)
-* `-D`,`--dn <arg>`                             The DN to use for the client certificate (default: `CN=<localhost name>,OU=NIFI`) (this is auto-populated by the tool)
-* `-f`,`--configJson <arg>`                     The place to write configuration info (default: `config.json`)
-* `-F`,`--useConfigJson`                        Flag specifying that all configuration is read from `configJson` to facilitate automated use (otherwise `configJson` will only be written to)
-* `-g`,`--differentKeyAndKeystorePasswords`     Use different generated password for the key and the keystore
-* `-h`,`--help`                                 Print help and exit
-* `-k`,`--keySize <arg>`                        Number of bits for generated keys (default: `2048`)
-* `-p`,`--PORT <arg>`                           The port to use to communicate with the Certificate Authority (default: `8443`)
-* `--subjectAlternativeNames <arg>`             Comma-separated list of domains to use as Subject Alternative Names in the certificate
-* `-T`,`--keyStoreType <arg>`                   The type of keystores to generate (default: `jks`)
-* `-t`,`--token <arg>`                          The token to use to prevent MITM (required and must be same as one used by CA)
-
-After running the client you will have the CA’s certificate, a keystore, a truststore, and a `config.json` with information about them as well as their passwords.
-
-For a client certificate that can be easily imported into the browser, specify: `-T PKCS12`.
-
-==== Using An Existing Intermediate Certificate Authority (CA)
-
-In some enterprise scenarios, a security/IT team may provide a signing certificate that has already been signed by the organization's certificate authority (CA). This *intermediate CA* can be used to sign the *node* (sometimes referred to as *leaf*) certificates that will be installed on each NiFi node, or the *client certificates* used to identify users. In order to inject the existing signing certificate into the toolkit process, follow these steps:
-
-. Generate or obtain the signed intermediate CA keys in the following format (see additional commands below):
-  * Public certificate in PEM format: `nifi-cert.pem`
-  * Private key in PEM format: `nifi-key.key`
-. Place the files in the *toolkit working directory*. This is the directory where the tool is configured to output the signed certificates. *This is not necessarily the directory where the binary is located or invoked*.
-  * For example, given the following scenario, the toolkit command can be run from its location as long as the output directory `-o` is `../hardcoded/`, and the existing `nifi-cert.pem` and `nifi-key.key` will be used.
-  ** e.g. `$ ./toolkit/bin/tls-toolkit.sh standalone -o ./hardcoded/ -n 'node4.nifi.apache.org' -P thisIsABadPassword -S thisIsABadPassword -O` will result in a new directory at `./hardcoded/node4.nifi.apache.org` with a keystore and truststore containing a certificate signed by `./hardcoded/nifi-key.key`
-  * If the `-o` argument is not provided, the default working directory (`.`) must contain `nifi-cert.pem` and `nifi-key.key`
-  ** e.g. `$ cd ./hardcoded/ && ../toolkit/bin/tls-toolkit.sh standalone -n 'node5.nifi.apache.org' -P thisIsABadPassword -S thisIsABadPassword -O`
-
-```
-# Example directory structure *before* commands above are run
-
-🔓 0s @ 18:07:58 $ tree -L 2
-.
-├── hardcoded
-│   ├── CN=myusername.hardcoded_OU=NiFi.p12
-│   ├── CN=myusername.hardcoded_OU=NiFi.password
-│   ├── nifi-cert.pem
-│   ├── nifi-key.key
-│   ├── node1.nifi.apache.org
-│   ├── node2.nifi.apache.org
-│   └── node3.nifi.apache.org
-└── toolkit
-    ├── LICENSE
-    ├── NOTICE
-    ├── README
-    ├── bin
-    ├── conf
-    ├── docs
-    └── lib
-```
-
-===== Additional Commands
-
-The `nifi-cert.pem` and `nifi-key.key` files should be ASCII-armored (Base64-encoded ASCII) files containing the CA public certificate and private key respectively. Here are sample files of each to show the expected format:
-
-====== nifi-cert.pem
-
-```
-# The first command shows the actual content of the encoded file, and the second parses it and shows the internal values
-
-.../certs $ more nifi-cert.pem
------BEGIN CERTIFICATE-----
-MIIDZTCCAk2gAwIBAgIKAWTeM3kDAAAAADANBgkqhkiG9w0BAQsFADAxMQ0wCwYD
-VQQLDAROSUZJMSAwHgYDVQQDDBduaWZpLWNhLm5pZmkuYXBhY2hlLm9yZzAeFw0x
-ODA3MjgwMDA0MzJaFw0yMTA3MjcwMDA0MzJaMDExDTALBgNVBAsMBE5JRkkxIDAe
-BgNVBAMMF25pZmktY2EubmlmaS5hcGFjaGUub3JnMIIBIjANBgkqhkiG9w0BAQEF
-AAOCAQ8AMIIBCgKCAQEAqkVrrC+AkFbjnCpupSy84tTFDsRVUIWYj/k2pVwC145M
-3bpr0pRCzLuzovAjFCmT5L+isTvNjhionsqif07Ebd/M2psYE/Rih2MULsX6KgRe
-1nRUiBeKF08hlmSBMGDFPj39yDzE/V9edxV/KGjRqVgw/Qy0vwaS5uWdXnLDhzoV
-4/Mz7lGmYoMasZ1uexlH93jjBl1+EFL2Xoa06oLbEojJ9TKaWhpG8ietEedf7WM0
-zqBEz2kHo9ddFk9yxiCkT4SUKnDWkhwc/o6us1vEXoSw+tmufHY/A3gVihjWPIGz
-qyLFl9JuN7CyJepkVVqTdskBG7S85G/kBlizUj5jOwIDAQABo38wfTAOBgNVHQ8B
-Af8EBAMCAf4wDAYDVR0TBAUwAwEB/zAdBgNVHQ4EFgQUKiWBKbMMQ1zUabD4gI7L
-VOWOcy0wHwYDVR0jBBgwFoAUKiWBKbMMQ1zUabD4gI7LVOWOcy0wHQYDVR0lBBYw
-FAYIKwYBBQUHAwIGCCsGAQUFBwMBMA0GCSqGSIb3DQEBCwUAA4IBAQAxfHFIZLOw
-mwIqnSI/ir8f/uzDMq06APHGdhdeIKV0HR74BtK95KFg42zeXxAEFeic98PC/FPV
-tKpm2WUa1slMB+oP27cRx5Znr2+pktaqnM7f2JgMeJ8bduNH3RUkr9jwgkcJRwyC
-I4fwHC9k18aizNdOf2q2UgQXxNXaLYPe17deuNVwwrflMgeFfVrwbT2uPJTMRi1D
-FQyc6haF4vsOSSRzE6OyDoc+/1PpyPW75OeSXeVCbc3AEAvRuTZMBQvBQUqVM51e
-MDG+K3rCeieSBPOnGNrEC/PiA/CvaMXBEog+xPAw1SgYfuCz4rlM3BdRa54z3+oO
-lc8xbzd7w8Q3
------END CERTIFICATE-----
-.../certs $ openssl x509 -in nifi-cert.pem -text -noout
-Certificate:
-    Data:
-        Version: 3 (0x2)
-        Serial Number:
-            01:64:de:33:79:03:00:00:00:00
-    Signature Algorithm: sha256WithRSAEncryption
-        Issuer: OU=NIFI, CN=nifi-ca.nifi.apache.org
-        Validity
-            Not Before: Jul 28 00:04:32 2018 GMT
-            Not After : Jul 27 00:04:32 2021 GMT
-        Subject: OU=NIFI, CN=nifi-ca.nifi.apache.org
-        Subject Public Key Info:
-            Public Key Algorithm: rsaEncryption
-                Public-Key: (2048 bit)
-                Modulus:
-                    00:aa:45:6b:ac:2f:80:90:56:e3:9c:2a:6e:a5:2c:
-                    bc:e2:d4:c5:0e:c4:55:50:85:98:8f:f9:36:a5:5c:
-                    02:d7:8e:4c:dd:ba:6b:d2:94:42:cc:bb:b3:a2:f0:
-                    23:14:29:93:e4:bf:a2:b1:3b:cd:8e:18:a8:9e:ca:
-                    a2:7f:4e:c4:6d:df:cc:da:9b:18:13:f4:62:87:63:
-                    14:2e:c5:fa:2a:04:5e:d6:74:54:88:17:8a:17:4f:
-                    21:96:64:81:30:60:c5:3e:3d:fd:c8:3c:c4:fd:5f:
-                    5e:77:15:7f:28:68:d1:a9:58:30:fd:0c:b4:bf:06:
-                    92:e6:e5:9d:5e:72:c3:87:3a:15:e3:f3:33:ee:51:
-                    a6:62:83:1a:b1:9d:6e:7b:19:47:f7:78:e3:06:5d:
-                    7e:10:52:f6:5e:86:b4:ea:82:db:12:88:c9:f5:32:
-                    9a:5a:1a:46:f2:27:ad:11:e7:5f:ed:63:34:ce:a0:
-                    44:cf:69:07:a3:d7:5d:16:4f:72:c6:20:a4:4f:84:
-                    94:2a:70:d6:92:1c:1c:fe:8e:ae:b3:5b:c4:5e:84:
-                    b0:fa:d9:ae:7c:76:3f:03:78:15:8a:18:d6:3c:81:
-                    b3:ab:22:c5:97:d2:6e:37:b0:b2:25:ea:64:55:5a:
-                    93:76:c9:01:1b:b4:bc:e4:6f:e4:06:58:b3:52:3e:
-                    63:3b
-                Exponent: 65537 (0x10001)
-        X509v3 extensions:
-            X509v3 Key Usage: critical
-                Digital Signature, Non Repudiation, Key Encipherment, Data Encipherment, Key Agreement, Certificate Sign, CRL Sign
-            X509v3 Basic Constraints:
-                CA:TRUE
-            X509v3 Subject Key Identifier:
-                2A:25:81:29:B3:0C:43:5C:D4:69:B0:F8:80:8E:CB:54:E5:8E:73:2D
-            X509v3 Authority Key Identifier:
-                keyid:2A:25:81:29:B3:0C:43:5C:D4:69:B0:F8:80:8E:CB:54:E5:8E:73:2D
-
-            X509v3 Extended Key Usage:
-                TLS Web Client Authentication, TLS Web Server Authentication
-    Signature Algorithm: sha256WithRSAEncryption
-         31:7c:71:48:64:b3:b0:9b:02:2a:9d:22:3f:8a:bf:1f:fe:ec:
-         c3:32:ad:3a:00:f1:c6:76:17:5e:20:a5:74:1d:1e:f8:06:d2:
-         bd:e4:a1:60:e3:6c:de:5f:10:04:15:e8:9c:f7:c3:c2:fc:53:
-         d5:b4:aa:66:d9:65:1a:d6:c9:4c:07:ea:0f:db:b7:11:c7:96:
-         67:af:6f:a9:92:d6:aa:9c:ce:df:d8:98:0c:78:9f:1b:76:e3:
-         47:dd:15:24:af:d8:f0:82:47:09:47:0c:82:23:87:f0:1c:2f:
-         64:d7:c6:a2:cc:d7:4e:7f:6a:b6:52:04:17:c4:d5:da:2d:83:
-         de:d7:b7:5e:b8:d5:70:c2:b7:e5:32:07:85:7d:5a:f0:6d:3d:
-         ae:3c:94:cc:46:2d:43:15:0c:9c:ea:16:85:e2:fb:0e:49:24:
-         73:13:a3:b2:0e:87:3e:ff:53:e9:c8:f5:bb:e4:e7:92:5d:e5:
-         42:6d:cd:c0:10:0b:d1:b9:36:4c:05:0b:c1:41:4a:95:33:9d:
-         5e:30:31:be:2b:7a:c2:7a:27:92:04:f3:a7:18:da:c4:0b:f3:
-         e2:03:f0:af:68:c5:c1:12:88:3e:c4:f0:30:d5:28:18:7e:e0:
-         b3:e2:b9:4c:dc:17:51:6b:9e:33:df:ea:0e:95:cf:31:6f:37:
-         7b:c3:c4:37
-```
-
-====== nifi-key.key
-
-```
-# The first command shows the actual content of the encoded file, and the second parses it and shows the internal values
-
-.../certs $ more nifi-key.key
------BEGIN RSA PRIVATE KEY-----
-MIIEpAIBAAKCAQEAqkVrrC+AkFbjnCpupSy84tTFDsRVUIWYj/k2pVwC145M3bpr
-0pRCzLuzovAjFCmT5L+isTvNjhionsqif07Ebd/M2psYE/Rih2MULsX6KgRe1nRU
-iBeKF08hlmSBMGDFPj39yDzE/V9edxV/KGjRqVgw/Qy0vwaS5uWdXnLDhzoV4/Mz
-7lGmYoMasZ1uexlH93jjBl1+EFL2Xoa06oLbEojJ9TKaWhpG8ietEedf7WM0zqBE
-z2kHo9ddFk9yxiCkT4SUKnDWkhwc/o6us1vEXoSw+tmufHY/A3gVihjWPIGzqyLF
-l9JuN7CyJepkVVqTdskBG7S85G/kBlizUj5jOwIDAQABAoIBAAdWRnV89oVBuT0Z
-dvsXGmyLzpH8U9DMcO6DRp+Jf3XaY+WKCutgCCDaVbtHrbtIr17EAzav5QOifGGb
-SbVCp6Q0aJdi5360oSpEUrJRRZ5Z4dxL1vimSwUGG+RnIEn9YYJ1GWJve+2PFnr7
-KieLnL03V6UPzxoMJnhcnJNdTp+dBwzSazVQwye2csSJlVMk49t2lxBwce7ohuh+
-9fL7G3HU5S9d08QT1brknMHahcw1SYyJd0KSjRJCB6wAxnAZmJYJ1jQCI8YICq0j
-RX2rhxEXuEMXQcaiFQXzCrmQEXreKUISDvNeu/h7YU9UvJWPZSFGnEGgnMP2XvQm
-EjK3rQECgYEA5+OkpLsiLNMHGzj72PiBkq82sTLQJ2+8udYp6PheOGkhjjXoBse5
-YynyHlQt6CnVpJQ33mQUkJ+3ils0SMFtmI3rz3udzleek1so2L2J3+CI4kt7fFCb
-FFbVXv+dLNrm+tOw68J48asyad8kEnHYq9Us+/3MLDmFJYTthkgzCpECgYEAu/ml
-lQaWaZAQcQ8UuVeasxMYoN8zMmzfrkxc8AfNwKxF9nc44ywo4nJr+u/UVRGYpRgM
-rdll5vz0Iq68qk03spaW7vDJn8hJQhkReQw1it9Fp/51r9MHzGTVarORJGa2oZ0g
-iNe8LNizD3bQ19hEvju9mn0x9Q62Q7dapVpffwsCgYEAtC1TPpQQ59dIjERom5vr
-wffWfTTIO/w8HgFkKxrgyuAVLJSCJtKFH6H1+M7bpKrsz6ZDCs+kkwMm76ASLf3t
-lD2h3mNkqHG4SzLnuBD90jB666pO1rci6FjYDap7i+DC3F4j9+vxYYXt9Aln09UV
-z94hx+LaA/rlk9OHY3EyB6ECgYBA/cCtNNjeaKv2mxM8PbjD/289d85YueHgfpCH
-gPs3iZiq7W+iw8ri+FKzMSaFvw66zgTcOtULtxulviqG6ym9umk29dOQRgxmKQqs
-gnckq6uGuOjxwJHqrlZHjQw6vLSaThxIk+aAzu+iAh+U8TZbW4ZjmrOiGdMUuJlD
-oGpyHwKBgQCRjfqQjRelYVtU7j6BD9BDbCfmipwaRNP0CuAGOVtS+UnJuaIhsXFQ
-QGEBuOnfFijIvb7YcXRL4plRYPMvDqYRNObuI6A+1xNtr000nxa/HUfzKVeI9Tsn
-9AKMWnXS8ZcfStsVf3oDFffXYRqCaWeuhpMmg9TwdXoAuwfpE5GCmw==
------END RSA PRIVATE KEY-----
-.../certs $ openssl rsa -in nifi-key.key -text -noout
-Private-Key: (2048 bit)
-modulus:
-    00:aa:45:6b:ac:2f:80:90:56:e3:9c:2a:6e:a5:2c:
-    bc:e2:d4:c5:0e:c4:55:50:85:98:8f:f9:36:a5:5c:
-    02:d7:8e:4c:dd:ba:6b:d2:94:42:cc:bb:b3:a2:f0:
-    23:14:29:93:e4:bf:a2:b1:3b:cd:8e:18:a8:9e:ca:
-    a2:7f:4e:c4:6d:df:cc:da:9b:18:13:f4:62:87:63:
-    14:2e:c5:fa:2a:04:5e:d6:74:54:88:17:8a:17:4f:
-    21:96:64:81:30:60:c5:3e:3d:fd:c8:3c:c4:fd:5f:
-    5e:77:15:7f:28:68:d1:a9:58:30:fd:0c:b4:bf:06:
-    92:e6:e5:9d:5e:72:c3:87:3a:15:e3:f3:33:ee:51:
-    a6:62:83:1a:b1:9d:6e:7b:19:47:f7:78:e3:06:5d:
-    7e:10:52:f6:5e:86:b4:ea:82:db:12:88:c9:f5:32:
-    9a:5a:1a:46:f2:27:ad:11:e7:5f:ed:63:34:ce:a0:
-    44:cf:69:07:a3:d7:5d:16:4f:72:c6:20:a4:4f:84:
-    94:2a:70:d6:92:1c:1c:fe:8e:ae:b3:5b:c4:5e:84:
-    b0:fa:d9:ae:7c:76:3f:03:78:15:8a:18:d6:3c:81:
-    b3:ab:22:c5:97:d2:6e:37:b0:b2:25:ea:64:55:5a:
-    93:76:c9:01:1b:b4:bc:e4:6f:e4:06:58:b3:52:3e:
-    63:3b
-publicExponent: 65537 (0x10001)
-privateExponent:
-    07:56:46:75:7c:f6:85:41:b9:3d:19:76:fb:17:1a:
-    6c:8b:ce:91:fc:53:d0:cc:70:ee:83:46:9f:89:7f:
-    75:da:63:e5:8a:0a:eb:60:08:20:da:55:bb:47:ad:
-    bb:48:af:5e:c4:03:36:af:e5:03:a2:7c:61:9b:49:
-    b5:42:a7:a4:34:68:97:62:e7:7e:b4:a1:2a:44:52:
-    b2:51:45:9e:59:e1:dc:4b:d6:f8:a6:4b:05:06:1b:
-    e4:67:20:49:fd:61:82:75:19:62:6f:7b:ed:8f:16:
-    7a:fb:2a:27:8b:9c:bd:37:57:a5:0f:cf:1a:0c:26:
-    78:5c:9c:93:5d:4e:9f:9d:07:0c:d2:6b:35:50:c3:
-    27:b6:72:c4:89:95:53:24:e3:db:76:97:10:70:71:
-    ee:e8:86:e8:7e:f5:f2:fb:1b:71:d4:e5:2f:5d:d3:
-    c4:13:d5:ba:e4:9c:c1:da:85:cc:35:49:8c:89:77:
-    42:92:8d:12:42:07:ac:00:c6:70:19:98:96:09:d6:
-    34:02:23:c6:08:0a:ad:23:45:7d:ab:87:11:17:b8:
-    43:17:41:c6:a2:15:05:f3:0a:b9:90:11:7a:de:29:
-    42:12:0e:f3:5e:bb:f8:7b:61:4f:54:bc:95:8f:65:
-    21:46:9c:41:a0:9c:c3:f6:5e:f4:26:12:32:b7:ad:
-    01
-prime1:
-    00:e7:e3:a4:a4:bb:22:2c:d3:07:1b:38:fb:d8:f8:
-    81:92:af:36:b1:32:d0:27:6f:bc:b9:d6:29:e8:f8:
-    5e:38:69:21:8e:35:e8:06:c7:b9:63:29:f2:1e:54:
-    2d:e8:29:d5:a4:94:37:de:64:14:90:9f:b7:8a:5b:
-    34:48:c1:6d:98:8d:eb:cf:7b:9d:ce:57:9e:93:5b:
-    28:d8:bd:89:df:e0:88:e2:4b:7b:7c:50:9b:14:56:
-    d5:5e:ff:9d:2c:da:e6:fa:d3:b0:eb:c2:78:f1:ab:
-    32:69:df:24:12:71:d8:ab:d5:2c:fb:fd:cc:2c:39:
-    85:25:84:ed:86:48:33:0a:91
-prime2:
-    00:bb:f9:a5:95:06:96:69:90:10:71:0f:14:b9:57:
-    9a:b3:13:18:a0:df:33:32:6c:df:ae:4c:5c:f0:07:
-    cd:c0:ac:45:f6:77:38:e3:2c:28:e2:72:6b:fa:ef:
-    d4:55:11:98:a5:18:0c:ad:d9:65:e6:fc:f4:22:ae:
-    bc:aa:4d:37:b2:96:96:ee:f0:c9:9f:c8:49:42:19:
-    11:79:0c:35:8a:df:45:a7:fe:75:af:d3:07:cc:64:
-    d5:6a:b3:91:24:66:b6:a1:9d:20:88:d7:bc:2c:d8:
-    b3:0f:76:d0:d7:d8:44:be:3b:bd:9a:7d:31:f5:0e:
-    b6:43:b7:5a:a5:5a:5f:7f:0b
-exponent1:
-    00:b4:2d:53:3e:94:10:e7:d7:48:8c:44:68:9b:9b:
-    eb:c1:f7:d6:7d:34:c8:3b:fc:3c:1e:01:64:2b:1a:
-    e0:ca:e0:15:2c:94:82:26:d2:85:1f:a1:f5:f8:ce:
-    db:a4:aa:ec:cf:a6:43:0a:cf:a4:93:03:26:ef:a0:
-    12:2d:fd:ed:94:3d:a1:de:63:64:a8:71:b8:4b:32:
-    e7:b8:10:fd:d2:30:7a:eb:aa:4e:d6:b7:22:e8:58:
-    d8:0d:aa:7b:8b:e0:c2:dc:5e:23:f7:eb:f1:61:85:
-    ed:f4:09:67:d3:d5:15:cf:de:21:c7:e2:da:03:fa:
-    e5:93:d3:87:63:71:32:07:a1
-exponent2:
-    40:fd:c0:ad:34:d8:de:68:ab:f6:9b:13:3c:3d:b8:
-    c3:ff:6f:3d:77:ce:58:b9:e1:e0:7e:90:87:80:fb:
-    37:89:98:aa:ed:6f:a2:c3:ca:e2:f8:52:b3:31:26:
-    85:bf:0e:ba:ce:04:dc:3a:d5:0b:b7:1b:a5:be:2a:
-    86:eb:29:bd:ba:69:36:f5:d3:90:46:0c:66:29:0a:
-    ac:82:77:24:ab:ab:86:b8:e8:f1:c0:91:ea:ae:56:
-    47:8d:0c:3a:bc:b4:9a:4e:1c:48:93:e6:80:ce:ef:
-    a2:02:1f:94:f1:36:5b:5b:86:63:9a:b3:a2:19:d3:
-    14:b8:99:43:a0:6a:72:1f
-coefficient:
-    00:91:8d:fa:90:8d:17:a5:61:5b:54:ee:3e:81:0f:
-    d0:43:6c:27:e6:8a:9c:1a:44:d3:f4:0a:e0:06:39:
-    5b:52:f9:49:c9:b9:a2:21:b1:71:50:40:61:01:b8:
-    e9:df:16:28:c8:bd:be:d8:71:74:4b:e2:99:51:60:
-    f3:2f:0e:a6:11:34:e6:ee:23:a0:3e:d7:13:6d:af:
-    4d:34:9f:16:bf:1d:47:f3:29:57:88:f5:3b:27:f4:
-    02:8c:5a:75:d2:f1:97:1f:4a:db:15:7f:7a:03:15:
-    f7:d7:61:1a:82:69:67:ae:86:93:26:83:d4:f0:75:
-    7a:00:bb:07:e9:13:91:82:9b
-```
-
-. To convert from DER encoded public certificate (`cert.der`) to PEM encoded (`cert.pem`):
-  * If the DER file contains both the public certificate and private key, remove the private key with this command:
-  ** `perl -pe 'BEGIN{undef $/;} s|-----BEGIN PRIVATE KEY-----.*?-----END PRIVATE KEY-----|Removed private key|gs' cert.der > cert.pem`
-  * If the DER file only contains the public certificate, use this command:
-  ** `openssl x509 -inform der -in cert.der -out cert.pem`
-. To convert from a PKCS12 keystore (`keystore.p12`) containing both the public certificate and private key into PEM encoded files (`$PASSWORD` is the keystore password):
-  * `openssl pkcs12 -in keystore.p12 -out cert.der -nodes -password "pass:$PASSWORD"`
-  * `openssl pkcs12 -in keystore.p12 -nodes -nocerts -out key.key -password "pass:$PASSWORD"`
-  * Follow the steps above to convert `cert.der` to `cert.pem`
-. To convert from a Java Keystore (`keystore.jks`) containing private key into PEM encoded files (`$P12_PASSWORD` is the PKCS12 keystore password, `$JKS_PASSWORD` is the Java keystore password you want to set, and `$ALIAS` can be any value -- the NiFi default is `nifi-key`):
-  * `keytool -importkeystore -srckeystore keystore.jks -destkeystore keystore.p12 -srcstoretype JKS -deststoretype PKCS12 -destkeypass "$P12_PASSWORD" -deststorepass "$P12_PASSWORD" -srcstorepass "$JKS_PASSWORD" -srcalias "$ALIAS" -destalias "$ALIAS"`
-  * Follow the steps above to convert from `keystore.p12` to `cert.pem` and `key.key`
-. To convert from PKCS #8 PEM format to PKCS #1 PEM format:
-  * If the private key is provided in PKCS #8 format (the file begins with `-----BEGIN PRIVATE KEY-----` rather than `-----BEGIN RSA PRIVATE KEY-----`), the following command will convert it to PKCS #1 format, move the original to `nifi-key-pkcs8.key`, and rename the PKCS #1 version as `nifi-key.key`:
-  ** `openssl rsa -in nifi-key.key -out nifi-key-pkcs1.key && mv nifi-key.key nifi-key-pkcs8.key && mv nifi-key-pkcs1.key nifi-key.key`
-
-===== Signing with Externally-signed CA Certificates
-
-To sign generated certificates with a certificate authority (CA) generated outside of the TLS Toolkit, ensure the necessary files are in the right format and location (see above). For example, an organization *Large Organization* has an internal CA (`CN=ca.large.org, OU=Certificate Authority`). This *root CA* is offline and only used to sign other internal CAs. The Large IT team generates an *intermediate CA* (`CN=nifi_ca.large.org, OU=NiFi, OU=Certificate Authority`) to be used to sign all NiFi node certificates (`CN=node1.nifi.large.org, OU=NiFi`, `CN=node2.nifi.large.org, OU=NiFi`, etc.).
-
-To use the toolkit to generate these certificates and sign them using the *intermediate CA*, ensure that the following files are present (see <<additional-commands>> above):
-
-* `nifi-cert.pem` -- the public certificate of the *intermediate CA* in PEM format
-* `nifi-key.key` -- the Base64-encoded private key of the *intermediate CA* in PKCS #1 PEM format
-
-If the *intermediate CA* was the *root CA*, it would be *self-signed* -- the signature over the certificate would be issued from the same key. In that case (the same as a toolkit-generated CA), no additional arguments are necessary. However, because the *intermediate CA* is signed by the *root CA*, the public certificate of the *root CA* needs to be provided as well to validate the signature. The `--additionalCACertificate` parameter is used to specify the path to the signing public certificate. The value should be the absolute path to the *root CA* public certificate.
-
-Example:
-
-```
-# Generate cert signed by intermediate CA (which is signed by root CA) -- WILL FAIL
-
-$ ./bin/tls-toolkit.sh standalone -n 'node1.nifi.apache.org' \
--P passwordpassword \
--S passwordpassword \
--o /opt/certs/externalCA \
--O
-
-2018/08/02 18:48:11 INFO [main] org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandaloneCommandLine: No nifiPropertiesFile specified, using embedded one.
-2018/08/02 18:48:12 INFO [main] org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone: Running standalone certificate generation with output directory /opt/certs/externalCA
-2018/08/02 18:48:12 INFO [main] org.apache.nifi.toolkit.tls.util.TlsHelper: Verifying the certificate signature for CN=nifi_ca.large.org, OU=Certificate Authority
-2018/08/02 18:48:12 INFO [main] org.apache.nifi.toolkit.tls.util.TlsHelper: Attempting to verify certificate CN=nifi_ca.large.org, OU=NiFi, OU=Certificate Authority signature with CN=nifi_ca.large.org, OU=NiFi, OU=Certificate Authority
-2018/08/02 18:48:12 WARN [main] org.apache.nifi.toolkit.tls.util.TlsHelper: Certificate CN=nifi_ca.large.org, OU=NiFi, OU=Certificate Authority not signed by CN=nifi_ca.large.org, OU=NiFi, OU=Certificate Authority [certificate does not verify with supplied key]
-Error generating TLS configuration. (The signing certificate was not signed by any known certificates)
-
-# Provide additional CA certificate path for signature verification of intermediate CA
-
-$ ./bin/tls-toolkit.sh standalone -n 'node1.nifi.apache.org' \
--P passwordpassword \
--S passwordpassword \
--o /opt/certs/externalCA \
---additionalCACertificate /opt/certs/externalCA/root.pem \
--O
-
-2018/08/02 18:48:44 INFO [main] org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandaloneCommandLine: No nifiPropertiesFile specified, using embedded one.
-2018/08/02 18:48:44 INFO [main] org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone: Running standalone certificate generation with output directory /opt/certs/externalCA
-2018/08/02 18:48:44 INFO [main] org.apache.nifi.toolkit.tls.util.TlsHelper: Verifying the certificate signature for CN=nifi_ca.large.org, OU=NiFi, OU=Certificate Authority
-2018/08/02 18:48:44 INFO [main] org.apache.nifi.toolkit.tls.util.TlsHelper: Attempting to verify certificate CN=nifi_ca.large.org, OU=NiFi, OU=Certificate Authority signature with CN=ca.large.org, OU=Certificate Authority
-2018/08/02 18:48:44 INFO [main] org.apache.nifi.toolkit.tls.util.TlsHelper: Certificate was signed by CN=ca.large.org, OU=Certificate Authority
-2018/08/02 18:48:44 INFO [main] org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone: Using existing CA certificate /opt/certs/externalCA/nifi-cert.pem and key /opt/certs/externalCA/nifi-key.key
-2018/08/02 18:48:44 INFO [main] org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone: Writing new ssl configuration to /opt/certs/externalCA/node1.nifi.apache.org
-2018/08/02 18:48:44 INFO [main] org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone: Successfully generated TLS configuration for node1.nifi.apache.org 1 in /opt/certs/externalCA/node1.nifi.apache.org
-2018/08/02 18:48:44 INFO [main] org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone: No clientCertDn specified, not generating any client certificates.
-2018/08/02 18:48:44 INFO [main] org.apache.nifi.toolkit.tls.standalone.TlsToolkitStandalone: tls-toolkit standalone completed successfully
-```
 
 [[user_authentication]]
 == User Authentication
@@ -628,7 +231,16 @@ token during authentication.
 NOTE: NiFi can only be configured for username/password, OpenId Connect, or Apache Knox at a given time. It does not support running each of
 these concurrently. NiFi will require client certificates for authenticating users over HTTPS if none of these are configured.
 
-A secured instance of NiFi cannot be accessed anonymously unless configured to use an <<ldap_login_identity_provider>> or <<kerberos_login_identity_provider>> Login Identity Provider, which in turn must be configured to explicitly allow anonymous access. Anonymous access is not currently possible by the default FileAuthorizer (see <<authorizer-configuration>>), but is a future effort (link:https://issues.apache.org/jira/browse/NIFI-2730[NIFI-2730^]).
+A user cannot anonymously authenticate with a secured instance of NiFi unless `nifi.security.allow.anonymous.authentication` is set to `true`.
+If this is the case, NiFi must also be configured with an Authorizer that supports authorizing an anonymous user. Currently, NiFi does not ship
+with any Authorizers that support this. There is a feature request here to help support it (link:https://issues.apache.org/jira/browse/NIFI-2730[NIFI-2730^]).
+
+There are three scenarios to consider when setting `nifi.security.allow.anonymous.authentication`. When the user is directly calling an endpoint
+with no attempted authentication then `nifi.security.allow.anonymous.authentication` will control whether the request is authenticated or rejected.
+The other two scenarios are when the request is proxied. This could either be proxied by a NiFi node (e.g. a node in the NiFi cluster) or by a separate
+proxy that is proxying a request for an anonymous user. In these proxy scenarios `nifi.security.allow.anonymous.authentication` will control whether the
+request is authenticated or rejected. In all three of these scenarios if the request is authenticated it will subsequently be subjected to normal
+authorization based on the requested resource.
 
 NOTE: NiFi does not perform user authentication over HTTP. Using HTTP, all users will be granted all roles.
 
@@ -755,8 +367,9 @@ To enable authentication via OpenId Connect the following properties must be con
 |`nifi.security.user.oidc.read.timeout` | Read timeout when communicating with the OpenId Connect Provider.
 |`nifi.security.user.oidc.client.id` | The client id for NiFi after registration with the OpenId Connect Provider.
 |`nifi.security.user.oidc.client.secret` | The client secret for NiFi after registration with the OpenId Connect Provider.
-|`nifi.security.user.oidc.preferred.jwsalgorithm` | The preferred algorithm for for validating identity tokens. If this value is blank, it will default to `RS256` which is required to be supported
-by the OpenId Connect Provider according to the specification. If this value is `HS256`, `HS384`, or `HS512`, NiFi will attempt to validate HMAC protected tokens using the specified client secret.
+|`nifi.security.user.oidc.preferred.jwsalgorithm` | The preferred algorithm for validating identity tokens. If this value is blank, it will default to `RS256` which is required to be supported
+|`nifi.security.user.oidc.additional.scopes` | Comma separated scopes that are sent to OpenId Connect Provider in addition to `openid` and `email`.
+|`nifi.security.user.oidc.claim.identifying.user` | Claim that identifies the user to be logged in; default is `email`. May need to be requested via the `nifi.security.user.oidc.additional.scopes` before usage by the OpenId Connect Provider according to the specification. If this value is `HS256`, `HS384`, or `HS512`, NiFi will attempt to validate HMAC protected tokens using the specified client secret.
 If this value is `none`, NiFi will attempt to validate unsecured/plain tokens. Other values for this algorithm will attempt to parse as an RSA or EC algorithm to be used in conjunction with the
 JSON Web Key (JWK) provided through the jwks_uri in the metadata found at the discovery URL.
 |==================================================================================================================================================
@@ -838,6 +451,7 @@ The LdapUserGroupProvider has the following properties:
 |`Read Timeout` | Duration of read timeout. (i.e. `10 secs`).
 |`Url` | Space-separated list of URLs of the LDAP servers (i.e. `ldap://<hostname>:<port>`).
 |`Page Size` | Sets the page size when retrieving users and groups. If not specified, no paging is performed.
+|`Group Membership - Enforce Case Sensitivity` | Sets whether group membership decisions are case sensitive. When a user or group is inferred (by not specifying or user or group search base or user identity attribute or group name attribute) case sensitivity is enforced since the value to use for the user identity or group name would be ambiguous. Defaults to false.
 |`Sync Interval` | Duration of time between syncing users and groups. (i.e. `30 mins`). Minimum allowable value is `10 secs`.
 |`User Search Base` | Base DN for searching for users (i.e. `ou=users,o=nifi`). Required to search users.
 |`User Object Class` | Object class for identifying users (i.e. `person`). Required if searching users.
@@ -856,6 +470,29 @@ The LdapUserGroupProvider has the following properties:
 |==================================================================================================================================================
 
 NOTE: Any identity mapping rules specified in _nifi.properties_ will also be applied to the user identities. Group names are not mapped.
+
+==== ShellUserGroupProvider
+
+The ShellUserGroupProvider fetches user and group details from Unix-like systems using shell commands.
+
+This provider executes various shell pipelines with commands such as `getent` on Linux and `dscl` on MacOS.
+
+Supported systems may be configured to retrieve users and groups from an external source, such as LDAP or NIS.  In these cases the shell commands
+will return those external users and groups.  This provides administrators another mechanism to integrate user and group directory services.
+
+The ShellUserGroupProvider has the following properties:
+
+[options="header,footer"]
+|==================================================================================================================================================
+| Property Name | Description
+|`Initial Refresh Delay` | Duration of initial delay before first user and group refresh. (i.e. `10 secs`).  Default is `5 mins`.
+|`Refresh Delay` | Duration of delay between each user and group refresh. (i.e. `10 secs`).  Default is `5 mins`.
+|`Exclude Groups` | Regular expression used to exclude groups.  Default is '', which means no groups are excluded.
+|`Exclude Users` | Regular expression used to exclude users.  Default is '', which means no users are excluded.
+|==================================================================================================================================================
+
+Like LdapUserGroupProvider, the ShellUserGroupProvider is commented out in the _authorizers.xml_ file.  Refer to that comment for usage examples.
+
 
 ==== Composite Implementations
 
@@ -892,6 +529,7 @@ The default AccessPolicyProvider is the FileAccessPolicyProvider, however, you c
 |`Initial Admin Identity` | The identity of an initial admin user that will be granted access to the UI and given the ability to create additional users, groups, and policies. The value of this property could be a DN when using certificates or LDAP, or a Kerberos principal. This property will only be used when there are no other policies defined. If this property is specified then a Legacy Authorized Users File can not be specified.
 |`Legacy Authorized Users File` | The full path to an existing _authorized-users.xml_ that will be automatically converted to the new authorizations model. If this property is specified then an Initial Admin Identity can not be specified, and this property will only be used when there are no other users, groups, and policies defined.
 |`Node Identity` | The identity of a NiFi cluster node. When clustered, a property for each node should be defined, so that every node knows about every other node. If not clustered these properties can be ignored. The name of each property must be unique, for example for a three node cluster: "Node Identity A", "Node Identity B", "Node Identity C" or "Node Identity 1", "Node Identity 2", "Node Identity 3"
+|`Node Group` | The name of a group containing NiFi cluster nodes. The typical use for this is when nodes are dynamically added/removed from the cluster.
 
 |==================================================================================================================================================
 
@@ -1063,6 +701,7 @@ member: cn=User 2,ou=users,o=nifi
         <property name="Url">ldap://localhost:10389</property>
         <property name="Page Size"></property>
         <property name="Sync Interval">30 mins</property>
+        <property name="Group Membership - Enforce Case Sensitivity">false</property>
 
         <property name="User Search Base">ou=users,o=nifi</property>
         <property name="User Object Class">person</property>
@@ -1151,6 +790,7 @@ memberUid: user2
         <property name="Url">ldap://localhost:10389</property>
         <property name="Page Size"></property>
         <property name="Sync Interval">30 mins</property>
+        <property name="Group Membership - Enforce Case Sensitivity">false</property>
 
         <property name="User Search Base">ou=Users,dc=local</property>
         <property name="User Object Class">posixAccount</property>
@@ -1251,6 +891,7 @@ member: cn=User 2,ou=users,o=nifi
         <property name="Url">ldap://localhost:10389</property>
         <property name="Page Size"></property>
         <property name="Sync Interval">30 mins</property>
+        <property name="Group Membership - Enforce Case Sensitivity">false</property>
 
         <property name="User Search Base">ou=users,o=nifi</property>
         <property name="User Object Class">person</property>
@@ -1337,20 +978,22 @@ The following tables summarize the global and component policies assigned to eac
 ===== Global Access Policies
 [cols=">s,^s,^s,^s,^s,^s,^s", options="header"]
 |==========================
-|                                  | Admin | DFM | Monitor | Provenance | NiFi | Proxy
-|view the UI                       |*      |*    |*        |            |      |
-|access the controller - view      |*      |*    |*        |            |*     |
-|access the controller - modify    |       |*    |         |            |      |
-|query provenance                  |       |     |         |*           |      |
-|access restricted components      |       |*    |         |            |      |
-|access all policies - view        |*      |     |         |            |      |
-|access all policies - modify      |*      |     |         |            |      |
-|access users/user groups - view   |*      |     |         |            |      |
-|access users/user groups - modify |*      |     |         |            |      |
-|retrieve site-to-site details     |       |     |         |            |*     |
-|view system diagnostics           |       |*    |*        |            |      |
-|proxy user requests               |       |     |         |            |      |*
-|access counters                   |       |     |         |            |      |
+|                                   | Admin | DFM | Monitor | Provenance | NiFi | Proxy
+|view the UI                        |*      |*    |*        |            |      |
+|access the controller - view       |*      |*    |*        |            |*     |
+|access the controller - modify     |       |*    |         |            |      |
+|access parameter contexts - view   |       |     |         |            |      |
+|access parameter contexts - modify |       |     |         |            |      |
+|query provenance                   |       |     |         |*           |      |
+|access restricted components       |       |*    |         |            |      |
+|access all policies - view         |*      |     |         |            |      |
+|access all policies - modify       |*      |     |         |            |      |
+|access users/user groups - view    |*      |     |         |            |      |
+|access users/user groups - modify  |*      |     |         |            |      |
+|retrieve site-to-site details      |       |     |         |            |*     |
+|view system diagnostics            |       |*    |*        |            |      |
+|proxy user requests                |       |     |         |            |      |*
+|access counters                    |       |     |         |            |      |
 |==========================
 
 ===== Component Access Policies on the Root Process Group
@@ -1469,14 +1112,19 @@ Global access policies govern the following system level authorizations:
 |Policy |Privilege |Global Menu Selection |Resource Descriptor
 
 |view the UI
-|Allow users to view the UI
+|Allows users to view the UI
 |N/A
 |`/flow`
 
 |access the controller
-|Allows users to view/modify the controller including Reporting Tasks, Controller Services, and Nodes in the Cluster
+|Allows users to view/modify the controller including Reporting Tasks, Controller Services, Parameter Contexts and Nodes in the Cluster
 |Controller Settings
 |`/controller`
+
+|access parameter contexts
+|Allows users to view/modify Parameter Contexts. Access to Parameter Contexts are inherited from the "access the controller" policies unless overridden.
+|Parameter Contexts
+|`/parameter-contexts`
 
 |query provenance
 |Allows users to submit a Provenance Search and request Event Lineage
@@ -1537,6 +1185,10 @@ Component level access policies govern the following component level authorizati
 |modify the component
 |Allows users to modify component configuration details
 |`resource="/<component-type>/<component-UUID>" action="W"`
+
+|operate the component
+|Allows users to operate components by changing component run status (start/stop/enable/disable), remote port transmission status, or terminating processor threads
+|`resource="/operation/<component-type>/<component-UUID>" action="W"`
 
 |view provenance
 |Allows users to view provenance events generated by this component
@@ -1749,7 +1401,7 @@ Here are the KDFs currently supported by NiFi (primarily in the `EncryptContent`
 * Scrypt
 ** This KDF was added in v0.5.0.
 ** link:https://en.wikipedia.org/wiki/Scrypt[Scrypt^] is an adaptive function designed in response to `bcrypt`. This KDF is recommended as it requires relatively large amounts of memory for each derivation, making it resistant to hardware brute-force attacks.
-** The recommended minimum cost is `N`=2^14^, `r`=8, `p`=1 (as of 2/1/2016 on commodity hardware) and should be increased to the threshold at which legitimate systems will encounter detrimental delays (see schedule below or use `ScryptCipherProviderGroovyTest#testDefaultConstructorShouldProvideStrongParameters()` to calculate safe minimums).
+** The recommended minimum cost is `N`=2^14^, `r`=8, `p`=1 (as of 2/1/2016 on commodity hardware). `p` must be a positive integer and less than `(2^32 − 1) * (Hlen/MFlen)` where `Hlen` is the length in octets of the digest function output (32 for SHA-256) and `MFlen` is the length in octets of the mixing function output, defined as `r * 128`. These parameters should be increased to the threshold at which legitimate systems will encounter detrimental delays (see schedule below or use `ScryptCipherProviderGroovyTest#testDefaultConstructorShouldProvideStrongParameters()` to calculate safe minimums).
 ** The salt format is `$s0$e0101$ABCDEFGHIJKLMNOPQRSTUV`. The salt is delimited by `$` and the three sections are as follows:
 *** `s0` - the version of the format. NiFi currently uses `s0` for all salts generated internally.
 *** `e0101` - the cost parameters. This is actually a hexadecimal encoding of `N`, `r`, `p` using shifts. This can be formed/parsed using `Scrypt#encodeParams()` and `Scrypt#parseParameters()`.
@@ -1901,412 +1553,29 @@ If it is not possible to install the unlimited strength jurisdiction policies, t
 
 It is preferable to request upstream/downstream systems to switch to link:https://cwiki.apache.org/confluence/display/NIFI/Encryption+Information[keyed encryption^] or use a "strong" link:https://cwiki.apache.org/confluence/display/NIFI/Key+Derivation+Function+Explanations[Key Derivation Function (KDF) supported by NiFi^].
 
+[[encrypt-config_tool]]
 == Encrypted Passwords in Configuration Files
 
 In order to facilitate the secure setup of NiFi, you can use the `encrypt-config` command line utility to encrypt raw configuration values that NiFi decrypts in memory on startup. This extensible protection scheme transparently allows NiFi to use raw values in operation, while protecting them at rest.  In the future, hardware security modules (HSM) and external secure storage mechanisms will be integrated, but for now, an AES encryption provider is the default implementation.
 
-This is a change in behavior; prior to 1.0, all configuration values were stored in plaintext on the file system. POSIX file permissions were recommended to limit unauthorized access to these files
+This is a change in behavior; prior to 1.0, all configuration values were stored in plaintext on the file system. POSIX file permissions were recommended to limit unauthorized access to these files.
 
 If no administrator action is taken, the configuration values remain unencrypted.
 
-[[encrypt-config_tool]]
-=== Encrypt-Config Tool
-
-The `encrypt-config` command line tool (invoked as `./bin/encrypt-config.sh` or `bin\encrypt-config.bat`) reads from a _nifi.properties_ file with plaintext sensitive configuration values, prompts for a master password or raw hexadecimal key, and encrypts each value. It replaces the plain values with the protected value in the same file, or writes to a new _nifi.properties_ file if specified.
-
-The default encryption algorithm utilized is AES/GCM 128/256-bit. 128-bit is used if the JCE Unlimited Strength Cryptographic Jurisdiction Policy files are not installed, and 256-bit is used if they are installed.
-
-You can use the following command line options with the `encrypt-config` tool:
-
- * `-h`,`--help`                                 Prints this usage message
- * `-v`,`--verbose`                              Sets verbose mode (default false)
- * `-n`,`--niFiProperties <arg>`                 The _nifi.properties_ file containing unprotected config values (will be overwritten)
- * `-l`,`--loginIdentityProviders <arg>`         The _login-identity-providers.xml_ file containing unprotected config values (will be overwritten)
- * `-a`,`--authorizers <arg>`                    The _authorizers.xml_ file containing unprotected config values (will be overwritten)
- * `-f`,`--flowXml <arg>`                        The _flow.xml.gz_ file currently protected with old password (will be overwritten)
- * `-b`,`--bootstrapConf <arg>`                  The _bootstrap.conf_ file to persist master key
- * `-o`,`--outputNiFiProperties <arg>`           The destination _nifi.properties_ file containing protected config values (will not modify input _nifi.properties_)
- * `-i`,`--outputLoginIdentityProviders <arg>`   The destination _login-identity-providers.xml_ file containing protected config values (will not modify input _login-identity-providers.xml_)
- * `-u`,`--outputAuthorizers <arg>`              The destination _authorizers.xml_ file containing protected config values (will not modify input _authorizers.xml_)
- * `-g`,`--outputFlowXml <arg>`                  The destination _flow.xml.gz_ file containing protected config values (will not modify input _flow.xml.gz_)
- * `-k`,`--key <arg>`                            The raw hexadecimal key to use to encrypt the sensitive properties
- * `-e`,`--oldKey <arg>`                         The old raw hexadecimal key to use during key migration
- * `-p`,`--password <arg>`                       The password from which to derive the key to use to encrypt the sensitive properties
- * `-w`,`--oldPassword <arg>`                    The old password from which to derive the key during migration
- * `-r`,`--useRawKey`                            If provided, the secure console will prompt for the raw key value in hexadecimal form
- * `-m`,`--migrate`                              If provided, the _nifi.properties_ and/or _login-identity-providers.xml_ sensitive properties will be re-encrypted with a new key
- * `-x`,`--encryptFlowXmlOnly`                   If provided, the properties in _flow.xml.gz_ will be re-encrypted with a new key but the _nifi.properties_ and/or _login-identity-providers.xml_ files will not be modified
- * `-s`,`--propsKey <arg>`                       The password or key to use to encrypt the sensitive processor properties in _flow.xml.gz_
- * `-A`,`--newFlowAlgorithm <arg>`               The algorithm to use to encrypt the sensitive processor properties in _flow.xml.gz_
- * `-P`,`--newFlowProvider <arg>`                The security provider to use to encrypt the sensitive processor properties in _flow.xml.gz_
-
-As an example of how the tool works, assume that you have installed the tool on a machine supporting 256-bit encryption and with the following existing values in the _nifi.properties_ file:
-
-----
-# security properties #
-nifi.sensitive.props.key=thisIsABadSensitiveKeyPassword
-nifi.sensitive.props.algorithm=PBEWITHMD5AND256BITAES-CBC-OPENSSL
-nifi.sensitive.props.provider=BC
-nifi.sensitive.props.additional.keys=
-
-nifi.security.keystore=/path/to/keystore.jks
-nifi.security.keystoreType=JKS
-nifi.security.keystorePasswd=thisIsABadKeystorePassword
-nifi.security.keyPasswd=thisIsABadKeyPassword
-nifi.security.truststore=
-nifi.security.truststoreType=
-nifi.security.truststorePasswd=
-----
-
-Enter the following arguments when using the tool:
-
-----
-encrypt-config.sh
--b bootstrap.conf
--k 0123456789ABCDEFFEDCBA98765432100123456789ABCDEFFEDCBA9876543210
--n nifi.properties
-----
-
-As a result, the _nifi.properties_ file is overwritten with protected properties and sibling encryption identifiers (`aes/gcm/256`, the currently supported algorithm):
-
-----
-# security properties #
-nifi.sensitive.props.key=n2z+tTTbHuZ4V4V2||uWhdasyDXD4ZG2lMAes/vqh6u4vaz4xgL4aEbF4Y/dXevqk3ulRcOwf1vc4RDQ==
-nifi.sensitive.props.key.protected=aes/gcm/256
-nifi.sensitive.props.algorithm=PBEWITHMD5AND256BITAES-CBC-OPENSSL
-nifi.sensitive.props.provider=BC
-nifi.sensitive.props.additional.keys=
-
-nifi.security.keystore=/path/to/keystore.jks
-nifi.security.keystoreType=JKS
-nifi.security.keystorePasswd=oBjT92hIGRElIGOh||MZ6uYuWNBrOA6usq/Jt3DaD2e4otNirZDytac/w/KFe0HOkrJR03vcbo
-nifi.security.keystorePasswd.protected=aes/gcm/256
-nifi.security.keyPasswd=ac/BaE35SL/esLiJ||+ULRvRLYdIDA2VqpE0eQXDEMjaLBMG2kbKOdOwBk/hGebDKlVg==
-nifi.security.keyPasswd.protected=aes/gcm/256
-nifi.security.truststore=
-nifi.security.truststoreType=
-nifi.security.truststorePasswd=
-----
-
-Additionally, the _bootstrap.conf_ file is updated with the encryption key as follows:
-
-----
-# Master key in hexadecimal format for encrypted sensitive configuration values
-nifi.bootstrap.sensitive.key=0123456789ABCDEFFEDCBA98765432100123456789ABCDEFFEDCBA9876543210
-----
-
-Sensitive configuration values are encrypted by the tool by default, however you can encrypt any additional properties, if desired.  To encrypt additional properties, specify them as comma-separated values in the `nifi.sensitive.props.additional.keys` property.
-
-If the _nifi.properties_ file already has valid protected values, those property values are not modified by the tool.
-
-When applied to _login-identity-providers.xml_ and _authorizers.xml_, the property elements are updated with an `encryption` attribute:
-
-Example of protected _login-identity-providers.xml_:
-
-----
-   <!-- LDAP Provider -->
-   <provider>
-       <identifier>ldap-provider</identifier>
-       <class>org.apache.nifi.ldap.LdapProvider</class>
-       <property name="Authentication Strategy">START_TLS</property>
-       <property name="Manager DN">someuser</property>
-       <property name="Manager Password" encryption="aes/gcm/128">q4r7WIgN0MaxdAKM||SGgdCTPGSFEcuH4RraMYEdeyVbOx93abdWTVSWvh1w+klA</property>
-       <property name="TLS - Keystore"></property>
-       <property name="TLS - Keystore Password" encryption="aes/gcm/128">Uah59TWX+Ru5GY5p||B44RT/LJtC08QWA5ehQf01JxIpf0qSJUzug25UwkF5a50g</property>
-       <property name="TLS - Keystore Type"></property>
-       ...
-   </provider>
-----
-
-Example of protected _authorizers.xml_:
-
----
-   <!-- LDAP User Group Provider -->
-   <userGroupProvider>
-       <identifier>ldap-user-group-provider</identifier>
-       <class>org.apache.nifi.ldap.tenants.LdapUserGroupProvider</class>
-       <property name="Authentication Strategy">START_TLS</property>
-       <property name="Manager DN">someuser</property>
-       <property name="Manager Password" encryption="aes/gcm/128">q4r7WIgN0MaxdAKM||SGgdCTPGSFEcuH4RraMYEdeyVbOx93abdWTVSWvh1w+klA</property>
-       <property name="TLS - Keystore"></property>
-       <property name="TLS - Keystore Password" encryption="aes/gcm/128">Uah59TWX+Ru5GY5p||B44RT/LJtC08QWA5ehQf01JxIpf0qSJUzug25UwkF5a50g</property>
-       <property name="TLS - Keystore Type"></property>
-       ...
-   </userGroupProvider>
----
-
-[encrypt_config_property_migration]
-=== Sensitive Property Key Migration
-
-In order to change the key used to encrypt the sensitive values, indicate *migration mode* using the `-m` or `--migrate` flag, provide the new key or password using the `-k` or `-p` flags as usual, and provide the existing key or password using `-e` or `-w` respectively. This will allow the toolkit to decrypt the existing values and re-encrypt them, and update _bootstrap.conf_ with the new key. Only one of the key or password needs to be specified for each phase (old vs. new), and any combination is sufficient:
-
-* old key -> new key
-* old key -> new password
-* old password -> new key
-* old password -> new password
-
-[encrypt_config_flow_migration]
-=== Existing Flow Migration
-
-This tool can also be used to change the value of `nifi.sensitive.props.key` for an existing flow. The tool will read the existing _flow.xml.gz_ and decrypt any sensitive component properties using the original key,
-then re-encrypt the sensitive properties with the new key, and write out a new version of the _flow.xml.gz_, or overwrite the existing one.
-
-The current sensitive properties key is not provided as a command-line argument, as it is read directly from _nifi.properties_. As this file is a required parameter, the `-x`/`--encryptFlowXmlOnly` flags tell the tool *not* to attempt to encrypt the properties in _nifi.properties_, but rather to *only* update the `nifi.sensitive.props.key` value with the new key. The exception to this is if the _nifi.properties_ is *already* encrypted, the new sensitive property key will also be encrypted before being written to _nifi.properties_.
-
-The following command would migrate the sensitive properties key in place, meaning it would overwrite the existing _flow.xml.gz_ and _nifi.properties_:
-----
-./encrypt-config.sh -f /path/to/flow.xml.gz -n ./path/to/nifi.properties -s newpassword -x
-----
-
-The following command would migrate the sensitive properties key and write out a separate _flow.xml.gz_ and _nifi.properties_:
-----
-./encrypt-config.sh -f ./path/to/src/flow.xml.gz -g /path/to/dest/flow.xml.gz -n /path/to/src/nifi.properties -o /path/to/dest/nifi.properties -s newpassword -x
-----
-
-[[encrypt-config_password]]
-=== Password Key Derivation
-
-Instead of providing a 32 or 64 character raw hexadecimal key, you can provide a password from which the key will be derived. As of 1.0.0, the password must be at least 12 characters, and the key will be derived using `SCrypt` with the parameters:
-
-* `pw` -- the password bytes in `UTF-8`
-* `salt` -- the fixed salt value (`NIFI_SCRYPT_SALT`) bytes in `UTF-8`
-* `N` -- 2^16^
-* `r` -- 8
-* `p` -- 1
-* `dkLen` -- determined by the JCE policies available
-
-As of August 2016, these values are determined to be strong for this threat model but may change in future versions.
-
-NOTE: While fixed salts are counter to best practices, a static salt is necessary for deterministic key derivation without additional storage of the salt value.
-
-[[encrypt-config_secure_prompt]]
-=== Secure Prompt
-
-If you prefer not to provide the password or raw key in the command-line invocation of the tool, leaving these arguments absent will prompt a secure console read of the password (by default) or raw key (if the `-r` flag is provided at invocation).
+For more information, see the <<toolkit-guide.adoc#encrypt_config_tool,Encrypt-Config Tool>> section in the link:toolkit-guide.html[NiFi Toolkit Guide].
 
 [[admin-toolkit]]
-== Administrative Tools
-The admin toolkit contains command line utilities for administrators to support NiFi maintenance in standalone
-and clustered environments. These utilities include:
+== NiFi Toolkit Administrative Tools
+In addition to `tls-toolkit` and `encrypt-config`, the NiFi Toolkit also contains command line utilities for administrators to support NiFi maintenance in standalone and clustered environments. These utilities include:
 
-* Notify -- The notification tool allows administrators to send bulletins to the NiFi UI using the command line.
-* Node Manager -- The node manager tool allows administrators to perform a status check on a node as well as to connect, disconnect, or remove nodes that are part of a cluster.
-* File Manager -- The file manager tool allows administrators to backup, install or restore a NiFi installation from backup.
+* CLI -- The `cli` tool enables administrators to interact with NiFi and NiFi Registry instances to automate tasks such as deploying versioned flows and managing process groups and cluster nodes.
+* File Manager -- The `file-manager` tool enables administrators to backup, install or restore a NiFi installation from backup.
+* Flow Analyzer -- The `flow-analyzer` tool produces a report that helps administrators understand the max amount of data which can be stored in backpressure for a given flow.
+* Node Manager -- The `node-manager` tool enables administrators to perform status checks on nodes as well as the ability to connect, disconnect, or remove nodes from the cluster.
+* Notify -- The `notify` tool enables administrators to send bulletins to the NiFi UI.
+* S2S -- The `s2s` tool enables administrators to send data into or out of NiFi flows over site-to-site.
 
-The admin toolkit is bundled with the nifi-toolkit and can be executed with scripts found in the `bin` folder.
-
-=== Prerequisites for Running Admin Toolkit in a Secure Environment
-For secured nodes and clusters, two policies should be configured in advance:
-
-* Access the controller – A user that will have access to these utilities should be authorized in NiFi by creating an “access
-the controller” policy (`/controller`) with both view and modify rights.
-* Proxy user request – If not previously set node’s identity (the DN value of the node’s certificate) should be authorized to proxy requests on behalf of a user
-
-When executing either the notify or node manager tools in a secured environment the `proxyDN` flag option should be used in
-order to properly identify the user that was authorized to execute these commands. In non-secure environments, or if running
-the status operation on the Node Manager tool, the flag is ignored.
-
-=== Notify
-Notify allows administrators to send messages as bulletins to NiFi.  Notify is supported on NiFi version 1.2.0 and higher.
-The notification tool is also available in a _notify.bat_ file for use on Windows machines.
-
-To send notifications:
-
- notify.sh -d {$NIFI_HOME} –b {nifi bootstrap file path} -m {message} [-l {level}] [-v]
-
-To show help:
-
- notify.sh -h
-
-The following are available options:
-
-* `-b`,`--bootstrapConf <arg>`      Existing Bootstrap Configuration file (required)
-* `-d`,`--nifiInstallDir <arg>`     NiFi Root Folder (required)
-* `-h`,`--help`                     Help Text (optional)
-* `-l`,`--level <arg>`              Status level of bulletin – `INFO`, `WARN`, `ERROR`
-* `-m`,`--message <arg>`            Bulletin message (required)
-* `-p`,`--proxyDN <arg>`            Proxy or User DN (required for secured nodes)
-* `-v`,`--verbose`                  Verbose messaging (optional)
-
-
-Example usage on Linux:
-
- ./notify.sh -d /usr/nifi/nifi_current -b /usr/nifi/nifi_current/conf/bootstrap.conf -m "Test Message Server 1" -l "WARN" –p “ydavis@nifi” -v
-
-Example usage on Windows:
-
-  notify.bat -v -d "C:\\Program Files\\nifi\\nifi-1.2.0-SNAPSHOT" -b "C:\\Program Files\\nifi\\nifi-1.2.0-SNAPSHOT\\conf\\bootstrap.conf" -m "Test Message Server 1" -v
-
-Executing the above command line should result in a bulletin appearing in NiFi:
-
-image::nifi-notifications.png["NiFi Notifications"]
-
-=== Node Manager
-
-Node manager supports connecting, disconnecting and removing a node when in a cluster (an error message
-displays if the node is not part of a cluster) as well as obtaining the status of a node.  When nodes are disconnected
-from a cluster and need to be
-connected or removed, a list of urls of connected nodes should be provided to send the required command to
-the active cluster.  Node Manager supports NiFi version 1.0.0 and higher. Node Manager is also available in
-_node-manager.bat_ file for use on Windows machines.
-
-To connect, disconnect, or remove a node from a cluster:
-
- node-manager.sh -d {$NIFI_HOME} –b { nifi bootstrap file path}
- -o {remove|disconnect|connect|status} [-u {url list}] [-p {proxy name}] [-v]
-
-To show help:
-
-  node-manager.sh -h
-
-The following are available options:
-
-* `-b`,`--bootstrapConf <arg>`     Existing Bootstrap Configuration file (required)
-* `-d`,`--nifiInstallDir <arg>`    NiFi Root Folder (required)
-* `-h`,`--help`                    Help Text (optional)
-* `-o`, `--operation <arg>`        Operations supported: status, connect (cluster), disconnect (cluster), remove (cluster)
-* `-p`,`--proxyDN <arg>`           Proxy or User DN (required for secured nodes doing connect, disconnect and remove operations)
-* `-u`,`--clusterUrls <arg>`       Comma delimited list of active urls for cluster (optional). Not required for disconnecting a node yet will be needed when connecting or removing from a cluster
-* `-v`,`--verbose`                 Verbose messaging (optional)
-
-
-Example usage on Linux:
-
- # disconnect without cluster url list
- ./node-manager.sh
- -d /usr/nifi/nifi_current
- -b /usr/nifi/nifi_current/conf/bootstrap.conf
- -o disconnect
- –p ydavis@nifi
- -v
-
- #with url list
- ./node-manager.sh
- -d /usr/nifi/nifi_current
- -b /usr/nifi/nifi_current/conf/bootstrap.conf
- -o connect
- -u 'http://nifi-server-1:8080,http://nifi-server-2:8080'
- -v
-
-Example usage on Windows:
-
- node-manager.bat
- -d "C:\\Program Files\\nifi\\nifi-1.2.0-SNAPSHOT"
- -b "C:\\Program Files\\nifi\\nifi-1.2.0-SNAPSHOT\\conf\\bootstrap.conf"
- -o disconnect
- –v
-
-==== Expected behavior
-
-Status:
-
-To obtain information on UI availability of a node, the status operation can be used to determine if the node is running.
-If the `–u (clusterUrls)` option is not provided the current node url is checked otherwise the urls provided will be checked.
-
-Disconnect:
-
-When a node is disconnected from the cluster, the node itself should appear as disconnected and the cluster
-should have a bulletin indicating the disconnect request was received. The cluster should also show _n-1/n_
-nodes available in the cluster. For example, if 1 node is disconnected from a 3-node cluster, then "2 of 3" nodes
-should show on the remaining nodes in the cluster.  Changes to the flow should not be allowed on the cluster
-with a disconnected node.
-
-Connect:
-
-When the connect command is executed to reconnect a node to a cluster, upon completion the node itself
-should show that it has rejoined the cluster by showing _n/n_ nodes. Previously it would have shown Disconnected.
-Other nodes in the cluster should receive a bulletin of the connect request and also show _n/n_ nodes allowing
-for changes to be allowed to the flow.
-
-Remove:
-
-When the remove command is executed the node should show as disconnected from a cluster.  The nodes remaining
-in the cluster should show _n-1/n-1_ nodes. For example, if 1 node is removed from a 3-node cluster, then the remaining 2 nodes
-should show "2 of 2" nodes.  The cluster should allow a flow to be adjusted.  The removed node can rejoin the
-cluster if restarted and the flow for the cluster has not changed. If the flow was changed, the flow template of
-the removed node should be deleted before restarting the node to allow it to obtain the cluster flow (otherwise
-an uninheritable flow file exception may occur).
-
-=== File Manager
-
-The File Manager utility allows system administrators to take a backup of an existing NiFi installation, install a new version of NiFi
-in a designated location (while migrating any previous configuration settings) or restore an installation from a previous backup.
-File Manager supports NiFi version 1.0.0 and higher and is available in _file-manager.bat_ file for use on Windows machines.
-
-To show help:
-
-  file-manager.sh -h
-
-The following are available options:
-
-* `-b`,`--backupDir <arg>`          Backup NiFi Directory (used with backup or restore operation)
-* `-c`,`--nifiCurrentDir <arg>`     Current NiFi Installation Directory (used optionally with install or restore operation)
-* `-d`,`--nifiInstallDir <arg>`     NiFi Installation Directory (used with install or restore operation)
-* `-h`,`--help`                     Print help info (optional)
-* `-i`,`--installFile <arg>`        NiFi Install File (used with install operation)
-* `-m`,`--moveRepositories`         Allow repositories to be moved to new/restored nifi directory from existing installation, if available (used optionally with install or restore operation)
-* `-o`,`--operation <arg>`          File operation (install | backup | restore)
-* `-r`,`--nifiRollbackDir <arg>`    NiFi Installation Directory (used with install or restore operation)
-* `-t`,`--bootstrapConf <arg>`      Current NiFi Bootstrap Configuration File (used optionally)
-* `-v`,`--verbose`                  Verbose messaging (optional)
-* `-x`,`--overwriteConfigs`         Overwrite existing configuration directory with upgrade changes (used optionally with install or restore operation)
-
-Example usage on Linux:
-
- # backup NiFi installation
- # option -t may be provided to ensure backup of external boostrap.conf file
- ./file-manager.sh
- -o backup
- –b /tmp/nifi_bak
- –c /usr/nifi_old
- -v
-
- # install NiFi using compressed tar file into /usr/nifi directory (should install as /usr/nifi/nifi-1.3.0).
- # migrate existing configurations with location determined by external bootstrap.conf and move over repositories from nifi_old
- # options -t and -c should both be provided if migration of configurations, state and repositories are required
- ./file-manager.sh
- -o install
- –i nifi-1.3.0.tar.gz
- –d /usr/nifi
- –c /usr/nifi/nifi_old
- -t /usr/nifi/old_conf/bootstrap.conf
- -v
- -m
-
- # restore NiFi installation from backup directory and move back repositories
- # option -t may be provided to ensure bootstrap.conf is restored to the file path provided, otherwise it is placed in the
- # default directory under the rollback path (e.g. /usr/nifi_old/conf)
- ./file-manager.sh
- -o restore
- –b /tmp/nifi_bak
- –r /usr/nifi_old
- –c /usr/nifi
- -m
- -v
-
-=== Expected Behavior
-
-Backup:
-
-During the backup operation a backup directory is created in a designated location for an existing NiFi installation. Backups will capture all critical files
-(including any internal or external configurations, libraries, scripts and documents) however it excludes backing up repositories and logs due to potential size.
-If configuration/library files are external from the existing installation folder the backup operation will capture those as well.
-
-Install:
-
-During the install operation File Manager will perform installation using the designated NiFi binary file (either tar.gz or zip file)
-to create a new installation or migrate an existing nifi installation to a new one.  Installation can optionally move repositories (if located within the configuration
-folder of the current installation) to the new installation as well as migrate configuration files to the newer installation.
-
-Restore:
-
-The restore operation allows an existing installation to revert back to a previous installation.  Using an existing backup directory (created from the backup operation)
-the FileManager utility will restore libraries, scripts and documents as well as revert to previous configurations.
-
-NOTE: If repositories were changed due to the installation
-of a newer version of NiFi these may no longer be compatible during restore.  In that scenario exclude the `-m` option to ensure new repositories will be created or, if repositories
-live outside of the NiFi directory, remove them so they can be recreated on startup after restore.
-
+For more information about each utility, see the link:toolkit-guide.html[NiFi Toolkit Guide].
 
 [[clustering]]
 == Clustering Configuration
@@ -2316,6 +1585,7 @@ In the future, we hope to provide supplemental documentation that covers the NiF
 
 image::zero-master-cluster-http-access.png["NiFi Cluster HTTP Access"]
 
+=== Zero-Master Clustering
 NiFi employs a Zero-Master Clustering paradigm. Each node in the cluster performs the same tasks on
 the data, but each operates on a different set of data. One of the nodes is automatically elected (via Apache
 ZooKeeper) as the Cluster Coordinator. All nodes in the cluster will then send heartbeat/status information
@@ -2327,9 +1597,9 @@ flow is provided to that node, and that node is able to join the cluster, assumi
 flow matches the copy provided by the Cluster Coordinator. If the node's version of the flow configuration differs
 from that of the Cluster Coordinator's, the node will not join the cluster.
 
-*Why Cluster?* +
+=== Why Cluster?
 
-NiFi Administrators or Dataflow Managers (DFMs) may find that using one instance of NiFi on a single server is not
+NiFi Administrators or DataFlow Managers (DFMs) may find that using one instance of NiFi on a single server is not
 enough to process the amount of data they have. So, one solution is to run the same dataflow on multiple NiFi servers.
 However, this creates a management problem, because each time DFMs want to change or update the dataflow, they must make
 those changes on each server and then monitor each server individually. By clustering the NiFi servers, it's possible to
@@ -2337,10 +1607,10 @@ have that increased processing capability along with a single interface through 
 the dataflow. Clustering allows the DFM to make each change only once, and that change is then replicated to all the nodes
 of the cluster. Through the single interface, the DFM may also monitor the health and status of all the nodes.
 
-NiFi Clustering is unique and has its own terminology. It's important to understand the following terms before setting up a cluster.
-
 [template="glossary", id="terminology"]
-*Terminology* +
+=== Terminology
+
+NiFi Clustering is unique and has its own terminology. It's important to understand the following terms before setting up a cluster:
 
 *NiFi Cluster Coordinator*: A NiFi Cluster Coordinator is the node in a NiFi cluster that is responsible for carrying out
 tasks to manage which nodes are allowed in the cluster and providing the most up-to-date flow to newly joining nodes. When a
@@ -2354,21 +1624,22 @@ ZooKeeper is used to automatically elect a Primary Node. If that node disconnect
 Primary Node will automatically be elected. Users can determine which node is currently elected as the Primary Node by
 looking at the Cluster Management page of the User Interface.
 
+image::primary-node-cluster-mgt.png["Primary Node in Cluster Management UI"]
+
 *Isolated Processors*: In a NiFi cluster, the same dataflow runs on all the nodes. As a result, every component in the flow
 runs on every node. However, there may be cases when the DFM would not want every processor to run on every node. The most
 common case is when using a processor that communicates with an external service using a protocol that does not scale well.
-For example, the GetSFTP processor pulls from a remote directory, and if the GetSFTP Processor runs on every node in the
-cluster tries simultaneously to pull from the same remote directory, there could be race conditions. Therefore, the DFM could
-configure the GetSFTP on the Primary Node to run in isolation, meaning that it only runs on that node. It could pull in data and -
-with the proper dataflow configuration - load-balance it across the rest of the nodes in the cluster. Note that while this
+For example, the GetSFTP processor pulls from a remote directory.  If the GetSFTP Processor runs on every node in the
+cluster and tries simultaneously to pull from the same remote directory, there could be race conditions. Therefore, the DFM could
+configure the GetSFTP on the Primary Node to run in isolation, meaning that it only runs on that node. With the proper dataflow configuration, it could pull in data and load-balance it across the rest of the nodes in the cluster. Note that while this
 feature exists, it is also very common to simply use a standalone NiFi instance to pull data and feed it to the cluster.
 It just depends on the resources available and how the Administrator decides to configure the cluster.
 
 *Heartbeats*: The nodes communicate their health and status to the currently elected Cluster Coordinator via "heartbeats",
 which let the Coordinator know they are still connected to the cluster and working properly. By default, the nodes emit
-heartbeats every 5 seconds, and if the Cluster Coordinator does not receive a heartbeat from a node within 40 seconds, it
-disconnects the node due to "lack of heartbeat". (The 5-second setting is configurable in the _nifi.properties_ file.
-See the <<system_properties>> section of this document for more information.) The reason that the Cluster Coordinator
+heartbeats every 5 seconds, and if the Cluster Coordinator does not receive a heartbeat from a node within 40 seconds (= 5 seconds * 8), it
+disconnects the node due to "lack of heartbeat". The 5-second and 8 times settings are configurable in the _nifi.properties_ file (see
+the <<cluster_common_properties>> section for more information). The reason that the Cluster Coordinator
 disconnects the node is because the Coordinator needs to ensure that every node in the cluster is in sync, and if a node
 is not heard from regularly, the Coordinator cannot be sure it is still in sync with the rest of the cluster. If, after
 40 seconds, the node does send a new heartbeat, the Coordinator will automatically request that the node re-join the cluster,
@@ -2376,7 +1647,7 @@ to include the re-validation of the node's flow.
 Both the disconnection due to lack of heartbeat and the reconnection once a heartbeat is received are reported to the DFM
 in the User Interface.
 
-*Communication within the Cluster* +
+=== Communication within the Cluster
 
 As noted, the nodes communicate with the Cluster Coordinator via heartbeats. When a Cluster Coordinator is elected, it updates
 a well-known ZNode in Apache ZooKeeper with its connection information so that nodes understand where to send heartbeats. If one
@@ -2387,35 +1658,90 @@ happen automatically.
 When the DFM makes changes to the dataflow, the node that receives the request to change the flow communicates those changes to all
 nodes and waits for each node to respond, indicating that it has made the change on its local flow.
 
+[[managing_nodes]]
+=== Managing Nodes
 
-*Dealing with Disconnected Nodes* +
+==== Disconnect Nodes
 
-A DFM may manually disconnect a node from the cluster. But if a node becomes disconnected for any other reason (such as due to lack of heartbeat),
-the Cluster Coordinator will show a bulletin on the User Interface. The DFM will not be able to make any changes to the dataflow until the issue
-of the disconnected node is resolved. The DFM or the Administrator will need to troubleshoot the issue with the node and resolve it before any
-new changes may be made to the dataflow. However, it is worth noting that just because a node is disconnected does not mean that it is not working;
-this may happen for a few reasons, including that the node is unable to communicate with the Cluster Coordinator due to network problems.
+A DFM may manually disconnect a node from the cluster. A node may also become disconnected for other reasons, such as due to a lack of heartbeat. The Cluster Coordinator will show a bulletin on the User Interface when a node is disconnected. The DFM will not be able to make any changes to the dataflow until the issue of the disconnected node is resolved. The DFM or the Administrator will need to troubleshoot the issue with the node and resolve it before any new changes can be made to the dataflow. However, it is worth noting that just because a node is disconnected does not mean that it is not working.  This may happen for a few reasons, for example when the node is unable to communicate with the Cluster Coordinator due to network problems.
 
-There are cases where a DFM may wish to continue making changes to the flow, even though a node is not connected to the cluster.
-In this case, they DFM may elect to remove the node from the cluster entirely through the Cluster Management dialog. Once removed,
-the node cannot be rejoined to the cluster until it has been restarted.
+To manually disconnect a node, select the "Disconnect" icon (image:iconDisconnect.png["Disconnect Icon"]) from the node's row.
 
-*Flow Election* +
+image::disconnected-node-cluster-mgt.png["Disconnected Node in Cluster Management UI"]
+
+A disconnected node can be connected (image:iconConnect.png["Connect Icon"]), offloaded (image:iconOffload.png["Offload Icon"]) or deleted (image:iconDelete.png["Delete Icon"]).
+
+NOTE: Not all nodes in a "Disconnected" state can be offloaded. If the node is disconnected and unreachable, the offload request can not be received by the node to start the offloading. Additionally, offloading may be interrupted or prevented due to firewall rules.
+
+==== Offload Nodes
+
+Flowfiles that remain on a disconnected node can be rebalanced to other active nodes in the cluster via offloading.  In the Cluster Management dialog, select the "Offload" icon (image:iconOffload.png["Offload Icon"]) for a Disconnected node. This will stop all processors, terminate all processors, stop transmitting on all remote process groups and rebalance flowfiles to the other connected nodes in the cluster.
+
+image::offloading-node-cluster-mgt.png["Offloading Node in Cluster Management UI"]
+
+Nodes that remain in "Offloading" state due to errors encountered (out of memory, no network connection, etc.) can be reconnected to the cluster by restarting NiFi on the node. Offloaded nodes can be either reconnected to the cluster (by selecting Connect or restarting NiFi on the node) or deleted from the cluster.
+
+image::offloaded-node-cluster-mgt.png["Offloaded Node in Cluster Management UI"]
+
+==== Delete Nodes
+
+There are cases where a DFM may wish to continue making changes to the flow, even though a node is not connected to the cluster. In this case, the DFM may elect to delete the node from the cluster entirely. In the Cluster Management dialog, select the "Delete" icon (image:iconDelete.png["Delete Icon"]) for a Disconnected or Offloaded node. Once deleted, the node cannot be rejoined to the cluster until it has been restarted.
+
+==== Decommission Nodes
+
+The steps to decommission a node and remove it from a cluster are as follows:
+
+1. Disconnect the node.
+2. Once disconnect completes, offload the node.
+3. Once offload completes, delete the node.
+4. Once the delete request has finished, stop/remove the NiFi service on the host.
+
+==== NiFi CLI Node Commands
+
+As an alternative to the UI, the following NiFi CLI commands can be used for retrieving a single node, retrieving a list of nodes, and connecting/disconnecting/offloading/deleting nodes:
+
+* `nifi get-node`
+* `nifi get-nodes`
+* `nifi connect-node`
+* `nifi disconnect-node`
+* `nifi offload-node`
+* `nifi delete-node`
+
+For more information, see the <<toolkit-guide.adoc#nifi_CLI,NiFi CLI>> section in the link:toolkit-guide.html[NiFi Toolkit Guide].
+
+=== Flow Election
 When a cluster first starts up, NiFi must determine which of the nodes have the
 "correct" version of the flow. This is done by voting on the flows that each of the nodes has. When a node
-attempts to connect to a cluster, it provides a copy of its local flow to the Cluster Coordinator. If no flow
+attempts to connect to a cluster, it provides a copy of its local flow and (if the policy provider allows for configuration via NiFi)
+its users, groups, and policies, to the Cluster Coordinator. If no flow
 has yet been elected the "correct" flow, the node's flow is compared to each of the other Nodes' flows. If another
 Node's flow matches this one, a vote is cast for this flow. If no other Node has reported the same flow yet, this
 flow will be added to the pool of possibly elected flows with one vote. After
 some amount of time has elapsed (configured by setting the `nifi.cluster.flow.election.max.wait.time` property) or
 some number of Nodes have cast votes (configured by setting the `nifi.cluster.flow.election.max.candidates` property),
-a flow is elected to be the "correct" copy of the flow. All nodes that have incompatible flows are then disconnected
-from the cluster while those with compatible flows inherit the cluster's flow. Election is performed according to
-the "popular vote" with the caveat that the winner will never be an "empty flow" unless all flows are empty. This
-allows an administrator to remove a node's _flow.xml.gz_ file and restart the node, knowing that the node's flow will
-not be voted to be the "correct" flow unless no other flow is found.
+a flow is elected to be the "correct" copy of the flow.
 
-*Basic Cluster Setup* +
+Any node whose dataflow, users, groups, and policies conflict the with those elected will backup any conflicting resources and replace the local
+resources with those from the cluster. How the backup is performed depends on the configured Access Policy Provider and User Group Provider.
+For file-based access policy providers, the backup will be written to the same directory as the existing file (e.g., $NIFI_HOME/conf) and bear the same
+name but with a suffix of "." and a timestamp. For example, if the flow itself conflicts with the cluster's flow at 12:05:03 on January 1, 2020,
+the node's `flow.xml.gz` file will be copied to `flow.xml.gz.2020-01-01-12-05-03` and the cluster's flow will then be written to `flow.xml.gz`.
+Similarly, this will happen for the `users.xml` and `authorizations.xml` file. This is done so that the flow can be manually reverted if necessary
+by renaming the backup file back to `flow.xml.gz`, for example.
+
+It is important to note that before inheriting the elected flow, NiFi will first read through the FlowFile repository and any swap files to determine which
+queues in the dataflow currently hold data. If there exists any queue in the dataflow that contains a FlowFile, that queue must also exist in the elected
+dataflow. If that queue does not exist in the elected dataflow, the node will not inherit the dataflow, users, groups, and policies. Instead, NiFi will
+log errors to that effect and will fail to startup. This ensures that even if the node has data stored in a connection, and the cluster's dataflow is different,
+restarting the node will not result in data loss.
+
+Election is performed according to the "popular vote" with the caveat that the winner will never be an "empty flow" unless all flows are empty. This
+allows an administrator to remove a node's _flow.xml.gz_ file and restart the node, knowing that the node's flow will
+not be voted to be the "correct" flow unless no other flow is found. If there are two non-empty flows that receive the same number of votes, one of those
+flows will be chosen. The methodology used to determine which of those flows is undefined and may change at any time without notice.
+
+
+=== Basic Cluster Setup
 
 This section describes the setup for a simple three-node, non-secure cluster comprised of three instances of NiFi.
 
@@ -2423,7 +1749,7 @@ For each instance, certain properties in the _nifi.properties_ file will need to
 should be evaluated for your situation and adjusted accordingly. All the properties are described in the <<system_properties>> section of this
 guide; however, in this section, we will focus on the minimum properties that must be set for a simple cluster.
 
-For all three instances, the Cluster Common Properties can be left with the default settings. Note, however, that if you change these settings,
+For all three instances, the <<cluster_common_properties>> can be left with the default settings. Note, however, that if you change these settings,
 they must be set the same on every instance in the cluster.
 
 For each Node, the minimum properties to configure are as follows:
@@ -2466,7 +1792,7 @@ one of the nodes, and the User Interface should look similar to the following:
 
 image:ncm.png["Clustered User Interface"]
 
-*Troubleshooting*
+=== Troubleshooting
 
 If you encounter issues and your cluster does not work as described, investigate the _nifi-app.log_ and _nifi-user.log_
 files on the nodes. If needed, you can change the logging level to DEBUG by editing the `conf/logback.xml` file. Specifically,
@@ -2562,12 +1888,11 @@ However, it is up to the administrator to determine the number of nodes most app
 
 If the `nifi.state.management.embedded.zookeeper.start` property is set to `true`, the `nifi.state.management.embedded.zookeeper.properties` property
 in _nifi.properties_ also becomes relevant. This specifies the ZooKeeper properties file to use. At a minimum, this properties file needs to be populated
-with the list of ZooKeeper servers. The servers are specified as properties in the form of `server.1`, `server.2`, to `server.n`. Each of these servers is
-configured as <hostname>:<quorum port>[:<leader election port>]. For example, `myhost:2888:3888`. This list of nodes should be the same nodes in the NiFi
-cluster that have the `nifi.state.management.embedded.zookeeper.start` property set to `true`. Also note that because ZooKeeper will be listening on these
-ports, the firewall may need to be configured to open these ports for incoming traffic, at least between nodes in the cluster. Additionally, the port to
-listen on for client connections must be opened in the firewall. The default value for this is `2181` but can be configured via the _clientPort_ property
-in the _zookeeper.properties_ file.
+with the list of ZooKeeper servers. The servers are specified as properties in the form of `server.1`, `server.2`, to `server.n`. As of NiFi 1.10.x, Zookeeper
+has been upgraded to 3.5.5 and servers are now defined with the client port appended at the end as per the link:https://zookeeper.apache.org/doc/r3.5.2-alpha/zookeeperReconfig.html#sc_reconfig_clientport[Zookeeper Documentation].
+As such, each of these servers is configured as <hostname>:<quorum port>[:<leader election port>][:role];[<client port address>:]<client port>.
+As a simple example this would be `server.1 = myhost:2888:3888;2181`. This list of nodes should be the same nodes in the NiFi cluster that have the `nifi.state.management.embedded.zookeeper.start` property set to `true`.
+Also note that because ZooKeeper will be listening on these ports, the firewall may need to be configured to open these ports for incoming traffic, at least between nodes in the cluster.
 
 When using an embedded ZooKeeper, the ./__conf/zookeeper.properties__ file has a property named `dataDir`. By default, this value is set to `./state/zookeeper`.
 If more than one NiFi node is running an embedded ZooKeeper, it is important to tell the server which one it is. This is accomplished by creating a file named
@@ -2814,7 +2139,7 @@ This output can be rather verbose but provides extremely valuable information fo
 
 [[zookeeper_migrator]]
 === ZooKeeper Migrator
-You can use the NiFi ZooKeeper Migrator to perform the following tasks:
+You can use the `zk-migrator` tool to perform the following tasks:
 
 * Moving ZooKeeper information from one ZooKeeper cluster to another
 * Migrating ZooKeeper node ownership
@@ -2826,86 +2151,7 @@ For example, you may want to use the ZooKeeper Migrator when you are:
 * Upgrading from NiFi 0.x with an external ZooKeeper to NiFi 1.x with the same external ZooKeeper
 * Migrating from an external ZooKeeper to an embedded ZooKeeper in NiFi 1.x
 
-The NiFi ZooKeeper Migrator is part of the NiFi Toolkit and is downloaded separately from the
-link:https://nifi.apache.org/download.html[Apache NiFi download page^].
-
-[[zk_migrator_command_line_parameters]]
-==== zk-migrator.sh Command Line Parameters
-
-You can use the following command line options with the ZooKeeper Migrator:
-
-* `-a`,`--auth <username:password>`               Allows the specification of a username and password for authentication with ZooKeeper.  This option is mutually exclusive with the `-k`,`--krb-conf` option.
-* `-f`,`--file <filename>`                        The file used for ZooKeeper data serialized as JSON.  When used with the `-r`,`--receive` option, data read from ZooKeeper will be stored in the given filename.  When used with the `-s`,`--send` option, the data in the file will be sent to ZooKeeper.
-* `-h`,`--help`                                   Prints help, displays available parameters with descriptions
-* `--ignore-source`                               Allows the ZooKeeper Migrator to write to the ZooKeeper and path from which the data was obtained.
-* `-k`,`--krb-conf <jaas-filename>`               Allows the specification of a JAAS configuration file to allow authentication with a ZooKeeper configured to use Kerberos.  This option is mutually exclusive with the `-a`,`--auth` option.
-* `-r`,`--receive`                                Receives data from ZooKeeper and writes to the given filename (if the `-f`,`--file` option is provided) or standard output. The data received will contain the full path to each node read from ZooKeeper. This option is mutually exclusive with the `-s`,`--send` option.
-* `-s`,`--send`                                   Sends data to ZooKeeper that is read from the given filename (if the `-f`,`--file` option is provided) or standard input. The paths for each node in the data being sent to ZooKeeper are absolute paths, and will be stored in ZooKeeper under the *path* portion of the `-z`,`--zookeeper` argument.  Typically, the *path* portion of the argument can be omitted, which will store the nodes at their absolute paths. This option is mutually exclusive with the `-r`,`--receive` option.
-* `--use-existing-acl`                            Allows the Zookeeper Migrator to write ACL values retrieved from the source Zookeeper server to destination server. Default action will apply Open rights for unsecured destinations or Creator Only rights for secured destinations.
-* `-z`,`--zookeeper <zookeeper-endpoint>`         The ZooKeeper server(s) to use, specified by a connect string, comprised of one or more comma-separated host:port pairs followed by a path, in the format of _host:port[,host2:port...,hostn:port]/znode/path_.
-
-[[migrating_between_source_destination_zookeepers]]
-==== Migrating Between Source and Destination ZooKeepers
-
-Before you begin, confirm that:
-
-* You have installed the destination ZooKeeper cluster.
-* You have installed and configured a NiFi cluster to use the destination ZooKeeper cluster.
-* If you are migrating ZooKeepers due to upgrading NiFi from 0.x to 1.x,, you have already followed appropriate NiFi upgrade steps.
-* You have configured Kerberos as needed.
-* You have not started processing any dataflow (to avoid duplicate data processing).
-* If one of the ZooKeeper clusters you are using is configured with Kerberos, you are running the ZooKeeper Migrator from a host that has access to NiFi’s ZooKeeper client jaas configuration file (see <<zk_kerberos_client>> for more information).
-
-===== ZooKeeper Migration Steps
-
-1. Collect the following information:
-+
-|====
-|*Required Information*|*Description*
-|Source ZooKeeper hostname (*sourceHostname*)|The hostname must be one of the hosts running in the ZooKeeper ensemble, which can be found in _<NiFi installation dir>/conf/zookeeper.properties_.  Any of the hostnames declared in the `server.N` properties can be used.
-|Destination ZooKeeper hostname (*destinationHostname*)|The hostname must be one of the hosts running in the ZooKeeper ensemble, which can be found in _<NiFi installation dir>/conf/zookeeper.properties_.  Any of the hostnames declared in the `server.N` properties can be used.
-|Source ZooKeeper port (*sourceClientPort*)|This can be found in _<NiFi installation dir>/conf/zookeeper.properties_.  The port is specified in the `clientPort` property.
-|Destination ZooKeeper port (*destinationClientPort*)|This can be found in _<NiFi installation dir>/conf/zookeeper.properties_.  The port is specified in the `clientPort` property.
-|Export data path|Determine the path that will store a json file containing the export of data from ZooKeeper.  It must be readable and writable by the user running the zk-migrator tool.
-|Source ZooKeeper Authentication Information|This information is in _<NiFi installation dir>/conf/state-management.xml_. For NiFi 0.x, if Creator Only is specified in _state-management.xml_, you need to supply authentication information using the `-a,--auth` argument with the values from the Username and Password properties in _state-management.xml_. For NiFi 1.x, supply authentication information using the `-k,--krb-conf` argument.
-
-If the _state-management.xml_ specifies Open, no authentication is required.
-|Destination ZooKeeper Authentication Information|This information is in _<NiFi installation dir>/conf/state-management.xml_. For NiFi 0.x, if Creator Only is specified in _state-management.xml_, you need to supply authentication information using the `-a,--auth` argument with the values from the Username and Password properties in state-management.xml. For NiFi 1.x, supply authentication information using the `-k,--krb-conf` argument.
-
-If the _state-management.xml_ specifies Open, no authentication is required.
-|Root path to which NiFi writes data in Source ZooKeeper (*sourceRootPath*)|This information can be found in `<NiFi installation dir>/conf/state-management.xml` under the Root Node property in the cluster-provider element. (default: `/nifi`)
-|Root path to which NiFi writes data in Destination ZooKeeper (*destinationRootPath*)|This information can be found in _<NiFi installation dir>/conf/state-management.xml_ under the Root Node property in the cluster-provider element.
-|====
-2. Stop all processors in the NiFi flow.  If you are migrating between two NiFi installations, the flows on both must be stopped.
-3. Export the NiFi component data from the source ZooKeeper.  The following command reads from the specified ZooKeeper running on the given hostname:port, using the provided path to the data, and authenticates with ZooKeeper using the given username and password.  The data read from ZooKeeper is written to the file provided.
-
-* For NiFi 0.x
-** For an open ZooKeeper:
-*** `zk-migrator.sh -r -z sourceHostname:sourceClientPort/sourceRootPath/components -f /path/to/export/zk-source-data.json`
-** For a ZooKeeper using username:password for authentication:
-*** `zk-migrator.sh -r -z sourceHostname:sourceClientPort/sourceRootPath/components -a <username:password> -f /path/to/export/zk-source-data.json`
-
-* For NiFi 1.x
-** For an open ZooKeeper:
-*** `zk-migrator.sh -r -z sourceHostname:sourceClientPort/sourceRootPath/components -f /path/to/export/zk-source-data.json`
-** For a ZooKeeper using Kerberos for authentication:
-*** `zk-migrator.sh -r -z sourceHostname:sourceClientPort/sourceRootPath/components -k /path/to/jaasconfig/jaas-config.conf -f /path/to/export/zk-source-data.json`
-
-4. (Optional) If you have used the new NiFi installation to do any processing, you can also export its ZooKeeper data as a backup prior to performing the migration.
-
-* For an open ZooKeeper:
-** `zk-migrator.sh -r -z destinationHostname:destinationClientPort/destinationRootPath/components -f /path/to/export/zk-destination-backup-data.json`
-* For a ZooKeeper using Kerberos for authentication:
-** `zk-migrator.sh -r -z destinationHostname:destinationClientPort/destinationRootPath/components -k /path/to/jaasconfig/jaas-config.conf -f /path/to/export/zk-destination-backup-data.json`
-
-5. Migrate the ZooKeeper data to the destination ZooKeeper. If the source and destination ZooKeepers are the same, the `--ignore-source` option can be added to the following examples.
-
-* For an open ZooKeeper:
-** `zk-migrator.sh -s -z destinationHostname:destinationClientPort/destinationRootPath/components -f /path/to/export/zk-source-data.json`
-* For a ZooKeeper using Kerberos for authentication:
-** `zk-migrator.sh -s -z destinationHostname:destinationClientPort/destinationRootPath/components -k /path/to/jaasconfig/jaas-config.conf -f /path/to/export/zk-source-data.json`
-
-6. Once the migration has completed successfully, start the processors in the NiFi flow.  Processing should continue from the point at which it was stopped when the NiFi flow was stopped.
+For more information, see the <<toolkit-guide.adoc#zookeeper_migrator,Zookeeper Migrator>> section in the link:toolkit-guide.html[NiFi Toolkit Guide].
 
 [[bootstrap_properties]]
 == Bootstrap Properties
@@ -2927,6 +2173,9 @@ take effect only after NiFi has been stopped and restarted.
 |`java.arg.N`|Any number of JVM arguments can be passed to the NiFi JVM when the process is started. These arguments are defined by adding properties to _bootstrap.conf_ that
             begin with `java.arg.`. The rest of the property name is not relevant, other than to differentiate property names, and will be ignored. The default includes
             properties for minimum and maximum Java Heap size, the garbage collector to use, etc.
+|`nifi.bootstrap.sensitive.key`|The master key in hexadecimal format for encrypted sensitive configuration values. When NiFi is started, the master key is used to decrypt sensitive values from the _nifi.properties_ file into memory for later use.
+
+The Encrypt-Config Tool can be used to specify the master key, encrypt sensitive values in _nifi.properties_ and update _bootstrap.conf_. See the <<toolkit-guide.adoc#encrypt_config_tool,NiFi Toolkit Guide>> for an example.
 |`notification.services.file`|When NiFi is started, or stopped, or when the Bootstrap detects that NiFi has died, the Bootstrap is able to send notifications of these events
                             to interested parties. This is configured by specifying an XML file that defines which notification services can be used. More about this
                             file can be found in the <<notification_services>> section.
@@ -3028,8 +2277,9 @@ It has the following properties available:
 |`Truststore Type`||The Type of the Truststore. Either `JKS` or `PKCS12`
 |`Truststore Password`||The password for the Truststore
 |`Keystore Filename`||The fully-qualified filename of the Keystore
-|`Keystore Type`||The password for the Keystore
-|`Keystore Password`||The password for the key. If this is not specified, but the Keystore Filename, Password, and Type are specified, then the Keystore Password will be assumed to be the same as the Key Password.
+|`Keystore Type`||The Type of the Keystore. Either `JKS` or `PKCS12`
+|`Keystore Password`||The password for the Keystore
+|`Key Password`||The password for the key. If this is not specified, but the Keystore Filename, Password, and Type are specified, then the Key Password will be assumed to be the same as the Keystore Password.
 |`SSL Protocol`||The algorithm to use for this SSL context. This can either be `SSL` or `TLS`.
 |====
 
@@ -3117,9 +2367,9 @@ host[:port] the expected values need to be configured. This may be required when
 separated list in _nifi.properties_ using the `nifi.web.proxy.host` property (e.g. `localhost:18443, proxyhost:443`). IPv6 addresses are accepted. Please refer to
 RFC 5952 Sections link:https://tools.ietf.org/html/rfc5952#section-4[4] and link:https://tools.ietf.org/html/rfc5952#section-6[6] for additional details.
 
-** NiFi will only accept HTTP requests with a X-ProxyContextPath or X-Forwarded-Context header if the value is whitelisted in the `nifi.web.proxy.context.path` property in
-_nifi.properties_. This property accepts a comma separated list of expected values. In the event an incoming request has an X-ProxyContextPath or X-Forwarded-Context header value that is not
-present in the whitelist, the "An unexpected error has occurred" page will be shown and an error will be written to the _nifi-app.log_.
+** NiFi will only accept HTTP requests with a X-ProxyContextPath, X-Forwarded-Context, or X-Forwarded-Prefix header if the value is allowed in the `nifi.web.proxy.context.path` property in
+_nifi.properties_. This property accepts a comma separated list of expected values. In the event an incoming request has an X-ProxyContextPath, X-Forwarded-Context, or X-Forwarded-Prefix header value that is not
+present in the allow list, the "An unexpected error has occurred" page will be shown and an error will be written to the _nifi-app.log_.
 
 * Additional configurations at both proxy server and NiFi cluster are required to make NiFi Site-to-Site work behind reverse proxies. See <<site_to_site_reverse_proxy_properties>> for details.
 
@@ -3145,7 +2395,7 @@ See <<kerberos_properties>> for complete documentation.
 === Notes
 
 * Kerberos is case-sensitive in many places and the error messages (or lack thereof) may not be sufficiently explanatory. Check the case sensitivity of the service principal in your configuration files. Convention is `HTTP/fully.qualified.domain@REALM`.
-* Browsers have varying levels of restriction when dealing with SPNEGO negotiations. Some will provide the local Kerberos ticket to any domain that requests it, while others whitelist the trusted domains. See link:http://docs.spring.io/autorepo/docs/spring-security-kerberos/1.0.2.BUILD-SNAPSHOT/reference/htmlsingle/#browserspnegoconfig[Spring Security Kerberos - Reference Documentation: Appendix E. Configure browsers for SPNEGO Negotiation^] for common browsers.
+* Browsers have varying levels of restriction when dealing with SPNEGO negotiations. Some will provide the local Kerberos ticket to any domain that requests it, while others explicitly specify the trusted domains in advance via an allow list. See link:http://docs.spring.io/autorepo/docs/spring-security-kerberos/1.0.2.BUILD-SNAPSHOT/reference/htmlsingle/#browserspnegoconfig[Spring Security Kerberos - Reference Documentation: Appendix E. Configure browsers for SPNEGO Negotiation^] for common browsers.
 * Some browsers (legacy IE) do not support recent encryption algorithms such as AES, and are restricted to legacy algorithms (DES). This should be noted when generating keytabs.
 * The KDC must be configured and a service principal defined for NiFi and a keytab exported. Comprehensive instructions for Kerberos server configuration and administration are beyond the scope of this document (see link:http://web.mit.edu/kerberos/krb5-current/doc/admin/index.html[MIT Kerberos Admin Guide^]), but an example is below:
 
@@ -3176,16 +2426,35 @@ root@kdc:~# ll /http*
 root@kdc:~#
 ....
 
+[[analytics_framework]]
+== Analytics Framework
+NiFi has an internal analytics framework which can be enabled to predict back pressure occurrence, given the configured settings for threshold on a queue.  The model used by default for prediction is an ordinary least squares (OLS) linear regression. It uses recent observations from a queue (either number of objects or content size over time) and calculates a regression line for that data. The line's equation is then used to determine the next value that will be reached within a given time interval (e.g. number of objects in queue in the next 5 minutes). Below is an example graph of the linear regression model for Queue/Object Count over time which is used for predictions:
+
+image:back_pressure_prediction_model_example.png["Back pressure prediction based on Queue/Object Count"]
+
+In order to generate predictions, local status snapshot history is queried to obtain enough data to generate a model.  By default, component status snapshots are captured every minute. Internal models need at least 2 or more observations to generate a prediction, therefore it may take up to 2 or more minutes for predictions to be available by default.  If predictions are needed sooner than what is provided by default, the timing of snapshots can be adjusted using the `nifi.components.status.snapshot.frequency` value in _nifi.properties_.
+
+NiFi evaluates the model's effectiveness before sending prediction information by using the model's R-Squared score by default. One important note: R-Square is a measure of how close the regression line fits the observation data vs. how accurate the prediction will be; therefore there may be some measure of error. If the R-Squared score for the calculated model meets the configured threshold (as defined by `nifi.analytics.connection.model.score.threshold`) then the model will be used for prediction. Otherwise the model will not be used and predictions will not be available until a model is generated with a score that exceeds the threshold.  Default R-Squared threshold value is `.90` however this can be tuned based on prediction requirements.
+
+The prediction interval `nifi.analytics.predict.interval` can be configured to project out further when back pressure will occur.  The prediction query interval `nifi.analytics.query.interval` can also be configured to determine how far back in time past observations should be queried in order to generate the model.  Adjustments to these settings may require tuning of the model's scoring threshold value to select a score that can offer reasonable predictions.
+
+See <<analytics_properties>> for complete information on configuring analytic properties.
+
+
 [[system_properties]]
 == System Properties
-The _nifi.properties_ file in the `conf` directory is the main configuration file for controlling how NiFi runs. This section provides an overview of the properties in this file and includes some notes on how to configure it in a way that will make upgrading easier. *After making changes to this file, restart NiFi in order
-for the changes to take effect.*
+The _nifi.properties_ file in the `conf` directory is the main configuration file for controlling how NiFi runs. This section provides an overview of the properties in this file and their setting options.
 
-NOTE: The contents of this file are relatively stable but do change from time to time. It is always a good idea to
-review this file when upgrading and pay attention for any changes. Consider configuring items
-below marked with an asterisk (*) in such a way that upgrading will be easier. For details, see a full discussion on upgrading
-at the end of this section. Note that values for periods of time and data sizes must include the unit of measure,
-for example "10 secs" or "10 MB", not simply "10".
+NOTE: Values for periods of time and data sizes must include the unit of measure, for example "10 secs" or "10 MB", not simply "10".
+
+WARNING: After making changes to _nifi.properties_, restart NiFi in order for the changes to take effect.
+
+
+=== Upgrade Recommendations
+The contents of the _nifi.properties_ file are relatively stable but can change from version to version. It is always a good idea to review this file when upgrading and pay attention to any changes.
+
+Consider configuring items below marked with an asterisk (`*`) in such a way that upgrading will be easier. For example, change the default directory configurations to locations outside the main root installation. In this way, these items can remain in their configured location through an upgrade, allowing NiFi to find all the repositories and configuration files and pick up where it left off as soon as the old version is stopped and the new version is started. Furthermore, the administrator may reuse this _nifi.properties_ file and any other configuration files without having to re-configure them each time an upgrade takes place. See <<upgrading_nifi>> for more details.
+
 
 === Core Properties +
 
@@ -3195,7 +2464,7 @@ The first section of the _nifi.properties_ file is for the Core Properties. Thes
 |*Property*|*Description*
 |`nifi.flow.configuration.file`*|The location of the flow configuration file (i.e., the file that contains what is currently displayed on the NiFi graph). The default value is `./conf/flow.xml.gz`.
 |`nifi.flow.configuration.archive.enabled`*|Specifies whether NiFi creates a backup copy of the flow automatically when the flow is updated. The default value is `true`.
-|`nifi.flow.configuration.archive.dir`*|The location of the archive directory where backup copies of the _flow.xml_ are saved. The default value is `./conf/archive`. NiFi removes old archive files to limit disk usage based on archived file lifespan, total size, and number of files, as specified with `nifi.flow.configuration.archive.max.time`, `max.storage` and `max.count` properties respectively. If none of these limitation for archiving is specified, NiFi uses default conditions, that is `30 days` for max.time and `500 MB` for max.storage. +
+|`nifi.flow.configuration.archive.dir`*|The location of the archive directory where backup copies of the _flow.xml_ are saved. The default value is `./conf/archive`. NiFi removes old archive files to limit disk usage based on archived file lifespan, total size, and number of files, as specified with `nifi.flow.configuration.archive.max.time`, `max.storage` and `max.count` properties respectively. If none of these limitation for archiving is specified, NiFi uses default conditions, that is `30 days` for `max.time` and `500 MB` for `max.storage`. +
 This cleanup mechanism takes into account only automatically created archived _flow.xml_ files. If there are other files or directories in this archive directory, NiFi will ignore them. Automatically created archives have filename with ISO 8601 format timestamp prefix followed by `<original-filename>`. That is `<year><month><day>T<hour><minute><second>+<timezone offset>_<original filename>`. For example, `20160706T160719+0900_flow.xml.gz`. NiFi checks filenames when it cleans archive directory. If you would like to keep a particular archive in this directory without worrying about NiFi deleting it, you can do so by copying it with a different filename pattern.
 |`nifi.flow.configuration.archive.max.time`*|The lifespan of archived _flow.xml_ files. NiFi will delete expired archive files when it updates _flow.xml_ if this property is specified. Expiration is determined based on current system time and the last modified timestamp of an archived _flow.xml_. If no archive limitation is specified in _nifi.properties_, NiFi removes archives older than `30 days`.
 |`nifi.flow.configuration.archive.max.storage`*|The total data size allowed for the archived _flow.xml_ files. NiFi will delete the oldest archive files until the total archived file size becomes less than this configuration value, if this property is specified. If no archive limitation is specified in _nifi.properties_, NiFi uses `500 MB` for this.
@@ -3254,28 +2523,170 @@ The H2 Settings section defines the settings for the H2 database, which keeps tr
 |`nifi.h2.url.append`|This property specifies additional arguments to add to the connection string for the H2 database. The default value should be used and should not be changed. It is: `;LOCK_TIMEOUT=25000;WRITE_DELAY=0;AUTO_SERVER=FALSE`.
 |====
 
-
 === FlowFile Repository
 
 The FlowFile repository keeps track of the attributes and current state of each FlowFile in the system. By default,
 this repository is installed in the same root installation directory as all the other repositories; however, it is advisable
 to configure it on a separate drive if available.
 
+There are currently three implementations of the FlowFile Repository, which are detailed below.
+
 |====
 |*Property*|*Description*
-|`nifi.flowfile.repository.implementation`|The FlowFile Repository implementation. The default value is `org.apache.nifi.controller.repository.WriteAheadFlowFileRepository` and should only be changed with caution. To store flowfiles in memory instead of on disk (accepting data loss in the event of power/machine failure or a restart of NiFi), set this property to `org.apache.nifi.controller.repository.VolatileFlowFileRepository`.
+|`nifi.flowfile.repository.implementation`|The FlowFile Repository implementation. The default value is `org.apache.nifi.controller.repository.WriteAheadFlowFileRepository`.  The other current options are `org.apache.nifi.controller.repository.VolatileFlowFileRepository` and `org.apache.nifi.controller.repository.RocksDBFlowFileRepository`.
+|====
+NOTE: Switching repository implementations should only be done on an instance with zero queued FlowFiles, and should only be done with caution.
+
+=== Write Ahead FlowFile Repository
+
+`WriteAheadFlowFileRepository` is the default implementation.  It persists FlowFiles to disk, and can optionally be configured to synchronize all changes to disk. This is very expensive and can significantly reduce NiFi performance. However, if it is `false`, there could be the potential for data loss if either there is a sudden power loss or the operating system crashes. The default value is `false`.
+
+|====
+|*Property*|*Description*
 |`nifi.flowfile.repository.wal.implementation`|If the repository implementation is configured to use the `WriteAheadFlowFileRepository`, this property can be used to specify which implementation of the
 Write-Ahead Log should be used. The default value is `org.apache.nifi.wali.SequentialAccessWriteAheadLog`. This version of the write-ahead log was added in version 1.6.0 of Apache NiFi and was developed
 in order to address an issue that exists in the older implementation. In the event of power loss or an operating system crash, the old implementation was susceptible to recovering FlowFiles
 incorrectly. This could potentially lead to the wrong attributes or content being assigned to a FlowFile upon restart, following the power loss or OS crash. However, one can still choose to opt into
 using the previous implementation and accept that risk, if desired (for example, if the new implementation were to exhibit some unexpected error).
-To do so, set the value of this property to `org.wali.MinimalLockingWriteAheadLog`.
+To do so, set the value of this property to `org.wali.MinimalLockingWriteAheadLog`. Another available implementation is `org.apache.nifi.wali.EncryptedSequentialAccessWriteAheadLog`.
 If the value of this property is changed, upon restart, NiFi will still recover the records written using the previously configured repository and delete the files written by the previously configured
 implementation.
 |`nifi.flowfile.repository.directory`*|The location of the FlowFile Repository. The default value is `./flowfile_repository`.
 |`nifi.flowfile.repository.partitions`|The number of partitions. The default value is `256`.
 |`nifi.flowfile.repository.checkpoint.interval`| The FlowFile Repository checkpoint interval. The default value is `2 mins`.
 |`nifi.flowfile.repository.always.sync`|If set to `true`, any change to the repository will be synchronized to the disk, meaning that NiFi will ask the operating system not to cache the information. This is very expensive and can significantly reduce NiFi performance. However, if it is `false`, there could be the potential for data loss if either there is a sudden power loss or the operating system crashes. The default value is `false`.
+|====
+
+[[encrypted-write-ahead-flowfile-repository-properties]]
+=== Encrypted Write Ahead FlowFile Repository Properties
+
+All of the properties defined above (see <<write-ahead-flowfile-repository,Write Ahead FlowFile Repository>>) still apply. Only encryption-specific properties are listed here. See <<user-guide.adoc#encrypted-flowfile,Encrypted FlowFile Repository in the User Guide>> for more information.
+
+NOTE: Unlike the encrypted content and provenance repositories, the repository implementation does not change here, only the _underlying write-ahead log implementation_. This allows for cleaner separation and more flexibility in implementation selection. The property that should be changed to enable encryption is `nifi.flowfile.repository.wal.implementation`.
+
+|====
+|*Property*|*Description*
+|`nifi.flowfile.repository.encryption.key.provider.implementation`|This is the fully-qualified class name of the **key provider**. A key provider is the datastore interface for accessing the encryption key to protect the content claims. There are currently two implementations -- `StaticKeyProvider` which reads a key directly from _nifi.properties_, and `FileBasedKeyProvider` which reads *n* many keys from an encrypted file. The interface is extensible, and HSM-backed or other providers are expected in the future.
+|`nifi.flowfile.repository.encryption.key.provider.location`|The path to the key definition resource (empty for `StaticKeyProvider`, `./keys.nkp` or similar path for `FileBasedKeyProvider`). For future providers like an HSM, this may be a connection string or URL.
+|`nifi.flowfile.repository.encryption.key.id`|The active key ID to use for encryption (e.g. `Key1`).
+|`nifi.flowfile.repository.encryption.key`|The key to use for `StaticKeyProvider`. The key format is hex-encoded (`0123456789ABCDEFFEDCBA98765432100123456789ABCDEFFEDCBA9876543210`) but can also be encrypted using the `./encrypt-config.sh` tool in NiFi Toolkit (see the <<toolkit-guide.adoc#encrypt_config_tool,Encrypt-Config Tool>> section in the link:toolkit-guide.html[NiFi Toolkit Guide] for more information).
+|`nifi.flowfile.repository.encryption.key.id.`*|Allows for additional keys to be specified for the `StaticKeyProvider`. For example, the line `nifi.flowfile.repository.encryption.key.id.Key2=012...210` would provide an available key `Key2`.
+|====
+
+The simplest configuration is below:
+
+....
+nifi.flowfile.repository.implementation=org.apache.nifi.controller.repository.WriteAheadFlowFileRepository
+nifi.flowfile.repository.wal.implementation=org.apache.nifi.wali.EncryptedSequentialAccessWriteAheadLog
+nifi.flowfile.repository.encryption.key.provider.implementation=org.apache.nifi.security.kms.StaticKeyProvider
+nifi.flowfile.repository.encryption.key.provider.location=
+nifi.flowfile.repository.encryption.key.id=Key1
+nifi.flowfile.repository.encryption.key=0123456789ABCDEFFEDCBA98765432100123456789ABCDEFFEDCBA9876543210
+....
+
+=== Volatile FlowFile Repository
+
+This implementation stores FlowFiles in memory instead of on disk.  It *will* result in data loss in the event of power/machine failure or a restart of NiFi.  To use this implementation, set  `nifi.flowfile.repository.implementation` to `org.apache.nifi.controller.repository.VolatileFlowFileRepository`.
+
+
+=== RocksDB FlowFile Repository
+
+This implementation makes use of the RocksDB key-value store.  It uses periodic synchronization to ensure that no created or received data is lost (as long as `nifi.flowfile.repository.rocksdb.accept.data.loss` is set `false`).  In the event of a failure (e.g. power loss), _work_ done on FlowFiles through the system (i.e. routing and transformation) may still be lost.  Specifically, the record of these actions may be lost, reverting the affected FlowFiles to a previous, valid state.  From there, they will resume their path through the flow as normal.  This guarantee comes at the expense of a delay on operations that add new data to the system.  This delay is configurable (as `nifi.flowfile.repository.rocksdb.sync.period`), and can be tuned to the individual system.
+
+The configuration parameters for this repository fall in to two categories, "NiFi-centric" and "RocksDB-centric".  The NiFi-centric settings have to do with the operations of the FlowFile Repository and its interaction with NiFi.  The RocksDB-centric settings directly correlate to settings on the underlying RocksDB repo.  More information on these settings can be found in the RocksDB documentation: https://github.com/facebook/rocksdb/wiki/RocksJava-Basics.
+
+NOTE:  Windows users will need to ensure "Microsoft Visual C++ 2015 Redistributable" is installed for this repository to work.  See the following link for more details: https://github.com/facebook/rocksdb/wiki/RocksJava-Basics#maven-windows.
+
+
+To use this implementation, set `nifi.flowfile.repository.implementation` to `org.apache.nifi.controller.repository.RocksDBFlowFileRepository`.
+
+*NiFi-centric Configuration Properties*:
+|====
+|*Property*|*Description*
+|`nifi.flowfile.repository.directory`|The location of the FlowFile Repository.
+The default value is`./flowfile_repository`.
+|`nifi.flowfile.repository.rocksdb.sync.warning.period`
+|How often to log warnings if unable to sync.
+The default value is 30 seconds.
+|`nifi.flowfile.repository.rocksdb.claim.cleanup.period`
+|How often to mark content claims destructible (so they can be removed from the content repo).
+The default value is 30 seconds.
+|`nifi.flowfile.repository.rocksdb.deserialization.threads`
+|How many threads to use on startup restoring the FlowFile state.
+The default value is 16.
+|`nifi.flowfile.repository.rocksdb.deserialization.buffer.size`
+|Size of the buffer to use on startup restoring the FlowFile state.
+The default value is 1000.
+|`nifi.flowfile.repository.rocksdb.sync.period`
+|Frequency at which to force a sync to disk.  This is the maximum period a data creation operation may block if `nifi.flowfile.repository.rocksdb.accept.data.loss` is `false`.
+The default value is 10 milliseconds.
+|`nifi.flowfile.repository.rocksdb.accept.data.loss`
+|Whether to accept the loss of received / created data.  Setting this `true` increases throughput if loss of data is acceptable.
+The default value is false.
+|`nifi.flowfile.repository.rocksdb.enable.stall.stop`
+|Whether to enable the stall / stop of writes to the repository based on configured limits.  Enabling this feature allows the system to protect itself by restricting (delaying or denying) operations that increase the total FlowFile count on the node to prevent the system from being overwhelmed.
+The default value is false.
+|`nifi.flowfile.repository.rocksdb.stall.period`
+|The period of time to stall when the specified criteria are encountered.
+The default value is 100 milliseconds.
+|`nifi.flowfile.repository.rocksdb.stall.flowfile.count`
+|The FlowFile count at which to begin stalling writes to the repo.
+The default value is 800000.
+|`nifi.flowfile.repository.rocksdb.stall.heap.usage.percent`
+|The heap usage at which to begin stalling writes to the repo.
+The default value is 95%.
+|`nifi.flowfile.repository.rocksdb.stop.flowfile.count`
+|The FlowFile count at which to begin stopping the creation of new FlowFiles.
+The default value is 1100000.
+|`nifi.flowfile.repository.rocksdb.stop.heap.usage.percent`
+|The heap usage at which to begin stopping the creation of new FlowFiles.
+The default value is 99.9%.
+|`nifi.flowfile.repository.rocksdb.remove.orphaned.flowfiles.on.startup`
+|Whether to allow the repository to remove FlowFiles it cannot identify on startup.  As this is often the result of a configuration or synchronization error, it is disabled by default.  This should only be enabled if you are absolutely certain you want to lose the data in question.
+The default value is false.
+|`nifi.flowfile.repository.rocksdb.enable.recovery.mode`
+|Whether to enable "recovery mode".  This limits the number of FlowFiles loaded into the graph at a time, while not actually removing any FlowFiles (or content) from the system.  This allows for the recovery of a system that is encountering OutOfMemory errors or similar on startup.  This should not be enabled unless necessary to recover a system, and should be disabled as soon as that has been accomplished.
+
+*WARNING:* While in recovery mode, *do not* make modifications to the graph.  Changes to the graph may result in the inability to restore further FlowFiles from the repository.
+The default value is false.
+|`nifi.flowfile.repository.rocksdb.recovery.mode.flowfile.count`
+|The number of FlowFiles to load into the graph when in "recovery mode".  As FlowFiles leave the system, additional FlowFiles will be loaded up to this limit.  This setting does not prevent FlowFiles from coming into the system via normal means.
+The default value is 5000.
+|====
+
+*RocksDB-centric Configuration Properties:*
+|====
+|*Property*|*Description*
+|`nifi.flowfile.repository.rocksdb.parallel.threads`
+|The number of threads to use for flush and compaction.  A good value is the number of cores.  See RockDB `DBOptions.setIncreaseParallelism()` for more information.
+The default value is 8.
+|`nifi.flowfile.repository.rocksdb.max.write.buffer.number`
+|The maximum number of write buffers that are built up in memory.  See RockDB `ColumnFamilyOptions.setMaxWriteBufferNumber()` / `max_write_buffer_number` for more information.
+The default value is 4.
+|`nifi.flowfile.repository.rocksdb.write.buffer.size`
+|The amount of data to build up in memory before converting to a sorted on disk file.  Larger values increase performance, especially during bulk loads.  Up to `max_write_buffer_number` write buffers may be held in memory at the same time, so you may wish to adjust this parameter to control memory usage.  See RockDB `ColumnFamilyOptions.setWriteBufferSize()` / `write_buffer_size` for more information.
+The default value is 256 MB.
+|`nifi.flowfile.repository.rocksdb.level.0.slowdown.writes.trigger`
+|A soft limit on number of level-0 files.  Writes are slowed at this point.  A values less than 0 means no write slow down will be triggered by the number of files in level-0.  See RocksDB `ColumnFamilyOptions.setLevel0SlowdownWritesTrigger()` / `level0_slowdown_writes_trigger` for more information.
+The default value is 20.
+|`nifi.flowfile.repository.rocksdb.level.0.stop.writes.trigger`
+|The maximum number of level-0 files.  Writes will be stopped at this point.  See RocksDB `ColumnFamilyOptions.setLevel0StopWritesTrigger()` / `level0_stop_writes_trigger` for more information.
+The default value is 40.
+|`nifi.flowfile.repository.rocksdb.delayed.write.bytes.per.second`
+|The limited write rate to the DB if slowdown is triggered.  RocksDB may decide to slow down more if the compaction gets behind further. See RocksDB `DBOptions.setDelayedWriteRate()` for more information.
+The default value is 16 MB.
+|`nifi.flowfile.repository.rocksdb.max.background.flushes`
+|Specifies the maximum number of concurrent background flush jobs.  See RocksDB `DBOptions.setMaxBackgroundFlushes()` / `max_background_flushes` for more information.
+The default value is 1.
+|`nifi.flowfile.repository.rocksdb.max.background.compactions`
+|Specifies the maximum number of concurrent background compaction jobs.  See RocksDB `DBOptions.setMaxBackgroundCompactions()` / `max_background_compactions` for more information.
+The default value is 1.
+|`nifi.flowfile.repository.rocksdb.min.write.buffer.number.to.merge`
+|The minimum number of write buffers to merge together before writing to storage.  See RocksDB `ColumnFamilyOptions.setMinWriteBufferNumberToMerge()` / `min_write_buffer_number_to_merge` for more information.
+The default value is 1.
+|`nifi.flowfile.repository.rocksdb.stat.dump.period`
+|The period at which to dump rocksdb.stats to the log.  See RocksDB `DBOptions.setStatsDumpPeriodSec()` / `stats_dump_period_sec` for more information.
+The default value is 600 sec.
 |====
 
 === Swap Management
@@ -3332,6 +2743,30 @@ this property specifies the maximum amount of time to keep the archived data. Th
 |`nifi.content.repository.always.sync`|If set to `true`, any change to the repository will be synchronized to the disk, meaning that NiFi will ask the operating system not to cache the information. This is very expensive and can significantly reduce NiFi performance. However, if it is `false`, there could be the potential for data loss if either there is a sudden power loss or the operating system crashes. The default value is `false`.
 |`nifi.content.viewer.url`|The URL for a web-based content viewer if one is available. It is blank by default.
 |====
+
+[[encrypted-file-system-content-repository-properties]]
+=== Encrypted File System Content Repository Properties
+
+All of the properties defined above (see <<file-system-content-repository-properties,File System Content Repository Properties>>) still apply. Only encryption-specific properties are listed here. See <<user-guide.adoc#encrypted-content,Encrypted Content Repository in the User Guide>> for more information.
+
+|====
+|*Property*|*Description*
+ |`nifi.content.repository.encryption.key.provider.implementation`|This is the fully-qualified class name of the **key provider**. A key provider is the datastore interface for accessing the encryption key to protect the content claims. There are currently two implementations -- `StaticKeyProvider` which reads a key directly from _nifi.properties_, and `FileBasedKeyProvider` which reads *n* many keys from an encrypted file. The interface is extensible, and HSM-backed or other providers are expected in the future.
+ |`nifi.content.repository.encryption.key.provider.location`|The path to the key definition resource (empty for `StaticKeyProvider`, `./keys.nkp` or similar path for `FileBasedKeyProvider`). For future providers like an HSM, this may be a connection string or URL.
+ |`nifi.content.repository.encryption.key.id`|The active key ID to use for encryption (e.g. `Key1`).
+ |`nifi.content.repository.encryption.key`|The key to use for `StaticKeyProvider`. The key format is hex-encoded (`0123456789ABCDEFFEDCBA98765432100123456789ABCDEFFEDCBA9876543210`) but can also be encrypted using the `./encrypt-config.sh` tool in NiFi Toolkit (see the <<toolkit-guide.adoc#encrypt_config_tool,Encrypt-Config Tool>> section in the link:toolkit-guide.html[NiFi Toolkit Guide] for more information).
+ |`nifi.content.repository.encryption.key.id.`*|Allows for additional keys to be specified for the `StaticKeyProvider`. For example, the line `nifi.content.repository.encryption.key.id.Key2=012...210` would provide an available key `Key2`.
+|====
+
+The simplest configuration is below:
+
+....
+nifi.content.repository.implementation=org.apache.nifi.controller.repository.crypto.EncryptedFileSystemRepository
+nifi.content.repository.encryption.key.provider.implementation=org.apache.nifi.security.kms.StaticKeyProvider
+nifi.content.repository.encryption.key.provider.location=
+nifi.content.repository.encryption.key.id=Key1
+nifi.content.repository.encryption.key=0123456789ABCDEFFEDCBA98765432100123456789ABCDEFFEDCBA9876543210
+....
 
 === Volatile Content Repository Properties
 
@@ -3417,7 +2852,9 @@ the `WriteAheadProvenanceRepository`, it cannot be changed back to the `Persiste
 	become before the Repository starts writing to a new Index. Large values for the shard size will result in more Java heap usage when searching the Provenance Repository but should
 	provide better performance. The default value is `500 MB`. However, this is due to the fact that defaults are tuned for very small environments where most users begin to use NiFi.
 	For production environments, it is advisable to change this value to `4` to `8 GB`. Once all Provenance Events in the index have been aged off from the "event files," the index
-	will be destroyed as well. *Note:* this value should be smaller than (no more than half of) the `nifi.provenance.repository.max.storage.size` property.
+	will be destroyed as well.
+
+  *NOTE:* This value should be smaller than (no more than half of) the `nifi.provenance.repository.max.storage.size` property.
 |`nifi.provenance.repository.max.attribute.length`|Indicates the maximum length that a FlowFile attribute can be when retrieving a Provenance Event from the repository.
 	If the length of any attribute exceeds this value, it will be truncated when the event is retrieved. The default value is `65536`.
 |`nifi.provenance.repository.concurrent.merge.threads`|Apache Lucene creates several "segments" in an Index. These segments are periodically merged together in order to provide faster
@@ -3447,7 +2884,7 @@ All of the properties defined above (see <<write-ahead-provenance-repository-pro
  |`nifi.provenance.repository.encryption.key.provider.implementation`|This is the fully-qualified class name of the **key provider**. A key provider is the datastore interface for accessing the encryption key to protect the provenance events. There are currently two implementations -- `StaticKeyProvider` which reads a key directly from _nifi.properties_, and `FileBasedKeyProvider` which reads *n* many keys from an encrypted file. The interface is extensible, and HSM-backed or other providers are expected in the future.
  |`nifi.provenance.repository.encryption.key.provider.location`|The path to the key definition resource (empty for `StaticKeyProvider`, `./keys.nkp` or similar path for `FileBasedKeyProvider`). For future providers like an HSM, this may be a connection string or URL.
  |`nifi.provenance.repository.encryption.key.id`|The active key ID to use for encryption (e.g. `Key1`).
- |`nifi.provenance.repository.encryption.key`|The key to use for `StaticKeyProvider`. The key format is hex-encoded (`0123456789ABCDEFFEDCBA98765432100123456789ABCDEFFEDCBA9876543210`) but can also be encrypted using the <<encrypt-config_tool,`./encrypt-config.sh`>> tool in NiFi Toolkit.
+ |`nifi.provenance.repository.encryption.key`|The key to use for `StaticKeyProvider`. The key format is hex-encoded (`0123456789ABCDEFFEDCBA98765432100123456789ABCDEFFEDCBA9876543210`) but can also be encrypted using the `./encrypt-config.sh` tool in NiFi Toolkit (see the <<toolkit-guide.adoc#encrypt_config_tool,Encrypt-Config Tool>> section in the link:toolkit-guide.html[NiFi Toolkit Guide] for more information).
  |`nifi.provenance.repository.encryption.key.id.`*|Allows for additional keys to be specified for the `StaticKeyProvider`. For example, the line `nifi.provenance.repository.encryption.key.id.Key2=012...210` would provide an available key `Key2`.
 |====
 
@@ -3834,8 +3271,10 @@ Providing three total network interfaces, including  `nifi.web.https.network.int
 |`nifi.web.proxy.host`|A comma separated list of allowed HTTP Host header values to consider when NiFi is running securely and will be receiving requests to a different host[:port] than it is bound to.
 For example, when running in a Docker container or behind a proxy (e.g. localhost:18443, proxyhost:443). By default, this value is blank meaning NiFi should only allow requests sent to the
 host[:port] that NiFi is bound to.
-|`nifi.web.proxy.context.path`|A comma separated list of allowed HTTP X-ProxyContextPath or X-Forwarded-Context header values to consider. By default, this value is
+|`nifi.web.proxy.context.path`|A comma separated list of allowed HTTP X-ProxyContextPath, X-Forwarded-Context, or X-Forwarded-Prefix header values to consider. By default, this value is
 blank meaning all requests containing a proxy context path are rejected. Configuring this property would allow requests where the proxy path is contained in this listing.
+|`nifi.web.max.content.size`|The maximum size for PUT and POST requests.  The default value is `20 MB`.
+|`nifi.web.max.requests.per.second`|The maximum number of requests from a connection per second. Requests in excess of this are first delayed, then throttled.
 |====
 
 [[security_properties]]
@@ -3857,8 +3296,8 @@ These properties pertain to various security features in NiFi. Many of these pro
 |`nifi.security.truststore`*|The full path and name of the truststore. It is blank by default.
 |`nifi.security.truststoreType`|The truststore type. It is blank by default.
 |`nifi.security.truststorePasswd`|The truststore password. It is blank by default.
-|`nifi.security.needClientAuth`|This indicates whether client authentication in the cluster protocol. It is blank by default.
 |`nifi.security.user.authorizer`|Specifies which of the configured Authorizers in the _authorizers.xml_ file to use.  By default, it is set to `file-provider`.
+|`nifi.security.allow.anonymous.authentication`|Whether anonymous authentication is allowed when running over HTTPS. If set to true, client certificates are not required to connect via TLS.
 |`nifi.security.user.login.identity.provider`|This indicates what type of login identity provider to use. The default value is blank, can be set to the identifier from a provider
 in the file specified in `nifi.login.identity.provider.configuration.file`. Setting this property will trigger NiFi to support username/password authentication.
 |`nifi.security.ocsp.responder.url`|This is the URL for the Online Certificate Status Protocol (OCSP) responder if one is being used. It is blank by default.
@@ -3896,6 +3335,7 @@ nifi.security.group.mapping.transform.anygroup=LOWER
 
 NOTE: These mappings are applied to any legacy groups referenced in the _authorizers.xml_ as well as groups imported from LDAP.
 
+[[cluster_common_properties]]
 === Cluster Common Properties
 
 When setting up a NiFi cluster, these properties should be configured the same way on all nodes.
@@ -3903,9 +3343,11 @@ When setting up a NiFi cluster, these properties should be configured the same w
 |====
 |*Property*|*Description*
 |`nifi.cluster.protocol.heartbeat.interval`|The interval at which nodes should emit heartbeats to the Cluster Coordinator. The default value is `5 sec`.
+|`nifi.cluster.protocol.heartbeat.missable.max`|Maximum number of heartbeats a Cluster Coordinator can miss for a node in the cluster before the Cluster Coordinator updates the node status to Disconnected. The default value is `8`.
 |`nifi.cluster.protocol.is.secure`|This indicates whether cluster communications are secure. The default value is `false`.
 |====
 
+[[cluster_node_properties]]
 === Cluster Node Properties
 
 Configure these properties for cluster nodes.
@@ -3927,31 +3369,18 @@ from the remote node before considering the communication with the node a failur
 |`nifi.cluster.node.max.concurrent.requests`|The maximum number of outstanding web requests that can be replicated to nodes in the cluster. If this number of requests is exceeded, the embedded Jetty server will return a "409: Conflict" response.  This property defaults to `100`.
 |`nifi.cluster.firewall.file`|The location of the node firewall file. This is a file that may be used to list all the nodes that are allowed to connect
 to the cluster. It provides an additional layer of security. This value is blank by default, meaning that no firewall file is to be used.
-|`nifi.cluster.flow.election.max.wait.time`|Specifies the amount of time to wait before electing a Flow as the "correct" Flow. If the number of Nodes that have voted is equal to the number specified by the `nifi.cluster.flow.election.max.candidates` property, the cluster will not wait this long. The default value is `5 mins`. Note that the time starts as soon as the first vote is cast.
-|`nifi.cluster.flow.election.max.candidates`|Specifies the number of Nodes required in the cluster to cause early election of Flows. This allows the Nodes in the cluster to avoid having to wait a long time before starting processing if we reach at least this number of nodes in the cluster.
+|`nifi.cluster.flow.election.max.wait.time`|Specifies the amount of time to wait before electing a Flow as the "correct" Flow. If the number of Nodes that have voted is equal to the number specified
+ by the `nifi.cluster.flow.election.max.candidates` property, the cluster will not wait this long. The default value is `5 mins`. Note that the time starts as soon as the first vote is cast.
+|`nifi.cluster.flow.election.max.candidates`|Specifies the number of Nodes required in the cluster to cause early election of Flows. This allows the Nodes in the cluster to avoid having to wait a
+long time before starting processing if we reach at least this number of nodes in the cluster.
+|`nifi.cluster.load.balance.port`|Specifies the port to listen on for incoming connections for load balancing data across the cluster. The default value is `6342`.
+|`nifi.cluster.load.balance.host`|Specifies the hostname to listen on for incoming connections for load balancing data across the cluster. If not specified, will default to the value used by the `nifi.cluster.node.address` property.
+|`nifi.cluster.load.balance.connections.per.node`|The maximum number of connections to create between this node and each other node in the cluster. For example, if there are 5 nodes in the cluster and this value is set to 4, there will be up to 20 socket connections established for load-balancing purposes (5 x 4 = 20). The default value is `4`.
+|`nifi.cluster.load.balance.max.thread.count`|The maximum number of threads to use for transferring data from this node to other nodes in the cluster. While a given thread can only write to a single socket at a time, a single thread is capable of servicing multiple connections simultaneously because a given connection may not be available for reading/writing at any given time. The default value is `8`—i.e., up to 8 threads will be responsible for transferring data to other nodes, regardless of how many nodes are in the cluster.
+
+*NOTE:* Increasing this value will allow additional threads to be used for communicating with other nodes in the cluster and writing the data to the Content and FlowFile Repositories. However, if this property is set to a value greater than the number of nodes in the cluster multiplied by the number of connections per node (`nifi.cluster.load.balance.connections.per.node`), then no further benefit will be gained and resources will be wasted.
+|`nifi.cluster.load.balance.comms.timeout`|When communicating with another node, if this amount of time elapses without making any progress when reading from or writing to a socket, then a TimeoutException will be thrown. This will then result in the data either being retried or sent to another node in the cluster, depending on the configured Load Balancing Strategy. The default value is `30 sec`.
 |====
-
-[[claim_management]]
-=== Claim Management
-
-Whenever a request is made to change the dataflow, it is important that
-all nodes in the NiFi cluster are kept in-sync. In order to allow for this, NiFi employs a two-phase commit. The request
-is first replicated to all nodes in the cluster, simply asking whether or not the request is allowed. Each node then determines
-whether or not it will allow the request and if so issues a "Claim" on the component(s) being modified. This claim can be
-thought of as a mutually-exclusive lock that is owned by the requestor. Once all nodes have voted on whether or not the request
-is allowed, the node from which the request originated must decide whether or not to complete the request. If any node voted
-'NO' then the request is canceled and the Claim is canceled with an error message sent back to the user. However, if the nodes
-all vote 'YES' then the request is completed. In this sort of distributed environment, it is possible that the node that
-made the original request will fail after the voting has occurred and before the request was completed. This would leave
-the component locked indefinitely so that no more changes can be made to the component. In order to avoid this, the Claim
-will time out after some period of time. These properties determines how these locks are managed.
-
-|====
-|*Property*|*Description*
-|`nifi.cluster.request.replication.claim.timeout`|Specifies how long to wait before considering a lock 'expired' and automatically
-unlocking.
-|====
-
 
 === ZooKeeper Properties
 
@@ -3993,6 +3422,22 @@ that is specified.
 |`nifi.kerberos.spengo.authentication.expiration`*|The expiration duration of a successful Kerberos user authentication, if used. The default value is `12 hours`.
 |====
 
+[[analytics_properties]]
+=== Analytics Properties
+
+These properties determine the behavior of the internal NiFi predictive analytics capability, such as backpressure prediction, and should be configured the same way on all nodes.
+
+|====
+|*Property*|*Description*
+|`nifi.analytics.predict.enabled`|This indicates whether prediction should be enabled for the cluster. The default is `false`.
+|`nifi.analytics.predict.interval`|The time interval for which analytical predictions (e.g. queue saturation) should be made. The default value is `3 mins`.
+|`nifi.analytics.query.interval`|The time interval to query for past observations (e.g. the last 3 minutes of snapshots). The default value is `5 mins`. NOTE: This value should be at least 3 times greater than `nifi.components.status.snapshot.frequency` to ensure enough observations are retrieved for predictions.
+|`nifi.analytics.connection.model.implementation`|The implementation class for the status analytics model used to make connection predictions.  The default value is `org.apache.nifi.controller.status.analytics.models.OrdinaryLeastSquares`.
+|`nifi.analytics.connection.model.score.name`|The name of the scoring type that should be used to evaluate the model.  The default value is `rSquared`.
+|`nifi.analytics.connection.model.score.threshold`|The threshold for the scoring value (where model score should be above given threshold).  The default value is `.90`.
+
+|====
+
 [[custom_properties]]
 === Custom Properties
 
@@ -4012,8 +3457,190 @@ To configure custom properties for use with NiFi’s Expression Language:
 
 Custom properties can also be configured in the NiFi UI.  See the <<user-guide.adoc#Variables_Window,Variables Window>> section in the User Guide for more information.
 
-[WARNING]
-.Upgrading
-============
-Take care when configuring the properties above that are marked with an asterisk (*). To make the upgrade process easier, it is advisable to change the default configurations to locations outside the main root installation directory. In this way, these items can remain in their configured location through an upgrade, and NiFi can find all the repositories and configuration files and pick up where it left off as soon as the old version is stopped and the new version is started. Furthermore, the administrator may reuse this _nifi.properties_ file and any other configuration files without having to re-configure them each time an upgrade takes place. As previously noted, it is important to check for any changes in the _nifi.properties_ file of the new version when upgrading and make sure they are reflected in the _nifi.properties_ file you use.
-============
+
+[[upgrading_nifi]]
+== Upgrading NiFi
+
+The instructions below are general steps to follow when upgrading from a 1.x.0 release to another.
+
+Prior to upgrade you should review the link:https://cwiki.apache.org/confluence/display/NIFI/Release+Notes[Release Notes^] carefully to ensure that you understand the changes made in the new version and the impact they may have on your existing dataflows and/or environment. Additionally, check the link:https://cwiki.apache.org/confluence/display/NIFI/Migration+Guidance[Migration Guidance^] page for items that you should be aware of when moving between specific NiFi versions.
+
+WARNING: All nodes in a cluster must be upgraded to the same NiFi version as nodes with different NiFi versions are not supported in the same cluster.
+
+=== Preserve Custom Processors
+
+If you have any custom NARs, preserve them during upgrade by storing them in a centralized location as follows:
+
+1. Create a second library directory called `custom_lib`.
+2. Move your custom NARs to this new lib directory.
+3. Add a new line to the _nifi.properties_ file to specify this new lib directory:
+
+   nifi.nar.library.directory=./lib
+   nifi.nar.library.directory.custom=/opt/configuration_resources/custom_lib
+
+=== Preserve Modified NARs
+
+If you have modified any of the default NAR files, an upgrade will overwrite these changes. Preserve your customizations as follows:
+
+1. Identify and save the changes you made to the default NAR files.
+2. Perform your NiFi upgrade.
+3. Implement the same NAR file changes in your new NiFi instance.
+
+=== Clear Activity and Shutdown Existing NiFi
+
+On your existing NiFi installation:
+
+1. Stop all the source processors to prevent the ingestion of new data.
+2. Allow NiFi to run until there is no active data in any of the queues in the dataflow(s).
+3. Shutdown your existing NiFi instance(s).
+
+=== Install the new NiFi Version
+
+Install the new NiFi into a directory parallel to the existing NiFi installation.
+
+1. Download the link:https://nifi.apache.org/download.html[latest version^] of Apache NiFi.
+2. Uncompress the NiFi _.tar_ file (`tar -xvzf file-name`) into a directory parallel to your existing NiFi directory. For example, if your existing NiFi installation is installed in `/opt/nifi/existing-nifi/`, install your new NiFi version in `/opt/nifi/new-nifi/`.
+3. If you are upgrading a NiFi cluster, repeat these steps on each node in the cluster.
+
+  Host Machine - Node 1
+  |--> opt/
+     |--> existing-nifi
+     |--> new-nifi
+
+  Host Machine - Node 2
+  |--> opt/
+     |--> existing-nifi
+     |--> new-nifi
+
+  Host Machine - Node 3
+  |--> opt/
+     |--> existing-nifi
+     |--> new-nifi
+
+NOTE: Make sure that all file and directory ownerships for your new NiFi directories match what you set on the existing directories.
+
+=== Update the Configuration Files for Your New NiFi Installation
+
+Use the configuration files from your existing NiFi installation to manually update the corresponding properties in your new NiFi deployment.
+
+WARNING: In general, do not copy configuration files from your existing NiFi version to the new NiFi version. The newer configuration files may introduce new properties that would be lost if you copy and paste configuration files.
+
+Use the following table to guide the update of configuration files located in `<installation-directory>/conf`.
+
+[options="header"]
+|===
+| Configuration file	                       |  Necessary changes
+|_authorizers.xml_                           | Copy the `<authorizer>...</authorizer>` configured in the existing _authorizers.xml_  to the new NiFi file.
+
+If you are using the `file-provider` authorizer, ensure that you copy the _users.xml_ and _authorizations.xml_ files from the existing to the new NiFi.
+
+Configuration best practices recommend creating a separate location outside of the NiFi base directory for storing such configuration files, for example: `/opt/nifi/configuration-resources/`. If you are storing these files in a separate directory, you do not need to move them. Instead, ensure that the new NiFi is pointing to the same files.
+|_bootstrap-notification-services.xml_       | Use the existing NiFi _bootstrap-notification-services.xml_  file to update properties in the new NiFi.
+|_bootstrap.conf_                            | Use the existing NiFi _bootstrap.conf_ file to update properties in the new NiFi.
+|_flow.xml.gz_                               | If you retained the default location for storing flows (`<installation-directory>/conf/`), copy _flow.xml.gz_ from the existing to the new NiFi base install `conf` directory. If you stored flows to an external location via _nifi.properties_, update the property `nifi.flow.configuration.file` to point there.
+
+If you are encrypting sensitive component properties in your dataflow via the sensitive properties key in _nifi.properties_, make sure the same key is used when copying over your _flow.xml.gz_.  If you need to change the key, see the <<sensitive_flow_migration>> section below.
+
+.8+|_nifi.properties_
+|Use the existing _nifi.properties_ to populate the same properties in the new NiFi file.
+
+*Note:* This file contains the majority of NiFi configuration settings, so ensure that you have copied the values correctly.
+
+|If you followed NiFi best practices, the following properties should be pointing to external directories outside of the base NiFi installation path.
+
+If the below properties point to directories inside the NiFi base installation path, you must copy the target directories to the new NiFi. Stop your existing NiFi installation before you do this.
+
+|`nifi.flow.configuration.file=`
+
+If you have retained the default value (`./conf/flow.xml.gz`), copy _flow.xml.gz_ from the existing to the new NiFi base install conf directory.
+
+If you stored flows to an external location, update the property value to point there.
+
+|`nifi.flow.configuration.archive.dir=`
+
+Same applies as above if you want to retain archived copies of the _flow.xml.gz_.
+
+|`nifi.database.directory=`
+
+Best practices recommends that you use an external location for each repository. Point the new NiFi at the same external database repository location.
+
+|`nifi.flowfile.repository.directory=`
+
+Best practices recommends that you use an external location for each repository. Point the new NiFi at the same external flowfile repository location.
+
+*Warning:* You may experience data loss if flowfile repositories are not accessible to the new NiFi.
+
+|`nifi.content.repository.directory.default=`
+
+Best practices recommends that you use an external location for each repository. Point the new NiFi at the same external content repository location.
+
+Your existing NiFi may have multiple content repos defined. Make sure the exact same property names are used and point to the appropriate matching content repo locations. For example:
+
+`nifi.content.repository.directory.content1=`
+`nifi.content.repository.directory.content2=`
+
+*Warning:* You may experience data loss if content repositories are not accessible to the new NiFi.
+
+*Warning:* You may experience data loss if property names are wrong or the property points to the wrong content repository.
+|`nifi.provenance.repository.directory.default=`
+
+Best practices recommends that you use an external location for each repository. Point the new NiFi at the same external provenance repository location.
+
+Your existing NiFi may have multiple content repos defined. Make sure the exact same property names are used and point to the appropriate matching provenance repo locations. For example:
+
+`nifi.provenance.repository.directory.provenance1=`
+`nifi.provenance.repository.directory.provenance2=`
+
+*Note:* You may not be able to query old events if provenance repos are not moved correctly or properties are not updated correctly.
+
+.4+| _state-management.xml_ |For the `local-provider` state provider, verify the location of the local directory.
+
+If you have retained the default location (`./state/local`), copy the complete directory tree to the new NiFi. The existing NiFi should be stopped if you are copying this directory because it may be constantly writing to this directory while running.
+
+Configuration best practices recommend that you move the state to an external directory like `/opt/nifi/configuration-resources/` to facilitate easier upgrading later.
+| For a NiFi cluster, the `cluster-provider`
+ZooKeeper “Connect String" property should be set to the same external ZooKeeper as the existing NiFi installation.
+| For a NiFi cluster, make sure the `cluster-provider` ZooKeeper "Root Node" property matches exactly the value used in the existing NiFi.
+| If you are also setting up a new external ZooKeeper, see the <<zookeeper_migrator>> section for instructions on how to move ZooKeeper information from one cluster to another and migrate ZooKeeper node ownership.
+
+|===
+
+WARNING: Double check all configured properties for typos.
+
+[[sensitive_flow_migration]]
+==== Migrating a Flow with Sensitive Properties
+
+When a value is set for `nifi.sensitive.props.key` in _nifi.properties_, the specified key is used to encrypt sensitive properties in the flow (e.g. password fields in components). If the key needs to change, the Encrypt-Config tool in the NiFi Toolkit can migrate the sensitive properties key and update the _flow.xml.gz_. Specifically, Encrypt-Config:
+
+1. Reads the existing _flow.xml.gz_ and decrypts the sensitive values using the current key.
+2. Encrypts all the sensitive values with a specified new key.
+3. Updates the _nifi.properties_ and _flow.xml.gz_ files or creates new versions of them.
+
+As an example, assume version 1.9.2 is the existing NiFi instance and the sensitive properties key is set to `password`. The goal is to move the 1.9.2 _flow.xml.gz_ to a 1.10.0 instance with a new sensitive properties key: `new_password`. Running the following Encrypt-Config command would read in the _flow.xml.gz_ and _nifi.properties_ files from 1.9.2 using the original sensitive properties key and write out new versions in 1.10.0 with the sensitive properties encrypted with the new password:
+
+```
+$ ./nifi-toolkit-1.10.0/bin/encrypt-config.sh -f /path/to/nifi/nifi-1.9.2/conf/flow.xml.gz -g /path/to/nifi/nifi-1.10.0/conf/flow.xml.gz -s new_password -n /path/to/nifi/nifi-1.9.2/conf/nifi.properties -o /path/to/nifi/nifi-1.10.0/conf/nifi.properties -x
+```
+
+where:
+
+    * `-f` specifies the source _flow.xml.gz_ (nifi-1.9.2)
+    * `-g` specifies the destination _flow.xml.gz_ (nifi-1.10.0)
+    * `-s` specifies the new sensitive properties key (`new_password`)
+    * `-n` specifies the source _nifi.properties_ (nifi-1.9.2)
+    * `-o` specifies the destination _nifi.properties_ (nifi-1.10.0)
+    * `-x` tells Encrypt-Config to only process the sensitive properties
+
+For more information see the <<toolkit-guide.adoc#encrypt_config_tool,Encrypt-Config Tool>> section in the NiFi Toolkit Guide.
+
+=== Start New NiFi
+
+In your new NiFi installation:
+
+1. Start each of your new NiFi instances.
+2. Verify that:
+   * All your dataflows have returned to a running state. Some processors may have new properties that need to be configured, in which case they will be stopped and marked Invalid (image:iconAlert.png["Invalid"]).
+   * All your expected controller services and reporting tasks are running again. Address any controller services or reporting tasks that are marked Invalid (image:iconAlert.png["Invalid"]).
+3. After confirming your new NiFi instances are stable and working as expected, the old installation can be removed.
+
+NOTE:  If the original NiFi was setup to run as a service, update any symlinks or service scripts to point to the new NiFi version executables.

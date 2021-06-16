@@ -22,7 +22,7 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -57,9 +57,13 @@ import java.util.Set;
         "Note: Be mindfull that RFC3164 is informational and a wide range of different implementations are present in" +
         " the wild.")
 public class SyslogReader extends SchemaRegistryService implements RecordReaderFactory {
+
     public static final String GENERIC_SYSLOG_SCHEMA_NAME = "default-syslog-schema";
     static final AllowableValue GENERIC_SYSLOG_SCHEMA = new AllowableValue(GENERIC_SYSLOG_SCHEMA_NAME, "Use Generic Syslog Schema",
             "The schema will be the default Syslog schema.");
+
+    static final String RAW_MESSAGE_NAME = "_raw";
+
     public static final PropertyDescriptor CHARSET = new PropertyDescriptor.Builder()
             .name("Character Set")
             .description("Specifies which character set of the Syslog messages")
@@ -67,14 +71,24 @@ public class SyslogReader extends SchemaRegistryService implements RecordReaderF
             .defaultValue("UTF-8")
             .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
             .build();
+    public static final PropertyDescriptor ADD_RAW = new PropertyDescriptor.Builder()
+            .displayName("Raw message")
+            .name("syslog-5424-reader-raw-message")
+            .description("If true, the record will have a " + RAW_MESSAGE_NAME + " field containing the raw message")
+            .required(true)
+            .defaultValue("false")
+            .allowableValues("true", "false")
+            .build();
 
     private volatile SyslogParser parser;
+    private volatile static boolean includeRaw;
     private volatile RecordSchema recordSchema;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        final List<PropertyDescriptor> properties = new ArrayList<>(1);
+        final List<PropertyDescriptor> properties = new ArrayList<>(2);
         properties.add(CHARSET);
+        properties.add(ADD_RAW);
         return properties;
     }
 
@@ -83,6 +97,7 @@ public class SyslogReader extends SchemaRegistryService implements RecordReaderF
     public void onEnabled(final ConfigurationContext context) {
         final String charsetName = context.getProperty(CHARSET).getValue();
         parser = new SyslogParser(Charset.forName(charsetName));
+        includeRaw = context.getProperty(ADD_RAW).asBoolean();
         recordSchema = createRecordSchema();
     }
 
@@ -99,12 +114,7 @@ public class SyslogReader extends SchemaRegistryService implements RecordReaderF
     }
 
     @Override
-    protected SchemaAccessStrategy getSchemaAccessStrategy(final String strategy, final SchemaRegistry schemaRegistry, final ConfigurationContext context) {
-        return createAccessStrategy();
-    }
-
-    @Override
-    protected SchemaAccessStrategy getSchemaAccessStrategy(final String strategy, final SchemaRegistry schemaRegistry, final ValidationContext context) {
+    protected SchemaAccessStrategy getSchemaAccessStrategy(final String strategy, final SchemaRegistry schemaRegistry, final PropertyContext context) {
         return createAccessStrategy();
     }
 
@@ -118,6 +128,10 @@ public class SyslogReader extends SchemaRegistryService implements RecordReaderF
         fields.add(new RecordField(SyslogAttributes.HOSTNAME.key(), RecordFieldType.STRING.getDataType(), true));
         fields.add(new RecordField(SyslogAttributes.BODY.key(), RecordFieldType.STRING.getDataType(), true));
 
+        if(includeRaw) {
+            fields.add(new RecordField(RAW_MESSAGE_NAME, RecordFieldType.STRING.getDataType(), true));
+        }
+
         SchemaIdentifier schemaIdentifier = new StandardSchemaIdentifier.Builder().name(GENERIC_SYSLOG_SCHEMA_NAME).build();
         final RecordSchema schema = new SimpleRecordSchema(fields,schemaIdentifier);
         return schema;
@@ -127,9 +141,8 @@ public class SyslogReader extends SchemaRegistryService implements RecordReaderF
         return new SchemaAccessStrategy() {
             private final Set<SchemaField> schemaFields = EnumSet.noneOf(SchemaField.class);
 
-
             @Override
-            public RecordSchema getSchema(Map<String, String> variables, InputStream contentStream, RecordSchema readSchema) throws SchemaNotFoundException {
+            public RecordSchema getSchema(Map<String, String> variables, InputStream contentStream, RecordSchema readSchema) {
                 return recordSchema;
             }
 
@@ -141,8 +154,8 @@ public class SyslogReader extends SchemaRegistryService implements RecordReaderF
     }
 
     @Override
-    public RecordReader createRecordReader(final Map<String, String> variables, final InputStream in, final ComponentLog logger) throws IOException, SchemaNotFoundException {
+    public RecordReader createRecordReader(final Map<String, String> variables, final InputStream in, final long inputLength, final ComponentLog logger) throws IOException, SchemaNotFoundException {
         final RecordSchema schema = getSchema(variables, in, null);
-        return new SyslogRecordReader(parser, in, schema);
+        return new SyslogRecordReader(parser, includeRaw, in, schema);
     }
 }

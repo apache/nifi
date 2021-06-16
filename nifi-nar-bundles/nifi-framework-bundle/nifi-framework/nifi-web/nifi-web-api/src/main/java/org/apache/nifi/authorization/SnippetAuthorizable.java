@@ -29,7 +29,7 @@ public interface SnippetAuthorizable {
      *
      * @return authorizable for parent process group of this snippet
      */
-    Authorizable getParentProcessGroup();
+    ProcessGroupAuthorizable getParentProcessGroup();
 
     /**
      * The authorizables for selected processors. Non null

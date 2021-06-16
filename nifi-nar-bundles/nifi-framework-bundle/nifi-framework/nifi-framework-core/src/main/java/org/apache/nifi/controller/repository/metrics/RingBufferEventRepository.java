@@ -25,7 +25,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 public class RingBufferEventRepository implements FlowFileEventRepository {
-
     private final int numMinutes;
     private final ConcurrentMap<String, EventContainer> componentEventMap = new ConcurrentHashMap<>();
 
@@ -52,12 +51,9 @@ public class RingBufferEventRepository implements FlowFileEventRepository {
     }
 
     @Override
-    public void purgeTransferEvents(final long cutoffEpochMilliseconds) {
-        // This is done so that if a processor is removed from the graph, its events
-        // will be removed rather than being kept in memory
-        for (final EventContainer container : componentEventMap.values()) {
-            container.purgeEvents(cutoffEpochMilliseconds);
-        }
+    public FlowFileEvent reportTransferEvents(final String componentId, final long now) {
+        final EventContainer container = componentEventMap.get(componentId);
+        return container == null ? null : container.generateReport(now);
     }
 
     @Override

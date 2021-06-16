@@ -34,8 +34,8 @@ import org.apache.nifi.toolkit.cli.impl.command.registry.bucket.CreateBucket;
 import org.apache.nifi.toolkit.cli.impl.command.registry.bucket.ListBuckets;
 import org.apache.nifi.toolkit.cli.impl.command.registry.flow.CreateFlow;
 import org.apache.nifi.toolkit.cli.impl.command.registry.flow.ImportFlowVersion;
-import org.apache.nifi.toolkit.cli.impl.result.BucketsResult;
-import org.apache.nifi.toolkit.cli.impl.result.RegistryClientIDResult;
+import org.apache.nifi.toolkit.cli.impl.result.registry.BucketsResult;
+import org.apache.nifi.toolkit.cli.impl.result.nifi.RegistryClientIDResult;
 import org.apache.nifi.toolkit.cli.impl.result.StringResult;
 
 import java.io.IOException;

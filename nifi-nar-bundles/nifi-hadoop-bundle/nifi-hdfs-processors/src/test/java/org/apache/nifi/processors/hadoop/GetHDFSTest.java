@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.hadoop;
 
+import org.apache.commons.lang3.SystemUtils;
 import org.apache.hadoop.fs.Path;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -29,7 +30,9 @@ import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.File;
@@ -48,6 +51,11 @@ public class GetHDFSTest {
 
     private NiFiProperties mockNiFiProperties;
     private KerberosProperties kerberosProperties;
+
+    @BeforeClass
+    public static void setUpSuite() {
+        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
+    }
 
     @Before
     public void setup() {

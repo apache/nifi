@@ -146,38 +146,16 @@
                                 $('#' + remotePortId + '-batch-size').text(batchSettings.size);
                                 $('#' + remotePortId + '-batch-duration').text(batchSettings.duration);
 
-                            }).fail(function (xhr, status, error) {
-                                if (xhr.status === 400) {
-                                    var errors = xhr.responseText.split('\n');
-
-                                    var content;
-                                    if (errors.length === 1) {
-                                        content = $('<span></span>').text(errors[0]);
-                                    } else {
-                                        content = nfCommon.formatUnorderedList(errors);
-                                    }
-
-                                    nfDialog.showOkDialog({
-                                        dialogContent: content,
-                                        headerText: 'Remote Process Group Ports'
-                                    });
-                                } else {
-                                    nfErrorHandler.handleAjaxError(xhr, status, error);
-                                }
-                            }).always(function () {
                                 // close the dialog
                                 $('#remote-port-configuration').modal('hide');
-                            });
+                            }).fail(nfErrorHandler.handleConfigurationUpdateAjaxError);
                         } else {
                             nfDialog.showOkDialog({
-                                headerText: 'Remote Process Group Ports',
+                                headerText: 'Configuration Error',
                                 dialogContent: portValidationErrors.reduce(function (prev, curr) {
                                     return typeof(prev) === 'string' ? prev + ' ' + curr : curr;
                                 })
                             });
-
-                            // close the dialog
-                            $('#remote-port-configuration').modal('hide');
                         }
                     }
                 }
@@ -299,8 +277,8 @@
         var remoteProcessGroupId = $('#remote-process-group-ports-id').text();
         var remoteProcessGroup = d3.select('#id-' + remoteProcessGroupId);
 
-        // if can modify, support updating the remote group port
-        if (nfCanvasUtils.canModify(remoteProcessGroup)) {
+        // if can operate, support updating the remote group port transmission status
+        if (nfCanvasUtils.canOperate(remoteProcessGroup)) {
 
             var createTransmissionSwitch = function (port) {
                 var transmissionSwitch;
@@ -330,33 +308,35 @@
             var transmissionSwitch = createTransmissionSwitch(port);
             transmissionSwitch.appendTo(portContainerEditContainer);
 
-            // only support configuration when the remote port exists
-            if (port.exists === true && port.connected === true) {
-                // create the button for editing the ports configuration
-                var editRemotePort = $('<button class="button edit-remote-port fa fa-pencil"></button>').click(function () {
-                    var portName = $('#' + portId + '-name').text();
-                    var portConcurrentTasks = $('#' + portId + '-concurrent-tasks').text();
-                    var portCompression = $('#' + portId + '-compression').text() === 'Yes';
-                    var batchCount = $('#' + portId + '-batch-count').text();
-                    var batchSize = $('#' + portId + '-batch-size').text();
-                    var batchDuration = $('#' + portId + '-batch-duration').text();
+            // only support configuration when the remote port exists and if can modify
+            if (nfCanvasUtils.canModify(remoteProcessGroup)) {
+                if (port.exists === true && port.connected === true) {
+                    // create the button for editing the ports configuration
+                    var editRemotePort = $('<button class="button edit-remote-port fa fa-pencil"></button>').click(function () {
+                        var portName = $('#' + portId + '-name').text();
+                        var portConcurrentTasks = $('#' + portId + '-concurrent-tasks').text();
+                        var portCompression = $('#' + portId + '-compression').text() === 'Yes';
+                        var batchCount = $('#' + portId + '-batch-count').text();
+                        var batchSize = $('#' + portId + '-batch-size').text();
+                        var batchDuration = $('#' + portId + '-batch-duration').text();
 
-                    // show the configuration dialog
-                    configureRemotePort(port.id, portName, portConcurrentTasks, portCompression, batchCount, batchSize, batchDuration, portType);
-                }).appendTo(portContainerEditContainer);
+                        // show the configuration dialog
+                        configureRemotePort(port.id, portName, portConcurrentTasks, portCompression, batchCount, batchSize, batchDuration, portType);
+                    }).appendTo(portContainerEditContainer);
 
-                // show/hide the edit button as appropriate
-                if (port.transmitting === true) {
-                    editRemotePort.hide();
-                } else {
-                    editRemotePort.show();
+                    // show/hide the edit button as appropriate
+                    if (port.transmitting === true) {
+                        editRemotePort.hide();
+                    } else {
+                        editRemotePort.show();
+                    }
+                } else if (port.exists === false) {
+                    $('<div class="remote-port-removed" />').appendTo(portContainerEditContainer).qtip($.extend({},
+                        nfCommon.config.tooltipConfig,
+                        {
+                            content: 'This port has been removed.'
+                        }));
                 }
-            } else if (port.exists === false) {
-                $('<div class="remote-port-removed"/>').appendTo(portContainerEditContainer).qtip($.extend({},
-                    nfCommon.config.tooltipConfig,
-                    {
-                        content: 'This port has been removed.'
-                    }));
             }
 
             // only allow modifications to transmission when the swtich is defined
@@ -376,11 +356,7 @@
                     var remoteProcessGroupPortEntity = {
                         'revision': nfClient.getRevision(remoteProcessGroupData),
                         'disconnectedNodeAcknowledged': nfStorage.isDisconnectionAcknowledged(),
-                        'remoteProcessGroupPort': {
-                            id: port.id,
-                            groupId: remoteProcessGroupId,
-                            transmitting: isTransmitting
-                        }
+                        'state': isTransmitting ? "TRANSMITTING" : "STOPPED"
                     };
 
                     // determine the type of port this is
@@ -393,7 +369,7 @@
                     $.ajax({
                         type: 'PUT',
                         data: JSON.stringify(remoteProcessGroupPortEntity),
-                        url: remoteProcessGroupData.uri + portContextPath + encodeURIComponent(port.id),
+                        url: remoteProcessGroupData.uri + portContextPath + encodeURIComponent(port.id) + "/run-status",
                         dataType: 'json',
                         contentType: 'application/json'
                     }).done(function (response) {
@@ -442,23 +418,8 @@
                         transmissionSwitch.replaceWith(newTransmissionSwitch);
                         // update transmissionSwitch variable to reference the new switch
                         transmissionSwitch = newTransmissionSwitch;
-                        if (xhr.status === 400) {
-                            var errors = xhr.responseText.split('\n');
 
-                            var content;
-                            if (errors.length === 1) {
-                                content = $('<span></span>').text(errors[0]);
-                            } else {
-                                content = nfCommon.formatUnorderedList(errors);
-                            }
-
-                            nfDialog.showOkDialog({
-                                headerText: 'Remote Process Group Ports',
-                                dialogContent: content
-                            });
-                        } else {
-                            nfErrorHandler.handleAjaxError(xhr, status, error);
-                        }
+                        nfErrorHandler.handleConfigurationUpdateAjaxError(xhr, status, error);
                     });
                 };
 
@@ -468,7 +429,7 @@
         } else {
             // show the disabled transmission switch
             if (port.transmitting === true) {
-                (nfNgBridge.injector.get('$compile')($('<md-switch style="margin:0px" class="md-primary disabled-active-transmission" aria-label="Toggle port transmission"></md-switch>'))(nfNgBridge.rootScope)).appendTo(portContainerEditContainer);
+                (nfNgBridge.injector.get('$compile')($('<md-switch style="margin:0px" class="md-primary enabled-inactive-transmission" aria-label="Toggle port transmission"></md-switch>'))(nfNgBridge.rootScope)).appendTo(portContainerEditContainer);
             } else {
                 (nfNgBridge.injector.get('$compile')($('<md-switch ng-disabled="true" style="margin:0px" class="md-primary disabled-inactive-transmission" aria-label="Toggle port transmission"></md-switch>'))(nfNgBridge.rootScope)).appendTo(portContainerEditContainer);
             }

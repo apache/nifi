@@ -16,17 +16,14 @@
  */
 package org.apache.nifi.controller;
 
-import java.util.Map;
-import java.util.Set;
-
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.parameter.ParameterContext;
+
+import java.util.Map;
 
 public interface ValidationContextFactory {
 
-    ValidationContext newValidationContext(Map<PropertyDescriptor, String> properties, String annotationData, String groupId, String componentId);
-
-    ValidationContext newValidationContext(Set<String> serviceIdentifiersToNotValidate, Map<PropertyDescriptor, String> properties,
-        String annotationData, String groupId, String componentId);
+    ValidationContext newValidationContext(Map<PropertyDescriptor, PropertyConfiguration> properties, String annotationData, String groupId, String componentId, ParameterContext parameterContext);
 
 }

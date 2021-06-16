@@ -54,7 +54,7 @@ public class TestConsumeMQTT extends TestConsumeMqttCommon {
         }
 
         @Override
-        public IMqttClient getMqttClient(String broker, String clientID, MemoryPersistence persistence) throws MqttException {
+        public IMqttClient createMqttClient(String broker, String clientID, MemoryPersistence persistence) throws MqttException {
             mqttTestClient =  new MqttTestClient(broker, clientID, MqttTestClient.ConnectType.Subscriber);
             return mqttTestClient;
         }

@@ -27,6 +27,9 @@ public class PermissionsDtoMerger {
      * @param entityPermissions       an {@link PermissionsDTO} to be merged
      */
     public static void mergePermissions(PermissionsDTO mergedEntityPermissions, PermissionsDTO entityPermissions) {
+        if (mergedEntityPermissions == null || entityPermissions == null) {
+            return;
+        }
         if (mergedEntityPermissions.getCanRead() && !entityPermissions.getCanRead()) {
             mergedEntityPermissions.setCanRead(false);
         }

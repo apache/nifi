@@ -16,18 +16,23 @@
  */
 package org.apache.nifi.attribute.expression.language;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import org.apache.nifi.parameter.Parameter;
+import org.apache.nifi.parameter.ParameterDescriptor;
+import org.apache.nifi.parameter.ParameterLookup;
+import org.junit.Ignore;
+import org.junit.Test;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import org.junit.Ignore;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class TestStandardPreparedQuery {
 
@@ -58,7 +63,7 @@ public class TestStandardPreparedQuery {
         final StandardPreparedQuery prepared = (StandardPreparedQuery) Query.prepare("${xx}");
         final long start = System.nanoTime();
         for (int i = 0; i < 10000000; i++) {
-            assertEquals("world", prepared.evaluateExpressions(attrs, null));
+            assertEquals("world", prepared.evaluateExpressions(new StandardEvaluationContext(attrs), null));
         }
         final long nanos = System.nanoTime() - start;
         System.out.println(TimeUnit.NANOSECONDS.toMillis(nanos));
@@ -72,7 +77,7 @@ public class TestStandardPreparedQuery {
 
         final long start = System.nanoTime();
         for (int i = 0; i < 10000000; i++) {
-            assertEquals("world", Query.evaluateExpressions("${xx}", attrs));
+            assertEquals("world", Query.evaluateExpressions("${xx}", attrs, ParameterLookup.EMPTY));
         }
         final long nanos = System.nanoTime() - start;
         System.out.println(TimeUnit.NANOSECONDS.toMillis(nanos));
@@ -87,6 +92,185 @@ public class TestStandardPreparedQuery {
         attributes.put("question", " how are you?");
         assertEquals("Hello, World, how are you?!", evaluate("Hello, ${audience}${comma}${question}!", attributes));
 
+    }
+
+    @Test
+    public void testPreparedQueryWithReducingFunctionAny() {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("comma", ",");
+        attributes.put("question", " how are you?");
+        final StandardPreparedQuery prepared = (StandardPreparedQuery) Query.prepare("${anyAttribute('comma', 'question'):matches('hello')}");
+        assertEquals("false", prepared.evaluateExpressions(new StandardEvaluationContext(attributes), null));
+        assertEquals("false", prepared.evaluateExpressions(new StandardEvaluationContext(attributes), null));
+        attributes.put("audience", "bla");
+        assertEquals("false", prepared.evaluateExpressions(new StandardEvaluationContext(attributes), null));
+        attributes.put("comma", "hello");
+        assertEquals("true", prepared.evaluateExpressions(new StandardEvaluationContext(attributes), null));
+    }
+
+    @Test
+    public void testPreparedQueryWithReducingFunctionAll() {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("comma", ",");
+        attributes.put("question", " how are you?");
+        final StandardPreparedQuery prepared = (StandardPreparedQuery) Query.prepare("${allAttributes('comma', 'question'):matches('hello')}");
+        assertEquals("false", prepared.evaluateExpressions(new StandardEvaluationContext(attributes), null));
+        assertEquals("false", prepared.evaluateExpressions(new StandardEvaluationContext(attributes), null));
+        attributes.put("comma", "hello");
+        assertEquals("false", prepared.evaluateExpressions(new StandardEvaluationContext(attributes), null));
+        attributes.put("question", "hello");
+        assertEquals("true", prepared.evaluateExpressions(new StandardEvaluationContext(attributes), null));
+    }
+
+    @Test
+    public void testPreparedQueryWithReducingFunctionAnyMatching() {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("comma", ",");
+        attributes.put("question", " how are you?");
+        final StandardPreparedQuery prepared = (StandardPreparedQuery) Query.prepare("${anyMatchingAttribute('audi.*'):matches('hello')}");
+        assertEquals("false", prepared.evaluateExpressions(new StandardEvaluationContext(attributes), null));
+        assertEquals("false", prepared.evaluateExpressions(new StandardEvaluationContext(attributes), null));
+        attributes.put("audience", "bla");
+        assertEquals("false", prepared.evaluateExpressions(new StandardEvaluationContext(attributes), null));
+        attributes.put("auditorium", "hello");
+        assertEquals("true", prepared.evaluateExpressions(new StandardEvaluationContext(attributes), null));
+    }
+
+    @Test
+    public void testPreparedQueryWithReducingFunctionAllMatching() {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("comma", "hello");
+        attributes.put("question", "hello");
+        final StandardPreparedQuery prepared = (StandardPreparedQuery) Query.prepare("${allMatchingAttributes('.*'):matches('hello')}");
+        assertEquals("true", prepared.evaluateExpressions(new StandardEvaluationContext(attributes), null));
+        assertEquals("true", prepared.evaluateExpressions(new StandardEvaluationContext(attributes), null));
+        attributes.put("audience", "bla");
+        assertEquals("false", prepared.evaluateExpressions(new StandardEvaluationContext(attributes), null));
+        attributes.remove("audience");
+        assertEquals("true", prepared.evaluateExpressions(new StandardEvaluationContext(attributes), null));
+    }
+
+    @Test
+    public void testPreparedQueryWithReducingFunctionAnyDelineated() {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("number_list", "1,2,3,4,5,6,7");
+        final StandardPreparedQuery prepared = (StandardPreparedQuery) Query.prepare("${anyDelineatedValue(${number_list}, ','):contains('5')}");
+        assertEquals("true", prepared.evaluateExpressions(new StandardEvaluationContext(attributes), null));
+        assertEquals("true", prepared.evaluateExpressions(new StandardEvaluationContext(attributes), null));
+        attributes.put("number_list", "1,2,3");
+        assertEquals("false", prepared.evaluateExpressions(new StandardEvaluationContext(attributes), null));
+        attributes.put("number_list", "5");
+        assertEquals("true", prepared.evaluateExpressions(new StandardEvaluationContext(attributes), null));
+    }
+
+    @Test
+    public void testPreparedQueryWithReducingFunctionAllDelineated() {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("word_list", "beach,bananas,web");
+        final StandardPreparedQuery prepared = (StandardPreparedQuery) Query.prepare("${allDelineatedValues(${word_list}, ','):contains('b')}");
+        assertEquals("true", prepared.evaluateExpressions(new StandardEvaluationContext(attributes), null));
+        assertEquals("true", prepared.evaluateExpressions(new StandardEvaluationContext(attributes), null));
+        attributes.put("word_list", "beach,party,web");
+        assertEquals("false", prepared.evaluateExpressions(new StandardEvaluationContext(attributes), null));
+        attributes.put("word_list", "bee");
+        assertEquals("true", prepared.evaluateExpressions(new StandardEvaluationContext(attributes), null));
+    }
+
+    @Test
+    public void testPreparedQueryWithReducingFunctionJoin() {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("hello", "Hello");
+        attributes.put("boat", "World!");
+        final StandardPreparedQuery prepared = (StandardPreparedQuery) Query.prepare("${allAttributes('hello', 'boat'):join(' ')}");
+        assertEquals("Hello World!", prepared.evaluateExpressions(new StandardEvaluationContext(attributes), null));
+        attributes.put("boat", "Friend.");
+        assertEquals("Hello Friend.", prepared.evaluateExpressions(new StandardEvaluationContext(attributes), null));
+    }
+
+    @Test
+    public void testPreparedQueryWithReducingFunctionCount() {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("hello", "Hello");
+        attributes.put("boat", "World!");
+        final StandardPreparedQuery prepared = (StandardPreparedQuery) Query.prepare("${allAttributes('hello', 'boat'):contains('e'):count()}");
+        assertEquals("1", prepared.evaluateExpressions(new StandardEvaluationContext(attributes), null));
+        attributes.put("boat", "end");
+        assertEquals("2", prepared.evaluateExpressions(new StandardEvaluationContext(attributes), null));
+    }
+
+    @Test
+    public void testPreparedQueryWithSelectingAnd() {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("hello", "Hello");
+        attributes.put("boat", "World!");
+        final StandardPreparedQuery prepared = (StandardPreparedQuery) Query.prepare("${allAttributes('hello', 'boat'):isEmpty():not():and(${hello:contains('o')})}");
+        assertEquals("true", prepared.evaluateExpressions(new StandardEvaluationContext(attributes), null));
+        attributes.put("hello", "hi");
+        assertEquals("false", prepared.evaluateExpressions(new StandardEvaluationContext(attributes), null));
+    }
+
+    @Test
+    public void testPreparedQueryWithAnd() {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("hello", "Hello");
+        final StandardPreparedQuery prepared = (StandardPreparedQuery) Query.prepare("${hello:contains('H'):and(${hello:contains('o')})}");
+        assertEquals("true", prepared.evaluateExpressions(new StandardEvaluationContext(attributes), null));
+        attributes.put("hello", "Hell");
+        assertEquals("false", prepared.evaluateExpressions(new StandardEvaluationContext(attributes), null));
+    }
+
+    @Test
+    public void testPreparedQueryWithSelectingOr() {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("hello", "Hello");
+        attributes.put("boat", "World!");
+        final StandardPreparedQuery prepared = (StandardPreparedQuery) Query.prepare("${allAttributes('hello', 'boat'):matches('strict'):or(${hello:contains('o')})}");
+        assertEquals("true", prepared.evaluateExpressions(new StandardEvaluationContext(attributes), null));
+        attributes.put("hello", "hi");
+        assertEquals("false", prepared.evaluateExpressions(new StandardEvaluationContext(attributes), null));
+    }
+
+    @Test
+    public void testPreparedQueryWithOr() {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("hello", "Hello");
+        final StandardPreparedQuery prepared = (StandardPreparedQuery) Query.prepare("${hello:contains('X'):or(${hello:contains('o')})}");
+        assertEquals("true", prepared.evaluateExpressions(new StandardEvaluationContext(attributes), null));
+        attributes.put("hello", "Hell");
+        assertEquals("false", prepared.evaluateExpressions(new StandardEvaluationContext(attributes), null));
+    }
+
+    @Test
+    public void testSensitiveParameter() {
+        final Map<String, Parameter> parameters = new HashMap<>();
+        parameters.put("param", new Parameter(new ParameterDescriptor.Builder().name("param").build(), "value"));
+        parameters.put("sensi", new Parameter(new ParameterDescriptor.Builder().name("sensi").sensitive(true).build(), "secret"));
+
+        final ParameterLookup parameterLookup = new ParameterLookup() {
+            @Override
+            public Optional<Parameter> getParameter(final String parameterName) {
+                return Optional.ofNullable(parameters.get(parameterName));
+            }
+
+            @Override
+            public long getVersion() {
+                return 0;
+            }
+
+            @Override
+            public boolean isEmpty() {
+                return parameters.isEmpty();
+            }
+        };
+
+        final String value = Query.prepare("#{param}").evaluateExpressions(new StandardEvaluationContext(Collections.emptyMap(), Collections.emptyMap(), parameterLookup), null);
+        assertEquals("value", value);
+
+        final String secret = Query.prepare("#{sensi}").evaluateExpressions(new StandardEvaluationContext(Collections.emptyMap(), Collections.emptyMap(), parameterLookup), null);
+        assertEquals("secret", secret);
+
+        final String invalid = Query.prepare("${#{sensi}}").evaluateExpressions(new StandardEvaluationContext(Collections.emptyMap(), Collections.emptyMap(), parameterLookup), null);
+        assertEquals("", invalid);
     }
 
     @Test
@@ -126,7 +310,7 @@ public class TestStandardPreparedQuery {
     }
 
     private String evaluate(final String query, final Map<String, String> attrs) {
-        final String evaluated = ((StandardPreparedQuery) Query.prepare(query)).evaluateExpressions(attrs, null);
+        final String evaluated = ((StandardPreparedQuery) Query.prepare(query)).evaluateExpressions(new StandardEvaluationContext(attrs), null);
         return evaluated;
     }
 

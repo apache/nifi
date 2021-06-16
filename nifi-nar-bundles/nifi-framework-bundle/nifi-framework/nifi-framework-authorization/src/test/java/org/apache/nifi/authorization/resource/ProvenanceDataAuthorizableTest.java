@@ -26,11 +26,10 @@ import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.StandardNiFiUser.Builder;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.ArgumentMatcher;
 
 import static org.junit.Assert.assertEquals;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.argThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -52,7 +51,7 @@ public class ProvenanceDataAuthorizableTest {
 
         testAuthorizer = mock(Authorizer.class);
         when(testAuthorizer.authorize(any(AuthorizationRequest.class))).then(invocation -> {
-            final AuthorizationRequest request = invocation.getArgumentAt(0, AuthorizationRequest.class);
+            final AuthorizationRequest request = invocation.getArgument(0);
 
             if (IDENTITY_1.equals(request.getIdentity())) {
                 return AuthorizationResult.approved();
@@ -93,12 +92,7 @@ public class ProvenanceDataAuthorizableTest {
         final NiFiUser user = new Builder().identity(IDENTITY_1).build();
         testProvenanceDataAuthorizable.authorize(testAuthorizer, RequestAction.READ, user, null);
 
-        verify(testAuthorizer, times(1)).authorize(argThat(new ArgumentMatcher<AuthorizationRequest>() {
-            @Override
-            public boolean matches(Object o) {
-                return IDENTITY_1.equals(((AuthorizationRequest) o).getIdentity());
-            }
-        }));
+        verify(testAuthorizer, times(1)).authorize(argThat(o -> IDENTITY_1.equals(o.getIdentity())));
     }
 
     @Test
@@ -107,11 +101,6 @@ public class ProvenanceDataAuthorizableTest {
         final AuthorizationResult result = testProvenanceDataAuthorizable.checkAuthorization(testAuthorizer, RequestAction.READ, user, null);
 
         assertEquals(Result.Approved, result.getResult());
-        verify(testAuthorizer, times(1)).authorize(argThat(new ArgumentMatcher<AuthorizationRequest>() {
-            @Override
-            public boolean matches(Object o) {
-                return IDENTITY_1.equals(((AuthorizationRequest) o).getIdentity());
-            }
-        }));
+        verify(testAuthorizer, times(1)).authorize(argThat(o -> IDENTITY_1.equals(o.getIdentity())));
     }
 }

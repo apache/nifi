@@ -109,7 +109,9 @@ public class ValidateRecord extends AbstractProcessor {
     static final PropertyDescriptor RECORD_WRITER = new PropertyDescriptor.Builder()
         .name("record-writer")
         .displayName("Record Writer")
-        .description("Specifies the Controller Service to use for writing out the records")
+        .description("Specifies the Controller Service to use for writing out the records. "
+            + "Regardless of the Controller Service schema access configuration, "
+            + "the schema that is used to validate record is used to write the valid results.")
         .identifiesControllerService(RecordSetWriterFactory.class)
         .required(true)
         .build();
@@ -117,7 +119,8 @@ public class ValidateRecord extends AbstractProcessor {
         .name("invalid-record-writer")
         .displayName("Record Writer for Invalid Records")
         .description("If specified, this Controller Service will be used to write out any records that are invalid. "
-            + "If not specified, the writer specified by the \"Record Writer\" property will be used. This is useful, for example, when the configured "
+            + "If not specified, the writer specified by the \"Record Writer\" property will be used with the schema used to read the input records. "
+            + "This is useful, for example, when the configured "
             + "Record Writer cannot write data that does not adhere to its schema (as is the case with Avro) or when it is desirable to keep invalid records "
             + "in their original format while converting valid records to another format.")
         .identifiesControllerService(RecordSetWriterFactory.class)
@@ -161,7 +164,7 @@ public class ValidateRecord extends AbstractProcessor {
         .displayName("Allow Extra Fields")
         .description("If the incoming data has fields that are not present in the schema, this property determines whether or not the Record is valid. "
             + "If true, the Record is still valid. If false, the Record will be invalid due to the extra fields.")
-        .expressionLanguageSupported(false)
+        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .allowableValues("true", "false")
         .defaultValue("true")
         .required(true)
@@ -172,10 +175,30 @@ public class ValidateRecord extends AbstractProcessor {
         .description("If the incoming data has a Record where a field is not of the correct type, this property determine whether how to handle the Record. "
             + "If true, the Record will still be considered invalid. If false, the Record will be considered valid and the field will be coerced into the "
             + "correct type (if possible, according to the type coercion supported by the Record Writer).")
-        .expressionLanguageSupported(false)
+        .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .allowableValues("true", "false")
         .defaultValue("true")
         .required(true)
+        .build();
+    static final PropertyDescriptor VALIDATION_DETAILS_ATTRIBUTE_NAME = new PropertyDescriptor.Builder()
+        .name("validation-details-attribute-name")
+        .displayName("Validation Details Attribute Name")
+        .description("If specified, when a validation error occurs, this attribute name will be used to leave the details. The number of characters will be limited "
+            + "by the property 'Maximum Validation Details Length'.")
+        .required(false)
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+        .addValidator(StandardValidators.ATTRIBUTE_KEY_VALIDATOR)
+        .defaultValue(null)
+        .build();
+    static final PropertyDescriptor MAX_VALIDATION_DETAILS_LENGTH = new PropertyDescriptor.Builder()
+        .name("maximum-validation-details-length")
+        .displayName("Maximum Validation Details Length")
+        .description("Specifies the maximum number of characters that validation details value can have. Any characters beyond the max will be truncated. "
+            + "This property is only used if 'Validation Details Attribute Name' is set")
+        .required(false)
+        .defaultValue("1024")
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+        .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
         .build();
 
     static final Relationship REL_VALID = new Relationship.Builder()
@@ -204,6 +227,8 @@ public class ValidateRecord extends AbstractProcessor {
         properties.add(SCHEMA_TEXT);
         properties.add(ALLOW_EXTRA_FIELDS);
         properties.add(STRICT_TYPE_CHECKING);
+        properties.add(VALIDATION_DETAILS_ATTRIBUTE_NAME);
+        properties.add(MAX_VALIDATION_DETAILS_LENGTH);
         return properties;
     }
 
@@ -292,7 +317,8 @@ public class ValidateRecord extends AbstractProcessor {
                             validFlowFile = session.create(flowFile);
                         }
 
-                        validWriter = writer = createIfNecessary(validWriter, validRecordWriterFactory, session, validFlowFile, record.getSchema());
+                        validWriter = writer = createIfNecessary(validWriter, validRecordWriterFactory, session, validFlowFile, validationSchema);
+
                     } else {
                         invalidCount++;
                         logValidationErrors(flowFile, recordCount, result);
@@ -346,7 +372,7 @@ public class ValidateRecord extends AbstractProcessor {
                 }
 
                 if (validWriter != null) {
-                    completeFlowFile(session, validFlowFile, validWriter, REL_VALID, null);
+                    completeFlowFile(context, session, validFlowFile, validWriter, REL_VALID, null);
                 }
 
                 if (invalidWriter != null) {
@@ -385,7 +411,7 @@ public class ValidateRecord extends AbstractProcessor {
                     }
 
                     final String validationErrorString = errorBuilder.toString();
-                    completeFlowFile(session, invalidFlowFile, invalidWriter, REL_INVALID, validationErrorString);
+                    completeFlowFile(context, session, invalidFlowFile, invalidWriter, REL_INVALID, validationErrorString);
                 }
             } finally {
                 closeQuietly(validWriter);
@@ -420,14 +446,32 @@ public class ValidateRecord extends AbstractProcessor {
         }
     }
 
-    private void completeFlowFile(final ProcessSession session, final FlowFile flowFile, final RecordSetWriter writer, final Relationship relationship, final String details) throws IOException {
+    private void completeFlowFile(final ProcessContext context, final ProcessSession session, final FlowFile flowFile, final RecordSetWriter writer,
+            final Relationship relationship, final String details) throws IOException {
         final WriteResult writeResult = writer.finishRecordSet();
         writer.close();
+
+        final String validationDetailsAttributeName = context.getProperty(VALIDATION_DETAILS_ATTRIBUTE_NAME)
+                .evaluateAttributeExpressions(flowFile).getValue();
+
+        final Integer maxValidationDetailsLength = context.getProperty(MAX_VALIDATION_DETAILS_LENGTH).evaluateAttributeExpressions(flowFile).asInteger();
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.putAll(writeResult.getAttributes());
         attributes.put("record.count", String.valueOf(writeResult.getRecordCount()));
         attributes.put(CoreAttributes.MIME_TYPE.key(), writer.getMimeType());
+
+        if(validationDetailsAttributeName != null && details != null && !details.isEmpty()) {
+            String truncatedDetails = details;
+
+            //Truncating only when it exceeds the configured maximum
+            if (truncatedDetails.length() > maxValidationDetailsLength) {
+                truncatedDetails = truncatedDetails.substring(0, maxValidationDetailsLength);
+            }
+
+            attributes.put(validationDetailsAttributeName, truncatedDetails);
+        }
+
         session.putAllAttributes(flowFile, attributes);
 
         session.transfer(flowFile, relationship);
@@ -435,13 +479,13 @@ public class ValidateRecord extends AbstractProcessor {
     }
 
     private RecordSetWriter createIfNecessary(final RecordSetWriter writer, final RecordSetWriterFactory factory, final ProcessSession session,
-        final FlowFile flowFile, final RecordSchema inputSchema) throws SchemaNotFoundException, IOException {
+        final FlowFile flowFile, final RecordSchema outputSchema) throws SchemaNotFoundException, IOException {
         if (writer != null) {
             return writer;
         }
 
         final OutputStream out = session.write(flowFile);
-        final RecordSetWriter created = factory.createWriter(getLogger(), inputSchema, out);
+        final RecordSetWriter created = factory.createWriter(getLogger(), outputSchema, out, flowFile);
         created.beginRecordSet();
         return created;
     }

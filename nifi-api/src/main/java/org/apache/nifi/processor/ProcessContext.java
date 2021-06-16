@@ -24,6 +24,7 @@ import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.controller.ControllerServiceLookup;
+import org.apache.nifi.scheduling.ExecutionNode;
 
 /**
  * <p>
@@ -76,6 +77,11 @@ public interface ProcessContext extends PropertyContext {
      * processor's code at any given time
      */
     int getMaxConcurrentTasks();
+
+    /**
+     * @return the Nodes where this processor will be scheduled to run.
+     */
+    ExecutionNode getExecutionNode();
 
     /**
      * @return the annotation data configured for this processor

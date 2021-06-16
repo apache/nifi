@@ -89,6 +89,7 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, UserG
 
     private Authorizer authorizer;
     private NiFiProperties properties;
+    private ExtensionManager extensionManager;
     private final Map<String, UserGroupProvider> userGroupProviders = new HashMap<>();
     private final Map<String, AccessPolicyProvider> accessPolicyProviders = new HashMap<>();
     private final Map<String, Authorizer> authorizers = new HashMap<>();
@@ -157,11 +158,14 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, UserG
                         if (authorizers.containsKey(authorizer.getIdentifier())) {
                             throw new Exception("Duplicate Authorizer identifier in Authorizers configuration: " + authorizer.getIdentifier());
                         }
-                        authorizers.put(authorizer.getIdentifier(), createAuthorizer(authorizer.getIdentifier(), authorizer.getClazz(),authorizer.getClasspath()));
+                        authorizers.put(authorizer.getIdentifier(), createAuthorizer(authorizer.getIdentifier(), authorizer.getClazz(), authorizer.getClasspath()));
                     }
 
-                    // configure each authorizer
+                    // configure each authorizer, except the authorizer that is selected in nifi.properties
                     for (final org.apache.nifi.authorization.generated.Authorizer provider : authorizerConfiguration.getAuthorizer()) {
+                        if (provider.getIdentifier().equals(authorizerIdentifier)) {
+                            continue;
+                        }
                         final Authorizer instance = authorizers.get(provider.getIdentifier());
                         instance.onConfigured(loadAuthorizerConfiguration(provider.getIdentifier(), provider.getProperty()));
                     }
@@ -173,7 +177,23 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, UserG
                     if (authorizer == null) {
                         throw new Exception(String.format("The specified authorizer '%s' could not be found.", authorizerIdentifier));
                     } else {
+                        // install integrity checks
                         authorizer = AuthorizerFactory.installIntegrityChecks(authorizer);
+
+                        // configure authorizer after integrity checks are installed
+                        AuthorizerConfigurationContext authorizerConfigurationContext = null;
+                        for (final org.apache.nifi.authorization.generated.Authorizer provider : authorizerConfiguration.getAuthorizer()) {
+                            if (provider.getIdentifier().equals(authorizerIdentifier)) {
+                                authorizerConfigurationContext = loadAuthorizerConfiguration(provider.getIdentifier(), provider.getProperty());
+                                break;
+                            }
+                        }
+
+                        if (authorizerConfigurationContext == null) {
+                            throw new IllegalStateException("Unable to load configuration for authorizer with id: " + authorizerIdentifier);
+                        }
+
+                        authorizer.onConfigured(authorizerConfigurationContext);
                     }
                 }
             }
@@ -208,7 +228,7 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, UserG
 
     private UserGroupProvider createUserGroupProvider(final String identifier, final String userGroupProviderClassName) throws Exception {
         // get the classloader for the specified user group provider
-        final List<Bundle> userGroupProviderBundles = ExtensionManager.getBundles(userGroupProviderClassName);
+        final List<Bundle> userGroupProviderBundles = extensionManager.getBundles(userGroupProviderClassName);
 
         if (userGroupProviderBundles.size() == 0) {
             throw new Exception(String.format("The specified user group provider class '%s' is not known to this nifi.", userGroupProviderClassName));
@@ -256,7 +276,7 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, UserG
 
     private AccessPolicyProvider createAccessPolicyProvider(final String identifier, final String accessPolicyProviderClassName) throws Exception {
         // get the classloader for the specified access policy provider
-        final List<Bundle> accessPolicyProviderBundles = ExtensionManager.getBundles(accessPolicyProviderClassName);
+        final List<Bundle> accessPolicyProviderBundles = extensionManager.getBundles(accessPolicyProviderClassName);
 
         if (accessPolicyProviderBundles.size() == 0) {
             throw new Exception(String.format("The specified access policy provider class '%s' is not known to this nifi.", accessPolicyProviderClassName));
@@ -304,7 +324,7 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, UserG
 
     private Authorizer createAuthorizer(final String identifier, final String authorizerClassName, final String classpathResources) throws Exception {
         // get the classloader for the specified authorizer
-        final List<Bundle> authorizerBundles = ExtensionManager.getBundles(authorizerClassName);
+        final List<Bundle> authorizerBundles = extensionManager.getBundles(authorizerClassName);
 
         if (authorizerBundles.size() == 0) {
             throw new Exception(String.format("The specified authorizer class '%s' is not known to this nifi.", authorizerClassName));
@@ -314,8 +334,16 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, UserG
             throw new Exception(String.format("Multiple bundles found for the specified authorizer class '%s', only one is allowed.", authorizerClassName));
         }
 
+        // start with ClassLoad from authorizer's bundle
         final Bundle authorizerBundle = authorizerBundles.get(0);
         ClassLoader authorizerClassLoader = authorizerBundle.getClassLoader();
+
+        // if additional classpath resources were specified, replace with a new ClassLoader that wraps the original one
+        if (StringUtils.isNotEmpty(classpathResources)) {
+            logger.info(String.format("Replacing Authorizer ClassLoader for '%s' to include additional resources: %s", identifier, classpathResources));
+            URL[] urls = ClassLoaderUtils.getURLsForClasspath(classpathResources, null, true);
+            authorizerClassLoader = new URLClassLoader(urls, authorizerClassLoader);
+        }
 
         // get the current context classloader
         final ClassLoader currentClassLoader = Thread.currentThread().getContextClassLoader();
@@ -345,11 +373,6 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, UserG
             if (currentClassLoader != null) {
                 Thread.currentThread().setContextClassLoader(currentClassLoader);
             }
-        }
-
-        if (StringUtils.isNotEmpty(classpathResources)) {
-            URL[] urls = ClassLoaderUtils.getURLsForClasspath(classpathResources, null, true);
-            authorizerClassLoader = new URLClassLoader(urls, authorizerClassLoader);
         }
 
         return AuthorizerFactory.withNarLoader(instance, authorizerClassLoader);
@@ -535,6 +558,10 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, UserG
 
     public void setProperties(NiFiProperties properties) {
         this.properties = properties;
+    }
+
+    public void setExtensionManager(ExtensionManager extensionManager) {
+        this.extensionManager = extensionManager;
     }
 
 }

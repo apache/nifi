@@ -257,36 +257,36 @@ public class SplitContent extends AbstractProcessor {
         });
 
         long lastOffsetPlusSize = -1L;
+        final ArrayList<FlowFile> splitList = new ArrayList<>();
+
         if (splits.isEmpty()) {
             FlowFile clone = session.clone(flowFile);
-            session.transfer(flowFile, REL_ORIGINAL);
-            session.transfer(clone, REL_SPLITS);
+            // finishFragmentAttributes performs .clear() so List must be mutable
+            splitList.add(clone);
             logger.info("Found no match for {}; transferring original 'original' and transferring clone {} to 'splits'", new Object[]{flowFile, clone});
-            return;
-        }
+        } else {
+            for (final Tuple<Long, Long> tuple : splits) {
+                long offset = tuple.getKey();
+                long size = tuple.getValue();
+                if (size > 0) {
+                    FlowFile split = session.clone(flowFile, offset, size);
+                    splitList.add(split);
+                }
 
-        final ArrayList<FlowFile> splitList = new ArrayList<>();
-        for (final Tuple<Long, Long> tuple : splits) {
-            long offset = tuple.getKey();
-            long size = tuple.getValue();
-            if (size > 0) {
-                FlowFile split = session.clone(flowFile, offset, size);
-                splitList.add(split);
+                lastOffsetPlusSize = offset + size;
             }
 
-            lastOffsetPlusSize = offset + size;
-        }
-
-        // lastOffsetPlusSize indicates the ending position of the last split.
-        // if the data didn't end with the byte sequence, we need one final split to run from the end
-        // of the last split to the end of the content.
-        long finalSplitOffset = lastOffsetPlusSize;
-        if (!keepTrailingSequence && !keepLeadingSequence) {
-            finalSplitOffset += byteSequence.length;
-        }
-        if (finalSplitOffset > -1L && finalSplitOffset < flowFile.getSize()) {
-            FlowFile finalSplit = session.clone(flowFile, finalSplitOffset, flowFile.getSize() - finalSplitOffset);
-            splitList.add(finalSplit);
+            // lastOffsetPlusSize indicates the ending position of the last split.
+            // if the data didn't end with the byte sequence, we need one final split to run from the end
+            // of the last split to the end of the content.
+            long finalSplitOffset = lastOffsetPlusSize;
+            if (!keepTrailingSequence && !keepLeadingSequence) {
+                finalSplitOffset += byteSequence.length;
+            }
+            if (finalSplitOffset > -1L && finalSplitOffset < flowFile.getSize()) {
+                FlowFile finalSplit = session.clone(flowFile, finalSplitOffset, flowFile.getSize() - finalSplitOffset);
+                splitList.add(finalSplit);
+            }
         }
 
         final String fragmentId = finishFragmentAttributes(session, flowFile, splitList);

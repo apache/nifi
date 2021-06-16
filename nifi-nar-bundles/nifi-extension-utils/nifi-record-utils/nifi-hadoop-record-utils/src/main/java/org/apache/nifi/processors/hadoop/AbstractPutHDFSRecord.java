@@ -16,21 +16,6 @@
  */
 package org.apache.nifi.processors.hadoop;
 
-import java.io.BufferedInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.security.PrivilegedAction;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-
 import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -62,6 +47,20 @@ import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.RecordSet;
 import org.apache.nifi.util.StopWatch;
+
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.security.PrivilegedAction;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Base class for processors that write Records to HDFS.
@@ -284,11 +283,11 @@ public abstract class AbstractPutHDFSRecord extends AbstractHadoopProcessor {
                 final Path tempFile = new Path(directoryPath, "." + filenameValue);
                 final Path destFile = new Path(directoryPath, filenameValue);
 
-                final boolean destinationExists = fileSystem.exists(destFile) || fileSystem.exists(tempFile);
+                final boolean destinationOrTempExists = fileSystem.exists(destFile) || fileSystem.exists(tempFile);
                 final boolean shouldOverwrite = context.getProperty(OVERWRITE).asBoolean();
 
                 // if the tempFile or destFile already exist, and overwrite is set to false, then transfer to failure
-                if (destinationExists && !shouldOverwrite) {
+                if (destinationOrTempExists && !shouldOverwrite) {
                     session.transfer(session.penalize(putFlowFile), REL_FAILURE);
                     getLogger().warn("penalizing {} and routing to failure because file with same name already exists", new Object[]{putFlowFile});
                     return null;
@@ -302,12 +301,11 @@ public abstract class AbstractPutHDFSRecord extends AbstractHadoopProcessor {
                 final StopWatch stopWatch = new StopWatch(true);
 
                 // Read records from the incoming FlowFile and write them the tempFile
-                session.read(putFlowFile, (final InputStream rawIn) -> {
+                session.read(putFlowFile, (final InputStream in) -> {
                     RecordReader recordReader = null;
                     HDFSRecordWriter recordWriter = null;
 
-                    try (final BufferedInputStream in = new BufferedInputStream(rawIn)) {
-
+                    try {
                         // if we fail to create the RecordReader then we want to route to failure, so we need to
                         // handle this separately from the other IOExceptions which normally route to retry
                         try {
@@ -339,6 +337,16 @@ public abstract class AbstractPutHDFSRecord extends AbstractHadoopProcessor {
                 // into one of the appropriate catch blocks below
                 if (exceptionHolder.get() != null) {
                     throw exceptionHolder.get();
+                }
+
+                final boolean destinationExists = fileSystem.exists(destFile);
+
+                // If destination file already exists, resolve that based on processor configuration
+                if (destinationExists && shouldOverwrite) {
+                    if (fileSystem.delete(destFile, false)) {
+                        getLogger().info("deleted {} in order to replace with the contents of {}",
+                                new Object[]{destFile, putFlowFile});
+                    }
                 }
 
                 // Attempt to rename from the tempFile to destFile, and change owner if successfully renamed

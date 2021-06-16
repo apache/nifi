@@ -20,8 +20,10 @@ import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
 import org.apache.nifi.web.api.dto.status.ProcessGroupStatusDTO;
+import org.apache.nifi.web.api.entity.ParameterContextReferenceEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 
+import java.util.HashMap;
 import java.util.Map;
 
 public class ProcessGroupEntityMerger implements ComponentEntityMerger<ProcessGroupEntity>, ComponentEntityStatusMerger<ProcessGroupStatusDTO> {
@@ -29,11 +31,37 @@ public class ProcessGroupEntityMerger implements ComponentEntityMerger<ProcessGr
     @Override
     public void merge(ProcessGroupEntity clientEntity, Map<NodeIdentifier, ProcessGroupEntity> entityMap) {
         ComponentEntityMerger.super.merge(clientEntity, entityMap);
+
+        final Map<NodeIdentifier, ProcessGroupDTO> dtoMap = new HashMap<>();
         for (Map.Entry<NodeIdentifier, ProcessGroupEntity> entry : entityMap.entrySet()) {
-            final ProcessGroupEntity entityStatus = entry.getValue();
-            if (entityStatus != clientEntity) {
+            final ProcessGroupEntity entity = entry.getValue();
+            if (entity != clientEntity) {
                 mergeStatus(clientEntity.getStatus(), clientEntity.getPermissions().getCanRead(), entry.getValue().getStatus(), entry.getValue().getPermissions().getCanRead(), entry.getKey());
-                mergeVersionControlInformation(clientEntity, entityStatus);
+                mergeVersionControlInformation(clientEntity, entity);
+            }
+
+            dtoMap.put(entry.getKey(), entity.getComponent());
+        }
+
+        mergeDtos(clientEntity.getComponent(), dtoMap);
+    }
+
+    private static void mergeDtos(final ProcessGroupDTO clientDto, final Map<NodeIdentifier, ProcessGroupDTO> dtoMap) {
+        // if unauthorized for the client dto, simple return
+        if (clientDto == null) {
+            return;
+        }
+
+        // get the parameter context if configured
+        final ParameterContextReferenceEntity clientParameterContextEntity = clientDto.getParameterContext();
+
+        // if this process group is bound to a parameter context, merge the permissions from the other nodes
+        if (clientParameterContextEntity != null) {
+            for (Map.Entry<NodeIdentifier, ProcessGroupDTO> entry : dtoMap.entrySet()) {
+                final ProcessGroupDTO dto = entry.getValue();
+                final ParameterContextReferenceEntity parameterContextReferenceEntity = dto.getParameterContext();
+
+                PermissionsDtoMerger.mergePermissions(clientParameterContextEntity.getPermissions(), parameterContextReferenceEntity.getPermissions());
             }
         }
     }

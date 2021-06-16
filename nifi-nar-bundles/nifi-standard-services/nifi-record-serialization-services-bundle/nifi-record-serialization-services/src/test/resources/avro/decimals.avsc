@@ -1,0 +1,36 @@
+{
+  "namespace": "nifi",
+  "name": "data_types",
+  "type": "record",
+  "fields": [
+    {
+        "name" : "decimal1", "type": {
+            "type" : "bytes",
+            "logicalType" : "decimal",
+            "precision" : 10,
+            "scale" : 2
+        }
+    }, {
+        "name" : "decimal2", "type": {
+            "type" : "bytes",
+            "logicalType" : "decimal",
+            "precision" : 10,
+            "scale" : 2
+        }
+    }, {
+        "name" : "decimal3", "type": {
+            "type" : "bytes",
+            "logicalType" : "decimal",
+            "precision" : 10,
+            "scale" : 2
+        }
+    }, {
+		"name" : "decimal4", "type": {
+			"type" : "bytes",
+			"logicalType" : "decimal",
+			"precision" : 10,
+			"scale" : 2
+        }
+    }
+  ]
+}

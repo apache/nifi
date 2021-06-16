@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<head>
+    <meta charset="utf-8" />
+    <title>S3EncryptionService</title>
+
+    <link rel="stylesheet" href="../../../../../css/component-usage.css" type="text/css" />
+</head>
+<body>
+<h2>Description</h2>
+<div>
+    The <code>StandardS3EncryptionService</code> manages an encryption strategy and applies that strategy to various S3 operations.
+
+    <br>
+
+    <b>Note:</b> This service has no effect when a processor has the <code>Server Side Encryption</code> property set. To use
+    this service with processors so configured, first create a service instance, set the <code>Encryption Strategy</code> to <code>Server-side S3</code>,
+    disable the <code>Server Side Encryption</code> processor setting, and finally, associate the processor with the service.
+</div>
+
+
+<h2>Configuration Details</h2>
+<h3>Encryption Strategy</h3>
+
+<div>
+    The name of the specific encryption strategy for this service to use when encrypting and decrypting S3 operations.
+
+    <ul>
+        <li><code>None</code> - no encryption is configured or applied.</li>
+        <li><code>Server-side S3</code> - encryption and decryption is managed by S3; no keys are required.</li>
+        <li><code>Server-side KMS</code> - encryption and decryption are performed by S3 using the configured KMS key.</li>
+        <li><code>Server-side Customer Key</code> - encryption and decryption are performed by S3 using the supplied customer key.</li>
+        <li><code>Client-side KMS</code> - like the Server-side KMS strategy, with the encryption and decryption performed by the client.</li>
+        <li><code>Client-side Customer Key</code> - like the Server-side Customer Key strategy, with the encryption and decryption performed by the client.</li>
+    </ul>
+</div>
+
+<h3>Key ID or Key Material</h3>
+<p>
+    When configured for either the Server-side or Client-side KMS strategies, this field should contain the KMS Key ID.
+</p>
+<p>
+    When configured for either the Server-side or Client-side Customer Key strategies, this field should contain the key
+    material, and that material must be base64 encoded.
+</p>
+<p>
+    All other encryption strategies ignore this field.
+</p>
+
+<h3>KMS Region</h3>
+<div>
+    KMS key region, if any. This value must match the actual region of the KMS key if supplied.
+</div>
+
+</body>
+</html>

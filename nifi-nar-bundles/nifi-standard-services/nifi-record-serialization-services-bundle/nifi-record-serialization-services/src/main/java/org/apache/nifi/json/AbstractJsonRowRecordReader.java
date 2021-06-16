@@ -17,14 +17,6 @@
 
 package org.apache.nifi.json;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Optional;
-
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
@@ -36,6 +28,7 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.type.ChoiceDataType;
+import org.apache.nifi.serialization.record.type.MapDataType;
 import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.codehaus.jackson.JsonFactory;
@@ -46,20 +39,41 @@ import org.codehaus.jackson.JsonToken;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.node.ArrayNode;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.text.DateFormat;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.function.Supplier;
 
 public abstract class AbstractJsonRowRecordReader implements RecordReader {
     private final ComponentLog logger;
     private final JsonParser jsonParser;
-    private final boolean array;
     private final JsonNode firstJsonNode;
+    private final Supplier<DateFormat> LAZY_DATE_FORMAT;
+    private final Supplier<DateFormat> LAZY_TIME_FORMAT;
+    private final Supplier<DateFormat> LAZY_TIMESTAMP_FORMAT;
 
     private boolean firstObjectConsumed = false;
 
     private static final JsonFactory jsonFactory = new JsonFactory();
     private static final ObjectMapper codec = new ObjectMapper();
 
-    public AbstractJsonRowRecordReader(final InputStream in, final ComponentLog logger) throws IOException, MalformedRecordException {
+
+    public AbstractJsonRowRecordReader(final InputStream in, final ComponentLog logger, final String dateFormat, final String timeFormat, final String timestampFormat)
+            throws IOException, MalformedRecordException {
+
         this.logger = logger;
+
+        final DateFormat df = dateFormat == null ? null : DataTypeUtils.getDateFormat(dateFormat);
+        final DateFormat tf = timeFormat == null ? null : DataTypeUtils.getDateFormat(timeFormat);
+        final DateFormat tsf = timestampFormat == null ? null : DataTypeUtils.getDateFormat(timestampFormat);
+
+        LAZY_DATE_FORMAT = () -> df;
+        LAZY_TIME_FORMAT = () -> tf;
+        LAZY_TIMESTAMP_FORMAT = () -> tsf;
 
         try {
             jsonParser = jsonFactory.createJsonParser(in);
@@ -67,10 +81,7 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
 
             JsonToken token = jsonParser.nextToken();
             if (token == JsonToken.START_ARRAY) {
-                array = true;
                 token = jsonParser.nextToken(); // advance to START_OBJECT token
-            } else {
-                array = false;
             }
 
             if (token == JsonToken.START_OBJECT) { // could be END_ARRAY also
@@ -83,28 +94,42 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
         }
     }
 
+    protected Supplier<DateFormat> getLazyDateFormat() {
+        return LAZY_DATE_FORMAT;
+    }
+
+    protected Supplier<DateFormat> getLazyTimeFormat() {
+        return LAZY_TIME_FORMAT;
+    }
+
+    protected Supplier<DateFormat> getLazyTimestampFormat() {
+        return LAZY_TIMESTAMP_FORMAT;
+    }
+
 
     @Override
     public Record nextRecord(final boolean coerceTypes, final boolean dropUnknownFields) throws IOException, MalformedRecordException {
         final JsonNode nextNode = getNextJsonNode();
+        if (nextNode == null) {
+            return null;
+        }
+
         final RecordSchema schema = getSchema();
         try {
             return convertJsonNodeToRecord(nextNode, schema, coerceTypes, dropUnknownFields);
         } catch (final MalformedRecordException mre) {
             throw mre;
-        } catch (final IOException ioe) {
-            throw ioe;
         } catch (final Exception e) {
             logger.debug("Failed to convert JSON Element {} into a Record object using schema {} due to {}", new Object[] {nextNode, schema, e.toString(), e});
             throw new MalformedRecordException("Successfully parsed a JSON object from input but failed to convert into a Record object with the given schema", e);
         }
     }
 
-    protected Object getRawNodeValue(final JsonNode fieldNode) throws IOException {
-        return getRawNodeValue(fieldNode, null);
+    protected Object getRawNodeValue(final JsonNode fieldNode, final String fieldName) throws IOException {
+        return getRawNodeValue(fieldNode, null, fieldName);
     }
 
-    protected Object getRawNodeValue(final JsonNode fieldNode, final DataType dataType) throws IOException {
+    protected Object getRawNodeValue(final JsonNode fieldNode, final DataType dataType, final String fieldName) throws IOException {
         if (fieldNode == null || fieldNode.isNull()) {
             return null;
         }
@@ -122,7 +147,23 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
         }
 
         if (fieldNode.isTextual()) {
-            return fieldNode.getTextValue();
+            final String textValue = fieldNode.getTextValue();
+            if (dataType == null) {
+                return textValue;
+            }
+
+            switch (dataType.getFieldType()) {
+                case DATE:
+                case TIME:
+                case TIMESTAMP:
+                    try {
+                        return DataTypeUtils.convertType(textValue, dataType, LAZY_DATE_FORMAT, LAZY_TIME_FORMAT, LAZY_TIMESTAMP_FORMAT, fieldName);
+                    } catch (final Exception e) {
+                        return textValue;
+                    }
+                default:
+                    return textValue;
+            }
         }
 
         if (fieldNode.isArray()) {
@@ -140,7 +181,7 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
             }
 
             for (final JsonNode node : arrayNode) {
-                final Object value = getRawNodeValue(node, elementDataType);
+                final Object value = getRawNodeValue(node, elementDataType, fieldName);
                 arrayElements[count++] = value;
             }
 
@@ -149,7 +190,24 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
 
         if (fieldNode.isObject()) {
             RecordSchema childSchema = null;
-            if (dataType != null && RecordFieldType.RECORD == dataType.getFieldType()) {
+            if (dataType != null && RecordFieldType.MAP == dataType.getFieldType()) {
+                final MapDataType mapDataType = (MapDataType) dataType;
+                final DataType valueType = mapDataType.getValueType();
+
+                final Map<String, Object> mapValue = new HashMap<>();
+
+                final Iterator<Map.Entry<String, JsonNode>> fieldItr = fieldNode.getFields();
+                while (fieldItr.hasNext()) {
+                    final Map.Entry<String, JsonNode> entry = fieldItr.next();
+                    final String elementName = entry.getKey();
+                    final JsonNode elementNode = entry.getValue();
+
+                    final Object nodeValue = getRawNodeValue(elementNode, valueType, fieldName + "['" + elementName + "']");
+                    mapValue.put(elementName, nodeValue);
+                }
+
+                return mapValue;
+            } else if (dataType != null && RecordFieldType.RECORD == dataType.getFieldType()) {
                 final RecordDataType recordDataType = (RecordDataType) dataType;
                 childSchema = recordDataType.getChildSchema();
             } else if (dataType != null && RecordFieldType.CHOICE == dataType.getFieldType()) {
@@ -167,7 +225,7 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
                     while (fieldNames.hasNext()) {
                         final String childFieldName = fieldNames.next();
 
-                        final Object childValue = getRawNodeValue(fieldNode.get(childFieldName), possibleSchema.getDataType(childFieldName).orElse(null));
+                        final Object childValue = getRawNodeValue(fieldNode.get(childFieldName), possibleSchema.getDataType(childFieldName).orElse(null), childFieldName);
                         childValues.put(childFieldName, childValue);
                     }
 
@@ -188,7 +246,7 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
                 final String childFieldName = fieldNames.next();
 
                 final DataType childDataType = childSchema.getDataType(childFieldName).orElse(null);
-                final Object childValue = getRawNodeValue(fieldNode.get(childFieldName), childDataType);
+                final Object childValue = getRawNodeValue(fieldNode.get(childFieldName), childDataType, childFieldName);
                 childValues.put(childFieldName, childValue);
             }
 
@@ -200,7 +258,7 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
     }
 
 
-    private JsonNode getNextJsonNode() throws JsonParseException, IOException, MalformedRecordException {
+    protected JsonNode getNextJsonNode() throws IOException, MalformedRecordException {
         if (!firstObjectConsumed) {
             firstObjectConsumed = true;
             return firstJsonNode;
@@ -227,22 +285,9 @@ public abstract class AbstractJsonRowRecordReader implements RecordReader {
         }
     }
 
-
     @Override
     public void close() throws IOException {
         jsonParser.close();
-    }
-
-    protected JsonParser getJsonParser() {
-        return jsonParser;
-    }
-
-    protected JsonFactory getJsonFactory() {
-        return jsonFactory;
-    }
-
-    protected Optional<JsonNode> getFirstJsonNode() {
-        return Optional.ofNullable(firstJsonNode);
     }
 
     protected abstract Record convertJsonNodeToRecord(JsonNode nextNode, RecordSchema schema, boolean coerceTypes, boolean dropUnknownFields) throws IOException, MalformedRecordException;

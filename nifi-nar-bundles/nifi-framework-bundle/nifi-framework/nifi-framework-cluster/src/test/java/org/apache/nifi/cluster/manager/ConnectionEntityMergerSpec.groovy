@@ -63,6 +63,6 @@ class ConnectionEntityMergerSpec extends Specification {
     }
 
     def createNodeIdentifier(int id) {
-        new NodeIdentifier("cluster-node-$id", 'addr', id, 'sktaddr', id * 10, 'stsaddr', id * 100, id * 1000, false, null)
+        new NodeIdentifier("cluster-node-$id", 'addr', id, 'sktaddr', id * 10, null, id * 10, 'stsaddr', id * 100, id * 1000, false, null)
     }
 }

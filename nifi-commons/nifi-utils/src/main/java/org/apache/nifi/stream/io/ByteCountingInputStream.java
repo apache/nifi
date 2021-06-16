@@ -25,7 +25,8 @@ public class ByteCountingInputStream extends InputStream {
     private long bytesRead = 0L;
     private long bytesSkipped = 0L;
 
-    private long bytesSinceMark = 0L;
+    private long bytesReadSinceMark = 0L;
+    private long bytesSkippedSinceMark = 0L;
 
     public ByteCountingInputStream(final InputStream in) {
         this.in = in;
@@ -41,7 +42,7 @@ public class ByteCountingInputStream extends InputStream {
         final int fromSuper = in.read();
         if (fromSuper >= 0) {
             bytesRead++;
-            bytesSinceMark++;
+            bytesReadSinceMark++;
         }
         return fromSuper;
     }
@@ -51,7 +52,7 @@ public class ByteCountingInputStream extends InputStream {
         final int fromSuper = in.read(b, off, len);
         if (fromSuper >= 0) {
             bytesRead += fromSuper;
-            bytesSinceMark += fromSuper;
+            bytesReadSinceMark += fromSuper;
         }
 
         return fromSuper;
@@ -67,7 +68,7 @@ public class ByteCountingInputStream extends InputStream {
         final long skipped = in.skip(n);
         if (skipped >= 0) {
             bytesSkipped += skipped;
-            bytesSinceMark += skipped;
+            bytesSkippedSinceMark += skipped;
         }
         return skipped;
     }
@@ -88,7 +89,8 @@ public class ByteCountingInputStream extends InputStream {
     public void mark(final int readlimit) {
         in.mark(readlimit);
 
-        bytesSinceMark = 0L;
+        bytesReadSinceMark = 0L;
+        bytesSkippedSinceMark = 0L;
     }
 
     @Override
@@ -99,8 +101,11 @@ public class ByteCountingInputStream extends InputStream {
     @Override
     public void reset() throws IOException {
         in.reset();
-        bytesRead -= bytesSinceMark;
-        bytesSinceMark = 0L;
+        bytesRead -= bytesReadSinceMark;
+        bytesSkipped -= bytesSkippedSinceMark;
+
+        bytesReadSinceMark = 0L;
+        bytesSkippedSinceMark = 0L;
     }
 
     @Override

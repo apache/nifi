@@ -16,17 +16,7 @@
  */
 package org.apache.nifi.jms.processors;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-
-import javax.jms.Session;
-
+import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -34,8 +24,11 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.jms.cf.JMSConnectionFactoryProvider;
@@ -47,8 +40,21 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.springframework.jms.connection.CachingConnectionFactory;
+import org.springframework.jms.connection.SingleConnectionFactory;
 import org.springframework.jms.core.JmsTemplate;
 import org.springframework.jms.support.JmsHeaders;
+
+import javax.jms.Session;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Consuming JMS processor which upon each invocation of
@@ -59,8 +65,9 @@ import org.springframework.jms.support.JmsHeaders;
  */
 @Tags({ "jms", "get", "message", "receive", "consume" })
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
-@CapabilityDescription("Consumes JMS Message of type BytesMessage or TextMessage transforming its content to "
-        + "a FlowFile and transitioning it to 'success' relationship. JMS attributes such as headers and properties will be copied as FlowFile attributes.")
+@CapabilityDescription("Consumes JMS Message of type BytesMessage, TextMessage, ObjectMessage, MapMessage or StreamMessage transforming its content to "
+        + "a FlowFile and transitioning it to 'success' relationship. JMS attributes such as headers and properties will be copied as FlowFile attributes. "
+        + "MapMessages will be transformed into JSONs and then into byte arrays. The other types will have their raw contents as byte array transferred into the flowfile.")
 @WritesAttributes({
         @WritesAttribute(attribute = JmsHeaders.DELIVERY_MODE, description = "The JMSDeliveryMode from the message header."),
         @WritesAttribute(attribute = JmsHeaders.EXPIRATION, description = "The JMSExpiration from the message header."),
@@ -72,10 +79,16 @@ import org.springframework.jms.support.JmsHeaders;
         @WritesAttribute(attribute = JmsHeaders.TYPE, description = "The JMSType from the message header."),
         @WritesAttribute(attribute = JmsHeaders.REPLY_TO, description = "The JMSReplyTo from the message header."),
         @WritesAttribute(attribute = JmsHeaders.DESTINATION, description = "The JMSDestination from the message header."),
+        @WritesAttribute(attribute = ConsumeJMS.JMS_MESSAGETYPE, description = "The JMS message type, can be TextMessage, BytesMessage, ObjectMessage, MapMessage or StreamMessage)."),
         @WritesAttribute(attribute = "other attributes", description = "Each message property is written to an attribute.")
 })
+@DynamicProperty(name = "The name of a Connection Factory configuration property.", value = "The value of a given Connection Factory configuration property.",
+        description = "Additional configuration property for the Connection Factory. It can be used when the Connection Factory is being configured via the 'JNDI *' or the 'JMS *'" +
+                "properties of the processor. For more information, see the Additional Details page.",
+        expressionLanguageScope = ExpressionLanguageScope.VARIABLE_REGISTRY)
 @SeeAlso(value = { PublishJMS.class, JMSConnectionFactoryProvider.class })
 public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
+    public static final String JMS_MESSAGETYPE = "jms.messagetype";
 
     static final AllowableValue AUTO_ACK = new AllowableValue(String.valueOf(Session.AUTO_ACKNOWLEDGE),
             "AUTO_ACKNOWLEDGE (" + String.valueOf(Session.AUTO_ACKNOWLEDGE) + ")",
@@ -129,6 +142,22 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
+    static final PropertyDescriptor TIMEOUT = new PropertyDescriptor.Builder()
+            .name("Timeout")
+            .description("How long to wait to consume a message from the remote broker before giving up.")
+            .required(true)
+            .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .defaultValue("1 sec")
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
+    static final PropertyDescriptor ERROR_QUEUE = new PropertyDescriptor.Builder()
+            .name("Error Queue Name")
+            .description("The name of a JMS Queue where - if set - unprocessed messages will be routed. Usually provided by the administrator (e.g., 'queue://myErrorQueue' or 'myErrorQueue')." +
+                "Only applicable if 'Destination Type' is set to 'QUEUE'")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
@@ -137,29 +166,76 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
 
     private final static Set<Relationship> relationships;
 
-    private final static List<PropertyDescriptor> thisPropertyDescriptors;
+    private final static List<PropertyDescriptor> propertyDescriptors;
 
     static {
         List<PropertyDescriptor> _propertyDescriptors = new ArrayList<>();
-        _propertyDescriptors.addAll(propertyDescriptors);
-        _propertyDescriptors.remove(MESSAGE_BODY);
+
+        _propertyDescriptors.add(CF_SERVICE);
+        _propertyDescriptors.add(DESTINATION);
+        _propertyDescriptors.add(DESTINATION_TYPE);
+        _propertyDescriptors.add(USER);
+        _propertyDescriptors.add(PASSWORD);
+        _propertyDescriptors.add(CLIENT_ID);
+        _propertyDescriptors.add(SESSION_CACHE_SIZE);
 
         // change the validator on CHARSET property
-        _propertyDescriptors.remove(CHARSET);
-        PropertyDescriptor CHARSET_WITH_EL_VALIDATOR_PROPERTY = new PropertyDescriptor.Builder().fromPropertyDescriptor(CHARSET)
+        PropertyDescriptor charsetWithELValidatorProperty = new PropertyDescriptor.Builder()
+                .fromPropertyDescriptor(CHARSET)
                 .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR_WITH_EVALUATION)
                 .build();
-        _propertyDescriptors.add(CHARSET_WITH_EL_VALIDATOR_PROPERTY);
+        _propertyDescriptors.add(charsetWithELValidatorProperty);
 
         _propertyDescriptors.add(ACKNOWLEDGEMENT_MODE);
         _propertyDescriptors.add(DURABLE_SUBSCRIBER);
         _propertyDescriptors.add(SHARED_SUBSCRIBER);
         _propertyDescriptors.add(SUBSCRIPTION_NAME);
-        thisPropertyDescriptors = Collections.unmodifiableList(_propertyDescriptors);
+        _propertyDescriptors.add(TIMEOUT);
+        _propertyDescriptors.add(ERROR_QUEUE);
+
+        _propertyDescriptors.addAll(JNDI_JMS_CF_PROPERTIES);
+        _propertyDescriptors.addAll(JMS_CF_PROPERTIES);
+
+        propertyDescriptors = Collections.unmodifiableList(_propertyDescriptors);
 
         Set<Relationship> _relationships = new HashSet<>();
         _relationships.add(REL_SUCCESS);
         relationships = Collections.unmodifiableSet(_relationships);
+    }
+
+    private static boolean isDurableSubscriber(final ProcessContext context) {
+        final Boolean durableBoolean = context.getProperty(DURABLE_SUBSCRIBER).evaluateAttributeExpressions().asBoolean();
+        return durableBoolean == null ? false : durableBoolean;
+    }
+
+    private static boolean isShared(final ProcessContext context) {
+        final Boolean sharedBoolean = context.getProperty(SHARED_SUBSCRIBER).evaluateAttributeExpressions().asBoolean();
+        return sharedBoolean == null ? false : sharedBoolean;
+    }
+
+    @OnScheduled
+    public void onSchedule(ProcessContext context) {
+        if (context.getMaxConcurrentTasks() > 1 && isDurableSubscriber(context) && !isShared(context)) {
+            throw new ProcessException("Durable non shared subscriptions cannot work on multiple threads. Check javax/jms/Session#createDurableConsumer API doc.");
+        }
+    }
+
+    @Override
+    protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
+        final List<ValidationResult> validationResults = new ArrayList<>(super.customValidate(validationContext));
+
+        String destinationType = validationContext.getProperty(DESTINATION_TYPE).getValue();
+        String errorQueue = validationContext.getProperty(ERROR_QUEUE).getValue();
+
+        if (errorQueue != null && !QUEUE.equals(destinationType)) {
+            validationResults.add(new ValidationResult.Builder()
+                .valid(false)
+                .subject(ERROR_QUEUE.getDisplayName())
+                .explanation("'" + ERROR_QUEUE.getDisplayName() + "' is applicable only when " +
+                    "'" + DESTINATION_TYPE.getDisplayName() + "'='" + QUEUE + "'")
+                .build());
+        }
+        return validationResults;
     }
 
     /**
@@ -172,35 +248,41 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
     @Override
     protected void rendezvousWithJms(final ProcessContext context, final ProcessSession processSession, final JMSConsumer consumer) throws ProcessException {
         final String destinationName = context.getProperty(DESTINATION).evaluateAttributeExpressions().getValue();
-        final Boolean durableBoolean = context.getProperty(DURABLE_SUBSCRIBER).evaluateAttributeExpressions().asBoolean();
-        final boolean durable = durableBoolean == null ? false : durableBoolean;
-        final Boolean sharedBoolean = context.getProperty(SHARED_SUBSCRIBER).evaluateAttributeExpressions().asBoolean();
-        final boolean shared = sharedBoolean == null ? false : sharedBoolean;
+        final String errorQueueName = context.getProperty(ERROR_QUEUE).evaluateAttributeExpressions().getValue();
+        final boolean durable = isDurableSubscriber(context);
+        final boolean shared = isShared(context);
         final String subscriptionName = context.getProperty(SUBSCRIPTION_NAME).evaluateAttributeExpressions().getValue();
         final String charset = context.getProperty(CHARSET).evaluateAttributeExpressions().getValue();
 
-        consumer.consume(destinationName, durable, shared, subscriptionName, charset, new ConsumerCallback() {
-            @Override
-            public void accept(final JMSResponse response) {
-                if (response == null) {
-                    return;
+        try {
+            consumer.consume(destinationName, errorQueueName, durable, shared, subscriptionName, charset, new ConsumerCallback() {
+                @Override
+                public void accept(final JMSResponse response) {
+                    if (response == null) {
+                        return;
+                    }
+
+                    FlowFile flowFile = processSession.create();
+                    flowFile = processSession.write(flowFile, out -> out.write(response.getMessageBody()));
+
+                    final Map<String, String> jmsHeaders = response.getMessageHeaders();
+                    final Map<String, String> jmsProperties = response.getMessageProperties();
+
+                    flowFile = ConsumeJMS.this.updateFlowFileAttributesWithJMSAttributes(jmsHeaders, flowFile, processSession);
+                    flowFile = ConsumeJMS.this.updateFlowFileAttributesWithJMSAttributes(jmsProperties, flowFile, processSession);
+                    flowFile = processSession.putAttribute(flowFile, JMS_SOURCE_DESTINATION_NAME, destinationName);
+
+                    processSession.getProvenanceReporter().receive(flowFile, destinationName);
+                    processSession.putAttribute(flowFile, JMS_MESSAGETYPE, response.getMessageType());
+                    processSession.transfer(flowFile, REL_SUCCESS);
+                    processSession.commit();
                 }
-
-                FlowFile flowFile = processSession.create();
-                flowFile = processSession.write(flowFile, out -> out.write(response.getMessageBody()));
-
-                final Map<String, String> jmsHeaders = response.getMessageHeaders();
-                final Map<String, String> jmsProperties = response.getMessageProperties();
-
-                flowFile = ConsumeJMS.this.updateFlowFileAttributesWithJMSAttributes(jmsHeaders, flowFile, processSession);
-                flowFile = ConsumeJMS.this.updateFlowFileAttributesWithJMSAttributes(jmsProperties, flowFile, processSession);
-                flowFile = processSession.putAttribute(flowFile, JMS_SOURCE_DESTINATION_NAME, destinationName);
-
-                processSession.getProvenanceReporter().receive(flowFile, destinationName);
-                processSession.transfer(flowFile, REL_SUCCESS);
-                processSession.commit();
-            }
-        });
+            });
+        } catch(Exception e) {
+            consumer.setValid(false);
+            context.yield();
+            throw e; // for backward compatibility with exception handling in flows
+        }
     }
 
     /**
@@ -210,6 +292,10 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
     protected JMSConsumer finishBuildingJmsWorker(CachingConnectionFactory connectionFactory, JmsTemplate jmsTemplate, ProcessContext processContext) {
         int ackMode = processContext.getProperty(ACKNOWLEDGEMENT_MODE).asInteger();
         jmsTemplate.setSessionAcknowledgeMode(ackMode);
+
+        long timeout = processContext.getProperty(TIMEOUT).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS);
+        jmsTemplate.setReceiveTimeout(timeout);
+
         return new JMSConsumer(connectionFactory, jmsTemplate, this.getLogger());
     }
 
@@ -220,7 +306,28 @@ public class ConsumeJMS extends AbstractJMSProcessor<JMSConsumer> {
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return thisPropertyDescriptors;
+        return propertyDescriptors;
+    }
+
+    /**
+     * <p>
+     * Use provided clientId for non shared durable consumers, if not set
+     * always a different value as defined in {@link AbstractJMSProcessor#setClientId(ProcessContext, SingleConnectionFactory)}.
+     * </p>
+     * See {@link Session#createDurableConsumer(javax.jms.Topic, String, String, boolean)},
+     * in special following part: <i>An unshared durable subscription is
+     * identified by a name specified by the client and by the client identifier,
+     * which must be set. An application which subsequently wishes to create
+     * a consumer on that unshared durable subscription must use the same
+     * client identifier.</i>
+     */
+    @Override
+    protected void setClientId(ProcessContext context, SingleConnectionFactory cachingFactory) {
+        if (isDurableSubscriber(context) && !isShared(context)) {
+            cachingFactory.setClientId(getClientId(context));
+        } else {
+            super.setClientId(context, cachingFactory);
+        }
     }
 
     /**

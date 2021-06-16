@@ -13,13 +13,13 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-        <version>1.8.0-SNAPSHOT</version>
+        <version>1.12.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-mongodb-bundle</artifactId>
@@ -38,12 +38,33 @@
         <mongo.driver.version>3.2.2</mongo.driver.version>
     </properties>
 
+    <profiles>
+        <profile>
+            <id>3.4</id>
+            <properties>
+                <mongo.driver.version>3.4.3</mongo.driver.version>
+            </properties>
+        </profile>
+        <profile>
+            <id>3.6</id>
+            <properties>
+                <mongo.driver.version>3.6.4</mongo.driver.version>
+            </properties>
+        </profile>
+        <profile>
+            <id>3.8</id>
+            <properties>
+                <mongo.driver.version>3.8.0</mongo.driver.version>
+            </properties>
+        </profile>
+    </profiles>
+
     <dependencyManagement>
         <dependencies>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-mongodb-processors</artifactId>
-                <version>1.8.0-SNAPSHOT</version>
+                <version>1.12.0-SNAPSHOT</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

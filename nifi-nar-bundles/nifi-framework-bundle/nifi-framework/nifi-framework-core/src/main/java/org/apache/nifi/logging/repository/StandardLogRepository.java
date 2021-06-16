@@ -96,11 +96,9 @@ public class StandardLogRepository implements LogRepository {
         try {
             final LogObserver observer = removeObserver(observerIdentifier);
 
-            if (observer == null) {
-                throw new IllegalArgumentException("The specified observer cannot be found.");
+            if (observer != null) {
+                addObserver(observerIdentifier, level, observer);
             }
-
-            addObserver(observerIdentifier, level, observer);
         } finally {
             writeLock.unlock();
         }
@@ -136,7 +134,7 @@ public class StandardLogRepository implements LogRepository {
         try {
             // ensure observer does not exists
             if (observerLookup.containsKey(observerIdentifier)) {
-                throw new IllegalStateException("The specified observer identifier already exists.");
+                throw new IllegalStateException("The specified observer identifier (" + observerIdentifier + ") already exists.");
             }
 
             final LogLevel[] allLevels = LogLevel.values();

@@ -31,6 +31,7 @@ public class FlowFileSummaryDTO {
     private Long size;
     private Long queuedDuration;
     private Long lineageDuration;
+    private Long penaltyExpiresIn;
     private Boolean isPenalized;
 
     private String clusterNodeId; // include when clustered
@@ -132,6 +133,20 @@ public class FlowFileSummaryDTO {
 
     public void setLineageDuration(Long lineageDuration) {
         this.lineageDuration = lineageDuration;
+    }
+
+    /**
+     * @return when the FlowFile will no longer be penalized
+     */
+    @ApiModelProperty(
+            value = "How long in milliseconds until the FlowFile penalty expires."
+    )
+    public Long getPenaltyExpiresIn() {
+        return penaltyExpiresIn;
+    }
+
+    public void setPenaltyExpiresIn(Long penaltyExpiration) {
+        penaltyExpiresIn = penaltyExpiration;
     }
 
     /**

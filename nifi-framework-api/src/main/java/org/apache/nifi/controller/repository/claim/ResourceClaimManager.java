@@ -151,4 +151,11 @@ public interface ResourceClaimManager {
      * @param claim the resource claim to freeze
      */
     void freeze(ResourceClaim claim);
+
+    /**
+     * Indicates whether or not the given Resource Claim is awaiting destruction
+     * @param claim the resource claim
+     * @return <code>true</code> if the Resource Claim is awaiting destruction, <code>false</code> otherwise
+     */
+    boolean isDestructable(ResourceClaim claim);
 }

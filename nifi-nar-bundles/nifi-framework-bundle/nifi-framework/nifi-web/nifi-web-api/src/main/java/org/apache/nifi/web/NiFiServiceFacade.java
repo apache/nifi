@@ -16,21 +16,28 @@
  */
 package org.apache.nifi.web;
 
+import io.prometheus.client.CollectorRegistry;
 import org.apache.nifi.authorization.AuthorizeAccess;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.user.NiFiUser;
+import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.repository.claim.ContentDirection;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.parameter.ParameterContext;
+import org.apache.nifi.registry.flow.ExternalControllerServiceReference;
 import org.apache.nifi.registry.flow.VersionedFlow;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
+import org.apache.nifi.registry.flow.VersionedParameterContext;
 import org.apache.nifi.registry.flow.VersionedProcessGroup;
 import org.apache.nifi.web.api.dto.AccessPolicyDTO;
 import org.apache.nifi.web.api.dto.AffectedComponentDTO;
 import org.apache.nifi.web.api.dto.BulletinBoardDTO;
 import org.apache.nifi.web.api.dto.BulletinDTO;
 import org.apache.nifi.web.api.dto.BulletinQueryDTO;
+import org.apache.nifi.web.api.dto.BundleDTO;
 import org.apache.nifi.web.api.dto.ClusterDTO;
 import org.apache.nifi.web.api.dto.ComponentHistoryDTO;
 import org.apache.nifi.web.api.dto.ComponentStateDTO;
@@ -48,6 +55,7 @@ import org.apache.nifi.web.api.dto.FunnelDTO;
 import org.apache.nifi.web.api.dto.LabelDTO;
 import org.apache.nifi.web.api.dto.ListingRequestDTO;
 import org.apache.nifi.web.api.dto.NodeDTO;
+import org.apache.nifi.web.api.dto.ParameterContextDTO;
 import org.apache.nifi.web.api.dto.PortDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
@@ -78,7 +86,9 @@ import org.apache.nifi.web.api.entity.ActivateControllerServicesEntity;
 import org.apache.nifi.web.api.entity.AffectedComponentEntity;
 import org.apache.nifi.web.api.entity.BucketEntity;
 import org.apache.nifi.web.api.entity.BulletinEntity;
+import org.apache.nifi.web.api.entity.ComponentValidationResultEntity;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
+import org.apache.nifi.web.api.entity.ConnectionStatisticsEntity;
 import org.apache.nifi.web.api.entity.ConnectionStatusEntity;
 import org.apache.nifi.web.api.entity.ControllerBulletinsEntity;
 import org.apache.nifi.web.api.entity.ControllerConfigurationEntity;
@@ -90,6 +100,7 @@ import org.apache.nifi.web.api.entity.FlowConfigurationEntity;
 import org.apache.nifi.web.api.entity.FlowEntity;
 import org.apache.nifi.web.api.entity.FunnelEntity;
 import org.apache.nifi.web.api.entity.LabelEntity;
+import org.apache.nifi.web.api.entity.ParameterContextEntity;
 import org.apache.nifi.web.api.entity.PortEntity;
 import org.apache.nifi.web.api.entity.PortStatusEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
@@ -97,6 +108,7 @@ import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupStatusEntity;
 import org.apache.nifi.web.api.entity.ProcessorDiagnosticsEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
+import org.apache.nifi.web.api.entity.ProcessorsRunStatusDetailsEntity;
 import org.apache.nifi.web.api.entity.ProcessorStatusEntity;
 import org.apache.nifi.web.api.entity.RegistryClientEntity;
 import org.apache.nifi.web.api.entity.RegistryEntity;
@@ -187,9 +199,10 @@ public interface NiFiServiceFacade {
      * Searches the controller for the specified query string.
      *
      * @param query query
+     * @param activeGroupId the id of the group currently selected in the editor
      * @return results
      */
-    SearchResultsDTO searchController(String query);
+    SearchResultsDTO searchController(String query, String activeGroupId);
 
     /**
      * Submits a provenance request.
@@ -304,6 +317,11 @@ public interface NiFiServiceFacade {
     FlowConfigurationEntity getFlowConfiguration();
 
     /**
+     * Gets the metrics for the flow.
+     */
+    Collection<CollectorRegistry> generateFlowMetrics();
+
+    /**
      * Updates the configuration for this controller.
      *
      * @param revision Revision to compare with current base revision
@@ -405,11 +423,12 @@ public interface NiFiServiceFacade {
     void verifyCanAddTemplate(String groupId, String name);
 
     /**
-     * Verifies the types of components in a template.
+     * Verifies the given template can be instantiated in the group with the given ID
      *
-     * @param snippet proposed template
+     * @param groupId the ID of the Process Group
+     * @param snippetDTO the contents of the template
      */
-    void verifyComponentTypes(FlowSnippetDTO snippet);
+    void verifyCanInstantiate(String groupId, FlowSnippetDTO snippetDTO);
 
     /**
      * Verifies the types of components in a versioned process group
@@ -583,6 +602,13 @@ public interface NiFiServiceFacade {
     Set<ProcessorEntity> getProcessors(String groupId, boolean includeDescendants);
 
     /**
+     * Provides a ProcessorsRunStatusDetails that describes the current details of the run status for each processor whose id is provided
+     * @param processorIds the set of all processor IDs that should be included
+     * @return a ProcessorsRunStatusDetailsEntity that describes the current information about the processors' run status
+     */
+    ProcessorsRunStatusDetailsEntity getProcessorsRunStatusDetails(Set<String> processorIds, NiFiUser user);
+
+    /**
      * Verifies the specified processor can be updated.
      *
      * @param processorDTO processor
@@ -649,6 +675,14 @@ public interface NiFiServiceFacade {
      * @return history
      */
     StatusHistoryEntity getConnectionStatusHistory(String connectionId);
+
+    /**
+     * Gets analytical statistics for the specified connection.
+     *
+     * @param connectionId connection
+     * @return statistics
+     */
+    ConnectionStatisticsEntity getConnectionStatistics(String connectionId);
 
     /**
      * Creates a new Relationship target.
@@ -911,6 +945,28 @@ public interface NiFiServiceFacade {
      */
     PortEntity deleteOutputPort(Revision revision, String outputPortId);
 
+    /**
+     * Verifies public input port unique constraint throughout the flow will be retained,
+     * even if a new port is added with the given port id and name.
+     *
+     * @param portId port id
+     * @param portName port name
+     *
+     * @throws IllegalStateException If there is any port with the same name or the same identifier
+     */
+    void verifyPublicInputPortUniqueness(final String portId, final String portName);
+
+    /**
+     * Verifies public output port unique constraint throughout the flow will be retained,
+     * even if a new port is added with the given port id and name.
+     *
+     * @param portId port id
+     * @param portName port name
+     *
+     * @throws IllegalStateException If there is any port with the same name or the same identifier
+     */
+    void verifyPublicOutputPortUniqueness(final String portId, final String portName);
+
     // ------------
     // Current user
     // ------------
@@ -991,6 +1047,85 @@ public interface NiFiServiceFacade {
      * @return the components that will be affected
      */
     Set<AffectedComponentDTO> getActiveComponentsAffectedByVariableRegistryUpdate(VariableRegistryDTO variableRegistryDto);
+
+    /**
+     * Verifies that a Parameter Context matching the given DTO can be created
+     * @param parameterContext the DTO that represents the Parameter Context
+     * @throws IllegalStateException if a ParameterContext cannot be created for the given DTO
+     */
+    void verifyCreateParameterContext(ParameterContextDTO parameterContext);
+
+    /**
+     * Verifies that the Parameter Context with the ID identified by the given DTO can be updated to match
+     * the given set of Parameters
+     *
+     * @param parameterContext the DTO that represents the updated Parameter Context
+     * @param verifyComponentStates if <code>true</code>, will ensure that any processor referencing the parameter context is stopped/disabled and any controller service referencing the parameter
+     * context is disabled. If <code>false</code>, these verifications will not be performed.
+     */
+    void verifyUpdateParameterContext(ParameterContextDTO parameterContext, boolean verifyComponentStates);
+
+    /**
+     * Returns the Set of all Parameter Context Entities for the current user
+     * @return the Set of all Parameter Context Entities for the current user
+     */
+    Set<ParameterContextEntity> getParameterContexts();
+
+    /**
+     * Returns the Parameter Context with the given name
+     * @param parameterContextName the name of the Parameter Context
+     * @return the Parameter Context with the given name, or <code>null</code> if no Parameter Context exists with that name
+     *
+     * @throws org.apache.nifi.authorization.AccessDeniedException if a Parameter Context exists with the given name but the user does not have READ permissions to it
+     */
+    ParameterContext getParameterContextByName(String parameterContextName, NiFiUser user);
+
+    /**
+     * Returns the ParameterContextEntity for the ParameterContext with the given ID
+     * @param parameterContextId the ID of the Parameter Context
+     * @param user the user on whose behalf the Parameter Context is being retrieved
+     * @return the ParameterContextEntity
+     */
+    ParameterContextEntity getParameterContext(String parameterContextId, NiFiUser user);
+
+    /**
+     * Creates a new Parameter Context
+     * @param revision the revision for the newly created Parameter Context
+     * @param parameterContext the Parameter Context
+     * @return a ParameterContextEntity representing the newly created ParameterContext
+     */
+    ParameterContextEntity createParameterContext(Revision revision, ParameterContextDTO parameterContext);
+
+    /**
+     * Updates the Parameter Context
+     * @param revision the current revision of the Parameter Context
+     * @param parameterContext the updated version of the ParameterContext
+     * @return the updated Parameter Context Entity
+     */
+    ParameterContextEntity updateParameterContext(Revision revision, ParameterContextDTO parameterContext);
+
+    /**
+     * Deletes the Parameter Context
+     * @param revision the revision of the Parameter Context
+     * @param parameterContextId the ID of the Parameter Context
+     * @return a Parameter Context Entity that represents the Parameter Context that was deleted
+     */
+    ParameterContextEntity deleteParameterContext(Revision revision, String parameterContextId);
+
+    /**
+     * Performs validation of all components that make use of the Parameter Context with the same ID as the given DTO, but validating against the Parameters
+     * specified within the DTO
+     * @param parameterContext the ParameterContext to validate against
+     * @param user the user on whose behalf the validation is taking place
+     * @return the ComponentValidationResultEntity for each component that makes use of the Parameter Context
+     */
+    List<ComponentValidationResultEntity> validateComponents(ParameterContextDTO parameterContext, NiFiUser user);
+
+    /**
+     * Ensures that the Parameter Context with the given ID can be deleted
+     * @param parameterContextId the ID of the Parameter Context
+     */
+    void verifyDeleteParameterContext(String parameterContextId);
 
     /**
      * Gets all process groups in the specified parent group.
@@ -1287,6 +1422,14 @@ public interface NiFiServiceFacade {
     FlowComparisonEntity getLocalModifications(String processGroupId);
 
     /**
+     * Determines whether the process group with the given id or any of its descendants are under version control.
+     *
+     * @param groupId the ID of the Process Group
+     * @return <code>true</code> if any process group in the hierarchy is under version control, <code>false</code> otherwise.
+     */
+    boolean isAnyProcessGroupUnderVersionControl(final String groupId);
+
+    /**
      * Returns the Version Control information for the Process Group with the given ID
      *
      * @param processGroupId the ID of the Process Group
@@ -1294,7 +1437,6 @@ public interface NiFiServiceFacade {
      *         process group is not under version control
      */
     VersionControlInformationEntity getVersionControlInformation(String processGroupId);
-
 
     /**
      * Adds the given Versioned Flow to the registry specified by the given ID
@@ -1334,13 +1476,19 @@ public interface NiFiServiceFacade {
      * @param registryId the ID of the Flow Registry to persist the snapshot to
      * @param flow the flow where the snapshot should be persisted
      * @param snapshot the Snapshot to persist
+     * @param externalControllerServiceReferences a mapping of controller service id to ExternalControllerServiceReference for any Controller Service that is referenced in the flow but not included
+     * in the VersionedProcessGroup
+     * @param parameterContexts a map of the Parameter Contexts to include keyed by name
      * @param comments about the snapshot
      * @param expectedVersion the version to save the flow as
      * @return the snapshot that represents what was stored in the registry
      *
      * @throws NiFiCoreException if unable to register the snapshot with the flow registry
      */
-    VersionedFlowSnapshot registerVersionedFlowSnapshot(String registryId, VersionedFlow flow, VersionedProcessGroup snapshot, String comments, int expectedVersion);
+    VersionedFlowSnapshot registerVersionedFlowSnapshot(String registryId, VersionedFlow flow, VersionedProcessGroup snapshot,
+                                                        Map<String, VersionedParameterContext> parameterContexts,
+                                                        Map<String, ExternalControllerServiceReference> externalControllerServiceReferences,
+                                                        String comments, int expectedVersion);
 
     /**
      * Updates the Version Control Information on the Process Group with the given ID
@@ -1377,6 +1525,24 @@ public interface NiFiServiceFacade {
     VersionedFlowSnapshot getVersionedFlowSnapshot(VersionControlInformationDTO versionControlInfo, boolean fetchRemoteFlows);
 
     /**
+     * Get the latest Versioned Flow Snapshot from the registry for the Process Group with the given ID
+     *
+     * @param processGroupId the ID of the Process Group
+     * @return the latest Versioned Flow Snapshot for download
+     *
+     * @throws ResourceNotFoundException if the Versioned Flow Snapshot could not be found
+     */
+    VersionedFlowSnapshot getVersionedFlowSnapshotByGroupId(String processGroupId);
+
+    /**
+     * Get the current state of the Process Group with the given ID, converted to a Versioned Flow Snapshot
+     *
+     * @param processGroupId the ID of the Process Group
+     * @return the current Process Group converted to a Versioned Flow Snapshot for download
+     */
+    VersionedFlowSnapshot getCurrentFlowSnapshotByGroupId(String processGroupId);
+
+    /**
      * Returns the name of the Flow Registry that is registered with the given ID. If no Flow Registry exists with the given ID, will return
      * the ID itself as the name
      *
@@ -1393,7 +1559,7 @@ public interface NiFiServiceFacade {
      * @param updatedSnapshot the snapshot to update the Process Group to
      * @return the set of all components that would be affected by updating the Process Group
      */
-    Set<AffectedComponentEntity> getComponentsAffectedByVersionChange(String processGroupId, VersionedFlowSnapshot updatedSnapshot);
+    Set<AffectedComponentEntity> getComponentsAffectedByFlowUpdate(String processGroupId, VersionedFlowSnapshot updatedSnapshot);
 
     /**
      * Verifies that the Process Group with the given identifier can be updated to the proposed flow
@@ -1414,10 +1580,11 @@ public interface NiFiServiceFacade {
      * @param registryId the ID of the Flow Registry
      * @param bucketId the ID of the bucket
      * @param flowId the ID of the flow
+     * @param saveAction the save action being performed
      *
      * @throws IllegalStateException if the Process Group cannot be saved to the flow registry with the coordinates specified
      */
-    void verifyCanSaveToFlowRegistry(String groupId, String registryId, String bucketId, String flowId);
+    void verifyCanSaveToFlowRegistry(String groupId, String registryId, String bucketId, String flowId, String saveAction);
 
     /**
      * Verifies that the Process Group with the given identifier can have its local modifications reverted to the given VersionedFlowSnapshot
@@ -1428,7 +1595,6 @@ public interface NiFiServiceFacade {
      * @throws IllegalStateException if the Process Group cannot have its local modifications reverted
      */
     void verifyCanRevertLocalModifications(String groupId, VersionedFlowSnapshot versionedFlowSnapshot);
-
 
     /**
      * Updates the Process group with the given ID to match the new snapshot
@@ -1445,6 +1611,37 @@ public interface NiFiServiceFacade {
      */
     ProcessGroupEntity updateProcessGroupContents(Revision revision, String groupId, VersionControlInformationDTO versionControlInfo, VersionedFlowSnapshot snapshot,
                                                   String componentIdSeed, boolean verifyNotModified, boolean updateSettings, boolean updateDescendantVersionedFlows);
+
+    /**
+     * Returns a Set representing all components that will be affected by updating the Parameter Context that is represented by the given DTO.
+     *
+     * @param parameterContextDto the Parameter Context DTO that represents all changes that are to occur to a Parameter Context
+     * @return a Set representing all components that will be affected by the update
+     */
+    Set<AffectedComponentEntity> getComponentsAffectedByParameterContextUpdate(ParameterContextDTO parameterContextDto);
+
+    /**
+     * Returns an up-to-date representation of the component that is referenced by the given affected component
+     * @param affectedComponent the affected component
+     * @return an up-to-date representation of the affected component
+     */
+    AffectedComponentEntity getUpdatedAffectedComponentEntity(AffectedComponentEntity affectedComponent);
+
+    /**
+     * Returns a Set representing all Processors that reference any Parameters and that belong to the group with the given ID
+     *
+     * @param groupId the id of the process group
+     * @return a Set representing all Processors that reference Parameters
+     */
+    Set<AffectedComponentEntity> getProcessorsReferencingParameter(String groupId);
+
+    /**
+     * Returns a Set representing all Controller Services that reference any Parameters and that belong to the group with the given ID
+     *
+     * @param groupId the id of the process group
+     * @return a Set representing all Controller Services that reference Parameters
+     */
+    Set<AffectedComponentEntity> getControllerServicesReferencingParameter(String groupId);
 
     // ----------------------------------------
     // Component state methods
@@ -1515,6 +1712,14 @@ public interface NiFiServiceFacade {
      * @param reportingTaskId the reporting task id
      */
     void clearReportingTaskState(String reportingTaskId);
+
+    /**
+     * Gets the state for the specified RemoteProcessGroup.
+     *
+     * @param remoteProcessGroupId the RemoteProcessGroup id
+     * @return  the component state
+     */
+    ComponentStateDTO getRemoteProcessGroupState(String remoteProcessGroupId);
 
 
     // ----------------------------------------
@@ -2117,4 +2322,43 @@ public interface NiFiServiceFacade {
      * @return the resources
      */
     List<ResourceDTO> getResources();
+
+    // ----------------------------------------
+    // Bundle methods
+    // ----------------------------------------
+
+    /**
+     * Discovers the compatible bundle details for the components in the specified Versioned Process Group and updates the Versioned Process Group
+     * to reflect the appropriate bundles.
+     *
+     * @param versionedGroup the versioned group
+     */
+    void discoverCompatibleBundles(VersionedProcessGroup versionedGroup);
+
+    /**
+     * For any Controller Service that is found in the given Versioned Process Group, if that Controller Service is not itself included in the Versioned Process Groups,
+     * attempts to find an existing Controller Service that matches the definition. If any is found, the component within the Versioned Process Group is updated to point
+     * to the existing service.
+     *
+     * @param versionedFlowSnapshot the flow snapshot
+     * @param parentGroupId the ID of the Process Group from which the Controller Services are inherited
+     * @param user the NiFi user on whose behalf the request is happening; this user is used for validation so that only the Controller Services that the user has READ permissions to are included
+     */
+    void resolveInheritedControllerServices(VersionedFlowSnapshot versionedFlowSnapshot, String parentGroupId, NiFiUser user);
+
+    /**
+     * @param type the component type
+     * @param bundleDTO bundle to find the component
+     * @return the bundle coordinate
+     * @throws IllegalStateException no compatible bundle found
+     */
+    BundleCoordinate getCompatibleBundle(String type, BundleDTO bundleDTO);
+
+    /**
+     * @param classType the class name
+     * @param bundleCoordinate the bundle coordinate
+     * @return the temp component
+     */
+    ConfigurableComponent getTempComponent(String classType, BundleCoordinate bundleCoordinate);
+
 }

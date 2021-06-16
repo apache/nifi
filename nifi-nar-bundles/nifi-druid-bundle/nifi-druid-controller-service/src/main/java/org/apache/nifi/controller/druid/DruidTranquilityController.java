@@ -80,6 +80,7 @@ public class DruidTranquilityController extends AbstractControllerService implem
     private final static String FIREHOSE_PATTERN = "druid:firehose:%s";
 
     private final static AllowableValue PT1M = new AllowableValue("PT1M", "1 minute", "1 minute");
+    private final static AllowableValue PT5M = new AllowableValue("PT5M", "5 minutes", "5 minutes");
     private final static AllowableValue PT10M = new AllowableValue("PT10M", "10 minutes", "10 minutes");
     private final static AllowableValue PT60M = new AllowableValue("PT60M", "60 minutes", "1 hour");
 
@@ -230,8 +231,7 @@ public class DruidTranquilityController extends AbstractControllerService implem
     public static final PropertyDescriptor DIMENSIONS_LIST = new PropertyDescriptor.Builder()
             .name("druid-cs-dimensions-list")
             .displayName("Dimension Fields")
-            .description("A comma separated list of field names that will be stored as dimensions on ingest.")
-            .required(true)
+            .description("A comma separated list of field names that will be stored as dimensions on ingest. Set to empty string for schema-less dimensions.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
@@ -259,7 +259,7 @@ public class DruidTranquilityController extends AbstractControllerService implem
     public static final PropertyDescriptor INDEX_RETRY_PERIOD = new PropertyDescriptor.Builder()
             .name("druid-cs-index-retry-period")
             .displayName("Index Retry Period")
-            .description("Grace period to allow late arriving events for real time ingest.")
+            .description("Time period, until a transiently failing indexing service overlord call is retried, before giving up.")
             .required(true)
             .allowableValues(PT1M, PT10M, PT60M)
             .defaultValue(PT10M.getValue())
@@ -273,6 +273,16 @@ public class DruidTranquilityController extends AbstractControllerService implem
             .required(true)
             .allowableValues(PT1M, PT10M, PT60M)
             .defaultValue(PT10M.getValue())
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor FIREHOSE_GRACE_PERIOD = new PropertyDescriptor.Builder()
+            .name("druid-cs-firehose-grace-period")
+            .displayName("Firehose Grace Period")
+            .description("An additional grace period, after the \"Late Event Grace Period\" (window period) has elapsed, but before the indexing task is shut down.")
+            .required(true)
+            .allowableValues(PT1M, PT5M, PT10M, PT60M)
+            .defaultValue(PT5M.getValue())
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
@@ -330,7 +340,9 @@ public class DruidTranquilityController extends AbstractControllerService implem
         props.add(AGGREGATOR_JSON);
         props.add(SEGMENT_GRANULARITY);
         props.add(QUERY_GRANULARITY);
+        props.add(INDEX_RETRY_PERIOD);
         props.add(WINDOW_PERIOD);
+        props.add(FIREHOSE_GRACE_PERIOD);
         props.add(TIMESTAMP_FIELD);
         props.add(MAX_BATCH_SIZE);
         props.add(MAX_PENDING_BATCHES);
@@ -377,6 +389,7 @@ public class DruidTranquilityController extends AbstractControllerService implem
         final String segmentGranularity = context.getProperty(SEGMENT_GRANULARITY).getValue();
         final String queryGranularity = context.getProperty(QUERY_GRANULARITY).getValue();
         final String windowPeriod = context.getProperty(WINDOW_PERIOD).getValue();
+        final String firehoseGracePeriod = context.getProperty(FIREHOSE_GRACE_PERIOD).getValue();
         final String indexRetryPeriod = context.getProperty(INDEX_RETRY_PERIOD).getValue();
         final String aggregatorJSON = context.getProperty(AGGREGATOR_JSON).evaluateAttributeExpressions().getValue();
         final String dimensionsStringList = context.getProperty(DIMENSIONS_LIST).evaluateAttributeExpressions().getValue();
@@ -386,7 +399,7 @@ public class DruidTranquilityController extends AbstractControllerService implem
 
         transitUri = String.format(FIREHOSE_PATTERN, dataSource) + ";indexServicePath=" + indexService;
 
-        final List<String> dimensions = getDimensions(dimensionsStringList);
+        final DruidDimensions dimensions = getDimensions(dimensionsStringList);
         final List<AggregatorFactory> aggregator = getAggregatorList(aggregatorJSON);
 
         final Timestamper<Map<String, Object>> timestamper = new Timestamper<Map<String, Object>>() {
@@ -415,7 +428,7 @@ public class DruidTranquilityController extends AbstractControllerService implem
         final TimestampSpec timestampSpec = new TimestampSpec(timestampField, "auto", null);
 
         final Beam<Map<String, Object>> beam = buildBeam(dataSource, indexService, discoveryPath, clusterPartitions, clusterReplication,
-                segmentGranularity, queryGranularity, windowPeriod, indexRetryPeriod, dimensions, aggregator, timestamper, timestampSpec);
+                segmentGranularity, queryGranularity, windowPeriod, firehoseGracePeriod, indexRetryPeriod, dimensions, aggregator, timestamper, timestampSpec);
 
         tranquilizer = buildTranquilizer(maxBatchSize, maxPendingBatches, lingerMillis, beam);
 
@@ -432,14 +445,14 @@ public class DruidTranquilityController extends AbstractControllerService implem
     }
 
     Beam<Map<String, Object>> buildBeam(String dataSource, String indexService, String discoveryPath, int clusterPartitions, int clusterReplication,
-                                        String segmentGranularity, String queryGranularity, String windowPeriod, String indexRetryPeriod, List<String> dimensions,
+                                        String segmentGranularity, String queryGranularity, String windowPeriod, String firehoseGracePeriod, String indexRetryPeriod, DruidDimensions dimensions,
                                         List<AggregatorFactory> aggregator, Timestamper<Map<String, Object>> timestamper, TimestampSpec timestampSpec) {
         return DruidBeams.builder(timestamper)
                 .curator(curator)
                 .discoveryPath(discoveryPath)
                 .location(DruidLocation.create(DruidEnvironment.create(indexService, FIREHOSE_PATTERN), dataSource))
                 .timestampSpec(timestampSpec)
-                .rollup(DruidRollup.create(DruidDimensions.specific(dimensions), aggregator, QueryGranularity.fromString(queryGranularity)))
+                .rollup(DruidRollup.create(dimensions, aggregator, QueryGranularity.fromString(queryGranularity)))
                 .tuning(
                         ClusteredBeamTuning
                                 .builder()
@@ -453,6 +466,7 @@ public class DruidTranquilityController extends AbstractControllerService implem
                         DruidBeamConfig
                                 .builder()
                                 .indexRetryPeriod(new Period(indexRetryPeriod))
+                                .firehoseGracePeriod(new Period(firehoseGracePeriod))
                                 .build())
                 .buildBeam();
     }
@@ -503,7 +517,7 @@ public class DruidTranquilityController extends AbstractControllerService implem
         }
     }
 
-    private List<String> getDimensions(String dimensionStringList) {
+    private DruidDimensions getDimensions(String dimensionStringList) {
         List<String> dimensionList = new ArrayList<>();
         if (dimensionStringList != null) {
             Arrays.stream(dimensionStringList.split(","))
@@ -511,7 +525,12 @@ public class DruidTranquilityController extends AbstractControllerService implem
                     .map(String::trim)
                     .forEach(dimensionList::add);
         }
-        return dimensionList;
+        if(dimensionList.isEmpty()) {
+            getLogger().debug("Using schema-less dimensions");
+            return DruidDimensions.schemaless();
+        } else {
+            return DruidDimensions.specific(dimensionList);
+        }
     }
 
     private List<AggregatorFactory> getAggregatorList(String aggregatorJSON) {

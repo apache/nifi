@@ -17,7 +17,8 @@
 package org.apache.nifi.web;
 
 import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.security.anonymous.NiFiAnonymousUserFilter;
+import org.apache.nifi.web.security.anonymous.NiFiAnonymousAuthenticationFilter;
+import org.apache.nifi.web.security.anonymous.NiFiAnonymousAuthenticationProvider;
 import org.apache.nifi.web.security.jwt.JwtAuthenticationFilter;
 import org.apache.nifi.web.security.jwt.JwtAuthenticationProvider;
 import org.apache.nifi.web.security.knox.KnoxAuthenticationFilter;
@@ -43,9 +44,15 @@ import org.springframework.security.config.annotation.web.configuration.WebSecur
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.authentication.AnonymousAuthenticationFilter;
 import org.springframework.security.web.authentication.preauth.x509.X509PrincipalExtractor;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.Arrays;
 
 /**
- * NiFi Web Api Spring security
+ * NiFi Web Api Spring security. Applies the various NiFiAuthenticationFilter servlet filters which will extract authentication
+ * credentials from API requests.
  */
 @Configuration
 @EnableWebSecurity
@@ -70,7 +77,8 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
     private KnoxAuthenticationFilter knoxAuthenticationFilter;
     private KnoxAuthenticationProvider knoxAuthenticationProvider;
 
-    private NiFiAnonymousUserFilter anonymousAuthenticationFilter;
+    private NiFiAnonymousAuthenticationFilter anonymousAuthenticationFilter;
+    private NiFiAnonymousAuthenticationProvider anonymousAuthenticationProvider;
 
     public NiFiWebApiSecurityConfiguration() {
         super(true); // disable defaults
@@ -83,12 +91,15 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
         // the /access/download-token and /access/ui-extension-token endpoints
         webSecurity
                 .ignoring()
-                    .antMatchers("/access", "/access/config", "/access/token", "/access/kerberos", "/access/oidc/**", "/access/knox/**");
+                    .antMatchers("/access", "/access/config", "/access/token", "/access/kerberos",
+                            "/access/oidc/exchange", "/access/oidc/callback", "/access/oidc/request",
+                            "/access/knox/callback", "/access/knox/request");
     }
 
     @Override
     protected void configure(HttpSecurity http) throws Exception {
         http
+                .cors().and()
                 .rememberMe().disable()
                 .authorizeRequests()
                     .anyRequest().fullyAuthenticated()
@@ -109,7 +120,20 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
         http.addFilterBefore(knoxFilterBean(), AnonymousAuthenticationFilter.class);
 
         // anonymous
-        http.anonymous().authenticationFilter(anonymousFilterBean());
+        http.addFilterAfter(anonymousFilterBean(), AnonymousAuthenticationFilter.class);
+
+        // disable default anonymous handling because it doesn't handle conditional authentication well
+        http.anonymous().disable();
+    }
+
+
+    @Bean
+    CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        configuration.setAllowedMethods(Arrays.asList("HEAD", "GET"));
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/process-groups/*/templates/upload", configuration);
+        return source;
     }
 
     @Bean
@@ -125,7 +149,8 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
                 .authenticationProvider(x509AuthenticationProvider)
                 .authenticationProvider(jwtAuthenticationProvider)
                 .authenticationProvider(otpAuthenticationProvider)
-                .authenticationProvider(knoxAuthenticationProvider);
+                .authenticationProvider(knoxAuthenticationProvider)
+                .authenticationProvider(anonymousAuthenticationProvider);
     }
 
     @Bean
@@ -171,9 +196,11 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
     }
 
     @Bean
-    public NiFiAnonymousUserFilter anonymousFilterBean() throws Exception {
+    public NiFiAnonymousAuthenticationFilter anonymousFilterBean() throws Exception {
         if (anonymousAuthenticationFilter == null) {
-            anonymousAuthenticationFilter = new NiFiAnonymousUserFilter();
+            anonymousAuthenticationFilter = new NiFiAnonymousAuthenticationFilter();
+            anonymousAuthenticationFilter.setProperties(properties);
+            anonymousAuthenticationFilter.setAuthenticationManager(authenticationManager());
         }
         return anonymousAuthenticationFilter;
     }
@@ -196,6 +223,11 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
     @Autowired
     public void setKnoxAuthenticationProvider(KnoxAuthenticationProvider knoxAuthenticationProvider) {
         this.knoxAuthenticationProvider = knoxAuthenticationProvider;
+    }
+
+    @Autowired
+    public void setAnonymousAuthenticationProvider(NiFiAnonymousAuthenticationProvider anonymousAuthenticationProvider) {
+        this.anonymousAuthenticationProvider = anonymousAuthenticationProvider;
     }
 
     @Autowired

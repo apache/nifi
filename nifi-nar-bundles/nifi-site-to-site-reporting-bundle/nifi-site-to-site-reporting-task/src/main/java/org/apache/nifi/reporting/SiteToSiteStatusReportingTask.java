@@ -56,6 +56,7 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.remote.Transaction;
 import org.apache.nifi.remote.TransferDirection;
+import org.apache.nifi.reporting.s2s.SiteToSiteUtils;
 
 @Tags({"status", "metrics", "history", "site", "site to site"})
 @CapabilityDescription("Publishes Status events using the Site To Site protocol.  "
@@ -93,6 +94,7 @@ public class SiteToSiteStatusReportingTask extends AbstractSiteToSiteReportingTa
 
     private volatile Pattern componentTypeFilter;
     private volatile Pattern componentNameFilter;
+    private volatile Map<String,String> processGroupIDToPath;
 
     public SiteToSiteStatusReportingTask() throws IOException {
         final InputStream schema = getClass().getClassLoader().getResourceAsStream("schema-status.avsc");
@@ -121,10 +123,13 @@ public class SiteToSiteStatusReportingTask extends AbstractSiteToSiteReportingTa
         componentTypeFilter = Pattern.compile(context.getProperty(COMPONENT_TYPE_FILTER_REGEX).evaluateAttributeExpressions().getValue());
         componentNameFilter = Pattern.compile(context.getProperty(COMPONENT_NAME_FILTER_REGEX).evaluateAttributeExpressions().getValue());
 
+        // initialize the map
+        processGroupIDToPath = new HashMap<String,String>();
+
         final ProcessGroupStatus procGroupStatus = context.getEventAccess().getControllerStatus();
         final String rootGroupName = procGroupStatus == null ? null : procGroupStatus.getName();
 
-        final String nifiUrl = context.getProperty(INSTANCE_URL).evaluateAttributeExpressions().getValue();
+        final String nifiUrl = context.getProperty(SiteToSiteUtils.INSTANCE_URL).evaluateAttributeExpressions().getValue();
         URL url;
         try {
             url = new URL(nifiUrl);
@@ -135,6 +140,7 @@ public class SiteToSiteStatusReportingTask extends AbstractSiteToSiteReportingTa
 
         final String hostname = url.getHost();
         final String platform = context.getProperty(PLATFORM).evaluateAttributeExpressions().getValue();
+        final Boolean allowNullValues = context.getProperty(ALLOW_NULL_VALUES).asBoolean();
 
         final Map<String, ?> config = Collections.emptyMap();
         final JsonBuilderFactory factory = Json.createBuilderFactory(config);
@@ -143,21 +149,25 @@ public class SiteToSiteStatusReportingTask extends AbstractSiteToSiteReportingTa
         df.setTimeZone(TimeZone.getTimeZone("Z"));
 
         final JsonArrayBuilder arrayBuilder = factory.createArrayBuilder();
-        serializeProcessGroupStatus(arrayBuilder, factory, procGroupStatus, df, hostname, rootGroupName,
-                platform, null, new Date());
+        serializeProcessGroupStatus(arrayBuilder, factory, procGroupStatus, df,
+                hostname, rootGroupName, platform, null, new Date(), allowNullValues);
 
         final JsonArray jsonArray = arrayBuilder.build();
 
-        final int batchSize = context.getProperty(BATCH_SIZE).asInteger();
+        final int batchSize = context.getProperty(SiteToSiteUtils.BATCH_SIZE).asInteger();
         int fromIndex = 0;
         int toIndex = Math.min(batchSize, jsonArray.size());
         List<JsonValue> jsonBatch = jsonArray.subList(fromIndex, toIndex);
 
         while(!jsonBatch.isEmpty()) {
             // Send the JSON document for the current batch
+            Transaction transaction = null;
             try {
+                // Lazily create SiteToSiteClient to provide a StateManager
+                setup(context);
+
                 long start = System.nanoTime();
-                final Transaction transaction = getClient().createTransaction(TransferDirection.SEND);
+                transaction = getClient().createTransaction(TransferDirection.SEND);
                 if (transaction == null) {
                     getLogger().debug("All destination nodes are penalized; will attempt to send data later");
                     return;
@@ -188,8 +198,15 @@ public class SiteToSiteStatusReportingTask extends AbstractSiteToSiteReportingTa
                 fromIndex = toIndex;
                 toIndex = Math.min(fromIndex + batchSize, jsonArray.size());
                 jsonBatch = jsonArray.subList(fromIndex, toIndex);
-            } catch (final IOException e) {
-                throw new ProcessException("Failed to send Status Records to destination due to IOException:" + e.getMessage(), e);
+            } catch (final Exception e) {
+                if (transaction != null) {
+                    transaction.error();
+                }
+                if (e instanceof ProcessException) {
+                    throw (ProcessException) e;
+                } else {
+                    throw new ProcessException("Failed to send Status Records to destination due to IOException:" + e.getMessage(), e);
+                }
             }
         }
     }
@@ -225,190 +242,237 @@ public class SiteToSiteStatusReportingTask extends AbstractSiteToSiteReportingTa
      *            The root process group name
      * @param platform
      *            The configured platform
-     * @param parentId
-     *            The parent's component id
+     * @param parent
+     *            The parent's process group status object
+     * @param currentDate
+     *            The current date
+     * @param allowNullValues
+     *            Allow null values
      */
     private void serializeProcessGroupStatus(final JsonArrayBuilder arrayBuilder, final JsonBuilderFactory factory,
-            final ProcessGroupStatus status, final DateFormat df,
-        final String hostname, final String applicationName, final String platform, final String parentId, final Date currentDate) {
+            final ProcessGroupStatus status, final DateFormat df, final String hostname, final String applicationName,
+            final String platform, final ProcessGroupStatus parent, final Date currentDate, Boolean allowNullValues) {
         final JsonObjectBuilder builder = factory.createObjectBuilder();
-        final String componentType = (parentId == null) ? "RootProcessGroup" : "ProcessGroup";
+        final String componentType = parent == null ? "RootProcessGroup" : "ProcessGroup";
         final String componentName = status.getName();
 
-        if (componentMatchesFilters(componentType, componentName)) {
-            addCommonFields(builder, df, hostname, applicationName, platform, parentId, currentDate,
-                    componentType, componentName);
+        if(parent == null) {
+            processGroupIDToPath.put(status.getId(), "NiFi Flow");
+        }
 
-            addField(builder, "componentId", status.getId());
-            addField(builder, "bytesRead", status.getBytesRead());
-            addField(builder, "bytesWritten", status.getBytesWritten());
-            addField(builder, "bytesReceived", status.getBytesReceived());
-            addField(builder, "bytesSent", status.getBytesSent());
-            addField(builder, "bytesTransferred", status.getBytesTransferred());
-            addField(builder, "flowFilesReceived", status.getFlowFilesReceived());
-            addField(builder, "flowFilesSent", status.getFlowFilesSent());
-            addField(builder, "flowFilesTransferred", status.getFlowFilesTransferred());
-            addField(builder, "inputContentSize", status.getInputContentSize());
-            addField(builder, "inputCount", status.getInputCount());
-            addField(builder, "outputContentSize", status.getOutputContentSize());
-            addField(builder, "outputCount", status.getOutputCount());
-            addField(builder, "queuedContentSize", status.getQueuedContentSize());
-            addField(builder, "activeThreadCount", status.getActiveThreadCount());
-            addField(builder, "queuedCount", status.getQueuedCount());
+        if (componentMatchesFilters(componentType, componentName)) {
+            addCommonFields(builder, df, hostname, applicationName, platform, parent, currentDate,
+                    componentType, componentName, allowNullValues);
+
+            addField(builder, "componentId", status.getId(), allowNullValues);
+            addField(builder, "bytesRead", status.getBytesRead(), allowNullValues);
+            addField(builder, "bytesWritten", status.getBytesWritten(), allowNullValues);
+            addField(builder, "bytesReceived", status.getBytesReceived(), allowNullValues);
+            addField(builder, "bytesSent", status.getBytesSent(), allowNullValues);
+            addField(builder, "bytesTransferred", status.getBytesTransferred(), allowNullValues);
+            addField(builder, "flowFilesReceived", status.getFlowFilesReceived(), allowNullValues);
+            addField(builder, "flowFilesSent", status.getFlowFilesSent(), allowNullValues);
+            addField(builder, "flowFilesTransferred", status.getFlowFilesTransferred(), allowNullValues);
+            addField(builder, "inputContentSize", status.getInputContentSize(), allowNullValues);
+            addField(builder, "inputCount", status.getInputCount(), allowNullValues);
+            addField(builder, "outputContentSize", status.getOutputContentSize(), allowNullValues);
+            addField(builder, "outputCount", status.getOutputCount(), allowNullValues);
+            addField(builder, "queuedContentSize", status.getQueuedContentSize(), allowNullValues);
+            addField(builder, "activeThreadCount", status.getActiveThreadCount(), allowNullValues);
+            addField(builder, "terminatedThreadCount", status.getTerminatedThreadCount(), allowNullValues);
+            addField(builder, "queuedCount", status.getQueuedCount(), allowNullValues);
+            addField(builder, "versionedFlowState", status.getVersionedFlowState() == null ? null : status.getVersionedFlowState().name(), allowNullValues);
 
             arrayBuilder.add(builder.build());
         }
 
         for(ProcessGroupStatus childGroupStatus : status.getProcessGroupStatus()) {
+
+            processGroupIDToPath.put(childGroupStatus.getId(), processGroupIDToPath.get(status.getId()) + " / " + childGroupStatus.getName());
+
             serializeProcessGroupStatus(arrayBuilder, factory, childGroupStatus, df, hostname,
-                    applicationName, platform, status.getId(), currentDate);
+                    applicationName, platform, status, currentDate, allowNullValues);
         }
         for(ProcessorStatus processorStatus : status.getProcessorStatus()) {
             serializeProcessorStatus(arrayBuilder, factory, processorStatus, df, hostname,
-                    applicationName, platform, status.getId(), currentDate);
+                    applicationName, platform, status, currentDate, allowNullValues);
         }
         for(ConnectionStatus connectionStatus : status.getConnectionStatus()) {
             serializeConnectionStatus(arrayBuilder, factory, connectionStatus, df, hostname,
-                    applicationName, platform, status.getId(), currentDate);
+                    applicationName, platform, status, currentDate, allowNullValues);
         }
         for(PortStatus portStatus : status.getInputPortStatus()) {
             serializePortStatus("InputPort", arrayBuilder, factory, portStatus, df,
-                    hostname, applicationName, platform, status.getId(), currentDate);
+                    hostname, applicationName, platform, status, currentDate, allowNullValues);
         }
         for(PortStatus portStatus : status.getOutputPortStatus()) {
             serializePortStatus("OutputPort", arrayBuilder, factory, portStatus, df,
-                    hostname, applicationName, platform, status.getId(), currentDate);
+                    hostname, applicationName, platform, status, currentDate, allowNullValues);
         }
         for(RemoteProcessGroupStatus remoteProcessGroupStatus : status.getRemoteProcessGroupStatus()) {
             serializeRemoteProcessGroupStatus(arrayBuilder, factory, remoteProcessGroupStatus, df, hostname,
-                    applicationName, platform, status.getId(), currentDate);
+                    applicationName, platform, status, currentDate, allowNullValues);
         }
     }
 
     private void serializeRemoteProcessGroupStatus(final JsonArrayBuilder arrayBuilder, final JsonBuilderFactory factory,
             final RemoteProcessGroupStatus status, final DateFormat df, final String hostname, final String applicationName,
-            final String platform, final String parentId, final Date currentDate) {
+            final String platform, final ProcessGroupStatus parent, final Date currentDate, final Boolean allowNullValues) {
         final JsonObjectBuilder builder = factory.createObjectBuilder();
         final String componentType = "RemoteProcessGroup";
         final String componentName = status.getName();
 
         if (componentMatchesFilters(componentType, componentName)) {
-            addCommonFields(builder, df, hostname, applicationName, platform, parentId, currentDate,
-                    componentType, componentName);
+            addCommonFields(builder, df, hostname, applicationName, platform, parent, currentDate,
+                    componentType, componentName, allowNullValues);
 
-            addField(builder, "componentId", status.getId());
-            addField(builder, "activeRemotePortCount", status.getActiveRemotePortCount());
-            addField(builder, "activeThreadCount", status.getActiveThreadCount());
-            addField(builder, "inactiveRemotePortCount", status.getInactiveRemotePortCount());
-            addField(builder, "receivedContentSize", status.getReceivedContentSize());
-            addField(builder, "receivedCount", status.getReceivedCount());
-            addField(builder, "sentContentSize", status.getSentContentSize());
-            addField(builder, "sentCount", status.getSentCount());
-            addField(builder, "averageLineageDuration", status.getAverageLineageDuration());
+            addField(builder, "componentId", status.getId(), allowNullValues);
+            addField(builder, "activeRemotePortCount", status.getActiveRemotePortCount(), allowNullValues);
+            addField(builder, "activeThreadCount", status.getActiveThreadCount(), allowNullValues);
+            addField(builder, "inactiveRemotePortCount", status.getInactiveRemotePortCount(), allowNullValues);
+            addField(builder, "receivedContentSize", status.getReceivedContentSize(), allowNullValues);
+            addField(builder, "receivedCount", status.getReceivedCount(), allowNullValues);
+            addField(builder, "sentContentSize", status.getSentContentSize(), allowNullValues);
+            addField(builder, "sentCount", status.getSentCount(), allowNullValues);
+            addField(builder, "averageLineageDuration", status.getAverageLineageDuration(), allowNullValues);
+            addField(builder, "transmissionStatus", status.getTransmissionStatus() == null ? null : status.getTransmissionStatus().name(), allowNullValues);
+            addField(builder, "targetURI", status.getTargetUri(), allowNullValues);
 
             arrayBuilder.add(builder.build());
         }
     }
 
     private void serializePortStatus(final String componentType, final JsonArrayBuilder arrayBuilder, final JsonBuilderFactory factory, final PortStatus status,
-            final DateFormat df, final String hostname, final String applicationName, final String platform, final String parentId, final Date currentDate) {
+            final DateFormat df, final String hostname, final String applicationName, final String platform, final ProcessGroupStatus parent, final Date currentDate, final Boolean allowNullValues) {
         final JsonObjectBuilder builder = factory.createObjectBuilder();
         final String componentName = status.getName();
 
         if (componentMatchesFilters(componentType, componentName)) {
-            addCommonFields(builder, df, hostname, applicationName, platform, parentId, currentDate,
-                    componentType, componentName);
+            addCommonFields(builder, df, hostname, applicationName, platform, parent, currentDate,
+                    componentType, componentName, allowNullValues);
 
-            addField(builder, "componentId", status.getId());
-            addField(builder, "activeThreadCount", status.getActiveThreadCount());
-            addField(builder, "bytesReceived", status.getBytesReceived());
-            addField(builder, "bytesSent", status.getBytesSent());
-            addField(builder, "flowFilesReceived", status.getFlowFilesReceived());
-            addField(builder, "flowFilesSent", status.getFlowFilesSent());
-            addField(builder, "inputBytes", status.getInputBytes());
-            addField(builder, "inputCount", status.getInputCount());
-            addField(builder, "outputBytes", status.getOutputBytes());
-            addField(builder, "outputCount", status.getOutputCount());
+            addField(builder, "componentId", status.getId(), allowNullValues);
+            addField(builder, "activeThreadCount", status.getActiveThreadCount(), allowNullValues);
+            addField(builder, "bytesReceived", status.getBytesReceived(), allowNullValues);
+            addField(builder, "bytesSent", status.getBytesSent(), allowNullValues);
+            addField(builder, "flowFilesReceived", status.getFlowFilesReceived(), allowNullValues);
+            addField(builder, "flowFilesSent", status.getFlowFilesSent(), allowNullValues);
+            addField(builder, "inputBytes", status.getInputBytes(), allowNullValues);
+            addField(builder, "inputCount", status.getInputCount(), allowNullValues);
+            addField(builder, "outputBytes", status.getOutputBytes(), allowNullValues);
+            addField(builder, "outputCount", status.getOutputCount(), allowNullValues);
+            addField(builder, "runStatus", status.getRunStatus() == null ? null : status.getRunStatus().name(), allowNullValues);
+            addField(builder, "transmitting", status.isTransmitting(), allowNullValues);
 
             arrayBuilder.add(builder.build());
         }
     }
 
     private void serializeConnectionStatus(final JsonArrayBuilder arrayBuilder, final JsonBuilderFactory factory, final ConnectionStatus status, final DateFormat df,
-            final String hostname, final String applicationName, final String platform, final String parentId, final Date currentDate) {
+            final String hostname, final String applicationName, final String platform, final ProcessGroupStatus parent, final Date currentDate, final Boolean allowNullValues) {
         final JsonObjectBuilder builder = factory.createObjectBuilder();
         final String componentType = "Connection";
         final String componentName = status.getName();
 
         if (componentMatchesFilters(componentType, componentName)) {
-            addCommonFields(builder, df, hostname, applicationName, platform, parentId, currentDate,
-                    componentType, componentName);
+            addCommonFields(builder, df, hostname, applicationName, platform, parent, currentDate,
+                    componentType, componentName, allowNullValues);
 
-            addField(builder, "componentId", status.getId());
-            addField(builder, "sourceId", status.getSourceId());
-            addField(builder, "sourceName", status.getSourceName());
-            addField(builder, "destinationId", status.getDestinationId());
-            addField(builder, "destinationName", status.getDestinationName());
-            addField(builder, "maxQueuedBytes", status.getMaxQueuedBytes());
-            addField(builder, "maxQueuedCount", status.getMaxQueuedCount());
-            addField(builder, "queuedBytes", status.getQueuedBytes());
-            addField(builder, "queuedCount", status.getQueuedCount());
-            addField(builder, "inputBytes", status.getInputBytes());
-            addField(builder, "inputCount", status.getInputCount());
-            addField(builder, "outputBytes", status.getOutputBytes());
-            addField(builder, "outputCount", status.getOutputCount());
-            addField(builder, "backPressureBytesThreshold", status.getBackPressureBytesThreshold());
-            addField(builder, "backPressureObjectThreshold", status.getBackPressureObjectThreshold());
+            addField(builder, "componentId", status.getId(), allowNullValues);
+            addField(builder, "sourceId", status.getSourceId(), allowNullValues);
+            addField(builder, "sourceName", status.getSourceName(), allowNullValues);
+            addField(builder, "destinationId", status.getDestinationId(), allowNullValues);
+            addField(builder, "destinationName", status.getDestinationName(), allowNullValues);
+            addField(builder, "maxQueuedBytes", status.getMaxQueuedBytes(), allowNullValues);
+            addField(builder, "maxQueuedCount", status.getMaxQueuedCount(), allowNullValues);
+            addField(builder, "queuedBytes", status.getQueuedBytes(), allowNullValues);
+            addField(builder, "queuedCount", status.getQueuedCount(), allowNullValues);
+            addField(builder, "inputBytes", status.getInputBytes(), allowNullValues);
+            addField(builder, "inputCount", status.getInputCount(), allowNullValues);
+            addField(builder, "outputBytes", status.getOutputBytes(), allowNullValues);
+            addField(builder, "outputCount", status.getOutputCount(), allowNullValues);
+            addField(builder, "backPressureBytesThreshold", status.getBackPressureBytesThreshold(), allowNullValues);
+            addField(builder, "backPressureObjectThreshold", status.getBackPressureObjectThreshold(), allowNullValues);
+            addField(builder, "backPressureDataSizeThreshold", status.getBackPressureDataSizeThreshold(), allowNullValues);
             addField(builder, "isBackPressureEnabled", Boolean.toString((status.getBackPressureObjectThreshold() > 0 && status.getBackPressureObjectThreshold() <= status.getQueuedCount())
-                    || (status.getBackPressureBytesThreshold() > 0 && status.getBackPressureBytesThreshold() <= status.getMaxQueuedBytes())));
+                    || (status.getBackPressureBytesThreshold() > 0 && status.getBackPressureBytesThreshold() <= status.getMaxQueuedBytes())), allowNullValues);
 
             arrayBuilder.add(builder.build());
         }
     }
 
     private void serializeProcessorStatus(final JsonArrayBuilder arrayBuilder, final JsonBuilderFactory factory, final ProcessorStatus status, final DateFormat df,
-            final String hostname, final String applicationName, final String platform, final String parentId, final Date currentDate) {
+            final String hostname, final String applicationName, final String platform, final ProcessGroupStatus parent, final Date currentDate, final Boolean allowNullValues) {
         final JsonObjectBuilder builder = factory.createObjectBuilder();
         final String componentType = "Processor";
         final String componentName = status.getName();
 
         if (componentMatchesFilters(componentType, componentName)) {
-            addCommonFields(builder, df, hostname, applicationName, platform, parentId, currentDate, componentType, componentName);
+            addCommonFields(builder, df, hostname, applicationName, platform, parent, currentDate, componentType, componentName, allowNullValues);
 
-            addField(builder, "componentId", status.getId());
-            addField(builder, "processorType", status.getType());
-            addField(builder, "averageLineageDurationMS", status.getAverageLineageDuration());
-            addField(builder, "bytesRead", status.getBytesRead());
-            addField(builder, "bytesWritten", status.getBytesWritten());
-            addField(builder, "bytesReceived", status.getBytesReceived());
-            addField(builder, "bytesSent", status.getBytesSent());
-            addField(builder, "flowFilesRemoved", status.getFlowFilesRemoved());
-            addField(builder, "flowFilesReceived", status.getFlowFilesReceived());
-            addField(builder, "flowFilesSent", status.getFlowFilesSent());
-            addField(builder, "inputCount", status.getInputCount());
-            addField(builder, "inputBytes", status.getInputBytes());
-            addField(builder, "outputCount", status.getOutputCount());
-            addField(builder, "outputBytes", status.getOutputBytes());
-            addField(builder, "activeThreadCount", status.getActiveThreadCount());
-            addField(builder, "invocations", status.getInvocations());
-            addField(builder, "processingNanos", status.getProcessingNanos());
+            addField(builder, "componentId", status.getId(), allowNullValues);
+            addField(builder, "processorType", status.getType(), allowNullValues);
+            addField(builder, "averageLineageDurationMS", status.getAverageLineageDuration(), allowNullValues);
+            addField(builder, "bytesRead", status.getBytesRead(), allowNullValues);
+            addField(builder, "bytesWritten", status.getBytesWritten(), allowNullValues);
+            addField(builder, "bytesReceived", status.getBytesReceived(), allowNullValues);
+            addField(builder, "bytesSent", status.getBytesSent(), allowNullValues);
+            addField(builder, "flowFilesRemoved", status.getFlowFilesRemoved(), allowNullValues);
+            addField(builder, "flowFilesReceived", status.getFlowFilesReceived(), allowNullValues);
+            addField(builder, "flowFilesSent", status.getFlowFilesSent(), allowNullValues);
+            addField(builder, "inputCount", status.getInputCount(), allowNullValues);
+            addField(builder, "inputBytes", status.getInputBytes(), allowNullValues);
+            addField(builder, "outputCount", status.getOutputCount(), allowNullValues);
+            addField(builder, "outputBytes", status.getOutputBytes(), allowNullValues);
+            addField(builder, "activeThreadCount", status.getActiveThreadCount(), allowNullValues);
+            addField(builder, "terminatedThreadCount", status.getTerminatedThreadCount(), allowNullValues);
+            addField(builder, "invocations", status.getInvocations(), allowNullValues);
+            addField(builder, "processingNanos", status.getProcessingNanos(), allowNullValues);
+            addField(builder, "runStatus", status.getRunStatus() == null ? null : status.getRunStatus().name(), allowNullValues);
+            addField(builder, "executionNode", status.getExecutionNode() == null ? null : status.getExecutionNode().name(), allowNullValues);
+            addField(builder, factory, "counters", status.getCounters(), allowNullValues);
 
             arrayBuilder.add(builder.build());
         }
     }
 
     private void addCommonFields(final JsonObjectBuilder builder, final DateFormat df, final String hostname,
-            final String applicationName, final String platform, final String parentId, final Date currentDate,
-            final String componentType, final String componentName) {
-        addField(builder, "statusId", UUID.randomUUID().toString());
-        addField(builder, "timestampMillis", currentDate.getTime());
-        addField(builder, "timestamp", df.format(currentDate));
-        addField(builder, "actorHostname", hostname);
-        addField(builder, "componentType", componentType);
-        addField(builder, "componentName", componentName);
-        addField(builder, "parentId", parentId);
-        addField(builder, "platform", platform);
-        addField(builder, "application", applicationName);
+            final String applicationName, final String platform, final ProcessGroupStatus parent, final Date currentDate,
+            final String componentType, final String componentName, Boolean allowNullValues) {
+        addField(builder, "statusId", UUID.randomUUID().toString(), allowNullValues);
+        addField(builder, "timestampMillis", currentDate.getTime(), allowNullValues);
+        addField(builder, "timestamp", df.format(currentDate), allowNullValues);
+        addField(builder, "actorHostname", hostname, allowNullValues);
+        addField(builder, "componentType", componentType, allowNullValues);
+        addField(builder, "componentName", componentName, allowNullValues);
+        addField(builder, "parentId", parent == null ? null : parent.getId(), allowNullValues);
+        addField(builder, "parentName", parent == null ? null : parent.getName(), allowNullValues);
+        addField(builder, "parentPath", parent == null ? null : processGroupIDToPath.get(parent.getId()), allowNullValues);
+        addField(builder, "platform", platform, allowNullValues);
+        addField(builder, "application", applicationName, allowNullValues);
     }
 
+    private static void addField(final JsonObjectBuilder builder, final JsonBuilderFactory factory, final String key, final Map<String, Long> values, final Boolean allowNullValues) {
+
+        if (values != null) {
+
+            final JsonObjectBuilder mapBuilder = factory.createObjectBuilder();
+            for (final Map.Entry<String, Long> entry : values.entrySet()) {
+
+                if (entry.getKey() == null ) {
+                    continue;
+                }else if(entry.getValue() == null ){
+                    if(allowNullValues)
+                        mapBuilder.add(entry.getKey(),JsonValue.NULL);
+                }else{
+                    mapBuilder.add(entry.getKey(), entry.getValue());
+                }
+            }
+
+            builder.add(key, mapBuilder);
+
+        }else if(allowNullValues){
+            builder.add(key,JsonValue.NULL);
+        }
+    }
 }

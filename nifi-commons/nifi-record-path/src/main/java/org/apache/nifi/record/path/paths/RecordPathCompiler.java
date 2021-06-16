@@ -64,9 +64,14 @@ import org.apache.nifi.record.path.filter.NotEqualsFilter;
 import org.apache.nifi.record.path.filter.NotFilter;
 import org.apache.nifi.record.path.filter.RecordPathFilter;
 import org.apache.nifi.record.path.filter.StartsWith;
+import org.apache.nifi.record.path.functions.Base64Decode;
+import org.apache.nifi.record.path.functions.Base64Encode;
 import org.apache.nifi.record.path.functions.Concat;
 import org.apache.nifi.record.path.functions.Format;
 import org.apache.nifi.record.path.functions.FieldName;
+import org.apache.nifi.record.path.functions.Hash;
+import org.apache.nifi.record.path.functions.PadLeft;
+import org.apache.nifi.record.path.functions.PadRight;
 import org.apache.nifi.record.path.functions.Replace;
 import org.apache.nifi.record.path.functions.ReplaceNull;
 import org.apache.nifi.record.path.functions.ReplaceRegex;
@@ -77,7 +82,10 @@ import org.apache.nifi.record.path.functions.SubstringBefore;
 import org.apache.nifi.record.path.functions.SubstringBeforeLast;
 import org.apache.nifi.record.path.functions.ToBytes;
 import org.apache.nifi.record.path.functions.ToDate;
+import org.apache.nifi.record.path.functions.ToLowerCase;
 import org.apache.nifi.record.path.functions.ToString;
+import org.apache.nifi.record.path.functions.ToUpperCase;
+import org.apache.nifi.record.path.functions.TrimString;
 
 public class RecordPathCompiler {
 
@@ -244,13 +252,32 @@ public class RecordPathCompiler {
 
                         return new Concat(argPaths, absolute);
                     }
+                    case "toLowerCase": {
+                        final RecordPathSegment[] args = getArgPaths(argumentListTree, 1, functionName, absolute);
+                        return new ToLowerCase(args[0], absolute);
+                    }
+                    case "toUpperCase": {
+                        final RecordPathSegment[] args = getArgPaths(argumentListTree, 1, functionName, absolute);
+                        return new ToUpperCase(args[0], absolute);
+                    }
+                    case "trim": {
+                        final RecordPathSegment[] args = getArgPaths(argumentListTree, 1, functionName, absolute);
+                        return new TrimString(args[0], absolute);
+                    }
                     case "fieldName": {
                         final RecordPathSegment[] args = getArgPaths(argumentListTree, 1, functionName, absolute);
                         return new FieldName(args[0], absolute);
                     }
                     case "toDate": {
-                        final RecordPathSegment[] args = getArgPaths(argumentListTree, 2, functionName, absolute);
-                        return new ToDate(args[0], args[1], absolute);
+                        final int numArgs = argumentListTree.getChildCount();
+
+                        if (numArgs == 2) {
+                            final RecordPathSegment[] args = getArgPaths(argumentListTree, 2, functionName, absolute);
+                            return new ToDate(args[0], args[1], absolute);
+                        } else {
+                            final RecordPathSegment[] args = getArgPaths(argumentListTree, 3, functionName, absolute);
+                            return new ToDate(args[0], args[1], args[2], absolute);
+                        }
                     }
                     case "toString": {
                         final RecordPathSegment[] args = getArgPaths(argumentListTree, 2, functionName, absolute);
@@ -261,8 +288,49 @@ public class RecordPathCompiler {
                         return new ToBytes(args[0], args[1], absolute);
                     }
                     case "format": {
+                        final int numArgs = argumentListTree.getChildCount();
+
+                        if (numArgs == 2) {
+                            final RecordPathSegment[] args = getArgPaths(argumentListTree, 2, functionName, absolute);
+                            return new Format(args[0], args[1], absolute);
+                        } else {
+                            final RecordPathSegment[] args = getArgPaths(argumentListTree, 3, functionName, absolute);
+                            return new Format(args[0], args[1], args[2], absolute);
+                        }
+                    }
+                    case "base64Encode": {
+                        final RecordPathSegment[] args = getArgPaths(argumentListTree, 1, functionName, absolute);
+                        return new Base64Encode(args[0], absolute);
+                    }
+                    case "base64Decode": {
+                        final RecordPathSegment[] args = getArgPaths(argumentListTree, 1, functionName, absolute);
+                        return new Base64Decode(args[0], absolute);
+                    }
+                    case "hash":{
                         final RecordPathSegment[] args = getArgPaths(argumentListTree, 2, functionName, absolute);
-                        return new Format(args[0], args[1], absolute);
+                        return new Hash(args[0], args[1], absolute);
+                    }
+                    case "padLeft": {
+                        final int numArgs = argumentListTree.getChildCount();
+
+                        if (numArgs == 2) {
+                            final RecordPathSegment[] args = getArgPaths(argumentListTree, 2, functionName, absolute);
+                            return new PadLeft(args[0], args[1], absolute);
+                        } else {
+                            final RecordPathSegment[] args = getArgPaths(argumentListTree, 3, functionName, absolute);
+                            return new PadLeft(args[0], args[1], args[2], absolute);
+                        }
+                    }
+                    case "padRight": {
+                        final int numArgs = argumentListTree.getChildCount();
+
+                        if (numArgs == 2) {
+                            final RecordPathSegment[] args = getArgPaths(argumentListTree, 2, functionName, absolute);
+                            return new PadRight(args[0], args[1], absolute);
+                        } else {
+                            final RecordPathSegment[] args = getArgPaths(argumentListTree, 3, functionName, absolute);
+                            return new PadRight(args[0], args[1], args[2], absolute);
+                        }
                     }
                     default: {
                         throw new RecordPathException("Invalid function call: The '" + functionName + "' function does not exist or can only "
@@ -273,6 +341,17 @@ public class RecordPathCompiler {
         }
 
         throw new RecordPathException("Encountered unexpected token " + tree);
+    }
+
+    private static RecordPathSegment[] getArgumentsForStringFunction(boolean absolute, Tree argumentListTree) {
+        final int numArgs = argumentListTree.getChildCount();
+
+        final RecordPathSegment[] argPaths = new RecordPathSegment[numArgs];
+        for (int i = 0; i < numArgs; i++) {
+            argPaths[i] = buildPath(argumentListTree.getChild(i), null, absolute);
+        }
+
+        return argPaths;
     }
 
     private static RecordPathFilter createFilter(final Tree operatorTree, final RecordPathSegment parent, final boolean absolute) {

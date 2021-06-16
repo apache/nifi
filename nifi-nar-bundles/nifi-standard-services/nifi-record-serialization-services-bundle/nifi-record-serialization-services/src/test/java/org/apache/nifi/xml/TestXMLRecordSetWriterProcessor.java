@@ -64,6 +64,7 @@ public class TestXMLRecordSetWriterProcessor extends AbstractProcessor {
         FlowFile flowFile = session.get();
 
         final RecordSetWriterFactory writerFactory = context.getProperty(XML_WRITER).asControllerService(RecordSetWriterFactory.class);
+        final FlowFile flowFileRef = flowFile;
         flowFile = session.write(flowFile, out -> {
             try {
 
@@ -72,7 +73,7 @@ public class TestXMLRecordSetWriterProcessor extends AbstractProcessor {
                 boolean multipleRecords = Boolean.parseBoolean(context.getProperty(MULTIPLE_RECORDS).getValue());
                 RecordSet recordSet = getRecordSet(multipleRecords);
 
-                final RecordSetWriter writer = writerFactory.createWriter(getLogger(), schema, out);
+                final RecordSetWriter writer = writerFactory.createWriter(getLogger(), schema, out, flowFileRef);
 
 
                 writer.write(recordSet);

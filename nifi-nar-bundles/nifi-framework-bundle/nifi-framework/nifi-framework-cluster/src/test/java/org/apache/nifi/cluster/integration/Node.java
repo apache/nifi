@@ -17,17 +17,6 @@
 
 package org.apache.nifi.cluster.integration;
 
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.net.ServerSocket;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.bundle.Bundle;
@@ -62,6 +51,7 @@ import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.io.socket.ServerSocketConfiguration;
 import org.apache.nifi.io.socket.SocketConfiguration;
+import org.apache.nifi.nar.ExtensionDiscoveringManager;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.SystemBundle;
 import org.apache.nifi.registry.VariableRegistry;
@@ -73,9 +63,22 @@ import org.apache.nifi.web.revision.RevisionManager;
 import org.junit.Assert;
 import org.mockito.Mockito;
 
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.ServerSocket;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
 public class Node {
     private final NodeIdentifier nodeId;
     private final NiFiProperties nodeProperties;
+    private final ExtensionManager extensionManager;
 
     private final List<ReportedEvent> reportedEvents = Collections.synchronizedList(new ArrayList<ReportedEvent>());
     private final RevisionManager revisionManager;
@@ -94,11 +97,11 @@ public class Node {
     private ScheduledExecutorService executor = new FlowEngine(8, "Node tasks", true);
 
 
-    public Node(final NiFiProperties properties, final FlowElection flowElection) {
-        this(createNodeId(), properties, flowElection);
+    public Node(final NiFiProperties properties, final ExtensionDiscoveringManager extensionManager, final FlowElection flowElection) {
+        this(createNodeId(), properties, extensionManager, flowElection);
     }
 
-    public Node(final NodeIdentifier nodeId, final NiFiProperties properties, final FlowElection flowElection) {
+    public Node(final NodeIdentifier nodeId, final NiFiProperties properties, final ExtensionDiscoveringManager extensionManager, final FlowElection flowElection) {
         this.nodeId = nodeId;
         this.nodeProperties = new NiFiProperties() {
             @Override
@@ -107,6 +110,8 @@ public class Node {
                     return String.valueOf(nodeId.getSocketPort());
                 }else if(key.equals(NiFiProperties.WEB_HTTP_PORT)){
                     return String.valueOf(nodeId.getApiPort());
+                }else if(key.equals(NiFiProperties.LOAD_BALANCE_PORT)){
+                    return String.valueOf(nodeId.getLoadBalancePort());
                 }else {
                     return properties.getProperty(key);
                 }
@@ -122,7 +127,8 @@ public class Node {
         };
 
         final Bundle systemBundle = SystemBundle.create(properties);
-        ExtensionManager.discoverExtensions(systemBundle, Collections.emptySet());
+        extensionManager.discoverExtensions(systemBundle, Collections.emptySet());
+        this.extensionManager = extensionManager;
 
         revisionManager = Mockito.mock(RevisionManager.class);
         Mockito.when(revisionManager.getAllRevisions()).thenReturn(Collections.emptyList());
@@ -133,7 +139,7 @@ public class Node {
 
 
     private static NodeIdentifier createNodeId() {
-        return new NodeIdentifier(UUID.randomUUID().toString(), "localhost", createPort(), "localhost", createPort(), "localhost", null, null, false, null);
+        return new NodeIdentifier(UUID.randomUUID().toString(), "localhost", createPort(), "localhost", createPort(), "localhost", createPort(), "localhost", null, null, false, null);
     }
 
     /**
@@ -160,7 +166,7 @@ public class Node {
         final HeartbeatMonitor heartbeatMonitor = createHeartbeatMonitor();
         flowController = FlowController.createClusteredInstance(Mockito.mock(FlowFileEventRepository.class), nodeProperties,
             null, null, createEncryptorFromProperties(nodeProperties), protocolSender, Mockito.mock(BulletinRepository.class), clusterCoordinator,
-            heartbeatMonitor, electionManager, VariableRegistry.EMPTY_REGISTRY, Mockito.mock(FlowRegistryClient.class));
+            heartbeatMonitor, electionManager, VariableRegistry.EMPTY_REGISTRY, Mockito.mock(FlowRegistryClient.class), extensionManager);
 
         try {
             flowController.initializeFlow();
@@ -296,8 +302,13 @@ public class Node {
         }
 
         final ClusterCoordinationProtocolSenderListener protocolSenderListener = new ClusterCoordinationProtocolSenderListener(createCoordinatorProtocolSender(), protocolListener);
-        return new NodeClusterCoordinator(protocolSenderListener, eventReporter, electionManager, flowElection, null,
-                revisionManager, nodeProperties, protocolSender);
+        try {
+            return new NodeClusterCoordinator(protocolSenderListener, eventReporter, electionManager, flowElection, null,
+                    revisionManager, nodeProperties, extensionManager, protocolSender);
+        } catch (IOException e) {
+            Assert.fail(e.toString());
+            return null;
+        }
     }
 
 
@@ -379,5 +390,18 @@ public class Node {
      */
     public void assertNodeIsConnected(final NodeIdentifier nodeId) {
         Assert.assertEquals(NodeConnectionState.CONNECTED, getClusterCoordinator().getConnectionStatus(nodeId).getState());
+    }
+
+    /**
+     * Assert that the node with the given ID is offloaded (according to this node!) within the given amount of time
+     *
+     * @param nodeId id of the node
+     * @param time how long to wait
+     * @param timeUnit unit of time provided by the 'time' argument
+     */
+    public void assertNodeIsOffloaded(final NodeIdentifier nodeId, final long time, final TimeUnit timeUnit) {
+        ClusterUtils.waitUntilConditionMet(time, timeUnit,
+                () -> getClusterCoordinator().getConnectionStatus(nodeId).getState() == NodeConnectionState.OFFLOADED,
+                () -> "Connection Status is " + getClusterCoordinator().getConnectionStatus(nodeId).toString());
     }
 }

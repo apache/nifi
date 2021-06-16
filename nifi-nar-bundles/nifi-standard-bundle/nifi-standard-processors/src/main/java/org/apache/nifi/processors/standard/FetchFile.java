@@ -236,6 +236,18 @@ public class FetchFile extends AbstractProcessor {
                     return;
                 }
 
+                if (!targetDir.exists()) {
+                    try {
+                        Files.createDirectories(targetDir.toPath());
+                    } catch (Exception e) {
+                        getLogger().error("Could not fetch file {} from file system for {} because Completion Strategy is configured to move the original file to {}, "
+                                        + "but that directory does not exist and could not be created due to: {}",
+                                new Object[] {file, flowFile, targetDir, e.getMessage()}, e);
+                        session.transfer(flowFile, REL_FAILURE);
+                        return;
+                    }
+                }
+
                 final String conflictStrategy = context.getProperty(CONFLICT_STRATEGY).getValue();
 
                 if (CONFLICT_FAIL.getValue().equalsIgnoreCase(conflictStrategy)) {
@@ -260,7 +272,7 @@ public class FetchFile extends AbstractProcessor {
             return;
         }
 
-        session.getProvenanceReporter().modifyContent(flowFile, "Replaced content of FlowFile with contents of " + file.toURI(), stopWatch.getElapsed(TimeUnit.MILLISECONDS));
+        session.getProvenanceReporter().fetch(flowFile, file.toURI().toString(), "Replaced content of FlowFile with contents of " + file.toURI(), stopWatch.getElapsed(TimeUnit.MILLISECONDS));
         session.transfer(flowFile, REL_SUCCESS);
 
         // It is critical that we commit the session before we perform the Completion Strategy. Otherwise, we could have a case where we

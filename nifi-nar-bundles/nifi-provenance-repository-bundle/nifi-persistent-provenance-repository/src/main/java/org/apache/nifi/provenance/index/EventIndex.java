@@ -17,10 +17,6 @@
 
 package org.apache.nifi.provenance.index;
 
-import java.io.Closeable;
-import java.io.IOException;
-import java.util.Map;
-
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.authorization.EventAuthorizer;
@@ -29,6 +25,10 @@ import org.apache.nifi.provenance.search.Query;
 import org.apache.nifi.provenance.search.QuerySubmission;
 import org.apache.nifi.provenance.serialization.StorageSummary;
 import org.apache.nifi.provenance.store.EventStore;
+
+import java.io.Closeable;
+import java.io.IOException;
+import java.util.Map;
 
 /**
  * An Event Index is responsible for indexing Provenance Events in such a way that the index can be quickly
@@ -50,6 +50,13 @@ public interface EventIndex extends Closeable {
      * @param events the events to index along with their associated Storage Summaries
      */
     void addEvents(Map<ProvenanceEventRecord, StorageSummary> events);
+
+    /**
+     * Indicates whether or not events that are not known to the index should be re-indexed (via {@link #reindexEvents(Map)}}) upon startup.
+     *
+     * @return <code>true</code> if unknown events should be re-indexed, <code>false</code> otherwise.
+     */
+    boolean isReindexNecessary();
 
     /**
      * Replaces the entries in the appropriate index with the given events

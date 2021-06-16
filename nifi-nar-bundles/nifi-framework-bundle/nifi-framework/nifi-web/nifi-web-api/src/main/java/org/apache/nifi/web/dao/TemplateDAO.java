@@ -33,11 +33,12 @@ public interface TemplateDAO {
     void verifyCanAddTemplate(String name, String groupId);
 
     /**
-     * Verifies the types of components in a template.
+     * Verifies that the given template can be instantiated in the group with the given ID
      *
-     * @param snippet proposed template
+     * @param groupId the ID of the Process Group
+     * @param snippetDTO the contents of the snippet
      */
-    void verifyComponentTypes(FlowSnippetDTO snippet);
+    void verifyCanInstantiate(String groupId, FlowSnippetDTO snippetDTO);
 
     /**
      * Creates a template.

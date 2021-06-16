@@ -17,8 +17,13 @@
 
 package org.apache.nifi.serialization.record;
 
+import org.apache.nifi.serialization.SimpleRecordSchema;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.Closeable;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.sql.Array;
 import java.sql.ResultSet;
@@ -26,6 +31,7 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -35,16 +41,20 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.apache.nifi.serialization.SimpleRecordSchema;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 public class ResultSetRecordSet implements RecordSet, Closeable {
     private static final Logger logger = LoggerFactory.getLogger(ResultSetRecordSet.class);
     private final ResultSet rs;
     private final RecordSchema schema;
     private final Set<String> rsColumnNames;
     private boolean moreRows;
+
+    private static final String STRING_CLASS_NAME = String.class.getName();
+    private static final String INT_CLASS_NAME = Integer.class.getName();
+    private static final String LONG_CLASS_NAME = Long.class.getName();
+    private static final String DATE_CLASS_NAME = Date.class.getName();
+    private static final String DOUBLE_CLASS_NAME = Double.class.getName();
+    private static final String FLOAT_CLASS_NAME = Float.class.getName();
+    private static final String BIGDECIMAL_CLASS_NAME = BigDecimal.class.getName();
 
     public ResultSetRecordSet(final ResultSet rs, final RecordSchema readerSchema) throws SQLException {
         this.rs = rs;
@@ -61,6 +71,19 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
     @Override
     public RecordSchema getSchema() {
         return schema;
+    }
+
+    // Protected methods for subclasses to access private member variables
+    protected ResultSet getResultSet() {
+        return rs;
+    }
+
+    protected boolean hasMoreRows() {
+        return moreRows;
+    }
+
+    protected void setMoreRows(boolean moreRows) {
+        this.moreRows = moreRows;
     }
 
     @Override
@@ -87,7 +110,7 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
         }
     }
 
-    private Record createRecord(final ResultSet rs) throws SQLException {
+    protected Record createRecord(final ResultSet rs) throws SQLException {
         final Map<String, Object> values = new HashMap<>(schema.getFieldCount());
 
         for (final RecordField field : schema.getFields()) {
@@ -107,13 +130,17 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
     }
 
     @SuppressWarnings("rawtypes")
-    private Object normalizeValue(final Object value) {
+    private Object normalizeValue(final Object value) throws SQLException {
         if (value == null) {
             return null;
         }
 
         if (value instanceof List) {
             return ((List) value).toArray();
+        }
+
+        if (value instanceof Array) {
+            return ((Array) value).getArray();
         }
 
         return value;
@@ -169,6 +196,10 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
             case Types.LONGVARBINARY:
             case Types.VARBINARY:
                 return RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BYTE.getDataType());
+            case Types.NUMERIC:
+            case Types.DECIMAL:
+                final BigDecimal bigDecimal = rs.getBigDecimal(columnIndex);
+                return RecordFieldType.DECIMAL.getDecimalDataType(bigDecimal.precision(), bigDecimal.scale());
             case Types.OTHER: {
                 // If we have no records to inspect, we can't really know its schema so we simply use the default data type.
                 if (rs.isAfterLast()) {
@@ -176,17 +207,20 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
                 }
 
                 final String columnName = rs.getMetaData().getColumnName(columnIndex);
-                Optional<DataType> dataType = readerSchema.getDataType(columnName);
-                if (dataType.isPresent()) {
-                    return dataType.get();
+
+                if (readerSchema != null) {
+                    Optional<DataType> dataType = readerSchema.getDataType(columnName);
+                    if (dataType.isPresent()) {
+                        return dataType.get();
+                    }
                 }
 
                 final Object obj = rs.getObject(columnIndex);
-                if (obj == null || !(obj instanceof Record)) {
+                if (!(obj instanceof Record)) {
                     final List<DataType> dataTypes = Stream.of(RecordFieldType.BIGINT, RecordFieldType.BOOLEAN, RecordFieldType.BYTE, RecordFieldType.CHAR, RecordFieldType.DATE,
-                        RecordFieldType.DOUBLE, RecordFieldType.FLOAT, RecordFieldType.INT, RecordFieldType.LONG, RecordFieldType.SHORT, RecordFieldType.STRING, RecordFieldType.TIME,
-                        RecordFieldType.TIMESTAMP)
-                    .map(recordFieldType -> recordFieldType.getDataType())
+                        RecordFieldType.DECIMAL, RecordFieldType.DOUBLE, RecordFieldType.FLOAT, RecordFieldType.INT, RecordFieldType.LONG, RecordFieldType.SHORT, RecordFieldType.STRING,
+                            RecordFieldType.TIME, RecordFieldType.TIMESTAMP)
+                    .map(RecordFieldType::getDataType)
                     .collect(Collectors.toList());
 
                     return RecordFieldType.CHOICE.getChoiceDataType(dataTypes);
@@ -198,12 +232,22 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
             }
             default: {
                 final String columnName = rs.getMetaData().getColumnName(columnIndex);
-                Optional<DataType> dataType = readerSchema.getDataType(columnName);
-                if (dataType.isPresent()) {
-                    return dataType.get();
+
+                if (readerSchema != null) {
+                    Optional<DataType> dataType = readerSchema.getDataType(columnName);
+                    if (dataType.isPresent()) {
+                        return dataType.get();
+                    }
                 }
 
-                return getFieldType(sqlType).getDataType();
+                final RecordFieldType fieldType = getFieldType(sqlType, rs.getMetaData().getColumnClassName(columnIndex));
+
+                if (RecordFieldType.DECIMAL.equals(fieldType)) {
+                    final BigDecimal bigDecimalValue = rs.getBigDecimal(columnIndex);
+                    return fieldType.getDecimalDataType(bigDecimalValue.precision(), bigDecimalValue.scale());
+                } else {
+                    return fieldType.getDataType();
+                }
             }
         }
     }
@@ -279,6 +323,10 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
             if (valueToLookAt instanceof Double) {
                 return RecordFieldType.DOUBLE.getDataType();
             }
+            if (valueToLookAt instanceof BigDecimal) {
+                final BigDecimal bigDecimal = (BigDecimal) valueToLookAt;
+                return RecordFieldType.DECIMAL.getDecimalDataType(bigDecimal.precision(), bigDecimal.scale());
+            }
             if (valueToLookAt instanceof Boolean) {
                 return RecordFieldType.BOOLEAN.getDataType();
             }
@@ -310,7 +358,7 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
     }
 
 
-    private static RecordFieldType getFieldType(final int sqlType) {
+    private static RecordFieldType getFieldType(final int sqlType, final String valueClassName) {
         switch (sqlType) {
             case Types.BIGINT:
             case Types.ROWID:
@@ -322,9 +370,10 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
                 return RecordFieldType.CHAR;
             case Types.DATE:
                 return RecordFieldType.DATE;
-            case Types.DECIMAL:
-            case Types.DOUBLE:
             case Types.NUMERIC:
+            case Types.DECIMAL:
+                return RecordFieldType.DECIMAL;
+            case Types.DOUBLE:
             case Types.REAL:
                 return RecordFieldType.DOUBLE;
             case Types.FLOAT:
@@ -344,6 +393,28 @@ public class ResultSetRecordSet implements RecordSet, Closeable {
                 return RecordFieldType.STRING;
             case Types.OTHER:
             case Types.JAVA_OBJECT:
+                if (STRING_CLASS_NAME.equals(valueClassName)) {
+                    return RecordFieldType.STRING;
+                }
+                if (INT_CLASS_NAME.equals(valueClassName)) {
+                    return RecordFieldType.INT;
+                }
+                if (LONG_CLASS_NAME.equals(valueClassName)) {
+                    return RecordFieldType.LONG;
+                }
+                if (DATE_CLASS_NAME.equals(valueClassName)) {
+                    return RecordFieldType.DATE;
+                }
+                if (FLOAT_CLASS_NAME.equals(valueClassName)) {
+                    return RecordFieldType.FLOAT;
+                }
+                if (DOUBLE_CLASS_NAME.equals(valueClassName)) {
+                    return RecordFieldType.DOUBLE;
+                }
+                if (BIGDECIMAL_CLASS_NAME.equals(valueClassName)) {
+                    return RecordFieldType.DECIMAL;
+                }
+
                 return RecordFieldType.RECORD;
             case Types.TIME:
             case Types.TIME_WITH_TIMEZONE:

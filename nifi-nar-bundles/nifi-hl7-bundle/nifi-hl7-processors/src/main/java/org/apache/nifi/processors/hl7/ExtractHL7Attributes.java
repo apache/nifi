@@ -284,8 +284,12 @@ public class ExtractHL7Attributes extends AbstractProcessor {
             final Type field = segment.getField(i, 0);
             if (!isEmpty(field)) {
                 final String fieldName;
-                if (useNames) {
-                    fieldName = WordUtils.capitalize(segmentNames[i-1]).replaceAll("\\W+", "");
+                //Some user defined segments (e.g. Z segments) will not have corresponding names returned
+                //from segment.getNames() above. If we encounter one of these, do the next best thing
+                //and return what we otherwise would if we were not in useNames mode.
+                String segmentName = segmentNames[i-1];
+                if (useNames && StringUtils.isNotBlank(segmentName)) {
+                    fieldName = WordUtils.capitalize(segmentName).replaceAll("\\W+", "");
                 } else {
                     fieldName = String.valueOf(i);
                 }

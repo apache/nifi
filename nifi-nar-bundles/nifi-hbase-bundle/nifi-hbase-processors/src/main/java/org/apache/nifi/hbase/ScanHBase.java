@@ -209,6 +209,17 @@ public class ScanHBase extends AbstractProcessor implements VisibilityFetchSuppo
             .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
             .build();
 
+    static final PropertyDescriptor BLOCK_CACHE = new PropertyDescriptor.Builder()
+            .displayName("Block Cache")
+            .name("block-cache")
+            .description("The Block Cache to enable/disable block cache on HBase scan.")
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .allowableValues("true", "false")
+            .required(true)
+            .defaultValue("true")
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .build();
+
     public static final Relationship REL_ORIGINAL = new Relationship.Builder()
             .name("original")
             .description("The original input file will be routed to this destination, even if no rows are retrieved based on provided conditions.")
@@ -244,6 +255,7 @@ public class ScanHBase extends AbstractProcessor implements VisibilityFetchSuppo
         props.add(JSON_FORMAT);
         props.add(ENCODE_CHARSET);
         props.add(DECODE_CHARSET);
+        props.add(BLOCK_CACHE);
         properties = Collections.unmodifiableList(props);
     }
 
@@ -368,6 +380,8 @@ public class ScanHBase extends AbstractProcessor implements VisibilityFetchSuppo
 
             final Boolean isReversed = context.getProperty(REVERSED_SCAN).asBoolean();
 
+            final Boolean blockCache = context.getProperty(BLOCK_CACHE).asBoolean();
+
             final Integer bulkSize = context.getProperty(BULK_SIZE).evaluateAttributeExpressions(flowFile).asInteger();
 
             final List<Column> columns = getColumns(context.getProperty(COLUMNS).evaluateAttributeExpressions(flowFile).getValue());
@@ -376,6 +390,7 @@ public class ScanHBase extends AbstractProcessor implements VisibilityFetchSuppo
             final AtomicReference<Long> rowsPulledHolder = new AtomicReference<>(0L);
             final AtomicReference<Long> ffCountHolder = new AtomicReference<>(0L);
             ScanHBaseResultHandler handler = new ScanHBaseResultHandler(context, session, flowFile, rowsPulledHolder, ffCountHolder, hBaseClientService, tableName, bulkSize);
+
             try {
                 hBaseClientService.scan(tableName,
                                         startRow, endRow,
@@ -383,6 +398,7 @@ public class ScanHBase extends AbstractProcessor implements VisibilityFetchSuppo
                                         timerangeMin, timerangeMax,
                                         limitRows,
                                         isReversed,
+                                        blockCache,
                                         columns,
                                         authorizations,
                                         handler);

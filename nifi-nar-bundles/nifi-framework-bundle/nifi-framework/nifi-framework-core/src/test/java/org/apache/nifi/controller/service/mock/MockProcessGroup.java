@@ -32,9 +32,14 @@ import org.apache.nifi.controller.Snippet;
 import org.apache.nifi.controller.Template;
 import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.service.ControllerServiceNode;
+import org.apache.nifi.groups.FlowFileConcurrency;
+import org.apache.nifi.groups.FlowFileGate;
+import org.apache.nifi.groups.FlowFileOutboundPolicy;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.ProcessGroupCounts;
 import org.apache.nifi.groups.RemoteProcessGroup;
+import org.apache.nifi.parameter.ParameterContext;
+import org.apache.nifi.parameter.ParameterUpdate;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.registry.flow.VersionControlInformation;
@@ -51,6 +56,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Predicate;
 
 public class MockProcessGroup implements ProcessGroup {
     private final Map<String, ControllerServiceNode> serviceMap = new HashMap<>();
@@ -58,6 +64,7 @@ public class MockProcessGroup implements ProcessGroup {
     private final FlowController flowController;
     private final MutableVariableRegistry variableRegistry = new MutableVariableRegistry(VariableRegistry.ENVIRONMENT_SYSTEM_REGISTRY);
     private VersionControlInformation versionControlInfo;
+    private ParameterContext parameterContext;
 
     public MockProcessGroup(final FlowController flowController) {
         this.flowController = flowController;
@@ -277,13 +284,17 @@ public class MockProcessGroup implements ProcessGroup {
     public void addProcessor(final ProcessorNode processor) {
         processor.setProcessGroup(this);
         processorMap.put(processor.getIdentifier(), processor);
-        flowController.onProcessorAdded(processor);
+        if (flowController.getFlowManager() != null) {
+            flowController.getFlowManager().onProcessorAdded(processor);
+        }
     }
 
     @Override
     public void removeProcessor(final ProcessorNode processor) {
         processorMap.remove(processor.getIdentifier());
-        flowController.onProcessorRemoved(processor);
+        if (flowController.getFlowManager() != null) {
+            flowController.getFlowManager().onProcessorRemoved(processor);
+        }
     }
 
     @Override
@@ -347,6 +358,11 @@ public class MockProcessGroup implements ProcessGroup {
     }
 
     @Override
+    public Set<String> getAncestorServiceIds() {
+        return null;
+    }
+
+    @Override
     public ControllerServiceNode findControllerService(final String id, final boolean includeDescendants, final boolean includeAncestors) {
         return serviceMap.get(id);
     }
@@ -404,6 +420,11 @@ public class MockProcessGroup implements ProcessGroup {
     @Override
     public List<ProcessGroup> findAllProcessGroups() {
         return null;
+    }
+
+    @Override
+    public List<ProcessGroup> findAllProcessGroups(final Predicate<ProcessGroup> filter) {
+        return Collections.emptyList();
     }
 
     @Override
@@ -548,6 +569,11 @@ public class MockProcessGroup implements ProcessGroup {
     }
 
     @Override
+    public void verifyCanDelete(final boolean ignorePortConnections, final boolean ignoreTemplates) {
+
+    }
+
+    @Override
     public void verifyCanStart() {
 
     }
@@ -645,7 +671,7 @@ public class MockProcessGroup implements ProcessGroup {
     }
 
     @Override
-    public void verifyCanSaveToFlowRegistry(String registryId, String bucketId, String flowId) {
+    public void verifyCanSaveToFlowRegistry(String registryId, String bucketId, String flowId, String action) {
     }
 
     @Override
@@ -676,6 +702,66 @@ public class MockProcessGroup implements ProcessGroup {
 
     @Override
     public void onComponentModified() {
+    }
+
+    @Override
+    public void setParameterContext(final ParameterContext parameterContext) {
+        this.parameterContext = parameterContext;
+    }
+
+    @Override
+    public ParameterContext getParameterContext() {
+        return parameterContext;
+    }
+
+    @Override
+    public void verifyCanSetParameterContext(ParameterContext context) {
+    }
+
+    @Override
+    public void onParameterContextUpdated(final Map<String, ParameterUpdate> updatedParameters) {
+    }
+
+    @Override
+    public FlowFileGate getFlowFileGate() {
+        return new FlowFileGate() {
+            @Override
+            public boolean tryClaim() {
+                return true;
+            }
+
+            @Override
+            public void releaseClaim() {
+            }
+        };
+    }
+
+    @Override
+    public FlowFileConcurrency getFlowFileConcurrency() {
+        return FlowFileConcurrency.UNBOUNDED;
+    }
+
+    @Override
+    public void setFlowFileConcurrency(final FlowFileConcurrency flowFileConcurrency) {
+    }
+
+    @Override
+    public FlowFileOutboundPolicy getFlowFileOutboundPolicy() {
+        return FlowFileOutboundPolicy.STREAM_WHEN_AVAILABLE;
+    }
+
+    @Override
+    public void setFlowFileOutboundPolicy(final FlowFileOutboundPolicy outboundPolicy) {
+    }
+
+    @Override
+    public boolean isDataQueued() {
+        return false;
+    }
+
+    @Override
+    public boolean isDataQueuedForProcessing() {
+        return false;
     }
 
     @Override

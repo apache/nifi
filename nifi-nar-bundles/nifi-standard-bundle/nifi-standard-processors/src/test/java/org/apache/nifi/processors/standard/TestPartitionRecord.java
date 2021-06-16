@@ -22,6 +22,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.stream.IntStream;
 
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.record.MockRecordParser;
@@ -80,6 +81,9 @@ public class TestPartitionRecord {
 
         assertEquals(3L, out.stream().filter(ff -> ff.getAttribute("record.count").equals("1")).count());
         assertEquals(1L, out.stream().filter(ff -> ff.getAttribute("record.count").equals("2")).count());
+        out.forEach(ff -> ff.assertAttributeEquals("fragment.count", "4"));
+        IntStream.of(1, 3).forEach((i) -> out.get(i).assertAttributeEquals("fragment.id", out.get(0).getAttribute("fragment.id")));
+        IntStream.of(0, 3).forEach((i) -> out.get(i).assertAttributeEquals("fragment.index", String.valueOf(i)));
 
         out.stream().filter(ff -> ff.getAttribute("record.count").equals("2")).forEach(ff -> ff.assertContentEquals("Jake,49,\nJake,14,\n"));
 

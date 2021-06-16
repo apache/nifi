@@ -69,7 +69,7 @@ public class EmptyRecordReader implements RecordReader {
 
     @Override
     public long getMaxEventId() throws IOException {
-        return 0;
+        return -1;
     }
 
     @Override

@@ -17,17 +17,11 @@
 
 package org.apache.nifi.json;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.text.DateFormat;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.function.Supplier;
-
+import com.jayway.jsonpath.Configuration;
+import com.jayway.jsonpath.DocumentContext;
+import com.jayway.jsonpath.JsonPath;
+import com.jayway.jsonpath.PathNotFoundException;
+import com.jayway.jsonpath.spi.json.JacksonJsonProvider;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.SimpleRecordSchema;
@@ -43,11 +37,14 @@ import org.apache.nifi.serialization.record.util.DataTypeUtils;
 import org.apache.nifi.serialization.record.util.IllegalTypeConversionException;
 import org.codehaus.jackson.JsonNode;
 
-import com.jayway.jsonpath.Configuration;
-import com.jayway.jsonpath.DocumentContext;
-import com.jayway.jsonpath.JsonPath;
-import com.jayway.jsonpath.PathNotFoundException;
-import com.jayway.jsonpath.spi.json.JacksonJsonProvider;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 public class JsonPathRowRecordReader extends AbstractJsonRowRecordReader {
     private static final Configuration STRICT_PROVIDER_CONFIGURATION = Configuration.builder().jsonProvider(new JacksonJsonProvider()).build();
@@ -57,22 +54,10 @@ public class JsonPathRowRecordReader extends AbstractJsonRowRecordReader {
     private final InputStream in;
     private RecordSchema schema;
 
-    private final Supplier<DateFormat> LAZY_DATE_FORMAT;
-    private final Supplier<DateFormat> LAZY_TIME_FORMAT;
-    private final Supplier<DateFormat> LAZY_TIMESTAMP_FORMAT;
-
     public JsonPathRowRecordReader(final LinkedHashMap<String, JsonPath> jsonPaths, final RecordSchema schema, final InputStream in, final ComponentLog logger,
-        final String dateFormat, final String timeFormat, final String timestampFormat)
-        throws MalformedRecordException, IOException {
-        super(in, logger);
-
-        final DateFormat df = dateFormat == null ? null : DataTypeUtils.getDateFormat(dateFormat);
-        final DateFormat tf = timeFormat == null ? null : DataTypeUtils.getDateFormat(timeFormat);
-        final DateFormat tsf = timestampFormat == null ? null : DataTypeUtils.getDateFormat(timestampFormat);
-
-        LAZY_DATE_FORMAT = () -> df;
-        LAZY_TIME_FORMAT = () -> tf;
-        LAZY_TIMESTAMP_FORMAT = () -> tsf;
+                final String dateFormat, final String timeFormat, final String timestampFormat)
+                throws MalformedRecordException, IOException {
+        super(in, logger, dateFormat, timeFormat, timestampFormat);
 
         this.schema = schema;
         this.jsonPaths = jsonPaths;
@@ -91,7 +76,7 @@ public class JsonPathRowRecordReader extends AbstractJsonRowRecordReader {
     }
 
     @Override
-    protected Record convertJsonNodeToRecord(final JsonNode jsonNode, final RecordSchema schema, final boolean coerceTypes, final boolean dropUnknownFields) throws IOException {
+    protected Record convertJsonNodeToRecord(final JsonNode jsonNode, final RecordSchema schema, final boolean coerceTypes, final boolean dropUnknownFields) {
         if (jsonNode == null) {
             return null;
         }
@@ -118,13 +103,13 @@ public class JsonPathRowRecordReader extends AbstractJsonRowRecordReader {
             }
 
             final Optional<RecordField> field = schema.getField(fieldName);
-            final Object defaultValue = field.isPresent() ? field.get().getDefaultValue() : null;
+            final Object defaultValue = field.map(RecordField::getDefaultValue).orElse(null);
 
             if (coerceTypes && desiredType != null) {
                 value = convert(value, desiredType, fieldName, defaultValue);
             } else {
-                final DataType dataType = field.isPresent() ? field.get().getDataType() : null;
-                value = convert(value, dataType);
+                final DataType dataType = field.map(RecordField::getDataType).orElse(null);
+                value = convert(value, dataType, fieldName);
             }
 
             values.put(fieldName, value);
@@ -135,7 +120,7 @@ public class JsonPathRowRecordReader extends AbstractJsonRowRecordReader {
 
 
     @SuppressWarnings("unchecked")
-    protected Object convert(final Object value, final DataType dataType) {
+    protected Object convert(final Object value, final DataType dataType, final String fieldName) {
         if (value == null) {
             return null;
         }
@@ -153,7 +138,7 @@ public class JsonPathRowRecordReader extends AbstractJsonRowRecordReader {
 
             int i = 0;
             for (final Object val : list) {
-                array[i++] = convert(val, elementDataType);
+                array[i++] = convert(val, elementDataType, fieldName);
             }
 
             return array;
@@ -189,10 +174,23 @@ public class JsonPathRowRecordReader extends AbstractJsonRowRecordReader {
                 final RecordField recordField = childSchema.getField(key).orElse(null);
                 final DataType childDataType = recordField == null ? null : recordField.getDataType();
 
-                values.put(key, convert(childValue, childDataType));
+                values.put(key, convert(childValue, childDataType, fieldName));
             }
 
             return new MapRecord(childSchema, values);
+        }
+
+        if (dataType != null && value instanceof String) {
+            switch (dataType.getFieldType()) {
+                case DATE:
+                case TIME:
+                case TIMESTAMP:
+                    try {
+                        return DataTypeUtils.convertType(value, dataType, getLazyDateFormat(), getLazyTimeFormat(), getLazyTimestampFormat(), fieldName);
+                    } catch (final Exception e) {
+                        return value;
+                    }
+            }
         }
 
         return value;
@@ -232,7 +230,7 @@ public class JsonPathRowRecordReader extends AbstractJsonRowRecordReader {
                 final Optional<DataType> desiredTypeOption = childSchema.getDataType(key);
                 if (desiredTypeOption.isPresent()) {
                     final Optional<RecordField> field = childSchema.getField(key);
-                    final Object defaultFieldValue = field.isPresent() ? field.get().getDefaultValue() : null;
+                    final Object defaultFieldValue = field.map(RecordField::getDefaultValue).orElse(null);
 
                     final Object coercedValue = convert(entry.getValue(), desiredTypeOption.get(), fieldName + "." + key, defaultFieldValue);
                     coercedValues.put(key, coercedValue);
@@ -241,7 +239,7 @@ public class JsonPathRowRecordReader extends AbstractJsonRowRecordReader {
 
             return new MapRecord(childSchema, coercedValues);
         } else {
-            return DataTypeUtils.convertType(value, dataType, LAZY_DATE_FORMAT, LAZY_TIME_FORMAT, LAZY_TIMESTAMP_FORMAT, fieldName);
+            return DataTypeUtils.convertType(value, dataType, getLazyDateFormat(), getLazyTimeFormat(), getLazyTimestampFormat(), fieldName);
         }
     }
 

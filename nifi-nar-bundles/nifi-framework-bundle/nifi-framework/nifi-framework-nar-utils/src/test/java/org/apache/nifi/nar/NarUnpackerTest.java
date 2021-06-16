@@ -34,7 +34,9 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Stream;
 
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 import static org.junit.Assert.assertEquals;
@@ -100,6 +102,7 @@ public class NarUnpackerTest {
         Set<String> expectedNars = new HashSet<>();
         expectedNars.add("dummy-one.nar-unpacked");
         expectedNars.add("dummy-two.nar-unpacked");
+        expectedNars.add("nifi-jetty-bundle.nar-unpacked");
         assertEquals(expectedNars.size(), extensionFiles.length);
 
         for (File extensionFile : extensionFiles) {
@@ -127,8 +130,12 @@ public class NarUnpackerTest {
         final File extensionsWorkingDir = properties.getExtensionsWorkingDirectory();
         File[] extensionFiles = extensionsWorkingDir.listFiles();
 
-        assertEquals(1, extensionFiles.length);
-        assertEquals("dummy-one.nar-unpacked", extensionFiles[0].getName());
+        assertEquals(2, extensionFiles.length);
+
+        final Optional<File> foundDummyOne = Stream.of(extensionFiles)
+                .filter(f -> f.getName().equals("dummy-one.nar-unpacked"))
+                .findFirst();
+        assertTrue(foundDummyOne.isPresent());
     }
 
     @Test
@@ -151,8 +158,12 @@ public class NarUnpackerTest {
         final File extensionsWorkingDir = properties.getExtensionsWorkingDirectory();
         File[] extensionFiles = extensionsWorkingDir.listFiles();
 
-        assertEquals(1, extensionFiles.length);
-        assertEquals("dummy-one.nar-unpacked", extensionFiles[0].getName());
+        assertEquals(2, extensionFiles.length);
+
+        final Optional<File> foundDummyOne = Stream.of(extensionFiles)
+                .filter(f -> f.getName().equals("dummy-one.nar-unpacked"))
+                .findFirst();
+        assertTrue(foundDummyOne.isPresent());
     }
 
     @Test

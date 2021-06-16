@@ -412,8 +412,9 @@ public class ControllerServiceAuditor extends NiFiAuditor {
         }
         if (controllerServiceDTO.getProperties() != null) {
             // for each property specified, extract its configured value
-            Map<String, String> properties = controllerServiceDTO.getProperties();
-            Map<PropertyDescriptor, String> configuredProperties = controllerService.getProperties();
+            final Map<String, String> properties = controllerServiceDTO.getProperties();
+            final Map<PropertyDescriptor, String> configuredProperties = controllerService.getRawPropertyValues();
+
             for (String propertyName : properties.keySet()) {
                 // build a descriptor for getting the configured value
                 PropertyDescriptor propertyDescriptor = new PropertyDescriptor.Builder().name(propertyName).build();

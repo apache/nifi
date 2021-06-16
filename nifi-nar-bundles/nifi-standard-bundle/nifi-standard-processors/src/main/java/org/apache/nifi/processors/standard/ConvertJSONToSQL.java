@@ -28,17 +28,17 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
@@ -216,6 +216,15 @@ public class ConvertJSONToSQL extends AbstractProcessor {
             .defaultValue("sql")
             .build();
 
+    static final PropertyDescriptor TABLE_SCHEMA_CACHE_SIZE = new PropertyDescriptor.Builder()
+            .name("table-schema-cache-size")
+            .displayName("Table Schema Cache Size")
+            .description("Specifies how many Table Schemas should be cached")
+            .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
+            .defaultValue("100")
+            .required(true)
+            .build();
+
     static final Relationship REL_ORIGINAL = new Relationship.Builder()
             .name("original")
             .description("When a FlowFile is converted to SQL, the original JSON FlowFile is routed to this relationship")
@@ -230,14 +239,7 @@ public class ConvertJSONToSQL extends AbstractProcessor {
                     + "content or the JSON content missing a required field (if using an INSERT statement type).")
             .build();
 
-    private final Map<SchemaKey, TableSchema> schemaCache = new LinkedHashMap<SchemaKey, TableSchema>(100) {
-        private static final long serialVersionUID = 1L;
-
-        @Override
-        protected boolean removeEldestEntry(Map.Entry<SchemaKey,TableSchema> eldest) {
-            return size() >= 100;
-        }
-    };
+    private Cache<SchemaKey, TableSchema> schemaCache;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -254,6 +256,7 @@ public class ConvertJSONToSQL extends AbstractProcessor {
         properties.add(QUOTED_IDENTIFIERS);
         properties.add(QUOTED_TABLE_IDENTIFIER);
         properties.add(SQL_PARAM_ATTR_PREFIX);
+        properties.add(TABLE_SCHEMA_CACHE_SIZE);
         return properties;
     }
 
@@ -270,14 +273,15 @@ public class ConvertJSONToSQL extends AbstractProcessor {
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
-        synchronized (this) {
-            schemaCache.clear();
-        }
+        final int tableSchemaCacheSize = context.getProperty(TABLE_SCHEMA_CACHE_SIZE).asInteger();
+        schemaCache = Caffeine.newBuilder()
+                .maximumSize(tableSchemaCacheSize)
+                .build();
     }
 
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
-        FlowFile flowFile = session.get();
+        final FlowFile flowFile = session.get();
         if (flowFile == null) {
             return;
         }
@@ -306,25 +310,20 @@ public class ConvertJSONToSQL extends AbstractProcessor {
         // Attribute prefix
         final String attributePrefix = context.getProperty(SQL_PARAM_ATTR_PREFIX).evaluateAttributeExpressions(flowFile).getValue();
 
-        // get the database schema from the cache, if one exists. We do this in a synchronized block, rather than
-        // using a ConcurrentMap because the Map that we are using is a LinkedHashMap with a capacity such that if
-        // the Map grows beyond this capacity, old elements are evicted. We do this in order to avoid filling the
-        // Java Heap if there are a lot of different SQL statements being generated that reference different tables.
         TableSchema schema;
-        synchronized (this) {
-            schema = schemaCache.get(schemaKey);
-            if (schema == null) {
-                // No schema exists for this table yet. Query the database to determine the schema and put it into the cache.
+        try {
+            schema = schemaCache.get(schemaKey, key -> {
                 final DBCPService dbcpService = context.getProperty(CONNECTION_POOL).asControllerService(DBCPService.class);
-                try (final Connection conn = dbcpService.getConnection(flowFile == null ? Collections.emptyMap() : flowFile.getAttributes())) {
-                    schema = TableSchema.from(conn, catalog, schemaName, tableName, translateFieldNames, includePrimaryKeys);
-                    schemaCache.put(schemaKey, schema);
+                try (final Connection conn = dbcpService.getConnection(flowFile.getAttributes())) {
+                    return TableSchema.from(conn, catalog, schemaName, tableName, translateFieldNames, includePrimaryKeys);
                 } catch (final SQLException e) {
-                    getLogger().error("Failed to convert {} into a SQL statement due to {}; routing to failure", new Object[] {flowFile, e.toString()}, e);
-                    session.transfer(flowFile, REL_FAILURE);
-                    return;
+                    throw new ProcessException(e);
                 }
-            }
+            });
+        } catch (ProcessException e) {
+            getLogger().error("Failed to convert {} into a SQL statement due to {}; routing to failure", new Object[]{flowFile, e.toString()}, e);
+            session.transfer(flowFile, REL_FAILURE);
+            return;
         }
 
         // Parse the JSON document
@@ -423,8 +422,8 @@ public class ConvertJSONToSQL extends AbstractProcessor {
             session.transfer(sqlFlowFile, REL_SQL);
         }
 
-        flowFile = copyAttributesToOriginal(session, flowFile, fragmentIdentifier, arrayNode.size());
-        session.transfer(flowFile, REL_ORIGINAL);
+        FlowFile newFlowFile = copyAttributesToOriginal(session, flowFile, fragmentIdentifier, arrayNode.size());
+        session.transfer(newFlowFile, REL_ORIGINAL);
     }
 
     private Set<String> getNormalizedColumnNames(final JsonNode node, final boolean translateFieldNames) {

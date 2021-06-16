@@ -16,14 +16,6 @@
  */
 package org.apache.nifi.processor;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import org.apache.nifi.attribute.expression.language.PreparedQuery;
 import org.apache.nifi.attribute.expression.language.Query;
 import org.apache.nifi.attribute.expression.language.Query.Range;
@@ -39,7 +31,17 @@ import org.apache.nifi.controller.lifecycle.TaskTermination;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.encrypt.StringEncryptor;
 import org.apache.nifi.processor.exception.TerminatedTaskException;
+import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.util.Connectables;
+
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public class StandardProcessContext implements ProcessContext, ControllerServiceLookup {
 
@@ -49,17 +51,20 @@ public class StandardProcessContext implements ProcessContext, ControllerService
     private final StringEncryptor encryptor;
     private final StateManager stateManager;
     private final TaskTermination taskTermination;
+    private final Map<PropertyDescriptor, String> properties;
 
     public StandardProcessContext(final ProcessorNode processorNode, final ControllerServiceProvider controllerServiceProvider, final StringEncryptor encryptor, final StateManager stateManager,
-            final TaskTermination taskTermination) {
+                                  final TaskTermination taskTermination) {
         this.procNode = processorNode;
         this.controllerServiceProvider = controllerServiceProvider;
         this.encryptor = encryptor;
         this.stateManager = stateManager;
         this.taskTermination = taskTermination;
 
+        properties = Collections.unmodifiableMap(processorNode.getEffectivePropertyValues());
+
         preparedQueries = new HashMap<>();
-        for (final Map.Entry<PropertyDescriptor, String> entry : procNode.getProperties().entrySet()) {
+        for (final Map.Entry<PropertyDescriptor, String> entry : processorNode.getRawPropertyValues().entrySet()) {
             final PropertyDescriptor desc = entry.getKey();
             String value = entry.getValue();
             if (value == null) {
@@ -82,7 +87,17 @@ public class StandardProcessContext implements ProcessContext, ControllerService
     @Override
     public PropertyValue getProperty(final PropertyDescriptor descriptor) {
         verifyTaskActive();
-        return getProperty(descriptor.getName());
+
+        final String setPropertyValue = properties.get(descriptor);
+        if (setPropertyValue != null) {
+            return new StandardPropertyValue(setPropertyValue, this, procNode.getParameterLookup(), preparedQueries.get(descriptor), procNode.getVariableRegistry());
+        }
+
+        // Get the "canonical" Property Descriptor from the Processor
+        final PropertyDescriptor canonicalDescriptor = procNode.getProcessor().getPropertyDescriptor(descriptor.getName());
+        final String defaultValue = canonicalDescriptor.getDefaultValue();
+
+        return new StandardPropertyValue(defaultValue, this, procNode.getParameterLookup(), preparedQueries.get(descriptor), procNode.getVariableRegistry());
     }
 
     /**
@@ -99,16 +114,16 @@ public class StandardProcessContext implements ProcessContext, ControllerService
             return null;
         }
 
-        final String setPropertyValue = procNode.getProperty(descriptor);
+        final String setPropertyValue = properties.get(descriptor);
         final String propValue = (setPropertyValue == null) ? descriptor.getDefaultValue() : setPropertyValue;
 
-        return new StandardPropertyValue(propValue, this, preparedQueries.get(descriptor), procNode.getVariableRegistry());
+        return new StandardPropertyValue(propValue, this, procNode.getParameterLookup(), preparedQueries.get(descriptor), procNode.getVariableRegistry());
     }
 
     @Override
     public PropertyValue newPropertyValue(final String rawValue) {
         verifyTaskActive();
-        return new StandardPropertyValue(rawValue, this, Query.prepare(rawValue), procNode.getVariableRegistry());
+        return new StandardPropertyValue(rawValue, this, procNode.getParameterLookup(), Query.prepareWithParametersPreEvaluated(rawValue), procNode.getVariableRegistry());
     }
 
     @Override
@@ -130,6 +145,12 @@ public class StandardProcessContext implements ProcessContext, ControllerService
     }
 
     @Override
+    public ExecutionNode getExecutionNode() {
+        verifyTaskActive();
+        return procNode.getExecutionNode();
+    }
+
+    @Override
     public String getAnnotationData() {
         verifyTaskActive();
         return procNode.getAnnotationData();
@@ -138,7 +159,7 @@ public class StandardProcessContext implements ProcessContext, ControllerService
     @Override
     public Map<PropertyDescriptor, String> getProperties() {
         verifyTaskActive();
-        return procNode.getProperties();
+        return properties;
     }
 
     @Override

@@ -356,7 +356,7 @@ public class JettyWebSocketServer extends AbstractJettyWebSocketService implemen
             want = false;
         }
 
-        final SslContextFactory sslFactory = (sslService == null) ? null : createSslFactory(sslService, need, want);
+        final SslContextFactory sslFactory = (sslService == null) ? null : createSslFactory(sslService, need, want, null);
         return sslFactory;
     }
 

@@ -18,8 +18,26 @@
 package org.apache.nifi.reporting;
 
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.mockito.Mockito.when;
+
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import javax.json.Json;
+import javax.json.JsonObject;
+import javax.json.JsonReader;
+import javax.json.JsonValue;
+
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.state.Scope;
@@ -37,6 +55,7 @@ import org.apache.nifi.provenance.StandardProvenanceEventRecord;
 import org.apache.nifi.remote.Transaction;
 import org.apache.nifi.remote.TransferDirection;
 import org.apache.nifi.remote.client.SiteToSiteClient;
+import org.apache.nifi.reporting.s2s.SiteToSiteUtils;
 import org.apache.nifi.state.MockStateManager;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockPropertyValue;
@@ -46,22 +65,8 @@ import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
-import javax.json.Json;
-import javax.json.JsonObject;
-import javax.json.JsonReader;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import static org.junit.Assert.assertEquals;
-import static org.mockito.Mockito.when;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class TestSiteToSiteProvenanceReportingTask {
 
@@ -81,7 +86,7 @@ public class TestSiteToSiteProvenanceReportingTask {
         Mockito.doAnswer(new Answer<PropertyValue>() {
             @Override
             public PropertyValue answer(final InvocationOnMock invocation) throws Throwable {
-                final PropertyDescriptor descriptor = invocation.getArgumentAt(0, PropertyDescriptor.class);
+                final PropertyDescriptor descriptor = invocation.getArgument(0, PropertyDescriptor.class);
                 return new MockPropertyValue(properties.get(descriptor));
             }
         }).when(context).getProperty(Mockito.any(PropertyDescriptor.class));
@@ -89,7 +94,7 @@ public class TestSiteToSiteProvenanceReportingTask {
         Mockito.doAnswer(new Answer<PropertyValue>() {
             @Override
             public PropertyValue answer(final InvocationOnMock invocation) throws Throwable {
-                final PropertyDescriptor descriptor = invocation.getArgumentAt(0, PropertyDescriptor.class);
+                final PropertyDescriptor descriptor = invocation.getArgument(0, PropertyDescriptor.class);
                 return new MockPropertyValue(properties.get(descriptor));
             }
         }).when(confContext).getProperty(Mockito.any(PropertyDescriptor.class));
@@ -100,8 +105,8 @@ public class TestSiteToSiteProvenanceReportingTask {
         Mockito.doAnswer(new Answer<List<ProvenanceEventRecord>>() {
             @Override
             public List<ProvenanceEventRecord> answer(final InvocationOnMock invocation) throws Throwable {
-                final long startId = invocation.getArgumentAt(0, long.class);
-                final int maxRecords = invocation.getArgumentAt(1, int.class);
+                final long startId = invocation.getArgument(0, Long.class);
+                final int maxRecords = invocation.getArgument(1, Integer.class);
 
                 final List<ProvenanceEventRecord> eventsToReturn = new ArrayList<>();
                 for (int i = (int) Math.max(0, startId); i < (int) (startId + maxRecords) && totalEvents.get() < maxEventId; i++) {
@@ -198,7 +203,7 @@ public class TestSiteToSiteProvenanceReportingTask {
         for (final PropertyDescriptor descriptor : new MockSiteToSiteProvenanceReportingTask().getSupportedPropertyDescriptors()) {
             properties.put(descriptor, descriptor.getDefaultValue());
         }
-        properties.put(SiteToSiteProvenanceReportingTask.BATCH_SIZE, "1000");
+        properties.put(SiteToSiteUtils.BATCH_SIZE, "1000");
 
         ProvenanceEventRecord event = createProvenanceEventRecord();
 
@@ -210,17 +215,45 @@ public class TestSiteToSiteProvenanceReportingTask {
         assertEquals(3, task.dataSent.size());
         final String msg = new String(task.dataSent.get(0), StandardCharsets.UTF_8);
         JsonReader jsonReader = Json.createReader(new ByteArrayInputStream(msg.getBytes()));
-        JsonObject msgArray = jsonReader.readArray().getJsonObject(0).getJsonObject("updatedAttributes");
+        JsonObject object = jsonReader.readArray().getJsonObject(0);
+        JsonValue details = object.get("details");
+        JsonObject msgArray = object.getJsonObject("updatedAttributes");
+        assertNull(details);
         assertEquals(msgArray.getString("abc"), event.getAttributes().get("abc"));
+        assertNull(msgArray.get("emptyVal"));
     }
 
+    @Test
+    public void testSerializedFormWithNullValues() throws IOException, InitializationException {
+        final Map<PropertyDescriptor, String> properties = new HashMap<>();
+        for (final PropertyDescriptor descriptor : new MockSiteToSiteProvenanceReportingTask().getSupportedPropertyDescriptors()) {
+            properties.put(descriptor, descriptor.getDefaultValue());
+        }
+        properties.put(SiteToSiteUtils.BATCH_SIZE, "1000");
+        properties.put(SiteToSiteStatusReportingTask.ALLOW_NULL_VALUES,"true");
+
+        ProvenanceEventRecord event = createProvenanceEventRecord();
+
+        MockSiteToSiteProvenanceReportingTask task = setup(event, properties);
+        task.initialize(initContext);
+        task.onScheduled(confContext);
+        task.onTrigger(context);
+
+        final String msg = new String(task.dataSent.get(0), StandardCharsets.UTF_8);
+        JsonReader jsonReader = Json.createReader(new ByteArrayInputStream(msg.getBytes()));
+        JsonObject object = jsonReader.readArray().getJsonObject(0);
+        JsonValue details = object.get("details");
+        JsonValue emptyVal = object.getJsonObject("updatedAttributes").get("emptyVal");
+        assertEquals(JsonValue.NULL,details);
+        assertEquals(JsonValue.NULL,emptyVal);
+    }
     @Test
     public void testFilterComponentIdSuccess() throws IOException, InitializationException {
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
         for (final PropertyDescriptor descriptor : new MockSiteToSiteProvenanceReportingTask().getSupportedPropertyDescriptors()) {
             properties.put(descriptor, descriptor.getDefaultValue());
         }
-        properties.put(SiteToSiteProvenanceReportingTask.BATCH_SIZE, "1000");
+        properties.put(SiteToSiteUtils.BATCH_SIZE, "1000");
         properties.put(SiteToSiteProvenanceReportingTask.FILTER_COMPONENT_ID, "2345, 5678,  1234");
 
         ProvenanceEventRecord event = createProvenanceEventRecord();
@@ -240,7 +273,7 @@ public class TestSiteToSiteProvenanceReportingTask {
         for (final PropertyDescriptor descriptor : new MockSiteToSiteProvenanceReportingTask().getSupportedPropertyDescriptors()) {
             properties.put(descriptor, descriptor.getDefaultValue());
         }
-        properties.put(SiteToSiteProvenanceReportingTask.BATCH_SIZE, "1000");
+        properties.put(SiteToSiteUtils.BATCH_SIZE, "1000");
         properties.put(SiteToSiteProvenanceReportingTask.FILTER_COMPONENT_ID, "9999");
 
         ProvenanceEventRecord event = createProvenanceEventRecord();
@@ -259,7 +292,7 @@ public class TestSiteToSiteProvenanceReportingTask {
         for (final PropertyDescriptor descriptor : new MockSiteToSiteProvenanceReportingTask().getSupportedPropertyDescriptors()) {
             properties.put(descriptor, descriptor.getDefaultValue());
         }
-        properties.put(SiteToSiteProvenanceReportingTask.BATCH_SIZE, "1000");
+        properties.put(SiteToSiteUtils.BATCH_SIZE, "1000");
         properties.put(SiteToSiteProvenanceReportingTask.FILTER_COMPONENT_TYPE, "dummy.*");
 
         ProvenanceEventRecord event = createProvenanceEventRecord();
@@ -278,7 +311,7 @@ public class TestSiteToSiteProvenanceReportingTask {
         for (final PropertyDescriptor descriptor : new MockSiteToSiteProvenanceReportingTask().getSupportedPropertyDescriptors()) {
             properties.put(descriptor, descriptor.getDefaultValue());
         }
-        properties.put(SiteToSiteProvenanceReportingTask.BATCH_SIZE, "1000");
+        properties.put(SiteToSiteUtils.BATCH_SIZE, "1000");
         properties.put(SiteToSiteProvenanceReportingTask.FILTER_COMPONENT_NAME, "Processor in .*");
         properties.put(SiteToSiteProvenanceReportingTask.FILTER_COMPONENT_NAME_EXCLUDE, ".*PGB");
 
@@ -310,7 +343,7 @@ public class TestSiteToSiteProvenanceReportingTask {
         for (final PropertyDescriptor descriptor : new MockSiteToSiteProvenanceReportingTask().getSupportedPropertyDescriptors()) {
             properties.put(descriptor, descriptor.getDefaultValue());
         }
-        properties.put(SiteToSiteProvenanceReportingTask.BATCH_SIZE, "1000");
+        properties.put(SiteToSiteUtils.BATCH_SIZE, "1000");
         properties.put(SiteToSiteProvenanceReportingTask.FILTER_COMPONENT_TYPE_EXCLUDE, "dummy.*");
 
         ProvenanceEventRecord event = createProvenanceEventRecord();
@@ -329,7 +362,7 @@ public class TestSiteToSiteProvenanceReportingTask {
         for (final PropertyDescriptor descriptor : new MockSiteToSiteProvenanceReportingTask().getSupportedPropertyDescriptors()) {
             properties.put(descriptor, descriptor.getDefaultValue());
         }
-        properties.put(SiteToSiteProvenanceReportingTask.BATCH_SIZE, "1000");
+        properties.put(SiteToSiteUtils.BATCH_SIZE, "1000");
         properties.put(SiteToSiteProvenanceReportingTask.FILTER_COMPONENT_TYPE, "proc.*");
 
         ProvenanceEventRecord event = createProvenanceEventRecord();
@@ -348,7 +381,7 @@ public class TestSiteToSiteProvenanceReportingTask {
         for (final PropertyDescriptor descriptor : new MockSiteToSiteProvenanceReportingTask().getSupportedPropertyDescriptors()) {
             properties.put(descriptor, descriptor.getDefaultValue());
         }
-        properties.put(SiteToSiteProvenanceReportingTask.BATCH_SIZE, "1000");
+        properties.put(SiteToSiteUtils.BATCH_SIZE, "1000");
         properties.put(SiteToSiteProvenanceReportingTask.FILTER_COMPONENT_TYPE_EXCLUDE, "proc.*");
 
         ProvenanceEventRecord event = createProvenanceEventRecord();
@@ -367,7 +400,7 @@ public class TestSiteToSiteProvenanceReportingTask {
         for (final PropertyDescriptor descriptor : new MockSiteToSiteProvenanceReportingTask().getSupportedPropertyDescriptors()) {
             properties.put(descriptor, descriptor.getDefaultValue());
         }
-        properties.put(SiteToSiteProvenanceReportingTask.BATCH_SIZE, "1000");
+        properties.put(SiteToSiteUtils.BATCH_SIZE, "1000");
         properties.put(SiteToSiteProvenanceReportingTask.FILTER_EVENT_TYPE, "RECEIVE, notExistingType, DROP");
 
         ProvenanceEventRecord event = createProvenanceEventRecord();
@@ -386,7 +419,7 @@ public class TestSiteToSiteProvenanceReportingTask {
         for (final PropertyDescriptor descriptor : new MockSiteToSiteProvenanceReportingTask().getSupportedPropertyDescriptors()) {
             properties.put(descriptor, descriptor.getDefaultValue());
         }
-        properties.put(SiteToSiteProvenanceReportingTask.BATCH_SIZE, "1000");
+        properties.put(SiteToSiteUtils.BATCH_SIZE, "1000");
         properties.put(SiteToSiteProvenanceReportingTask.FILTER_EVENT_TYPE_EXCLUDE, "RECEIVE, notExistingType, DROP");
 
         ProvenanceEventRecord event = createProvenanceEventRecord();
@@ -405,7 +438,7 @@ public class TestSiteToSiteProvenanceReportingTask {
         for (final PropertyDescriptor descriptor : new MockSiteToSiteProvenanceReportingTask().getSupportedPropertyDescriptors()) {
             properties.put(descriptor, descriptor.getDefaultValue());
         }
-        properties.put(SiteToSiteProvenanceReportingTask.BATCH_SIZE, "1000");
+        properties.put(SiteToSiteUtils.BATCH_SIZE, "1000");
         properties.put(SiteToSiteProvenanceReportingTask.FILTER_EVENT_TYPE, "DROP");
 
         ProvenanceEventRecord event = createProvenanceEventRecord();
@@ -424,7 +457,7 @@ public class TestSiteToSiteProvenanceReportingTask {
         for (final PropertyDescriptor descriptor : new MockSiteToSiteProvenanceReportingTask().getSupportedPropertyDescriptors()) {
             properties.put(descriptor, descriptor.getDefaultValue());
         }
-        properties.put(SiteToSiteProvenanceReportingTask.BATCH_SIZE, "1000");
+        properties.put(SiteToSiteUtils.BATCH_SIZE, "1000");
         properties.put(SiteToSiteProvenanceReportingTask.FILTER_COMPONENT_ID, "2345, 5678,  1234");
         properties.put(SiteToSiteProvenanceReportingTask.FILTER_COMPONENT_TYPE, "dummy.*");
         properties.put(SiteToSiteProvenanceReportingTask.FILTER_EVENT_TYPE, "DROP");
@@ -445,7 +478,7 @@ public class TestSiteToSiteProvenanceReportingTask {
         for (final PropertyDescriptor descriptor : new MockSiteToSiteProvenanceReportingTask().getSupportedPropertyDescriptors()) {
             properties.put(descriptor, descriptor.getDefaultValue());
         }
-        properties.put(SiteToSiteProvenanceReportingTask.BATCH_SIZE, "1000");
+        properties.put(SiteToSiteUtils.BATCH_SIZE, "1000");
         properties.put(SiteToSiteProvenanceReportingTask.FILTER_COMPONENT_ID, "2345, 5678,  1234");
         properties.put(SiteToSiteProvenanceReportingTask.FILTER_COMPONENT_TYPE, "dummy.*");
         properties.put(SiteToSiteProvenanceReportingTask.FILTER_EVENT_TYPE, "RECEIVE");
@@ -466,7 +499,7 @@ public class TestSiteToSiteProvenanceReportingTask {
         for (final PropertyDescriptor descriptor : new MockSiteToSiteProvenanceReportingTask().getSupportedPropertyDescriptors()) {
             properties.put(descriptor, descriptor.getDefaultValue());
         }
-        properties.put(SiteToSiteProvenanceReportingTask.BATCH_SIZE, "1000");
+        properties.put(SiteToSiteUtils.BATCH_SIZE, "1000");
         properties.put(SiteToSiteProvenanceReportingTask.FILTER_COMPONENT_TYPE_EXCLUDE, "dummy.*");
         properties.put(SiteToSiteProvenanceReportingTask.FILTER_EVENT_TYPE, "RECEIVE");
 
@@ -486,7 +519,7 @@ public class TestSiteToSiteProvenanceReportingTask {
         for (final PropertyDescriptor descriptor : new MockSiteToSiteProvenanceReportingTask().getSupportedPropertyDescriptors()) {
             properties.put(descriptor, descriptor.getDefaultValue());
         }
-        properties.put(SiteToSiteProvenanceReportingTask.BATCH_SIZE, "1000");
+        properties.put(SiteToSiteUtils.BATCH_SIZE, "1000");
         properties.put(SiteToSiteProvenanceReportingTask.FILTER_COMPONENT_ID, "pgB2");
 
 
@@ -531,7 +564,7 @@ public class TestSiteToSiteProvenanceReportingTask {
         for (final PropertyDescriptor descriptor : new MockSiteToSiteProvenanceReportingTask().getSupportedPropertyDescriptors()) {
             properties.put(descriptor, descriptor.getDefaultValue());
         }
-        properties.put(SiteToSiteProvenanceReportingTask.BATCH_SIZE, "1000");
+        properties.put(SiteToSiteUtils.BATCH_SIZE, "1000");
         properties.put(SiteToSiteProvenanceReportingTask.FILTER_COMPONENT_ID, "riB2,roB3");
 
 
@@ -618,6 +651,7 @@ public class TestSiteToSiteProvenanceReportingTask {
         attributes.put("abc", "xyz");
         attributes.put("xyz", "abc");
         attributes.put("filename", "file-" + uuid);
+        attributes.put("emptyVal",null);
 
         final Map<String, String> prevAttrs = new HashMap<>();
         attributes.put("filename", "1234.xyz");
@@ -643,27 +677,25 @@ public class TestSiteToSiteProvenanceReportingTask {
         final List<byte[]> dataSent = new ArrayList<>();
 
         @Override
-        protected SiteToSiteClient getClient() {
-            final SiteToSiteClient client = Mockito.mock(SiteToSiteClient.class);
-            final Transaction transaction = Mockito.mock(Transaction.class);
+        public void setup(ReportingContext reportContext) throws IOException {
+            if(siteToSiteClient == null) {
+                final SiteToSiteClient client = Mockito.mock(SiteToSiteClient.class);
+                final Transaction transaction = Mockito.mock(Transaction.class);
 
-            try {
-                Mockito.doAnswer(new Answer<Object>() {
-                    @Override
-                    public Object answer(final InvocationOnMock invocation) throws Throwable {
-                        final byte[] data = invocation.getArgumentAt(0, byte[].class);
+                try {
+                    Mockito.doAnswer((Answer<Object>) invocation -> {
+                        final byte[] data = invocation.getArgument(0, byte[].class);
                         dataSent.add(data);
                         return null;
-                    }
-                }).when(transaction).send(Mockito.any(byte[].class), Mockito.any(Map.class));
+                    }).when(transaction).send(Mockito.any(byte[].class), Mockito.any(Map.class));
 
-                when(client.createTransaction(Mockito.any(TransferDirection.class))).thenReturn(transaction);
-            } catch (final Exception e) {
-                e.printStackTrace();
-                Assert.fail(e.toString());
+                    when(client.createTransaction(Mockito.any(TransferDirection.class))).thenReturn(transaction);
+                } catch (final Exception e) {
+                    e.printStackTrace();
+                    Assert.fail(e.toString());
+                }
+                siteToSiteClient = client;
             }
-
-            return client;
         }
 
         public List<byte[]> getDataSent() {

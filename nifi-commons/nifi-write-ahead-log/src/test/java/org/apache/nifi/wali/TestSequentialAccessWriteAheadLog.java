@@ -17,10 +17,17 @@
 
 package org.apache.nifi.wali;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import org.junit.Assert;
+import org.junit.Ignore;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TestName;
+import org.wali.DummyRecord;
+import org.wali.DummyRecordSerde;
+import org.wali.SerDeFactory;
+import org.wali.SingletonSerDeFactory;
+import org.wali.UpdateType;
+import org.wali.WriteAheadRepository;
 
 import java.io.File;
 import java.io.IOException;
@@ -38,21 +45,68 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import org.junit.Assert;
-import org.junit.Ignore;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestName;
-import org.wali.DummyRecord;
-import org.wali.DummyRecordSerde;
-import org.wali.SerDeFactory;
-import org.wali.SingletonSerDeFactory;
-import org.wali.UpdateType;
-import org.wali.WriteAheadRepository;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 public class TestSequentialAccessWriteAheadLog {
     @Rule
     public TestName testName = new TestName();
+
+
+    @Test
+    public void testUpdateWithExternalFile() throws IOException {
+        final DummyRecordSerde serde = new DummyRecordSerde();
+        final SequentialAccessWriteAheadLog<DummyRecord> repo = createWriteRepo(serde);
+
+        final List<DummyRecord> records = new ArrayList<>();
+        for (int i = 0; i < 350_000; i++) {
+            final DummyRecord record = new DummyRecord(String.valueOf(i), UpdateType.CREATE);
+            records.add(record);
+        }
+
+        repo.update(records, false);
+        repo.shutdown();
+
+        assertEquals(1, serde.getExternalFileReferences().size());
+
+        final SequentialAccessWriteAheadLog<DummyRecord> recoveryRepo = createRecoveryRepo();
+        final Collection<DummyRecord> recovered = recoveryRepo.recoverRecords();
+
+        // ensure that we get the same records back, but the order may be different, so wrap both collections
+        // in a HashSet so that we can compare unordered collections of the same type.
+        assertEquals(new HashSet<>(records), new HashSet<>(recovered));
+    }
+
+    @Test
+    public void testUpdateWithExternalFileFollowedByInlineUpdate() throws IOException {
+        final DummyRecordSerde serde = new DummyRecordSerde();
+        final SequentialAccessWriteAheadLog<DummyRecord> repo = createWriteRepo(serde);
+
+        final List<DummyRecord> records = new ArrayList<>();
+        for (int i = 0; i < 350_000; i++) {
+            final DummyRecord record = new DummyRecord(String.valueOf(i), UpdateType.CREATE);
+            records.add(record);
+        }
+
+        repo.update(records, false);
+
+        final DummyRecord subsequentRecord = new DummyRecord("350001", UpdateType.CREATE);
+        repo.update(Collections.singleton(subsequentRecord), false);
+        repo.shutdown();
+
+        assertEquals(1, serde.getExternalFileReferences().size());
+
+        final SequentialAccessWriteAheadLog<DummyRecord> recoveryRepo = createRecoveryRepo();
+        final Collection<DummyRecord> recovered = recoveryRepo.recoverRecords();
+
+        // ensure that we get the same records back, but the order may be different, so wrap both collections
+        // in a HashSet so that we can compare unordered collections of the same type.
+        final Set<DummyRecord> expectedRecords = new HashSet<>(records);
+        expectedRecords.add(subsequentRecord);
+        assertEquals(expectedRecords, new HashSet<>(recovered));
+    }
 
     @Test
     public void testRecoverWithNoCheckpoint() throws IOException {
@@ -145,12 +199,15 @@ public class TestSequentialAccessWriteAheadLog {
     }
 
     private SequentialAccessWriteAheadLog<DummyRecord> createWriteRepo() throws IOException {
+        return createWriteRepo(new DummyRecordSerde());
+    }
+
+    private SequentialAccessWriteAheadLog<DummyRecord> createWriteRepo(final DummyRecordSerde serde) throws IOException {
         final File targetDir = new File("target");
         final File storageDir = new File(targetDir, testName.getMethodName());
         deleteRecursively(storageDir);
         assertTrue(storageDir.mkdirs());
 
-        final DummyRecordSerde serde = new DummyRecordSerde();
         final SerDeFactory<DummyRecord> serdeFactory = new SingletonSerDeFactory<>(serde);
         final SequentialAccessWriteAheadLog<DummyRecord> repo = new SequentialAccessWriteAheadLog<>(storageDir, serdeFactory);
 

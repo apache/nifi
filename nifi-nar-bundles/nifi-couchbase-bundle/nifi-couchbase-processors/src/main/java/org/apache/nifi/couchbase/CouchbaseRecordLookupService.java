@@ -114,7 +114,7 @@ public class CouchbaseRecordLookupService extends AbstractCouchbaseLookupService
                         recordReaderVariables.put(k, value.toString());
                     }
                 });
-                return new Tuple<>(null, readerFactory.createRecordReader(recordReaderVariables, in, getLogger()));
+                return new Tuple<>(null, readerFactory.createRecordReader(recordReaderVariables, in, -1, getLogger()));
             } catch (Exception e) {
                 return new Tuple<>(e, null);
             }

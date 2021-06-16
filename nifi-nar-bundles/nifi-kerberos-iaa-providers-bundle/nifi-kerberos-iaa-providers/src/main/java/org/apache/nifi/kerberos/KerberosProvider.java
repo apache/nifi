@@ -26,6 +26,7 @@ import org.apache.nifi.authentication.exception.IdentityAccessException;
 import org.apache.nifi.authentication.exception.InvalidLoginCredentialsException;
 import org.apache.nifi.authentication.exception.ProviderCreationException;
 import org.apache.nifi.authentication.exception.ProviderDestructionException;
+import org.apache.nifi.security.util.krb.KerberosPrincipalParser;
 import org.apache.nifi.util.FormatUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,6 +47,7 @@ public class KerberosProvider implements LoginIdentityProvider {
 
     private KerberosAuthenticationProvider provider;
     private String issuer;
+    private String defaultRealm;
     private long expiration;
 
     @Override
@@ -61,9 +63,14 @@ public class KerberosProvider implements LoginIdentityProvider {
         }
 
         try {
-            expiration = FormatUtils.getTimeDuration(rawExpiration, TimeUnit.MILLISECONDS);
+            expiration = Double.valueOf(FormatUtils.getPreciseTimeDuration(rawExpiration, TimeUnit.MILLISECONDS)).longValue();
         } catch (final IllegalArgumentException iae) {
             throw new ProviderCreationException(String.format("The Expiration Duration '%s' is not a valid time duration", rawExpiration));
+        }
+
+        defaultRealm = configurationContext.getProperty("Default Realm");
+        if (StringUtils.isNotBlank(defaultRealm) && defaultRealm.contains("@")) {
+            throw new ProviderCreationException(String.format("The Default Realm '%s' must not contain \"@\"", defaultRealm));
         }
 
         provider = new KerberosAuthenticationProvider();
@@ -80,15 +87,40 @@ public class KerberosProvider implements LoginIdentityProvider {
         }
 
         try {
+            final String rawPrincipal = credentials.getUsername();
+            final String parsedRealm = KerberosPrincipalParser.getRealm(rawPrincipal);
+
+            // Apply default realm from KerberosIdentityProvider's configuration specified in login-identity-providers.xml if a principal without a realm was given
+            // Otherwise, the default realm configured from the krb5 configuration specified in the nifi.kerberos.krb5.file property will end up being used
+            boolean realmInRawPrincipal = StringUtils.isNotBlank(parsedRealm);
+            final String identity;
+            if (realmInRawPrincipal) {
+                // there's a realm already in the given principal, use it
+                identity = rawPrincipal;
+                logger.debug("Realm was specified in principal {}, default realm was not added to the identity being authenticated", rawPrincipal);
+            } else if (StringUtils.isNotBlank(defaultRealm)) {
+                // the value for the default realm is not blank, append the realm to the given principal
+                identity = StringUtils.joinWith("@", rawPrincipal, defaultRealm);
+                logger.debug("Realm was not specified in principal {}, default realm {} was added to the identity being authenticated", rawPrincipal, defaultRealm);
+            } else {
+                // otherwise, use the given principal, which will use the default realm as specified in the krb5 configuration
+                identity = rawPrincipal;
+                logger.debug("Realm was not specified in principal {}, default realm is blank and was not added to the identity being authenticated", rawPrincipal);
+            }
+
             // Perform the authentication
-            final UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(credentials.getUsername(), credentials.getPassword());
-            logger.debug("Created authentication token for principal {} with name {} and is authenticated {}", token.getPrincipal(), token.getName(), token.isAuthenticated());
+            final UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(identity, credentials.getPassword());
+            if (logger.isDebugEnabled()) {
+                logger.debug("Created authentication token for principal {} with name {} and is authenticated {}", token.getPrincipal(), token.getName(), token.isAuthenticated());
+            }
 
             final Authentication authentication = provider.authenticate(token);
-            logger.debug("Ran provider.authenticate() and returned authentication for " +
-                    "principal {} with name {} and is authenticated {}", authentication.getPrincipal(), authentication.getName(), authentication.isAuthenticated());
+            if (logger.isDebugEnabled()) {
+                logger.debug("Ran provider.authenticate() and returned authentication for " +
+                        "principal {} with name {} and is authenticated {}", authentication.getPrincipal(), authentication.getName(), authentication.isAuthenticated());
+            }
 
-            return new AuthenticationResponse(authentication.getName(), credentials.getUsername(), expiration, issuer);
+            return new AuthenticationResponse(authentication.getName(), identity, expiration, issuer);
         } catch (final AuthenticationException e) {
             throw new InvalidLoginCredentialsException(e.getMessage(), e);
         }

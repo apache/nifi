@@ -16,14 +16,15 @@
  */
 package org.apache.nifi.processor;
 
-import java.util.Map;
-import java.util.Set;
-
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.controller.PropertyConfiguration;
 import org.apache.nifi.controller.ValidationContextFactory;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
+import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.registry.VariableRegistry;
+
+import java.util.Map;
 
 public class StandardValidationContextFactory implements ValidationContextFactory {
 
@@ -36,13 +37,8 @@ public class StandardValidationContextFactory implements ValidationContextFactor
     }
 
     @Override
-    public ValidationContext newValidationContext(final Map<PropertyDescriptor, String> properties, final String annotationData, final String groupId, final String componentId) {
-        return new StandardValidationContext(serviceProvider, properties, annotationData, groupId, componentId,variableRegistry);
-    }
-
-    @Override
-    public ValidationContext newValidationContext(final Set<String> serviceIdentifiersToNotValidate,
-            final Map<PropertyDescriptor, String> properties, final String annotationData, final String groupId, String componentId) {
-        return new StandardValidationContext(serviceProvider, serviceIdentifiersToNotValidate, properties, annotationData, groupId, componentId,variableRegistry);
+    public ValidationContext newValidationContext(final Map<PropertyDescriptor, PropertyConfiguration> properties, final String annotationData, final String groupId, final String componentId,
+                                                  final ParameterContext parameterContext) {
+        return new StandardValidationContext(serviceProvider, properties, annotationData, groupId, componentId, variableRegistry, parameterContext);
     }
 }

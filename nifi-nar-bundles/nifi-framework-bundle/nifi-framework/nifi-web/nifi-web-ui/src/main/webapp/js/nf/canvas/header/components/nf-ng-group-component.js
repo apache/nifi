@@ -102,7 +102,7 @@
 
                 // update the birdseye
                 nfBirdseye.refresh();
-            }).fail(nfErrorHandler.handleAjaxError);
+            }).fail(nfErrorHandler.handleConfigurationUpdateAjaxError);
         };
 
         function GroupComponent() {
@@ -235,18 +235,18 @@
                         // get the name of the group and clear the textfield
                         var groupName = $('#new-process-group-name').val();
 
-                        // hide the dialog
-                        groupComponent.modal.hide();
-
                         // ensure the group name is specified
                         if (nfCommon.isBlank(groupName)) {
                             nfDialog.showOkDialog({
-                                headerText: 'Create Process Group',
-                                dialogContent: 'The group name is required.'
+                                headerText: 'Configuration Error',
+                                dialogContent: 'The name of the process group must be specified.'
                             });
 
                             deferred.reject();
                         } else {
+                            // hide the dialog
+                            groupComponent.modal.hide();
+
                             // create the group and resolve the deferred accordingly
                             createGroup(groupName, pt).done(function (response) {
                                 deferred.resolve(response.component);

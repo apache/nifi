@@ -25,9 +25,7 @@ import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
@@ -35,7 +33,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 import static org.apache.nifi.util.NiFiProperties.DEFAULT_SITE_TO_SITE_HTTP_TRANSACTION_TTL;
 import static org.apache.nifi.util.NiFiProperties.SITE_TO_SITE_HTTP_TRANSACTION_TTL;
@@ -119,15 +116,17 @@ public class HttpRemoteSiteListener implements RemoteSiteListener {
     }
 
     @Override
-    public void start() throws IOException {
+    public void start() {
         transactionMaintenanceTask = taskExecutor.scheduleWithFixedDelay(() -> {
 
             int originalSize = transactions.size();
             logger.trace("Transaction maintenance task started.");
             try {
-                Set<String> transactionIds = transactions.keySet().stream().collect(Collectors.toSet());
-                transactionIds.stream().filter(tid -> !isTransactionActive(tid))
-                        .forEach(tid -> cancelTransaction(tid));
+                for (final String transactionId : transactions.keySet()) {
+                    if (!isTransactionActive(transactionId)) {
+                        cancelTransaction(transactionId);
+                    }
+                }
             } catch (Exception e) {
                 // Swallow exception so that this thread can keep working.
                 logger.error("An exception occurred while maintaining transactions", e);
@@ -166,6 +165,12 @@ public class HttpRemoteSiteListener implements RemoteSiteListener {
             logger.debug("Stopping transactionMaintenanceTask...");
             transactionMaintenanceTask.cancel(true);
         }
+    }
+
+    @Override
+    public void destroy() {
+        stop();
+        instance = null;
     }
 
     public String createTransaction() {

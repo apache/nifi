@@ -17,9 +17,6 @@
 
 package org.apache.nifi.schema.validation;
 
-import java.math.BigInteger;
-import java.util.Map;
-
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
@@ -34,6 +31,9 @@ import org.apache.nifi.serialization.record.validation.RecordSchemaValidator;
 import org.apache.nifi.serialization.record.validation.SchemaValidationResult;
 import org.apache.nifi.serialization.record.validation.ValidationError;
 import org.apache.nifi.serialization.record.validation.ValidationErrorType;
+
+import java.math.BigInteger;
+import java.util.Map;
 
 public class StandardSchemaValidator implements RecordSchemaValidator {
     private final SchemaValidationContext validationContext;
@@ -196,21 +196,32 @@ public class StandardSchemaValidator implements RecordSchemaValidator {
 
                 return true;
             case MAP:
-                if (!(value instanceof Map)) {
+                if (value instanceof Map) {
+                    final MapDataType mapDataType = (MapDataType) dataType;
+                    final DataType valueDataType = mapDataType.getValueType();
+                    final Map<?, ?> map = (Map<?, ?>) value;
+
+                    for (final Object mapValue : map.values()) {
+                        if (!isTypeCorrect(mapValue, valueDataType)) {
+                            return false;
+                        }
+                    }
+                    return true;
+                } else if (value instanceof Record) {
+                    Record record = (Record) value;
+                    final MapDataType mapDataType = (MapDataType) dataType;
+                    final DataType valueDataType = mapDataType.getValueType();
+
+                    for (final String fieldName : record.getRawFieldNames()) {
+                        final Object fieldValue = record.getValue(fieldName);
+                        if (!isTypeCorrect(fieldValue, valueDataType)) {
+                            return false;
+                        }
+                    }
+                    return true;
+                } else {
                     return false;
                 }
-
-                final MapDataType mapDataType = (MapDataType) dataType;
-                final DataType valueDataType = mapDataType.getValueType();
-                final Map<?, ?> map = (Map<?, ?>) value;
-
-                for (final Object mapValue : map.values()) {
-                    if (!isTypeCorrect(mapValue, valueDataType)) {
-                        return false;
-                    }
-                }
-
-                return true;
             case RECORD:
                 return value instanceof Record;
             case CHOICE:
@@ -222,36 +233,52 @@ public class StandardSchemaValidator implements RecordSchemaValidator {
                 }
 
                 return false;
-            case BIGINT:
-                return value instanceof BigInteger;
             case BOOLEAN:
                 return value instanceof Boolean;
-            case BYTE:
-                return value instanceof Byte;
             case CHAR:
                 return value instanceof Character;
             case DATE:
                 return value instanceof java.sql.Date;
-            case DOUBLE:
-                return value instanceof Double;
-            case FLOAT:
-                // Some readers do not provide float vs. double.
-                // We should consider if it makes sense to allow either a Float or a Double here or have
-                // a Reader indicate whether or not it supports higher precision, etc.
-                // Same goes for Short/Integer
-                return value instanceof Float;
-            case INT:
-                return value instanceof Integer;
-            case LONG:
-                return value instanceof Long;
-            case SHORT:
-                return value instanceof Short;
             case STRING:
                 return value instanceof String;
             case TIME:
                 return value instanceof java.sql.Time;
             case TIMESTAMP:
                 return value instanceof java.sql.Timestamp;
+
+            // Numeric data types
+            case BIGINT:
+            case LONG:
+            case INT:
+            case SHORT:
+            case BYTE:
+                return DataTypeUtils.isFittingNumberType(value, dataType.getFieldType());
+            case DOUBLE:
+                return DataTypeUtils.isFittingNumberType(value, dataType.getFieldType())
+                        || value instanceof Byte
+                        || value instanceof Short
+                        || value instanceof Integer
+                        || DataTypeUtils.isLongFitsToDouble(value)
+                        || DataTypeUtils.isBigIntFitsToDouble(value);
+            case FLOAT:
+                // Some readers do not provide float vs. double.
+                // We should consider if it makes sense to allow either a Float or a Double here or have
+                // a Reader indicate whether or not it supports higher precision, etc.
+                // Same goes for Short/Integer
+                return DataTypeUtils.isFittingNumberType(value, dataType.getFieldType())
+                        || value instanceof Byte
+                        || value instanceof Short
+                        || DataTypeUtils.isDoubleWithinFloatInterval(value)
+                        || DataTypeUtils.isIntegerFitsToFloat(value)
+                        || DataTypeUtils.isLongFitsToFloat(value)
+                        || DataTypeUtils.isBigIntFitsToFloat(value);
+            case DECIMAL:
+                return DataTypeUtils.isFittingNumberType(value, dataType.getFieldType())
+                        || value instanceof Byte
+                        || value instanceof Short
+                        || value instanceof Integer
+                        || value instanceof Long
+                        || value instanceof BigInteger;
         }
 
         return false;

@@ -24,7 +24,7 @@ import org.apache.nifi.registry.flow.VersionedFlow;
 import org.apache.nifi.toolkit.cli.api.Context;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 import org.apache.nifi.toolkit.cli.impl.command.registry.AbstractNiFiRegistryCommand;
-import org.apache.nifi.toolkit.cli.impl.result.VersionedFlowsResult;
+import org.apache.nifi.toolkit.cli.impl.result.registry.VersionedFlowsResult;
 
 import java.io.IOException;
 import java.util.List;

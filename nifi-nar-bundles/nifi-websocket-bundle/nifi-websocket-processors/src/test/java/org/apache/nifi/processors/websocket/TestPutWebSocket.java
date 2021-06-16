@@ -25,8 +25,8 @@ import static org.apache.nifi.processors.websocket.WebSocketProcessorAttributes.
 import static org.apache.nifi.processors.websocket.WebSocketProcessorAttributes.ATTR_WS_SESSION_ID;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyString;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.spy;
@@ -188,7 +188,7 @@ public class TestPutWebSocket {
         final String textMessageFromServer = "message from server.";
         when(service.getIdentifier()).thenReturn(serviceId);
         doAnswer(invocation -> {
-            final SendMessage sendMessage = invocation.getArgumentAt(2, SendMessage.class);
+            final SendMessage sendMessage = invocation.getArgument(2);
             sendMessage.send(webSocketSession);
             return null;
         }).when(service).sendMessage(anyString(), anyString(), any(SendMessage.class));
@@ -230,7 +230,7 @@ public class TestPutWebSocket {
         final String textMessageFromServer = "message from server.";
         when(service.getIdentifier()).thenReturn(serviceId);
         doAnswer(invocation -> {
-            final SendMessage sendMessage = invocation.getArgumentAt(2, SendMessage.class);
+            final SendMessage sendMessage = invocation.getArgument(2);
             sendMessage.send(webSocketSession);
             return null;
         }).when(service).sendMessage(anyString(), anyString(), any(SendMessage.class));

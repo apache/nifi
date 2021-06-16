@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.toolkit.encryptconfig
 
+import groovy.cli.commons.CliBuilder
+import groovy.cli.commons.OptionAccessor
 import org.apache.commons.cli.HelpFormatter
 import org.apache.nifi.properties.AESSensitivePropertyProvider
 import org.apache.nifi.properties.SensitivePropertyProvider
@@ -257,7 +259,7 @@ class DecryptMode implements ToolMode {
         }
 
         private void determineInputFileFromRemainingArgs() {
-            String[] remainingArgs = this.rawOptions.getInner().getArgs()
+            String[] remainingArgs = this.rawOptions.getArgs()
             if (remainingArgs.length == 0) {
                 throw new RuntimeException("Missing argument: Input file must be provided.")
             } else if (remainingArgs.length > 1) {
@@ -291,11 +293,11 @@ class DecryptMode implements ToolMode {
                 String keyHex = null
                 if (usingPassword) {
                     logger.debug("Using password to derive master key for decryption")
-                    password = rawOptions.getInner().getOptionValue("p")
+                    password = rawOptions.getOptionValue("p")
                     keySource = Configuration.KeySource.PASSWORD
                 } else {
                     logger.debug("Using raw key hex as master key for decryption")
-                    keyHex = rawOptions.getInner().getOptionValue("k")
+                    keyHex = rawOptions.getOptionValue("k")
                     keySource = Configuration.KeySource.KEY_HEX
                 }
                 key = ToolUtilities.determineKey(TextDevices.defaultTextDevice(), keyHex, password, usingPassword)

@@ -58,8 +58,8 @@ public class WriteResourceToStream extends AbstractProcessor {
         relationships.add(REL_SUCCESS);
         relationships.add(REL_FAILURE);
         this.relationships = Collections.unmodifiableSet(relationships);
-        final InputStream resourceStream = Thread.currentThread()
-                .getContextClassLoader().getResourceAsStream("file.txt");
+        final InputStream resourceStream = getClass()
+                .getClassLoader().getResourceAsStream("file.txt");
         try {
             this.resourceData = IOUtils.toString(resourceStream, Charset.defaultCharset());
         } catch (IOException e) {

@@ -123,15 +123,39 @@ public abstract class AbstractRecordProcessor extends AbstractProcessor {
                 @Override
                 public void process(final InputStream in, final OutputStream out) throws IOException {
 
-                    try (final RecordReader reader = readerFactory.createRecordReader(originalAttributes, in, getLogger())) {
+                    try (final RecordReader reader = readerFactory.createRecordReader(originalAttributes, in, original.getSize(), getLogger())) {
 
-                        final RecordSchema writeSchema = writerFactory.getSchema(originalAttributes, reader.getSchema());
-                        try (final RecordSetWriter writer = writerFactory.createWriter(getLogger(), writeSchema, out)) {
+                        // Get the first record and process it before we create the Record Writer. We do this so that if the Processor
+                        // updates the Record's schema, we can provide an updated schema to the Record Writer. If there are no records,
+                        // then we can simply create the Writer with the Reader's schema and begin & end the Record Set.
+                        Record firstRecord = reader.nextRecord();
+                        if (firstRecord == null) {
+                            final RecordSchema writeSchema = writerFactory.getSchema(originalAttributes, reader.getSchema());
+                            try (final RecordSetWriter writer = writerFactory.createWriter(getLogger(), writeSchema, out, originalAttributes)) {
+                                writer.beginRecordSet();
+
+                                final WriteResult writeResult = writer.finishRecordSet();
+                                attributes.put("record.count", String.valueOf(writeResult.getRecordCount()));
+                                attributes.put(CoreAttributes.MIME_TYPE.key(), writer.getMimeType());
+                                attributes.putAll(writeResult.getAttributes());
+                                recordCount.set(writeResult.getRecordCount());
+                            }
+
+                            return;
+                        }
+
+                        firstRecord = AbstractRecordProcessor.this.process(firstRecord, original, context, 1L);
+
+                        final RecordSchema writeSchema = writerFactory.getSchema(originalAttributes, firstRecord.getSchema());
+                        try (final RecordSetWriter writer = writerFactory.createWriter(getLogger(), writeSchema, out, originalAttributes)) {
                             writer.beginRecordSet();
 
+                            writer.write(firstRecord);
+
                             Record record;
+                            long count = 1L;
                             while ((record = reader.nextRecord()) != null) {
-                                final Record processed = AbstractRecordProcessor.this.process(record, writeSchema, original, context);
+                                final Record processed = AbstractRecordProcessor.this.process(record, original, context, ++count);
                                 writer.write(processed);
                             }
 
@@ -150,6 +174,15 @@ public abstract class AbstractRecordProcessor extends AbstractProcessor {
             });
         } catch (final Exception e) {
             getLogger().error("Failed to process {}; will route to failure", new Object[] {flowFile, e});
+            // Since we are wrapping the exceptions above there should always be a cause
+            // but it's possible it might not have a message. This handles that by logging
+            // the name of the class thrown.
+            Throwable c = e.getCause();
+            if (c != null) {
+                session.putAttribute(flowFile, "record.error.message", (c.getLocalizedMessage() != null) ? c.getLocalizedMessage() : c.getClass().getCanonicalName() + " Thrown");
+            } else {
+                session.putAttribute(flowFile, "record.error.message", e.getClass().getCanonicalName() + " Thrown");
+            }
             session.transfer(flowFile, REL_FAILURE);
             return;
         }
@@ -166,5 +199,5 @@ public abstract class AbstractRecordProcessor extends AbstractProcessor {
         getLogger().info("Successfully converted {} records for {}", new Object[] {count, flowFile});
     }
 
-    protected abstract Record process(Record record, RecordSchema writeSchema, FlowFile flowFile, ProcessContext context);
+    protected abstract Record process(Record record, FlowFile flowFile, ProcessContext context, long count);
 }

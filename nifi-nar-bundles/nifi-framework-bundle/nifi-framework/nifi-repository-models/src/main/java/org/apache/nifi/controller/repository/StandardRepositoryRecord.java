@@ -16,29 +16,30 @@
  */
 package org.apache.nifi.controller.repository;
 
+import org.apache.nifi.controller.queue.FlowFileQueue;
+import org.apache.nifi.controller.repository.claim.ContentClaim;
+import org.apache.nifi.processor.Relationship;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.nifi.controller.queue.FlowFileQueue;
-import org.apache.nifi.controller.repository.claim.ContentClaim;
-import org.apache.nifi.processor.Relationship;
-
 public class StandardRepositoryRecord implements RepositoryRecord {
 
-    private RepositoryRecordType type = null;
+    private RepositoryRecordType type;
     private FlowFileRecord workingFlowFileRecord = null;
     private Relationship transferRelationship = null;
     private FlowFileQueue destination = null;
     private final FlowFileRecord originalFlowFileRecord;
     private final FlowFileQueue originalQueue;
     private String swapLocation;
-    private final Map<String, String> updatedAttributes = new HashMap<>();
     private final Map<String, String> originalAttributes;
+    private Map<String, String> updatedAttributes = null;
     private List<ContentClaim> transientClaims;
     private final long startNanos = System.nanoTime();
+
 
     /**
      * Creates a new record which has no original claim or flow file - it is entirely new
@@ -47,7 +48,7 @@ public class StandardRepositoryRecord implements RepositoryRecord {
      */
     public StandardRepositoryRecord(final FlowFileQueue originalQueue) {
         this(originalQueue, null);
-        this.type = RepositoryRecordType.CREATE;
+        setType(RepositoryRecordType.CREATE);
     }
 
     /**
@@ -58,15 +59,15 @@ public class StandardRepositoryRecord implements RepositoryRecord {
      */
     public StandardRepositoryRecord(final FlowFileQueue originalQueue, final FlowFileRecord originalFlowFileRecord) {
         this(originalQueue, originalFlowFileRecord, null);
-        this.type = RepositoryRecordType.UPDATE;
+        setType(RepositoryRecordType.UPDATE);
     }
 
     public StandardRepositoryRecord(final FlowFileQueue originalQueue, final FlowFileRecord originalFlowFileRecord, final String swapLocation) {
         this.originalQueue = originalQueue;
         this.originalFlowFileRecord = originalFlowFileRecord;
-        this.type = RepositoryRecordType.SWAP_OUT;
+        setType(RepositoryRecordType.SWAP_OUT);
         this.swapLocation = swapLocation;
-        this.originalAttributes = originalFlowFileRecord == null ? Collections.<String, String>emptyMap() : originalFlowFileRecord.getAttributes();
+        this.originalAttributes = originalFlowFileRecord == null ? Collections.emptyMap() : originalFlowFileRecord.getAttributes();
     }
 
     @Override
@@ -95,7 +96,7 @@ public class StandardRepositoryRecord implements RepositoryRecord {
     public void setSwapLocation(final String swapLocation) {
         this.swapLocation = swapLocation;
         if (type != RepositoryRecordType.SWAP_OUT) {
-            type = RepositoryRecordType.SWAP_IN; // we are swapping in a new record
+            setType(RepositoryRecordType.SWAP_IN); // we are swapping in a new record
         }
     }
 
@@ -113,34 +114,52 @@ public class StandardRepositoryRecord implements RepositoryRecord {
         workingFlowFileRecord = flowFile;
     }
 
+    private Map<String, String> initializeUpdatedAttributes() {
+        if (updatedAttributes == null) {
+            updatedAttributes = new HashMap<>();
+        }
+
+        return updatedAttributes;
+    }
+
     public void setWorking(final FlowFileRecord flowFile, final String attributeKey, final String attributeValue) {
         workingFlowFileRecord = flowFile;
+
+        // In the case that the type is CREATE, we know that all attributes are updated attributes, so no need to store them.
+        if (type == RepositoryRecordType.CREATE) {
+            return;
+        }
 
         // If setting attribute to same value as original, don't add to updated attributes
         final String currentValue = originalAttributes.get(attributeKey);
         if (currentValue == null || !currentValue.equals(attributeValue)) {
-            updatedAttributes.put(attributeKey, attributeValue);
+            initializeUpdatedAttributes().put(attributeKey, attributeValue);
         }
     }
 
     public void setWorking(final FlowFileRecord flowFile, final Map<String, String> updatedAttribs) {
         workingFlowFileRecord = flowFile;
 
+        // In the case that the type is CREATE, we know that all attributes are updated attributes, so no need to store them.
+        if (type == RepositoryRecordType.CREATE) {
+            return;
+        }
+
         for (final Map.Entry<String, String> entry : updatedAttribs.entrySet()) {
             final String currentValue = originalAttributes.get(entry.getKey());
             if (currentValue == null || !currentValue.equals(entry.getValue())) {
-                updatedAttributes.put(entry.getKey(), entry.getValue());
+                initializeUpdatedAttributes().put(entry.getKey(), entry.getValue());
             }
         }
     }
 
     @Override
     public boolean isAttributesChanged() {
-        return !updatedAttributes.isEmpty();
+        return type == RepositoryRecordType.CREATE || (updatedAttributes != null && !updatedAttributes.isEmpty());
     }
 
     public void markForAbort() {
-        type = RepositoryRecordType.CONTENTMISSING;
+        setType(RepositoryRecordType.CONTENTMISSING);
     }
 
     @Override
@@ -149,7 +168,7 @@ public class StandardRepositoryRecord implements RepositoryRecord {
     }
 
     public void markForDelete() {
-        type = RepositoryRecordType.DELETE;
+        setType(RepositoryRecordType.DELETE);
     }
 
     public boolean isMarkedForDelete() {
@@ -196,7 +215,25 @@ public class StandardRepositoryRecord implements RepositoryRecord {
     }
 
     Map<String, String> getUpdatedAttributes() {
-        return updatedAttributes;
+        if (type == RepositoryRecordType.CREATE) {
+            return getCurrent().getAttributes();
+        }
+
+        return updatedAttributes == null ? Collections.emptyMap() : updatedAttributes;
+    }
+
+    private void setType(final RepositoryRecordType newType) {
+        if (newType == this.type) {
+            return;
+        }
+
+        if (this.type == RepositoryRecordType.CREATE) {
+            // Because we don't copy updated attributes to `this.updatedAttributes` for CREATE records, we need to ensure
+            // that if a record is changed from CREATE to anything else that we do properly update the `this.updatedAttributes` field.
+            this.updatedAttributes = new HashMap<>(getCurrent().getAttributes());
+        }
+
+        this.type = newType;
     }
 
     @Override

@@ -17,15 +17,18 @@
 
 package org.apache.nifi.serialization;
 
+import org.apache.nifi.serialization.record.RecordField;
+import org.apache.nifi.serialization.record.RecordFieldType;
+import org.apache.nifi.serialization.record.SchemaIdentifier;
+import org.junit.Assert;
+import org.junit.Test;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.nifi.serialization.record.RecordField;
-import org.apache.nifi.serialization.record.RecordFieldType;
-import org.junit.Assert;
-import org.junit.Test;
+import static org.junit.Assert.assertTrue;
 
 public class TestSimpleRecordSchema {
 
@@ -66,6 +69,25 @@ public class TestSimpleRecordSchema {
             Assert.fail("Was able to create two fields with conflicting names/aliases");
         } catch (final IllegalArgumentException expected) {
         }
+    }
+
+    @Test
+    public void testHashCodeAndEqualsWithSelfReferencingSchema() {
+        final SimpleRecordSchema schema = new SimpleRecordSchema(SchemaIdentifier.EMPTY);
+
+        final List<RecordField> personFields = new ArrayList<>();
+        personFields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
+        personFields.add(new RecordField("sibling", RecordFieldType.RECORD.getRecordDataType(schema)));
+
+        schema.setFields(personFields);
+
+        schema.hashCode();
+        assertTrue(schema.equals(schema));
+
+        final SimpleRecordSchema secondSchema = new SimpleRecordSchema(SchemaIdentifier.EMPTY);
+        secondSchema.setFields(personFields);
+        assertTrue(schema.equals(secondSchema));
+        assertTrue(secondSchema.equals(schema));
     }
 
     private Set<String> set(final String... values) {

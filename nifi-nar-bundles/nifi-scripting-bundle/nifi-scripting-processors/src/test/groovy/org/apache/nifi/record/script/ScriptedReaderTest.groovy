@@ -97,9 +97,10 @@ class ScriptedReaderTest {
         recordReaderFactory.initialize initContext
         recordReaderFactory.onEnabled configurationContext
 
-        InputStream inStream = new ByteArrayInputStream('Flow file content not used'.bytes)
+        byte[] contentBytes = 'Flow file content not used'.bytes
+        InputStream inStream = new ByteArrayInputStream(contentBytes)
 
-        RecordReader recordReader = recordReaderFactory.createRecordReader(Collections.emptyMap(), inStream, logger)
+        RecordReader recordReader = recordReaderFactory.createRecordReader(Collections.emptyMap(), inStream, contentBytes.length, logger)
         assertNotNull(recordReader)
 
         3.times {
@@ -157,7 +158,7 @@ class ScriptedReaderTest {
 
         Map<String, String> schemaVariables = ['record.tag': 'myRecord']
 
-        InputStream inStream = new ByteArrayInputStream('''
+        byte[] contentBytes = '''
                 <root>
                   <myRecord>
                     <id>1</id>
@@ -175,9 +176,11 @@ class ScriptedReaderTest {
                     <code>300</code>
                   </myRecord>
                 </root>
-            '''.bytes)
+            '''.bytes
 
-        RecordReader recordReader = recordReaderFactory.createRecordReader(schemaVariables, inStream, logger)
+        InputStream inStream = new ByteArrayInputStream(contentBytes)
+
+        RecordReader recordReader = recordReaderFactory.createRecordReader(schemaVariables, inStream, contentBytes.length, logger)
         assertNotNull(recordReader)
 
         3.times {

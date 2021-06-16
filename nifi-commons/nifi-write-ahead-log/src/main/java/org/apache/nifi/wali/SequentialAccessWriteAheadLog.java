@@ -23,6 +23,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -31,7 +32,6 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.regex.Pattern;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.wali.SerDeFactory;
@@ -63,8 +63,9 @@ public class SequentialAccessWriteAheadLog<T> implements WriteAheadRepository<T>
 
     private final File storageDirectory;
     private final File journalsDirectory;
-    private final SerDeFactory<T> serdeFactory;
+    protected final SerDeFactory<T> serdeFactory;
     private final SyncListener syncListener;
+    private final Set<String> recoveredSwapLocations = new HashSet<>();
 
     private final ReadWriteLock journalRWLock = new ReentrantReadWriteLock();
     private final Lock journalReadLock = journalRWLock.readLock();
@@ -144,6 +145,7 @@ public class SequentialAccessWriteAheadLog<T> implements WriteAheadRepository<T>
         final long recoverStart = System.nanoTime();
         recovered = true;
         snapshotRecovery = snapshot.recover();
+        this.recoveredSwapLocations.addAll(snapshotRecovery.getRecoveredSwapLocations());
 
         final long snapshotRecoveryMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - recoverStart);
 
@@ -212,7 +214,9 @@ public class SequentialAccessWriteAheadLog<T> implements WriteAheadRepository<T>
         final long recoveryMillis = TimeUnit.MILLISECONDS.convert(recoverNanos, TimeUnit.NANOSECONDS);
         logger.info("Successfully recovered {} records in {} milliseconds. Now checkpointing to ensure that Write-Ahead Log is in a consistent state", recoveredRecords.size(), recoveryMillis);
 
-        checkpoint();
+        this.recoveredSwapLocations.addAll(swapLocations);
+
+        checkpoint(this.recoveredSwapLocations);
 
         return recoveredRecords.values();
     }
@@ -238,11 +242,19 @@ public class SequentialAccessWriteAheadLog<T> implements WriteAheadRepository<T>
             throw new IllegalStateException("Cannot retrieve the Recovered Swap Locations until record recovery has been performed");
         }
 
-        return snapshotRecovery.getRecoveredSwapLocations();
+        return Collections.unmodifiableSet(this.recoveredSwapLocations);
+    }
+
+    public SnapshotCapture<T> captureSnapshot() {
+        return snapshot.prepareSnapshot(nextTransactionId - 1);
     }
 
     @Override
     public int checkpoint() throws IOException {
+        return checkpoint(null);
+    }
+
+    private int checkpoint(final Set<String> swapLocations) throws IOException {
         final SnapshotCapture<T> snapshotCapture;
 
         final long startNanos = System.nanoTime();
@@ -251,13 +263,22 @@ public class SequentialAccessWriteAheadLog<T> implements WriteAheadRepository<T>
         try {
             if (journal != null) {
                 final JournalSummary journalSummary = journal.getSummary();
-                if (journalSummary.getTransactionCount() == 0) {
+                if (journalSummary.getTransactionCount() == 0 && journal.isHealthy()) {
                     logger.debug("Will not checkpoint Write-Ahead Log because no updates have occurred since last checkpoint");
                     return snapshot.getRecordCount();
                 }
 
-                journal.fsync();
-                journal.close();
+                try {
+                    journal.fsync();
+                } catch (final Exception e) {
+                    logger.error("Failed to synch Write-Ahead Log's journal to disk at {}", storageDirectory, e);
+                }
+
+                try {
+                    journal.close();
+                } catch (final Exception e) {
+                    logger.error("Failed to close Journal while attempting to checkpoint Write-Ahead Log at {}", storageDirectory);
+                }
 
                 nextTransactionId = Math.max(nextTransactionId, journalSummary.getLastTransactionId() + 1);
             }
@@ -267,16 +288,21 @@ public class SequentialAccessWriteAheadLog<T> implements WriteAheadRepository<T>
             final File[] existingFiles = journalsDirectory.listFiles(this::isJournalFile);
             existingJournals = (existingFiles == null) ? new File[0] : existingFiles;
 
-            snapshotCapture = snapshot.prepareSnapshot(nextTransactionId - 1);
+            if (swapLocations == null) {
+                snapshotCapture = snapshot.prepareSnapshot(nextTransactionId - 1);
+            } else {
+                snapshotCapture = snapshot.prepareSnapshot(nextTransactionId - 1, swapLocations);
+            }
+
 
             // Create a new journal. We name the journal file <next transaction id>.journal but it is possible
             // that we could have an empty journal file already created. If this happens, we don't want to create
             // a new file on top of it because it would get deleted below when we clean up old journals. So we
             // will simply increment our transaction ID and try again.
-            File journalFile = new File(journalsDirectory, String.valueOf(nextTransactionId) + ".journal");
+            File journalFile = new File(journalsDirectory, nextTransactionId + ".journal");
             while (journalFile.exists()) {
                 nextTransactionId++;
-                journalFile = new File(journalsDirectory, String.valueOf(nextTransactionId) + ".journal");
+                journalFile = new File(journalsDirectory, nextTransactionId + ".journal");
             }
 
             journal = new LengthDelimitedJournal<>(journalFile, serdeFactory, streamPool, nextTransactionId);
@@ -291,16 +317,14 @@ public class SequentialAccessWriteAheadLog<T> implements WriteAheadRepository<T>
         snapshot.writeSnapshot(snapshotCapture);
 
         for (final File existingJournal : existingJournals) {
-            logger.debug("Deleting Journal {} because it is now encapsulated in the latest Snapshot", existingJournal.getName());
-            if (!existingJournal.delete() && existingJournal.exists()) {
-                logger.warn("Unable to delete expired journal file " + existingJournal + "; this file should be deleted manually.");
-            }
+            final WriteAheadJournal journal = new LengthDelimitedJournal<>(existingJournal, serdeFactory, streamPool, nextTransactionId);
+            journal.dispose();
         }
 
         final long totalNanos = System.nanoTime() - startNanos;
         final long millis = TimeUnit.NANOSECONDS.toMillis(totalNanos);
         logger.info("Checkpointed Write-Ahead Log with {} Records and {} Swap Files in {} milliseconds (Stop-the-world time = {} milliseconds), max Transaction ID {}",
-            new Object[] {snapshotCapture.getRecords().size(), snapshotCapture.getSwapLocations().size(), millis, stopTheWorldMillis, snapshotCapture.getMaxTransactionId()});
+                snapshotCapture.getRecords().size(), snapshotCapture.getSwapLocations().size(), millis, stopTheWorldMillis, snapshotCapture.getMaxTransactionId());
 
         return snapshotCapture.getRecords().size();
     }

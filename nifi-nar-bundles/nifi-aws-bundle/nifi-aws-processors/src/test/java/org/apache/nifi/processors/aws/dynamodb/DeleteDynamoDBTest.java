@@ -31,7 +31,7 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Matchers;
+import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
 
 import com.amazonaws.AmazonClientException;
@@ -45,12 +45,7 @@ import com.amazonaws.services.dynamodbv2.model.BatchWriteItemResult;
 import com.amazonaws.services.dynamodbv2.model.DeleteRequest;
 import com.amazonaws.services.dynamodbv2.model.WriteRequest;
 
-import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-import org.junit.Before;
-import org.junit.Test;
-public class DeleteDynamoDBTest extends AbstractDynamoDBTest{
+public class DeleteDynamoDBTest extends AbstractDynamoDBTest {
 
     protected DeleteDynamoDB deleteDynamoDB;
     protected BatchWriteItemResult result = new BatchWriteItemResult();
@@ -81,7 +76,7 @@ public class DeleteDynamoDBTest extends AbstractDynamoDBTest{
         // Inject a mock DynamoDB to create the exception condition
         final DynamoDB mockDynamoDb = Mockito.mock(DynamoDB.class);
         // When writing, mock thrown service exception from AWS
-        Mockito.when(mockDynamoDb.batchWriteItem(Matchers.<TableWriteItems>anyVararg())).thenThrow(getSampleAwsServiceException());
+        Mockito.when(mockDynamoDb.batchWriteItem(ArgumentMatchers.<TableWriteItems>any())).thenThrow(getSampleAwsServiceException());
 
         deleteDynamoDB = new DeleteDynamoDB() {
             @Override

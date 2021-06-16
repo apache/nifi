@@ -88,6 +88,7 @@
     <!-- login identity provider -->
     <bean id="loginIdentityProvider" class="org.apache.nifi.web.security.spring.LoginIdentityProviderFactoryBean">
         <property name="properties" ref="nifiProperties"/>
+        <property name="extensionManager" ref="extensionManager" />
     </bean>
 
     <!-- oidc -->
@@ -97,6 +98,12 @@
     </bean>
     <bean id="oidcService" class="org.apache.nifi.web.security.oidc.OidcService">
         <constructor-arg ref="oidcProvider"/>
+    </bean>
+
+    <!-- anonymous -->
+    <bean id="anonymousAuthenticationProvider" class="org.apache.nifi.web.security.anonymous.NiFiAnonymousAuthenticationProvider">
+        <constructor-arg ref="nifiProperties" index="0"/>
+        <constructor-arg ref="authorizer" index="1"/>
     </bean>
 
 </beans>

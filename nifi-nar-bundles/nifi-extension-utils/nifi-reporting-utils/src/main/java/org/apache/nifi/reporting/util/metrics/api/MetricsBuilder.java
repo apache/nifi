@@ -16,12 +16,13 @@
  */
 package org.apache.nifi.reporting.util.metrics.api;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import javax.json.JsonArrayBuilder;
 import javax.json.JsonBuilderFactory;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * Builds the overall JsonObject for the Metrics.
@@ -72,7 +73,7 @@ public class MetricsBuilder {
         return this;
     }
 
-    public JsonObject build() {
+    public JsonObject build(final boolean allowNullValues) {
         // builds JsonObject for individual metrics
         final MetricBuilder metricBuilder = new MetricBuilder(factory);
         metricBuilder.instanceId(instanceId).applicationId(applicationId).timestamp(timestamp).hostname(hostname);
@@ -81,7 +82,7 @@ public class MetricsBuilder {
 
         for (Map.Entry<String,String> entry : metrics.entrySet()) {
             metricBuilder.metricName(entry.getKey()).metricValue(entry.getValue());
-            metricArrayBuilder.add(metricBuilder.build());
+            metricArrayBuilder.add(metricBuilder.build(allowNullValues));
         }
 
         // add the array of metrics to a top-level json object
@@ -90,4 +91,7 @@ public class MetricsBuilder {
         return metricsBuilder.build();
     }
 
+    public JsonObject build() {
+       return build(false);
+    }
 }

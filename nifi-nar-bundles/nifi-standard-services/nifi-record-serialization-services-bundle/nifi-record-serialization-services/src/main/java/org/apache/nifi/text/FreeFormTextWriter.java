@@ -38,11 +38,13 @@ public class FreeFormTextWriter extends AbstractRecordSetWriter implements Recor
     private static final byte NEW_LINE = (byte) '\n';
     private final PropertyValue propertyValue;
     private final Charset charset;
+    private final Map<String, String> variables;
 
-    public FreeFormTextWriter(final PropertyValue textPropertyValue, final Charset characterSet, final OutputStream out) {
+    public FreeFormTextWriter(final PropertyValue textPropertyValue, final Charset characterSet, final OutputStream out, final Map<String, String> variables) {
         super(new BufferedOutputStream(out));
         this.propertyValue = textPropertyValue;
         this.charset = characterSet;
+        this.variables = variables;
     }
 
     private List<String> getColumnNames(final RecordSchema schema) {
@@ -70,6 +72,10 @@ public class FreeFormTextWriter extends AbstractRecordSetWriter implements Recor
             final String columnName = columnNames.get(i);
             final String columnValue = record.getAsString(columnName);
             values.put(columnName, columnValue);
+        }
+        // Add attributes and variables (but don't override fields with the same name)
+        for (Map.Entry<String, String> variable : variables.entrySet()) {
+            values.putIfAbsent(variable.getKey(), variable.getValue());
         }
 
         final String evaluated = propertyValue.evaluateAttributeExpressions(values).getValue();

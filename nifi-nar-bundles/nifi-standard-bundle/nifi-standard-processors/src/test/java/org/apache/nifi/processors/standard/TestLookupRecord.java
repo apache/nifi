@@ -17,22 +17,15 @@
 
 package org.apache.nifi.processors.standard;
 
-import static org.junit.Assert.assertTrue;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
+import org.apache.nifi.json.JsonRecordSetWriter;
+import org.apache.nifi.json.JsonTreeReader;
 import org.apache.nifi.lookup.RecordLookupService;
 import org.apache.nifi.lookup.StringLookupService;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.schema.access.SchemaAccessUtils;
+import org.apache.nifi.schema.inference.SchemaInferenceUtil;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.MockRecordParser;
@@ -47,6 +40,18 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+
+import static org.junit.Assert.assertTrue;
 
 public class TestLookupRecord {
 
@@ -112,7 +117,7 @@ public class TestLookupRecord {
     }
 
     @Test
-    public void testAllMatch() throws InitializationException {
+    public void testAllMatch() {
         lookupService.addValue("John Doe", "Soccer");
         lookupService.addValue("Jane Doe", "Basketball");
         lookupService.addValue("Jimmy Doe", "Football");
@@ -129,7 +134,7 @@ public class TestLookupRecord {
     }
 
     @Test
-    public void testAllUnmatched() throws InitializationException {
+    public void testAllUnmatched() {
         runner.enqueue("");
         runner.run();
 
@@ -142,7 +147,7 @@ public class TestLookupRecord {
     }
 
     @Test
-    public void testMixtureOfMatch() throws InitializationException {
+    public void testMixtureOfMatch() {
         lookupService.addValue("John Doe", "Soccer");
         lookupService.addValue("Jimmy Doe", "Football");
 
@@ -166,7 +171,7 @@ public class TestLookupRecord {
 
 
     @Test
-    public void testResultPathNotFound() throws InitializationException {
+    public void testResultPathNotFound() {
         runner.setProperty(LookupRecord.RESULT_RECORD_PATH, "/other");
 
         lookupService.addValue("John Doe", "Soccer");
@@ -181,11 +186,11 @@ public class TestLookupRecord {
 
         out.assertAttributeEquals("record.count", "3");
         out.assertAttributeEquals("mime.type", "text/plain");
-        out.assertContentEquals("John Doe,48,\nJane Doe,47,\nJimmy Doe,14,\n");
+        out.assertContentEquals("John Doe,48,,Soccer\nJane Doe,47,,Basketball\nJimmy Doe,14,,Football\n");
     }
 
     @Test
-    public void testLookupPathNotFound() throws InitializationException {
+    public void testLookupPathNotFound() {
         runner.setProperty("lookup", "/other");
 
         runner.enqueue("");
@@ -200,7 +205,7 @@ public class TestLookupRecord {
     }
 
     @Test
-    public void testUnparseableData() throws InitializationException {
+    public void testUnparseableData() {
         recordReader.failAfter(1);
 
         runner.enqueue("");
@@ -213,7 +218,7 @@ public class TestLookupRecord {
     }
 
     @Test
-    public void testNoResultPath() throws InitializationException {
+    public void testNoResultPath() {
         lookupService.addValue("John Doe", "Soccer");
         lookupService.addValue("Jane Doe", "Basketball");
         lookupService.addValue("Jimmy Doe", "Football");
@@ -233,7 +238,7 @@ public class TestLookupRecord {
 
 
     @Test
-    public void testMultipleLookupPaths() throws InitializationException {
+    public void testMultipleLookupPaths() {
         lookupService.addValue("John Doe", "Soccer");
         lookupService.addValue("Jane Doe", "Basketball");
         lookupService.addValue("Jimmy Doe", "Football");
@@ -252,7 +257,7 @@ public class TestLookupRecord {
     }
 
     @Test
-    public void testInvalidUnlessAllRequiredPropertiesAdded() throws InitializationException {
+    public void testInvalidUnlessAllRequiredPropertiesAdded() {
         runner.removeProperty(new PropertyDescriptor.Builder().name("lookup").build());
         runner.setProperty("hello", "/name");
         runner.assertNotValid();
@@ -266,7 +271,7 @@ public class TestLookupRecord {
 
 
     @Test
-    public void testAddFieldsToExistingRecord() throws InitializationException, IOException {
+    public void testAddFieldsToExistingRecord() throws InitializationException {
         final RecordLookup lookupService = new RecordLookup();
         runner.addControllerService("lookup", lookupService);
         runner.enableControllerService(lookupService);
@@ -275,7 +280,7 @@ public class TestLookupRecord {
         fields.add(new RecordField("favorite", RecordFieldType.STRING.getDataType()));
         fields.add(new RecordField("least", RecordFieldType.STRING.getDataType()));
         final RecordSchema schema = new SimpleRecordSchema(fields);
-        final Record sports = new MapRecord(schema, new HashMap<String, Object>());
+        final Record sports = new MapRecord(schema, new HashMap<>());
 
         sports.setValue("favorite", "basketball");
         sports.setValue("least", "soccer");
@@ -318,7 +323,7 @@ public class TestLookupRecord {
         fields.add(new RecordField("favorite", RecordFieldType.STRING.getDataType()));
         fields.add(new RecordField("least", RecordFieldType.STRING.getDataType()));
         final RecordSchema schema = new SimpleRecordSchema(fields);
-        final Record sports = new MapRecord(schema, new HashMap<String, Object>());
+        final Record sports = new MapRecord(schema, new HashMap<>());
 
         sports.setValue("favorite", "basketball");
         sports.setValue("least", "soccer");
@@ -364,7 +369,7 @@ public class TestLookupRecord {
         fields.add(new RecordField("favorite", RecordFieldType.STRING.getDataType()));
         fields.add(new RecordField("least", RecordFieldType.STRING.getDataType()));
         final RecordSchema schema = new SimpleRecordSchema(fields);
-        final Record sports = new MapRecord(schema, new HashMap<String, Object>());
+        final Record sports = new MapRecord(schema, new HashMap<>());
 
         sports.setValue("favorite", "basketball");
         sports.setValue("least", "soccer");
@@ -396,9 +401,131 @@ public class TestLookupRecord {
             || outputContents.equals("John Doe,48,MapRecord[{least=soccer, favorite=basketball}]\n"));
     }
 
+    @Test
+    public void testAddFieldsToExistingRecordRouteToSuccess() throws InitializationException {
+        final RecordLookup lookupService = new RecordLookup();
+        runner.addControllerService("lookup", lookupService);
+        runner.enableControllerService(lookupService);
+        runner.setProperty(LookupRecord.ROUTING_STRATEGY, LookupRecord.ROUTE_TO_SUCCESS);
+
+        // Even if the looked up record's original schema is not nullable, the result record's enriched fields should be nullable.
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("favorite", RecordFieldType.STRING.getDataType(), false));
+        fields.add(new RecordField("least", RecordFieldType.STRING.getDataType(), true));
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+        final Record sports = new MapRecord(schema, new HashMap<>());
+
+        sports.setValue("favorite", "basketball");
+        sports.setValue("least", "soccer");
+
+        lookupService.addValue("John Doe", sports);
+
+        // Incoming Record doesn't have the fields to be enriched.
+        recordReader = new MockRecordParser();
+        recordReader.addSchemaField("name", RecordFieldType.STRING);
+        recordReader.addSchemaField("age", RecordFieldType.INT);
+
+        recordReader.addRecord("John Doe", 48);
+        recordReader.addRecord("Jane Doe", 47);
+
+        runner.addControllerService("reader", recordReader);
+        runner.enableControllerService(recordReader);
+
+        runner.setProperty("lookup", "/name");
+        runner.setProperty(LookupRecord.RESULT_RECORD_PATH, "/");
+        runner.setProperty(LookupRecord.RESULT_CONTENTS, LookupRecord.RESULT_RECORD_FIELDS);
+
+        runner.enqueue("");
+        runner.run();
+
+        final MockFlowFile out = runner.getFlowFilesForRelationship(LookupRecord.REL_SUCCESS).get(0);
+        out.assertContentEquals("John Doe,48,soccer,basketball\nJane Doe,47\n");
+    }
+
+    @Test
+    public void testLookupArray() throws InitializationException, IOException {
+        TestRunner runner = TestRunners.newTestRunner(LookupRecord.class);
+        final MapLookup lookupService = new MapLookupForInPlaceReplacement();
+
+        final JsonTreeReader jsonReader = new JsonTreeReader();
+        runner.addControllerService("reader", jsonReader);
+        runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaInferenceUtil.INFER_SCHEMA);
+
+        final JsonRecordSetWriter jsonWriter = new JsonRecordSetWriter();
+        runner.addControllerService("writer", jsonWriter);
+        runner.setProperty(jsonWriter, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.INHERIT_RECORD_SCHEMA);
+
+        runner.addControllerService("reader", jsonReader);
+        runner.enableControllerService(jsonReader);
+        runner.addControllerService("writer", jsonWriter);
+        runner.enableControllerService(jsonWriter);
+        runner.addControllerService("lookup", lookupService);
+        runner.enableControllerService(lookupService);
+
+        runner.setProperty(LookupRecord.ROUTING_STRATEGY, LookupRecord.ROUTE_TO_SUCCESS);
+        runner.setProperty(LookupRecord.REPLACEMENT_STRATEGY, LookupRecord.REPLACE_EXISTING_VALUES);
+        runner.setProperty(LookupRecord.RECORD_READER, "reader");
+        runner.setProperty(LookupRecord.RECORD_WRITER, "writer");
+        runner.setProperty(LookupRecord.LOOKUP_SERVICE, "lookup");
+        runner.setProperty("lookupLanguage", "/locales[*]/language");
+        runner.setProperty("lookupRegion", "/locales[*]/region");
+        runner.setProperty("lookupFoo", "/foo/foo");
+
+        lookupService.addValue("FR", "France");
+        lookupService.addValue("CA", "Canada");
+        lookupService.addValue("fr", "French");
+        lookupService.addValue("key", "value");
+
+        runner.enqueue(new File("src/test/resources/TestLookupRecord/lookup-array-input.json").toPath());
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(LookupRecord.REL_SUCCESS);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(LookupRecord.REL_SUCCESS).get(0);
+        out.assertContentEquals(new File("src/test/resources/TestLookupRecord/lookup-array-output.json").toPath());
+    }
+
+    @Test
+    public void testLookupArrayKeyNotInLRS() throws InitializationException, IOException {
+        TestRunner runner = TestRunners.newTestRunner(LookupRecord.class);
+        final MapLookup lookupService = new MapLookupForInPlaceReplacement();
+
+        final JsonTreeReader jsonReader = new JsonTreeReader();
+        runner.addControllerService("reader", jsonReader);
+        runner.setProperty(jsonReader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaInferenceUtil.INFER_SCHEMA);
+
+        final JsonRecordSetWriter jsonWriter = new JsonRecordSetWriter();
+        runner.addControllerService("writer", jsonWriter);
+        runner.setProperty(jsonWriter, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.INHERIT_RECORD_SCHEMA);
+
+        runner.addControllerService("reader", jsonReader);
+        runner.enableControllerService(jsonReader);
+        runner.addControllerService("writer", jsonWriter);
+        runner.enableControllerService(jsonWriter);
+        runner.addControllerService("lookup", lookupService);
+        runner.enableControllerService(lookupService);
+
+        runner.setProperty(LookupRecord.ROUTING_STRATEGY, LookupRecord.ROUTE_TO_MATCHED_UNMATCHED);
+        runner.setProperty(LookupRecord.REPLACEMENT_STRATEGY, LookupRecord.REPLACE_EXISTING_VALUES);
+        runner.setProperty(LookupRecord.RECORD_READER, "reader");
+        runner.setProperty(LookupRecord.RECORD_WRITER, "writer");
+        runner.setProperty(LookupRecord.LOOKUP_SERVICE, "lookup");
+        runner.setProperty("lookupLanguage", "/locales[*]/language");
+        runner.setProperty("lookupRegion", "/locales[*]/region");
+        runner.setProperty("lookupFoo", "/foo/foo");
+
+        lookupService.addValue("FR", "France");
+        lookupService.addValue("CA", "Canada");
+        lookupService.addValue("fr", "French");
+        lookupService.addValue("badkey", "value");
+
+        runner.enqueue(new File("src/test/resources/TestLookupRecord/lookup-array-input.json").toPath());
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(LookupRecord.REL_UNMATCHED);
+    }
 
     private static class MapLookup extends AbstractControllerService implements StringLookupService {
-        private final Map<String, String> values = new HashMap<>();
+        protected final Map<String, String> values = new HashMap<>();
         private Map<String, Object> expectedContext;
 
         public void addValue(final String key, final String value) {
@@ -410,6 +537,7 @@ public class TestLookupRecord {
             return String.class;
         }
 
+        @Override
         public Optional<String> lookup(final Map<String, Object> coordinates, Map<String, String> context) {
             validateContext(context);
             return lookup(coordinates);
@@ -478,6 +606,18 @@ public class TestLookupRecord {
         @Override
         public Set<String> getRequiredKeys() {
             return Collections.singleton("lookup");
+        }
+    }
+
+    private static class MapLookupForInPlaceReplacement extends MapLookup implements StringLookupService {
+        @Override
+        public Optional<String> lookup(final Map<String, Object> coordinates) {
+            final String key = (String)coordinates.values().iterator().next();
+            if (key == null) {
+                return Optional.empty();
+            }
+
+            return Optional.ofNullable(values.get(key));
         }
     }
 }

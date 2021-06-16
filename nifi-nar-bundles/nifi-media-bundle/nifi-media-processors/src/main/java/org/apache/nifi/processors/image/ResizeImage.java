@@ -51,7 +51,6 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.io.StreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.util.StopWatch;
 
@@ -150,57 +149,62 @@ public class ResizeImage extends AbstractProcessor {
         }
 
         final StopWatch stopWatch = new StopWatch(true);
-        try {
-            flowFile = session.write(flowFile, new StreamCallback() {
-                @Override
-                public void process(final InputStream rawIn, final OutputStream out) throws IOException {
-                    try (final BufferedInputStream in = new BufferedInputStream(rawIn)) {
-                        final ImageInputStream iis = ImageIO.createImageInputStream(in);
-                        if (iis == null) {
-                            throw new ProcessException("FlowFile is not in a valid format");
-                        }
 
-                        final Iterator<ImageReader> readers = ImageIO.getImageReaders(iis);
-                        if (!readers.hasNext()) {
-                            throw new ProcessException("FlowFile is not in a valid format");
-                        }
+        final BufferedImage image;
+        final String formatName;
 
-                        final ImageReader reader = readers.next();
-                        final String formatName = reader.getFormatName();
-                        reader.setInput(iis, true);
-                        final BufferedImage image = reader.read(0);
-
-                        final Image scaledImage = image.getScaledInstance(width, height, hints);
-                        final BufferedImage scaledBufferedImg;
-                        if (scaledImage instanceof BufferedImage) {
-                            scaledBufferedImg = (BufferedImage) scaledImage;
-                        } else {
-                            // Determine image type, since calling image.getType may return 0
-                            int imageType = BufferedImage.TYPE_INT_ARGB;
-                            if(image.getTransparency() == Transparency.OPAQUE) {
-                                imageType = BufferedImage.TYPE_INT_RGB;
-                            }
-
-                            scaledBufferedImg = new BufferedImage(scaledImage.getWidth(null), scaledImage.getHeight(null), imageType);
-                            final Graphics2D graphics = scaledBufferedImg.createGraphics();
-                            try {
-                                graphics.drawImage(scaledImage, 0, 0, null);
-                            } finally {
-                                graphics.dispose();
-                            }
-                        }
-
-                        ImageIO.write(scaledBufferedImg, formatName, out);
-                    }
+        try (final InputStream rawIn = session.read(flowFile)) {
+            try (final BufferedInputStream in = new BufferedInputStream(rawIn)) {
+                final ImageInputStream iis = ImageIO.createImageInputStream(in);
+                if (iis == null) {
+                    throw new ProcessException("FlowFile is not in a valid format");
                 }
-            });
 
-            session.getProvenanceReporter().modifyContent(flowFile, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
-            session.transfer(flowFile, REL_SUCCESS);
-        } catch (final ProcessException pe) {
-            getLogger().error("Failed to resize {} due to {}", new Object[] { flowFile, pe });
+                final Iterator<ImageReader> readers = ImageIO.getImageReaders(iis);
+                if (!readers.hasNext()) {
+                    throw new ProcessException("FlowFile is not in a valid format");
+                }
+
+                final ImageReader reader = readers.next();
+                formatName = reader.getFormatName();
+                reader.setInput(iis, true);
+                image = reader.read(0);
+            }
+        } catch (final IOException | IllegalArgumentException | ProcessException ex) {
+            getLogger().error("Failed to read {} due to {}", new Object[] { flowFile, ex });
             session.transfer(flowFile, REL_FAILURE);
+            return;
         }
-    }
 
+        try (final OutputStream out = session.write(flowFile)) {
+            final Image scaledImage = image.getScaledInstance(width, height, hints);
+            final BufferedImage scaledBufferedImg;
+            if (scaledImage instanceof BufferedImage) {
+                scaledBufferedImg = (BufferedImage) scaledImage;
+            } else {
+                // Determine image type, since calling image.getType may return 0
+                int imageType = BufferedImage.TYPE_INT_ARGB;
+                if(image.getTransparency() == Transparency.OPAQUE) {
+                    imageType = BufferedImage.TYPE_INT_RGB;
+                }
+
+                scaledBufferedImg = new BufferedImage(scaledImage.getWidth(null), scaledImage.getHeight(null), imageType);
+                final Graphics2D graphics = scaledBufferedImg.createGraphics();
+                try {
+                    graphics.drawImage(scaledImage, 0, 0, null);
+                } finally {
+                    graphics.dispose();
+                }
+            }
+
+            ImageIO.write(scaledBufferedImg, formatName, out);
+        } catch (final IOException | NegativeArraySizeException ex) {
+            getLogger().error("Failed to write {} due to {}", new Object[] { flowFile, ex });
+            session.transfer(flowFile, REL_FAILURE);
+            return;
+        }
+
+        session.getProvenanceReporter().modifyContent(flowFile, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
+        session.transfer(flowFile, REL_SUCCESS);
+    }
 }

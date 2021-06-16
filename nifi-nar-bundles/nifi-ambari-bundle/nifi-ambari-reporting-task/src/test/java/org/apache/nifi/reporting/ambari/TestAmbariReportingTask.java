@@ -27,7 +27,7 @@ import org.apache.nifi.reporting.ReportingInitializationContext;
 import org.apache.nifi.util.MockPropertyValue;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Matchers;
+import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
 
 import javax.ws.rs.client.Client;
@@ -91,7 +91,7 @@ public class TestAmbariReportingTask {
 
         Mockito.when(client.target(metricsUrl)).thenReturn(target);
         Mockito.when(target.request()).thenReturn(builder);
-        Mockito.when(builder.post(Matchers.any(Entity.class))).thenReturn(response);
+        Mockito.when(builder.post(ArgumentMatchers.any(Entity.class))).thenReturn(response);
 
         // mock the ReportingInitializationContext for initialize(...)
         final ComponentLog logger = Mockito.mock(ComponentLog.class);

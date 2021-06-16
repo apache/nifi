@@ -18,7 +18,7 @@
     CodeMirror styles
 */
 
-.nfel-editor .CodeMirror {
+.nf-editor .CodeMirror {
     height: 100px;
     border: 1px solid #aaa;
     font-family: monospace;
@@ -28,16 +28,21 @@
     min-width: 210px;
 }
 
-.nfel-editor .CodeMirror-scroll {
+.nf-editor .CodeMirror.blank {
+    background: #b2b8c1;
+    color: #dbdee2;
+    border: 1px solid #b2b8c1;
+}
+
+.nf-editor .CodeMirror-scroll {
     overflow-x: auto;
     overflow-y: auto;
 }
 
-.nfel-editor .ui-resizable-se {
+.nf-editor .ui-resizable-se {
     width: 16px;
     height: 16px;
     background-image: url(../../../images/iconResize.png);
-    background-color: #fff;
     z-index: 6;
 }
 
@@ -66,10 +71,10 @@
     Override some defaults for this instance...
 */
 
-.nfel-editor .CodeMirror-vscrollbar {
+.nf-editor .CodeMirror-vscrollbar {
     bottom: 18px !important;
 }
 
-.nfel-editor .CodeMirror-hscrollbar {
+.nf-editor .CodeMirror-hscrollbar {
     right: 18px !important;
 }

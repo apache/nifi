@@ -18,6 +18,8 @@ package org.apache.nifi.processors.mongodb;
 
 import com.mongodb.client.MongoCursor;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.mongodb.MongoDBClientService;
+import org.apache.nifi.mongodb.MongoDBControllerService;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessContext;
@@ -69,9 +71,8 @@ public class PutMongoIT extends MongoWriteTestBase {
         if (pc instanceof MockProcessContext) {
             results = ((MockProcessContext) pc).validate();
         }
-        Assert.assertEquals(3, results.size());
+        Assert.assertEquals(2, results.size());
         Iterator<ValidationResult> it = results.iterator();
-        Assert.assertTrue(it.next().toString().contains("is invalid because Mongo URI is required"));
         Assert.assertTrue(it.next().toString().contains("is invalid because Mongo Database Name is required"));
         Assert.assertTrue(it.next().toString().contains("is invalid because Mongo Collection Name is required"));
 
@@ -391,6 +392,26 @@ public class PutMongoIT extends MongoWriteTestBase {
     }
 
     @Test
+    public void testUpsertWithOid() throws Exception {
+        TestRunner runner = init(PutMongo.class);
+        runner.setProperty(PutMongo.UPDATE_QUERY_KEY, "_id");
+        byte[] bytes = documentToByteArray(oidDocument);
+
+        runner.setProperty(PutMongo.MODE, "update");
+        runner.setProperty(PutMongo.UPSERT, "true");
+        runner.enqueue(bytes);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(PutMongo.REL_SUCCESS, 1);
+        MockFlowFile out = runner.getFlowFilesForRelationship(PutMongo.REL_SUCCESS).get(0);
+        out.assertContentEquals(bytes);
+
+        // verify 1 doc inserted into the collection
+        assertEquals(1, collection.count());
+        assertEquals(oidDocument, collection.find().first());
+    }
+
+    @Test
     public void testUpdate() throws Exception {
         TestRunner runner = init(PutMongo.class);
         runner.setProperty(PutMongo.UPDATE_QUERY_KEY, "_id");
@@ -501,5 +522,22 @@ public class PutMongoIT extends MongoWriteTestBase {
             runner.clearTransferState();
             index++;
         }
+    }
+
+    @Test
+    public void testClientService() throws Exception {
+        MongoDBClientService clientService = new MongoDBControllerService();
+        TestRunner runner = init(PutMongo.class);
+        runner.addControllerService("clientService", clientService);
+        runner.removeProperty(PutMongo.URI);
+        runner.setProperty(clientService, MongoDBControllerService.URI, MONGO_URI);
+        runner.setProperty(PutMongo.CLIENT_SERVICE, "clientService");
+        runner.enableControllerService(clientService);
+        runner.assertValid();
+
+        runner.enqueue("{ \"msg\": \"Hello, world\" }");
+        runner.run();
+        runner.assertTransferCount(PutMongo.REL_SUCCESS, 1);
+        runner.assertTransferCount(PutMongo.REL_FAILURE, 0);
     }
 }

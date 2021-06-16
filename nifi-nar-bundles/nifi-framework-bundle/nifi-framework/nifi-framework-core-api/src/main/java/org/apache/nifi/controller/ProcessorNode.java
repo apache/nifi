@@ -16,15 +16,8 @@
  */
 package org.apache.nifi.controller;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
+import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.components.validation.ValidationTrigger;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.controller.scheduling.LifecycleState;
@@ -32,12 +25,22 @@ import org.apache.nifi.controller.scheduling.SchedulingAgent;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.logging.LogLevel;
+import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.scheduling.SchedulingStrategy;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 
 public abstract class ProcessorNode extends AbstractComponentNode implements Connectable {
 
@@ -46,8 +49,10 @@ public abstract class ProcessorNode extends AbstractComponentNode implements Con
     public ProcessorNode(final String id,
                          final ValidationContextFactory validationContextFactory, final ControllerServiceProvider serviceProvider,
                          final String componentType, final String componentCanonicalClass, final ComponentVariableRegistry variableRegistry,
-                         final ReloadComponent reloadComponent, final ValidationTrigger validationTrigger, final boolean isExtensionMissing) {
-        super(id, validationContextFactory, serviceProvider, componentType, componentCanonicalClass, variableRegistry, reloadComponent, validationTrigger, isExtensionMissing);
+                         final ReloadComponent reloadComponent, final ExtensionManager extensionManager, final ValidationTrigger validationTrigger,
+                         final boolean isExtensionMissing) {
+        super(id, validationContextFactory, serviceProvider, componentType, componentCanonicalClass, variableRegistry, reloadComponent,
+                extensionManager, validationTrigger, isExtensionMissing);
         this.scheduledState = new AtomicReference<>(ScheduledState.STOPPED);
     }
 
@@ -68,12 +73,12 @@ public abstract class ProcessorNode extends AbstractComponentNode implements Con
 
     public abstract Requirement getInputRequirement();
 
-    public abstract List<ActiveThreadInfo> getActiveThreads();
+    public abstract List<ActiveThreadInfo> getActiveThreads(ThreadDetails threadDetails);
 
     /**
      * Returns the number of threads that are still 'active' in this Processor but have been terminated
      * via {@link #terminate()}. To understand more about these threads, such as their stack traces and
-     * how long they have been active, one can use {@link #getActiveThreads()} and then filter the results
+     * how long they have been active, one can use {@link #getActiveThreads(ThreadDetails)} and then filter the results
      * to include only those {@link ActiveThreadInfo} objects for which the thread is terminated. For example:
      * {@code getActiveThreads().stream().filter(ActiveThreadInfo::isTerminated).collect(Collectors.toList());}
      *
@@ -141,7 +146,13 @@ public abstract class ProcessorNode extends AbstractComponentNode implements Con
     public ScheduledState getScheduledState() {
         ScheduledState sc = this.scheduledState.get();
         if (sc == ScheduledState.STARTING) {
-            return ScheduledState.RUNNING;
+            final ValidationStatus validationStatus = getValidationStatus();
+
+            if (validationStatus == ValidationStatus.INVALID) {
+                return ScheduledState.STOPPED;
+            } else {
+                return ScheduledState.RUNNING;
+            }
         } else if (sc == ScheduledState.STOPPING) {
             return ScheduledState.STOPPED;
         }
@@ -173,8 +184,10 @@ public abstract class ProcessorNode extends AbstractComponentNode implements Con
      *            initiate processor <i>start</i> task
      * @param administrativeYieldMillis
      *            the amount of milliseconds to wait for administrative yield
-     * @param processContext
-     *            the instance of {@link ProcessContext}
+     * @param timeoutMillis the number of milliseconds to wait after triggering the Processor's @OnScheduled methods before timing out and considering
+     * the startup a failure. This will result in the thread being interrupted and trying again.
+     * @param processContextFactory
+     *            a factory for creating instances of {@link ProcessContext}
      * @param schedulingAgentCallback
      *            the callback provided by the {@link ProcessScheduler} to
      *            execute upon successful start of the Processor
@@ -183,8 +196,8 @@ public abstract class ProcessorNode extends AbstractComponentNode implements Con
      *            value is <code>true</code> or if the Processor is in any state other than 'STOPPING' or 'RUNNING', then this method
      *            will throw an {@link IllegalStateException}.
      */
-    public abstract void start(ScheduledExecutorService scheduler,
-        long administrativeYieldMillis, ProcessContext processContext, SchedulingAgentCallback schedulingAgentCallback, boolean failIfStopping);
+    public abstract void start(ScheduledExecutorService scheduler, long administrativeYieldMillis, long timeoutMillis, Supplier<ProcessContext> processContextFactory,
+                               SchedulingAgentCallback schedulingAgentCallback, boolean failIfStopping);
 
     /**
      * Will stop the {@link Processor} represented by this {@link ProcessorNode}.
@@ -235,4 +248,12 @@ public abstract class ProcessorNode extends AbstractComponentNode implements Con
      * will result in the WARN message if processor can not be enabled.
      */
     public abstract void disable();
+
+    /**
+     * Returns the Scheduled State that is desired for this Processor. This may vary from the current state if the Processor is not
+     * currently valid, is in the process of stopping but should then transition to Running, etc.
+     *
+     * @return the desired state for this Processor
+     */
+    public abstract ScheduledState getDesiredState();
 }

@@ -54,11 +54,11 @@
     var nfContextMenu;
 
     var dimensions = {
-        width: 150,
-        height: 150
+        width: 148,
+        height: 148
     };
 
-    var MIN_HEIGHT = 20;
+    var MIN_HEIGHT = 24;
     var MIN_WIDTH = 64;
 
     // -----------------------------
@@ -85,6 +85,12 @@
     // ---------------------------------
 
     var labelPointDrag;
+
+    // --------------------------
+    // Snap alignment for label resizing
+    // --------------------------
+    var snapAlignmentPixels = 8;
+    var snapEnabled = true;
 
     // --------------------------
     // privately scoped functions
@@ -351,8 +357,10 @@
                     var labelData = label.datum();
 
                     // update the dimensions and ensure they are still within bounds
-                    labelData.dimensions.width = Math.max(MIN_WIDTH, d3.event.x);
-                    labelData.dimensions.height = Math.max(MIN_HEIGHT, d3.event.y);
+                    // snap between aligned sizes unless the user is holding shift
+                    snapEnabled = !d3.event.sourceEvent.shiftKey;
+                    labelData.dimensions.width = Math.max(MIN_WIDTH, snapEnabled ? (Math.round(d3.event.x/snapAlignmentPixels) * snapAlignmentPixels) : d3.event.x);
+                    labelData.dimensions.height = Math.max(MIN_HEIGHT, snapEnabled ? (Math.round(d3.event.y/snapAlignmentPixels) * snapAlignmentPixels) : d3.event.y);
 
                     // redraw this connection
                     updateLabels(label);

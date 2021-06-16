@@ -21,6 +21,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.stream.Stream;
 import javax.net.ssl.SSLContext;
 import javax.servlet.ServletRequest;
 import javax.servlet.http.HttpServletRequest;
@@ -28,23 +29,24 @@ import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.core.UriBuilderException;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.http.conn.ssl.DefaultHostnameVerifier;
 import org.glassfish.jersey.client.ClientConfig;
 import org.glassfish.jersey.jackson.internal.jackson.jaxrs.json.JacksonJaxbJsonProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.apache.http.conn.ssl.DefaultHostnameVerifier;
 
 /**
  * Common utilities related to web development.
  */
 public final class WebUtils {
 
-    private static Logger logger = LoggerFactory.getLogger(WebUtils.class);
+    private static final Logger logger = LoggerFactory.getLogger(WebUtils.class);
 
     final static ReadWriteLock lock = new ReentrantReadWriteLock();
 
     private static final String PROXY_CONTEXT_PATH_HTTP_HEADER = "X-ProxyContextPath";
     private static final String FORWARDED_CONTEXT_HTTP_HEADER = "X-Forwarded-Context";
+    private static final String FORWARDED_PREFIX_HTTP_HEADER = "X-Forwarded-Prefix";
 
     private WebUtils() {
     }
@@ -105,15 +107,15 @@ public final class WebUtils {
     }
 
     /**
-     * This method will check the provided context path headers against a whitelist (provided in nifi.properties) and throw an exception if the requested context path is not registered.
+     * This method will check the provided context path headers against an allow list (provided in nifi.properties) and throw an exception if the requested context path is not registered.
      *
      * @param uri                     the request URI
      * @param request                 the HTTP request
-     * @param whitelistedContextPaths comma-separated list of valid context paths
+     * @param allowedContextPaths     comma-separated list of valid context paths
      * @return the resource path
      * @throws UriBuilderException if the requested context path is not registered (header poisoning)
      */
-    public static String getResourcePath(URI uri, HttpServletRequest request, String whitelistedContextPaths) throws UriBuilderException {
+    public static String getResourcePath(URI uri, HttpServletRequest request, String allowedContextPaths) throws UriBuilderException {
         String resourcePath = uri.getPath();
 
         // Determine and normalize the context path
@@ -122,7 +124,7 @@ public final class WebUtils {
 
         // If present, check it and prepend to the resource path
         if (StringUtils.isNotBlank(determinedContextPath)) {
-            verifyContextPath(whitelistedContextPaths, determinedContextPath);
+            verifyContextPath(allowedContextPaths, determinedContextPath);
 
             // Determine the complete resource path
             resourcePath = determinedContextPath + resourcePath;
@@ -132,22 +134,22 @@ public final class WebUtils {
     }
 
     /**
-     * Throws an exception if the provided context path is not in the whitelisted context paths list.
+     * Throws an exception if the provided context path is not in the allowed context paths list.
      *
-     * @param whitelistedContextPaths a comma-delimited list of valid context paths
+     * @param allowedContextPaths a comma-delimited list of valid context paths
      * @param determinedContextPath   the normalized context path from a header
      * @throws UriBuilderException if the context path is not safe
      */
-    public static void verifyContextPath(String whitelistedContextPaths, String determinedContextPath) throws UriBuilderException {
+    public static void verifyContextPath(String allowedContextPaths, String determinedContextPath) throws UriBuilderException {
         // If blank, ignore
         if (StringUtils.isBlank(determinedContextPath)) {
             return;
         }
 
-        // Check it against the whitelist
-        List<String> individualContextPaths = Arrays.asList(StringUtils.split(whitelistedContextPaths, ","));
+        // Check it against the allowed list
+        List<String> individualContextPaths = Arrays.asList(StringUtils.split(allowedContextPaths, ","));
         if (!individualContextPaths.contains(determinedContextPath)) {
-            final String msg = "The provided context path [" + determinedContextPath + "] was not whitelisted [" + whitelistedContextPaths + "]";
+            final String msg = "The provided context path [" + determinedContextPath + "] was not registered as allowed [" + allowedContextPaths + "]";
             logger.error(msg);
             throw new UriBuilderException(msg);
         }
@@ -182,15 +184,17 @@ public final class WebUtils {
      * If no headers are present specifying this value, it is an empty string.
      *
      * @param request the HTTP request
+     * @param allowedContextPaths the comma-separated list of allowed context paths
+     * @param jspDisplayName the display name of the resource for log messages
      * @return the context path safe to be printed to the page
      */
-    public static String sanitizeContextPath(ServletRequest request, String whitelistedContextPaths, String jspDisplayName) {
+    public static String sanitizeContextPath(ServletRequest request, String allowedContextPaths, String jspDisplayName) {
         if (StringUtils.isBlank(jspDisplayName)) {
             jspDisplayName = "JSP page";
         }
         String contextPath = normalizeContextPath(determineContextPath((HttpServletRequest) request));
         try {
-            verifyContextPath(whitelistedContextPaths, contextPath);
+            verifyContextPath(allowedContextPaths, contextPath);
             return contextPath;
         } catch (UriBuilderException e) {
             logger.error("Error determining context path on " + jspDisplayName + ": " + e.getMessage());
@@ -199,7 +203,8 @@ public final class WebUtils {
     }
 
     /**
-     * Determines the context path if populated in {@code X-ProxyContextPath} or {@code X-ForwardContext} headers. If not populated, returns an empty string.
+     * Determines the context path if populated in {@code X-ProxyContextPath}, {@code X-ForwardContext},
+     * or {@code X-Forwarded-Prefix} headers.  If not populated, returns an empty string.
      *
      * @param request the HTTP request
      * @return the provided context path or an empty string
@@ -208,18 +213,20 @@ public final class WebUtils {
         String contextPath = request.getContextPath();
         String proxyContextPath = request.getHeader(PROXY_CONTEXT_PATH_HTTP_HEADER);
         String forwardedContext = request.getHeader(FORWARDED_CONTEXT_HTTP_HEADER);
+        String prefix = request.getHeader(FORWARDED_PREFIX_HTTP_HEADER);
 
         logger.debug("Context path: " + contextPath);
         String determinedContextPath = "";
 
-        // If either header is set, log both
-        if (anyNotBlank(proxyContextPath, forwardedContext)) {
+        // If a context path header is set, log each
+        if (anyNotBlank(proxyContextPath, forwardedContext, prefix)) {
             logger.debug(String.format("On the request, the following context paths were parsed" +
-                            " from headers:\n\t X-ProxyContextPath: %s\n\tX-Forwarded-Context: %s",
-                    proxyContextPath, forwardedContext));
+                            " from headers:\n\t X-ProxyContextPath: %s\n\tX-Forwarded-Context: %s\n\tX-Forwarded-Prefix: %s",
+                    proxyContextPath, forwardedContext, prefix));
 
-            // Implementing preferred order here: PCP, FCP
-            determinedContextPath = StringUtils.isNotBlank(proxyContextPath) ? proxyContextPath : forwardedContext;
+            // Implementing preferred order here: PCP, FC, FP
+            determinedContextPath = Stream.of(proxyContextPath, forwardedContext, prefix)
+                    .filter(StringUtils::isNotBlank).findFirst().orElse("");
         }
 
         logger.debug("Determined context path: " + determinedContextPath);

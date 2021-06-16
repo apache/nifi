@@ -19,7 +19,7 @@ package org.apache.nifi.toolkit.cli.impl.command.nifi.registry;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.AbstractNiFiCommand;
-import org.apache.nifi.toolkit.cli.impl.result.RegistryClientsResult;
+import org.apache.nifi.toolkit.cli.impl.result.nifi.RegistryClientsResult;
 import org.apache.nifi.web.api.entity.RegistryClientsEntity;
 
 import java.io.IOException;

@@ -50,21 +50,21 @@ import static org.mockito.Mockito.when;
 
 public class ITListenGRPC {
     private static final String HOST = "localhost";
-    private static final String CERT_DN = "CN=localhost, OU=Apache NiFi, O=Apache, L=Santa Monica, ST=CA, C=US";
+    private static final String CERT_DN = "CN=localhost, OU=NIFI";
     private static final String SOURCE_SYSTEM_UUID = "FAKE_UUID";
 
     private static Map<String, String> getTruststoreProperties() {
         final Map<String, String> props = new HashMap<>();
-        props.put(StandardSSLContextService.TRUSTSTORE.getName(), "src/test/resources/localhost-ts.jks");
-        props.put(StandardSSLContextService.TRUSTSTORE_PASSWORD.getName(), "localtest");
+        props.put(StandardSSLContextService.TRUSTSTORE.getName(), "src/test/resources/truststore.jks");
+        props.put(StandardSSLContextService.TRUSTSTORE_PASSWORD.getName(), "passwordpassword");
         props.put(StandardSSLContextService.TRUSTSTORE_TYPE.getName(), "JKS");
         return props;
     }
 
     private static Map<String, String> getKeystoreProperties() {
         final Map<String, String> properties = new HashMap<>();
-        properties.put(StandardSSLContextService.KEYSTORE.getName(), "src/test/resources/localhost-ks.jks");
-        properties.put(StandardSSLContextService.KEYSTORE_PASSWORD.getName(), "localtest");
+        properties.put(StandardSSLContextService.KEYSTORE.getName(), "src/test/resources/keystore.jks");
+        properties.put(StandardSSLContextService.KEYSTORE_PASSWORD.getName(), "passwordpassword");
         properties.put(StandardSSLContextService.KEYSTORE_TYPE.getName(), "JKS");
         return properties;
     }

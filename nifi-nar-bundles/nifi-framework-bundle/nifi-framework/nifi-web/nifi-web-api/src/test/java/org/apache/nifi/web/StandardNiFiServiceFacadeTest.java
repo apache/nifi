@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.web;
 
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import org.apache.nifi.action.Component;
 import org.apache.nifi.action.FlowChangeAction;
 import org.apache.nifi.action.Operation;
@@ -33,33 +35,47 @@ import org.apache.nifi.authorization.resource.ResourceType;
 import org.apache.nifi.authorization.user.NiFiUserDetails;
 import org.apache.nifi.authorization.user.StandardNiFiUser.Builder;
 import org.apache.nifi.controller.FlowController;
+import org.apache.nifi.controller.flow.FlowManager;
+import org.apache.nifi.controller.service.ControllerServiceProvider;
+import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.history.History;
 import org.apache.nifi.history.HistoryQuery;
+import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.registry.flow.ExternalControllerServiceReference;
+import org.apache.nifi.registry.flow.RestBasedFlowRegistry;
+import org.apache.nifi.registry.flow.VersionControlInformation;
+import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
+import org.apache.nifi.registry.flow.VersionedParameterContext;
+import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedProcessGroup;
+import org.apache.nifi.registry.flow.mapping.NiFiRegistryFlowMapper;
 import org.apache.nifi.web.api.dto.DtoFactory;
 import org.apache.nifi.web.api.dto.EntityFactory;
 import org.apache.nifi.web.api.dto.action.HistoryDTO;
 import org.apache.nifi.web.api.dto.action.HistoryQueryDTO;
 import org.apache.nifi.web.api.entity.ActionEntity;
 import org.apache.nifi.web.controller.ControllerFacade;
+import org.apache.nifi.web.dao.ProcessGroupDAO;
 import org.apache.nifi.web.security.token.NiFiAuthenticationToken;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.ArgumentMatcher;
 import org.mockito.Mockito;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.util.Arrays;
+import java.util.Map;
+import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.argThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.anyInt;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -79,13 +95,15 @@ public class StandardNiFiServiceFacadeTest {
 
     private StandardNiFiServiceFacade serviceFacade;
     private Authorizer authorizer;
+    private FlowController flowController;
+    private ProcessGroupDAO processGroupDAO;
 
     @Before
     public void setUp() throws Exception {
         // audit service
         final AuditService auditService = mock(AuditService.class);
         when(auditService.getAction(anyInt())).then(invocation -> {
-            final Integer actionId = invocation.getArgumentAt(0, Integer.class);
+            final Integer actionId = invocation.getArgument(0);
 
             FlowChangeAction action = null;
             if (ACTION_ID_1.equals(actionId)) {
@@ -106,7 +124,7 @@ public class StandardNiFiServiceFacadeTest {
         // authorizable lookup
         final AuthorizableLookup authorizableLookup = mock(AuthorizableLookup.class);
         when(authorizableLookup.getProcessor(Mockito.anyString())).then(getProcessorInvocation -> {
-            final String processorId = getProcessorInvocation.getArgumentAt(0, String.class);
+            final String processorId = getProcessorInvocation.getArgument(0);
 
             // processor-2 is no longer part of the flow
             if (processorId.equals(PROCESSOR_ID_2)) {
@@ -139,7 +157,7 @@ public class StandardNiFiServiceFacadeTest {
         // authorizer
         authorizer = mock(Authorizer.class);
         when(authorizer.authorize(any(AuthorizationRequest.class))).then(invocation -> {
-            final AuthorizationRequest request = invocation.getArgumentAt(0, AuthorizationRequest.class);
+            final AuthorizationRequest request = invocation.getArgument(0);
 
             AuthorizationResult result = AuthorizationResult.denied();
             if (request.getResource().getIdentifier().endsWith(PROCESSOR_ID_1)) {
@@ -156,13 +174,15 @@ public class StandardNiFiServiceFacadeTest {
         });
 
         // flow controller
-        final FlowController controller = mock(FlowController.class);
-        when(controller.getResource()).thenCallRealMethod();
-        when(controller.getParentAuthorizable()).thenCallRealMethod();
+        flowController = mock(FlowController.class);
+        when(flowController.getResource()).thenCallRealMethod();
+        when(flowController.getParentAuthorizable()).thenCallRealMethod();
 
         // controller facade
         final ControllerFacade controllerFacade = new ControllerFacade();
-        controllerFacade.setFlowController(controller);
+        controllerFacade.setFlowController(flowController);
+
+        processGroupDAO = mock(ProcessGroupDAO.class);
 
         serviceFacade = new StandardNiFiServiceFacade();
         serviceFacade.setAuditService(auditService);
@@ -171,6 +191,8 @@ public class StandardNiFiServiceFacadeTest {
         serviceFacade.setEntityFactory(new EntityFactory());
         serviceFacade.setDtoFactory(new DtoFactory());
         serviceFacade.setControllerFacade(controllerFacade);
+        serviceFacade.setProcessGroupDAO(processGroupDAO);
+
     }
 
     private FlowChangeAction getAction(final Integer actionId, final String processorId) {
@@ -201,18 +223,8 @@ public class StandardNiFiServiceFacadeTest {
         assertTrue(entity.getCanRead());
 
         // resource exists and is approved, no need to check the controller
-        verify(authorizer, times(1)).authorize(argThat(new ArgumentMatcher<AuthorizationRequest>() {
-            @Override
-            public boolean matches(Object o) {
-                return ((AuthorizationRequest) o).getResource().getIdentifier().endsWith(PROCESSOR_ID_1);
-            }
-        }));
-        verify(authorizer, times(0)).authorize(argThat(new ArgumentMatcher<AuthorizationRequest>() {
-            @Override
-            public boolean matches(Object o) {
-                return ((AuthorizationRequest) o).getResource().equals(ResourceFactory.getControllerResource());
-            }
-        }));
+        verify(authorizer, times(1)).authorize(argThat(o -> o.getResource().getIdentifier().endsWith(PROCESSOR_ID_1)));
+        verify(authorizer, times(0)).authorize(argThat(o -> o.getResource().equals(ResourceFactory.getControllerResource())));
     }
 
     @Test(expected = AccessDeniedException.class)
@@ -227,18 +239,8 @@ public class StandardNiFiServiceFacadeTest {
             fail();
         } finally {
             // resource exists, but should trigger access denied and will not check the controller
-            verify(authorizer, times(1)).authorize(argThat(new ArgumentMatcher<AuthorizationRequest>() {
-                @Override
-                public boolean matches(Object o) {
-                    return ((AuthorizationRequest) o).getResource().getIdentifier().endsWith(PROCESSOR_ID_1);
-                }
-            }));
-            verify(authorizer, times(0)).authorize(argThat(new ArgumentMatcher<AuthorizationRequest>() {
-                @Override
-                public boolean matches(Object o) {
-                    return ((AuthorizationRequest) o).getResource().equals(ResourceFactory.getControllerResource());
-                }
-            }));
+            verify(authorizer, times(1)).authorize(argThat(o -> o.getResource().getIdentifier().endsWith(PROCESSOR_ID_1)));
+            verify(authorizer, times(0)).authorize(argThat(o -> o.getResource().equals(ResourceFactory.getControllerResource())));
         }
     }
 
@@ -256,18 +258,8 @@ public class StandardNiFiServiceFacadeTest {
         assertTrue(entity.getCanRead());
 
         // component does not exists, so only checks against the controller
-        verify(authorizer, times(0)).authorize(argThat(new ArgumentMatcher<AuthorizationRequest>() {
-            @Override
-            public boolean matches(Object o) {
-                return ((AuthorizationRequest) o).getResource().getIdentifier().endsWith(PROCESSOR_ID_2);
-            }
-        }));
-        verify(authorizer, times(1)).authorize(argThat(new ArgumentMatcher<AuthorizationRequest>() {
-            @Override
-            public boolean matches(Object o) {
-                return ((AuthorizationRequest) o).getResource().equals(ResourceFactory.getControllerResource());
-            }
-        }));
+        verify(authorizer, times(0)).authorize(argThat(o -> o.getResource().getIdentifier().endsWith(PROCESSOR_ID_2)));
+        verify(authorizer, times(1)).authorize(argThat(o -> o.getResource().equals(ResourceFactory.getControllerResource())));
     }
 
     @Test
@@ -306,6 +298,101 @@ public class StandardNiFiServiceFacadeTest {
                 assertTrue(action.getCanRead());
             }
         });
+    }
+
+    @Test
+    public void testGetCurrentFlowSnapshotByGroupId() {
+        final String groupId = UUID.randomUUID().toString();
+        final ProcessGroup processGroup = mock(ProcessGroup.class);
+
+        when(processGroupDAO.getProcessGroup(groupId)).thenReturn(processGroup);
+
+        final FlowManager flowManager = mock(FlowManager.class);
+        final ExtensionManager extensionManager = mock(ExtensionManager.class);
+        when(flowController.getFlowManager()).thenReturn(flowManager);
+        when(flowController.getExtensionManager()).thenReturn(extensionManager);
+
+        final ControllerServiceProvider controllerServiceProvider = mock(ControllerServiceProvider.class);
+        when(flowController.getControllerServiceProvider()).thenReturn(controllerServiceProvider);
+
+        final VersionControlInformation versionControlInformation = mock(VersionControlInformation.class);
+        when(processGroup.getVersionControlInformation()).thenReturn(versionControlInformation);
+
+        // use spy to mock the make() method for generating a new flow mapper to make this testable
+        final StandardNiFiServiceFacade serviceFacadeSpy = spy(serviceFacade);
+        final NiFiRegistryFlowMapper flowMapper = mock(NiFiRegistryFlowMapper.class);
+        when(serviceFacadeSpy.makeNiFiRegistryFlowMapper(extensionManager)).thenReturn(flowMapper);
+
+        final InstantiatedVersionedProcessGroup nonVersionedProcessGroup = mock(InstantiatedVersionedProcessGroup.class);
+        when(flowMapper.mapNonVersionedProcessGroup(processGroup, controllerServiceProvider)).thenReturn(nonVersionedProcessGroup);
+
+        final String parameterName = "foo";
+        final VersionedParameterContext versionedParameterContext = mock(VersionedParameterContext.class);
+        when(versionedParameterContext.getName()).thenReturn(parameterName);
+        final Map<String, VersionedParameterContext> parameterContexts = Maps.newHashMap();
+        parameterContexts.put(parameterName, versionedParameterContext);
+        when(flowMapper.mapParameterContexts(processGroup, true)).thenReturn(parameterContexts);
+
+        final ExternalControllerServiceReference externalControllerServiceReference = mock(ExternalControllerServiceReference.class);
+        final Map<String, ExternalControllerServiceReference> externalControllerServiceReferences = Maps.newHashMap();
+        externalControllerServiceReferences.put("test", externalControllerServiceReference);
+        when(nonVersionedProcessGroup.getExternalControllerServiceReferences()).thenReturn(externalControllerServiceReferences);
+
+        final VersionedFlowSnapshot versionedFlowSnapshot = serviceFacadeSpy.getCurrentFlowSnapshotByGroupId(groupId);
+
+        assertEquals(nonVersionedProcessGroup, versionedFlowSnapshot.getFlowContents());
+        assertEquals(1, versionedFlowSnapshot.getParameterContexts().size());
+        assertEquals(versionedParameterContext, versionedFlowSnapshot.getParameterContexts().get(parameterName));
+        assertEquals(externalControllerServiceReferences, versionedFlowSnapshot.getExternalControllerServices());
+        assertEquals(RestBasedFlowRegistry.FLOW_ENCODING_VERSION, versionedFlowSnapshot.getFlowEncodingVersion());
+        assertNull(versionedFlowSnapshot.getFlow());
+        assertNull(versionedFlowSnapshot.getBucket());
+        assertNull(versionedFlowSnapshot.getSnapshotMetadata());
+    }
+
+    @Test
+    public void testIsAnyProcessGroupUnderVersionControl_None() {
+        final String groupId = UUID.randomUUID().toString();
+        final ProcessGroup processGroup = mock(ProcessGroup.class);
+        final ProcessGroup childProcessGroup = mock(ProcessGroup.class);
+
+        when(processGroupDAO.getProcessGroup(groupId)).thenReturn(processGroup);
+
+        when(processGroup.getVersionControlInformation()).thenReturn(null);
+        when(processGroup.getProcessGroups()).thenReturn(Sets.newHashSet(childProcessGroup));
+        when(childProcessGroup.getVersionControlInformation()).thenReturn(null);
+
+        assertFalse(serviceFacade.isAnyProcessGroupUnderVersionControl(groupId));
+    }
+
+    @Test
+    public void testIsAnyProcessGroupUnderVersionControl_PrimaryGroup() {
+        final String groupId = UUID.randomUUID().toString();
+        final ProcessGroup processGroup = mock(ProcessGroup.class);
+
+        when(processGroupDAO.getProcessGroup(groupId)).thenReturn(processGroup);
+
+        final VersionControlInformation vci = mock(VersionControlInformation.class);
+        when(processGroup.getVersionControlInformation()).thenReturn(vci);
+        when(processGroup.getProcessGroups()).thenReturn(Sets.newHashSet());
+
+        assertTrue(serviceFacade.isAnyProcessGroupUnderVersionControl(groupId));
+    }
+
+    @Test
+    public void testIsAnyProcessGroupUnderVersionControl_ChildGroup() {
+        final String groupId = UUID.randomUUID().toString();
+        final ProcessGroup processGroup = mock(ProcessGroup.class);
+        final ProcessGroup childProcessGroup = mock(ProcessGroup.class);
+
+        when(processGroupDAO.getProcessGroup(groupId)).thenReturn(processGroup);
+
+        final VersionControlInformation vci = mock(VersionControlInformation.class);
+        when(processGroup.getVersionControlInformation()).thenReturn(null);
+        when(processGroup.getProcessGroups()).thenReturn(Sets.newHashSet(childProcessGroup));
+        when(childProcessGroup.getVersionControlInformation()).thenReturn(vci);
+
+        assertTrue(serviceFacade.isAnyProcessGroupUnderVersionControl(groupId));
     }
 
 }

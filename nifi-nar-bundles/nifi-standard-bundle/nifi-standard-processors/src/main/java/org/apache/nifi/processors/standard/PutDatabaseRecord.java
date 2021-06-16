@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.processors.standard;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -48,9 +50,11 @@ import org.apache.nifi.processor.util.pattern.RoutingResult;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
+import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.util.DataTypeUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -69,7 +73,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -238,6 +241,17 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
+    static final PropertyDescriptor ALLOW_MULTIPLE_STATEMENTS = new PropertyDescriptor.Builder()
+            .name("put-db-record-allow-multiple-statements")
+            .displayName("Allow Multiple SQL Statements")
+            .description("If the Statement Type is 'SQL' (as set in the statement.type attribute), this field indicates whether to split the field value by a semicolon and execute each statement "
+                    + "separately. If any statement causes an error, the entire set of statements will be rolled back. If the Statement Type is not 'SQL', this field is ignored.")
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
+            .required(true)
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .build();
+
     static final PropertyDescriptor QUOTED_IDENTIFIERS = new PropertyDescriptor.Builder()
             .name("put-db-record-quoted-identifiers")
             .displayName("Quote Column Identifiers")
@@ -265,17 +279,29 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
+    static final PropertyDescriptor TABLE_SCHEMA_CACHE_SIZE = new PropertyDescriptor.Builder()
+            .name("table-schema-cache-size")
+            .displayName("Table Schema Cache Size")
+            .description("Specifies how many Table Schemas should be cached")
+            .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
+            .defaultValue("100")
+            .required(true)
+            .build();
+
+    static final PropertyDescriptor MAX_BATCH_SIZE = new PropertyDescriptor.Builder()
+            .name("put-db-record-max-batch-size")
+            .displayName("Maximum Batch Size")
+            .description("Specifies maximum batch size for INSERT and UPDATE statements. This parameter has no effect for other statements specified in 'Statement Type'."
+                            + " Zero means the batch size is not limited.")
+            .defaultValue("0")
+            .required(false)
+            .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .build();
+
     protected static List<PropertyDescriptor> propDescriptors;
 
-    private final Map<SchemaKey, TableSchema> schemaCache = new LinkedHashMap<SchemaKey, TableSchema>(100) {
-        private static final long serialVersionUID = 1L;
-
-        @Override
-        protected boolean removeEldestEntry(Map.Entry<SchemaKey, TableSchema> eldest) {
-            return size() >= 100;
-        }
-    };
-
+    private Cache<SchemaKey, TableSchema> schemaCache;
 
     static {
         final Set<Relationship> r = new HashSet<>();
@@ -296,10 +322,13 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
         pds.add(UNMATCHED_COLUMN_BEHAVIOR);
         pds.add(UPDATE_KEYS);
         pds.add(FIELD_CONTAINING_SQL);
+        pds.add(ALLOW_MULTIPLE_STATEMENTS);
         pds.add(QUOTED_IDENTIFIERS);
         pds.add(QUOTED_TABLE_IDENTIFIER);
         pds.add(QUERY_TIMEOUT);
         pds.add(RollbackOnFailure.ROLLBACK_ON_FAILURE);
+        pds.add(TABLE_SCHEMA_CACHE_SIZE);
+        pds.add(MAX_BATCH_SIZE);
 
         propDescriptors = Collections.unmodifiableList(pds);
     }
@@ -329,9 +358,9 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
                 .build();
     }
 
-    private final PartialFunctions.InitConnection<FunctionContext, Connection> initConnection = (c, s, fc, ff) -> {
+    private final PartialFunctions.InitConnection<FunctionContext, Connection> initConnection = (c, s, fc, ffs) -> {
         final Connection connection = c.getProperty(DBCP_SERVICE).asControllerService(DBCPService.class)
-                .getConnection(ff == null ? Collections.emptyMap() : ff.getAttributes());
+                .getConnection(ffs == null || ffs.isEmpty() ? Collections.emptyMap() : ffs.get(0).getAttributes());
         try {
             fc.originalAutoCommit = connection.getAutoCommit();
             connection.setAutoCommit(false);
@@ -389,7 +418,15 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
 
             getLogger().warn("Failed to process {} due to {}", new Object[]{inputFlowFile, e}, e);
 
-            if (e instanceof BatchUpdateException) {
+            // Check if there was a BatchUpdateException or if multiple SQL statements were being executed and one failed
+            final String statementTypeProperty = context.getProperty(STATEMENT_TYPE).getValue();
+            String statementType = statementTypeProperty;
+            if (USE_ATTR_TYPE.equals(statementTypeProperty)) {
+                statementType = inputFlowFile.getAttribute(STATEMENT_TYPE_ATTRIBUTE);
+            }
+
+            if (e instanceof BatchUpdateException
+                    || (SQL_TYPE.equalsIgnoreCase(statementType) && context.getProperty(ALLOW_MULTIPLE_STATEMENTS).asBoolean())) {
                 try {
                     // Although process session will move forward in order to route the failed FlowFile,
                     // database transaction should be rolled back to avoid partial batch update.
@@ -410,9 +447,10 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
-        synchronized (this) {
-            schemaCache.clear();
-        }
+        final int tableSchemaCacheSize = context.getProperty(TABLE_SCHEMA_CACHE_SIZE).asInteger();
+        schemaCache = Caffeine.newBuilder()
+                .maximumSize(tableSchemaCacheSize)
+                .build();
 
         process = new Put<>();
 
@@ -551,8 +589,16 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
                     throw new MalformedRecordException(format("Record had no (or null) value for Field Containing SQL: %s, FlowFile %s", sqlField, flowFile));
                 }
 
-                // Execute the statement as-is
-                s.execute((String) sql);
+                // Execute the statement(s) as-is
+                if (context.getProperty(ALLOW_MULTIPLE_STATEMENTS).asBoolean()) {
+                    String regex = "(?<!\\\\);";
+                    String[] sqlStatements = ((String) sql).split(regex);
+                    for (String statement : sqlStatements) {
+                        s.execute(statement);
+                    }
+                } else {
+                    s.execute((String) sql);
+                }
             }
             result.routeTo(flowFile, REL_SUCCESS);
             session.getProvenanceReporter().send(flowFile, functionContext.jdbcUrl);
@@ -582,33 +628,20 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
         // cached but the primary keys will not be retrieved, causing future UPDATE statements to not have primary keys available
         final boolean includePrimaryKeys = updateKeys == null;
 
-        // get the database schema from the cache, if one exists. We do this in a synchronized block, rather than
-        // using a ConcurrentMap because the Map that we are using is a LinkedHashMap with a capacity such that if
-        // the Map grows beyond this capacity, old elements are evicted. We do this in order to avoid filling the
-        // Java Heap if there are a lot of different SQL statements being generated that reference different tables.
-        TableSchema tableSchema;
-        synchronized (this) {
-            tableSchema = schemaCache.get(schemaKey);
-            if (tableSchema == null) {
-                // No schema exists for this table yet. Query the database to determine the schema and put it into the cache.
-                tableSchema = TableSchema.from(con, catalog, schemaName, tableName, settings.translateFieldNames, includePrimaryKeys);
-                schemaCache.put(schemaKey, tableSchema);
+        TableSchema tableSchema = schemaCache.get(schemaKey, key -> {
+            try {
+                return TableSchema.from(con, catalog, schemaName, tableName, settings.translateFieldNames, includePrimaryKeys);
+            } catch (SQLException e) {
+                throw new ProcessException(e);
             }
-        }
+        });
         if (tableSchema == null) {
             throw new IllegalArgumentException("No table schema specified!");
         }
 
         // build the fully qualified table name
-        final StringBuilder tableNameBuilder = new StringBuilder();
-        if (catalog != null) {
-            tableNameBuilder.append(catalog).append(".");
-        }
-        if (schemaName != null) {
-            tableNameBuilder.append(schemaName).append(".");
-        }
-        tableNameBuilder.append(tableName);
-        final String fqTableName = tableNameBuilder.toString();
+
+        final String fqTableName =  generateTableName(settings, catalog, schemaName, tableName, tableSchema);
 
         if (recordSchema == null) {
             throw new IllegalArgumentException("No record schema specified!");
@@ -643,37 +676,59 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
             Record currentRecord;
             List<Integer> fieldIndexes = sqlHolder.getFieldIndexes();
 
+            final Integer maxBatchSize = context.getProperty(MAX_BATCH_SIZE).evaluateAttributeExpressions(flowFile).asInteger();
+            int currentBatchSize = 0;
+            int batchIndex = 0;
+
             while ((currentRecord = recordParser.nextRecord()) != null) {
                 Object[] values = currentRecord.getValues();
+                List<DataType> dataTypes = currentRecord.getSchema().getDataTypes();
                 if (values != null) {
                     if (fieldIndexes != null) {
                         for (int i = 0; i < fieldIndexes.size(); i++) {
+                            final int currentFieldIndex = fieldIndexes.get(i);
+                            final Object currentValue = values[currentFieldIndex];
+                            final DataType dataType = dataTypes.get(currentFieldIndex);
+                            final int sqlType = DataTypeUtils.getSQLTypeValue(dataType);
+
                             // If DELETE type, insert the object twice because of the null check (see generateDelete for details)
                             if (DELETE_TYPE.equalsIgnoreCase(statementType)) {
-                                ps.setObject(i * 2 + 1, values[fieldIndexes.get(i)]);
-                                ps.setObject(i * 2 + 2, values[fieldIndexes.get(i)]);
+                                ps.setObject(i * 2 + 1, currentValue, sqlType);
+                                ps.setObject(i * 2 + 2, currentValue, sqlType);
                             } else {
-                                ps.setObject(i + 1, values[fieldIndexes.get(i)]);
+                                ps.setObject(i + 1, currentValue, sqlType);
                             }
                         }
                     } else {
                         // If there's no index map, assume all values are included and set them in order
                         for (int i = 0; i < values.length; i++) {
+                            final Object currentValue = values[i];
+                            final DataType dataType = dataTypes.get(i);
+                            final int sqlType = DataTypeUtils.getSQLTypeValue(dataType);
                             // If DELETE type, insert the object twice because of the null check (see generateDelete for details)
                             if (DELETE_TYPE.equalsIgnoreCase(statementType)) {
-                                ps.setObject(i * 2 + 1, values[i]);
-                                ps.setObject(i * 2 + 2, values[i]);
+                                ps.setObject(i * 2 + 1, currentValue, sqlType);
+                                ps.setObject(i * 2 + 2, currentValue, sqlType);
                             } else {
-                                ps.setObject(i + 1, values[i]);
+                                ps.setObject(i + 1, currentValue, sqlType);
                             }
                         }
                     }
                     ps.addBatch();
+                    if (++currentBatchSize == maxBatchSize) {
+                        batchIndex++;
+                        log.debug("Executing query {}; fieldIndexes: {}; batch index: {}; batch size: {}", new Object[]{sqlHolder.getSql(), sqlHolder.getFieldIndexes(), batchIndex, currentBatchSize});
+                        ps.executeBatch();
+                        currentBatchSize = 0;
+                    }
                 }
             }
 
-            log.debug("Executing query {}", new Object[]{sqlHolder});
-            ps.executeBatch();
+            if (currentBatchSize > 0) {
+                batchIndex++;
+                log.debug("Executing query {}; fieldIndexes: {}; batch index: {}; batch size: {}", new Object[]{sqlHolder.getSql(), sqlHolder.getFieldIndexes(), batchIndex, currentBatchSize});
+                ps.executeBatch();
+            }
             result.routeTo(flowFile, REL_SUCCESS);
             session.getProvenanceReporter().send(flowFile, functionContext.jdbcUrl);
 
@@ -690,6 +745,38 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
 
         RollbackOnFailure.onTrigger(context, sessionFactory, functionContext, getLogger(), session -> process.onTrigger(context, session, functionContext));
 
+    }
+
+    private String generateTableName(DMLSettings settings, String catalog, String schemaName, String tableName, TableSchema tableSchema) {
+        final StringBuilder tableNameBuilder = new StringBuilder();
+        if (catalog != null) {
+            if (settings.quoteTableName) {
+                tableNameBuilder.append(tableSchema.getQuotedIdentifierString())
+                        .append(catalog)
+                        .append(tableSchema.getQuotedIdentifierString());
+            } else {
+                tableNameBuilder.append(catalog);
+            }
+            tableNameBuilder.append(".");
+        }
+        if (schemaName != null) {
+            if (settings.quoteTableName) {
+                tableNameBuilder.append(tableSchema.getQuotedIdentifierString())
+                        .append(schemaName)
+                        .append(tableSchema.getQuotedIdentifierString());
+            } else {
+                tableNameBuilder.append(schemaName);
+            }
+            tableNameBuilder.append(".");
+        }
+        if (settings.quoteTableName) {
+            tableNameBuilder.append(tableSchema.getQuotedIdentifierString())
+                    .append(tableName)
+                    .append(tableSchema.getQuotedIdentifierString());
+        } else {
+            tableNameBuilder.append(tableName);
+        }
+        return tableNameBuilder.toString();
     }
 
     private Set<String> getNormalizedColumnNames(final RecordSchema schema, final boolean translateFieldNames) {
@@ -720,13 +807,7 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
 
         final StringBuilder sqlBuilder = new StringBuilder();
         sqlBuilder.append("INSERT INTO ");
-        if (settings.quoteTableName) {
-            sqlBuilder.append(tableSchema.getQuotedIdentifierString())
-                    .append(tableName)
-                    .append(tableSchema.getQuotedIdentifierString());
-        } else {
-            sqlBuilder.append(tableName);
-        }
+        sqlBuilder.append(tableName);
         sqlBuilder.append(" (");
 
         // iterate over all of the fields in the record, building the SQL statement by adding the column names
@@ -793,13 +874,7 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
 
         final StringBuilder sqlBuilder = new StringBuilder();
         sqlBuilder.append("UPDATE ");
-        if (settings.quoteTableName) {
-            sqlBuilder.append(tableSchema.getQuotedIdentifierString())
-                    .append(tableName)
-                    .append(tableSchema.getQuotedIdentifierString());
-        } else {
-            sqlBuilder.append(tableName);
-        }
+        sqlBuilder.append(tableName);
 
         // Create a Set of all normalized Update Key names, and ensure that there is a field in the record
         // for each of the Update Key fields.
@@ -918,13 +993,7 @@ public class PutDatabaseRecord extends AbstractSessionFactoryProcessor {
 
         final StringBuilder sqlBuilder = new StringBuilder();
         sqlBuilder.append("DELETE FROM ");
-        if (settings.quoteTableName) {
-            sqlBuilder.append(tableSchema.getQuotedIdentifierString())
-                    .append(tableName)
-                    .append(tableSchema.getQuotedIdentifierString());
-        } else {
-            sqlBuilder.append(tableName);
-        }
+        sqlBuilder.append(tableName);
 
         // iterate over all of the fields in the record, building the SQL statement by adding the column names
         List<String> fieldNames = recordSchema.getFieldNames();

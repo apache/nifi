@@ -87,6 +87,9 @@
         'Url' - Space-separated list of URLs of the LDAP servers (i.e. ldap://<hostname>:<port>).
         'Page Size' - Sets the page size when retrieving users and groups. If not specified, no paging is performed.
         'Sync Interval' - Duration of time between syncing users and groups (i.e. 30 mins). Minimum allowable value is 10 secs.
+        'Group Membership - Enforce Case Sensitivity' - Sets whether group membership decisions are case sensitive. When a user or group
+            is inferred (by not specifying or user or group search base or user identity attribute or group name attribute) case sensitivity
+            is enforced since the value to use for the user identity or group name would be ambiguous. Defaults to false.
 
         'User Search Base' - Base DN for searching for users (i.e. ou=users,o=nifi). Required to search users.
         'User Object Class' - Object class for identifying users (i.e. person). Required if searching users.
@@ -147,6 +150,7 @@
         <property name="Url"></property>
         <property name="Page Size"></property>
         <property name="Sync Interval">30 mins</property>
+        <property name="Group Membership - Enforce Case Sensitivity">false</property>
 
         <property name="User Search Base"></property>
         <property name="User Object Class">person</property>
@@ -165,6 +169,31 @@
         <property name="Group Member Attribute - Referenced User Attribute"></property>
     </userGroupProvider>
     To enable the ldap-user-group-provider remove 2 lines. This is 2 of 2. -->
+
+    <!--
+        The ShellUserGroupProvider provides support for retrieving users and groups by way of shell commands
+        on systems that support `sh`.  Implementations available for Linux and Mac OS, and are selected by the
+        provider based on the system property `os.name`.
+
+        'Refresh Delay' - duration to wait between subsequent refreshes.  Default is '5 mins'.
+        'Exclude Groups' - regular expression used to exclude groups.  Default is '', which means no groups are excluded.
+        'Exclude Users' - regular expression used to exclude users.  Default is '', which means no users are excluded.
+        'Legacy Identifier Mode' - preserves the legacy behavior for id generation. Disabling this will ensure that
+                                    user and group ids are differentiated to handle the case where a user and group have
+                                    the same identity. Default is 'true', which means users and groups are not differentiated.
+        'Command Timeout' - amount of time to wait while executing a command before timing out
+    -->
+    <!-- To enable the shell-user-group-provider remove 2 lines. This is 1 of 2.
+    <userGroupProvider>
+        <identifier>shell-user-group-provider</identifier>
+        <class>org.apache.nifi.authorization.ShellUserGroupProvider</class>
+        <property name="Refresh Delay">5 mins</property>
+        <property name="Exclude Groups"></property>
+        <property name="Exclude Users"></property>
+        <property name="Legacy Identifier Mode">true</property>
+        <property name="Command Timeout">60 seconds</property>
+    </userGroupProvider>
+    To enable the shell-user-group-provider remove 2 lines. This is 2 of 2. -->
 
     <!--
         The CompositeUserGroupProvider will provide support for retrieving users and groups from multiple sources.
@@ -198,6 +227,7 @@
             NOTE: Any identity mapping rules specified in nifi.properties are not applied in this implementation. This behavior
             would need to be applied by the base implementation.
     -->
+
     <!-- To enable the composite-configurable-user-group-provider remove 2 lines. This is 1 of 2.
     <userGroupProvider>
         <identifier>composite-configurable-user-group-provider</identifier>
@@ -238,6 +268,11 @@
             NOTE: Any identity mapping rules specified in nifi.properties will also be applied to the node identities,
             so the values should be the unmapped identities (i.e. full DN from a certificate). This identity must be found
             in the configured User Group Provider.
+
+        - Node Group - The name of a group containing NiFi cluster nodes. The typical use for this is when nodes are dynamically
+            added/removed from the cluster.
+
+            NOTE: The group must exist before starting NiFi.
     -->
     <accessPolicyProvider>
         <identifier>file-access-policy-provider</identifier>
@@ -246,8 +281,8 @@
         <property name="Authorizations File">./conf/authorizations.xml</property>
         <property name="Initial Admin Identity"></property>
         <property name="Legacy Authorized Users File"></property>
-
         <property name="Node Identity 1"></property>
+        <property name="Node Group"></property>
     </accessPolicyProvider>
 
     <!--

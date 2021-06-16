@@ -73,7 +73,7 @@ div.new-property-button-container {
     Styles for the property editor.
 */
 
-div.slickgrid-nfel-editor .nfel-editor, div.property-detail .nfel-editor {
+div.slickgrid-nf-editor .nf-editor, div.property-detail .nf-editor {
     margin-bottom: 5px;
     margin-top: 10px;
 }

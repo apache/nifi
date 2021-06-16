@@ -17,10 +17,25 @@
 
 package org.apache.nifi.json;
 
-import static org.junit.Assert.assertEquals;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.record.NullSuppression;
+import org.apache.nifi.schema.access.SchemaNameAsAttribute;
+import org.apache.nifi.serialization.SimpleRecordSchema;
+import org.apache.nifi.serialization.record.DataType;
+import org.apache.nifi.serialization.record.MapRecord;
+import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordField;
+import org.apache.nifi.serialization.record.RecordFieldType;
+import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.RecordSet;
+import org.apache.nifi.serialization.record.SerializedForm;
+import org.junit.Test;
+import org.mockito.Mockito;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -38,20 +53,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
 
-import org.apache.nifi.record.NullSuppression;
-import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.schema.access.SchemaNameAsAttribute;
-import org.apache.nifi.serialization.SimpleRecordSchema;
-import org.apache.nifi.serialization.record.DataType;
-import org.apache.nifi.serialization.record.MapRecord;
-import org.apache.nifi.serialization.record.Record;
-import org.apache.nifi.serialization.record.RecordField;
-import org.apache.nifi.serialization.record.RecordFieldType;
-import org.apache.nifi.serialization.record.RecordSchema;
-import org.apache.nifi.serialization.record.RecordSet;
-import org.apache.nifi.serialization.record.SerializedForm;
-import org.junit.Test;
-import org.mockito.Mockito;
+import static org.junit.Assert.assertEquals;
 
 public class TestWriteJsonResult {
 
@@ -93,6 +95,7 @@ public class TestWriteJsonResult {
         valueMap.put("long", 8L);
         valueMap.put("float", 8.0F);
         valueMap.put("double", 8.0D);
+        valueMap.put("decimal", BigDecimal.valueOf(8.1D));
         valueMap.put("date", new Date(time));
         valueMap.put("time", new Time(time));
         valueMap.put("timestamp", new Timestamp(time));
@@ -111,10 +114,10 @@ public class TestWriteJsonResult {
             writer.write(rs);
         }
 
-        final String output = baos.toString();
+        final String output = baos.toString("UTF-8");
 
         final String expected = new String(Files.readAllBytes(Paths.get("src/test/resources/json/output/dataTypes.json")));
-        assertEquals(expected, output);
+        assertEquals(StringUtils.deleteWhitespace(expected), StringUtils.deleteWhitespace(output));
     }
 
 
@@ -468,6 +471,35 @@ public class TestWriteJsonResult {
         final byte[] data = baos.toByteArray();
 
         final String expected = "{\"timestamp\":37293723,\"time\":37293723,\"date\":37293723}\n{\"timestamp\":37293999,\"time\":37293999,\"date\":37293999}";
+
+        final String output = new String(data, StandardCharsets.UTF_8);
+        assertEquals(expected, output);
+    }
+
+    @Test
+    public void testChoiceArray() throws IOException {
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("path", RecordFieldType.CHOICE.getChoiceDataType(RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.STRING.getDataType()))));
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        Object[] paths = new Object[1];
+        paths[0] = "10.2.1.3";
+
+        final Map<String, Object> values = new HashMap<>();
+        values.put("path", paths);
+        final Record record = new MapRecord(schema, values);
+
+        final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        try (final WriteJsonResult writer = new WriteJsonResult(Mockito.mock(ComponentLog.class), schema, new SchemaNameAsAttribute(), baos, false,
+                NullSuppression.NEVER_SUPPRESS, OutputGrouping.OUTPUT_ARRAY, null, null, null)) {
+            writer.beginRecordSet();
+            writer.writeRecord(record);
+            writer.finishRecordSet();
+        }
+
+        final byte[] data = baos.toByteArray();
+
+        final String expected = "[{\"path\":[\"10.2.1.3\"]}]";
 
         final String output = new String(data, StandardCharsets.UTF_8);
         assertEquals(expected, output);

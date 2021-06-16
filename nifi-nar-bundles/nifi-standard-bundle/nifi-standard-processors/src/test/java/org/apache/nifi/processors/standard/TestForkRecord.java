@@ -17,15 +17,7 @@
 
 package org.apache.nifi.processors.standard;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
+import org.apache.commons.lang3.SystemUtils;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.json.JsonRecordSetWriter;
@@ -47,7 +39,18 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.junit.Assume;
+import org.junit.BeforeClass;
 import org.junit.Test;
+
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 public class TestForkRecord {
 
@@ -91,6 +94,12 @@ public class TestForkRecord {
         transactionFields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
         transactionFields.add(new RecordField("amount", RecordFieldType.DOUBLE.getDataType()));
         return new SimpleRecordSchema(transactionFields);
+    }
+
+    //Pretty printing is not portable as these fail on windows
+    @BeforeClass
+    public static void setUpSuite() {
+        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
     }
 
     @Test
@@ -461,7 +470,8 @@ public class TestForkRecord {
         }
 
         @Override
-        public RecordReader createRecordReader(Map<String, String> variables, InputStream in, ComponentLog logger) throws MalformedRecordException, IOException, SchemaNotFoundException {
+        public RecordReader createRecordReader(Map<String, String> variables, InputStream in, long inputLength, ComponentLog logger)
+                throws MalformedRecordException, IOException, SchemaNotFoundException {
             return new JsonTreeRowRecordReader(in, logger, schema, dateFormat, timeFormat, timestampFormat);
         }
 

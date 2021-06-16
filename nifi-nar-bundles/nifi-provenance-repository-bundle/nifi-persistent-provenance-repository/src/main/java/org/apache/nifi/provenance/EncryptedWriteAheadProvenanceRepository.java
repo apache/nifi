@@ -38,6 +38,15 @@ import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * This class is an implementation of the {@link WriteAheadProvenanceRepository} provenance repository which provides transparent
+ * block encryption/decryption of provenance event data during file system interaction. As of Apache NiFi 1.10.0
+ * (October 2019), this implementation is considered <a href="https://nifi.apache.org/docs/nifi-docs/html/user-guide.html#experimental-warning">*experimental*</a>. For further details, review the
+ * <a href="https://nifi.apache.org/docs/nifi-docs/html/user-guide.html#encrypted-provenance">Apache NiFi User Guide -
+ * Encrypted Provenance Repository</a> and
+ * <a href="https://nifi.apache.org/docs/nifi-docs/html/administration-guide.html#encrypted-write-ahead-provenance-repository-properties">Apache NiFi Admin Guide - Encrypted Write-Ahead Provenance
+ * Repository Properties</a>.
+ */
 public class EncryptedWriteAheadProvenanceRepository extends WriteAheadProvenanceRepository {
     private static final Logger logger = LoggerFactory.getLogger(EncryptedWriteAheadProvenanceRepository.class);
 

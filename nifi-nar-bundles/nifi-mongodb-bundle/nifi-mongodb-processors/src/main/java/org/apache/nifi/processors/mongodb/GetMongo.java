@@ -29,28 +29,25 @@ import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.Validator;
-import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.util.JsonValidator;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.bson.Document;
 import org.bson.json.JsonWriterSettings;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -63,75 +60,17 @@ import java.util.Set;
     @WritesAttribute(attribute = GetMongo.DB_NAME, description = "The database where the results came from."),
     @WritesAttribute(attribute = GetMongo.COL_NAME, description = "The collection where the results came from.")
 })
-public class GetMongo extends AbstractMongoProcessor {
-    static final String DB_NAME = "mongo.database.name";
-    static final String COL_NAME = "mongo.collection.name";
-
-    static final Relationship REL_SUCCESS = new Relationship.Builder()
-            .name("success")
-            .description("All FlowFiles that have the results of a successful query execution go here.")
-            .build();
-
-    static final Relationship REL_FAILURE = new Relationship.Builder()
-            .name("failure")
-            .description("All input FlowFiles that are part of a failed query execution go here.")
-            .build();
-
-    static final Relationship REL_ORIGINAL = new Relationship.Builder()
-            .name("original")
-            .description("All input FlowFiles that are part of a successful query execution go here.")
-            .build();
-
-    static final PropertyDescriptor QUERY = new PropertyDescriptor.Builder()
-        .name("Query")
-        .description("The selection criteria to do the lookup. If the field is left blank, it will look for input from" +
-                " an incoming connection from another processor to provide the query as a valid JSON document inside of " +
-                "the FlowFile's body. If this field is left blank and a timer is enabled instead of an incoming connection, " +
-                "that will result in a full collection fetch using a \"{}\" query.")
+public class GetMongo extends AbstractMongoQueryProcessor {
+    public static final PropertyDescriptor SEND_EMPTY_RESULTS = new PropertyDescriptor.Builder()
+        .name("get-mongo-send-empty")
+        .displayName("Send Empty Result")
+        .description("If a query executes successfully, but returns no results, send an empty JSON document " +
+                "signifying no result.")
+        .allowableValues("true", "false")
+        .defaultValue("false")
+        .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
         .required(false)
-        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-        .addValidator(JsonValidator.INSTANCE)
         .build();
-
-    static final PropertyDescriptor PROJECTION = new PropertyDescriptor.Builder()
-            .name("Projection")
-            .description("The fields to be returned from the documents in the result set; must be a valid BSON document")
-            .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .addValidator(JsonValidator.INSTANCE)
-            .build();
-
-    static final PropertyDescriptor SORT = new PropertyDescriptor.Builder()
-            .name("Sort")
-            .description("The fields by which to sort; must be a valid BSON document")
-            .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .addValidator(JsonValidator.INSTANCE)
-            .build();
-
-    static final PropertyDescriptor LIMIT = new PropertyDescriptor.Builder()
-            .name("Limit")
-            .description("The maximum number of elements to return")
-            .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-            .build();
-
-    static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
-            .name("Batch Size")
-            .description("The number of elements to be returned from the server in one batch")
-            .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-            .build();
-    static final PropertyDescriptor RESULTS_PER_FLOWFILE = new PropertyDescriptor.Builder()
-            .name("results-per-flowfile")
-            .displayName("Results Per FlowFile")
-            .description("How many results to put into a FlowFile at once. The whole body will be treated as a JSON array of results.")
-            .required(false)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
-            .build();
 
     static final AllowableValue YES_PP = new AllowableValue("true", "True");
     static final AllowableValue NO_PP  = new AllowableValue("false", "False");
@@ -164,8 +103,10 @@ public class GetMongo extends AbstractMongoProcessor {
         _propertyDescriptors.add(LIMIT);
         _propertyDescriptors.add(BATCH_SIZE);
         _propertyDescriptors.add(RESULTS_PER_FLOWFILE);
+        _propertyDescriptors.add(DATE_FORMAT);
         _propertyDescriptors.add(SSL_CONTEXT_SERVICE);
         _propertyDescriptors.add(CLIENT_AUTH);
+        _propertyDescriptors.add(SEND_EMPTY_RESULTS);
         propertyDescriptors = Collections.unmodifiableList(_propertyDescriptors);
 
         final Set<Relationship> _relationships = new HashSet<>();
@@ -173,6 +114,12 @@ public class GetMongo extends AbstractMongoProcessor {
         _relationships.add(REL_FAILURE);
         _relationships.add(REL_ORIGINAL);
         relationships = Collections.unmodifiableSet(_relationships);
+    }
+
+    private boolean sendEmpty;
+    @OnScheduled
+    public void onScheduled(PropertyContext context) {
+        sendEmpty = context.getProperty(SEND_EMPTY_RESULTS).asBoolean();
     }
 
     @Override
@@ -221,34 +168,34 @@ public class GetMongo extends AbstractMongoProcessor {
             }
         }
 
-        final Document query = getQuery(context, session, input );
+        final Document query;
+        try {
+            query = getQuery(context, session, input);
+        } catch (Exception ex) {
+            getLogger().error("Error parsing query.", ex);
+            if (input != null) {
+                session.transfer(input, REL_FAILURE);
+            }
 
-        if (query == null) {
-            return;
+            return; //We need to stop immediately.
         }
 
         final String jsonTypeSetting = context.getProperty(JSON_TYPE).getValue();
         final String usePrettyPrint  = context.getProperty(USE_PRETTY_PRINTING).getValue();
         final Charset charset = Charset.forName(context.getProperty(CHARSET).evaluateAttributeExpressions(input).getValue());
-        final Map<String, String> attributes = new HashMap<>();
 
-        attributes.put(CoreAttributes.MIME_TYPE.key(), "application/json");
-
-        if (context.getProperty(QUERY_ATTRIBUTE).isSet()) {
-            final String queryAttr = context.getProperty(QUERY_ATTRIBUTE).evaluateAttributeExpressions(input).getValue();
-            attributes.put(queryAttr, query.toJson());
-        }
 
         final Document projection = context.getProperty(PROJECTION).isSet()
                 ? Document.parse(context.getProperty(PROJECTION).evaluateAttributeExpressions(input).getValue()) : null;
         final Document sort = context.getProperty(SORT).isSet()
                 ? Document.parse(context.getProperty(SORT).evaluateAttributeExpressions(input).getValue()) : null;
 
+        final String dateFormat      = context.getProperty(DATE_FORMAT).evaluateAttributeExpressions(input).getValue();
+        configureMapper(jsonTypeSetting, dateFormat);
+
         final MongoCollection<Document> collection = getCollection(context, input);
         final FindIterable<Document> it = collection.find(query);
-
-        attributes.put(DB_NAME, collection.getNamespace().getDatabaseName());
-        attributes.put(COL_NAME, collection.getNamespace().getCollectionName());
+        final Map<String, String> attributes = getAttributes(context, input, query, collection);
 
         if (projection != null) {
             it.projection(projection);
@@ -263,8 +210,9 @@ public class GetMongo extends AbstractMongoProcessor {
             it.batchSize(context.getProperty(BATCH_SIZE).evaluateAttributeExpressions(input).asInteger());
         }
 
+        long sent = 0;
         try (MongoCursor<Document> cursor = it.iterator()) {
-            configureMapper(jsonTypeSetting);
+            configureMapper(jsonTypeSetting, dateFormat);
 
             if (context.getProperty(RESULTS_PER_FLOWFILE).isSet()) {
                 int sizePerBatch = context.getProperty(RESULTS_PER_FLOWFILE).evaluateAttributeExpressions(input).asInteger();
@@ -281,6 +229,7 @@ public class GetMongo extends AbstractMongoProcessor {
                             logger.error("Error building batch due to {}", new Object[] {e});
                         }
                     }
+                    sent++;
                 }
 
                 if (batch.size() > 0) {
@@ -306,40 +255,20 @@ public class GetMongo extends AbstractMongoProcessor {
                     outgoingFlowFile = session.putAllAttributes(outgoingFlowFile, attributes);
                     session.getProvenanceReporter().receive(outgoingFlowFile, getURI(context));
                     session.transfer(outgoingFlowFile, REL_SUCCESS);
+                    sent++;
                 }
             }
 
             if (input != null) {
                 session.transfer(input, REL_ORIGINAL);
             }
-        }
 
-    }
-
-    private Document getQuery(ProcessContext context, ProcessSession session, FlowFile input) {
-        Document query = null;
-        if (context.getProperty(QUERY).isSet()) {
-            query = Document.parse(context.getProperty(QUERY).evaluateAttributeExpressions(input).getValue());
-        } else if (!context.getProperty(QUERY).isSet() && input == null) {
-            query = Document.parse("{}");
-        } else {
-            try {
-                ByteArrayOutputStream out = new ByteArrayOutputStream();
-                session.exportTo(input, out);
-                out.close();
-                query = Document.parse(new String(out.toByteArray()));
-            } catch (Exception ex) {
-                logger.error("Error reading FlowFile : ", ex);
-                if (input != null) { //Likely culprit is a bad query
-                    session.transfer(input, REL_FAILURE);
-                    session.commit();
-                } else {
-                    throw new ProcessException(ex);
-                }
+            if (sent == 0 && sendEmpty) {
+                FlowFile empty = input != null ? session.create(input) : session.create();
+                empty = session.putAllAttributes(empty, attributes);
+                session.transfer(empty, REL_SUCCESS);
             }
         }
 
-        return query;
     }
-
 }

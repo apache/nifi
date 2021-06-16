@@ -40,7 +40,8 @@ import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.encrypt.StringEncryptor;
-import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.nar.ExtensionDiscoveringManager;
+import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
 import org.apache.nifi.nar.SystemBundle;
 import org.apache.nifi.provenance.MockProvenanceRepository;
 import org.apache.nifi.registry.VariableRegistry;
@@ -64,6 +65,7 @@ public class TestStandardReportingContext {
     private StringEncryptor encryptor;
     private NiFiProperties nifiProperties;
     private Bundle systemBundle;
+    private ExtensionDiscoveringManager extensionManager;
     private BulletinRepository bulletinRepo;
     private VariableRegistry variableRegistry;
     private FlowRegistryClient flowRegistry;
@@ -71,7 +73,6 @@ public class TestStandardReportingContext {
 
     @Before
     public void setup() {
-
         flowFileEventRepo = Mockito.mock(FlowFileEventRepository.class);
         auditService = Mockito.mock(AuditService.class);
         final Map<String, String> otherProps = new HashMap<>();
@@ -89,7 +90,8 @@ public class TestStandardReportingContext {
 
         // use the system bundle
         systemBundle = SystemBundle.create(nifiProperties);
-        ExtensionManager.discoverExtensions(systemBundle, Collections.emptySet());
+        extensionManager = new StandardExtensionDiscoveringManager();
+        extensionManager.discoverExtensions(systemBundle, Collections.emptySet());
 
         User user1 = new User.Builder().identifier("user-id-1").identity("user-1").build();
         User user2 = new User.Builder().identifier("user-id-2").identity("user-2").build();
@@ -132,7 +134,8 @@ public class TestStandardReportingContext {
         flowRegistry = Mockito.mock(FlowRegistryClient.class);
 
         bulletinRepo = Mockito.mock(BulletinRepository.class);
-        controller = FlowController.createStandaloneInstance(flowFileEventRepo, nifiProperties, authorizer, auditService, encryptor, bulletinRepo, variableRegistry, flowRegistry);
+        controller = FlowController.createStandaloneInstance(flowFileEventRepo, nifiProperties, authorizer, auditService, encryptor,
+                bulletinRepo, variableRegistry, flowRegistry, extensionManager);
     }
 
     @After
@@ -143,7 +146,7 @@ public class TestStandardReportingContext {
 
     @Test
     public void testGetPropertyReportingTask() throws ReportingTaskInstantiationException {
-        ReportingTaskNode reportingTask = controller.createReportingTask(DummyScheduledReportingTask.class.getName(), systemBundle.getBundleDetails().getCoordinate());
+        ReportingTaskNode reportingTask = controller.getFlowManager().createReportingTask(DummyScheduledReportingTask.class.getName(), systemBundle.getBundleDetails().getCoordinate());
         PropertyDescriptor TEST_WITHOUT_DEFAULT_VALUE = new PropertyDescriptor.Builder().name("Test without default value").build();
         PropertyDescriptor TEST_WITH_DEFAULT_VALUE = new PropertyDescriptor.Builder().name("Test with default value").build();
 

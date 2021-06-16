@@ -19,7 +19,7 @@ package org.apache.nifi.processors.elasticsearch;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -141,6 +141,7 @@ public class TestQueryElasticsearchHttp {
                 QueryElasticsearchHttp.REL_SUCCESS).get(0);
         assertNotNull(out);
         assertEquals("blah", new String(out.toByteArray()));
+        assertEquals("arrays,are,supported,too", out.getAttribute("es.result.tags"));
         assertEquals("Twitter", out.getAttribute("es.result.source"));
     }
 

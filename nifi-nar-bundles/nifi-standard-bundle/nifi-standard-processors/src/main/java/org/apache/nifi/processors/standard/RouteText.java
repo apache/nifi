@@ -17,38 +17,18 @@
 
 package org.apache.nifi.processors.standard;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.io.Reader;
-import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.cache.CacheBuilder;
 import org.apache.commons.lang3.StringUtils;
-
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.DynamicRelationship;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SideEffectFree;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
-import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
@@ -70,14 +50,30 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.standard.util.NLKBufferedReader;
+import org.apache.nifi.stream.io.util.LineDemarcator;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @EventDriven
 @SideEffectFree
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_REQUIRED)
-@Tags({"attributes", "routing", "text", "regexp", "regex", "Regular Expression", "Expression Language", "csv", "filter", "logs", "delimited"})
+@Tags({"attributes", "routing", "text", "regexp", "regex", "Regular Expression", "Expression Language", "csv", "filter", "logs", "delimited", "find", "string", "search", "filter", "detect"})
 @CapabilityDescription("Routes textual data based on a set of user-defined rules. Each line in an incoming FlowFile is compared against the values specified by user-defined Properties. "
     + "The mechanism by which the text is compared to these user-defined properties is defined by the 'Matching Strategy'. The data is then routed according to these rules, routing "
     + "each line of the text individually.")
@@ -200,7 +196,7 @@ public class RouteText extends AbstractProcessor {
         .description("Data that satisfies the required user-defined rules will be routed to this Relationship")
         .build();
 
-    private static Group EMPTY_GROUP = new Group(Collections.<String> emptyList());
+    private static Group EMPTY_GROUP = new Group(Collections.emptyList());
 
     private AtomicReference<Set<Relationship>> relationships = new AtomicReference<>();
     private List<PropertyDescriptor> properties;
@@ -293,7 +289,7 @@ public class RouteText extends AbstractProcessor {
         final Set<String> allDynamicProps = this.dynamicPropertyNames;
         final Set<Relationship> newRelationships = new HashSet<>();
         final String routeStrategy = configuredRouteStrategy;
-        if (ROUTE_TO_MATCHING_PROPERTY_NAME.equals(routeStrategy)) {
+        if (ROUTE_TO_MATCHING_PROPERTY_NAME.getValue().equals(routeStrategy)) {
             for (final String propName : allDynamicProps) {
                 newRelationships.add(new Relationship.Builder().name(propName).build());
             }
@@ -421,14 +417,13 @@ public class RouteText extends AbstractProcessor {
         session.read(originalFlowFile, new InputStreamCallback() {
             @Override
             public void process(final InputStream in) throws IOException {
-                try (final Reader inReader = new InputStreamReader(in, charset);
-                    final NLKBufferedReader reader = new NLKBufferedReader(inReader)) {
+                try (final LineDemarcator demarcator = new LineDemarcator(in, charset, Integer.MAX_VALUE, 8192)) {
 
                     final Map<String, String> variables = new HashMap<>(2);
 
                     int lineCount = 0;
                     String line;
-                    while ((line = reader.readLine()) != null) {
+                    while ((line = demarcator.nextLine()) != null) {
 
                         final String matchLine;
                         if (trim) {
@@ -552,11 +547,7 @@ public class RouteText extends AbstractProcessor {
     private void appendLine(final ProcessSession session, final Map<Relationship, Map<Group, FlowFile>> flowFileMap, final Relationship relationship,
         final FlowFile original, final String line, final Charset charset, final Group group) {
 
-        Map<Group, FlowFile> groupToFlowFileMap = flowFileMap.get(relationship);
-        if (groupToFlowFileMap == null) {
-            groupToFlowFileMap = new HashMap<>();
-            flowFileMap.put(relationship, groupToFlowFileMap);
-        }
+        final Map<Group, FlowFile> groupToFlowFileMap = flowFileMap.computeIfAbsent(relationship, k -> new HashMap<>());
 
         FlowFile flowFile = groupToFlowFileMap.get(group);
         if (flowFile == null) {
@@ -655,14 +646,9 @@ public class RouteText extends AbstractProcessor {
 
             Group other = (Group) obj;
             if (capturedValues == null) {
-                if (other.capturedValues != null) {
-                    return false;
-                }
-            } else if (!capturedValues.equals(other.capturedValues)) {
-                return false;
-            }
+                return other.capturedValues == null;
+            } else return capturedValues.equals(other.capturedValues);
 
-            return true;
         }
     }
 }

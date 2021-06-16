@@ -319,6 +319,10 @@ li.affected-component-container {
     height: 16px;
 }
 
+span.affected-component-setting-width {
+    max-width: 90%;
+}
+
 div.slick-cell div.overridden {
     text-decoration: line-through;
 }
@@ -328,6 +332,8 @@ div.slick-cell div.overridden {
     top: 550px;
     left: 20px;
     font-size: 13px;
+    max-width: calc(100% - 230px);
+    z-index: 999;
 }
 
 /*
@@ -376,4 +382,12 @@ div.variable-step {
 #variable-update-steps li {
     width: 300px;
     margin-bottom: 2px;
+}
+
+div.parameter-context-step {
+    min-width: 16px;
+    width: 16px;
+    height: 16px;
+    background-color: transparent;
+    float: right;
 }

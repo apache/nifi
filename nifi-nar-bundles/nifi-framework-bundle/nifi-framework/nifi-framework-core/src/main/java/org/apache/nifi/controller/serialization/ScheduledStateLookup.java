@@ -30,7 +30,7 @@ public interface ScheduledStateLookup {
     public static final ScheduledStateLookup IDENTITY_LOOKUP = new ScheduledStateLookup() {
         @Override
         public ScheduledState getScheduledState(final ProcessorNode procNode) {
-            return procNode.getScheduledState();
+            return procNode.getDesiredState();
         }
 
         @Override

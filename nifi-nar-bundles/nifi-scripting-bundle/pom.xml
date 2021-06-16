@@ -13,13 +13,13 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-        <version>1.8.0-SNAPSHOT</version>
+        <version>1.12.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-scripting-bundle</artifactId>
@@ -30,47 +30,53 @@
         <module>nifi-scripting-nar</module>
     </modules>
 
+    <properties>
+        <scripting.groovy.version>2.5.4</scripting.groovy.version>
+    </properties>
+
     <dependencyManagement>
         <dependencies>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-scripting-processors</artifactId>
-                <version>1.8.0-SNAPSHOT</version>
+                <version>1.12.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-distributed-cache-client-service-api</artifactId>
-                <version>1.8.0-SNAPSHOT</version>
+                <version>1.12.0-SNAPSHOT</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-ssl-context-service-api</artifactId>
-                <version>1.8.0-SNAPSHOT</version>
+                <version>1.12.0-SNAPSHOT</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-http-context-map-api</artifactId>
-                <version>1.8.0-SNAPSHOT</version>
+                <version>1.12.0-SNAPSHOT</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-dbcp-service-api</artifactId>
-                <version>1.8.0-SNAPSHOT</version>
+                <version>1.12.0-SNAPSHOT</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-metrics</artifactId>
+                <version>1.12.0-SNAPSHOT</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.codehaus.groovy</groupId>
                 <artifactId>groovy-all</artifactId>
-                <version>2.4.5</version>
-                <!--
-                    Groovy is provided, by default, in a 'test' scope for use with unit tests
-                    Explicitly provide this as 'compile' to provide Groovy support in the
-                    scripting processors
-                -->
-                <scope>compile</scope>
+                <version>${scripting.groovy.version}</version>
+                <type>pom</type>
+                <scope>provided</scope>
             </dependency>
         </dependencies>
     </dependencyManagement>

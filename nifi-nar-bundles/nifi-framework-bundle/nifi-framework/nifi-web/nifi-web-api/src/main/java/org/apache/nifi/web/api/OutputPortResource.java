@@ -26,12 +26,16 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.authorization.resource.OperationAuthorizable;
+import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.Revision;
 import org.apache.nifi.web.api.dto.PortDTO;
 import org.apache.nifi.web.api.dto.PositionDTO;
 import org.apache.nifi.web.api.entity.PortEntity;
+import org.apache.nifi.web.api.entity.PortRunStatusEntity;
+import org.apache.nifi.web.api.entity.ProcessorEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.LongParameter;
 
@@ -313,6 +317,93 @@ public class OutputPortResource extends ApplicationResource {
                     return generateOkResponse(entity).build();
                 }
         );
+    }
+
+
+    /**
+     * Updates the operational status for the specified input port with the specified values.
+     *
+     * @param httpServletRequest request
+     * @param id                 The id of the port to update.
+     * @param requestRunStatus    A portRunStatusEntity.
+     * @return A portEntity.
+     */
+    @PUT
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/{id}/run-status")
+    @ApiOperation(
+            value = "Updates run status of an output-port",
+            response = ProcessorEntity.class,
+            authorizations = {
+                    @Authorization(value = "Write - /output-ports/{uuid} or /operation/output-ports/{uuid}")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
+    public Response updateRunStatus(
+            @Context final HttpServletRequest httpServletRequest,
+            @ApiParam(
+                    value = "The port id.",
+                    required = true
+            )
+            @PathParam("id") final String id,
+            @ApiParam(
+                    value = "The port run status.",
+                    required = true
+            ) final PortRunStatusEntity requestRunStatus) {
+
+        if (requestRunStatus == null) {
+            throw new IllegalArgumentException("Port run status must be specified.");
+        }
+
+        if (requestRunStatus.getRevision() == null) {
+            throw new IllegalArgumentException("Revision must be specified.");
+        }
+
+        requestRunStatus.validateState();
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.PUT, requestRunStatus);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(requestRunStatus.isDisconnectedNodeAcknowledged());
+        }
+
+        // handle expects request (usually from the cluster manager)
+        final Revision requestRevision = getRevision(requestRunStatus.getRevision(), id);
+        return withWriteLock(
+                serviceFacade,
+                requestRunStatus,
+                requestRevision,
+                lookup -> {
+                    final NiFiUser user = NiFiUserUtils.getNiFiUser();
+
+                    final Authorizable authorizable = lookup.getOutputPort(id);
+                    OperationAuthorizable.authorizeOperation(authorizable, authorizer, user);
+                },
+                () -> serviceFacade.verifyUpdateOutputPort(createDTOWithDesiredRunStatus(id, requestRunStatus.getState())),
+                (revision, runStatusEntity) -> {
+                    // update the output port
+                    final PortEntity entity = serviceFacade.updateOutputPort(revision, createDTOWithDesiredRunStatus(id, runStatusEntity.getState()));
+                    populateRemainingOutputPortEntityContent(entity);
+
+                    return generateOkResponse(entity).build();
+                }
+        );
+    }
+
+    private PortDTO createDTOWithDesiredRunStatus(final String id, final String runStatus) {
+        final PortDTO dto = new PortDTO();
+        dto.setId(id);
+        dto.setState(runStatus);
+        return dto;
     }
 
     // setters

@@ -67,6 +67,9 @@ public class ITProcessGroupAccessControl {
         assertTrue(entity.getPermissions().getCanRead());
         assertFalse(entity.getPermissions().getCanWrite());
         assertNotNull(entity.getComponent());
+
+        // ensure the contents are not included
+        assertNull(entity.getComponent().getContents());
     }
 
     /**
@@ -80,6 +83,9 @@ public class ITProcessGroupAccessControl {
         assertTrue(entity.getPermissions().getCanRead());
         assertTrue(entity.getPermissions().getCanWrite());
         assertNotNull(entity.getComponent());
+
+        // ensure the contents are not included
+        assertNull(entity.getComponent().getContents());
     }
 
     /**
@@ -163,6 +169,9 @@ public class ITProcessGroupAccessControl {
         assertEquals(READ_WRITE_CLIENT_ID, responseEntity.getRevision().getClientId());
         assertEquals(version + 1, responseEntity.getRevision().getVersion().longValue());
         assertEquals(updatedName, responseEntity.getComponent().getName());
+
+        // ensure the contents are not included
+        assertNull(responseEntity.getComponent().getContents());
     }
 
     /**
@@ -194,6 +203,9 @@ public class ITProcessGroupAccessControl {
         assertEquals(AccessControlHelper.READ_WRITE_CLIENT_ID, responseEntity.getRevision().getClientId());
         assertEquals(version + 1, responseEntity.getRevision().getVersion().longValue());
         assertEquals(updatedName, responseEntity.getComponent().getName());
+
+        // ensure the contents are not included
+        assertNull(responseEntity.getComponent().getContents());
     }
 
     /**
@@ -237,6 +249,7 @@ public class ITProcessGroupAccessControl {
         // verify
         assertEquals(WRITE_CLIENT_ID, responseEntity.getRevision().getClientId());
         assertEquals(version + 1, responseEntity.getRevision().getVersion().longValue());
+        assertNull(responseEntity.getComponent());
     }
 
     /**
@@ -292,7 +305,14 @@ public class ITProcessGroupAccessControl {
      */
     @Test
     public void testReadWriteUserDeleteProcessGroup() throws Exception {
-        verifyDelete(helper.getReadWriteUser(), AccessControlHelper.READ_WRITE_CLIENT_ID, 200);
+        final Response response = verifyDelete(helper.getReadWriteUser(), AccessControlHelper.READ_WRITE_CLIENT_ID, 200);
+
+        // verify
+        final ProcessGroupEntity entity = response.readEntity(ProcessGroupEntity.class);
+        assertNotNull(entity.getComponent());
+
+        // ensure the contents are not included
+        assertNull(entity.getComponent().getContents());
     }
 
     /**
@@ -302,7 +322,11 @@ public class ITProcessGroupAccessControl {
      */
     @Test
     public void testWriteUserDeleteProcessGroup() throws Exception {
-        verifyDelete(helper.getWriteUser(), AccessControlHelper.WRITE_CLIENT_ID, 200);
+        final Response response = verifyDelete(helper.getWriteUser(), AccessControlHelper.WRITE_CLIENT_ID, 200);
+
+        // verify
+        final ProcessGroupEntity entity = response.readEntity(ProcessGroupEntity.class);
+        assertNull(entity.getComponent());
     }
 
     /**
@@ -417,7 +441,7 @@ public class ITProcessGroupAccessControl {
         return entity;
     }
 
-    private void verifyDelete(final NiFiTestUser user, final String clientId, final int responseCode) throws Exception {
+    private Response verifyDelete(final NiFiTestUser user, final String clientId, final int responseCode) throws Exception {
         final ProcessGroupEntity entity = createProcessGroup("Copy");
 
         // create the entity body
@@ -426,10 +450,12 @@ public class ITProcessGroupAccessControl {
         queryParams.put("clientId", clientId);
 
         // perform the request
-        Response response = user.testDelete(entity.getUri(), queryParams);
+        final Response response = user.testDelete(entity.getUri(), queryParams);
 
         // ensure the request is failed with a forbidden status code
         assertEquals(responseCode, response.getStatus());
+
+        return response;
     }
 
     @AfterClass

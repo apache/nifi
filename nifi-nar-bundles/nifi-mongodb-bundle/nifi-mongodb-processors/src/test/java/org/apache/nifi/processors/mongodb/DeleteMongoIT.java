@@ -19,6 +19,8 @@
 
 package org.apache.nifi.processors.mongodb;
 
+import org.apache.nifi.mongodb.MongoDBClientService;
+import org.apache.nifi.mongodb.MongoDBControllerService;
 import org.apache.nifi.util.TestRunner;
 import org.bson.Document;
 import org.junit.After;
@@ -118,5 +120,25 @@ public class DeleteMongoIT extends MongoWriteTestBase {
         runner.assertTransferCount(DeleteMongo.REL_SUCCESS, 1);
 
         Assert.assertEquals("A document was deleted", 3, collection.count(Document.parse("{}")));
+    }
+
+    @Test
+    public void testClientService() throws Exception {
+        MongoDBClientService clientService = new MongoDBControllerService();
+        TestRunner runner = init(DeleteMongo.class);
+        runner.addControllerService("clientService", clientService);
+        runner.removeProperty(DeleteMongo.URI);
+        runner.setProperty(DeleteMongo.DELETE_MODE, DeleteMongo.DELETE_MANY);
+        runner.setProperty(clientService, MongoDBControllerService.URI, MONGO_URI);
+        runner.setProperty(DeleteMongo.CLIENT_SERVICE, "clientService");
+        runner.enableControllerService(clientService);
+        runner.assertValid();
+
+        runner.enqueue("{}");
+        runner.run();
+        runner.assertTransferCount(DeleteMongo.REL_SUCCESS, 1);
+        runner.assertTransferCount(DeleteMongo.REL_FAILURE, 0);
+
+        Assert.assertEquals(0, collection.count());
     }
 }

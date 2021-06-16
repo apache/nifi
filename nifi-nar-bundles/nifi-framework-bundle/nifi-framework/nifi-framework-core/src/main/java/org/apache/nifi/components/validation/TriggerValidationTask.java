@@ -18,18 +18,18 @@
 package org.apache.nifi.components.validation;
 
 import org.apache.nifi.controller.ComponentNode;
-import org.apache.nifi.controller.FlowController;
+import org.apache.nifi.controller.flow.FlowManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class TriggerValidationTask implements Runnable {
     private static final Logger logger = LoggerFactory.getLogger(TriggerValidationTask.class);
 
-    private final FlowController controller;
+    private final FlowManager flowManager;
     private final ValidationTrigger validationTrigger;
 
-    public TriggerValidationTask(final FlowController controller, final ValidationTrigger validationTrigger) {
-        this.controller = controller;
+    public TriggerValidationTask(final FlowManager flowManager, final ValidationTrigger validationTrigger) {
+        this.flowManager = flowManager;
         this.validationTrigger = validationTrigger;
     }
 
@@ -38,15 +38,15 @@ public class TriggerValidationTask implements Runnable {
         try {
             logger.debug("Triggering validation of all components");
 
-            for (final ComponentNode node : controller.getAllControllerServices()) {
+            for (final ComponentNode node : flowManager.getAllControllerServices()) {
                 validationTrigger.trigger(node);
             }
 
-            for (final ComponentNode node : controller.getAllReportingTasks()) {
+            for (final ComponentNode node : flowManager.getAllReportingTasks()) {
                 validationTrigger.trigger(node);
             }
 
-            for (final ComponentNode node : controller.getRootGroup().findAllProcessors()) {
+            for (final ComponentNode node : flowManager.getRootGroup().findAllProcessors()) {
                 validationTrigger.trigger(node);
             }
         } catch (final Throwable t) {

@@ -219,7 +219,7 @@ public class ClusterConnectionIT {
         cluster.waitUntilAllNodesConnected(10, TimeUnit.SECONDS);
         final Node coordinator = cluster.waitForClusterCoordinator(10, TimeUnit.SECONDS);
 
-        final NodeIdentifier node4NotReallyInCluster = new NodeIdentifier(UUID.randomUUID().toString(), "localhost", 9283, "localhost", 9284, "localhost", 9285, null, false, null);
+        final NodeIdentifier node4NotReallyInCluster = new NodeIdentifier(UUID.randomUUID().toString(), "localhost", 9283, "localhost", 9284, "localhost", 9286, "localhost", 9285, null, false, null);
 
         final Map<NodeIdentifier, NodeConnectionStatus> replacementStatuses = new HashMap<>();
         replacementStatuses.put(node1.getIdentifier(), new NodeConnectionStatus(node1.getIdentifier(), DisconnectionCode.USER_DISCONNECTED));

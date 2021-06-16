@@ -75,7 +75,7 @@ public class TestValidateCsv {
         runner.run();
 
         runner.assertTransferCount(ValidateCsv.REL_VALID, 1);
-        runner.getFlowFilesForRelationship(ValidateCsv.REL_VALID).get(0).assertContentEquals("#Name,Birthdate,Weight\nJohn,,63.2\nBob,,45.0");
+        runner.getFlowFilesForRelationship(ValidateCsv.REL_VALID).get(0).assertContentEquals("#Name,Birthdate,Weight\nJohn,\"\",63.2\nBob,,45.0");
         runner.assertTransferCount(ValidateCsv.REL_INVALID, 0);
     }
 
@@ -335,6 +335,54 @@ public class TestValidateCsv {
         runner.run(2);
 
         runner.assertTransferCount(ValidateCsv.REL_VALID, 2);
+        runner.assertTransferCount(ValidateCsv.REL_INVALID, 0);
+    }
+
+    @Test
+    public void testEscapingLineByLine() {
+        final TestRunner runner = TestRunners.newTestRunner(new ValidateCsv());
+        runner.setProperty(ValidateCsv.DELIMITER_CHARACTER, ",");
+        runner.setProperty(ValidateCsv.END_OF_LINE_CHARACTER, "\r\n");
+        runner.setProperty(ValidateCsv.QUOTE_CHARACTER, "\"");
+        runner.setProperty(ValidateCsv.HEADER, "true");
+        runner.setProperty(ValidateCsv.VALIDATION_STRATEGY, ValidateCsv.VALIDATE_LINES_INDIVIDUALLY);
+
+        final String row = "Header1,\"Header2,escaped\",Header3\r\nField1,\"Field2,escaped\",Field3";
+        runner.setProperty(ValidateCsv.SCHEMA, "ParseInt(),ParseInt(),ParseInt()");
+
+        runner.enqueue(row);
+        runner.run(1);
+
+        runner.assertTransferCount(ValidateCsv.REL_VALID, 0);
+        runner.assertTransferCount(ValidateCsv.REL_INVALID, 1);
+        runner.getFlowFilesForRelationship(ValidateCsv.REL_INVALID).get(0).assertContentEquals(row);
+        runner.clearTransferState();
+
+        runner.setProperty(ValidateCsv.SCHEMA, "null,null,null");
+        runner.enqueue(row);
+        runner.run(1);
+
+        runner.assertTransferCount(ValidateCsv.REL_VALID, 1);
+        runner.assertTransferCount(ValidateCsv.REL_INVALID, 0);
+        runner.getFlowFilesForRelationship(ValidateCsv.REL_VALID).get(0).assertContentEquals(row);
+    }
+
+    @Test
+    public void testQuote() {
+        final TestRunner runner = TestRunners.newTestRunner(new ValidateCsv());
+        runner.setProperty(ValidateCsv.DELIMITER_CHARACTER, ",");
+        runner.setProperty(ValidateCsv.END_OF_LINE_CHARACTER, "\n");
+        runner.setProperty(ValidateCsv.QUOTE_CHARACTER, "\"");
+        runner.setProperty(ValidateCsv.HEADER, "true");
+        runner.setProperty(ValidateCsv.VALIDATION_STRATEGY, ValidateCsv.VALIDATE_LINES_INDIVIDUALLY);
+
+        runner.setProperty(ValidateCsv.SCHEMA, "NotNull(), NotNull(), NotNull()");
+
+        runner.enqueue("Header 1, Header 2, Header 3\n\"Content 1a, Content 1b\", Content 2, Content 3");
+        runner.run();
+
+        runner.assertTransferCount(ValidateCsv.REL_VALID, 1);
+        runner.getFlowFilesForRelationship(ValidateCsv.REL_VALID).get(0).assertContentEquals("Header 1, Header 2, Header 3\n\"Content 1a, Content 1b\", Content 2, Content 3");
         runner.assertTransferCount(ValidateCsv.REL_INVALID, 0);
     }
 }

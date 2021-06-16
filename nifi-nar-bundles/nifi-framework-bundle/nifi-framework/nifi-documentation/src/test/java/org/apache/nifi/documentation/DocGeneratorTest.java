@@ -16,6 +16,20 @@
  */
 package org.apache.nifi.documentation;
 
+import org.apache.commons.io.FileUtils;
+import org.apache.nifi.bundle.Bundle;
+import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.nar.ExtensionDiscoveringManager;
+import org.apache.nifi.nar.ExtensionMapping;
+import org.apache.nifi.nar.NarClassLoadersHolder;
+import org.apache.nifi.nar.NarUnpacker;
+import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
+import org.apache.nifi.nar.SystemBundle;
+import org.apache.nifi.util.NiFiProperties;
+import org.junit.Assert;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -24,18 +38,6 @@ import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.util.Properties;
 import java.util.Set;
-import org.apache.commons.io.FileUtils;
-import org.apache.nifi.bundle.Bundle;
-import org.apache.nifi.bundle.BundleCoordinate;
-import org.apache.nifi.nar.ExtensionManager;
-import org.apache.nifi.nar.ExtensionMapping;
-import org.apache.nifi.nar.NarClassLoaders;
-import org.apache.nifi.nar.NarUnpacker;
-import org.apache.nifi.nar.SystemBundle;
-import org.apache.nifi.util.NiFiProperties;
-import org.junit.Assert;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 
 public class DocGeneratorTest {
 
@@ -51,11 +53,12 @@ public class DocGeneratorTest {
         final Bundle systemBundle = SystemBundle.create(properties);
         final ExtensionMapping mapping = NarUnpacker.unpackNars(properties, systemBundle);
 
-        NarClassLoaders.getInstance().init(properties.getFrameworkWorkingDirectory(), properties.getExtensionsWorkingDirectory());
+        NarClassLoadersHolder.getInstance().init(properties.getFrameworkWorkingDirectory(), properties.getExtensionsWorkingDirectory());
 
-        ExtensionManager.discoverExtensions(systemBundle, NarClassLoaders.getInstance().getBundles());
+        final ExtensionDiscoveringManager extensionManager = new StandardExtensionDiscoveringManager();
+        extensionManager.discoverExtensions(systemBundle, NarClassLoadersHolder.getInstance().getBundles());
 
-        DocGenerator.generate(properties, mapping);
+        DocGenerator.generate(properties, extensionManager, mapping);
 
         final String extensionClassName = "org.apache.nifi.processors.WriteResourceToStream";
         final BundleCoordinate coordinate = mapping.getProcessorNames().get(extensionClassName).stream().findFirst().get();

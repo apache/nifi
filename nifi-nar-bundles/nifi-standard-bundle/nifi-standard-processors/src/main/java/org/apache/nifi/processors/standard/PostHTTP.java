@@ -98,6 +98,7 @@ import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.SupportsBatching;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
@@ -134,10 +135,12 @@ import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.StopWatch;
 import org.apache.nifi.util.StringUtils;
 
+@Deprecated
+@DeprecationNotice(alternatives = {InvokeHTTP.class}, reason = "This processor is deprecated and may be removed in future releases.")
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_REQUIRED)
 @Tags({"http", "https", "remote", "copy", "archive"})
-@CapabilityDescription("Performs an HTTP Post with the content of the FlowFile. "
+@CapabilityDescription("Please be aware this processor is deprecated and may be removed in the near future. Use InvokeHTTP instead. Performs an HTTP Post with the content of the FlowFile. "
         + "Uses a connection pool with max number of connections equal to "
         + "the number of possible endpoints multiplied by the Concurrent Tasks configuration.")
 public class PostHTTP extends AbstractProcessor {

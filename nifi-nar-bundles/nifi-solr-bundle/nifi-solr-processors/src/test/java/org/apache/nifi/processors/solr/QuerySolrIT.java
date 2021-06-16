@@ -19,24 +19,11 @@
 
 package org.apache.nifi.processors.solr;
 
-import com.google.gson.stream.JsonReader;
-import org.apache.nifi.json.JsonRecordSetWriter;
-import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.schema.access.SchemaAccessUtils;
-import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-import org.apache.solr.client.solrj.SolrClient;
-import org.apache.solr.client.solrj.SolrServerException;
-import org.apache.solr.client.solrj.impl.CloudSolrClient;
-import org.apache.solr.client.solrj.request.CollectionAdminRequest;
-import org.apache.solr.common.SolrInputDocument;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.xmlunit.matchers.CompareMatcher;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 
+import com.google.gson.stream.JsonReader;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -44,16 +31,33 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.TimeZone;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
+import org.apache.nifi.json.JsonRecordSetWriter;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.schema.access.SchemaAccessUtils;
+import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.apache.solr.client.solrj.SolrClient;
+import org.apache.solr.client.solrj.SolrServerException;
+import org.apache.solr.client.solrj.impl.CloudSolrClient;
+import org.apache.solr.client.solrj.impl.ZkClientClusterStateProvider;
+import org.apache.solr.client.solrj.request.CollectionAdminRequest;
+import org.apache.solr.common.SolrInputDocument;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import org.mockito.Mockito;
+import org.xmlunit.matchers.CompareMatcher;
 
 public class QuerySolrIT {
     /*
@@ -82,7 +86,8 @@ public class QuerySolrIT {
     public static void setup() throws IOException, SolrServerException {
         CloudSolrClient solrClient = createSolrClient();
         Path currentDir = Paths.get(ZK_CONFIG_PATH);
-        solrClient.uploadConfig(currentDir, ZK_CONFIG_NAME);
+        ZkClientClusterStateProvider stateProvider = new ZkClientClusterStateProvider(SOLR_LOCATION);
+        stateProvider.uploadConfig(currentDir, ZK_CONFIG_NAME);
         solrClient.setDefaultCollection(SOLR_COLLECTION);
 
         if (!solrClient.getZkStateReader().getClusterState().hasCollection(SOLR_COLLECTION)) {
@@ -115,7 +120,7 @@ public class QuerySolrIT {
         CloudSolrClient solrClient = null;
 
         try {
-            solrClient = new CloudSolrClient.Builder().withZkHost(SOLR_LOCATION).build();
+            solrClient = new CloudSolrClient.Builder(Collections.singletonList(SOLR_LOCATION), Optional.empty()).build();
             solrClient.setDefaultCollection(SOLR_COLLECTION);
         } catch (Exception e) {
             e.printStackTrace();
@@ -139,7 +144,7 @@ public class QuerySolrIT {
 
         TestRunner runner = TestRunners.newTestRunner(proc);
         runner.setProperty(SolrUtils.SOLR_TYPE, SolrUtils.SOLR_TYPE_CLOUD.getValue());
-        runner.setProperty(SolrUtils.SOLR_LOCATION, "localhost:2181");
+        runner.setProperty(SolrUtils.SOLR_LOCATION, SOLR_LOCATION);
         runner.setProperty(SolrUtils.COLLECTION, SOLR_COLLECTION);
 
         return runner;
@@ -623,6 +628,24 @@ public class QuerySolrIT {
         solrClient.close();
 
         assertEquals(controlScore, 45);
+    }
+
+    @Test
+    public void testSslContextService() throws IOException, InitializationException {
+        final QuerySolr proc = Mockito.mock(QuerySolr.class);
+        TestRunner runner = TestRunners.newTestRunner(proc);
+        runner.setProperty(SolrUtils.SOLR_TYPE, SolrUtils.SOLR_TYPE_CLOUD.getValue());
+        runner.setProperty(SolrUtils.SOLR_LOCATION, SOLR_LOCATION);
+        runner.setProperty(SolrUtils.COLLECTION, SOLR_COLLECTION);
+
+        final SSLContextService sslContextService = new MockSSLContextService();
+        runner.addControllerService("ssl-context", sslContextService);
+        runner.enableControllerService(sslContextService);
+
+        runner.setProperty(SolrUtils.SSL_CONTEXT_SERVICE, "ssl-context");
+        proc.onScheduled(runner.getProcessContext());
+        Mockito.verify(proc, Mockito.times(1)).createSolrClient(Mockito.any(ProcessContext.class), Mockito.eq(SOLR_LOCATION));
+
     }
 
     // Override createSolrClient and return the passed in SolrClient

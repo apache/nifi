@@ -27,7 +27,6 @@ import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 
 /**
@@ -148,13 +147,26 @@ public class ProxiedEntitiesUtils {
         return StringUtils.join(proxyChain, "");
     }
 
-    public static void successfulAuthorization(HttpServletRequest request, HttpServletResponse response, Authentication authResult) {
+    /**
+     * If a successfully authenticated request was made via a proxy, relevant proxy headers will be added to the response.
+     *
+     * @param request The proxied client request that was successfully authenticated.
+     * @param response A servlet response to the client containing the successful authentication details.
+     */
+    public static void successfulAuthentication(HttpServletRequest request, HttpServletResponse response) {
         if (StringUtils.isNotBlank(request.getHeader(PROXY_ENTITIES_CHAIN))) {
             response.setHeader(PROXY_ENTITIES_ACCEPTED, Boolean.TRUE.toString());
         }
     }
 
-    public static void unsuccessfulAuthorization(HttpServletRequest request, HttpServletResponse response, AuthenticationException failed) {
+    /**
+     * If an unauthenticated request was made via a proxy, add proxy headers to explain why authentication failed.
+     *
+     * @param request The original client request that failed to be authenticated.
+     * @param response Servlet response to the client containing the unsuccessful authentication attempt details.
+     * @param failed The related exception thrown and explanation for the unsuccessful authentication attempt.
+     */
+    public static void unsuccessfulAuthentication(HttpServletRequest request, HttpServletResponse response, AuthenticationException failed) {
         if (StringUtils.isNotBlank(request.getHeader(PROXY_ENTITIES_CHAIN))) {
             response.setHeader(PROXY_ENTITIES_DETAILS, failed.getMessage());
         }

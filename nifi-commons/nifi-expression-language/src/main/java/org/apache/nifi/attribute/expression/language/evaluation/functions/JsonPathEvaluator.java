@@ -16,111 +16,52 @@
  */
 package org.apache.nifi.attribute.expression.language.evaluation.functions;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-
+import com.jayway.jsonpath.PathNotFoundException;
+import org.apache.nifi.attribute.expression.language.EvaluationContext;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
-import org.apache.nifi.attribute.expression.language.evaluation.StringEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.StringQueryResult;
-import org.apache.nifi.attribute.expression.language.evaluation.literals.StringLiteralEvaluator;
-import org.apache.nifi.attribute.expression.language.exception.AttributeExpressionLanguageException;
 
-import com.jayway.jsonpath.Configuration;
 import com.jayway.jsonpath.DocumentContext;
-import com.jayway.jsonpath.InvalidJsonException;
 import com.jayway.jsonpath.JsonPath;
-import com.jayway.jsonpath.spi.json.JacksonJsonProvider;
-import com.jayway.jsonpath.spi.json.JsonProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+/**
+ * JsonPathEvaluator provides access to document at the specified JsonPath
+ */
+public class JsonPathEvaluator extends JsonPathBaseEvaluator {
 
-public class JsonPathEvaluator extends StringEvaluator {
-
-    private static final StringQueryResult EMPTY_RESULT = new StringQueryResult("");
-    private static final Configuration STRICT_PROVIDER_CONFIGURATION = Configuration.builder().jsonProvider(new JacksonJsonProvider()).build();
-    private static final JsonProvider JSON_PROVIDER = STRICT_PROVIDER_CONFIGURATION.jsonProvider();
-
-    private final Evaluator<String> subject;
-    private final Evaluator<String> jsonPathExp;
-    private final JsonPath precompiledJsonPathExp;
+    private static final Logger LOGGER = LoggerFactory.getLogger(JsonPathEvaluator.class);
 
     public JsonPathEvaluator(final Evaluator<String> subject, final Evaluator<String> jsonPathExp) {
-        this.subject = subject;
-        this.jsonPathExp = jsonPathExp;
-        // if the search string is a literal, we don't need to evaluate it each
-        // time; we can just
-        // pre-compile it. Otherwise, it must be compiled every time.
-        if (jsonPathExp instanceof StringLiteralEvaluator) {
-            precompiledJsonPathExp = compileJsonPathExpression(jsonPathExp.evaluate(null).getValue());
-        } else {
-            precompiledJsonPathExp = null;
-        }
-
+        super(subject, jsonPathExp);
     }
 
     @Override
-    public QueryResult<String> evaluate(final Map<String, String> attributes) {
-        final String subjectValue = subject.evaluate(attributes).getValue();
-        if (subjectValue == null || subjectValue.length() == 0) {
-            throw new  AttributeExpressionLanguageException("Subject is empty");
-        }
-        DocumentContext documentContext = null;
-        try {
-            documentContext = validateAndEstablishJsonContext(subjectValue);
-        } catch (InvalidJsonException e) {
-            throw new AttributeExpressionLanguageException("Subject contains invalid JSON: " + subjectValue, e);
-        }
+    public QueryResult<String> evaluate(EvaluationContext context) {
+        DocumentContext documentContext = getDocumentContext(context);
 
-        final JsonPath compiledJsonPath;
-        if (precompiledJsonPathExp != null) {
-            compiledJsonPath = precompiledJsonPathExp;
-        } else {
-            compiledJsonPath = compileJsonPathExpression(jsonPathExp.evaluate(attributes).getValue());
-        }
+        final JsonPath compiledJsonPath = getJsonPath(context);
 
         Object result = null;
         try {
             result = documentContext.read(compiledJsonPath);
+        } catch (PathNotFoundException pnf) {
+            // it is valid for a path not to be found, keys may not be there
+            // do not spam the error log for this, instead we can log debug if enabled
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("PathNotFoundException for JsonPath " + compiledJsonPath.getPath(), pnf);
+            }
+            return EMPTY_RESULT;
         } catch (Exception e) {
-            // assume the path did not match anything in the document
+            // a failure for something *other* than path not found however, should at least be
+            // logged.
+            LOGGER.error("Exception while reading JsonPath " + compiledJsonPath.getPath(), e);
             return EMPTY_RESULT;
         }
 
         return new StringQueryResult(getResultRepresentation(result, EMPTY_RESULT.getValue()));
-    }
-
-
-    @Override
-    public Evaluator<?> getSubjectEvaluator() {
-        return subject;
-    }
-
-    static DocumentContext validateAndEstablishJsonContext(final String json) {
-        final DocumentContext ctx = JsonPath.using(STRICT_PROVIDER_CONFIGURATION).parse(json);
-        return ctx;
-    }
-
-    static boolean isJsonScalar(final Object obj) {
-        return !(obj instanceof Map || obj instanceof List);
-    }
-
-    static String getResultRepresentation(final Object jsonPathResult, final String defaultValue) {
-        if (isJsonScalar(jsonPathResult)) {
-            return Objects.toString(jsonPathResult, defaultValue);
-        } else if (jsonPathResult instanceof List && ((List<?>) jsonPathResult).size() == 1) {
-            return getResultRepresentation(((List<?>) jsonPathResult).get(0), defaultValue);
-        } else {
-            return JSON_PROVIDER.toJson(jsonPathResult);
-        }
-    }
-
-    static JsonPath compileJsonPathExpression(String exp) {
-        try {
-            return JsonPath.compile(exp);
-        } catch (Exception e) {
-            throw new AttributeExpressionLanguageException("Invalid JSON Path expression: " + exp, e);
-        }
     }
 
 }

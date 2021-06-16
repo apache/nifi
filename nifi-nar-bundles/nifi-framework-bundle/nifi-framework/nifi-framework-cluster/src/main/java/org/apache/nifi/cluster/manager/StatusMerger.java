@@ -37,6 +37,7 @@ import org.apache.nifi.web.api.dto.diagnostics.JVMDiagnosticsSnapshotDTO;
 import org.apache.nifi.web.api.dto.diagnostics.JVMFlowDiagnosticsSnapshotDTO;
 import org.apache.nifi.web.api.dto.diagnostics.JVMSystemDiagnosticsSnapshotDTO;
 import org.apache.nifi.web.api.dto.status.ConnectionStatusDTO;
+import org.apache.nifi.web.api.dto.status.ConnectionStatusPredictionsSnapshotDTO;
 import org.apache.nifi.web.api.dto.status.ConnectionStatusSnapshotDTO;
 import org.apache.nifi.web.api.dto.status.ControllerStatusDTO;
 import org.apache.nifi.web.api.dto.status.NodeConnectionStatusSnapshotDTO;
@@ -61,6 +62,7 @@ import org.apache.nifi.web.api.entity.RemoteProcessGroupStatusSnapshotEntity;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -95,6 +97,10 @@ public class StatusMerger {
 
     public static void merge(final ProcessGroupStatusDTO target, final boolean targetReadablePermission, final ProcessGroupStatusDTO toMerge, final boolean toMergeReadablePermission,
                              final String nodeId, final String nodeAddress, final Integer nodeApiPort) {
+        if (toMerge == null) {
+            return;
+        }
+
         if (targetReadablePermission && !toMergeReadablePermission) {
             target.setId(toMerge.getId());
             target.setName(toMerge.getName());
@@ -304,6 +310,7 @@ public class StatusMerger {
             target.setId(toMerge.getId());
             target.setName(toMerge.getName());
             target.setTargetUri(toMerge.getTargetUri());
+            target.setValidationStatus(toMerge.getValidationStatus());
         }
 
         merge(target.getAggregateSnapshot(), targetReadablePermission, toMerge.getAggregateSnapshot(), toMergeReadablePermission);
@@ -494,9 +501,56 @@ public class StatusMerger {
             target.setPercentUseCount(Math.max(target.getPercentUseCount(), toMerge.getPercentUseCount()));
         }
 
+        // Merge predicted values (minimum time to backpressure, maximum percent at next interval
+        ConnectionStatusPredictionsSnapshotDTO targetPredictions = target.getPredictions();
+        ConnectionStatusPredictionsSnapshotDTO toMergePredictions = toMerge.getPredictions();
+
+        if (targetPredictions == null) {
+            target.setPredictions(toMergePredictions);
+        } else if (toMergePredictions != null) {
+            if (targetPredictions.getPredictionIntervalSeconds() == null) {
+                targetPredictions.setPredictionIntervalSeconds(toMergePredictions.getPredictionIntervalSeconds());
+            }
+
+            if (targetPredictions.getPredictedMillisUntilBytesBackpressure() == null) {
+                targetPredictions.setPredictedMillisUntilBytesBackpressure(toMergePredictions.getPredictedMillisUntilBytesBackpressure());
+            } else if (toMergePredictions.getPredictedMillisUntilBytesBackpressure() != null) {
+                targetPredictions.setPredictedMillisUntilBytesBackpressure(minNonNegative(targetPredictions.getPredictedMillisUntilBytesBackpressure(),
+                        toMergePredictions.getPredictedMillisUntilBytesBackpressure()));
+            }
+            if (targetPredictions.getPredictedMillisUntilCountBackpressure() == null) {
+                targetPredictions.setPredictedMillisUntilCountBackpressure(toMergePredictions.getPredictedMillisUntilCountBackpressure());
+            } else if (toMergePredictions.getPredictedMillisUntilCountBackpressure() != null) {
+                targetPredictions.setPredictedMillisUntilCountBackpressure(minNonNegative(targetPredictions.getPredictedMillisUntilCountBackpressure(),
+                        toMergePredictions.getPredictedMillisUntilCountBackpressure()));
+            }
+
+            if (targetPredictions.getPredictedPercentBytes() == null) {
+                targetPredictions.setPredictedPercentBytes(toMergePredictions.getPredictedPercentBytes());
+            } else if (toMerge.getPercentUseBytes() != null) {
+                targetPredictions.setPredictedPercentBytes(Math.max(targetPredictions.getPredictedPercentBytes(),
+                        toMergePredictions.getPredictedPercentBytes()));
+            }
+            if (targetPredictions.getPredictedPercentCount() == null) {
+                targetPredictions.setPredictedPercentCount(toMergePredictions.getPredictedPercentCount());
+            } else if (toMergePredictions.getPredictedPercentCount() != null) {
+                targetPredictions.setPredictedPercentCount(Math.max(targetPredictions.getPredictedPercentCount(),
+                        toMergePredictions.getPredictedPercentCount()));
+            }
+        }
+
         updatePrettyPrintedFields(target);
     }
 
+    private static long minNonNegative(long a, long b){
+        if(a < 0){
+            return b;
+        }else if(b < 0){
+            return a;
+        }else{
+            return Math.min(a, b);
+        }
+    }
     public static void updatePrettyPrintedFields(final ConnectionStatusSnapshotDTO target) {
         target.setQueued(prettyPrint(target.getFlowFilesQueued(), target.getBytesQueued()));
         target.setQueuedCount(formatCount(target.getFlowFilesQueued()));
@@ -514,7 +568,8 @@ public class StatusMerger {
         merge(target.getRemoteProcessGroupStatusSnapshot(), target.getCanRead(), toMerge.getRemoteProcessGroupStatusSnapshot(), toMerge.getCanRead());
     }
 
-    public static void merge(final RemoteProcessGroupStatusSnapshotDTO target, final boolean targetReadablePermission, final RemoteProcessGroupStatusSnapshotDTO toMerge,
+    public static void merge(final RemoteProcessGroupStatusSnapshotDTO target, final boolean targetReadablePermission,
+                             final RemoteProcessGroupStatusSnapshotDTO toMerge,
                              final boolean toMergeReadablePermission) {
         if (target == null || toMerge == null) {
             return;
@@ -730,7 +785,7 @@ public class StatusMerger {
             gcDiagnosticsDto.setMemoryManagerName(memoryManagerName);
 
             final List<GCDiagnosticsSnapshotDTO> gcDiagnosticsSnapshots = new ArrayList<>(snapshotMap.values());
-            Collections.sort(gcDiagnosticsSnapshots, (a, b) -> a.getTimestamp().compareTo(b.getTimestamp()));
+            gcDiagnosticsSnapshots.sort(Comparator.comparing(GCDiagnosticsSnapshotDTO::getTimestamp).reversed());
 
             gcDiagnosticsDto.setSnapshots(gcDiagnosticsSnapshots);
             gcDiagnosticsDtos.add(gcDiagnosticsDto);

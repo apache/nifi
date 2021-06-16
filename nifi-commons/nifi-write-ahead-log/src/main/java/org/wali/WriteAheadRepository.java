@@ -65,7 +65,7 @@ public interface WriteAheadRepository<T> {
      * if power is lost or the Operating System crashes
      * @throws IOException if failure to update repo
      * @throws IllegalArgumentException if multiple records within the given
-     * Collection have the same ID, as specified by {@link Record#getId()}
+     * Collection have the same ID, as specified by {@link SerDe#getRecordIdentifier(Object)}
      * method
      *
      * @return the index of the Partition that performed the update
@@ -89,7 +89,7 @@ public interface WriteAheadRepository<T> {
      * <p>
      * Recovers all External Swap locations that were persisted. If this method
      * is to be called, it must be called AFTER {@link #recoverRecords()} and
-     * BEFORE {@link update}.
+     * BEFORE {@link #update(Collection, boolean)}}.
      * </p>
      *
      * @return swap location

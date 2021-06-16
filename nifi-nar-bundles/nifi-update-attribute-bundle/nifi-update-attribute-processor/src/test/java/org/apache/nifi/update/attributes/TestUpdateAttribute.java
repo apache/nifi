@@ -1005,33 +1005,4 @@ public class TestUpdateAttribute {
         }
     }
 
-    @Test
-    public void testInvalidExpressionLanguage() {
-        final TestRunner runner = TestRunners.newTestRunner(new UpdateAttribute());
-        runner.setVariable("test", "Squirrel!!1!");
-        runner.setProperty("bad_attr", "${test:toDate('yyyy-MM-dd')}");
-        runner.setProperty(UpdateAttribute.FAILURE_BEHAVIOR, UpdateAttribute.FAIL_ROUTE);
-        runner.assertValid();
-
-        runner.enqueue("Test");
-        runner.run();
-
-        runner.assertTransferCount(UpdateAttribute.REL_SUCCESS, 0);
-        runner.assertTransferCount(UpdateAttribute.REL_FAILURE, 1);
-
-        runner.clearTransferState();
-
-        Throwable ex = null;
-        try {
-            runner.setProperty(UpdateAttribute.FAILURE_BEHAVIOR, UpdateAttribute.FAIL_STOP);
-            runner.enqueue("Test");
-            runner.run();
-        } catch (Throwable t) {
-            ex = t;
-        } finally {
-            Assert.assertNotNull(ex);
-            Assert.assertTrue(ex.getCause() instanceof ProcessException);
-            runner.assertQueueNotEmpty();
-        }
-    }
 }

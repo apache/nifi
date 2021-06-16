@@ -17,17 +17,32 @@
 
 package org.apache.nifi.avro;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import org.apache.avro.Conversions;
+import org.apache.avro.LogicalType;
+import org.apache.avro.Schema;
+import org.apache.avro.generic.GenericData.Array;
+import org.apache.avro.generic.GenericRecord;
+import org.apache.nifi.serialization.RecordSetWriter;
+import org.apache.nifi.serialization.SimpleRecordSchema;
+import org.apache.nifi.serialization.WriteResult;
+import org.apache.nifi.serialization.record.DataType;
+import org.apache.nifi.serialization.record.ListRecordSet;
+import org.apache.nifi.serialization.record.MapRecord;
+import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordField;
+import org.apache.nifi.serialization.record.RecordFieldType;
+import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.RecordSet;
+import org.junit.Assert;
+import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.math.BigDecimal;
 import java.io.OutputStream;
+import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.sql.Date;
 import java.sql.Time;
@@ -43,22 +58,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.TimeZone;
 
-import org.apache.avro.Conversions;
-import org.apache.avro.LogicalType;
-import org.apache.avro.Schema;
-import org.apache.avro.generic.GenericData.Array;
-import org.apache.avro.generic.GenericRecord;
-import org.apache.nifi.serialization.RecordSetWriter;
-import org.apache.nifi.serialization.SimpleRecordSchema;
-import org.apache.nifi.serialization.WriteResult;
-import org.apache.nifi.serialization.record.DataType;
-import org.apache.nifi.serialization.record.MapRecord;
-import org.apache.nifi.serialization.record.Record;
-import org.apache.nifi.serialization.record.RecordField;
-import org.apache.nifi.serialization.record.RecordFieldType;
-import org.apache.nifi.serialization.record.RecordSchema;
-import org.apache.nifi.serialization.record.RecordSet;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 public abstract class TestWriteAvroResult {
 
@@ -66,7 +68,122 @@ public abstract class TestWriteAvroResult {
 
     protected abstract GenericRecord readRecord(InputStream in, Schema schema) throws IOException;
 
+    protected abstract List<GenericRecord> readRecords(InputStream in, Schema schema, int recordCount) throws IOException;
+
     protected void verify(final WriteResult writeResult) {
+    }
+
+    @Test
+    public void testWriteRecord() throws IOException {
+        final Schema schema = new Schema.Parser().parse(new File("src/test/resources/avro/simple.avsc"));
+
+        final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("msg", RecordFieldType.STRING.getDataType()));
+        final RecordSchema recordSchema = new SimpleRecordSchema(fields);
+
+        final Map<String, Object> values = new HashMap<>();
+        values.put("msg", "nifi");
+        final Record record = new MapRecord(recordSchema, values);
+
+        try (final RecordSetWriter writer = createWriter(schema, baos)) {
+            writer.write(record);
+        }
+
+        final byte[] data = baos.toByteArray();
+
+        try (final InputStream in = new ByteArrayInputStream(data)) {
+            final GenericRecord avroRecord = readRecord(in, schema);
+
+            assertNotNull(avroRecord);
+            assertNotNull(avroRecord.get("msg"));
+            assertEquals("nifi", avroRecord.get("msg").toString());
+        }
+    }
+
+    @Test
+    public void testWriteRecordSet() throws IOException {
+        final Schema schema = new Schema.Parser().parse(new File("src/test/resources/avro/simple.avsc"));
+
+        final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("msg", RecordFieldType.STRING.getDataType()));
+        final RecordSchema recordSchema = new SimpleRecordSchema(fields);
+
+        final int recordCount = 3;
+        List<Record> records = new ArrayList<>();
+        for (int i = 0; i < recordCount; i++){
+            final Map<String, Object> values = new HashMap<>();
+            values.put("msg", "nifi" + i);
+            final Record record = new MapRecord(recordSchema, values);
+            records.add(record);
+        }
+
+        try (final RecordSetWriter writer = createWriter(schema, baos)) {
+            writer.write(new ListRecordSet(recordSchema, records));
+        }
+
+        final byte[] data = baos.toByteArray();
+
+        try (final InputStream in = new ByteArrayInputStream(data)) {
+            final List<GenericRecord> avroRecords = readRecords(in, schema, recordCount);
+            for (int i = 0; i < recordCount; i++) {
+                final GenericRecord avroRecord = avroRecords.get(i);
+
+                assertNotNull(avroRecord);
+                assertNotNull(avroRecord.get("msg"));
+                assertEquals("nifi" + i, avroRecord.get("msg").toString());
+            }
+        }
+    }
+
+    @Test
+    public void testDecimalType() throws IOException {
+        final Object[][] decimals = new Object[][] {
+                // id, record field, value, expected value
+
+                // Uses the whole precision and scale
+                {1, RecordFieldType.DECIMAL.getDecimalDataType(10, 2),  new BigDecimal("12345678.12"),  new BigDecimal("12345678.12")},
+
+                // Uses less precision and scale than allowed
+                {2, RecordFieldType.DECIMAL.getDecimalDataType(10, 2),  new BigDecimal("123456.1"),  new BigDecimal("123456.10")},
+
+                // Record schema uses smaller precision and scale than allowed
+                {3, RecordFieldType.DECIMAL.getDecimalDataType(8, 1),  new BigDecimal("123456.1"),  new BigDecimal("123456.10")},
+
+                // Record schema uses bigger precision and scale than allowed
+                {4, RecordFieldType.DECIMAL.getDecimalDataType(16, 4),  new BigDecimal("123456.1"),  new BigDecimal("123456.10")},
+        };
+
+        final Schema schema = new Schema.Parser().parse(new File("src/test/resources/avro/decimals.avsc"));
+        final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        final List<RecordField> fields = new ArrayList<>();
+        final Map<String, Object> values = new HashMap<>();
+
+        for (final Object[] decimal : decimals) {
+            fields.add(new RecordField("decimal" + decimal[0], (DataType) decimal[1]));
+            values.put("decimal" + decimal[0], decimal[2]);
+        }
+
+        final Record record = new MapRecord(new SimpleRecordSchema(fields), values);
+
+        try (final RecordSetWriter writer = createWriter(schema, baos)) {
+            writer.write(RecordSet.of(record.getSchema(), record));
+        }
+
+        final byte[] data = baos.toByteArray();
+
+        try (final InputStream in = new ByteArrayInputStream(data)) {
+            final GenericRecord avroRecord = readRecord(in, schema);
+
+            for (final Object[] decimal : decimals) {
+                final Schema decimalSchema = schema.getField("decimal" + decimal[0]).schema();
+                final LogicalType logicalType = decimalSchema.getLogicalType();
+                Assert.assertEquals(decimal[3], new Conversions.DecimalConversion().fromBytes((ByteBuffer) avroRecord.get("decimal" + decimal[0]), decimalSchema, logicalType));
+            }
+        }
     }
 
     @Test
@@ -90,8 +207,7 @@ public abstract class TestWriteAvroResult {
         fields.add(new RecordField("timestampMillis", RecordFieldType.TIMESTAMP.getDataType()));
         fields.add(new RecordField("timestampMicros", RecordFieldType.TIMESTAMP.getDataType()));
         fields.add(new RecordField("date", RecordFieldType.DATE.getDataType()));
-        // Avro decimal is represented as double in NiFi type system.
-        fields.add(new RecordField("decimal", RecordFieldType.DOUBLE.getDataType()));
+        fields.add(new RecordField("decimal", RecordFieldType.DECIMAL.getDecimalDataType(5,2)));
         final RecordSchema recordSchema = new SimpleRecordSchema(fields);
 
         final String expectedTime = "2017-04-04 14:20:33.789";
@@ -105,9 +221,7 @@ public abstract class TestWriteAvroResult {
         values.put("timestampMillis", new Timestamp(timeLong));
         values.put("timestampMicros", new Timestamp(timeLong));
         values.put("date", new Date(timeLong));
-        // Avro decimal is represented as double in NiFi type system.
-        final BigDecimal expectedDecimal = new BigDecimal("123.45");
-        values.put("decimal", expectedDecimal.doubleValue());
+        values.put("decimal", new BigDecimal("123.45"));
         final Record record = new MapRecord(recordSchema, values);
 
         try (final RecordSetWriter writer = createWriter(schema, baos)) {
@@ -125,7 +239,6 @@ public abstract class TestWriteAvroResult {
             assertEquals(millisSinceMidnight * 1000L, avroRecord.get("timeMicros"));
             assertEquals(timeLong, avroRecord.get("timestampMillis"));
             assertEquals(timeLong * 1000L, avroRecord.get("timestampMicros"));
-            assertEquals(17260, avroRecord.get("date"));
             // Double value will be converted into logical decimal if Avro schema is defined as logical decimal.
             final Schema decimalSchema = schema.getField("decimal").schema();
             final LogicalType logicalType = decimalSchema.getLogicalType() != null
@@ -133,7 +246,7 @@ public abstract class TestWriteAvroResult {
                     // Union type doesn't return logical type. Find the first logical type defined within the union.
                     : decimalSchema.getTypes().stream().map(s -> s.getLogicalType()).filter(Objects::nonNull).findFirst().get();
             final BigDecimal decimal = new Conversions.DecimalConversion().fromBytes((ByteBuffer) avroRecord.get("decimal"), decimalSchema, logicalType);
-            assertEquals(expectedDecimal, decimal);
+            assertEquals(new BigDecimal("123.45"), decimal);
         }
     }
 

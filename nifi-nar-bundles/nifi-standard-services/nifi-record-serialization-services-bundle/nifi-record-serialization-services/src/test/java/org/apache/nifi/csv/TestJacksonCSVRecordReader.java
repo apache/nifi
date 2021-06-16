@@ -18,7 +18,7 @@
 package org.apache.nifi.csv;
 
 import org.apache.commons.csv.CSVFormat;
-import org.apache.commons.lang3.StringEscapeUtils;
+import org.apache.commons.text.StringEscapeUtils;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.SimpleRecordSchema;
@@ -235,7 +235,7 @@ public class TestJacksonCSVRecordReader {
         try (final InputStream bais = new ByteArrayInputStream(inputData);
             final JacksonCSVRecordReader reader = createReader(bais, schema, format)) {
 
-            final Record record = reader.nextRecord();
+            final Record record = reader.nextRecord(true, true);
             assertNotNull(record);
 
             assertEquals("1", record.getValue("id"));

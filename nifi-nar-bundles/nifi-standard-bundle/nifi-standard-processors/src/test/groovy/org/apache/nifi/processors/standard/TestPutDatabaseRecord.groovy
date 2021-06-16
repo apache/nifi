@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.processors.standard
 
+
+import org.apache.commons.dbcp2.DelegatingConnection
 import org.apache.nifi.processor.exception.ProcessException
 import org.apache.nifi.processor.util.pattern.RollbackOnFailure
 import org.apache.nifi.reporting.InitializationException
@@ -36,17 +38,25 @@ import org.junit.runners.JUnit4
 
 import java.sql.Connection
 import java.sql.DriverManager
+import java.sql.PreparedStatement
 import java.sql.ResultSet
 import java.sql.SQLDataException
 import java.sql.SQLException
 import java.sql.SQLNonTransientConnectionException
 import java.sql.Statement
+import java.util.function.Supplier
 
 import static org.junit.Assert.assertEquals
 import static org.junit.Assert.assertFalse
+import static org.junit.Assert.assertNotNull
+import static org.junit.Assert.assertNull
 import static org.junit.Assert.assertTrue
 import static org.junit.Assert.fail
+import static org.mockito.ArgumentMatchers.anyMap
+import static org.mockito.Mockito.doAnswer
 import static org.mockito.Mockito.spy
+import static org.mockito.Mockito.times
+import static org.mockito.Mockito.verify
 
 /**
  * Unit tests for the PutDatabaseRecord processor
@@ -230,6 +240,7 @@ class TestPutDatabaseRecord {
         parser.addRecord(2, 'rec2', 102)
         parser.addRecord(3, 'rec3', 103)
         parser.addRecord(4, 'rec4', 104)
+        parser.addRecord(5, null, 105)
 
         runner.setProperty(PutDatabaseRecord.RECORD_READER_FACTORY, 'parser')
         runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE, PutDatabaseRecord.INSERT_TYPE)
@@ -258,6 +269,10 @@ class TestPutDatabaseRecord {
         assertEquals(4, rs.getInt(1))
         assertEquals('rec4', rs.getString(2))
         assertEquals(104, rs.getInt(3))
+        assertTrue(rs.next())
+        assertEquals(5, rs.getInt(1))
+        assertNull(rs.getString(2))
+        assertEquals(105, rs.getInt(3))
         assertFalse(rs.next())
 
         stmt.close()
@@ -397,6 +412,82 @@ class TestPutDatabaseRecord {
         assertEquals(2, rs.getInt(1))
         assertEquals('rec2', rs.getString(2))
         assertEquals(102, rs.getInt(3))
+        assertFalse(rs.next())
+
+        stmt.close()
+        conn.close()
+    }
+
+    @Test
+    void testMultipleInsertsViaSqlStatementType() throws InitializationException, ProcessException, SQLException, IOException {
+        recreateTable("PERSONS", createPersons)
+        final MockRecordParser parser = new MockRecordParser()
+        runner.addControllerService("parser", parser)
+        runner.enableControllerService(parser)
+
+        parser.addSchemaField("sql", RecordFieldType.STRING)
+
+        parser.addRecord('''INSERT INTO PERSONS (id, name, code) VALUES (1, 'rec1',101);INSERT INTO PERSONS (id, name, code) VALUES (2, 'rec2',102)''')
+
+        runner.setProperty(PutDatabaseRecord.RECORD_READER_FACTORY, 'parser')
+        runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE, PutDatabaseRecord.USE_ATTR_TYPE)
+        runner.setProperty(PutDatabaseRecord.TABLE_NAME, 'PERSONS')
+        runner.setProperty(PutDatabaseRecord.FIELD_CONTAINING_SQL, 'sql')
+        runner.setProperty(PutDatabaseRecord.ALLOW_MULTIPLE_STATEMENTS, 'true')
+
+        def attrs = [:]
+        attrs[PutDatabaseRecord.STATEMENT_TYPE_ATTRIBUTE] = 'sql'
+        runner.enqueue(new byte[0], attrs)
+        runner.run()
+
+        runner.assertTransferCount(PutDatabaseRecord.REL_SUCCESS, 1)
+        final Connection conn = dbcp.getConnection()
+        final Statement stmt = conn.createStatement()
+        final ResultSet rs = stmt.executeQuery('SELECT * FROM PERSONS')
+        assertTrue(rs.next())
+        assertEquals(1, rs.getInt(1))
+        assertEquals('rec1', rs.getString(2))
+        assertEquals(101, rs.getInt(3))
+        assertTrue(rs.next())
+        assertEquals(2, rs.getInt(1))
+        assertEquals('rec2', rs.getString(2))
+        assertEquals(102, rs.getInt(3))
+        assertFalse(rs.next())
+
+        stmt.close()
+        conn.close()
+    }
+
+    @Test
+    void testMultipleInsertsViaSqlStatementTypeBadSQL() throws InitializationException, ProcessException, SQLException, IOException {
+        recreateTable("PERSONS", createPersons)
+        final MockRecordParser parser = new MockRecordParser()
+        runner.addControllerService("parser", parser)
+        runner.enableControllerService(parser)
+
+        parser.addSchemaField("sql", RecordFieldType.STRING)
+
+        parser.addRecord('''INSERT INTO PERSONS (id, name, code) VALUES (1, 'rec1',101);
+                        INSERT INTO PERSONS (id, name, code) VALUES (2, 'rec2',102);
+                        INSERT INTO PERSONS2 (id, name, code) VALUES (2, 'rec2',102);''')
+
+        runner.setProperty(PutDatabaseRecord.RECORD_READER_FACTORY, 'parser')
+        runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE, PutDatabaseRecord.USE_ATTR_TYPE)
+        runner.setProperty(PutDatabaseRecord.TABLE_NAME, 'PERSONS')
+        runner.setProperty(PutDatabaseRecord.FIELD_CONTAINING_SQL, 'sql')
+        runner.setProperty(PutDatabaseRecord.ALLOW_MULTIPLE_STATEMENTS, 'true')
+
+        def attrs = [:]
+        attrs[PutDatabaseRecord.STATEMENT_TYPE_ATTRIBUTE] = 'sql'
+        runner.enqueue(new byte[0], attrs)
+        runner.run()
+
+        runner.assertTransferCount(PutDatabaseRecord.REL_SUCCESS, 0)
+        runner.assertTransferCount(PutDatabaseRecord.REL_FAILURE, 1)
+        final Connection conn = dbcp.getConnection()
+        final Statement stmt = conn.createStatement()
+        final ResultSet rs = stmt.executeQuery('SELECT * FROM PERSONS')
+        // The first two legitimate statements should have been rolled back
         assertFalse(rs.next())
 
         stmt.close()
@@ -718,6 +809,99 @@ class TestPutDatabaseRecord {
         conn.close()
     }
 
+    @Test
+    void testInsertWithMaxBatchSize() throws InitializationException, ProcessException, SQLException, IOException {
+        recreateTable("PERSONS", createPersons)
+        final MockRecordParser parser = new MockRecordParser()
+        runner.addControllerService("parser", parser)
+        runner.enableControllerService(parser)
+
+        parser.addSchemaField("id", RecordFieldType.INT)
+        parser.addSchemaField("name", RecordFieldType.STRING)
+        parser.addSchemaField("code", RecordFieldType.INT)
+
+        (1..11).each {
+            parser.addRecord(it, "rec$it".toString(), 100 + it)
+        }
+
+        runner.setProperty(PutDatabaseRecord.RECORD_READER_FACTORY, 'parser')
+        runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE, PutDatabaseRecord.INSERT_TYPE)
+        runner.setProperty(PutDatabaseRecord.TABLE_NAME, 'PERSONS')
+        runner.setProperty(PutDatabaseRecord.MAX_BATCH_SIZE, "5")
+
+        Supplier<PreparedStatement> spyStmt = createPreparedStatementSpy()
+
+        runner.enqueue(new byte[0])
+        runner.run()
+
+        runner.assertTransferCount(PutDatabaseRecord.REL_SUCCESS, 1)
+
+        assertEquals(11, getTableSize())
+
+        assertNotNull(spyStmt.get())
+        verify(spyStmt.get(), times(3)).executeBatch()
+    }
+
+    @Test
+    void testInsertWithDefaultMaxBatchSize() throws InitializationException, ProcessException, SQLException, IOException {
+        recreateTable("PERSONS", createPersons)
+        final MockRecordParser parser = new MockRecordParser()
+        runner.addControllerService("parser", parser)
+        runner.enableControllerService(parser)
+
+        parser.addSchemaField("id", RecordFieldType.INT)
+        parser.addSchemaField("name", RecordFieldType.STRING)
+        parser.addSchemaField("code", RecordFieldType.INT)
+
+        (1..11).each {
+            parser.addRecord(it, "rec$it".toString(), 100 + it)
+        }
+
+        runner.setProperty(PutDatabaseRecord.RECORD_READER_FACTORY, 'parser')
+        runner.setProperty(PutDatabaseRecord.STATEMENT_TYPE, PutDatabaseRecord.INSERT_TYPE)
+        runner.setProperty(PutDatabaseRecord.TABLE_NAME, 'PERSONS')
+
+        Supplier<PreparedStatement> spyStmt = createPreparedStatementSpy()
+
+        runner.enqueue(new byte[0])
+        runner.run()
+
+        runner.assertTransferCount(PutDatabaseRecord.REL_SUCCESS, 1)
+
+        assertEquals(11, getTableSize())
+
+        assertNotNull(spyStmt.get())
+        verify(spyStmt.get(), times(1)).executeBatch()
+    }
+
+    private Supplier<PreparedStatement> createPreparedStatementSpy() {
+        PreparedStatement spyStmt
+        doAnswer({ inv ->
+            new DelegatingConnection((Connection)inv.callRealMethod()) {
+                @Override
+                PreparedStatement prepareStatement(String sql) throws SQLException {
+                    spyStmt = spy(getDelegate().prepareStatement(sql))
+                }
+            }
+        }).when(dbcp).getConnection(anyMap())
+        return { spyStmt }
+    }
+
+    private int getTableSize() {
+        final Connection connection = dbcp.getConnection()
+        try {
+            final Statement stmt = connection.createStatement()
+            try {
+                final ResultSet rs = stmt.executeQuery('SELECT count(*) FROM PERSONS')
+                assertTrue(rs.next())
+                rs.getInt(1)
+            } finally {
+                stmt.close()
+            }
+        } finally {
+            connection.close()
+        }
+    }
 
     private void recreateTable(String tableName, String createSQL) throws ProcessException, SQLException {
         final Connection conn = dbcp.getConnection()
@@ -730,5 +914,48 @@ class TestPutDatabaseRecord {
         stmt.executeUpdate(createSQL)
         stmt.close()
         conn.close()
+    }
+    @Test
+    void testGenerateTableName() throws Exception {
+
+        final List<RecordField> fields = [new RecordField('id', RecordFieldType.INT.dataType),
+                                          new RecordField('name', RecordFieldType.STRING.dataType),
+                                          new RecordField('code', RecordFieldType.INT.dataType),
+                                          new RecordField('non_existing', RecordFieldType.BOOLEAN.dataType)]
+
+        def schema = [
+                getFields    : {fields},
+                getFieldCount: {fields.size()},
+                getField     : {int index -> fields[index]},
+                getDataTypes : {fields.collect {it.dataType}},
+                getFieldNames: {fields.collect {it.fieldName}},
+                getDataType  : {fieldName -> fields.find {it.fieldName == fieldName}.dataType}
+        ] as RecordSchema
+
+        def tableSchema = [
+                [
+                        new PutDatabaseRecord.ColumnDescription('id', 4, true, 2),
+                        new PutDatabaseRecord.ColumnDescription('name', 12, true, 255),
+                        new PutDatabaseRecord.ColumnDescription('code', 4, true, 10)
+                ],
+                false,
+                ['id'] as Set<String>,
+                '"'
+
+        ] as PutDatabaseRecord.TableSchema
+
+        runner.setProperty(PutDatabaseRecord.TRANSLATE_FIELD_NAMES, 'false')
+        runner.setProperty(PutDatabaseRecord.UNMATCHED_FIELD_BEHAVIOR, PutDatabaseRecord.IGNORE_UNMATCHED_FIELD)
+        runner.setProperty(PutDatabaseRecord.UNMATCHED_COLUMN_BEHAVIOR, PutDatabaseRecord.IGNORE_UNMATCHED_COLUMN)
+        runner.setProperty(PutDatabaseRecord.QUOTED_IDENTIFIERS, 'true')
+        runner.setProperty(PutDatabaseRecord.QUOTED_TABLE_IDENTIFIER, 'true')
+        def settings = new PutDatabaseRecord.DMLSettings(runner.getProcessContext())
+
+        processor.with {
+
+            assertEquals('"test_catalog"."test_schema"."test_table"',
+                    generateTableName(settings,"test_catalog","test_schema","test_table",tableSchema))
+
+        }
     }
 }

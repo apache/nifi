@@ -13,12 +13,12 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-web</artifactId>
-        <version>1.8.0-SNAPSHOT</version>
+        <version>1.12.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-web-ui</artifactId>
     <packaging>war</packaging>
@@ -235,6 +235,14 @@
                                         <include>url-search-params/build/url-search-params.js</include>
                                         <include>url-search-params/README.md</include>
                                         <include>url-search-params/LICENSE.txt</include>
+
+                                        <include>lodash-core/distrib/lodash-core.min.js</include>
+                                        <include>lodash-core/distrib/README.md</include>
+
+                                        <include>moment/min/moment.min.js</include>
+                                        <include>moment/README.md</include>
+                                        <include>moment/LICENSE</include>
+
                                     </includes>
                                 </resource>
                             </resources>
@@ -254,6 +262,7 @@
                                     <filtering>false</filtering>
                                     <includes>
                                         <include>package.json</include>
+                                        <include>package-lock.json</include>
                                     </includes>
                                 </resource>
                             </resources>
@@ -390,6 +399,40 @@
     </build>
     <profiles>
         <profile>
+            <id>development-mode</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <build>
+                <plugins>
+                    <!--
+                        Speed up build time by excluding node, npm, and any node_modules from `mvn clean` since the front-end-maven plugin uses these
+                        directories as cache.
+                    -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-clean-plugin</artifactId>
+                        <version>3.0.0</version>
+                        <configuration>
+                            <excludeDefaultDirectories>true</excludeDefaultDirectories>
+                            <filesets>
+                                <fileset>
+                                    <directory>${project.build.directory}</directory>
+                                    <includes>
+                                        <include>**</include>
+                                    </includes>
+                                    <excludes>
+                                        <exclude>frontend-working-directory/node/**/*</exclude>
+                                        <exclude>frontend-working-directory/node_modules/**/*</exclude>
+                                    </excludes>
+                                </fileset>
+                            </filesets>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+        <profile>
             <id>minify-and-compress</id>
             <activation>
                 <activeByDefault>true</activeByDefault>
@@ -482,6 +525,7 @@
                                                 <include>${staging.dir}/js/nf/nf-status-history.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-queue-listing.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-policy-management.js</include>
+                                                <include>${staging.dir}/js/nf/canvas/nf-parameter-contexts.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-actions.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-canvas.js</include>
                                                 <include>${staging.dir}/js/nf/canvas/nf-canvas-error-handler.js</include>
@@ -681,14 +725,17 @@
                                                 <include>${staging.dir}/css/shell.css</include>
                                                 <include>${staging.dir}/css/dialog.css</include>
                                                 <include>${staging.dir}/css/new-processor-dialog.css</include>
+                                                <include>${staging.dir}/css/new-port-dialog.css</include>
                                                 <include>${staging.dir}/css/new-controller-service-dialog.css</include>
                                                 <include>${staging.dir}/css/new-reporting-task-dialog.css</include>
+                                                <include>${staging.dir}/css/new-parameter-context-dialog.css</include>
                                                 <include>${staging.dir}/css/graph.css</include>
                                                 <include>${staging.dir}/css/header.css</include>
                                                 <include>${staging.dir}/css/main.css</include>
                                                 <include>${staging.dir}/css/banner.css</include>
                                                 <include>${staging.dir}/css/navigation.css</include>
                                                 <include>${staging.dir}/css/flow-status.css</include>
+                                                <include>${staging.dir}/css/parameter-contexts.css</include>
                                                 <include>${staging.dir}/css/settings.css</include>
                                                 <include>${staging.dir}/css/about.css</include>
                                                 <include>${staging.dir}/css/status-history.css</include>
@@ -917,7 +964,7 @@
             <groupId>org.eclipse.jetty</groupId>
             <artifactId>apache-jstl</artifactId>
             <scope>provided</scope>
-        </dependency>        
+        </dependency>
         <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>

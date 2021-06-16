@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.atlas.provenance.analyzer.unknown;
 
-import org.apache.atlas.typesystem.Referenceable;
+import org.apache.atlas.v1.model.instance.Referenceable;
 import org.apache.nifi.atlas.provenance.AbstractNiFiProvenanceEventAnalyzer;
 import org.apache.nifi.atlas.provenance.AnalysisContext;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
@@ -33,7 +33,7 @@ public abstract class UnknownDataSet extends AbstractNiFiProvenanceEventAnalyzer
     protected Referenceable createDataSetRef(AnalysisContext context, ProvenanceEventRecord event) {
         final Referenceable ref = new Referenceable(TYPE);
         ref.set(ATTR_NAME, event.getComponentType());
-        ref.set(ATTR_QUALIFIED_NAME, toQualifiedName(context.getNiFiClusterName(), event.getComponentId()));
+        ref.set(ATTR_QUALIFIED_NAME, toQualifiedName(context.getNiFiNamespace(), event.getComponentId()));
         ref.set(ATTR_DESCRIPTION, event.getEventType() + " was performed by " + event.getComponentType());
         return ref;
     }

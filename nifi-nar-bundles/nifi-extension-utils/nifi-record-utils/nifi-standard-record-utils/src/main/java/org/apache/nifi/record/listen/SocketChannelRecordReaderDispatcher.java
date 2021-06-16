@@ -25,6 +25,7 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 import java.io.Closeable;
 import java.net.SocketAddress;
+import java.net.StandardSocketOptions;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.concurrent.BlockingQueue;
@@ -79,6 +80,7 @@ public class SocketChannelRecordReaderDispatcher implements Runnable, Closeable 
                     continue;
                 }
 
+                socketChannel.setOption(StandardSocketOptions.SO_KEEPALIVE, true);
                 final SocketAddress remoteSocketAddress = socketChannel.getRemoteAddress();
                 socketChannel.socket().setSoTimeout(socketReadTimeout);
                 socketChannel.socket().setReceiveBufferSize(receiveBufferSize);

@@ -16,12 +16,6 @@
  */
 package org.apache.nifi.controller.scheduling;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ReportingTaskNode;
@@ -34,6 +28,12 @@ import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class TimerDrivenSchedulingAgent extends AbstractSchedulingAgent {
 
@@ -68,7 +68,7 @@ public class TimerDrivenSchedulingAgent extends AbstractSchedulingAgent {
 
     @Override
     public void doSchedule(final ReportingTaskNode taskNode, final LifecycleState scheduleState) {
-        final Runnable reportingTaskWrapper = new ReportingTaskWrapper(taskNode, scheduleState);
+        final Runnable reportingTaskWrapper = new ReportingTaskWrapper(taskNode, scheduleState, flowController.getExtensionManager());
         final long schedulingNanos = taskNode.getSchedulingPeriod(TimeUnit.NANOSECONDS);
 
         final ScheduledFuture<?> future = flowEngine.scheduleWithFixedDelay(reportingTaskWrapper, 0L, schedulingNanos, TimeUnit.NANOSECONDS);

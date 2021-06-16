@@ -16,8 +16,7 @@
  */
 package org.apache.nifi.attribute.expression.language.evaluation.reduce;
 
-import java.util.Map;
-
+import org.apache.nifi.attribute.expression.language.EvaluationContext;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.WholeNumberEvaluator;
@@ -27,15 +26,18 @@ import org.apache.nifi.expression.AttributeExpression.ResultType;
 public class CountEvaluator extends WholeNumberEvaluator implements ReduceEvaluator<Long> {
 
     private final Evaluator<?> subjectEvaluator;
-    private long count = 0L;
 
     public CountEvaluator(final Evaluator<?> subjectEvaluator) {
         this.subjectEvaluator = subjectEvaluator;
     }
 
     @Override
-    public QueryResult<Long> evaluate(final Map<String, String> attributes) {
-        final QueryResult<?> result = subjectEvaluator.evaluate(attributes);
+    public QueryResult<Long> evaluate(final EvaluationContext evaluationContext) {
+        final QueryResult<?> result = subjectEvaluator.evaluate(evaluationContext);
+        Long count = evaluationContext.getEvaluatorState().getState(this, Long.class);
+        if (count == null) {
+            count = 0L;
+        }
         if (result.getValue() == null) {
             return new WholeNumberQueryResult(count);
         }
@@ -45,6 +47,7 @@ public class CountEvaluator extends WholeNumberEvaluator implements ReduceEvalua
         }
 
         count++;
+        evaluationContext.getEvaluatorState().putState(this, count);
         return new WholeNumberQueryResult(count);
     }
 

@@ -18,16 +18,17 @@ package org.apache.nifi.ui.extension;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Mapping of all discovered UI extensions.
  */
 public class UiExtensionMapping {
 
-    private final Map<String, List<UiExtension>> uiExtensions;
+    private final Map<String, List<UiExtension>> uiExtensions = new ConcurrentHashMap<>();
 
     public UiExtensionMapping(Map<String, List<UiExtension>> uiExtensions) {
-        this.uiExtensions = uiExtensions;
+        this.uiExtensions.putAll(uiExtensions);
     }
 
     private String getBundleSpecificKey(final String type, final String bundleGroup, final String bundleArtifact, final String bundleVersion) {
@@ -70,6 +71,15 @@ public class UiExtensionMapping {
 
         // otherwise fall back to the component type
         return uiExtensions.get(type);
+    }
+
+    /**
+     * Adds additional UI extensions to the mapping.
+     *
+     * @param uiExtensions the additional UI extension mappings.
+     */
+    public void addUiExtensions(Map<String, List<UiExtension>> uiExtensions) {
+        this.uiExtensions.putAll(uiExtensions);
     }
 
 }

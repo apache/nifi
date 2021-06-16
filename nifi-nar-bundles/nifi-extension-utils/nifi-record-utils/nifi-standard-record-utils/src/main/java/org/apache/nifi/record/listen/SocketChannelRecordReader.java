@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.record.listen;
 
-import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.MalformedRecordException;
@@ -32,18 +31,14 @@ import java.net.InetAddress;
 public interface SocketChannelRecordReader extends Closeable {
 
     /**
-     * Currently a RecordReader can only be created with a FlowFile. Since we won't have a FlowFile at the time
-     * a connection is accepted, this method will be used to lazily create the RecordReader later. Eventually this
-     * method should be removed and the reader should be passed in through the constructor.
+     * Lazily creates the RecordReader.
      *
-     *
-     * @param flowFile the flow file we are creating the reader for
      * @param logger the logger of the component creating the reader
      * @return a RecordReader
      *
      * @throws IllegalStateException if create is called after a reader has already been created
      */
-    RecordReader createRecordReader(final FlowFile flowFile, final ComponentLog logger) throws IOException, MalformedRecordException, SchemaNotFoundException;
+    RecordReader createRecordReader(ComponentLog logger) throws IOException, MalformedRecordException, SchemaNotFoundException;
 
     /**
      * @return the RecordReader created by calling createRecordReader, or null if one has not been created yet

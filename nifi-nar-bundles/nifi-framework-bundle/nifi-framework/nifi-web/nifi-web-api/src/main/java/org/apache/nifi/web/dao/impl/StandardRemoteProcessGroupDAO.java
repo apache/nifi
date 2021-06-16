@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.web.dao.impl;
 
-import static org.apache.nifi.util.StringUtils.isEmpty;
-
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.connectable.Position;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.exception.ValidationException;
@@ -33,6 +33,7 @@ import org.apache.nifi.web.api.dto.BatchSettingsDTO;
 import org.apache.nifi.web.api.dto.DtoFactory;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupPortDTO;
+import org.apache.nifi.web.dao.ComponentStateDAO;
 import org.apache.nifi.web.dao.RemoteProcessGroupDAO;
 
 import java.util.ArrayList;
@@ -40,12 +41,15 @@ import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
 
+import static org.apache.nifi.util.StringUtils.isEmpty;
+
 public class StandardRemoteProcessGroupDAO extends ComponentDAO implements RemoteProcessGroupDAO {
 
     private FlowController flowController;
+    private ComponentStateDAO componentStateDAO;
 
     private RemoteProcessGroup locateRemoteProcessGroup(final String remoteProcessGroupId) {
-        final ProcessGroup rootGroup = flowController.getGroup(flowController.getRootGroupId());
+        final ProcessGroup rootGroup = flowController.getFlowManager().getRootGroup();
         final RemoteProcessGroup remoteProcessGroup = rootGroup.findRemoteProcessGroup(remoteProcessGroupId);
 
         if (remoteProcessGroup == null) {
@@ -57,7 +61,7 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
 
     @Override
     public boolean hasRemoteProcessGroup(String remoteProcessGroupId) {
-        final ProcessGroup rootGroup = flowController.getGroup(flowController.getRootGroupId());
+        final ProcessGroup rootGroup = flowController.getFlowManager().getRootGroup();
         return rootGroup.findRemoteProcessGroup(remoteProcessGroupId) != null;
     }
 
@@ -71,7 +75,7 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
     public RemoteProcessGroup createRemoteProcessGroup(String groupId, RemoteProcessGroupDTO remoteProcessGroupDTO) {
         ProcessGroup group = locateProcessGroup(flowController, groupId);
 
-        if (remoteProcessGroupDTO.getParentGroupId() != null && !flowController.areGroupsSame(groupId, remoteProcessGroupDTO.getParentGroupId())) {
+        if (remoteProcessGroupDTO.getParentGroupId() != null && !flowController.getFlowManager().areGroupsSame(groupId, remoteProcessGroupDTO.getParentGroupId())) {
             throw new IllegalArgumentException("Cannot specify a different Parent Group ID than the Group to which the Remote Process Group is being added.");
         }
 
@@ -81,7 +85,7 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
         }
 
         // create the remote process group
-        RemoteProcessGroup remoteProcessGroup = flowController.createRemoteProcessGroup(remoteProcessGroupDTO.getId(), targetUris);
+        RemoteProcessGroup remoteProcessGroup = flowController.getFlowManager().createRemoteProcessGroup(remoteProcessGroupDTO.getId(), targetUris);
         remoteProcessGroup.initialize();
 
         // set other properties
@@ -465,7 +469,17 @@ public class StandardRemoteProcessGroupDAO extends ComponentDAO implements Remot
         remoteProcessGroup.getProcessGroup().removeRemoteProcessGroup(remoteProcessGroup);
     }
 
+    @Override
+    public StateMap getState(String remoteProcessGroupId, Scope scope) {
+        final RemoteProcessGroup remoteProcessGroup = locateRemoteProcessGroup(remoteProcessGroupId);
+        return componentStateDAO.getState(remoteProcessGroup, scope);
+    }
+
     public void setFlowController(FlowController flowController) {
         this.flowController = flowController;
+    }
+
+    public void setComponentStateDAO(ComponentStateDAO componentStateDAO) {
+        this.componentStateDAO = componentStateDAO;
     }
 }

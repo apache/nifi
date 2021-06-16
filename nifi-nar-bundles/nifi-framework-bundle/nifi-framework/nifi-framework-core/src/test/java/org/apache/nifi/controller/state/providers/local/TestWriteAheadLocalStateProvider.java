@@ -17,15 +17,7 @@
 
 package org.apache.nifi.controller.state.providers.local;
 
-import java.io.IOException;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.UUID;
-
-import javax.net.ssl.SSLContext;
-
+import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
@@ -38,6 +30,14 @@ import org.junit.After;
 import org.junit.Before;
 import org.wali.WriteAheadRepository;
 
+import javax.net.ssl.SSLContext;
+import java.io.IOException;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.UUID;
+
 public class TestWriteAheadLocalStateProvider extends AbstractTestStateProvider {
     private StateProvider provider;
     private WriteAheadRepository<StateMapUpdate> wal;
@@ -46,10 +46,10 @@ public class TestWriteAheadLocalStateProvider extends AbstractTestStateProvider 
     public void setup() throws IOException {
         provider = new WriteAheadLocalStateProvider();
         final Map<PropertyDescriptor, PropertyValue> properties = new HashMap<>();
-        properties.put(WriteAheadLocalStateProvider.PATH, new StandardPropertyValue("target/local-state-provider/" + UUID.randomUUID().toString(), null));
-        properties.put(WriteAheadLocalStateProvider.ALWAYS_SYNC, new StandardPropertyValue("false", null));
-        properties.put(WriteAheadLocalStateProvider.CHECKPOINT_INTERVAL, new StandardPropertyValue("2 mins", null));
-        properties.put(WriteAheadLocalStateProvider.NUM_PARTITIONS, new StandardPropertyValue("16", null));
+        properties.put(WriteAheadLocalStateProvider.PATH, new StandardPropertyValue("target/local-state-provider/" + UUID.randomUUID().toString(), null, ParameterLookup.EMPTY));
+        properties.put(WriteAheadLocalStateProvider.ALWAYS_SYNC, new StandardPropertyValue("false", null, ParameterLookup.EMPTY));
+        properties.put(WriteAheadLocalStateProvider.CHECKPOINT_INTERVAL, new StandardPropertyValue("2 mins", null, ParameterLookup.EMPTY));
+        properties.put(WriteAheadLocalStateProvider.NUM_PARTITIONS, new StandardPropertyValue("16", null, ParameterLookup.EMPTY));
 
         provider.initialize(new StateProviderInitializationContext() {
             @Override
@@ -75,7 +75,7 @@ public class TestWriteAheadLocalStateProvider extends AbstractTestStateProvider 
             public PropertyValue getProperty(final PropertyDescriptor property) {
                 final PropertyValue prop = properties.get(property);
                 if (prop == null) {
-                    return new StandardPropertyValue(null, null);
+                    return new StandardPropertyValue(null, null, ParameterLookup.EMPTY);
                 }
                 return prop;
             }

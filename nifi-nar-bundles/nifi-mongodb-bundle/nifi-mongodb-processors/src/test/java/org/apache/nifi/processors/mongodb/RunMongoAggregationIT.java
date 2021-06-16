@@ -23,6 +23,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
 import com.mongodb.client.MongoCollection;
+import org.apache.nifi.mongodb.MongoDBClientService;
+import org.apache.nifi.mongodb.MongoDBControllerService;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -211,5 +213,81 @@ public class RunMongoAggregationIT {
             Assert.assertTrue("Missing $project", queryAttr.contains("$project"));
             Assert.assertTrue("Missing $group", queryAttr.contains("$group"));
         }
+    }
+
+    @Test
+    public void testClientService() throws Exception {
+        MongoDBClientService clientService = new MongoDBControllerService();
+        runner.addControllerService("clientService", clientService);
+        runner.removeProperty(RunMongoAggregation.URI);
+        runner.setProperty(clientService, MongoDBControllerService.URI, MONGO_URI);
+        runner.setProperty(RunMongoAggregation.CLIENT_SERVICE, "clientService");
+        runner.setProperty(RunMongoAggregation.QUERY, "[\n" +
+                        "    {\n" +
+                        "        \"$project\": {\n" +
+                        "            \"_id\": 0,\n" +
+                        "            \"val\": 1\n" +
+                        "        }\n" +
+                        "    }]");
+        runner.enableControllerService(clientService);
+        runner.assertValid();
+
+        runner.enqueue("{}");
+        runner.run();
+        runner.assertTransferCount(RunMongoAggregation.REL_RESULTS, 9);
+    }
+
+    @Test
+    public void testExtendedJsonSupport() throws Exception {
+        String pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS";
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat(pattern);
+        final String queryInput = "[\n" +
+            "  {\n" +
+            "    \"$match\": {\n" +
+            "      \"date\": { \"$gte\": { \"$date\": \"2019-01-01T00:00:00Z\" }, \"$lte\": { \"$date\": \"" + simpleDateFormat.format(now.getTime()) + "\" } }\n" +
+            "    }\n" +
+            "  },\n" +
+            "  {\n" +
+            "    \"$group\": {\n" +
+            "      \"_id\": \"$val\",\n" +
+            "      \"doc_count\": {\n" +
+            "        \"$sum\": 1\n" +
+            "      }\n" +
+            "    }\n" +
+            "  }\n" +
+            "]\n";
+
+        runner.setProperty(RunMongoAggregation.QUERY, queryInput);
+        runner.enqueue("test");
+        runner.run(1, true, true);
+
+        runner.assertTransferCount(RunMongoAggregation.REL_RESULTS, mappings.size());
+    }
+
+    @Test
+    public void testEmptyResponse() throws Exception {
+        final String queryInput = "[\n" +
+                "  {\n" +
+                "    \"$match\": {\n" +
+                "      \"val\": \"no_exists\"\n" +
+                "    }\n" +
+                "  },\n" +
+                "  {\n" +
+                "    \"$group\": {\n" +
+                "      \"_id\": \"null\",\n" +
+                "      \"doc_count\": {\n" +
+                "        \"$sum\": 1\n" +
+                "      }\n" +
+                "    }\n" +
+                "  }\n" +
+                "]";
+
+        runner.setProperty(RunMongoAggregation.QUERY, queryInput);
+        runner.enqueue("test");
+        runner.run(1, true, true);
+
+        runner.assertTransferCount(RunMongoAggregation.REL_ORIGINAL, 1);
+        runner.assertTransferCount(RunMongoAggregation.REL_FAILURE, 0);
+        runner.assertTransferCount(RunMongoAggregation.REL_RESULTS, 1);
     }
 }

@@ -23,7 +23,6 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Date;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -178,11 +177,7 @@ public class ExtractEmailHeaders extends AbstractProcessor {
                     if (from == null) {
                         throw new MessagingException("Message failed RFC-2822 validation: No Sender");
                     }
-                    Date sentDate = originalMessage.getSentDate();
-                    if (sentDate == null ) {
-                        // Throws MessageException due to lack of minimum required headers
-                        throw new MessagingException("Message failed RFC-2822 validation: No Sent Date");
-                    } else if (capturedHeadersList.size() > 0){
+                    if (capturedHeadersList.size() > 0){
                         Enumeration headers = originalMessage.getAllHeaders();
                         while (headers.hasMoreElements()) {
                             Header header = (Header) headers.nextElement();

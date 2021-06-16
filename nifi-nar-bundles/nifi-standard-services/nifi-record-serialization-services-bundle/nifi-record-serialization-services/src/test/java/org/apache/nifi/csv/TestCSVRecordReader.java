@@ -18,7 +18,7 @@
 package org.apache.nifi.csv;
 
 import org.apache.commons.csv.CSVFormat;
-import org.apache.commons.lang3.StringEscapeUtils;
+import org.apache.commons.text.StringEscapeUtils;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.SimpleRecordSchema;
@@ -36,6 +36,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.sql.Date;
 import java.sql.Time;
@@ -45,6 +46,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.List;
 import java.util.TimeZone;
 
@@ -102,18 +104,40 @@ public class TestCSVRecordReader {
         fields.add(new RecordField("date", RecordFieldType.DATE.getDataType()));
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
-        try (final InputStream bais = new ByteArrayInputStream(text.getBytes());
-             final CSVRecordReader reader = new CSVRecordReader(bais, Mockito.mock(ComponentLog.class), schema, format, true, false,
+        for (final boolean coerceTypes : new boolean[] {true, false}) {
+            try (final InputStream bais = new ByteArrayInputStream(text.getBytes());
+                 final CSVRecordReader reader = new CSVRecordReader(bais, Mockito.mock(ComponentLog.class), schema, format, true, false,
                      "MM/dd/yyyy", RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "UTF-8")) {
 
-            final Record record = reader.nextRecord();
-            final java.sql.Date date = (Date) record.getValue("date");
-            final Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("gmt"));
-            calendar.setTimeInMillis(date.getTime());
+                final Record record = reader.nextRecord(coerceTypes, false);
+                final java.sql.Date date = (Date) record.getValue("date");
+                final Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("gmt"));
+                calendar.setTimeInMillis(date.getTime());
 
-            assertEquals(1983, calendar.get(Calendar.YEAR));
-            assertEquals(10, calendar.get(Calendar.MONTH));
-            assertEquals(30, calendar.get(Calendar.DAY_OF_MONTH));
+                assertEquals(1983, calendar.get(Calendar.YEAR));
+                assertEquals(10, calendar.get(Calendar.MONTH));
+                assertEquals(30, calendar.get(Calendar.DAY_OF_MONTH));
+            }
+        }
+    }
+
+    @Test
+    public void testBigDecimal() throws IOException, MalformedRecordException {
+        final String value = String.join("", Collections.nCopies(500, "1")) + ".2";
+        final String text = "decimal\n" + value;
+
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("decimal", RecordFieldType.DECIMAL.getDecimalDataType(30, 10)));
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        try (final InputStream bais = new ByteArrayInputStream(text.getBytes(StandardCharsets.UTF_8));
+             final CSVRecordReader reader = new CSVRecordReader(bais, Mockito.mock(ComponentLog.class), schema, format, true, false,
+                     RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), StandardCharsets.UTF_8.name())) {
+
+            final Record record = reader.nextRecord();
+            final BigDecimal result = (BigDecimal)record.getValue("decimal");
+
+            assertEquals(new BigDecimal(value), result);
         }
     }
 
@@ -437,7 +461,7 @@ public class TestCSVRecordReader {
         try (final InputStream bais = new ByteArrayInputStream(inputData);
             final CSVRecordReader reader = createReader(bais, schema, format)) {
 
-            final Record record = reader.nextRecord();
+            final Record record = reader.nextRecord(true, true);
             assertNotNull(record);
 
             assertEquals("1", record.getValue("id"));
@@ -597,7 +621,7 @@ public class TestCSVRecordReader {
     @Test
     public void testQuote() throws IOException, MalformedRecordException {
         final CSVFormat format = CSVFormat.RFC4180.withFirstRecordAsHeader().withTrim().withQuote('"');
-        final String text = "\"name\"\n\"\"\"\"";
+        final String text = "\"name\"\n\"\"\"\"\n\"\"\"\"";
 
         final List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
@@ -607,9 +631,12 @@ public class TestCSVRecordReader {
              final CSVRecordReader reader = new CSVRecordReader(bais, Mockito.mock(ComponentLog.class), schema, format, true, false,
                      RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), StandardCharsets.UTF_8.name())) {
 
-            final Record record = reader.nextRecord();
-            final String name = (String)record.getValue("name");
+            Record record = reader.nextRecord();
+            String name = (String)record.getValue("name");
+            assertEquals("\"", name);
 
+            record = reader.nextRecord(false, false);
+            name = (String)record.getValue("name");
             assertEquals("\"", name);
         }
     }

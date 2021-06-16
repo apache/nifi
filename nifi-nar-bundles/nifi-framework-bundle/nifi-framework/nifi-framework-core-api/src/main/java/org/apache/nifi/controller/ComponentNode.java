@@ -16,13 +16,7 @@
  */
 package org.apache.nifi.controller;
 
-import java.net.URL;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-
+import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.authorization.AccessDeniedException;
 import org.apache.nifi.authorization.AuthorizationResult;
 import org.apache.nifi.authorization.AuthorizationResult.Result;
@@ -35,9 +29,20 @@ import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.validation.ValidationState;
 import org.apache.nifi.components.validation.ValidationStatus;
+import org.apache.nifi.parameter.ParameterContext;
+import org.apache.nifi.parameter.ParameterUpdate;
 import org.apache.nifi.registry.ComponentVariableRegistry;
+
+import java.net.URL;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 public interface ComponentNode extends ComponentAuthorizable {
 
@@ -57,6 +62,21 @@ public interface ComponentNode extends ComponentAuthorizable {
     }
 
     public void setProperties(Map<String, String> properties, boolean allowRemovalOfRequiredProperties);
+
+    void verifyCanUpdateProperties(final Map<String, String> properties);
+
+    /**
+     * @return the Set of names of all Parameters that are referenced by this component
+     */
+    Set<String> getReferencedParameterNames();
+
+    boolean isReferencingParameter();
+
+    /**
+     * Notifies the Component that the value of a parameter has changed
+     * @param parameterUpdates a Map of Parameter name to a ParameterUpdate that describes how the Parameter changed
+     */
+    void onParametersModified(Map<String, ParameterUpdate> parameterUpdates);
 
     /**
      * <p>
@@ -91,9 +111,17 @@ public interface ComponentNode extends ComponentAuthorizable {
      */
     void resumeValidationTrigger();
 
-    public Map<PropertyDescriptor, String> getProperties();
+    Map<PropertyDescriptor, String> getRawPropertyValues();
 
-    public String getProperty(final PropertyDescriptor property);
+    Map<PropertyDescriptor, String> getEffectivePropertyValues();
+
+    PropertyConfiguration getProperty(PropertyDescriptor property);
+
+    String getEffectivePropertyValue(PropertyDescriptor property);
+
+    String getRawPropertyValue(PropertyDescriptor property);
+
+    Map<PropertyDescriptor, PropertyConfiguration> getProperties();
 
     void reload(Set<URL> additionalUrls) throws Exception;
 
@@ -114,6 +142,8 @@ public interface ComponentNode extends ComponentAuthorizable {
     void verifyCanUpdateBundle(BundleCoordinate bundleCoordinate) throws IllegalStateException;
 
     void reloadAdditionalResourcesIfNecessary();
+
+    void resetValidationState();
 
     /**
      * @return the any validation errors for this connectable
@@ -177,9 +207,25 @@ public interface ComponentNode extends ComponentAuthorizable {
     public abstract ValidationStatus getValidationStatus(long timeout, TimeUnit unit);
 
     /**
-     * Asynchronously begins the validation process
+     * Validates the component against the current configuration
      */
-    public abstract void performValidation();
+    ValidationStatus performValidation();
+
+    /**
+     * Validates the component against the given ValidationContext
+     * @param validationContext the validation context to validate against
+     * @return the ValidationState that is the result of validating against the given context
+     */
+    ValidationState performValidation(ValidationContext validationContext);
+
+    /**
+     * Performs validation against the given set of properties, annotation data, and parameters
+     * @param properties the processor configuration
+     * @param annotationData the annotation data
+     * @param parameterContext the set of parameters
+     * @return the validation state that results from validating against the given values
+     */
+    ValidationState performValidation(Map<PropertyDescriptor, PropertyConfiguration> properties, String annotationData, ParameterContext parameterContext);
 
     /**
      * Returns a {@link List} of all {@link PropertyDescriptor}s that this
@@ -231,4 +277,6 @@ public interface ComponentNode extends ComponentAuthorizable {
         // defer to the base authorization check
         ComponentAuthorizable.super.authorize(authorizer, action, user, resourceContext);
     }
+
+    ParameterLookup getParameterLookup();
 }

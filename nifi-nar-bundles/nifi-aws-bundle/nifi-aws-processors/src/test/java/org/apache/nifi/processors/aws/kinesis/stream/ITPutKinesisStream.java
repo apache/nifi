@@ -92,7 +92,7 @@ public class ITPutKinesisStream {
 
     @Test
     public void testIntegrationWithDynamicPartitionSuccess() throws Exception {
-        runner.setProperty(PutKinesisStream.KINESIS_PARTITION_KEY, "${parition}");
+        runner.setProperty(PutKinesisStream.KINESIS_PARTITION_KEY, "${partition}");
         runner.assertValid();
         Map<String,String> properties = new HashMap<>();
         properties.put("partition", "px");

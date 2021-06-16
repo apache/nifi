@@ -22,10 +22,10 @@ import java.net.URISyntaxException;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-
 import javax.net.ssl.SSLContext;
-
-import org.apache.nifi.framework.security.util.SslContextFactory;
+import org.apache.nifi.security.util.SslContextFactory;
+import org.apache.nifi.security.util.TlsConfiguration;
+import org.apache.nifi.security.util.TlsException;
 import org.apache.nifi.util.NiFiProperties;
 
 public class StandardFlowRegistryClient implements FlowRegistryClient {
@@ -71,17 +71,26 @@ public class StandardFlowRegistryClient implements FlowRegistryClient {
             throw new IllegalArgumentException("The given Registry URL is not valid: " + registryUrl);
         }
 
+        // Handles case where the URI entered has a trailing slash, or includes the trailing /nifi-registry-api
+        final String registryBaseUrl = uri.getScheme() + "://" + uri.getHost() + ":" + uri.getPort();
+
         final FlowRegistry registry;
         if (uriScheme.equalsIgnoreCase("http") || uriScheme.equalsIgnoreCase("https")) {
-            final SSLContext sslContext = SslContextFactory.createSslContext(nifiProperties, false);
-            if (sslContext == null && uriScheme.equalsIgnoreCase("https")) {
-                throw new IllegalStateException("Failed to create Flow Registry for URI " + registryUrl
-                    + " because this NiFi is not configured with a Keystore/Truststore, so it is not capable of communicating with a secure Registry. "
-                    + "Please populate NiFi's Keystore/Truststore properties or connect to a NiFi Registry over http instead of https.");
-            }
+            try {
+                final SSLContext sslContext = SslContextFactory.createSslContext(TlsConfiguration.fromNiFiProperties(nifiProperties));
 
-            registry = new RestBasedFlowRegistry(this, registryId, registryUrl, sslContext, registryName);
-            registry.setDescription(description);
+                if (sslContext == null && uriScheme.equalsIgnoreCase("https")) {
+                    throw new IllegalStateException("Failed to create Flow Registry for URI " + registryUrl
+                            + " because this NiFi is not configured with a Keystore/Truststore, so it is not capable of communicating with a secure Registry. "
+                            + "Please populate NiFi's Keystore/Truststore properties or connect to a NiFi Registry over http instead of https.");
+                }
+
+                registry = new RestBasedFlowRegistry(this, registryId, registryBaseUrl, sslContext, registryName);
+                registry.setDescription(description);
+            } catch (TlsException e) {
+                throw new IllegalStateException("Failed to create Flow Registry for URI " + registryUrl
+                        + " because this NiFi instance has an invalid TLS configuration", e);
+            }
         } else {
             throw new IllegalArgumentException("Cannot create Flow Registry with URI of " + registryUrl
                 + " because there are no known implementations of Flow Registries that can handle URIs of scheme " + uriScheme);

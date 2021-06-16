@@ -33,20 +33,19 @@ import org.apache.nifi.web.Revision;
  *
  * <p>
  * Clients that will modify a resource must do so using a two-phase commit. First,
- * the client will issue a request that includes an HTTP Header of "X-NcmExpects".
+ * the client will issue a request that includes an HTTP Header of "X-Validation-Expects".
  * This indicates that the request will not actually be performed but rather that the
  * node should validate that the request could in fact be performed. If all nodes respond
- * with a 150-Continue response, then the second phase will commence. The second phase
- * will consist of replicating the same request but without the "X-NcmExpects" header.
+ * with a 202-Accepted response, then the second phase will commence. The second phase
+ * will consist of replicating the same request but without the "X-Validation-Expects" header.
  * </p>
  *
  * <p>
  * When the first phase of the two-phase commit is processed, the Revision Manager should
- * be used to verify that the client-provided Revisions are current by calling the
- * {@link #verifyRevisions(Collection)}
- * method. If the revisions are up-to-date, the method will return successfully and the
- * request validation may continue. Otherwise, the request should fail and the second phase
- * should not be performed.
+ * be used to retrieve the current revision by calling the {@link #getRevision(String)} method
+ * to verify that the client-provided Revisions are current.
+ * If the revisions are up-to-date, the request validation may continue.
+ * Otherwise, the request should fail and the second phase should not be performed.
  * </p>
  *
  * <p>

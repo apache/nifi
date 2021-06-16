@@ -17,10 +17,11 @@
 
 package org.apache.nifi.record.path;
 
-import java.util.Objects;
-
+import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
+
+import java.util.Objects;
 
 public class ArrayIndexFieldValue extends StandardFieldValue {
     private final int index;
@@ -50,6 +51,11 @@ public class ArrayIndexFieldValue extends StandardFieldValue {
 
     @Override
     public void updateValue(final Object newValue) {
+        getParentRecord().get().setArrayValue(getField().getFieldName(), getArrayIndex(), newValue);
+    }
+
+    @Override
+    public void updateValue(final Object newValue, final DataType dataType) {
         getParentRecord().get().setArrayValue(getField().getFieldName(), getArrayIndex(), newValue);
     }
 

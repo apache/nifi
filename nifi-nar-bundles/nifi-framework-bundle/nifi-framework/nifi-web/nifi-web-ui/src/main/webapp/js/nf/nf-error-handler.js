@@ -37,7 +37,7 @@
 }(this, function ($, nfDialog, nfCommon) {
     'use strict';
 
-    return {
+    var self = {
         /**
          * Method for handling ajax errors.
          *
@@ -73,6 +73,8 @@
                     $('#message-title').text('Insufficient Permissions');
                 } else if (xhr.status === 409) {
                     $('#message-title').text('Invalid State');
+                } else if (xhr.status === 413) {
+                    $('#message-title').text('Payload Too Large');
                 } else {
                     $('#message-title').text('An unexpected error has occurred');
                 }
@@ -88,8 +90,8 @@
                 return;
             }
 
-            // status code 400, 404, and 409 are expected response codes for nfCommon errors.
-            if (xhr.status === 400 || xhr.status === 404 || xhr.status === 409 || xhr.status === 503) {
+            // status code 400, 404, 409, and 413 are expected response codes for nfCommon errors.
+            if (xhr.status === 400 || xhr.status === 404 || xhr.status === 409 || xhr.status == 413 || xhr.status === 503) {
                 nfDialog.showOkDialog({
                     headerText: 'Error',
                     dialogContent: nfCommon.escapeHtml(xhr.responseText)
@@ -142,6 +144,36 @@
                 // show the error pane
                 $('#message-pane').show();
             }
+        },
+
+        /**
+         * Method for handling ajax errors when submitting configuration update (PUT/POST) requests.
+         * In addition to what handleAjaxError does, this function splits
+         * the error message text to display them as an unordered list.
+         *
+         * @argument {object} xhr       The XmlHttpRequest
+         * @argument {string} status    The status of the request
+         * @argument {string} error     The error
+         */
+        handleConfigurationUpdateAjaxError: function (xhr, status, error) {
+            if (xhr.status === 400) {
+                var errors = xhr.responseText.split('\n');
+
+                var content;
+                if (errors.length === 1) {
+                    content = $('<span></span>').text(errors[0]);
+                } else {
+                    content = nfCommon.formatUnorderedList(errors);
+                }
+
+                nfDialog.showOkDialog({
+                    dialogContent: content,
+                    headerText: 'Configuration Error'
+                });
+            } else {
+                self.handleAjaxError(xhr, status, error);
+            }
         }
     };
+    return self;
 }));

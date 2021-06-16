@@ -19,10 +19,12 @@ package org.apache.nifi.controller.tasks;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.ConnectableType;
+import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.lifecycle.TaskTerminationAwareStateManager;
+import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.repository.ActiveProcessSessionFactory;
 import org.apache.nifi.controller.repository.BatchingSessionFactory;
 import org.apache.nifi.controller.repository.RepositoryContext;
@@ -80,7 +82,7 @@ public class ConnectableTask {
 
         final StateManager stateManager = new TaskTerminationAwareStateManager(flowController.getStateManagerProvider().getStateManager(connectable.getIdentifier()), scheduleState::isTerminated);
         if (connectable instanceof ProcessorNode) {
-            processContext = new StandardProcessContext((ProcessorNode) connectable, flowController, encryptor, stateManager, scheduleState::isTerminated);
+            processContext = new StandardProcessContext((ProcessorNode) connectable, flowController.getControllerServiceProvider(), encryptor, stateManager, scheduleState::isTerminated);
         } else {
             processContext = new ConnectableProcessContext(connectable, encryptor, stateManager);
         }
@@ -142,36 +144,43 @@ public class ConnectableTask {
     private boolean isBackPressureEngaged() {
         return connectable.getIncomingConnections().stream()
             .filter(con -> con.getSource() == connectable)
-            .map(con -> con.getFlowFileQueue())
-            .anyMatch(queue -> queue.isFull());
+            .map(Connection::getFlowFileQueue)
+            .anyMatch(FlowFileQueue::isFull);
     }
 
     public InvocationResult invoke() {
         if (scheduleState.isTerminated()) {
+            logger.debug("Will not trigger {} because task is terminated", connectable);
             return InvocationResult.DO_NOT_YIELD;
         }
 
         // make sure processor is not yielded
         if (isYielded()) {
+            logger.debug("Will not trigger {} because component is yielded", connectable);
             return InvocationResult.DO_NOT_YIELD;
         }
 
         // make sure that either we're not clustered or this processor runs on all nodes or that this is the primary node
         if (!isRunOnCluster(flowController)) {
+            logger.debug("Will not trigger {} because this is not the primary node", connectable);
             return InvocationResult.DO_NOT_YIELD;
         }
 
         // Make sure processor has work to do.
         if (!isWorkToDo()) {
+            logger.debug("Yielding {} because it has no work to do", connectable);
             return InvocationResult.yield("No work to do");
         }
 
         if (numRelationships > 0) {
             final int requiredNumberOfAvailableRelationships = connectable.isTriggerWhenAnyDestinationAvailable() ? 1 : numRelationships;
             if (!repositoryContext.isRelationshipAvailabilitySatisfied(requiredNumberOfAvailableRelationships)) {
+                logger.debug("Yielding {} because Backpressure is Applied", connectable);
                 return InvocationResult.yield("Backpressure Applied");
             }
         }
+
+        logger.debug("Triggering {}", connectable);
 
         final long batchNanos = connectable.getRunDuration(TimeUnit.NANOSECONDS);
         final ProcessSessionFactory sessionFactory;
@@ -197,11 +206,11 @@ public class ConnectableTask {
 
         final String originalThreadName = Thread.currentThread().getName();
         try {
-            try (final AutoCloseable ncl = NarCloseable.withComponentNarLoader(connectable.getRunnableComponent().getClass(), connectable.getIdentifier())) {
+            try (final AutoCloseable ncl = NarCloseable.withComponentNarLoader(flowController.getExtensionManager(), connectable.getRunnableComponent().getClass(), connectable.getIdentifier())) {
                 boolean shouldRun = connectable.getScheduledState() == ScheduledState.RUNNING;
                 while (shouldRun) {
-                    connectable.onTrigger(processContext, activeSessionFactory);
                     invocationCount++;
+                    connectable.onTrigger(processContext, activeSessionFactory);
 
                     if (!batch) {
                         return InvocationResult.DO_NOT_YIELD;
@@ -252,14 +261,14 @@ public class ConnectableTask {
                 if (batch) {
                     try {
                         rawSession.commit();
-                    } catch (final Exception e) {
+                    } catch (final Throwable t) {
                         final ComponentLog procLog = new SimpleProcessLogger(connectable.getIdentifier(), connectable.getRunnableComponent());
-                        procLog.error("Failed to commit session {} due to {}; rolling back", new Object[] { rawSession, e.toString() }, e);
+                        procLog.error("Failed to commit session {} due to {}; rolling back", new Object[] { rawSession, t.toString() }, t);
 
                         try {
                             rawSession.rollback(true);
                         } catch (final Exception e1) {
-                            procLog.error("Failed to roll back session {} due to {}", new Object[] { rawSession, e.toString() }, e);
+                            procLog.error("Failed to roll back session {} due to {}", new Object[] { rawSession, t.toString() }, t);
                         }
                     }
                 }

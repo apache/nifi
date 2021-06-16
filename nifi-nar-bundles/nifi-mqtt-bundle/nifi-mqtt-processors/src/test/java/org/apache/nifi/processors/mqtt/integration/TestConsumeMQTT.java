@@ -107,7 +107,7 @@ public class TestConsumeMQTT extends TestConsumeMqttCommon {
 
         ConsumeMQTT consumeMQTT = (ConsumeMQTT) testRunner.getProcessor();
         consumeMQTT.onScheduled(testRunner.getProcessContext());
-        reconnect(consumeMQTT);
+        reconnect(consumeMQTT, testRunner.getProcessContext());
 
         Thread.sleep(PUBLISH_WAIT_MS);
 

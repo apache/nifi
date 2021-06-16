@@ -62,6 +62,10 @@ public class TestSyslog5424RecordReader {
     private static final String expectedEventID1 = "1011";
     private static final String expectedEventID2 = "2022";
 
+    private static final String expectedRawMessage = "<14>1 2014-06-20T09:14:07+00:00 loggregator d0602076-b14a-4c55-852a-981e7afeed38 DEA MSG-01 "
+            + "[exampleSDID@32473 iut=\"3\" eventSource=\"Application\" eventID=\"1011\"][exampleSDID@32480 iut=\"4\" eventSource=\"Other Application\" "
+            + "eventID=\"2022\"] Removing instance";
+
     @Test
     @SuppressWarnings("unchecked")
     public void testParseSingleLine() throws IOException, MalformedRecordException {
@@ -70,7 +74,7 @@ public class TestSyslog5424RecordReader {
                     NilHandlingPolicy.NULL,
                     NifiStructuredDataPolicy.MAP_OF_MAPS,
                     new SimpleKeyProvider());
-            final Syslog5424RecordReader deserializer = new Syslog5424RecordReader(parser, fis, Syslog5424Reader.createRecordSchema());
+            final Syslog5424RecordReader deserializer = new Syslog5424RecordReader(parser, true, fis, Syslog5424Reader.createRecordSchema());
 
             final Record record = deserializer.nextRecord();
             assertNotNull(record.getValues());
@@ -83,8 +87,9 @@ public class TestSyslog5424RecordReader {
             Assert.assertEquals(expectedSeverity, record.getAsString(SyslogAttributes.SEVERITY.key()));
             Assert.assertEquals(expectedFacility, record.getAsString(SyslogAttributes.FACILITY.key()));
             Assert.assertEquals(expectedProcId, record.getAsString(Syslog5424Attributes.PROCID.key()));
-            Assert.assertEquals(expectedTimestamp, (Timestamp)record.getValue(SyslogAttributes.TIMESTAMP.key()));
+            Assert.assertEquals(expectedTimestamp, record.getValue(SyslogAttributes.TIMESTAMP.key()));
             Assert.assertEquals(expectedMessageId, record.getAsString(Syslog5424Attributes.MESSAGEID.key()));
+            Assert.assertEquals(expectedRawMessage, record.getAsString(Syslog5424Reader.RAW_MESSAGE_NAME));
 
             Assert.assertNotNull(record.getValue(Syslog5424Attributes.STRUCTURED_BASE.key()));
             Map<String,Object> structured = (Map<String,Object>)record.getValue(Syslog5424Attributes.STRUCTURED_BASE.key());
@@ -121,7 +126,7 @@ public class TestSyslog5424RecordReader {
                     NilHandlingPolicy.NULL,
                     NifiStructuredDataPolicy.MAP_OF_MAPS,
                     new SimpleKeyProvider());
-            final Syslog5424RecordReader deserializer = new Syslog5424RecordReader(parser, fis, Syslog5424Reader.createRecordSchema());
+            final Syslog5424RecordReader deserializer = new Syslog5424RecordReader(parser, false, fis, Syslog5424Reader.createRecordSchema());
 
             final Record record = deserializer.nextRecord();
             assertNotNull(record.getValues());
@@ -134,8 +139,9 @@ public class TestSyslog5424RecordReader {
             Assert.assertEquals(expectedSeverity, record.getAsString(SyslogAttributes.SEVERITY.key()));
             Assert.assertEquals(expectedFacility, record.getAsString(SyslogAttributes.FACILITY.key()));
             Assert.assertEquals(expectedProcId, record.getAsString(Syslog5424Attributes.PROCID.key()));
-            Assert.assertEquals(expectedTimestamp, (Timestamp)record.getValue(SyslogAttributes.TIMESTAMP.key()));
+            Assert.assertEquals(expectedTimestamp, record.getValue(SyslogAttributes.TIMESTAMP.key()));
             Assert.assertNull(record.getAsString(Syslog5424Attributes.MESSAGEID.key()));
+            Assert.assertNull(record.getAsString(Syslog5424Reader.RAW_MESSAGE_NAME));
 
             Assert.assertNotNull(record.getValue(Syslog5424Attributes.STRUCTURED_BASE.key()));
             Map<String,Object> structured = (Map<String,Object>)record.getValue(Syslog5424Attributes.STRUCTURED_BASE.key());
@@ -165,14 +171,13 @@ public class TestSyslog5424RecordReader {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void testParseMultipleLine() throws IOException, MalformedRecordException {
         try (final InputStream fis = new FileInputStream(new File("src/test/resources/syslog/syslog5424/log_mix.txt"))) {
             StrictSyslog5424Parser parser = new StrictSyslog5424Parser(CHARSET,
                     NilHandlingPolicy.NULL,
                     NifiStructuredDataPolicy.MAP_OF_MAPS,
                     new SimpleKeyProvider());
-            final Syslog5424RecordReader deserializer = new Syslog5424RecordReader(parser, fis, Syslog5424Reader.createRecordSchema());
+            final Syslog5424RecordReader deserializer = new Syslog5424RecordReader(parser, false, fis, Syslog5424Reader.createRecordSchema());
 
             Record record = deserializer.nextRecord();
             int count = 0;
@@ -187,14 +192,13 @@ public class TestSyslog5424RecordReader {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void testParseMultipleLineWithError() throws IOException, MalformedRecordException {
         try (final InputStream fis = new FileInputStream(new File("src/test/resources/syslog/syslog5424/log_mix_in_error.txt"))) {
             StrictSyslog5424Parser parser = new StrictSyslog5424Parser(CHARSET,
                     NilHandlingPolicy.NULL,
                     NifiStructuredDataPolicy.MAP_OF_MAPS,
                     new SimpleKeyProvider());
-            final Syslog5424RecordReader deserializer = new Syslog5424RecordReader(parser, fis, Syslog5424Reader.createRecordSchema());
+            final Syslog5424RecordReader deserializer = new Syslog5424RecordReader(parser, false, fis, Syslog5424Reader.createRecordSchema());
 
             Record record = deserializer.nextRecord();
             int count = 0;

@@ -17,6 +17,7 @@
 package org.apache.nifi;
 
 import org.apache.nifi.bundle.Bundle;
+import org.apache.nifi.diagnostics.DiagnosticsFactory;
 import org.apache.nifi.nar.ExtensionMapping;
 
 import java.util.Set;
@@ -33,4 +34,8 @@ public interface NiFiServer {
     void setBundles(Bundle systemBundle, Set<Bundle> bundles);
 
     void stop();
+
+    DiagnosticsFactory getDiagnosticsFactory();
+
+    DiagnosticsFactory getThreadDumpFactory();
 }

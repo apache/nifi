@@ -229,8 +229,8 @@ public class TestHandleHttpResponse {
                 Mockito.doAnswer(new Answer<Object>() {
                     @Override
                     public Object answer(final InvocationOnMock invocation) throws Throwable {
-                        final String key = invocation.getArgumentAt(0, String.class);
-                        final String value = invocation.getArgumentAt(1, String.class);
+                        final String key = invocation.getArgument(0);
+                        final String value = invocation.getArgument(1);
                         if (value == null) {
                             headersWithNoValue.add(key);
                         } else {
@@ -244,7 +244,7 @@ public class TestHandleHttpResponse {
                 Mockito.doAnswer(new Answer<Object>() {
                     @Override
                     public Object answer(final InvocationOnMock invocation) throws Throwable {
-                        statusCode = invocation.getArgumentAt(0, int.class);
+                        statusCode = invocation.getArgument(0);
                         return null;
                     }
                 }).when(response).setStatus(Mockito.anyInt());

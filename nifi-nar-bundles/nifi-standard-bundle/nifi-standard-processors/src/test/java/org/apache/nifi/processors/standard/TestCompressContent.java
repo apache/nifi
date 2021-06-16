@@ -221,6 +221,42 @@ public class TestCompressContent {
         flowFile.assertAttributeEquals("filename", "SampleFile.txt");
     }
 
+
+    @Test
+    public void testDeflateDecompress() throws Exception {
+        final TestRunner runner = TestRunners.newTestRunner(CompressContent.class);
+        runner.setProperty(CompressContent.MODE, "decompress");
+        runner.setProperty(CompressContent.COMPRESSION_FORMAT, "deflate");
+        assertTrue(runner.setProperty(CompressContent.UPDATE_FILENAME, "true").isValid());
+
+        runner.enqueue(Paths.get("src/test/resources/CompressedData/SampleFile.txt.zlib"));
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(CompressContent.REL_SUCCESS, 1);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(CompressContent.REL_SUCCESS).get(0);
+        System.err.println(new String(flowFile.toByteArray()));
+        flowFile.assertContentEquals(Paths.get("src/test/resources/CompressedData/SampleFile.txt"));
+        flowFile.assertAttributeEquals("filename", "SampleFile.txt");
+    }
+
+
+    @Test
+    public void testDeflateCompress() throws Exception {
+        final TestRunner runner = TestRunners.newTestRunner(CompressContent.class);
+        runner.setProperty(CompressContent.MODE, "compress");
+        runner.setProperty(CompressContent.COMPRESSION_LEVEL, "6");
+        runner.setProperty(CompressContent.COMPRESSION_FORMAT, "deflate");
+        assertTrue(runner.setProperty(CompressContent.UPDATE_FILENAME, "true").isValid());
+
+        runner.enqueue(Paths.get("src/test/resources/CompressedData/SampleFile.txt"));
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(CompressContent.REL_SUCCESS, 1);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(CompressContent.REL_SUCCESS).get(0);
+        flowFile.assertContentEquals(Paths.get("src/test/resources/CompressedData/SampleFile.txt.zlib"));
+        flowFile.assertAttributeEquals("filename", "SampleFile.txt.zlib");
+    }
+
     @Test
     public void testFilenameUpdatedOnCompress() throws IOException {
         final TestRunner runner = TestRunners.newTestRunner(CompressContent.class);
@@ -252,5 +288,37 @@ public class TestCompressContent {
         runner.assertAllFlowFilesTransferred(CompressContent.REL_FAILURE, 1);
 
         runner.getFlowFilesForRelationship(CompressContent.REL_FAILURE).get(0).assertContentEquals(data);
+    }
+
+    @Test
+    public void testLz4FramedCompress() throws Exception {
+        final TestRunner runner = TestRunners.newTestRunner(CompressContent.class);
+        runner.setProperty(CompressContent.MODE, CompressContent.MODE_COMPRESS);
+        runner.setProperty(CompressContent.COMPRESSION_FORMAT, CompressContent.COMPRESSION_FORMAT_LZ4_FRAMED);
+        runner.setProperty(CompressContent.UPDATE_FILENAME, "true");
+
+        runner.enqueue(Paths.get("src/test/resources/CompressedData/SampleFile.txt"));
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(CompressContent.REL_SUCCESS, 1);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(CompressContent.REL_SUCCESS).get(0);
+        flowFile.assertAttributeEquals(CoreAttributes.MIME_TYPE.key(), "application/x-lz4-framed");
+        flowFile.assertAttributeEquals("filename", "SampleFile.txt.lz4");
+    }
+
+    @Test
+    public void testLz4FramedDecompress() throws Exception {
+        final TestRunner runner = TestRunners.newTestRunner(CompressContent.class);
+        runner.setProperty(CompressContent.MODE, CompressContent.MODE_DECOMPRESS);
+        runner.setProperty(CompressContent.COMPRESSION_FORMAT, CompressContent.COMPRESSION_FORMAT_LZ4_FRAMED);
+        runner.setProperty(CompressContent.UPDATE_FILENAME, "true");
+
+        runner.enqueue(Paths.get("src/test/resources/CompressedData/SampleFile.txt.lz4"));
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(CompressContent.REL_SUCCESS, 1);
+        MockFlowFile flowFile = runner.getFlowFilesForRelationship(CompressContent.REL_SUCCESS).get(0);
+        flowFile.assertContentEquals(Paths.get("src/test/resources/CompressedData/SampleFile.txt"));
+        flowFile.assertAttributeEquals("filename", "SampleFile.txt");
     }
 }

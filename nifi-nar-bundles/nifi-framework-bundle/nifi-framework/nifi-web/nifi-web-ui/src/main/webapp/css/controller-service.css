@@ -118,6 +118,7 @@ div.service.expansion-button {
 
 span.referencing-component-active-thread-count {
     margin-left: 5px;
+    float: left;
 }
 
 span.referencing-component-name {

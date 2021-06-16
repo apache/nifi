@@ -74,6 +74,7 @@ public class PutSlack extends AbstractProcessor {
             .required(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .addValidator(StandardValidators.URL_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .sensitive(true)
             .build();
 
@@ -254,7 +255,7 @@ public class PutSlack extends AbstractProcessor {
             jsonWriter.writeObject(jsonObject);
             jsonWriter.close();
 
-            URL url = new URL(context.getProperty(WEBHOOK_URL).getValue());
+            URL url = new URL(context.getProperty(WEBHOOK_URL).evaluateAttributeExpressions(flowFile).getValue());
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("POST");
             conn.setDoOutput(true);
@@ -267,7 +268,7 @@ public class PutSlack extends AbstractProcessor {
             if (responseCode >= 200 && responseCode < 300) {
                 getLogger().info("Successfully posted message to Slack");
                 session.transfer(flowFile, REL_SUCCESS);
-                session.getProvenanceReporter().send(flowFile, context.getProperty(WEBHOOK_URL).getValue());
+                session.getProvenanceReporter().send(flowFile, url.toString());
             } else {
                 getLogger().error("Failed to post message to Slack with response code {}", new Object[]{responseCode});
                 flowFile = session.penalize(flowFile);

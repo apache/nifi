@@ -30,7 +30,6 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.serialization.record.Record;
-import org.apache.nifi.serialization.record.RecordSchema;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -42,7 +41,8 @@ import java.util.List;
 @Tags({"convert", "record", "generic", "schema", "json", "csv", "avro", "log", "logs", "freeform", "text"})
 @WritesAttributes({
     @WritesAttribute(attribute = "mime.type", description = "Sets the mime.type attribute to the MIME Type specified by the Record Writer"),
-    @WritesAttribute(attribute = "record.count", description = "The number of records in the FlowFile")
+    @WritesAttribute(attribute = "record.count", description = "The number of records in the FlowFile"),
+    @WritesAttribute(attribute = "record.error.message", description = "This attribute provides on failure the error message encountered by the Reader or Writer.")
 })
 @CapabilityDescription("Converts records from one data format to another using configured Record Reader and Record Write Controller Services. "
     + "The Reader and Writer must be configured with \"matching\" schemas. By this, we mean the schemas must have the same field names. The types of the fields "
@@ -60,7 +60,7 @@ public class ConvertRecord extends AbstractRecordProcessor {
     }
 
     @Override
-    protected Record process(final Record record, final RecordSchema writeSchema, final FlowFile flowFile, final ProcessContext context) {
+    protected Record process(final Record record, final FlowFile flowFile, final ProcessContext context, final long count) {
         return record;
     }
 

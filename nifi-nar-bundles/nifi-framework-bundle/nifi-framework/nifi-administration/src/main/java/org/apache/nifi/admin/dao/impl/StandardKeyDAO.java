@@ -161,6 +161,7 @@ public class StandardKeyDAO implements KeyDAO {
         try {
             // add each authority for the specified user
             statement = connection.prepareStatement(DELETE_KEYS);
+            statement.setString(1, identity);
             statement.executeUpdate();
         } catch (SQLException sqle) {
             throw new DataAccessException(sqle);

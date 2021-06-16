@@ -86,6 +86,7 @@ public class FetchSFTP extends FetchFileTransfer {
         properties.add(FTPTransfer.PROXY_PORT);
         properties.add(FTPTransfer.HTTP_PROXY_USERNAME);
         properties.add(FTPTransfer.HTTP_PROXY_PASSWORD);
+        properties.add(FILE_NOT_FOUND_LOG_LEVEL);
         return properties;
     }
 

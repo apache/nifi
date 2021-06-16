@@ -16,15 +16,6 @@
  */
 package org.apache.nifi.queryrecord;
 
-import java.io.InputStream;
-import java.lang.reflect.Type;
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.linq4j.AbstractEnumerable;
 import org.apache.calcite.linq4j.Enumerable;
@@ -46,18 +37,26 @@ import org.apache.calcite.util.Pair;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.type.ArrayDataType;
+import org.apache.nifi.serialization.record.type.ChoiceDataType;
 
+import java.lang.reflect.Type;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
-public class FlowFileTable<S, E> extends AbstractTable implements QueryableTable, TranslatableTable {
+public class FlowFileTable extends AbstractTable implements QueryableTable, TranslatableTable {
 
-    private final RecordReaderFactory recordParserFactory;
+    private final RecordReaderFactory recordReaderFactory;
     private final ComponentLog logger;
 
     private RecordSchema recordSchema;
@@ -67,15 +66,16 @@ public class FlowFileTable<S, E> extends AbstractTable implements QueryableTable
     private volatile FlowFile flowFile;
     private volatile int maxRecordsRead;
 
-    private final Set<FlowFileEnumerator<?>> enumerators = new HashSet<>();
+    private final Set<FlowFileEnumerator> enumerators = new HashSet<>();
 
     /**
      * Creates a FlowFile table.
      */
-    public FlowFileTable(final ProcessSession session, final FlowFile flowFile, final RecordReaderFactory recordParserFactory, final ComponentLog logger) {
+    public FlowFileTable(final ProcessSession session, final FlowFile flowFile, final RecordSchema schema, final RecordReaderFactory recordReaderFactory, final ComponentLog logger) {
         this.session = session;
         this.flowFile = flowFile;
-        this.recordParserFactory = recordParserFactory;
+        this.recordSchema = schema;
+        this.recordReaderFactory = recordReaderFactory;
         this.logger = logger;
     }
 
@@ -93,7 +93,7 @@ public class FlowFileTable<S, E> extends AbstractTable implements QueryableTable
 
     public void close() {
         synchronized (enumerators) {
-            for (final FlowFileEnumerator<?> enumerator : enumerators) {
+            for (final FlowFileEnumerator enumerator : enumerators) {
                 enumerator.close();
             }
         }
@@ -110,7 +110,7 @@ public class FlowFileTable<S, E> extends AbstractTable implements QueryableTable
             @Override
             @SuppressWarnings({"unchecked", "rawtypes"})
             public Enumerator<Object> enumerator() {
-                final FlowFileEnumerator flowFileEnumerator = new FlowFileEnumerator(session, flowFile, logger, recordParserFactory, fields) {
+                final FlowFileEnumerator flowFileEnumerator = new FlowFileEnumerator(session, flowFile, logger, recordReaderFactory, fields) {
                     @Override
                     protected void onFinish() {
                         final int recordCount = getRecordsRead();
@@ -175,27 +175,14 @@ public class FlowFileTable<S, E> extends AbstractTable implements QueryableTable
             return relDataType;
         }
 
-        RecordSchema schema;
-        try (final InputStream in = session.read(flowFile)) {
-            final RecordReader recordParser = recordParserFactory.createRecordReader(flowFile, in, logger);
-            schema = recordParser.getSchema();
-        } catch (final Exception e) {
-            throw new ProcessException("Failed to determine schema of data records for " + flowFile, e);
-        }
-
         final List<String> names = new ArrayList<>();
         final List<RelDataType> types = new ArrayList<>();
 
         final JavaTypeFactory javaTypeFactory = (JavaTypeFactory) typeFactory;
-        for (final RecordField field : schema.getFields()) {
+        for (final RecordField field : recordSchema.getFields()) {
             names.add(field.getFieldName());
-            types.add(getRelDataType(field.getDataType(), javaTypeFactory));
-        }
-
-        logger.debug("Found Schema: {}", new Object[] {schema});
-
-        if (recordSchema == null) {
-            recordSchema = schema;
+            final RelDataType relDataType = getRelDataType(field.getDataType(), javaTypeFactory);
+            types.add(javaTypeFactory.createTypeWithNullability(relDataType, field.isNullable()));
         }
 
         relDataType = typeFactory.createStructType(Pair.zip(names, types));
@@ -229,18 +216,79 @@ public class FlowFileTable<S, E> extends AbstractTable implements QueryableTable
             case STRING:
                 return typeFactory.createJavaType(String.class);
             case ARRAY:
-                return typeFactory.createJavaType(Object[].class);
+                ArrayDataType array = (ArrayDataType) fieldType;
+                return typeFactory.createArrayType(getRelDataType(array.getElementType(), typeFactory), -1);
             case RECORD:
                 return typeFactory.createJavaType(Record.class);
             case MAP:
                 return typeFactory.createJavaType(HashMap.class);
             case BIGINT:
                 return typeFactory.createJavaType(BigInteger.class);
+            case DECIMAL:
+                return typeFactory.createJavaType(BigDecimal.class);
             case CHOICE:
+                final ChoiceDataType choiceDataType = (ChoiceDataType) fieldType;
+                DataType widestDataType = choiceDataType.getPossibleSubTypes().get(0);
+                for (final DataType possibleType : choiceDataType.getPossibleSubTypes()) {
+                    if (possibleType == widestDataType) {
+                        continue;
+                    }
+                    if (possibleType.getFieldType().isWiderThan(widestDataType.getFieldType())) {
+                        widestDataType = possibleType;
+                        continue;
+                    }
+                    if (widestDataType.getFieldType().isWiderThan(possibleType.getFieldType())) {
+                        continue;
+                    }
+
+                    // Neither is wider than the other.
+                    widestDataType = null;
+                    break;
+                }
+
+                // If one of the CHOICE data types is the widest, use it.
+                if (widestDataType != null) {
+                    return getRelDataType(widestDataType, typeFactory);
+                }
+
+                // None of the data types is strictly the widest. Check if all data types are numeric.
+                // This would happen, for instance, if the data type is a choice between float and integer.
+                // If that is the case, we can use a String type for the table schema because all values will fit
+                // into a String. This will still allow for casting, etc. if the query requires it.
+                boolean allNumeric = true;
+                for (final DataType possibleType : choiceDataType.getPossibleSubTypes()) {
+                    if (!isNumeric(possibleType)) {
+                        allNumeric = false;
+                        break;
+                    }
+                }
+
+                if (allNumeric) {
+                    return typeFactory.createJavaType(String.class);
+                }
+
+                // There is no specific type that we can use for the schema. This would happen, for instance, if our
+                // CHOICE is between an integer and a Record.
                 return typeFactory.createJavaType(Object.class);
         }
 
         throw new IllegalArgumentException("Unknown Record Field Type: " + fieldType);
+    }
+
+    private boolean isNumeric(final DataType dataType) {
+        switch (dataType.getFieldType()) {
+            case BIGINT:
+            case BYTE:
+            case DECIMAL:
+            case DOUBLE:
+            case FLOAT:
+            case INT:
+            case LONG:
+            case SHORT:
+                return true;
+            default:
+                return false;
+        }
     }
 
     @Override

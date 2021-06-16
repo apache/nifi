@@ -29,6 +29,7 @@ import org.apache.nifi.annotation.behavior.ReadsAttributes;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.components.ConfigurableComponent;
+import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
 
@@ -39,6 +40,10 @@ import org.apache.nifi.processor.Relationship;
  *
  */
 public class HtmlProcessorDocumentationWriter extends HtmlDocumentationWriter {
+
+    public HtmlProcessorDocumentationWriter(ExtensionManager extensionManager) {
+        super(extensionManager);
+    }
 
     @Override
     protected void writeAdditionalBodyInfo(final ConfigurableComponent configurableComponent,

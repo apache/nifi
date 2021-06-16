@@ -16,12 +16,29 @@
  */
 package org.apache.nifi.processors.solr;
 
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.security.PrivilegedActionException;
+import java.security.PrivilegedExceptionAction;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+import javax.security.auth.login.LoginException;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.kerberos.KerberosCredentialsService;
 import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.security.krb.KeytabUser;
+import org.apache.nifi.security.krb.KerberosKeytabUser;
+import org.apache.nifi.security.krb.KerberosUser;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -29,7 +46,7 @@ import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrRequest;
 import org.apache.solr.client.solrj.SolrServerException;
-import org.apache.solr.client.solrj.impl.HttpSolrClient;
+import org.apache.solr.client.solrj.impl.BaseHttpSolrClient;
 import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.common.SolrDocument;
 import org.apache.solr.common.SolrException;
@@ -38,23 +55,6 @@ import org.apache.solr.common.util.NamedList;
 import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.Mockito;
-
-import javax.net.ssl.SSLContext;
-import javax.security.auth.login.LoginException;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.security.PrivilegedAction;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.eq;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 /**
  * Test for PutSolr processor.
@@ -237,7 +237,7 @@ public class TestPutSolrContentStream {
         Assert.assertEquals(1, qResponse.getResults().getNumFound());
 
         // run the processor with a delete-by-query command
-        runner.enqueue("<delete><query>first:bob</query></delete>".getBytes("UTF-8"));
+        runner.enqueue("<delete><query>first:bob</query></delete>".getBytes(StandardCharsets.UTF_8));
         runner.run(1, false);
 
         // prove the document got deleted
@@ -278,7 +278,7 @@ public class TestPutSolrContentStream {
             runner.run();
 
             runner.assertAllFlowFilesTransferred(PutSolrContentStream.REL_FAILURE, 1);
-            verify(proc.getSolrClient(), times(1)).request(any(SolrRequest.class), eq((String)null));
+            verify(proc.getSolrClient(), times(1)).request(any(SolrRequest.class), eq(null));
         }
     }
 
@@ -294,7 +294,7 @@ public class TestPutSolrContentStream {
             runner.run();
 
             runner.assertAllFlowFilesTransferred(PutSolrContentStream.REL_CONNECTION_FAILURE, 1);
-            verify(proc.getSolrClient(), times(1)).request(any(SolrRequest.class), eq((String)null));
+            verify(proc.getSolrClient(), times(1)).request(any(SolrRequest.class), eq(null));
         }
     }
 
@@ -310,13 +310,13 @@ public class TestPutSolrContentStream {
             runner.run();
 
             runner.assertAllFlowFilesTransferred(PutSolrContentStream.REL_FAILURE, 1);
-            verify(proc.getSolrClient(), times(1)).request(any(SolrRequest.class), eq((String)null));
+            verify(proc.getSolrClient(), times(1)).request(any(SolrRequest.class), eq(null));
         }
     }
 
     @Test
     public void testRemoteSolrExceptionShouldRouteToFailure() throws IOException, SolrServerException {
-        final Throwable throwable = new HttpSolrClient.RemoteSolrException(
+        final Throwable throwable = new BaseHttpSolrClient.RemoteSolrException(
                 "host", 401, "error", new NumberFormatException());
         final ExceptionThrowingProcessor proc = new ExceptionThrowingProcessor(throwable);
 
@@ -327,7 +327,7 @@ public class TestPutSolrContentStream {
             runner.run();
 
             runner.assertAllFlowFilesTransferred(PutSolrContentStream.REL_FAILURE, 1);
-            verify(proc.getSolrClient(), times(1)).request(any(SolrRequest.class), eq((String)null));
+            verify(proc.getSolrClient(), times(1)).request(any(SolrRequest.class), eq(null));
         }
     }
 
@@ -343,7 +343,7 @@ public class TestPutSolrContentStream {
             runner.run();
 
             runner.assertAllFlowFilesTransferred(PutSolrContentStream.REL_CONNECTION_FAILURE, 1);
-            verify(proc.getSolrClient(), times(1)).request(any(SolrRequest.class), eq((String)null));
+            verify(proc.getSolrClient(), times(1)).request(any(SolrRequest.class), eq(null));
         }
     }
 
@@ -427,7 +427,7 @@ public class TestPutSolrContentStream {
     }
 
     @Test
-    public void testBasicAuthAndKerberosNotAllowedTogether() throws IOException, InitializationException {
+    public void testBasicAuthAndKerberosCredentialServiceNotAllowedTogether() throws IOException, InitializationException {
         final SolrClient solrClient = createEmbeddedSolrClient(DEFAULT_SOLR_CORE);
         final TestableProcessor proc = new TestableProcessor(solrClient);
         final TestRunner runner = createDefaultTestRunner(proc);
@@ -451,31 +451,91 @@ public class TestPutSolrContentStream {
         runner.assertValid();
 
         proc.onScheduled(runner.getProcessContext());
-        final KeytabUser keytabUser = proc.getMockKerberosKeytabUser();
-        Assert.assertNotNull(keytabUser);
-        Assert.assertEquals(principal, keytabUser.getPrincipal());
-        Assert.assertEquals(keytab, keytabUser.getKeytabFile());
+        final KerberosUser kerberosUser = proc.getMockKerberosKeytabUser();
+        Assert.assertNotNull(kerberosUser);
+        Assert.assertEquals(principal, kerberosUser.getPrincipal());
+        Assert.assertEquals(keytab, ((KerberosKeytabUser)kerberosUser).getKeytabFile());
     }
 
     @Test
-    public void testUpdateWithKerberosAuth() throws IOException, InitializationException, LoginException {
+    public void testBasicAuthAndKerberosPrincipalPasswordNotAllowedTogether() throws IOException, InitializationException {
+        final SolrClient solrClient = createEmbeddedSolrClient(DEFAULT_SOLR_CORE);
+        final TestableProcessor proc = new TestableProcessor(solrClient);
+        final TestRunner runner = createDefaultTestRunner(proc);
+        runner.assertValid();
+
+        runner.setProperty(SolrUtils.BASIC_USERNAME, "user1");
+        runner.setProperty(SolrUtils.BASIC_PASSWORD, "password");
+        runner.assertValid();
+
+        final String kerberosPrincipal = "nifi@FOO.COM";
+        final String kerberosPassword = "nifi";
+        runner.setProperty(SolrUtils.KERBEROS_PRINCIPAL, kerberosPrincipal);
+        runner.setProperty(SolrUtils.KERBEROS_PASSWORD, kerberosPassword);
+
+        runner.assertNotValid();
+
+        runner.removeProperty(SolrUtils.BASIC_USERNAME);
+        runner.removeProperty(SolrUtils.BASIC_PASSWORD);
+        runner.assertValid();
+
+        proc.onScheduled(runner.getProcessContext());
+        final KerberosUser kerberosUser = proc.getMockKerberosKeytabUser();
+        Assert.assertNotNull(kerberosUser);
+        Assert.assertEquals(kerberosPrincipal, kerberosUser.getPrincipal());
+    }
+
+    @Test
+    public void testKerberosPrincipalPasswordAndKerberosCredentialServiceNotAllowedTogether() throws IOException, InitializationException {
+        final SolrClient solrClient = createEmbeddedSolrClient(DEFAULT_SOLR_CORE);
+        final TestableProcessor proc = new TestableProcessor(solrClient);
+        final TestRunner runner = createDefaultTestRunner(proc);
+        runner.assertValid();
+
+        final String kerberosPrincipal = "nifi@FOO.COM";
+        final String kerberosPassword = "nifi";
+        runner.setProperty(SolrUtils.KERBEROS_PRINCIPAL, kerberosPrincipal);
+        runner.setProperty(SolrUtils.KERBEROS_PASSWORD, kerberosPassword);
+
+        final String principal = "nifi@FOO.COM";
+        final String keytab = "src/test/resources/foo.keytab";
+        final KerberosCredentialsService kerberosCredentialsService = new MockKerberosCredentialsService(principal, keytab);
+        runner.addControllerService("kerb-credentials", kerberosCredentialsService);
+        runner.enableControllerService(kerberosCredentialsService);
+        runner.setProperty(SolrUtils.KERBEROS_CREDENTIALS_SERVICE, "kerb-credentials");
+
+        runner.assertNotValid();
+
+        runner.removeProperty(SolrUtils.KERBEROS_PRINCIPAL);
+        runner.removeProperty(SolrUtils.KERBEROS_PASSWORD);
+        runner.assertValid();
+
+        proc.onScheduled(runner.getProcessContext());
+        final KerberosUser kerberosUser = proc.getMockKerberosKeytabUser();
+        Assert.assertNotNull(kerberosUser);
+        Assert.assertEquals(principal, kerberosUser.getPrincipal());
+        Assert.assertEquals(keytab, ((KerberosKeytabUser)kerberosUser).getKeytabFile());
+    }
+
+    @Test
+    public void testUpdateWithKerberosAuth() throws IOException, InitializationException, LoginException, PrivilegedActionException {
         final String principal = "nifi@FOO.COM";
         final String keytab = "src/test/resources/foo.keytab";
 
-        // Setup a mock KeytabUser that will still execute the privileged action
-        final KeytabUser keytabUser = Mockito.mock(KeytabUser.class);
-        when(keytabUser.getPrincipal()).thenReturn(principal);
-        when(keytabUser.getKeytabFile()).thenReturn(keytab);
-        when(keytabUser.doAs(any(PrivilegedAction.class))).thenAnswer((invocation -> {
-                    final PrivilegedAction action = (PrivilegedAction) invocation.getArguments()[0];
+        // Setup a mock KerberosUser that will still execute the privileged action
+        final KerberosKeytabUser kerberosUser = Mockito.mock(KerberosKeytabUser.class);
+        when(kerberosUser.getPrincipal()).thenReturn(principal);
+        when(kerberosUser.getKeytabFile()).thenReturn(keytab);
+        when(kerberosUser.doAs(any(PrivilegedExceptionAction.class))).thenAnswer((invocation -> {
+                    final PrivilegedExceptionAction action = (PrivilegedExceptionAction) invocation.getArguments()[0];
                     action.run();
                     return null;
                 })
         );
 
-        // Configure the processor with the mock KeytabUser and with a credentials service
+        // Configure the processor with the mock KerberosUser and with a credentials service
         final SolrClient solrClient = createEmbeddedSolrClient(DEFAULT_SOLR_CORE);
-        final TestableProcessor proc = new TestableProcessor(solrClient, keytabUser);
+        final TestableProcessor proc = new TestableProcessor(solrClient, kerberosUser);
         final TestRunner runner = createDefaultTestRunner(proc);
 
         final KerberosCredentialsService kerberosCredentialsService = new MockKerberosCredentialsService(principal, keytab);
@@ -499,9 +559,9 @@ public class TestPutSolrContentStream {
         }
 
         // Verify that during the update the user was logged in, TGT was checked, and the action was executed
-        verify(keytabUser, times(1)).login();
-        verify(keytabUser, times(1)).checkTGTAndRelogin();
-        verify(keytabUser, times(1)).doAs(any(PrivilegedAction.class));
+        verify(kerberosUser, times(1)).login();
+        verify(kerberosUser, times(1)).checkTGTAndRelogin();
+        verify(kerberosUser, times(1)).doAs(any(PrivilegedExceptionAction.class));
     }
 
 
@@ -523,67 +583,6 @@ public class TestPutSolrContentStream {
         @Override
         public String getPrincipal() {
             return principal;
-        }
-    }
-
-    /**
-     * Mock implementation so we don't need to have a real keystore/truststore available for testing.
-     */
-    private class MockSSLContextService extends AbstractControllerService implements SSLContextService {
-
-        @Override
-        public SSLContext createSSLContext(ClientAuth clientAuth) throws ProcessException {
-            return null;
-        }
-
-        @Override
-        public String getTrustStoreFile() {
-            return null;
-        }
-
-        @Override
-        public String getTrustStoreType() {
-            return null;
-        }
-
-        @Override
-        public String getTrustStorePassword() {
-            return null;
-        }
-
-        @Override
-        public boolean isTrustStoreConfigured() {
-            return false;
-        }
-
-        @Override
-        public String getKeyStoreFile() {
-            return null;
-        }
-
-        @Override
-        public String getKeyStoreType() {
-            return null;
-        }
-
-        @Override
-        public String getKeyStorePassword() {
-            return null;
-        }
-
-        @Override
-        public String getKeyPassword() {
-            return null;
-        }
-
-        @Override
-        public boolean isKeyStoreConfigured() {
-            return false;
-        }
-
-        @Override
-        public String getSslAlgorithm() {
-            return null;
         }
     }
 
@@ -633,7 +632,7 @@ public class TestPutSolrContentStream {
             mockSolrClient = Mockito.mock(SolrClient.class);
             try {
                 when(mockSolrClient.request(any(SolrRequest.class),
-                        eq((String)null))).thenThrow(throwable);
+                        eq(null))).thenThrow(throwable);
             } catch (SolrServerException e) {
                 Assert.fail(e.getMessage());
             } catch (IOException e) {
@@ -647,15 +646,15 @@ public class TestPutSolrContentStream {
     // Override createSolrClient and return the passed in SolrClient
     private class TestableProcessor extends PutSolrContentStream {
         private SolrClient solrClient;
-        private KeytabUser keytabUser;
+        private KerberosUser kerberosUser;
 
         public TestableProcessor(SolrClient solrClient) {
             this.solrClient = solrClient;
         }
 
-        public TestableProcessor(SolrClient solrClient, KeytabUser keytabUser) {
+        public TestableProcessor(SolrClient solrClient, KerberosUser kerberosUser) {
             this.solrClient = solrClient;
-            this.keytabUser = keytabUser;
+            this.kerberosUser = kerberosUser;
         }
 
         @Override
@@ -664,16 +663,25 @@ public class TestPutSolrContentStream {
         }
 
         @Override
-        protected KeytabUser createKeytabUser(KerberosCredentialsService kerberosCredentialsService) {
-            if (keytabUser != null) {
-                return keytabUser;
+        protected KerberosUser createKerberosKeytabUser(KerberosCredentialsService kerberosCredentialsService) {
+            if (kerberosUser != null) {
+                return kerberosUser;
             } else {
-                return super.createKeytabUser(kerberosCredentialsService);
+                return super.createKerberosKeytabUser(kerberosCredentialsService);
             }
         }
 
-        public KeytabUser getMockKerberosKeytabUser() {
-            return super.getKerberosKeytabUser();
+        @Override
+        protected KerberosUser createKerberosPasswordUser(String principal, String password) {
+            if (kerberosUser != null) {
+                return kerberosUser;
+            } else {
+                return super.createKerberosPasswordUser(principal, password);
+            }
+        }
+
+        public KerberosUser getMockKerberosKeytabUser() {
+            return super.getKerberosUser();
         }
     }
 

@@ -16,11 +16,36 @@
  */
 package org.apache.nifi.web.api;
 
+import static org.apache.nifi.web.api.ApplicationResource.PROXY_HOST_HTTP_HEADER;
+import static org.apache.nifi.web.api.ApplicationResource.PROXY_PORT_HTTP_HEADER;
+import static org.apache.nifi.web.api.ApplicationResource.PROXY_SCHEME_HTTP_HEADER;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.io.InputStream;
+import java.lang.reflect.Field;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
+import javax.servlet.ServletContext;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.StreamingOutput;
+import javax.ws.rs.core.UriBuilder;
+import javax.ws.rs.core.UriInfo;
 import org.apache.nifi.authorization.AuthorizableLookup;
 import org.apache.nifi.authorization.resource.ResourceType;
 import org.apache.nifi.remote.HttpRemoteSiteListener;
 import org.apache.nifi.remote.Peer;
-import org.apache.nifi.remote.RootGroupPort;
+import org.apache.nifi.remote.PublicPort;
 import org.apache.nifi.remote.VersionNegotiator;
 import org.apache.nifi.remote.exception.HandshakeException;
 import org.apache.nifi.remote.io.http.HttpServerCommunicationsSession;
@@ -32,32 +57,6 @@ import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.api.entity.TransactionResultEntity;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
-import javax.servlet.ServletContext;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.StreamingOutput;
-import javax.ws.rs.core.UriBuilder;
-import javax.ws.rs.core.UriInfo;
-import java.io.InputStream;
-import java.lang.reflect.Field;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URL;
-
-import static org.apache.nifi.web.api.ApplicationResource.PROXY_HOST_HTTP_HEADER;
-import static org.apache.nifi.web.api.ApplicationResource.PROXY_PORT_HTTP_HEADER;
-import static org.apache.nifi.web.api.ApplicationResource.PROXY_SCHEME_HTTP_HEADER;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class TestDataTransferResource {
 
@@ -231,7 +230,7 @@ public class TestDataTransferResource {
         final UriInfo uriInfo = mockUriInfo(locationUriStr);
         final InputStream inputStream = null;
 
-        final HttpRemoteSiteListener transactionManager = HttpRemoteSiteListener.getInstance(NiFiProperties.createBasicNiFiProperties(null, null));
+        final HttpRemoteSiteListener transactionManager = HttpRemoteSiteListener.getInstance(NiFiProperties.createBasicNiFiProperties(null));
         final String transactionId = transactionManager.createTransaction();
 
         final Response response = resource.extendPortTransactionTTL("input-ports", "port-id", transactionId, req, res, context, uriInfo, inputStream);
@@ -251,7 +250,7 @@ public class TestDataTransferResource {
         final DataTransferResource resource = getDataTransferResource();
         final HttpFlowFileServerProtocol serverProtocol = resource.getHttpFlowFileServerProtocol(null);
 
-        final RootGroupPort port = mock(RootGroupPort.class);
+        final PublicPort port = mock(PublicPort.class);
         doReturn(port).when(serverProtocol).getPort();
         doAnswer(invocation -> {
             Peer peer = (Peer) invocation.getArguments()[0];
@@ -262,7 +261,7 @@ public class TestDataTransferResource {
         final ServletContext context = null;
         final InputStream inputStream = null;
 
-        final HttpRemoteSiteListener transactionManager = HttpRemoteSiteListener.getInstance(NiFiProperties.createBasicNiFiProperties(null, null));
+        final HttpRemoteSiteListener transactionManager = HttpRemoteSiteListener.getInstance(NiFiProperties.createBasicNiFiProperties(null));
         final String transactionId = transactionManager.createTransaction();
 
         final Response response = resource.receiveFlowFiles("port-id", transactionId, req, context, inputStream);
@@ -282,14 +281,14 @@ public class TestDataTransferResource {
         final DataTransferResource resource = getDataTransferResource();
         final HttpFlowFileServerProtocol serverProtocol = resource.getHttpFlowFileServerProtocol(null);
 
-        final RootGroupPort port = mock(RootGroupPort.class);
+        final PublicPort port = mock(PublicPort.class);
         doReturn(port).when(serverProtocol).getPort();
         doAnswer(invocation -> 0).when(port).receiveFlowFiles(any(Peer.class), any());
 
         final ServletContext context = null;
         final InputStream inputStream = null;
 
-        final HttpRemoteSiteListener transactionManager = HttpRemoteSiteListener.getInstance(NiFiProperties.createBasicNiFiProperties(null, null));
+        final HttpRemoteSiteListener transactionManager = HttpRemoteSiteListener.getInstance(NiFiProperties.createBasicNiFiProperties(null));
         final String transactionId = transactionManager.createTransaction();
 
         final Response response = resource.receiveFlowFiles("port-id", transactionId, req, context, inputStream);
@@ -308,7 +307,7 @@ public class TestDataTransferResource {
         final ServletContext context = null;
         final InputStream inputStream = null;
 
-        final HttpRemoteSiteListener transactionManager = HttpRemoteSiteListener.getInstance(NiFiProperties.createBasicNiFiProperties(null, null));
+        final HttpRemoteSiteListener transactionManager = HttpRemoteSiteListener.getInstance(NiFiProperties.createBasicNiFiProperties(null));
         final String transactionId = transactionManager.createTransaction();
 
         final Response response = resource.commitInputPortTransaction(ResponseCode.CONFIRM_TRANSACTION.getCode(), "port-id", transactionId, req, context, inputStream);
@@ -331,7 +330,7 @@ public class TestDataTransferResource {
         final HttpServletResponse res = null;
         final InputStream inputStream = null;
 
-        final HttpRemoteSiteListener transactionManager = HttpRemoteSiteListener.getInstance(NiFiProperties.createBasicNiFiProperties(null, null));
+        final HttpRemoteSiteListener transactionManager = HttpRemoteSiteListener.getInstance(NiFiProperties.createBasicNiFiProperties(null));
         final String transactionId = transactionManager.createTransaction();
 
         final Response response = resource.transferFlowFiles("port-id", transactionId, req, res, context, inputStream);
@@ -353,7 +352,7 @@ public class TestDataTransferResource {
         final ServletContext context = null;
         final InputStream inputStream = null;
 
-        final HttpRemoteSiteListener transactionManager = HttpRemoteSiteListener.getInstance(NiFiProperties.createBasicNiFiProperties(null, null));
+        final HttpRemoteSiteListener transactionManager = HttpRemoteSiteListener.getInstance(NiFiProperties.createBasicNiFiProperties(null));
         final String transactionId = transactionManager.createTransaction();
 
         final Response response = resource.commitOutputPortTransaction(ResponseCode.CONFIRM_TRANSACTION.getCode(),
@@ -379,7 +378,7 @@ public class TestDataTransferResource {
         final ServletContext context = null;
         final InputStream inputStream = null;
 
-        final HttpRemoteSiteListener transactionManager = HttpRemoteSiteListener.getInstance(NiFiProperties.createBasicNiFiProperties(null, null));
+        final HttpRemoteSiteListener transactionManager = HttpRemoteSiteListener.getInstance(NiFiProperties.createBasicNiFiProperties(null));
         final String transactionId = transactionManager.createTransaction();
 
         final Response response = resource.commitOutputPortTransaction(ResponseCode.CONFIRM_TRANSACTION.getCode(),
@@ -397,7 +396,7 @@ public class TestDataTransferResource {
         final NiFiServiceFacade serviceFacade = mock(NiFiServiceFacade.class);
 
         final HttpFlowFileServerProtocol serverProtocol = mock(HttpFlowFileServerProtocol.class);
-        final DataTransferResource resource = new DataTransferResource(NiFiProperties.createBasicNiFiProperties(null, null)) {
+        final DataTransferResource resource = new DataTransferResource(NiFiProperties.createBasicNiFiProperties(null)) {
             @Override
             protected void authorizeDataTransfer(AuthorizableLookup lookup, ResourceType resourceType, String identifier) {
             }
@@ -407,7 +406,7 @@ public class TestDataTransferResource {
                 return serverProtocol;
             }
         };
-        resource.setProperties(NiFiProperties.createBasicNiFiProperties(null, null));
+        resource.setProperties(NiFiProperties.createBasicNiFiProperties(null));
         resource.setServiceFacade(serviceFacade);
         return resource;
     }

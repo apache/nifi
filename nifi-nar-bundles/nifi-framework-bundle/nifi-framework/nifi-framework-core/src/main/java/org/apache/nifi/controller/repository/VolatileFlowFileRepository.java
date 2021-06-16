@@ -16,15 +16,18 @@
  */
 package org.apache.nifi.controller.repository;
 
-import java.io.IOException;
-import java.util.Collection;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicLong;
-
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.repository.claim.ContentClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaim;
 import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
+
+import java.io.IOException;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * <p>
@@ -94,6 +97,8 @@ public class VolatileFlowFileRepository implements FlowFileRepository {
     @Override
     public void updateRepository(final Collection<RepositoryRecord> records) throws IOException {
         for (final RepositoryRecord record : records) {
+            updateClaimCounts(record);
+
             if (record.getType() == RepositoryRecordType.DELETE) {
                 // For any DELETE record that we have, if current claim's claimant count <= 0, mark it as destructable
                 if (record.getCurrentClaim() != null && getClaimantCount(record.getCurrentClaim()) <= 0) {
@@ -113,10 +118,52 @@ public class VolatileFlowFileRepository implements FlowFileRepository {
         }
     }
 
+    private void updateClaimCounts(final RepositoryRecord record) {
+        final ContentClaim currentClaim = record.getCurrentClaim();
+        final ContentClaim originalClaim = record.getOriginalClaim();
+        final boolean claimChanged = !Objects.equals(currentClaim, originalClaim);
+
+        if (record.getType() == RepositoryRecordType.DELETE || record.getType() == RepositoryRecordType.CONTENTMISSING) {
+            decrementClaimCount(currentClaim);
+        }
+
+        if (claimChanged) {
+            // records which have been updated - remove original if exists
+            decrementClaimCount(originalClaim);
+        }
+    }
+
+    private void decrementClaimCount(final ContentClaim claim) {
+        if (claim == null) {
+            return;
+        }
+
+        claimManager.decrementClaimantCount(claim.getResourceClaim());
+    }
+
     @Override
-    public long loadFlowFiles(final QueueProvider queueProvider, final long minimumSequenceNumber) throws IOException {
-        idGenerator.set(minimumSequenceNumber);
+    public long loadFlowFiles(final QueueProvider queueProvider) throws IOException {
         return 0;
+    }
+
+    @Override
+    public Set<String> findQueuesWithFlowFiles(FlowFileSwapManager swapManager) throws IOException {
+        return Collections.emptySet();
+    }
+
+    @Override
+    public void updateMaxFlowFileIdentifier(final long maxId) {
+        while (true) {
+            final long currentId = idGenerator.get();
+            if (currentId >= maxId) {
+                return;
+            }
+
+            final boolean updated = idGenerator.compareAndSet(currentId, maxId);
+            if (updated) {
+                return;
+            }
+        }
     }
 
     @Override
@@ -137,4 +184,8 @@ public class VolatileFlowFileRepository implements FlowFileRepository {
     public void swapFlowFilesOut(List<FlowFileRecord> swappedOut, FlowFileQueue queue, String swapLocation) throws IOException {
     }
 
+    @Override
+    public boolean isValidSwapLocationSuffix(final String swapLocationSuffix) {
+        return false;
+    }
 }

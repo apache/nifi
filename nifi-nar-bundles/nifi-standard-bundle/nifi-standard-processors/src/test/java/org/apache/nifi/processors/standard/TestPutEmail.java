@@ -36,6 +36,7 @@ import javax.mail.internet.MimeUtility;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.binary.StringUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.util.LogMessage;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -228,7 +229,9 @@ public class TestPutEmail {
         runner.setProperty(PutEmail.CONTENT_TYPE, "text/html");
         runner.setProperty(PutEmail.TO, "recipient@apache.org");
 
-        runner.enqueue("Some text".getBytes());
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put(CoreAttributes.FILENAME.key(), "test한的ほу́.pdf");
+        runner.enqueue("Some text".getBytes(), attributes);
 
         runner.run();
 
@@ -253,6 +256,7 @@ public class TestPutEmail {
         final BodyPart attachPart = multipart.getBodyPart(1);
         final InputStream attachIs = attachPart.getDataHandler().getInputStream();
         final String text = IOUtils.toString(attachIs, "UTF-8");
+        assertEquals("test한的ほу́.pdf", MimeUtility.decodeText(attachPart.getFileName()));
         assertEquals("Some text", text);
 
         assertNull(message.getRecipients(RecipientType.BCC));
@@ -264,9 +268,11 @@ public class TestPutEmail {
         // verifies that are set on the outgoing Message correctly
         runner.setProperty(PutEmail.SMTP_HOSTNAME, "smtp-host");
         runner.setProperty(PutEmail.HEADER_XMAILER, "TestingNiFi");
-        runner.setProperty(PutEmail.FROM, "test@apache.org");
+        runner.setProperty(PutEmail.FROM, "test@apache.org,from@apache.org");
         runner.setProperty(PutEmail.MESSAGE, "${body}");
-        runner.setProperty(PutEmail.TO, "recipient@apache.org");
+        runner.setProperty(PutEmail.TO, "recipient@apache.org,another@apache.org");
+        runner.setProperty(PutEmail.CC, "recipientcc@apache.org,anothercc@apache.org");
+        runner.setProperty(PutEmail.BCC, "recipientbcc@apache.org,anotherbcc@apache.org");
         runner.setProperty(PutEmail.CONTENT_AS_MESSAGE, "${sendContent}");
 
         Map<String, String> attributes = new HashMap<String, String>();
@@ -283,11 +289,15 @@ public class TestPutEmail {
         assertEquals("Expected a single message to be sent", 1, processor.getMessages().size());
         Message message = processor.getMessages().get(0);
         assertEquals("test@apache.org", message.getFrom()[0].toString());
+        assertEquals("from@apache.org", message.getFrom()[1].toString());
         assertEquals("X-Mailer Header", "TestingNiFi", message.getHeader("X-Mailer")[0]);
         assertEquals("Some Text", message.getContent());
         assertEquals("recipient@apache.org", message.getRecipients(RecipientType.TO)[0].toString());
-        assertNull(message.getRecipients(RecipientType.BCC));
-        assertNull(message.getRecipients(RecipientType.CC));
+        assertEquals("another@apache.org", message.getRecipients(RecipientType.TO)[1].toString());
+        assertEquals("recipientcc@apache.org", message.getRecipients(RecipientType.CC)[0].toString());
+        assertEquals("anothercc@apache.org", message.getRecipients(RecipientType.CC)[1].toString());
+        assertEquals("recipientbcc@apache.org", message.getRecipients(RecipientType.BCC)[0].toString());
+        assertEquals("anotherbcc@apache.org", message.getRecipients(RecipientType.BCC)[1].toString());
     }
 
 }

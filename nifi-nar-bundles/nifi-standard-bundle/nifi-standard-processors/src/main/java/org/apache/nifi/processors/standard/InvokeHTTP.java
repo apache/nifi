@@ -16,23 +16,61 @@
  */
 package org.apache.nifi.processors.standard;
 
+import static org.apache.commons.lang3.StringUtils.trimToEmpty;
+
 import com.burgstaller.okhttp.AuthenticationCacheInterceptor;
 import com.burgstaller.okhttp.CachingAuthenticatorDecorator;
 import com.burgstaller.okhttp.digest.CachingAuthenticator;
 import com.burgstaller.okhttp.digest.DigestAuthenticator;
 import com.google.common.io.Files;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.Proxy;
+import java.net.Proxy.Type;
+import java.net.URL;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.security.KeyManagementException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.Principal;
+import java.security.UnrecoverableKeyException;
+import java.security.cert.CertificateException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import javax.annotation.Nullable;
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.SSLSession;
 import okhttp3.Cache;
+import okhttp3.ConnectionPool;
 import okhttp3.Credentials;
 import okhttp3.MediaType;
+import okhttp3.MultipartBody;
+import okhttp3.MultipartBody.Builder;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
-import okhttp3.internal.tls.OkHostnameVerifier;
 import okio.BufferedSink;
 import org.apache.commons.io.input.TeeInputStream;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.annotation.behavior.DynamicProperties;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -54,6 +92,7 @@ import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -61,55 +100,12 @@ import org.apache.nifi.processors.standard.util.ProxyAuthenticator;
 import org.apache.nifi.processors.standard.util.SoftLimitBoundedByteArrayOutputStream;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxySpec;
+import org.apache.nifi.security.util.OkHttpClientUtils;
+import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.ssl.SSLContextService;
-import org.apache.nifi.ssl.SSLContextService.ClientAuth;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
-
-import javax.net.ssl.HostnameVerifier;
-import javax.net.ssl.KeyManager;
-import javax.net.ssl.KeyManagerFactory;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSession;
-import javax.net.ssl.SSLSocketFactory;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.TrustManagerFactory;
-import javax.net.ssl.X509TrustManager;
-
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.Proxy;
-import java.net.Proxy.Type;
-import java.net.URL;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
-import java.security.KeyManagementException;
-import java.security.KeyStore;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.UnrecoverableKeyException;
-import java.security.cert.CertificateException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import static org.apache.commons.lang3.StringUtils.trimToEmpty;
 
 @SupportsBatching
 @Tags({"http", "https", "rest", "client"})
@@ -128,11 +124,18 @@ import static org.apache.commons.lang3.StringUtils.trimToEmpty;
     @WritesAttribute(attribute = "invokehttp.java.exception.message", description = "The Java exception message raised when the processor fails"),
     @WritesAttribute(attribute = "user-defined", description = "If the 'Put Response Body In Attribute' property is set then whatever it is set to "
         + "will become the attribute key and the value would be the body of the HTTP response.")})
-@DynamicProperty(name = "Header Name", value = "Attribute Expression Language", expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
-                    description = "Send request header with a key matching the Dynamic Property Key and a value created by evaluating "
-                            + "the Attribute Expression Language set in the value of the Dynamic Property.")
-public final class InvokeHTTP extends AbstractProcessor {
-
+@DynamicProperties ({
+    @DynamicProperty(name = "Header Name", value = "Attribute Expression Language", expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
+        description =
+            "Send request header with a key matching the Dynamic Property Key and a value created by evaluating "
+                + "the Attribute Expression Language set in the value of the Dynamic Property."),
+    @DynamicProperty(name = "post:form:<NAME>", value = "Attribute Expression Language", expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
+        description =
+            "When the HTTP Method is POST, dynamic properties with the property name in the form of post:form:<NAME>,"
+                + " where the <NAME> will be the form data name, will be used to fill out the multipart form parts."
+                + "  If send message body is false, the flowfile will not be sent, but any other form data will be.")
+})
+public class InvokeHTTP extends AbstractProcessor {
     // flowfile attribute keys returned after reading the response
     public final static String STATUS_CODE = "invokehttp.status.code";
     public final static String STATUS_MESSAGE = "invokehttp.status.message";
@@ -146,6 +149,8 @@ public final class InvokeHTTP extends AbstractProcessor {
 
     public static final String DEFAULT_CONTENT_TYPE = "application/octet-stream";
 
+    public static final String FORM_BASE= "post:form";
+
     // Set of flowfile attributes which we generally always ignore during
     // processing, including when converting http headers, copying attributes, etc.
     // This set includes our strings defined above as well as some standard flowfile
@@ -155,8 +160,13 @@ public final class InvokeHTTP extends AbstractProcessor {
             EXCEPTION_CLASS, EXCEPTION_MESSAGE,
             "uuid", "filename", "path")));
 
+    // Set of HTTP header names explicitly excluded from requests.
+    private static final Map<String, String> excludedHeaders = new HashMap<String, String>();
+
     public static final String HTTP = "http";
     public static final String HTTPS = "https";
+
+    private static final Pattern DYNAMIC_FORM_PARAMETER_NAME = Pattern.compile("post:form:(?<formDataName>.*)$");
 
     // properties
     public static final PropertyDescriptor PROP_METHOD = new PropertyDescriptor.Builder()
@@ -193,6 +203,24 @@ public final class InvokeHTTP extends AbstractProcessor {
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
 
+    public static final PropertyDescriptor PROP_IDLE_TIMEOUT = new PropertyDescriptor.Builder()
+            .name("idle-timeout")
+            .displayName("Idle Timeout")
+            .description("Max idle time before closing connection to the remote service.")
+            .required(true)
+            .defaultValue("5 mins")
+            .addValidator(StandardValidators.createTimePeriodValidator(1, TimeUnit.MILLISECONDS, Integer.MAX_VALUE, TimeUnit.SECONDS))
+            .build();
+
+    public static final PropertyDescriptor PROP_MAX_IDLE_CONNECTIONS = new PropertyDescriptor.Builder()
+            .name("max-idle-connections")
+            .displayName("Max Idle Connections")
+            .description("Max number of idle connections to keep open.")
+            .required(true)
+            .defaultValue("5")
+            .addValidator(StandardValidators.INTEGER_VALIDATOR)
+            .build();
+
     public static final PropertyDescriptor PROP_DATE_HEADER = new PropertyDescriptor.Builder()
             .name("Include Date Header")
             .description("Include an RFC-2616 Date header in the request.")
@@ -219,6 +247,16 @@ public final class InvokeHTTP extends AbstractProcessor {
                     + "language will be the header value.")
             .required(false)
             .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor PROP_USERAGENT = new PropertyDescriptor.Builder()
+            .name("Useragent")
+            .displayName("Useragent")
+            .description("The Useragent identifier sent along with each request")
+            .required(false)
+            .defaultValue("Apache Nifi/${nifi.version} (git:${nifi.build.git.commit.id.describe}; https://nifi.apache.org/)")
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor PROP_SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
@@ -292,6 +330,30 @@ public final class InvokeHTTP extends AbstractProcessor {
             .required(false)
             .build();
 
+    public static final PropertyDescriptor PROP_FORM_BODY_FORM_NAME = new PropertyDescriptor.Builder()
+        .name("form-body-form-name")
+        .displayName("Flowfile Form Data Name")
+        .description("When Send Message Body is true, and Flowfile Form Data Name is set, "
+            + " the Flowfile will be sent as the message body in multipart/form format with this value "
+            + "as the form data name.")
+        .required(false)
+        .addValidator(
+            StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING, true))
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+        .build();
+
+    public static final PropertyDescriptor PROP_SET_FORM_FILE_NAME = new PropertyDescriptor.Builder()
+        .name("set-form-filename")
+        .displayName("Set Flowfile Form Data File Name")
+        .description(
+            "When Send Message Body is true, Flowfile Form Data Name is set, "
+            + "and Set Flowfile Form Data File Name is true, the Flowfile's fileName value "
+            + "will be set as the filename property of the form data.")
+        .required(false)
+        .defaultValue("true")
+        .allowableValues("true","false")
+        .build();
+
     // Per RFC 7235, 2617, and 2616.
     // basic-credentials = base64-user-pass
     // base64-user-pass = userid ":" password
@@ -360,15 +422,6 @@ public final class InvokeHTTP extends AbstractProcessor {
             .allowableValues("true", "false")
             .build();
 
-    public static final PropertyDescriptor PROP_TRUSTED_HOSTNAME = new PropertyDescriptor.Builder()
-            .name("Trusted Hostname")
-            .description("Bypass the normal truststore hostname verifier to allow the specified remote hostname as trusted. "
-                    + "Enabling this property has MITM security implications, use wisely. Will still accept other connections based "
-                    + "on the normal truststore hostname verifier. Only valid with SSL (HTTPS) connections.")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .required(false)
-            .build();
-
     public static final PropertyDescriptor PROP_ADD_HEADERS_TO_REQUEST = new PropertyDescriptor.Builder()
             .name("Add Response Headers to Request")
             .description("Enabling this property saves all the response headers to the original request. This may be when the response headers are needed "
@@ -413,6 +466,15 @@ public final class InvokeHTTP extends AbstractProcessor {
             .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
             .build();
 
+    public static final PropertyDescriptor IGNORE_RESPONSE_CONTENT = new PropertyDescriptor.Builder()
+            .name("ignore-response-content")
+            .description("If true, the processor will not write the response's content into the flow file.")
+            .displayName("Ignore response's content")
+            .required(true)
+            .defaultValue("false")
+            .allowableValues("true", "false")
+            .build();
+
     private static final ProxySpec[] PROXY_SPECS = {ProxySpec.HTTP_AUTH, ProxySpec.SOCKS};
     public static final PropertyDescriptor PROXY_CONFIGURATION_SERVICE
             = ProxyConfiguration.createProxyConfigPropertyDescriptor(true, PROXY_SPECS);
@@ -423,9 +485,12 @@ public final class InvokeHTTP extends AbstractProcessor {
             PROP_SSL_CONTEXT_SERVICE,
             PROP_CONNECT_TIMEOUT,
             PROP_READ_TIMEOUT,
+            PROP_IDLE_TIMEOUT,
+            PROP_MAX_IDLE_CONNECTIONS,
             PROP_DATE_HEADER,
             PROP_FOLLOW_REDIRECTS,
             PROP_ATTRIBUTES_TO_SEND,
+            PROP_USERAGENT,
             PROP_BASIC_AUTH_USERNAME,
             PROP_BASIC_AUTH_PASSWORD,
             PROXY_CONFIGURATION_SERVICE,
@@ -438,14 +503,16 @@ public final class InvokeHTTP extends AbstractProcessor {
             PROP_PUT_ATTRIBUTE_MAX_LENGTH,
             PROP_DIGEST_AUTH,
             PROP_OUTPUT_RESPONSE_REGARDLESS,
-            PROP_TRUSTED_HOSTNAME,
             PROP_ADD_HEADERS_TO_REQUEST,
             PROP_CONTENT_TYPE,
             PROP_SEND_BODY,
             PROP_USE_CHUNKED_ENCODING,
             PROP_PENALIZE_NO_RETRY,
             PROP_USE_ETAG,
-            PROP_ETAG_MAX_CACHE_SIZE));
+            PROP_ETAG_MAX_CACHE_SIZE,
+            IGNORE_RESPONSE_CONTENT,
+            PROP_FORM_BODY_FORM_NAME,
+            PROP_SET_FORM_FILE_NAME));
 
     // relationships
     public static final Relationship REL_SUCCESS_REQ = new Relationship.Builder()
@@ -493,12 +560,36 @@ public final class InvokeHTTP extends AbstractProcessor {
     private final AtomicReference<OkHttpClient> okHttpClientAtomicReference = new AtomicReference<>();
 
     @Override
+    protected void init(ProcessorInitializationContext context) {
+        excludedHeaders.put("Trusted Hostname", "HTTP request header '{}' excluded. " +
+                             "Update processor to use the SSLContextService instead. " +
+                             "See the Access Policies section in the System Administrator's Guide.");
+
+    }
+
+    @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return PROPERTIES;
     }
 
     @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(String propertyDescriptorName) {
+        if (propertyDescriptorName.startsWith(FORM_BASE)) {
+
+            Matcher matcher = DYNAMIC_FORM_PARAMETER_NAME.matcher(propertyDescriptorName);
+            if (matcher.matches()) {
+                return new PropertyDescriptor.Builder()
+                    .required(false)
+                    .name(propertyDescriptorName)
+                    .description("Form Data " + matcher.group("formDataName"))
+                    .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING, true))
+                    .dynamic(true)
+                    .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+                    .build();
+            }
+            return null;
+        }
+
         return new PropertyDescriptor.Builder()
                 .required(false)
                 .name(propertyDescriptorName)
@@ -573,6 +664,43 @@ public final class InvokeHTTP extends AbstractProcessor {
 
         ProxyConfiguration.validateProxySpec(validationContext, results, PROXY_SPECS);
 
+        for (String headerKey : validationContext.getProperties().values()) {
+            if (excludedHeaders.containsKey(headerKey)) {
+                // We're not using the header message format string here, just this
+                // static validation message string:
+                results.add(new ValidationResult.Builder().subject(headerKey).valid(false).explanation("Matches excluded HTTP header name").build());
+            }
+        }
+
+        // Check for dynamic properties for form components.
+        // Even if the flowfile is not sent, we may still send form parameters.
+        boolean hasFormData = false;
+        Map<String, PropertyDescriptor> propertyDescriptors = new HashMap<>();
+        for (final Map.Entry<PropertyDescriptor, String> entry : validationContext.getProperties().entrySet()) {
+            Matcher matcher = DYNAMIC_FORM_PARAMETER_NAME.matcher(entry.getKey().getName());
+            if (matcher.matches()) {
+                hasFormData = true;
+                break;
+            }
+        }
+
+        // if form data exists, and send body is true, Flowfile Form Data Name must be set.
+        final boolean sendBody = validationContext.getProperty(PROP_SEND_BODY).asBoolean();
+        final boolean contentNameSet = validationContext.getProperty(PROP_FORM_BODY_FORM_NAME).isSet();
+        if (hasFormData) {
+            if (sendBody && !contentNameSet) {
+                results.add(new ValidationResult.Builder().subject(PROP_FORM_BODY_FORM_NAME.getDisplayName())
+                    .valid(false).explanation(
+                        "If dynamic form data properties are set, and send body is true, Flowfile Form Data Name must be configured.")
+                    .build());
+            }
+        }
+        if (!sendBody && contentNameSet) {
+            results.add(new ValidationResult.Builder().subject(PROP_FORM_BODY_FORM_NAME.getDisplayName())
+                .valid(false).explanation("If Flowfile Form Data Name is configured, Send Message Body must be true.")
+                .build());
+        }
+
         return results;
     }
 
@@ -620,21 +748,22 @@ public final class InvokeHTTP extends AbstractProcessor {
         okHttpClientBuilder.connectTimeout((context.getProperty(PROP_CONNECT_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue()), TimeUnit.MILLISECONDS);
         okHttpClientBuilder.readTimeout(context.getProperty(PROP_READ_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue(), TimeUnit.MILLISECONDS);
 
+        // Set connectionpool limits
+        okHttpClientBuilder.connectionPool(
+                new ConnectionPool(
+                        context.getProperty(PROP_MAX_IDLE_CONNECTIONS).asInteger(),
+                        context.getProperty(PROP_IDLE_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue(), TimeUnit.MILLISECONDS
+                )
+        );
+
         // Set whether to follow redirects
         okHttpClientBuilder.followRedirects(context.getProperty(PROP_FOLLOW_REDIRECTS).asBoolean());
 
+        // Apply the TLS configuration if present
         final SSLContextService sslService = context.getProperty(PROP_SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
-        final SSLContext sslContext = sslService == null ? null : sslService.createSSLContext(ClientAuth.NONE);
-
-        // check if the ssl context is set and add the factory if so
-        if (sslContext != null) {
-            setSslSocketFactory(okHttpClientBuilder, sslService, sslContext, isHttpsProxy);
-        }
-
-        // check the trusted hostname property and override the HostnameVerifier
-        String trustedHostname = trimToEmpty(context.getProperty(PROP_TRUSTED_HOSTNAME).getValue());
-        if (!trustedHostname.isEmpty()) {
-            okHttpClientBuilder.hostnameVerifier(new OverrideHostnameVerifier(trustedHostname, OkHostnameVerifier.INSTANCE));
+        if (sslService != null) {
+            final TlsConfiguration tlsConfiguration = sslService.createTlsConfiguration();
+            OkHttpClientUtils.applyTlsToOkHttpClientBuilder(tlsConfiguration, okHttpClientBuilder);
         }
 
         setAuthenticator(okHttpClientBuilder, context);
@@ -642,75 +771,6 @@ public final class InvokeHTTP extends AbstractProcessor {
         useChunked = context.getProperty(PROP_USE_CHUNKED_ENCODING).asBoolean();
 
         okHttpClientAtomicReference.set(okHttpClientBuilder.build());
-    }
-
-    /*
-        Overall, this method is based off of examples from OkHttp3 documentation:
-            https://square.github.io/okhttp/3.x/okhttp/okhttp3/OkHttpClient.Builder.html#sslSocketFactory-javax.net.ssl.SSLSocketFactory-javax.net.ssl.X509TrustManager-
-            https://github.com/square/okhttp/blob/master/samples/guide/src/main/java/okhttp3/recipes/CustomTrust.java#L156
-
-        In-depth documentation on Java Secure Socket Extension (JSSE) Classes and interfaces:
-            https://docs.oracle.com/javase/8/docs/technotes/guides/security/jsse/JSSERefGuide.html#JSSEClasses
-     */
-    private void setSslSocketFactory(OkHttpClient.Builder okHttpClientBuilder, SSLContextService sslService, SSLContext sslContext, boolean setAsSocketFactory)
-            throws IOException, KeyStoreException, CertificateException, NoSuchAlgorithmException, UnrecoverableKeyException, KeyManagementException {
-
-        final KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-        final TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance("X509");
-        // initialize the KeyManager array to null and we will overwrite later if a keystore is loaded
-        KeyManager[] keyManagers = null;
-
-        // we will only initialize the keystore if properties have been supplied by the SSLContextService
-        if (sslService.isKeyStoreConfigured()) {
-            final String keystoreLocation = sslService.getKeyStoreFile();
-            final String keystorePass = sslService.getKeyStorePassword();
-            final String keystoreType = sslService.getKeyStoreType();
-
-            // prepare the keystore
-            final KeyStore keyStore = KeyStore.getInstance(keystoreType);
-
-            try (FileInputStream keyStoreStream = new FileInputStream(keystoreLocation)) {
-                keyStore.load(keyStoreStream, keystorePass.toCharArray());
-            }
-
-            keyManagerFactory.init(keyStore, keystorePass.toCharArray());
-            keyManagers = keyManagerFactory.getKeyManagers();
-        }
-
-        // we will only initialize the truststure if properties have been supplied by the SSLContextService
-        if (sslService.isTrustStoreConfigured()) {
-            // load truststore
-            final String truststoreLocation = sslService.getTrustStoreFile();
-            final String truststorePass = sslService.getTrustStorePassword();
-            final String truststoreType = sslService.getTrustStoreType();
-
-            KeyStore truststore = KeyStore.getInstance(truststoreType);
-            truststore.load(new FileInputStream(truststoreLocation), truststorePass.toCharArray());
-            trustManagerFactory.init(truststore);
-        }
-
-         /*
-            TrustManagerFactory.getTrustManagers returns a trust manager for each type of trust material. Since we are getting a trust manager factory that uses "X509"
-            as it's trust management algorithm, we are able to grab the first (and thus the most preferred) and use it as our x509 Trust Manager
-
-            https://docs.oracle.com/javase/8/docs/api/javax/net/ssl/TrustManagerFactory.html#getTrustManagers--
-         */
-        final X509TrustManager x509TrustManager;
-        TrustManager[] trustManagers = trustManagerFactory.getTrustManagers();
-        if (trustManagers[0] != null) {
-            x509TrustManager = (X509TrustManager) trustManagers[0];
-        } else {
-            throw new IllegalStateException("List of trust managers is null");
-        }
-
-        // if keystore properties were not supplied, the keyManagers array will be null
-        sslContext.init(keyManagers, trustManagerFactory.getTrustManagers(), null);
-
-        final SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
-        okHttpClientBuilder.sslSocketFactory(sslSocketFactory, x509TrustManager);
-        if (setAsSocketFactory) {
-            okHttpClientBuilder.socketFactory(sslSocketFactory);
-        }
     }
 
     private void setAuthenticator(OkHttpClient.Builder okHttpClientBuilder, ProcessContext context) {
@@ -821,7 +881,7 @@ public final class InvokeHTTP extends AbstractProcessor {
                 boolean outputBodyToRequestAttribute = (!isSuccess(statusCode) || putToAttribute) && requestFlowFile != null;
                 boolean outputBodyToResponseContent = (isSuccess(statusCode) && !putToAttribute) || context.getProperty(PROP_OUTPUT_RESPONSE_REGARDLESS).asBoolean();
                 ResponseBody responseBody = responseHttp.body();
-                boolean bodyExists = responseBody != null;
+                boolean bodyExists = responseBody != null && !context.getProperty(IGNORE_RESPONSE_CONTENT).asBoolean();
 
                 InputStream responseBodyStream = null;
                 SoftLimitBoundedByteArrayOutputStream outputStreamToRequestAttribute = null;
@@ -985,34 +1045,76 @@ public final class InvokeHTTP extends AbstractProcessor {
                 requestBuilder = requestBuilder.method(method, null);
         }
 
+        String userAgent = trimToEmpty(context.getProperty(PROP_USERAGENT).evaluateAttributeExpressions(requestFlowFile).getValue());
+        if (!userAgent.isEmpty()) {
+            requestBuilder.addHeader("User-Agent", userAgent);
+        }
+
         requestBuilder = setHeaderProperties(context, requestBuilder, requestFlowFile);
 
         return requestBuilder.build();
     }
 
-    private RequestBody getRequestBodyToSend(final ProcessSession session, final ProcessContext context, final FlowFile requestFlowFile) {
-        if(context.getProperty(PROP_SEND_BODY).asBoolean()) {
-            return new RequestBody() {
-                @Override
-                public MediaType contentType() {
-                    String contentType = context.getProperty(PROP_CONTENT_TYPE).evaluateAttributeExpressions(requestFlowFile).getValue();
-                    contentType = StringUtils.isBlank(contentType) ? DEFAULT_CONTENT_TYPE : contentType;
-                    return MediaType.parse(contentType);
-                }
+    private RequestBody getRequestBodyToSend(final ProcessSession session, final ProcessContext context,
+        final FlowFile requestFlowFile) {
 
-                @Override
-                public void writeTo(BufferedSink sink) throws IOException {
-                    session.exportTo(requestFlowFile, sink.outputStream());
-                }
+        boolean sendBody = context.getProperty(PROP_SEND_BODY).asBoolean();
 
-                @Override
-                public long contentLength(){
-                    return useChunked ? -1 : requestFlowFile.getSize();
-                }
-            };
-        } else {
-            return RequestBody.create(null, new byte[0]);
+        String evalContentType = context.getProperty(PROP_CONTENT_TYPE)
+            .evaluateAttributeExpressions(requestFlowFile).getValue();
+        final String contentType = StringUtils.isBlank(evalContentType) ? DEFAULT_CONTENT_TYPE : evalContentType;
+        String contentKey = context.getProperty(PROP_FORM_BODY_FORM_NAME).evaluateAttributeExpressions(requestFlowFile).getValue();
+
+        // Check for dynamic properties for form components.
+        // Even if the flowfile is not sent, we may still send form parameters.
+        Map<String, PropertyDescriptor> propertyDescriptors = new HashMap<>();
+        for (final Map.Entry<PropertyDescriptor, String> entry : context.getProperties().entrySet()) {
+            Matcher matcher = DYNAMIC_FORM_PARAMETER_NAME.matcher(entry.getKey().getName());
+            if (matcher.matches()) {
+                propertyDescriptors.put(matcher.group("formDataName"), entry.getKey());
+            }
         }
+
+        RequestBody requestBody = new RequestBody() {
+            @Nullable
+            @Override
+            public MediaType contentType() {
+                return MediaType.parse(contentType);
+            }
+
+            @Override
+            public void writeTo(BufferedSink sink) throws IOException {
+                session.exportTo(requestFlowFile, sink.outputStream());
+            }
+
+            @Override
+            public long contentLength() {
+                return useChunked ? -1 : requestFlowFile.getSize();
+            }
+        };
+
+        if (propertyDescriptors.size() > 0 || StringUtils.isNotEmpty(contentKey)) {
+            // we have form data
+            MultipartBody.Builder builder = new Builder().setType(MultipartBody.FORM);
+            boolean useFileName = context.getProperty(PROP_SET_FORM_FILE_NAME).asBoolean();
+            String contentFileName = null;
+            if (useFileName) {
+                contentFileName = requestFlowFile.getAttribute(CoreAttributes.FILENAME.key());
+            }
+            // loop through the dynamic form parameters
+            for (final Map.Entry<String, PropertyDescriptor> entry : propertyDescriptors.entrySet()) {
+                final String propValue = context.getProperty(entry.getValue().getName())
+                    .evaluateAttributeExpressions(requestFlowFile).getValue();
+                builder.addFormDataPart(entry.getKey(), propValue);
+            }
+            if (sendBody) {
+                builder.addFormDataPart(contentKey, contentFileName, requestBody);
+            }
+            return builder.build();
+        } else if (sendBody) {
+            return requestBody;
+        }
+        return RequestBody.create(null, new byte[0]);
     }
 
     private Request.Builder setHeaderProperties(final ProcessContext context, Request.Builder requestBuilder, final FlowFile requestFlowFile) {
@@ -1021,8 +1123,21 @@ public final class InvokeHTTP extends AbstractProcessor {
             requestBuilder = requestBuilder.addHeader("Date", DATE_FORMAT.print(System.currentTimeMillis()));
         }
 
+        final ComponentLog logger = getLogger();
         for (String headerKey : dynamicPropertyNames) {
             String headerValue = context.getProperty(headerKey).evaluateAttributeExpressions(requestFlowFile).getValue();
+
+            // don't include any of the excluded headers, log instead
+            if (excludedHeaders.containsKey(headerKey)) {
+                logger.warn(excludedHeaders.get(headerKey), new Object[]{headerKey});
+                continue;
+            }
+
+            // don't include dynamic form data properties
+            if ( DYNAMIC_FORM_PARAMETER_NAME.matcher(headerKey).matches()) {
+                continue;
+            }
+
             requestBuilder = requestBuilder.addHeader(headerKey, headerValue);
         }
 
@@ -1182,8 +1297,12 @@ public final class InvokeHTTP extends AbstractProcessor {
                 map.put(key, value);
         });
 
-        if ("HTTPS".equals(url.getProtocol().toUpperCase())) {
-            map.put(REMOTE_DN, responseHttp.handshake().peerPrincipal().getName());
+        if (responseHttp.request().isHttps()) {
+            Principal principal = responseHttp.handshake().peerPrincipal();
+
+            if (principal != null) {
+                map.put(REMOTE_DN, principal.getName());
+            }
         }
 
         return map;

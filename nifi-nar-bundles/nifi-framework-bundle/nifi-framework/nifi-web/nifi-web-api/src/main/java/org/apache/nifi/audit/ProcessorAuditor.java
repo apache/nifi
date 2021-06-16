@@ -356,7 +356,7 @@ public class ProcessorAuditor extends NiFiAuditor {
             if (newConfig.getProperties() != null) {
                 // for each property specified, extract its configured value
                 Map<String, String> properties = newConfig.getProperties();
-                Map<PropertyDescriptor, String> configuredProperties = processor.getProperties();
+                Map<PropertyDescriptor, String> configuredProperties = processor.getRawPropertyValues();
                 for (String propertyName : properties.keySet()) {
                     // build a descriptor for getting the configured value
                     PropertyDescriptor propertyDescriptor = new PropertyDescriptor.Builder().name(propertyName).build();

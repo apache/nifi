@@ -106,7 +106,9 @@ public class InstanceIdentifier {
             int low = Integer.parseInt(split[0]);
             String padding = split[0].substring(0, split[0].length() - Integer.toString(low).length());
             int high = Integer.parseInt(split[1]);
-            return IntStream.range(low, high + 1).mapToObj(i -> {
+            IntStream intRange = IntStream.range(Math.min(low, high), Math.max(low, high) + 1)
+                .map(i -> high < low ? high - i + low : i);
+            return intRange.mapToObj(i -> {
                 String s = Integer.toString(i);
                 int length = s.length();
                 if (length >= baseLength) {

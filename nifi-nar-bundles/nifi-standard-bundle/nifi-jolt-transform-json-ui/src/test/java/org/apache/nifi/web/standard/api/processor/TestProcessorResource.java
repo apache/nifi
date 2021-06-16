@@ -31,6 +31,7 @@ import org.glassfish.jersey.test.JerseyTest;
 import org.glassfish.jersey.test.inmemory.InMemoryTestContainerFactory;
 import org.glassfish.jersey.test.spi.TestContainerFactory;
 import org.junit.Test;
+import org.mockito.AdditionalMatchers;
 import org.mockito.Mockito;
 
 import javax.servlet.ServletContext;
@@ -44,7 +45,8 @@ import java.util.Map;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 
 public class TestProcessorResource extends JerseyTest {
@@ -87,7 +89,8 @@ public class TestProcessorResource extends JerseyTest {
         final ComponentDetails componentDetails = new ComponentDetails.Builder().properties(properties).build();
 
         Mockito.when(servletContext.getAttribute(Mockito.anyString())).thenReturn(niFiWebConfigurationContext);
-        Mockito.when(niFiWebConfigurationContext.updateComponent(any(NiFiWebConfigurationRequestContext.class),any(String.class),any(Map.class))).thenReturn(componentDetails);
+        Mockito.when(niFiWebConfigurationContext.updateComponent(any(NiFiWebConfigurationRequestContext.class), AdditionalMatchers.or(any(String.class), isNull()),
+                any(Map.class))).thenReturn(componentDetails);
 
         Response response = client().target(getBaseUri())
                 .path("/standard/processor/properties")

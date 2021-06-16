@@ -22,7 +22,6 @@ import java.util.List;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.processor.util.StandardValidators;
 
 /**
@@ -44,7 +43,8 @@ public class StandardRestrictedSSLContextService extends StandardSSLContextServi
             .defaultValue("TLS")
             .required(false)
             .allowableValues(RestrictedSSLContextService.buildAlgorithmAllowableValues())
-            .description("The algorithm to use for this SSL context. By default, this will choose the highest supported TLS protocol version.")
+            .description(StandardSSLContextService.COMMON_TLS_PROTOCOL_DESCRIPTION +
+                    "On Java 11, for example, TLSv1.3 will be the default, but if a client does not support it, TLSv1.2 will be offered as a fallback. TLSv1.0 and TLSv1.1 are not supported at all. ")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .sensitive(false)
             .build();
@@ -72,10 +72,5 @@ public class StandardRestrictedSSLContextService extends StandardSSLContextServi
     @Override
     public String getSslAlgorithm() {
         return configContext.getProperty(RESTRICTED_SSL_ALGORITHM).getValue();
-    }
-
-    @Override
-    protected String getSSLProtocolForValidation(final ValidationContext validationContext) {
-        return validationContext.getProperty(RESTRICTED_SSL_ALGORITHM).getValue();
     }
 }

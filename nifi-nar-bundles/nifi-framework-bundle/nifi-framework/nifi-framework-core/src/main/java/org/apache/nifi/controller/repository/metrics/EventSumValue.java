@@ -180,7 +180,7 @@ public class EventSumValue {
                     final String counterName = entry.getKey();
                     final Long counterValue = entry.getValue();
 
-                    counters.compute(counterName, (key, value) -> value == null ? counterValue : counterValue - value);
+                    counters.compute(counterName, (key, value) -> value == null ? -counterValue : value - counterValue);
                 }
             }
         }

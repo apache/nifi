@@ -17,15 +17,13 @@
 
 package org.apache.nifi.web.api.dto.diagnostics;
 
-import java.util.List;
-import java.util.Set;
-
-import javax.xml.bind.annotation.XmlType;
-
+import io.swagger.annotations.ApiModelProperty;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
 import org.apache.nifi.web.api.dto.status.ProcessorStatusDTO;
 
-import io.swagger.annotations.ApiModelProperty;
+import javax.xml.bind.annotation.XmlType;
+import java.util.List;
+import java.util.Set;
 
 @XmlType(name = "processorDiagnostics")
 public class ProcessorDiagnosticsDTO {

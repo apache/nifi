@@ -23,7 +23,7 @@ import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.AbstractNiFiCommand;
-import org.apache.nifi.toolkit.cli.impl.result.RegistryClientIDResult;
+import org.apache.nifi.toolkit.cli.impl.result.nifi.RegistryClientIDResult;
 import org.apache.nifi.web.api.dto.RegistryDTO;
 import org.apache.nifi.web.api.entity.RegistryClientsEntity;
 

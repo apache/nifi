@@ -17,12 +17,6 @@
 
 package org.apache.nifi.processors.standard;
 
-import static org.junit.Assert.assertEquals;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.record.CommaSeparatedRecordReader;
@@ -34,6 +28,12 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static org.junit.Assert.assertEquals;
+
 public class TestMergeRecord {
     private TestRunner runner;
     private CommaSeparatedRecordReader readerService;
@@ -44,7 +44,7 @@ public class TestMergeRecord {
         runner = TestRunners.newTestRunner(new MergeRecord());
 
         readerService = new CommaSeparatedRecordReader();
-        writerService = new MockRecordWriter("header", false);
+        writerService = new MockRecordWriter("header", false, true);
 
         runner.addControllerService("reader", readerService);
 
@@ -55,6 +55,25 @@ public class TestMergeRecord {
 
         runner.setProperty(MergeRecord.RECORD_READER, "reader");
         runner.setProperty(MergeRecord.RECORD_WRITER, "writer");
+    }
+
+    @Test
+    public void testSmallOutputIsFlushed() {
+        runner.setProperty(MergeRecord.MIN_RECORDS, "1");
+        runner.setProperty(MergeRecord.MAX_RECORDS, "1");
+
+        runner.enqueue("Name, Age\nJohn, 35\nJane, 34");
+
+        runner.run(1);
+        runner.assertTransferCount(MergeRecord.REL_MERGED, 1);
+        runner.assertTransferCount(MergeRecord.REL_ORIGINAL, 1);
+
+        final MockFlowFile mff = runner.getFlowFilesForRelationship(MergeRecord.REL_MERGED).get(0);
+        mff.assertAttributeEquals("record.count", "2");
+        mff.assertContentEquals("header\nJohn,35\nJane,34\n");
+
+        runner.getFlowFilesForRelationship(MergeRecord.REL_ORIGINAL).forEach(
+            ff -> assertEquals(mff.getAttribute(CoreAttributes.UUID.key()), ff.getAttribute(MergeRecord.MERGE_UUID_ATTRIBUTE)));
     }
 
     @Test
@@ -73,7 +92,7 @@ public class TestMergeRecord {
         mff.assertAttributeEquals("record.count", "2");
         mff.assertContentEquals("header\nJohn,35\nJane,34\n");
 
-        runner.getFlowFilesForRelationship(MergeRecord.REL_ORIGINAL).stream().forEach(
+        runner.getFlowFilesForRelationship(MergeRecord.REL_ORIGINAL).forEach(
                 ff -> assertEquals(mff.getAttribute(CoreAttributes.UUID.key()), ff.getAttribute(MergeRecord.MERGE_UUID_ATTRIBUTE)));
     }
 
@@ -139,27 +158,39 @@ public class TestMergeRecord {
         final Map<String, String> attr1 = new HashMap<>();
         attr1.put(MergeRecord.FRAGMENT_COUNT_ATTRIBUTE, "2");
         attr1.put(MergeRecord.FRAGMENT_ID_ATTRIBUTE, "1");
+        attr1.put(MergeRecord.FRAGMENT_INDEX_ATTRIBUTE, "0");
 
         final Map<String, String> attr2 = new HashMap<>();
         attr2.put(MergeRecord.FRAGMENT_COUNT_ATTRIBUTE, "2");
         attr2.put(MergeRecord.FRAGMENT_ID_ATTRIBUTE, "1");
+        attr2.put(MergeRecord.FRAGMENT_INDEX_ATTRIBUTE, "1");
 
         final Map<String, String> attr3 = new HashMap<>();
         attr3.put(MergeRecord.FRAGMENT_COUNT_ATTRIBUTE, "2");
         attr3.put(MergeRecord.FRAGMENT_ID_ATTRIBUTE, "2");
+        attr3.put(MergeRecord.FRAGMENT_INDEX_ATTRIBUTE, "0");
 
         final Map<String, String> attr4 = new HashMap<>();
         attr4.put(MergeRecord.FRAGMENT_COUNT_ATTRIBUTE, "2");
-        attr4.put(MergeRecord.FRAGMENT_ID_ATTRIBUTE, "2");
+        attr4.put(MergeRecord.FRAGMENT_ID_ATTRIBUTE, "3");
+        attr4.put(MergeRecord.FRAGMENT_INDEX_ATTRIBUTE, "0");
+
+        final Map<String, String> attr5 = new HashMap<>();
+        attr5.put(MergeRecord.FRAGMENT_COUNT_ATTRIBUTE, "2");
+        attr5.put(MergeRecord.FRAGMENT_ID_ATTRIBUTE, "3");
+        attr5.put(MergeRecord.FRAGMENT_INDEX_ATTRIBUTE, "1");
 
         runner.enqueue("Name, Age\nJohn, 35", attr1);
         runner.enqueue("Name, Age\nJane, 34", attr2);
 
-        runner.enqueue("Name, Age\nJake, 3", attr3);
-        runner.enqueue("Name, Age\nJan, 2", attr4);
+        runner.enqueue("Name, Age\nJay, 24", attr3);
 
-        runner.run(4);
+        runner.enqueue("Name, Age\nJake, 3", attr4);
+        runner.enqueue("Name, Age\nJan, 2", attr5);
 
+        runner.run(1);
+
+        assertEquals("Fragment id=2 should remain in the incoming connection", 1, runner.getQueueSize().getObjectCount());
         runner.assertTransferCount(MergeRecord.REL_MERGED, 2);
         runner.assertTransferCount(MergeRecord.REL_ORIGINAL, 4);
 
@@ -173,6 +204,125 @@ public class TestMergeRecord {
             .filter(ff -> "2".equals(ff.getAttribute("record.count")))
             .filter(ff -> "header\nJake,3\nJan,2\n".equals(new String(ff.toByteArray())))
             .count());
+    }
+
+    @Test
+    public void testDefragmentOverMultipleCalls() {
+        runner.setProperty(MergeRecord.MERGE_STRATEGY, MergeRecord.MERGE_STRATEGY_DEFRAGMENT);
+
+        final Map<String, String> attr1 = new HashMap<>();
+        attr1.put(MergeRecord.FRAGMENT_COUNT_ATTRIBUTE, "2");
+        attr1.put(MergeRecord.FRAGMENT_ID_ATTRIBUTE, "1");
+        attr1.put(MergeRecord.FRAGMENT_INDEX_ATTRIBUTE, "0");
+
+        runner.enqueue("Name, Age\nJohn, 35", attr1);
+        runner.run(2);
+
+        assertEquals("Fragment should remain in the incoming connection", 1, runner.getQueueSize().getObjectCount());
+        runner.assertTransferCount(MergeRecord.REL_MERGED, 0);
+        runner.assertTransferCount(MergeRecord.REL_ORIGINAL, 0);
+        runner.assertTransferCount(MergeRecord.REL_FAILURE, 0);
+
+        final Map<String, String> attr2 = new HashMap<>();
+        attr2.put(MergeRecord.FRAGMENT_COUNT_ATTRIBUTE, "2");
+        attr2.put(MergeRecord.FRAGMENT_ID_ATTRIBUTE, "1");
+        attr2.put(MergeRecord.FRAGMENT_INDEX_ATTRIBUTE, "1");
+
+        runner.enqueue("Name, Age\nJane, 34", attr2);
+        runner.run(1);
+
+        assertEquals("Fragments should merge", 0, runner.getQueueSize().getObjectCount());
+        runner.assertTransferCount(MergeRecord.REL_MERGED, 1);
+        runner.assertTransferCount(MergeRecord.REL_ORIGINAL, 2);
+        runner.assertTransferCount(MergeRecord.REL_FAILURE, 0);
+
+        final List<MockFlowFile> mffs = runner.getFlowFilesForRelationship(MergeRecord.REL_MERGED);
+        assertEquals(1L, mffs.stream()
+                .filter(ff -> "2".equals(ff.getAttribute("record.count")))
+                .filter(ff -> "header\nJohn,35\nJane,34\n".equals(new String(ff.toByteArray())))
+                .count());
+    }
+
+    @Test
+    public void testDefragmentWithMultipleRecords() {
+        runner.setProperty(MergeRecord.MERGE_STRATEGY, MergeRecord.MERGE_STRATEGY_DEFRAGMENT);
+
+        final Map<String, String> attr1 = new HashMap<>();
+        attr1.put(MergeRecord.FRAGMENT_COUNT_ATTRIBUTE, "2");
+        attr1.put(MergeRecord.FRAGMENT_ID_ATTRIBUTE, "1");
+        attr1.put(MergeRecord.FRAGMENT_INDEX_ATTRIBUTE, "0");
+        attr1.put("record.count", "2");
+
+        final Map<String, String> attr2 = new HashMap<>();
+        attr2.put(MergeRecord.FRAGMENT_COUNT_ATTRIBUTE, "2");
+        attr2.put(MergeRecord.FRAGMENT_ID_ATTRIBUTE, "1");
+        attr2.put(MergeRecord.FRAGMENT_INDEX_ATTRIBUTE, "1");
+        attr2.put("record.count", "2");
+
+        final Map<String, String> attr3 = new HashMap<>();
+        attr3.put(MergeRecord.FRAGMENT_COUNT_ATTRIBUTE, "2");
+        attr3.put(MergeRecord.FRAGMENT_ID_ATTRIBUTE, "2");
+        attr3.put(MergeRecord.FRAGMENT_INDEX_ATTRIBUTE, "0");
+        attr3.put("record.count", "2");
+
+        runner.enqueue("Name, Age\nJohn, 35\nJane, 34", attr1);
+
+        runner.enqueue("Name, Age\nJake, 3\nJan, 2", attr2);
+
+        runner.enqueue("Name, Age\nJay, 24\nJade, 28", attr3);
+
+        runner.run(1);
+
+        assertEquals("Fragment id=2 should remain in the incoming connection", 1, runner.getQueueSize().getObjectCount());
+        runner.assertTransferCount(MergeRecord.REL_MERGED, 1);
+        runner.assertTransferCount(MergeRecord.REL_ORIGINAL, 2);
+
+        final List<MockFlowFile> mffs = runner.getFlowFilesForRelationship(MergeRecord.REL_MERGED);
+        assertEquals(1L, mffs.stream()
+            .filter(ff -> "4".equals(ff.getAttribute("record.count")))
+            .filter(ff -> "header\nJohn,35\nJane,34\nJake,3\nJan,2\n".equals(new String(ff.toByteArray())))
+            .count());
+
+    }
+
+    @Test
+    public void testDefragmentWithMultipleRecordsOverMultipleCalls() {
+        runner.setProperty(MergeRecord.MERGE_STRATEGY, MergeRecord.MERGE_STRATEGY_DEFRAGMENT);
+
+        final Map<String, String> attr1 = new HashMap<>();
+        attr1.put(MergeRecord.FRAGMENT_COUNT_ATTRIBUTE, "2");
+        attr1.put(MergeRecord.FRAGMENT_ID_ATTRIBUTE, "1");
+        attr1.put(MergeRecord.FRAGMENT_INDEX_ATTRIBUTE, "0");
+        attr1.put("record.count", "2");
+
+        final Map<String, String> attr2 = new HashMap<>();
+        attr2.put(MergeRecord.FRAGMENT_COUNT_ATTRIBUTE, "2");
+        attr2.put(MergeRecord.FRAGMENT_ID_ATTRIBUTE, "1");
+        attr2.put(MergeRecord.FRAGMENT_INDEX_ATTRIBUTE, "1");
+        attr2.put("record.count", "2");
+
+        runner.enqueue("Name, Age\nJohn, 35\nJane, 34", attr1);
+
+        runner.run(2);
+
+        assertEquals("Fragment id=1 should remain in the incoming connection", 1, runner.getQueueSize().getObjectCount());
+        runner.assertTransferCount(MergeRecord.REL_MERGED, 0);
+        runner.assertTransferCount(MergeRecord.REL_ORIGINAL, 0);
+
+        runner.enqueue("Name, Age\nJake, 3\nJan, 2", attr2);
+
+        runner.run(1);
+
+        assertEquals("Fragment id=1 should be merged", 0, runner.getQueueSize().getObjectCount());
+        runner.assertTransferCount(MergeRecord.REL_MERGED, 1);
+        runner.assertTransferCount(MergeRecord.REL_ORIGINAL, 2);
+
+        final List<MockFlowFile> mffs = runner.getFlowFilesForRelationship(MergeRecord.REL_MERGED);
+        assertEquals(1L, mffs.stream()
+            .filter(ff -> "4".equals(ff.getAttribute("record.count")))
+            .filter(ff -> "header\nJohn,35\nJane,34\nJake,3\nJan,2\n".equals(new String(ff.toByteArray())))
+            .count());
+
     }
 
 
@@ -202,9 +352,22 @@ public class TestMergeRecord {
     }
 
     @Test
-    public void testMinRecords() {
+    public void testValidation() {
         runner.setProperty(MergeRecord.MIN_RECORDS, "103");
         runner.setProperty(MergeRecord.MAX_RECORDS, "2");
+        runner.setProperty(MergeRecord.MIN_SIZE, "500 B");
+
+        runner.assertNotValid();
+
+        runner.setProperty(MergeRecord.MIN_RECORDS, "2");
+        runner.setProperty(MergeRecord.MAX_RECORDS, "103");
+        runner.assertValid();
+    }
+
+    @Test
+    public void testMinRecords() {
+        runner.setProperty(MergeRecord.MIN_RECORDS, "103");
+        runner.setProperty(MergeRecord.MAX_RECORDS, "110");
         runner.setProperty(MergeRecord.MIN_SIZE, "500 B");
 
         runner.enqueue("Name, Age\nJohn, 35");
@@ -221,7 +384,7 @@ public class TestMergeRecord {
         runner.assertTransferCount(MergeRecord.REL_ORIGINAL, 0);
 
         runner.enqueue("Name, Age\nJohn, 35");
-        runner.run();
+        runner.run(2);
         runner.assertTransferCount(MergeRecord.REL_MERGED, 1);
         runner.assertTransferCount(MergeRecord.REL_ORIGINAL, 4);
     }
@@ -240,6 +403,8 @@ public class TestMergeRecord {
         runner.assertTransferCount(MergeRecord.REL_ORIGINAL, 30);
 
         assertEquals(4, runner.getQueueSize().getObjectCount());
+
+        runner.getFlowFilesForRelationship(MergeRecord.REL_MERGED).stream().forEach(ff -> ff.assertAttributeEquals("record.count", "10"));
     }
 
     @Test
@@ -361,4 +526,104 @@ public class TestMergeRecord {
         runner.assertTransferCount(MergeRecord.REL_ORIGINAL, 0);
         runner.assertTransferCount(MergeRecord.REL_FAILURE, 1);
     }
+
+    @Test
+    public void testMergeWithMinRecordsFromVariableRegistry() {
+        runner.setVariable("min_records", "3");
+        runner.setVariable("max_records", "3");
+        runner.setValidateExpressionUsage(true);
+
+        // Test MIN_RECORDS
+        runner.setProperty(MergeRecord.MIN_RECORDS, "${min_records}");
+        runner.setProperty(MergeRecord.MAX_RECORDS, "3");
+
+        runner.enqueue("Name, Age\nJohn, 35");
+        runner.enqueue("Name, Age\nJane, 34");
+        runner.enqueue("Name, Age\nAlex, 28");
+
+        runner.run(1);
+        runner.assertTransferCount(MergeRecord.REL_MERGED, 1);
+        runner.assertTransferCount(MergeRecord.REL_ORIGINAL, 3);
+
+        final MockFlowFile mff = runner.getFlowFilesForRelationship(MergeRecord.REL_MERGED).get(0);
+        mff.assertAttributeEquals("record.count", "3");
+        mff.assertContentEquals("header\nJohn,35\nJane,34\nAlex,28\n");
+        runner.clearTransferState();
+
+        // Test MAX_RECORDS
+        runner.setProperty(MergeRecord.MIN_RECORDS, "1");
+        runner.setProperty(MergeRecord.MAX_RECORDS, "${max_records}");
+
+        runner.enqueue("Name, Age\nJohn, 35");
+        runner.enqueue("Name, Age\nJane, 34");
+        runner.enqueue("Name, Age\nAlex, 28");
+        runner.enqueue("Name, Age\nDonna, 48");
+        runner.enqueue("Name, Age\nJoey, 45");
+
+        runner.run(2);
+        runner.assertTransferCount(MergeRecord.REL_MERGED, 2);
+        runner.assertTransferCount(MergeRecord.REL_ORIGINAL, 5);
+
+        final MockFlowFile mff1 = runner.getFlowFilesForRelationship(MergeRecord.REL_MERGED).get(0);
+        mff1.assertAttributeEquals("record.count", "3");
+        mff1.assertContentEquals("header\nJohn,35\nJane,34\nAlex,28\n");
+
+        final MockFlowFile mff2 = runner.getFlowFilesForRelationship(MergeRecord.REL_MERGED).get(1);
+        mff2.assertAttributeEquals("record.count", "2");
+        mff2.assertContentEquals("header\nDonna,48\nJoey,45\n");
+        runner.clearTransferState();
+
+        runner.removeProperty("min_records");
+        runner.removeProperty("max_records");
+    }
+
+    @Test
+    public void testNegativeMinAndMaxRecordsValidators(){
+
+        runner.setVariable("min_records", "-3");
+        runner.setVariable("max_records", "-1");
+
+        // This configuration breaks the "<Minimum Number of Records> property cannot be negative or zero" rule
+        runner.setProperty(MergeRecord.MIN_RECORDS, "${min_records}");
+        runner.setProperty(MergeRecord.MAX_RECORDS, "3");
+        runner.assertNotValid();
+
+        // This configuration breaks the "<Minimum Number of Records> property cannot be negative or zero" and the
+        // "<Maximum Number of Records> property cannot be negative or zero" rules
+        runner.setProperty(MergeRecord.MIN_RECORDS, "${min_records}");
+        runner.setProperty(MergeRecord.MAX_RECORDS, "${max_records}");
+        runner.assertNotValid();
+
+        // This configuration breaks the "<Maximum Number of Records> property cannot be smaller than <Minimum Number of Records> property"
+        // and the "<Maximum Number of Records> property cannot be negative or zero" rules
+        runner.setProperty(MergeRecord.MIN_RECORDS, "3");
+        runner.setProperty(MergeRecord.MAX_RECORDS, "${max_records}");
+        runner.assertNotValid();
+
+        // This configuration breaks the "<Maximum Number of Records> property cannot be smaller than <Minimum Number of Records> property"
+        // and the "<Maximum Number of Records> property cannot be negative or zero" rules
+        runner.removeProperty(MergeRecord.MIN_RECORDS); // Will use the default value of 1
+        runner.setProperty(MergeRecord.MAX_RECORDS, "${max_records}");
+        runner.assertNotValid();
+
+        // This configuration breaks the "<Maximum Number of Records> property cannot be smaller than <Minimum Number of Records> property",
+        // the "<Minimum Number of Records> property cannot be negative or zero" and the "<Maximum Number of Records>
+        // property cannot be negative or zero" rules
+        runner.setVariable("min_records", "-1");
+        runner.setVariable("max_records", "-3");
+        runner.setProperty(MergeRecord.MIN_RECORDS, "${min_records}");
+        runner.setProperty(MergeRecord.MAX_RECORDS, "${max_records}");
+        runner.assertNotValid();
+
+        // This configuration is valid
+        runner.setVariable("min_records", "1");
+        runner.setVariable("max_records", "5");
+        runner.setProperty(MergeRecord.MIN_RECORDS, "${min_records}");
+        runner.setProperty(MergeRecord.MAX_RECORDS, "${max_records}");
+        runner.assertValid();
+
+        runner.removeProperty("min_records");
+        runner.removeProperty("max_records");
+    }
+
 }

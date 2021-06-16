@@ -17,10 +17,27 @@
 
 package org.apache.nifi.lookup;
 
+import static org.apache.commons.lang3.StringUtils.trimToEmpty;
+
 import com.burgstaller.okhttp.AuthenticationCacheInterceptor;
 import com.burgstaller.okhttp.CachingAuthenticatorDecorator;
 import com.burgstaller.okhttp.digest.CachingAuthenticator;
 import com.burgstaller.okhttp.digest.DigestAuthenticator;
+import java.io.BufferedInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.Proxy;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import okhttp3.Credentials;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
@@ -48,6 +65,8 @@ import org.apache.nifi.record.path.FieldValue;
 import org.apache.nifi.record.path.RecordPath;
 import org.apache.nifi.record.path.validation.RecordPathValidator;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
+import org.apache.nifi.security.util.OkHttpClientUtils;
+import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
@@ -57,23 +76,6 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.StringUtils;
-
-import javax.net.ssl.SSLContext;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.Proxy;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-
-import static org.apache.commons.lang3.StringUtils.trimToEmpty;
 
 @Tags({ "rest", "lookup", "json", "xml", "http" })
 @CapabilityDescription("Use a REST service to look up values.")
@@ -119,6 +121,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
         .required(false)
         .identifiesControllerService(SSLContextService.class)
         .build();
+
     public static final PropertyDescriptor PROP_BASIC_AUTH_USERNAME = new PropertyDescriptor.Builder()
         .name("rest-lookup-basic-auth-username")
         .displayName("Basic Authentication Username")
@@ -137,6 +140,7 @@ public class RestLookupService extends AbstractControllerService implements Reco
         .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .addValidator(StandardValidators.createRegexMatchingValidator(Pattern.compile("^[\\x20-\\x7e\\x80-\\xff]+$")))
         .build();
+
     public static final PropertyDescriptor PROP_DIGEST_AUTH = new PropertyDescriptor.Builder()
         .name("rest-lookup-digest-auth")
         .displayName("Use Digest Authentication")
@@ -145,6 +149,24 @@ public class RestLookupService extends AbstractControllerService implements Reco
         .required(false)
         .defaultValue("false")
         .allowableValues("true", "false")
+        .build();
+
+    public static final PropertyDescriptor PROP_CONNECT_TIMEOUT = new PropertyDescriptor.Builder()
+        .name("rest-lookup-connection-timeout")
+        .displayName("Connection Timeout")
+        .description("Max wait time for connection to remote service.")
+        .required(true)
+        .defaultValue("5 secs")
+        .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+        .build();
+
+    public static final PropertyDescriptor PROP_READ_TIMEOUT = new PropertyDescriptor.Builder()
+        .name("rest-lookup-read-timeout")
+        .displayName("Read Timeout")
+        .description("Max wait time for response from remote service.")
+        .required(true)
+        .defaultValue("15 secs")
+        .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
         .build();
 
     private static final ProxySpec[] PROXY_SPECS = {ProxySpec.HTTP_AUTH, ProxySpec.SOCKS};
@@ -169,7 +191,9 @@ public class RestLookupService extends AbstractControllerService implements Reco
             PROXY_CONFIGURATION_SERVICE,
             PROP_BASIC_AUTH_USERNAME,
             PROP_BASIC_AUTH_PASSWORD,
-            PROP_DIGEST_AUTH
+            PROP_DIGEST_AUTH,
+            PROP_CONNECT_TIMEOUT,
+            PROP_READ_TIMEOUT
         ));
         KEYS = Collections.emptySet();
     }
@@ -198,14 +222,19 @@ public class RestLookupService extends AbstractControllerService implements Reco
 
         setAuthenticator(builder, context);
 
+        // Set timeouts
+        builder.connectTimeout((context.getProperty(PROP_CONNECT_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue()), TimeUnit.MILLISECONDS);
+        builder.readTimeout(context.getProperty(PROP_READ_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue(), TimeUnit.MILLISECONDS);
+
         if (proxyConfigurationService != null) {
             setProxy(builder);
         }
 
+        // Apply the TLS configuration if present
         final SSLContextService sslService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
-        final SSLContext sslContext = sslService == null ? null : sslService.createSSLContext(SSLContextService.ClientAuth.WANT);
         if (sslService != null) {
-            builder.sslSocketFactory(sslContext.getSocketFactory());
+            final TlsConfiguration tlsConfiguration = sslService.createTlsConfiguration();
+            OkHttpClientUtils.applyTlsToOkHttpClientBuilder(tlsConfiguration, builder);
         }
 
         client = builder.build();
@@ -298,8 +327,11 @@ public class RestLookupService extends AbstractControllerService implements Reco
                 return Optional.empty();
             }
 
-            InputStream is = responseBody.byteStream();
-            Record record = handleResponse(is, context);
+            final Record record;
+            try (final InputStream is = responseBody.byteStream();
+                final InputStream bufferedIn = new BufferedInputStream(is)) {
+                record = handleResponse(bufferedIn, responseBody.contentLength(), context);
+            }
 
             return Optional.ofNullable(record);
         } catch (Exception e) {
@@ -338,9 +370,9 @@ public class RestLookupService extends AbstractControllerService implements Reco
         return client.newCall(request).execute();
     }
 
-    private Record handleResponse(InputStream is, Map<String, String> context) throws SchemaNotFoundException, MalformedRecordException, IOException {
+    private Record handleResponse(InputStream is, long inputLength, Map<String, String> context) throws SchemaNotFoundException, MalformedRecordException, IOException {
 
-        try (RecordReader reader = readerFactory.createRecordReader(context, is, getLogger())) {
+        try (RecordReader reader = readerFactory.createRecordReader(context, is, inputLength, getLogger())) {
 
             Record record = reader.nextRecord();
 

@@ -282,7 +282,10 @@ public class StandardPolicyBasedAuthorizerDAO implements AccessPolicyDAO, UserGr
                     }
 
                     // policy contains a group with the user
-                    return !p.getGroups().stream().filter(g -> userGroupProvider.getGroup(g).getUsers().contains(userId)).collect(Collectors.toSet()).isEmpty();
+                    return p.getGroups().stream().anyMatch(g -> {
+                        final Group group = userGroupProvider.getGroup(g);
+                        return group != null && group.getUsers().contains(userId);
+                    });
                 })
                 .collect(Collectors.toSet());
     }

@@ -21,6 +21,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.DataOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.UTFDataFormatException;
@@ -30,6 +31,8 @@ import java.util.List;
 import java.util.Map;
 
 public class SchemaRecordWriter {
+    static final int INLINE_RECORD_INDICATOR = 1;
+    static final int EXTERNAL_FILE_INDICATOR = 8;
 
     public static final int MAX_ALLOWED_UTF_LENGTH = 65_535;
 
@@ -41,7 +44,7 @@ public class SchemaRecordWriter {
         // write sentinel value to indicate that there is a record. This allows the reader to then read one
         // byte and check if -1. If so, the reader knows there are no more records. If not, then the reader
         // knows that it should be able to continue reading.
-        out.write(1);
+        out.write(INLINE_RECORD_INDICATOR);
 
         final byte[] buffer = byteArrayCache.checkOut();
         try {
@@ -226,4 +229,8 @@ public class SchemaRecordWriter {
         return charsInOriginal;
     }
 
+    public void writeExternalFileReference(final DataOutputStream out, final File externalFile) throws IOException {
+        out.write(EXTERNAL_FILE_INDICATOR);
+        out.writeUTF(externalFile.getAbsolutePath());
+    }
 }

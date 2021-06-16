@@ -29,18 +29,16 @@ import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.controller.ProcessScheduler;
-import org.apache.nifi.controller.StandardFlowFileQueue;
+import org.apache.nifi.controller.queue.ConnectionEventListener;
 import org.apache.nifi.controller.queue.FlowFileQueue;
+import org.apache.nifi.controller.queue.FlowFileQueueFactory;
+import org.apache.nifi.controller.queue.LoadBalanceStrategy;
 import org.apache.nifi.controller.repository.FlowFileRecord;
-import org.apache.nifi.controller.repository.FlowFileRepository;
-import org.apache.nifi.controller.repository.FlowFileSwapManager;
-import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
-import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.processor.FlowFileFilter;
 import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.provenance.ProvenanceEventRepository;
 import org.apache.nifi.remote.RemoteGroupPort;
+import org.apache.nifi.scheduling.SchedulingStrategy;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -60,7 +58,7 @@ import java.util.stream.Collectors;
  * one or more relationships that map the source component to the destination
  * component.
  */
-public final class StandardConnection implements Connection {
+public final class StandardConnection implements Connection, ConnectionEventListener {
 
     private final String id;
     private final AtomicReference<ProcessGroup> processGroup;
@@ -69,12 +67,15 @@ public final class StandardConnection implements Connection {
     private final Connectable source;
     private final AtomicReference<Connectable> destination;
     private final AtomicReference<Collection<Relationship>> relationships;
-    private final StandardFlowFileQueue flowFileQueue;
     private final AtomicInteger labelIndex = new AtomicInteger(1);
     private final AtomicLong zIndex = new AtomicLong(0L);
     private final AtomicReference<String> versionedComponentId = new AtomicReference<>();
     private final ProcessScheduler scheduler;
+    private final FlowFileQueueFactory flowFileQueueFactory;
+    private final boolean clustered;
     private final int hashCode;
+
+    private volatile FlowFileQueue flowFileQueue;
 
     private StandardConnection(final Builder builder) {
         id = builder.id;
@@ -85,9 +86,10 @@ public final class StandardConnection implements Connection {
         destination = new AtomicReference<>(builder.destination);
         relationships = new AtomicReference<>(Collections.unmodifiableCollection(builder.relationships));
         scheduler = builder.scheduler;
-        flowFileQueue = new StandardFlowFileQueue(id, this, builder.flowFileRepository, builder.provenanceRepository, builder.resourceClaimManager,
-                scheduler, builder.swapManager, builder.eventReporter, builder.queueSwapThreshold,
-                builder.defaultBackPressureObjectThreshold, builder.defaultBackPressureDataSizeThreshold);
+        flowFileQueueFactory = builder.flowFileQueueFactory;
+        clustered = builder.clustered;
+
+        flowFileQueue = flowFileQueueFactory.createFlowFileQueue(LoadBalanceStrategy.DO_NOT_LOAD_BALANCE, null, this);
         hashCode = new HashCodeBuilder(7, 67).append(id).toHashCode();
     }
 
@@ -145,6 +147,20 @@ public final class StandardConnection implements Connection {
                 return "Connection " + StandardConnection.this.getIdentifier();
             }
         };
+    }
+
+    @Override
+    public void triggerDestinationEvent() {
+        if (getDestination().getSchedulingStrategy() == SchedulingStrategy.EVENT_DRIVEN) {
+            scheduler.registerEvent(getDestination());
+        }
+    }
+
+    @Override
+    public void triggerSourceEvent() {
+        if (getSource().getSchedulingStrategy() == SchedulingStrategy.EVENT_DRIVEN) {
+            scheduler.registerEvent(getSource());
+        }
     }
 
     @Override
@@ -297,7 +313,7 @@ public final class StandardConnection implements Connection {
             throw new IllegalStateException("Cannot change destination of Connection because the current destination is running");
         }
 
-        if (getFlowFileQueue().getUnacknowledgedQueueSize().getObjectCount() > 0) {
+        if (getFlowFileQueue().isUnacknowledgedFlowFile()) {
             throw new IllegalStateException("Cannot change destination of Connection because FlowFiles from this Connection are currently held by " + previousDestination);
         }
 
@@ -354,7 +370,7 @@ public final class StandardConnection implements Connection {
 
     @Override
     public String toString() {
-        return "Connection[Source ID=" + id + ",Dest ID=" + getDestination().getIdentifier() + "]";
+        return "Connection[ID=" + getIdentifier() + ", Source ID=" + getSource().getIdentifier() + ", Dest ID=" + getDestination().getIdentifier() + "]";
     }
 
     /**
@@ -386,14 +402,8 @@ public final class StandardConnection implements Connection {
         private Connectable source;
         private Connectable destination;
         private Collection<Relationship> relationships;
-        private FlowFileSwapManager swapManager;
-        private EventReporter eventReporter;
-        private FlowFileRepository flowFileRepository;
-        private ProvenanceEventRepository provenanceRepository;
-        private ResourceClaimManager resourceClaimManager;
-        private int queueSwapThreshold;
-        private Long defaultBackPressureObjectThreshold;
-        private String defaultBackPressureDataSizeThreshold;
+        private FlowFileQueueFactory flowFileQueueFactory;
+        private boolean clustered = false;
 
         public Builder(final ProcessScheduler scheduler) {
             this.scheduler = scheduler;
@@ -440,43 +450,13 @@ public final class StandardConnection implements Connection {
             return this;
         }
 
-        public Builder swapManager(final FlowFileSwapManager swapManager) {
-            this.swapManager = swapManager;
+        public Builder flowFileQueueFactory(final FlowFileQueueFactory flowFileQueueFactory) {
+            this.flowFileQueueFactory = flowFileQueueFactory;
             return this;
         }
 
-        public Builder eventReporter(final EventReporter eventReporter) {
-            this.eventReporter = eventReporter;
-            return this;
-        }
-
-        public Builder flowFileRepository(final FlowFileRepository flowFileRepository) {
-            this.flowFileRepository = flowFileRepository;
-            return this;
-        }
-
-        public Builder provenanceRepository(final ProvenanceEventRepository provenanceRepository) {
-            this.provenanceRepository = provenanceRepository;
-            return this;
-        }
-
-        public Builder resourceClaimManager(final ResourceClaimManager resourceClaimManager) {
-            this.resourceClaimManager = resourceClaimManager;
-            return this;
-        }
-
-        public Builder queueSwapThreshold(final int queueSwapThreshold) {
-            this.queueSwapThreshold = queueSwapThreshold;
-            return this;
-        }
-
-        public Builder defaultBackPressureObjectThreshold(final long defaultBackPressureObjectThreshold) {
-            this.defaultBackPressureObjectThreshold = defaultBackPressureObjectThreshold;
-            return this;
-        }
-
-        public Builder defaultBackPressureDataSizeThreshold(final String defaultBackPressureDataSizeThreshold) {
-            this.defaultBackPressureDataSizeThreshold = defaultBackPressureDataSizeThreshold;
+        public Builder clustered(final boolean clustered) {
+            this.clustered = clustered;
             return this;
         }
 
@@ -487,17 +467,8 @@ public final class StandardConnection implements Connection {
             if (destination == null) {
                 throw new IllegalStateException("Cannot build a Connection without a Destination");
             }
-            if (swapManager == null) {
-                throw new IllegalStateException("Cannot build a Connection without a FlowFileSwapManager");
-            }
-            if (flowFileRepository == null) {
-                throw new IllegalStateException("Cannot build a Connection without a FlowFile Repository");
-            }
-            if (provenanceRepository == null) {
-                throw new IllegalStateException("Cannot build a Connection without a Provenance Repository");
-            }
-            if (resourceClaimManager == null) {
-                throw new IllegalStateException("Cannot build a Connection without a Resource Claim Manager");
+            if (flowFileQueueFactory == null) {
+                throw new IllegalStateException("Cannot build a Connection without a FlowFileQueueFactory");
             }
 
             if (relationships == null) {

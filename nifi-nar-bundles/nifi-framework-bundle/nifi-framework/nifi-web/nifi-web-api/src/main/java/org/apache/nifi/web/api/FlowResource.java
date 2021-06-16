@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.web.api;
 
+import io.prometheus.client.CollectorRegistry;
+import io.prometheus.client.exporter.common.TextFormat;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
@@ -26,6 +28,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.Authorizable;
+import org.apache.nifi.authorization.resource.OperationAuthorizable;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.bundle.Bundle;
@@ -34,14 +37,14 @@ import org.apache.nifi.cluster.coordination.ClusterCoordinator;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
 import org.apache.nifi.cluster.manager.NodeResponse;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
+import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.controller.ProcessorNode;
-import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.groups.ProcessGroup;
-import org.apache.nifi.nar.NarClassLoaders;
+import org.apache.nifi.nar.NarClassLoadersHolder;
 import org.apache.nifi.registry.client.NiFiRegistryException;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.IllegalClusterResourceRequestException;
@@ -74,6 +77,7 @@ import org.apache.nifi.web.api.entity.BulletinBoardEntity;
 import org.apache.nifi.web.api.entity.ClusteSummaryEntity;
 import org.apache.nifi.web.api.entity.ClusterSearchResultsEntity;
 import org.apache.nifi.web.api.entity.ComponentHistoryEntity;
+import org.apache.nifi.web.api.entity.ConnectionStatisticsEntity;
 import org.apache.nifi.web.api.entity.ConnectionStatusEntity;
 import org.apache.nifi.web.api.entity.ControllerBulletinsEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
@@ -83,6 +87,8 @@ import org.apache.nifi.web.api.entity.ControllerStatusEntity;
 import org.apache.nifi.web.api.entity.CurrentUserEntity;
 import org.apache.nifi.web.api.entity.FlowConfigurationEntity;
 import org.apache.nifi.web.api.entity.HistoryEntity;
+import org.apache.nifi.web.api.entity.ParameterContextEntity;
+import org.apache.nifi.web.api.entity.ParameterContextsEntity;
 import org.apache.nifi.web.api.entity.PortStatusEntity;
 import org.apache.nifi.web.api.entity.PrioritizerTypesEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
@@ -125,7 +131,14 @@ import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.StreamingOutput;
+import java.io.BufferedWriter;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
+import java.text.Collator;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -133,6 +146,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -373,12 +388,70 @@ public class FlowResource extends ApplicationResource {
         return generateOkResponse(entity).build();
     }
 
+    /**
+     * Retrieves the metrics of the entire flow.
+     *
+     * @return A flowMetricsEntity.
+     * @throws InterruptedException if interrupted
+     */
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.WILDCARD)
+    @Path("metrics/{producer}")
+    @ApiOperation(
+            value = "Gets all metrics for the flow from a particular node",
+            response = StreamingOutput.class,
+            authorizations = {
+                    @Authorization(value = "Read - /flow")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
+    public Response getFlowMetrics(
+            @ApiParam(
+                    value = "The producer for flow file metrics. Each producer may have its own output format.",
+                    required = true
+            )
+            @PathParam("producer") final String producer) throws InterruptedException {
+
+        authorizeFlow();
+
+        if ("prometheus".equalsIgnoreCase(producer)) {
+            // get this process group flow
+            final Collection<CollectorRegistry> allRegistries = serviceFacade.generateFlowMetrics();
+            // generate a streaming response
+            final StreamingOutput response = output -> {
+                Writer writer = new BufferedWriter(new OutputStreamWriter(output));
+                for (CollectorRegistry collectorRegistry : allRegistries) {
+                    TextFormat.write004(writer, collectorRegistry.metricFamilySamples());
+                    // flush the response
+                    output.flush();
+                }
+                writer.flush();
+                writer.close();
+            };
+
+            return generateOkResponse(response)
+                    .type(MediaType.TEXT_PLAIN_TYPE)
+                    .build();
+        } else {
+            throw new ResourceNotFoundException("The specified producer is missing or invalid.");
+        }
+    }
+
     // -------------------
     // controller services
     // -------------------
 
     /**
-     * Retrieves all the of controller services in this NiFi.
+     * Retrieves controller services for reporting tasks in this NiFi.
      *
      * @return A controllerServicesEntity.
      */
@@ -387,7 +460,7 @@ public class FlowResource extends ApplicationResource {
     @Produces(MediaType.APPLICATION_JSON)
     @Path("controller/controller-services")
     @ApiOperation(
-            value = "Gets all controller services",
+            value = "Gets controller services for reporting tasks",
             response = ControllerServicesEntity.class,
             authorizations = {
                     @Authorization(value = "Read - /flow")
@@ -537,7 +610,7 @@ public class FlowResource extends ApplicationResource {
             response = ScheduleComponentsEntity.class,
             authorizations = {
                     @Authorization(value = "Read - /flow"),
-                    @Authorization(value = "Write - /{component-type}/{uuid} - For every component being scheduled/unscheduled")
+                    @Authorization(value = "Write - /{component-type}/{uuid} or /operation/{component-type}/{uuid} - For every component being scheduled/unscheduled")
             }
     )
     @ApiResponses(
@@ -626,7 +699,7 @@ public class FlowResource extends ApplicationResource {
                 // ensure authorized for each processor we will attempt to schedule
                 group.findAllProcessors().stream()
                         .filter(getProcessorFilter.get())
-                        .filter(processor -> processor.isAuthorized(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser()))
+                        .filter(processor -> OperationAuthorizable.isOperationAuthorized(processor, authorizer, NiFiUserUtils.getNiFiUser()))
                         .forEach(processor -> {
                             componentIds.add(processor.getIdentifier());
                         });
@@ -634,7 +707,7 @@ public class FlowResource extends ApplicationResource {
                 // ensure authorized for each input port we will attempt to schedule
                 group.findAllInputPorts().stream()
                     .filter(getPortFilter.get())
-                        .filter(inputPort -> inputPort.isAuthorized(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser()))
+                        .filter(inputPort -> OperationAuthorizable.isOperationAuthorized(inputPort, authorizer, NiFiUserUtils.getNiFiUser()))
                         .forEach(inputPort -> {
                             componentIds.add(inputPort.getIdentifier());
                         });
@@ -642,7 +715,7 @@ public class FlowResource extends ApplicationResource {
                 // ensure authorized for each output port we will attempt to schedule
                 group.findAllOutputPorts().stream()
                         .filter(getPortFilter.get())
-                        .filter(outputPort -> outputPort.isAuthorized(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser()))
+                        .filter(outputPort -> OperationAuthorizable.isOperationAuthorized(outputPort, authorizer, NiFiUserUtils.getNiFiUser()))
                         .forEach(outputPort -> {
                             componentIds.add(outputPort.getIdentifier());
                         });
@@ -685,7 +758,7 @@ public class FlowResource extends ApplicationResource {
                     // ensure access to every component being scheduled
                     requestComponentsToSchedule.keySet().forEach(componentId -> {
                         final Authorizable connectable = lookup.getLocalConnectable(componentId);
-                        connectable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                        OperationAuthorizable.authorizeOperation(connectable, authorizer, NiFiUserUtils.getNiFiUser());
                     });
                 },
                 () -> {
@@ -730,7 +803,7 @@ public class FlowResource extends ApplicationResource {
         response = ActivateControllerServicesEntity.class,
         authorizations = {
             @Authorization(value = "Read - /flow"),
-            @Authorization(value = "Write - /{component-type}/{uuid} - For every service being enabled/disabled")
+            @Authorization(value = "Write - /{component-type}/{uuid} or /operation/{component-type}/{uuid} - For every service being enabled/disabled")
         })
     @ApiResponses(
             value = {
@@ -787,7 +860,7 @@ public class FlowResource extends ApplicationResource {
 
                 group.findAllControllerServices().stream()
                     .filter(filter)
-                    .filter(service -> service.isAuthorized(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser()))
+                    .filter(service -> OperationAuthorizable.isOperationAuthorized(service, authorizer, NiFiUserUtils.getNiFiUser()))
                     .forEach(service -> componentIds.add(service.getIdentifier()));
                 return componentIds;
             });
@@ -827,7 +900,7 @@ public class FlowResource extends ApplicationResource {
                     // ensure access to every component being scheduled
                     requestComponentsToSchedule.keySet().forEach(componentId -> {
                         final Authorizable authorizable = lookup.getControllerService(componentId).getAuthorizable();
-                        authorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+                        OperationAuthorizable.authorizeOperation(authorizable, authorizer, NiFiUserUtils.getNiFiUser());
                     });
                 },
             () -> serviceFacade.verifyActivateControllerServices(id, desiredState, requestComponentRevisions.keySet()),
@@ -876,11 +949,14 @@ public class FlowResource extends ApplicationResource {
                     @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
             }
     )
-    public Response searchFlow(@QueryParam("q") @DefaultValue(StringUtils.EMPTY) String value) throws InterruptedException {
+    public Response searchFlow(
+            @QueryParam("q") @DefaultValue(StringUtils.EMPTY) String value,
+            @QueryParam("a") @DefaultValue(StringUtils.EMPTY) String activeGroupId
+    ) throws InterruptedException {
         authorizeFlow();
 
         // query the controller
-        final SearchResultsDTO results = serviceFacade.searchController(value);
+        final SearchResultsDTO results = serviceFacade.searchController(value, activeGroupId);
 
         // create the entity
         final SearchResultsEntity entity = new SearchResultsEntity();
@@ -1351,7 +1427,7 @@ public class FlowResource extends ApplicationResource {
         final NiFiProperties properties = getProperties();
         aboutDTO.setContentViewerUrl(properties.getProperty(NiFiProperties.CONTENT_VIEWER_URL));
 
-        final Bundle frameworkBundle = NarClassLoaders.getInstance().getFrameworkBundle();
+        final Bundle frameworkBundle = NarClassLoadersHolder.getInstance().getFrameworkBundle();
         if (frameworkBundle != null) {
             final BundleDetails frameworkDetails = frameworkBundle.getBundleDetails();
 
@@ -1426,11 +1502,28 @@ public class FlowResource extends ApplicationResource {
         authorizeFlow();
 
         final Set<BucketEntity> buckets = serviceFacade.getBucketsForUser(id, NiFiUserUtils.getNiFiUser());
+        final SortedSet<BucketEntity> sortedBuckets = sortBuckets(buckets);
 
         final BucketsEntity bucketsEntity = new BucketsEntity();
-        bucketsEntity.setBuckets(buckets);
+        bucketsEntity.setBuckets(sortedBuckets);
 
         return generateOkResponse(bucketsEntity).build();
+    }
+
+    private SortedSet<BucketEntity> sortBuckets(final Set<BucketEntity> buckets) {
+        final SortedSet<BucketEntity> sortedBuckets = new TreeSet<>(new Comparator<BucketEntity>() {
+            @Override
+            public int compare(final BucketEntity entity1, final BucketEntity entity2) {
+                return Collator.getInstance().compare(getBucketName(entity1), getBucketName(entity2));
+            }
+        });
+
+        sortedBuckets.addAll(buckets);
+        return sortedBuckets;
+    }
+
+    private String getBucketName(final BucketEntity entity) {
+        return entity.getBucket() == null ? null : entity.getBucket().getName();
     }
 
     @GET
@@ -1462,11 +1555,28 @@ public class FlowResource extends ApplicationResource {
         authorizeFlow();
 
         final Set<VersionedFlowEntity> versionedFlows = serviceFacade.getFlowsForUser(registryId, bucketId, NiFiUserUtils.getNiFiUser());
+        final SortedSet<VersionedFlowEntity> sortedFlows = sortFlows(versionedFlows);
 
         final VersionedFlowsEntity versionedFlowsEntity = new VersionedFlowsEntity();
-        versionedFlowsEntity.setVersionedFlows(versionedFlows);
+        versionedFlowsEntity.setVersionedFlows(sortedFlows);
 
         return generateOkResponse(versionedFlowsEntity).build();
+    }
+
+    private SortedSet<VersionedFlowEntity> sortFlows(final Set<VersionedFlowEntity> versionedFlows) {
+        final SortedSet<VersionedFlowEntity> sortedFlows = new TreeSet<>(new Comparator<VersionedFlowEntity>() {
+            @Override
+            public int compare(final VersionedFlowEntity entity1, final VersionedFlowEntity entity2) {
+                return Collator.getInstance().compare(getFlowName(entity1), getFlowName(entity2));
+            }
+        });
+
+        sortedFlows.addAll(versionedFlows);
+        return sortedFlows;
+    }
+
+    private String getFlowName(final VersionedFlowEntity flowEntity) {
+        return flowEntity.getVersionedFlow() == null ? "" : flowEntity.getVersionedFlow().getFlowName();
     }
 
     @GET
@@ -2071,6 +2181,79 @@ public class FlowResource extends ApplicationResource {
         return generateOkResponse(entity).build();
     }
 
+    /**
+     * Retrieves the specified connection statistics.
+     *
+     * @param id The id of the connection statistics to retrieve.
+     * @return A ConnectionStatisticsEntity.
+     * @throws InterruptedException if interrupted
+     */
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("connections/{id}/statistics")
+    @ApiOperation(
+            value = "Gets statistics for a connection",
+            response = ConnectionStatisticsEntity.class,
+            authorizations = {
+                    @Authorization(value = "Read - /flow")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
+    public Response getConnectionStatistics(
+            @ApiParam(
+                    value = "Whether or not to include the breakdown per node. Optional, defaults to false",
+                    required = false
+            )
+            @QueryParam("nodewise") @DefaultValue(NODEWISE) Boolean nodewise,
+            @ApiParam(
+                    value = "The id of the node where to get the statistics.",
+                    required = false
+            )
+            @QueryParam("clusterNodeId") String clusterNodeId,
+            @ApiParam(
+                    value = "The connection id.",
+                    required = true
+            )
+            @PathParam("id") String id) throws InterruptedException {
+
+        authorizeFlow();
+
+        // ensure a valid request
+        if (Boolean.TRUE.equals(nodewise) && clusterNodeId != null) {
+            throw new IllegalArgumentException("Nodewise requests cannot be directed at a specific node.");
+        }
+
+        if (isReplicateRequest()) {
+            // determine where this request should be sent
+            if (clusterNodeId == null) {
+                final NodeResponse nodeResponse = replicateNodeResponse(HttpMethod.GET);
+                final ConnectionStatisticsEntity entity = (ConnectionStatisticsEntity) nodeResponse.getUpdatedEntity();
+
+                // ensure there is an updated entity (result of merging) and prune the response as necessary
+                if (entity != null && !nodewise) {
+                    entity.getConnectionStatistics().setNodeSnapshots(null);
+                }
+
+                return nodeResponse.getResponse();
+            } else {
+                return replicate(HttpMethod.GET, clusterNodeId);
+            }
+        }
+
+        // get the specified connection status
+        final ConnectionStatisticsEntity entity = serviceFacade.getConnectionStatistics(id);
+        return generateOkResponse(entity).build();
+    }
+
     // --------------
     // status history
     // --------------
@@ -2258,6 +2441,44 @@ public class FlowResource extends ApplicationResource {
         final StatusHistoryEntity entity = serviceFacade.getConnectionStatusHistory(id);
         return generateOkResponse(entity).build();
     }
+
+
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("parameter-contexts")
+    @ApiOperation(
+        value = "Gets all Parameter Contexts",
+        response = ParameterContextsEntity.class,
+        authorizations = {
+            @Authorization(value = "Read - /parameter-contexts/{id} for each Parameter Context")
+        }
+    )
+    @ApiResponses(
+        value = {
+            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+            @ApiResponse(code = 401, message = "Client could not be authenticated."),
+            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+        }
+    )
+    public Response getParameterContexts() {
+        authorizeFlow();
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
+        }
+
+        final Set<ParameterContextEntity> parameterContexts = serviceFacade.getParameterContexts();
+        final ParameterContextsEntity entity = new ParameterContextsEntity();
+        entity.setParameterContexts(parameterContexts);
+        entity.setCurrentTime(new Date());
+
+        // generate the response
+        return generateOkResponse(entity).build();
+    }
+
+
 
     // -------
     // history

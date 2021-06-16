@@ -102,7 +102,7 @@ public class ChunkHeaderTest {
             offset += 11;
         }
 
-        RecordTest.putNode(testBinaryReaderBuilder, fileLastRecordNumber, new Date());
+        RecordTest.putNode(testBinaryReaderBuilder, logLastRecordNumber, new Date());
 
         testBinaryReaderBuilder.put(dataBuilder.toByteArray());
 
@@ -133,7 +133,7 @@ public class ChunkHeaderTest {
         assertTrue(chunkHeader.hasNext());
 
         Record next = chunkHeader.next();
-        assertEquals(fileLastRecordNumber, next.getRecordNum().intValue());
+        assertEquals(logLastRecordNumber, next.getRecordNum().intValue());
         RootNode rootNode = next.getRootNode();
         List<BxmlNode> children = rootNode.getChildren();
         assertEquals(1, children.size());

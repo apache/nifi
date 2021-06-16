@@ -17,24 +17,6 @@
 
 package org.apache.nifi.provenance.store;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.Callable;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
-
 import org.apache.nifi.authorization.AccessDeniedException;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.provenance.EventIdFirstSchemaRecordWriter;
@@ -48,6 +30,7 @@ import org.apache.nifi.provenance.authorization.EventTransformer;
 import org.apache.nifi.provenance.serialization.RecordReaders;
 import org.apache.nifi.provenance.serialization.RecordWriters;
 import org.apache.nifi.provenance.serialization.StorageSummary;
+import org.apache.nifi.provenance.store.iterator.EventIterator;
 import org.apache.nifi.provenance.toc.StandardTocWriter;
 import org.apache.nifi.provenance.toc.TocUtil;
 import org.apache.nifi.provenance.toc.TocWriter;
@@ -56,6 +39,25 @@ import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.Callable;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 public class TestPartitionedWriteAheadEventStore {
     private static final RecordWriterFactory writerFactory = (file, idGen, compress, createToc) -> RecordWriters.newSchemaRecordWriter(file, idGen, compress, createToc);
@@ -419,6 +421,41 @@ public class TestPartitionedWriteAheadEventStore {
         for (int i = 0; i < 8; i++) {
             assertEquals(i, recoveredEvents.get(i).getEventId());
         }
+    }
+
+
+    @Test
+    public void testGetEventsByTimestamp() throws IOException {
+        final RepositoryConfiguration config = createConfig();
+        config.setMaxEventFileCount(300);
+        config.setCompressOnRollover(false);
+
+        final PartitionedWriteAheadEventStore store = new PartitionedWriteAheadEventStore(config, writerFactory, readerFactory, EventReporter.NO_OP, new EventFileManager());
+        store.initialize();
+
+        for (int i = 0; i < 1_000; i++) {
+            final ProvenanceEventRecord event = createEvent();
+            final ProvenanceEventRecord withTimestamp = new StandardProvenanceEventRecord.Builder()
+                .fromEvent(event)
+                .setEventTime(i)
+                .build();
+
+            store.addEvents(Collections.singleton(withTimestamp));
+        }
+
+        final EventIterator iterator = store.getEventsByTimestamp(200, 799);
+
+        int count = 0;
+        Optional<ProvenanceEventRecord> optionalRecord;
+        while ((optionalRecord = iterator.nextEvent()).isPresent()) {
+            final ProvenanceEventRecord event = optionalRecord.get();
+            final long timestamp = event.getEventTime();
+            assertTrue(timestamp >= 200);
+            assertTrue(timestamp <= 799);
+            count++;
+        }
+
+        assertEquals(600, count);
     }
 
 

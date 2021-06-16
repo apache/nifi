@@ -16,11 +16,17 @@
  */
 package org.apache.nifi.processors.standard;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.components.state.StateMap;
+import org.apache.nifi.processors.standard.TailFile.TailFileState;
+import org.apache.nifi.state.MockStateManager;
+import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.TestRunner;
+import org.apache.nifi.util.TestRunners;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
 
 import java.io.BufferedWriter;
 import java.io.ByteArrayOutputStream;
@@ -31,25 +37,22 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.RandomAccessFile;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
-import org.apache.nifi.components.state.Scope;
-import org.apache.nifi.components.state.StateMap;
-import org.apache.nifi.processors.standard.TailFile.TailFileState;
-import org.apache.nifi.state.MockStateManager;
-import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-import org.junit.After;
-import org.junit.Assert;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeFalse;
-import org.junit.Before;
-import org.junit.Test;
 
 public class TestTailFile {
 
@@ -113,7 +116,80 @@ public class TestTailFile {
         }
 
         processor.cleanup();
+
+        final File[] files = file.getParentFile().listFiles();
+        if (files != null) {
+            for (final File file : files) {
+                if (file.getName().endsWith(".log")) {
+                    file.delete();
+                }
+            }
+        }
     }
+
+
+    @Test
+    public void testRotateMultipleBeforeConsuming() throws IOException {
+        runner.setProperty(TailFile.ROLLING_FILENAME_PATTERN, "log.txt*");
+        runner.setProperty(TailFile.START_POSITION, TailFile.START_CURRENT_FILE.getValue());
+
+        raf.write("1\n".getBytes());
+
+        runner.run();
+        runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 1);
+
+        raf.write("1.5\n".getBytes());
+        rollover(0);
+        raf.write("2\n".getBytes());
+        rollover(1);
+        raf.write("3\n".getBytes());
+        rollover(2);
+        raf.write("4\n".getBytes());
+
+        rollover(3);
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 5);
+        final List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS);
+        final Set<String> lines = flowFiles.stream().map(MockFlowFile::toByteArray).map(String::new).collect(Collectors.toSet());
+        assertEquals(5, lines.size());
+        assertTrue(lines.contains("1\n"));
+        assertTrue(lines.contains("1.5\n"));
+        assertTrue(lines.contains("2\n"));
+        assertTrue(lines.contains("3\n"));
+        assertTrue(lines.contains("4\n"));
+
+        runner.clearTransferState();
+    }
+
+
+    @Test
+    public void testStartPositionCurrentTime() throws IOException {
+        raf.write("1\n".getBytes());
+        rollover(0);
+        raf.write("2\n".getBytes());
+        rollover(1);
+        raf.write("3\n4\n5\n".getBytes());
+
+        runner.setProperty(TailFile.START_POSITION, TailFile.START_CURRENT_TIME.getValue());
+        runner.run();
+        runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 0);
+
+        raf.write("6\n".getBytes());
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0);
+        out.assertContentEquals("6\n");
+    }
+
+    private void rollover(final int index) throws IOException {
+        raf.close();
+        file.renameTo(new File(file.getParentFile(), file.getName() + "." + index + ".log"));
+        raf = new RandomAccessFile(file, "rw");
+    }
+
 
     @Test
     public void testConsumeAfterTruncationStartAtBeginningOfFile() throws IOException, InterruptedException {

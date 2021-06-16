@@ -16,9 +16,13 @@
  */
 package org.apache.nifi.processors.standard;
 
+import static org.junit.Assert.assertEquals;
+
+import java.util.List;
+
+import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -133,6 +137,29 @@ public class TestDistributeLoad {
         for (int i = 1; i <= 100; i++) {
             System.out.println(i);
             testRunner.assertTransferCount(String.valueOf(i), (i == 50) ? 0 : 1);
+        }
+    }
+
+    @Test
+    public void testFlowFileAttributesAdded() {
+        final TestRunner testRunner = TestRunners.newTestRunner(new DistributeLoad());
+
+        testRunner.setProperty(DistributeLoad.NUM_RELATIONSHIPS, "100");
+        testRunner.setProperty(DistributeLoad.DISTRIBUTION_STRATEGY, DistributeLoad.STRATEGY_NEXT_AVAILABLE);
+
+        for (int i = 0; i < 100; i++) {
+            testRunner.enqueue(new byte[0]);
+        }
+
+        testRunner.run(101);
+        testRunner.assertQueueEmpty();
+
+        for (int i = 1; i <= 100; i++) {
+            testRunner.assertTransferCount(String.valueOf(i), 1);
+            final List<MockFlowFile> flowFilesForRelationship = testRunner.getFlowFilesForRelationship(String.valueOf(i));
+            assertEquals(1, flowFilesForRelationship.size());
+            final MockFlowFile mockFlowFile = flowFilesForRelationship.get(0);
+            assertEquals(String.valueOf(i), mockFlowFile.getAttribute(DistributeLoad.RELATIONSHIP_ATTRIBUTE));
         }
     }
 }

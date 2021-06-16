@@ -17,8 +17,6 @@
 package org.apache.nifi.attribute.expression.language;
 
 
-import java.util.Map;
-
 import org.apache.nifi.attribute.expression.language.exception.AttributeExpressionLanguageException;
 import org.apache.nifi.expression.AttributeValueDecorator;
 import org.apache.nifi.processor.exception.ProcessException;
@@ -40,12 +38,7 @@ public class InvalidPreparedQuery implements PreparedQuery {
     }
 
     @Override
-    public String evaluateExpressions(final Map<String,String> valueLookup, final AttributeValueDecorator decorator) throws ProcessException {
-        throw new AttributeExpressionLanguageException("Invalid Expression: " + query + " due to " + explanation);
-    }
-
-    @Override
-    public String evaluateExpressions( Map<String, String> valueLookup, AttributeValueDecorator decorator, Map<String, String> stateVariables) throws ProcessException {
+    public String evaluateExpressions(final EvaluationContext evaluationContext, final AttributeValueDecorator decorator) throws ProcessException {
         throw new AttributeExpressionLanguageException("Invalid Expression: " + query + " due to " + explanation);
     }
 

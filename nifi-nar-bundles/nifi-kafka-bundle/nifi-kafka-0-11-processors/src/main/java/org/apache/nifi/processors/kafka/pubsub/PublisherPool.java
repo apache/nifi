@@ -21,9 +21,9 @@ import java.io.Closeable;
 import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
 import org.apache.kafka.clients.producer.KafkaProducer;
@@ -39,11 +39,12 @@ public class PublisherPool implements Closeable {
     private final boolean useTransactions;
     private final Pattern attributeNameRegex;
     private final Charset headerCharacterSet;
+    private Supplier<String> transactionalIdSupplier;
 
     private volatile boolean closed = false;
 
     PublisherPool(final Map<String, Object> kafkaProperties, final ComponentLog logger, final int maxMessageSize, final long maxAckWaitMillis,
-        final boolean useTransactions, final Pattern attributeNameRegex, final Charset headerCharacterSet) {
+                  final boolean useTransactions, final Supplier<String> transactionalIdSupplier, final Pattern attributeNameRegex, final Charset headerCharacterSet) {
         this.logger = logger;
         this.publisherQueue = new LinkedBlockingQueue<>();
         this.kafkaProperties = kafkaProperties;
@@ -52,6 +53,7 @@ public class PublisherPool implements Closeable {
         this.useTransactions = useTransactions;
         this.attributeNameRegex = attributeNameRegex;
         this.headerCharacterSet = headerCharacterSet;
+        this.transactionalIdSupplier = transactionalIdSupplier;
     }
 
     public PublisherLease obtainPublisher() {
@@ -71,7 +73,7 @@ public class PublisherPool implements Closeable {
     private PublisherLease createLease() {
         final Map<String, Object> properties = new HashMap<>(kafkaProperties);
         if (useTransactions) {
-            properties.put("transactional.id", UUID.randomUUID().toString());
+            properties.put("transactional.id", transactionalIdSupplier.get());
         }
 
         final Producer<byte[], byte[]> producer = new KafkaProducer<>(properties);

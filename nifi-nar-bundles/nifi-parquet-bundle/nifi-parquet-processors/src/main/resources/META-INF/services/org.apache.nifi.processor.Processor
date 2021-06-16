@@ -14,3 +14,4 @@
 # limitations under the License.
 org.apache.nifi.processors.parquet.PutParquet
 org.apache.nifi.processors.parquet.FetchParquet
+org.apache.nifi.processors.parquet.ConvertAvroToParquet

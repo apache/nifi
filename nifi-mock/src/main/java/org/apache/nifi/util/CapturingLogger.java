@@ -372,6 +372,11 @@ public class CapturingLogger implements Logger {
         logger.error(format, arg1, arg2);
     }
 
+    public void error(String format, Object arg1, Throwable t) {
+        errorMessages.add(new LogMessage(null, format, t, arg1));
+        logger.error(format, arg1, t);
+    }
+
     @Override
     public void error(String format, Object... arguments) {
         errorMessages.add(new LogMessage(null, format, null, arguments));

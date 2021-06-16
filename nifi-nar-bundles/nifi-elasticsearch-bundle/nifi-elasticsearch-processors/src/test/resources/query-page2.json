@@ -25,7 +25,8 @@
 			        "transit_uri": "file://cluster2/data/outgoing/S3/abc-42a.zip",
 			        "object_type": "Provenance Record",
 			        "version": "ArPsIlGBKqDvfL6qQZOVpmDwUEB.nynh",
-			        "file_size": "18206872"
+					"file_size": "18206872",
+					"tags":  ["arrays", "are", "supported", "too"]
 			    },
 			    "sort": [
 			        1469198828101

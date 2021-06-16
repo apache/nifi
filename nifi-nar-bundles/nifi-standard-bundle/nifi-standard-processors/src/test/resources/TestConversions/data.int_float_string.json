@@ -1,0 +1,22 @@
+[ {
+  "Id" : 1,
+  "Int_Float_String" : 3
+}, {
+  "Id" : 2,
+  "Int_Float_String" : 3.75
+}, {
+  "Id" : 3,
+  "Int_Float_String" : 3.85
+}, {
+  "Id" : 4,
+  "Int_Float_String" : 8
+}, {
+  "Id" : 5,
+  "Int_Float_String" : 2.0
+}, {
+  "Id" : 6,
+  "Int_Float_String" : 4.0
+}, {
+  "Id" : 7,
+  "Int_Float_String" : "some_string"
+} ]

@@ -19,6 +19,7 @@ package org.apache.nifi.cluster.protocol;
 import java.util.Set;
 
 import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
+import org.apache.nifi.cluster.protocol.message.OffloadMessage;
 import org.apache.nifi.cluster.protocol.message.DisconnectMessage;
 import org.apache.nifi.cluster.protocol.message.NodeStatusChangeMessage;
 import org.apache.nifi.cluster.protocol.message.ReconnectionRequestMessage;
@@ -39,6 +40,14 @@ public interface ClusterCoordinationProtocolSender {
      * @throws ProtocolException if communication failed
      */
     ReconnectionResponseMessage requestReconnection(ReconnectionRequestMessage msg) throws ProtocolException;
+
+    /**
+     * Sends an "offload request" message to a node.
+     *
+     * @param msg a message
+     * @throws ProtocolException if communication failed
+     */
+    void offload(OffloadMessage msg) throws ProtocolException;
 
     /**
      * Sends a "disconnection request" message to a node.

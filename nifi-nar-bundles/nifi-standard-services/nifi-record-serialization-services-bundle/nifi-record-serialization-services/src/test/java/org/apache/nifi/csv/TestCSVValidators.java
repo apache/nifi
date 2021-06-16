@@ -33,7 +33,6 @@ public class TestCSVValidators {
     /*** SingleCharValidator **/
     @Test
     public void testSingleCharNullValue() {
-
         CSVValidators.SingleCharacterValidator validator = new CSVValidators.SingleCharacterValidator();
         ValidationContext mockContext = Mockito.mock(ValidationContext.class);
         ValidationResult result = validator.validate("EscapeChar", null, mockContext);
@@ -66,6 +65,16 @@ public class TestCSVValidators {
         assertTrue(result.isValid());
     }
 
+    @Test
+    public void testSingleCharExpressionLanguage() {
+        CSVValidators.SingleCharacterValidator validator = new CSVValidators.SingleCharacterValidator();
+        ValidationContext mockContext = Mockito.mock(ValidationContext.class);
+        Mockito.when(mockContext.isExpressionLanguageSupported(Mockito.any())).thenReturn(true);
+        Mockito.when(mockContext.isExpressionLanguagePresent(Mockito.any())).thenReturn(true);
+        ValidationResult result = validator.validate("EscapeChar", "${csv.escape}", mockContext);
+        assertTrue(result.isValid());
+    }
+
 
     /*** Unescaped SingleCharValidator **/
 
@@ -92,6 +101,16 @@ public class TestCSVValidators {
         Validator validator = CSVValidators.UNESCAPED_SINGLE_CHAR_VALIDATOR;
         ValidationContext mockContext = Mockito.mock(ValidationContext.class);
         ValidationResult result = validator.validate("Delimiter", ",", mockContext);
+        assertTrue(result.isValid());
+    }
+
+    @Test
+    public void testUnescapedSingleCharExpressionLanguage() {
+        Validator validator = CSVValidators.UNESCAPED_SINGLE_CHAR_VALIDATOR;
+        ValidationContext mockContext = Mockito.mock(ValidationContext.class);
+        Mockito.when(mockContext.isExpressionLanguageSupported(Mockito.any())).thenReturn(true);
+        Mockito.when(mockContext.isExpressionLanguagePresent(Mockito.any())).thenReturn(true);
+        ValidationResult result = validator.validate("Delimiter", "${csv.delimiter}", mockContext);
         assertTrue(result.isValid());
     }
 

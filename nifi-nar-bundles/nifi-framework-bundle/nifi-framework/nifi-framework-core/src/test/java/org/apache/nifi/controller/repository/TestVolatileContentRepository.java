@@ -38,7 +38,7 @@ import org.apache.nifi.util.NiFiProperties;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Matchers;
+import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
 
 public class TestVolatileContentRepository {
@@ -85,10 +85,10 @@ public class TestVolatileContentRepository {
         contentRepo.setBackupRepository(mockRepo);
         final ResourceClaim resourceClaim = claimManager.newResourceClaim("container", "section", "1000", true, false);
         final ContentClaim contentClaim = new StandardContentClaim(resourceClaim, 0L);
-        Mockito.when(mockRepo.create(Matchers.anyBoolean())).thenReturn(contentClaim);
+        Mockito.when(mockRepo.create(ArgumentMatchers.anyBoolean())).thenReturn(contentClaim);
 
         final ByteArrayOutputStream overflowStream = new ByteArrayOutputStream();
-        Mockito.when(mockRepo.write(Matchers.any(ContentClaim.class))).thenReturn(overflowStream);
+        Mockito.when(mockRepo.write(ArgumentMatchers.any(ContentClaim.class))).thenReturn(overflowStream);
         out.write(10);
 
         assertEquals(1024 * 1024 * 10 + 1, overflowStream.size());

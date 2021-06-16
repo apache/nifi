@@ -47,9 +47,9 @@ public class TestPublishMqttSSL extends TestPublishMqttCommon {
 
         configProps.put(BrokerConstants.WEB_SOCKET_PORT_PROPERTY_NAME, "1884");
         configProps.put(BrokerConstants.SSL_PORT_PROPERTY_NAME, "8883");
-        configProps.put(BrokerConstants.JKS_PATH_PROPERTY_NAME, "src/test/resources/localhost-ks.jks");
-        configProps.put(BrokerConstants.KEY_STORE_PASSWORD_PROPERTY_NAME, "localtest");
-        configProps.put(BrokerConstants.KEY_MANAGER_PASSWORD_PROPERTY_NAME, "localtest");
+        configProps.put(BrokerConstants.JKS_PATH_PROPERTY_NAME, "src/test/resources/keystore.jks");
+        configProps.put(BrokerConstants.KEY_STORE_PASSWORD_PROPERTY_NAME, "passwordpassword");
+        configProps.put(BrokerConstants.KEY_MANAGER_PASSWORD_PROPERTY_NAME, "passwordpassword");
         configProps.setProperty(PERSISTENT_STORE_PROPERTY_NAME,"./target/moquette_store.mapdb");
         IConfig server_config = new MemoryConfig(configProps);
         MQTT_server.startServer(server_config);

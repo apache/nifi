@@ -19,6 +19,10 @@ package org.apache.nifi.toolkit.cli.impl.client;
 import org.apache.commons.cli.MissingOptionException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.registry.client.BucketClient;
+import org.apache.nifi.registry.client.BundleClient;
+import org.apache.nifi.registry.client.BundleVersionClient;
+import org.apache.nifi.registry.client.ExtensionClient;
+import org.apache.nifi.registry.client.ExtensionRepoClient;
 import org.apache.nifi.registry.client.FlowClient;
 import org.apache.nifi.registry.client.FlowSnapshotClient;
 import org.apache.nifi.registry.client.ItemsClient;
@@ -28,6 +32,8 @@ import org.apache.nifi.registry.client.UserClient;
 import org.apache.nifi.registry.client.impl.JerseyNiFiRegistryClient;
 import org.apache.nifi.registry.security.util.KeystoreType;
 import org.apache.nifi.toolkit.cli.api.ClientFactory;
+import org.apache.nifi.toolkit.cli.impl.client.registry.PoliciesClient;
+import org.apache.nifi.toolkit.cli.impl.client.registry.TenantsClient;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 
 import java.io.IOException;
@@ -93,13 +99,15 @@ public class NiFiRegistryClientFactory implements ClientFactory<NiFiRegistryClie
             }
         }
 
-        final NiFiRegistryClient client = new JerseyNiFiRegistryClient.Builder().config(clientConfigBuilder.build()).build();
+        final NiFiRegistryClientConfig clientConfig = clientConfigBuilder.build();
+        final NiFiRegistryClient client = new JerseyNiFiRegistryClient.Builder().config(clientConfig).build();
+        final ExtendedNiFiRegistryClient extendedClient = new JerseyExtendedNiFiRegistryClient(client, clientConfig);
 
         // if a proxied entity was specified then return a wrapped client, otherwise return the regular client
         if (!StringUtils.isBlank(proxiedEntity)) {
-            return new ProxiedNiFiRegistryClient(client, proxiedEntity);
+            return new ProxiedNiFiRegistryClient(extendedClient, proxiedEntity);
         } else {
-            return client;
+            return extendedClient;
         }
     }
 
@@ -107,12 +115,12 @@ public class NiFiRegistryClientFactory implements ClientFactory<NiFiRegistryClie
      * Wraps a NiFiRegistryClient and ensures that all methods to obtain a more specific client will
      * call the proxied-entity variation so that callers don't have to care if proxying is taking place.
      */
-    private static class ProxiedNiFiRegistryClient implements NiFiRegistryClient {
+    private static class ProxiedNiFiRegistryClient implements ExtendedNiFiRegistryClient {
 
-        private final NiFiRegistryClient client;
+        private final ExtendedNiFiRegistryClient client;
         private final String proxiedEntity;
 
-        public ProxiedNiFiRegistryClient(final NiFiRegistryClient client, final String proxiedEntity) {
+        public ProxiedNiFiRegistryClient(final ExtendedNiFiRegistryClient client, final String proxiedEntity) {
             this.client = client;
             this.proxiedEntity = proxiedEntity;
         }
@@ -168,9 +176,68 @@ public class NiFiRegistryClientFactory implements ClientFactory<NiFiRegistryClie
         }
 
         @Override
+        public BundleClient getBundleClient() {
+            return getBundleClient(proxiedEntity);
+        }
+
+        @Override
+        public BundleClient getBundleClient(String... proxiedEntity) {
+            return client.getBundleClient(proxiedEntity);
+        }
+
+        @Override
+        public BundleVersionClient getBundleVersionClient() {
+            return getBundleVersionClient(proxiedEntity);
+        }
+
+        @Override
+        public BundleVersionClient getBundleVersionClient(String... proxiedEntity) {
+            return client.getBundleVersionClient(proxiedEntity);
+        }
+
+        @Override
+        public ExtensionRepoClient getExtensionRepoClient() {
+            return getExtensionRepoClient(proxiedEntity);
+        }
+
+        @Override
+        public ExtensionRepoClient getExtensionRepoClient(String... proxiedEntity) {
+            return client.getExtensionRepoClient(proxiedEntity);
+        }
+
+        @Override
+        public ExtensionClient getExtensionClient() {
+            return getExtensionClient(proxiedEntity);
+        }
+
+        @Override
+        public ExtensionClient getExtensionClient(String... proxiedEntity) {
+            return client.getExtensionClient(proxiedEntity);
+        }
+
+        @Override
+        public TenantsClient getTenantsClient() {
+            return getTenantsClient(proxiedEntity);
+        }
+
+        @Override
+        public TenantsClient getTenantsClient(String... proxiedEntity) {
+            return client.getTenantsClient(proxiedEntity);
+        }
+
+        @Override
+        public PoliciesClient getPoliciesClient() {
+            return getPoliciesClient(proxiedEntity);
+        }
+
+        @Override
+        public PoliciesClient getPoliciesClient(String... proxiedEntity) {
+            return client.getPoliciesClient(proxiedEntity);
+        }
+
+        @Override
         public void close() throws IOException {
             client.close();
         }
     }
-
 }

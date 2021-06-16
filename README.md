@@ -14,10 +14,10 @@
 -->
 [<img src="https://nifi.apache.org/assets/images/apache-nifi-logo.svg" width="300" height="126" alt="Apache NiFi"/>][nifi]
 
-[![Build Status](https://travis-ci.org/apache/nifi.svg?branch=master)](https://travis-ci.org/apache/nifi)
+[![ci-workflow](https://github.com/apache/nifi/workflows/ci-workflow/badge.svg)](https://github.com/apache/nifi/actions)
 [![Docker pulls](https://img.shields.io/docker/pulls/apache/nifi.svg)](https://hub.docker.com/r/apache/nifi/)
 [![Version](https://img.shields.io/maven-central/v/org.apache.nifi/nifi-utils.svg)](https://nifi.apache.org/download.html)
-[![HipChat](https://img.shields.io/badge/chat-on%20HipChat-brightgreen.svg)](https://www.hipchat.com/gzh2m5YML)
+[![Slack](https://img.shields.io/badge/chat-on%20Slack-brightgreen.svg)](https://s.apache.org/nifi-community-slack)
 
 [Apache NiFi](https://nifi.apache.org/) is an easy to use, powerful, and
 reliable system to process and distribute data.
@@ -58,8 +58,8 @@ Apache NiFi was made for dataflow. It supports highly configurable directed grap
   - Multiple teams can manage and share specific portions of the flow
 
 ## Requirements
-* JDK 1.8 or newer
-* Apache Maven 3.1.0 or newer
+* JDK 1.8 (*ongoing work to enable NiFi to run on Java 9/10/11; see [NIFI-5174](https://issues.apache.org/jira/browse/NIFI-5174)*)
+* Apache Maven 3.1.1 or newer
 * Git Client (used during build process by 'bower' plugin)
 
 ## Getting Started
@@ -86,6 +86,7 @@ To build:
         [INFO] Finished at: 2015-04-30T00:30:36-05:00
         [INFO] Final Memory: 173M/1359M
         [INFO] ------------------------------------------------------------------------
+- Execute `mvn clean install -DskipTests` to compile tests, but skip running them.
 
 To deploy:
 - Change directory to 'nifi-assembly'. In the target directory, there should be a build of nifi.
@@ -125,9 +126,15 @@ To run NiFi:
 
 ## Getting Help
 If you have questions, you can reach out to our mailing list: dev@nifi.apache.org
-([archive](http://mail-archives.apache.org/mod_mbox/nifi-dev)).
-For more interactive conversations and chat, we're also often available in IRC: #nifi on
-[irc.freenode.net](http://webchat.freenode.net/?channels=#nifi) and in #NiFi on [ASF HipChat](https://www.hipchat.com/gzh2m5YML). 
+([archive](http://mail-archives.apache.org/mod_mbox/nifi-dev)). For more interactive discussions, community members can often be found in the following locations:
+
+- Apache NiFi Slack Workspace: https://apachenifi.slack.com/
+
+  New users can join the workspace using the following [invite link](https://s.apache.org/nifi-community-slack).
+  
+- IRC: #nifi on [irc.freenode.net](http://webchat.freenode.net/?channels=#nifi)
+
+To submit a feature request or bug report, please file a Jira at [https://issues.apache.org/jira/projects/NIFI/issues](https://issues.apache.org/jira/projects/NIFI/issues). If this is a **security vulnerability report**, please email [security@nifi.apache.org](mailto:security@nifi.apache.org) directly and review the [Apache NiFi Security Vulnerability Disclosure](https://nifi.apache.org/security.html) and [Apache Software Foundation Security](https://www.apache.org/security/committers.html) processes first. 
 
 ## Documentation
 
@@ -171,12 +178,11 @@ source code.
 
 The following provides more details on the included cryptographic software:
 
-Apache NiFi uses BouncyCastle, Jasypt, JCraft Inc., and the built-in
-java cryptography libraries for SSL, SSH, and the protection
+Apache NiFi uses BouncyCastle, JCraft Inc., and the built-in
+Java cryptography libraries for SSL, SSH, and the protection
 of sensitive configuration parameters. See
 http://bouncycastle.org/about.html
-http://www.jasypt.org/faq.html
-http://jcraft.com/c-info.html
+http://www.jcraft.com/c-info.html
 http://www.oracle.com/us/products/export/export-regulations-345813.html
 for more details on each of these libraries cryptography features.
 

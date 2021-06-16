@@ -49,7 +49,7 @@ import org.apache.nifi.provenance.lucene.IndexSearch;
 import org.apache.nifi.provenance.lucene.IndexingAction;
 import org.apache.nifi.provenance.lucene.LineageQuery;
 import org.apache.nifi.provenance.lucene.LuceneUtil;
-import org.apache.nifi.provenance.lucene.SimpleIndexManager;
+import org.apache.nifi.provenance.lucene.StandardIndexManager;
 import org.apache.nifi.provenance.lucene.UpdateMinimumEventId;
 import org.apache.nifi.provenance.search.Query;
 import org.apache.nifi.provenance.search.QueryResult;
@@ -135,8 +135,7 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
     private static final String TEMP_FILE_SUFFIX = ".prov.part";
     private static final long PURGE_EVENT_MILLISECONDS = 2500L; //Determines the frequency over which the task to delete old events will occur
     public static final Pattern NUMBER_PATTERN = Pattern.compile("\\d+");
-    public static final Pattern INDEX_PATTERN = Pattern.compile("index-\\d+");
-    public static final Pattern LOG_FILENAME_PATTERN = Pattern.compile("(\\d+).*\\.prov");
+    public static final Pattern INDEX_PATTERN = Pattern.compile("(?:lucene-\\d+-)?index-\\d+");
     public static final int MAX_UNDELETED_QUERY_RESULTS = 10;
     public static final int MAX_INDEXING_FAILURE_COUNT = 5; // how many indexing failures we will tolerate before skipping indexing for a prov file
     public static final int MAX_JOURNAL_ROLLOVER_RETRIES = 5;
@@ -247,7 +246,7 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
         this.maxPartitionMillis = configuration.getMaxEventFileLife(TimeUnit.MILLISECONDS);
         this.maxPartitionBytes = configuration.getMaxEventFileCapacity();
         this.indexConfig = new IndexConfiguration(configuration);
-        this.indexManager = new SimpleIndexManager(configuration);
+        this.indexManager = new StandardIndexManager(configuration);
         this.alwaysSync = configuration.isAlwaysSync();
         this.rolloverCheckMillis = rolloverCheckMillis;
 
@@ -1193,7 +1192,7 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
      */
     private long getIndexTimestamp(final File indexDirectory) {
         final String name = indexDirectory.getName();
-        final int dashIndex = name.indexOf("-");
+        final int dashIndex = name.lastIndexOf("-");
         return Long.parseLong(name.substring(dashIndex + 1));
     }
 
@@ -2080,13 +2079,13 @@ public class PersistentProvenanceRepository implements ProvenanceRepository {
                 public List<Document> call() {
                     final List<Document> localScoreDocs = new ArrayList<>();
 
-                    try (final DirectoryReader directoryReader = DirectoryReader.open(FSDirectory.open(indexDirectory))) {
+                    try (final DirectoryReader directoryReader = DirectoryReader.open(FSDirectory.open(indexDirectory.toPath()))) {
                         final IndexSearcher searcher = new IndexSearcher(directoryReader);
 
                         final TopDocs topDocs = searcher.search(luceneQuery, 10000000);
                         logger.info("For {}, Top Docs has {} hits; reading Lucene results", indexDirectory, topDocs.scoreDocs.length);
 
-                        if (topDocs.totalHits > 0) {
+                        if (topDocs.totalHits.value > 0) {
                             for (final ScoreDoc scoreDoc : topDocs.scoreDocs) {
                                 final int docId = scoreDoc.doc;
                                 final Document d = directoryReader.document(docId);

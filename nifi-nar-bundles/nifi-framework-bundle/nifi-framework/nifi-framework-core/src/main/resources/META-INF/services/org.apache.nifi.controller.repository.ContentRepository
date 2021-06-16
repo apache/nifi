@@ -14,3 +14,4 @@
 # limitations under the License.
 org.apache.nifi.controller.repository.FileSystemRepository
 org.apache.nifi.controller.repository.VolatileContentRepository
+org.apache.nifi.controller.repository.crypto.EncryptedFileSystemRepository

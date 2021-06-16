@@ -32,8 +32,34 @@
             <useProjectArtifact>false</useProjectArtifact>
             <directoryMode>0770</directoryMode>
             <fileMode>0660</fileMode>
+            <excludes>
+                <!-- exclude jaxb/activation libs from lib, they'll be included in the java11 subdir -->
+                <!-- TODO: remove these once minimum Java version is 11 -->
+                <exclude>javax.xml.bind:jaxb-api</exclude>
+                <exclude>com.sun.xml.bind:jaxb-impl</exclude>
+                <exclude>com.sun.xml.bind:jaxb-core</exclude>
+                <exclude>javax.activation:javax.activation-api</exclude>
+            </excludes>
+        </dependencySet>
+        <!-- Write out the bootstrap libs for java11 to its own dir -->
+        <!-- TODO: remove this dependency set once minimum Java version is 11 -->
+        <dependencySet>
+            <scope>runtime</scope>
+            <useProjectArtifact>false</useProjectArtifact>
+            <outputDirectory>lib/java11</outputDirectory>
+            <directoryMode>0770</directoryMode>
+            <fileMode>0664</fileMode>
+            <useTransitiveFiltering>true</useTransitiveFiltering>
+            <includes>
+                <include>javax.xml.bind:jaxb-api</include>
+                <include>com.sun.xml.bind:jaxb-impl</include>
+                <include>com.sun.xml.bind:jaxb-core</include>
+                <include>javax.activation:javax.activation-api</include>
+            </includes>
         </dependencySet>
     </dependencySets>
+
+
     <fileSets>
         <fileSet>
             <directory>${project.basedir}/src/main/resources/bin</directory>

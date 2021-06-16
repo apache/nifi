@@ -39,11 +39,13 @@ public class CatchAllFilter extends SanitizeContextPathFilter {
 
     @Override
     public void init(FilterConfig filterConfig) throws ServletException {
+        super.init(filterConfig);
+
         // TODO: Perform path validation (against what set of rules)?
         forwardPath = filterConfig.getInitParameter("forwardPath");
         displayPath = filterConfig.getInitParameter("displayPath");
 
-        logger.debug("CatchAllFilter  [" + displayPath + "] received provided whitelisted context paths from NiFi properties: " + getWhitelistedContextPaths());
+        logger.debug("CatchAllFilter [" + displayPath + "] received provided allowed context paths from NiFi properties: " + getAllowedContextPaths());
     }
 
     @Override

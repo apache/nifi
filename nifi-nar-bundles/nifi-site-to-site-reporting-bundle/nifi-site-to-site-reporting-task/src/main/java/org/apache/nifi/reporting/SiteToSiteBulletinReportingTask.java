@@ -17,29 +17,6 @@
 
 package org.apache.nifi.reporting;
 
-import org.apache.avro.Schema;
-import org.apache.nifi.annotation.behavior.Restricted;
-import org.apache.nifi.annotation.behavior.Restriction;
-import org.apache.nifi.annotation.configuration.DefaultSchedule;
-import org.apache.nifi.annotation.documentation.CapabilityDescription;
-import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.avro.AvroTypeUtil;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.RequiredPermission;
-import org.apache.nifi.expression.ExpressionLanguageScope;
-import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.remote.Transaction;
-import org.apache.nifi.remote.TransferDirection;
-import org.apache.nifi.scheduling.SchedulingStrategy;
-
-import javax.json.Json;
-import javax.json.JsonArray;
-import javax.json.JsonArrayBuilder;
-import javax.json.JsonBuilderFactory;
-import javax.json.JsonObject;
-import javax.json.JsonObjectBuilder;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.text.DateFormat;
@@ -53,6 +30,28 @@ import java.util.OptionalLong;
 import java.util.TimeZone;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+
+import javax.json.Json;
+import javax.json.JsonArray;
+import javax.json.JsonArrayBuilder;
+import javax.json.JsonBuilderFactory;
+import javax.json.JsonObject;
+import javax.json.JsonObjectBuilder;
+
+import org.apache.avro.Schema;
+import org.apache.nifi.annotation.behavior.Restricted;
+import org.apache.nifi.annotation.behavior.Restriction;
+import org.apache.nifi.annotation.configuration.DefaultSchedule;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.avro.AvroTypeUtil;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.RequiredPermission;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.remote.Transaction;
+import org.apache.nifi.remote.TransferDirection;
+import org.apache.nifi.reporting.s2s.SiteToSiteUtils;
+import org.apache.nifi.scheduling.SchedulingStrategy;
 
 @Tags({"bulletin", "site", "site to site"})
 @CapabilityDescription("Publishes Bulletin events using the Site To Site protocol. Note: only up to 5 bulletins are stored per component and up to "
@@ -68,15 +67,6 @@ import java.util.concurrent.TimeUnit;
 @DefaultSchedule(strategy = SchedulingStrategy.TIMER_DRIVEN, period = "1 min")
 public class SiteToSiteBulletinReportingTask extends AbstractSiteToSiteReportingTask {
 
-    static final PropertyDescriptor PLATFORM = new PropertyDescriptor.Builder()
-        .name("Platform")
-        .description("The value to use for the platform field in each provenance event.")
-        .required(true)
-        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-        .defaultValue("nifi")
-        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .build();
-
     private volatile long lastSentBulletinId = -1L;
 
     public SiteToSiteBulletinReportingTask() throws IOException {
@@ -87,8 +77,8 @@ public class SiteToSiteBulletinReportingTask extends AbstractSiteToSiteReporting
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
-        properties.add(PLATFORM);
-        properties.remove(BATCH_SIZE);
+        properties.add(SiteToSiteUtils.PLATFORM);
+        properties.remove(SiteToSiteUtils.BATCH_SIZE);
         return properties;
     }
 
@@ -125,7 +115,8 @@ public class SiteToSiteBulletinReportingTask extends AbstractSiteToSiteReporting
             return;
         }
 
-        final String platform = context.getProperty(PLATFORM).evaluateAttributeExpressions().getValue();
+        final String platform = context.getProperty(SiteToSiteUtils.PLATFORM).evaluateAttributeExpressions().getValue();
+        final Boolean allowNullValues = context.getProperty(ALLOW_NULL_VALUES).asBoolean();
 
         final Map<String, ?> config = Collections.emptyMap();
         final JsonBuilderFactory factory = Json.createBuilderFactory(config);
@@ -140,14 +131,18 @@ public class SiteToSiteBulletinReportingTask extends AbstractSiteToSiteReporting
         final JsonArrayBuilder arrayBuilder = factory.createArrayBuilder();
         for (final Bulletin bulletin : bulletins) {
             if(bulletin.getId() > lastSentBulletinId) {
-                arrayBuilder.add(serialize(factory, builder, bulletin, df, platform, nodeId));
+                arrayBuilder.add(serialize(factory, builder, bulletin, df, platform, nodeId, allowNullValues));
             }
         }
         final JsonArray jsonArray = arrayBuilder.build();
 
         // Send the JSON document for the current batch
+        Transaction transaction = null;
         try {
-            final Transaction transaction = getClient().createTransaction(TransferDirection.SEND);
+            // Lazily create SiteToSiteClient to provide a StateManager
+            setup(context);
+
+            transaction = getClient().createTransaction(TransferDirection.SEND);
             if (transaction == null) {
                 getLogger().info("All destination nodes are penalized; will attempt to send data later");
                 return;
@@ -168,30 +163,38 @@ public class SiteToSiteBulletinReportingTask extends AbstractSiteToSiteReporting
             final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
             getLogger().info("Successfully sent {} Bulletins to destination in {} ms; Transaction ID = {}; First Event ID = {}",
                     new Object[]{bulletins.size(), transferMillis, transactionId, bulletins.get(0).getId()});
-        } catch (final IOException e) {
-            throw new ProcessException("Failed to send Bulletins to destination due to IOException:" + e.getMessage(), e);
+        } catch (final Exception e) {
+            if (transaction != null) {
+                transaction.error();
+            }
+            if (e instanceof ProcessException) {
+                throw (ProcessException) e;
+            } else {
+                throw new ProcessException("Failed to send Bulletins to destination due to IOException:" + e.getMessage(), e);
+            }
         }
 
         lastSentBulletinId = currMaxId;
     }
 
     private JsonObject serialize(final JsonBuilderFactory factory, final JsonObjectBuilder builder, final Bulletin bulletin, final DateFormat df,
-        final String platform, final String nodeIdentifier) {
+            final String platform, final String nodeIdentifier, Boolean allowNullValues) {
 
-        addField(builder, "objectId", UUID.randomUUID().toString());
-        addField(builder, "platform", platform);
-        addField(builder, "bulletinId", bulletin.getId());
-        addField(builder, "bulletinCategory", bulletin.getCategory());
-        addField(builder, "bulletinGroupId", bulletin.getGroupId());
-        addField(builder, "bulletinGroupName", bulletin.getGroupName());
-        addField(builder, "bulletinLevel", bulletin.getLevel());
-        addField(builder, "bulletinMessage", bulletin.getMessage());
-        addField(builder, "bulletinNodeAddress", bulletin.getNodeAddress());
-        addField(builder, "bulletinNodeId", nodeIdentifier);
-        addField(builder, "bulletinSourceId", bulletin.getSourceId());
-        addField(builder, "bulletinSourceName", bulletin.getSourceName());
-        addField(builder, "bulletinSourceType", bulletin.getSourceType() == null ? null : bulletin.getSourceType().name());
-        addField(builder, "bulletinTimestamp", df.format(bulletin.getTimestamp()));
+        addField(builder, "objectId", UUID.randomUUID().toString(), allowNullValues);
+        addField(builder, "platform", platform, allowNullValues);
+        addField(builder, "bulletinId", bulletin.getId(), allowNullValues);
+        addField(builder, "bulletinCategory", bulletin.getCategory(), allowNullValues);
+        addField(builder, "bulletinGroupId", bulletin.getGroupId(), allowNullValues);
+        addField(builder, "bulletinGroupName", bulletin.getGroupName(), allowNullValues);
+        addField(builder, "bulletinGroupPath", bulletin.getGroupPath(), allowNullValues);
+        addField(builder, "bulletinLevel", bulletin.getLevel(), allowNullValues);
+        addField(builder, "bulletinMessage", bulletin.getMessage(), allowNullValues);
+        addField(builder, "bulletinNodeAddress", bulletin.getNodeAddress(), allowNullValues);
+        addField(builder, "bulletinNodeId", nodeIdentifier, allowNullValues);
+        addField(builder, "bulletinSourceId", bulletin.getSourceId(), allowNullValues);
+        addField(builder, "bulletinSourceName", bulletin.getSourceName(), allowNullValues);
+        addField(builder, "bulletinSourceType", bulletin.getSourceType() == null ? null : bulletin.getSourceType().name(), allowNullValues);
+        addField(builder, "bulletinTimestamp", df.format(bulletin.getTimestamp()), allowNullValues);
 
         return builder.build();
     }

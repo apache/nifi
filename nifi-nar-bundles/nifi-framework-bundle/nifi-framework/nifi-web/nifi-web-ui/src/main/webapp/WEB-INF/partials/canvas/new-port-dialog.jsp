@@ -23,5 +23,14 @@
                 <input id="new-port-name" type="text"/>
             </div>
         </div>
+        <div id="port-allow-remote-access-setting" class="setting">
+            <div class="setting-name">
+                <span id="port-allow-remote-access-label"></span>
+                <div id="port-allow-remote-access-info" class="fa fa-question-circle" alt="Info"></div>
+            </div>
+            <div class="setting-field">
+                <div id="port-allow-remote-access"></div>
+            </div>
+        </div>
     </div>
 </div>

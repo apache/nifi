@@ -38,7 +38,8 @@ import org.apache.nifi.provenance.lucene.LuceneUtil;
 import org.apache.nifi.provenance.toc.StandardTocReader;
 import org.apache.nifi.provenance.toc.TocReader;
 import org.apache.nifi.provenance.toc.TocUtil;
-import org.apache.nifi.security.kms.CryptoUtils;
+import org.apache.nifi.security.repository.RepositoryEncryptorUtils;
+import org.apache.nifi.security.repository.RepositoryType;
 import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -195,7 +196,7 @@ public class RecordReaders {
         } else {
             try {
                 NiFiProperties niFiProperties = NiFiPropertiesLoader.loadDefaultWithKeyFromBootstrap();
-                isEncryptionAvailable = CryptoUtils.isProvenanceRepositoryEncryptionConfigured(niFiProperties);
+                isEncryptionAvailable = RepositoryEncryptorUtils.isRepositoryEncryptionConfigured(niFiProperties, RepositoryType.PROVENANCE);
                 encryptionPropertiesRead = true;
             } catch (IOException e) {
                 logger.error("Encountered an error checking the provenance repository encryption configuration: ", e);

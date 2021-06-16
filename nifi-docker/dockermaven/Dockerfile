@@ -30,6 +30,7 @@ ENV NIFI_PID_DIR=${NIFI_HOME}/run
 ENV NIFI_LOG_DIR=${NIFI_HOME}/logs
 
 ADD sh/ ${NIFI_BASE_DIR}/scripts/
+RUN chmod -R +x ${NIFI_BASE_DIR}/scripts/*.sh
 
 COPY $NIFI_BINARY $NIFI_BASE_DIR
 RUN unzip ${NIFI_BASE_DIR}/nifi-${NIFI_VERSION}-bin.zip -d ${NIFI_BASE_DIR} \
@@ -86,7 +87,7 @@ USER nifi
 RUN echo "#!/bin/sh\n" > $NIFI_HOME/bin/nifi-env.sh
 
 # Web HTTP(s) & Socket Site-to-Site Ports
-EXPOSE 8080 8443 10000
+EXPOSE 8080 8443 10000 8000
 
 WORKDIR ${NIFI_HOME}
 

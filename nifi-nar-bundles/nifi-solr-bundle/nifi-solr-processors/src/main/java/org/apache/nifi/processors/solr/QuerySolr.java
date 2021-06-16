@@ -73,6 +73,8 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import static org.apache.nifi.processors.solr.SolrUtils.KERBEROS_CREDENTIALS_SERVICE;
+import static org.apache.nifi.processors.solr.SolrUtils.KERBEROS_PASSWORD;
+import static org.apache.nifi.processors.solr.SolrUtils.KERBEROS_PRINCIPAL;
 import static org.apache.nifi.processors.solr.SolrUtils.SOLR_TYPE;
 import static org.apache.nifi.processors.solr.SolrUtils.COLLECTION;
 import static org.apache.nifi.processors.solr.SolrUtils.SOLR_TYPE_CLOUD;
@@ -260,6 +262,8 @@ public class QuerySolr extends SolrProcessor {
         descriptors.add(SOLR_PARAM_ROWS);
         descriptors.add(AMOUNT_DOCUMENTS_TO_RETURN);
         descriptors.add(KERBEROS_CREDENTIALS_SERVICE);
+        descriptors.add(KERBEROS_PRINCIPAL);
+        descriptors.add(KERBEROS_PASSWORD);
         descriptors.add(BASIC_USERNAME);
         descriptors.add(BASIC_PASSWORD);
         descriptors.add(SSL_CONTEXT_SERVICE);
@@ -432,8 +436,9 @@ public class QuerySolr extends SolrProcessor {
                         final RecordSchema schema = writerFactory.getSchema(flowFileResponse.getAttributes(), null);
                         final RecordSet recordSet = SolrUtils.solrDocumentsToRecordSet(response.getResults(), schema);
                         final StringBuffer mimeType = new StringBuffer();
+                        final FlowFile flowFileResponseRef = flowFileResponse;
                         flowFileResponse = session.write(flowFileResponse, out -> {
-                            try (final RecordSetWriter writer = writerFactory.createWriter(getLogger(), schema, out)) {
+                            try (final RecordSetWriter writer = writerFactory.createWriter(getLogger(), schema, out, flowFileResponseRef)) {
                                 writer.write(recordSet);
                                 writer.flush();
                                 mimeType.append(writer.getMimeType());

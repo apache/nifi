@@ -20,7 +20,7 @@ import org.apache.nifi.registry.bucket.Bucket;
 import org.apache.nifi.registry.client.NiFiRegistryClient;
 import org.apache.nifi.registry.client.NiFiRegistryException;
 import org.apache.nifi.toolkit.cli.impl.command.registry.AbstractNiFiRegistryCommand;
-import org.apache.nifi.toolkit.cli.impl.result.BucketsResult;
+import org.apache.nifi.toolkit.cli.impl.result.registry.BucketsResult;
 
 import java.io.IOException;
 import java.util.List;

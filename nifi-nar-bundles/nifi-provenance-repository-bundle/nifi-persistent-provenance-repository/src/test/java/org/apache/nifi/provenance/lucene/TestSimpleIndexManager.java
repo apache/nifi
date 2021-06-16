@@ -17,14 +17,6 @@
 
 package org.apache.nifi.provenance.lucene;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.UUID;
-import java.util.concurrent.atomic.AtomicInteger;
-
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field.Store;
 import org.apache.lucene.document.StringField;
@@ -37,6 +29,14 @@ import org.apache.nifi.util.file.FileUtils;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 public class TestSimpleIndexManager {
     @BeforeClass
     public static void setLogLevel() {
@@ -45,7 +45,7 @@ public class TestSimpleIndexManager {
 
     @Test
     public void testMultipleWritersSimultaneouslySameIndex() throws IOException {
-        final SimpleIndexManager mgr = new SimpleIndexManager(new RepositoryConfiguration());
+        final StandardIndexManager mgr = new StandardIndexManager(new RepositoryConfiguration());
         final File dir = new File("target/" + UUID.randomUUID().toString());
         try {
             final EventIndexWriter writer1 = mgr.borrowIndexWriter(dir);
@@ -64,7 +64,7 @@ public class TestSimpleIndexManager {
 
             final EventIndexSearcher searcher = mgr.borrowIndexSearcher(dir);
             final TopDocs topDocs = searcher.getIndexSearcher().search(new MatchAllDocsQuery(), 2);
-            assertEquals(2, topDocs.totalHits);
+            assertEquals(2, topDocs.totalHits.value);
             mgr.returnIndexSearcher(searcher);
         } finally {
             FileUtils.deleteFile(dir, true);
@@ -75,7 +75,7 @@ public class TestSimpleIndexManager {
     public void testWriterCloseIfPreviouslyMarkedCloseable() throws IOException {
         final AtomicInteger closeCount = new AtomicInteger(0);
 
-        final SimpleIndexManager mgr = new SimpleIndexManager(new RepositoryConfiguration()) {
+        final StandardIndexManager mgr = new StandardIndexManager(new RepositoryConfiguration()) {
             @Override
             protected void close(IndexWriterCount count) throws IOException {
                 closeCount.incrementAndGet();
@@ -115,7 +115,7 @@ public class TestSimpleIndexManager {
     public void testWriterCloseIfOnlyUser() throws IOException {
         final AtomicInteger closeCount = new AtomicInteger(0);
 
-        final SimpleIndexManager mgr = new SimpleIndexManager(new RepositoryConfiguration()) {
+        final StandardIndexManager mgr = new StandardIndexManager(new RepositoryConfiguration()) {
             @Override
             protected void close(IndexWriterCount count) throws IOException {
                 closeCount.incrementAndGet();
@@ -133,7 +133,7 @@ public class TestSimpleIndexManager {
     public void testWriterLeftOpenIfNotCloseable() throws IOException {
         final AtomicInteger closeCount = new AtomicInteger(0);
 
-        final SimpleIndexManager mgr = new SimpleIndexManager(new RepositoryConfiguration()) {
+        final StandardIndexManager mgr = new StandardIndexManager(new RepositoryConfiguration()) {
             @Override
             protected void close(IndexWriterCount count) throws IOException {
                 closeCount.incrementAndGet();

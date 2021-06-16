@@ -16,6 +16,22 @@
  */
 package org.apache.nifi.processors.script;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
+
+import javax.script.Invocable;
+import javax.script.ScriptEngine;
+import javax.script.ScriptException;
+
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
@@ -25,6 +41,7 @@ import org.apache.nifi.annotation.behavior.Stateful;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnAdded;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
@@ -46,27 +63,15 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.script.ScriptingComponentHelper;
 import org.apache.nifi.script.ScriptingComponentUtils;
-
-import javax.script.Invocable;
-import javax.script.ScriptEngine;
-import javax.script.ScriptException;
-import java.io.File;
-import java.io.FileInputStream;
-import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
+import org.apache.nifi.script.impl.FilteredPropertiesValidationContextAdapter;
 
 @Tags({"script", "invoke", "groovy", "python", "jython", "jruby", "ruby", "javascript", "js", "lua", "luaj"})
 @CapabilityDescription("Experimental - Invokes a script engine for a Processor defined in the given script. The script must define "
         + "a valid class that implements the Processor interface, and it must set a variable 'processor' to an instance of "
         + "the class. Processor methods such as onTrigger() will be delegated to the scripted Processor instance. Also any "
-        + "Relationships or PropertyDescriptors defined by the scripted processor will be added to the configuration dialog.  "
+        + "Relationships or PropertyDescriptors defined by the scripted processor will be added to the configuration dialog. The scripted processor can "
+        + "implement public void setLogger(ComponentLog logger) to get access to the parent logger, as well as public void onScheduled(ProcessContext context) and "
+        + "public void onStopped(ProcessContext context) methods to be invoked when the parent InvokeScriptedProcessor is scheduled or stopped, respectively.  "
         + "Experimental: Impact of sustained usage not yet verified.")
 @DynamicProperty(name = "A script engine property to update", value = "The value to set it to",
         expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
@@ -203,6 +208,8 @@ public class InvokeScriptedProcessor extends AbstractSessionFactoryProcessor {
     public void setup(final ProcessContext context) {
         scriptingComponentHelper.setupVariables(context);
         setup();
+
+        invokeScriptedProcessorMethod("onScheduled", context);
     }
 
     public void setup() {
@@ -477,8 +484,13 @@ public class InvokeScriptedProcessor extends AbstractSessionFactoryProcessor {
         // if there was existing validation errors and the processor loaded successfully
         if (currentValidationResults.isEmpty() && instance != null) {
             try {
-                // defer to the underlying processor for validation
-                final Collection<ValidationResult> instanceResults = instance.validate(context);
+                // defer to the underlying processor for validation, without the
+                // invokescriptedprocessor properties
+                final Set<PropertyDescriptor> innerPropertyDescriptor = new HashSet<PropertyDescriptor>(scriptingComponentHelper.getDescriptors());
+
+                ValidationContext innerValidationContext = new FilteredPropertiesValidationContextAdapter(context, innerPropertyDescriptor);
+                final Collection<ValidationResult> instanceResults = instance.validate(innerValidationContext);
+
                 if (instanceResults != null && instanceResults.size() > 0) {
                     // return the validation results from the underlying instance
                     return instanceResults;
@@ -556,10 +568,45 @@ public class InvokeScriptedProcessor extends AbstractSessionFactoryProcessor {
         }
     }
 
+    @OnAdded
+    public void added() {
+        // Create the resources whether or not they have been created already, this method is guaranteed to have the instance classloader set
+        // as the thread context class loader. Other methods that call createResources() may be called from other threads with different
+        // classloaders
+        scriptingComponentHelper.createResources();
+    }
+
     @OnStopped
-    public void stop() {
+    public void stop(ProcessContext context) {
+        invokeScriptedProcessorMethod("onStopped", context);
         scriptingComponentHelper.stop();
         processor.set(null);
         scriptEngine = null;
+    }
+
+    private void invokeScriptedProcessorMethod(String methodName, Object... params) {
+        // Run the scripted processor's method here, if it exists
+        if (scriptEngine instanceof Invocable) {
+            final Invocable invocable = (Invocable) scriptEngine;
+            final Object obj = scriptEngine.get("processor");
+            if (obj != null) {
+
+                ComponentLog logger = getLogger();
+                try {
+                    invocable.invokeMethod(obj, methodName, params);
+                } catch (final NoSuchMethodException nsme) {
+                    if (logger.isDebugEnabled()) {
+                        logger.debug("Configured script Processor does not contain the method " + methodName);
+                    }
+                } catch (final Exception e) {
+                    // An error occurred during onScheduled, propagate it up
+                    logger.error("Error while executing the scripted processor's method " + methodName, e);
+                    if (e instanceof ProcessException) {
+                        throw (ProcessException) e;
+                    }
+                    throw new ProcessException(e);
+                }
+            }
+        }
     }
 }

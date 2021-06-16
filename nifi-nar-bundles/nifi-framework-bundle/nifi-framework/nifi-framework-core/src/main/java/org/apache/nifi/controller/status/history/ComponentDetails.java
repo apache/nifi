@@ -58,7 +58,7 @@ public class ComponentDetails {
     }
 
     public static ComponentDetails forConnection(final String id, final String groupId, final String connectionName, final String sourceName, final String destinationName) {
-        return new ComponentDetails(id, groupId, connectionName, sourceName, destinationName, null, null);
+        return new ComponentDetails(id, groupId, connectionName, null, sourceName, destinationName, null);
     }
 
     public static ComponentDetails forProcessGroup(final ProcessGroupStatus status) {
@@ -111,13 +111,19 @@ public class ComponentDetails {
      */
     public Map<String, String> toMap() {
         final Map<String, String> map = new HashMap<>();
-        map.put(ComponentStatusRepository.COMPONENT_DETAIL_ID, componentId);
-        map.put(ComponentStatusRepository.COMPONENT_DETAIL_GROUP_ID, groupId);
-        map.put(ComponentStatusRepository.COMPONENT_DETAIL_NAME, componentName);
-        map.put(ComponentStatusRepository.COMPONENT_DETAIL_TYPE, componentType);
-        map.put(ComponentStatusRepository.COMPONENT_DETAIL_SOURCE_NAME, sourceName);
-        map.put(ComponentStatusRepository.COMPONENT_DETAIL_DESTINATION_NAME, destinationName);
-        map.put(ComponentStatusRepository.COMPONENT_DETAIL_URI, targetUri);
+        addToMap(map, ComponentStatusRepository.COMPONENT_DETAIL_ID, componentId);
+        addToMap(map, ComponentStatusRepository.COMPONENT_DETAIL_GROUP_ID, groupId);
+        addToMap(map, ComponentStatusRepository.COMPONENT_DETAIL_NAME, componentName);
+        addToMap(map, ComponentStatusRepository.COMPONENT_DETAIL_TYPE, componentType);
+        addToMap(map, ComponentStatusRepository.COMPONENT_DETAIL_SOURCE_NAME, sourceName);
+        addToMap(map, ComponentStatusRepository.COMPONENT_DETAIL_DESTINATION_NAME, destinationName);
+        addToMap(map, ComponentStatusRepository.COMPONENT_DETAIL_URI, targetUri);
         return map;
+    }
+
+    private void addToMap(final Map<String, String> map, final String key, final String value) {
+        if (value != null) {
+            map.put(key, value);
+        }
     }
 }

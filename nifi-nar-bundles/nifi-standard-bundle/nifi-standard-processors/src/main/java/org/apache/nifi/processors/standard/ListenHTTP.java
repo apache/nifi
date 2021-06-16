@@ -26,6 +26,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
 import javax.servlet.Servlet;
@@ -37,6 +38,8 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
+import org.apache.nifi.annotation.notification.OnPrimaryNodeStateChange;
+import org.apache.nifi.annotation.notification.PrimaryNodeState;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
@@ -47,9 +50,11 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.standard.servlets.ContentAcknowledgmentServlet;
 import org.apache.nifi.processors.standard.servlets.ListenHTTPServlet;
+import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.stream.io.LeakyBucketStreamThrottler;
@@ -74,6 +79,9 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
 
     private Set<Relationship> relationships;
     private List<PropertyDescriptor> properties;
+
+    private AtomicBoolean initialized = new AtomicBoolean(false);
+    private AtomicBoolean runOnPrimary = new AtomicBoolean(false);
 
     public static final Relationship RELATIONSHIP_SUCCESS = new Relationship.Builder()
         .name("success")
@@ -134,6 +142,25 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         .defaultValue(String.valueOf(HttpServletResponse.SC_OK))
         .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
         .build();
+    public static final PropertyDescriptor MULTIPART_REQUEST_MAX_SIZE = new PropertyDescriptor.Builder()
+        .name("multipart-request-max-size")
+        .displayName("Multipart Request Max Size")
+        .description("The max size of the request. Only applies for requests with Content-Type: multipart/form-data, "
+                + "and is used to prevent denial of service type of attacks, to prevent filling up the heap or disk space")
+        .required(true)
+        .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
+        .defaultValue("1 MB")
+        .build();
+    public static final PropertyDescriptor MULTIPART_READ_BUFFER_SIZE = new PropertyDescriptor.Builder()
+        .name("multipart-read-buffer-size")
+        .displayName("Multipart Read Buffer Size")
+        .description("The threshold size, at which the contents of an incoming file would be written to disk. "
+                + "Only applies for requests with Content-Type: multipart/form-data. "
+                + "It is used to prevent denial of service type of attacks, to prevent filling up the heap or disk space.")
+        .required(true)
+        .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
+        .defaultValue("512 KB")
+        .build();
 
     public static final String CONTEXT_ATTRIBUTE_PROCESSOR = "processor";
     public static final String CONTEXT_ATTRIBUTE_LOGGER = "logger";
@@ -145,6 +172,8 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
     public static final String CONTEXT_ATTRIBUTE_STREAM_THROTTLER = "streamThrottler";
     public static final String CONTEXT_ATTRIBUTE_BASE_PATH = "basePath";
     public static final String CONTEXT_ATTRIBUTE_RETURN_CODE = "returnCode";
+    public static final String CONTEXT_ATTRIBUTE_MULTIPART_REQUEST_MAX_SIZE = "multipartRequestMaxSize";
+    public static final String CONTEXT_ATTRIBUTE_MULTIPART_READ_BUFFER_SIZE = "multipartReadBufferSize";
 
     private volatile Server server = null;
     private final ConcurrentMap<String, FlowFileEntryTimeWrapper> flowFileMap = new ConcurrentHashMap<>();
@@ -166,6 +195,8 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         descriptors.add(MAX_UNCONFIRMED_TIME);
         descriptors.add(HEADERS_AS_ATTRIBUTES_REGEX);
         descriptors.add(RETURN_CODE);
+        descriptors.add(MULTIPART_REQUEST_MAX_SIZE);
+        descriptors.add(MULTIPART_READ_BUFFER_SIZE);
         this.properties = Collections.unmodifiableList(descriptors);
     }
 
@@ -202,24 +233,36 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         try {
             toShutdown.stop();
             toShutdown.destroy();
+            clearInit();
         } catch (final Exception ex) {
             getLogger().warn("unable to cleanly shutdown embedded server due to {}", new Object[] {ex});
             this.server = null;
         }
     }
 
-    private void createHttpServerFromService(final ProcessContext context) throws Exception {
+    synchronized private void createHttpServerFromService(final ProcessContext context) throws Exception {
+        if(initialized.get()) {
+            return;
+        }
+        runOnPrimary.set(context.getExecutionNode().equals(ExecutionNode.PRIMARY));
         final String basePath = context.getProperty(BASE_PATH).evaluateAttributeExpressions().getValue();
         final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
         final Double maxBytesPerSecond = context.getProperty(MAX_DATA_RATE).asDataSize(DataUnit.B);
         final StreamThrottler streamThrottler = (maxBytesPerSecond == null) ? null : new LeakyBucketStreamThrottler(maxBytesPerSecond.intValue());
         final int returnCode = context.getProperty(RETURN_CODE).asInteger();
+        long requestMaxSize = context.getProperty(MULTIPART_REQUEST_MAX_SIZE).asDataSize(DataUnit.B).longValue();
+        int readBufferSize = context.getProperty(MULTIPART_READ_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
         throttlerRef.set(streamThrottler);
 
         final boolean needClientAuth = sslContextService != null && sslContextService.getTrustStoreFile() != null;
 
         final SslContextFactory contextFactory = new SslContextFactory();
         contextFactory.setNeedClientAuth(needClientAuth);
+
+        // Need to set SslContextFactory's endpointIdentificationAlgorithm to null; this is a server,
+        // not a client.  Server does not need to perform hostname verification on the client.
+        // Previous to Jetty 9.4.15.v20190215, this defaulted to null, and now defaults to "HTTPS".
+        contextFactory.setEndpointIdentificationAlgorithm(null);
 
         if (needClientAuth) {
             contextFactory.setTrustStorePath(sslContextService.getTrustStoreFile());
@@ -295,7 +338,9 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         contextHandler.setAttribute(CONTEXT_ATTRIBUTE_AUTHORITY_PATTERN, Pattern.compile(context.getProperty(AUTHORIZED_DN_PATTERN).getValue()));
         contextHandler.setAttribute(CONTEXT_ATTRIBUTE_STREAM_THROTTLER, streamThrottler);
         contextHandler.setAttribute(CONTEXT_ATTRIBUTE_BASE_PATH, basePath);
-        contextHandler.setAttribute(CONTEXT_ATTRIBUTE_RETURN_CODE,returnCode);
+        contextHandler.setAttribute(CONTEXT_ATTRIBUTE_RETURN_CODE, returnCode);
+        contextHandler.setAttribute(CONTEXT_ATTRIBUTE_MULTIPART_REQUEST_MAX_SIZE, requestMaxSize);
+        contextHandler.setAttribute(CONTEXT_ATTRIBUTE_MULTIPART_READ_BUFFER_SIZE, readBufferSize);
 
         if (context.getProperty(HEADERS_AS_ATTRIBUTES_REGEX).isSet()) {
             contextHandler.setAttribute(CONTEXT_ATTRIBUTE_HEADER_PATTERN, Pattern.compile(context.getProperty(HEADERS_AS_ATTRIBUTES_REGEX).getValue()));
@@ -308,11 +353,12 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         }
 
         this.server = server;
+        initialized.set(true);
     }
 
     @OnScheduled
-    public void createHttpServer(final ProcessContext context) throws Exception {
-        createHttpServerFromService(context);
+    public void clearInit(){
+        initialized.set(false);
     }
 
     protected Set<Class<? extends Servlet>> getServerClasses() {
@@ -340,7 +386,17 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
     }
 
     @Override
-    public void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) {
+    public void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) throws ProcessException {
+        try {
+            if (!initialized.get()) {
+                createHttpServerFromService(context);
+            }
+        } catch (Exception e) {
+            getLogger().warn("Failed to start http server during initialization: " + e);
+            context.yield();
+            throw new ProcessException("Failed to initialize the server", e);
+        }
+
         sessionFactoryReference.compareAndSet(null, sessionFactory);
 
         for (final String id : findOldFlowFileIds(context)) {
@@ -352,6 +408,18 @@ public class ListenHTTP extends AbstractSessionFactoryProcessor {
         }
 
         context.yield();
+    }
+
+    @OnPrimaryNodeStateChange
+    public void onPrimaryNodeChange(final PrimaryNodeState newState) {
+        if (runOnPrimary.get() && newState.equals(PrimaryNodeState.PRIMARY_NODE_REVOKED)) {
+            try {
+                shutdownHttpServer();
+            } catch (final Exception shutdownException) {
+                getLogger().warn("Processor is configured to run only on Primary Node, but failed to shutdown HTTP server following revocation of primary node status due to {}",
+                        shutdownException);
+            }
+        }
     }
 
     public static class FlowFileEntryTimeWrapper {

@@ -21,15 +21,11 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.security.NoSuchAlgorithmException;
 import java.security.Security;
-import java.util.Optional;
 import java.util.Properties;
-import java.util.stream.Stream;
 import javax.crypto.Cipher;
-import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.security.kms.CryptoUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.slf4j.Logger;
@@ -38,10 +34,6 @@ import org.slf4j.LoggerFactory;
 public class NiFiPropertiesLoader {
 
     private static final Logger logger = LoggerFactory.getLogger(NiFiPropertiesLoader.class);
-
-    private static final String RELATIVE_PATH = "conf/nifi.properties";
-
-    private static final String BOOTSTRAP_KEY_PREFIX = "nifi.bootstrap.sensitive.key=";
 
     private NiFiProperties instance;
     private String keyHex;
@@ -98,7 +90,7 @@ public class NiFiPropertiesLoader {
             String keyHex = extractKeyFromBootstrapFile();
             return NiFiPropertiesLoader.withKey(keyHex).loadDefault();
         } catch (IOException e) {
-            logger.error("Encountered an exception loading the default nifi.properties file {} with the key provided in bootstrap.conf", getDefaultFilePath(), e);
+            logger.error("Encountered an exception loading the default nifi.properties file {} with the key provided in bootstrap.conf", CryptoUtils.getDefaultFilePath(), e);
             throw e;
         }
     }
@@ -106,74 +98,39 @@ public class NiFiPropertiesLoader {
     /**
      * Returns the key (if any) used to encrypt sensitive properties, extracted from {@code $NIFI_HOME/conf/bootstrap.conf}.
      *
+     * @deprecated
+     * Use {@link CryptoUtils#extractKeyFromBootstrapFile()} instead.
+     *
      * @return the key in hexadecimal format
      * @throws IOException if the file is not readable
      */
+    @Deprecated
     public static String extractKeyFromBootstrapFile() throws IOException {
+        // TODO: Replace all existing uses with direct reference to CryptoUtils
         return extractKeyFromBootstrapFile("");
     }
 
     /**
      * Returns the key (if any) used to encrypt sensitive properties, extracted from {@code $NIFI_HOME/conf/bootstrap.conf}.
      *
+     * @deprecated
+     * Use {@link CryptoUtils#extractKeyFromBootstrapFile(String)} instead.
+     *
      * @param bootstrapPath the path to the bootstrap file
      * @return the key in hexadecimal format
      * @throws IOException if the file is not readable
      */
+    @Deprecated
     public static String extractKeyFromBootstrapFile(String bootstrapPath) throws IOException {
-        File expectedBootstrapFile;
-        if (StringUtils.isBlank(bootstrapPath)) {
-            // Guess at location of bootstrap.conf file from nifi.properties file
-            String defaultNiFiPropertiesPath = getDefaultFilePath();
-            File propertiesFile = new File(defaultNiFiPropertiesPath);
-            File confDir = new File(propertiesFile.getParent());
-            if (confDir.exists() && confDir.canRead()) {
-                expectedBootstrapFile = new File(confDir, "bootstrap.conf");
-            } else {
-                logger.error("Cannot read from bootstrap.conf file at {} to extract encryption key -- conf/ directory is missing or permissions are incorrect", confDir.getAbsolutePath());
-                throw new IOException("Cannot read from bootstrap.conf");
-            }
-        } else {
-            expectedBootstrapFile = new File(bootstrapPath);
-        }
-
-        if (expectedBootstrapFile.exists() && expectedBootstrapFile.canRead()) {
-            try (Stream<String> stream = Files.lines(Paths.get(expectedBootstrapFile.getAbsolutePath()))) {
-                Optional<String> keyLine = stream.filter(l -> l.startsWith(BOOTSTRAP_KEY_PREFIX)).findFirst();
-                if (keyLine.isPresent()) {
-                    return keyLine.get().split("=", 2)[1];
-                } else {
-                    logger.warn("No encryption key present in the bootstrap.conf file at {}", expectedBootstrapFile.getAbsolutePath());
-                    return "";
-                }
-            } catch (IOException e) {
-                logger.error("Cannot read from bootstrap.conf file at {} to extract encryption key", expectedBootstrapFile.getAbsolutePath());
-                throw new IOException("Cannot read from bootstrap.conf", e);
-            }
-        } else {
-            logger.error("Cannot read from bootstrap.conf file at {} to extract encryption key -- file is missing or permissions are incorrect", expectedBootstrapFile.getAbsolutePath());
-            throw new IOException("Cannot read from bootstrap.conf");
-        }
-    }
-
-    private static String getDefaultFilePath() {
-        String systemPath = System.getProperty(NiFiProperties.PROPERTIES_FILE_PATH);
-
-        if (systemPath == null || systemPath.trim().isEmpty()) {
-            logger.warn("The system variable {} is not set, so it is being set to '{}'", NiFiProperties.PROPERTIES_FILE_PATH, RELATIVE_PATH);
-            System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, RELATIVE_PATH);
-            systemPath = RELATIVE_PATH;
-        }
-
-        logger.info("Determined default nifi.properties path to be '{}'", systemPath);
-        return systemPath;
+        // TODO: Replace all existing uses with direct reference to CryptoUtils
+        return CryptoUtils.extractKeyFromBootstrapFile(bootstrapPath);
     }
 
     private NiFiProperties loadDefault() {
-        return load(getDefaultFilePath());
+        return load(CryptoUtils.getDefaultFilePath());
     }
 
-    private static String getDefaultProviderKey() {
+    static String getDefaultProviderKey() {
         try {
             return "aes/gcm/" + (Cipher.getMaxAllowedKeyLength("AES") > 128 ? "256" : "128");
         } catch (NoSuchAlgorithmException e) {

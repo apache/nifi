@@ -17,6 +17,7 @@
 
 package org.apache.nifi.cluster.protocol.jaxb.message;
 
+import org.apache.nifi.cluster.coordination.node.OffloadCode;
 import org.apache.nifi.cluster.coordination.node.DisconnectionCode;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
@@ -25,8 +26,9 @@ public class AdaptedNodeConnectionStatus {
     private Long updateId;
     private NodeIdentifier nodeId;
     private NodeConnectionState state;
+    private OffloadCode offloadCode;
     private DisconnectionCode disconnectCode;
-    private String disconnectReason;
+    private String reason;
     private Long connectionRequestTime;
 
     public Long getUpdateId() {
@@ -53,20 +55,28 @@ public class AdaptedNodeConnectionStatus {
         this.state = state;
     }
 
+    public OffloadCode getOffloadCode() {
+        return offloadCode;
+    }
+
     public DisconnectionCode getDisconnectCode() {
         return disconnectCode;
+    }
+
+    public void setOffloadCode(OffloadCode offloadCode) {
+        this.offloadCode = offloadCode;
     }
 
     public void setDisconnectCode(DisconnectionCode disconnectCode) {
         this.disconnectCode = disconnectCode;
     }
 
-    public String getDisconnectReason() {
-        return disconnectReason;
+    public String getReason() {
+        return reason;
     }
 
-    public void setDisconnectReason(String disconnectReason) {
-        this.disconnectReason = disconnectReason;
+    public void setReason(String reason) {
+        this.reason = reason;
     }
 
     public Long getConnectionRequestTime() {

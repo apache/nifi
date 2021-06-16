@@ -719,6 +719,78 @@ public class TestPutHive3QL {
         runner.assertAllFlowFilesTransferred(PutHive3QL.REL_RETRY, 0);
     }
 
+    @Test
+    public void testUnknownFailure() throws InitializationException, ProcessException {
+        final TestRunner runner = TestRunners.newTestRunner(PutHive3QL.class);
+        final SQLExceptionService service = new SQLExceptionService(null);
+        service.setErrorCode(2);
+        runner.addControllerService("dbcp", service);
+        runner.enableControllerService(service);
+
+        runner.setProperty(PutHive3QL.HIVE_DBCP_SERVICE, "dbcp");
+
+        final String sql = "INSERT INTO PERSONS (ID, NAME, CODE) VALUES (?, ?, ?); " +
+                "UPDATE PERSONS SET NAME='George' WHERE ID=?; ";
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("hiveql.args.1.type", String.valueOf(Types.INTEGER));
+        attributes.put("hiveql.args.1.value", "1");
+
+        attributes.put("hiveql.args.2.type", String.valueOf(Types.VARCHAR));
+        attributes.put("hiveql.args.2.value", "Mark");
+
+        attributes.put("hiveql.args.3.type", String.valueOf(Types.INTEGER));
+        attributes.put("hiveql.args.3.value", "84");
+
+        attributes.put("hiveql.args.4.type", String.valueOf(Types.INTEGER));
+        attributes.put("hiveql.args.4.value", "1");
+
+        runner.enqueue(sql.getBytes(), attributes);
+        runner.run();
+
+        // should fail because there isn't a valid connection and tables don't exist.
+        runner.assertAllFlowFilesTransferred(PutHive3QL.REL_RETRY, 1);
+    }
+
+    @Test
+    public void testUnknownFailureRollbackOnFailure() throws InitializationException, ProcessException {
+        final TestRunner runner = TestRunners.newTestRunner(PutHive3QL.class);
+        final SQLExceptionService service = new SQLExceptionService(null);
+        service.setErrorCode(0);
+        runner.addControllerService("dbcp", service);
+        runner.enableControllerService(service);
+
+        runner.setProperty(PutHive3QL.HIVE_DBCP_SERVICE, "dbcp");
+        runner.setProperty(RollbackOnFailure.ROLLBACK_ON_FAILURE, "true");
+
+        final String sql = "INSERT INTO PERSONS (ID, NAME, CODE) VALUES (?, ?, ?); " +
+                "UPDATE PERSONS SET NAME='George' WHERE ID=?; ";
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("hiveql.args.1.type", String.valueOf(Types.INTEGER));
+        attributes.put("hiveql.args.1.value", "1");
+
+        attributes.put("hiveql.args.2.type", String.valueOf(Types.VARCHAR));
+        attributes.put("hiveql.args.2.value", "Mark");
+
+        attributes.put("hiveql.args.3.type", String.valueOf(Types.INTEGER));
+        attributes.put("hiveql.args.3.value", "84");
+
+        attributes.put("hiveql.args.4.type", String.valueOf(Types.INTEGER));
+        attributes.put("hiveql.args.4.value", "1");
+
+        runner.enqueue(sql.getBytes(), attributes);
+        try {
+            runner.run();
+            fail("Should throw ProcessException");
+        } catch (AssertionError e) {
+            assertTrue(e.getCause() instanceof ProcessException);
+        }
+
+        assertEquals(1, runner.getQueueSize().getObjectCount());
+        runner.assertAllFlowFilesTransferred(PutHive3QL.REL_RETRY, 0);
+    }
+
     /**
      * Simple implementation only for testing purposes
      */
@@ -758,6 +830,7 @@ public class TestPutHive3QL {
         private final Hive3DBCPService service;
         private int allowedBeforeFailure = 0;
         private int successful = 0;
+        private int errorCode = 30000; // Default to a retryable exception code
 
         SQLExceptionService(final Hive3DBCPService service) {
             this.service = service;
@@ -773,7 +846,7 @@ public class TestPutHive3QL {
             try {
                 if (++successful > allowedBeforeFailure) {
                     final Connection conn = Mockito.mock(Connection.class);
-                    Mockito.when(conn.prepareStatement(Mockito.any(String.class))).thenThrow(new SQLException("Unit Test Generated SQLException"));
+                    Mockito.when(conn.prepareStatement(Mockito.any(String.class))).thenThrow(new SQLException("Unit Test Generated SQLException", "42000", errorCode));
                     return conn;
                 } else {
                     return service.getConnection();
@@ -787,6 +860,10 @@ public class TestPutHive3QL {
         @Override
         public String getConnectionURL() {
             return service != null ? service.getConnectionURL() : null;
+        }
+
+        void setErrorCode(int errorCode) {
+            this.errorCode = errorCode;
         }
     }
 }

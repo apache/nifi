@@ -19,6 +19,8 @@ package org.apache.nifi.toolkit.admin.filemanager
 import org.apache.commons.cli.ParseException
 import org.apache.commons.io.FileUtils
 import org.apache.commons.lang3.SystemUtils
+import org.junit.Assume
+import org.junit.BeforeClass
 import org.junit.Rule
 import org.junit.contrib.java.lang.system.ExpectedSystemExit
 import org.junit.contrib.java.lang.system.SystemOutRule
@@ -34,6 +36,10 @@ class FileManagerToolSpec extends Specification{
     @Rule
     public final SystemOutRule systemOutRule = new SystemOutRule().enableLog()
 
+    @BeforeClass
+    static void setUpOnce() throws Exception {
+        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS)
+    }
 
     def "print help and usage info"() {
 

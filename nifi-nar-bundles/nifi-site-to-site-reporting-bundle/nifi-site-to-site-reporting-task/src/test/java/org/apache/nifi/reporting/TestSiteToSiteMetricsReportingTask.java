@@ -19,6 +19,7 @@ package org.apache.nifi.reporting;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -37,6 +38,7 @@ import javax.json.JsonObject;
 import javax.json.JsonReader;
 import javax.json.JsonValue;
 
+import org.apache.commons.lang3.SystemUtils;
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
@@ -48,12 +50,15 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.remote.Transaction;
 import org.apache.nifi.remote.TransferDirection;
 import org.apache.nifi.remote.client.SiteToSiteClient;
+import org.apache.nifi.reporting.s2s.SiteToSiteUtils;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.state.MockStateManager;
 import org.apache.nifi.util.MockPropertyValue;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
@@ -63,6 +68,11 @@ public class TestSiteToSiteMetricsReportingTask {
 
     private ReportingContext context;
     private ProcessGroupStatus status;
+
+    @BeforeClass
+    public static void setUpSuite() {
+        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
+    }
 
     @Before
     public void setup() {
@@ -74,7 +84,7 @@ public class TestSiteToSiteMetricsReportingTask {
         status.setBytesSent(20000);
         status.setQueuedCount(100);
         status.setQueuedContentSize(1024L);
-        status.setBytesRead(60000L);
+        status.setBytesRead(null);
         status.setBytesWritten(80000L);
         status.setActiveThreadCount(5);
 
@@ -109,7 +119,7 @@ public class TestSiteToSiteMetricsReportingTask {
         Mockito.doAnswer(new Answer<PropertyValue>() {
             @Override
             public PropertyValue answer(final InvocationOnMock invocation) throws Throwable {
-                final PropertyDescriptor descriptor = invocation.getArgumentAt(0, PropertyDescriptor.class);
+                final PropertyDescriptor descriptor = invocation.getArgument(0, PropertyDescriptor.class);
                 return new MockPropertyValue(properties.get(descriptor));
             }
         }).when(context).getProperty(Mockito.any(PropertyDescriptor.class));
@@ -145,9 +155,9 @@ public class TestSiteToSiteMetricsReportingTask {
         }
 
         properties.put(SiteToSiteMetricsReportingTask.FORMAT, SiteToSiteMetricsReportingTask.AMBARI_FORMAT.getValue());
-        properties.put(SiteToSiteMetricsReportingTask.DESTINATION_URL, url);
-        properties.put(SiteToSiteMetricsReportingTask.INSTANCE_URL, url);
-        properties.put(SiteToSiteMetricsReportingTask.PORT_NAME, "port");
+        properties.put(SiteToSiteUtils.DESTINATION_URL, url);
+        properties.put(SiteToSiteUtils.INSTANCE_URL, url);
+        properties.put(SiteToSiteUtils.PORT_NAME, "port");
 
         final PropertyValue pValueUrl = Mockito.mock(StandardPropertyValue.class);
         Mockito.when(validationContext.newPropertyValue(url)).thenReturn(pValueUrl);
@@ -158,7 +168,7 @@ public class TestSiteToSiteMetricsReportingTask {
         Mockito.doAnswer(new Answer<PropertyValue>() {
             @Override
             public PropertyValue answer(final InvocationOnMock invocation) throws Throwable {
-                final PropertyDescriptor descriptor = invocation.getArgumentAt(0, PropertyDescriptor.class);
+                final PropertyDescriptor descriptor = invocation.getArgument(0, PropertyDescriptor.class);
                 return new MockPropertyValue(properties.get(descriptor));
             }
         }).when(validationContext).getProperty(Mockito.any(PropertyDescriptor.class));
@@ -186,9 +196,9 @@ public class TestSiteToSiteMetricsReportingTask {
         }
 
         properties.put(SiteToSiteMetricsReportingTask.FORMAT, SiteToSiteMetricsReportingTask.RECORD_FORMAT.getValue());
-        properties.put(SiteToSiteMetricsReportingTask.DESTINATION_URL, url);
-        properties.put(SiteToSiteMetricsReportingTask.INSTANCE_URL, url);
-        properties.put(SiteToSiteMetricsReportingTask.PORT_NAME, "port");
+        properties.put(SiteToSiteUtils.DESTINATION_URL, url);
+        properties.put(SiteToSiteUtils.INSTANCE_URL, url);
+        properties.put(SiteToSiteUtils.PORT_NAME, "port");
 
         final PropertyValue pValueUrl = Mockito.mock(StandardPropertyValue.class);
         Mockito.when(validationContext.newPropertyValue(url)).thenReturn(pValueUrl);
@@ -199,7 +209,7 @@ public class TestSiteToSiteMetricsReportingTask {
         Mockito.doAnswer(new Answer<PropertyValue>() {
             @Override
             public PropertyValue answer(final InvocationOnMock invocation) throws Throwable {
-                final PropertyDescriptor descriptor = invocation.getArgumentAt(0, PropertyDescriptor.class);
+                final PropertyDescriptor descriptor = invocation.getArgument(0, PropertyDescriptor.class);
                 return new MockPropertyValue(properties.get(descriptor));
             }
         }).when(validationContext).getProperty(Mockito.any(PropertyDescriptor.class));
@@ -242,6 +252,34 @@ public class TestSiteToSiteMetricsReportingTask {
     }
 
     @Test
+    public void testAmbariFormatWithNullValues() throws IOException, InitializationException {
+
+        final Map<PropertyDescriptor, String> properties = new HashMap<>();
+        properties.put(SiteToSiteMetricsReportingTask.FORMAT, SiteToSiteMetricsReportingTask.AMBARI_FORMAT.getValue());
+        properties.put(SiteToSiteMetricsReportingTask.ALLOW_NULL_VALUES, "true");
+
+        MockSiteToSiteMetricsReportingTask task = initTask(properties);
+        task.onTrigger(context);
+
+        assertEquals(1, task.dataSent.size());
+        final String msg = new String(task.dataSent.get(0), StandardCharsets.UTF_8);
+        JsonReader jsonReader = Json.createReader(new ByteArrayInputStream(msg.getBytes()));
+        JsonArray array = jsonReader.readObject().getJsonArray("metrics");
+        for(int i = 0; i < array.size(); i++) {
+            JsonObject object = array.getJsonObject(i);
+            assertEquals("nifi", object.getString("appid"));
+            assertEquals("1234", object.getString("instanceid"));
+            if(object.getString("metricname").equals("BytesReadLast5Minutes")) {
+                for(Entry<String, JsonValue> kv : object.getJsonObject("metrics").entrySet()) {
+                    assertEquals("\"null\"", kv.getValue().toString());
+                }
+                return;
+            }
+        }
+        fail();
+    }
+
+    @Test
     public void testRecordFormat() throws IOException, InitializationException {
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
         properties.put(SiteToSiteMetricsReportingTask.FORMAT, SiteToSiteMetricsReportingTask.RECORD_FORMAT.getValue());
@@ -266,27 +304,25 @@ public class TestSiteToSiteMetricsReportingTask {
         final List<byte[]> dataSent = new ArrayList<>();
 
         @Override
-        protected SiteToSiteClient getClient() {
-            final SiteToSiteClient client = Mockito.mock(SiteToSiteClient.class);
-            final Transaction transaction = Mockito.mock(Transaction.class);
+        public void setup(ReportingContext reportContext) throws IOException {
+            if(siteToSiteClient == null) {
+                final SiteToSiteClient client = Mockito.mock(SiteToSiteClient.class);
+                final Transaction transaction = Mockito.mock(Transaction.class);
 
-            try {
-                Mockito.doAnswer(new Answer<Object>() {
-                    @Override
-                    public Object answer(final InvocationOnMock invocation) throws Throwable {
-                        final byte[] data = invocation.getArgumentAt(0, byte[].class);
+                try {
+                    Mockito.doAnswer((Answer<Object>) invocation -> {
+                        final byte[] data = invocation.getArgument(0, byte[].class);
                         dataSent.add(data);
                         return null;
-                    }
-                }).when(transaction).send(Mockito.any(byte[].class), Mockito.any(Map.class));
+                    }).when(transaction).send(Mockito.any(byte[].class), Mockito.any(Map.class));
 
-                Mockito.when(client.createTransaction(Mockito.any(TransferDirection.class))).thenReturn(transaction);
-            } catch (final Exception e) {
-                e.printStackTrace();
-                Assert.fail(e.toString());
+                    when(client.createTransaction(Mockito.any(TransferDirection.class))).thenReturn(transaction);
+                } catch (final Exception e) {
+                    e.printStackTrace();
+                    Assert.fail(e.toString());
+                }
+                siteToSiteClient = client;
             }
-
-            return client;
         }
     }
 

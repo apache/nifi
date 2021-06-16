@@ -20,7 +20,7 @@ import org.apache.nifi.toolkit.cli.impl.client.nifi.FlowClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.AbstractNiFiCommand;
-import org.apache.nifi.toolkit.cli.impl.result.CurrentUserEntityResult;
+import org.apache.nifi.toolkit.cli.impl.result.nifi.CurrentUserEntityResult;
 import org.apache.nifi.web.api.entity.CurrentUserEntity;
 
 import java.io.IOException;

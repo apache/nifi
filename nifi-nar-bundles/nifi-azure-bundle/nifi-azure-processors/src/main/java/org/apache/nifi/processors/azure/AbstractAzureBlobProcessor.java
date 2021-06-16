@@ -56,9 +56,11 @@ public abstract class AbstractAzureBlobProcessor extends AbstractProcessor {
     private static final List<PropertyDescriptor> PROPERTIES = Collections
             .unmodifiableList(Arrays.asList(
                     AzureStorageUtils.CONTAINER,
-                    AzureStorageUtils.PROP_SAS_TOKEN,
+                    AzureStorageUtils.STORAGE_CREDENTIALS_SERVICE,
                     AzureStorageUtils.ACCOUNT_NAME,
                     AzureStorageUtils.ACCOUNT_KEY,
+                    AzureStorageUtils.PROP_SAS_TOKEN,
+                    AzureStorageUtils.ENDPOINT_SUFFIX,
                     BLOB,
                     AzureStorageUtils.PROXY_CONFIGURATION_SERVICE));
 

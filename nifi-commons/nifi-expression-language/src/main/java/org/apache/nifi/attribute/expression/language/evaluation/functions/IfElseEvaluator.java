@@ -16,12 +16,11 @@
  */
 package org.apache.nifi.attribute.expression.language.evaluation.functions;
 
+import org.apache.nifi.attribute.expression.language.EvaluationContext;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.StringEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.StringQueryResult;
-
-import java.util.Map;
 
 public class IfElseEvaluator extends StringEvaluator {
 
@@ -36,12 +35,12 @@ public class IfElseEvaluator extends StringEvaluator {
     }
 
     @Override
-    public QueryResult<String> evaluate(final Map<String, String> attributes) {
-        final QueryResult<Boolean> subjectValue = subject.evaluate(attributes);
+    public QueryResult<String> evaluate(final EvaluationContext evaluationContext) {
+        final QueryResult<Boolean> subjectValue = subject.evaluate(evaluationContext);
         if (subjectValue == null) {
             return new StringQueryResult(null);
         }
-        final String ifElseValue = (Boolean.TRUE.equals(subjectValue.getValue())) ? trueEvaluator.evaluate(attributes).getValue() : falseEvaluator.evaluate(attributes).getValue();
+        final String ifElseValue = (Boolean.TRUE.equals(subjectValue.getValue())) ? trueEvaluator.evaluate(evaluationContext).getValue() : falseEvaluator.evaluate(evaluationContext).getValue();
         return new StringQueryResult(ifElseValue);
     }
 

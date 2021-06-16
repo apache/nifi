@@ -155,7 +155,6 @@ public class PutElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
         descriptors.add(ID_ATTRIBUTE);
         descriptors.add(INDEX);
         descriptors.add(TYPE);
-        descriptors.add(CHARSET);
         descriptors.add(BATCH_SIZE);
         descriptors.add(INDEX_OP);
 

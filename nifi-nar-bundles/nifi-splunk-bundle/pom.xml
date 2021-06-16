@@ -13,18 +13,18 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-        <version>1.8.0-SNAPSHOT</version>
+        <version>1.12.0-SNAPSHOT</version>
     </parent>
 
     <groupId>org.apache.nifi</groupId>
     <artifactId>nifi-splunk-bundle</artifactId>
-    <version>1.8.0-SNAPSHOT</version>
+    <version>1.12.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <modules>
@@ -34,9 +34,9 @@
 
     <repositories>
         <repository>
-            <id>splunk</id>
-            <name>Splunk Artifactory</name>
-            <url>http://splunk.artifactoryonline.com/splunk/ext-releases-local/</url>
+            <id>splunk-artifactory</id>
+            <name>Splunk Releases</name>
+            <url>https://splunk.jfrog.io/splunk/ext-releases-local</url>
             <releases>
                 <enabled>true</enabled>
             </releases>
@@ -51,7 +51,7 @@
             <dependency>
                 <groupId>com.splunk</groupId>
                 <artifactId>splunk</artifactId>
-                <version>1.5.0.0</version>
+                <version>1.6.5.0</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

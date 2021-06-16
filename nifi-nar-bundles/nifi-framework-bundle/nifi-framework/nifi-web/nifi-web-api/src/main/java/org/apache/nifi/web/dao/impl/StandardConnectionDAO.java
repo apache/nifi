@@ -25,6 +25,8 @@ import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.ConnectableType;
 import org.apache.nifi.connectable.Connection;
+import org.apache.nifi.controller.queue.LoadBalanceCompression;
+import org.apache.nifi.controller.queue.LoadBalanceStrategy;
 import org.apache.nifi.connectable.Position;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.exception.ValidationException;
@@ -38,7 +40,9 @@ import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.remote.PublicPort;
 import org.apache.nifi.remote.RemoteGroupPort;
+import org.apache.nifi.remote.TransferDirection;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.web.DownloadableContent;
 import org.apache.nifi.web.ResourceNotFoundException;
@@ -69,7 +73,7 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
     private Authorizer authorizer;
 
     private Connection locateConnection(final String connectionId) {
-        final ProcessGroup rootGroup = flowController.getGroup(flowController.getRootGroupId());
+        final ProcessGroup rootGroup = flowController.getFlowManager().getRootGroup();
         final Connection connection = rootGroup.findConnection(connectionId);
 
         if (connection == null) {
@@ -81,7 +85,7 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
 
     @Override
     public boolean hasConnection(String id) {
-        final ProcessGroup rootGroup = flowController.getGroup(flowController.getRootGroupId());
+        final ProcessGroup rootGroup = flowController.getFlowManager().getRootGroup();
         return rootGroup.findConnection(id) != null;
     }
 
@@ -157,7 +161,7 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
             newPrioritizers = new ArrayList<>();
             for (final String className : newPrioritizersClasses) {
                 try {
-                    newPrioritizers.add(flowController.createPrioritizer(className));
+                    newPrioritizers.add(flowController.getFlowManager().createPrioritizer(className));
                 } catch (final ClassNotFoundException | InstantiationException | IllegalAccessException e) {
                     throw new IllegalArgumentException("Unable to set prioritizer " + className + ": " + e);
                 }
@@ -176,6 +180,18 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
         }
         if (isNotNull(newPrioritizers)) {
             connection.getFlowFileQueue().setPriorities(newPrioritizers);
+        }
+
+        final String loadBalanceStrategyName = connectionDTO.getLoadBalanceStrategy();
+        final String loadBalancePartitionAttribute = connectionDTO.getLoadBalancePartitionAttribute();
+        if (isNotNull(loadBalanceStrategyName)) {
+            final LoadBalanceStrategy loadBalanceStrategy = LoadBalanceStrategy.valueOf(loadBalanceStrategyName);
+            connection.getFlowFileQueue().setLoadBalanceStrategy(loadBalanceStrategy, loadBalancePartitionAttribute);
+        }
+
+        final String loadBalanceCompressionName = connectionDTO.getLoadBalanceCompression();
+        if (isNotNull(loadBalanceCompressionName)) {
+            connection.getFlowFileQueue().setLoadBalanceCompression(LoadBalanceCompression.valueOf(loadBalanceCompressionName));
         }
 
         // update the connection state
@@ -253,7 +269,7 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
     public Connection createConnection(final String groupId, final ConnectionDTO connectionDTO) {
         final ProcessGroup group = locateProcessGroup(flowController, groupId);
 
-        if (isNotNull(connectionDTO.getParentGroupId()) && !flowController.areGroupsSame(connectionDTO.getParentGroupId(), groupId)) {
+        if (isNotNull(connectionDTO.getParentGroupId()) && !flowController.getFlowManager().areGroupsSame(connectionDTO.getParentGroupId(), groupId)) {
             throw new IllegalStateException("Cannot specify a different Parent Group ID than the Group to which the Connection is being added");
         }
 
@@ -392,6 +408,10 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
             if (sourceConnectable == null) {
                 throw new IllegalArgumentException("The specified source for the connection does not exist");
             }
+            if (sourceConnectable instanceof PublicPort
+                && TransferDirection.SEND.equals(((PublicPort) sourceConnectable).getDirection())) {
+                throw new IllegalArgumentException("The specified source for the connection cannot be connected to local components.");
+            }
         }
 
         if (ConnectableType.REMOTE_INPUT_PORT.name().equals(destinationDto.getType())) {
@@ -413,6 +433,10 @@ public class StandardConnectionDAO extends ComponentDAO implements ConnectionDAO
             final Connectable destinationConnectable = destinationGroup.getConnectable(destinationDto.getId());
             if (destinationConnectable == null) {
                 throw new IllegalArgumentException("The specified destination for the connection does not exist");
+            }
+            if (destinationConnectable instanceof PublicPort
+                && TransferDirection.RECEIVE.equals(((PublicPort) destinationConnectable).getDirection())) {
+                throw new IllegalArgumentException("The specified destination for the connection cannot be connected from local components.");
             }
         }
     }

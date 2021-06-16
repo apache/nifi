@@ -76,4 +76,15 @@ public interface RecordSchema {
      * @return the SchemaIdentifier, which provides various attributes for identifying a schema
      */
     SchemaIdentifier getIdentifier();
+
+    /**
+     * @return the name of the schema's root record.
+     */
+    Optional<String> getSchemaName();
+
+    /**
+     * @return the namespace of the schema.
+     */
+    Optional<String> getSchemaNamespace();
+
 }

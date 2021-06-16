@@ -122,7 +122,7 @@ public class PublisherLease implements Closeable {
                 recordCount++;
                 baos.reset();
 
-                try (final RecordSetWriter writer = writerFactory.createWriter(logger, schema, baos)) {
+                try (final RecordSetWriter writer = writerFactory.createWriter(logger, schema, baos, flowFile)) {
                     writer.write(record);
                     writer.flush();
                 }

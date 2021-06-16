@@ -56,33 +56,29 @@ public class ProcessGroupBox implements Comparable<ProcessGroupBox> {
         return (int) Math.hypot(x, y);
     }
 
-
     public boolean intersects(ProcessGroupBox other) {
-        // adapted from java.awt Rectangle, we don't want to import it
-        // assume everything to be of the PG size for simplicity
-        int tw = PG_SIZE_WIDTH;
-        int th = PG_SIZE_HEIGHT;
-        // 2nd pg box includes spacers
-        int rw = PG_SIZE_WIDTH;
-        int rh = PG_SIZE_HEIGHT;
-        if (rw <= 0 || rh <= 0 || tw <= 0 || th <= 0) {
+        // this is completely left of other
+        if (this.x + PG_SIZE_WIDTH < other.x) {
             return false;
         }
-        double tx = this.x;
-        double ty = this.y;
-        double rx = other.x;
-        double ry = other.y;
-        rw += rx;
-        rh += ry;
-        tw += tx;
-        th += ty;
-        //      overflow || intersect
-        return ((rw < rx || rw > tx)
-                && (rh < ry || rh > ty)
-                && (tw < tx || tw > rx)
-                && (th < ty || th > ry));
-    }
 
+        // this is completely right of other
+        if (this.x > other.x + PG_SIZE_WIDTH) {
+            return false;
+        }
+
+        // this is completely above other
+        if (this.y + PG_SIZE_HEIGHT < other.y) {
+            return false;
+        }
+
+        // this is completely below other
+        if (this.y > other.y + PG_SIZE_HEIGHT) {
+            return false;
+        }
+
+        return true;
+    }
 
     public ProcessGroupBox findFreeSpace(List<ProcessGroupBox> allCoords) {
         // sort by distance to (0.0)

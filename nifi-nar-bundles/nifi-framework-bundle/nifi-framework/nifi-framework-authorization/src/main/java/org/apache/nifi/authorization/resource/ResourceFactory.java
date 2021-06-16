@@ -262,6 +262,25 @@ public final class ResourceFactory {
         }
     };
 
+    private final static Resource PARAMETER_CONTEXTS_RESOURCE = new Resource() {
+
+        @Override
+        public String getIdentifier() {
+            return ResourceType.ParameterContext.getValue();
+        }
+
+        @Override
+        public String getName() {
+            return "Parameter Contexts";
+        }
+
+        @Override
+        public String getSafeDescription() {
+            return "parameter contexts";
+        }
+    };
+
+
     /**
      * Gets the Resource for accessing the Controller. This includes Controller level configuration, bulletins, reporting tasks, and the cluster.
      *
@@ -287,6 +306,14 @@ public final class ResourceFactory {
      */
     public static Resource getCountersResource() {
         return COUNTERS_RESOURCE;
+    }
+
+    /**
+     * Gets the Resource for accessing the Parameter Contexts.
+     * @return The resource for access Parameter Contexts
+     */
+    public static Resource getParameterContextsResource() {
+        return PARAMETER_CONTEXTS_RESOURCE;
     }
 
     /**
@@ -442,6 +469,33 @@ public final class ResourceFactory {
     }
 
     /**
+     * Gets a Resource for accessing component operations.
+     *
+     * @param resource      The resource being accessed
+     * @return              The resource
+     */
+    public static Resource getOperationResource(final Resource resource) {
+        Objects.requireNonNull(resource, "The resource type must be specified.");
+
+        return new Resource() {
+            @Override
+            public String getIdentifier() {
+                return ResourceType.Operation.getValue() + resource.getIdentifier();
+            }
+
+            @Override
+            public String getName() {
+                return "Operations for" + resource.getName();
+            }
+
+            @Override
+            public String getSafeDescription() {
+                return "Operations for" + resource.getSafeDescription();
+            }
+        };
+    }
+
+    /**
      * Gets a Resource for accessing a component configuration.
      *
      * @param resourceType  The type of resource being accessed
@@ -497,6 +551,9 @@ public final class ResourceFactory {
                         break;
                     case Label:
                         componentType = "Label";
+                        break;
+                    case ParameterContext:
+                        componentType = "Parameter Context";
                         break;
                     default:
                         componentType = "Component";

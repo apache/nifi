@@ -17,69 +17,84 @@
 
 package org.apache.nifi.controller.service;
 
-import org.apache.nifi.controller.ComponentNode;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class ServiceStateTransition {
     private ControllerServiceState state = ControllerServiceState.DISABLED;
     private final List<CompletableFuture<?>> enabledFutures = new ArrayList<>();
     private final List<CompletableFuture<?>> disabledFutures = new ArrayList<>();
 
-    private final ControllerServiceNode serviceNode;
+    private final ReadWriteLock rwLock = new ReentrantReadWriteLock();
+    private final Lock writeLock = rwLock.writeLock();
+    private final Lock readLock = rwLock.readLock();
 
-    public ServiceStateTransition(final ControllerServiceNode serviceNode) {
-        this.serviceNode = serviceNode;
-    }
+    public boolean transitionToEnabling(final ControllerServiceState expectedState, final CompletableFuture<?> enabledFuture) {
+        writeLock.lock();
+        try {
+            if (expectedState != state) {
+                return false;
+            }
 
-    public synchronized boolean transitionToEnabling(final ControllerServiceState expectedState, final CompletableFuture<?> enabledFuture) {
-        if (expectedState != state) {
-            return false;
-        }
-
-        state = ControllerServiceState.ENABLING;
-        enabledFutures.add(enabledFuture);
-        return true;
-    }
-
-    public synchronized boolean enable() {
-        if (state != ControllerServiceState.ENABLING) {
-            return false;
-        }
-
-        state = ControllerServiceState.ENABLED;
-
-        validateReferences(serviceNode);
-
-        enabledFutures.stream().forEach(future -> future.complete(null));
-        return true;
-    }
-
-    private void validateReferences(final ControllerServiceNode service) {
-        final List<ComponentNode> referencingComponents = service.getReferences().findRecursiveReferences(ComponentNode.class);
-        for (final ComponentNode component : referencingComponents) {
-            component.performValidation();
+            state = ControllerServiceState.ENABLING;
+            enabledFutures.add(enabledFuture);
+            return true;
+        } finally {
+            writeLock.unlock();
         }
     }
 
-    public synchronized boolean transitionToDisabling(final ControllerServiceState expectedState, final CompletableFuture<?> disabledFuture) {
-        if (expectedState != state) {
-            return false;
+    public boolean enable() {
+        writeLock.lock();
+        try {
+            if (state != ControllerServiceState.ENABLING) {
+                return false;
+            }
+
+            state = ControllerServiceState.ENABLED;
+
+            enabledFutures.forEach(future -> future.complete(null));
+            return true;
+        } finally {
+            writeLock.unlock();
         }
-
-        state = ControllerServiceState.DISABLING;
-        disabledFutures.add(disabledFuture);
-        return true;
     }
 
-    public synchronized void disable() {
-        state = ControllerServiceState.DISABLED;
-        disabledFutures.stream().forEach(future -> future.complete(null));
+    public boolean transitionToDisabling(final ControllerServiceState expectedState, final CompletableFuture<?> disabledFuture) {
+        writeLock.lock();
+        try {
+            if (expectedState != state) {
+                return false;
+            }
+
+            state = ControllerServiceState.DISABLING;
+            disabledFutures.add(disabledFuture);
+            return true;
+        } finally {
+            writeLock.unlock();
+        }
     }
 
-    public synchronized ControllerServiceState getState() {
-        return state;
+    public void disable() {
+        writeLock.lock();
+        try {
+            state = ControllerServiceState.DISABLED;
+            disabledFutures.forEach(future -> future.complete(null));
+        } finally {
+            writeLock.unlock();
+        }
+    }
+
+    public ControllerServiceState getState() {
+        readLock.lock();
+        try {
+            return state;
+        } finally {
+            readLock.unlock();
+        }
     }
 }

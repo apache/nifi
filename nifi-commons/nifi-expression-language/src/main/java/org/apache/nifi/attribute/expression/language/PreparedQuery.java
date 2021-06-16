@@ -17,16 +17,12 @@
 package org.apache.nifi.attribute.expression.language;
 
 
-import java.util.Map;
-
 import org.apache.nifi.expression.AttributeValueDecorator;
 import org.apache.nifi.processor.exception.ProcessException;
 
 public interface PreparedQuery {
 
-    String evaluateExpressions(Map<String, String> valueLookup, AttributeValueDecorator decorator) throws ProcessException;
-
-    String evaluateExpressions(final Map<String, String> valueLookup, final AttributeValueDecorator decorator, final Map<String, String> stateVariables) throws ProcessException;
+    String evaluateExpressions(EvaluationContext evaluationContext, AttributeValueDecorator decorator) throws ProcessException;
 
     boolean isExpressionLanguagePresent();
 

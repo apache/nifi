@@ -57,11 +57,11 @@ public class MapDataType extends DataType {
         }
 
         final MapDataType other = (MapDataType) obj;
-        return getValueType().equals(other.getValueType()) && Objects.equals(valueType, other.valueType);
+        return Objects.equals(valueType, other.valueType);
     }
 
     @Override
     public String toString() {
-        return "MAP[" + valueType + "]";
+        return "MAP<" + valueType + ">";
     }
 }

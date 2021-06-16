@@ -28,7 +28,7 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.Test;
 import static org.junit.Assume.assumeFalse;
 import org.junit.Before;
-import static org.mockito.Matchers.anyObject;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -53,7 +53,7 @@ public class ITConsumeKafka {
     public void validateGetAllMessages() throws Exception {
         String groupName = "validateGetAllMessages";
 
-        when(mockConsumerPool.obtainConsumer(anyObject())).thenReturn(mockLease);
+        when(mockConsumerPool.obtainConsumer(any())).thenReturn(mockLease);
         when(mockLease.continuePolling()).thenReturn(Boolean.TRUE, Boolean.TRUE, Boolean.FALSE);
         when(mockLease.commit()).thenReturn(Boolean.TRUE);
 
@@ -70,7 +70,7 @@ public class ITConsumeKafka {
         runner.setProperty(ConsumeKafka.AUTO_OFFSET_RESET, ConsumeKafka.OFFSET_EARLIEST);
         runner.run(1, false);
 
-        verify(mockConsumerPool, times(1)).obtainConsumer(anyObject());
+        verify(mockConsumerPool, times(1)).obtainConsumer(any());
         verify(mockLease, times(3)).continuePolling();
         verify(mockLease, times(2)).poll();
         verify(mockLease, times(1)).commit();
@@ -83,7 +83,7 @@ public class ITConsumeKafka {
     public void validateGetErrorMessages() throws Exception {
         String groupName = "validateGetErrorMessages";
 
-        when(mockConsumerPool.obtainConsumer(anyObject())).thenReturn(mockLease);
+        when(mockConsumerPool.obtainConsumer(any())).thenReturn(mockLease);
         when(mockLease.continuePolling()).thenReturn(true, false);
         when(mockLease.commit()).thenReturn(Boolean.FALSE);
 
@@ -100,7 +100,7 @@ public class ITConsumeKafka {
         runner.setProperty(ConsumeKafka.AUTO_OFFSET_RESET, ConsumeKafka.OFFSET_EARLIEST);
         runner.run(1, false);
 
-        verify(mockConsumerPool, times(1)).obtainConsumer(anyObject());
+        verify(mockConsumerPool, times(1)).obtainConsumer(any());
         verify(mockLease, times(2)).continuePolling();
         verify(mockLease, times(1)).poll();
         verify(mockLease, times(1)).commit();

@@ -39,6 +39,8 @@
         <script type="text/javascript" src="assets/qtip2/dist/jquery.qtip.min.js"></script>
         <script type="text/javascript" src="assets/jquery-ui-dist/jquery-ui.min.js"></script>
         <script type="text/javascript" src="js/nf/nf-namespace.js?${project.version}"></script>
+        <script type="text/javascript" src="assets/lodash-core/distrib/lodash-core.min.js"></script>
+        <script type="text/javascript" src="assets/moment/min/moment.min.js"></script>
         ${nf.login.script.tags}
     </head>
     <body class="login-body">

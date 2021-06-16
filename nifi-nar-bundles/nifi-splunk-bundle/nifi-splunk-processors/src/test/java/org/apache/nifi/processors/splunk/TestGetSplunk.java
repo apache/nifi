@@ -423,7 +423,7 @@ public class TestGetSplunk {
     /**
      * Custom args matcher for JobExportArgs.
      */
-    private static class JobExportArgsMatcher extends ArgumentMatcher<JobExportArgs> {
+    private static class JobExportArgsMatcher implements ArgumentMatcher<JobExportArgs> {
 
         private JobExportArgs expected;
 
@@ -432,19 +432,13 @@ public class TestGetSplunk {
         }
 
         @Override
-        public boolean matches(Object o) {
-            if (o == null) {
+        public boolean matches(JobExportArgs argument) {
+            if (argument == null) {
                 return false;
             }
 
-            if (!(o instanceof JobExportArgs)) {
-                return false;
-            }
-
-            JobExportArgs other = (JobExportArgs) o;
-            return expected.equals(other);
+            return expected.equals(argument);
         }
-
     }
 
 }

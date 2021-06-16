@@ -171,6 +171,15 @@ public class ManagedRangerAuthorizer extends RangerNiFiAuthorizer implements Man
     }
 
     @Override
+    public void forciblyInheritFingerprint(final String fingerprint) throws AuthorizationAccessException {
+        final String userGroupFingerprint = parseFingerprint(fingerprint);
+
+        if (userGroupProvider instanceof ConfigurableUserGroupProvider) {
+            ((ConfigurableUserGroupProvider) userGroupProvider).forciblyInheritFingerprint(userGroupFingerprint);
+        }
+    }
+
+    @Override
     public void checkInheritability(String proposedFingerprint) throws AuthorizationAccessException, UninheritableAuthorizationsException {
         final String userGroupFingerprint = parseFingerprint(proposedFingerprint);
 
@@ -183,7 +192,7 @@ public class ManagedRangerAuthorizer extends RangerNiFiAuthorizer implements Man
         }
     }
 
-    private final String parseFingerprint(final String fingerprint) throws AuthorizationAccessException {
+    private String parseFingerprint(final String fingerprint) throws AuthorizationAccessException {
         final byte[] fingerprintBytes = fingerprint.getBytes(StandardCharsets.UTF_8);
 
         try (final ByteArrayInputStream in = new ByteArrayInputStream(fingerprintBytes)) {

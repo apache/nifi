@@ -22,6 +22,8 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.nifi.authorization.user.NiFiUser;
+import org.apache.nifi.cluster.manager.exception.ConnectingNodeMutableRequestException;
+import org.apache.nifi.cluster.manager.exception.DisconnectedNodeMutableRequestException;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 
 public interface RequestReplicator {
@@ -30,13 +32,13 @@ public interface RequestReplicator {
     public static final String CLUSTER_ID_GENERATION_SEED_HEADER = "X-Cluster-Id-Generation-Seed";
 
     /**
-     * The HTTP header that the requestor specifies to ask a node if they are able to process a given request. The value
-     * is always 150-NodeContinue. The node will respond with 150 CONTINUE if it is able to
+     * The HTTP header that the requestor specifies to ask a node if they are able to process a given request.
+     * The value is always 202-Accepted. The node will respond with 202 ACCEPTED if it is able to
      * process the request, 417 EXPECTATION_FAILED otherwise.
      */
     public static final String REQUEST_VALIDATION_HTTP_HEADER = "X-Validation-Expects";
-    public static final String NODE_CONTINUE = "150-NodeContinue";
-    public static final int NODE_CONTINUE_STATUS_CODE = 150;
+    public static final String NODE_CONTINUE = "202-Accepted";
+    public static final int NODE_CONTINUE_STATUS_CODE = 202;
 
     /**
      * Indicates that the request is intended to cancel a transaction that was previously created without performing the action

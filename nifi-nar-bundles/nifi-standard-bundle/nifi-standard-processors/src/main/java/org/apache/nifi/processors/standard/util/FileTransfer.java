@@ -26,6 +26,8 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 
 public interface FileTransfer extends Closeable {
@@ -34,13 +36,7 @@ public interface FileTransfer extends Closeable {
 
     List<FileInfo> getListing() throws IOException;
 
-    InputStream getInputStream(String remoteFileName) throws IOException;
-
-    InputStream getInputStream(String remoteFileName, FlowFile flowFile) throws IOException;
-
-    void flush() throws IOException;
-
-    boolean flush(FlowFile flowFile) throws IOException;
+    FlowFile getRemoteFile(String remoteFileName, FlowFile flowFile, ProcessSession session) throws ProcessException, IOException;
 
     FileInfo getRemoteFileInfo(FlowFile flowFile, String path, String remoteFileName) throws IOException;
 
@@ -137,6 +133,14 @@ public interface FileTransfer extends Closeable {
     public static final PropertyDescriptor RECURSIVE_SEARCH = new PropertyDescriptor.Builder()
         .name("Search Recursively")
         .description("If true, will pull files from arbitrarily nested subdirectories; otherwise, will not traverse subdirectories")
+        .required(true)
+        .defaultValue("false")
+        .allowableValues("true", "false")
+        .build();
+    public static final PropertyDescriptor FOLLOW_SYMLINK = new PropertyDescriptor.Builder()
+        .name("follow-symlink")
+        .displayName("Follow symlink")
+        .description("If true, will pull even symbolic files and also nested symbolic subdirectories; otherwise, will not read symbolic files and will not traverse symbolic link subdirectories")
         .required(true)
         .defaultValue("false")
         .allowableValues("true", "false")

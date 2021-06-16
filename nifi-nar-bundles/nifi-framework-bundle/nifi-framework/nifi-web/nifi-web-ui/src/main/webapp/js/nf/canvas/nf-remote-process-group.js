@@ -56,8 +56,8 @@
     var PREVIEW_NAME_LENGTH = 30;
 
     var dimensions = {
-        width: 380,
-        height: 158
+        width: 384,
+        height: 176
     };
 
     // --------------------------------------------
@@ -433,7 +433,7 @@
                     details.append('text')
                         .attrs({
                             'x': 10,
-                            'y': 150,
+                            'y': 168,
                             'class': 'remote-process-group-last-refresh'
                         });
 
@@ -659,7 +659,7 @@
     };
 
     var hasIssues = function (d) {
-        return !nfCommon.isEmpty(d.component.authorizationIssues) || !nfCommon.isEmpty(d.component.validationErrors);
+        return d.status.validationStatus === 'INVALID';
     };
 
     var getIssues = function (d) {
@@ -723,41 +723,36 @@
         // authorization issues
         // --------------------
 
-        // TODO - only consider state from the status
         // update the process groups transmission status
         updated.select('text.remote-process-group-transmission-status')
             .text(function (d) {
                 var icon = '';
-                if (d.permissions.canRead) {
-                    if (hasIssues(d)) {
-                        icon = '\uf071';
-                    } else if (d.component.transmitting === true) {
-                        icon = '\uf140';
-                    } else {
-                        icon = '\ue80a';
-                    }
+                if (hasIssues(d)) {
+                    icon = '\uf071';
+                } else if (d.status.transmissionStatus === 'Transmitting') {
+                    icon = '\uf140';
+                } else {
+                    icon = '\ue80a';
                 }
                 return icon;
             })
             .attr('font-family', function (d) {
                 var family = '';
-                if (d.permissions.canRead) {
-                    if (hasIssues(d) || d.component.transmitting) {
-                        family = 'FontAwesome';
-                    } else {
-                        family = 'flowfont';
-                    }
+                if (hasIssues(d) || d.status.transmissionStatus === 'Transmitting') {
+                    family = 'FontAwesome';
+                } else {
+                    family = 'flowfont';
                 }
                 return family;
             })
             .classed('invalid', function (d) {
-                return d.permissions.canRead && hasIssues(d);
+                return hasIssues(d);
             })
             .classed('transmitting', function (d) {
-                return d.permissions.canRead && !hasIssues(d) && d.component.transmitting === true;
+                return !hasIssues(d) && d.status.transmissionStatus === 'Transmitting';
             })
             .classed('not-transmitting', function (d) {
-                return d.permissions.canRead && !hasIssues(d) && d.component.transmitting === false;
+                return !hasIssues(d) && d.status.transmissionStatus !== 'Transmitting';
             })
             .each(function (d) {
                 // get the tip

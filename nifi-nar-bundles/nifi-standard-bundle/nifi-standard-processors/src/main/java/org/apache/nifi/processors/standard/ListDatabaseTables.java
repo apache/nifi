@@ -38,9 +38,20 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.schema.access.SchemaNotFoundException;
+import org.apache.nifi.serialization.RecordSetWriter;
+import org.apache.nifi.serialization.RecordSetWriterFactory;
+import org.apache.nifi.serialization.SimpleRecordSchema;
+import org.apache.nifi.serialization.WriteResult;
+import org.apache.nifi.serialization.record.MapRecord;
+import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordField;
+import org.apache.nifi.serialization.record.RecordFieldType;
+import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.StringUtils;
 
 import java.io.IOException;
+import java.io.OutputStream;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
@@ -171,6 +182,16 @@ public class ListDatabaseTables extends AbstractProcessor {
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
 
+    public static final PropertyDescriptor RECORD_WRITER = new PropertyDescriptor.Builder()
+        .name("record-writer")
+        .displayName("Record Writer")
+        .description("Specifies the Record Writer to use for creating the listing. If not specified, one FlowFile will be created for each entity that is listed. If the Record Writer is specified, " +
+            "all entities will be written to a single FlowFile instead of adding attributes to individual FlowFiles.")
+        .required(false)
+        .identifiesControllerService(RecordSetWriterFactory.class)
+        .build();
+
+
     private static final List<PropertyDescriptor> propertyDescriptors;
     private static final Set<Relationship> relationships;
 
@@ -179,17 +200,18 @@ public class ListDatabaseTables extends AbstractProcessor {
      * Will also create a Set of relationships
      */
     static {
-        List<PropertyDescriptor> _propertyDescriptors = new ArrayList<>();
+        final List<PropertyDescriptor> _propertyDescriptors = new ArrayList<>();
         _propertyDescriptors.add(DBCP_SERVICE);
         _propertyDescriptors.add(CATALOG);
         _propertyDescriptors.add(SCHEMA_PATTERN);
         _propertyDescriptors.add(TABLE_NAME_PATTERN);
         _propertyDescriptors.add(TABLE_TYPES);
         _propertyDescriptors.add(INCLUDE_COUNT);
+        _propertyDescriptors.add(RECORD_WRITER);
         _propertyDescriptors.add(REFRESH_INTERVAL);
         propertyDescriptors = Collections.unmodifiableList(_propertyDescriptors);
 
-        Set<Relationship> _relationships = new HashSet<>();
+        final Set<Relationship> _relationships = new HashSet<>();
         _relationships.add(REL_SUCCESS);
         relationships = Collections.unmodifiableSet(_relationships);
     }
@@ -227,83 +249,101 @@ public class ListDatabaseTables extends AbstractProcessor {
             throw new ProcessException(ioe);
         }
 
+        final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
+        final TableListingWriter writer;
+        if (writerFactory == null) {
+            writer = new AttributeTableListingWriter(session);
+        } else {
+            writer = new RecordTableListingWriter(session, writerFactory, getLogger());
+        }
+
         try (final Connection con = dbcpService.getConnection(Collections.emptyMap())) {
+            writer.beginListing();
 
             DatabaseMetaData dbMetaData = con.getMetaData();
-            ResultSet rs = dbMetaData.getTables(catalog, schemaPattern, tableNamePattern, tableTypes);
-            while (rs.next()) {
-                final String tableCatalog = rs.getString(1);
-                final String tableSchema = rs.getString(2);
-                final String tableName = rs.getString(3);
-                final String tableType = rs.getString(4);
-                final String tableRemarks = rs.getString(5);
+            try (ResultSet rs = dbMetaData.getTables(catalog, schemaPattern, tableNamePattern, tableTypes)) {
+                while (rs.next()) {
+                    final String tableCatalog = rs.getString(1);
+                    final String tableSchema = rs.getString(2);
+                    final String tableName = rs.getString(3);
+                    final String tableType = rs.getString(4);
+                    final String tableRemarks = rs.getString(5);
 
-                // Build fully-qualified name
-                String fqn = Stream.of(tableCatalog, tableSchema, tableName)
+                    // Build fully-qualified name
+                    final String fqn = Stream.of(tableCatalog, tableSchema, tableName)
                         .filter(segment -> !StringUtils.isEmpty(segment))
                         .collect(Collectors.joining("."));
 
-                String lastTimestampForTable = stateMapProperties.get(fqn);
-                boolean refreshTable = true;
-                try {
-                    // Refresh state if the interval has elapsed
-                    long lastRefreshed = -1;
-                    final long currentTime = System.currentTimeMillis();
-                    if (!StringUtils.isEmpty(lastTimestampForTable)) {
-                        lastRefreshed = Long.parseLong(lastTimestampForTable);
-                    }
-                    if (lastRefreshed == -1 || (refreshInterval > 0 && currentTime >= (lastRefreshed + refreshInterval))) {
-                        stateMapProperties.remove(lastTimestampForTable);
-                    } else {
-                        refreshTable = false;
-                    }
-                } catch (final NumberFormatException nfe) {
-                    getLogger().error("Failed to retrieve observed last table fetches from the State Manager. Will not perform "
-                            + "query until this is accomplished.", nfe);
-                    context.yield();
-                    return;
-                }
-                if (refreshTable) {
-                    FlowFile flowFile = session.create();
-                    logger.info("Found {}: {}", new Object[]{tableType, fqn});
-                    if (includeCount) {
-                        try (Statement st = con.createStatement()) {
-                            final String countQuery = "SELECT COUNT(1) FROM " + fqn;
-
-                            logger.debug("Executing query: {}", new Object[]{countQuery});
-                            ResultSet countResult = st.executeQuery(countQuery);
-                            if (countResult.next()) {
-                                flowFile = session.putAttribute(flowFile, DB_TABLE_COUNT, Long.toString(countResult.getLong(1)));
-                            }
-                        } catch (SQLException se) {
-                            logger.error("Couldn't get row count for {}", new Object[]{fqn});
-                            session.remove(flowFile);
-                            continue;
-                        }
-                    }
-                    if (tableCatalog != null) {
-                        flowFile = session.putAttribute(flowFile, DB_TABLE_CATALOG, tableCatalog);
-                    }
-                    if (tableSchema != null) {
-                        flowFile = session.putAttribute(flowFile, DB_TABLE_SCHEMA, tableSchema);
-                    }
-                    flowFile = session.putAttribute(flowFile, DB_TABLE_NAME, tableName);
-                    flowFile = session.putAttribute(flowFile, DB_TABLE_FULLNAME, fqn);
-                    flowFile = session.putAttribute(flowFile, DB_TABLE_TYPE, tableType);
-                    if (tableRemarks != null) {
-                        flowFile = session.putAttribute(flowFile, DB_TABLE_REMARKS, tableRemarks);
-                    }
-
-                    String transitUri;
+                    final String lastTimestampForTable = stateMapProperties.get(fqn);
+                    boolean refreshTable = true;
                     try {
-                        transitUri = dbMetaData.getURL();
-                    } catch (SQLException sqle) {
-                        transitUri = "<unknown>";
+                        // Refresh state if the interval has elapsed
+                        long lastRefreshed = -1;
+                        final long currentTime = System.currentTimeMillis();
+                        if (!StringUtils.isEmpty(lastTimestampForTable)) {
+                            lastRefreshed = Long.parseLong(lastTimestampForTable);
+                        }
+
+                        if (lastRefreshed == -1 || (refreshInterval > 0 && currentTime >= (lastRefreshed + refreshInterval))) {
+                            stateMapProperties.remove(lastTimestampForTable);
+                        } else {
+                            refreshTable = false;
+                        }
+                    } catch (final NumberFormatException nfe) {
+                        getLogger().error(
+                          "Failed to retrieve observed last table fetches from the State Manager. Will not perform "
+                          + "query until this is accomplished.", nfe);
+                        context.yield();
+                        return;
                     }
-                    session.getProvenanceReporter().receive(flowFile, transitUri);
-                    session.transfer(flowFile, REL_SUCCESS);
-                    stateMapProperties.put(fqn, Long.toString(System.currentTimeMillis()));
+
+                    if (refreshTable) {
+                        logger.info("Found {}: {}", new Object[] {tableType, fqn});
+                        final Map<String, String> tableInformation = new HashMap<>();
+
+                        if (includeCount) {
+                            try (Statement st = con.createStatement()) {
+                                final String countQuery = "SELECT COUNT(1) FROM " + fqn;
+
+                                logger.debug("Executing query: {}", new Object[] {countQuery});
+                                try (ResultSet countResult = st.executeQuery(countQuery)) {
+                                    if (countResult.next()) {
+                                        tableInformation.put(DB_TABLE_COUNT, Long.toString(countResult.getLong(1)));
+                                    }
+                                }
+                            } catch (final SQLException se) {
+                                logger.error("Couldn't get row count for {}", new Object[] {fqn});
+                                continue;
+                            }
+                        }
+
+                        if (tableCatalog != null) {
+                            tableInformation.put(DB_TABLE_CATALOG, tableCatalog);
+                        }
+                        if (tableSchema != null) {
+                            tableInformation.put(DB_TABLE_SCHEMA, tableSchema);
+                        }
+                        tableInformation.put(DB_TABLE_NAME, tableName);
+                        tableInformation.put(DB_TABLE_FULLNAME, fqn);
+                        tableInformation.put(DB_TABLE_TYPE, tableType);
+                        if (tableRemarks != null) {
+                            tableInformation.put(DB_TABLE_REMARKS, tableRemarks);
+                        }
+
+                        String transitUri;
+                        try {
+                            transitUri = dbMetaData.getURL();
+                        } catch (final SQLException sqle) {
+                            transitUri = "<unknown>";
+                        }
+
+                        writer.addToListing(tableInformation, transitUri);
+
+                        stateMapProperties.put(fqn, Long.toString(System.currentTimeMillis()));
+                    }
                 }
+
+                writer.finishListing();
             }
             // Update the timestamps for listed tables
             if (stateMap.getVersion() == -1) {
@@ -312,8 +352,148 @@ public class ListDatabaseTables extends AbstractProcessor {
                 stateManager.replace(stateMap, stateMapProperties, Scope.CLUSTER);
             }
 
-        } catch (final SQLException | IOException e) {
+        } catch (final SQLException | IOException | SchemaNotFoundException e) {
+            writer.finishListingExceptionally(e);
+            session.rollback();
             throw new ProcessException(e);
         }
     }
+
+    interface TableListingWriter {
+        void beginListing() throws IOException, SchemaNotFoundException;
+
+        void addToListing(Map<String, String> tableInformation, String transitUri) throws IOException;
+
+        void finishListing() throws IOException;
+
+        void finishListingExceptionally(Exception cause);
+    }
+
+
+    private static class AttributeTableListingWriter implements TableListingWriter {
+        private final ProcessSession session;
+
+        public AttributeTableListingWriter(final ProcessSession session) {
+            this.session = session;
+        }
+
+        @Override
+        public void beginListing() {
+        }
+
+        @Override
+        public void addToListing(final Map<String, String> tableInformation, final String transitUri) {
+            FlowFile flowFile = session.create();
+            flowFile = session.putAllAttributes(flowFile, tableInformation);
+            session.getProvenanceReporter().receive(flowFile, transitUri);
+            session.transfer(flowFile, REL_SUCCESS);
+        }
+
+        @Override
+        public void finishListing() {
+        }
+
+        @Override
+        public void finishListingExceptionally(final Exception cause) {
+        }
+    }
+
+    static class RecordTableListingWriter implements TableListingWriter {
+        private static final RecordSchema RECORD_SCHEMA;
+        public static final String TABLE_NAME = "tableName";
+        public static final String TABLE_CATALOG = "catalog";
+        public static final String TABLE_SCHEMA = "schemaName";
+        public static final String TABLE_FULLNAME = "fullName";
+        public static final String TABLE_TYPE = "tableType";
+        public static final String TABLE_REMARKS = "remarks";
+        public static final String TABLE_ROW_COUNT = "rowCount";
+
+
+        static {
+            final List<RecordField> fields = new ArrayList<>();
+            fields.add(new RecordField(TABLE_NAME, RecordFieldType.STRING.getDataType(), false));
+            fields.add(new RecordField(TABLE_CATALOG, RecordFieldType.STRING.getDataType()));
+            fields.add(new RecordField(TABLE_SCHEMA, RecordFieldType.STRING.getDataType()));
+            fields.add(new RecordField(TABLE_FULLNAME, RecordFieldType.STRING.getDataType(), false));
+            fields.add(new RecordField(TABLE_TYPE, RecordFieldType.STRING.getDataType(), false));
+            fields.add(new RecordField(TABLE_REMARKS, RecordFieldType.STRING.getDataType(), false));
+            fields.add(new RecordField(TABLE_ROW_COUNT, RecordFieldType.LONG.getDataType(), false));
+            RECORD_SCHEMA = new SimpleRecordSchema(fields);
+        }
+
+
+        private final ProcessSession session;
+        private final RecordSetWriterFactory writerFactory;
+        private final ComponentLog logger;
+        private RecordSetWriter recordWriter;
+        private FlowFile flowFile;
+        private String transitUri;
+
+        public RecordTableListingWriter(final ProcessSession session, final RecordSetWriterFactory writerFactory, final ComponentLog logger) {
+            this.session = session;
+            this.writerFactory = writerFactory;
+            this.logger = logger;
+        }
+
+        @Override
+        public void beginListing() throws IOException, SchemaNotFoundException {
+            flowFile = session.create();
+
+            final OutputStream out = session.write(flowFile);
+            recordWriter = writerFactory.createWriter(logger, RECORD_SCHEMA, out, flowFile);
+            recordWriter.beginRecordSet();
+        }
+
+        @Override
+        public void addToListing(final Map<String, String> tableInfo, final String transitUri) throws IOException {
+            this.transitUri = transitUri;
+            recordWriter.write(createRecordForListing(tableInfo));
+        }
+
+        @Override
+        public void finishListing() throws IOException {
+            final WriteResult writeResult = recordWriter.finishRecordSet();
+            recordWriter.close();
+
+            if (writeResult.getRecordCount() == 0) {
+                session.remove(flowFile);
+            } else {
+                final Map<String, String> attributes = new HashMap<>(writeResult.getAttributes());
+                attributes.put("record.count", String.valueOf(writeResult.getRecordCount()));
+                flowFile = session.putAllAttributes(flowFile, attributes);
+
+                session.transfer(flowFile, REL_SUCCESS);
+                session.getProvenanceReporter().receive(flowFile, transitUri);
+            }
+        }
+
+        @Override
+        public void finishListingExceptionally(final Exception cause) {
+            try {
+                recordWriter.close();
+            } catch (IOException e) {
+                logger.error("Failed to write listing as Records due to {}", new Object[] {e}, e);
+            }
+
+            session.remove(flowFile);
+        }
+
+        private Record createRecordForListing(final Map<String, String> tableInfo) {
+            final Map<String, Object> values = new HashMap<>();
+            values.put(TABLE_NAME, tableInfo.get(DB_TABLE_NAME));
+            values.put(TABLE_FULLNAME, tableInfo.get(DB_TABLE_FULLNAME));
+            values.put(TABLE_CATALOG, tableInfo.get(DB_TABLE_CATALOG));
+            values.put(TABLE_REMARKS, tableInfo.get(DB_TABLE_REMARKS));
+            values.put(TABLE_SCHEMA, tableInfo.get(DB_TABLE_SCHEMA));
+            values.put(TABLE_TYPE, tableInfo.get(DB_TABLE_TYPE));
+
+            final String rowCountString = tableInfo.get(DB_TABLE_COUNT);
+            if (rowCountString != null) {
+                values.put(TABLE_ROW_COUNT, Long.parseLong(rowCountString));
+            }
+
+            return new MapRecord(RECORD_SCHEMA, values);
+        }
+    }
+
 }

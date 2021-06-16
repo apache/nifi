@@ -23,8 +23,7 @@ import com.microsoft.azure.eventprocessorhost.EventProcessorOptions;
 import com.microsoft.azure.eventprocessorhost.IEventProcessor;
 import com.microsoft.azure.eventprocessorhost.IEventProcessorFactory;
 import com.microsoft.azure.eventprocessorhost.PartitionContext;
-import com.microsoft.azure.servicebus.ConnectionStringBuilder;
-import com.microsoft.azure.servicebus.ReceiverDisconnectedException;
+import com.microsoft.azure.eventhubs.ReceiverDisconnectedException;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -74,27 +73,29 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 
 import static org.apache.nifi.util.StringUtils.isEmpty;
+import org.apache.nifi.processors.azure.eventhub.utils.AzureEventHubUtils;
 
 @Tags({"azure", "microsoft", "cloud", "eventhub", "events", "streaming", "streams"})
-@CapabilityDescription("Receives messages from a Microsoft Azure Event Hub, writing the contents of the Azure message to the content of the FlowFile.")
+@CapabilityDescription("Receives messages from Azure Event Hubs, writing the contents of the message to the content of the FlowFile.")
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
 @TriggerSerially
 @WritesAttributes({
-        @WritesAttribute(attribute = "eventhub.enqueued.timestamp", description = "The time (in milliseconds since epoch, UTC) at which the message was enqueued in the Azure Event Hub"),
+        @WritesAttribute(attribute = "eventhub.enqueued.timestamp", description = "The time (in milliseconds since epoch, UTC) at which the message was enqueued in the event hub"),
         @WritesAttribute(attribute = "eventhub.offset", description = "The offset into the partition at which the message was stored"),
-        @WritesAttribute(attribute = "eventhub.sequence", description = "The Azure Sequence number associated with the message"),
-        @WritesAttribute(attribute = "eventhub.name", description = "The name of the Event Hub from which the message was pulled"),
-        @WritesAttribute(attribute = "eventhub.partition", description = "The name of the Azure Partition from which the message was pulled")
+        @WritesAttribute(attribute = "eventhub.sequence", description = "The sequence number associated with the message"),
+        @WritesAttribute(attribute = "eventhub.name", description = "The name of the event hub from which the message was pulled"),
+        @WritesAttribute(attribute = "eventhub.partition", description = "The name of the partition from which the message was pulled")
 })
 public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
+
+    private static final String FORMAT_STORAGE_CONNECTION_STRING = "DefaultEndpointsProtocol=https;AccountName=%s;AccountKey=%s";
 
     static final PropertyDescriptor NAMESPACE = new PropertyDescriptor.Builder()
             .name("event-hub-namespace")
             .displayName("Event Hub Namespace")
-            .description("The Azure Namespace that the Event Hub is assigned to. This is generally equal to <Event Hub Name>-ns.")
+            .description("The namespace that the Azure Event Hubs is assigned to. This is generally equal to <Event Hub Names>-ns.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .required(true)
@@ -102,7 +103,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
     static final PropertyDescriptor EVENT_HUB_NAME = new PropertyDescriptor.Builder()
             .name("event-hub-name")
             .displayName("Event Hub Name")
-            .description("The name of the Azure Event Hub to pull messages from.")
+            .description("The name of the event hub to pull messages from.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .required(true)
@@ -111,24 +112,20 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
     static final PropertyDescriptor ACCESS_POLICY_NAME = new PropertyDescriptor.Builder()
             .name("event-hub-shared-access-policy-name")
             .displayName("Shared Access Policy Name")
-            .description("The name of the Event Hub Shared Access Policy. This Policy must have Listen permissions.")
+            .description("The name of the shared access policy. This policy must have Listen claims.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .required(true)
+            .required(false)
             .build();
     static final PropertyDescriptor POLICY_PRIMARY_KEY = new PropertyDescriptor.Builder()
+            .fromPropertyDescriptor(AzureEventHubUtils.POLICY_PRIMARY_KEY)
             .name("event-hub-shared-access-policy-primary-key")
-            .displayName("Shared Access Policy Primary Key")
-            .description("The primary key of the Event Hub Shared Access Policy.")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .sensitive(true)
-            .required(true)
             .build();
+    static final PropertyDescriptor USE_MANAGED_IDENTITY = AzureEventHubUtils.USE_MANAGED_IDENTITY;
     static final PropertyDescriptor CONSUMER_GROUP = new PropertyDescriptor.Builder()
             .name("event-hub-consumer-group")
-            .displayName("Event Hub Consumer Group")
-            .description("The name of the Event Hub Consumer Group to use.")
+            .displayName("Consumer Group")
+            .description("The name of the consumer group to use.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .defaultValue("$Default")
@@ -136,8 +133,8 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
             .build();
     static final PropertyDescriptor CONSUMER_HOSTNAME = new PropertyDescriptor.Builder()
             .name("event-hub-consumer-hostname")
-            .displayName("Event Hub Consumer Hostname")
-            .description("The hostname of this Event Hub Consumer instance." +
+            .displayName("Consumer Hostname")
+            .description("The hostname of this event hub consumer instance." +
                     " If not specified, an unique identifier is generated in 'nifi-<UUID>' format.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
@@ -148,7 +145,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
             .name("record-reader")
             .displayName("Record Reader")
             .description("The Record Reader to use for reading received messages." +
-                    " The Event Hub name can be referred by Expression Language '${eventhub.name}' to access a schema.")
+                    " The event hub name can be referred by Expression Language '${eventhub.name}' to access a schema.")
             .identifiesControllerService(RecordReaderFactory.class)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .required(false)
@@ -157,7 +154,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
             .name("record-writer")
             .displayName("Record Writer")
             .description("The Record Writer to use for serializing Records to an output FlowFile." +
-                    " The Event Hub name can be referred by Expression Language '${eventhub.name}' to access a schema." +
+                    " The event hub name can be referred by Expression Language '${eventhub.name}' to access a schema." +
                     " If not specified, each message will create a FlowFile.")
             .identifiesControllerService(RecordSetWriterFactory.class)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
@@ -180,11 +177,11 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
     static final PropertyDescriptor PREFETCH_COUNT = new PropertyDescriptor.Builder()
             .name("event-hub-prefetch-count")
             .displayName("Prefetch Count")
-            .defaultValue("The number of messages to fetch from Event Hub before processing." +
+            .defaultValue("The number of messages to fetch from the event hub before processing." +
                     " This parameter affects throughput." +
                     " The more prefetch count, the better throughput in general, but consumes more resources (RAM)." +
-                    " NOTE: Even though Event Hub client API provides this option," +
-                    " actual number of messages can be pre-fetched is depend on the Event Hub server implementation." +
+                    " NOTE: Even though the event hub client API provides this option," +
+                    " actual number of messages can be pre-fetched is depend on the Event Hubs server implementation." +
                     " It is reported that only one event is received at a time in certain situation." +
                     " https://github.com/Azure/azure-event-hubs-java/issues/125")
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
@@ -197,9 +194,9 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
             .displayName("Batch Size")
             .description("The number of messages to process within a NiFi session." +
                     " This parameter affects throughput and consistency." +
-                    " NiFi commits its session and Event Hub checkpoint after processing this number of messages." +
-                    " If NiFi session is committed, but failed to create an Event Hub checkpoint," +
-                    " then it is possible that the same messages to be retrieved again." +
+                    " NiFi commits its session and Event Hubs checkpoints after processing this number of messages." +
+                    " If NiFi session is committed, but fails to create an Event Hubs checkpoint," +
+                    " then it is possible that the same messages will be received again." +
                     " The higher number, the higher throughput, but possibly less consistent.")
             .defaultValue("10")
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
@@ -218,7 +215,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
     static final PropertyDescriptor STORAGE_ACCOUNT_NAME = new PropertyDescriptor.Builder()
             .name("storage-account-name")
             .displayName("Storage Account Name")
-            .description("Name of the Azure Storage account to store Event Hub Consumer Group state.")
+            .description("Name of the Azure Storage account to store event hub consumer group state.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .required(true)
@@ -226,7 +223,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
     static final PropertyDescriptor STORAGE_ACCOUNT_KEY = new PropertyDescriptor.Builder()
             .name("storage-account-key")
             .displayName("Storage Account Key")
-            .description("The Azure Storage account key to store Event Hub Consumer Group state.")
+            .description("The Azure Storage account key to store event hub consumer group state.")
             .sensitive(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
@@ -235,13 +232,12 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
     static final PropertyDescriptor STORAGE_CONTAINER_NAME = new PropertyDescriptor.Builder()
             .name("storage-container-name")
             .displayName("Storage Container Name")
-            .description("Name of the Azure Storage Container to store Event Hub Consumer Group state." +
-                    " If not specified, Event Hub name is used.")
+            .description("Name of the Azure Storage container to store the event hub consumer group state." +
+                    " If not specified, event hub name is used.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .required(false)
             .build();
-
 
     static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
@@ -250,7 +246,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
 
     static final Relationship REL_PARSE_FAILURE = new Relationship.Builder()
             .name("parse.failure")
-            .description("If a message from Event Hub cannot be parsed using the configured Record Reader" +
+            .description("If a message from event hub cannot be parsed using the configured Record Reader" +
                     " or failed to be written by the configured Record Writer," +
                     " the contents of the message will be routed to this Relationship as its own individual FlowFile.")
             .build();
@@ -261,7 +257,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
 
     static {
         PROPERTIES = Collections.unmodifiableList(Arrays.asList(
-                NAMESPACE, EVENT_HUB_NAME, ACCESS_POLICY_NAME, POLICY_PRIMARY_KEY, CONSUMER_GROUP, CONSUMER_HOSTNAME,
+                NAMESPACE, EVENT_HUB_NAME, ACCESS_POLICY_NAME, POLICY_PRIMARY_KEY, USE_MANAGED_IDENTITY, CONSUMER_GROUP, CONSUMER_HOSTNAME,
                 RECORD_READER, RECORD_WRITER,
                 INITIAL_OFFSET, PREFETCH_COUNT, BATCH_SIZE, RECEIVE_TIMEOUT,
                 STORAGE_ACCOUNT_NAME, STORAGE_ACCOUNT_KEY, STORAGE_CONTAINER_NAME
@@ -335,6 +331,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
                     .valid(false)
                     .build());
         }
+        results.addAll(AzureEventHubUtils.customValidate(ACCESS_POLICY_NAME, POLICY_PRIMARY_KEY, validationContext));
         return results;
     }
 
@@ -347,9 +344,9 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
         }
     }
 
-    public class EventProcessorFactory implements IEventProcessorFactory {
+    public class EventProcessorFactory implements IEventProcessorFactory<EventProcessor> {
         @Override
-        public IEventProcessor createEventProcessor(PartitionContext context) throws Exception {
+        public EventProcessor createEventProcessor(PartitionContext context) throws Exception {
             final EventProcessor eventProcessor = new EventProcessor();
             return eventProcessor;
         }
@@ -454,9 +451,9 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
 
             try (final OutputStream out = session.write(flowFile)) {
                 for (final EventData eventData : messages) {
-
-                    try (final InputStream in = new ByteArrayInputStream(eventData.getBytes())) {
-                        final RecordReader reader = readerFactory.createRecordReader(schemaRetrievalVariables, in, logger);
+                    final byte[] eventDataBytes = eventData.getBytes();
+                    try (final InputStream in = new ByteArrayInputStream(eventDataBytes)) {
+                        final RecordReader reader = readerFactory.createRecordReader(schemaRetrievalVariables, in, eventDataBytes.length, logger);
 
                         Record record;
                         while ((record = reader.nextRecord()) != null) {
@@ -465,7 +462,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
                                 // Initialize the writer when the first record is read.
                                 final RecordSchema readerSchema = record.getSchema();
                                 final RecordSchema writeSchema = writerFactory.getSchema(schemaRetrievalVariables, readerSchema);
-                                writer = writerFactory.createWriter(logger, writeSchema, out);
+                                writer = writerFactory.createWriter(logger, writeSchema, out, flowFile);
                                 writer.beginRecordSet();
                             }
 
@@ -530,7 +527,6 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
                             " consumerGroupName={}, exception={}",
                     new Object[]{context.getEventHubPath(), context.getPartitionId(), context.getConsumerGroupName(), e}, e);
         }
-
     }
 
     @Override
@@ -582,12 +578,6 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
         final String eventHubName = context.getProperty(EVENT_HUB_NAME).evaluateAttributeExpressions().getValue();
         validateRequiredProperty(EVENT_HUB_NAME, eventHubName);
 
-        final String sasName = context.getProperty(ACCESS_POLICY_NAME).evaluateAttributeExpressions().getValue();
-        validateRequiredProperty(ACCESS_POLICY_NAME, sasName);
-
-        final String sasKey = context.getProperty(POLICY_PRIMARY_KEY).evaluateAttributeExpressions().getValue();
-        validateRequiredProperty(POLICY_PRIMARY_KEY, sasKey);
-
         final String storageAccountName = context.getProperty(STORAGE_ACCOUNT_NAME).evaluateAttributeExpressions().getValue();
         validateRequiredProperty(STORAGE_ACCOUNT_NAME, storageAccountName);
 
@@ -605,9 +595,9 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
         final EventProcessorOptions options = new EventProcessorOptions();
         final String initialOffset = context.getProperty(INITIAL_OFFSET).getValue();
         if (INITIAL_OFFSET_START_OF_STREAM.getValue().equals(initialOffset)) {
-            options.setInitialOffsetProvider(options.new StartOfStreamInitialOffsetProvider());
+            options.setInitialPositionProvider(options.new StartOfStreamInitialPositionProvider());
         } else if (INITIAL_OFFSET_END_OF_STREAM.getValue().equals(initialOffset)){
-            options.setInitialOffsetProvider(options.new EndOfStreamInitialOffsetProvider());
+            options.setInitialPositionProvider(options.new EndOfStreamInitialPositionProvider());
         } else {
             throw new IllegalArgumentException("Initial offset " + initialOffset + " is not allowed.");
         }
@@ -626,18 +616,30 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
                 .evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS);
         options.setReceiveTimeOut(Duration.ofMillis(receiveTimeoutMillis));
 
-        final String storageConnectionString = String.format(AzureStorageUtils.FORMAT_BLOB_CONNECTION_STRING, storageAccountName, storageAccountKey);
+        final String storageConnectionString = String.format(FORMAT_STORAGE_CONNECTION_STRING, storageAccountName, storageAccountKey);
 
-        final ConnectionStringBuilder eventHubConnectionString = new ConnectionStringBuilder(namespaceName, eventHubName, sasName, sasKey);
-
-        eventProcessorHost = new EventProcessorHost(consumerHostname, eventHubName, consumerGroupName, eventHubConnectionString.toString(), storageConnectionString, containerName);
+        final String connectionString;
+        final boolean useManagedIdentity = context.getProperty(USE_MANAGED_IDENTITY).asBoolean();
+        if(useManagedIdentity) {
+            connectionString = AzureEventHubUtils.getManagedIdentityConnectionString(namespaceName, eventHubName);
+        } else {
+            final String sasName = context.getProperty(ACCESS_POLICY_NAME).evaluateAttributeExpressions().getValue();
+            validateRequiredProperty(ACCESS_POLICY_NAME, sasName);
+            final String sasKey = context.getProperty(POLICY_PRIMARY_KEY).evaluateAttributeExpressions().getValue();
+            validateRequiredProperty(POLICY_PRIMARY_KEY, sasKey);
+            connectionString = AzureEventHubUtils.getSharedAccessSignatureConnectionString(namespaceName, eventHubName, sasName, sasKey);
+        }
+        eventProcessorHost = EventProcessorHost.EventProcessorHostBuilder
+                                .newBuilder(consumerHostname, consumerGroupName)
+                                .useAzureStorageCheckpointLeaseManager(storageConnectionString, containerName, null)
+                                .useEventHubConnectionString(connectionString, eventHubName)
+                                .build();
 
         options.setExceptionNotification(e -> {
             getLogger().error("An error occurred while receiving messages from Azure Event Hub {}" +
                             " at consumer group {} and partition {}, action={}, hostname={}, exception={}",
                     new Object[]{eventHubName, consumerGroupName, e.getPartitionId(), e.getAction(), e.getHostname()}, e.getException());
         });
-
 
         eventProcessorHost.registerEventProcessorFactory(new EventProcessorFactory(), options).get();
     }
@@ -651,5 +653,4 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
             throw new IllegalArgumentException(String.format("'%s' is required, but not specified.", property.getDisplayName()));
         }
     }
-
 }

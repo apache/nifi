@@ -17,6 +17,14 @@
 
 package org.apache.nifi.wali;
 
+import org.apache.nifi.stream.io.ByteCountingInputStream;
+import org.apache.nifi.stream.io.LimitingInputStream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.wali.SerDe;
+import org.wali.SerDeFactory;
+import org.wali.UpdateType;
+
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
@@ -31,23 +39,20 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.text.DecimalFormat;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-
-import org.apache.nifi.stream.io.ByteCountingInputStream;
-import org.apache.nifi.stream.io.LimitingInputStream;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.wali.SerDe;
-import org.wali.SerDeFactory;
-import org.wali.UpdateType;
+import java.util.UUID;
 
 public class LengthDelimitedJournal<T> implements WriteAheadJournal<T> {
     private static final Logger logger = LoggerFactory.getLogger(LengthDelimitedJournal.class);
+    private static final int DEFAULT_MAX_IN_HEAP_SERIALIZATION_BYTES = 5 * 1024 * 1024; // 5 MB
+
     private static final JournalSummary INACTIVE_JOURNAL_SUMMARY = new StandardJournalSummary(-1L, -1L, 0);
     private static final int JOURNAL_ENCODING_VERSION = 1;
     private static final byte TRANSACTION_FOLLOWS = 64;
@@ -55,9 +60,11 @@ public class LengthDelimitedJournal<T> implements WriteAheadJournal<T> {
     private static final int NUL_BYTE = 0;
 
     private final File journalFile;
+    private final File overflowDirectory;
     private final long initialTransactionId;
     private final SerDeFactory<T> serdeFactory;
     private final ObjectPool<ByteArrayDataOutputStream> streamPool;
+    private final int maxInHeapSerializationBytes;
 
     private SerDe<T> serde;
     private FileOutputStream fileOut;
@@ -67,18 +74,61 @@ public class LengthDelimitedJournal<T> implements WriteAheadJournal<T> {
     private int transactionCount;
     private boolean headerWritten = false;
 
-    private volatile boolean poisoned = false;
+    private volatile Throwable poisonCause = null;
     private volatile boolean closed = false;
     private final ByteBuffer transactionPreamble = ByteBuffer.allocate(12); // guarded by synchronized block
 
     public LengthDelimitedJournal(final File journalFile, final SerDeFactory<T> serdeFactory, final ObjectPool<ByteArrayDataOutputStream> streamPool, final long initialTransactionId) {
+        this(journalFile, serdeFactory, streamPool, initialTransactionId, DEFAULT_MAX_IN_HEAP_SERIALIZATION_BYTES);
+    }
+
+    public LengthDelimitedJournal(final File journalFile, final SerDeFactory<T> serdeFactory, final ObjectPool<ByteArrayDataOutputStream> streamPool, final long initialTransactionId,
+                                  final int maxInHeapSerializationBytes) {
         this.journalFile = journalFile;
+        this.overflowDirectory = new File(journalFile.getParentFile(), "overflow-" + getBaseFilename(journalFile));
         this.serdeFactory = serdeFactory;
         this.serde = serdeFactory.createSerDe(null);
         this.streamPool = streamPool;
 
         this.initialTransactionId = initialTransactionId;
         this.currentTransactionId = initialTransactionId;
+        this.maxInHeapSerializationBytes = maxInHeapSerializationBytes;
+    }
+
+    public void dispose() {
+        logger.debug("Deleting Journal {} because it is now encapsulated in the latest Snapshot", journalFile.getName());
+        if (!journalFile.delete() && journalFile.exists()) {
+            logger.warn("Unable to delete expired journal file " + journalFile + "; this file should be deleted manually.");
+        }
+
+        if (overflowDirectory.exists()) {
+            final File[] overflowFiles = overflowDirectory.listFiles();
+            if (overflowFiles == null) {
+                logger.warn("Unable to obtain listing of files that exist in 'overflow directory' " + overflowDirectory
+                    + " - this directory and any files within it can now be safely removed manually");
+                return;
+            }
+
+            for (final File overflowFile : overflowFiles) {
+                if (!overflowFile.delete() && overflowFile.exists()) {
+                    logger.warn("After expiring journal file " + journalFile + ", unable to remove 'overflow file' " + overflowFile + " - this file should be removed manually");
+                }
+            }
+
+            if (!overflowDirectory.delete()) {
+                logger.warn("After expiring journal file " + journalFile + ", unable to remove 'overflow directory' " + overflowDirectory + " - this file should be removed manually");
+            }
+        }
+    }
+
+    private static String getBaseFilename(final File file) {
+        final String name = file.getName();
+        final int index = name.lastIndexOf(".");
+        if (index < 0) {
+            return name;
+        }
+
+        return name.substring(0, index);
     }
 
     private synchronized OutputStream getOutputStream() throws FileNotFoundException {
@@ -90,6 +140,14 @@ public class LengthDelimitedJournal<T> implements WriteAheadJournal<T> {
         return bufferedOut;
     }
 
+    @Override
+    public synchronized boolean isHealthy() {
+        return !closed && !isPoisoned();
+    }
+
+    private boolean isPoisoned() {
+        return poisonCause != null;
+    }
 
     @Override
     public synchronized void writeHeader() throws IOException {
@@ -165,6 +223,11 @@ public class LengthDelimitedJournal<T> implements WriteAheadJournal<T> {
     }
 
 
+    // Visible/overrideable for testing.
+    protected void createOverflowDirectory(final Path path) throws IOException {
+        Files.createDirectories(path);
+    }
+
     @Override
     public void update(final Collection<T> records, final RecordLookup<T> recordLookup) throws IOException {
         if (!headerWritten) {
@@ -177,12 +240,64 @@ public class LengthDelimitedJournal<T> implements WriteAheadJournal<T> {
 
         checkState();
 
+        File overflowFile = null;
         final ByteArrayDataOutputStream bados = streamPool.borrowObject();
+
         try {
-            for (final T record : records) {
-                final Object recordId = serde.getRecordIdentifier(record);
-                final T previousRecordState = recordLookup.lookup(recordId);
-                serde.serializeEdit(previousRecordState, record, bados.getDataOutputStream());
+            FileOutputStream overflowFileOut = null;
+
+            try {
+                DataOutputStream dataOut = bados.getDataOutputStream();
+                for (final T record : records) {
+                    final Object recordId = serde.getRecordIdentifier(record);
+                    final T previousRecordState = recordLookup.lookup(recordId);
+                    serde.serializeEdit(previousRecordState, record, dataOut);
+
+                    final int size = bados.getByteArrayOutputStream().size();
+                    if (serde.isWriteExternalFileReferenceSupported() && size > maxInHeapSerializationBytes) {
+                        if (!overflowDirectory.exists()) {
+                            createOverflowDirectory(overflowDirectory.toPath());
+                        }
+
+                        // If we have exceeded our threshold for how much to serialize in memory,
+                        // flush the in-memory representation to an 'overflow file' and then update
+                        // the Data Output Stream that is used to write to the file also.
+                        overflowFile = new File(overflowDirectory, UUID.randomUUID().toString());
+                        logger.debug("Length of update with {} records exceeds in-memory max of {} bytes. Overflowing to {}", records.size(), maxInHeapSerializationBytes, overflowFile);
+
+                        overflowFileOut = new FileOutputStream(overflowFile);
+                        bados.getByteArrayOutputStream().writeTo(overflowFileOut);
+                        bados.getByteArrayOutputStream().reset();
+
+                        // change dataOut to point to the File's Output Stream so that all subsequent records are written to the file.
+                        dataOut = new DataOutputStream(new BufferedOutputStream(overflowFileOut));
+
+                        // We now need to write to the ByteArrayOutputStream a pointer to the overflow file
+                        // so that what is written to the actual journal is that pointer.
+                        serde.writeExternalFileReference(overflowFile, bados.getDataOutputStream());
+                    }
+                }
+
+                dataOut.flush();
+
+                // If we overflowed to an external file, we need to be sure that we sync to disk before
+                // updating the Journal. Otherwise, we could get to a state where the Journal was flushed to disk without the
+                // external file being flushed. This would result in a missed update to the FlowFile Repository.
+                if (overflowFileOut != null) {
+                    if (logger.isDebugEnabled()) { // avoid calling File.length() if not necessary
+                        logger.debug("Length of update to overflow file is {} bytes", overflowFile.length());
+                    }
+
+                    overflowFileOut.getFD().sync();
+                }
+            } finally {
+                if (overflowFileOut != null) {
+                    try {
+                        overflowFileOut.close();
+                    } catch (final Exception e) {
+                        logger.warn("Failed to close open file handle to overflow file {}", overflowFile, e);
+                    }
+                }
             }
 
             final ByteArrayOutputStream baos = bados.getByteArrayOutputStream();
@@ -190,33 +305,53 @@ public class LengthDelimitedJournal<T> implements WriteAheadJournal<T> {
 
             final long transactionId;
             synchronized (this) {
-                transactionId = currentTransactionId++;
-                transactionCount++;
+                checkState();
 
-                transactionPreamble.clear();
-                transactionPreamble.putLong(transactionId);
-                transactionPreamble.putInt(baos.size());
+                try {
+                    transactionId = currentTransactionId++;
+                    transactionCount++;
 
-                out.write(TRANSACTION_FOLLOWS);
-                out.write(transactionPreamble.array());
-                baos.writeTo(out);
-                out.flush();
+                    transactionPreamble.clear();
+                    transactionPreamble.putLong(transactionId);
+                    transactionPreamble.putInt(baos.size());
+
+                    out.write(TRANSACTION_FOLLOWS);
+                    out.write(transactionPreamble.array());
+                    baos.writeTo(out);
+                    out.flush();
+                } catch (final Throwable t) {
+                    // While the outter Throwable that wraps this "catch" will call Poison, it is imperative that we call poison()
+                    // before the synchronized block is excited. Otherwise, another thread could potentially corrupt the journal before
+                    // the poison method closes the file.
+                    poison(t);
+                    throw t;
+                }
             }
 
             logger.debug("Wrote Transaction {} to journal {} with length {} and {} records", transactionId, journalFile, baos.size(), records.size());
         } catch (final Throwable t) {
             poison(t);
+
+            if (overflowFile != null) {
+                if (!overflowFile.delete() && overflowFile.exists()) {
+                    logger.warn("Failed to cleanup temporary overflow file " + overflowFile + " - this file should be cleaned up manually.");
+                }
+            }
+
             throw t;
         } finally {
             streamPool.returnObject(bados);
         }
     }
 
+
     private void checkState() throws IOException {
-        if (poisoned) {
+        final Throwable cause = this.poisonCause;
+        if (cause != null) {
+            logger.debug("Cannot update Write Ahead Log because the log has already been poisoned", cause);
             throw new IOException("Cannot update journal file " + journalFile + " because this journal has already encountered a failure when attempting to write to the file. "
                 + "If the repository is able to checkpoint, then this problem will resolve itself. However, if the repository is unable to be checkpointed "
-                + "(for example, due to being out of storage space or having too many open files), then this issue may require manual intervention.");
+                + "(for example, due to being out of storage space or having too many open files), then this issue may require manual intervention.", cause);
         }
 
         if (closed) {
@@ -224,8 +359,10 @@ public class LengthDelimitedJournal<T> implements WriteAheadJournal<T> {
         }
     }
 
-    private void poison(final Throwable t) {
-        this.poisoned = true;
+    protected void poison(final Throwable t) {
+        this.poisonCause = t;
+
+        logger.error("Marking Write-Ahead journal file {} as poisoned due to {}", journalFile, t, t);
 
         try {
             if (fileOut != null) {
@@ -261,7 +398,7 @@ public class LengthDelimitedJournal<T> implements WriteAheadJournal<T> {
 
         try {
             if (fileOut != null) {
-                if (!poisoned) {
+                if (!isPoisoned()) {
                     fileOut.write(JOURNAL_COMPLETE);
                 }
 
@@ -331,7 +468,7 @@ public class LengthDelimitedJournal<T> implements WriteAheadJournal<T> {
                     final ByteCountingInputStream transactionByteCountingIn = new ByteCountingInputStream(transactionLimitingIn);
                     final DataInputStream transactionDis = new DataInputStream(transactionByteCountingIn);
 
-                    while (transactionByteCountingIn.getBytesConsumed() < transactionLength) {
+                    while (transactionByteCountingIn.getBytesConsumed() < transactionLength || serde.isMoreInExternalFile()) {
                         final T record = serde.deserializeEdit(transactionDis, recordMap, serdeAndVersion.getVersion());
 
                         // Update our RecordMap so that we have the most up-to-date version of the Record.

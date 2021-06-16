@@ -20,6 +20,7 @@ import com.amazonaws.AmazonWebServiceClient;
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.Protocol;
 import com.amazonaws.auth.AWSCredentials;
+import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.AnonymousAWSCredentials;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.auth.PropertiesCredentials;
@@ -37,6 +38,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import javax.net.ssl.SSLContext;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.conn.ssl.DefaultHostnameVerifier;
@@ -53,9 +56,9 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors;
-import org.apache.nifi.processors.aws.regions.AWSRegions;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxySpec;
+import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.ssl.SSLContextService;
 
 /**
@@ -156,11 +159,11 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
     private static final ProxySpec[] PROXY_SPECS = {ProxySpec.HTTP_AUTH};
     public static final PropertyDescriptor PROXY_CONFIGURATION_SERVICE = ProxyConfiguration.createProxyConfigPropertyDescriptor(true, PROXY_SPECS);
 
-    protected static AllowableValue createAllowableValue(final Regions region) {
-        return new AllowableValue(region.getName(), AWSRegions.getRegionDisplayName(region.getName()));
+    public static AllowableValue createAllowableValue(final Regions region) {
+        return new AllowableValue(region.getName(), region.getDescription(), "AWS Region Code : " + region.getName());
     }
 
-    protected static AllowableValue[] getAvailableRegions() {
+    public static AllowableValue[] getAvailableRegions() {
         final List<AllowableValue> values = new ArrayList<>();
         for (final Regions region : Regions.values()) {
             values.add(createAllowableValue(region));
@@ -224,7 +227,7 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
         if(this.getSupportedPropertyDescriptors().contains(SSL_CONTEXT_SERVICE)) {
             final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
             if (sslContextService != null) {
-                final SSLContext sslContext = sslContextService.createSSLContext(SSLContextService.ClientAuth.NONE);
+                final SSLContext sslContext = sslContextService.createSSLContext(SslContextFactory.ClientAuth.NONE);
                 // NIFI-3788: Changed hostnameVerifier from null to DHV (BrowserCompatibleHostnameVerifier is deprecated)
                 SdkTLSSocketFactory sdkTLSSocketFactory = new SdkTLSSocketFactory(sslContext, new DefaultHostnameVerifier());
                 config.getApacheHttpClientConfig().setSslSocketFactory(sdkTLSSocketFactory);
@@ -284,10 +287,40 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
         // (per Amazon docs this should only be configured at client creation)
         if (getSupportedPropertyDescriptors().contains(ENDPOINT_OVERRIDE)) {
             final String urlstr = StringUtils.trimToEmpty(context.getProperty(ENDPOINT_OVERRIDE).evaluateAttributeExpressions().getValue());
+
             if (!urlstr.isEmpty()) {
                 getLogger().info("Overriding endpoint with {}", new Object[]{urlstr});
-                this.client.setEndpoint(urlstr);
+
+                if (urlstr.endsWith(".vpce.amazonaws.com")) {
+                    String region = parseRegionForVPCE(urlstr);
+                    this.client.setEndpoint(urlstr, this.client.getServiceName(), region);
+                } else {
+                    this.client.setEndpoint(urlstr);
+                }
             }
+        }
+    }
+
+    /*
+    Note to developer(s):
+        When setting an endpoint for an AWS Client i.e. client.setEndpoint(endpointUrl),
+        AWS Java SDK fails to parse the region correctly when the provided endpoint
+        is an AWS PrivateLink so this method does the job of parsing the region name and
+        returning it.
+
+        Refer NIFI-5456 & NIFI-5893
+     */
+    private String parseRegionForVPCE(String url) {
+        int index = url.length() - ".vpce.amazonaws.com".length();
+
+        Pattern VPCE_ENDPOINT_PATTERN = Pattern.compile("^(?:.+[vpce-][a-z0-9-]+\\.)?([a-z0-9-]+)$");
+        Matcher matcher = VPCE_ENDPOINT_PATTERN.matcher(url.substring(0, index));
+
+        if (matcher.matches()) {
+            return matcher.group(1);
+        } else {
+            getLogger().warn("Unable to get a match with the VPCE endpoint pattern; defaulting the region to us-east-1...");
+            return "us-east-1";
         }
     }
 

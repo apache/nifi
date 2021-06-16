@@ -28,6 +28,7 @@
                 'nf.Client',
                 'nf.ErrorHandler',
                 'nf.Clipboard',
+                'nf.ParameterContexts',
                 'nf.Snippet',
                 'nf.GoTo',
                 'nf.ng.Bridge',
@@ -57,8 +58,8 @@
                 'nf.ComponentVersion',
                 'nf.QueueListing',
                 'nf.StatusHistory'],
-            function ($, d3, nfCanvasUtils, nfCommon, nfDialog, nfStorage, nfClient, nfErrorHandler, nfClipboard, nfSnippet, nfGoto, nfNgBridge, nfShell, nfVariableRegistry, nfComponentState, nfFlowVersion, nfDraggable, nfBirdseye, nfConnection, nfGraph, nfProcessGroupConfiguration, nfProcessorConfiguration, nfProcessorDetails, nfLabelConfiguration, nfRemoteProcessGroupConfiguration, nfRemoteProcessGroupDetails, nfPortConfiguration, nfPortDetails, nfConnectionConfiguration, nfConnectionDetails, nfPolicyManagement, nfRemoteProcessGroup, nfLabel, nfProcessor, nfRemoteProcessGroupPorts, nfComponentVersion, nfQueueListing, nfStatusHistory) {
-                return (nf.Actions = factory($, d3, nfCanvasUtils, nfCommon, nfDialog, nfStorage, nfClient, nfErrorHandler, nfClipboard, nfSnippet, nfGoto, nfNgBridge, nfShell, nfVariableRegistry, nfComponentState, nfFlowVersion, nfDraggable, nfBirdseye, nfConnection, nfGraph, nfProcessGroupConfiguration, nfProcessorConfiguration, nfProcessorDetails, nfLabelConfiguration, nfRemoteProcessGroupConfiguration, nfRemoteProcessGroupDetails, nfPortConfiguration, nfPortDetails, nfConnectionConfiguration, nfConnectionDetails, nfPolicyManagement, nfRemoteProcessGroup, nfLabel, nfProcessor, nfRemoteProcessGroupPorts, nfComponentVersion, nfQueueListing, nfStatusHistory));
+            function ($, d3, nfCanvasUtils, nfCommon, nfDialog, nfStorage, nfClient, nfErrorHandler, nfClipboard, nfParameterContexts, nfSnippet, nfGoto, nfNgBridge, nfShell, nfVariableRegistry, nfComponentState, nfFlowVersion, nfDraggable, nfBirdseye, nfConnection, nfGraph, nfProcessGroupConfiguration, nfProcessorConfiguration, nfProcessorDetails, nfLabelConfiguration, nfRemoteProcessGroupConfiguration, nfRemoteProcessGroupDetails, nfPortConfiguration, nfPortDetails, nfConnectionConfiguration, nfConnectionDetails, nfPolicyManagement, nfRemoteProcessGroup, nfLabel, nfProcessor, nfRemoteProcessGroupPorts, nfComponentVersion, nfQueueListing, nfStatusHistory) {
+                return (nf.Actions = factory($, d3, nfCanvasUtils, nfCommon, nfDialog, nfStorage, nfClient, nfErrorHandler, nfClipboard, nfParameterContexts, nfSnippet, nfGoto, nfNgBridge, nfShell, nfVariableRegistry, nfComponentState, nfFlowVersion, nfDraggable, nfBirdseye, nfConnection, nfGraph, nfProcessGroupConfiguration, nfProcessorConfiguration, nfProcessorDetails, nfLabelConfiguration, nfRemoteProcessGroupConfiguration, nfRemoteProcessGroupDetails, nfPortConfiguration, nfPortDetails, nfConnectionConfiguration, nfConnectionDetails, nfPolicyManagement, nfRemoteProcessGroup, nfLabel, nfProcessor, nfRemoteProcessGroupPorts, nfComponentVersion, nfQueueListing, nfStatusHistory));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.Actions =
@@ -71,6 +72,7 @@
                 require('nf.Client'),
                 require('nf.ErrorHandler'),
                 require('nf.Clipboard'),
+                require('nf.ParameterContexts'),
                 require('nf.Snippet'),
                 require('nf.GoTo'),
                 require('nf.ng.Bridge'),
@@ -110,6 +112,7 @@
             root.nf.Client,
             root.nf.ErrorHandler,
             root.nf.Clipboard,
+            root.nf.ParameterContexts,
             root.nf.Snippet,
             root.nf.GoTo,
             root.nf.ng.Bridge,
@@ -140,13 +143,15 @@
             root.nf.QueueListing,
             root.nf.StatusHistory);
     }
-}(this, function ($, d3, nfCanvasUtils, nfCommon, nfDialog, nfStorage, nfClient, nfErrorHandler, nfClipboard, nfSnippet, nfGoto, nfNgBridge, nfShell, nfVariableRegistry, nfComponentState, nfFlowVersion, nfDraggable, nfBirdseye, nfConnection, nfGraph, nfProcessGroupConfiguration, nfProcessorConfiguration, nfProcessorDetails, nfLabelConfiguration, nfRemoteProcessGroupConfiguration, nfRemoteProcessGroupDetails, nfPortConfiguration, nfPortDetails, nfConnectionConfiguration, nfConnectionDetails, nfPolicyManagement, nfRemoteProcessGroup, nfLabel, nfProcessor, nfRemoteProcessGroupPorts, nfComponentVersion, nfQueueListing, nfStatusHistory) {
+}(this, function ($, d3, nfCanvasUtils, nfCommon, nfDialog, nfStorage, nfClient, nfErrorHandler, nfClipboard, nfParameterContexts, nfSnippet, nfGoto, nfNgBridge, nfShell, nfVariableRegistry, nfComponentState, nfFlowVersion, nfDraggable, nfBirdseye, nfConnection, nfGraph, nfProcessGroupConfiguration, nfProcessorConfiguration, nfProcessorDetails, nfLabelConfiguration, nfRemoteProcessGroupConfiguration, nfRemoteProcessGroupDetails, nfPortConfiguration, nfPortDetails, nfConnectionConfiguration, nfConnectionDetails, nfPolicyManagement, nfRemoteProcessGroup, nfLabel, nfProcessor, nfRemoteProcessGroupPorts, nfComponentVersion, nfQueueListing, nfStatusHistory) {
     'use strict';
 
     var config = {
         urls: {
             api: '../nifi-api',
-            controller: '../nifi-api/controller'
+            controller: '../nifi-api/controller',
+            parameterContexts: '../nifi-api/parameter-contexts',
+            downloadToken: '../nifi-api/access/download-token'
         }
     };
 
@@ -534,13 +539,10 @@
                                 'state': 'ENABLED'
                             }
                         } else {
-                            uri = d.uri;
+                            uri = d.uri + '/run-status';
                             entity = {
                                 'revision': nfClient.getRevision(d),
-                                'component': {
-                                    'id': d.id,
-                                    'state': 'STOPPED'
-                                }
+                                'state': 'STOPPED'
                             };
                         }
 
@@ -596,13 +598,10 @@
                                 'state': 'DISABLED'
                             }
                         } else {
-                            uri = d.uri;
+                            uri = d.uri + "/run-status";
                             entity = {
                                 'revision': nfClient.getRevision(d),
-                                'component': {
-                                     'id': d.id,
-                                    'state': 'DISABLED'
-                                }
+                                'state': 'DISABLED'
                             };
                         }
 
@@ -677,13 +676,10 @@
                                 'state': 'RUNNING'
                             }
                         } else {
-                            uri = d.uri;
+                            uri = d.uri + '/run-status';
                             entity = {
                                 'revision': nfClient.getRevision(d),
-                                'component': {
-                                    'id': d.id,
-                                    'state': 'RUNNING'
-                                }
+                                'state': 'RUNNING'
                             };
                         }
 
@@ -710,8 +706,9 @@
          * Stops the components in the specified selection.
          *
          * @argument {selection} selection      The selection
+         * @argument {cb} callback              The function to call when request is processed
          */
-        stop: function (selection) {
+        stop: function (selection,cb) {
             if (selection.empty()) {
                 // build the entity
                 var entity = {
@@ -742,13 +739,10 @@
                                 'state': 'STOPPED'
                             };
                         } else {
-                            uri = d.uri;
+                            uri = d.uri + '/run-status';
                             entity = {
                                 'revision': nfClient.getRevision(d),
-                                'component': {
-                                    'id': d.id,
-                                    'state': 'STOPPED'
-                                }
+                                'state': 'STOPPED'
                             };
                         }
 
@@ -765,18 +759,41 @@
                     if (stopRequests.length > 0) {
                         $.when.apply(window, stopRequests).always(function () {
                             nfNgBridge.digest();
+                            if(typeof cb == 'function'){
+                                cb();
+                            }
                         });
+                    } else if(typeof cb == 'function'){
+                         cb();
                     }
                 }
             }
         },
 
         /**
+         * Stops the component and displays the processor configuration dialog
+         *
+         * @param {selection} selection      The selection
+         * @param {cb} callback              The function to call when complete
+         */
+        stopAndConfigure: function (selection,cb) {
+            if(selection.size() === 1 &&
+                nfCanvasUtils.isProcessor(selection) &&
+                nfCanvasUtils.canModify(selection)){
+
+                nfActions.stop(selection,function(){
+                    nfProcessorConfiguration.showConfiguration(selection,cb);
+                });
+            }
+        },
+
+        /**
          * Terminates active threads for the selected component.
          *
-         * @param {selection} selection
+         * @param {selection}       selection
+         * @param {cb} callback     The function to call when complete
          */
-        terminate: function (selection) {
+        terminate: function (selection,cb) {
             if (selection.size() === 1 && nfCanvasUtils.isProcessor(selection)) {
                 var selectionData = selection.datum();
 
@@ -786,6 +803,9 @@
                     dataType: 'json'
                 }).done(function (response) {
                     nfProcessor.set(response);
+                    if(typeof cb == 'function'){
+                        cb();
+                    }
                 }).fail(nfErrorHandler.handleAjaxError);
             }
         },
@@ -805,14 +825,11 @@
                 // build the entity
                 var entity = {
                     'revision': nfClient.getRevision(d),
-                    'component': {
-                        'id': d.id,
-                        'transmitting': true
-                    }
+                    'state': 'TRANSMITTING'
                 };
 
                 // start transmitting
-                updateResource(d.uri, entity).done(function (response) {
+                updateResource(d.uri + '/run-status', entity).done(function (response) {
                     nfRemoteProcessGroup.set(response);
                 });
             });
@@ -833,13 +850,10 @@
                 // build the entity
                 var entity = {
                     'revision': nfClient.getRevision(d),
-                    'component': {
-                        'id': d.id,
-                        'transmitting': false
-                    }
+                    'state': 'STOPPED'
                 };
 
-                updateResource(d.uri, entity).done(function (response) {
+                updateResource(d.uri + '/run-status', entity).done(function (response) {
                     nfRemoteProcessGroup.set(response);
                 });
             });
@@ -849,14 +863,15 @@
          * Shows the configuration dialog for the specified selection.
          *
          * @param {selection} selection     Selection of the component to be configured
+         * @param {fn} callback             Callback
          */
-        showConfiguration: function (selection) {
+        showConfiguration: function (selection,cb) {
             if (selection.empty()) {
                 nfProcessGroupConfiguration.showConfiguration(nfCanvasUtils.getGroupId());
             } else if (selection.size() === 1) {
                 var selectionData = selection.datum();
                 if (nfCanvasUtils.isProcessor(selection)) {
-                    nfProcessorConfiguration.showConfiguration(selection);
+                    nfProcessorConfiguration.showConfiguration(selection,cb);
                 } else if (nfCanvasUtils.isLabel(selection)) {
                     nfLabelConfiguration.showConfiguration(selection);
                 } else if (nfCanvasUtils.isProcessGroup(selection)) {
@@ -889,7 +904,11 @@
             } else if (selection.size() === 1) {
                 var selectionData = selection.datum();
                 if (nfCanvasUtils.isProcessor(selection)) {
-                    nfProcessorDetails.showDetails(nfCanvasUtils.getGroupId(), selectionData.id);
+                    if(!nfCanvasUtils.isStoppable(selection) && nfCanvasUtils.canModify(selection)){
+                        nfProcessorConfiguration.showConfiguration(selection);
+                    } else {
+                        nfProcessorDetails.showDetails(nfCanvasUtils.getGroupId(), selectionData.id);
+                    }
                 } else if (nfCanvasUtils.isProcessGroup(selection)) {
                     nfProcessGroupConfiguration.showConfiguration(selectionData.id);
                 } else if (nfCanvasUtils.isRemoteProcessGroup(selection)) {
@@ -954,9 +973,7 @@
          * Reloads the status for the entire canvas (components and flow.)
          */
         reload: function () {
-            nfCanvasUtils.reload({
-                'transition': true
-            });
+            nfCanvasUtils.reload();
         },
 
         /**
@@ -1292,13 +1309,35 @@
          */
         saveFlowVersion: function (selection) {
             if (selection.empty()) {
-                nfFlowVersion.showFlowVersionDialog(nfCanvasUtils.getGroupId());
+                nfFlowVersion.showFlowVersionDialog(nfCanvasUtils.getGroupId(), 'COMMIT');
             } else if (selection.size() === 1) {
                 var selectionData = selection.datum();
                 if (nfCanvasUtils.isProcessGroup(selection)) {
-                    nfFlowVersion.showFlowVersionDialog(selectionData.id);
+                    nfFlowVersion.showFlowVersionDialog(selectionData.id, 'COMMIT');
                 }
             }
+        },
+
+        /**
+         * Confirms force save and shows the flow version dialog.
+         */
+        forceSaveFlowVersion: function (selection) {
+            nfDialog.showYesNoDialog({
+                headerText: 'Commit',
+                dialogContent: 'Committing will ignore available upgrades and commit local changes as the next version. Are you sure you want to proceed?',
+                noText: 'Cancel',
+                yesText: 'Yes',
+                yesHandler: function () {
+                    if (selection.empty()) {
+                        nfFlowVersion.showFlowVersionDialog(nfCanvasUtils.getGroupId(),'FORCE_COMMIT');
+                    } else if (selection.size() === 1) {
+                        var selectionData = selection.datum();
+                        if (nfCanvasUtils.isProcessGroup(selection)) {
+                            nfFlowVersion.showFlowVersionDialog(selectionData.id, 'FORCE_COMMIT');
+                        }
+                    };
+                }
+            });
         },
 
         /**
@@ -1340,6 +1379,45 @@
         },
 
         /**
+         * Downloads the current flow
+         */
+        downloadFlow: function (selection) {
+            var processGroupId = null;
+
+            if (selection.empty()) {
+                processGroupId = nfCanvasUtils.getGroupId();
+            } else if (selection.size() === 1) {
+                var selectionData = selection.datum();
+                if (nfCanvasUtils.isProcessGroup(selection)) {
+                    processGroupId = selectionData.id;
+                }
+            }
+
+            if (processGroupId !== null) {
+                nfCommon.getAccessToken(config.urls.downloadToken).done(function (downloadToken) {
+                    var parameters = {};
+
+                    // conditionally include the download token
+                    if (!nfCommon.isBlank(downloadToken)) {
+                        parameters['access_token'] = downloadToken;
+                    }
+
+                    // open the url
+                    var uri = '../nifi-api/process-groups/' + encodeURIComponent(processGroupId) + '/download';
+                    if (!$.isEmptyObject(parameters)) {
+                        uri += ('?' + $.param(parameters));
+                    }
+                    window.open(uri);
+                }).fail(function () {
+                    nfDialog.showOkDialog({
+                        headerText: 'Download Flow',
+                        dialogContent: 'Unable to generate access token for downloading content.'
+                    });
+                });
+            }
+        },
+
+        /**
          * Disconnects a Process Group from flow versioning.
          */
         stopVersionControl: function (selection) {
@@ -1364,6 +1442,28 @@
                 if (nfCanvasUtils.isProcessGroup(selection)) {
                     nfVariableRegistry.showVariables(selectionData.id);
                 }
+            }
+        },
+
+        /**
+         * Opens the parameter context for the specified selection of the current group if the selection is empty.
+         *
+         * @param {selection} selection
+         */
+        openParameterContext: function (selection) {
+            var parameterContext;
+
+            if (selection.empty()) {
+                parameterContext = nfCanvasUtils.getParameterContext();
+            } else if (selection.size() === 1) {
+                if (nfCanvasUtils.isProcessGroup(selection)) {
+                    var pg = selection.datum();
+                    parameterContext = pg.parameterContext;
+                }
+            }
+
+            if (nfCommon.isDefinedAndNotNull(parameterContext)) {
+                nfParameterContexts.showParameterContext(parameterContext.id);
             }
         },
 
@@ -1660,8 +1760,8 @@
                         // ensure the template name is not blank
                         if (nfCommon.isBlank(templateName)) {
                             nfDialog.showOkDialog({
-                                headerText: 'Create Template',
-                                dialogContent: "The template name cannot be blank."
+                                headerText: 'Configuration Error',
+                                dialogContent: "The name of the template must be specified."
                             });
                             return;
                         }
@@ -1740,12 +1840,14 @@
 
             // determine the origin of the bounding box of the selection
             var origin = nfCanvasUtils.getOrigin(selection);
+            var selectionDimensions = nfCanvasUtils.getSelectionBoundingClientRect(selection);
 
             // copy the snippet details
             var parentGroupId = nfCanvasUtils.getGroupId();
             nfClipboard.copy({
                 snippet: nfSnippet.marshal(selection, parentGroupId),
-                origin: origin
+                origin: origin,
+                dimensions: selectionDimensions
             });
         },
 
@@ -1789,12 +1891,28 @@
                         // determine the origin of the bounding box of the copy
                         var origin = pasteLocation;
                         var snippetOrigin = data['origin'];
+                        var dimensions = data['dimensions'];
 
                         // determine the appropriate origin
                         if (!nfCommon.isDefinedAndNotNull(origin)) {
-                            snippetOrigin.x += 25;
-                            snippetOrigin.y += 25;
-                            origin = snippetOrigin;
+                            // if the copied item(s) are from a different group or the origin item is not in the viewport, center the pasted item(s)
+                            if (nfCanvasUtils.getGroupId() !== data['snippet'].parentGroupId || !nfCanvasUtils.isBoundingBoxInViewport(dimensions, false)) {
+                                var scale = nfCanvasUtils.getCanvasScale();
+
+                                // put it in the center of the screen
+                                var center = nfCanvasUtils.getCenterForBoundingBox(dimensions);
+                                var translate = nfCanvasUtils.getCanvasTranslate();
+                                origin = {
+                                    x: center[0] - (translate[0] / scale),
+                                    y: center[1] - (translate[1] / scale)
+                                };
+
+                            } else {
+                                // paste it just offset from the original
+                                snippetOrigin.x += 25;
+                                snippetOrigin.y += 25;
+                                origin = snippetOrigin;
+                            }
                         }
 
                         // copy the snippet to the new location

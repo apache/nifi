@@ -17,16 +17,17 @@
 
 package org.apache.nifi.provenance.store;
 
-import java.io.Closeable;
-import java.io.IOException;
-import java.util.List;
-import java.util.Optional;
-
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.authorization.EventAuthorizer;
 import org.apache.nifi.provenance.authorization.EventTransformer;
 import org.apache.nifi.provenance.index.EventIndex;
 import org.apache.nifi.provenance.serialization.StorageSummary;
+import org.apache.nifi.provenance.store.iterator.EventIterator;
+
+import java.io.Closeable;
+import java.io.IOException;
+import java.util.List;
+import java.util.Optional;
 
 /**
  * <p>
@@ -120,4 +121,14 @@ public interface EventStore extends Closeable {
      * @param eventIndex the EventIndex to use for indexing events
      */
     void reindexLatestEvents(EventIndex eventIndex);
+
+    /**
+     * Returns an EventIterator that can be used to iterate over all events whose timestamp fall between the given time range.
+     * @param minTimestamp the minimum timestamp
+     * @param maxTimestamp the maximum timestamp
+     *
+     * @return an EventIterator that includes the events in the given time window
+     * @throws IOException if unable to retrieve records from the store
+     */
+    EventIterator getEventsByTimestamp(long minTimestamp, long maxTimestamp) throws IOException;
 }

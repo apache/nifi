@@ -48,8 +48,8 @@ import static org.apache.nifi.web.api.dto.DtoFactory.SENSITIVE_VALUE_MASK;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -101,7 +101,7 @@ public class TestRemoteProcessGroupAuditor {
         final AuditService auditService = mock(AuditService.class);
         final AtomicReference<Collection<Action>> addedActions = new AtomicReference<>();
         doAnswer(invocation -> {
-            Collection<Action> actions = invocation.getArgumentAt(0, Collection.class);
+            Collection<Action> actions = invocation.getArgument(0);
             addedActions.set(actions);
             return null;
         }).when(auditService).addActions(any());
@@ -450,7 +450,7 @@ public class TestRemoteProcessGroupAuditor {
         final AuditService auditService = mock(AuditService.class);
         final AtomicReference<Collection<Action>> addedActions = new AtomicReference<>();
         doAnswer(invocation -> {
-            Collection<Action> actions = invocation.getArgumentAt(0, Collection.class);
+            Collection<Action> actions = invocation.getArgument(0);
             addedActions.set(actions);
             return null;
         }).when(auditService).addActions(any());

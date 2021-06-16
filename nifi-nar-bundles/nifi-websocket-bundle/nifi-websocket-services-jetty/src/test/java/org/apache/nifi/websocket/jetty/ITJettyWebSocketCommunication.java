@@ -38,9 +38,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeFalse;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyInt;
-import static org.mockito.Matchers.anyString;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
@@ -266,7 +266,7 @@ public class ITJettyWebSocketCommunication {
     }
 
     protected Object assertConnectedEvent(CountDownLatch latch, AtomicReference<String> sessionIdRef, InvocationOnMock invocation) {
-        final WebSocketSessionInfo sessionInfo = invocation.getArgumentAt(0, WebSocketSessionInfo.class);
+        final WebSocketSessionInfo sessionInfo = invocation.getArgument(0);
         assertNotNull(sessionInfo.getLocalAddress());
         assertNotNull(sessionInfo.getRemoteAddress());
         assertNotNull(sessionInfo.getSessionId());
@@ -277,13 +277,13 @@ public class ITJettyWebSocketCommunication {
     }
 
     protected Object assertConsumeTextMessage(CountDownLatch latch, String expectedMessage, InvocationOnMock invocation) {
-        final WebSocketSessionInfo sessionInfo = invocation.getArgumentAt(0, WebSocketSessionInfo.class);
+        final WebSocketSessionInfo sessionInfo = invocation.getArgument(0);
         assertNotNull(sessionInfo.getLocalAddress());
         assertNotNull(sessionInfo.getRemoteAddress());
         assertNotNull(sessionInfo.getSessionId());
         assertEquals(isSecure(), sessionInfo.isSecure());
 
-        final String receivedMessage = invocation.getArgumentAt(1, String.class);
+        final String receivedMessage = invocation.getArgument(1);
         assertNotNull(receivedMessage);
         assertEquals(expectedMessage, receivedMessage);
         latch.countDown();
@@ -291,16 +291,16 @@ public class ITJettyWebSocketCommunication {
     }
 
     protected Object assertConsumeBinaryMessage(CountDownLatch latch, String expectedMessage, InvocationOnMock invocation) {
-        final WebSocketSessionInfo sessionInfo = invocation.getArgumentAt(0, WebSocketSessionInfo.class);
+        final WebSocketSessionInfo sessionInfo = invocation.getArgument(0);
         assertNotNull(sessionInfo.getLocalAddress());
         assertNotNull(sessionInfo.getRemoteAddress());
         assertNotNull(sessionInfo.getSessionId());
         assertEquals(isSecure(), sessionInfo.isSecure());
 
-        final byte[] receivedMessage = invocation.getArgumentAt(1, byte[].class);
+        final byte[] receivedMessage = invocation.getArgument(1);
         final byte[] expectedBinary = expectedMessage.getBytes();
-        final int offset = invocation.getArgumentAt(2, Integer.class);
-        final int length = invocation.getArgumentAt(3, Integer.class);
+        final int offset = invocation.getArgument(2);
+        final int length = invocation.getArgument(3);
         assertNotNull(receivedMessage);
         assertEquals(expectedBinary.length, receivedMessage.length);
         assertEquals(expectedMessage, new String(receivedMessage));

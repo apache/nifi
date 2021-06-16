@@ -16,13 +16,46 @@
  */
 package org.apache.nifi.processors.standard.util;
 
+import java.io.File;
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import org.apache.nifi.processor.util.list.ListableEntity;
+import org.apache.nifi.serialization.SimpleRecordSchema;
+import org.apache.nifi.serialization.record.MapRecord;
+import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordField;
+import org.apache.nifi.serialization.record.RecordFieldType;
+import org.apache.nifi.serialization.record.RecordSchema;
 
 public class FileInfo implements Comparable<FileInfo>, Serializable, ListableEntity {
-
     private static final long serialVersionUID = 1L;
+
+    private static final RecordSchema SCHEMA;
+    private static final String FILENAME = "filename";
+    private static final String PATH = "path";
+    private static final String DIRECTORY = "directory";
+    private static final String SIZE = "size";
+    private static final String LAST_MODIFIED = "lastModified";
+    private static final String PERMISSIONS = "permissions";
+    private static final String OWNER = "owner";
+    private static final String GROUP = "group";
+
+    static {
+        final List<RecordField> recordFields = new ArrayList<>();
+        recordFields.add(new RecordField(FILENAME, RecordFieldType.STRING.getDataType(), false));
+        recordFields.add(new RecordField(PATH, RecordFieldType.STRING.getDataType(), false));
+        recordFields.add(new RecordField(DIRECTORY, RecordFieldType.BOOLEAN.getDataType(), false));
+        recordFields.add(new RecordField(SIZE, RecordFieldType.LONG.getDataType(), false));
+        recordFields.add(new RecordField(LAST_MODIFIED, RecordFieldType.TIMESTAMP.getDataType(), false));
+        recordFields.add(new RecordField(PERMISSIONS, RecordFieldType.STRING.getDataType()));
+        recordFields.add(new RecordField(OWNER, RecordFieldType.STRING.getDataType()));
+        recordFields.add(new RecordField(GROUP, RecordFieldType.STRING.getDataType()));
+        SCHEMA = new SimpleRecordSchema(recordFields);
+    }
 
     private final boolean directory;
     private final long size;
@@ -63,6 +96,23 @@ public class FileInfo implements Comparable<FileInfo>, Serializable, ListableEnt
 
     public String getGroup() {
         return group;
+    }
+
+    public Record toRecord() {
+        final Map<String, Object> values = new HashMap<>(8);
+        values.put(FILENAME, getFileName());
+        values.put(PATH, new File(getFullPathFileName()).getParent());
+        values.put(DIRECTORY, isDirectory());
+        values.put(SIZE, getSize());
+        values.put(LAST_MODIFIED, getLastModifiedTime());
+        values.put(PERMISSIONS, getPermissions());
+        values.put(OWNER, getOwner());
+        values.put(GROUP, getGroup());
+        return new MapRecord(SCHEMA, values);
+    }
+
+    public static RecordSchema getRecordSchema() {
+        return SCHEMA;
     }
 
     @Override

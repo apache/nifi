@@ -71,6 +71,7 @@ public class GetSFTP extends GetFileTransfer {
         properties.add(SFTPTransfer.PATH_FILTER_REGEX);
         properties.add(SFTPTransfer.POLLING_INTERVAL);
         properties.add(SFTPTransfer.RECURSIVE_SEARCH);
+        properties.add(SFTPTransfer.FOLLOW_SYMLINK);
         properties.add(SFTPTransfer.IGNORE_DOTTED_FILES);
         properties.add(SFTPTransfer.DELETE_ORIGINAL);
         properties.add(SFTPTransfer.CONNECTION_TIMEOUT);

@@ -63,8 +63,21 @@
                                 <li class="component-item"><a class="document-link expression-language-guide" href="html/expression-language-guide.html" target="component-usage">Expression Language Guide</a></li>
                                 <li class="component-item"><a class="document-link record-path-guide" href="html/record-path-guide.html" target="component-usage">RecordPath Guide</a></li>
                                 <li class="component-item"><a class="document-link admin-guide" href="html/administration-guide.html" target="component-usage">Admin Guide</a></li>
+                                <li class="component-item"><a class="document-link toolkit-guide" href="html/toolkit-guide.html" target="component-usage">Toolkit Guide</a></li>
+                                <li class="component-item"><a class="document-link walkthroughs" href="html/walkthroughs.html" target="component-usage">Walkthroughs</a></li>
                             </ul>
                             <span class="no-matching no-components hidden">No matching guides</span>
+                        </div>
+                    </div>
+                    <div class="section">
+                        <div class="header">Developer</div>
+                        <div id="developer-links" class="component-links">
+                            <ul>
+                                <li class="component-item"><a class="document-link rest-api" href="rest-api/index.html" target="component-usage">REST API</a></li>
+                                <li class="component-item"><a class="document-link developer-guide" href="html/developer-guide.html" target="component-usage">Developer Guide</a></li>
+                                <li class="component-item"><a class="document-link apache-nifi-in-depth" href="html/nifi-in-depth.html" target="component-usage">Apache NiFi In Depth</a></li>
+                            </ul>
+                            <span class="no-matching no-components hidden">No matching developer guides</span>
                         </div>
                     </div>
                     <div class="section">
@@ -171,17 +184,6 @@
                                     <span class="no-components">No reporting task documentation found</span>
                                 </c:otherwise>
                             </c:choose>
-                        </div>
-                    </div>
-                    <div class="section">
-                        <div class="header">Developer</div>
-                        <div id="developer-links" class="component-links">
-                            <ul>
-                                <li class="component-item"><a class="document-link rest-api" href="rest-api/index.html" target="component-usage">Rest Api</a></li>
-                                <li class="component-item"><a class="document-link developer-guide" href="html/developer-guide.html" target="component-usage">Developer Guide</a></li>
-                                <li class="component-item"><a class="document-link developer-guide" href="html/nifi-in-depth.html" target="component-usage">Apache NiFi In Depth</a></li>
-                            </ul>
-                            <span class="no-matching no-components hidden">No matching developer guides</span>
                         </div>
                     </div>
                 </div>

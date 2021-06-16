@@ -22,6 +22,7 @@ import com.bazaarvoice.jolt.JsonUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.attribute.expression.language.PreparedQuery;
 import org.apache.nifi.attribute.expression.language.Query;
+import org.apache.nifi.attribute.expression.language.StandardEvaluationContext;
 import org.apache.nifi.processors.standard.util.jolt.TransformFactory;
 import org.apache.nifi.processors.standard.util.jolt.TransformUtils;
 import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
@@ -56,7 +57,7 @@ public class TransformJSONResource extends AbstractStandardResource {
             if(evaluateAttributes) {
                 PreparedQuery preparedQuery = Query.prepare(specificationDTO.getSpecification());
                 Map<String, String> attributes = specificationDTO.getExpressionLanguageAttributes() == null ? Collections.emptyMap() : specificationDTO.getExpressionLanguageAttributes();
-                specification = preparedQuery.evaluateExpressions(attributes, null);
+                specification = preparedQuery.evaluateExpressions(new StandardEvaluationContext(attributes), null);
             }else{
                 specification = specificationDTO.getSpecification().replaceAll("\\$\\{","\\\\\\\\\\$\\{");
             }

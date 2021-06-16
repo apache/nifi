@@ -16,6 +16,21 @@
  */
 package org.apache.nifi.provenance.lucene;
 
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.LongPoint;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexableField;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.search.BooleanClause;
+import org.apache.lucene.search.BooleanClause.Occur;
+import org.apache.lucene.search.BooleanQuery;
+import org.apache.lucene.search.MatchAllDocsQuery;
+import org.apache.lucene.search.TermQuery;
+import org.apache.lucene.search.WildcardQuery;
+import org.apache.nifi.processor.DataUnit;
+import org.apache.nifi.provenance.SearchableFields;
+import org.apache.nifi.provenance.search.SearchTerm;
+
 import java.io.File;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
@@ -26,44 +41,18 @@ import java.nio.charset.CodingErrorAction;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.nifi.processor.DataUnit;
-import org.apache.nifi.provenance.SearchableFields;
-import org.apache.nifi.provenance.search.SearchTerm;
-import org.apache.lucene.document.Document;
-import org.apache.lucene.index.IndexWriter;
-import org.apache.lucene.index.IndexableField;
-import org.apache.lucene.index.Term;
-import org.apache.lucene.search.BooleanClause;
-import org.apache.lucene.search.BooleanClause.Occur;
-import org.apache.lucene.search.BooleanQuery;
-import org.apache.lucene.search.MatchAllDocsQuery;
-import org.apache.lucene.search.NumericRangeQuery;
-import org.apache.lucene.search.TermQuery;
-import org.apache.lucene.search.WildcardQuery;
-import org.apache.lucene.util.Version;
-
 public class LuceneUtil {
 
-    public static final Version LUCENE_VERSION = Version.LATEST;
+    private static final long[] MIN_LONG_ARRAY = new long[] { Long.MIN_VALUE };
+    private static final long[] MAX_LONG_ARRAY = new long[] { Long.MAX_VALUE };
 
     public static String substringBefore(final String value, final String searchValue) {
         final int index = value.indexOf(searchValue);
-        return (index < 0) ? value : value.substring(0, index);
-    }
-
-    public static String substringAfter(final String value, final String searchValue) {
-        final int index = value.indexOf(searchValue);
-        return (index < 0) ? value : (index > value.length() - 2) ? "" : value.substring(index + 1);
-    }
-
-    public static String substringBeforeLast(final String value, final String searchValue) {
-        final int index = value.lastIndexOf(searchValue);
         return (index < 0) ? value : value.substring(0, index);
     }
 
@@ -108,7 +97,7 @@ public class LuceneUtil {
             return new MatchAllDocsQuery();
         }
 
-        final BooleanQuery luceneQuery = new BooleanQuery();
+        final BooleanQuery.Builder queryBuilder = new BooleanQuery.Builder();
         for (final SearchTerm searchTerm : query.getSearchTerms()) {
             final String searchValue = searchTerm.getValue();
             if (searchValue == null) {
@@ -116,25 +105,25 @@ public class LuceneUtil {
             }
 
             if (searchValue.contains("*") || searchValue.contains("?")) {
-                luceneQuery.add(new BooleanClause(new WildcardQuery(new Term(searchTerm.getSearchableField().getSearchableFieldName(), searchTerm.getValue().toLowerCase())), Occur.MUST));
+                queryBuilder.add(new BooleanClause(new WildcardQuery(new Term(searchTerm.getSearchableField().getSearchableFieldName(), searchTerm.getValue().toLowerCase())), Occur.MUST));
             } else {
-                luceneQuery.add(new BooleanClause(new TermQuery(new Term(searchTerm.getSearchableField().getSearchableFieldName(), searchTerm.getValue().toLowerCase())), Occur.MUST));
+                queryBuilder.add(new BooleanClause(new TermQuery(new Term(searchTerm.getSearchableField().getSearchableFieldName(), searchTerm.getValue().toLowerCase())), Occur.MUST));
             }
         }
 
-        final Long minBytes = query.getMinFileSize() == null ? null : DataUnit.parseDataSize(query.getMinFileSize(), DataUnit.B).longValue();
-        final Long maxBytes = query.getMaxFileSize() == null ? null : DataUnit.parseDataSize(query.getMaxFileSize(), DataUnit.B).longValue();
-        if (minBytes != null || maxBytes != null) {
-            luceneQuery.add(NumericRangeQuery.newLongRange(SearchableFields.FileSize.getSearchableFieldName(), minBytes, maxBytes, true, true), Occur.MUST);
+        if (query.getMinFileSize() != null || query.getMaxFileSize() != null) {
+            final long minBytes = query.getMinFileSize() == null ? 0L : DataUnit.parseDataSize(query.getMinFileSize(), DataUnit.B).longValue();
+            final long maxBytes = query.getMaxFileSize() == null ? Long.MAX_VALUE : DataUnit.parseDataSize(query.getMaxFileSize(), DataUnit.B).longValue();
+            queryBuilder.add(LongPoint.newRangeQuery(SearchableFields.FileSize.getSearchableFieldName(), minBytes, maxBytes), Occur.MUST);
         }
 
-        final Long minDateTime = query.getStartDate() == null ? null : query.getStartDate().getTime();
-        final Long maxDateTime = query.getEndDate() == null ? null : query.getEndDate().getTime();
-        if (maxDateTime != null || minDateTime != null) {
-            luceneQuery.add(NumericRangeQuery.newLongRange(SearchableFields.EventTime.getSearchableFieldName(), minDateTime, maxDateTime, true, true), Occur.MUST);
+        if (query.getStartDate() != null || query.getEndDate() != null) {
+            final long minDateTime = query.getStartDate() == null ? 0L : query.getStartDate().getTime();
+            final long maxDateTime = query.getEndDate() == null ? Long.MAX_VALUE : query.getEndDate().getTime();
+            queryBuilder.add(LongPoint.newRangeQuery(SearchableFields.EventTime.getSearchableFieldName(), minDateTime, maxDateTime), Occur.MUST);
         }
 
-        return luceneQuery;
+        return queryBuilder.build();
     }
 
     /**
@@ -145,7 +134,7 @@ public class LuceneUtil {
      *            list of {@link Document}s
      */
     public static void sortDocsForRetrieval(final List<Document> documents) {
-        Collections.sort(documents, new Comparator<Document>() {
+        documents.sort(new Comparator<Document>() {
             @Override
             public int compare(final Document o1, final Document o2) {
                 final String filename1 = o1.get(FieldNames.STORAGE_FILENAME);
@@ -158,9 +147,9 @@ public class LuceneUtil {
 
                 final IndexableField fileOffset1 = o1.getField(FieldNames.BLOCK_INDEX);
                 final IndexableField fileOffset2 = o1.getField(FieldNames.BLOCK_INDEX);
-                if ( fileOffset1 != null && fileOffset2 != null ) {
+                if (fileOffset1 != null && fileOffset2 != null) {
                     final int blockIndexResult = Long.compare(fileOffset1.numericValue().longValue(), fileOffset2.numericValue().longValue());
-                    if ( blockIndexResult != 0 ) {
+                    if (blockIndexResult != 0) {
                         return blockIndexResult;
                     }
 
@@ -192,7 +181,7 @@ public class LuceneUtil {
         for (Document document : documents) {
             String fileName = document.get(FieldNames.STORAGE_FILENAME);
             if (!documentGroups.containsKey(fileName)) {
-                documentGroups.put(fileName, new ArrayList<Document>());
+                documentGroups.put(fileName, new ArrayList<>());
             }
             documentGroups.get(fileName).add(document);
         }

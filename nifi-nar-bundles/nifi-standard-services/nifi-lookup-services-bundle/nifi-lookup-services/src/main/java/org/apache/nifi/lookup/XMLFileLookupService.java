@@ -16,17 +16,18 @@
  */
 package org.apache.nifi.lookup;
 
-import org.apache.commons.configuration2.XMLConfiguration;
-
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.lookup.configuration2.CommonsConfigurationLookupService;
+import org.apache.nifi.security.xml.SafeXMLConfiguration;
+
 
 @Tags({"lookup", "cache", "enrich", "join", "xml", "reloadable", "key", "value"})
 @CapabilityDescription("A reloadable XML file-based lookup service." +
         " This service uses Apache Commons Configuration." +
         " Example XML configuration file and how to access specific configuration can be found at" +
-        " http://commons.apache.org/proper/commons-configuration/userguide/howto_hierarchical.html")
-public class XMLFileLookupService extends CommonsConfigurationLookupService<XMLConfiguration> {
+        " http://commons.apache.org/proper/commons-configuration/userguide/howto_hierarchical.html." +
+        " External entity processing is disabled.")
+public class XMLFileLookupService extends CommonsConfigurationLookupService<SafeXMLConfiguration> {
 
 }

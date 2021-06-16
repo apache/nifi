@@ -20,7 +20,9 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.ClusterStatus;
 import org.apache.hadoop.hbase.HBaseConfiguration;
+import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.Connection;
@@ -50,6 +52,7 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.hadoop.KerberosProperties;
 import org.apache.nifi.hadoop.SecurityUtil;
 import org.apache.nifi.hbase.put.PutColumn;
@@ -57,15 +60,20 @@ import org.apache.nifi.hbase.put.PutFlowFile;
 import org.apache.nifi.hbase.scan.Column;
 import org.apache.nifi.hbase.scan.ResultCell;
 import org.apache.nifi.hbase.scan.ResultHandler;
+import org.apache.nifi.hbase.validate.ConfigFilesValidator;
 import org.apache.nifi.kerberos.KerberosCredentialsService;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.security.krb.KerberosKeytabUser;
+import org.apache.nifi.security.krb.KerberosPasswordUser;
+import org.apache.nifi.security.krb.KerberosUser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.security.auth.login.LoginException;
 import java.io.File;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
@@ -78,8 +86,9 @@ import java.util.concurrent.atomic.AtomicReference;
 
 @RequiresInstanceClassLoading
 @Tags({ "hbase", "client"})
-@CapabilityDescription("Implementation of HBaseClientService for HBase 1.1.2. This service can be configured by providing " +
-        "a comma-separated list of configuration files, or by specifying values for the other properties. If configuration files " +
+@CapabilityDescription("Implementation of HBaseClientService using the HBase 1.1.x client. Although this service was originally built with the 1.1.2 " +
+        "client and has 1_1_2 in it's name, the client library has since been upgraded to 1.1.13 to leverage bug fixes. This service can be configured " +
+        "by providing a comma-separated list of configuration files, or by specifying values for the other properties. If configuration files " +
         "are provided, they will be loaded first, and the values of the additional properties will override the values from " +
         "the configuration files. In addition, any user defined properties on the processor will also be passed to the HBase " +
         "configuration.")
@@ -98,6 +107,51 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
         .required(false)
         .build();
 
+    static final PropertyDescriptor HADOOP_CONF_FILES = new PropertyDescriptor.Builder()
+        .name("Hadoop Configuration Files")
+        .description("Comma-separated list of Hadoop Configuration files," +
+            " such as hbase-site.xml and core-site.xml for kerberos, " +
+            "including full paths to the files.")
+        .addValidator(new ConfigFilesValidator())
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .build();
+
+    static final PropertyDescriptor ZOOKEEPER_QUORUM = new PropertyDescriptor.Builder()
+        .name("ZooKeeper Quorum")
+        .description("Comma-separated list of ZooKeeper hosts for HBase. Required if Hadoop Configuration Files are not provided.")
+        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .build();
+
+    static final PropertyDescriptor ZOOKEEPER_CLIENT_PORT = new PropertyDescriptor.Builder()
+        .name("ZooKeeper Client Port")
+        .description("The port on which ZooKeeper is accepting client connections. Required if Hadoop Configuration Files are not provided.")
+        .addValidator(StandardValidators.PORT_VALIDATOR)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .build();
+
+    static final PropertyDescriptor ZOOKEEPER_ZNODE_PARENT = new PropertyDescriptor.Builder()
+        .name("ZooKeeper ZNode Parent")
+        .description("The ZooKeeper ZNode Parent value for HBase (example: /hbase). Required if Hadoop Configuration Files are not provided.")
+        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .build();
+
+    static final PropertyDescriptor HBASE_CLIENT_RETRIES = new PropertyDescriptor.Builder()
+        .name("HBase Client Retries")
+        .description("The number of times the HBase client will retry connecting. Required if Hadoop Configuration Files are not provided.")
+        .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+        .defaultValue("1")
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .build();
+
+    static final PropertyDescriptor PHOENIX_CLIENT_JAR_LOCATION = new PropertyDescriptor.Builder()
+        .name("Phoenix Client JAR Location")
+        .description("The full path to the Phoenix client JAR. Required if Phoenix is installed on top of HBase.")
+        .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
+        .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+        .dynamicallyModifiesClasspath(true)
+        .build();
 
     static final String HBASE_CONF_ZK_QUORUM = "hbase.zookeeper.quorum";
     static final String HBASE_CONF_ZK_PORT = "hbase.zookeeper.property.clientPort";
@@ -106,6 +160,7 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
 
     private volatile Connection connection;
     private volatile UserGroupInformation ugi;
+    private final AtomicReference<KerberosUser> kerberosUserReference = new AtomicReference<>();
     private volatile String masterAddress;
 
     private List<PropertyDescriptor> properties;
@@ -133,6 +188,7 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
         props.add(KERBEROS_CREDENTIALS_SERVICE);
         props.add(kerberosProperties.getKerberosPrincipal());
         props.add(kerberosProperties.getKerberosKeytab());
+        props.add(kerberosProperties.getKerberosPassword());
         props.add(ZOOKEEPER_QUORUM);
         props.add(ZOOKEEPER_CLIENT_PORT);
         props.add(ZOOKEEPER_ZNODE_PARENT);
@@ -175,6 +231,7 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
 
         final String explicitPrincipal = validationContext.getProperty(kerberosProperties.getKerberosPrincipal()).evaluateAttributeExpressions().getValue();
         final String explicitKeytab = validationContext.getProperty(kerberosProperties.getKerberosKeytab()).evaluateAttributeExpressions().getValue();
+        final String explicitPassword = validationContext.getProperty(kerberosProperties.getKerberosPassword()).getValue();
         final KerberosCredentialsService credentialsService = validationContext.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
 
         final String resolvedPrincipal;
@@ -212,23 +269,23 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
 
             final Configuration hbaseConfig = resources.getConfiguration();
 
-            problems.addAll(KerberosProperties.validatePrincipalAndKeytab(getClass().getSimpleName(), hbaseConfig, resolvedPrincipal, resolvedKeytab, getLogger()));
+            problems.addAll(KerberosProperties.validatePrincipalWithKeytabOrPassword(getClass().getSimpleName(), hbaseConfig,
+                    resolvedPrincipal, resolvedKeytab, explicitPassword, getLogger()));
         }
 
-        if (credentialsService != null && (explicitPrincipal != null || explicitKeytab != null)) {
+        if (credentialsService != null && (explicitPrincipal != null || explicitKeytab != null || explicitPassword != null)) {
             problems.add(new ValidationResult.Builder()
                 .subject("Kerberos Credentials")
                 .valid(false)
-                .explanation("Cannot specify both a Kerberos Credentials Service and a principal/keytab")
+                .explanation("Cannot specify a Kerberos Credentials Service while also specifying a Kerberos Principal, Kerberos Keytab, or Kerberos Password")
                 .build());
         }
 
-        final String allowExplicitKeytabVariable = System.getenv(ALLOW_EXPLICIT_KEYTAB);
-        if ("false".equalsIgnoreCase(allowExplicitKeytabVariable) && (explicitPrincipal != null || explicitKeytab != null)) {
+        if (!isAllowExplicitKeytab() && explicitKeytab != null) {
             problems.add(new ValidationResult.Builder()
                 .subject("Kerberos Credentials")
                 .valid(false)
-                .explanation("The '" + ALLOW_EXPLICIT_KEYTAB + "' system environment variable is configured to forbid explicitly configuring principal/keytab in processors. "
+                .explanation("The '" + ALLOW_EXPLICIT_KEYTAB + "' system environment variable is configured to forbid explicitly configuring Kerberos Keytab in processors. "
                     + "The Kerberos Credentials Service should be used instead of setting the Kerberos Keytab or Kerberos Principal property.")
                 .build());
         }
@@ -262,7 +319,16 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
             final Admin admin = this.connection.getAdmin();
             if (admin != null) {
                 admin.listTableNames();
-                masterAddress = admin.getClusterStatus().getMaster().getHostAndPort();
+
+                final ClusterStatus clusterStatus = admin.getClusterStatus();
+                if (clusterStatus != null) {
+                    final ServerName master = clusterStatus.getMaster();
+                    if (master != null) {
+                        masterAddress = master.getHostAndPort();
+                    } else {
+                        masterAddress = null;
+                    }
+                }
             }
         }
     }
@@ -296,6 +362,7 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
         if (SecurityUtil.isSecurityEnabled(hbaseConfig)) {
             String principal = context.getProperty(kerberosProperties.getKerberosPrincipal()).evaluateAttributeExpressions().getValue();
             String keyTab = context.getProperty(kerberosProperties.getKerberosKeytab()).evaluateAttributeExpressions().getValue();
+            String password = context.getProperty(kerberosProperties.getKerberosPassword()).getValue();
 
             // If the Kerberos Credentials Service is specified, we need to use its configuration, not the explicit properties for principal/keytab.
             // The customValidate method ensures that only one can be set, so we know that the principal & keytab above are null.
@@ -305,11 +372,20 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
                 keyTab = credentialsService.getKeytab();
             }
 
-            getLogger().info("HBase Security Enabled, logging in as principal {} with keytab {}", new Object[] {principal, keyTab});
-            ugi = SecurityUtil.loginKerberos(hbaseConfig, principal, keyTab);
-            getLogger().info("Successfully logged in as principal {} with keytab {}", new Object[] {principal, keyTab});
+            if (keyTab != null) {
+                kerberosUserReference.set(new KerberosKeytabUser(principal, keyTab));
+                getLogger().info("HBase Security Enabled, logging in as principal {} with keytab {}", new Object[] {principal, keyTab});
+            } else if (password != null) {
+                kerberosUserReference.set(new KerberosPasswordUser(principal, password));
+                getLogger().info("HBase Security Enabled, logging in as principal {} with password", new Object[] {principal});
+            } else {
+                throw new IOException("Unable to authenticate with Kerberos, no keytab or password was provided");
+            }
 
-            return ugi.doAs(new PrivilegedExceptionAction<Connection>() {
+            ugi = SecurityUtil.getUgiForKerberosUser(hbaseConfig, kerberosUserReference.get());
+            getLogger().info("Successfully logged in as principal " + principal);
+
+            return getUgi().doAs(new PrivilegedExceptionAction<Connection>() {
                 @Override
                 public Connection run() throws Exception {
                     return ConnectionFactory.createConnection(hbaseConfig);
@@ -322,8 +398,6 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
         }
 
     }
-
-    private String principal = null;
 
     protected Configuration getConfigurationFromFiles(final String configFiles) {
         final Configuration hbaseConfig = HBaseConfiguration.create();
@@ -343,16 +417,6 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
             } catch (final IOException ioe) {
                 getLogger().warn("Failed to close connection to HBase due to {}", new Object[]{ioe});
             }
-        }
-    }
-
-    private static final byte[] EMPTY_VIS_STRING;
-
-    static {
-        try {
-            EMPTY_VIS_STRING = "".getBytes("UTF-8");
-        } catch (UnsupportedEncodingException e) {
-            throw new RuntimeException(e);
         }
     }
 
@@ -458,7 +522,7 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
 
     @Override
     public void delete(String tableName, List<byte[]> rowIds) throws IOException {
-        delete(tableName, rowIds);
+        delete(tableName, rowIds, null);
     }
 
     @Override
@@ -566,11 +630,11 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
     @Override
     public void scan(final String tableName, final String startRow, final String endRow, String filterExpression,
             final Long timerangeMin, final Long timerangeMax, final Integer limitRows, final Boolean isReversed,
-            final Collection<Column> columns, List<String> visibilityLabels, final ResultHandler handler) throws IOException {
+            final Boolean blockCache, final Collection<Column> columns, List<String> visibilityLabels, final ResultHandler handler) throws IOException {
 
         try (final Table table = connection.getTable(TableName.valueOf(tableName));
                 final ResultScanner scanner = getResults(table, startRow, endRow, filterExpression, timerangeMin,
-                        timerangeMax, limitRows, isReversed, columns, visibilityLabels)) {
+                        timerangeMax, limitRows, isReversed, blockCache, columns, visibilityLabels)) {
 
             int cnt = 0;
             final int lim = limitRows != null ? limitRows : 0;
@@ -603,7 +667,7 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
 
     //
     protected ResultScanner getResults(final Table table, final String startRow, final String endRow, final String filterExpression, final Long timerangeMin, final Long timerangeMax,
-            final Integer limitRows, final Boolean isReversed, final Collection<Column> columns, List<String> authorizations)  throws IOException {
+            final Integer limitRows, final Boolean isReversed, final Boolean blockCache, final Collection<Column> columns, List<String> authorizations)  throws IOException {
         final Scan scan = new Scan();
         if (!StringUtils.isBlank(startRow)){
             scan.setStartRow(startRow.getBytes(StandardCharsets.UTF_8));
@@ -646,6 +710,8 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
         if (isReversed != null){
             scan.setReversed(isReversed);
         }
+
+        scan.setCacheBlocks(blockCache);
 
         return table.getScanner(scan);
     }
@@ -793,4 +859,30 @@ public class HBase_1_1_2_ClientService extends AbstractControllerService impleme
         final String transitUriMasterAddress = StringUtils.isEmpty(masterAddress) ? "unknown" : masterAddress;
         return "hbase://" + transitUriMasterAddress + "/" + tableName + (StringUtils.isEmpty(rowKey) ? "" : "/" + rowKey);
     }
+
+    /*
+     * Overridable by subclasses in the same package, mainly intended for testing purposes to allow verification without having to set environment variables.
+     */
+    boolean isAllowExplicitKeytab() {
+        return Boolean.parseBoolean(System.getenv(ALLOW_EXPLICIT_KEYTAB));
+    }
+
+    UserGroupInformation getUgi() {
+        getLogger().trace("getting UGI instance");
+        if (kerberosUserReference.get() != null) {
+            // if there's a KerberosUser associated with this UGI, check the TGT and relogin if it is close to expiring
+            KerberosUser kerberosUser = kerberosUserReference.get();
+            getLogger().debug("kerberosUser is " + kerberosUser);
+            try {
+                getLogger().debug("checking TGT on kerberosUser [{}]", new Object[] {kerberosUser});
+                kerberosUser.checkTGTAndRelogin();
+            } catch (LoginException e) {
+                throw new ProcessException("Unable to relogin with kerberos credentials for " + kerberosUser.getPrincipal(), e);
+            }
+        } else {
+            getLogger().debug("kerberosUser was null, will not refresh TGT with KerberosUser");
+        }
+        return ugi;
+    }
+
 }

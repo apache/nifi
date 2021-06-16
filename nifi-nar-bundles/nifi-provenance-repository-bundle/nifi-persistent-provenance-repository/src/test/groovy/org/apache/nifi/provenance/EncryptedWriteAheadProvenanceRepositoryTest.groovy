@@ -29,6 +29,7 @@ import org.junit.Before
 import org.junit.BeforeClass
 import org.junit.ClassRule
 import org.junit.Test
+import org.junit.Ignore
 import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
@@ -249,6 +250,7 @@ class EncryptedWriteAheadProvenanceRepositoryTest {
     }
 
     @Test
+    @Ignore("test is unstable. NIFI-5624 to improve it")
     void testShouldRegisterAndGetEvent() {
         // Arrange
 

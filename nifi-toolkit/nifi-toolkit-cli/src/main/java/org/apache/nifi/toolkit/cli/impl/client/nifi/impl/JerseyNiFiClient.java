@@ -22,11 +22,24 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.module.jaxb.JaxbAnnotationIntrospector;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.registry.security.util.ProxiedEntitiesUtils;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.ConnectionClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ControllerClient;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.ControllerServicesClient;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.CountersClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.FlowClient;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.InputPortClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientConfig;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.OutputPortClient;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.ParamContextClient;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.PoliciesClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ProcessGroupClient;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.ProcessorClient;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.ProvenanceClient;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.RemoteProcessGroupClient;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.ReportingTasksClient;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.TemplatesClient;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.TenantsClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.VersionsClient;
 import org.glassfish.jersey.client.ClientConfig;
 import org.glassfish.jersey.client.ClientProperties;
@@ -37,7 +50,6 @@ import javax.net.ssl.SSLContext;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.WebTarget;
-import java.io.IOException;
 import java.net.URI;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -127,6 +139,23 @@ public class JerseyNiFiClient implements NiFiClient {
     }
 
     @Override
+    public ControllerServicesClient getControllerServicesClient() {
+        return new JerseyControllerServicesClient(baseTarget);
+    }
+
+    @Override
+    public ControllerServicesClient getControllerServicesClientForProxiedEntities(final String... proxiedEntity) {
+        final Map<String, String> headers = getHeaders(proxiedEntity);
+        return new JerseyControllerServicesClient(baseTarget, headers);
+    }
+
+    @Override
+    public ControllerServicesClient getControllerServicesClientForToken(final String base64token) {
+        final Map<String, String> headers = getHeadersWithToken(base64token);
+        return new JerseyControllerServicesClient(baseTarget, headers);
+    }
+
+    @Override
     public FlowClient getFlowClient() {
         return new JerseyFlowClient(baseTarget);
     }
@@ -161,6 +190,23 @@ public class JerseyNiFiClient implements NiFiClient {
     }
 
     @Override
+    public ProcessorClient getProcessorClient() {
+        return new JerseyProcessorClient(baseTarget);
+    }
+
+    @Override
+    public ProcessorClient getProcessorClientForProxiedEntities(final String... proxiedEntity) {
+        final Map<String,String> headers = getHeaders(proxiedEntity);
+        return new JerseyProcessorClient(baseTarget, headers);
+    }
+
+    @Override
+    public ProcessorClient getProcessorClientForToken(final String token) {
+        final Map<String,String> headers = getHeadersWithToken(token);
+        return new JerseyProcessorClient(baseTarget, headers);
+    }
+
+    @Override
     public VersionsClient getVersionsClient() {
         return new JerseyVersionsClient(baseTarget);
     }
@@ -178,7 +224,194 @@ public class JerseyNiFiClient implements NiFiClient {
     }
 
     @Override
-    public void close() throws IOException {
+    public TenantsClient getTenantsClient() {
+        return new JerseyTenantsClient(baseTarget);
+    }
+
+    @Override
+    public TenantsClient getTenantsClientForProxiedEntities(String... proxiedEntity) {
+        final Map<String, String> headers = getHeaders(proxiedEntity);
+        return new JerseyTenantsClient(baseTarget, headers);
+    }
+
+    @Override
+    public TenantsClient getTenantsClientForToken(String base64token) {
+        final Map<String, String> headers = getHeadersWithToken(base64token);
+        return new JerseyTenantsClient(baseTarget, headers);
+    }
+
+    @Override
+    public PoliciesClient getPoliciesClient() {
+        return new JerseyPoliciesClient(baseTarget);
+    }
+
+    @Override
+    public PoliciesClient getPoliciesClientForProxiedEntities(String... proxiedEntity) {
+        final Map<String, String> headers = getHeaders(proxiedEntity);
+        return new JerseyPoliciesClient(baseTarget, headers);
+    }
+
+    @Override
+    public PoliciesClient getPoliciesClientForToken(String base64token) {
+        final Map<String, String> headers = getHeadersWithToken(base64token);
+        return new JerseyPoliciesClient(baseTarget, headers);
+    }
+
+    @Override
+    public TemplatesClient getTemplatesClient() {
+        return new JerseyTemplatesClient(baseTarget);
+    }
+
+    @Override
+    public TemplatesClient getTemplatesClientForProxiedEntities(String... proxiedEntity) {
+        final Map<String, String> headers = getHeaders(proxiedEntity);
+        return new JerseyTemplatesClient(baseTarget, headers);
+    }
+
+    @Override
+    public TemplatesClient getTemplatesClientForToken(String base64token) {
+        final Map<String, String> headers = getHeadersWithToken(base64token);
+        return new JerseyTemplatesClient(baseTarget, headers);
+    }
+
+    @Override
+    public ReportingTasksClient getReportingTasksClient() {
+        return new JerseyReportingTasksClient(baseTarget);
+    }
+
+    @Override
+    public ReportingTasksClient getReportingTasksClientForProxiedEntities(String... proxiedEntity) {
+        final Map<String, String> headers = getHeaders(proxiedEntity);
+        return new JerseyReportingTasksClient(baseTarget, headers);
+    }
+
+    @Override
+    public ReportingTasksClient getReportingTasksClientForToken(String base64token) {
+        final Map<String, String> headers = getHeadersWithToken(base64token);
+        return new JerseyReportingTasksClient(baseTarget, headers);
+    }
+
+    @Override
+    public ParamContextClient getParamContextClient() {
+        return new JerseyParamContextClient(baseTarget);
+    }
+
+    @Override
+    public ParamContextClient getParamContextClientForProxiedEntities(String... proxiedEntity) {
+        final Map<String, String> headers = getHeaders(proxiedEntity);
+        return new JerseyParamContextClient(baseTarget, headers);
+    }
+
+    @Override
+    public ParamContextClient getParamContextClientForToken(String base64token) {
+        final Map<String, String> headers = getHeadersWithToken(base64token);
+        return new JerseyParamContextClient(baseTarget, headers);
+    }
+
+    @Override
+    public CountersClient getCountersClient() {
+        return new JerseyCountersClient(baseTarget);
+    }
+
+    @Override
+    public CountersClient getCountersClientForProxiedEntities(final String... proxiedEntity) {
+        final Map<String, String> headers = getHeaders(proxiedEntity);
+        return new JerseyCountersClient(baseTarget, headers);
+    }
+
+    @Override
+    public CountersClient getCountersClientForToken(final String token) {
+        final Map<String, String> headers = getHeadersWithToken(token);
+        return new JerseyCountersClient(baseTarget, headers);
+    }
+
+    @Override
+    public ConnectionClient getConnectionClient() {
+        return new JerseyConnectionClient(baseTarget);
+    }
+
+    @Override
+    public ConnectionClient getConnectionClientForProxiedEntities(final String... proxiedEntity) {
+        final Map<String, String> headers = getHeaders(proxiedEntity);
+        return new JerseyConnectionClient(baseTarget, headers);
+    }
+
+    @Override
+    public ConnectionClient getConnectionClientForToken(final String token) {
+        final Map<String, String> headers = getHeadersWithToken(token);
+        return new JerseyConnectionClient(baseTarget, headers);
+    }
+
+    @Override
+    public RemoteProcessGroupClient getRemoteProcessGroupClient() {
+        return new JerseyRemoteProcessGroupClient(baseTarget);
+    }
+
+    @Override
+    public RemoteProcessGroupClient getRemoteProcessGroupClientForProxiedEntities(final String... proxiedEntity) {
+        final Map<String, String> headers = getHeaders(proxiedEntity);
+        return new JerseyRemoteProcessGroupClient(baseTarget, headers);
+    }
+
+    @Override
+    public RemoteProcessGroupClient getRemoteProcessGroupClientForToken(final String token) {
+        final Map<String, String> headers = getHeadersWithToken(token);
+        return new JerseyRemoteProcessGroupClient(baseTarget, headers);
+    }
+
+    @Override
+    public InputPortClient getInputPortClient() {
+        return new JerseyInputPortClient(baseTarget);
+    }
+
+    @Override
+    public InputPortClient getInputPortClientForProxiedEntities(final String... proxiedEntity) {
+        final Map<String, String> headers = getHeaders(proxiedEntity);
+        return new JerseyInputPortClient(baseTarget, headers);
+    }
+
+    @Override
+    public InputPortClient getInputPortClientForToken(final String token) {
+        final Map<String, String> headers = getHeadersWithToken(token);
+        return new JerseyInputPortClient(baseTarget, headers);
+    }
+
+    @Override
+    public OutputPortClient getOutputPortClient() {
+        return new JerseyOutputPortClient(baseTarget);
+    }
+
+    @Override
+    public OutputPortClient getOutputPortClientForProxiedEntities(final String... proxiedEntity) {
+        final Map<String, String> headers = getHeaders(proxiedEntity);
+        return new JerseyOutputPortClient(baseTarget, headers);
+    }
+
+    @Override
+    public OutputPortClient getOutputPortClientForToken(final String token) {
+        final Map<String, String> headers = getHeadersWithToken(token);
+        return new JerseyOutputPortClient(baseTarget, headers);
+    }
+
+    @Override
+    public ProvenanceClient getProvenanceClient() {
+        return new JerseyProvenanceClient(baseTarget);
+    }
+
+    @Override
+    public ProvenanceClient getProvenanceClientForProxiedEntities(final String... proxiedEntity) {
+        final Map<String, String> headers = getHeaders(proxiedEntity);
+        return new JerseyProvenanceClient(baseTarget, headers);
+    }
+
+    @Override
+    public ProvenanceClient getProvenanceClientForToken(final String token) {
+        final Map<String, String> headers = getHeadersWithToken(token);
+        return new JerseyProvenanceClient(baseTarget, headers);
+    }
+
+    @Override
+    public void close() {
         if (this.client != null) {
             try {
                 this.client.close();

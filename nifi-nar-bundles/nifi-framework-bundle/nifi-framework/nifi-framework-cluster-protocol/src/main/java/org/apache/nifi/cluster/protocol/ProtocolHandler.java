@@ -18,6 +18,8 @@ package org.apache.nifi.cluster.protocol;
 
 import org.apache.nifi.cluster.protocol.message.ProtocolMessage;
 
+import java.util.Set;
+
 /**
  * A handler for processing protocol messages.
  *
@@ -30,11 +32,12 @@ public interface ProtocolHandler {
      * should be returned.
      *
      * @param msg a message
+     * @param nodeIdentities the set of identities for this node
      * @return a response or null, if no response is necessary
      *
      * @throws ProtocolException if the message could not be processed
      */
-    ProtocolMessage handle(ProtocolMessage msg) throws ProtocolException;
+    ProtocolMessage handle(ProtocolMessage msg, Set<String> nodeIdentities) throws ProtocolException;
 
     /**
      * @param msg a message

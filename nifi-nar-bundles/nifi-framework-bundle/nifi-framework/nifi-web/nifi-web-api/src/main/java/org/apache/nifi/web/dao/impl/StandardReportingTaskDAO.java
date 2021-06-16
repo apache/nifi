@@ -69,7 +69,7 @@ public class StandardReportingTaskDAO extends ComponentDAO implements ReportingT
 
     @Override
     public void verifyCreate(final ReportingTaskDTO reportingTaskDTO) {
-        verifyCreate(reportingTaskDTO.getType(), reportingTaskDTO.getBundle());
+        verifyCreate(reportingTaskProvider.getExtensionManager(), reportingTaskDTO.getType(), reportingTaskDTO.getBundle());
     }
 
     @Override
@@ -81,8 +81,10 @@ public class StandardReportingTaskDAO extends ComponentDAO implements ReportingT
 
         try {
             // create the reporting task
+            final ExtensionManager extensionManager = reportingTaskProvider.getExtensionManager();
+            final BundleCoordinate bundleCoordinate = BundleUtils.getBundle(extensionManager, reportingTaskDTO.getType(), reportingTaskDTO.getBundle());
             final ReportingTaskNode reportingTask = reportingTaskProvider.createReportingTask(
-                    reportingTaskDTO.getType(), reportingTaskDTO.getId(), BundleUtils.getBundle(reportingTaskDTO.getType(), reportingTaskDTO.getBundle()), true);
+                    reportingTaskDTO.getType(), reportingTaskDTO.getId(), bundleCoordinate, true);
 
             // ensure we can perform the update
             verifyUpdate(reportingTask, reportingTaskDTO);
@@ -171,12 +173,13 @@ public class StandardReportingTaskDAO extends ComponentDAO implements ReportingT
     private void updateBundle(ReportingTaskNode reportingTask, ReportingTaskDTO reportingTaskDTO) {
         final BundleDTO bundleDTO = reportingTaskDTO.getBundle();
         if (bundleDTO != null) {
-            final BundleCoordinate incomingCoordinate = BundleUtils.getBundle(reportingTask.getCanonicalClassName(), bundleDTO);
+            final ExtensionManager extensionManager = reportingTaskProvider.getExtensionManager();
+            final BundleCoordinate incomingCoordinate = BundleUtils.getBundle(extensionManager, reportingTask.getCanonicalClassName(), bundleDTO);
             final BundleCoordinate existingCoordinate = reportingTask.getBundleCoordinate();
             if (!existingCoordinate.getCoordinate().equals(incomingCoordinate.getCoordinate())) {
                 try {
                     // we need to use the property descriptors from the temp component here in case we are changing from a ghost component to a real component
-                    final ConfigurableComponent tempComponent = ExtensionManager.getTempComponent(reportingTask.getCanonicalClassName(), incomingCoordinate);
+                    final ConfigurableComponent tempComponent = extensionManager.getTempComponent(reportingTask.getCanonicalClassName(), incomingCoordinate);
                     final Set<URL> additionalUrls = reportingTask.getAdditionalClasspathResources(tempComponent.getPropertyDescriptors());
                     reloadComponent.reload(reportingTask, reportingTask.getCanonicalClassName(), incomingCoordinate, additionalUrls);
                 } catch (ReportingTaskInstantiationException e) {
@@ -295,7 +298,8 @@ public class StandardReportingTaskDAO extends ComponentDAO implements ReportingT
         final BundleDTO bundleDTO = reportingTaskDTO.getBundle();
         if (bundleDTO != null) {
             // ensures all nodes in a cluster have the bundle, throws exception if bundle not found for the given type
-            final BundleCoordinate bundleCoordinate = BundleUtils.getBundle(reportingTask.getCanonicalClassName(), bundleDTO);
+            final BundleCoordinate bundleCoordinate = BundleUtils.getBundle(
+                    reportingTaskProvider.getExtensionManager(), reportingTask.getCanonicalClassName(), bundleDTO);
             // ensure we are only changing to a bundle with the same group and id, but different version
             reportingTask.verifyCanUpdateBundle(bundleCoordinate);
         }

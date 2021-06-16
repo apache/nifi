@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<head>
+    <meta charset="utf-8" />
+    <title>EasyRulesEngineService</title>
+    <link rel="stylesheet" href="../../../../../css/component-usage.css" type="text/css" />
+</head>
+<body>
+<h2>General</h2>
+<p>The Easy Rules Engine Service supports execution of a centralized set of rules (stored as files or provided within the service configuration) against a provided set of data called facts.  It supports both the RulesEngineProvider
+    and RulesEngineService interfaces, allowing callers to send facts to the service to process against a centralized rules engine, or allowing them to retrieve an instance of a rules engine to process facts locally.
+    Upon execution, the rules engine will determine what rules have been met and return a list of actions that should be executed based on the conditions defined within the rules.
+</p>
+<p>
+    Rules can be implemented in any of the following formats:
+</p>
+<ul>
+    <li> NiFi Rules Format - This is a rules file which follows the NiFi style for rules definition, which supports MVEL (MVFLEX) Expression language for conditions (default format).
+    </li>
+    <li> Easy Rules Format with MVEL Support - This is a rules file which follows the Easy Rules style for rules definition that supports MVEL (MVFLEX) Expression language for conditions and actions
+    </li>
+    <li> Easy Rules Format with SPEL Support - This is a rules file which follows the Easy Rules style for rules definition that supports Spring Expression language for conditions and actions
+    </li>
+</ul>
+<p>
+    All rules formats can be structured as JSON or YAML (with JSON serving as default type). Rules can be stored as a file or provided in the Rules Body setting in the service's configuration settings.
+</p>
+
+<p>
+    NiFi Rules Format consist of the following elements:
+</p>
+<table>
+    <tr><td>Name</td><td>The name of the rule.</td></tr>
+    <tr><td>Description</td><td>A description of the rule.</td></tr>
+    <tr><td>Priority</td><td>Unique number for order in which rule should be executed in the rules engine.</td></tr>
+    <tr><td>Condition</td><td>The condition that will be checked given a set of fact data. For NiFi Format the MVEL expression language is supported.</td></tr>
+    <tr><td>Action(s)</td><td>The required actions that should be performed if the condition checked returns true.  This includes the type of action and any attributes required to execute that action. Action types and attributes are string values that can be defined as needed.
+    The expectation is the types and attributes are understood by the caller/action executor.</td></tr>
+    <tr><td>Fact(s)</td><td>The name of fact item(s) that is required to execute the rule.</td></tr>
+</table>
+
+<p>
+    NiFi rules format is very similar to Easy Rules file format except the Action includes details for the type of action that should be performed along with attributes for performing the action.
+    This provides a more flexible way to configure external handlers that will execute returned actions.  When Easy Rules formats are provided, easy rule actions are translated into an "EXPRESSION" NiFi action type where the attributes contains
+    the command that should be executed directly along with the supported expression language type (via a "command" and "type" attributes respectively).
+</p>
+
+<p>
+    The following are examples of NiFi Rules Format as YAML and JSON file types. In both cases a single rule is shown however multiple rule entries can be provided (following the appropriate multiple entry syntax for the given file type):
+</p>
+<p>
+    <b>NiFi Rules YAML File</b>: This file shows an example of a single rule which checks if predictedQueuedCount value (provided in facts) is greater than 50. If the condition is met an action with the type of "LOG" is defined,
+    which denotes the action that should be taken by the caller. Attributes for the "LOG" action type can be provided as demonstrated below with the "logLevel and "message" attributes.  The caller can use these or other provided attributes in order
+    to configure and execute the "LOG" action.<br>
+<pre>
+name: "Queue Size"
+description: "Queue size check greater than 50"
+priority: 1
+condition: "predictedQueuedCount > 50"
+actions:
+  - type: "LOG"
+    attributes:
+      logLevel: "DEBUG"
+      message: "Queue Size Over 50 is detected!"
+facts:
+  - "predictedQueuedCount"
+</pre>
+</p>
+
+<p>
+    <b>NiFi Rules JSON File</b>:  This file shows an example of a single rule which checks the size of a flowFile (with a flowFile being available via facts).
+    If the condition is met two actions are defined for execution (with types that should be recognized by the caller).<br>
+<pre>
+[
+{
+"name": "Large Flow File",
+"description": "Flow File Size Larger Than Expected",
+"priority": 1,
+"condition": "flowFile.size > 500",
+"actions": [
+{
+"type": "LOG",
+"attributes": {
+"logLevel": "WARN",
+"message": "Unexpected file size!"
+},
+{
+"type": "SEND",
+"attributes": {
+"sendZeroResults": "false"
+}
+}
+],
+"facts": ["flowFile"]
+}
+]
+</pre>
+</p>
+</body>
+</html>

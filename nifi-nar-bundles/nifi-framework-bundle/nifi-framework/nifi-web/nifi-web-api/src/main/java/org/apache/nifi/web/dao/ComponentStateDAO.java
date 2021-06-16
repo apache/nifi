@@ -21,6 +21,7 @@ import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.service.ControllerServiceNode;
+import org.apache.nifi.groups.RemoteProcessGroup;
 
 public interface ComponentStateDAO {
 
@@ -71,4 +72,13 @@ public interface ComponentStateDAO {
      * @param reportingTask reporting task
      */
     void clearState(ReportingTaskNode reportingTask);
+
+    /**
+     * Gets the state map for the specified RemoteProcessGroup.
+     *
+     * @param remoteProcessGroup RemoteProcessGroup
+     * @param scope     scope
+     * @return state map
+     */
+    StateMap getState(RemoteProcessGroup remoteProcessGroup, Scope scope);
 }

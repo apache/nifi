@@ -279,16 +279,16 @@ public class StandardNiFiWebConfigurationContext implements NiFiWebConfiguration
     }
 
     private NodeResponse replicate(final String method, final URI uri, final Object entity, final Map<String, String> headers) throws InterruptedException {
-        final NodeIdentifier coordinatorNode = clusterCoordinator.getElectedActiveCoordinatorNode();
-        if (coordinatorNode == null) {
-            throw new NoClusterCoordinatorException();
-        }
-
         // Determine whether we should replicate only to the cluster coordinator, or if we should replicate directly
         // to the cluster nodes themselves.
         if (getReplicationTarget() == ReplicationTarget.CLUSTER_NODES) {
             return requestReplicator.replicate(method, uri, entity, headers).awaitMergedResponse();
         } else {
+            final NodeIdentifier coordinatorNode = clusterCoordinator.getElectedActiveCoordinatorNode();
+            if (coordinatorNode == null) {
+                throw new NoClusterCoordinatorException();
+            }
+
             return requestReplicator.forwardToCoordinator(coordinatorNode, method, uri, entity, headers).awaitMergedResponse();
         }
     }

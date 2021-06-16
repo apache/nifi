@@ -528,6 +528,8 @@
                 promptForConnect(item);
             } else if (target.hasClass('prompt-for-removal')) {
                 promptForRemoval(item);
+            } else if (target.hasClass('prompt-for-offload')) {
+                promptForOffload(item);
             } else if (target.hasClass('prompt-for-disconnect')) {
                 promptForDisconnect(item);
             }
@@ -628,24 +630,25 @@
         // only allow the admin to modify the cluster
         if (nfCommon.canModifyController()) {
             var actionFormatter = function (row, cell, value, columnDef, dataContext) {
-                var canDisconnect = false;
-                var canConnect = false;
+                var connectDiv = '<div title="Connect" class="pointer prompt-for-connect fa fa-plug"></div>';
+                var deleteDiv = '<div title="Delete" class="pointer prompt-for-removal fa fa-trash"></div>';
+                var disconnectDiv = '<div title="Disconnect" class="pointer prompt-for-disconnect fa fa-power-off"></div>';
+                var offloadDiv = '<div title="Offload" class="pointer prompt-for-offload fa fa-rotate-90 fa-upload" ' +
+                    'style="margin-top: 5px;margin-left: 5px;margin-right: -2px;"></div>';
+                var markup = '';
 
-                // determine the current status
+                // determine the current status and create the appropriate markup
                 if (dataContext.status === 'CONNECTED' || dataContext.status === 'CONNECTING') {
-                    canDisconnect = true;
+                    markup += disconnectDiv;
                 } else if (dataContext.status === 'DISCONNECTED') {
-                    canConnect = true;
+                    markup += connectDiv + offloadDiv + deleteDiv;
+                } else if (dataContext.status === 'OFFLOADED') {
+                    markup += connectDiv + deleteDiv;
+                } else {
+                    markup += '<div style="width: 16px; height: 16px;">&nbsp;</div>';
                 }
 
-                // return the appropriate markup
-                if (canConnect) {
-                    return '<div title="Connect" class="pointer prompt-for-connect fa fa-plug"></div><div title="Delete" class="pointer prompt-for-removal fa fa-trash"></div>';
-                } else if (canDisconnect) {
-                    return '<div title="Disconnect" class="pointer prompt-for-disconnect fa fa-power-off"></div>';
-                } else {
-                    return '<div style="width: 16px; height: 16px;">&nbsp;</div>';
-                }
+                return markup;
             };
 
             columnModel.push({
@@ -930,6 +933,50 @@
                 'status': 'CONNECTING'
             }
         };
+        $.ajax({
+            type: 'PUT',
+            url: config.urls.nodes + '/' + encodeURIComponent(nodeId),
+            data: JSON.stringify(entity),
+            dataType: 'json',
+            contentType: 'application/json'
+        }).done(function (response) {
+            var node = response.node;
+
+            // update the node in the table
+            var clusterGrid = $('#cluster-nodes-table').data('gridInstance');
+            var clusterData = clusterGrid.getData();
+            clusterData.updateItem(node.nodeId, node);
+        }).fail(nfErrorHandler.handleAjaxError);
+    };
+
+    /**
+     * Prompts to verify node offload.
+     *
+     * @argument {object} node     The node
+     */
+    var promptForOffload = function (node) {
+        nfDialog.showYesNoDialog({
+            headerText: 'Offload Node',
+            dialogContent: 'Offload \'' + formatNodeAddress(node) + '\'?',
+            yesHandler: function () {
+                offload(node.nodeId);
+            }
+        });
+    };
+
+    /**
+     * Offloads the node in the specified row.
+     *
+     * @argument {string} nodeId     The node id
+     */
+    var offload = function (nodeId) {
+        var entity = {
+            'node': {
+                'nodeId': nodeId,
+                'status': 'OFFLOADING'
+            }
+        };
+
         $.ajax({
             type: 'PUT',
             url: config.urls.nodes + '/' + encodeURIComponent(nodeId),

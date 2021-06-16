@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.attribute.expression.language.evaluation;
 
-import java.util.Date;
-
 import org.apache.nifi.expression.AttributeExpression.ResultType;
+
+import java.util.Date;
 
 public class DateQueryResult implements QueryResult<Date> {
 

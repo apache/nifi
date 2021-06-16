@@ -49,6 +49,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -90,7 +91,8 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
     public enum QueryInfoRouteStrategy {
         NEVER,
         ALWAYS,
-        NOHIT
+        NOHIT,
+        APPEND_AS_ATTRIBUTES
     }
 
     private static final String FROM_QUERY_PARAM = "from";
@@ -102,6 +104,8 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
     static final AllowableValue ALWAYS = new AllowableValue(QueryInfoRouteStrategy.ALWAYS.name(), "Always", "Always route Query Info");
     static final AllowableValue NEVER = new AllowableValue(QueryInfoRouteStrategy.NEVER.name(), "Never", "Never route Query Info");
     static final AllowableValue NO_HITS = new AllowableValue(QueryInfoRouteStrategy.NOHIT.name(), "No Hits", "Route Query Info if the Query returns no hits");
+    static final AllowableValue APPEND_AS_ATTRIBUTES = new AllowableValue(QueryInfoRouteStrategy.APPEND_AS_ATTRIBUTES.name(), "Append as Attributes",
+            "Always append Query Info as attributes, using the existing relationships (does not add the Query Info relationship).");
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description(
@@ -220,7 +224,7 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
             .displayName("Routing Strategy for Query Info")
             .description("Specifies when to generate and route Query Info after a successful query")
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
-            .allowableValues(ALWAYS, NEVER, NO_HITS)
+            .allowableValues(ALWAYS, NEVER, NO_HITS, APPEND_AS_ATTRIBUTES)
             .defaultValue(NEVER.getValue())
             .required(false)
             .build();
@@ -316,6 +320,7 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
         // Authentication
         final String username = context.getProperty(USERNAME).evaluateAttributeExpressions().getValue();
         final String password = context.getProperty(PASSWORD).evaluateAttributeExpressions().getValue();
+        final Charset charset = Charset.forName(context.getProperty(CHARSET).evaluateAttributeExpressions(flowFile).getValue());
 
         final ComponentLog logger = getLogger();
 
@@ -344,7 +349,7 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
                 final Response getResponse = sendRequestToElasticsearch(okHttpClient, queryUrl,
                         username, password, "GET", null);
                 numResults = this.getPage(getResponse, queryUrl, context, session, flowFile,
-                        logger, startNanos, targetIsContent, numResults);
+                        logger, startNanos, targetIsContent, numResults, charset);
                 fromIndex += pageSize;
                 getResponse.close();
             }
@@ -381,7 +386,7 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
 
     private int getPage(final Response getResponse, final URL url, final ProcessContext context,
             final ProcessSession session, FlowFile flowFile, final ComponentLog logger,
-            final long startNanos, boolean targetIsContent, int priorResultCount)
+            final long startNanos, boolean targetIsContent, int priorResultCount, Charset charset)
             throws IOException {
         List<FlowFile> page = new ArrayList<>();
         final int statusCode = getResponse.code();
@@ -397,9 +402,9 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
             if ( (hits.size() == 0 && priorResultCount == 0 && queryInfoRouteStrategy == QueryInfoRouteStrategy.NOHIT)
                     || queryInfoRouteStrategy == QueryInfoRouteStrategy.ALWAYS) {
                 FlowFile queryInfo = flowFile == null ? session.create() : session.create(flowFile);
-                session.putAttribute(queryInfo, "es.query.url", url.toExternalForm());
-                session.putAttribute(queryInfo, "es.query.hitcount", String.valueOf(hits.size()));
-                session.putAttribute(queryInfo, MIME_TYPE.key(), "application/json");
+                queryInfo = session.putAttribute(queryInfo, "es.query.url", url.toExternalForm());
+                queryInfo = session.putAttribute(queryInfo, "es.query.hitcount", String.valueOf(hits.size()));
+                queryInfo = session.putAttribute(queryInfo, MIME_TYPE.key(), "application/json");
                 session.transfer(queryInfo,REL_QUERY_INFO);
             }
 
@@ -416,6 +421,10 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
                     documentFlowFile = session.create();
                 }
 
+                if (queryInfoRouteStrategy == QueryInfoRouteStrategy.APPEND_AS_ATTRIBUTES) {
+                    documentFlowFile = session.putAttribute(documentFlowFile, "es.query.hitcount", String.valueOf(hits.size()));
+                }
+
                 JsonNode source = hit.get("_source");
                 documentFlowFile = session.putAttribute(documentFlowFile, "es.id", retrievedId);
                 documentFlowFile = session.putAttribute(documentFlowFile, "es.index", retrievedIndex);
@@ -426,21 +435,43 @@ public class QueryElasticsearchHttp extends AbstractElasticsearchHttpProcessor {
                     documentFlowFile = session.putAttribute(documentFlowFile, "filename", retrievedId);
                     documentFlowFile = session.putAttribute(documentFlowFile, "mime.type", "application/json");
                     documentFlowFile = session.write(documentFlowFile, out -> {
-                        out.write(source.toString().getBytes());
+                        out.write(source.toString().getBytes(charset));
                     });
                 } else {
                     Map<String, String> attributes = new HashMap<>();
                     for(Iterator<Entry<String, JsonNode>> it = source.fields(); it.hasNext(); ) {
                         Entry<String, JsonNode> entry = it.next();
-                        attributes.put(ATTRIBUTE_PREFIX + entry.getKey(), entry.getValue().asText());
+
+                        String textValue = "";
+                        if(entry.getValue().isArray()){
+                            ArrayList<String> text_values = new ArrayList<String>();
+                            for(Iterator<JsonNode> items = entry.getValue().iterator(); items.hasNext(); ) {
+                                text_values.add(items.next().asText());
+                            }
+                            textValue = StringUtils.join(text_values, ',');
+                        } else {
+                            textValue = entry.getValue().asText();
+                        }
+                        attributes.put(ATTRIBUTE_PREFIX + entry.getKey(), textValue);
                     }
                     documentFlowFile = session.putAllAttributes(documentFlowFile, attributes);
                 }
                 page.add(documentFlowFile);
             }
-            logger.debug("Elasticsearch retrieved " + responseJson.size() + " documents, routing to success");
 
-            session.transfer(page, REL_SUCCESS);
+            logger.debug("Elasticsearch retrieved " + responseJson.size() + " documents, routing to success");
+            // If we want to append query info as attributes but there were no hits,
+            // pass along the original, if present.
+            if (queryInfoRouteStrategy == QueryInfoRouteStrategy.APPEND_AS_ATTRIBUTES && page.isEmpty()
+                    && flowFile != null) {
+                FlowFile documentFlowFile = null;
+                documentFlowFile = targetIsContent ? session.create(flowFile) : session.clone(flowFile);
+                documentFlowFile = session.putAttribute(documentFlowFile, "es.query.hitcount", String.valueOf(hits.size()));
+                documentFlowFile = session.putAttribute(documentFlowFile, "es.query.url", url.toExternalForm());
+                session.transfer(documentFlowFile, REL_SUCCESS);
+            } else {
+                session.transfer(page, REL_SUCCESS);
+            }
         } else {
             try {
                 // 5xx -> RETRY, but a server error might last a while, so yield

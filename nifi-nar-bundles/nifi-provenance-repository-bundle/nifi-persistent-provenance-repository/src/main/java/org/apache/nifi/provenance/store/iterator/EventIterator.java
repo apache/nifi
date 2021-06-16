@@ -17,17 +17,19 @@
 
 package org.apache.nifi.provenance.store.iterator;
 
+import org.apache.nifi.provenance.ProvenanceEventRecord;
+
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Optional;
-
-import org.apache.nifi.provenance.ProvenanceEventRecord;
+import java.util.function.Predicate;
 
 public interface EventIterator extends Closeable {
 
     Optional<ProvenanceEventRecord> nextEvent() throws IOException;
+
 
     public static EventIterator EMPTY = new EventIterator() {
         @Override
@@ -50,6 +52,33 @@ public interface EventIterator extends Closeable {
             @Override
             public Optional<ProvenanceEventRecord> nextEvent() {
                 return itr.hasNext() ? Optional.empty() : Optional.of(itr.next());
+            }
+        };
+    }
+
+
+    default EventIterator filter(Predicate<ProvenanceEventRecord> predicate) {
+        final EventIterator self = this;
+
+        return new EventIterator() {
+            @Override
+            public void close() throws IOException {
+                self.close();
+            }
+
+            @Override
+            public Optional<ProvenanceEventRecord> nextEvent() throws IOException {
+                while (true) {
+                    Optional<ProvenanceEventRecord> next = self.nextEvent();
+                    if (!next.isPresent()) {
+                        return next;
+                    }
+
+                    final ProvenanceEventRecord event = next.get();
+                    if (predicate.test(event)) {
+                        return next;
+                    }
+                }
             }
         };
     }

@@ -27,6 +27,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.text.DecimalFormatSymbols;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
@@ -93,7 +94,7 @@ public class ExtractImageMetadataTest {
 
         assertEquals("8", attributes.get(PNG_HEADER + "IHDR.Image Width"));
         assertEquals("12", attributes.get(PNG_HEADER + "IHDR.Image Height"));
-        assertEquals("0.455", attributes.get(PNG_HEADER + "gAMA.Image Gamma"));
+        assertEquals(String.format("0%s455", DecimalFormatSymbols.getInstance().getDecimalSeparator()), attributes.get(PNG_HEADER + "gAMA.Image Gamma"));
         assertEquals("Deflate", attributes.get(PNG_HEADER + "IHDR.Compression Type"));
         assertEquals("No Interlace", attributes.get(PNG_HEADER + "IHDR.Interlace Method"));
         assertEquals("Perceptual", attributes.get(PNG_HEADER + "sRGB.sRGB Rendering Intent"));

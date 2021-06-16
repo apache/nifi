@@ -45,6 +45,7 @@ public class KerberosProperties {
     private final Validator kerberosConfigValidator;
     private final PropertyDescriptor kerberosPrincipal;
     private final PropertyDescriptor kerberosKeytab;
+    private final PropertyDescriptor kerberosPassword;
 
     /**
      * Instantiate a KerberosProperties object but keep in mind it is
@@ -90,12 +91,21 @@ public class KerberosProperties {
                 .build();
 
         this.kerberosKeytab = new PropertyDescriptor.Builder()
-                .name("Kerberos Keytab").required(false)
+                .name("Kerberos Keytab")
+                .required(false)
                 .description("Kerberos keytab associated with the principal. Requires nifi.kerberos.krb5.file to be set in your nifi.properties")
                 .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
                 .addValidator(kerberosConfigValidator)
                 .addValidator(StandardValidators.ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR)
                 .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+                .build();
+
+        this.kerberosPassword = new PropertyDescriptor.Builder()
+                .name("Kerberos Password")
+                .required(false)
+                .description("Kerberos password associated with the principal.")
+                .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+                .sensitive(true)
                 .build();
     }
 
@@ -115,7 +125,12 @@ public class KerberosProperties {
         return kerberosKeytab;
     }
 
-    public static List<ValidationResult> validatePrincipalAndKeytab(final String subject, final Configuration config, final String principal, final String keytab, final ComponentLog logger) {
+    public PropertyDescriptor getKerberosPassword() {
+        return kerberosPassword;
+    }
+
+    public static List<ValidationResult> validatePrincipalWithKeytabOrPassword(final String subject, final Configuration config, final String principal, final String keytab,
+                                                                               final String password, final ComponentLog logger) {
         final List<ValidationResult> results = new ArrayList<>();
 
         // if security is enabled then the keytab and principal are required
@@ -131,11 +146,21 @@ public class KerberosProperties {
         }
 
         final boolean blankKeytab = (keytab == null || keytab.isEmpty());
-        if (isSecurityEnabled && blankKeytab) {
+        final boolean blankPassword = (password == null || password.isEmpty());
+
+        if (isSecurityEnabled && blankKeytab && blankPassword) {
             results.add(new ValidationResult.Builder()
                     .valid(false)
                     .subject(subject)
-                    .explanation("Kerberos Keytab must be provided when using a secure configuration")
+                    .explanation("Kerberos Keytab or Kerberos Password must be provided when using a secure configuration")
+                    .build());
+        }
+
+        if (isSecurityEnabled && !blankKeytab && !blankPassword) {
+            results.add(new ValidationResult.Builder()
+                    .valid(false)
+                    .subject(subject)
+                    .explanation("Cannot specify both a Kerberos Keytab and a Kerberos Password")
                     .build());
         }
 

@@ -14,3 +14,4 @@
 # limitations under the License.
 org.apache.nifi.dbcp.DBCPConnectionPool
 org.apache.nifi.dbcp.DBCPConnectionPoolLookup
+org.apache.nifi.record.sink.db.DatabaseRecordSink

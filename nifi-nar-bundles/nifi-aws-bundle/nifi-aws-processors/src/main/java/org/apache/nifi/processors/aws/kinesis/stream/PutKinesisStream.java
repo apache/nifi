@@ -83,7 +83,7 @@ public class PutKinesisStream extends AbstractKinesisStreamProcessor {
                 AWS_CREDENTIALS_PROVIDER_SERVICE, TIMEOUT, PROXY_CONFIGURATION_SERVICE, PROXY_HOST, PROXY_HOST_PORT, PROXY_USERNAME, PROXY_PASSWORD, ENDPOINT_OVERRIDE));
 
     /** A random number generator for cases where partition key is not available */
-    protected Random randomParitionKeyGenerator = new Random();
+    protected Random randomPartitionKeyGenerator = new Random();
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -125,7 +125,7 @@ public class PutKinesisStream extends AbstractKinesisStreamProcessor {
                 if (StringUtils.isBlank(partitionKey) == false) {
                     record.setPartitionKey(partitionKey);
                 } else {
-                    record.setPartitionKey(Integer.toString(randomParitionKeyGenerator.nextInt()));
+                    record.setPartitionKey(Integer.toString(randomPartitionKeyGenerator.nextInt()));
                 }
 
                 if (recordHash.containsKey(streamName) == false) {

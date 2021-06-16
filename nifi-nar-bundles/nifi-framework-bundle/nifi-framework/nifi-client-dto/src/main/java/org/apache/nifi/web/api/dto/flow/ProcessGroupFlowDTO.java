@@ -19,6 +19,7 @@ package org.apache.nifi.web.api.dto.flow;
 import io.swagger.annotations.ApiModelProperty;
 import org.apache.nifi.web.api.dto.util.TimeAdapter;
 import org.apache.nifi.web.api.entity.FlowBreadcrumbEntity;
+import org.apache.nifi.web.api.entity.ParameterContextReferenceEntity;
 
 import javax.xml.bind.annotation.XmlType;
 import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
@@ -33,6 +34,7 @@ public class ProcessGroupFlowDTO {
     private String id;
     private String uri;
     private String parentGroupId;
+    private ParameterContextReferenceEntity parameterContext;
     private FlowBreadcrumbEntity breadcrumb;
     private FlowDTO flow;
     private Date lastRefreshed;
@@ -124,5 +126,14 @@ public class ProcessGroupFlowDTO {
 
     public void setLastRefreshed(Date lastRefreshed) {
         this.lastRefreshed = lastRefreshed;
+    }
+
+    @ApiModelProperty("The Parameter Context, or null if no Parameter Context has been bound to the Process Group")
+    public ParameterContextReferenceEntity getParameterContext() {
+        return parameterContext;
+    }
+
+    public void setParameterContext(ParameterContextReferenceEntity parameterContext) {
+        this.parameterContext = parameterContext;
     }
 }

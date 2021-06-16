@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.reporting.ambari;
 
-import com.yammer.metrics.core.VirtualMachineMetrics;
-
 import org.apache.nifi.annotation.configuration.DefaultSchedule;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
@@ -26,6 +24,8 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.metrics.jvm.JmxJvmMetrics;
+import org.apache.nifi.metrics.jvm.JvmMetrics;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.AbstractReportingTask;
 import org.apache.nifi.reporting.ReportingContext;
@@ -95,7 +95,7 @@ public class AmbariReportingTask extends AbstractReportingTask {
 
     private volatile Client client;
     private volatile JsonBuilderFactory factory;
-    private volatile VirtualMachineMetrics virtualMachineMetrics;
+    private volatile JvmMetrics virtualMachineMetrics;
     private volatile JsonObject previousMetrics = null;
 
     private final MetricsService metricsService = new MetricsService();
@@ -115,7 +115,7 @@ public class AmbariReportingTask extends AbstractReportingTask {
         final Map<String, ?> config = Collections.emptyMap();
         factory = Json.createBuilderFactory(config);
         client = createClient();
-        virtualMachineMetrics = VirtualMachineMetrics.getInstance();
+        virtualMachineMetrics = JmxJvmMetrics.getInstance();
         previousMetrics = null;
     }
 

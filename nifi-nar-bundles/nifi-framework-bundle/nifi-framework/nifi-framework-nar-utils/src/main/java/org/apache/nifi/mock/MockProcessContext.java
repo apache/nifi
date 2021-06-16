@@ -22,6 +22,7 @@ import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.scheduling.ExecutionNode;
 
 import java.util.Collections;
 import java.util.Map;
@@ -52,6 +53,11 @@ public class MockProcessContext implements ProcessContext {
     @Override
     public int getMaxConcurrentTasks() {
         return 0;
+    }
+
+    @Override
+    public ExecutionNode getExecutionNode() {
+        return ExecutionNode.ALL;
     }
 
     @Override

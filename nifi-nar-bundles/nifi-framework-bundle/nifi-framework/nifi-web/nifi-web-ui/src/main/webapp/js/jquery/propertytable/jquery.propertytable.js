@@ -29,8 +29,11 @@
                 'nf.Storage',
                 'nf.Client',
                 'nf.ErrorHandler',
+                'nf.ProcessGroup',
                 'nf.ProcessGroupConfiguration',
-                'nf.Settings'],
+                'nf.Settings',
+                'nf.ParameterContexts',
+                'lodash-core'],
             function ($,
                       Slick,
                       nfCommon,
@@ -39,8 +42,11 @@
                       nfStorage,
                       nfClient,
                       nfErrorHandler,
+                      nfProcessGroup,
                       nfProcessGroupConfiguration,
-                      nfSettings) {
+                      nfSettings,
+                      nfParameterContexts,
+                      _) {
                 factory($,
                     Slick,
                     nfCommon,
@@ -49,8 +55,11 @@
                     nfStorage,
                     nfClient,
                     nfErrorHandler,
+                    nfProcessGroup,
                     nfProcessGroupConfiguration,
-                    nfSettings);
+                    nfSettings,
+                    nfParameterContexts,
+                    _);
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         factory(require('jquery'),
@@ -61,8 +70,11 @@
             require('nf.Storage'),
             require('nf.Client'),
             require('nf.ErrorHandler'),
+            require('nf.ProcessGroup'),
             require('nf.ProcessGroupConfiguration'),
-            require('nf.Settings'));
+            require('nf.Settings'),
+            recuire('nf.ParameterContexts'),
+            require('lodash-core'));
     } else {
         factory(root.$,
             root.Slick,
@@ -72,8 +84,11 @@
             root.nf.Storage,
             root.nf.Client,
             root.nf.ErrorHandler,
+            root.nf.ProcessGroup,
             root.nf.ProcessGroupConfiguration,
-            root.nf.Settings);
+            root.nf.Settings,
+            root.nf.ParameterContexts,
+            root._);
     }
 }(this, function ($,
                   Slick,
@@ -83,653 +98,703 @@
                   nfStorage,
                   nfClient,
                   nfErrorHandler,
+                  nfProcessGroup,
                   nfProcessGroupConfiguration,
-                  nfSettings) {
+                  nfSettings,
+                  nfParameterContexts,
+                  _) {
 
-    var languageId = 'nfel';
-    var editorClass = languageId + '-editor';
     var groupId = null;
+    var COMBO_MIN_WIDTH = 212;
+    var EDITOR_MIN_WIDTH = 212;
+    var EDITOR_MIN_HEIGHT = 100;
 
-    // text editor
-    var textEditor = function (args) {
-        var scope = this;
-        var initialValue = '';
-        var previousValue;
-        var propertyDescriptor;
-        var wrapper;
-        var isEmpty;
-        var input;
+    var EL_SUPPORTED_TITLE = '<div>Expression Language (EL) supported</div>';
+    var EL_SUPPORTED_DESCRIPTION = '<div>After beginning with the start delimiter <span class="hint-pattern">${</span> use the keystroke '
+        + '<span class="hint-keystroke">control+space</span> to see a list of available functions.</div>';
+    var EL_UNSUPPORTED_TITLE = '<div>Expression Language (EL) not supported</div>';
 
-        this.init = function () {
-            var container = $('body');
+    var PARAM_SUPPORTED_TITLE = '<div>Parameters (PARAM) supported</div>';
+    var PARAM_SUPPORTED_DESCRIPTION = '<div>After beginning with the start delimiter <span class="hint-pattern">#{</span> use the keystroke '
+        + '<span class="hint-keystroke">control+space</span> to see a list of available parameters.</div>';
+    var PARAM_UNSUPPORTED_TITLE = '<div>Parameters (PARAM) not supported</div>';
 
-            // get the property descriptor
-            var gridContainer = $(args.grid.getContainerNode());
-            var descriptors = gridContainer.data('descriptors');
-            propertyDescriptor = descriptors[args.item.property];
+    /**
+     * Determines if the specified value represents a reference to a parameter.
+     *
+     * @param value         The value to check
+     * @returns {boolean}   Whether the value represents a reference to a parameter
+     */
+    var referencesParameter = function (value) {
+        if (nfCommon.isDefinedAndNotNull(value)) {
+            return value.startsWith('#{') && value.endsWith('}');
+        }
 
-            // record the previous value
-            previousValue = args.item[args.column.field];
-
-            // create the wrapper
-            wrapper = $('<div></div>').addClass('slickgrid-editor').css({
-                'z-index': 100000,
-                'position': 'absolute',
-                'border-radius': '2px',
-                'box-shadow': 'rgba(0, 0, 0, 0.247059) 0px 2px 5px',
-                'background-color': 'rgb(255, 255, 255)',
-                'overflow': 'hidden',
-                'padding': '10px 20px',
-                'cursor': 'move',
-                'transform': 'translate3d(0px, 0px, 0px)'
-            }).appendTo(container);
-
-            // create the input field
-            input = $('<textarea hidefocus rows="5"/>').css({
-                'height': '80px',
-                'width': args.position.width + 'px',
-                'min-width': '212px',
-                'margin-bottom': '5px',
-                'margin-top': '10px',
-                'white-space': 'pre'
-            }).tab().on('keydown', scope.handleKeyDown).appendTo(wrapper);
-
-            wrapper.draggable({
-                cancel: '.button, textarea, .nf-checkbox',
-                containment: 'parent'
-            });
-
-            // create the button panel
-            var stringCheckPanel = $('<div class="string-check-container">');
-            stringCheckPanel.appendTo(wrapper);
-
-            // build the custom checkbox
-            isEmpty = $('<div class="nf-checkbox string-check"/>').appendTo(stringCheckPanel);
-            $('<span class="string-check-label nf-checkbox-label">&nbsp;Set empty string</span>').appendTo(stringCheckPanel);
-
-            var ok = $('<div class="button">Ok</div>').css({
-                'color': '#fff',
-                'background': '#728E9B'
-            }).hover(
-                function () {
-                    $(this).css('background', '#004849');
-                }, function () {
-                    $(this).css('background', '#728E9B');
-                }).on('click', scope.save);
-            var cancel = $('<div class="secondary-button">Cancel</div>').css({
-                'color': '#004849',
-                'background': '#E3E8EB'
-            }).hover(
-                function () {
-                    $(this).css('background', '#C7D2D7');
-                }, function () {
-                    $(this).css('background', '#E3E8EB');
-                }).on('click', scope.cancel);
-            $('<div></div>').css({
-                'position': 'relative',
-                'top': '10px',
-                'left': '20px',
-                'width': '212px',
-                'clear': 'both',
-                'float': 'right'
-            }).append(ok).append(cancel).append('<div class="clear"></div>').appendTo(wrapper);
-
-            // position and focus
-            scope.position(args.position);
-            input.focus().select();
-        };
-
-        this.handleKeyDown = function (e) {
-            if (e.which === $.ui.keyCode.ENTER && !e.shiftKey) {
-                scope.save();
-            } else if (e.which === $.ui.keyCode.ESCAPE) {
-                scope.cancel();
-
-                // prevent further propagation or escape press and prevent default behavior
-                e.stopImmediatePropagation();
-                e.preventDefault();
-            }
-        };
-
-        this.save = function () {
-            args.commitChanges();
-        };
-
-        this.cancel = function () {
-            input.val(initialValue);
-            args.cancelChanges();
-        };
-
-        this.hide = function () {
-            wrapper.hide();
-        };
-
-        this.show = function () {
-            wrapper.show();
-        };
-
-        this.position = function (position) {
-            wrapper.css({
-                'top': position.top - 27,
-                'left': position.left - 20
-            });
-        };
-
-        this.destroy = function () {
-            wrapper.remove();
-        };
-
-        this.focus = function () {
-            input.focus();
-        };
-
-        this.loadValue = function (item) {
-            // determine if this is a sensitive property
-            var isEmptyChecked = false;
-            var sensitive = nfCommon.isSensitiveProperty(propertyDescriptor);
-
-            // determine the value to use when populating the text field
-            if (nfCommon.isDefinedAndNotNull(item[args.column.field])) {
-                if (sensitive) {
-                    initialValue = nfCommon.config.sensitiveText;
-                } else {
-                    initialValue = item[args.column.field];
-                    isEmptyChecked = initialValue === '';
-                }
-            }
-
-            // determine if its an empty string
-            var checkboxStyle = isEmptyChecked ? 'checkbox-checked' : 'checkbox-unchecked';
-            isEmpty.addClass(checkboxStyle);
-
-            // style sensitive properties differently
-            if (sensitive) {
-                input.addClass('sensitive').keydown(function () {
-                    var sensitiveInput = $(this);
-                    if (sensitiveInput.hasClass('sensitive')) {
-                        sensitiveInput.removeClass('sensitive');
-                        if (sensitiveInput.val() === nfCommon.config.sensitiveText) {
-                            sensitiveInput.val('');
-                        }
-                    }
-                });
-            }
-
-            input.val(initialValue);
-            input.select();
-        };
-
-        this.serializeValue = function () {
-            // if the field has been cleared, set the value accordingly
-            if (input.val() === '') {
-                // if the user has checked the empty string checkbox, use emtpy string
-                if (isEmpty.hasClass('checkbox-checked')) {
-                    return '';
-                } else {
-                    // otherwise if the property is required
-                    if (nfCommon.isRequiredProperty(propertyDescriptor)) {
-                        if (nfCommon.isBlank(propertyDescriptor.defaultValue)) {
-                            return previousValue;
-                        } else {
-                            return propertyDescriptor.defaultValue;
-                        }
-                    } else {
-                        // if the property is not required, clear the value
-                        return null;
-                    }
-                }
-            } else {
-                // if the field still has the sensitive class it means a property
-                // was edited but never modified so we should restore the previous
-                // value instead of setting it to the 'sensitive value set' string
-                if (input.hasClass('sensitive')) {
-                    return previousValue;
-                } else {
-                    // if there is text specified, use that value
-                    return input.val();
-                }
-            }
-        };
-
-        this.applyValue = function (item, state) {
-            item[args.column.field] = state;
-        };
-
-        this.isValueChanged = function () {
-            return scope.serializeValue() !== previousValue;
-        };
-
-        this.validate = function () {
-            return {
-                valid: true,
-                msg: null
-            };
-        };
-
-        // initialize the custom long text editor
-        this.init();
+        return false;
     };
 
-    // nfel editor
-    var nfelEditor = function (args) {
-        var scope = this;
-        var initialValue = '';
-        var previousValue;
-        var propertyDescriptor;
-        var isEmpty;
-        var wrapper;
-        var editor;
+    var containsParameterReference = function (value) {
+        var paramRefsRegex = /#{[a-zA-Z0-9-_. ]+}/;
+        return paramRefsRegex.test(value);
+    };
 
-        this.init = function () {
-            var container = $('body');
+    var getSupportTip = function (isEl, isSupported) {
+        var supportContainer = $('<div></div>');
 
-            // get the property descriptor
-            var gridContainer = $(args.grid.getContainerNode());
-            var descriptors = gridContainer.data('descriptors');
-            propertyDescriptor = descriptors[args.item.property];
+        var supportTitleContainer = $('<div></div>')
+            .addClass('mode-hint-tip-title-container')
+            .appendTo(supportContainer);
 
-            // determine if this is a sensitive property
-            var sensitive = nfCommon.isSensitiveProperty(propertyDescriptor);
+        if (isSupported) {
+            $('<div></div>')
+                .addClass('fa fa-check')
+                .appendTo(supportTitleContainer);
+            $(isEl ? EL_SUPPORTED_TITLE : PARAM_SUPPORTED_TITLE)
+                .addClass('mode-supported')
+                .appendTo(supportTitleContainer);
 
-            // record the previous value
-            previousValue = args.item[args.column.field];
+            var supportDescriptionContainer = $('<div></div>')
+                .addClass('mode-hint-tip-description-container')
+                .appendTo(supportContainer);
 
-            var languageId = 'nfel';
-            var editorClass = languageId + '-editor';
+            $(isEl ? EL_SUPPORTED_DESCRIPTION : PARAM_SUPPORTED_DESCRIPTION)
+                .appendTo(supportDescriptionContainer);
+        } else {
+            $('<div></div>')
+                .addClass('fa fa-ban')
+                .appendTo(supportTitleContainer);
+            $(isEl ? EL_UNSUPPORTED_TITLE : PARAM_UNSUPPORTED_TITLE)
+                .addClass('mode-unsupported')
+                .appendTo(supportTitleContainer);
+        }
 
-            // create the wrapper
-            wrapper = $('<div></div>').addClass('slickgrid-nfel-editor').css({
-                'z-index': 14000,
-                'position': 'absolute',
-                'padding': '10px 20px',
-                'overflow': 'hidden',
-                'border-radius': '2px',
-                'box-shadow': 'rgba(0, 0, 0, 0.247059) 0px 2px 5px',
-                'background-color': 'rgb(255, 255, 255)',
-                'cursor': 'move',
-                'transform': 'translate3d(0px, 0px, 0px)'
-            }).draggable({
-                cancel: 'input, textarea, pre, .nf-checkbox, .button, .' + editorClass,
-                containment: 'parent'
-            }).appendTo(container);
+        return supportContainer;
+    };
 
-            // create the editor
-            editor = $('<div></div>').addClass(editorClass).appendTo(wrapper).nfeditor({
-                languageId: languageId,
-                width: (args.position.width < 212) ? 212 : args.position.width,
-                minWidth: 212,
-                minHeight: 100,
-                resizable: true,
-                sensitive: sensitive,
-                escape: function () {
-                    scope.cancel();
-                },
-                enter: function () {
-                    scope.save();
+    var getNfEditor = function (getMode) {
+        return function (args) {
+            var scope = this;
+            var initialValue = '';
+            var previousValue;
+            var propertyDescriptor;
+            var isEmpty;
+            var wrapper;
+            var editor;
+            var tip;
+
+            this.init = function () {
+                var container = $('body');
+
+                // get the property descriptor
+                var gridContainer = $(args.grid.getContainerNode());
+                var descriptors = gridContainer.data('descriptors');
+                propertyDescriptor = descriptors[args.item.property];
+
+                var mode = getMode(propertyDescriptor);
+
+                // determine if this is a sensitive property
+                var sensitive = nfCommon.isSensitiveProperty(propertyDescriptor);
+
+                // record the previous value
+                previousValue = args.item[args.column.field];
+
+                // create the wrapper
+                wrapper = $('<div></div>')
+                    .addClass('slickgrid-nf-editor')
+                    .css({
+                        'z-index': 14000,
+                        'position': 'absolute',
+                        'padding': '10px 20px',
+                        'overflow': 'hidden',
+                        'border-radius': '2px',
+                        'box-shadow': 'rgba(0, 0, 0, 0.247059) 0px 2px 5px',
+                        'background-color': 'rgb(255, 255, 255)',
+                        'cursor': 'move',
+                        'transform': 'translate3d(0px, 0px, 0px)'
+                    }).draggable({
+                        cancel: '.button, .mode-hint-element, .nf-editor, .string-check-container > *',
+                        containment: 'parent'
+                    }).appendTo(container);
+
+                // create the tip
+                tip = $('<div></div>')
+                    .addClass('mode-hint-tip')
+                    .appendTo(container);
+
+                var supportsEl = mode.supportsEl();
+                var supportsParameterReference = mode.supportsParameterReference();
+                tip.append(getSupportTip(true, supportsEl));
+                tip.append(getSupportTip(false, supportsParameterReference));
+
+                // create the mode hint
+                var modeHintContainer = $('<div></div>')
+                    .addClass('mode-hint-container')
+                    .appendTo(wrapper);
+                var modeHintElement = $('<div></div>')
+                    .addClass('mode-hint-element')
+                    .on('mouseenter', function () {
+                        var wrapperPosition = wrapper.position();
+                        var tipTop = wrapperPosition.top - tip.outerHeight() + 2;
+                        var tipLeft = wrapperPosition.left + wrapper.outerWidth() - tip.outerWidth() + 5;
+                        tip.css({
+                            top: tipTop + 'px',
+                            left: tipLeft + 'px'
+                        });
+                        tip.show();
+                    })
+                    .on('mouseleave', function () {
+                        tip.hide();
+                    })
+                    .appendTo(modeHintContainer);
+
+                // el hint
+                var elModeHintContainer = $('<div></div>')
+                    .addClass('mode-hint')
+                    .appendTo(modeHintElement);
+
+                $('<div>EL</div>')
+                    .appendTo(elModeHintContainer);
+                $('<div></div>')
+                    .addClass('mode-hint-value fa')
+                    .addClass(supportsEl ? 'fa-check' : 'fa-ban')
+                    .appendTo(elModeHintContainer);
+
+                // parameter hint
+                var paramModeHitContainer = $('<div></div>')
+                    .addClass('mode-hint')
+                    .appendTo(modeHintElement);
+
+                $('<div>PARAM</div>')
+                    .appendTo(paramModeHitContainer);
+                $('<div></div>')
+                    .addClass('mode-hint-value fa')
+                    .addClass(supportsParameterReference ? 'fa-check' : 'fa-ban')
+                    .appendTo(paramModeHitContainer);
+
+                var editorWidth = Math.max(args.position.width, EDITOR_MIN_WIDTH);
+
+                // create the editor
+                editor = $('<div></div>')
+                    .addClass('nf-editor')
+                    .appendTo(wrapper)
+                    .nfeditor({
+                        languageMode: mode,
+                        width: editorWidth,
+                        minWidth: EDITOR_MIN_WIDTH,
+                        minHeight: EDITOR_MIN_HEIGHT,
+                        resizable: true,
+                        sensitive: sensitive,
+                        escape: function () {
+                            scope.cancel();
+                        },
+                        enter: function () {
+                            scope.save();
+                        }
+                    });
+
+                // create the button panel
+                var stringCheckPanel = $('<div class="string-check-container" />');
+                stringCheckPanel.appendTo(wrapper);
+
+                // build the custom checkbox
+                isEmpty = $('<div class="nf-checkbox string-check" />')
+                    .on('change', function (event, args) {
+                        // if we are setting as an empty string, disable the editor
+                        if (args.isChecked) {
+                            editor.nfeditor('setValue', '');
+                            editor.nfeditor('setReadOnly', 'nocursor');
+                        } else {
+                            editor.nfeditor('setValue', initialValue);
+                            editor.nfeditor('setReadOnly', false);
+                        }
+                    })
+                    .appendTo(stringCheckPanel);
+
+                $('<span class="string-check-label nf-checkbox-label">&nbsp;Set empty string</span>')
+                    .appendTo(stringCheckPanel);
+
+                var ok = $('<div class="button">Ok</div>').css({
+                    'color': '#fff',
+                    'background': '#728E9B'
+                }).hover(
+                    function () {
+                        $(this).css('background', '#004849');
+                    }, function () {
+                        $(this).css('background', '#728E9B');
+                    }).on('click', scope.save);
+                var cancel = $('<div class="secondary-button">Cancel</div>').css({
+                    'color': '#004849',
+                    'background': '#E3E8EB'
+                }).hover(
+                    function () {
+                        $(this).css('background', '#C7D2D7');
+                    }, function () {
+                        $(this).css('background', '#E3E8EB');
+                    }).on('click', scope.cancel);
+                $('<div></div>').css({
+                    'position': 'relative',
+                    'top': '10px',
+                    'left': '20px',
+                    'width': '212px',
+                    'clear': 'both',
+                    'float': 'right'
+                }).append(ok).append(cancel).append('<div class="clear"></div>').appendTo(wrapper);
+
+                // position and focus
+                scope.position(args.position);
+                editor.nfeditor('focus').nfeditor('selectAll');
+            };
+
+            this.save = function () {
+                args.commitChanges();
+            };
+
+            this.cancel = function () {
+                editor.nfeditor('setValue', initialValue);
+                args.cancelChanges();
+            };
+
+            this.hide = function () {
+                wrapper.hide();
+            };
+
+            this.show = function () {
+                wrapper.show();
+                editor.nfeditor('refresh');
+            };
+
+            this.position = function (position) {
+                wrapper.css({
+                    'top': position.top - 16,
+                    'left': position.left - 42
+                });
+            };
+
+            this.destroy = function () {
+                editor.nfeditor('destroy');
+                wrapper.remove();
+                tip.remove();
+            };
+
+            this.focus = function () {
+                editor.nfeditor('focus');
+            };
+
+            this.loadValue = function (item) {
+                // determine if this is a sensitive property
+                var isEmptyChecked = false;
+                var sensitive = nfCommon.isSensitiveProperty(propertyDescriptor);
+
+                // determine the value to use when populating the text field
+                if (nfCommon.isDefinedAndNotNull(item[args.column.field])) {
+                    if (sensitive) {
+                        initialValue = nfCommon.config.sensitiveText;
+                    } else {
+                        initialValue = item[args.column.field];
+                        isEmptyChecked = initialValue === '';
+                    }
                 }
-            });
 
-            // create the button panel
-            var stringCheckPanel = $('<div class="string-check-container">');
-            stringCheckPanel.appendTo(wrapper);
-
-            // build the custom checkbox
-            isEmpty = $('<div class="nf-checkbox string-check"/>').appendTo(stringCheckPanel);
-            $('<span class="string-check-label nf-checkbox-label">&nbsp;Set empty string</span>').appendTo(stringCheckPanel);
-
-            var ok = $('<div class="button">Ok</div>').css({
-                'color': '#fff',
-                'background': '#728E9B'
-            }).hover(
-                function () {
-                    $(this).css('background', '#004849');
-                }, function () {
-                    $(this).css('background', '#728E9B');
-                }).on('click', scope.save);
-            var cancel = $('<div class="secondary-button">Cancel</div>').css({
-                'color': '#004849',
-                'background': '#E3E8EB'
-            }).hover(
-                function () {
-                    $(this).css('background', '#C7D2D7');
-                }, function () {
-                    $(this).css('background', '#E3E8EB');
-                }).on('click', scope.cancel);
-            $('<div></div>').css({
-                'position': 'relative',
-                'top': '10px',
-                'left': '20px',
-                'width': '212px',
-                'clear': 'both',
-                'float': 'right'
-            }).append(ok).append(cancel).append('<div class="clear"></div>').appendTo(wrapper);
-
-            // position and focus
-            scope.position(args.position);
-            editor.nfeditor('focus').nfeditor('selectAll');
-        };
-
-        this.save = function () {
-            args.commitChanges();
-        };
-
-        this.cancel = function () {
-            editor.nfeditor('setValue', initialValue);
-            args.cancelChanges();
-        };
-
-        this.hide = function () {
-            wrapper.hide();
-        };
-
-        this.show = function () {
-            wrapper.show();
-            editor.nfeditor('refresh');
-        };
-
-        this.position = function (position) {
-            wrapper.css({
-                'top': position.top - 21,
-                'left': position.left - 43
-            });
-        };
-
-        this.destroy = function () {
-            editor.nfeditor('destroy');
-            wrapper.remove();
-        };
-
-        this.focus = function () {
-            editor.nfeditor('focus');
-        };
-
-        this.loadValue = function (item) {
-            // determine if this is a sensitive property
-            var isEmptyChecked = false;
-            var sensitive = nfCommon.isSensitiveProperty(propertyDescriptor);
-
-            // determine the value to use when populating the text field
-            if (nfCommon.isDefinedAndNotNull(item[args.column.field])) {
-                if (sensitive) {
-                    initialValue = nfCommon.config.sensitiveText;
+                var checkboxStyle;
+                if (isEmptyChecked) {
+                    checkboxStyle = 'checkbox-checked';
+                    editor.nfeditor('setReadOnly', 'nocursor');
                 } else {
-                    initialValue = item[args.column.field];
-                    isEmptyChecked = initialValue === '';
+                    checkboxStyle = 'checkbox-unchecked';
                 }
-            }
 
-            // determine if its an empty string
-            var checkboxStyle = isEmptyChecked ? 'checkbox-checked' : 'checkbox-unchecked';
-            isEmpty.addClass(checkboxStyle);
+                isEmpty.addClass(checkboxStyle);
+                editor.nfeditor('setValue', initialValue).nfeditor('selectAll');
+            };
 
-            editor.nfeditor('setValue', initialValue).nfeditor('selectAll');
-        };
+            this.serializeValue = function () {
+                var value = editor.nfeditor('getValue');
 
-        this.serializeValue = function () {
-            var value = editor.nfeditor('getValue');
+                // if the field has been cleared, set the value accordingly
+                if (value === '') {
+                    // if the user has checked the empty string checkbox, use emtpy string
+                    if (isEmpty.hasClass('checkbox-checked')) {
+                        return '';
+                    }
 
-            // if the field has been cleared, set the value accordingly
-            if (value === '') {
-                // if the user has checked the empty string checkbox, use emtpy string
-                if (isEmpty.hasClass('checkbox-checked')) {
-                    return '';
-                } else {
                     // otherwise if the property is required
                     if (nfCommon.isRequiredProperty(propertyDescriptor)) {
                         if (nfCommon.isBlank(propertyDescriptor.defaultValue)) {
                             return previousValue;
-                        } else {
-                            return propertyDescriptor.defaultValue;
                         }
-                    } else {
-                        // if the property is not required, clear the value
-                        return null;
-                    }
-                }
-            } else {
-                // if the field still has the sensitive class it means a property
-                // was edited but never modified so we should restore the previous
-                // value instead of setting it to the 'sensitive value set' string
 
-                // if the field hasn't been modified return the previous value... this
-                // is important because sensitive properties contain the text 'sensitive
-                // value set' which is cleared when the value is edited. we do not
-                // want to actually use this value
+                        return propertyDescriptor.defaultValue;
+                    }
+
+                    // if the property is not required, clear the value
+                    return null;
+                }
+
+                // if the field wasn't modified return the previous value
                 if (editor.nfeditor('isModified') === false) {
                     return previousValue;
-                } else {
-                    // if there is text specified, use that value
-                    return value;
                 }
-            }
-        };
 
-        this.applyValue = function (item, state) {
-            item[args.column.field] = state;
-        };
-
-        this.isValueChanged = function () {
-            return scope.serializeValue() !== previousValue;
-        };
-
-        this.validate = function () {
-            return {
-                valid: true,
-                msg: null
+                // if there is text specified, use that value
+                return value;
             };
-        };
 
-        // initialize the custom long nfel editor
-        this.init();
+            this.applyValue = function (item, state) {
+                item[args.column.field] = state;
+            };
+
+            this.isValueChanged = function () {
+                return scope.serializeValue() !== previousValue;
+            };
+
+            this.validate = function () {
+                return {
+                    valid: true,
+                    msg: null
+                };
+            };
+
+            // initialize the custom long nfel editor
+            this.init();
+        };
     };
 
     // combo editor
-    var comboEditor = function (args) {
-        var scope = this;
-        var initialValue = null;
-        var wrapper;
-        var combo;
-        var propertyDescriptor;
+    var getComboEditor = function (parametersSupported, loadParameters) {
+        return function (args) {
+            var PARAMETER_REFERENCE_OPTION = {
+                text: 'Reference parameter...',
+                value: undefined,
+                optionClass: 'unset'
+            };
+            var LOADING_PARAMETERS_OPTION = {
+                text: 'Loading parameters...',
+                value: null,
+                optionClass: 'unset',
+                disabled: true
+            };
+            var CREATE_CONTROLLER_SERVICE_OPTION = {
+                text: 'Create new service...',
+                value: undefined,
+                optionClass: 'unset'
+            };
 
-        this.init = function () {
-            var container = $('body');
+            var scope = this;
+            var allowableValueOptions = [];
+            var parameterOptions = [];
+            var initialValue = null;
+            var wrapper;
+            var allowableValuesCombo;
+            var parameterCombo;
+            var propertyDescriptor;
+            var parametersLoading = true;
+            var parametersLoaded;
 
-            // get the property descriptor
-            var gridContainer = $(args.grid.getContainerNode());
-            var descriptors = gridContainer.data('descriptors');
-            propertyDescriptor = descriptors[args.item.property];
+            this.init = function () {
+                var container = $('body');
 
-            // get the options
-            var propertyContainer = gridContainer.closest('.property-container');
-            var configurationOptions = propertyContainer.data('options');
+                // get the property descriptor
+                var gridContainer = $(args.grid.getContainerNode());
+                var descriptors = gridContainer.data('descriptors');
+                propertyDescriptor = descriptors[args.item.property];
 
-            // create the wrapper
-            wrapper = $('<div class="combo-editor"></div>').css({
-                'z-index': 1999,
-                'position': 'absolute',
-                'padding': '10px 20px',
-                'overflow': 'hidden',
-                'border-radius': '2px',
-                'box-shadow': 'rgba(0, 0, 0, 0.247059) 0px 2px 5px',
-                'background-color': 'rgb(255, 255, 255)',
-                'cursor': 'move',
-                'transform': 'translate3d(0px, 0px, 0px)'
-            }).draggable({
-                cancel: '.button, .combo',
-                containment: 'parent'
-            }).appendTo(container);
+                // get the options
+                var propertyContainer = gridContainer.closest('.property-container');
+                var configurationOptions = propertyContainer.data('options');
 
-            // check for allowable values which will drive which editor to use
-            var allowableValues = nfCommon.getAllowableValues(propertyDescriptor);
+                // create the wrapper
+                wrapper = $('<div class="combo-editor"></div>').css({
+                    'z-index': 1999,
+                    'position': 'absolute',
+                    'padding': '10px 20px',
+                    'overflow': 'hidden',
+                    'border-radius': '2px',
+                    'box-shadow': 'rgba(0, 0, 0, 0.247059) 0px 2px 5px',
+                    'background-color': 'rgb(255, 255, 255)',
+                    'cursor': 'move',
+                    'transform': 'translate3d(0px, 0px, 0px)'
+                }).draggable({
+                    cancel: '.button, .combo',
+                    containment: 'parent'
+                }).appendTo(container);
 
-            // show the output port options
-            var options = [];
-            if (propertyDescriptor.required === false) {
-                options.push({
-                    text: 'No value',
-                    value: null,
-                    optionClass: 'unset'
-                });
-            }
-            if ($.isArray(allowableValues)) {
-                $.each(allowableValues, function (i, allowableValueEntity) {
-                    var allowableValue = allowableValueEntity.allowableValue;
-                    options.push({
-                        text: allowableValue.displayName,
-                        value: allowableValue.value,
-                        disabled: allowableValueEntity.canRead === false && allowableValue.value !== args.item['previousValue'],
-                        description: nfCommon.escapeHtml(allowableValue.description)
+                // check for allowable values which will drive which editor to use
+                var allowableValues = nfCommon.getAllowableValues(propertyDescriptor);
+
+                // show the allowable values
+                if ($.isArray(allowableValues)) {
+                    $.each(allowableValues, function (i, allowableValueEntity) {
+                        var allowableValue = allowableValueEntity.allowableValue;
+                        allowableValueOptions.push({
+                            text: allowableValue.displayName,
+                            value: allowableValue.value,
+                            disabled: allowableValueEntity.canRead === false && allowableValue.value !== args.item['previousValue'],
+                            description: nfCommon.escapeHtml(allowableValue.description)
+                        });
                     });
+                }
+
+                if (propertyDescriptor.required === false) {
+                    allowableValueOptions.push({
+                        text: 'No value',
+                        value: null,
+                        optionClass: 'unset'
+                    });
+                }
+
+                // if this does not represent an identify a controller service
+                if (parametersSupported && !nfCommon.isDefinedAndNotNull(propertyDescriptor.identifiesControllerService)) {
+                    allowableValueOptions.push(PARAMETER_REFERENCE_OPTION);
+                }
+
+                // ensure the options there is at least one option
+                if (allowableValueOptions.length === 0) {
+                    allowableValueOptions.push({
+                        text: 'No value',
+                        value: null,
+                        optionClass: 'unset',
+                        disabled: true
+                    });
+                }
+
+                // if this descriptor identifies a controller service, provide a way to create one
+                if (nfCommon.isDefinedAndNotNull(propertyDescriptor.identifiesControllerService)) {
+                    allowableValueOptions.push(CREATE_CONTROLLER_SERVICE_OPTION);
+                }
+
+                // determine the max height
+                var position = args.position;
+                var windowHeight = $(window).height();
+                var maxHeight = windowHeight - position.bottom - 16;
+
+                // determine the width
+                var comboWidth = Math.max(position.width - 16, COMBO_MIN_WIDTH);
+
+                // build the combo field
+                allowableValuesCombo = $('<div class="value-combo combo"></div>').combo({
+                    options: allowableValueOptions,
+                    maxHeight: maxHeight,
+                    select: function (option) {
+                        var promptForControllerService = function () {
+                            // cancel the current edit
+                            scope.cancel();
+
+                            // prompt for the new service type
+                            promptForNewControllerService(gridContainer, args.grid, args.item, propertyDescriptor.identifiesControllerService, propertyDescriptor.identifiesControllerServiceBundle, configurationOptions);
+                        };
+
+                        if (parametersSupported) {
+                            if (nfCommon.isDefinedAndNotNull(parameterCombo)) {
+                                if (option === PARAMETER_REFERENCE_OPTION) {
+                                    parameterCombo.show();
+                                } else {
+                                    parameterCombo.hide();
+
+                                    if (option === CREATE_CONTROLLER_SERVICE_OPTION) {
+                                        promptForControllerService();
+                                    }
+                                }
+                            }
+                        } else if (option === CREATE_CONTROLLER_SERVICE_OPTION) {
+                            promptForControllerService()
+                        }
+                    }
+                }).css({
+                    'margin-top': '10px',
+                    'margin-bottom': '10px',
+                    'width': comboWidth + 'px'
+                }).appendTo(wrapper);
+
+                if (parametersSupported) {
+                    // create the parameter combo
+                    parameterCombo = $('<div class="value-combo combo"></div>')
+                        .combo({
+                            options: [LOADING_PARAMETERS_OPTION],
+                            maxHeight: maxHeight
+                        })
+                        .css({
+                            'margin-bottom': '10px',
+                            'width': comboWidth + 'px'
+                        })
+                        .appendTo(wrapper);
+
+                    // load the parameters
+                    parametersLoaded = new $.Deferred(function (deferred) {
+                        loadParameters(propertyDescriptor, function (parameterListing) {
+                            var sortedParams = _.sortBy(parameterListing, 'name');
+                            sortedParams.forEach(function (parameter) {
+                                parameterOptions.push({
+                                    text: parameter.name,
+                                    value: '#{' + parameter.name + '}',
+                                    description: nfCommon.escapeHtml(parameter.description)
+                                });
+                            });
+
+                            // create the parameter combo
+                            parameterCombo.combo('destroy').combo({
+                                options: parameterOptions,
+                                maxHeight: maxHeight
+                            });
+
+                            deferred.resolve();
+                            parametersLoading = false;
+                        });
+                    }).promise();
+                }
+
+                // add buttons for handling user input
+                var cancel = $('<div class="secondary-button">Cancel</div>').css({
+                    'color': '#004849',
+                    'background': '#E3E8EB'
+                }).hover(
+                    function () {
+                        $(this).css('background', '#C7D2D7');
+                    }, function () {
+                        $(this).css('background', '#E3E8EB');
+                    }).on('click', scope.cancel);
+                var ok = $('<div class="button">Ok</div>').css({
+                    'color': '#fff',
+                    'background': '#728E9B'
+                }).hover(
+                    function () {
+                        $(this).css('background', '#004849');
+                    }, function () {
+                        $(this).css('background', '#728E9B');
+                    }).on('click', scope.save);
+
+                $('<div></div>').css({
+                    'position': 'relative',
+                    'top': '10px',
+                    'left': '20px',
+                    'width': '212px',
+                    'float': 'right'
+                }).append(ok).append(cancel).appendTo(wrapper);
+
+                // position and focus
+                scope.position(position);
+            };
+
+            this.save = function () {
+                args.commitChanges();
+            };
+
+            this.cancel = function () {
+                args.cancelChanges();
+            };
+
+            this.hide = function () {
+                wrapper.hide();
+            };
+
+            this.show = function () {
+                wrapper.show();
+            };
+
+            this.position = function (position) {
+                wrapper.css({
+                    'top': position.top - 24,
+                    'left': position.left - 20
                 });
-            }
+            };
 
-            // ensure the options there is at least one option
-            if (options.length === 0) {
-                options.push({
-                    text: 'No value',
-                    value: null,
-                    optionClass: 'unset',
-                    disabled: true
-                });
-            }
+            this.destroy = function () {
+                if (parametersSupported) {
+                    parameterCombo.combo('destroy');
+                }
+                allowableValuesCombo.combo('destroy');
+                wrapper.remove();
+                allowableValueOptions.length = 0;
+                parameterOptions.length = 0;
+            };
 
-            // if this descriptor identifies a controller service, provide a way to create one
-            if (nfCommon.isDefinedAndNotNull(propertyDescriptor.identifiesControllerService)) {
-                options.push({
-                    text: 'Create new service...',
-                    value: undefined,
-                    optionClass: 'unset'
-                });
-            }
+            this.focus = function () {
+            };
 
-            // determine the max height
-            var position = args.position;
-            var windowHeight = $(window).height();
-            var maxHeight = windowHeight - position.bottom - 16;
+            this.loadValue = function (item) {
+                var configuredValue;
+                if (!nfCommon.isUndefined(item.value)) {
+                    configuredValue = item.value;
+                } else if (nfCommon.isDefinedAndNotNull(propertyDescriptor.defaultValue)) {
+                    configuredValue = propertyDescriptor.defaultValue;
+                }
 
-            // build the combo field
-            combo = $('<div class="value-combo combo"></div>').combo({
-                options: options,
-                maxHeight: maxHeight,
-                select: function (option) {
-                    if (typeof option.value === 'undefined') {
-                        // cancel the current edit
-                        scope.cancel();
+                // if there is a value determine how to populate the editor
+                if (!nfCommon.isUndefined(configuredValue)) {
+                    initialValue = configuredValue;
 
-                        // prompt for the new service type
-                        promptForNewControllerService(gridContainer, args.grid, args.item, propertyDescriptor.identifiesControllerService, propertyDescriptor.identifiesControllerServiceBundle, configurationOptions);
+                    // determine if the initial value is an allowable value
+                    var selectedOption = allowableValueOptions.find(function (option) {
+                        return initialValue === option.value;
+                    });
+
+                    // if the initial value is an allowable value select it, otherwise see if it is a parameter reference
+                    if (!nfCommon.isUndefined(selectedOption)) {
+                        allowableValuesCombo.combo('setSelectedOption', selectedOption);
+                    } else if (parametersSupported && referencesParameter(initialValue)) {
+                        // select the option for reference a parameter
+                        allowableValuesCombo.combo('setSelectedOption', PARAMETER_REFERENCE_OPTION);
+
+                        // construct the initial option
+                        var initialOption = {
+                            value: initialValue
+                        };
+
+                        // populate the parameter combo with the parameter reference
+                        if (parametersLoading) {
+                            parametersLoaded.then(function () {
+                                parameterCombo.combo('setSelectedOption', initialOption);
+                            });
+                        } else {
+                            parameterCombo.combo('setSelectedOption', initialOption);
+                        }
+                    } else {
+                        // select the first option
+                        allowableValuesCombo.combo('setSelectedOption', allowableValueOptions[0]);
+                    }
+                } else {
+                    // select the first option
+                    allowableValuesCombo.combo('setSelectedOption', allowableValueOptions[0]);
+                }
+            };
+
+            this.serializeValue = function () {
+                var selectedOption = allowableValuesCombo.combo('getSelectedOption');
+                var selectedValue = selectedOption.value;
+
+                // if the value is undefined, it indicates that the value in the editor references a parameter
+                if (parametersSupported && _.isUndefined(selectedValue)) {
+                    selectedOption = parameterCombo.combo('getSelectedOption');
+
+                    // if the parameters are still loading, revert to the initial value, otherwise use the selected parameter
+                    if (selectedOption === LOADING_PARAMETERS_OPTION) {
+                        selectedValue = initialValue;
+                    } else {
+                        selectedValue = selectedOption.value;
                     }
                 }
-            }).css({
-                'margin-top': '10px',
-                'margin-bottom': '10px',
-                'width': ((position.width - 16) < 212) ? 212 : (position.width - 16) + 'px'
-            }).appendTo(wrapper);
 
-            // add buttons for handling user input
-            var cancel = $('<div class="secondary-button">Cancel</div>').css({
-                'color': '#004849',
-                'background': '#E3E8EB'
-            }).hover(
-                function () {
-                    $(this).css('background', '#C7D2D7');
-                }, function () {
-                    $(this).css('background', '#E3E8EB');
-                }).on('click', scope.cancel);
-            var ok = $('<div class="button">Ok</div>').css({
-                'color': '#fff',
-                'background': '#728E9B'
-            }).hover(
-                function () {
-                    $(this).css('background', '#004849');
-                }, function () {
-                    $(this).css('background', '#728E9B');
-                }).on('click', scope.save);
-
-            $('<div></div>').css({
-                'position': 'relative',
-                'top': '10px',
-                'left': '20px',
-                'width': '212px',
-                'clear': 'both',
-                'float': 'right'
-            }).append(ok).append(cancel).appendTo(wrapper);
-
-            // position and focus
-            scope.position(position);
-        };
-
-        this.save = function () {
-            args.commitChanges();
-        };
-
-        this.cancel = function () {
-            args.cancelChanges();
-        };
-
-        this.hide = function () {
-            wrapper.hide();
-        };
-
-        this.show = function () {
-            wrapper.show();
-        };
-
-        this.position = function (position) {
-            wrapper.css({
-                'top': position.top - 24,
-                'left': position.left - 20
-            });
-        };
-
-        this.destroy = function () {
-            combo.combo('destroy');
-            wrapper.remove();
-        };
-
-        this.focus = function () {
-        };
-
-        this.loadValue = function (item) {
-            // select as appropriate
-            if (!nfCommon.isUndefined(item.value)) {
-                initialValue = item.value;
-
-                combo.combo('setSelectedOption', {
-                    value: item.value
-                });
-            } else if (nfCommon.isDefinedAndNotNull(propertyDescriptor.defaultValue)) {
-                initialValue = propertyDescriptor.defaultValue;
-
-                combo.combo('setSelectedOption', {
-                    value: propertyDescriptor.defaultValue
-                });
-            }
-        };
-
-        this.serializeValue = function () {
-            var selectedOption = combo.combo('getSelectedOption');
-            return selectedOption.value;
-        };
-
-        this.applyValue = function (item, state) {
-            item[args.column.field] = state;
-        };
-
-        this.isValueChanged = function () {
-            var selectedOption = combo.combo('getSelectedOption');
-            return (!(selectedOption.value === "" && initialValue === null)) && (selectedOption.value !== initialValue);
-        };
-
-        this.validate = function () {
-            return {
-                valid: true,
-                msg: null
+                return selectedValue;
             };
-        };
 
-        // initialize the custom long text editor
-        this.init();
+            this.applyValue = function (item, state) {
+                item[args.column.field] = state;
+            };
+
+            this.isValueChanged = function () {
+                var configuredValue = scope.serializeValue();
+                return configuredValue !== initialValue;
+            };
+
+            this.validate = function () {
+                return {
+                    valid: true,
+                    msg: null
+                };
+            };
+
+            // initialize the custom long text editor
+            this.init();
+        };
     };
 
     /**
@@ -841,9 +906,6 @@
 
                     // so the nfel editor is appropriate
                     if (nfCommon.supportsEl(propertyDescriptor)) {
-                        var languageId = 'nfel';
-                        var editorClass = languageId + '-editor';
-
                         // prevent dragging over the nf editor
                         wrapper.css({
                             'z-index': 1999,
@@ -858,13 +920,13 @@
                             'top': offset.top - 22,
                             'left': offset.left - 43
                         }).draggable({
-                            cancel: 'input, textarea, pre, .button, .' + editorClass,
+                            cancel: 'input, textarea, pre, .button, .nf-editor',
                             containment: 'parent'
                         });
 
                         // create the editor
-                        editor = $('<div></div>').addClass(editorClass).appendTo(wrapper).nfeditor({
-                            languageId: languageId,
+                        editor = $('<div></div>').addClass('nf-editor').appendTo(wrapper).nfeditor({
+                            languageMode: nf.nfel,
                             width: cellNode.width(),
                             content: property.value,
                             minWidth: 175,
@@ -891,7 +953,7 @@
                         });
 
                         // create the input field
-                        $('<textarea hidefocus rows="5" readonly="readonly"/>').css({
+                        $('<textarea hidefocus rows="5" readonly="readonly" />').css({
                             'height': '80px',
                             'resize': 'both',
                             'width': cellNode.width() + 'px',
@@ -1184,6 +1246,17 @@
     };
 
     var initPropertiesTable = function (table, options) {
+        // function for closing the dialog
+        var closeDialog = function () {
+            // close the dialog
+            var dialog = table.closest('.dialog');
+            if (dialog.hasClass('modal')) {
+                dialog.modal('hide');
+            } else {
+                dialog.hide();
+            }
+        }
+
         // function for formatting the property name
         var nameFormatter = function (row, cell, value, columnDef, dataContext) {
             var nameWidthOffset = 30;
@@ -1264,7 +1337,7 @@
             content.find('.ellipsis').width(columnDef.width - 10).ellipsis();
 
             // return the appropriate markup
-            return $('<div/>').append(content).html();
+            return $('<div />').append(content).html();
         };
 
         var propertyColumns = [
@@ -1312,9 +1385,30 @@
                 });
             }
 
-            // allow user defined properties to be removed
-            if (options.readOnly !== true && dataContext.type === 'userDefined') {
-                markup += '<div title="Delete" class="delete-property pointer fa fa-trash"></div>';
+            var referencesParam = containsParameterReference(dataContext.value);
+            var canConvertPropertyToParam = false;
+            var canReadParamContext = false;
+
+            if (_.isFunction(options.getParameterContext)) {
+                var paramContext = options.getParameterContext(groupId);
+                var canWriteParamContext = _.get(paramContext, 'permissions.canWrite', false);
+                canReadParamContext = _.get(paramContext, 'permissions.canRead', false);
+                canConvertPropertyToParam = canWriteParamContext && canReadParamContext;
+            }
+
+            if (referencesParam && canReadParamContext) {
+                markup += '<div title="Go to parameter" class="go-to-parameter pointer fa fa-long-arrow-right"></div>';
+            }
+
+            if (options.readOnly !== true) {
+                if (canConvertPropertyToParam && !referencesParam && !identifiesControllerService) {
+                    markup += '<div title="Convert to parameter" class="convert-to-parameter pointer fa fa-level-up"></div>';
+                }
+
+                // allow user defined properties to be removed
+                if (dataContext.type === 'userDefined') {
+                    markup += '<div title="Delete" class="delete-property pointer fa fa-trash"></div>';
+                }
             }
 
             return markup;
@@ -1356,12 +1450,30 @@
             var descriptors = table.data('descriptors');
             var propertyDescriptor = descriptors[item.property];
 
+            // sets the available parameters for the specified property descriptor
+            var loadParameters = function (propertyDescriptor, parameterDeferred, setParameters) {
+                parameterDeferred(propertyDescriptor, groupId).done(function (parameters) {
+                    setParameters(parameters);
+                });
+            };
+
+            var parametersSupported = typeof options.parameterDeferred === 'function';
+
             // support el if specified or unsure yet (likely a dynamic property)
             if (nfCommon.isUndefinedOrNull(propertyDescriptor) || nfCommon.supportsEl(propertyDescriptor)) {
                 return {
                     columns: {
                         value: {
-                            editor: nfelEditor
+                            editor: getNfEditor(function (propertyDescriptor) {
+                                if (parametersSupported) {
+                                    // set the available parameters
+                                    nf.nfel.enableParameters();
+                                    loadParameters(propertyDescriptor, options.parameterDeferred, nf.nfel.setParameters);
+                                } else {
+                                    nf.nfel.disableParameters();
+                                }
+                                return nf.nfel;
+                            })
                         }
                     }
                 };
@@ -1372,7 +1484,12 @@
                     return {
                         columns: {
                             value: {
-                                editor: comboEditor
+                                editor: getComboEditor(parametersSupported, function (propertyDescriptor, setParameters) {
+                                    if (parametersSupported) {
+                                        // set the available parameters
+                                        loadParameters(propertyDescriptor, options.parameterDeferred, setParameters);
+                                    }
+                                })
                             }
                         }
                     };
@@ -1380,7 +1497,16 @@
                     return {
                         columns: {
                             value: {
-                                editor: textEditor
+                                editor: getNfEditor(function (propertyDescriptor) {
+                                    if (parametersSupported) {
+                                        // set the available parameters
+                                        nf.nfpr.enableParameters()
+                                        loadParameters(propertyDescriptor, options.parameterDeferred, nf.nfpr.setParameters);
+                                    } else {
+                                        nf.nfpr.disableParameters();
+                                    }
+                                    return nf.nfpr;
+                                })
                             }
                         }
                     };
@@ -1395,25 +1521,22 @@
                 dataType: 'json'
             }).done(function (controllerServiceEntity) {
                 // close the dialog
-                var dialog = table.closest('.dialog');
-                if (dialog.hasClass('modal')) {
-                    dialog.modal('hide');
-                } else {
-                    dialog.hide();
-                }
+                closeDialog();
 
                 var controllerService = controllerServiceEntity.component;
                 $.Deferred(function (deferred) {
                     if (nfCommon.isDefinedAndNotNull(controllerService.parentGroupId)) {
-                        if ($('#process-group-configuration').is(':visible')) {
-                            nfProcessGroupConfiguration.loadConfiguration(controllerService.parentGroupId).done(function () {
-                                deferred.resolve();
-                            });
-                        } else {
-                            nfProcessGroupConfiguration.showConfiguration(controllerService.parentGroupId).done(function () {
-                                deferred.resolve();
-                            });
-                        }
+                        nfProcessGroup.enterGroup(controllerService.parentGroupId).done(function () {
+                            if ($('#process-group-configuration').is(':visible')) {
+                                nfProcessGroupConfiguration.loadConfiguration(controllerService.parentGroupId).done(function () {
+                                    deferred.resolve();
+                                });
+                            } else {
+                                nfProcessGroupConfiguration.showConfiguration(controllerService.parentGroupId).done(function () {
+                                    deferred.resolve();
+                                });
+                            }
+                        });
                     } else {
                         if ($('#settings').is(':visible')) {
                             // reload the settings
@@ -1473,6 +1596,49 @@
                             options.goToServiceDeferred().done(function () {
                                 goToControllerService(property);
                             });
+                        }
+                    }
+                } else if (target.hasClass('convert-to-parameter')) {
+                    var parameterContext;
+                    var canConvertPropertyToParam = false;
+                    if (_.isFunction(options.getParameterContext)) {
+                        parameterContext = options.getParameterContext(groupId);
+                        var canWriteParamContext = _.get(parameterContext, 'permissions.canWrite', false);
+                        var canReadParamContext = _.get(parameterContext, 'permissions.canRead', false);
+                        canConvertPropertyToParam = canWriteParamContext && canReadParamContext;
+                    }
+
+                    if (options.readOnly !== true && canConvertPropertyToParam) {
+                        var descriptors = table.data('descriptors');
+                        var propertyDescriptor = descriptors[property.property];
+
+                        nfParameterContexts.convertPropertyToParameter(property, propertyDescriptor, parameterContext.id)
+                            .done(function (parameter) {
+                                var updatedItem = _.extend({}, property, {
+                                    previousValue: property.value,
+                                    value: '#{' + parameter.name + '}'
+                                });
+                                // set the property value to the reference the parameter that was created
+                                propertyData.updateItem(property.id, updatedItem);
+                            });
+                    }
+                } else if (target.hasClass('go-to-parameter')) {
+                    var parameterContext;
+                    if (_.isFunction(options.getParameterContext)) {
+                        parameterContext = options.getParameterContext(groupId);
+                        var canReadParamContext = _.get(parameterContext, 'permissions.canRead', false);
+
+                        if (canReadParamContext && !_.isNil(property.value)) {
+                            // get the reference parameter
+                            var paramRefsRegex = /#{([a-zA-Z0-9-_. ]+)}/;
+                            var result = property.value.match(paramRefsRegex);
+                            if (!_.isEmpty(result) && result.length === 2) {
+                                // close the dialog since we are sending the user to the parameter context
+                                closeDialog();
+
+                                var parameterName = result[1];
+                                nfParameterContexts.showParameterContext(parameterContext.id, null, parameterName);
+                            }
                         }
                     }
                 }
@@ -2000,7 +2166,8 @@
         },
 
         /**
-         * Sets the current group id.
+         * Sets the current group id. This is used to indicate where inline Controller Services are created
+         * and to obtain the parameter context.
          */
         setGroupId: function (currentGroupId) {
             return this.each(function () {

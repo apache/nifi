@@ -28,6 +28,7 @@ import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.registry.flow.VersionControlInformation;
 import org.apache.nifi.web.api.dto.ProcessGroupDTO;
 import org.apache.nifi.web.api.dto.VariableRegistryDTO;
@@ -97,6 +98,7 @@ public class ProcessGroupAuditor extends NiFiAuditor {
         ProcessGroup processGroup = processGroupDAO.getProcessGroup(processGroupDTO.getId());
 
         String name = processGroup.getName();
+        ParameterContext parameterContext = processGroup.getParameterContext();
         String comments = processGroup.getComments();
 
         // perform the underlying operation
@@ -113,7 +115,7 @@ public class ProcessGroupAuditor extends NiFiAuditor {
             if (name != null && updatedProcessGroup.getName() != null && !name.equals(updatedProcessGroup.getName())) {
                 // create the config details
                 FlowChangeConfigureDetails configDetails = new FlowChangeConfigureDetails();
-                configDetails.setName("name");
+                configDetails.setName("Name");
                 configDetails.setValue(updatedProcessGroup.getName());
                 configDetails.setPreviousValue(name);
 
@@ -124,9 +126,38 @@ public class ProcessGroupAuditor extends NiFiAuditor {
             if (comments != null && updatedProcessGroup.getComments() != null && !comments.equals(updatedProcessGroup.getComments())) {
                 // create the config details
                 FlowChangeConfigureDetails configDetails = new FlowChangeConfigureDetails();
-                configDetails.setName("comments");
+                configDetails.setName("Comments");
                 configDetails.setValue(updatedProcessGroup.getComments());
                 configDetails.setPreviousValue(comments);
+
+                details.add(configDetails);
+            }
+
+            // see if the parameter context has changed
+            if (parameterContext != null && updatedProcessGroup.getParameterContext() != null) {
+                if (!parameterContext.getIdentifier().equals(updatedProcessGroup.getParameterContext().getIdentifier())) {
+                    // create the config details
+                    FlowChangeConfigureDetails configDetails = new FlowChangeConfigureDetails();
+                    configDetails.setName("Parameter Context");
+                    configDetails.setValue(updatedProcessGroup.getParameterContext().getIdentifier());
+                    configDetails.setPreviousValue(parameterContext.getIdentifier());
+
+                    details.add(configDetails);
+                }
+            } else if (updatedProcessGroup.getParameterContext() != null) {
+                // create the config details
+                FlowChangeConfigureDetails configDetails = new FlowChangeConfigureDetails();
+                configDetails.setName("Parameter Context");
+                configDetails.setValue(updatedProcessGroup.getParameterContext().getIdentifier());
+                configDetails.setPreviousValue(null);
+
+                details.add(configDetails);
+            } else if (parameterContext != null) {
+                // create the config details
+                FlowChangeConfigureDetails configDetails = new FlowChangeConfigureDetails();
+                configDetails.setName("Parameter Context");
+                configDetails.setValue(null);
+                configDetails.setPreviousValue(parameterContext.getIdentifier());
 
                 details.add(configDetails);
             }

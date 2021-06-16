@@ -35,6 +35,13 @@ public class EmbeddedNiFi extends NiFi {
         super(convertArgumentsToValidatedNiFiProperties(args), rootClassLoader);
     }
 
+    public EmbeddedNiFi(String[] args, ClassLoader rootClassLoader, ClassLoader bootstrapClassLoader)
+        throws ClassNotFoundException, IOException, NoSuchMethodException,
+        InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+
+        super(convertArgumentsToValidatedNiFiProperties(args, bootstrapClassLoader), rootClassLoader);
+    }
+
     @Override
     protected void initLogging() {
         // do nothing when running in embedded mode

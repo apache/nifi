@@ -88,6 +88,7 @@ public class LoginIdentityProviderFactoryBean implements FactoryBean, Disposable
     }
 
     private NiFiProperties properties;
+    private ExtensionManager extensionManager;
     private LoginIdentityProvider loginIdentityProvider;
     private final Map<String, LoginIdentityProvider> loginIdentityProviders = new HashMap<>();
 
@@ -156,7 +157,7 @@ public class LoginIdentityProviderFactoryBean implements FactoryBean, Disposable
 
     private LoginIdentityProvider createLoginIdentityProvider(final String identifier, final String loginIdentityProviderClassName) throws Exception {
         // get the classloader for the specified login identity provider
-        final List<Bundle> loginIdentityProviderBundles = ExtensionManager.getBundles(loginIdentityProviderClassName);
+        final List<Bundle> loginIdentityProviderBundles = extensionManager.getBundles(loginIdentityProviderClassName);
 
         if (loginIdentityProviderBundles.size() == 0) {
             throw new Exception(String.format("The specified login identity provider class '%s' is not known to this nifi.", loginIdentityProviderClassName));
@@ -358,4 +359,9 @@ public class LoginIdentityProviderFactoryBean implements FactoryBean, Disposable
     public void setProperties(NiFiProperties properties) {
         this.properties = properties;
     }
+
+    public void setExtensionManager(ExtensionManager extensionManager) {
+        this.extensionManager = extensionManager;
+    }
+
 }

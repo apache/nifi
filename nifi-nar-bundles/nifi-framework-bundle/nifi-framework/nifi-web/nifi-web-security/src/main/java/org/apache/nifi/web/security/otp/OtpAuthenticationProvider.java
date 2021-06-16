@@ -28,7 +28,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 
 /**
- *
+ * This provider will be used when the request is attempting to authenticate with a download or ui extension OTP/token.
  */
 public class OtpAuthenticationProvider extends NiFiAuthenticationProvider {
 

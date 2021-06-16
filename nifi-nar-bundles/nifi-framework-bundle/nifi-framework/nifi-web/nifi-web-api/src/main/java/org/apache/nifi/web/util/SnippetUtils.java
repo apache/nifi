@@ -102,7 +102,7 @@ public final class SnippetUtils {
     public FlowSnippetDTO populateFlowSnippet(final Snippet snippet, final boolean recurse, final boolean includeControllerServices, boolean removeInstanceId) {
         final FlowSnippetDTO snippetDto = new FlowSnippetDTO(removeInstanceId);
         final String groupId = snippet.getParentGroupId();
-        final ProcessGroup processGroup = flowController.getGroup(groupId);
+        final ProcessGroup processGroup = flowController.getFlowManager().getGroup(groupId);
 
         // ensure the group could be found
         if (processGroup == null) {
@@ -162,8 +162,8 @@ public final class SnippetUtils {
 
                 if (includeControllerServices) {
                     // Include all referenced services that are not already included in this snippet.
-                    getControllerServices(processor.getProperties()).stream()
-                        .filter(svc -> allServicesReferenced.add(svc))
+                    getControllerServices(processor.getEffectivePropertyValues()).stream()
+                        .filter(allServicesReferenced::add)
                         .forEach(svc -> {
                             final String svcGroupId = svc.getParentGroupId();
                             final String destinationGroupId = contentsByGroup.containsKey(svcGroupId) ? svcGroupId : processGroup.getIdentifier();
@@ -324,8 +324,8 @@ public final class SnippetUtils {
 
         for (final ProcessorNode procNode : group.getProcessors()) {
             // Include all referenced services that are not already included in this snippet.
-            getControllerServices(procNode.getProperties()).stream()
-                .filter(svc -> allServicesReferenced.add(svc))
+            getControllerServices(procNode.getEffectivePropertyValues()).stream()
+                .filter(allServicesReferenced::add)
                 .filter(svc -> includeControllerServices || visitedGroupIds.contains(svc.getParentGroupId()))
                 .forEach(svc -> {
                     final String svcGroupId = svc.getParentGroupId();
@@ -346,7 +346,7 @@ public final class SnippetUtils {
 
         // Map child process group ID to the child process group for easy lookup
         final Map<String, ProcessGroupDTO> childGroupMap = contents.getProcessGroups().stream()
-            .collect(Collectors.toMap(childGroupDto -> childGroupDto.getId(), childGroupDto -> childGroupDto));
+            .collect(Collectors.toMap(ComponentDTO::getId, childGroupDto -> childGroupDto));
 
         for (final ProcessGroup childGroup : group.getProcessGroups()) {
             final ProcessGroupDTO childDto = childGroupMap.get(childGroup.getIdentifier());
@@ -366,11 +366,11 @@ public final class SnippetUtils {
             if (descriptor.getControllerServiceDefinition() != null) {
                 final String controllerServiceId = entry.getValue();
                 if (controllerServiceId != null) {
-                    final ControllerServiceNode serviceNode = flowController.getControllerServiceNode(controllerServiceId);
+                    final ControllerServiceNode serviceNode = flowController.getFlowManager().getControllerServiceNode(controllerServiceId);
                     if (serviceNode != null) {
                         serviceDtos.add(dtoFactory.createControllerServiceDto(serviceNode));
 
-                        final Set<ControllerServiceDTO> recursiveRefs = getControllerServices(serviceNode.getProperties());
+                        final Set<ControllerServiceDTO> recursiveRefs = getControllerServices(serviceNode.getEffectivePropertyValues());
                         serviceDtos.addAll(recursiveRefs);
                     }
                 }

@@ -98,4 +98,11 @@ public interface ReportingContext extends PropertyContext {
      *         has not yet been established
      */
     String getClusterNodeIdentifier();
+
+    /**
+     * @return true if reporting analytics (connection status predictions, e.g.) are enabled, false otherwise
+     */
+    default boolean isAnalyticsEnabled() {
+        return false;
+    }
 }

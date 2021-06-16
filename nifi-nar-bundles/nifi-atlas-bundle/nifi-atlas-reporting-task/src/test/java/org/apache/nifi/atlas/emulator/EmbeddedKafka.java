@@ -28,8 +28,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.io.IOException;
-import java.net.ServerSocket;
 import java.util.Properties;
 
 /**
@@ -47,10 +45,6 @@ public class EmbeddedKafka {
 
     private final Logger logger = LoggerFactory.getLogger(EmbeddedKafka.class);
 
-    private final int kafkaPort;
-
-    private final int zookeeperPort;
-
     private boolean started;
 
     /**
@@ -58,8 +52,8 @@ public class EmbeddedKafka {
      * configuration properties will be loaded from 'server.properties' and
      * 'zookeeper.properties' located at the root of the classpath.
      */
-    public EmbeddedKafka(boolean useRandomPort) {
-        this(loadPropertiesFromClasspath("/server.properties"), loadPropertiesFromClasspath("/zookeeper.properties"), useRandomPort);
+    public EmbeddedKafka() {
+        this(loadPropertiesFromClasspath("/server.properties"), loadPropertiesFromClasspath("/zookeeper.properties"));
     }
 
     /**
@@ -70,47 +64,14 @@ public class EmbeddedKafka {
      * @param zookeeperConfig
      *            Zookeeper configuration properties
      */
-    public EmbeddedKafka(Properties kafkaConfig, Properties zookeeperConfig, boolean useRandomPort) {
+    public EmbeddedKafka(Properties kafkaConfig, Properties zookeeperConfig) {
         this.cleanupKafkaWorkDir();
-        this.zookeeperConfig = zookeeperConfig;
+
         this.kafkaConfig = kafkaConfig;
+        this.zookeeperConfig = zookeeperConfig;
 
-        if (useRandomPort) {
-            this.kafkaPort = this.availablePort();
-            this.zookeeperPort = this.availablePort();
-
-            this.kafkaConfig.setProperty("port", String.valueOf(this.kafkaPort));
-            this.kafkaConfig.setProperty("zookeeper.connect", "localhost:" + this.zookeeperPort);
-            this.zookeeperConfig.setProperty("clientPort", String.valueOf(this.zookeeperPort));
-        } else {
-            this.kafkaPort = Integer.parseInt(kafkaConfig.getProperty("port"));
-            this.zookeeperPort = Integer.parseInt(zookeeperConfig.getProperty("clientPort"));
-        }
-
-        this.zkServer = new ZooKeeperServer();
         this.kafkaServer = new KafkaServerStartable(new KafkaConfig(kafkaConfig));
-    }
-
-    /**
-     *
-     * @return port for Kafka server
-     */
-    public int getKafkaPort() {
-        if (!this.started) {
-            throw new IllegalStateException("Kafka server is not started. Kafka port can't be determined.");
-        }
-        return this.kafkaPort;
-    }
-
-    /**
-     *
-     * @return port for Zookeeper server
-     */
-    public int getZookeeperPort() {
-        if (!this.started) {
-            throw new IllegalStateException("Kafka server is not started. Zookeeper port can't be determined.");
-        }
-        return this.zookeeperPort;
+        this.zkServer = new ZooKeeperServer();
     }
 
     /**
@@ -127,7 +88,7 @@ public class EmbeddedKafka {
             logger.info("Starting Kafka server");
             this.kafkaServer.startup();
 
-            logger.info("Embedded Kafka is started at localhost:" + this.kafkaServer.serverConfig().port()
+            logger.info("Embedded Kafka is started at localhost:" + this.kafkaServer.staticServerConfig().port()
                     + ". Zookeeper connection string: " + this.kafkaConfig.getProperty("zookeeper.connect"));
             this.started = true;
         }
@@ -207,26 +168,6 @@ public class EmbeddedKafka {
             return kafkaProperties;
         } catch (Exception e) {
             throw new IllegalStateException(e);
-        }
-    }
-
-    /**
-     * Will determine the available port used by Kafka/Zookeeper servers.
-     */
-    private int availablePort() {
-        ServerSocket s = null;
-        try {
-            s = new ServerSocket(0);
-            s.setReuseAddress(true);
-            return s.getLocalPort();
-        } catch (Exception e) {
-            throw new IllegalStateException("Failed to discover available port.", e);
-        } finally {
-            try {
-                s.close();
-            } catch (IOException e) {
-                // ignore
-            }
         }
     }
 }

@@ -32,11 +32,14 @@ public class ControllerServiceEndpointMerger extends AbstractSingleEntityEndpoin
     public static final String CONTROLLER_CONTROLLER_SERVICES_URI = "/nifi-api/controller/controller-services";
     public static final Pattern PROCESS_GROUPS_CONTROLLER_SERVICES_URI = Pattern.compile("/nifi-api/process-groups/(?:(?:root)|(?:[a-f0-9\\-]{36}))/controller-services");
     public static final Pattern CONTROLLER_SERVICE_URI_PATTERN = Pattern.compile("/nifi-api/controller-services/[a-f0-9\\-]{36}");
+    public static final Pattern CONTROLLER_SERVICE_RUN_STATUS_URI_PATTERN = Pattern.compile("/nifi-api/controller-services/[a-f0-9\\-]{36}/run-status");
     private final ControllerServiceEntityMerger controllerServiceEntityMerger = new ControllerServiceEntityMerger();
 
     @Override
     public boolean canHandle(URI uri, String method) {
         if (("GET".equalsIgnoreCase(method) || "PUT".equalsIgnoreCase(method)) && CONTROLLER_SERVICE_URI_PATTERN.matcher(uri.getPath()).matches()) {
+            return true;
+        } else if ("PUT".equalsIgnoreCase(method) && CONTROLLER_SERVICE_RUN_STATUS_URI_PATTERN.matcher(uri.getPath()).matches()) {
             return true;
         } else if ("POST".equalsIgnoreCase(method) && (CONTROLLER_CONTROLLER_SERVICES_URI.equals(uri.getPath()) || PROCESS_GROUPS_CONTROLLER_SERVICES_URI.matcher(uri.getPath()).matches())) {
             return true;

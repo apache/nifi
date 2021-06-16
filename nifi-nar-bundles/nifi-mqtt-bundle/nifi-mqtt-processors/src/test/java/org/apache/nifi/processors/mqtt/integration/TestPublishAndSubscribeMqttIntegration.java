@@ -128,7 +128,7 @@ public class TestPublishAndSubscribeMqttIntegration {
 
         ConsumeMQTT consumeMQTT = (ConsumeMQTT) testSubscribeRunner.getProcessor();
         consumeMQTT.onScheduled(testSubscribeRunner.getProcessContext());
-        reconnect(consumeMQTT);
+        reconnect(consumeMQTT, testSubscribeRunner.getProcessContext());
     }
 
     private void subscribeVerify(){

@@ -242,7 +242,8 @@ public class ListenUDPRecord extends AbstractListenEventProcessor<StandardEvent>
             final RecordReader reader;
             final List<Record> records = new ArrayList<>();
             try (final InputStream in = new ByteArrayInputStream(event.getData())) {
-                reader = readerFactory.createRecordReader(Collections.emptyMap(), in, getLogger());
+                final long inputLength = event.getData() == null ? -1 : event.getData().length;
+                reader = readerFactory.createRecordReader(Collections.emptyMap(), in, inputLength, getLogger());
 
                 Record record;
                 while((record = reader.nextRecord()) != null) {
@@ -274,7 +275,7 @@ public class ListenUDPRecord extends AbstractListenEventProcessor<StandardEvent>
                     final RecordSchema recordSchema = firstRecord.getSchema();
                     final RecordSchema writeSchema = writerFactory.getSchema(Collections.emptyMap(), recordSchema);
 
-                    writer = writerFactory.createWriter(getLogger(), writeSchema, rawOut);
+                    writer = writerFactory.createWriter(getLogger(), writeSchema, rawOut, flowFile);
                     writer.beginRecordSet();
 
                     flowFileRecordWriter = new FlowFileRecordWriter(flowFile, writer);

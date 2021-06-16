@@ -16,24 +16,22 @@
  */
 package org.apache.nifi.processors.elasticsearch;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
-import java.io.IOException;
-import java.net.ConnectException;
-import java.util.HashMap;
-import java.util.List;
-
+import com.fasterxml.jackson.databind.ObjectMapper;
+import okhttp3.Call;
+import okhttp3.MediaType;
+import okhttp3.OkHttpClient;
+import okhttp3.Protocol;
+import okhttp3.Request;
+import okhttp3.Response;
+import okhttp3.ResponseBody;
+import okio.Buffer;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.record.MockRecordParser;
+import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -42,16 +40,28 @@ import org.junit.After;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import okhttp3.Call;
-import okhttp3.MediaType;
-import okhttp3.OkHttpClient;
-import okhttp3.Protocol;
-import okhttp3.Request;
-import okhttp3.Response;
-import okhttp3.ResponseBody;
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.net.ConnectException;
+import java.sql.Date;
+import java.sql.Time;
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Consumer;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class TestPutElasticsearchHttpRecord {
-
     private TestRunner runner;
 
     @After
@@ -61,13 +71,48 @@ public class TestPutElasticsearchHttpRecord {
 
     @Test
     public void testPutElasticSearchOnTriggerIndex() throws IOException {
-        runner = TestRunners.newTestRunner(new PutElasticsearchHttpRecordTestProcessor(false)); // no failures
+        PutElasticsearchHttpRecordTestProcessor processor = new PutElasticsearchHttpRecordTestProcessor(false);
+        DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("h:m a");
+        DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("d/M/YYYY h:m a");
+        processor.setRecordChecks(record -> {
+            assertEquals(1, record.get("id"));
+            assertEquals("reç1", record.get("name"));
+            assertEquals(101, record.get("code"));
+            assertEquals("20/12/2018", record.get("date"));
+            assertEquals(LocalTime.of(18, 55).format(timeFormatter), record.get("time"));
+            assertEquals(LocalDateTime.of(2018, 12, 20, 18, 55).format(dateTimeFormatter), record.get("ts"));
+        }, record -> {
+            assertEquals(2, record.get("id"));
+            assertEquals("reç2", record.get("name"));
+            assertEquals(102, record.get("code"));
+            assertEquals("20/12/2018", record.get("date"));
+            assertEquals(LocalTime.of(18, 55).format(timeFormatter), record.get("time"));
+            assertEquals(LocalDateTime.of(2018, 12, 20, 18, 55).format(dateTimeFormatter), record.get("ts"));
+        }, record -> {
+            assertEquals(3, record.get("id"));
+            assertEquals("reç3", record.get("name"));
+            assertEquals(103, record.get("code"));
+            assertEquals("20/12/2018", record.get("date"));
+            assertEquals(LocalTime.of(18, 55).format(timeFormatter), record.get("time"));
+            assertEquals(LocalDateTime.of(2018, 12, 20, 18, 55).format(dateTimeFormatter), record.get("ts"));
+        }, record -> {
+            assertEquals(4, record.get("id"));
+            assertEquals("reç4", record.get("name"));
+            assertEquals(104, record.get("code"));
+            assertEquals("20/12/2018", record.get("date"));
+            assertEquals(LocalTime.of(18, 55).format(timeFormatter), record.get("time"));
+            assertEquals(LocalDateTime.of(2018, 12, 20, 18, 55).format(dateTimeFormatter), record.get("ts"));
+        });
+        runner = TestRunners.newTestRunner(processor); // no failures
         generateTestData();
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
 
         runner.setProperty(PutElasticsearchHttpRecord.INDEX, "doc");
         runner.setProperty(PutElasticsearchHttpRecord.TYPE, "status");
         runner.setProperty(PutElasticsearchHttpRecord.ID_RECORD_PATH, "/id");
+        runner.setProperty(PutElasticsearchHttpRecord.DATE_FORMAT, "d/M/yyyy");
+        runner.setProperty(PutElasticsearchHttpRecord.TIME_FORMAT, "h:m a");
+        runner.setProperty(PutElasticsearchHttpRecord.TIMESTAMP_FORMAT, "d/M/yyyy h:m a");
 
         runner.enqueue(new byte[0], new HashMap<String, String>() {{
             put("doc_id", "28039652140");
@@ -359,18 +404,88 @@ public class TestPutElasticsearchHttpRecord {
         assertEquals(ProvenanceEventType.SEND, provEvents.get(0).getEventType());
     }
 
+    @Test
+    public void testPutElasticsearchOnTriggerFailureWithWriter() throws IOException {
+        runner = TestRunners.newTestRunner(new PutElasticsearchHttpRecordTestProcessor(true)); // simulate failures
+        generateTestData(1);
+        generateWriter();
+        runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
+        runner.setProperty(PutElasticsearchHttpRecord.INDEX, "doc");
+        runner.setProperty(PutElasticsearchHttpRecord.TYPE, "status");
+
+        runner.enqueue(new byte[0]);
+        runner.run(1, true, true);
+
+        runner.assertTransferCount(PutElasticsearchHttpRecord.REL_SUCCESS, 0);
+        runner.assertTransferCount(PutElasticsearchHttpRecord.REL_FAILURE, 1);
+        MockFlowFile flowFileFailure = runner.getFlowFilesForRelationship(PutElasticsearchHttpRecord.REL_FAILURE).get(0);
+        flowFileFailure.assertAttributeEquals("failure.count", "1");
+    }
+
+    @Test
+    public void testPutElasticsearchOnTriggerFailureWithWriterMultipleRecords() throws IOException {
+        runner = TestRunners.newTestRunner(new PutElasticsearchHttpRecordTestProcessor(2)); // simulate failures
+        generateTestData();
+        generateWriter();
+        runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
+        runner.setProperty(PutElasticsearchHttpRecord.INDEX, "doc");
+        runner.setProperty(PutElasticsearchHttpRecord.TYPE, "status");
+
+        runner.enqueue(new byte[0]);
+        runner.run(1, true, true);
+
+        runner.assertTransferCount(PutElasticsearchHttpRecord.REL_SUCCESS, 1);
+        runner.assertTransferCount(PutElasticsearchHttpRecord.REL_FAILURE, 1);
+        MockFlowFile flowFileSuccess = runner.getFlowFilesForRelationship(PutElasticsearchHttpRecord.REL_SUCCESS).get(0);
+        flowFileSuccess.assertAttributeEquals("record.count", "2");
+        MockFlowFile flowFileFailure = runner.getFlowFilesForRelationship(PutElasticsearchHttpRecord.REL_FAILURE).get(0);
+        flowFileFailure.assertAttributeEquals("record.count", "2");
+        flowFileFailure.assertAttributeEquals("failure.count", "2");
+
+        assertEquals(1, runner.getLogger().getErrorMessages().size());
+    }
+
+    @Test
+    public void testPutElasticsearchOnTriggerFailureWithWriterMultipleRecordsLogging() throws IOException {
+        runner = TestRunners.newTestRunner(new PutElasticsearchHttpRecordTestProcessor(2)); // simulate failures
+        generateTestData();
+        generateWriter();
+        runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
+        runner.setProperty(PutElasticsearchHttpRecord.INDEX, "doc");
+        runner.setProperty(PutElasticsearchHttpRecord.TYPE, "status");
+        runner.setProperty(PutElasticsearchHttpRecord.LOG_ALL_ERRORS, "true");
+
+        runner.enqueue(new byte[0]);
+        runner.run(1, true, true);
+
+        runner.assertTransferCount(PutElasticsearchHttpRecord.REL_SUCCESS, 1);
+        runner.assertTransferCount(PutElasticsearchHttpRecord.REL_FAILURE, 1);
+        MockFlowFile flowFileSuccess = runner.getFlowFilesForRelationship(PutElasticsearchHttpRecord.REL_SUCCESS).get(0);
+        flowFileSuccess.assertAttributeEquals("record.count", "2");
+        MockFlowFile flowFileFailure = runner.getFlowFilesForRelationship(PutElasticsearchHttpRecord.REL_FAILURE).get(0);
+        flowFileFailure.assertAttributeEquals("record.count", "2");
+        flowFileFailure.assertAttributeEquals("failure.count", "2");
+
+        assertEquals(2, runner.getLogger().getErrorMessages().size());
+    }
+
     /**
      * A Test class that extends the processor in order to inject/mock behavior
      */
     private static class PutElasticsearchHttpRecordTestProcessor extends PutElasticsearchHttpRecord {
-        boolean responseHasFailures = false;
+        int numResponseFailures = 0;
         OkHttpClient client;
         int statusCode = 200;
         String statusMessage = "OK";
         String expectedUrl = null;
+        Consumer<Map>[] recordChecks;
 
         PutElasticsearchHttpRecordTestProcessor(boolean responseHasFailures) {
-            this.responseHasFailures = responseHasFailures;
+            this.numResponseFailures = responseHasFailures ? 1 : 0;
+        }
+
+        PutElasticsearchHttpRecordTestProcessor(int numResponseFailures) {
+            this.numResponseFailures = numResponseFailures;
         }
 
         void setStatus(int code, String message) {
@@ -382,6 +497,11 @@ public class TestPutElasticsearchHttpRecord {
             expectedUrl = url;
         }
 
+        @SafeVarargs
+        final void setRecordChecks(Consumer<Map>... checks) {
+            recordChecks = checks;
+        }
+
         @Override
         protected void createElasticsearchClient(ProcessContext context) throws ProcessException {
             client = mock(OkHttpClient.class);
@@ -391,10 +511,28 @@ public class TestPutElasticsearchHttpRecord {
                 if (statusCode != -1) {
                     Request realRequest = (Request) invocationOnMock.getArguments()[0];
                     assertTrue((expectedUrl == null) || (expectedUrl.equals(realRequest.url().toString())));
+                    if (recordChecks != null) {
+                        final ObjectMapper mapper = new ObjectMapper();
+                        Buffer sink = new Buffer();
+                        realRequest.body().writeTo(sink);
+                        String line;
+                        int recordIndex = 0;
+                        boolean content = false;
+                        while ((line = sink.readUtf8Line()) != null) {
+                            if (content) {
+                                content = false;
+                                if (recordIndex < recordChecks.length) {
+                                    recordChecks[recordIndex++].accept(mapper.readValue(line, Map.class));
+                                }
+                            } else {
+                                content = true;
+                            }
+                        }
+                    }
                     StringBuilder sb = new StringBuilder("{\"took\": 1, \"errors\": \"");
-                    sb.append(responseHasFailures);
+                    sb.append(numResponseFailures > 0);
                     sb.append("\", \"items\": [");
-                    if (responseHasFailures) {
+                    for (int i = 0; i < numResponseFailures; i ++) {
                         // This case is for a status code of 200 for the bulk response itself, but with an error (of 400) inside
                         sb.append("{\"index\":{\"_index\":\"doc\",\"_type\":\"status\",\"_id\":\"28039652140\",\"status\":\"400\",");
                         sb.append("\"error\":{\"type\":\"mapper_parsing_exception\",\"reason\":\"failed to parse [gender]\",");
@@ -507,6 +645,10 @@ public class TestPutElasticsearchHttpRecord {
     }
 
     private void generateTestData() throws IOException {
+        generateTestData(4);
+    }
+
+    private void generateTestData(int numRecords) throws IOException {
 
         final MockRecordParser parser = new MockRecordParser();
         try {
@@ -520,10 +662,24 @@ public class TestPutElasticsearchHttpRecord {
         parser.addSchemaField("id", RecordFieldType.INT);
         parser.addSchemaField("name", RecordFieldType.STRING);
         parser.addSchemaField("code", RecordFieldType.INT);
+        parser.addSchemaField("date", RecordFieldType.DATE);
+        parser.addSchemaField("time", RecordFieldType.TIME);
+        parser.addSchemaField("ts", RecordFieldType.TIMESTAMP);
+        parser.addSchemaField("amount", RecordFieldType.DECIMAL);
 
-        parser.addRecord(1, "rec1", 101);
-        parser.addRecord(2, "rec2", 102);
-        parser.addRecord(3, "rec3", 103);
-        parser.addRecord(4, "rec4", 104);
+        for(int i=1; i<=numRecords; i++) {
+            parser.addRecord(i, "reç" + i, 100 + i, new Date(1545282000000L), new Time(68150000), new Timestamp(1545332150000L), new BigDecimal(Double.MAX_VALUE).multiply(BigDecimal.TEN));
+        }
+    }
+
+    private void generateWriter() throws IOException {
+        final MockRecordWriter writer = new MockRecordWriter();
+        try {
+            runner.addControllerService("writer", writer);
+        } catch (InitializationException e) {
+            throw new IOException(e);
+        }
+        runner.enableControllerService(writer);
+        runner.setProperty(PutElasticsearchHttpRecord.RECORD_WRITER, "writer");
     }
 }

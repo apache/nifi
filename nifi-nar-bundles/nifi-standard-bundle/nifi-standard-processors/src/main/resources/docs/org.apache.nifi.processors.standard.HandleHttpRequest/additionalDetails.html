@@ -39,5 +39,18 @@
             The HandleHttpRequest Processor provides several Properties to configure which methods are supported, the paths that are
             supported, and SSL configuration. 
         </p>
+
+        <p>
+            To handle requests with Content-Type: <i>multipart/form-data</i> containing multiple parts, additional attention needs to be paid.
+            Each <i>part</i> generates a FlowFile of its own. To each these FlowFiles, some special attributes are written:
+            <ul>
+                <li>http.context.identifier</li>
+                <li>http.multipart.fragments.sequence.number</li>
+                <li>http.multipart.fragments.total.number</li>
+            </ul>
+            These attributes could be used to implement a gating mechanism for HandleHttpResponse processor to wait for the processing of FlowFiles
+            with sequence number <b>http.multipart.fragments.sequence.number</b> until up to <b>http.multipart.fragments.total.number</b> of flow files are processed,
+             belonging to the same <b>http.context.identifier</b>, which is unique to the request.
+        </p>
     </body>
 </html>

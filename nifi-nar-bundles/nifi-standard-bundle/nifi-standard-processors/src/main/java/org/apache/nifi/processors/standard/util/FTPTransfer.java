@@ -17,8 +17,10 @@
 package org.apache.nifi.processors.standard.util;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Proxy;
@@ -49,10 +51,13 @@ import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.proxy.ProxyConfiguration;
 import org.apache.nifi.proxy.ProxySpec;
+import org.apache.nifi.stream.io.StreamUtils;
 
 public class FTPTransfer implements FileTransfer {
 
@@ -204,6 +209,7 @@ public class FTPTransfer implements FileTransfer {
 
         final boolean ignoreDottedFiles = ctx.getProperty(FileTransfer.IGNORE_DOTTED_FILES).asBoolean();
         final boolean recurse = ctx.getProperty(FileTransfer.RECURSIVE_SEARCH).asBoolean();
+        final boolean symlink = ctx.getProperty(FileTransfer.FOLLOW_SYMLINK).asBoolean();
         final String fileFilterRegex = ctx.getProperty(FileTransfer.FILE_FILTER_REGEX).getValue();
         final Pattern pattern = (fileFilterRegex == null) ? null : Pattern.compile(fileFilterRegex);
         final String pathFilterRegex = ctx.getProperty(FileTransfer.PATH_FILTER_REGEX).getValue();
@@ -255,11 +261,13 @@ public class FTPTransfer implements FileTransfer {
             final File newFullPath = new File(path, filename);
             final String newFullForwardPath = newFullPath.getPath().replace("\\", "/");
 
-            if (recurse && file.isDirectory()) {
+            // if is a directory and we're supposed to recurse
+            // OR if is a link and we're supposed to follow symlink
+            if ((recurse && file.isDirectory()) || (symlink && file.isSymbolicLink())) {
                 try {
                     listing.addAll(getListing(newFullForwardPath, depth + 1, maxResults - count));
                 } catch (final IOException e) {
-                    logger.error("Unable to get listing from " + newFullForwardPath + "; skipping this subdirectory", e);
+                    logger.error("Unable to get listing from " + newFullForwardPath + "; skipping", e);
                 }
             }
 
@@ -310,29 +318,39 @@ public class FTPTransfer implements FileTransfer {
     }
 
     @Override
-    public InputStream getInputStream(String remoteFileName) throws IOException {
-        return getInputStream(remoteFileName, null);
-    }
-
-    @Override
-    public InputStream getInputStream(final String remoteFileName, final FlowFile flowFile) throws IOException {
-        final FTPClient client = getClient(flowFile);
-        InputStream in = client.retrieveFileStream(remoteFileName);
-        if (in == null) {
-            throw new IOException(client.getReplyString());
+    public FlowFile getRemoteFile(final String remoteFileName, final FlowFile origFlowFile, final ProcessSession session) throws ProcessException, IOException {
+        final FTPClient client = getClient(origFlowFile);
+        InputStream in = null;
+        FlowFile resultFlowFile = null;
+        try {
+            in = client.retrieveFileStream(remoteFileName);
+            if (in == null) {
+                final String response = client.getReplyString();
+                // FTPClient doesn't throw exception if file not found.
+                // Instead, response string will contain: "550 Can't open <absolute_path>: No such file or directory"
+                if (response != null && response.trim().endsWith("No such file or directory")) {
+                    throw new FileNotFoundException(response);
+                }
+                throw new IOException(response);
+            }
+            final InputStream remoteIn = in;
+            resultFlowFile = session.write(origFlowFile, new OutputStreamCallback() {
+                @Override
+                public void process(final OutputStream out) throws IOException {
+                    StreamUtils.copy(remoteIn, out);
+                }
+            });
+            client.completePendingCommand();
+            return resultFlowFile;
+        } finally {
+            if(in != null){
+                try{
+                    in.close();
+                }catch(final IOException ioe){
+                    //do nothing
+                }
+            }
         }
-        return in;
-    }
-
-    @Override
-    public void flush() throws IOException {
-        final FTPClient client = getClient(null);
-        client.completePendingCommand();
-    }
-
-    @Override
-    public boolean flush(final FlowFile flowFile) throws IOException {
-        return getClient(flowFile).completePendingCommand();
     }
 
     @Override

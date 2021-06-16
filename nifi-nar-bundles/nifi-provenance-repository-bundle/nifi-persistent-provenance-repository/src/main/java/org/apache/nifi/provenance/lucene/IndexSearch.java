@@ -16,16 +16,6 @@
  */
 package org.apache.nifi.provenance.lucene;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.util.Collections;
-import java.util.Date;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TopDocs;
 import org.apache.nifi.authorization.AccessDeniedException;
@@ -37,6 +27,15 @@ import org.apache.nifi.provenance.authorization.EventAuthorizer;
 import org.apache.nifi.provenance.index.EventIndexSearcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class IndexSearch {
     private final Logger logger = LoggerFactory.getLogger(IndexSearch.class);
@@ -76,15 +75,6 @@ public class IndexSearch {
         final StandardQueryResult sqr = new StandardQueryResult(provenanceQuery, 1);
         final Set<ProvenanceEventRecord> matchingRecords;
 
-        // we need to set the start date because if we do not, the first index may still have events that have aged off from
-        // the repository, and we don't want those events to count toward the total number of matches.
-        if (provenanceQuery.getStartDate() == null || provenanceQuery.getStartDate().getTime() < firstEventTimestamp) {
-            provenanceQuery.setStartDate(new Date(firstEventTimestamp));
-        }
-
-        if (provenanceQuery.getEndDate() == null) {
-            provenanceQuery.setEndDate(new Date());
-        }
         final Query luceneQuery = LuceneUtil.convertQuery(provenanceQuery);
 
         final long start = System.nanoTime();
@@ -102,7 +92,7 @@ public class IndexSearch {
             logger.debug("Searching {} for {} took {} millis; opening searcher took {} millis", this, provenanceQuery,
                     TimeUnit.NANOSECONDS.toMillis(searchNanos), TimeUnit.NANOSECONDS.toMillis(openSearcherNanos));
 
-            if (topDocs.totalHits == 0) {
+            if (topDocs.totalHits.value == 0) {
                 sqr.update(Collections.<ProvenanceEventRecord>emptyList(), 0);
                 return sqr;
             }
@@ -137,7 +127,7 @@ public class IndexSearch {
             final long readRecordsNanos = System.nanoTime() - finishSearch;
             logger.debug("Reading {} records took {} millis for {}", matchingRecords.size(), TimeUnit.NANOSECONDS.toMillis(readRecordsNanos), this);
 
-            sqr.update(matchingRecords, topDocs.totalHits);
+            sqr.update(matchingRecords, topDocs.totalHits.value);
 
             final long queryNanos = System.nanoTime() - startNanos;
             logger.info("Successfully executed {} against Index {}; Search took {} milliseconds; Total Hits = {}",

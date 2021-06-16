@@ -57,7 +57,7 @@ class GroovyRecordReader implements RecordReader {
 
 class GroovyRecordReaderFactory extends AbstractControllerService implements RecordReaderFactory {
 
-    RecordReader createRecordReader(Map<String, String> variables, InputStream inputStream, ComponentLog logger) throws MalformedRecordException, IOException, SchemaNotFoundException {
+    RecordReader createRecordReader(Map<String, String> variables, InputStream inputStream, long inputLength, ComponentLog logger) throws MalformedRecordException, IOException, SchemaNotFoundException {
         return new GroovyRecordReader()
     }
 }

@@ -56,14 +56,14 @@ public class DocGenerator {
      * @param properties to lookup nifi properties
      * @param extensionMapping extension mapping
      */
-    public static void generate(final NiFiProperties properties, final ExtensionMapping extensionMapping) {
+    public static void generate(final NiFiProperties properties, final ExtensionManager extensionManager, final ExtensionMapping extensionMapping) {
         final File explodedNiFiDocsDir = properties.getComponentDocumentationWorkingDirectory();
 
         logger.debug("Generating documentation for: " + extensionMapping.size() + " components in: " + explodedNiFiDocsDir);
 
-        documentConfigurableComponent(ExtensionManager.getExtensions(Processor.class), explodedNiFiDocsDir);
-        documentConfigurableComponent(ExtensionManager.getExtensions(ControllerService.class), explodedNiFiDocsDir);
-        documentConfigurableComponent(ExtensionManager.getExtensions(ReportingTask.class), explodedNiFiDocsDir);
+        documentConfigurableComponent(extensionManager.getExtensions(Processor.class), explodedNiFiDocsDir, extensionManager);
+        documentConfigurableComponent(extensionManager.getExtensions(ControllerService.class), explodedNiFiDocsDir, extensionManager);
+        documentConfigurableComponent(extensionManager.getExtensions(ReportingTask.class), explodedNiFiDocsDir, extensionManager);
     }
 
     /**
@@ -72,12 +72,12 @@ public class DocGenerator {
      * @param extensionClasses types of a configurable component
      * @param explodedNiFiDocsDir base directory of component documentation
      */
-    private static void documentConfigurableComponent(final Set<Class> extensionClasses, final File explodedNiFiDocsDir) {
+    public static void documentConfigurableComponent(final Set<Class> extensionClasses, final File explodedNiFiDocsDir, final ExtensionManager extensionManager) {
         for (final Class<?> extensionClass : extensionClasses) {
             if (ConfigurableComponent.class.isAssignableFrom(extensionClass)) {
                 final String extensionClassName = extensionClass.getCanonicalName();
 
-                final Bundle bundle = ExtensionManager.getBundle(extensionClass.getClassLoader());
+                final Bundle bundle = extensionManager.getBundle(extensionClass.getClassLoader());
                 if (bundle == null) {
                     logger.warn("No coordinate found for {}, skipping...", new Object[] {extensionClassName});
                     continue;
@@ -91,7 +91,7 @@ public class DocGenerator {
                 final Class<? extends ConfigurableComponent> componentClass = extensionClass.asSubclass(ConfigurableComponent.class);
                 try {
                     logger.debug("Documenting: " + componentClass);
-                    document(componentDirectory, componentClass, coordinate);
+                    document(extensionManager, componentDirectory, componentClass, coordinate);
                 } catch (Exception e) {
                     logger.warn("Unable to document: " + componentClass, e);
                 }
@@ -111,14 +111,17 @@ public class DocGenerator {
      * @throws IOException ioe
      * @throws InitializationException ie
      */
-    private static void document(final File componentDocsDir, final Class<? extends ConfigurableComponent> componentClass, final BundleCoordinate bundleCoordinate)
+    private static void document(final ExtensionManager extensionManager,
+                                 final File componentDocsDir,
+                                 final Class<? extends ConfigurableComponent> componentClass,
+                                 final BundleCoordinate bundleCoordinate)
             throws InstantiationException, IllegalAccessException, IOException, InitializationException {
 
         // use temp components from ExtensionManager which should always be populated before doc generation
         final String classType = componentClass.getCanonicalName();
-        final ConfigurableComponent component = ExtensionManager.getTempComponent(classType, bundleCoordinate);
+        final ConfigurableComponent component = extensionManager.getTempComponent(classType, bundleCoordinate);
 
-        final DocumentationWriter writer = getDocumentWriter(componentClass);
+        final DocumentationWriter writer = getDocumentWriter(extensionManager, componentClass);
 
         final File baseDocumentationFile = new File(componentDocsDir, "index.html");
         if (baseDocumentationFile.exists()) {
@@ -138,13 +141,14 @@ public class DocGenerator {
      * @return a DocumentationWriter capable of generating documentation for
      * that specific type of class
      */
-    private static DocumentationWriter getDocumentWriter(final Class<? extends ConfigurableComponent> componentClass) {
+    private static DocumentationWriter getDocumentWriter(final ExtensionManager extensionManager,
+                                                                  final Class<? extends ConfigurableComponent> componentClass) {
         if (Processor.class.isAssignableFrom(componentClass)) {
-            return new HtmlProcessorDocumentationWriter();
+            return new HtmlProcessorDocumentationWriter(extensionManager);
         } else if (ControllerService.class.isAssignableFrom(componentClass)) {
-            return new HtmlDocumentationWriter();
+            return new HtmlDocumentationWriter(extensionManager);
         } else if (ReportingTask.class.isAssignableFrom(componentClass)) {
-            return new HtmlDocumentationWriter();
+            return new HtmlDocumentationWriter(extensionManager);
         }
 
         return null;

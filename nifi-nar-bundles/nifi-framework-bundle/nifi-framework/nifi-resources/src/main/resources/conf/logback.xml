@@ -117,6 +117,18 @@
     <!-- Suppress non-error messages due to known warning about redundant path annotation (NIFI-574) -->
     <logger name="org.glassfish.jersey.internal.Errors" level="ERROR"/>
 
+    <!-- Suppress non-error messages due to Jetty AnnotationParser emitting a large amount of WARNS. Issue described in NIFI-5479. -->
+    <logger name="org.eclipse.jetty.annotations.AnnotationParser" level="ERROR"/>
+
+    <!-- Suppress non-error messages from SSHJ which was emitting large amounts of INFO logs by default -->
+    <logger name="net.schmizz.sshj" level="WARN" />
+    <logger name="com.hierynomus.sshj" level="WARN" />
+
+    <!-- These log messages would normally go to the USER_FILE log, but they belong in the APP_FILE -->
+    <logger name="org.apache.nifi.web.security.requests" level="INFO" additivity="false">
+        <appender-ref ref="APP_FILE"/>
+    </logger>
+
     <!--
         Logger for capturing user events. We do not want to propagate these
         log events to the root logger. These messages are only sent to the
@@ -137,6 +149,9 @@
     <logger name="org.apache.nifi.web.filter.RequestLogger" level="INFO" additivity="false">
         <appender-ref ref="USER_FILE"/>
     </logger>
+    <logger name="org.apache.nifi.web.api.AccessResource" level="INFO" additivity="false">
+        <appender-ref ref="USER_FILE"/>
+    </logger>
 
 
     <!--
@@ -154,15 +169,14 @@
     <logger name="org.apache.nifi.StdOut" level="INFO" additivity="false">
         <appender-ref ref="BOOTSTRAP_FILE" />
     </logger>
-    
+
     <!-- Everything written to NiFi's Standard Error will be logged with the logger org.apache.nifi.StdErr at ERROR level -->
     <logger name="org.apache.nifi.StdErr" level="ERROR" additivity="false">
         <appender-ref ref="BOOTSTRAP_FILE" />
     </logger>
 
-
     <root level="INFO">
-        <appender-ref ref="APP_FILE"/>
+        <appender-ref ref="APP_FILE" />
     </root>
-    
+
 </configuration>

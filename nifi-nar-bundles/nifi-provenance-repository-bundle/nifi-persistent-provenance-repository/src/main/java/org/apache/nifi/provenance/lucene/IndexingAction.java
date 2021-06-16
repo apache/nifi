@@ -16,16 +16,11 @@
  */
 package org.apache.nifi.provenance.lucene;
 
-import java.io.IOException;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field.Store;
-import org.apache.lucene.document.IntField;
-import org.apache.lucene.document.LongField;
+import org.apache.lucene.document.IntPoint;
+import org.apache.lucene.document.LongPoint;
+import org.apache.lucene.document.StoredField;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -33,6 +28,12 @@ import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.provenance.SearchableFields;
 import org.apache.nifi.provenance.StandardProvenanceEventRecord;
 import org.apache.nifi.provenance.search.SearchableField;
+
+import java.io.IOException;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 public class IndexingAction {
     private final Set<SearchableField> searchableEventFields;
@@ -75,16 +76,20 @@ public class IndexingAction {
 
         // Index the fields that we always index (unless there's nothing else to index at all)
         if (!doc.getFields().isEmpty()) {
-            doc.add(new LongField(SearchableFields.LineageStartDate.getSearchableFieldName(), record.getLineageStartDate(), Store.NO));
-            doc.add(new LongField(SearchableFields.EventTime.getSearchableFieldName(), record.getEventTime(), Store.NO));
-            doc.add(new LongField(SearchableFields.FileSize.getSearchableFieldName(), record.getFileSize(), Store.NO));
+            doc.add(new LongPoint(SearchableFields.LineageStartDate.getSearchableFieldName(), record.getLineageStartDate()));
+            doc.add(new LongPoint(SearchableFields.EventTime.getSearchableFieldName(), record.getEventTime()));
+            doc.add(new LongPoint(SearchableFields.FileSize.getSearchableFieldName(), record.getFileSize()));
             doc.add(new StringField(FieldNames.STORAGE_FILENAME, storageFilename, Store.YES));
 
             if ( blockIndex == null ) {
-                doc.add(new LongField(FieldNames.STORAGE_FILE_OFFSET, record.getStorageByteOffset(), Store.YES));
+                doc.add(new LongPoint(FieldNames.STORAGE_FILE_OFFSET, record.getStorageByteOffset()));
+                doc.add(new StoredField(FieldNames.STORAGE_FILE_OFFSET, record.getStorageByteOffset()));
             } else {
-                doc.add(new IntField(FieldNames.BLOCK_INDEX, blockIndex, Store.YES));
-                doc.add(new LongField(SearchableFields.Identifier.getSearchableFieldName(), record.getEventId(), Store.YES));
+                doc.add(new IntPoint(FieldNames.BLOCK_INDEX, blockIndex));
+                doc.add(new StoredField(FieldNames.BLOCK_INDEX, blockIndex));
+
+                doc.add(new LongPoint(SearchableFields.Identifier.getSearchableFieldName(), record.getEventId()));
+                doc.add(new StoredField(SearchableFields.Identifier.getSearchableFieldName(), record.getEventId()));
             }
 
             // If it's event is a FORK, or JOIN, add the FlowFileUUID for all child/parent UUIDs.

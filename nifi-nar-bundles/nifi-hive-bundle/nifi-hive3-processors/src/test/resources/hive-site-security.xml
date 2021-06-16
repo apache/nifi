@@ -23,4 +23,8 @@
     <name>hive.server2.authentication</name>
     <value>KERBEROS</value>
   </property>
+  <property>
+  	<name>hadoop.security.authentication</name>
+  	<value>kerberos</value>
+  </property>
 </configuration>

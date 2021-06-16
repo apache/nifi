@@ -21,6 +21,7 @@
     <!-- user/entity authorizer -->
     <bean id="authorizer" class="org.apache.nifi.authorization.AuthorizerFactoryBean">
         <property name="properties" ref="nifiProperties"/>
+        <property name="extensionManager" ref="extensionManager" />
     </bean>
 
 </beans>

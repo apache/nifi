@@ -35,9 +35,10 @@
                 'nf.ng.Bridge',
                 'nf.Processor',
                 'nf.ProcessGroup',
-                'nf.ProcessGroupConfiguration'],
-            function ($, d3, Slick, nfCanvas, nfCanvasUtils, nfErrorHandler, nfDialog, nfStorage, nfClient, nfCommon, nfNgBridge, nfProcessor, nfProcessGroup, nfProcessGroupConfiguration) {
-                return (nf.ComponentState = factory($, d3, Slick, nfCanvas, nfCanvasUtils, nfErrorHandler, nfDialog, nfStorage, nfClient, nfCommon, nfNgBridge, nfProcessor, nfProcessGroup, nfProcessGroupConfiguration));
+                'nf.ProcessGroupConfiguration',
+                'nf.Shell'],
+            function ($, d3, Slick, nfCanvas, nfCanvasUtils, nfErrorHandler, nfDialog, nfStorage, nfClient, nfCommon, nfNgBridge, nfProcessor, nfProcessGroup, nfProcessGroupConfiguration, nfShell) {
+                return (nf.ComponentState = factory($, d3, Slick, nfCanvas, nfCanvasUtils, nfErrorHandler, nfDialog, nfStorage, nfClient, nfCommon, nfNgBridge, nfProcessor, nfProcessGroup, nfProcessGroupConfiguration, nfShell));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ComponentState =
@@ -54,7 +55,8 @@
                 require('nf.ng.Bridge'),
                 require('nf.Processor'),
                 require('nf.ProcessGroup'),
-                require('nf.ProcessGroupConfiguration')));
+                require('nf.ProcessGroupConfiguration'),
+                require('nf.Shell')));
     } else {
         nf.VariableRegistry = factory(root.$,
             root.d3,
@@ -69,9 +71,10 @@
             root.nf.ng.Bridge,
             root.nf.Processor,
             root.nf.ProcessGroup,
-            root.nf.ProcessGroupConfiguration);
+            root.nf.ProcessGroupConfiguration,
+            root.nf.Shell);
     }
-}(this, function ($, d3, Slick, nfCanvas, nfCanvasUtils, nfErrorHandler, nfDialog, nfStorage, nfClient, nfCommon, nfNgBridge, nfProcessor, nfProcessGroup, nfProcessGroupConfiguration) {
+}(this, function ($, d3, Slick, nfCanvas, nfCanvasUtils, nfErrorHandler, nfDialog, nfStorage, nfClient, nfCommon, nfNgBridge, nfProcessor, nfProcessGroup, nfProcessGroupConfiguration, nfShell) {
     'use strict';
 
     var lastSelectedId = null;
@@ -120,11 +123,19 @@
             });
 
             // create the button panel
-            var stringCheckPanel = $('<div class="string-check-container">');
+            var stringCheckPanel = $('<div class="string-check-container" />');
             stringCheckPanel.appendTo(wrapper);
 
             // build the custom checkbox
-            isEmpty = $('<div class="nf-checkbox string-check"/>').appendTo(stringCheckPanel);
+            isEmpty = $('<div class="nf-checkbox string-check" />')
+                .on('change', function (event, args) {
+                    // if we are setting as an empty string, disable the editor
+                    if (args.isChecked) {
+                        input.prop('disabled', true).val('');
+                    } else {
+                        input.prop('disabled', false).val(previousValue);
+                    }
+                }).appendTo(stringCheckPanel);
             $('<span class="string-check-label nf-checkbox-label">&nbsp;Set empty string</span>').appendTo(stringCheckPanel);
 
             var ok = $('<div class="button">Ok</div>').css({
@@ -576,7 +587,7 @@
                     // only populate affected components if this variable is different than the last selected
                     if (lastSelectedId === null || lastSelectedId !== variable.id) {
                         // update the details for this variable
-                        $('#affected-components-context').removeClass('unset').text(variable.name);
+                        $('#variable-affected-components-context').removeClass('unset').text(variable.name);
                         populateAffectedComponents(variable.affectedComponents);
 
                         // update the last selected id
@@ -726,7 +737,8 @@
 
 
         // processor name
-        $('<span class="referencing-component-name link"></span>').text(affectedProcessor.name).on('click', function () {
+        $('<span class="referencing-component-name link ellipsis affected-component-setting-width"></span>').text(affectedProcessor.name)
+            .prop('title', affectedProcessor.name).on('click', function () {
             // check if there are outstanding changes
             handleOutstandingChanges().done(function () {
                 // show the component in question
@@ -786,7 +798,8 @@
         $('<div class="referencing-component-bulletins"></div>').addClass(affectedControllerService.id + '-affected-bulletins').appendTo(affectedControllerServiceContainer);
 
         // controller service name
-        $('<span class="referencing-component-name link"></span>').text(affectedControllerService.name).on('click', function () {
+        $('<span class="referencing-component-name link ellipsis affected-component-setting-width"></span>')
+            .prop('title', affectedControllerService.name).text(affectedControllerService.name).on('click', function () {
             // check if there are outstanding changes
             handleOutstandingChanges().done(function () {
                 // show the component in question
@@ -912,7 +925,27 @@
                         }
                     } else {
                         var affectedUnauthorizedComponentContainer = $('<li class="affected-component-container"></li>').appendTo(unauthorizedComponentsContainer);
-                        $('<span class="unset"></span>').text(unauthorizedAffectedComponentEntity.id).appendTo(affectedUnauthorizedComponentContainer);
+                        $('<span class="referencing-component-name link ellipsis affected-component-setting-width"></span>')
+                            .prop('title', unauthorizedAffectedComponentEntity.id)
+                            .text(unauthorizedAffectedComponentEntity.id)
+                            .on('click', function () {
+                                // check if there are outstanding changes
+                                handleOutstandingChanges().done(function () {
+                                    // close the shell
+                                    $('#shell-dialog').modal('hide');
+
+                                    // show the component in question
+                                    if (unauthorizedAffectedComponentEntity.referenceType === 'PROCESSOR') {
+                                        nfCanvasUtils.showComponent(unauthorizedAffectedComponentEntity.processGroup.id, unauthorizedAffectedComponentEntity.id);
+                                    } else if (unauthorizedAffectedComponentEntity.referenceType === 'CONTROLLER_SERVICE') {
+                                        nfProcessGroupConfiguration.showConfiguration(unauthorizedAffectedComponentEntity.processGroup.id).done(function () {
+                                            nfProcessGroup.enterGroup(unauthorizedAffectedComponentEntity.processGroup.id);
+                                            nfProcessGroupConfiguration.selectControllerService(unauthorizedAffectedComponentEntity.id);
+                                        });
+                                    }
+                                });
+                            })
+                            .appendTo(affectedUnauthorizedComponentContainer);
                     }
                 });
             }
@@ -1077,6 +1110,8 @@
         return false;
     };
 
+    var variablesCount = 0;
+
     /**
      * Loads the specified variable registry.
      *
@@ -1085,7 +1120,6 @@
      */
     var loadVariables = function (variableRegistry, variableToSelect) {
         if (nfCommon.isDefinedAndNotNull(variableRegistry)) {
-            var count = 0;
             var index = 0;
 
             var variableGrid = $('#variable-registry-table').data('gridInstance');
@@ -1098,7 +1132,7 @@
             $.each(variableRegistry.variables, function (i, variableEntity) {
                 var variable = variableEntity.variable;
                 variables.push({
-                    id: count++,
+                    id: variablesCount++,
                     hidden: false,
                     canWrite: variableEntity.canWrite,
                     name: variable.name,
@@ -1149,7 +1183,7 @@
                 $('<li class="affected-component-container"><span class="unset">None</span></li>').appendTo(unauthorizedComponentsContainer);
 
                 // update the selection context
-                $('#affected-components-context').addClass('unset').text('None');
+                $('#variable-affected-components-context').addClass('unset').text('None');
             } else {
                 // select the desired row
                 variableGrid.setSelectedRows([index]);
@@ -1201,7 +1235,7 @@
         var variableNames = variables.map(function (v) {
              return v.variable.name;
         });
-        $('#affected-components-context').removeClass('unset').text(variableNames.join(', '));
+        $('#variable-affected-components-context').removeClass('unset').text(variableNames.join(', '));
 
         // get the current group id
         var processGroupId = $('#variable-registry-process-group-id').text();
@@ -1452,9 +1486,8 @@
 
             if (matchingVariable === null) {
                 // add a row for the new variable
-                var id = variableData.getLength();
                 variableData.addItem({
-                    id: id,
+                    id: variablesCount,
                     hidden: false,
                     canWrite: true,
                     name: variableName,
@@ -1476,9 +1509,10 @@
                 variableData.reSort();
 
                 // select the new variable row
-                var row = variableData.getRowById(id);
+                var row = variableData.getRowById(variablesCount);
                 variableGrid.setActiveCell(row, variableGrid.getColumnIndex('value'));
                 variableGrid.editActiveCell();
+                variablesCount++
             } else {
                 // if this row is currently hidden, clear the value and show it
                 if (matchingVariable.hidden === true) {
@@ -1503,15 +1537,17 @@
                     variableGrid.scrollRowIntoView(matchingRow);
                 }
             }
+
+            // close the new variable dialog
+            $('#new-variable-dialog').modal('hide');
+
         } else {
             nfDialog.showOkDialog({
-                headerText: 'Variable Name',
-                dialogContent: 'Variable name must be specified.'
+                headerText: 'Configuration Error',
+                dialogContent: 'The name of the variable must be specified.'
             });
         }
 
-        // close the new variable dialog
-        $('#new-variable-dialog').modal('hide');
     };
 
     /**
@@ -1530,7 +1566,7 @@
 
         $('#process-group-variable-registry').text('');
         $('#variable-registry-process-group-id').text('').removeData('revision');
-        $('#affected-components-context').removeClass('unset').text('');
+        $('#variable-affected-components-context').removeClass('unset').text('');
 
         var variableGrid = $('#variable-registry-table').data('gridInstance');
         var variableData = variableGrid.getData();
@@ -1611,6 +1647,10 @@
 
             $('#add-variable').on('click', function () {
                 $('#new-variable-dialog').modal('show');
+            });
+
+            $('#parameters-documentation-link').on('click', function() {
+                nfShell.showPage('../nifi-docs/html/user-guide.html#Parameters');
             });
 
             initVariableTable();

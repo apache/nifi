@@ -52,15 +52,15 @@ and manipulate their values.
 The NiFi Expression Language always begins with the start delimiter `${` and ends
 with the end delimiter `}`. Between the start and end delimiters is the text of the
 Expression itself. In its most basic form, the Expression can consist of just an
-attribute name. For example, `${filename}` will return the value of the ``filename''
+attribute name. For example, `${filename}` will return the value of the `filename`
 attribute.
 
 In a slightly more complex example, we can instead return a manipulation of this value.
 We can, for example, return an all upper-case version of the filename by calling the
-`toUpper` function: `${filename:toUpper()}`. In this case, we reference the ``filename''
+`toUpper` function: `${filename:toUpper()}`. In this case, we reference the `filename`
 attribute and then manipulate this value by using the `toUpper` function. A function call
 consists of 5 elements. First, there is a function call delimiter `:`. Second is the name
-of the function - in this case, ``toUpper''. Next is an open parenthesis (`(`), followed
+of the function - in this case, `toUpper`. Next is an open parenthesis (`(`), followed
 by the function arguments. The arguments necessary are dependent upon which function
 is being called. In this example, we are using the `toUpper` function, which does not
 have any arguments, so this element is omitted. Finally, the closing parenthesis (`)`)
@@ -81,8 +81,8 @@ the expression `${filename:toUpper():equals('HELLO.TXT')}`. There is no limit to
 functions that can be chained together.
 
 Any FlowFile attribute can be referenced using the Expression Language. However, if the attribute
-name contains a ``special character,'' the attribute name must be escaped by quoting it. The following
-characters are each considered ``special characters'':
+name contains a "special character", the attribute name must be escaped by quoting it. The following
+characters are each considered "special characters":
 
 - $ (dollar sign)
 - | (pipe)
@@ -103,10 +103,10 @@ characters are each considered ``special characters'':
 - \r (carriage return)
 - \n (new-line)
 
-Additionally, a number is considered a ``special character'' if it is the first character of the attribute name.
+Additionally, a number is considered a "special character" if it is the first character of the attribute name.
 If any of these special characters is present in an attribute is quoted by using either single or double quotes.
 The Expression Language allows single quotes and double quotes to be used interchangeably. For example, the following
-can be used to escape an attribute named ``my attribute'': `${"my attribute"}` or `${'my attribute'}`.
+can be used to escape an attribute named `my attribute`: `${"my attribute"}` or `${'my attribute'}`.
 
 In this example, the value to be returned is the value of the "my attribute" value, if it exists. If that attribute
 does not exist, the Expression Language will then look for a System Environment Variable named "my attribute." If
@@ -122,7 +122,7 @@ require a subject.
 
 Often times, we will need to compare the values of two different attributes to each other.
 We are able to accomplish this by using embedded Expressions. We can, for example, check if
-the ``filename'' attribute is the same as the ``uuid'' attribute: `${filename:equals( ${uuid} )}`.
+the `filename` attribute is the same as the `uuid` attribute: `${filename:equals( ${uuid} )}`.
 Notice here, also, that we have a space between the opening parenthesis for the `equals` method and
 the embedded Expression. This is not necessary and does not affect how the Expression is evaluated
 in any way. Rather, it is intended to make the Expression easier to read. White space is ignored by
@@ -163,12 +163,17 @@ by the Variable Registry, as described above.
 
 [[escaping]]
 === Escaping Expression Language
+:extra-dollar-sign: Hello $${UserName}
+:literal-value: Hello $$User$$Name
+:four-dollar-signs: $$$${abc}
+:five-dollar-signs: $$$$${abc}
+
 There may be times when a property supports Expression Language, but the user wishes to use a literal value
 that follows the same syntax as the Expression Language. For example, a user may want to configure a property
 value to be the literal text `Hello ${UserName}`. In such a case, this can be accomplished by using an extra
-`$` (dollar sign symbol) just before the expression to escape it (i.e., `Hello $${UserName}`). Unless the `$`
-character is being used to escape an Expression, it should not be escaped. For example, the value `Hello $$User$$Name`
-should not escape the `$` characters, so the literal value that will be used is `Hello $$User$$Name`.
+`$` (dollar sign symbol) just before the expression to escape it (i.e., `{extra-dollar-sign}`). Unless the `$`
+character is being used to escape an Expression, it should not be escaped. For example, the value `{literal-value}`
+should not escape the `$` characters, so the literal value that will be used is `{literal-value}`.
 
 If more than two `$` characters are encountered sequentially before a `{`, then each pair of `$` characters will
 be considered an escaping of the `$` character. The escaping will be performed from left-to-right.
@@ -181,8 +186,8 @@ table of Expressions and their corresponding evaluated values:
 | `${abc}` | `xyz` |
 | `$${abc}` | `${abc}` |
 | `$$${abc}` | `$xyz` |
-| `$$$${abc}` | `$${abc}` |
-| `$$$$${abc}` | `$$xyz` |
+| `{four-dollar-signs}` | `$${abc}` |
+| `{five-dollar-signs}` | `$$xyz` |
 | `I owe you $5` | `I owe you $5` | No actual Expression is present here.
 | `You owe me $$5 too` | `You owe me $$5 too` | The $ character is not escaped because it does not immediately precede an Expression.
 | `Unescaped $$${5 because no closing brace` | `Unescaped $$${5 because no closing brace` | Because there is no closing brace here, there is no actual Expression and hence the $ characters are not
@@ -523,8 +528,8 @@ ${filename:toLower():equals( ${filename} ):or(
 [.function]
 === ifElse
 
-*Description*: [.description]#Evaluates the first argument if the Subject evaluates to true, or the second argument
-if the Subject evaluates to false.#
+*Description*: [.description]#Evaluates the first argument if the Subject evaluates to `true`, or the second argument
+if the Subject evaluates to `false`.#
 
 *Subject Type*: [.subject]#Boolean#
 
@@ -948,9 +953,7 @@ Expressions will provide the following results:
 
 *Arguments*:
 
-*Arguments*:
-
-	- [.argName]#_Regex_# : [.argDesc]#he Regular Expression (in Java syntax) to match in the Subject#
+	- [.argName]#_Regex_# : [.argDesc]#The Regular Expression (in Java syntax) to match in the Subject#
 	- [.argName]#_Replacement_# : [.argDesc]#The value to use for replacing matches in the Subject. If the _regular expression_
 		argument uses Capturing Groups, back references are allowed in the _replacement_.#
 
@@ -968,6 +971,76 @@ Expressions will provide the following results:
 | `${filename:replaceAll('a brand (new)', '$1')}` | `new filename.txt`
 | `${filename:replaceAll('XYZ', 'ZZZ')}` | `a brand new filename.txt`
 | `${filename:replaceAll('brand (new)', 'somewhat $1')}` | `a somewhat new filename.txt`
+|=======================================================================================
+
+
+
+
+
+[.function]
+=== padLeft
+
+*Description*: [.description]#The `padLeft` function prepends the given padding string (or `'_'`, if nothing is provided) to the argument `String` until the passed desired length is reached.
+
+It returns the argument as is if its length is already equal or higher than the desired length, if the padding string is `null`, and if the desired length is either negative or greater than `Integer.MAX_VALUE`.
+It returns `null` if the argument string is not a valid attribute.
+
+*Subject Type*: [.subject]#String#
+
+*Arguments*:
+
+- [.argName]#_DesiredLength_# : [.argDesc]#The integer value to pad to.#
+- [.argName]#_PaddingString_# : [.argDesc]#The optional string to pad with. `"_"` will be used if a `PaddingString` is not provided. If the `PaddingString` is not an exact multiple of the actual pad size, it will be trimmed to fit in `DesiredLength`.#
+
+*Return Type*: [.returnType]#String#
+
+*Examples*: If the "greetings" attribute has the value "hello", then the following
+Expressions will provide the following results:
+
+
+
+.PadLeft Examples
+|=======================================================================================
+| Expression | Value
+| `${greetings:padLeft(10)}` | `\_____hello`
+| `${greetings:padLeft(10, '@')}` | `@@@@@hello`
+| `${greetings:padLeft(10, 'xy')}` | `xyxyxhello`
+| `${greetings:padLeft(10, 'aVeryLongPaddingString')}` | `aVeryhello`
+|=======================================================================================
+
+
+
+
+
+[.function]
+=== padRight
+
+*Description*: [.description]#The `padRight` function appends the given padding string (or `'_'`, if nothing is provided) to the argument `String` until the passed desired length is reached.
+
+It returns the argument as is if its length is already equal or higher than the desired length, if the padding string is `null`, and if the desired length is either negative or greater than `Integer.MAX_VALUE`.
+It returns `null` if the argument string is not a valid attribute.
+
+*Subject Type*: [.subject]#String#
+
+*Arguments*:
+
+- [.argName]#_DesiredLength_# : [.argDesc]#The integer value to pad to.#
+- [.argName]#_PaddingString_# : [.argDesc]#The optional string to pad with. `"_"` will be used if a `PaddingString` is not provided. If the `PaddingString` is not an exact multiple of the actual pad size, it will be trimmed to fit in `DesiredLength`.#
+
+*Return Type*: [.returnType]#String#
+
+*Examples*: If the "greetings" attribute has the value "hello", then the following
+Expressions will provide the following results:
+
+
+
+.PadLeft Examples
+|=======================================================================================
+| Expression | Value
+| `${greetings:padRight(10)}` | `hello\_____`
+| `${greetings:padRight(10, '@')}` | `hello@@@@@`
+| `${greetings:padRight(10, 'xy')}` | `helloxyxyx`
+| `${greetings:padLeft(10, 'aVeryLongPaddingString')}` | `helloaVery`
 |=======================================================================================
 
 
@@ -1032,6 +1105,64 @@ Expressions will provide the following results:
 *Examples*: If the attribute "filename" has a value of "a brand new filename.txt" and the attribute
 	"hello" does not exist, then the Expression `${filename:length()}` will return 24. `${hello:length()}`
 	will return 0.
+
+
+[.function]
+=== evaluateELString
+
+*Description*: [.description]#This function evaluates the Expression Language inside the variable value.#
+
+*Subject Type*: [.subject]#String#
+
+*Arguments*: No arguments
+
+*Return Type*: [.returnType]#String#
+
+*Examples*: If one of the registry variable named "query" has value "SELECT * FROM TABLE WHERE ID = ${id}"
+	and the value of the "id" field, we are getting from the flowfile attributes (i.e. id=20)
+	then the Expression `${query:evaluateELString()}` will return SELECT * FROM TABLE WHERE ID = 20
+
+
+
+
+[.function]
+=== repeat
+
+*Description*:
+[.description]#Returns a string that is the Subject repeated a random number of times between _min repeats_ and
+_max repeats_. If _max repeats_ is not supplied, it will return the Subject repeated exactly _min repeats_ times.#
+
+[.description]#The _min repeats_ and _max repeats_ must be positive numbers, with _max repeats_ greater than or equal
+to _min repeats_#
+
+[.description]#If either _min repeats_ or _max repeats_ is not a number, this function call will result
+in an error.#
+
+
+*Subject Type*: [.subject]#String#
+
+*Arguments*:
+
+- [.argName]#_min repeats_# : [.argDesc]#The minimum number (inclusive) of times to repeat the subject, or the exact number
+of times to repeat the subject if _max repeats_ is not supplied.#
+- [.argName]#_max repeats_# : [.argDesc]#The maximum number (inclusive) of times to repeat the subject.#
+
+*Return Type*: [.returnType]#String#
+
+*Examples*:
+
+If we have an attribute named "str" with the value "abc",
+then the following Expressions will result in the following values:
+
+.Repeat Examples
+|================================================================
+| Expression | Value
+| `${str:repeat(1)}` | `abc`
+| `${str:repeat(2)}` | `abcabc`
+| `${str:repeat(1,2)}` | `abc` or `abcabc` (at random)
+| `${str:repeat( ${str:length()} )}` | `abc` or `abcabc` or `abcabcabc` (at random)
+|================================================================
+
 
 
 [[encode]]
@@ -1295,6 +1426,58 @@ Each of the following functions will encode a string according the rules of the 
 
 
 
+[.function]
+=== UUID3
+
+*Description*: [.description]#Returns a type 3 (MD5 hashed) namespace name-based UUID.#
+
+[.function]
+=== hash
+
+*Description*: [.description]#Returns a hex encoded string using the hash algorithm provided. This can be used to generate unique keys.#
+
+*Subject Type*: [.subject]#String#
+
+*Arguments*:
+
+	- [.argName]#_namespace_# : [.argDesc]#The namespace UUID identifier#
+
+*Return Type*: [.returnType]#String#
+
+*Examples*: ${attr:UUID3('b9e81de3-7047-4b5e-a822-8fff5b49f808')} returns a value similar to 7ab88cc4-7748-3214-812a-1bc4500a911a
+
+
+
+
+
+[.function]
+=== UUID5
+
+*Description*: [.description]#Returns a type 5 (SHA-1 hashed) namespace name-based UUID.#
+
+*Subject Type*: [.subject]#String#
+
+*Arguments*:
+
+	- [.argName]#_namespace_# : [.argDesc]#The namespace UUID identifier#
+
+*Return Type*: [.returnType]#String#
+
+*Examples*: ${attr:UUID5('245b55a8-397d-4480-a41e-16603c8cf9ad')} returns a value similar to 6448f0c0-fd2b-30ad-b05a-deb456f8b060
+
+	- [.argName]#_algorithm_# : [.argDesc]#An algorithm to hash value.
+      Supports one of [SHA-384, SHA-224, SHA-256, MD2, SHA, SHA-512, MD5]#
+
+
+*Return Type*: [.returnType]#String#
+
+*Examples*: We can hash an attribute named "payload" by using the Expression
+	   `${payload:hash('MD5')}` If the attribute payload had a value of "string value"
+	    then the Expression  `${payload:hash('MD5')}` will return "64e58419496c7248b4ef25731f88b8c3".
+
+
+
+
 [[searching]]
 == Searching
 
@@ -1522,7 +1705,7 @@ Expressions will provide the following results:
   path expression. An empty string is generated if the Subject does not contain valid JSON, the _jsonPath_ is invalid, or the path
 	does not exist in the Subject.  If the evaluation results in a scalar value, the string representation of scalar value is
 	generated.  Otherwise a string representation of the JSON result is generated.  A JSON array of length 1 is special cased
-	when `[0]` is a scalar, the string representation of `[0]` is generated.^1^#
+	when `[0]` is a scalar, the string representation of `[0]` is generated.#
 
 *Subject Type*: [.subject]#String#
 
@@ -1565,10 +1748,223 @@ Expressions will provide the following results:
 | Expression | Value
 | `${myJson:jsonPath('$.firstName')}` | `John`
 | `${myJson:jsonPath('$.address.postalCode')}` | `10021-3100`
-| `${myJson:jsonPath('$.phoneNumbers[?(@.type=="home")].number')}`^1^ | `212 555-1234`
+| `${myJson:jsonPath('$.phoneNumbers[?(@.type=="home")].number')}` | `212 555-1234`
 | `${myJson:jsonPath('$.phoneNumbers')}` | `[{"type":"home","number":"212 555-1234"},{"type":"office","number":"646 555-4567"}]`
 | `${myJson:jsonPath('$.missing-path')}` | _empty_
 | `${myJson:jsonPath('$.bad-json-path..')}` | _exception bulletin_
+|===================================================================
+
+An empty subject value or a subject value with an invalid JSON document results in an exception bulletin.
+
+
+[.function]
+=== jsonPathDelete
+
+*Description*: [.description]#The `jsonPathDelete` function deletes the specified JsonPath from a Subject JSON and returns string
+form of the updated JSON.#
+
+*Subject Type*: [.subject]#String#
+
+*Arguments*:
+	 [.argName]#_jsonPath_# : [.argDesc]#the JSON path expression to delete from the Subject.#
+
+*Return Type*: [.returnType]#String#
+
+*Examples*: If the "myJson" attribute is
+
+..........
+{
+  "firstName": "John",
+  "lastName": "Smith",
+  "isAlive": true,
+  "age": 25,
+  "address": {
+    "streetAddress": "21 2nd Street",
+    "city": "New York",
+    "state": "NY",
+    "postalCode": "10021-3100"
+  },
+  "phoneNumbers": [
+    {
+      "type": "home",
+      "number": "212 555-1234"
+    },
+    {
+      "type": "office",
+      "number": "646 555-4567"
+    }
+  ],
+  "children": [],
+  "spouse": null
+}
+..........
+
+.jsonPathDelete Examples
+|===================================================================
+| Expression | Value
+| `${myJson:jsonPathDelete('$.firstName')}` | `{"lastName":"Smith","age":25,"address":{"streetAddress":"21 2nd Street","city":"New York","state":"NY","postalCode":"10021-3100"},"phoneNumbers":[{"type":"home","number":"212 555-1234"},{"type":"office","number":"646 555-4567"}]}`
+| `${myJson:jsonPathDelete('$.missing-path')}` | Returns original JSON document
+|===================================================================
+
+An empty subject value or a subject value with an invalid JSON document results in an exception bulletin.
+
+[.function]
+=== jsonPathAdd
+
+*Description*: [.description]#The `jsonPathAdd` function adds a scalar value to an array at the specified JsonPath on
+a Subject JSON and returns string form of the updated JSON.#  If the expression target element is a non-array,
+an empty string is returned and an exception is logged indicating the error.  If the expression target element
+path is not in the JSON, the operation returns the original JSON without any modifications.
+
+*Subject Type*: [.subject]#String#
+
+*Arguments*:
+
+- [.argName]#_jsonPath_# : [.argDesc]#the JSON path expression to set value on the Subject.#
+- [.argName]#_value_# : [.argDesc]#the value expression to be added to the array at the specified path on Subject.#
+
+*Return Type*: [.returnType]#String#
+
+*Examples*: If the "myJson" attribute is
+
+..........
+{
+     "firstName": "John",
+     "lastName": "Smith",
+     "age": 25,
+     "voter" : true,
+     "height" : 6.1,
+     "address" : {
+         "streetAddress": "21 2nd Street",
+         "city": "New York",
+         "state": "NY",
+         "postalCode": "10021-3100"
+     },
+     "phoneNumbers": [
+         {
+             "type": "home",
+             "number": "212 555-1234"
+         },
+         {
+             "type": "office",
+             "number": "646 555-4567"
+         }
+     ],
+     "nicknames" : []
+ }
+..........
+
+.jsonPathAdd Examples
+|===================================================================
+| Expression | Value
+| `${myJson:jsonPathAdd('$.nicknames', 'Jimmy')}` | `{"firstName":"James", lastName":"Smith", "age":25, "voter":true, "height":6.1, "address":{"streetAddress":"21 2nd Street", "city":"New York", "state":"NY", "postalCode":"10021-3100"}, "phoneNumbers":[{"type":"home", "number":"212 555-1234"}, {"type":"office", "number":"646 555-4567"}],"nicknames":["Jimmy"]}`
+| `${myJson:jsonPathAdd('$.missingpath', 'Jimmy')}` | Returns original JSON document with no modifications
+| `${myJson:jsonPathAdd('$.firstName', 'Jimmy')}` | _empty_
+|===================================================================
+
+
+[.function]
+=== jsonPathSet
+
+*Description*: [.description]#The `jsonPathSet` function sets the value at the specified JsonPath on a Subject JSON and returns string
+form of the updated JSON.#
+
+*Subject Type*: [.subject]#String#
+
+*Arguments*:
+
+    - [.argName]#_jsonPath_# : [.argDesc]#the JSON path expression to set value on the Subject.#
+    - [.argName]#_value_# : [.argDesc]#the value expression to be set on the specified path on Subject.#
+
+*Return Type*: [.returnType]#String#
+
+*Examples*: If the "myJson" attribute is
+
+..........
+{
+     "firstName": "John",
+     "lastName": "Smith",
+     "age": 25,
+     "voter" : true,
+     "height" : 6.1,
+     "address" : {
+         "streetAddress": "21 2nd Street",
+         "city": "New York",
+         "state": "NY",
+         "postalCode": "10021-3100"
+     },
+     "phoneNumbers": [
+         {
+             "type": "home",
+             "number": "212 555-1234"
+         },
+         {
+             "type": "office",
+             "number": "646 555-4567"
+         }
+     ],
+     "nicknames" : []
+ }
+..........
+
+.jsonPathSet Examples
+|===================================================================
+| Expression | Value
+| `${myJson:jsonPathSet('$.firstName', 'James')}` | `{"firstName":"James", lastName":"Smith", "age":25, "voter":true, "height":6.1, "address":{"streetAddress":"21 2nd Street", "city":"New York", "state":"NY", "postalCode":"10021-3100"}, "phoneNumbers":[{"type":"home", "number":"212 555-1234"}, {"type":"office", "number":"646 555-4567"}]}`
+| `${myJson:jsonPathSet('$.missingpath', 'James')}` | Returns original JSON document
+|===================================================================
+
+An empty subject value or a subject value with an invalid JSON document results in an exception bulletin.
+
+[.function]
+=== jsonPathPut
+
+*Description*: [.description]#The `jsonPathPut` function puts the key and scalar value at the specified JsonPath on a Subject JSON and returns string
+form of the updated JSON.#
+
+*Subject Type*: [.subject]#String#
+
+*Arguments*:
+
+- [.argName]#_jsonPath_# : [.argDesc]#the JSON path expression to set value on the Subject.#
+- [.argName]#_value_# : [.argDesc]#the value expression to be set on the specified path on Subject.#
+- [.argName]#_key_# : [.argDesc]#the key expression with the associated value the specified path on Subject.#
+
+*Return Type*: [.returnType]#String#
+
+*Examples*: If the "myJson" attribute is
+
+..........
+{
+     "firstName": "John",
+     "lastName": "Smith",
+     "age": 25,
+     "voter" : true,
+     "height" : 6.1,
+     "address" : {
+         "streetAddress": "21 2nd Street",
+         "city": "New York",
+         "state": "NY",
+         "postalCode": "10021-3100"
+     },
+     "phoneNumbers": [
+         {
+             "type": "home",
+             "number": "212 555-1234"
+         },
+         {
+             "type": "office",
+             "number": "646 555-4567"
+         }
+     ],
+     "nicknames" : []
+ }
+..........
+
+.jsonPathPut Examples
+|===================================================================
+| Expression | Value
+| `${myJson:jsonPathPut('$','middlename','Turon')}` | `{"firstName":"James", lastName":"Smith", "middlename": "Turon", "age":25, "voter":true, "height":6.1, "address":{"streetAddress":"21 2nd Street", "city":"New York", "state":"NY", "postalCode":"10021-3100"}, "phoneNumbers":[{"type":"home", "number":"212 555-1234"}, {"type":"office", "number":"646 555-4567"}]}`
 |===================================================================
 
 An empty subject value or a subject value with an invalid JSON document results in an exception bulletin.
@@ -1585,7 +1981,7 @@ Divide. This is to preserve backwards compatibility and to not force rounding er
 === plus
 
 *Description*: [.description]#Adds a numeric value to the Subject. If either the argument or the Subject cannot be
-	coerced into a Number, returns `null`.#
+	coerced into a Number, returns `null`. Does not provide handling for overflow.
 
 *Subject Type*: [.subject]#Number or Decimal#
 
@@ -1605,7 +2001,7 @@ Divide. This is to preserve backwards compatibility and to not force rounding er
 [.function]
 === minus
 
-*Description*: [.description]#Subtracts a numeric value from the Subject.#
+*Description*: [.description]#Subtracts a numeric value from the Subject. Does not provide handling for overflow.#
 
 *Subject Type*: [.subject]#Number or Decimal#
 
@@ -1625,7 +2021,7 @@ Divide. This is to preserve backwards compatibility and to not force rounding er
 [.function]
 === multiply
 
-*Description*: [.description]#Multiplies a numeric value by the Subject and returns the product.#
+*Description*: [.description]#Multiplies a numeric value by the Subject and returns the product.# Does not provide handling for overflow.
 
 *Subject Type*: [.subject]#Number or Decimal#
 
@@ -1747,7 +2143,7 @@ Divide. This is to preserve backwards compatibility and to not force rounding er
 
 *Return Type*: [.returnType]#Number#
 
-*Examples*: ${random():mod(10):plus(1)} returns random number between 1 and 10 inclusive.
+*Examples*: `${random():mod(10):plus(1)}` returns random number between 1 and 10 inclusive.
 
 [.function]
 === math
@@ -1759,6 +2155,7 @@ In order to run the correct method, the parameter types must be correct. The Exp
 *Subject Type*: [.subject .subjectless]#Subjectless, Number or Decimal (depending on the desired method to run)#
 
 *Arguments*:
+
 	- [.argName]#_Method_# : [.argDesc]#The name of the Java Math method to run#
 	- [.argName]#_Optional Argument_# : [.argDesc]#Optional argument that acts as the second parameter to the method.#
 
@@ -1805,11 +2202,11 @@ In order to run the correct method, the parameter types must be correct. The Exp
 .format Examples
 |============================================================================
 | Expression | Value
-| `${time:format("yyyy/MM/dd HH:mm:ss.SSS'Z'", "GMT")}` | `2014/12/31 20:36:03.264Z`
-| `${time:format("yyyy/MM/dd HH:mm:ss.SSS'Z'", "America/Los_Angeles")}` | `2014/12/31 12:36:03.264Z`
-| `${time:format("yyyy/MM/dd HH:mm:ss.SSS'Z'", "Asia/Tokyo")}` | `2015/01/01 05:36:03.264Z`
+| `${time:format("yyyy/MM/dd HH:mm:ss.SSS\'Z'", "GMT")}` | `2014/12/31 20:36:03.264Z`
+| `${time:format("yyyy/MM/dd HH:mm:ss.SSS\'Z'", "America/Los_Angeles")}` | `2014/12/31 12:36:03.264Z`
+| `${time:format("yyyy/MM/dd HH:mm:ss.SSS\'Z'", "Asia/Tokyo")}` | `2015/01/01 05:36:03.264Z`
 | `${time:format("yyyy/MM/dd", "GMT")}` | `2014/12/31`
-| `${time:format("HH:mm:ss.SSS'Z'", "GMT")}` | `20:36:03.264Z`
+| `${time:format("HH:mm:ss.SSS\'Z'", "GMT")}` | `20:36:03.264Z`
 | `${time:format("yyyy", "GMT")}` | `2014`
 |============================================================================
 
@@ -1985,7 +2382,7 @@ an error when validating the function.
 [.function]
 === UUID
 
-*Description*: [.description]#Returns a randomly generated UUID.#
+*Description*: [.description]#Returns a randomly generated type 4 UUID.#
 
 *Subject Type*: [.subjectless]#No Subject#
 
@@ -2055,6 +2452,24 @@ names begin with the letter `a`.
 *Return Type*: [.returnType]#String#
 
 *Examples*: UpdateAttribute processor has stored the key "count" with value "20" in state. '${getStateValue("count")}` returns `20`.
+
+
+
+[.function]
+=== thread
+
+*Description*: [.description]#Returns the name of the thread used by the processor when evaluating the Expression. This can be useful
+ when using a processor with multiple concurrent tasks and where some data uniqueness is required.#
+
+*Subject Type*: [.subjectless]#No Subject#
+
+*Arguments*: No arguments
+
+*Return Type*: [.returnType]#String#
+
+*Examples*: `${thread()}` could return something like `Timer-Driven Process Thread-4`.
+
+
 
 [[multi]]
 == Evaluating Multiple Attributes

@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.toolkit.encryptconfig
 
+import groovy.cli.commons.CliBuilder
 import org.apache.nifi.properties.AESSensitivePropertyProvider
 import org.apache.nifi.toolkit.encryptconfig.util.BootstrapUtil
 import org.apache.nifi.toolkit.encryptconfig.util.ToolUtilities
@@ -56,7 +57,7 @@ class NiFiRegistryDecryptMode extends DecryptMode {
 
             /* Invalid fields when used with --decrypt: */
             def invalidDecryptOptions = ["R", "i", "I", "a", "A", "oldPassword", "oldKey"]
-            def presentInvalidOptions = Arrays.stream(options.getInner().getOptions()).findAll {
+            def presentInvalidOptions = Arrays.stream(options.getOptions()).findAll {
                 invalidDecryptOptions.contains(it.getOpt())
             }
             if (presentInvalidOptions.size() > 0) {
@@ -77,14 +78,14 @@ class NiFiRegistryDecryptMode extends DecryptMode {
             config.keySource = null
             if (options.p) {
                 config.keySource = Configuration.KeySource.PASSWORD
-                password = options.getInner().getOptionValue("p")
+                password = options.getOptionValue("p")
             }
             if (options.k) {
                 if (config.keySource != null) {
                     throw new RuntimeException("Invalid options: Only one of [-b, -p, -k] is allowed for specifying the decryption password/key.")
                 }
                 config.keySource = Configuration.KeySource.KEY_HEX
-                keyHex = options.getInner().getOptionValue("k")
+                keyHex = options.getOptionValue("k")
             }
 
             if (config.keySource) {

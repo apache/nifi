@@ -17,11 +17,12 @@
 
 package org.apache.nifi.web.api.concurrent;
 
+import org.apache.nifi.authorization.user.NiFiUser;
+import org.apache.nifi.web.ResourceNotFoundException;
+
 import java.util.function.Consumer;
 
-import org.apache.nifi.authorization.user.NiFiUser;
-
-public interface RequestManager<T> {
+public interface RequestManager<R, T> {
 
     /**
      * Submits a request to be performed in the background
@@ -35,7 +36,7 @@ public interface RequestManager<T> {
      * @throws IllegalArgumentException if a request already exists with the given ID
      * @throws NullPointerException if any argument is null
      */
-    void submitRequest(String requestType, String id, AsynchronousWebRequest<T> request, Consumer<AsynchronousWebRequest<T>> task);
+    void submitRequest(String requestType, String id, AsynchronousWebRequest<R, T> request, Consumer<AsynchronousWebRequest<R, T>> task);
 
     /**
      * Retrieves the request with the given ID
@@ -49,7 +50,7 @@ public interface RequestManager<T> {
      * @throws IllegalArgumentException if the user given is not the user that submitted the request
      * @throws NullPointerException if either the ID or the user is null
      */
-    AsynchronousWebRequest<T> getRequest(String requestType, String id, NiFiUser user);
+    AsynchronousWebRequest<R, T> getRequest(String requestType, String id, NiFiUser user);
 
     /**
      * Removes the request with the given ID
@@ -64,6 +65,6 @@ public interface RequestManager<T> {
      * @throws IllegalStateException if the request with the given ID is not yet complete
      * @throws NullPointerException if either the ID or the user is null
      */
-    AsynchronousWebRequest<T> removeRequest(String requestType, String id, NiFiUser user);
+    AsynchronousWebRequest<R, T> removeRequest(String requestType, String id, NiFiUser user);
 
 }

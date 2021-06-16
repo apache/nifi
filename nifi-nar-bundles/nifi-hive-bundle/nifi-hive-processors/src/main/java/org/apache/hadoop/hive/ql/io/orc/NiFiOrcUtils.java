@@ -22,8 +22,10 @@ import org.apache.avro.util.Utf8;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hive.common.type.HiveDecimal;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.ql.io.filters.BloomFilterIO;
+import org.apache.hadoop.hive.serde2.io.HiveDecimalWritable;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorFactory;
 import org.apache.hadoop.hive.serde2.objectinspector.SettableStructObjectInspector;
@@ -44,6 +46,7 @@ import org.apache.hadoop.io.Text;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -103,6 +106,9 @@ public class NiFiOrcUtils {
             }
             if (o instanceof Double) {
                 return new DoubleWritable((double) o);
+            }
+            if (o instanceof BigDecimal) {
+                return new HiveDecimalWritable(HiveDecimal.create((BigDecimal) o));
             }
             if (o instanceof String || o instanceof Utf8 || o instanceof GenericData.EnumSymbol) {
                 return new Text(o.toString());
@@ -244,6 +250,7 @@ public class NiFiOrcUtils {
             case DOUBLE:
             case FLOAT:
             case STRING:
+            case NULL:
                 return getPrimitiveOrcTypeFromPrimitiveAvroType(fieldType);
 
             case UNION:
@@ -335,6 +342,7 @@ public class NiFiOrcUtils {
             case LONG:
                 return TypeInfoFactory.getPrimitiveTypeInfo("bigint");
             case BOOLEAN:
+            case NULL: // ORC has no null type, so just pick the smallest. All values are necessarily null.
                 return TypeInfoFactory.getPrimitiveTypeInfo("boolean");
             case BYTES:
                 return TypeInfoFactory.getPrimitiveTypeInfo("binary");
@@ -362,6 +370,7 @@ public class NiFiOrcUtils {
             case LONG:
                 return "BIGINT";
             case BOOLEAN:
+            case NULL: // Hive has no null type, we picked boolean as the ORC type so use it for Hive DDL too. All values are necessarily null.
                 return "BOOLEAN";
             case BYTES:
                 return "BINARY";

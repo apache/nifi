@@ -1,11 +1,16 @@
 Apache NiFi
-Copyright 2014-2018 The Apache Software Foundation
+Copyright 2014-2020 The Apache Software Foundation
 
 This product includes software developed at
 The Apache Software Foundation (http://www.apache.org/).
 
 This product includes the following work from the Apache Hadoop project under Apache Software License V2:
   BoundedByteArrayOutputStream.java adapted to SoftLimitBoundedByteArrayOutputStream.java
+
+This product includes derived works from Apache Commons Lang (ASLv2 licensed)
+  Copyright 2019 The Apache Software Foundation
+  The derived work is adapted from the class StringUtils:
+    https://github.com/apache/commons-lang/blob/465e6becd8beda9569fbdc9ff44fac7dc3c5d1c6/src/main/java/org/apache/commons/lang3/StringUtils.java
 
 This product includes derived works from the Apache Software License V2 library python-evtx (https://github.com/williballenthin/python-evtx)
   Copyright 2012, 2013 Willi Ballenthin william.ballenthin@mandiant.com
@@ -31,6 +36,9 @@ This includes derived works from the Apache Hive (ASLv2 licensed) project (https
   The derived work is adapted from
     release-1.2.1/ql/src/java/org/apache/hadoop/hive/ql/io/orc/WriterImpl.java
   and can be found in the org.apache.hadoop.hive.ql.io.orc package
+  The derived work is adapted from
+    release-3.0.0/serde/src/java/org/apache/hadoop/hive/serde2/JsonSerDe.java
+  and can be found in the org.apache.hive.streaming.NiFiRecordSerDe class
 
 This includes derived works from the Apache Software License V2 library Jolt (https://github.com/bazaarvoice/jolt)
   Copyright 2013-2014 Bazaarvoice, Inc
@@ -44,11 +52,39 @@ This includes derived works from Elastic Logstash (https://github.com/elastic/lo
   The derived work consists in modifications from patterns/grok-patterns
   and can be found in the file nifi/nifi-nar-bundles/nifi-standard-bundle/nifi-standard-processors/src/test/resources/TestExtractGrok/patterns
 
+This includes derived works from Dropwizard Metrics available under Apache Software License V2 (https://github.com/dropwizard/metrics)
+  Copyright 2010-2013 Coda Hale and Yammer, Inc., 2014-2017 Dropwizard Team
+  This product includes software developed by Coda Hale and Yammer, Inc.
+
+  This product includes code derived from the JSR-166 project (ThreadLocalRandom, Striped64,
+  LongAdder), which was released with the following comments:
+
+      Written by Doug Lea with assistance from members of JCP JSR-166
+      Expert Group and released to the public domain, as explained at
+      http://creativecommons.org/publicdomain/zero/1.0/
+
+  The derived work in the nifi-metrics module is adapted from
+    https://github.com/dropwizard/metrics/blob/v2.2.0/metrics-core/src/main/java/com/yammer/metrics/core/VirtualMachineMetrics.java
+  and can be found in
+    nifi-commons/nifi-metrics/src/main/java/org/apache/nifi/metrics/jvm/JvmMetrics.java
+    nifi-commons/nifi-metrics/src/main/java/org/apache/nifi/metrics/jvm/JmxJvmMetrics.java
+
 ===========================================
 Apache Software License v2
 ===========================================
 
 The following binary components are provided under the Apache Software License v2
+
+  (ASLv2) Apache Ant
+    The following NOTICE information applies:
+      Copyright 1999-2018 The Apache Software Foundation
+
+      This product includes software developed at
+      The Apache Software Foundation (http://www.apache.org/).
+
+      The <sync> task is based on code Copyright (c) 2002, Landmark
+      Graphics Corp that has been kindly donated to the Apache Software
+      Foundation.
 
   (ASLv2) Apache BVal Project
     The following NOTICE information applies:
@@ -71,7 +107,7 @@ The following binary components are provided under the Apache Software License v
   (ASLv2) Apache Commons Collections
     The following NOTICE information applies:
       Apache Commons Collections
-      Copyright 2001-2013 The Apache Software Foundation
+      Copyright 2001-2016 The Apache Software Foundation
 
   (ASLv2) Apache Commons Compress
     The following NOTICE information applies:
@@ -83,6 +119,11 @@ The following binary components are provided under the Apache Software License v
       which has been placed in the public domain:
 
       "LZMA SDK is placed in the public domain." (http://www.7-zip.org/sdk.html)
+
+ (ASLv2) Apache Commons Crypto
+    The following NOTICE information applies:
+      Apache Commons Crypto
+      Copyright 2016-2016 The Apache Software Foundation
 
   (ASLv2) Jettison
     The following NOTICE information applies:
@@ -102,10 +143,6 @@ The following binary components are provided under the Apache Software License v
          Codehaus (http://castor.codehaus.org)
 
          Tatu Saloranta (http://wiki.fasterxml.com/TatuSaloranta)
-
-  (ASLv2) Dropwizard Metrics
-    The following NOTICE information applies:
-	Copyright (c) 2010-2013 Coda Hale, Yammer.com
 
   (ASLv2) Apache POI
     The following NOTICE information applies:
@@ -170,7 +207,7 @@ The following binary components are provided under the Apache Software License v
   (ASLv2) Apache Commons Logging
     The following NOTICE information applies:
       Apache Commons Logging
-      Copyright 2003-2014 The Apache Software Foundation
+      Copyright 2003-2016 The Apache Software Foundation
 
     (ASLv2) Apache Commons VFS
       The following NOTICE information applies:
@@ -308,7 +345,7 @@ The following binary components are provided under the Apache Software License v
 
   (ASLv2) Spring Framework
     The following NOTICE information applies:
-      Spring Framework 4.1.4.RELEASE
+      Spring Framework 4.x,5.x.RELEASE
       Copyright (c) 2002-2015 Pivotal, Inc.
 
   (ASLv2) Spring Security
@@ -406,6 +443,14 @@ The following binary components are provided under the Apache Software License v
     The following NOTICE information applies:
       Apache Commons CLI
       Copyright 2001-2009 The Apache Software Foundation
+
+  (ASLv2) Apache Commons CLI
+    The following NOTICE information applies:
+        Apache Commons CLI
+        Copyright 2001-2017 The Apache Software Foundation
+
+        This product includes software developed at
+        The Apache Software Foundation (http://www.apache.org/).
 
   (ASLv2) Apache Commons Math
     The following NOTICE information applies:
@@ -583,7 +628,7 @@ The following binary components are provided under the Apache Software License v
   (ASLv2) Jetty
     The following NOTICE information applies:
        Jetty Web Container
-       Copyright 1995-2017 Mort Bay Consulting Pty Ltd.
+       Copyright 1995-2019 Mort Bay Consulting Pty Ltd.
 
   (ASLv2) Apache Tomcat
     The following NOTICE information applies:
@@ -631,20 +676,6 @@ The following binary components are provided under the Apache Software License v
         Copyright (c) 2009-2014
         FedICT (federal ICT department of Belgium), e-Contract.be BVBA (https://www.e-contract.be),
         Bart Hanssens from FedICT
-
-  (ASLv2) Yammer Metrics
-    The following NOTICE information applies:
-      Metrics
-      Copyright 2010-2012 Coda Hale and Yammer, Inc.
-
-      This product includes software developed by Coda Hale and Yammer, Inc.
-
-      This product includes code derived from the JSR-166 project (ThreadLocalRandom), which was released
-      with the following comments:
-
-          Written by Doug Lea with assistance from members of JCP JSR-166
-          Expert Group and released to the public domain, as explained at
-          http://creativecommons.org/publicdomain/zero/1.0/
 
   (ASLv2) Apache CXF
     The following NOTICE information applies:
@@ -1076,8 +1107,10 @@ The following binary components are provided under the Apache Software License v
 
     (ASLv2) HBase Common
       The following NOTICE information applies:
-        This product includes portions of the Guava project v14, specifically
-        'hbase-common/src/main/java/org/apache/hadoop/hbase/io/LimitInputStream.java'
+        This product includes portions of the Guava project v14 and v21, specifically
+          'hbase-common/src/main/java/org/apache/hadoop/hbase/io/LimitInputStream.java'
+          'hbase-common/src/main/java/org/apache/hadoop/hbase/util/Bytes.java'
+          'hbase-common/src/main/java/org/apache/hadoop/hbase/util/ByteBufferUtils.java'
 
         Copyright (C) 2007 The Guava Authors
 
@@ -1096,15 +1129,82 @@ The following binary components are provided under the Apache Software License v
         is a distributed tracing system that is Apache 2.0 Licensed.
         Copyright 2012 Twitter, Inc.
 
-    (ASLv2) Groovy (org.codehaus.groovy:groovy:jar:2.4.5 - http://www.groovy-lang.org)
-      The following NOTICE information applies:
-          Groovy Language
-             Copyright 2003-2015 The respective authors and developers
-             Developers and Contributors are listed in the project POM file
-             and Gradle build file
+  (ASLv2) Groovy (org.codehaus.groovy:groovy-all:pom:2.5.4 and its submodules included as transitive dependencies - http://www.groovy-lang.org)
+        groovy
+        groovy-ant
+        groovy-cli-commons
+        groovy-cli-picocli
+        groovy-console
+        groovy-datetime
+        groovy-docgenerator
+        groovy-groovydoc
+        groovy-groovysh
+        groovy-jmx
+        groovy-json
+        groovy-jsr223
+        groovy-macro
+        groovy-nio
+        groovy-servlet
+        groovy-sql
+        groovy-swing
+        groovy-templates
+        groovy-test
+        groovy-test-junit5
+        groovy-testng
+        groovy-xml
+    The following NOTICE information applies:
+      Groovy Language
+         Copyright 2003-2018 The respective authors and developers
+         Developers and Contributors are listed in the project POM file
+         and Gradle build file
 
-             This product includes software developed by
-             The Groovy community (http://groovy.codehaus.org/).
+         This product includes software developed by
+         The Groovy community (http://groovy.codehaus.org/).
+
+         This product bundles icons from the famfamfam.com silk icons set
+         http://www.famfamfam.com/lab/icons/silk/
+         Licensed under the Creative Commons Attribution Licence v2.5
+         http://creativecommons.org/licenses/by/2.5/
+
+  (ASLv2) Groovy 2.4.16 (http://www.groovy-lang.org)
+        groovy-2.4.16-indy
+        groovy-json-2.4.16-indy
+        groovy-sql-2.4.16-indy
+    The following NOTICE information applies:
+        Apache Groovy
+        Copyright 2003-2018 The Apache Software Foundation
+
+        This product includes software developed at
+        The Apache Software Foundation (http://www.apache.org/).
+
+        This product includes/uses ANTLR (http://www.antlr2.org/)
+        developed by Terence Parr 1989-2006
+
+  (ASLv2) Groovy (org.codehaus.groovy:groovy-all:jar:2.4.11 - http://www.groovy-lang.org)
+     The following NOTICE information applies:
+       Apache Groovy
+       Copyright 2003-2017 The Apache Software Foundation
+
+       This product includes software developed at
+       The Apache Software Foundation (http://www.apache.org/).
+
+       This product includes/uses ANTLR (http://www.antlr2.org/)
+       developed by Terence Parr 1989-2006
+
+       This product bundles icons from the famfamfam.com silk icons set
+       http://www.famfamfam.com/lab/icons/silk/
+       Licensed under the Creative Commons Attribution Licence v2.5
+       http://creativecommons.org/licenses/by/2.5/
+
+  (ASLv2) Groovy (org.codehaus.groovy:groovy-all:jar:2.1.6 - http://www.groovy-lang.org)
+    The following NOTICE information applies:
+      Groovy Language
+         Copyright 2003-2012 The respective authors and developers
+         Developers and Contributors are listed in the project POM file
+         and Gradle build file
+
+     This product includes software developed by
+     The Groovy community (http://groovy.codehaus.org/).
 
     (ASLv2) Apache Ignite
       The following NOTICE information applies:
@@ -1134,6 +1234,11 @@ The following binary components are provided under the Apache Software License v
       RethinkDB Language Drivers
 
       Copyright 2010-2012 RethinkDB
+
+    (ASLv2) Neo4j Java Driver
+      Neo4j
+      Copyright © 2002-2018 Neo4j Sweden AB (referred to in this notice as "Neo4j")
+      [http://neo4j.com]
 
     (ASLv2) Carrotsearch HPPC
       The following NOTICE information applies:
@@ -1201,20 +1306,6 @@ The following binary components are provided under the Apache Software License v
       * This product includes software developed at
         Progress Software Corporation and/or its  subsidiaries or affiliates.
       * This product includes software developed by IBM Corporation and others.
-
-  (ASLv2) Metrics
-    The following NOTICE information applies:
-      Metrics
-      Copyright 2010-2012 Coda Hale and Yammer, Inc.
-
-      This product includes software developed by Coda Hale and Yammer, Inc.
-
-      This product includes code derived from the JSR-166 project (ThreadLocalRandom), which was released
-      with the following comments:
-
-          Written by Doug Lea with assistance from members of JCP JSR-166
-          Expert Group and released to the public domain, as explained at
-          http://creativecommons.org/publicdomain/zero/1.0/
 
   (ASLv2) ParCEFone
     The following NOTICE information applies:
@@ -1726,6 +1817,23 @@ The following binary components are provided under the Apache Software License v
 
         Copyright 2018 simple-syslog-5424 authors.
 
+  (ASLv2) Audience Annotations
+    The following NOTICE information applies:
+      Apache Yetus
+      Copyright 2008-2018 The Apache Software Foundation
+
+  (ASLv2) sshj
+    The following NOTICE information applie:
+
+      sshj - SSHv2 library for Java
+      Copyright 2010-2012 sshj contributors
+
+      This product includes code derived from software developed at
+      The Apache Software Foundation (http://www.apache.org/):
+
+      - Apache MINA SSHD
+      - Apache Commons-Net
+
 ************************
 Common Development and Distribution License 1.1
 ************************
@@ -1873,4 +1981,4 @@ SIL OFL 1.1
 ******************
 
 The following binary components are provided under the SIL Open Font License 1.1
-  (SIL OFL 1.1) FontAwesome (4.6.1 - http://fortawesome.github.io/Font-Awesome/license/)
+  (SIL OFL 1.1) FontAwesome (4.7.0 - https://fontawesome.com/license/free)

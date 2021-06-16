@@ -1,0 +1,45 @@
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#create mapping
+PUT:user_details/:{ "mappings":{ "properties":{ "email":{"type":"keyword"},"phone":{"type": "keyword"},"accessKey":{"type": "keyword"}}}}
+PUT:messages/:{ "mappings":{ "properties":{ "msg":{"type":"keyword"}}}}
+PUT:complex/:{"mappings":{ "properties":{"msg":{"type":"keyword"},"subField":{"type":"nested","properties":{"longField":{"type":"long"},"dateField":{"type":"date"}}}}}}
+PUT:nested/:{"mappings":{ "properties":{"msg":{"type":"keyword"},"subField":{"type":"nested","properties":{"longField":{"type":"long"},"dateField":{"type":"date"},"deeper":{"type":"nested","properties":{"secretz":{"type":"keyword"},"deepest":{"type":"nested","properties":{"super_secret":{"type":"keyword"}}}}}}}}}}
+PUT:bulk_a/:{ "mappings":{ "properties":{ "msg":{"type":"keyword"}}}}
+PUT:bulk_b/:{ "mappings":{ "properties":{ "msg":{"type":"keyword"}}}}
+PUT:bulk_c/:{ "mappings":{ "properties":{ "msg":{"type":"keyword"}}}}
+PUT:error_handler:{ "mappings": { "properties": { "msg": { "type": "keyword" }, "intField": { "type": "integer" }}}}
+#add document
+POST:messages/_doc/1:{ "msg":"one" }
+POST:messages/_doc/2:{ "msg":"two" }
+POST:messages/_doc/3:{ "msg":"two" }
+POST:messages/_doc/4:{ "msg":"three" }
+POST:messages/_doc/5:{ "msg":"three" }
+POST:messages/_doc/6:{ "msg":"three" }
+POST:messages/_doc/7:{ "msg":"four" }
+POST:messages/_doc/8:{ "msg":"four" }
+POST:messages/_doc/9:{ "msg":"four" }
+POST:messages/_doc/10:{ "msg":"four" }
+POST:messages/_doc/11:{ "msg":"five" }
+POST:messages/_doc/12:{ "msg":"five" }
+POST:messages/_doc/13:{ "msg":"five" }
+POST:messages/_doc/14:{ "msg":"five" }
+POST:messages/_doc/15:{ "msg":"five" }
+POST:complex/_doc/1:{"msg":"Hello, world","subField":{"longField":100000,"dateField":"2018-04-10T12:18:05Z"}}
+POST:user_details/_doc/1:{ "email": "john.smith@company.com", "phone": "123-456-7890", "accessKey": "ABCDE"}
+POST:user_details/_doc/2:{ "email": "jane.doe@company.com", "phone": "098-765-4321", "accessKey": "GHIJK"}
+POST:nested/_doc/1:{"msg":"Hello, world","subField":{"longField":150000,"dateField":"2018-08-14T10:08:00Z","deeper":{"secretz":"No one should see this!","deepest":{"super_secret":"Got nothin to hide"}}}}
+POST:nested/_doc/2:{"msg":"Hello, world","subField":{"longField":150000,"dateField":"2018-08-14T10:08:00Z","deeper":{"secretz":"Hello, world!","deepest":{"super_secret":"I could tell, but then I would have to kill you"}}}}
+POST:nested/_doc/3:{"msg":"Hello, world","subField":{"longField":150000,"dateField":"2018-08-14T10:08:00Z","deeper":{"secretz":"Buongiorno, mondo!!","deepest":{"super_secret":"The sky is blue"}}}}

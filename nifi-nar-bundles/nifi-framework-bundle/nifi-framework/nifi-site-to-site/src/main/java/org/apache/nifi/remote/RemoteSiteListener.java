@@ -16,9 +16,9 @@
  */
 package org.apache.nifi.remote;
 
-import java.io.IOException;
-
 import org.apache.nifi.groups.ProcessGroup;
+
+import java.io.IOException;
 
 public interface RemoteSiteListener {
 
@@ -27,4 +27,6 @@ public interface RemoteSiteListener {
     void start() throws IOException;
 
     void stop();
+
+    void destroy();
 }

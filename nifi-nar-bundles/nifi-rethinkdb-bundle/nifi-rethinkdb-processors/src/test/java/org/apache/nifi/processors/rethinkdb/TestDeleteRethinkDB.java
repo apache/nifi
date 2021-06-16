@@ -16,13 +16,8 @@
  */
 package org.apache.nifi.processors.rethinkdb;
 
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
+import com.google.gson.Gson;
+import com.rethinkdb.net.Connection;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -30,9 +25,13 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.google.common.collect.Lists;
-import com.google.gson.Gson;
-import com.rethinkdb.net.Connection;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 
 public class TestDeleteRethinkDB {
     private static final String DOCUMENT_ID = "id1";
@@ -57,8 +56,8 @@ public class TestDeleteRethinkDB {
 
         document.put(DeleteRethinkDB.RESULT_DELETED_KEY, 1L);
         document.put(DeleteRethinkDB.RESULT_ERROR_KEY, 0L);
-        document.put(DeleteRethinkDB.RESULT_CHANGES_KEY, Lists.asList(
-                "[{new_val=null, old_val={id=1, value=one}}]", new String[] {}));
+        document.put(DeleteRethinkDB.RESULT_CHANGES_KEY, Arrays.asList(
+                "[{new_val=null, old_val={id=1, value=one}}]"));
         document.put(DeleteRethinkDB.RESULT_INSERTED_KEY, 0L);
         document.put(DeleteRethinkDB.RESULT_REPLACED_KEY, 0L);
         document.put(DeleteRethinkDB.RESULT_SKIPPED_KEY, 0L);
@@ -207,7 +206,7 @@ public class TestDeleteRethinkDB {
         String json = gson.toJson(((List)document.get(DeleteRethinkDB.RESULT_CHANGES_KEY)).get(0));
 
         List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(AbstractRethinkDBProcessor.REL_SUCCESS);
-        flowFiles.get(0).assertContentEquals(json.toString());
+        flowFiles.get(0).assertContentEquals(json);
         assertNull(flowFiles.get(0).getAttribute(AbstractRethinkDBProcessor.RETHINKDB_ERROR_MESSAGE));
 
     }

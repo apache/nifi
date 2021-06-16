@@ -23,12 +23,13 @@ import java.util.concurrent.TimeUnit;
 import javax.json.JsonBuilderFactory;
 import javax.json.JsonObject;
 import javax.json.JsonObjectBuilder;
+import javax.json.JsonValue;
 
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.controller.status.ProcessorStatus;
+import org.apache.nifi.metrics.jvm.JvmMetrics;
+import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.reporting.util.metrics.api.MetricFields;
-
-import com.yammer.metrics.core.VirtualMachineMetrics;
 
 /**
  * A service used to produce key/value metrics based on a given input.
@@ -90,7 +91,7 @@ public class MetricsService {
      * @param virtualMachineMetrics a VirtualMachineMetrics instance to get metrics from
      * @return a map of metrics from the given VirtualMachineStatus
      */
-    public Map<String,String> getMetrics(VirtualMachineMetrics virtualMachineMetrics) {
+    public Map<String,String> getMetrics(JvmMetrics virtualMachineMetrics) {
         final Map<String,String> metrics = new HashMap<>();
 
         Map<String,Integer> integerMetrics = getIntegerMetrics(virtualMachineMetrics);
@@ -135,20 +136,20 @@ public class MetricsService {
         }
     }
 
-    private Map<String,Double> getDoubleMetrics(VirtualMachineMetrics virtualMachineMetrics) {
+    private Map<String,Double> getDoubleMetrics(JvmMetrics virtualMachineMetrics) {
         final Map<String,Double> metrics = new HashMap<>();
-        metrics.put(MetricNames.JVM_HEAP_USED, virtualMachineMetrics.heapUsed());
+        metrics.put(MetricNames.JVM_HEAP_USED, virtualMachineMetrics.heapUsed(DataUnit.B));
         metrics.put(MetricNames.JVM_HEAP_USAGE, virtualMachineMetrics.heapUsage());
         metrics.put(MetricNames.JVM_NON_HEAP_USAGE, virtualMachineMetrics.nonHeapUsage());
         metrics.put(MetricNames.JVM_FILE_DESCRIPTOR_USAGE, virtualMachineMetrics.fileDescriptorUsage());
         return metrics;
     }
 
-    private Map<String,Long> getLongMetrics(VirtualMachineMetrics virtualMachineMetrics) {
+    private Map<String,Long> getLongMetrics(JvmMetrics virtualMachineMetrics) {
         final Map<String,Long> metrics = new HashMap<>();
         metrics.put(MetricNames.JVM_UPTIME, virtualMachineMetrics.uptime());
 
-        for (Map.Entry<String,VirtualMachineMetrics.GarbageCollectorStats> entry : virtualMachineMetrics.garbageCollectors().entrySet()) {
+        for (Map.Entry<String,JvmMetrics.GarbageCollectorStats> entry : virtualMachineMetrics.garbageCollectors().entrySet()) {
             final String gcName = entry.getKey().replace(" ", "");
             final long runs = entry.getValue().getRuns();
             final long timeMS = entry.getValue().getTime(TimeUnit.MILLISECONDS);
@@ -159,7 +160,7 @@ public class MetricsService {
         return metrics;
     }
 
-    private Map<String,Integer> getIntegerMetrics(VirtualMachineMetrics virtualMachineMetrics) {
+    private Map<String,Integer> getIntegerMetrics(JvmMetrics virtualMachineMetrics) {
         final Map<String,Integer> metrics = new HashMap<>();
         metrics.put(MetricNames.JVM_DAEMON_THREAD_COUNT, virtualMachineMetrics.daemonThreadCount());
         metrics.put(MetricNames.JVM_THREAD_COUNT, virtualMachineMetrics.threadCount());
@@ -187,8 +188,18 @@ public class MetricsService {
         return metrics;
     }
 
-    public JsonObject getMetrics(JsonBuilderFactory factory, ProcessGroupStatus status, VirtualMachineMetrics virtualMachineMetrics,
-            String applicationId, String id, String hostname, long currentTimeMillis, int availableProcessors, double systemLoad) {
+    private boolean addEmptyValue(Map<String,?>metricsMap, String metricskey, JsonObjectBuilder objectBuilder, boolean allowNullValues){
+        if(metricsMap.get(metricskey) == null){
+            if(allowNullValues) {
+                objectBuilder.add(metricskey, JsonValue.NULL);
+            }
+            return true;
+        }
+        return false;
+    }
+
+    public JsonObject getMetrics(JsonBuilderFactory factory, ProcessGroupStatus status, JvmMetrics virtualMachineMetrics,
+            String applicationId, String id, String hostname, long currentTimeMillis, int availableProcessors, double systemLoad, boolean allowNullValues) {
         JsonObjectBuilder objectBuilder = factory.createObjectBuilder()
                 .add(MetricFields.APP_ID, applicationId)
                 .add(MetricFields.HOSTNAME, hostname)
@@ -201,27 +212,38 @@ public class MetricsService {
 
         Map<String,Integer> integerMetrics = getIntegerMetrics(virtualMachineMetrics);
         for (String key : integerMetrics.keySet()) {
-            objectBuilder.add(key.replaceAll("\\.", ""), integerMetrics.get(key));
+            if(!addEmptyValue(integerMetrics,key,objectBuilder,allowNullValues)) {
+                objectBuilder.add(key.replaceAll("\\.", ""), integerMetrics.get(key));
+            }
         }
 
         Map<String,Long> longMetrics = getLongMetrics(virtualMachineMetrics);
         for (String key : longMetrics.keySet()) {
-            objectBuilder.add(key.replaceAll("\\.", ""), longMetrics.get(key));
+            if(!addEmptyValue(longMetrics,key,objectBuilder,allowNullValues)) {
+                objectBuilder.add(key.replaceAll("\\.", ""), longMetrics.get(key));
+            }
         }
 
         Map<String,Double> doubleMetrics = getDoubleMetrics(virtualMachineMetrics);
+
         for (String key : doubleMetrics.keySet()) {
-            objectBuilder.add(key.replaceAll("\\.", ""), doubleMetrics.get(key));
+            if(!addEmptyValue(doubleMetrics,key,objectBuilder,allowNullValues)){
+                objectBuilder.add(key.replaceAll("\\.", ""), doubleMetrics.get(key));
+            }
         }
 
         Map<String,Long> longPgMetrics = getLongMetrics(status, false);
         for (String key : longPgMetrics.keySet()) {
-            objectBuilder.add(key, longPgMetrics.get(key));
+            if(!addEmptyValue(longPgMetrics,key,objectBuilder,allowNullValues)) {
+                objectBuilder.add(key, longPgMetrics.get(key));
+            }
         }
 
         Map<String,Integer> integerPgMetrics = getIntegerMetrics(status, false);
         for (String key : integerPgMetrics.keySet()) {
-            objectBuilder.add(key, integerPgMetrics.get(key));
+            if(!addEmptyValue(integerPgMetrics,key,objectBuilder,allowNullValues)) {
+                objectBuilder.add(key, integerPgMetrics.get(key));
+            }
         }
 
         return objectBuilder.build();

@@ -76,7 +76,9 @@ public class PortStatusDTO {
     }
 
 
-    @ApiModelProperty("The run status of the port.")
+    @ApiModelProperty(
+            value="The run status of the port.",
+            allowableValues = "Running, Stopped, Validating, Disabled, Invalid")
     public String getRunStatus() {
         return runStatus;
     }

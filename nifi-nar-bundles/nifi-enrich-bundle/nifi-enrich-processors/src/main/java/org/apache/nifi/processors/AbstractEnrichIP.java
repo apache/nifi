@@ -50,6 +50,7 @@ public abstract class AbstractEnrichIP extends AbstractProcessor {
             .description("Path to Maxmind IP Enrichment Database File")
             .required(true)
             .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     public static final PropertyDescriptor IP_ADDRESS_ATTRIBUTE = new PropertyDescriptor.Builder()
@@ -88,7 +89,7 @@ public abstract class AbstractEnrichIP extends AbstractProcessor {
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) throws IOException {
-        final String dbFileString = context.getProperty(GEO_DATABASE_FILE).getValue();
+        final String dbFileString = context.getProperty(GEO_DATABASE_FILE).evaluateAttributeExpressions().getValue();
         final File dbFile = new File(dbFileString);
         final StopWatch stopWatch = new StopWatch(true);
         final DatabaseReader reader = new DatabaseReader.Builder(dbFile).build();

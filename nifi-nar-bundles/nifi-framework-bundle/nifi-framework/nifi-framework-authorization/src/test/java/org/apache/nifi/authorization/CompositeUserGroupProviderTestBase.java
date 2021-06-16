@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.authorization;
 
+import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.components.PropertyValue;
 
@@ -30,7 +31,7 @@ import static org.apache.nifi.authorization.CompositeUserGroupProvider.PROP_USER
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.eq;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -220,7 +221,7 @@ public class CompositeUserGroupProviderTestBase {
         final AuthorizerConfigurationContext configurationContext = mock(AuthorizerConfigurationContext.class);
 
         for (int i = 1; i <= providers.length; i++) {
-            when(configurationContext.getProperty(eq(PROP_USER_GROUP_PROVIDER_PREFIX + i))).thenReturn(new StandardPropertyValue(String.valueOf(i), null));
+            when(configurationContext.getProperty(eq(PROP_USER_GROUP_PROVIDER_PREFIX + i))).thenReturn(new StandardPropertyValue(String.valueOf(i), null, ParameterLookup.EMPTY));
         }
 
         // allow callers to mock additional properties

@@ -23,10 +23,11 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.codehaus.jackson.map.ObjectMapper;
-import sun.misc.IOUtils;
+import org.apache.commons.io.IOUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.EnumSet;
@@ -39,7 +40,7 @@ public class InferenceSchemaStrategy implements JsonSchemaAccessStrategy {
 
     @Override
     public RecordSchema getSchema(Map<String, String> variables, InputStream contentStream, RecordSchema readSchema) throws SchemaNotFoundException, IOException {
-        byte[] bytes = IOUtils.readFully(contentStream, -1, true);
+        byte[] bytes = IOUtils.toByteArray(contentStream);
         ObjectMapper mapper = new ObjectMapper();
 
         return convertSchema(mapper.readValue(bytes, Map.class));
@@ -60,6 +61,9 @@ public class InferenceSchemaStrategy implements JsonSchemaAccessStrategy {
                 field = new RecordField(entry.getKey(), RecordFieldType.DOUBLE.getDataType());
             } else if (entry.getValue() instanceof Date) {
                 field = new RecordField(entry.getKey(), RecordFieldType.DATE.getDataType());
+            } else if (entry.getValue() instanceof BigDecimal) {
+                final BigDecimal bigDecimal = (BigDecimal) entry.getValue();
+                field = new RecordField(entry.getKey(), RecordFieldType.DECIMAL.getDecimalDataType(bigDecimal.precision(), bigDecimal.scale()));
             } else if (entry.getValue() instanceof List) {
                 field = new RecordField(entry.getKey(), RecordFieldType.ARRAY.getDataType());
             } else if (entry.getValue() instanceof Map) {

@@ -17,14 +17,27 @@
 
 package org.apache.nifi.provenance.index.lucene;
 
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.store.FSDirectory;
+import org.apache.nifi.provenance.RepositoryConfiguration;
+import org.apache.nifi.provenance.util.DirectoryUtils;
+import org.apache.nifi.util.Tuple;
+import org.apache.nifi.util.file.FileUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.File;
 import java.io.FileFilter;
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 import java.util.Optional;
 import java.util.SortedMap;
@@ -33,16 +46,17 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import org.apache.nifi.provenance.RepositoryConfiguration;
-import org.apache.nifi.provenance.util.DirectoryUtils;
-import org.apache.nifi.util.Tuple;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 public class IndexDirectoryManager {
     private static final Logger logger = LoggerFactory.getLogger(IndexDirectoryManager.class);
-    private static final FileFilter INDEX_DIRECTORY_FILTER = f -> f.getName().startsWith("index-");
-    private static final Pattern INDEX_FILENAME_PATTERN = Pattern.compile("index-(\\d+)");
+    private static final Pattern LUCENE_8_AND_LATER_INDEX_PATTERN = Pattern.compile("lucene-\\d+-index-(.*)");
+    private static final FileFilter LUCENE_8_AND_LATER_INDEX_DIRECTORY_FILTER = f -> LUCENE_8_AND_LATER_INDEX_PATTERN.matcher(f.getName()).matches();
+
+    private static final Pattern INDEX_FILENAME_PATTERN = DirectoryUtils.INDEX_DIRECTORY_NAME_PATTERN;
+    private static final FileFilter ALL_INDEX_FILE_FILTER = f -> INDEX_FILENAME_PATTERN.matcher(f.getName()).matches();
+
+    private static final Pattern LUCENE_4_INDEX_PATTERN = Pattern.compile("index-(.*)");
+    private static final FileFilter LUCENE_4_INDEX_FILE_FILTER = f -> LUCENE_4_INDEX_PATTERN.matcher(f.getName()).matches();
+
 
     private final RepositoryConfiguration repoConfig;
 
@@ -61,7 +75,7 @@ public class IndexDirectoryManager {
             final String partitionName = entry.getKey();
             final File storageDir = entry.getValue();
 
-            final File[] indexDirs = storageDir.listFiles(INDEX_DIRECTORY_FILTER);
+            final File[] indexDirs = storageDir.listFiles(LUCENE_8_AND_LATER_INDEX_DIRECTORY_FILTER);
             if (indexDirs == null) {
                 logger.warn("Unable to access Provenance Repository storage directory {}", storageDir);
                 continue;
@@ -88,12 +102,22 @@ public class IndexDirectoryManager {
         // Restore the activeIndices to point at the newest index in each storage location.
         for (final Tuple<Long, IndexLocation> tuple : latestIndexByStorageDir.values()) {
             final IndexLocation indexLoc = tuple.getValue();
-            activeIndices.put(indexLoc.getPartitionName(), indexLoc);
+
+            final File indexDir = indexLoc.getIndexDirectory();
+            if (indexDir.exists()) {
+                try (final Directory directory = FSDirectory.open(indexDir.toPath());
+                     @SuppressWarnings("unused") final DirectoryReader reader = DirectoryReader.open(directory)) {
+
+                    activeIndices.put(indexLoc.getPartitionName(), indexLoc);
+                } catch (final IOException ioe) {
+                    logger.debug("Unable to open Lucene Index located at {} so assuming that it is defunct and will not use as the active index", indexDir, ioe);
+                }
+            }
         }
     }
 
 
-    public synchronized void deleteDirectory(final File directory) {
+    public synchronized void removeDirectory(final File directory) {
         final Iterator<Map.Entry<Long, List<IndexLocation>>> itr = indexLocationByTimestamp.entrySet().iterator();
         while (itr.hasNext()) {
             final Map.Entry<Long, List<IndexLocation>> entry = itr.next();
@@ -107,6 +131,33 @@ public class IndexDirectoryManager {
         }
     }
 
+    public synchronized List<File> getAllIndexDirectories(final boolean includeLucene4Directories, final boolean includeLaterLuceneDirectories) {
+        final List<File> allDirectories = new ArrayList<>();
+
+        final FileFilter directoryFilter;
+        if (includeLucene4Directories && includeLaterLuceneDirectories) {
+            directoryFilter = ALL_INDEX_FILE_FILTER;
+        } else if (includeLucene4Directories) {
+            directoryFilter = LUCENE_4_INDEX_FILE_FILTER;
+        } else if (includeLaterLuceneDirectories) {
+            directoryFilter = LUCENE_8_AND_LATER_INDEX_DIRECTORY_FILTER;
+        } else {
+            throw new IllegalArgumentException("Cannot list all directoreis but excluded Lucene 4 directories and later directories");
+        }
+
+        for (final File storageDir : repoConfig.getStorageDirectories().values()) {
+            final File[] indexDirs = storageDir.listFiles(directoryFilter);
+            if (indexDirs == null) {
+                logger.warn("Unable to access Provenance Repository storage directory {}", storageDir);
+                continue;
+            }
+
+            allDirectories.addAll(Arrays.asList(indexDirs));
+        }
+
+        return allDirectories;
+    }
+
     /**
      * Returns a List of all indexes where the latest event in the index has an event time before the given timestamp
      *
@@ -118,8 +169,8 @@ public class IndexDirectoryManager {
 
         // An index cannot be expired if it is the latest index in the storage directory. As a result, we need to
         // separate the indexes by Storage Directory so that we can easily determine if this is the case.
-        final Map<String, List<IndexLocation>> startTimeWithFileByStorageDirectory = flattenDirectoriesByTimestamp().stream()
-            .collect(Collectors.groupingBy(indexLoc -> indexLoc.getPartitionName()));
+        final Map<String, List<IndexLocation>> startTimeWithFileByStorageDirectory = flattenDirectoriesByTimestamp(true).stream()
+            .collect(Collectors.groupingBy(IndexLocation::getPartitionName));
 
         // Scan through the index directories and the associated index event start time.
         // If looking at index N, we can determine the index end time by assuming that it is the same as the
@@ -135,7 +186,7 @@ public class IndexDirectoryManager {
                     continue;
                 }
 
-                final Long indexStartTime = indexLoc.getIndexStartTimestamp();
+                final long indexStartTime = indexLoc.getIndexStartTimestamp();
                 if (indexStartTime > timestamp) {
                     // If the first timestamp in the index is later than the desired timestamp,
                     // then we are done. We can do this because the list is ordered by monotonically
@@ -166,11 +217,17 @@ public class IndexDirectoryManager {
      *
      * @return a List of all IndexLocations known
      */
-    private List<IndexLocation> flattenDirectoriesByTimestamp() {
+    private List<IndexLocation> flattenDirectoriesByTimestamp(final boolean includeOldIndices) {
         final List<IndexLocation> startTimeWithFile = new ArrayList<>();
         for (final Map.Entry<Long, List<IndexLocation>> entry : indexLocationByTimestamp.entrySet()) {
-            for (final IndexLocation indexLoc : entry.getValue()) {
-                startTimeWithFile.add(indexLoc);
+            if (includeOldIndices) {
+                startTimeWithFile.addAll(entry.getValue());
+            } else {
+                for (final IndexLocation location : entry.getValue()) {
+                    if (location.getIndexDirectory().getName().startsWith("lucene-")) {
+                        startTimeWithFile.add(location);
+                    }
+                }
             }
         }
 
@@ -178,12 +235,16 @@ public class IndexDirectoryManager {
     }
 
     public synchronized List<File> getDirectories(final Long startTime, final Long endTime) {
+        return getDirectories(startTime, endTime, true);
+    }
+
+    public synchronized List<File> getDirectories(final Long startTime, final Long endTime, final boolean includeOldIndices) {
         final List<File> selected = new ArrayList<>();
 
         // An index cannot be expired if it is the latest index in the partition. As a result, we need to
         // separate the indexes by partition so that we can easily determine if this is the case.
-        final Map<String, List<IndexLocation>> startTimeWithFileByStorageDirectory = flattenDirectoriesByTimestamp().stream()
-            .collect(Collectors.groupingBy(indexLoc -> indexLoc.getPartitionName()));
+        final Map<String, List<IndexLocation>> startTimeWithFileByStorageDirectory = flattenDirectoriesByTimestamp(includeOldIndices).stream()
+            .collect(Collectors.groupingBy(IndexLocation::getPartitionName));
 
         for (final List<IndexLocation> locationList : startTimeWithFileByStorageDirectory.values()) {
             selected.addAll(getDirectories(startTime, endTime, locationList));
@@ -195,8 +256,8 @@ public class IndexDirectoryManager {
     public synchronized List<File> getDirectories(final Long startTime, final Long endTime, final String partitionName) {
         // An index cannot be expired if it is the latest index in the partition. As a result, we need to
         // separate the indexes by partition so that we can easily determine if this is the case.
-        final Map<String, List<IndexLocation>> startTimeWithFileByStorageDirectory = flattenDirectoriesByTimestamp().stream()
-            .collect(Collectors.groupingBy(indexLoc -> indexLoc.getPartitionName()));
+        final Map<String, List<IndexLocation>> startTimeWithFileByStorageDirectory = flattenDirectoriesByTimestamp(true).stream()
+            .collect(Collectors.groupingBy(IndexLocation::getPartitionName));
 
         final List<IndexLocation> indexLocations = startTimeWithFileByStorageDirectory.get(partitionName);
         if (indexLocations == null) {
@@ -296,6 +357,7 @@ public class IndexDirectoryManager {
         return Optional.of(indexLocation.getIndexDirectory());
     }
 
+
     private long getSize(final File indexDir) {
         if (!indexDir.exists()) {
             return 0L;
@@ -347,8 +409,85 @@ public class IndexDirectoryManager {
             .map(Map.Entry::getValue)
             .findFirst()
             .orElseThrow(() -> new IllegalArgumentException("Invalid Partition: " + partitionName));
-        final File indexDir = new File(storageDir, "index-" + earliestTimestamp);
 
+        final File indexDir = new File(storageDir, "lucene-8-index-" + earliestTimestamp);
         return indexDir;
+    }
+
+    public void replaceDirectory(final File oldIndexDir, final File newIndexDir, final boolean destroyOldIndex) {
+        boolean replaced = false;
+
+        synchronized (this) {
+            for (final Map.Entry<Long, List<IndexLocation>> entry : indexLocationByTimestamp.entrySet()) {
+                final List<IndexLocation> locations = entry.getValue();
+                final ListIterator<IndexLocation> itr = locations.listIterator();
+
+                while (itr.hasNext()) {
+                    final IndexLocation location = itr.next();
+                    if (location.getIndexDirectory().equals(oldIndexDir)) {
+                        final IndexLocation updatedLocation = new IndexLocation(newIndexDir, location.getIndexStartTimestamp(), location.getPartitionName());
+                        itr.set(updatedLocation);
+                        replaced = true;
+                        logger.debug("Replaced {} with {}", location, updatedLocation);
+                    }
+                }
+            }
+        }
+
+        if (!replaced) {
+            insertIndexDirectory(newIndexDir);
+        }
+
+        if (destroyOldIndex) {
+            try {
+                FileUtils.deleteFile(oldIndexDir, true);
+            } catch (IOException e) {
+                logger.warn("Failed to delete index directory {}; this directory should be cleaned up manually", oldIndexDir, e);
+            }
+        }
+
+        removeDirectory(oldIndexDir);
+
+        logger.info("Successfully replaced old index directory {} with new index directory {}", oldIndexDir, newIndexDir);
+    }
+
+    private void insertIndexDirectory(final File indexDirectory) {
+        // We didn't find the old index directory. Just add the new index directory.
+        final long timestamp = DirectoryUtils.getIndexTimestamp(indexDirectory);
+        if (timestamp < 0) {
+            logger.debug("Attempted to replace old index directory {} with new index directory {} but the old index directory did not " +
+                "exist and could not determine timestamp for new index directory");
+        } else {
+            final String partitionName = getPartitionName(indexDirectory);
+            if (partitionName == null) {
+                logger.debug("Attempted to replace old index directory {} with new index directory {} but the old index directory did not " +
+                    "exist and could not determine partition name for new index directory");
+            } else {
+                final IndexLocation indexLocation = new IndexLocation(indexDirectory, timestamp, partitionName);
+                indexLocationByTimestamp.computeIfAbsent(timestamp, key -> new ArrayList<>()).add(indexLocation);
+                logger.debug("Successfully inserted new index directory {}", indexDirectory);
+            }
+        }
+    }
+
+    private String getPartitionName(final File indexDir) {
+        for (final Map.Entry<String, File> entry : repoConfig.getStorageDirectories().entrySet()) {
+            final File storageDir = entry.getValue();
+
+            if (isParent(indexDir, storageDir)) {
+                return entry.getKey();
+            }
+        }
+
+        return null;
+    }
+
+    private boolean isParent(final File file, final File potentialParent) {
+        final File parentFile = file.getParentFile();
+        if (parentFile != null && parentFile.equals(potentialParent)) {
+            return true;
+        }
+
+        return isParent(parentFile, potentialParent);
     }
 }

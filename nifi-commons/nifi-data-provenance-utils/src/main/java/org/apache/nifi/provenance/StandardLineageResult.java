@@ -16,9 +16,17 @@
  */
 package org.apache.nifi.provenance;
 
+import org.apache.nifi.provenance.lineage.ComputeLineageResult;
+import org.apache.nifi.provenance.lineage.EdgeNode;
+import org.apache.nifi.provenance.lineage.EventNode;
+import org.apache.nifi.provenance.lineage.FlowFileNode;
+import org.apache.nifi.provenance.lineage.LineageEdge;
+import org.apache.nifi.provenance.lineage.LineageNode;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
@@ -31,16 +39,6 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import org.apache.nifi.provenance.lineage.ComputeLineageResult;
-import org.apache.nifi.provenance.lineage.EdgeNode;
-import org.apache.nifi.provenance.lineage.EventNode;
-import org.apache.nifi.provenance.lineage.FlowFileNode;
-import org.apache.nifi.provenance.lineage.LineageEdge;
-import org.apache.nifi.provenance.lineage.LineageNode;
-
 /**
  *
  */
@@ -50,7 +48,7 @@ public class StandardLineageResult implements ComputeLineageResult, ProgressiveR
     private static final Logger logger = LoggerFactory.getLogger(StandardLineageResult.class);
 
     private final Collection<String> flowFileUuids;
-    private final Collection<ProvenanceEventRecord> relevantRecords = new ArrayList<>();
+    private final Set<ProvenanceEventRecord> relevantRecords = new HashSet<>();
     private final Set<LineageNode> nodes = new HashSet<>();
     private final Set<LineageEdge> edges = new HashSet<>();
     private final int numSteps;
@@ -91,24 +89,6 @@ public class StandardLineageResult implements ComputeLineageResult, ProgressiveR
         readLock.lock();
         try {
             return new ArrayList<>(edges);
-        } finally {
-            readLock.unlock();
-        }
-    }
-
-    public int getNumberOfEdges() {
-        readLock.lock();
-        try {
-            return edges.size();
-        } finally {
-            readLock.unlock();
-        }
-    }
-
-    public int getNumberOfNodes() {
-        readLock.lock();
-        try {
-            return nodes.size();
         } finally {
             readLock.unlock();
         }
@@ -224,7 +204,7 @@ public class StandardLineageResult implements ComputeLineageResult, ProgressiveR
 
         Map<String, LineageNode> lastEventMap = new HashMap<>();    // maps FlowFile UUID to last event for that FlowFile
         final List<ProvenanceEventRecord> sortedRecords = new ArrayList<>(relevantRecords);
-        Collections.sort(sortedRecords, new Comparator<ProvenanceEventRecord>() {
+        sortedRecords.sort(new Comparator<ProvenanceEventRecord>() {
             @Override
             public int compare(final ProvenanceEventRecord o1, final ProvenanceEventRecord o2) {
                 // Sort on Event Time, then Event ID.

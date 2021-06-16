@@ -273,18 +273,21 @@ public class StandardValidators {
         }
     };
 
-    public static final Validator ISO8061_INSTANT_VALIDATOR = new Validator() {
+    public static final Validator ISO8601_INSTANT_VALIDATOR = new Validator() {
         @Override
         public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
 
             try {
                 Instant.parse(input);
-                return new ValidationResult.Builder().subject(subject).input(input).explanation("Valid ISO8061 Instant Date").valid(true).build();
+                return new ValidationResult.Builder().subject(subject).input(input).explanation("Valid ISO 8601 Instant Date").valid(true).build();
             } catch (final Exception e) {
-                return new ValidationResult.Builder().subject(subject).input(input).explanation("Not a valid ISO8061 Instant Date, please enter in UTC time").valid(false).build();
+                return new ValidationResult.Builder().subject(subject).input(input).explanation("Not a valid ISO 8601 Instant Date, please enter in UTC time").valid(false).build();
             }
         }
     };
+    // Old name retained for compatibility
+    @Deprecated
+    public static final Validator ISO8061_INSTANT_VALIDATOR = ISO8601_INSTANT_VALIDATOR;
 
     public static final Validator NON_NEGATIVE_INTEGER_VALIDATOR = new Validator() {
         @Override
@@ -563,7 +566,14 @@ public class StandardValidators {
         };
     }
 
-    public static Validator createListValidator(boolean trimEntries, boolean excludeEmptyEntries, Validator validator) {
+    public static Validator createListValidator(boolean trimEntries, boolean excludeEmptyEntries,
+        Validator elementValidator){
+        return createListValidator(trimEntries,excludeEmptyEntries, elementValidator, false);
+    }
+
+    public static Validator createListValidator(boolean trimEntries, boolean excludeEmptyEntries,
+        Validator validator,
+        boolean ensureElementValidation) {
         return (subject, input, context) -> {
             if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input)) {
                 return new ValidationResult.Builder().subject(subject).input(input).explanation("Expression Language Present").valid(true).build();
@@ -572,7 +582,12 @@ public class StandardValidators {
                 if (input == null) {
                     return new ValidationResult.Builder().subject(subject).input(null).explanation("List must have at least one non-empty element").valid(false).build();
                 }
-                final String[] list = input.split(",");
+
+                final String[] list =  ensureElementValidation ? input.split(",",-1) : input.split(",");
+                if (list.length == 0) {
+                    return new ValidationResult.Builder().subject(subject).input(null).explanation("List must have at least one non-empty element").valid(false).build();
+                }
+
                 for (String item : list) {
                     String itemToValidate = trimEntries ? item.trim() : item;
                     if (!isEmpty(itemToValidate) || !excludeEmptyEntries) {

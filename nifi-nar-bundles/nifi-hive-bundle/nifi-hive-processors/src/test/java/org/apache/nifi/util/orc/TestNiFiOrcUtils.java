@@ -22,6 +22,7 @@ import org.apache.avro.SchemaBuilder;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.util.Utf8;
 import org.apache.hadoop.hive.ql.io.orc.NiFiOrcUtils;
+import org.apache.hadoop.hive.serde2.io.HiveDecimalWritable;
 import org.apache.hadoop.hive.serde2.objectinspector.UnionObject;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoFactory;
@@ -33,8 +34,11 @@ import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.junit.Test;
 
+import java.math.BigDecimal;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -197,6 +201,7 @@ public class TestNiFiOrcUtils {
         assertTrue(NiFiOrcUtils.convertToORCObject(null, 1L) instanceof LongWritable);
         assertTrue(NiFiOrcUtils.convertToORCObject(null, 1.0f) instanceof FloatWritable);
         assertTrue(NiFiOrcUtils.convertToORCObject(null, 1.0) instanceof DoubleWritable);
+        assertTrue(NiFiOrcUtils.convertToORCObject(null, BigDecimal.valueOf(1.0D)) instanceof HiveDecimalWritable);
         assertTrue(NiFiOrcUtils.convertToORCObject(null, new int[]{1, 2, 3}) instanceof List);
         assertTrue(NiFiOrcUtils.convertToORCObject(null, Arrays.asList(1, 2, 3)) instanceof List);
         Map<String, Float> map = new HashMap<>();
@@ -271,7 +276,7 @@ public class TestNiFiOrcUtils {
 
     @Test
     public void test_convertToORCObject() {
-        Schema schema = SchemaBuilder.enumeration("myEnum").symbols("x","y","z");
+        Schema schema = SchemaBuilder.enumeration("myEnum").symbols("x", "y", "z");
         List<Object> objects = Arrays.asList(new Utf8("Hello"), new GenericData.EnumSymbol(schema, "x"));
         objects.forEach((avroObject) -> {
             Object o = NiFiOrcUtils.convertToORCObject(TypeInfoUtils.getTypeInfoFromTypeString("uniontype<bigint,string>"), avroObject);
@@ -301,6 +306,29 @@ public class TestNiFiOrcUtils {
         builder.name("double").type().doubleType().doubleDefault(0.0);
         builder.name("bytes").type().bytesType().noDefault();
         builder.name("string").type().stringType().stringDefault("default");
+        return builder.endRecord();
+    }
+
+    public static Schema buildAvroSchemaWithNull() {
+        // Build a fake Avro record which contains null
+        final SchemaBuilder.FieldAssembler<Schema> builder = SchemaBuilder.record("test.record").namespace("any.data").fields();
+        builder.name("string").type().stringType().stringDefault("default");
+        builder.name("null").type().nullType().noDefault();
+        return builder.endRecord();
+    }
+
+    public static Schema buildAvroSchemaWithEmptyArray() {
+        // Build a fake Avro record which contains empty array
+        final SchemaBuilder.FieldAssembler<Schema> builder = SchemaBuilder.record("test.record").namespace("any.data").fields();
+        builder.name("string").type().stringType().stringDefault("default");
+        builder.name("emptyArray").type().array().items().nullType().noDefault();
+        return builder.endRecord();
+    }
+
+    public static Schema buildAvroSchemaWithFixed() {
+        // Build a fake Avro record which contains null
+        final SchemaBuilder.FieldAssembler<Schema> builder = SchemaBuilder.record("test.record").namespace("any.data").fields();
+        builder.name("fixed").type().fixed("fixedField").size(6).fixedDefault("123456");
         return builder.endRecord();
     }
 
@@ -348,6 +376,29 @@ public class TestNiFiOrcUtils {
         row.put("myEnum", e);
         row.put("myLongOrFloat", unionVal);
         row.put("myIntList", intArray);
+        return row;
+    }
+
+    public static GenericData.Record buildAvroRecordWithNull(String string) {
+        Schema schema = buildAvroSchemaWithNull();
+        GenericData.Record row = new GenericData.Record(schema);
+        row.put("string", string);
+        row.put("null", null);
+        return row;
+    }
+
+    public static GenericData.Record buildAvroRecordWithEmptyArray(String string) {
+        Schema schema = buildAvroSchemaWithEmptyArray();
+        GenericData.Record row = new GenericData.Record(schema);
+        row.put("string", string);
+        row.put("emptyArray", Collections.emptyList());
+        return row;
+    }
+
+    public static GenericData.Record buildAvroRecordWithFixed(String string) {
+        Schema schema = buildAvroSchemaWithFixed();
+        GenericData.Record row = new GenericData.Record(schema);
+        row.put("fixed", new GenericData.Fixed(schema, string.getBytes(StandardCharsets.UTF_8)));
         return row;
     }
 

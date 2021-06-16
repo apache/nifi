@@ -75,10 +75,10 @@ public class QueryGroovyTest extends GroovyTestCase {
         Query replaceRepeatingQuery = Query.compile(REPLACE_REPEATING_EXPRESSION)
 
         // Act
-        QueryResult<?> replaceSingleResult = replaceSingleQuery.evaluate(attributes)
+        QueryResult<?> replaceSingleResult = replaceSingleQuery.evaluate(new StandardEvaluationContext(attributes))
         logger.info("Replace single result: ${replaceSingleResult.value}")
 
-        QueryResult<?> replaceRepeatingResult = replaceRepeatingQuery.evaluate(attributes)
+        QueryResult<?> replaceRepeatingResult = replaceRepeatingQuery.evaluate(new StandardEvaluationContext(attributes))
         logger.info("Replace repeating result: ${replaceRepeatingResult.value}")
 
         // Assert
@@ -115,10 +115,10 @@ public class QueryGroovyTest extends GroovyTestCase {
         Query replaceRepeatingQuery = Query.compile(REPLACE_REPEATING_EXPRESSION)
 
         // Act
-        QueryResult<?> replaceSingleResult = replaceSingleQuery.evaluate(attributes)
+        QueryResult<?> replaceSingleResult = replaceSingleQuery.evaluate(new StandardEvaluationContext(attributes))
         logger.info("Replace single result: ${replaceSingleResult.value}")
 
-        QueryResult<?> replaceRepeatingResult = replaceRepeatingQuery.evaluate(attributes)
+        QueryResult<?> replaceRepeatingResult = replaceRepeatingQuery.evaluate(new StandardEvaluationContext(attributes))
         logger.info("Replace repeating result: ${replaceRepeatingResult.value}")
 
         // Assert
@@ -155,10 +155,10 @@ public class QueryGroovyTest extends GroovyTestCase {
         Query replaceRepeatingQuery = Query.compile(REPLACE_REPEATING_EXPRESSION)
 
         // Act
-        QueryResult<?> replaceSingleResult = replaceSingleQuery.evaluate(attributes)
+        QueryResult<?> replaceSingleResult = replaceSingleQuery.evaluate(new StandardEvaluationContext(attributes))
         logger.info("Replace single result: ${replaceSingleResult.value}")
 
-        QueryResult<?> replaceRepeatingResult = replaceRepeatingQuery.evaluate(attributes)
+        QueryResult<?> replaceRepeatingResult = replaceRepeatingQuery.evaluate(new StandardEvaluationContext(attributes))
         logger.info("Replace repeating result: ${replaceRepeatingResult.value}")
 
         // Assert
@@ -187,7 +187,7 @@ public class QueryGroovyTest extends GroovyTestCase {
         final String REPLACE_ONLY_FIRST_PATTERN = /\w+\s\w+\b??/
 
         // Act
-        
+
         // Execute on both single and repeating with String#replace()
         String replaceSingleResult = attributes.single.replace(REPLACE_ONLY_FIRST_PATTERN, REPLACEMENT_VALUE)
         logger.info("Replace single result: ${replaceSingleResult}")

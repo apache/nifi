@@ -17,19 +17,16 @@
 
 package org.apache.nifi.avro;
 
-import java.io.EOFException;
-import java.io.IOException;
-import java.io.InputStream;
-
 import org.apache.avro.Schema;
-import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.BinaryDecoder;
 import org.apache.avro.io.DatumReader;
 import org.apache.avro.io.DecoderFactory;
-import org.apache.nifi.schema.access.SchemaNotFoundException;
-import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.record.RecordSchema;
+
+import java.io.EOFException;
+import java.io.IOException;
+import java.io.InputStream;
 
 public class AvroReaderWithExplicitSchema extends AvroRecordReader {
     private final InputStream in;
@@ -38,11 +35,11 @@ public class AvroReaderWithExplicitSchema extends AvroRecordReader {
     private final BinaryDecoder decoder;
     private GenericRecord genericRecord;
 
-    public AvroReaderWithExplicitSchema(final InputStream in, final RecordSchema recordSchema, final Schema avroSchema) throws IOException, SchemaNotFoundException {
+    public AvroReaderWithExplicitSchema(final InputStream in, final RecordSchema recordSchema, final Schema avroSchema) {
         this.in = in;
         this.recordSchema = recordSchema;
 
-        datumReader = new GenericDatumReader<GenericRecord>(avroSchema);
+        datumReader = new NonCachingDatumReader<>(avroSchema);
         decoder = DecoderFactory.get().binaryDecoder(in, null);
     }
 
@@ -67,7 +64,7 @@ public class AvroReaderWithExplicitSchema extends AvroRecordReader {
     }
 
     @Override
-    public RecordSchema getSchema() throws MalformedRecordException {
+    public RecordSchema getSchema() {
         return recordSchema;
     }
 }

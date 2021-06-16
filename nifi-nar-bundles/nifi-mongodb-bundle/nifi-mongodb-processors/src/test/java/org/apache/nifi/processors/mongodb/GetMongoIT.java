@@ -26,6 +26,8 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.mongodb.MongoDBClientService;
+import org.apache.nifi.mongodb.MongoDBControllerService;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.util.MockFlowFile;
@@ -46,6 +48,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 public class GetMongoIT {
     private static final String MONGO_URI = "mongodb://localhost";
@@ -106,9 +109,8 @@ public class GetMongoIT {
         if (pc instanceof MockProcessContext) {
             results = ((MockProcessContext) pc).validate();
         }
-        Assert.assertEquals(3, results.size());
+        Assert.assertEquals(2, results.size());
         Iterator<ValidationResult> it = results.iterator();
-        Assert.assertTrue(it.next().toString().contains("is invalid because Mongo URI is required"));
         Assert.assertTrue(it.next().toString().contains("is invalid because Mongo Database Name is required"));
         Assert.assertTrue(it.next().toString().contains("is invalid because Mongo Collection Name is required"));
 
@@ -555,5 +557,115 @@ public class GetMongoIT {
             Assert.assertEquals(DB_NAME, db);
             Assert.assertEquals(COLLECTION_NAME, col);
         }
+    }
+
+    @Test
+    public void testDateFormat() throws Exception {
+        runner.setIncomingConnection(true);
+        runner.setProperty(GetMongo.JSON_TYPE, GetMongo.JSON_STANDARD);
+        runner.setProperty(GetMongo.DATE_FORMAT, "yyyy-MM-dd");
+        runner.enqueue("{ \"_id\": \"doc_2\" }");
+        runner.run();
+
+        runner.assertTransferCount(GetMongo.REL_FAILURE, 0);
+        runner.assertTransferCount(GetMongo.REL_ORIGINAL, 1);
+        runner.assertTransferCount(GetMongo.REL_SUCCESS, 1);
+        MockFlowFile ff = runner.getFlowFilesForRelationship(GetMongo.REL_SUCCESS).get(0);
+        byte[] content = runner.getContentAsByteArray(ff);
+        String json = new String(content);
+        Map<String, Object> result = new ObjectMapper().readValue(json, Map.class);
+
+        Pattern format = Pattern.compile("([\\d]{4})-([\\d]{2})-([\\d]{2})");
+
+        Assert.assertTrue(result.containsKey("date_field"));
+        Assert.assertTrue(format.matcher((String) result.get("date_field")).matches());
+    }
+
+    @Test
+    public void testClientService() throws Exception {
+        MongoDBClientService clientService = new MongoDBControllerService();
+        runner.addControllerService("clientService", clientService);
+        runner.removeProperty(GetMongo.URI);
+        runner.setProperty(clientService, MongoDBControllerService.URI, MONGO_URI);
+        runner.setProperty(GetMongo.CLIENT_SERVICE, "clientService");
+        runner.enableControllerService(clientService);
+        runner.assertValid();
+
+        runner.enqueue("{}");
+        runner.run();
+        runner.assertTransferCount(GetMongo.REL_SUCCESS, 3);
+    }
+
+    @Test
+    public void testInvalidQueryGoesToFailure() {
+        //Test variable registry mode
+        runner.setVariable("badattribute", "<<?>>");
+        runner.setProperty(GetMongo.QUERY, "${badattribute}");
+        runner.run();
+        runner.assertTransferCount(GetMongo.REL_FAILURE, 0);
+        runner.assertTransferCount(GetMongo.REL_SUCCESS, 0);
+        runner.assertTransferCount(GetMongo.REL_ORIGINAL, 0);
+
+        runner.clearTransferState();
+
+        //Test that it doesn't blow up with variable registry values holding a proper value
+        runner.setVariable("badattribute", "{}");
+        runner.run();
+        runner.assertTransferCount(GetMongo.REL_FAILURE, 0);
+        runner.assertTransferCount(GetMongo.REL_SUCCESS, 3);
+        runner.assertTransferCount(GetMongo.REL_ORIGINAL, 0);
+
+        runner.clearTransferState();
+
+        //Test a bad flowfile attribute
+        runner.setIncomingConnection(true);
+        runner.setProperty(GetMongo.QUERY, "${badfromff}");
+        runner.enqueue("<<?>>", new HashMap<String, String>() {{
+            put("badfromff", "{\"prop\":}");
+        }});
+        runner.run();
+        runner.assertTransferCount(GetMongo.REL_FAILURE, 1);
+        runner.assertTransferCount(GetMongo.REL_SUCCESS, 0);
+        runner.assertTransferCount(GetMongo.REL_ORIGINAL, 0);
+
+        runner.clearTransferState();
+
+        //Test for regression on a good query from a flowfile attribute
+        runner.setIncomingConnection(true);
+        runner.setProperty(GetMongo.QUERY, "${badfromff}");
+        runner.enqueue("<<?>>", new HashMap<String, String>() {{
+            put("badfromff", "{}");
+        }});
+        runner.run();
+        runner.assertTransferCount(GetMongo.REL_FAILURE, 0);
+        runner.assertTransferCount(GetMongo.REL_SUCCESS, 3);
+        runner.assertTransferCount(GetMongo.REL_ORIGINAL, 1);
+
+        runner.clearTransferState();
+        runner.removeProperty(GetMongo.QUERY);
+
+        //Test for regression against the body w/out any EL involved.
+        runner.enqueue("<<?>>");
+        runner.run();
+        runner.assertTransferCount(GetMongo.REL_FAILURE, 1);
+        runner.assertTransferCount(GetMongo.REL_SUCCESS, 0);
+        runner.assertTransferCount(GetMongo.REL_ORIGINAL, 0);
+    }
+
+    public void testSendEmpty() throws Exception {
+        runner.setIncomingConnection(true);
+        runner.setProperty(GetMongo.SEND_EMPTY_RESULTS, "true");
+        runner.setProperty(GetMongo.QUERY, "{ \"nothing\": true }");
+        runner.assertValid();
+        runner.enqueue("");
+        runner.run();
+
+        runner.assertTransferCount(GetMongo.REL_ORIGINAL, 1);
+        runner.assertTransferCount(GetMongo.REL_SUCCESS, 1);
+        runner.assertTransferCount(GetMongo.REL_FAILURE, 0);
+
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(GetMongo.REL_SUCCESS);
+        MockFlowFile flowFile = flowFiles.get(0);
+        Assert.assertEquals(0, flowFile.getSize());
     }
 }

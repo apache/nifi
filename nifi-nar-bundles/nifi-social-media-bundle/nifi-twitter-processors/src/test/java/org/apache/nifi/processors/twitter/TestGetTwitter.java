@@ -26,6 +26,7 @@ public class TestGetTwitter {
     public void testLocationValidatorWithValidLocations() {
         final TestRunner runner = TestRunners.newTestRunner(GetTwitter.class);
         runner.setProperty(GetTwitter.ENDPOINT, GetTwitter.ENDPOINT_FILTER);
+        runner.setProperty(GetTwitter.MAX_CLIENT_ERROR_RETRIES, "5");
         runner.setProperty(GetTwitter.CONSUMER_KEY, "consumerKey");
         runner.setProperty(GetTwitter.CONSUMER_SECRET, "consumerSecret");
         runner.setProperty(GetTwitter.ACCESS_TOKEN, "accessToken");
@@ -38,6 +39,7 @@ public class TestGetTwitter {
     public void testLocationValidatorWithEqualLatitudes() {
         final TestRunner runner = TestRunners.newTestRunner(GetTwitter.class);
         runner.setProperty(GetTwitter.ENDPOINT, GetTwitter.ENDPOINT_FILTER);
+        runner.setProperty(GetTwitter.MAX_CLIENT_ERROR_RETRIES, "5");
         runner.setProperty(GetTwitter.CONSUMER_KEY, "consumerKey");
         runner.setProperty(GetTwitter.CONSUMER_SECRET, "consumerSecret");
         runner.setProperty(GetTwitter.ACCESS_TOKEN, "accessToken");
@@ -50,6 +52,7 @@ public class TestGetTwitter {
     public void testLocationValidatorWithEqualLongitudes() {
         final TestRunner runner = TestRunners.newTestRunner(GetTwitter.class);
         runner.setProperty(GetTwitter.ENDPOINT, GetTwitter.ENDPOINT_FILTER);
+        runner.setProperty(GetTwitter.MAX_CLIENT_ERROR_RETRIES, "5");
         runner.setProperty(GetTwitter.CONSUMER_KEY, "consumerKey");
         runner.setProperty(GetTwitter.CONSUMER_SECRET, "consumerSecret");
         runner.setProperty(GetTwitter.ACCESS_TOKEN, "accessToken");
@@ -62,6 +65,7 @@ public class TestGetTwitter {
     public void testLocationValidatorWithSWLatGreaterThanNELat() {
         final TestRunner runner = TestRunners.newTestRunner(GetTwitter.class);
         runner.setProperty(GetTwitter.ENDPOINT, GetTwitter.ENDPOINT_FILTER);
+        runner.setProperty(GetTwitter.MAX_CLIENT_ERROR_RETRIES, "5");
         runner.setProperty(GetTwitter.CONSUMER_KEY, "consumerKey");
         runner.setProperty(GetTwitter.CONSUMER_SECRET, "consumerSecret");
         runner.setProperty(GetTwitter.ACCESS_TOKEN, "accessToken");
@@ -74,6 +78,7 @@ public class TestGetTwitter {
     public void testLocationValidatorWithSWLonGreaterThanNELon() {
         final TestRunner runner = TestRunners.newTestRunner(GetTwitter.class);
         runner.setProperty(GetTwitter.ENDPOINT, GetTwitter.ENDPOINT_FILTER);
+        runner.setProperty(GetTwitter.MAX_CLIENT_ERROR_RETRIES, "5");
         runner.setProperty(GetTwitter.CONSUMER_KEY, "consumerKey");
         runner.setProperty(GetTwitter.CONSUMER_SECRET, "consumerSecret");
         runner.setProperty(GetTwitter.ACCESS_TOKEN, "accessToken");

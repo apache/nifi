@@ -17,6 +17,8 @@
 package org.apache.nifi.security.krb;
 
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.security.auth.login.AppConfigurationEntry;
 import javax.security.auth.login.Configuration;
@@ -27,10 +29,7 @@ import java.util.Map;
  * Custom JAAS Configuration object for a provided principal and keytab.
  */
 public class KeytabConfiguration extends Configuration {
-
-    static final boolean IS_IBM = System.getProperty("java.vendor", "").contains("IBM");
-    static final String IBM_KRB5_LOGIN_MODULE = "com.ibm.security.auth.module.Krb5LoginModule";
-    static final String SUN_KRB5_LOGIN_MODULE = "com.sun.security.auth.module.Krb5LoginModule";
+    private static final Logger LOGGER = LoggerFactory.getLogger(KeytabConfiguration.class);
 
     private final String principal;
     private final String keytabFile;
@@ -53,7 +52,7 @@ public class KeytabConfiguration extends Configuration {
         options.put("principal", principal);
         options.put("refreshKrb5Config", "true");
 
-        if (IS_IBM) {
+        if (ConfigurationUtil.IS_IBM) {
             options.put("useKeytab", keytabFile);
             options.put("credsType", "both");
         } else {
@@ -64,8 +63,10 @@ public class KeytabConfiguration extends Configuration {
             options.put("storeKey", "true");
         }
 
-        final String krbLoginModuleName = IS_IBM ? IBM_KRB5_LOGIN_MODULE : SUN_KRB5_LOGIN_MODULE;
+        final String krbLoginModuleName = ConfigurationUtil.IS_IBM
+                ? ConfigurationUtil.IBM_KRB5_LOGIN_MODULE : ConfigurationUtil.SUN_KRB5_LOGIN_MODULE;
 
+        LOGGER.debug("krbLoginModuleName: {}, configuration options: {}", krbLoginModuleName, options);
         this.kerberosKeytabConfigEntry = new AppConfigurationEntry(
                 krbLoginModuleName, AppConfigurationEntry.LoginModuleControlFlag.REQUIRED, options);
     }

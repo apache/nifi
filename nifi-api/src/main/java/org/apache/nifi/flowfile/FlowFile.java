@@ -121,5 +121,9 @@ public interface FlowFile extends Comparable<FlowFile> {
             }
             return key;
         }
+
+        public static boolean isValid(final String key) {
+            return key != null && !key.trim().isEmpty();
+        }
     }
 }

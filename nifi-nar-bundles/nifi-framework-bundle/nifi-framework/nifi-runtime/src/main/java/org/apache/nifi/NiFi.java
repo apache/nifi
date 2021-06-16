@@ -19,6 +19,7 @@ package org.apache.nifi;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.nar.ExtensionMapping;
 import org.apache.nifi.nar.NarClassLoaders;
+import org.apache.nifi.nar.NarClassLoadersHolder;
 import org.apache.nifi.nar.NarUnpacker;
 import org.apache.nifi.nar.SystemBundle;
 import org.apache.nifi.util.FileUtils;
@@ -122,13 +123,13 @@ public class NiFi {
         // redirect JUL log events
         initLogging();
 
-        final Bundle systemBundle = SystemBundle.create(properties);
+        final Bundle systemBundle = SystemBundle.create(properties, rootClassLoader);
 
         // expand the nars
         final ExtensionMapping extensionMapping = NarUnpacker.unpackNars(properties, systemBundle);
 
         // load the extensions classloaders
-        NarClassLoaders narClassLoaders = NarClassLoaders.getInstance();
+        NarClassLoaders narClassLoaders = NarClassLoadersHolder.getInstance();
 
         narClassLoaders.init(rootClassLoader,
                 properties.getFrameworkWorkingDirectory(), properties.getExtensionsWorkingDirectory());
@@ -164,6 +165,10 @@ public class NiFi {
             LOGGER.info("Controller initialization took " + duration + " nanoseconds "
                     + "(" + (int) TimeUnit.SECONDS.convert(duration, TimeUnit.NANOSECONDS) + " seconds).");
         }
+    }
+
+    NiFiServer getServer() {
+        return nifiServer;
     }
 
     protected void setDefaultUncaughtExceptionHandler() {
@@ -300,8 +305,11 @@ public class NiFi {
     }
 
     protected static NiFiProperties convertArgumentsToValidatedNiFiProperties(String[] args) {
-        final ClassLoader bootstrap = createBootstrapClassLoader();
-        NiFiProperties properties = initializeProperties(args, bootstrap);
+        return convertArgumentsToValidatedNiFiProperties(args, createBootstrapClassLoader());
+    }
+
+    protected static NiFiProperties convertArgumentsToValidatedNiFiProperties(String[] args, final ClassLoader bootstrapClassLoader) {
+        NiFiProperties properties = initializeProperties(args, bootstrapClassLoader);
         properties.validate();
         return properties;
     }

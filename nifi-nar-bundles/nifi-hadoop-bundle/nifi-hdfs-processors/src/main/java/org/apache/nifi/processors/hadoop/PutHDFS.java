@@ -17,11 +17,12 @@
 package org.apache.nifi.processors.hadoop;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.CreateFlag;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.permission.FsCreateModes;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.io.compress.CompressionCodec;
-import org.apache.hadoop.ipc.RemoteException;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -49,6 +50,9 @@ import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.StopWatch;
+import org.ietf.jgss.GSSException;
+
+import com.google.common.base.Throwables;
 
 import java.io.BufferedInputStream;
 import java.io.FileNotFoundException;
@@ -58,10 +62,14 @@ import java.io.OutputStream;
 import java.security.PrivilegedAction;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 /**
  * This processor copies FlowFiles to HDFS.
@@ -142,7 +150,9 @@ public class PutHDFS extends AbstractHadoopProcessor {
     public static final PropertyDescriptor UMASK = new PropertyDescriptor.Builder()
             .name("Permissions umask")
             .description(
-                    "A umask represented as an octal number which determines the permissions of files written to HDFS. This overrides the Hadoop Configuration dfs.umaskmode")
+                   "A umask represented as an octal number which determines the permissions of files written to HDFS. " +
+                           "This overrides the Hadoop property \"fs.permissions.umask-mode\".  " +
+                           "If this property and \"fs.permissions.umask-mode\" are undefined, the Hadoop default \"022\" will be used.")
             .addValidator(HadoopValidators.UMASK_VALIDATOR)
             .build();
 
@@ -160,6 +170,17 @@ public class PutHDFS extends AbstractHadoopProcessor {
                     "Changes the group of the HDFS file to this value after it is written. This only works if NiFi is running as a user that has HDFS super user privilege to change group")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .build();
+
+    public static final PropertyDescriptor IGNORE_LOCALITY = new PropertyDescriptor.Builder()
+            .name("Ignore Locality")
+            .displayName("Ignore Locality")
+            .description(
+                    "Directs the HDFS system to ignore locality rules so that data is distributed randomly throughout the cluster")
+            .required(false)
+            .defaultValue("false")
+            .allowableValues("true", "false")
+            .addValidator(StandardValidators.BOOLEAN_VALIDATOR)
             .build();
 
     private static final Set<Relationship> relationships;
@@ -191,6 +212,7 @@ public class PutHDFS extends AbstractHadoopProcessor {
         props.add(REMOTE_OWNER);
         props.add(REMOTE_GROUP);
         props.add(COMPRESSION_CODEC);
+        props.add(IGNORE_LOCALITY);
         return props;
     }
 
@@ -202,9 +224,8 @@ public class PutHDFS extends AbstractHadoopProcessor {
         if (umaskProp.isSet()) {
             dfsUmask = Short.parseShort(umaskProp.getValue(), 8);
         } else {
-            dfsUmask = FsPermission.DEFAULT_UMASK;
+            dfsUmask = FsPermission.getUMask(config).toShort();
         }
-
         FsPermission.setUMask(config, new FsPermission(dfsUmask));
     }
 
@@ -306,8 +327,18 @@ public class PutHDFS extends AbstractHadoopProcessor {
                                 if (conflictResponse.equals(APPEND_RESOLUTION_AV.getValue()) && destinationExists) {
                                     fos = hdfs.append(copyFile, bufferSize);
                                 } else {
-                                    fos = hdfs.create(tempCopyFile, true, bufferSize, replication, blockSize);
+                                  final EnumSet<CreateFlag> cflags = EnumSet.of(CreateFlag.CREATE, CreateFlag.OVERWRITE);
+
+                                  final Boolean ignoreLocality = context.getProperty(IGNORE_LOCALITY).asBoolean();
+                                  if (ignoreLocality) {
+                                    cflags.add(CreateFlag.IGNORE_CLIENT_LOCALITY);
+                                  }
+
+                                  fos = hdfs.create(tempCopyFile, FsCreateModes.applyUMask(FsPermission.getFileDefault(),
+                                      FsPermission.getUMask(hdfs.getConf())), cflags, bufferSize, replication, blockSize,
+                                      null, null);
                                 }
+
                                 if (codec != null) {
                                     fos = codec.createOutputStream(fos);
                                 }
@@ -321,7 +352,7 @@ public class PutHDFS extends AbstractHadoopProcessor {
                                     if (fos != null) {
                                         fos.close();
                                     }
-                                } catch (RemoteException re) {
+                                } catch (Throwable t) {
                                     // when talking to remote HDFS clusters, we don't notice problems until fos.close()
                                     if (createdFile != null) {
                                         try {
@@ -329,8 +360,7 @@ public class PutHDFS extends AbstractHadoopProcessor {
                                         } catch (Throwable ignore) {
                                         }
                                     }
-                                    throw re;
-                                } catch (Throwable ignore) {
+                                    throw t;
                                 }
                                 fos = null;
                             }
@@ -373,6 +403,17 @@ public class PutHDFS extends AbstractHadoopProcessor {
 
                     session.transfer(putFlowFile, REL_SUCCESS);
 
+                } catch (final IOException e) {
+                  Optional<GSSException> causeOptional = findCause(e, GSSException.class, gsse -> GSSException.NO_CRED == gsse.getMajor());
+                  if (causeOptional.isPresent()) {
+                    getLogger().warn("An error occurred while connecting to HDFS. "
+                        + "Rolling back session, and penalizing flow file {}",
+                         new Object[] {putFlowFile.getAttribute(CoreAttributes.UUID.key()), causeOptional.get()});
+                    session.rollback(true);
+                  } else {
+                    getLogger().error("Failed to access HDFS due to {}", new Object[]{e});
+                    session.transfer(putFlowFile, REL_FAILURE);
+                  }
                 } catch (final Throwable t) {
                     if (tempDotCopyFile != null) {
                         try {
@@ -389,6 +430,22 @@ public class PutHDFS extends AbstractHadoopProcessor {
                 return null;
             }
         });
+    }
+
+
+    /**
+     * Returns an optional with the first throwable in the causal chain that is assignable to the provided cause type,
+     * and satisfies the provided cause predicate, {@link Optional#empty()} otherwise.
+     * @param t The throwable to inspect for the cause.
+     * @return
+     */
+    private <T extends Throwable> Optional<T> findCause(Throwable t, Class<T> expectedCauseType, Predicate<T> causePredicate) {
+       Stream<Throwable> causalChain = Throwables.getCausalChain(t).stream();
+       return causalChain
+               .filter(expectedCauseType::isInstance)
+               .map(expectedCauseType::cast)
+               .filter(causePredicate)
+               .findFirst();
     }
 
     protected void changeOwner(final ProcessContext context, final FileSystem hdfs, final Path name, final FlowFile flowFile) {

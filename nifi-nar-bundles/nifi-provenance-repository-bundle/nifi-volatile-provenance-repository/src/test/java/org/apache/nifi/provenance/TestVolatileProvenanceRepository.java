@@ -16,14 +16,7 @@
  */
 package org.apache.nifi.provenance;
 
-import org.apache.nifi.authorization.user.NiFiUser;
-import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.provenance.search.Query;
-import org.apache.nifi.provenance.search.QuerySubmission;
-import org.apache.nifi.provenance.search.SearchTerms;
-import org.apache.nifi.util.NiFiProperties;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -32,8 +25,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-
-import static org.junit.Assert.assertEquals;
+import org.apache.nifi.authorization.user.NiFiUser;
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.provenance.search.Query;
+import org.apache.nifi.provenance.search.QuerySubmission;
+import org.apache.nifi.provenance.search.SearchTerms;
+import org.apache.nifi.util.NiFiProperties;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 public class TestVolatileProvenanceRepository {
 
@@ -46,7 +45,7 @@ public class TestVolatileProvenanceRepository {
 
     @Test
     public void testAddAndGet() throws IOException, InterruptedException {
-        repo = new VolatileProvenanceRepository(NiFiProperties.createBasicNiFiProperties(null, null));
+        repo = new VolatileProvenanceRepository(NiFiProperties.createBasicNiFiProperties(null));
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("abc", "xyz");
@@ -79,7 +78,7 @@ public class TestVolatileProvenanceRepository {
 
     @Test
     public void testIndexAndCompressOnRolloverAndSubsequentSearchAsync() throws InterruptedException {
-        repo = new VolatileProvenanceRepository(NiFiProperties.createBasicNiFiProperties(null, null));
+        repo = new VolatileProvenanceRepository(NiFiProperties.createBasicNiFiProperties(null));
 
         final String uuid = "00000000-0000-0000-0000-000000000000";
         final Map<String, String> attributes = new HashMap<>();

@@ -18,21 +18,36 @@ package org.apache.nifi.controller.repository.io;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Objects;
+import java.util.function.LongSupplier;
 
 public class LimitedInputStream extends InputStream {
 
     private final InputStream in;
-    private long limit;
+    private final long limit;
+    private final LongSupplier limitSupplier;
     private long bytesRead = 0;
+    private long markOffset = -1L;
+
+    public LimitedInputStream(final InputStream in, final LongSupplier limitSupplier) {
+        this.in = in;
+        this.limitSupplier = Objects.requireNonNull(limitSupplier);
+        this.limit = -1;
+    }
 
     public LimitedInputStream(final InputStream in, final long limit) {
         this.in = in;
         this.limit = limit;
+        this.limitSupplier = null;
+    }
+
+    private long getLimit() {
+        return limitSupplier == null ? limit : limitSupplier.getAsLong();
     }
 
     @Override
     public int read() throws IOException {
-        if (bytesRead >= limit) {
+        if (bytesRead >= getLimit()) {
             return -1;
         }
 
@@ -45,6 +60,7 @@ public class LimitedInputStream extends InputStream {
 
     @Override
     public int read(final byte[] b) throws IOException {
+        final long limit = getLimit();
         if (bytesRead >= limit) {
             return -1;
         }
@@ -60,6 +76,7 @@ public class LimitedInputStream extends InputStream {
 
     @Override
     public int read(byte[] b, int off, int len) throws IOException {
+        final long limit = getLimit();
         if (bytesRead >= limit) {
             return -1;
         }
@@ -75,14 +92,14 @@ public class LimitedInputStream extends InputStream {
 
     @Override
     public long skip(final long n) throws IOException {
-        final long skipped = in.skip(Math.min(n, limit - bytesRead));
+        final long skipped = in.skip(Math.min(n, getLimit() - bytesRead));
         bytesRead += skipped;
         return skipped;
     }
 
     @Override
     public int available() throws IOException {
-        return (int)(limit - bytesRead);
+        return (int)(getLimit() - bytesRead);
     }
 
     @Override
@@ -93,8 +110,7 @@ public class LimitedInputStream extends InputStream {
     @Override
     public void mark(int readlimit) {
         in.mark(readlimit);
-        limit -= bytesRead;
-        bytesRead = 0;
+        markOffset = bytesRead;
     }
 
     @Override
@@ -105,6 +121,10 @@ public class LimitedInputStream extends InputStream {
     @Override
     public void reset() throws IOException {
         in.reset();
-        bytesRead = 0;
+
+        if (markOffset >= 0) {
+            bytesRead = markOffset;
+        }
+        markOffset = -1;
     }
 }

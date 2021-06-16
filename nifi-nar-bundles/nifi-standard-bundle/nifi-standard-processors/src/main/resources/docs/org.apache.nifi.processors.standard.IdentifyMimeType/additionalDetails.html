@@ -22,7 +22,7 @@
     </head>
 
     <body>
-        <p>The following is a non-exhaustive list of MIME Types detected:
+        <p>The following is a non-exhaustive list of MIME Types detected by default in NiFi:
         </p>
         <ul>
             <li>application/gzip</li>
@@ -55,9 +55,26 @@
             <li>application/zip</li>
             <li>application/x-lzh</li>
         </ul>
-        <p>For a complete list, please refer to
-            <a href="https://git-wip-us.apache.org/repos/asf?p=tika.git;a=blob;f=tika-core/src/main/resources/org/apache/tika/mime/tika-mimetypes.xml;h=fffb9bbca8f49d2265479da798c0c01ceb2060e2;hb=d647a234783bbc3f83d3691a1e1d5788c438d55d">
-                Apache Tika's source code</a>
+        
+        <p>An example value for the Config Body property that will identify a file whose contents start with "abcd" as MIME Type "custom/abcd"
+            and with extension ".abcd" would look like the following:
+        </p>
+        <textarea rows="10" cols="70" style="border:none;">
+<?xml version="1.0" encoding="UTF-8"?>
+<mime-info>
+    <mime-type type="custom/abcd">
+        <magic priority="50">
+            <match value="abcd" type="string" offset="0"/>
+        </magic>
+        <glob pattern="*.abcd" />
+    </mime-type>
+</mime-info>
+        </textarea>
+        <p>For a more complete list of Tika's default types (and additional details regarding customization of 
+            the value for the Config Body property), please refer to 
+            
+            <a href="https://tika.apache.org/1.22/detection.html#Mime_Magic_Detection">
+                Apache Tika's documentation</a>
         </p>
 
     </body>

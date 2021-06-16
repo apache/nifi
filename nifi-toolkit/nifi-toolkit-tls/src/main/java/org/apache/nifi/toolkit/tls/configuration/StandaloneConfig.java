@@ -32,6 +32,7 @@ public class StandaloneConfig extends TlsConfig {
     private List<String> clientPasswords;
     private boolean clientPasswordsGenerated;
     private boolean overwrite;
+    private boolean splitKeystore;
 
     // TODO: A lot of these fields are null and cause NPEs in {@link TlsToolkitStandalone} when not executed with expected input
 
@@ -89,5 +90,13 @@ public class StandaloneConfig extends TlsConfig {
 
     public void setInstanceDefinitions(List<InstanceDefinition> instanceDefinitions) {
         this.instanceDefinitions = instanceDefinitions;
+    }
+
+    public void setSplitKeystore(boolean splitKeystore) {
+        this.splitKeystore = splitKeystore;
+    }
+
+    public boolean isSplitKeystore() {
+        return this.splitKeystore;
     }
 }

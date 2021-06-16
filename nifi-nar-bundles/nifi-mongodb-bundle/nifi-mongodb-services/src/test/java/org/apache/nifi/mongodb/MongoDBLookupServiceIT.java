@@ -17,6 +17,8 @@
 
 package org.apache.nifi.mongodb;
 
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
 import org.apache.commons.io.IOUtils;
 import org.apache.nifi.lookup.LookupFailureException;
 import org.apache.nifi.schema.access.SchemaAccessUtils;
@@ -49,6 +51,8 @@ public class MongoDBLookupServiceIT {
     private TestRunner runner;
     private MongoDBLookupService service;
     private MongoDBControllerService controllerService;
+    private MongoDatabase db;
+    private MongoCollection col;
 
     @Before
     public void before() throws Exception {
@@ -58,8 +62,8 @@ public class MongoDBLookupServiceIT {
         runner.addControllerService("Client Service", service);
         runner.addControllerService("Client Service 2", controllerService);
         runner.setProperty(TestLookupServiceProcessor.CLIENT_SERVICE, "Client Service");
-        runner.setProperty(controllerService, MongoDBControllerService.DATABASE_NAME, DB_NAME);
-        runner.setProperty(controllerService, MongoDBControllerService.COLLECTION_NAME, COL_NAME);
+        runner.setProperty(service, MongoDBLookupService.DATABASE_NAME, DB_NAME);
+        runner.setProperty(service, MongoDBLookupService.COLLECTION_NAME, COL_NAME);
         runner.setProperty(controllerService, MongoDBControllerService.URI, "mongodb://localhost:27017");
         runner.setProperty(service, MongoDBLookupService.LOOKUP_VALUE_FIELD, "message");
         runner.setProperty(service, MongoDBLookupService.CONTROLLER_SERVICE, "Client Service 2");
@@ -70,11 +74,14 @@ public class MongoDBLookupServiceIT {
         runner.enableControllerService(registry);
         runner.enableControllerService(controllerService);
         runner.enableControllerService(service);
+
+        db = controllerService.getDatabase(DB_NAME);
+        col = db.getCollection(COL_NAME);
     }
 
     @After
     public void after() {
-        controllerService.dropDatabase();
+        db.drop();
         controllerService.onDisable();
     }
 
@@ -90,7 +97,7 @@ public class MongoDBLookupServiceIT {
         runner.setProperty(service, MongoDBLookupService.LOOKUP_VALUE_FIELD, "message");
         runner.enableControllerService(service);
         Document document = controllerService.convertJson("{ \"uuid\": \"x-y-z\", \"message\": \"Hello, world\" }");
-        controllerService.insert(document);
+        col.insertOne(document);
 
         Map<String, Object> criteria = new HashMap<>();
         criteria.put("uuid", "x-y-z");
@@ -101,7 +108,7 @@ public class MongoDBLookupServiceIT {
 
         Map<String, Object> clean = new HashMap<>();
         clean.putAll(criteria);
-        controllerService.delete(new Document(clean));
+        col.deleteOne(new Document(clean));
 
         try {
             result = service.lookup(criteria);
@@ -116,7 +123,7 @@ public class MongoDBLookupServiceIT {
     public void testWithSchemaRegistry() throws Exception {
         runner.assertValid();
 
-        controllerService.insert(new Document()
+        col.insertOne(new Document()
             .append("username", "john.smith")
             .append("password", "testing1234")
         );
@@ -157,7 +164,7 @@ public class MongoDBLookupServiceIT {
         runner.enableControllerService(service);
         runner.assertValid();
 
-        controllerService.insert(new Document().append("msg", "Testing1234"));
+        col.insertOne(new Document().append("msg", "Testing1234"));
 
         Map<String, Object> criteria = new HashMap<>();
         criteria.put("msg", "Testing1234");
@@ -180,7 +187,7 @@ public class MongoDBLookupServiceIT {
         Timestamp ts = new Timestamp(new Date().getTime());
         List list = Arrays.asList("a", "b", "c", "d", "e");
 
-        controllerService.insert(new Document()
+        col.insertOne(new Document()
             .append("uuid", "x-y-z")
             .append("dateField", d)
             .append("longField", 10000L)
@@ -217,7 +224,7 @@ public class MongoDBLookupServiceIT {
 
         Map<String, Object> clean = new HashMap<>();
         clean.putAll(criteria);
-        controllerService.delete(new Document(clean));
+        col.deleteOne(new Document(clean));
 
         try {
             result = service.lookup(criteria);
@@ -231,7 +238,7 @@ public class MongoDBLookupServiceIT {
     @Test
     public void testServiceParameters() {
         Document document = controllerService.convertJson("{ \"uuid\": \"x-y-z\", \"message\": \"Hello, world\" }");
-        controllerService.insert(document);
+        col.insertOne(document);
 
         Map<String, Object> criteria = new HashMap<>();
         criteria.put("uuid", "x-y-z");

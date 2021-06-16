@@ -16,7 +16,9 @@
  */
 package org.apache.nifi.toolkit.cli.impl.command.nifi;
 
+import com.opencsv.CSVParser;
 import org.apache.commons.cli.MissingOptionException;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.toolkit.cli.api.ClientFactory;
 import org.apache.nifi.toolkit.cli.api.CommandException;
 import org.apache.nifi.toolkit.cli.api.Result;
@@ -25,9 +27,20 @@ import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.toolkit.cli.impl.command.AbstractPropertyCommand;
 import org.apache.nifi.toolkit.cli.impl.session.SessionVariable;
 import org.apache.nifi.web.api.dto.RevisionDTO;
+import org.apache.nifi.web.api.dto.TenantDTO;
+import org.apache.nifi.web.api.entity.TenantEntity;
+import org.apache.nifi.web.api.entity.UserEntity;
+import org.apache.nifi.web.api.entity.UserGroupEntity;
+import org.apache.nifi.web.api.entity.UserGroupsEntity;
+import org.apache.nifi.web.api.entity.UsersEntity;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.LinkedHashSet;
+import java.util.Optional;
 import java.util.Properties;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Base class for all NiFi commands.
@@ -73,4 +86,68 @@ public abstract class AbstractNiFiCommand<R extends Result> extends AbstractProp
         return revisionDTO;
     }
 
+    protected static Set<TenantEntity> generateTenantEntities(final String ids)
+        throws IOException {
+        final CSVParser csvParser = new CSVParser();
+        return Arrays.stream(csvParser.parseLine(ids))
+            .map(AbstractNiFiCommand::createTenantEntity)
+            .collect(Collectors.toCollection(LinkedHashSet::new));
+    }
+
+    protected static Set<TenantEntity> generateTenantEntities(final String users, final UsersEntity existingUsers)
+        throws IOException, CommandException {
+        final CSVParser csvParser = new CSVParser();
+        final String[] userArray = csvParser.parseLine(users);
+        final Set<TenantEntity> tenantEntities = new LinkedHashSet<>();
+
+        for (String user : userArray) {
+            Optional<UserEntity> existingUser = existingUsers.getUsers().stream()
+                .filter(entity -> user.equals(entity.getComponent().getIdentity())).findAny();
+
+            if (!existingUser.isPresent()) {
+                throw new CommandException("User with the identity '" + user + "' not found.");
+            }
+
+            tenantEntities.add(createTenantEntity(existingUser.get().getId(), user));
+        }
+
+        return tenantEntities;
+    }
+
+    protected static Set<TenantEntity> generateTenantEntities(final String groups, final UserGroupsEntity existingGroups)
+        throws IOException, CommandException {
+        final CSVParser csvParser = new CSVParser();
+        final String[] groupArray = csvParser.parseLine(groups);
+        final Set<TenantEntity> tenantEntities = new LinkedHashSet<>();
+
+        for (String group : groupArray) {
+            Optional<UserGroupEntity> existingGroup = existingGroups.getUserGroups().stream()
+                .filter(entity -> group.equals(entity.getComponent().getIdentity())).findAny();
+
+            if (!existingGroup.isPresent()) {
+                throw new CommandException("User group with the identity '" + group + "' not found.");
+            }
+
+            tenantEntities.add(createTenantEntity(existingGroup.get().getId(), group));
+        }
+
+        return tenantEntities;
+    }
+
+    private static TenantEntity createTenantEntity(final String id) {
+        return createTenantEntity(id, null);
+    }
+
+    private static TenantEntity createTenantEntity(final String id, final String identity) {
+        TenantEntity tenantEntity = new TenantEntity();
+        tenantEntity.setId(id);
+
+        if (StringUtils.isNotBlank(identity)) {
+            TenantDTO tenantDTO = new TenantDTO();
+            tenantDTO.setIdentity(identity);
+            tenantEntity.setComponent(tenantDTO);
+        }
+
+        return tenantEntity;
+    }
 }

@@ -16,12 +16,12 @@
  */
 package org.apache.nifi.web.api.config;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
 import javax.ws.rs.ext.Provider;
-import org.apache.nifi.util.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Maps web application exceptions into client responses.
@@ -34,8 +34,7 @@ public class IllegalArgumentExceptionMapper implements ExceptionMapper<IllegalAr
     @Override
     public Response toResponse(IllegalArgumentException exception) {
         // log the error
-        logger.info(String.format("%s. Returning %s response.", exception, Response.Status.BAD_REQUEST));
-        logger.debug(StringUtils.EMPTY, exception);
+        logger.info("{}}. Returning {}} response.", exception, Response.Status.BAD_REQUEST, exception);
 
         return Response.status(Response.Status.BAD_REQUEST).entity(exception.getMessage()).type("text/plain").build();
     }

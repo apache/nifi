@@ -36,39 +36,77 @@
     }
 }(this, function ($, CodeMirror) {
     'use strict';
-    
+
     /**
-     * Formats the specified arguments for the EL function tooltip.
-     * 
-     * @param {type} args
-     * @returns {String}
+     * Formats the specified function definition.
+     *
+     * @param details
+     * @returns {jQuery|HTMLElement}
      */
-    var formatArguments = function(args) {
-        if ($.isEmptyObject(args)) {
-            return '<span class="unset">None</span>';
-        } else {
-            var formatted = '<div class="clear"></div><ul class="el-arguments">';
-            $.each(args, function(key, value) {
-                formatted += (
-                    '<li>' +
-                        '<span class="el-argument-name">' + key + '</span> - ' +
-                        value +
-                    '</li>'
-                );
-            });
-            formatted += '</ul>';
-            return formatted;
+    var formatDetails = function (details) {
+        var detailsContainer = $('<div></div>');
+
+        // add the detail name
+        $('<div class="el-name el-section"></div>').text(details.name).appendTo(detailsContainer);
+
+        // add the detail description
+        $('<div class="el-section"></div>').text(details.description).appendTo(detailsContainer);
+
+        // add the function arguments
+        if (typeof details.args !== 'undefined') {
+            var argumentsContainer = $('<div class="el-section"></div>').appendTo(detailsContainer);
+            $('<div class="el-header">Arguments</div>').appendTo(argumentsContainer);
+
+            if ($.isEmptyObject(details.args)) {
+                $('<span class="unset">None</span>').appendTo(argumentsContainer);
+            } else {
+                $('<div class="clear"></div>').appendTo(argumentsContainer);
+
+                // add the argument
+                var argumentContainer = $('<ul class="el-arguments"></ul>').appendTo(argumentsContainer);
+                $.each(details.args, function (key, value) {
+                    var argName = $('<span class="el-argument-name"></span>').text(key);
+                    var argDescription = $('<span></span>').text(value);
+                    $('<li></li>').append(argName).append(' - ').append(argDescription).appendTo(argumentContainer);
+                });
+            }
         }
+
+        // add the function subject
+        if (typeof details.subject !== 'undefined') {
+            var subjectContainer = $('<div class="el-section"></div>').appendTo(detailsContainer);
+            $('<div class="el-header">Subject</div>').appendTo(subjectContainer);
+            $('<p></p>').text(details.subject).appendTo(subjectContainer);
+            $('<div class="clear"></div>').appendTo(subjectContainer);
+        }
+
+        // add the function return type
+        if (typeof details.returnType !== 'undefined') {
+            var returnTypeContainer = $('<div class="el-section"></div>').appendTo(detailsContainer);
+            $('<div class="el-header">Returns</div>').appendTo(returnTypeContainer);
+            $('<p></p>').text(details.returnType).appendTo(returnTypeContainer);
+            $('<div class="clear"></div>').appendTo(returnTypeContainer);
+        }
+
+        return detailsContainer;
     };
-    
+
+    var parameterKeyRegex = /^[a-zA-Z0-9-_. ]+/;
+
+    var parameters = [];
+    var parameterRegex = new RegExp('^$');
+
+    var parameterDetails = {};
+    var parametersSupported = false;
+
     var subjectlessFunctions = [];
     var functions = [];
-    
+
     var subjectlessFunctionRegex = new RegExp('^$');
     var functionRegex = new RegExp('^$');
-    
+
     var functionDetails = {};
-    
+
     $.ajax({
         type: 'GET',
         url: '../nifi-docs/html/expression-language-guide.html',
@@ -76,19 +114,19 @@
     }).done(function(response) {
         $(response).find('div.function').each(function() {
             var elFunction = $(this);
-            
+
             var name = elFunction.find('h3').text();
             var description = elFunction.find('span.description').text();
             var returnType = elFunction.find('span.returnType').text();
-            
+
             var subject;
             var subjectSpan = subject = elFunction.find('span.subject');
             var subjectless = elFunction.find('span.subjectless');
-            
+
             // Determine if this function supports running subjectless
             if (subjectless.length) {
                 subjectlessFunctions.push(name);
-                subject = '<span class="unset">None</span>';
+                subject = 'None';
             }
 
             // Determine if this function supports running with a subject
@@ -102,36 +140,24 @@
             elFunction.find('span.argName').each(function() {
                 var argName = $(this);
                 var argDescription = argName.next('span.argDesc');
-                args[argName.text()] = argDescription.text(); 
+                args[argName.text()] = argDescription.text();
             });
-            
-            // format the function tooltip
-            functionDetails[name] = 
-                '<div>' + 
-                    '<div class="el-name el-section">' + name + '</div>' +
-                    '<div class="el-section">' + description + '</div>' +
-                    '<div class="el-section">' + 
-                        '<div class="el-header">Arguments</div>' +
-                        formatArguments(args) + 
-                    '</div>' +
-                    '<div class="el-section">' + 
-                        '<div class="el-header">Subject</div>' +
-                        '<p>' + subject + '</p>' + 
-                        '<div class="clear"></div>' +
-                    '</div>' +
-                    '<div class="el-section">' + 
-                        '<div class="el-header">Returns</div>' +
-                        '<p>' + returnType + '</p>' +
-                        '<div class="clear"></div>' +
-                    '</div>' +
-                '</div>';
+
+            // record the function details
+            functionDetails[name] = {
+                name: name,
+                description: description,
+                args: args,
+                subject: subject,
+                returnType: returnType
+            };
         });
     }).always(function() {
         // build the regex for all functions discovered
         subjectlessFunctionRegex = new RegExp('^((' + subjectlessFunctions.join(')|(') + '))$');
         functionRegex = new RegExp('^((' + functions.join(')|(') + '))$');
     });
-    
+
     // valid context states
     var SUBJECT = 'subject';
     var FUNCTION = 'function';
@@ -139,37 +165,40 @@
     var EXPRESSION = 'expression';
     var ARGUMENTS = 'arguments';
     var ARGUMENT = 'argument';
+    var PARAMETER = 'parameter';
     var INVALID = 'invalid';
-    
+
     /**
      * Handles dollars identifies on the stream.
-     * 
-     * @param {object} stream   The character stream
-     * @param {object} states    The states
+     *
+     * @param {string} startChar    The start character
+     * @param {string} context      The context to transition to if we match on the specified start character
+     * @param {object} stream       The character stream
+     * @param {object} states       The states
      */
-    var handleDollar = function (stream, states) {
-        // determine the number of sequential dollars
-        var dollarCount = 0;
+    var handleStart = function (startChar, context, stream, states) {
+        // determine the number of sequential start chars
+        var startCharCount = 0;
         stream.eatWhile(function (ch) {
-            if (ch === '$') {
-                dollarCount++;
+            if (ch === startChar) {
+                startCharCount++;
                 return true;
             }
             return false;
         });
 
-        // if there is an even number of consecutive dollars this expression is escaped
-        if (dollarCount % 2 === 0) {
+        // if there is an even number of consecutive start chars this expression is escaped
+        if (startCharCount % 2 === 0) {
             // do not style an escaped expression
             return null;
         }
 
-        // if there was an odd number of consecutive dollars and there was more than 1
-        if (dollarCount > 1) {
+        // if there was an odd number of consecutive start chars and there was more than 1
+        if (startCharCount > 1) {
             // back up one char so we can process the start sequence next iteration
             stream.backUp(1);
 
-            // do not style the preceeding dollars
+            // do not style the preceding start chars
             return null;
         }
 
@@ -180,22 +209,21 @@
 
             // new expression start
             states.push({
-                context: EXPRESSION
+                context: context
             });
 
             // consume any addition whitespace
             stream.eatSpace();
 
             return 'bracket';
-        } else {
-            // not a valid start sequence
-            return null;
         }
+        // not a valid start sequence
+        return null;
     };
 
     /**
      * Handles dollars identifies on the stream.
-     * 
+     *
      * @param {object} stream   The character stream
      * @param {object} state    The current state
      */
@@ -212,7 +240,7 @@
             }
 
             // if this is the trailing delimitor, only consume
-            // if we did not see the escape character on the 
+            // if we did not see the escape character on the
             // previous iteration
             if (ch === current) {
                 foundTrailing = foundEscapeChar === false;
@@ -240,19 +268,19 @@
         stream.skipToEnd();
         return null;
     };
-    
+
     // the api for the currently selected completion
     var currentApi = null;
-    
+
     // the identifier to cancel showing the tip for the next completion
     var showTip = null;
-    
+
     // the apis of every completion rendered
     var apis = [];
-    
+
     /**
      * Listens for select event on the auto complete.
-     * 
+     *
      * @param {type} completion
      * @param {type} element
      * @returns {undefined}
@@ -265,11 +293,11 @@
             currentApi.show();
         }, 500);
     };
-    
+
     /**
      * Cancels the next tip to show, if applicable. Hides the currently
      * visible tip, if applicable.
-     * 
+     *
      * @returns {undefined}
      */
     var hide = function() {
@@ -277,15 +305,15 @@
             clearInterval(showTip);
             showTip = null;
         }
-        
+
         if (currentApi !== null) {
-            currentApi.hide();  
+            currentApi.hide();
         }
     };
 
     /**
      * Listens for close events for the auto complete.
-     * 
+     *
      * @returns {undefined}
      */
     var close = function() {
@@ -293,22 +321,22 @@
             clearInterval(showTip);
             showTip = null;
         }
-        
+
         // clear the current api (since its in the apis array)
         currentApi = null;
-        
+
         // destroy the tip from every applicable function
         $.each(apis, function(_, api) {
             api.destroy(true);
         });
-        
+
         // reset the apis
         apis = [];
     };
 
     /**
      * Renders an auto complete item.
-     * 
+     *
      * @param {type} element
      * @param {type} self
      * @param {type} data
@@ -317,9 +345,9 @@
     var renderer = function(element, self, data) {
         var item = $('<div></div>').text(data.text);
         var li = $(element).qtip({
-            content: functionDetails[data.text],
+            content: formatDetails(data.details),
             style: {
-                classes: 'nifi-tooltip nfel-tooltip',
+                classes: 'nifi-tooltip nf-tooltip',
                 tip: false,
                 width: 350
             },
@@ -339,12 +367,48 @@
                 }
             }
         }).append(item);
-        
+
         // record the api for destruction later
         apis.push(li.qtip('api'));
     };
-    
+
     return {
+
+        /**
+         * Enables parameter referencing.
+         */
+        enableParameters: function () {
+            parameters = [];
+            parameterRegex = new RegExp('^$');
+            parameterDetails = {};
+
+            parametersSupported = true;
+        },
+
+        /**
+         * Sets the available parameters.
+         *
+         * @param parameterListing
+         */
+        setParameters: function (parameterListing) {
+            parameterListing.forEach(function (parameter) {
+                parameters.push(parameter.name);
+                parameterDetails[parameter.name] = parameter;
+            });
+
+            parameterRegex = new RegExp('^((' + parameters.join(')|(') + '))$');
+        },
+
+        /**
+         * Disables parameter referencing.
+         */
+        disableParameters: function () {
+            parameters = [];
+            parameterRegex = new RegExp('^$');
+            parameterDetails = {};
+
+            parametersSupported = false;
+        },
 
         /**
          * Returns an object that provides syntax highlighting for NiFi expression language.
@@ -390,7 +454,7 @@
                 },
 
                 copyState: function (state) {
-                    // build states with 
+                    // build states with
                     return buildStates(state.copy());
                 },
 
@@ -410,8 +474,17 @@
 
                     // if we've hit some comments... will consume the remainder of the line
                     if (current === '#') {
-                        stream.skipToEnd();
-                        return 'comment';
+                        // consume the pound
+                        stream.next();
+
+                        var afterPound = stream.peek();
+                        if (afterPound !== '{') {
+                            stream.skipToEnd();
+                            return 'comment';
+                        } else {
+                            // unconsume the pound
+                            stream.backUp(1);
+                        }
                     }
 
                     // get the current state
@@ -477,7 +550,7 @@
                             // nested expression
                             // -----------------
 
-                            var expressionDollarResult = handleDollar(stream, states);
+                            var expressionDollarResult = handleStart('$', EXPRESSION, stream, states);
 
                             // if we've found an embedded expression we need to...
                             if (expressionDollarResult !== null) {
@@ -486,6 +559,21 @@
                             }
 
                             return expressionDollarResult;
+                        } else if (current === '#' && parametersSupported) {
+                            // --------------------------
+                            // nested parameter reference
+                            // --------------------------
+
+                            // handle the nested parameter reference
+                            var parameterReferenceResult = handleStart('#', PARAMETER, stream, states);
+
+                            // if we've found an embedded parameter reference we need to...
+                            if (parameterReferenceResult !== null) {
+                                // transition back to subject when this parameter reference completes
+                                state.context = SUBJECT;
+                            }
+
+                            return parameterReferenceResult;
                         } else if (current === '}') {
                             // -----------------
                             // end of expression
@@ -591,7 +679,7 @@
                                 // maybe function... not sure yet
                                 // ------------------------------
 
-                                // not sure yet... 
+                                // not sure yet...
                                 return null;
                             }
                         } else {
@@ -673,7 +761,7 @@
                             // handle the string literal
                             var argumentStringResult = handleStringLiteral(stream, state);
 
-                            // successfully processed a string literal... 
+                            // successfully processed a string literal...
                             if (argumentStringResult !== null) {
                                 // change context back to arguments
                                 state.context = ARGUMENTS;
@@ -737,7 +825,7 @@
                             // -----------------
 
                             // handle the nested expression
-                            var argumentDollarResult = handleDollar(stream, states);
+                            var argumentDollarResult = handleStart('$', EXPRESSION, stream, states);
 
                             // if we've found an embedded expression we need to...
                             if (argumentDollarResult !== null) {
@@ -746,6 +834,82 @@
                             }
 
                             return argumentDollarResult;
+                        } else if (current === '#' && parametersSupported) {
+                            // --------------------------
+                            // nested parameter reference
+                            // --------------------------
+
+                            // handle the nested parameter reference
+                            var parameterReferenceResult = handleStart('#', PARAMETER, stream, states);
+
+                            // if we've found an embedded parameter reference we need to...
+                            if (parameterReferenceResult !== null) {
+                                // transition back to arguments when this parameter reference completes
+                                state.context = ARGUMENTS;
+                            }
+
+                            return parameterReferenceResult;
+                        } else {
+                            // ----------
+                            // unexpected
+                            // ----------
+
+                            // consume and move along
+                            stream.skipToEnd();
+                            state.context = INVALID;
+
+                            // unexpected...
+                            return null;
+                        }
+                    }
+
+                    // within a parameter reference
+                    if (state.context === PARAMETER) {
+                        // attempt to extract a parameter name
+                        var parameterName = stream.match(parameterKeyRegex, false);
+
+                        // if the result returned a match
+                        if (parameterName !== null && parameterName.length === 1) {
+                            // consume the entire token to ensure the whole function
+                            // name is matched. this is an issue with functions like
+                            // substring and substringAfter since 'substringA' would
+                            // match the former and when we really want to autocomplete
+                            // against the latter.
+                            stream.match(parameterKeyRegex);
+
+                            // see if this matches a known function and is followed by (
+                            if (parameterRegex.test(parameterName)) {
+                                // ------------------
+                                // resolved parameter
+                                // ------------------
+
+                                // style for function
+                                return 'builtin';
+                            } else {
+                                // --------------------
+                                // unresolved parameter
+                                // --------------------
+
+                                // style for function
+                                return 'string';
+                            }
+                        }
+
+                        if (current === '}') {
+                            // -----------------
+                            // end of expression
+                            // -----------------
+
+                            // consume the close
+                            stream.next();
+
+                            // signifies the end of an parameter reference
+                            if (typeof states.pop() === 'undefined') {
+                                return null;
+                            } else {
+                                // style as expression
+                                return 'bracket';
+                            }
                         } else {
                             // ----------
                             // unexpected
@@ -762,7 +926,12 @@
 
                     // signifies the potential start of an expression
                     if (current === '$') {
-                        return handleDollar(stream, states);
+                        return handleStart('$', EXPRESSION, stream, states);
+                    }
+
+                    // signifies the potential start of a parameter reference
+                    if (current === '#' && parametersSupported) {
+                        return handleStart('#', PARAMETER, stream, states);
                     }
 
                     // signifies the end of an expression
@@ -781,14 +950,14 @@
 
                     // consume the character to keep things moving along
                     stream.next();
-                    return;
+                    return null;
                 }
             };
         },
 
         /**
          * Returns the suggestions for the content at the current cursor.
-         * 
+         *
          * @param {type} editor
          */
         suggest: function (editor) {
@@ -810,9 +979,15 @@
                 return context === EXPRESSION || context === SUBJECT_OR_FUNCTION;
             };
 
+            // whether or not the current context is within a parameter reference
+            var isParameterReference = function (context) {
+                // attempting to match a function name or already successfully matched a function name
+                return context === PARAMETER;
+            };
+
             // only support suggestion in certain cases
             var context = state.context;
-            if (!isSubjectlessFunction(context) && !isFunction(context)) {
+            if (!isSubjectlessFunction(context) && !isFunction(context) && !isParameterReference(context)) {
                 return null;
             }
 
@@ -823,19 +998,29 @@
             var trimmed = $.trim(value);
 
             // identify potential patterns and increment the start location appropriately
-            if (trimmed === '${' || trimmed === ':') {
+            if (trimmed === '${' || trimmed === ':' || trimmed === '#{') {
                 includeAll = true;
                 token.start += value.length;
             }
 
-            var getCompletions = function(functions) {
+            var options = functions;
+            var useFunctionDetails = true;
+            if (isSubjectlessFunction(context)) {
+                options = subjectlessFunctions;
+            } else if (isParameterReference(context)) {
+                options = parameters;
+                useFunctionDetails = false;
+            }
+
+            var getCompletions = function(options) {
                 var found = [];
 
-                $.each(functions, function (i, funct) {
-                    if ($.inArray(funct, found) === -1) {
-                        if (includeAll || funct.toLowerCase().indexOf(value) === 0) {
+                $.each(options, function (i, opt) {
+                    if ($.inArray(opt, found) === -1) {
+                        if (includeAll || opt.toLowerCase().indexOf(value) === 0) {
                             found.push({
-                                text: funct,
+                                text: opt,
+                                details: useFunctionDetails ? functionDetails[opt] : parameterDetails[opt],
                                 render: renderer
                             });
                         }
@@ -846,7 +1031,7 @@
             };
 
             // get the suggestions for the current context
-            var completionList = getCompletions(isSubjectlessFunction(context) ? subjectlessFunctions : functions);
+            var completionList = getCompletions(options);
             completionList = completionList.sort(function (a, b) {
                 var aLower = a.text.toLowerCase();
                 var bLower = b.text.toLowerCase();
@@ -869,6 +1054,33 @@
             CodeMirror.on(completions, 'close', close);
 
             return completions;
+        },
+
+        /**
+         * Returns the language id.
+         *
+         * @returns {string} language id
+         */
+        getLanguageId: function () {
+            return 'nfel';
+        },
+
+        /**
+         * Returns whether this editor mode supports EL.
+         *
+         * @returns {boolean}   Whether the editor supports EL
+         */
+        supportsEl: function () {
+            return true;
+        },
+
+        /**
+         * Returns whether this editor mode supports parameter reference.
+         *
+         * @returns {boolean}   Whether the editor supports parameter reference
+         */
+        supportsParameterReference: function () {
+            return parametersSupported;
         }
     };
 }));

@@ -47,8 +47,9 @@ class NiFiClientUtilSpec extends Specification{
 
         then:
 
-        3 * niFiProperties.getProperty(_)
-        url == "http://localhost:8080/nifi-api/controller/cluster/nodes/1"
+        2 * niFiProperties.getProperty(_) 
+        niFiProperties.getProperty(NiFiProperties.WEB_HTTP_PORT) >> "8000"
+        url == "http://localhost:8000/nifi-api/controller/cluster/nodes/1"
     }
 
 

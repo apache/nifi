@@ -16,55 +16,52 @@
  */
 package org.apache.nifi.processors.azure.storage;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URISyntaxException;
-import java.security.InvalidKeyException;
-import java.util.UUID;
-
-import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
+import org.apache.nifi.processor.Processor;
 import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
+import org.junit.Before;
 import org.junit.Test;
 
-import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.blob.CloudBlob;
-import com.microsoft.azure.storage.blob.CloudBlobContainer;
+import java.util.concurrent.TimeUnit;
 
-public class ITListAzureBlobStorage {
+public class ITListAzureBlobStorage extends AbstractAzureBlobStorageIT {
+
+    @Override
+    protected Class<? extends Processor> getProcessorClass() {
+        return ListAzureBlobStorage.class;
+    }
+
+    @Before
+    public void setUp() throws Exception {
+        uploadTestBlob();
+
+        Thread.sleep(ListAzureBlobStorage.LISTING_LAG_MILLIS.get(TimeUnit.SECONDS));
+    }
 
     @Test
-    public void testListsAzureBlobStorageContent() throws InvalidKeyException, StorageException, URISyntaxException, IOException {
-        String containerName = String.format("%s-%s", AzureTestUtil.TEST_CONTAINER_NAME_PREFIX, UUID.randomUUID());
-        CloudBlobContainer container = AzureTestUtil.getContainer(containerName);
-        container.createIfNotExists();
+    public void testListBlobs() {
+        runner.assertValid();
+        runner.run(1);
 
-        CloudBlob blob = container.getBlockBlobReference(AzureTestUtil.TEST_BLOB_NAME);
-        byte[] buf = "0123456789".getBytes();
-        InputStream in = new ByteArrayInputStream(buf);
-        blob.upload(in, 10);
+        assertResult();
+    }
 
-        final TestRunner runner = TestRunners.newTestRunner(new ListAzureBlobStorage());
+    @Test
+    public void testListBlobsUsingCredentialService() throws Exception {
+        configureCredentialsService();
 
-        try {
-            runner.setProperty(AzureStorageUtils.ACCOUNT_NAME, AzureTestUtil.getAccountName());
-            runner.setProperty(AzureStorageUtils.ACCOUNT_KEY, AzureTestUtil.getAccountKey());
-            runner.setProperty(AzureStorageUtils.CONTAINER, containerName);
+        runner.assertValid();
+        runner.run(1);
 
-            // requires multiple runs to deal with List processor checking
-            runner.run(3);
+        assertResult();
+    }
 
-            runner.assertTransferCount(ListAzureBlobStorage.REL_SUCCESS, 1);
-            runner.assertAllFlowFilesTransferred(ListAzureBlobStorage.REL_SUCCESS, 1);
+    private void assertResult() {
+        runner.assertTransferCount(ListAzureBlobStorage.REL_SUCCESS, 1);
+        runner.assertAllFlowFilesTransferred(ListAzureBlobStorage.REL_SUCCESS, 1);
 
-            for (MockFlowFile entry : runner.getFlowFilesForRelationship(ListAzureBlobStorage.REL_SUCCESS)) {
-                entry.assertAttributeEquals("azure.length", "10");
-                entry.assertAttributeEquals("mime.type", "application/octet-stream");
-            }
-        } finally {
-            container.deleteIfExists();
+        for (MockFlowFile entry : runner.getFlowFilesForRelationship(ListAzureBlobStorage.REL_SUCCESS)) {
+            entry.assertAttributeEquals("azure.length", "10");
+            entry.assertAttributeEquals("mime.type", "application/octet-stream");
         }
     }
 }

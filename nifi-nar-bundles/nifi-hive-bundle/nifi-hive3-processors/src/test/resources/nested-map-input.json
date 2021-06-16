@@ -1,0 +1,18 @@
+[{
+  "images" : [ {
+    "headers" : {
+      "Accept-Ranges" : "bytes",
+      "Server" : "Apache"
+    },
+    "id" : "205f40e3-2675-4c61-abc1-a0aeb609c023"
+  } ]
+},
+{
+  "images" : [ {
+    "headers" : {
+      "Accept-Ranges" : 4,
+      "Server" : 10
+    },
+    "id" : "205f40e3-2675-4c61-abc1-a0aeb609c023"
+  } ]
+}]

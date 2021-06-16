@@ -42,11 +42,13 @@ public class Syslog5424RecordReader implements RecordReader {
     private final BufferedReader reader;
     private RecordSchema schema;
     private final StrictSyslog5424Parser parser;
+    private final boolean includeRaw;
 
-    public Syslog5424RecordReader(StrictSyslog5424Parser parser, InputStream in, RecordSchema schema){
+    public Syslog5424RecordReader(StrictSyslog5424Parser parser, boolean includeRaw, InputStream in, RecordSchema schema){
         this.reader = new BufferedReader(new InputStreamReader(in));
         this.schema = schema;
         this.parser = parser;
+        this.includeRaw = includeRaw;
     }
 
     @Override
@@ -82,6 +84,10 @@ public class Syslog5424RecordReader implements RecordReader {
 
         Map<String,Object> modifiedMap = new HashMap<>(event.getFieldMap());
         modifiedMap.put(SyslogAttributes.TIMESTAMP.key(),convertTimeStamp((String)event.getFieldMap().get(SyslogAttributes.TIMESTAMP.key())));
+
+        if(includeRaw) {
+            modifiedMap.put(Syslog5424Reader.RAW_MESSAGE_NAME, line);
+        }
 
         return new MapRecord(schema,modifiedMap);
     }

@@ -17,6 +17,7 @@
 package org.apache.nifi.web.api.entity;
 
 import io.swagger.annotations.ApiModelProperty;
+import org.apache.nifi.web.api.dto.PermissionsDTO;
 import org.apache.nifi.web.api.dto.PortDTO;
 import org.apache.nifi.web.api.dto.status.PortStatusDTO;
 
@@ -26,11 +27,13 @@ import javax.xml.bind.annotation.XmlRootElement;
  * A serialized representation of this class can be placed in the entity body of a response to the API. This particular entity holds a reference to an input PortDTO.
  */
 @XmlRootElement(name = "portEntity")
-public class PortEntity extends ComponentEntity implements Permissible<PortDTO> {
+public class PortEntity extends ComponentEntity implements Permissible<PortDTO>, OperationPermissible {
 
     private PortDTO component;
     private PortStatusDTO status;
     private String portType;
+    private PermissionsDTO operatePermissions;
+    private Boolean allowRemoteAccess;
 
     /**
      * @return input PortDTO that are being serialized
@@ -65,5 +68,35 @@ public class PortEntity extends ComponentEntity implements Permissible<PortDTO> 
 
     public void setPortType(String portType) {
         this.portType = portType;
+    }
+
+    /**
+     * @return The permissions for this component operations
+     */
+    @ApiModelProperty(
+            value = "The permissions for this component operations."
+    )
+    @Override
+    public PermissionsDTO getOperatePermissions() {
+        return operatePermissions;
+    }
+
+    @Override
+    public void setOperatePermissions(PermissionsDTO permissions) {
+        this.operatePermissions = permissions;
+    }
+
+    /**
+     * @return whether this port can be accessed remotely via Site-to-Site protocol.
+     */
+    @ApiModelProperty(
+        value = "Whether this port can be accessed remotely via Site-to-Site protocol."
+    )
+    public Boolean isAllowRemoteAccess() {
+        return allowRemoteAccess;
+    }
+
+    public void setAllowRemoteAccess(Boolean allowRemoteAccess) {
+        this.allowRemoteAccess = allowRemoteAccess;
     }
 }

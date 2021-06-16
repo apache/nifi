@@ -135,6 +135,7 @@ class FlowFromDOMFactoryTest {
         assert msg.message =~ "Check that the ${KEY} value in nifi.properties matches the value used to encrypt the flow.xml.gz file"
     }
 
+
     private
     static Cipher generateCipher(boolean encryptMode, String password = DEFAULT_PASSWORD, byte[] salt = DEFAULT_SALT, int iterationCount = DEFAULT_ITERATION_COUNT) {
         // Initialize secret key from password

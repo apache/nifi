@@ -39,7 +39,7 @@ public class CurrentUserEndpointMergerTest {
 
     @Test
     public void testMergeUserPermissions() {
-        final NodeIdentifier nodeId1 = new NodeIdentifier("1", "localhost", 9000, "localhost", 9001, "localhost", 9002, 9003, false);
+        final NodeIdentifier nodeId1 = new NodeIdentifier("1", "localhost", 9000, "localhost", 9001, "localhost", 9006, "localhost", 9002, 9003, false);
         final CurrentUserEntity userNode1 = new CurrentUserEntity();
         userNode1.setControllerPermissions(buildPermissions(true, false));
         userNode1.setCountersPermissions(buildPermissions(true, true));
@@ -55,7 +55,7 @@ public class CurrentUserEndpointMergerTest {
         componentRestrictionsNode1.add(buildComponentRestriction(RequiredPermission.READ_FILESYSTEM, true, true));
         userNode1.setComponentRestrictionPermissions(componentRestrictionsNode1);
 
-        final NodeIdentifier nodeId2 = new NodeIdentifier("2", "localhost", 8000, "localhost", 8001, "localhost", 8002, 8003, false);
+        final NodeIdentifier nodeId2 = new NodeIdentifier("2", "localhost", 8000, "localhost", 8001, "localhost", 9006,"localhost", 8002, 8003, false);
         final CurrentUserEntity userNode2 = new CurrentUserEntity();
         userNode2.setControllerPermissions(buildPermissions(false, true));
         userNode2.setCountersPermissions(buildPermissions(true, false));

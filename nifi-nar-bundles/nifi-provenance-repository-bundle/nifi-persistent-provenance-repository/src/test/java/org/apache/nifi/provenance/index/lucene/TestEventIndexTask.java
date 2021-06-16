@@ -17,17 +17,8 @@
 
 package org.apache.nifi.provenance.index.lucene;
 
-import static org.junit.Assert.assertEquals;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.atomic.AtomicInteger;
-
 import org.apache.lucene.document.Document;
-import org.apache.lucene.document.Field.Store;
-import org.apache.lucene.document.LongField;
+import org.apache.lucene.document.LongPoint;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.provenance.RepositoryConfiguration;
@@ -39,6 +30,14 @@ import org.apache.nifi.provenance.serialization.StorageSummary;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.Mockito;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import static org.junit.Assert.assertEquals;
 
 public class TestEventIndexTask {
 
@@ -67,9 +66,9 @@ public class TestEventIndexTask {
 
         // Create an EventIndexTask and override the commit(IndexWriter) method so that we can keep track of how
         // many times the index writer gets committed.
-        final EventIndexTask task = new EventIndexTask(docQueue, repoConfig, indexManager, directoryManager, 201, EventReporter.NO_OP) {
+        final EventIndexTask task = new EventIndexTask(docQueue, indexManager, directoryManager, 201, EventReporter.NO_OP) {
             @Override
-            protected void commit(EventIndexWriter indexWriter) throws IOException {
+            protected void commit(EventIndexWriter indexWriter) {
                 commitCount.incrementAndGet();
             }
         };
@@ -86,7 +85,7 @@ public class TestEventIndexTask {
         // Index 100 documents with a storage filename of "0.0.prov"
         for (int i = 0; i < 100; i++) {
             final Document document = new Document();
-            document.add(new LongField(SearchableFields.EventTime.getSearchableFieldName(), System.currentTimeMillis(), Store.NO));
+            document.add(new LongPoint(SearchableFields.EventTime.getSearchableFieldName(), System.currentTimeMillis()));
 
             final StorageSummary location = new StorageSummary(1L, "0.0.prov", "1", 0, 1000L, 1000L);
             final StoredDocument storedDoc = new StoredDocument(document, location);
@@ -97,7 +96,7 @@ public class TestEventIndexTask {
         // Index 100 documents
         for (int i = 0; i < 100; i++) {
             final Document document = new Document();
-            document.add(new LongField(SearchableFields.EventTime.getSearchableFieldName(), System.currentTimeMillis(), Store.NO));
+            document.add(new LongPoint(SearchableFields.EventTime.getSearchableFieldName(), System.currentTimeMillis()));
 
             final StorageSummary location = new StorageSummary(1L, "0.0.prov", "1", 0, 1000L, 1000L);
             final StoredDocument storedDoc = new StoredDocument(document, location);
@@ -115,7 +114,7 @@ public class TestEventIndexTask {
 
         // Add another document.
         final Document document = new Document();
-        document.add(new LongField(SearchableFields.EventTime.getSearchableFieldName(), System.currentTimeMillis(), Store.NO));
+        document.add(new LongPoint(SearchableFields.EventTime.getSearchableFieldName(), System.currentTimeMillis()));
         final StorageSummary location = new StorageSummary(1L, "0.0.prov", "1", 0, 1000L, 1000L);
 
         StoredDocument storedDoc = new StoredDocument(document, location);

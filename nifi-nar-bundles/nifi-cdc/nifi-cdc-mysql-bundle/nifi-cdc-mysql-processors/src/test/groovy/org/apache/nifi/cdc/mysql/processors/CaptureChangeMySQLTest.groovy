@@ -67,7 +67,7 @@ import java.util.regex.Pattern
 
 import static org.junit.Assert.assertEquals
 import static org.junit.Assert.assertTrue
-import static org.mockito.Matchers.anyString
+import static org.mockito.ArgumentMatchers.anyString
 import static org.mockito.Mockito.mock
 import static org.mockito.Mockito.when
 
@@ -967,8 +967,7 @@ class CaptureChangeMySQLTest {
         }
 
         @Override
-        protected Connection getJdbcConnection(String locationString, String drvName, InetSocketAddress host, String username, String password, Map<String, String> customProperties)
-                throws InitializationException, SQLException {
+        protected Connection getJdbcConnection() throws SQLException {
             Connection mockConnection = mock(Connection)
             Statement mockStatement = mock(Statement)
             when(mockConnection.createStatement()).thenReturn(mockStatement)

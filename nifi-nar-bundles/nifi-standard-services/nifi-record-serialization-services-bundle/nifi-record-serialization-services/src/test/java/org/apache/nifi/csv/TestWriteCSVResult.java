@@ -17,10 +17,22 @@
 
 package org.apache.nifi.csv;
 
-import static org.junit.Assert.assertEquals;
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.QuoteMode;
+import org.apache.nifi.schema.access.SchemaNameAsAttribute;
+import org.apache.nifi.serialization.SimpleRecordSchema;
+import org.apache.nifi.serialization.record.DataType;
+import org.apache.nifi.serialization.record.MapRecord;
+import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordField;
+import org.apache.nifi.serialization.record.RecordFieldType;
+import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.RecordSet;
+import org.junit.Test;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.sql.Date;
@@ -35,21 +47,47 @@ import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
 
-import org.apache.commons.csv.CSVFormat;
-import org.apache.commons.csv.QuoteMode;
-import org.apache.nifi.schema.access.SchemaNameAsAttribute;
-import org.apache.nifi.serialization.SimpleRecordSchema;
-import org.apache.nifi.serialization.record.DataType;
-import org.apache.nifi.serialization.record.MapRecord;
-import org.apache.nifi.serialization.record.Record;
-import org.apache.nifi.serialization.record.RecordField;
-import org.apache.nifi.serialization.record.RecordFieldType;
-import org.apache.nifi.serialization.record.RecordSchema;
-import org.apache.nifi.serialization.record.RecordSet;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
 
 
 public class TestWriteCSVResult {
+
+    @Test
+    public void testNumbersNotQuoted() throws IOException {
+        final Map<String, Object> values = new HashMap<>();
+        values.put("name", "John Doe");
+        values.put("age", 30);
+
+        final List<RecordField> schemaFields = new ArrayList<>();
+        schemaFields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
+        schemaFields.add(new RecordField("age", RecordFieldType.INT.getDataType()));
+
+        final RecordSchema schema = new SimpleRecordSchema(schemaFields);
+        final Record record = new MapRecord(schema, values);
+
+        // Test with Non-Numeric Quote Mode
+        final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        CSVFormat csvFormat = CSVFormat.DEFAULT.withQuoteMode(QuoteMode.NON_NUMERIC).withRecordSeparator("\n");
+        try (final WriteCSVResult result = new WriteCSVResult(csvFormat, schema, new SchemaNameAsAttribute(), baos,
+            RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), true, "UTF-8")) {
+            result.writeRecord(record);
+        }
+
+        String output = baos.toString();
+        assertEquals("\"name\",\"age\"\n\"John Doe\",30\n", output);
+
+        baos.reset();
+
+        // Test with MINIMAL Quote Mode
+        csvFormat = CSVFormat.DEFAULT.withQuoteMode(QuoteMode.MINIMAL).withRecordSeparator("\n");
+        try (final WriteCSVResult result = new WriteCSVResult(csvFormat, schema, new SchemaNameAsAttribute(), baos,
+            RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), true, "UTF-8")) {
+            result.writeRecord(record);
+        }
+
+        output = baos.toString();
+        assertEquals("name,age\nJohn Doe,30\n", output);
+    }
 
     @Test
     public void testDataTypes() throws IOException {
@@ -89,6 +127,7 @@ public class TestWriteCSVResult {
             valueMap.put("long", 8L);
             valueMap.put("float", 8.0F);
             valueMap.put("double", 8.0D);
+            valueMap.put("decimal", BigDecimal.valueOf(8.1D));
             valueMap.put("date", new Date(now));
             valueMap.put("time", new Time(now));
             valueMap.put("timestamp", new Timestamp(now));
@@ -111,18 +150,14 @@ public class TestWriteCSVResult {
         assertEquals(2, splits.length);
         assertEquals(headerLine, splits[0]);
 
-        final String values = splits[1];
-        final StringBuilder expectedBuilder = new StringBuilder();
-        expectedBuilder.append("\"a孟bc李12儒3\",\"true\",\"1\",\"c\",\"8\",\"9\",\"8\",\"8\",\"8.0\",\"8.0\",");
-
         final String dateValue = getDateFormat(RecordFieldType.DATE.getDefaultFormat()).format(now);
         final String timeValue = getDateFormat(RecordFieldType.TIME.getDefaultFormat()).format(now);
         final String timestampValue = getDateFormat(RecordFieldType.TIMESTAMP.getDefaultFormat()).format(now);
 
-        expectedBuilder.append('"').append(dateValue).append('"').append(',');
-        expectedBuilder.append('"').append(timeValue).append('"').append(',');
-        expectedBuilder.append('"').append(timestampValue).append('"').append(',');
-        expectedBuilder.append(",\"48\",,");
+        final String values = splits[1];
+        final StringBuilder expectedBuilder = new StringBuilder();
+        expectedBuilder.append("\"true\",\"1\",\"8\",\"9\",\"8\",\"8\",\"8.0\",\"8.0\",\"8.1\",\"" + timestampValue + "\",\"" + dateValue + "\",\"" + timeValue + "\",\"c\",\"a孟bc李12儒3\",,\"48\",,");
+
         final String expectedValues = expectedBuilder.toString();
 
         assertEquals(expectedValues, values);
@@ -162,9 +197,10 @@ public class TestWriteCSVResult {
         fields.add(new RecordField("id", RecordFieldType.STRING.getDataType()));
         final RecordSchema schema = new SimpleRecordSchema(fields);
 
+        // The fields defined in the schema should be written first followed by extra ones.
         final Map<String, Object> values = new LinkedHashMap<>();
-        values.put("id", "1");
         values.put("name", "John");
+        values.put("id", "1");
         final Record record = new MapRecord(schema, values);
 
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -290,7 +326,7 @@ public class TestWriteCSVResult {
             output = baos.toString();
         }
 
-        assertEquals("id,dob,name\n1,1/1/1970,\n", output);
+        assertEquals("id,name,dob\n1,,1/1/1970\n", output);
     }
 
 

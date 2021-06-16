@@ -23,9 +23,19 @@ public interface FlowRegistryClient {
     FlowRegistry getFlowRegistry(String registryId);
 
     default String getFlowRegistryId(String registryUrl) {
+        if (registryUrl.endsWith("/")) {
+            registryUrl = registryUrl.substring(0, registryUrl.length() - 1);
+        }
+
         for (final String registryClientId : getRegistryIdentifiers()) {
             final FlowRegistry registry = getFlowRegistry(registryClientId);
-            if (registry.getURL().equals(registryUrl)) {
+
+            String registryClientUrl = registry.getURL();
+            if (registryClientUrl.endsWith("/")) {
+                registryClientUrl = registryClientUrl.substring(0, registryClientUrl.length() - 1);
+            }
+
+            if (registryClientUrl.equals(registryUrl)) {
                 return registryClientId;
             }
         }

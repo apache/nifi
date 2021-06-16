@@ -16,27 +16,7 @@
  */
 package org.apache.nifi.bootstrap;
 
-import java.io.BufferedInputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-
+import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.bootstrap.notification.NotificationContext;
 import org.apache.nifi.bootstrap.notification.NotificationInitializationContext;
@@ -56,6 +36,26 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import java.io.BufferedInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class NotificationServiceManager {
     private static final Logger logger = LoggerFactory.getLogger(NotificationServiceManager.class);
@@ -256,7 +256,7 @@ public class NotificationServiceManager {
                     configuredValue = fullPropDescriptor.getDefaultValue();
                 }
 
-                return new StandardPropertyValue(configuredValue, null, variableRegistry);
+                return new StandardPropertyValue(configuredValue, null, ParameterLookup.EMPTY, variableRegistry);
             }
 
             @Override
@@ -376,7 +376,7 @@ public class NotificationServiceManager {
                         value = descriptor.getDefaultValue();
                     }
 
-                    return new StandardPropertyValue(value, null, variableRegistry);
+                    return new StandardPropertyValue(value, null, ParameterLookup.EMPTY, variableRegistry);
                 }
 
                 @Override

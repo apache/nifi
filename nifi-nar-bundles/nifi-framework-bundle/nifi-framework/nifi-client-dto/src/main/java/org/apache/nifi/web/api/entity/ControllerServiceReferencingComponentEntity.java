@@ -19,16 +19,19 @@ package org.apache.nifi.web.api.entity;
 
 import javax.xml.bind.annotation.XmlRootElement;
 
+import io.swagger.annotations.ApiModelProperty;
 import org.apache.nifi.web.api.dto.ControllerServiceReferencingComponentDTO;
+import org.apache.nifi.web.api.dto.PermissionsDTO;
 
 /**
  * A serialized representation of this class can be placed in the entity body of a response to the API.
  * This particular entity holds a reference to component that references a controller services.
  */
 @XmlRootElement(name = "controllerServiceReferencingComponentEntity")
-public class ControllerServiceReferencingComponentEntity extends ComponentEntity {
+public class ControllerServiceReferencingComponentEntity extends ComponentEntity implements OperationPermissible {
 
     private ControllerServiceReferencingComponentDTO component;
+    private PermissionsDTO operatePermissions;
 
     /**
      * @return controller service referencing components that is being serialized
@@ -41,4 +44,19 @@ public class ControllerServiceReferencingComponentEntity extends ComponentEntity
         this.component = component;
     }
 
+    /**
+     * @return The permissions for this component operations
+     */
+    @ApiModelProperty(
+            value = "The permissions for this component operations."
+    )
+    @Override
+    public PermissionsDTO getOperatePermissions() {
+        return operatePermissions;
+    }
+
+    @Override
+    public void setOperatePermissions(PermissionsDTO permissions) {
+        this.operatePermissions = permissions;
+    }
 }

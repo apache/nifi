@@ -14,135 +14,44 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.nifi.web.api.dto.diagnostics;
 
-import javax.xml.bind.annotation.XmlType;
-
+import io.swagger.annotations.ApiModelProperty;
 import org.apache.nifi.web.api.dto.ConnectionDTO;
 
-import io.swagger.annotations.ApiModelProperty;
+import javax.xml.bind.annotation.XmlType;
+import java.util.List;
 
-@XmlType(name = "connectionDiagnostics")
+@XmlType(name="connectionDiagnostics")
 public class ConnectionDiagnosticsDTO {
     private ConnectionDTO connection;
-    private int totalFlowFileCount;
-    private long totalByteCount;
-    private int activeQueueFlowFileCount;
-    private long activeQueueByteCount;
-    private int swapFlowFileCount;
-    private long swapByteCount;
-    private int swapFiles;
-    private int inFlightFlowFileCount;
-    private long inFlightByteCount;
-    private Boolean allActiveQueueFlowFilesPenalized;
-    private Boolean anyActiveQueueFlowFilesPenalized;
+    private ConnectionDiagnosticsSnapshotDTO aggregateSnapshot;
+    private List<ConnectionDiagnosticsSnapshotDTO> nodeSnapshots;
 
-    @ApiModelProperty("Information about the Connection")
+    @ApiModelProperty(value = "Details about the connection", readOnly = true)
     public ConnectionDTO getConnection() {
         return connection;
     }
 
-    public void setConnection(ConnectionDTO connection) {
+    public void setConnection(final ConnectionDTO connection) {
         this.connection = connection;
     }
 
-    @ApiModelProperty("Total number of FlowFiles owned by the Connection")
-    public int getTotalFlowFileCount() {
-        return totalFlowFileCount;
+    @ApiModelProperty(value = "Aggregate values for all nodes in the cluster, or for this instance if not clustered", readOnly = true)
+    public ConnectionDiagnosticsSnapshotDTO getAggregateSnapshot() {
+        return aggregateSnapshot;
     }
 
-    public void setTotalFlowFileCount(int totalFlowFileCount) {
-        this.totalFlowFileCount = totalFlowFileCount;
+    public void setAggregateSnapshot(final ConnectionDiagnosticsSnapshotDTO aggregateSnapshot) {
+        this.aggregateSnapshot = aggregateSnapshot;
     }
 
-    @ApiModelProperty("Total number of bytes that make up the content for the FlowFiles owned by this Connection")
-    public long getTotalByteCount() {
-        return totalByteCount;
+    @ApiModelProperty(value = "A list of values for each node in the cluster, if clustered.", readOnly = true)
+    public List<ConnectionDiagnosticsSnapshotDTO> getNodeSnapshots() {
+        return nodeSnapshots;
     }
 
-    public void setTotalByteCount(long totalByteCount) {
-        this.totalByteCount = totalByteCount;
-    }
-
-    @ApiModelProperty("Total number of FlowFiles that exist in the Connection's Active Queue, immediately available to be offered up to a component")
-    public int getActiveQueueFlowFileCount() {
-        return activeQueueFlowFileCount;
-    }
-
-    public void setActiveQueueFlowFileCount(int activeQueueFlowFileCount) {
-        this.activeQueueFlowFileCount = activeQueueFlowFileCount;
-    }
-
-    @ApiModelProperty("Total number of bytes that make up the content for the FlowFiles that are present in the Connection's Active Queue")
-    public long getActiveQueueByteCount() {
-        return activeQueueByteCount;
-    }
-
-    public void setActiveQueueByteCount(long activeQueueByteCount) {
-        this.activeQueueByteCount = activeQueueByteCount;
-    }
-
-    @ApiModelProperty("The total number of FlowFiles that are swapped out for this Connection")
-    public int getSwapFlowFileCount() {
-        return swapFlowFileCount;
-    }
-
-    public void setSwapFlowFileCount(int swapFlowFileCount) {
-        this.swapFlowFileCount = swapFlowFileCount;
-    }
-
-    @ApiModelProperty("Total number of bytes that make up the content for the FlowFiles that are swapped out to disk for the Connection")
-    public long getSwapByteCount() {
-        return swapByteCount;
-    }
-
-    public void setSwapByteCount(long swapByteCount) {
-        this.swapByteCount = swapByteCount;
-    }
-
-    @ApiModelProperty("The number of Swap Files that exist for this Connection")
-    public int getSwapFiles() {
-        return swapFiles;
-    }
-
-    public void setSwapFiles(int swapFiles) {
-        this.swapFiles = swapFiles;
-    }
-
-    @ApiModelProperty("The number of In-Flight FlowFiles for this Connection. These are FlowFiles that belong to the connection but are currently being operated on by a Processor, Port, etc.")
-    public int getInFlightFlowFileCount() {
-        return inFlightFlowFileCount;
-    }
-
-    public void setInFlightFlowFileCount(int inFlightFlowFileCount) {
-        this.inFlightFlowFileCount = inFlightFlowFileCount;
-    }
-
-    @ApiModelProperty("The number bytes that make up the content of the FlowFiles that are In-Flight")
-    public long getInFlightByteCount() {
-        return inFlightByteCount;
-    }
-
-    public void setInFlightByteCount(long inFlightByteCount) {
-        this.inFlightByteCount = inFlightByteCount;
-    }
-
-    @ApiModelProperty("Whether or not all of the FlowFiles in the Active Queue are penalized")
-    public Boolean getAllActiveQueueFlowFilesPenalized() {
-        return allActiveQueueFlowFilesPenalized;
-    }
-
-    public void setAllActiveQueueFlowFilesPenalized(Boolean allFlowFilesPenalized) {
-        this.allActiveQueueFlowFilesPenalized = allFlowFilesPenalized;
-    }
-
-    @ApiModelProperty("Whether or not any of the FlowFiles in the Active Queue are penalized")
-    public Boolean getAnyActiveQueueFlowFilesPenalized() {
-        return anyActiveQueueFlowFilesPenalized;
-    }
-
-    public void setAnyActiveQueueFlowFilesPenalized(Boolean anyFlowFilesPenalized) {
-        this.anyActiveQueueFlowFilesPenalized = anyFlowFilesPenalized;
+    public void setNodeSnapshots(final List<ConnectionDiagnosticsSnapshotDTO> nodeSnapshots) {
+        this.nodeSnapshots = nodeSnapshots;
     }
 }

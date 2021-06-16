@@ -37,10 +37,20 @@ public enum NodeConnectionState {
     CONNECTED,
 
     /**
+     * A node that is in the process of offloading its flow files from the node.
+     */
+    OFFLOADING,
+
+    /**
      * A node that is in the process of disconnecting from the cluster.
      * A DISCONNECTING node will always transition to DISCONNECTED.
      */
     DISCONNECTING,
+
+    /**
+     * A node that has offloaded its flow files from the node.
+     */
+    OFFLOADED,
 
     /**
      * A node that is not connected to the cluster.

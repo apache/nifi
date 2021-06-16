@@ -56,7 +56,7 @@ public class NiFiClientUtil {
             urlBuilder.append("http://")
             urlBuilder.append(StringUtils.isEmpty(niFiProperties.getProperty(NiFiProperties.WEB_HTTP_HOST)) ? "localhost": niFiProperties.getProperty(NiFiProperties.WEB_HTTP_HOST))
             urlBuilder.append(":")
-            urlBuilder.append(StringUtils.isEmpty(niFiProperties.getProperty(NiFiProperties.WEB_HTTPS_PORT)) ? "8080": niFiProperties.getProperty(NiFiProperties.WEB_HTTPS_PORT))
+            urlBuilder.append(StringUtils.isEmpty(niFiProperties.getProperty(NiFiProperties.WEB_HTTP_PORT)) ? "8080": niFiProperties.getProperty(NiFiProperties.WEB_HTTP_PORT))
         }
 
         if(!StringUtils.isEmpty(endpoint)) {

@@ -16,6 +16,13 @@
  */
 package org.apache.nifi.bootstrap.notification.http;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.X509TrustManager;
 import okhttp3.Call;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
@@ -28,20 +35,11 @@ import org.apache.nifi.bootstrap.notification.NotificationFailedException;
 import org.apache.nifi.bootstrap.notification.NotificationInitializationContext;
 import org.apache.nifi.bootstrap.notification.NotificationType;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.expression.ExpressionLanguageScope;
-import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.security.util.SslContextFactory;
-
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSocketFactory;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
+import org.apache.nifi.security.util.TlsConfiguration;
 
 public class HttpNotificationService extends AbstractNotificationService {
 
@@ -137,6 +135,7 @@ public class HttpNotificationService extends AbstractNotificationService {
     private final AtomicReference<String> urlReference = new AtomicReference<>();
 
     private static final List<PropertyDescriptor> supportedProperties;
+
     static {
         supportedProperties = new ArrayList<>();
         supportedProperties.add(PROP_URL);
@@ -158,7 +157,7 @@ public class HttpNotificationService extends AbstractNotificationService {
     }
 
     @Override
-    protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName){
+    protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
         return new PropertyDescriptor.Builder()
                 .required(false)
                 .name(propertyDescriptorName)
@@ -191,14 +190,32 @@ public class HttpNotificationService extends AbstractNotificationService {
         // check if the keystore is set and add the factory if so
         if (url.toLowerCase().startsWith("https")) {
             try {
-                SSLSocketFactory sslSocketFactory = getSslSocketFactory(context);
-                okHttpClientBuilder.sslSocketFactory(sslSocketFactory);
+                TlsConfiguration tlsConfiguration = createTlsConfigurationFromContext(context);
+                final SSLSocketFactory sslSocketFactory = SslContextFactory.createSSLSocketFactory(tlsConfiguration);
+                final X509TrustManager x509TrustManager = SslContextFactory.getX509TrustManager(tlsConfiguration);
+                if (sslSocketFactory != null && x509TrustManager != null) {
+                    okHttpClientBuilder.sslSocketFactory(sslSocketFactory, x509TrustManager);
+                } else {
+                    // If the TLS config couldn't be parsed, throw an exception
+                    throw new IllegalStateException("The HTTP notification service URL indicates HTTPS but the TLS properties are not valid");
+                }
             } catch (Exception e) {
                 throw new IllegalStateException(e);
             }
         }
 
         httpClientReference.set(okHttpClientBuilder.build());
+    }
+
+    private static TlsConfiguration createTlsConfigurationFromContext(NotificationInitializationContext context) {
+        String keystorePath = context.getProperty(HttpNotificationService.PROP_KEYSTORE).getValue();
+        String keystorePassword = context.getProperty(HttpNotificationService.PROP_KEYSTORE_PASSWORD).getValue();
+        String keyPassword = context.getProperty(HttpNotificationService.PROP_KEY_PASSWORD).getValue();
+        String keystoreType = context.getProperty(HttpNotificationService.PROP_KEYSTORE_TYPE).getValue();
+        String truststorePath = context.getProperty(HttpNotificationService.PROP_TRUSTSTORE).getValue();
+        String truststorePassword = context.getProperty(HttpNotificationService.PROP_TRUSTSTORE_PASSWORD).getValue();
+        String truststoreType = context.getProperty(HttpNotificationService.PROP_TRUSTSTORE_TYPE).getValue();
+        return new TlsConfiguration(keystorePath, keystorePassword, keyPassword, keystoreType, truststorePath, truststorePassword, truststoreType);
     }
 
     @Override
@@ -212,7 +229,7 @@ public class HttpNotificationService extends AbstractNotificationService {
 
             Map<PropertyDescriptor, String> configuredProperties = context.getProperties();
 
-            for(PropertyDescriptor propertyDescriptor: configuredProperties.keySet()) {
+            for (PropertyDescriptor propertyDescriptor : configuredProperties.keySet()) {
                 if (propertyDescriptor.isDynamic()) {
                     String propertyValue = context.getProperty(propertyDescriptor).evaluateAttributeExpressions().getValue();
                     requestBuilder = requestBuilder.addHeader(propertyDescriptor.getDisplayName(), propertyValue);
@@ -227,64 +244,17 @@ public class HttpNotificationService extends AbstractNotificationService {
             final OkHttpClient httpClient = httpClientReference.get();
 
             final Call call = httpClient.newCall(request);
-             try (final Response response = call.execute()) {
+            try (final Response response = call.execute()) {
 
-                 if (!response.isSuccessful()) {
-                     throw new NotificationFailedException("Failed to send Http Notification. Received an unsuccessful status code response '" + response.code() + "'. The message was '" +
-                             response.message() + "'");
-                 }
-             }
-        } catch (NotificationFailedException e){
+                if (!response.isSuccessful()) {
+                    throw new NotificationFailedException("Failed to send Http Notification. Received an unsuccessful status code response '" + response.code() + "'. The message was '" +
+                            response.message() + "'");
+                }
+            }
+        } catch (NotificationFailedException e) {
             throw e;
         } catch (Exception e) {
             throw new NotificationFailedException("Failed to send Http Notification", e);
-        }
-    }
-
-    private static SSLSocketFactory getSslSocketFactory(NotificationInitializationContext context) throws Exception {
-
-        final String protocol = context.getProperty(SSL_ALGORITHM).getValue();
-        try {
-            final PropertyValue keyPasswdProp = context.getProperty(PROP_KEY_PASSWORD);
-            final char[] keyPassword = keyPasswdProp.isSet() ? keyPasswdProp.getValue().toCharArray() : null;
-
-            final SSLContext sslContext;
-            final String truststoreFile = context.getProperty(PROP_TRUSTSTORE).getValue();
-            final String keystoreFile = context.getProperty(PROP_KEYSTORE).getValue();
-
-            if (keystoreFile == null) {
-                // If keystore not specified, create SSL Context based only on trust store.
-                sslContext = SslContextFactory.createTrustSslContext(
-                        context.getProperty(PROP_TRUSTSTORE).getValue(),
-                        context.getProperty(PROP_TRUSTSTORE_PASSWORD).getValue().toCharArray(),
-                        context.getProperty(PROP_TRUSTSTORE_TYPE).getValue(),
-                        protocol);
-
-            } else if (truststoreFile == null) {
-                // If truststore not specified, create SSL Context based only on key store.
-                sslContext = SslContextFactory.createSslContext(
-                        context.getProperty(PROP_KEYSTORE).getValue(),
-                        context.getProperty(PROP_KEYSTORE_PASSWORD).getValue().toCharArray(),
-                        keyPassword,
-                        context.getProperty(PROP_KEYSTORE_TYPE).getValue(),
-                        protocol);
-
-            } else {
-                sslContext = SslContextFactory.createSslContext(
-                        context.getProperty(PROP_KEYSTORE).getValue(),
-                        context.getProperty(PROP_KEYSTORE_PASSWORD).getValue().toCharArray(),
-                        keyPassword,
-                        context.getProperty(PROP_KEYSTORE_TYPE).getValue(),
-                        context.getProperty(PROP_TRUSTSTORE).getValue(),
-                        context.getProperty(PROP_TRUSTSTORE_PASSWORD).getValue().toCharArray(),
-                        context.getProperty(PROP_TRUSTSTORE_TYPE).getValue(),
-                        SslContextFactory.ClientAuth.REQUIRED,
-                        protocol);
-            }
-
-            return sslContext.getSocketFactory();
-        } catch (final Exception e) {
-            throw new ProcessException(e);
         }
     }
 }

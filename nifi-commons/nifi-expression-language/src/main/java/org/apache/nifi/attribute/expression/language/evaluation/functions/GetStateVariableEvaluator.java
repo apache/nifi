@@ -17,13 +17,11 @@
 
 package org.apache.nifi.attribute.expression.language.evaluation.functions;
 
-import org.apache.nifi.attribute.expression.language.AttributesAndState;
+import org.apache.nifi.attribute.expression.language.EvaluationContext;
 import org.apache.nifi.attribute.expression.language.evaluation.Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.QueryResult;
 import org.apache.nifi.attribute.expression.language.evaluation.StringEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.StringQueryResult;
-
-import java.util.Map;
 
 public class GetStateVariableEvaluator extends StringEvaluator {
 
@@ -34,21 +32,13 @@ public class GetStateVariableEvaluator extends StringEvaluator {
     }
 
     @Override
-    public QueryResult<String> evaluate(Map<String, String> attributes) {
-        if (!(attributes instanceof AttributesAndState)){
-            return new StringQueryResult(null);
-        }
-
-        final String subjectValue = subject.evaluate(attributes).getValue();
+    public QueryResult<String> evaluate(final EvaluationContext evaluationContext) {
+        final String subjectValue = subject.evaluate(evaluationContext).getValue();
         if (subjectValue == null) {
             return new StringQueryResult(null);
         }
 
-        AttributesAndState attributesAndState = (AttributesAndState) attributes;
-
-        Map<String, String> stateMap = attributesAndState.getStateMap();
-        String stateValue = stateMap.get(subjectValue);
-
+        final String stateValue = evaluationContext.getState(subjectValue);
         return new StringQueryResult(stateValue);
     }
 

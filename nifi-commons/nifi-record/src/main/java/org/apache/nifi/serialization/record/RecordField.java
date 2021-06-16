@@ -71,7 +71,7 @@ public class RecordField {
 
         // If aliases is the empty set, don't bother with the expense of wrapping in an unmodifiableSet.
         Objects.requireNonNull(aliases);
-        if ((Set<?>) aliases == Collections.EMPTY_SET) {
+        if (aliases == Collections.EMPTY_SET) {
             this.aliases = aliases;
         } else {
             this.aliases = Collections.unmodifiableSet(aliases);

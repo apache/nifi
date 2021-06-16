@@ -44,4 +44,10 @@ public interface ControllerServiceInitializationContext extends KerberosContext 
      * @return the StateManager that can be used to store and retrieve state for this component
      */
     StateManager getStateManager();
+
+    /**
+     * @return the {@link NodeTypeProvider} which can be used to detect the node
+     * type of this NiFi instance.
+     */
+    NodeTypeProvider getNodeTypeProvider();
 }

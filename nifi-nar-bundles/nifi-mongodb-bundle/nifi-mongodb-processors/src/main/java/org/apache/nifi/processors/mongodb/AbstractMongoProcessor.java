@@ -26,14 +26,28 @@ import com.mongodb.MongoClientURI;
 import com.mongodb.WriteConcern;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+import javax.net.ssl.SSLContext;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
-import org.apache.nifi.authentication.exception.ProviderCreationException;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.mongodb.MongoDBClientService;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -43,16 +57,6 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.ssl.SSLContextService;
 import org.bson.Document;
-
-import javax.net.ssl.SSLContext;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 
 public abstract class AbstractMongoProcessor extends AbstractProcessor {
     static final String WRITE_CONCERN_ACKNOWLEDGED = "ACKNOWLEDGED";
@@ -69,16 +73,24 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
     protected static final AllowableValue JSON_STANDARD = new AllowableValue(JSON_TYPE_STANDARD, "Standard JSON",
             "Generate a JSON document that conforms to typical JSON conventions instead of Mongo-specific conventions.");
 
-    protected static final PropertyDescriptor URI = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor CLIENT_SERVICE = new PropertyDescriptor.Builder()
+        .name("mongo-client-service")
+        .displayName("Client Service")
+        .description("If configured, this property will use the assigned client service for connection pooling.")
+        .required(false)
+        .identifiesControllerService(MongoDBClientService.class)
+        .build();
+
+    static final PropertyDescriptor URI = new PropertyDescriptor.Builder()
         .name("Mongo URI")
         .displayName("Mongo URI")
         .description("MongoURI, typically of the form: mongodb://host1[:port1][,host2[:port2],...]")
-        .required(true)
+        .required(false)
         .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build();
 
-    protected static final PropertyDescriptor DATABASE_NAME = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor DATABASE_NAME = new PropertyDescriptor.Builder()
         .name("Mongo Database Name")
         .displayName("Mongo Database Name")
         .description("The name of the database to use")
@@ -87,7 +99,7 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .build();
 
-    protected static final PropertyDescriptor COLLECTION_NAME = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor COLLECTION_NAME = new PropertyDescriptor.Builder()
         .name("Mongo Collection Name")
         .description("The name of the collection to use")
         .required(true)
@@ -108,24 +120,24 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
             .build();
 
     public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
-        .name("ssl-context-service")
-        .displayName("SSL Context Service")
-        .description("The SSL Context Service used to provide client certificate information for TLS/SSL "
-                + "connections.")
-        .required(false)
-        .identifiesControllerService(SSLContextService.class)
-        .build();
+            .name("ssl-context-service")
+            .displayName("SSL Context Service")
+            .description("The SSL Context Service used to provide client certificate information for TLS/SSL "
+                    + "connections.")
+            .required(false)
+            .identifiesControllerService(SSLContextService.class)
+            .build();
 
     public static final PropertyDescriptor CLIENT_AUTH = new PropertyDescriptor.Builder()
-        .name("ssl-client-auth")
-        .displayName("Client Auth")
-        .description("Client authentication policy when connecting to secure (TLS/SSL) cluster. "
-                + "Possible values are REQUIRED, WANT, NONE. This property is only used when an SSL Context "
-                + "has been defined and enabled.")
-        .required(false)
-        .allowableValues(SSLContextService.ClientAuth.values())
-        .defaultValue("REQUIRED")
-        .build();
+            .name("ssl-client-auth")
+            .displayName("Client Auth")
+            .description("Client authentication policy when connecting to secure (TLS/SSL) cluster. "
+                    + "Possible values are REQUIRED, WANT, NONE. This property is only used when an SSL Context "
+                    + "has been defined and enabled.")
+            .required(false)
+            .allowableValues(SslContextFactory.ClientAuth.values())
+            .defaultValue("REQUIRED")
+            .build();
 
     public static final PropertyDescriptor WRITE_CONCERN = new PropertyDescriptor.Builder()
             .name("Write Concern")
@@ -173,21 +185,54 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
-    static List<PropertyDescriptor> descriptors = new ArrayList<>();
+    static final PropertyDescriptor DATE_FORMAT = new PropertyDescriptor.Builder()
+        .name("mongo-date-format")
+        .displayName("Date Format")
+        .description("The date format string to use for formatting Date fields that are returned from Mongo. It is only " +
+                "applied when the JSON output format is set to Standard JSON. Full documentation for format characters can be " +
+                "found here: https://docs.oracle.com/javase/8/docs/api/java/text/SimpleDateFormat.html")
+        .defaultValue("yyyy-MM-dd'T'HH:mm:ss'Z'")
+        .addValidator((subject, input, context) -> {
+            ValidationResult.Builder result = new ValidationResult.Builder()
+                .subject(subject)
+                .input(input);
+            try {
+                new SimpleDateFormat(input).format(new Date());
+                result.valid(true);
+            } catch (Exception ex) {
+                result.valid(false)
+                    .explanation(ex.getMessage());
+            }
+
+            return result.build();
+        })
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+        .build();
+
+    static final List<PropertyDescriptor> descriptors;
 
     static {
-        descriptors.add(URI);
-        descriptors.add(DATABASE_NAME);
-        descriptors.add(COLLECTION_NAME);
-        descriptors.add(SSL_CONTEXT_SERVICE);
-        descriptors.add(CLIENT_AUTH);
+        List<PropertyDescriptor> _temp = new ArrayList<>();
+        _temp.add(CLIENT_SERVICE);
+        _temp.add(URI);
+        _temp.add(DATABASE_NAME);
+        _temp.add(COLLECTION_NAME);
+        _temp.add(SSL_CONTEXT_SERVICE);
+        _temp.add(CLIENT_AUTH);
+        descriptors = Collections.unmodifiableList(_temp);
     }
 
     protected ObjectMapper objectMapper;
     protected MongoClient mongoClient;
+    protected MongoDBClientService clientService;
 
     @OnScheduled
     public final void createClient(ProcessContext context) throws IOException {
+        if (context.getProperty(CLIENT_SERVICE).isSet()) {
+            clientService = context.getProperty(CLIENT_SERVICE).asControllerService(MongoDBClientService.class);
+            return;
+        }
+
         if (mongoClient != null) {
             closeClient();
         }
@@ -200,14 +245,14 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
         final SSLContext sslContext;
 
         if (sslService != null) {
-            final SSLContextService.ClientAuth clientAuth;
+            final SslContextFactory.ClientAuth clientAuth;
             if (StringUtils.isBlank(rawClientAuth)) {
-                clientAuth = SSLContextService.ClientAuth.REQUIRED;
+                clientAuth = SslContextFactory.ClientAuth.REQUIRED;
             } else {
                 try {
-                    clientAuth = SSLContextService.ClientAuth.valueOf(rawClientAuth);
+                    clientAuth = SslContextFactory.ClientAuth.valueOf(rawClientAuth);
                 } catch (final IllegalArgumentException iae) {
-                    throw new ProviderCreationException(String.format("Unrecognized client auth '%s'. Possible values are [%s]",
+                    throw new IllegalStateException(String.format("Unrecognized client auth '%s'. Possible values are [%s]",
                             rawClientAuth, StringUtils.join(SslContextFactory.ClientAuth.values(), ", ")));
                 }
             }
@@ -244,20 +289,10 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
         }
     }
 
-    protected MongoDatabase getDatabase(final ProcessContext context) {
-        return getDatabase(context, null);
-    }
-
     protected MongoDatabase getDatabase(final ProcessContext context, final FlowFile flowFile) {
         final String databaseName = context.getProperty(DATABASE_NAME).evaluateAttributeExpressions(flowFile).getValue();
-        if (StringUtils.isEmpty(databaseName)) {
-            throw new ProcessException("Database name was empty after expression language evaluation.");
-        }
-        return mongoClient.getDatabase(databaseName);
-    }
 
-    protected MongoCollection<Document> getCollection(final ProcessContext context) {
-        return getCollection(context, null);
+        return clientService!= null ? clientService.getDatabase(databaseName) : mongoClient.getDatabase(databaseName);
     }
 
     protected MongoCollection<Document> getCollection(final ProcessContext context, final FlowFile flowFile) {
@@ -269,7 +304,11 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
     }
 
     protected String getURI(final ProcessContext context) {
-        return context.getProperty(URI).evaluateAttributeExpressions().getValue();
+        if (clientService != null) {
+            return clientService.getURI();
+        } else {
+            return context.getProperty(URI).evaluateAttributeExpressions().getValue();
+        }
     }
 
     protected WriteConcern getWriteConcern(final ProcessContext context) {
@@ -301,23 +340,43 @@ public abstract class AbstractMongoProcessor extends AbstractProcessor {
     }
 
     protected void writeBatch(String payload, FlowFile parent, ProcessContext context, ProcessSession session,
-            Map<String, String> extraAttributes, Relationship rel) throws UnsupportedEncodingException {
+                              Map<String, String> extraAttributes, Relationship rel) throws UnsupportedEncodingException {
         String charset = context.getProperty(CHARSET).evaluateAttributeExpressions(parent).getValue();
 
         FlowFile flowFile = parent != null ? session.create(parent) : session.create();
         flowFile = session.importFrom(new ByteArrayInputStream(payload.getBytes(charset)), flowFile);
         flowFile = session.putAllAttributes(flowFile, extraAttributes);
-        session.getProvenanceReporter().receive(flowFile, getURI(context));
+        if (parent == null) {
+            session.getProvenanceReporter().receive(flowFile, getURI(context));
+        }
         session.transfer(flowFile, rel);
     }
 
-    protected synchronized void configureMapper(String setting) {
+    protected synchronized void configureMapper(String setting, String dateFormat) {
         objectMapper = new ObjectMapper();
 
         if (setting.equals(JSON_TYPE_STANDARD)) {
             objectMapper.registerModule(ObjectIdSerializer.getModule());
-            DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+            DateFormat df = new SimpleDateFormat(dateFormat);
             objectMapper.setDateFormat(df);
         }
+    }
+
+    @Override
+    protected Collection<ValidationResult> customValidate(ValidationContext context) {
+        List<ValidationResult> retVal = new ArrayList<>();
+
+        boolean clientIsSet = context.getProperty(CLIENT_SERVICE).isSet();
+        boolean uriIsSet    = context.getProperty(URI).isSet();
+
+        if (clientIsSet && uriIsSet) {
+            String msg = "The client service and URI fields cannot be set at the same time.";
+            retVal.add(new ValidationResult.Builder().valid(false).explanation(msg).build());
+        } else if (!clientIsSet && !uriIsSet) {
+            String msg = "The client service or the URI field must be set.";
+            retVal.add(new ValidationResult.Builder().valid(false).explanation(msg).build());
+        }
+
+        return retVal;
     }
 }

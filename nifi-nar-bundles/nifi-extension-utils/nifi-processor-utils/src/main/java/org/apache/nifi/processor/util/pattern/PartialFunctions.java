@@ -32,7 +32,7 @@ public class PartialFunctions {
 
     @FunctionalInterface
     public interface InitConnection<FC, C> {
-        C apply(ProcessContext context, ProcessSession session, FC functionContext, FlowFile flowFile) throws ProcessException;
+        C apply(ProcessContext context, ProcessSession session, FC functionContext, List<FlowFile> flowFiles) throws ProcessException;
     }
 
     @FunctionalInterface
@@ -96,6 +96,12 @@ public class PartialFunctions {
     public interface RollbackSession {
         void rollback(ProcessSession session, Throwable t);
     }
+
+    @FunctionalInterface
+    public interface AdjustFailed {
+        boolean apply(ProcessContext context, RoutingResult result);
+    }
+
 
     /**
      * <p>This method is identical to what {@link org.apache.nifi.processor.AbstractProcessor#onTrigger(ProcessContext, ProcessSession)} does.</p>

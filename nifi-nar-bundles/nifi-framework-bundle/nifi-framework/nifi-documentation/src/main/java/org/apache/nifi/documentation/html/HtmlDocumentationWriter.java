@@ -67,6 +67,12 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
      */
     public static final String ADDITIONAL_DETAILS_HTML = "additionalDetails.html";
 
+    private final ExtensionManager extensionManager;
+
+    public HtmlDocumentationWriter(final ExtensionManager extensionManager) {
+        this.extensionManager = extensionManager;
+    }
+
     @Override
     public void write(final ConfigurableComponent configurableComponent, final OutputStream streamToWriteTo,
             final boolean includesAdditionalDocumentation) throws IOException {
@@ -848,7 +854,7 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
         final List<Class<? extends ControllerService>> implementations = new ArrayList<>();
 
         // first get all ControllerService implementations
-        final Set<Class> controllerServices = ExtensionManager.getExtensions(ControllerService.class);
+        final Set<Class> controllerServices = extensionManager.getExtensions(ControllerService.class);
 
         // then iterate over all controller services looking for any that is a child of the parent
         // ControllerService API that was passed in as a parameter
@@ -891,7 +897,7 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
         int index = 0;
         for (final Class<? extends ConfigurableComponent> linkedComponent : linkedComponents ) {
             final String linkedComponentName = linkedComponent.getName();
-            final List<Bundle> linkedComponentBundles = ExtensionManager.getBundles(linkedComponentName);
+            final List<Bundle> linkedComponentBundles = extensionManager.getBundles(linkedComponentName);
             if (linkedComponentBundles != null && linkedComponentBundles.size() > 0) {
                 final Bundle firstLinkedComponentBundle = linkedComponentBundles.get(0);
                 final BundleCoordinate coordinate = firstLinkedComponentBundle.getBundleDetails().getCoordinate();
@@ -927,7 +933,7 @@ public class HtmlDocumentationWriter implements DocumentationWriter {
                     }
                 }
 
-                final List<Bundle> linkedComponentBundles = ExtensionManager.getBundles(className);
+                final List<Bundle> linkedComponentBundles = extensionManager.getBundles(className);
 
                 if (linkedComponentBundles != null && linkedComponentBundles.size() > 0) {
                     final Bundle firstBundle = linkedComponentBundles.get(0);

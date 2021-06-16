@@ -19,6 +19,9 @@ if (flowFile == null) {
     context?.yield();
 }
 else {
+    // Try to parse a date here, will fail after Groovy 2.5.0 if groovy-dateutil is not included
+    Date.parse('yyyyMMdd', '20190630')
+
     flowFile = session.putAttribute(flowFile, "from-content", "test content")
     session.transfer(flowFile, REL_SUCCESS)
 }

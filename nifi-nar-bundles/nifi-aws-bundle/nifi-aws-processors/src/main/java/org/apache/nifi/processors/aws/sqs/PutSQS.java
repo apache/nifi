@@ -40,12 +40,14 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 
 import com.amazonaws.services.sqs.AmazonSQSClient;
 import com.amazonaws.services.sqs.model.MessageAttributeValue;
 import com.amazonaws.services.sqs.model.SendMessageBatchRequest;
 import com.amazonaws.services.sqs.model.SendMessageBatchRequestEntry;
+import com.amazonaws.services.sqs.model.SendMessageBatchResult;
 
 @SupportsBatching
 @SeeAlso({ GetSQS.class, DeleteSQS.class })
@@ -135,7 +137,12 @@ public class PutSQS extends AbstractSQSProcessor {
         request.setEntries(entries);
 
         try {
-            client.sendMessageBatch(request);
+            SendMessageBatchResult response = client.sendMessageBatch(request);
+
+            // check for errors
+            if (!response.getFailed().isEmpty()) {
+                throw new ProcessException(response.getFailed().get(0).toString());
+            }
         } catch (final Exception e) {
             getLogger().error("Failed to send messages to Amazon SQS due to {}; routing to failure", new Object[]{e});
             flowFile = session.penalize(flowFile);

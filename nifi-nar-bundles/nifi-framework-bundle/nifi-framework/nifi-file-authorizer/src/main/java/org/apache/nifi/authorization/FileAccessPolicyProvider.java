@@ -16,39 +16,6 @@
  */
 package org.apache.nifi.authorization;
 
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.IOException;
-import java.io.StringWriter;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import javax.xml.XMLConstants;
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBElement;
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Marshaller;
-import javax.xml.bind.Unmarshaller;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.stream.XMLOutputFactory;
-import javax.xml.stream.XMLStreamException;
-import javax.xml.stream.XMLStreamReader;
-import javax.xml.stream.XMLStreamWriter;
-import javax.xml.transform.stream.StreamSource;
-import javax.xml.validation.Schema;
-import javax.xml.validation.SchemaFactory;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.annotation.AuthorizerContext;
 import org.apache.nifi.authorization.exception.AuthorizationAccessException;
@@ -75,6 +42,42 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
+
+import javax.xml.XMLConstants;
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBElement;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Marshaller;
+import javax.xml.bind.Unmarshaller;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.stream.XMLOutputFactory;
+import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLStreamReader;
+import javax.xml.stream.XMLStreamWriter;
+import javax.xml.transform.stream.StreamSource;
+import javax.xml.validation.Schema;
+import javax.xml.validation.SchemaFactory;
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.StringWriter;
+import java.nio.charset.StandardCharsets;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvider {
 
@@ -114,6 +117,7 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
     static final String WRITE_CODE = "W";
 
     static final String PROP_NODE_IDENTITY_PREFIX = "Node Identity ";
+    static final String PROP_NODE_GROUP_NAME = "Node Group";
     static final String PROP_USER_GROUP_PROVIDER = "User Group Provider";
     static final String PROP_AUTHORIZATIONS_FILE = "Authorizations File";
     static final String PROP_INITIAL_ADMIN_IDENTITY = "Initial Admin Identity";
@@ -128,6 +132,7 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
     private String initialAdminIdentity;
     private String legacyAuthorizedUsersFile;
     private Set<String> nodeIdentities;
+    private String nodeGroupIdentifier;
     private List<PortDTO> ports = new ArrayList<>();
     private List<IdentityMapping> identityMappings;
     private List<IdentityMapping> groupMappings;
@@ -222,6 +227,32 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
                 }
             }
 
+            // read node group name
+            PropertyValue nodeGroupNameProp = configurationContext.getProperty(PROP_NODE_GROUP_NAME);
+            String nodeGroupName = (nodeGroupNameProp != null && nodeGroupNameProp.isSet()) ? nodeGroupNameProp.getValue() : null;
+
+            // look up node group identifier using node group name
+            nodeGroupIdentifier = null;
+
+            if (nodeGroupName != null) {
+                if (!StringUtils.isBlank(nodeGroupName)) {
+                    logger.debug("Trying to load node group '{}' from the underlying userGroupProvider", nodeGroupName);
+                    for (Group group : userGroupProvider.getGroups()) {
+                        if (group.getName().equals(nodeGroupName)) {
+                            nodeGroupIdentifier = group.getIdentifier();
+                            break;
+                        }
+                    }
+
+                    if (nodeGroupIdentifier == null) {
+                        throw new AuthorizerCreationException(String.format(
+                            "Authorizations node group '%s' could not be found", nodeGroupName));
+                    }
+                } else {
+                    logger.debug("Empty node group name provided");
+                }
+            }
+
             // load the authorizations
             load();
 
@@ -248,21 +279,52 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
 
     @Override
     public synchronized AccessPolicy addAccessPolicy(AccessPolicy accessPolicy) throws AuthorizationAccessException {
-        if (accessPolicy == null) {
-            throw new IllegalArgumentException("AccessPolicy cannot be null");
+        addAccessPolicies(Collections.singletonList(accessPolicy));
+        return authorizationsHolder.get().getPoliciesById().get(accessPolicy.getIdentifier());
+    }
+
+    private synchronized void addAccessPolicies(final List<AccessPolicy> accessPolicies) throws AuthorizationAccessException {
+        if (accessPolicies == null) {
+            throw new IllegalArgumentException("AccessPolicies cannot be null");
         }
 
-        // create the new JAXB Policy
-        final Policy policy = createJAXBPolicy(accessPolicy);
-
-        // add the new Policy to the top-level list of policies
         final AuthorizationsHolder holder = authorizationsHolder.get();
         final Authorizations authorizations = holder.getAuthorizations();
-        authorizations.getPolicies().getPolicy().add(policy);
+        final List<Policy> policyList = authorizations.getPolicies().getPolicy();
+
+        for (final AccessPolicy accessPolicy : accessPolicies) {
+            // create the new JAXB Policy
+            final Policy policy = createJAXBPolicy(accessPolicy);
+
+            // add the new Policy to the top-level list of policies
+            policyList.add(policy);
+        }
 
         saveAndRefreshHolder(authorizations);
+    }
 
-        return authorizationsHolder.get().getPoliciesById().get(accessPolicy.getIdentifier());
+    public synchronized void purgePolicies(final boolean save) {
+        final AuthorizationsHolder holder = authorizationsHolder.get();
+        final Authorizations authorizations = holder.getAuthorizations();
+        final List<Policy> policyList = authorizations.getPolicies().getPolicy();
+
+        policyList.clear();
+
+        if (save) {
+            saveAndRefreshHolder(authorizations);
+        }
+    }
+
+    public void backupPolicies() throws JAXBException {
+        final AuthorizationsHolder holder = authorizationsHolder.get();
+        final Authorizations authorizations = holder.getAuthorizations();
+
+        final DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss");
+        final String timestamp = dateFormat.format(new Date());
+
+        final File backupFile = new File(authorizationsFile.getParentFile(), authorizationsFile.getName() + "." + timestamp);
+        logger.info("Writing backup of Policies to {}", backupFile.getAbsolutePath());
+        saveAuthorizations(authorizations, backupFile);
     }
 
     @Override
@@ -351,22 +413,53 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
 
     @Override
     public synchronized void inheritFingerprint(String fingerprint) throws AuthorizationAccessException {
-        parsePolicies(fingerprint).forEach(policy -> addAccessPolicy(policy));
+        final List<AccessPolicy> accessPolicies = parsePolicies(fingerprint);
+        inheritAccessPolicies(accessPolicies);
+    }
+
+    private synchronized void inheritAccessPolicies(final List<AccessPolicy> accessPolicies) {
+        addAccessPolicies(accessPolicies);
+    }
+
+    @Override
+    public synchronized void forciblyInheritFingerprint(final String fingerprint) throws AuthorizationAccessException {
+        final List<AccessPolicy> accessPolicies = parsePolicies(fingerprint);
+
+        if (isInheritable(accessPolicies)) {
+            logger.debug("Inheriting cluster's Access Policies");
+            inheritAccessPolicies(accessPolicies);
+        } else {
+            logger.info("Cannot directly inherit cluster's Access Policies. Will create backup of existing policies and replace with proposed policies");
+
+            try {
+                backupPolicies();
+            } catch (final JAXBException jaxb) {
+                throw new AuthorizationAccessException("Failed to backup existing policies so will not inherit any policies", jaxb);
+            }
+
+            purgePolicies(false);
+            addAccessPolicies(accessPolicies);
+        }
     }
 
     @Override
     public void checkInheritability(String proposedFingerprint) throws AuthorizationAccessException, UninheritableAuthorizationsException {
+        final List<AccessPolicy> accessPolicies;
         try {
             // ensure we can understand the proposed fingerprint
-            parsePolicies(proposedFingerprint);
+            accessPolicies = parsePolicies(proposedFingerprint);
         } catch (final AuthorizationAccessException e) {
             throw new UninheritableAuthorizationsException("Unable to parse the proposed fingerprint: " + e);
         }
 
         // ensure we are in a proper state to inherit the fingerprint
-        if (!getAccessPolicies().isEmpty()) {
+        if (!isInheritable(accessPolicies)) {
             throw new UninheritableAuthorizationsException("Proposed fingerprint is not inheritable because the current access policies is not empty.");
         }
+    }
+
+    private boolean isInheritable(final List<AccessPolicy> accessPolicies) {
+        return getAccessPolicies().isEmpty();
     }
 
     @Override
@@ -526,10 +619,14 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
     }
 
     private void saveAuthorizations(final Authorizations authorizations) throws JAXBException {
+        saveAuthorizations(authorizations, authorizationsFile);
+    }
+
+    private void saveAuthorizations(final Authorizations authorizations, final File destinationFile) throws JAXBException {
         final Marshaller marshaller = JAXB_AUTHORIZATIONS_CONTEXT.createMarshaller();
         marshaller.setSchema(authorizationsSchema);
         marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
-        marshaller.marshal(authorizations, authorizationsFile);
+        marshaller.marshal(authorizations, destinationFile);
     }
 
     private Authorizations unmarshallAuthorizations() throws JAXBException {
@@ -604,12 +701,13 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
      * @param authorizations the overall authorizations
      */
     private void populateNodes(Authorizations authorizations) {
+        // authorize static nodes
         for (String nodeIdentity : nodeIdentities) {
             final User node = userGroupProvider.getUserByIdentity(nodeIdentity);
             if (node == null) {
                 throw new AuthorizerCreationException("Unable to locate node " + nodeIdentity + " to seed policies.");
             }
-
+            logger.debug("Populating default authorizations for node '{}' ({})", node.getIdentity(), node.getIdentifier());
             // grant access to the proxy resource
             addUserToAccessPolicy(authorizations, ResourceType.Proxy.getValue(), node.getIdentifier(), WRITE_CODE);
 
@@ -617,6 +715,17 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
             if (rootGroupId != null) {
                 addUserToAccessPolicy(authorizations, ResourceType.Data.getValue() + ResourceType.ProcessGroup.getValue() + "/" + rootGroupId, node.getIdentifier(), READ_CODE);
                 addUserToAccessPolicy(authorizations, ResourceType.Data.getValue() + ResourceType.ProcessGroup.getValue() + "/" + rootGroupId, node.getIdentifier(), WRITE_CODE);
+            }
+        }
+
+        // authorize dynamic nodes (node group)
+        if (nodeGroupIdentifier != null) {
+            logger.debug("Populating default authorizations for group '{}' ({})", userGroupProvider.getGroup(nodeGroupIdentifier).getName(), nodeGroupIdentifier);
+            addGroupToAccessPolicy(authorizations, ResourceType.Proxy.getValue(), nodeGroupIdentifier, WRITE_CODE);
+
+            if (rootGroupId != null) {
+                addGroupToAccessPolicy(authorizations, ResourceType.Data.getValue() + ResourceType.ProcessGroup.getValue() + "/" + rootGroupId, nodeGroupIdentifier, READ_CODE);
+                addGroupToAccessPolicy(authorizations, ResourceType.Data.getValue() + ResourceType.ProcessGroup.getValue() + "/" + rootGroupId, nodeGroupIdentifier, WRITE_CODE);
             }
         }
     }
@@ -808,6 +917,52 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
             Policy.User policyUser = new Policy.User();
             policyUser.setIdentifier(userIdentifier);
             foundPolicy.getUser().add(policyUser);
+        }
+    }
+
+    /**
+     * Creates and adds an access policy for the given resource, group identity, and actions to the specified authorizations.
+     *
+     * @param authorizations the Authorizations instance to add the policy to
+     * @param resource       the resource for the policy
+     * @param groupIdentifier the identifier for the group to add to the policy
+     * @param action         the action for the policy
+     */
+    private void addGroupToAccessPolicy(final Authorizations authorizations, final String resource, final String groupIdentifier, final String action) {
+        // first try to find an existing policy for the given resource and action
+        Policy foundPolicy = null;
+        for (Policy policy : authorizations.getPolicies().getPolicy()) {
+            if (policy.getResource().equals(resource) && policy.getAction().equals(action)) {
+                foundPolicy = policy;
+                break;
+            }
+        }
+
+        if (foundPolicy == null) {
+            // if we didn't find an existing policy create a new one
+            final String uuidSeed = resource + action;
+
+            final AccessPolicy.Builder builder = new AccessPolicy.Builder()
+                    .identifierGenerateFromSeed(uuidSeed)
+                    .resource(resource)
+                    .addGroup(groupIdentifier);
+
+            if (action.equals(READ_CODE)) {
+                builder.action(RequestAction.READ);
+            } else if (action.equals(WRITE_CODE)) {
+                builder.action(RequestAction.WRITE);
+            } else {
+                throw new IllegalStateException("Unknown Policy Action: " + action);
+            }
+
+            final AccessPolicy accessPolicy = builder.build();
+            final Policy jaxbPolicy = createJAXBPolicy(accessPolicy);
+            authorizations.getPolicies().getPolicy().add(jaxbPolicy);
+        } else {
+            // otherwise add the user to the existing policy
+            Policy.Group policyGroup = new Policy.Group();
+            policyGroup.setIdentifier(groupIdentifier);
+            foundPolicy.getGroup().add(policyGroup);
         }
     }
 

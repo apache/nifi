@@ -90,10 +90,162 @@
     };
 
     /**
-     * Downloads the content for the flowfile currently being viewed.
+     * Initializes the listing column model.
      */
-    var downloadContent = function () {
-        var dataUri = $('#flowfile-uri').text() + '/content';
+    var getListingColumnModel = function () {
+        // define a custom formatter for showing more processor details
+        var moreDetailsFormatter = function (row, cell, value, columnDef, dataContext) {
+            return '<div class="pointer show-flowfile-details fa fa-info-circle" title="View Details" style="float: left;"></div>';
+        };
+
+        // function for formatting data sizes
+        var dataSizeFormatter = function (row, cell, value, columnDef, dataContext) {
+            return nfCommon.formatDataSize(value);
+        };
+
+        // function for formatting durations
+        var durationFormatter = function (row, cell, value, columnDef, dataContext) {
+            return nfCommon.formatDuration(value);
+        };
+
+        // function for formatting penalization
+        var penalizedFormatter = function (row, cell, value, columnDef, dataContext) {
+            if(value == 0) {
+                return 'No';
+            }
+
+            return nfCommon.formatDuration(value);
+        };
+
+        // initialize the queue listing table
+        var queueListingColumns = [
+            {
+                id: 'moreDetails',
+                field: 'moreDetails',
+                name: '&nbsp;',
+                sortable: false,
+                resizable: false,
+                formatter: moreDetailsFormatter,
+                width: 50,
+                maxWidth: 50
+            },
+            {
+                id: 'position',
+                name: 'Position',
+                field: 'position',
+                sortable: false,
+                resizable: false,
+                width: 75,
+                maxWidth: 75,
+                formatter: nfCommon.genericValueFormatter
+            },
+            {
+                id: 'uuid',
+                name: 'UUID',
+                field: 'uuid',
+                sortable: false,
+                resizable: true,
+                formatter: nfCommon.genericValueFormatter
+            },
+            {
+                id: 'filename',
+                name: 'Filename',
+                field: 'filename',
+                sortable: false,
+                resizable: true,
+                formatter: nfCommon.genericValueFormatter
+            },
+            {
+                id: 'size',
+                name: 'File Size',
+                field: 'size',
+                sortable: false,
+                resizable: true,
+                defaultSortAsc: false,
+                formatter: dataSizeFormatter
+            },
+            {
+                id: 'queuedDuration',
+                name: 'Queued Duration',
+                field: 'queuedDuration',
+                sortable: false,
+                resizable: true,
+                formatter: durationFormatter
+            },
+            {
+                id: 'lineageDuration',
+                name: 'Lineage Duration',
+                field: 'lineageDuration',
+                sortable: false,
+                resizable: true,
+                formatter: durationFormatter
+            },
+            {
+                id: 'penalized',
+                name: 'Penalized',
+                field: 'penaltyExpiresIn',
+                sortable: false,
+                resizable: false,
+                width: 100,
+                maxWidth: 100,
+                formatter: penalizedFormatter
+            }
+        ];
+
+        // conditionally show the cluster node identifier
+        if (nfClusterSummary.isConnectedToCluster()) {
+            queueListingColumns.push({
+                id: 'clusterNodeAddress',
+                name: 'Node',
+                field: 'clusterNodeAddress',
+                sortable: false,
+                resizable: true,
+                formatter: nfCommon.genericValueFormatter
+            });
+        }
+
+        // function for formatting actions column
+        var actionsFormatter = function (row,cell,value,columnDef,dataContext) {
+            var formatted = '';
+
+            var disabled = (dataContext.size > 0)?false:true;
+            formatted += '<div class="icon download-flowfile-content fa fa-download '+((disabled)?'disabled':'pointer')+'"'+
+                ' title="'+((disabled)?'No content available to download':'Download content')+'" aria-hidden="true"></div>';
+
+            if(nfCommon.isContentViewConfigured()){
+                formatted += '<div class="icon view-flowfile-content fa fa-eye '+((disabled)?'disabled':'pointer')+'"'+
+                    ' title="'+((disabled)?'No content available to view':'View content')+'" aria-hidden="true"></div>';
+            }
+
+            if(nfCommon.canAccessProvenance()){
+                formatted += '<div title="Provenance" class="pointer icon icon-provenance view-provenance" aria-hidden="true"></div>';
+            }
+
+            return formatted;
+        };
+
+        // add an actions column to the column model
+        queueListingColumns.push({
+            id: 'actions',
+            name: '&nbsp;',
+            resizable: false,
+            formatter: actionsFormatter,
+            sortable: false,
+            width: 75,
+            maxWidth: 75
+        });
+
+
+        return queueListingColumns;
+    };
+
+    /**
+     * Downloads the content for the flowfile currently being viewed.
+     *
+     * @param flowFileSummary|{flowfile} (optional) -  the flowfile summary
+     */
+    var downloadContent = function (flowFileSummary) {
+        var dataUri = ((nfCommon.isDefinedAndNotNull(flowFileSummary.uri))?flowFileSummary.uri:$('#flowfile-uri').text())+ '/content';
 
         // perform the request once we've received a token
         nfCommon.getAccessToken(config.urls.downloadToken).done(function (downloadToken) {
@@ -105,7 +257,7 @@
             }
 
             // conditionally include the cluster node id
-            var clusterNodeId = $('#flowfile-cluster-node-id').text();
+            var clusterNodeId = (nfCommon.isDefinedAndNotNull(flowFileSummary.clusterNodeId))?flowFileSummary.clusterNodeId:$('#flowfile-cluster-node-id').text();
             if (!nfCommon.isBlank(clusterNodeId)) {
                 parameters['clusterNodeId'] = clusterNodeId;
             }
@@ -126,9 +278,12 @@
 
     /**
      * Views the content for the flowfile currently being viewed.
+     *
+     * @param flowFileSummary|{flowfile} (optional) -  the flowfile summary
      */
-    var viewContent = function () {
-        var dataUri = $('#flowfile-uri').text() + '/content';
+    var viewContent = function (flowFileSummary) {
+
+        var dataUri = ((nfCommon.isDefinedAndNotNull(flowFileSummary.uri))?flowFileSummary.uri:$('#flowfile-uri').text())+ '/content';
 
         // generate tokens as necessary
         var getAccessTokens = $.Deferred(function (deferred) {
@@ -165,7 +320,7 @@
             var dataUriParameters = {};
 
             // conditionally include the cluster node id
-            var clusterNodeId = $('#flowfile-cluster-node-id').text();
+            var clusterNodeId = (nfCommon.isDefinedAndNotNull(flowFileSummary.clusterNodeId))?flowFileSummary.clusterNodeId:$('#flowfile-cluster-node-id').text();
             if (!nfCommon.isBlank(clusterNodeId)) {
                 dataUriParameters['clusterNodeId'] = clusterNodeId;
             }
@@ -306,6 +461,7 @@
 
                         // get the grid to load the data
                         var queueListingGrid = $('#queue-listing-table').data('gridInstance');
+                        queueListingGrid.setColumns(getListingColumnModel());
                         var queueListingData = queueListingGrid.getData();
 
                         // load the flowfiles
@@ -428,7 +584,7 @@
             $('#flowfile-file-size').html(nfCommon.formatValue(fileSize));
             $('#flowfile-queued-duration').text(nfCommon.formatDuration(flowFile.queuedDuration));
             $('#flowfile-lineage-duration').text(nfCommon.formatDuration(flowFile.lineageDuration));
-            $('#flowfile-penalized').text(flowFile.penalized === true ? 'Yes' : 'No');
+            $('#flowfile-penalized').text(flowFile.penaltyExpiresIn == 0 ? 'No' : nfCommon.formatDuration(flowFile.penaltyExpiresIn));
 
             // conditionally show the cluster node identifier
             if (nfCommon.isDefinedAndNotNull(flowFileSummary.clusterNodeId)) {
@@ -497,137 +653,6 @@
                 performListing(connection);
             });
 
-            // define a custom formatter for showing more processor details
-            var moreDetailsFormatter = function (row, cell, value, columnDef, dataContext) {
-                return '<div class="pointer show-flowfile-details fa fa-info-circle" title="View Details" style="float: left;"></div>';
-            };
-
-            // function for formatting data sizes
-            var dataSizeFormatter = function (row, cell, value, columnDef, dataContext) {
-                return nfCommon.formatDataSize(value);
-            };
-
-            // function for formatting durations
-            var durationFormatter = function (row, cell, value, columnDef, dataContext) {
-                return nfCommon.formatDuration(value);
-            };
-
-            // function for formatting penalization
-            var penalizedFormatter = function (row, cell, value, columnDef, dataContext) {
-                var markup = '';
-
-                if (value === true) {
-                    markup += 'Yes';
-                }
-
-                return markup;
-            };
-
-            // initialize the queue listing table
-            var queueListingColumns = [
-                {
-                    id: 'moreDetails',
-                    field: 'moreDetails',
-                    name: '&nbsp;',
-                    sortable: false,
-                    resizable: false,
-                    formatter: moreDetailsFormatter,
-                    width: 50,
-                    maxWidth: 50
-                },
-                {
-                    id: 'position',
-                    name: 'Position',
-                    field: 'position',
-                    sortable: false,
-                    resizable: false,
-                    width: 75,
-                    maxWidth: 75,
-                    formatter: nfCommon.genericValueFormatter
-                },
-                {
-                    id: 'uuid',
-                    name: 'UUID',
-                    field: 'uuid',
-                    sortable: false,
-                    resizable: true,
-                    formatter: nfCommon.genericValueFormatter
-                },
-                {
-                    id: 'filename',
-                    name: 'Filename',
-                    field: 'filename',
-                    sortable: false,
-                    resizable: true,
-                    formatter: nfCommon.genericValueFormatter
-                },
-                {
-                    id: 'size',
-                    name: 'File Size',
-                    field: 'size',
-                    sortable: false,
-                    resizable: true,
-                    defaultSortAsc: false,
-                    formatter: dataSizeFormatter
-                },
-                {
-                    id: 'queuedDuration',
-                    name: 'Queued Duration',
-                    field: 'queuedDuration',
-                    sortable: false,
-                    resizable: true,
-                    formatter: durationFormatter
-                },
-                {
-                    id: 'lineageDuration',
-                    name: 'Lineage Duration',
-                    field: 'lineageDuration',
-                    sortable: false,
-                    resizable: true,
-                    formatter: durationFormatter
-                },
-                {
-                    id: 'penalized',
-                    name: 'Penalized',
-                    field: 'penalized',
-                    sortable: false,
-                    resizable: false,
-                    width: 100,
-                    maxWidth: 100,
-                    formatter: penalizedFormatter
-                }
-            ];
-
-            // conditionally show the cluster node identifier
-            if (nfClusterSummary.isClustered()) {
-                queueListingColumns.push({
-                    id: 'clusterNodeAddress',
-                    name: 'Node',
-                    field: 'clusterNodeAddress',
-                    sortable: false,
-                    resizable: true,
-                    formatter: nfCommon.genericValueFormatter
-                });
-            }
-
-            // add an actions column when the user can access provenance
-            if (nfCommon.canAccessProvenance()) {
-                // function for formatting actions
-                var actionsFormatter = function () {
-                    return '<div title="Provenance" class="pointer icon icon-provenance view-provenance"></div>';
-                };
-
-                queueListingColumns.push({
-                    id: 'actions',
-                    name: '&nbsp;',
-                    resizable: false,
-                    formatter: actionsFormatter,
-                    sortable: false,
-                    width: 50,
-                    maxWidth: 50
-                });
-            }
-
             var queueListingOptions = {
                 forceFitColumns: true,
                 enableTextSelectionOnCells: true,
@@ -644,7 +669,7 @@
             queueListingData.setItems([]);
 
             // initialize the grid
-            var queueListingGrid = new Slick.Grid('#queue-listing-table', queueListingData, queueListingColumns, queueListingOptions);
+            var queueListingGrid = new Slick.Grid('#queue-listing-table', queueListingData, getListingColumnModel(), queueListingOptions);
             queueListingGrid.setSelectionModel(new Slick.RowSelectionModel());
             queueListingGrid.registerPlugin(new Slick.AutoTooltips());
 
@@ -669,6 +694,10 @@
                         nfShell.showPage('provenance?' + $.param({
                                 flowFileUuid: item.uuid
                             }));
+                    } else if (target.hasClass('download-flowfile-content') && !target.hasClass('disabled')) {
+                        downloadContent(item);
+                    } else if (target.hasClass('view-flowfile-content') && !target.hasClass('disabled')) {
+                        viewContent(item);
                     }
                 }
             });

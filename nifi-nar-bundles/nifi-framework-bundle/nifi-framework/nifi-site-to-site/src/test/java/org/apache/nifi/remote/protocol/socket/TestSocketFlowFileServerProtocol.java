@@ -21,9 +21,9 @@ import org.apache.nifi.remote.PeerDescription;
 import org.apache.nifi.remote.StandardVersionNegotiator;
 import org.apache.nifi.remote.cluster.ClusterNodeInformation;
 import org.apache.nifi.remote.cluster.NodeInformation;
-import org.apache.nifi.remote.io.socket.SocketChannelCommunicationsSession;
-import org.apache.nifi.remote.io.socket.SocketChannelInput;
-import org.apache.nifi.remote.io.socket.SocketChannelOutput;
+import org.apache.nifi.remote.io.socket.SocketCommunicationsSession;
+import org.apache.nifi.remote.io.socket.SocketInput;
+import org.apache.nifi.remote.io.socket.SocketOutput;
 import org.apache.nifi.remote.protocol.HandshakeProperties;
 import org.apache.nifi.remote.protocol.HandshakeProperty;
 import org.apache.nifi.remote.protocol.Response;
@@ -75,9 +75,9 @@ public class TestSocketFlowFileServerProtocol {
 
         final InputStream inputStream = new ByteArrayInputStream(inputBytes);
 
-        final SocketChannelCommunicationsSession commsSession = mock(SocketChannelCommunicationsSession.class);
-        final SocketChannelInput channelInput = mock(SocketChannelInput.class);
-        final SocketChannelOutput channelOutput = mock(SocketChannelOutput.class);
+        final SocketCommunicationsSession commsSession = mock(SocketCommunicationsSession.class);
+        final SocketInput channelInput = mock(SocketInput.class);
+        final SocketOutput channelOutput = mock(SocketOutput.class);
         when(commsSession.getInput()).thenReturn(channelInput);
         when(commsSession.getOutput()).thenReturn(channelOutput);
 

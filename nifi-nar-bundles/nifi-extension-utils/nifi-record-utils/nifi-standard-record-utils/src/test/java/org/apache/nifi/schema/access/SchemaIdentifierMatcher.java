@@ -22,7 +22,7 @@ import org.mockito.ArgumentMatcher;
 /**
  * ArgumentMatcher for SchemaIdentifier.
  */
-public class SchemaIdentifierMatcher extends ArgumentMatcher<SchemaIdentifier> {
+public class SchemaIdentifierMatcher implements ArgumentMatcher<SchemaIdentifier> {
 
     private final SchemaIdentifier expectedIdentifier;
 
@@ -31,12 +31,10 @@ public class SchemaIdentifierMatcher extends ArgumentMatcher<SchemaIdentifier> {
     }
 
     @Override
-    public boolean matches(final Object argument) {
-        if (argument == null || !(argument instanceof SchemaIdentifier)) {
+    public boolean matches(SchemaIdentifier argument) {
+        if (argument == null) {
             return false;
         }
-
-        final SchemaIdentifier other = (SchemaIdentifier) argument;
-        return other.equals(expectedIdentifier);
+        return argument.equals(expectedIdentifier);
     }
 }

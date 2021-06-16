@@ -17,13 +17,14 @@
 
 package org.apache.nifi.record.path;
 
+import org.apache.nifi.record.path.util.Filters;
+import org.apache.nifi.serialization.record.DataType;
+import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordField;
+
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.Optional;
-
-import org.apache.nifi.record.path.util.Filters;
-import org.apache.nifi.serialization.record.Record;
-import org.apache.nifi.serialization.record.RecordField;
 
 public class StandardFieldValue implements FieldValue {
     private final Object value;
@@ -117,10 +118,21 @@ public class StandardFieldValue implements FieldValue {
 
     @Override
     public void updateValue(final Object newValue) {
+        updateValue(newValue, getField());
+    }
+
+    @Override
+    public void updateValue(final Object newValue, final DataType dataType) {
+        final RecordField currentField = getField();
+        final RecordField recordField = new RecordField(currentField.getFieldName(), dataType, currentField.getDefaultValue(), currentField.getAliases(), currentField.isNullable());
+        updateValue(newValue, recordField);
+    }
+
+    private void updateValue(final Object newValue, final RecordField field) {
         final Optional<Record> parentRecord = getParentRecord();
         if (!parentRecord.isPresent()) {
             if (value instanceof Record) {
-                ((Record) value).setValue(getField().getFieldName(), newValue);
+                ((Record) value).setValue(field, newValue);
                 return;
             } else if (value == null) {
                 return; // value is null, nothing to update
@@ -129,6 +141,7 @@ public class StandardFieldValue implements FieldValue {
             }
         }
 
-        parentRecord.get().setValue(getField().getFieldName(), newValue);
+        parentRecord.get().setValue(field, newValue);
+
     }
 }

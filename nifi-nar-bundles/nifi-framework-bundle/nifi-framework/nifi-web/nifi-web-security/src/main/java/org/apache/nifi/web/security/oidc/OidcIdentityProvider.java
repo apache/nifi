@@ -20,13 +20,17 @@ package org.apache.nifi.web.security.oidc;
 import com.nimbusds.oauth2.sdk.AuthorizationGrant;
 import com.nimbusds.oauth2.sdk.Scope;
 import com.nimbusds.oauth2.sdk.id.ClientID;
-
 import java.io.IOException;
 import java.net.URI;
 
 public interface OidcIdentityProvider {
 
     String OPEN_ID_CONNECT_SUPPORT_IS_NOT_CONFIGURED = "OpenId Connect support is not configured";
+
+    /**
+     * Initializes the provider.
+     */
+    void initializeProvider();
 
     /**
      * Returns whether OIDC support is enabled.

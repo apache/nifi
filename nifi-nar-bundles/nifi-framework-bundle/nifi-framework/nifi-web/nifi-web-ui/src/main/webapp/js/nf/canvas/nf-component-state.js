@@ -51,6 +51,45 @@
     'use strict';
 
     /**
+     * Get the component state column model.
+     */
+    var getComponentStateColumnModel = function () {
+        // initialize the queue listing table
+        var componentStateColumns = [
+            {
+                id: 'key',
+                field: 'key',
+                name: 'Key',
+                sortable: true,
+                resizable: true,
+                formatter: nfCommon.genericValueFormatter
+            },
+            {
+                id: 'value',
+                field: 'value',
+                name: 'Value',
+                sortable: true,
+                resizable: true,
+                formatter: nfCommon.genericValueFormatter
+            }
+        ];
+
+        // conditionally show the cluster node identifier
+        if (nfClusterSummary.isConnectedToCluster()) {
+            componentStateColumns.push({
+                id: 'scope',
+                field: 'scope',
+                name: 'Scope',
+                sortable: true,
+                resizable: true,
+                formatter: nfCommon.genericValueFormatter
+            });
+        }
+
+        return componentStateColumns;
+    };
+
+    /**
      * Filters the component state table.
      */
     var applyFilter = function () {
@@ -156,6 +195,7 @@
         var showPartialDetails = false;
 
         var componentStateGrid = $('#component-state-table').data('gridInstance');
+        componentStateGrid.setColumns(getComponentStateColumnModel());
         var componentStateData = componentStateGrid.getData();
 
         // begin the update
@@ -291,38 +331,6 @@
                 }
             });
 
-            // initialize the queue listing table
-            var componentStateColumns = [
-                {
-                    id: 'key',
-                    field: 'key',
-                    name: 'Key',
-                    sortable: true,
-                    resizable: true,
-                    formatter: nfCommon.genericValueFormatter
-                },
-                {
-                    id: 'value',
-                    field: 'value',
-                    name: 'Value',
-                    sortable: true,
-                    resizable: true,
-                    formatter: nfCommon.genericValueFormatter
-                }
-            ];
-
-            // conditionally show the cluster node identifier
-            if (nfClusterSummary.isClustered()) {
-                componentStateColumns.push({
-                    id: 'scope',
-                    field: 'scope',
-                    name: 'Scope',
-                    sortable: true,
-                    resizable: true,
-                    formatter: nfCommon.genericValueFormatter
-                });
-            }
-
             var componentStateOptions = {
                 forceFitColumns: true,
                 enableTextSelectionOnCells: true,
@@ -350,7 +358,7 @@
             }, componentStateData);
 
             // initialize the grid
-            var componentStateGrid = new Slick.Grid('#component-state-table', componentStateData, componentStateColumns, componentStateOptions);
+            var componentStateGrid = new Slick.Grid('#component-state-table', componentStateData, getComponentStateColumnModel(), componentStateOptions);
             componentStateGrid.setSelectionModel(new Slick.RowSelectionModel());
             componentStateGrid.registerPlugin(new Slick.AutoTooltips());
             componentStateGrid.setSortColumn('key', true);

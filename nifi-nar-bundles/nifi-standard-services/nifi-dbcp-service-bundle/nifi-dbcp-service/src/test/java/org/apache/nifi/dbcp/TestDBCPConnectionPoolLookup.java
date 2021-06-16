@@ -17,14 +17,17 @@
 package org.apache.nifi.dbcp;
 
 import org.apache.nifi.controller.AbstractControllerService;
+import org.apache.nifi.processor.FlowFileFilter;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.sql.Connection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -142,6 +145,54 @@ public class TestDBCPConnectionPoolLookup {
         runner.addControllerService("dbcp-lookup", dbcpLookupService);
         runner.setProperty(dbcpLookupService, "dbcp-lookup", "dbcp-lookup");
         runner.assertNotValid(dbcpLookupService);
+    }
+
+    @Test
+    public void testFlowFileFiltering() {
+        final FlowFileFilter filter = dbcpLookupService.getFlowFileFilter();
+        assertNotNull(filter);
+
+        final MockFlowFile ff0 = new MockFlowFile(0);
+        final MockFlowFile ff1 = new MockFlowFile(1);
+        final MockFlowFile ff2 = new MockFlowFile(2);
+        final MockFlowFile ff3 = new MockFlowFile(3);
+        final MockFlowFile ff4 = new MockFlowFile(4);
+
+        ff0.putAttributes(Collections.singletonMap(DBCPConnectionPoolLookup.DATABASE_NAME_ATTRIBUTE, "db-A"));
+        ff1.putAttributes(Collections.singletonMap(DBCPConnectionPoolLookup.DATABASE_NAME_ATTRIBUTE, "db-B"));
+        ff2.putAttributes(Collections.singletonMap(DBCPConnectionPoolLookup.DATABASE_NAME_ATTRIBUTE, "db-A"));
+        ff3.putAttributes(Collections.singletonMap(DBCPConnectionPoolLookup.DATABASE_NAME_ATTRIBUTE, "db-B"));
+        ff4.putAttributes(Collections.singletonMap(DBCPConnectionPoolLookup.DATABASE_NAME_ATTRIBUTE, "db-A"));
+
+        assertEquals(FlowFileFilter.FlowFileFilterResult.ACCEPT_AND_CONTINUE, filter.filter(ff0));
+        assertEquals(FlowFileFilter.FlowFileFilterResult.REJECT_AND_CONTINUE, filter.filter(ff1));
+        assertEquals(FlowFileFilter.FlowFileFilterResult.ACCEPT_AND_CONTINUE, filter.filter(ff2));
+        assertEquals(FlowFileFilter.FlowFileFilterResult.REJECT_AND_CONTINUE, filter.filter(ff3));
+        assertEquals(FlowFileFilter.FlowFileFilterResult.ACCEPT_AND_CONTINUE, filter.filter(ff4));
+    }
+
+    @Test
+    public void testFlowFileFilteringWithBatchSize() {
+        final FlowFileFilter filter = dbcpLookupService.getFlowFileFilter(2);
+        assertNotNull(filter);
+
+        final MockFlowFile ff0 = new MockFlowFile(0);
+        final MockFlowFile ff1 = new MockFlowFile(1);
+        final MockFlowFile ff2 = new MockFlowFile(2);
+        final MockFlowFile ff3 = new MockFlowFile(3);
+        final MockFlowFile ff4 = new MockFlowFile(4);
+
+        ff0.putAttributes(Collections.singletonMap(DBCPConnectionPoolLookup.DATABASE_NAME_ATTRIBUTE, "db-A"));
+        ff1.putAttributes(Collections.singletonMap(DBCPConnectionPoolLookup.DATABASE_NAME_ATTRIBUTE, "db-B"));
+        ff2.putAttributes(Collections.singletonMap(DBCPConnectionPoolLookup.DATABASE_NAME_ATTRIBUTE, "db-A"));
+        ff3.putAttributes(Collections.singletonMap(DBCPConnectionPoolLookup.DATABASE_NAME_ATTRIBUTE, "db-B"));
+        ff4.putAttributes(Collections.singletonMap(DBCPConnectionPoolLookup.DATABASE_NAME_ATTRIBUTE, "db-A"));
+
+        assertEquals(FlowFileFilter.FlowFileFilterResult.ACCEPT_AND_CONTINUE, filter.filter(ff0));
+        assertEquals(FlowFileFilter.FlowFileFilterResult.REJECT_AND_CONTINUE, filter.filter(ff1));
+        assertEquals(FlowFileFilter.FlowFileFilterResult.ACCEPT_AND_CONTINUE, filter.filter(ff2));
+        assertEquals(FlowFileFilter.FlowFileFilterResult.REJECT_AND_TERMINATE, filter.filter(ff3));
+        assertEquals(FlowFileFilter.FlowFileFilterResult.REJECT_AND_TERMINATE, filter.filter(ff4));
     }
 
     /**

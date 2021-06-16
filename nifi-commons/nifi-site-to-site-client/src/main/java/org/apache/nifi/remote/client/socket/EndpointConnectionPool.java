@@ -16,41 +16,16 @@
  */
 package org.apache.nifi.remote.client.socket;
 
-import org.apache.nifi.events.EventReporter;
-import org.apache.nifi.remote.Peer;
-import org.apache.nifi.remote.PeerDescription;
-import org.apache.nifi.remote.PeerStatus;
-import org.apache.nifi.remote.RemoteDestination;
-import org.apache.nifi.remote.RemoteResourceInitiator;
-import org.apache.nifi.remote.TransferDirection;
-import org.apache.nifi.remote.client.PeerSelector;
-import org.apache.nifi.remote.client.PeerStatusProvider;
-import org.apache.nifi.remote.client.SiteInfoProvider;
-import org.apache.nifi.remote.client.SiteToSiteClientConfig;
-import org.apache.nifi.remote.codec.FlowFileCodec;
-import org.apache.nifi.remote.exception.HandshakeException;
-import org.apache.nifi.remote.exception.PortNotRunningException;
-import org.apache.nifi.remote.exception.TransmissionDisabledException;
-import org.apache.nifi.remote.exception.UnknownPortException;
-import org.apache.nifi.remote.exception.UnreachableClusterException;
-import org.apache.nifi.remote.io.socket.SocketChannelCommunicationsSession;
-import org.apache.nifi.remote.io.socket.ssl.SSLSocketChannel;
-import org.apache.nifi.remote.io.socket.ssl.SSLSocketChannelCommunicationsSession;
-import org.apache.nifi.remote.protocol.CommunicationsSession;
-import org.apache.nifi.remote.protocol.socket.SocketClientProtocol;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import static org.apache.nifi.remote.util.EventReportUtil.error;
+import static org.apache.nifi.remote.util.EventReportUtil.warn;
 
-import javax.net.ssl.SSLContext;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
-import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.SocketAddress;
+import java.net.Socket;
 import java.net.URI;
-import java.nio.channels.SocketChannel;
 import java.security.cert.CertificateException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -66,9 +41,32 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
-
-import static org.apache.nifi.remote.util.EventReportUtil.error;
-import static org.apache.nifi.remote.util.EventReportUtil.warn;
+import javax.net.ssl.SSLContext;
+import org.apache.nifi.events.EventReporter;
+import org.apache.nifi.remote.Peer;
+import org.apache.nifi.remote.PeerDescription;
+import org.apache.nifi.remote.PeerStatus;
+import org.apache.nifi.remote.RemoteDestination;
+import org.apache.nifi.remote.RemoteResourceInitiator;
+import org.apache.nifi.remote.TransferDirection;
+import org.apache.nifi.remote.client.PeerPersistence;
+import org.apache.nifi.remote.client.PeerSelector;
+import org.apache.nifi.remote.client.PeerStatusProvider;
+import org.apache.nifi.remote.client.SiteInfoProvider;
+import org.apache.nifi.remote.client.SiteToSiteClientConfig;
+import org.apache.nifi.remote.codec.FlowFileCodec;
+import org.apache.nifi.remote.exception.HandshakeException;
+import org.apache.nifi.remote.exception.PortNotRunningException;
+import org.apache.nifi.remote.exception.TransmissionDisabledException;
+import org.apache.nifi.remote.exception.UnknownPortException;
+import org.apache.nifi.remote.exception.UnreachableClusterException;
+import org.apache.nifi.remote.io.socket.SocketCommunicationsSession;
+import org.apache.nifi.remote.protocol.CommunicationsSession;
+import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
+import org.apache.nifi.remote.protocol.socket.SocketClientProtocol;
+import org.apache.nifi.security.util.CertificateUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class EndpointConnectionPool implements PeerStatusProvider {
 
@@ -92,8 +90,9 @@ public class EndpointConnectionPool implements PeerStatusProvider {
     private final InetAddress localAddress;
 
     public EndpointConnectionPool(final RemoteDestination remoteDestination, final int commsTimeoutMillis, final int idleExpirationMillis,
-        final SSLContext sslContext, final EventReporter eventReporter, final File persistenceFile, final SiteInfoProvider siteInfoProvider,
-        final InetAddress localAddress) {
+                                  final SSLContext sslContext, final EventReporter eventReporter,
+                                  final PeerPersistence peerPersistence, final SiteInfoProvider siteInfoProvider,
+                                  final InetAddress localAddress) {
         Objects.requireNonNull(remoteDestination, "Remote Destination/Port Identifier cannot be null");
 
         this.remoteDestination = remoteDestination;
@@ -105,7 +104,7 @@ public class EndpointConnectionPool implements PeerStatusProvider {
 
         this.siteInfoProvider = siteInfoProvider;
 
-        peerSelector = new PeerSelector(this, persistenceFile);
+        peerSelector = new PeerSelector(this, peerPersistence);
         peerSelector.setEventReporter(eventReporter);
 
         // Initialize a scheduled executor and run some maintenance tasks in the background to kill off old, unused
@@ -122,19 +121,9 @@ public class EndpointConnectionPool implements PeerStatusProvider {
             }
         });
 
-        taskExecutor.scheduleWithFixedDelay(new Runnable() {
-            @Override
-            public void run() {
-                peerSelector.refreshPeers();
-            }
-        }, 0, 5, TimeUnit.SECONDS);
+        taskExecutor.scheduleWithFixedDelay(() -> peerSelector.refresh(), 0, 5, TimeUnit.SECONDS);
 
-        taskExecutor.scheduleWithFixedDelay(new Runnable() {
-            @Override
-            public void run() {
-                cleanupExpiredSockets();
-            }
-        }, 5, 5, TimeUnit.SECONDS);
+        taskExecutor.scheduleWithFixedDelay(() -> cleanupExpiredSockets(), 5, 5, TimeUnit.SECONDS);
     }
 
     private String getPortIdentifier(final TransferDirection transferDirection) throws IOException {
@@ -451,27 +440,23 @@ public class EndpointConnectionPool implements PeerStatusProvider {
                             + " because it requires Secure Site-to-Site communications, but this instance is not configured for secure communications");
                 }
 
-                final SSLSocketChannel socketChannel = new SSLSocketChannel(sslContext, hostname, port, localAddress, true);
-                socketChannel.connect();
-
-                commsSession = new SSLSocketChannelCommunicationsSession(socketChannel);
+                final Socket socket = sslContext.getSocketFactory().createSocket(hostname, port);
+                socket.setSoTimeout(commsTimeout);
+                commsSession = new SocketCommunicationsSession(socket);
 
                 try {
-                    commsSession.setUserDn(socketChannel.getDn());
+                    final String dn = CertificateUtils.extractPeerDNFromSSLSocket(socket);
+                    commsSession.setUserDn(dn);
                 } catch (final CertificateException ex) {
                     throw new IOException(ex);
                 }
             } else {
-                final SocketChannel socketChannel = SocketChannel.open();
-                if (localAddress != null) {
-                    final SocketAddress localSocketAddress = new InetSocketAddress(localAddress, 0);
-                    socketChannel.socket().bind(localSocketAddress);
-                }
 
-                socketChannel.socket().connect(new InetSocketAddress(hostname, port), commsTimeout);
-                socketChannel.socket().setSoTimeout(commsTimeout);
+                final Socket socket = new Socket();
+                socket.connect(new InetSocketAddress(hostname, port), commsTimeout);
+                socket.setSoTimeout(commsTimeout);
 
-                commsSession = new SocketChannelCommunicationsSession(socketChannel);
+                commsSession = new SocketCommunicationsSession(socket);
             }
 
             commsSession.getOutput().getOutputStream().write(CommunicationsSession.MAGIC_BYTES);
@@ -570,5 +555,8 @@ public class EndpointConnectionPool implements PeerStatusProvider {
         }
     }
 
-
+    @Override
+    public SiteToSiteTransportProtocol getTransportProtocol() {
+        return SiteToSiteTransportProtocol.RAW;
+    }
 }

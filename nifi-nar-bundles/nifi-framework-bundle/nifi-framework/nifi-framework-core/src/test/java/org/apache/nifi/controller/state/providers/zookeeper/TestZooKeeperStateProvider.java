@@ -16,14 +16,8 @@
  */
 package org.apache.nifi.controller.state.providers.zookeeper;
 
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.Map;
-
-import javax.net.ssl.SSLContext;
-
 import org.apache.curator.test.TestingServer;
+import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
@@ -37,6 +31,12 @@ import org.junit.Before;
 import org.junit.Test;
 import org.testng.Assert;
 
+import javax.net.ssl.SSLContext;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 public class TestZooKeeperStateProvider extends AbstractTestStateProvider {
 
     private volatile StateProvider provider;
@@ -45,7 +45,7 @@ public class TestZooKeeperStateProvider extends AbstractTestStateProvider {
     private static final Map<PropertyDescriptor, String> defaultProperties = new HashMap<>();
 
     static {
-        defaultProperties.put(ZooKeeperStateProvider.SESSION_TIMEOUT, "3 secs");
+        defaultProperties.put(ZooKeeperStateProvider.SESSION_TIMEOUT, "15 secs");
         defaultProperties.put(ZooKeeperStateProvider.ROOT_NODE, "/nifi/team1/testing");
         defaultProperties.put(ZooKeeperStateProvider.ACCESS_CONTROL, ZooKeeperStateProvider.OPEN_TO_WORLD.getValue());
     }
@@ -71,7 +71,7 @@ public class TestZooKeeperStateProvider extends AbstractTestStateProvider {
             public Map<PropertyDescriptor, PropertyValue> getProperties() {
                 final Map<PropertyDescriptor, PropertyValue> propValueMap = new HashMap<>();
                 for (final Map.Entry<PropertyDescriptor, String> entry : properties.entrySet()) {
-                    propValueMap.put(entry.getKey(), new StandardPropertyValue(entry.getValue(), null));
+                    propValueMap.put(entry.getKey(), new StandardPropertyValue(entry.getValue(), null, ParameterLookup.EMPTY));
                 }
                 return propValueMap;
             }
@@ -88,7 +88,7 @@ public class TestZooKeeperStateProvider extends AbstractTestStateProvider {
             @Override
             public PropertyValue getProperty(final PropertyDescriptor property) {
                 final String prop = properties.get(property);
-                return new StandardPropertyValue(prop, null);
+                return new StandardPropertyValue(prop, null, ParameterLookup.EMPTY);
             }
 
             @Override
@@ -131,7 +131,7 @@ public class TestZooKeeperStateProvider extends AbstractTestStateProvider {
         return provider;
     }
 
-    @Test(timeout = 20000)
+    @Test(timeout = 30000)
     public void testStateTooLargeExceptionThrownOnSetState() throws InterruptedException {
         final Map<String, String> state = new HashMap<>();
         final StringBuilder sb = new StringBuilder();
@@ -157,7 +157,7 @@ public class TestZooKeeperStateProvider extends AbstractTestStateProvider {
                 // If we attempt to interact with the server too quickly, we will get a
                 // ZooKeeper ConnectionLoss Exception, which the provider wraps in an IOException.
                 // We will wait 1 second in this case and try again. The test will timeout if this
-                // does not succeeed within 20 seconds.
+                // does not succeeed within 30 seconds.
                 Thread.sleep(1000L);
             } catch (final Exception e) {
                 e.printStackTrace();
@@ -166,7 +166,7 @@ public class TestZooKeeperStateProvider extends AbstractTestStateProvider {
         }
     }
 
-    @Test(timeout = 20000)
+    @Test(timeout = 30000)
     public void testStateTooLargeExceptionThrownOnReplace() throws IOException, InterruptedException {
         final Map<String, String> state = new HashMap<>();
         final StringBuilder sb = new StringBuilder();
@@ -192,7 +192,7 @@ public class TestZooKeeperStateProvider extends AbstractTestStateProvider {
                 // If we attempt to interact with the server too quickly, we will get a
                 // ZooKeeper ConnectionLoss Exception, which the provider wraps in an IOException.
                 // We will wait 1 second in this case and try again. The test will timeout if this
-                // does not succeeed within 20 seconds.
+                // does not succeeed within 30 seconds.
                 Thread.sleep(1000L);
             }
         }

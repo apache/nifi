@@ -112,8 +112,11 @@ public class PutMongo extends AbstractMongoProcessor {
         .allowableValues(UPDATE_WITH_DOC, UPDATE_WITH_OPERATORS)
         .defaultValue(UPDATE_WITH_DOC.getValue())
         .description("Choose an update mode. You can either supply a JSON document to use as a direct replacement " +
-                "or specify a document that contains update operators like $set and $unset")
-        .build();
+                "or specify a document that contains update operators like $set, $unset, and $inc. " +
+                "When Operators mode is enabled, the flowfile content is expected to be the operator part " +
+                "for example: {$set:{\"key\": \"value\"},$inc:{\"count\":1234}} and the update query will come " +
+                "from the configured Update Query property.")
+         .build();
     static final PropertyDescriptor CHARACTER_SET = new PropertyDescriptor.Builder()
         .name("Character Set")
         .description("The Character Set in which the data is encoded")
@@ -252,8 +255,14 @@ public class PutMongo extends AbstractMongoProcessor {
 
     private Document parseUpdateKey(String updateKey, Map doc) {
         Document retVal;
-        if (updateKey.equals("_id") && ObjectId.isValid(((String) doc.get(updateKey)))) {
-            retVal = new Document("_id", new ObjectId((String) doc.get(updateKey)));
+        if (updateKey.equals("_id")) {
+            if (doc.get("_id") instanceof ObjectId) {
+                retVal = new Document("_id", doc.get("_id"));
+            } else if (ObjectId.isValid((String) doc.get("_id"))){
+                retVal = new Document("_id", new ObjectId((String) doc.get("_id")));
+            } else {
+                retVal = new Document("_id", doc.get("_id"));
+            }
         } else if (updateKey.contains(",")) {
             String[] parts = updateKey.split(",[\\s]*");
             retVal = new Document();
