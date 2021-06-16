@@ -34,6 +34,7 @@ public class ParquetConfig {
     private ParquetProperties.WriterVersion writerVersion;
     private ParquetFileWriter.Mode writerMode;
     private CompressionCodecName compressionCodec;
+    private String int96Fields;
 
     public Integer getRowGroupSize() {
         return rowGroupSize;
@@ -129,5 +130,13 @@ public class ParquetConfig {
 
     public void setCompressionCodec(CompressionCodecName compressionCodec) {
         this.compressionCodec = compressionCodec;
+    }
+
+    public String getInt96Fields() {
+        return int96Fields;
+    }
+
+    public void setInt96Fields(String int96Fields) {
+        this.int96Fields = int96Fields;
     }
 }

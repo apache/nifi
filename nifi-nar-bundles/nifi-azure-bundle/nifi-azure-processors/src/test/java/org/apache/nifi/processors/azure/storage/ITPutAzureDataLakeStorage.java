@@ -26,17 +26,28 @@ import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.util.MockFlowFile;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
+import java.io.InputStream;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_DIRECTORY;
+import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_FILENAME;
+import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_FILESYSTEM;
+import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_LENGTH;
+import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_PRIMARY_URI;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 public class ITPutAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
 
@@ -128,11 +139,11 @@ public class ITPutAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
         assertSuccess(DIRECTORY, FILE_NAME, fileData);
     }
 
-    @Ignore
-    // ignore excessive test with larger file size
     @Test
     public void testPutBigFile() throws Exception {
-        byte[] fileData = new byte[100_000_000];
+        Random random = new Random();
+        byte[] fileData = new byte[120_000_000];
+        random.nextBytes(fileData);
 
         runProcessor(fileData);
 
@@ -142,15 +153,6 @@ public class ITPutAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     @Test
     public void testPutFileWithNonExistingFileSystem() {
         runner.setProperty(PutAzureDataLakeStorage.FILESYSTEM, "dummy");
-
-        runProcessor(FILE_DATA);
-
-        assertFailure();
-    }
-
-    @Test
-    public void testPutFileWithInvalidDirectory() {
-        runner.setProperty(PutAzureDataLakeStorage.DIRECTORY, "/dir1");
 
         runProcessor(FILE_DATA);
 
@@ -242,6 +244,17 @@ public class ITPutAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
         assertFailure();
     }
 
+    @Test(expected = NullPointerException.class)
+    public void testPutFileButFailedToAppend() {
+        DataLakeFileClient fileClient = mock(DataLakeFileClient.class);
+        InputStream stream = mock(InputStream.class);
+        doThrow(NullPointerException.class).when(fileClient).append(any(InputStream.class), anyLong(), anyLong());
+
+        PutAzureDataLakeStorage.uploadContent(fileClient, stream, FILE_DATA.length);
+
+        verify(fileClient).delete();
+    }
+
     private Map<String, String> createAttributesMap() {
         Map<String, String> attributes = new HashMap<>();
 
@@ -282,18 +295,18 @@ public class ITPutAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     private void assertFlowFile(byte[] fileData, String fileName, String directory) throws Exception {
         MockFlowFile flowFile = assertFlowFile(fileData);
 
-        flowFile.assertAttributeEquals("azure.filesystem", fileSystemName);
-        flowFile.assertAttributeEquals("azure.directory", directory);
-        flowFile.assertAttributeEquals("azure.filename", fileName);
+        flowFile.assertAttributeEquals(ATTR_NAME_FILESYSTEM, fileSystemName);
+        flowFile.assertAttributeEquals(ATTR_NAME_DIRECTORY, directory);
+        flowFile.assertAttributeEquals(ATTR_NAME_FILENAME, fileName);
 
         String urlEscapedDirectory = UrlEscapers.urlPathSegmentEscaper().escape(directory);
         String urlEscapedFileName = UrlEscapers.urlPathSegmentEscaper().escape(fileName);
         String primaryUri = StringUtils.isNotEmpty(directory)
                 ? String.format("https://%s.dfs.core.windows.net/%s/%s/%s", getAccountName(), fileSystemName, urlEscapedDirectory, urlEscapedFileName)
                 : String.format("https://%s.dfs.core.windows.net/%s/%s", getAccountName(), fileSystemName, urlEscapedFileName);
-        flowFile.assertAttributeEquals("azure.primaryUri", primaryUri);
+        flowFile.assertAttributeEquals(ATTR_NAME_PRIMARY_URI, primaryUri);
 
-        flowFile.assertAttributeEquals("azure.length", Integer.toString(fileData.length));
+        flowFile.assertAttributeEquals(ATTR_NAME_LENGTH, Integer.toString(fileData.length));
     }
 
     private MockFlowFile assertFlowFile(byte[] fileData) throws Exception {

@@ -27,7 +27,6 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.components.state.Scope;
-import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.flowfile.FlowFile;
@@ -227,7 +226,7 @@ public class ListDatabaseTables extends AbstractProcessor {
     }
 
     @Override
-    public void onTrigger(ProcessContext context, ProcessSession session) throws ProcessException {
+    public void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException {
         final ComponentLog logger = getLogger();
         final DBCPService dbcpService = context.getProperty(DBCP_SERVICE).asControllerService(DBCPService.class);
         final String catalog = context.getProperty(CATALOG).getValue();
@@ -239,11 +238,10 @@ public class ListDatabaseTables extends AbstractProcessor {
         final boolean includeCount = context.getProperty(INCLUDE_COUNT).asBoolean();
         final long refreshInterval = context.getProperty(REFRESH_INTERVAL).asTimePeriod(TimeUnit.MILLISECONDS);
 
-        final StateManager stateManager = context.getStateManager();
         final StateMap stateMap;
         final Map<String, String> stateMapProperties;
         try {
-            stateMap = stateManager.getState(Scope.CLUSTER);
+            stateMap = session.getState(Scope.CLUSTER);
             stateMapProperties = new HashMap<>(stateMap.toMap());
         } catch (IOException ioe) {
             throw new ProcessException(ioe);
@@ -345,13 +343,8 @@ public class ListDatabaseTables extends AbstractProcessor {
 
                 writer.finishListing();
             }
-            // Update the timestamps for listed tables
-            if (stateMap.getVersion() == -1) {
-                stateManager.setState(stateMapProperties, Scope.CLUSTER);
-            } else {
-                stateManager.replace(stateMap, stateMapProperties, Scope.CLUSTER);
-            }
 
+            session.replaceState(stateMap, stateMapProperties, Scope.CLUSTER);
         } catch (final SQLException | IOException | SchemaNotFoundException e) {
             writer.finishListingExceptionally(e);
             session.rollback();

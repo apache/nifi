@@ -52,6 +52,7 @@ import org.apache.nifi.annotation.behavior.WritesAttributes;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
@@ -107,9 +108,9 @@ import com.amazonaws.services.s3.model.UploadPartResult;
         "parts in a multipart upload must be at least 5MB in size, except for the last part.  These limits " +
         "establish the bounds for the Multipart Upload Threshold and Part Size properties.")
 @DynamicProperty(name = "The name of a User-Defined Metadata field to add to the S3 Object",
-        value = "The value of a User-Defined Metadata field to add to the S3 Object",
-        description = "Allows user-defined metadata to be added to the S3 object as key/value pairs",
-        expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+value = "The value of a User-Defined Metadata field to add to the S3 Object",
+description = "Allows user-defined metadata to be added to the S3 object as key/value pairs",
+expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
 @ReadsAttribute(attribute = "filename", description = "Uses the FlowFile's filename as the filename for the S3 object")
 @WritesAttributes({
     @WritesAttribute(attribute = "s3.bucket", description = "The S3 bucket where the Object was put in S3"),
@@ -117,6 +118,8 @@ import com.amazonaws.services.s3.model.UploadPartResult;
     @WritesAttribute(attribute = "s3.contenttype", description = "The S3 content type of the S3 Object that put in S3"),
     @WritesAttribute(attribute = "s3.version", description = "The version of the S3 Object that was put to S3"),
     @WritesAttribute(attribute = "s3.etag", description = "The ETag of the S3 Object"),
+    @WritesAttribute(attribute = "s3.contentdisposition", description = "The content disposition of the S3 Object that put in S3"),
+    @WritesAttribute(attribute = "s3.cachecontrol", description = "The cache-control header of the S3 Object"),
     @WritesAttribute(attribute = "s3.uploadId", description = "The uploadId used to upload the Object to S3"),
     @WritesAttribute(attribute = "s3.expiration", description = "A human-readable form of the expiration date of " +
             "the S3 object, if one is set"),
@@ -128,37 +131,58 @@ public class PutS3Object extends AbstractS3Processor {
 
     public static final long MIN_S3_PART_SIZE = 50L * 1024L * 1024L;
     public static final long MAX_S3_PUTOBJECT_SIZE = 5L * 1024L * 1024L * 1024L;
-    public static final String PERSISTENCE_ROOT = "conf/state/";
     public static final String NO_SERVER_SIDE_ENCRYPTION = "None";
+    public static final String CONTENT_DISPOSITION_INLINE = "inline";
+    public static final String CONTENT_DISPOSITION_ATTACHMENT = "attachment";
 
     public static final PropertyDescriptor EXPIRATION_RULE_ID = new PropertyDescriptor.Builder()
-        .name("Expiration Time Rule")
-        .required(false)
-        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .build();
+            .name("Expiration Time Rule")
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
 
     public static final PropertyDescriptor CONTENT_TYPE = new PropertyDescriptor.Builder()
-        .name("Content Type")
-        .displayName("Content Type")
-        .description("Sets the Content-Type HTTP header indicating the type of content stored in the associated " +
-                "object. The value of this header is a standard MIME type.\n" +
-                "AWS S3 Java client will attempt to determine the correct content type if one hasn't been set" +
-                " yet. Users are responsible for ensuring a suitable content type is set when uploading streams. If " +
-                "no content type is provided and cannot be determined by the filename, the default content type " +
-                "\"application/octet-stream\" will be used.")
-        .required(false)
-        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-        .build();
+            .name("Content Type")
+            .displayName("Content Type")
+            .description("Sets the Content-Type HTTP header indicating the type of content stored in the associated " +
+                    "object. The value of this header is a standard MIME type.\n" +
+                    "AWS S3 Java client will attempt to determine the correct content type if one hasn't been set" +
+                    " yet. Users are responsible for ensuring a suitable content type is set when uploading streams. If " +
+                    "no content type is provided and cannot be determined by the filename, the default content type " +
+                    "\"application/octet-stream\" will be used.")
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor CONTENT_DISPOSITION = new PropertyDescriptor.Builder()
+            .name("Content Disposition")
+            .displayName("Content Disposition")
+            .description("Sets the Content-Disposition HTTP header indicating if the content is intended to be displayed inline or should be downloaded.\n " +
+                    "Possible values are 'inline' or 'attachment'. If this property is not specified, object's content-disposition will be set to filename. " +
+                    "When 'attachment' is selected, '; filename=' plus object key are automatically appended to form final value 'attachment; filename=\"filename.jpg\"'.")
+            .required(false)
+            .allowableValues(CONTENT_DISPOSITION_INLINE, CONTENT_DISPOSITION_ATTACHMENT)
+            .build();
+
+    public static final PropertyDescriptor CACHE_CONTROL = new PropertyDescriptor.Builder()
+            .name("Cache Control")
+            .displayName("Cache Control")
+            .description("Sets the Cache-Control HTTP header indicating the caching directives of the associated object. Multiple directives are comma-separated.")
+            .required(false)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
 
     public static final PropertyDescriptor STORAGE_CLASS = new PropertyDescriptor.Builder()
-        .name("Storage Class")
-        .required(true)
-        .allowableValues(StorageClass.Standard.name(), StorageClass.IntelligentTiering.name(), StorageClass.StandardInfrequentAccess.name(),
-                StorageClass.OneZoneInfrequentAccess.name(), StorageClass.Glacier.name(), StorageClass.DeepArchive.name(), StorageClass.ReducedRedundancy.name())
-        .defaultValue(StorageClass.Standard.name())
-        .build();
+            .name("Storage Class")
+            .required(true)
+            .allowableValues(StorageClass.Standard.name(), StorageClass.IntelligentTiering.name(), StorageClass.StandardInfrequentAccess.name(),
+                    StorageClass.OneZoneInfrequentAccess.name(), StorageClass.Glacier.name(), StorageClass.DeepArchive.name(),
+                    StorageClass.ReducedRedundancy.name(), StorageClass.Outposts.name())
+            .defaultValue(StorageClass.Standard.name())
+            .build();
 
     public static final PropertyDescriptor MULTIPART_THRESHOLD = new PropertyDescriptor.Builder()
             .name("Multipart Threshold")
@@ -231,19 +255,32 @@ public class PutS3Object extends AbstractS3Processor {
             .defaultValue("false")
             .build();
 
+    public static final PropertyDescriptor MULTIPART_TEMP_DIR = new PropertyDescriptor.Builder()
+            .name("s3-temporary-directory-multipart")
+            .displayName("Temporary Directory Multipart State")
+            .description("Directory in which, for multipart uploads, the processor will locally save the state tracking the upload ID and parts "
+                    + "uploaded which must both be provided to complete the upload.")
+            .required(true)
+            .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
+            .defaultValue("${java.io.tmpdir}")
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
+
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
-        Arrays.asList(KEY, BUCKET, CONTENT_TYPE, ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE, AWS_CREDENTIALS_PROVIDER_SERVICE, OBJECT_TAGS_PREFIX, REMOVE_TAG_PREFIX,
-            STORAGE_CLASS, REGION, TIMEOUT, EXPIRATION_RULE_ID, FULL_CONTROL_USER_LIST, READ_USER_LIST, WRITE_USER_LIST, READ_ACL_LIST, WRITE_ACL_LIST, OWNER,
-            CANNED_ACL, SSL_CONTEXT_SERVICE, ENDPOINT_OVERRIDE, SIGNER_OVERRIDE, MULTIPART_THRESHOLD, MULTIPART_PART_SIZE, MULTIPART_S3_AGEOFF_INTERVAL,
-            MULTIPART_S3_MAX_AGE, SERVER_SIDE_ENCRYPTION, ENCRYPTION_SERVICE, PROXY_CONFIGURATION_SERVICE, PROXY_HOST,
-            PROXY_HOST_PORT, PROXY_USERNAME, PROXY_PASSWORD));
+            Arrays.asList(KEY, BUCKET, CONTENT_TYPE, CONTENT_DISPOSITION, CACHE_CONTROL, ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE, AWS_CREDENTIALS_PROVIDER_SERVICE,
+                    OBJECT_TAGS_PREFIX, REMOVE_TAG_PREFIX, STORAGE_CLASS, REGION, TIMEOUT, EXPIRATION_RULE_ID, FULL_CONTROL_USER_LIST, READ_USER_LIST, WRITE_USER_LIST,
+                    READ_ACL_LIST, WRITE_ACL_LIST, OWNER, CANNED_ACL, SSL_CONTEXT_SERVICE, ENDPOINT_OVERRIDE, SIGNER_OVERRIDE, MULTIPART_THRESHOLD, MULTIPART_PART_SIZE,
+                    MULTIPART_S3_AGEOFF_INTERVAL, MULTIPART_S3_MAX_AGE, MULTIPART_TEMP_DIR, SERVER_SIDE_ENCRYPTION, ENCRYPTION_SERVICE, USE_CHUNKED_ENCODING,
+                    USE_PATH_STYLE_ACCESS, PROXY_CONFIGURATION_SERVICE, PROXY_HOST, PROXY_HOST_PORT, PROXY_USERNAME, PROXY_PASSWORD));
 
     final static String S3_BUCKET_KEY = "s3.bucket";
     final static String S3_OBJECT_KEY = "s3.key";
     final static String S3_CONTENT_TYPE = "s3.contenttype";
+    final static String S3_CONTENT_DISPOSITION = "s3.contentdisposition";
     final static String S3_UPLOAD_ID_ATTR_KEY = "s3.uploadId";
     final static String S3_VERSION_ATTR_KEY = "s3.version";
     final static String S3_ETAG_ATTR_KEY = "s3.etag";
+    final static String S3_CACHE_CONTROL = "s3.cachecontrol";
     final static String S3_EXPIRATION_ATTR_KEY = "s3.expiration";
     final static String S3_STORAGECLASS_ATTR_KEY = "s3.storeClass";
     final static String S3_STORAGECLASS_META_KEY = "x-amz-storage-class";
@@ -257,6 +294,13 @@ public class PutS3Object extends AbstractS3Processor {
 
     final static String S3_PROCESS_UNSCHEDULED_MESSAGE = "Processor unscheduled, stopping upload";
 
+    private volatile String tempDirMultipart = System.getProperty("java.io.tmpdir");
+
+    @OnScheduled
+    public void setTempDir(final ProcessContext context) {
+        this.tempDirMultipart = context.getProperty(MULTIPART_TEMP_DIR).evaluateAttributeExpressions().getValue();
+    }
+
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return properties;
@@ -265,15 +309,15 @@ public class PutS3Object extends AbstractS3Processor {
     @Override
     protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
         return new PropertyDescriptor.Builder()
-            .name(propertyDescriptorName)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .dynamic(true)
-            .build();
+                .name(propertyDescriptorName)
+                .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+                .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+                .dynamic(true)
+                .build();
     }
 
     protected File getPersistenceFile() {
-        return new File(PERSISTENCE_ROOT + getIdentifier());
+        return new File(this.tempDirMultipart + File.separator + getIdentifier());
     }
 
     protected boolean localUploadExistsInS3(final AmazonS3Client s3, final String bucket, final MultipartState localState) {
@@ -289,7 +333,7 @@ public class PutS3Object extends AbstractS3Processor {
     }
 
     protected synchronized MultipartState getLocalStateIfInS3(final AmazonS3Client s3, final String bucket,
-                                                        final String s3ObjectKey) throws IOException {
+            final String s3ObjectKey) throws IOException {
         MultipartState currState = getLocalState(s3ObjectKey);
         if (currState == null) {
             return null;
@@ -451,7 +495,6 @@ public class PutS3Object extends AbstractS3Processor {
                 public void process(final InputStream rawIn) throws IOException {
                     try (final InputStream in = new BufferedInputStream(rawIn)) {
                         final ObjectMetadata objectMetadata = new ObjectMetadata();
-                        objectMetadata.setContentDisposition(URLEncoder.encode(ff.getAttribute(CoreAttributes.FILENAME.key()), "UTF-8"));
                         objectMetadata.setContentLength(ff.getSize());
 
                         final String contentType = context.getProperty(CONTENT_TYPE)
@@ -459,6 +502,26 @@ public class PutS3Object extends AbstractS3Processor {
                         if (contentType != null) {
                             objectMetadata.setContentType(contentType);
                             attributes.put(S3_CONTENT_TYPE, contentType);
+                        }
+
+                        final String cacheControl = context.getProperty(CACHE_CONTROL)
+                                .evaluateAttributeExpressions(ff).getValue();
+                        if (cacheControl != null) {
+                            objectMetadata.setCacheControl(cacheControl);
+                            attributes.put(S3_CACHE_CONTROL, cacheControl);
+                        }
+
+                        final String contentDisposition = context.getProperty(CONTENT_DISPOSITION).getValue();
+                        String fileName = URLEncoder.encode(ff.getAttribute(CoreAttributes.FILENAME.key()), "UTF-8");
+                        if (contentDisposition != null && contentDisposition.equals(CONTENT_DISPOSITION_INLINE)) {
+                            objectMetadata.setContentDisposition(CONTENT_DISPOSITION_INLINE);
+                            attributes.put(S3_CONTENT_DISPOSITION, CONTENT_DISPOSITION_INLINE);
+                        } else if (contentDisposition != null && contentDisposition.equals(CONTENT_DISPOSITION_ATTACHMENT)) {
+                            String contentDispositionValue = CONTENT_DISPOSITION_ATTACHMENT + "; filename=\"" + fileName + "\"";
+                            objectMetadata.setContentDisposition(contentDispositionValue);
+                            attributes.put(S3_CONTENT_DISPOSITION, contentDispositionValue);
+                        } else {
+                            objectMetadata.setContentDisposition(fileName);
                         }
 
                         final String expirationRule = context.getProperty(EXPIRATION_RULE_ID)
@@ -666,7 +729,7 @@ public class PutS3Object extends AbstractS3Processor {
                             long thisPartSize;
                             boolean isLastPart;
                             for (int part = currentState.getPartETags().size() + 1;
-                                 currentState.getFilePosition() < currentState.getContentLength(); part++) {
+                                    currentState.getFilePosition() < currentState.getContentLength(); part++) {
                                 if (!PutS3Object.this.isScheduled()) {
                                     throw new IOException(S3_PROCESS_UNSCHEDULED_MESSAGE + " flowfile=" + ffFilename +
                                             " part=" + part + " uploadId=" + currentState.getUploadId());
@@ -703,7 +766,7 @@ public class PutS3Object extends AbstractS3Processor {
                                     }
                                     getLogger().info("Success uploading part flowfile={} part={} available={} " +
                                             "etag={} uploadId={}", new Object[]{ffFilename, part, available,
-                                            uploadPartResult.getETag(), currentState.getUploadId()});
+                                                    uploadPartResult.getETag(), currentState.getUploadId()});
                                 } catch (AmazonClientException e) {
                                     getLogger().info("Failure uploading part flowfile={} part={} bucket={} key={} " +
                                             "reason={}", new Object[]{ffFilename, part, bucket, key, e.getMessage()});
@@ -860,16 +923,16 @@ public class PutS3Object extends AbstractS3Processor {
         final Map<String, String> attributesMap = flowFile.getAttributes();
 
         attributesMap.entrySet().stream().sequential()
-                .filter(attribute -> attribute.getKey().startsWith(prefix))
-                .forEach(attribute -> {
-                    String tagKey = attribute.getKey();
-                    String tagValue = attribute.getValue();
+        .filter(attribute -> attribute.getKey().startsWith(prefix))
+        .forEach(attribute -> {
+            String tagKey = attribute.getKey();
+            String tagValue = attribute.getValue();
 
-                    if (context.getProperty(REMOVE_TAG_PREFIX).asBoolean()) {
-                        tagKey = tagKey.replace(prefix, "");
-                    }
-                    objectTags.add(new Tag(tagKey, tagValue));
-                });
+            if (context.getProperty(REMOVE_TAG_PREFIX).asBoolean()) {
+                tagKey = tagKey.replace(prefix, "");
+            }
+            objectTags.add(new Tag(tagKey, tagValue));
+        });
 
         return objectTags;
     }
@@ -976,7 +1039,7 @@ public class PutS3Object extends AbstractS3Processor {
         public String toString() {
             StringBuilder buf = new StringBuilder();
             buf.append(_uploadId).append(SEPARATOR)
-                    .append(_filePosition.toString()).append(SEPARATOR);
+            .append(_filePosition.toString()).append(SEPARATOR);
             if (_partETags.size() > 0) {
                 boolean first = true;
                 for (PartETag tag : _partETags) {
@@ -989,10 +1052,10 @@ public class PutS3Object extends AbstractS3Processor {
                 }
             }
             buf.append(SEPARATOR)
-                    .append(_partSize.toString()).append(SEPARATOR)
-                    .append(_storageClass.toString()).append(SEPARATOR)
-                    .append(_contentLength.toString()).append(SEPARATOR)
-                    .append(_timestamp.toString());
+            .append(_partSize.toString()).append(SEPARATOR)
+            .append(_storageClass.toString()).append(SEPARATOR)
+            .append(_contentLength.toString()).append(SEPARATOR)
+            .append(_timestamp.toString());
             return buf.toString();
         }
     }

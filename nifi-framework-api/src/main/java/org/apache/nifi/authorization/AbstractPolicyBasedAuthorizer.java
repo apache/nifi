@@ -20,6 +20,7 @@ import org.apache.nifi.authorization.exception.AuthorizationAccessException;
 import org.apache.nifi.authorization.exception.AuthorizerCreationException;
 import org.apache.nifi.authorization.exception.AuthorizerDestructionException;
 import org.apache.nifi.authorization.exception.UninheritableAuthorizationsException;
+import org.apache.nifi.security.xml.XmlUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
@@ -29,7 +30,6 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
 import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.stream.XMLOutputFactory;
 import javax.xml.stream.XMLStreamException;
@@ -50,7 +50,6 @@ import java.util.Set;
 public abstract class AbstractPolicyBasedAuthorizer implements ManagedAuthorizer {
     private static final Logger logger = LoggerFactory.getLogger(AbstractPolicyBasedAuthorizer.class);
 
-    static final DocumentBuilderFactory DOCUMENT_BUILDER_FACTORY = DocumentBuilderFactory.newInstance();
     static final XMLOutputFactory XML_OUTPUT_FACTORY = XMLOutputFactory.newInstance();
 
     static final String USER_ELEMENT = "user";
@@ -151,6 +150,15 @@ public abstract class AbstractPolicyBasedAuthorizer implements ManagedAuthorizer
      * @throws AuthorizationAccessException if there was an unexpected error performing the operation
      */
     public abstract Group getGroup(String identifier) throws AuthorizationAccessException;
+
+    /**
+     * Retrieves a group by name.
+     *
+     * @param name the name of the group to retrieve
+     * @return the group with the given name, or null if no matching group was found
+     * @throws AuthorizationAccessException if there was an unexpected error performing the operation
+     */
+    public abstract Group getGroupByName(String name) throws AuthorizationAccessException;
 
     protected abstract void purgePoliciesUsersAndGroups();
 
@@ -415,7 +423,7 @@ public abstract class AbstractPolicyBasedAuthorizer implements ManagedAuthorizer
 
         final byte[] fingerprintBytes = fingerprint.getBytes(StandardCharsets.UTF_8);
         try (final ByteArrayInputStream in = new ByteArrayInputStream(fingerprintBytes)) {
-            final DocumentBuilder docBuilder = DOCUMENT_BUILDER_FACTORY.newDocumentBuilder();
+            final DocumentBuilder docBuilder = XmlUtils.createSafeDocumentBuilder(null);
             final Document document = docBuilder.parse(in);
             final Element rootElement = document.getDocumentElement();
 
@@ -610,6 +618,11 @@ public abstract class AbstractPolicyBasedAuthorizer implements ManagedAuthorizer
                     @Override
                     public Group getGroup(String identifier) throws AuthorizationAccessException {
                         return AbstractPolicyBasedAuthorizer.this.getGroup(identifier);
+                    }
+
+                    @Override
+                    public Group getGroupByName(String name) throws AuthorizationAccessException {
+                        return AbstractPolicyBasedAuthorizer.this.getGroupByName(name);
                     }
 
                     @Override

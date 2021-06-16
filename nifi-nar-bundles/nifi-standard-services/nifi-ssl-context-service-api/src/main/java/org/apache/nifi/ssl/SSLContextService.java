@@ -16,20 +16,13 @@
  */
 package org.apache.nifi.ssl;
 
-import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.X509TrustManager;
+
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.security.util.TlsConfiguration;
 
 /**
@@ -41,10 +34,61 @@ import org.apache.nifi.security.util.TlsConfiguration;
         + "that configuration throughout the application")
 public interface SSLContextService extends ControllerService {
 
-    // May need to back out if NAR-specific API can't be modified in minor release
     TlsConfiguration createTlsConfiguration();
 
-    SSLContext createSSLContext(final SslContextFactory.ClientAuth clientAuth) throws ProcessException;
+    /**
+     * This enum was removed in 1.12.0 but external custom code has been compiled against it, so it is returned
+     * in 1.12.1. This enum should no longer be used and any dependent code should now reference
+     * ClientAuth moving forward. This enum may be removed in a future release.
+     *
+     */
+    @Deprecated
+    enum ClientAuth {
+        WANT,
+        REQUIRED,
+        NONE
+    }
+
+    /**
+     * Create and initialize {@link SSLContext} using configured properties. This method is preferred over deprecated
+     * create methods due to not requiring a client authentication policy.
+     *
+     * @return {@link SSLContext} initialized using configured properties
+     */
+    SSLContext createContext();
+
+    /**
+     * Returns a configured {@link SSLContext} from the populated configuration values. This method is deprecated
+     * due to {@link org.apache.nifi.security.util.ClientAuth} not being applicable or used when initializing the
+     * {@link SSLContext}
+     *
+     * @param clientAuth the desired level of client authentication
+     * @return the configured SSLContext
+     * @throws ProcessException if there is a problem configuring the context
+     * @deprecated The {@link #createContext()} method should be used instead
+     */
+    @Deprecated
+    SSLContext createSSLContext(org.apache.nifi.security.util.ClientAuth clientAuth) throws ProcessException;
+
+    /**
+     * Returns a configured {@link SSLContext} from the populated configuration values. This method is deprecated
+     * due to the use of the deprecated {@link ClientAuth} enum and the
+     * ({@link #createContext()}) method is preferred.
+     *
+     * @param clientAuth the desired level of client authentication
+     * @return the configured SSLContext
+     * @throws ProcessException if there is a problem configuring the context
+     * @deprecated The {@link #createContext()} method should be used instead
+     */
+    @Deprecated
+    SSLContext createSSLContext(ClientAuth clientAuth) throws ProcessException;
+
+    /**
+     * Create X.509 Trust Manager using configured properties
+     *
+     * @return {@link X509TrustManager} initialized using configured properties
+     */
+    X509TrustManager createTrustManager();
 
     String getTrustStoreFile();
 
@@ -65,41 +109,4 @@ public interface SSLContextService extends ControllerService {
     boolean isKeyStoreConfigured();
 
     String getSslAlgorithm();
-
-    /**
-     * Build a set of allowable TLS/SSL protocol algorithms based on JVM configuration.
-     *
-     * @return the computed set of allowable values
-     */
-    static AllowableValue[] buildAlgorithmAllowableValues() {
-        final Set<String> supportedProtocols = new HashSet<>();
-
-        /*
-         * Prepopulate protocols with generic instance types commonly used
-         * see: http://docs.oracle.com/javase/7/docs/technotes/guides/security/StandardNames.html#SSLContext
-         */
-        supportedProtocols.add("TLS");
-
-        // This is still available for outgoing connections to legacy services, but can be disabled with jdk.tls.disabledAlgorithms
-        supportedProtocols.add("SSL");
-
-        // Determine those provided by the JVM on the system
-        try {
-            supportedProtocols.addAll(Arrays.asList(SSLContext.getDefault().createSSLEngine().getSupportedProtocols()));
-        } catch (NoSuchAlgorithmException e) {
-            // ignored as default is used
-        }
-
-        final int numProtocols = supportedProtocols.size();
-
-        // Sort for consistent presentation in configuration views
-        final List<String> supportedProtocolList = new ArrayList<>(supportedProtocols);
-        Collections.sort(supportedProtocolList);
-
-        final List<AllowableValue> protocolAllowableValues = new ArrayList<>();
-        for (final String protocol : supportedProtocolList) {
-            protocolAllowableValues.add(new AllowableValue(protocol));
-        }
-        return protocolAllowableValues.toArray(new AllowableValue[numProtocols]);
-    }
 }

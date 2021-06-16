@@ -62,10 +62,8 @@ import org.apache.nifi.util.StopWatch;
     @ReadsAttribute(attribute = HTTPUtils.HTTP_LOCAL_NAME, description = "IP address/hostname of the server. Used for provenance event."),
     @ReadsAttribute(attribute = HTTPUtils.HTTP_PORT, description = "Listening port of the server. Used for provenance event."),
     @ReadsAttribute(attribute = HTTPUtils.HTTP_SSL_CERT, description = "SSL distinguished name (if any). Used for provenance event.")})
-@SeeAlso(value = {HandleHttpRequest.class}, classNames = {"org.apache.nifi.http.StandardHttpContextMap", "org.apache.nifi.ssl.StandardSSLContextService"})
+@SeeAlso(value = {HandleHttpRequest.class}, classNames = {"org.apache.nifi.http.StandardHttpContextMap", "org.apache.nifi.ssl.SSLContextService"})
 public class HandleHttpResponse extends AbstractProcessor {
-
-    public static final Pattern NUMBER_PATTERN = Pattern.compile("[0-9]+");
 
     public static final PropertyDescriptor STATUS_CODE = new PropertyDescriptor.Builder()
             .name("HTTP Status Code")
@@ -79,6 +77,12 @@ public class HandleHttpResponse extends AbstractProcessor {
             .description("The HTTP Context Map Controller Service to use for caching the HTTP Request Information")
             .required(true)
             .identifiesControllerService(HttpContextMap.class)
+            .build();
+    public static final PropertyDescriptor ATTRIBUTES_AS_HEADERS_REGEX = new PropertyDescriptor.Builder()
+            .name("Attributes to add to the HTTP Response (Regex)")
+            .description("Specifies the Regular Expression that determines the names of FlowFile attributes that should be added to the HTTP response")
+            .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
+            .required(false)
             .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -96,6 +100,7 @@ public class HandleHttpResponse extends AbstractProcessor {
         final List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(STATUS_CODE);
         properties.add(HTTP_CONTEXT_MAP);
+        properties.add(ATTRIBUTES_AS_HEADERS_REGEX);
         return properties;
     }
 
@@ -129,25 +134,25 @@ public class HandleHttpResponse extends AbstractProcessor {
 
         final String contextIdentifier = flowFile.getAttribute(HTTPUtils.HTTP_CONTEXT_ID);
         if (contextIdentifier == null) {
-            session.transfer(flowFile, REL_FAILURE);
             getLogger().warn("Failed to respond to HTTP request for {} because FlowFile did not have an '" + HTTPUtils.HTTP_CONTEXT_ID + "' attribute",
                     new Object[]{flowFile});
+            session.transfer(flowFile, REL_FAILURE);
             return;
         }
 
         final String statusCodeValue = context.getProperty(STATUS_CODE).evaluateAttributeExpressions(flowFile).getValue();
         if (!isNumber(statusCodeValue)) {
-            session.transfer(flowFile, REL_FAILURE);
             getLogger().error("Failed to respond to HTTP request for {} because status code was '{}', which is not a valid number", new Object[]{flowFile, statusCodeValue});
+            session.transfer(flowFile, REL_FAILURE);
             return;
         }
 
         final HttpContextMap contextMap = context.getProperty(HTTP_CONTEXT_MAP).asControllerService(HttpContextMap.class);
         final HttpServletResponse response = contextMap.getResponse(contextIdentifier);
         if (response == null) {
-            session.transfer(flowFile, REL_FAILURE);
             getLogger().error("Failed to respond to HTTP request for {} because FlowFile had an '{}' attribute of {} but could not find an HTTP Response Object for this identifier",
                     new Object[]{flowFile, HTTPUtils.HTTP_CONTEXT_ID, contextIdentifier});
+            session.transfer(flowFile, REL_FAILURE);
             return;
         }
 
@@ -166,31 +171,50 @@ public class HandleHttpResponse extends AbstractProcessor {
             }
         }
 
+        final String attributeHeaderRegex = context.getProperty(ATTRIBUTES_AS_HEADERS_REGEX).getValue();
+        if (attributeHeaderRegex != null) {
+            final Pattern pattern = Pattern.compile(attributeHeaderRegex);
+
+            final Map<String, String> attributes = flowFile.getAttributes();
+            for (final Map.Entry<String, String> entry : attributes.entrySet()) {
+                final String key = entry.getKey();
+                if (pattern.matcher(key).matches()) {
+                    if (!entry.getValue().trim().isEmpty()){
+                        response.setHeader(entry.getKey(), entry.getValue());
+                    }
+                }
+            }
+        }
+
         try {
             session.exportTo(flowFile, response.getOutputStream());
             response.flushBuffer();
         } catch (final ProcessException e) {
-            session.transfer(flowFile, REL_FAILURE);
             getLogger().error("Failed to respond to HTTP request for {} due to {}", new Object[]{flowFile, e});
-            contextMap.complete(contextIdentifier);
+            try {
+                contextMap.complete(contextIdentifier);
+            } catch (final RuntimeException ce) {
+                getLogger().error("Failed to complete HTTP Transaction for {} due to {}", new Object[]{flowFile, ce});
+            }
+            session.transfer(flowFile, REL_FAILURE);
             return;
         } catch (final Exception e) {
-            session.transfer(flowFile, REL_FAILURE);
             getLogger().error("Failed to respond to HTTP request for {} due to {}", new Object[]{flowFile, e});
+            session.transfer(flowFile, REL_FAILURE);
             return;
         }
 
         try {
             contextMap.complete(contextIdentifier);
-        } catch (final IllegalStateException ise) {
-            getLogger().error("Failed to complete HTTP Transaction for {} due to {}", new Object[]{flowFile, ise});
+        } catch (final RuntimeException ce) {
+            getLogger().error("Failed to complete HTTP Transaction for {} due to {}", new Object[]{flowFile, ce});
             session.transfer(flowFile, REL_FAILURE);
             return;
         }
 
         session.getProvenanceReporter().send(flowFile, HTTPUtils.getURI(flowFile.getAttributes()), stopWatch.getElapsed(TimeUnit.MILLISECONDS));
-        session.transfer(flowFile, REL_SUCCESS);
         getLogger().info("Successfully responded to HTTP Request for {} with status code {}", new Object[]{flowFile, statusCode});
+        session.transfer(flowFile, REL_SUCCESS);
     }
 
     private static boolean isNumber(final String value) {

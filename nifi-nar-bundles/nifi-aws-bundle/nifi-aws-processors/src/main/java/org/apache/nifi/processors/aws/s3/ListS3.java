@@ -16,19 +16,7 @@
  */
 package org.apache.nifi.processors.aws.s3;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-
+import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.internal.Constants;
 import com.amazonaws.services.s3.model.GetObjectMetadataRequest;
 import com.amazonaws.services.s3.model.GetObjectTaggingRequest;
@@ -56,6 +44,7 @@ import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyDescriptor.Builder;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
@@ -69,8 +58,6 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
-
-import com.amazonaws.services.s3.AmazonS3;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
@@ -81,6 +68,21 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
+
+import java.io.IOException;
+import java.io.OutputStream;
+import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 @PrimaryNodeOnly
 @TriggerSerially
@@ -111,7 +113,7 @@ import org.apache.nifi.serialization.record.RecordSchema;
 @SeeAlso({FetchS3Object.class, PutS3Object.class, DeleteS3Object.class})
 public class ListS3 extends AbstractS3Processor {
 
-    public static final PropertyDescriptor DELIMITER = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor DELIMITER = new Builder()
             .name("delimiter")
             .displayName("Delimiter")
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
@@ -121,7 +123,7 @@ public class ListS3 extends AbstractS3Processor {
                     "for the correct use of this field.")
             .build();
 
-    public static final PropertyDescriptor PREFIX = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor PREFIX = new Builder()
             .name("prefix")
             .displayName("Prefix")
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
@@ -130,7 +132,7 @@ public class ListS3 extends AbstractS3Processor {
             .description("The prefix used to filter the object list. In most cases, it should end with a forward slash ('/').")
             .build();
 
-    public static final PropertyDescriptor USE_VERSIONS = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor USE_VERSIONS = new Builder()
             .name("use-versions")
             .displayName("Use Versions")
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
@@ -141,7 +143,7 @@ public class ListS3 extends AbstractS3Processor {
             .description("Specifies whether to use S3 versions, if applicable.  If false, only the latest version of each object will be returned.")
             .build();
 
-    public static final PropertyDescriptor LIST_TYPE = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor LIST_TYPE = new Builder()
             .name("list-type")
             .displayName("List Type")
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
@@ -154,7 +156,7 @@ public class ListS3 extends AbstractS3Processor {
             .description("Specifies whether to use the original List Objects or the newer List Objects Version 2 endpoint.")
             .build();
 
-    public static final PropertyDescriptor MIN_AGE = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor MIN_AGE = new Builder()
             .name("min-age")
             .displayName("Minimum Object Age")
             .description("The minimum age that an S3 object must be in order to be considered; any object younger than this amount of time (according to last modification date) will be ignored")
@@ -163,7 +165,7 @@ public class ListS3 extends AbstractS3Processor {
             .defaultValue("0 sec")
             .build();
 
-    public static final PropertyDescriptor WRITE_OBJECT_TAGS = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor WRITE_OBJECT_TAGS = new Builder()
             .name("write-s3-object-tags")
             .displayName("Write Object Tags")
             .description("If set to 'True', the tags associated with the S3 object will be written as FlowFile attributes")
@@ -171,7 +173,7 @@ public class ListS3 extends AbstractS3Processor {
             .allowableValues(new AllowableValue("true", "True"), new AllowableValue("false", "False"))
             .defaultValue("false")
             .build();
-    public static final PropertyDescriptor REQUESTER_PAYS = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor REQUESTER_PAYS = new Builder()
             .name("requester-pays")
             .displayName("Requester Pays")
             .required(true)
@@ -185,7 +187,7 @@ public class ListS3 extends AbstractS3Processor {
             .defaultValue("false")
             .build();
 
-    public static final PropertyDescriptor WRITE_USER_METADATA = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor WRITE_USER_METADATA = new Builder()
             .name("write-s3-user-metadata")
             .displayName("Write User Metadata")
             .description("If set to 'True', the user defined metadata associated with the S3 object will be added to FlowFile attributes/records")
@@ -194,13 +196,25 @@ public class ListS3 extends AbstractS3Processor {
             .defaultValue("false")
             .build();
 
-    public static final PropertyDescriptor RECORD_WRITER = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor RECORD_WRITER = new Builder()
         .name("record-writer")
         .displayName("Record Writer")
         .description("Specifies the Record Writer to use for creating the listing. If not specified, one FlowFile will be created for each entity that is listed. If the Record Writer is specified, " +
             "all entities will be written to a single FlowFile instead of adding attributes to individual FlowFiles.")
         .required(false)
         .identifiesControllerService(RecordSetWriterFactory.class)
+        .build();
+
+    static final PropertyDescriptor BATCH_SIZE = new Builder()
+        .name("Listing Batch Size")
+        .displayName("Listing Batch Size")
+        .description("If not using a Record Writer, this property dictates how many S3 objects should be listed in a single batch. Once this number is reached, the FlowFiles that have been created " +
+            "will be transferred out of the Processor. Setting this value lower may result in lower latency by sending out the FlowFiles before the complete listing has finished. However, it can " +
+            "significantly reduce performance. Larger values may take more memory to store all of the information before sending the FlowFiles out. This property is ignored if using a Record " +
+            "Writer, as one of the main benefits of the Record Writer is being able to emit the entire listing as a single FlowFile.")
+        .required(false)
+        .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+        .defaultValue("100")
         .build();
 
 
@@ -211,6 +225,7 @@ public class ListS3 extends AbstractS3Processor {
         SECRET_KEY,
         RECORD_WRITER,
         MIN_AGE,
+        BATCH_SIZE,
         WRITE_OBJECT_TAGS,
         WRITE_USER_METADATA,
         CREDENTIALS_FILE,
@@ -236,8 +251,7 @@ public class ListS3 extends AbstractS3Processor {
     public static final String CURRENT_KEY_PREFIX = "key-";
 
     // State tracking
-    private long currentTimestamp = 0L;
-    private Set<String> currentKeys;
+    private final AtomicReference<ListingSnapshot> listing = new AtomicReference<>(new ListingSnapshot(0L, Collections.emptySet()));
 
     private static Validator createRequesterPaysValidator() {
         return new Validator() {
@@ -276,27 +290,39 @@ public class ListS3 extends AbstractS3Processor {
         return keys;
     }
 
-    private void restoreState(final ProcessContext context) throws IOException {
-        final StateMap stateMap = context.getStateManager().getState(Scope.CLUSTER);
+    private void restoreState(final ProcessSession session) throws IOException {
+        final StateMap stateMap = session.getState(Scope.CLUSTER);
         if (stateMap.getVersion() == -1L || stateMap.get(CURRENT_TIMESTAMP) == null || stateMap.get(CURRENT_KEY_PREFIX+"0") == null) {
-            currentTimestamp = 0L;
-            currentKeys = new HashSet<>();
+            forcefullyUpdateListing(0L, Collections.emptySet());
         } else {
-            currentTimestamp = Long.parseLong(stateMap.get(CURRENT_TIMESTAMP));
-            currentKeys = extractKeys(stateMap);
+            final long timestamp = Long.parseLong(stateMap.get(CURRENT_TIMESTAMP));
+            final Set<String> keys = extractKeys(stateMap);
+            forcefullyUpdateListing(timestamp, keys);
         }
     }
 
-    private void persistState(final ProcessContext context) {
-        Map<String, String> state = new HashMap<>();
-        state.put(CURRENT_TIMESTAMP, String.valueOf(currentTimestamp));
+    private void updateListingIfNewer(final long timestamp, final Set<String> keys) {
+        final ListingSnapshot updatedListing = new ListingSnapshot(timestamp, keys);
+        listing.getAndUpdate(current -> current.getTimestamp() > timestamp ? current : updatedListing);
+    }
+
+    private void forcefullyUpdateListing(final long timestamp, final Set<String> keys) {
+        final ListingSnapshot updatedListing = new ListingSnapshot(timestamp, keys);
+        listing.set(updatedListing);
+    }
+
+    private void persistState(final ProcessSession session, final long timestamp, final Collection<String> keys) {
+        final Map<String, String> state = new HashMap<>();
+        state.put(CURRENT_TIMESTAMP, String.valueOf(timestamp));
+
         int i = 0;
-        for (String key : currentKeys) {
-            state.put(CURRENT_KEY_PREFIX+i, key);
+        for (final String key : keys) {
+            state.put(CURRENT_KEY_PREFIX + i, key);
             i++;
         }
+
         try {
-            context.getStateManager().setState(state, Scope.CLUSTER);
+            session.setState(state, Scope.CLUSTER);
         } catch (IOException ioe) {
             getLogger().error("Failed to save cluster-wide state. If NiFi is restarted, data duplication may occur", ioe);
         }
@@ -305,7 +331,7 @@ public class ListS3 extends AbstractS3Processor {
     @Override
     public void onTrigger(final ProcessContext context, final ProcessSession session) {
         try {
-            restoreState(context);
+            restoreState(session);
         } catch (IOException ioe) {
             getLogger().error("Failed to restore processor state; yielding", ioe);
             context.yield();
@@ -317,6 +343,11 @@ public class ListS3 extends AbstractS3Processor {
         final long minAgeMilliseconds = context.getProperty(MIN_AGE).asTimePeriod(TimeUnit.MILLISECONDS);
         final long listingTimestamp = System.currentTimeMillis();
         final boolean requesterPays = context.getProperty(REQUESTER_PAYS).asBoolean();
+        final int batchSize = context.getProperty(BATCH_SIZE).asInteger();
+
+        final ListingSnapshot currentListing = listing.get();
+        final long currentTimestamp = currentListing.getTimestamp();
+        final Set<String> currentKeys = currentListing.getKeys();
 
         final AmazonS3 client = getClient();
         int listCount = 0;
@@ -412,9 +443,9 @@ public class ListS3 extends AbstractS3Processor {
 
                     totalListCount += listCount;
 
-                    if (listCount > 0 && writer.isCheckpoint()) {
+                    if (listCount >= batchSize && writer.isCheckpoint()) {
                         getLogger().info("Successfully listed {} new files from S3; routing to success", new Object[] {listCount});
-                        session.commit();
+                        session.commitAsync();
                     }
 
                     listCount = 0;
@@ -429,17 +460,18 @@ public class ListS3 extends AbstractS3Processor {
             return;
         }
 
-        session.commit();
-
-        // Update currentKeys.
-        if (latestListedTimestampInThisCycle > currentTimestamp) {
-            currentKeys.clear();
+        final Set<String> updatedKeys = new HashSet<>();
+        if (latestListedTimestampInThisCycle <= currentTimestamp) {
+            updatedKeys.addAll(currentKeys);
         }
-        currentKeys.addAll(listedKeys);
+        updatedKeys.addAll(listedKeys);
 
-        // Update stateManger with the most recent timestamp
-        currentTimestamp = latestListedTimestampInThisCycle;
-        persistState(context);
+        persistState(session, latestListedTimestampInThisCycle, updatedKeys);
+
+        final long latestListed = latestListedTimestampInThisCycle;
+        session.commitAsync(() -> {
+            updateListingIfNewer(latestListed, updatedKeys);
+        });
 
         final long listMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
         getLogger().info("Successfully listed S3 bucket {} in {} millis", new Object[]{bucket, listMillis});
@@ -831,7 +863,25 @@ public class ListS3 extends AbstractS3Processor {
 
         @Override
         public boolean isCheckpoint() {
-            return false;
+            return true;
+        }
+    }
+
+    private static class ListingSnapshot {
+        private final long timestamp;
+        private final Set<String> keys;
+
+        public ListingSnapshot(final long timestamp, final Set<String> keys) {
+            this.timestamp = timestamp;
+            this.keys = keys;
+        }
+
+        public long getTimestamp() {
+            return timestamp;
+        }
+
+        public Set<String> getKeys() {
+            return keys;
         }
     }
 }

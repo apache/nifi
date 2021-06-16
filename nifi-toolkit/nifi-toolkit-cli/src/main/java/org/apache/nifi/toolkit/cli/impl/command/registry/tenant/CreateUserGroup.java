@@ -21,9 +21,8 @@ import org.apache.nifi.registry.authorization.Tenant;
 import org.apache.nifi.registry.authorization.UserGroup;
 import org.apache.nifi.registry.client.NiFiRegistryClient;
 import org.apache.nifi.registry.client.NiFiRegistryException;
+import org.apache.nifi.registry.client.TenantsClient;
 import org.apache.nifi.toolkit.cli.api.Context;
-import org.apache.nifi.toolkit.cli.impl.client.ExtendedNiFiRegistryClient;
-import org.apache.nifi.toolkit.cli.impl.client.registry.TenantsClient;
 import org.apache.nifi.toolkit.cli.impl.command.CommandOption;
 import org.apache.nifi.toolkit.cli.impl.command.registry.AbstractNiFiRegistryCommand;
 import org.apache.nifi.toolkit.cli.impl.result.StringResult;
@@ -60,12 +59,7 @@ public class CreateUserGroup extends AbstractNiFiRegistryCommand<StringResult> {
     public StringResult doExecute(final NiFiRegistryClient client, final Properties properties)
             throws IOException, NiFiRegistryException, ParseException {
 
-        if (!(client instanceof ExtendedNiFiRegistryClient)) {
-            throw new IllegalArgumentException("This command needs extended registry client!");
-        }
-
-        final ExtendedNiFiRegistryClient extendedClient = (ExtendedNiFiRegistryClient) client;
-        final TenantsClient tenantsClient = extendedClient.getTenantsClient();
+        final TenantsClient tenantsClient = client.getTenantsClient();
 
         final String groupName = getRequiredArg(properties, CommandOption.UG_NAME);
 

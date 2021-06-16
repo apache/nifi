@@ -16,6 +16,9 @@
  */
 package org.apache.nifi.util;
 
+import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.components.state.StateManager;
+import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -30,6 +33,7 @@ import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.io.StreamCallback;
 import org.apache.nifi.provenance.ProvenanceReporter;
+import org.apache.nifi.state.MockStateManager;
 import org.junit.Assert;
 
 import java.io.ByteArrayInputStream;
@@ -56,6 +60,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -80,6 +85,8 @@ public class MockProcessSession implements ProcessSession {
     private final Map<FlowFile, InputStream> openInputStreams = new HashMap<>();
     // A List of OutputStreams that have been created by calls to {@link #write(FlowFile)} and have not yet been closed.
     private final Map<FlowFile, OutputStream> openOutputStreams = new HashMap<>();
+    private final StateManager stateManager;
+    private final boolean allowSynchronousCommits;
 
     private boolean committed = false;
     private boolean rolledback = false;
@@ -88,15 +95,26 @@ public class MockProcessSession implements ProcessSession {
     private static final AtomicLong enqueuedIndex = new AtomicLong(0L);
 
     public MockProcessSession(final SharedSessionState sharedState, final Processor processor) {
-        this(sharedState, processor, true);
+        this(sharedState, processor, true, new MockStateManager(processor));
     }
 
-    public MockProcessSession(final SharedSessionState sharedState, final Processor processor, final boolean enforceStreamsClosed) {
+    public MockProcessSession(final SharedSessionState sharedState, final Processor processor, final StateManager stateManager) {
+        this(sharedState, processor, true, stateManager);
+    }
+
+    public MockProcessSession(final SharedSessionState sharedState, final Processor processor, final boolean enforceStreamsClosed, final StateManager stateManager) {
+        this(sharedState, processor, enforceStreamsClosed, stateManager, false);
+    }
+
+    public MockProcessSession(final SharedSessionState sharedState, final Processor processor, final boolean enforceStreamsClosed, final StateManager stateManager,
+                              final boolean allowSynchronousCommits) {
         this.processor = processor;
         this.enforceStreamsClosed = enforceStreamsClosed;
         this.sharedState = sharedState;
         this.processorQueue = sharedState.getFlowFileQueue();
-        provenanceReporter = new MockProvenanceReporter(this, sharedState, processor.getIdentifier(), processor.getClass().getSimpleName());
+        this.provenanceReporter = new MockProvenanceReporter(this, sharedState, processor.getIdentifier(), processor.getClass().getSimpleName());
+        this.stateManager = stateManager;
+        this.allowSynchronousCommits = allowSynchronousCommits;
     }
 
     @Override
@@ -247,6 +265,16 @@ public class MockProcessSession implements ProcessSession {
 
     @Override
     public void commit() {
+        if (!allowSynchronousCommits) {
+            throw new RuntimeException("As of version 1.14.0, ProcessSession.commit() should be avoided when possible. See JavaDocs for explanations. Instead, use commitAsync(), " +
+                "commitAsync(Runnable), or commitAsync(Runnable, Consumer<Throwable>). However, if this is not possible, ProcessSession.commit() may still be used, but this must be explicitly " +
+                "enabled by calling TestRunner.");
+        }
+
+        commitInternal();
+    }
+
+    private void commitInternal() {
         if (!beingProcessed.isEmpty()) {
             throw new FlowFileHandlingException("Cannot commit session because the following FlowFiles have not been removed or transferred: " + beingProcessed);
         }
@@ -264,7 +292,26 @@ public class MockProcessSession implements ProcessSession {
         }
 
         sharedState.addProvenanceEvents(provenanceReporter.getEvents());
+        provenanceReporter.clear();
         counterMap.clear();
+    }
+
+    @Override
+    public void commitAsync() {
+        commitInternal();
+    }
+
+    @Override
+    public void commitAsync(final Runnable onSuccess, final Consumer<Throwable> onFailure) {
+        try {
+            commitInternal();
+        } catch (final Throwable t) {
+            rollback();
+            onFailure.accept(t);
+            throw t;
+        }
+
+        onSuccess.run();
     }
 
     /**
@@ -1147,14 +1194,14 @@ public class MockProcessSession implements ProcessSession {
     }
 
     /**
-     * Assert that {@link #commit()} has been called
+     * Assert that the session has been committed
      */
     public void assertCommitted() {
         Assert.assertTrue("Session was not committed", committed);
     }
 
     /**
-     * Assert that {@link #commit()} has not been called
+     * Assert that the session has not been committed
      */
     public void assertNotCommitted() {
         Assert.assertFalse("Session was committed", committed);
@@ -1317,6 +1364,26 @@ public class MockProcessSession implements ProcessSession {
     }
 
     @Override
+    public void setState(final Map<String, String> state, final Scope scope) throws IOException {
+        stateManager.setState(state, scope);
+    }
+
+    @Override
+    public StateMap getState(final Scope scope) throws IOException {
+        return stateManager.getState(scope);
+    }
+
+    @Override
+    public boolean replaceState(final StateMap oldValue, final Map<String, String> newValue, final Scope scope) throws IOException {
+        return stateManager.replace(oldValue, newValue, scope);
+    }
+
+    @Override
+    public void clearState(final Scope scope) throws IOException {
+        stateManager.clear(scope);
+    }
+
+    @Override
     public MockFlowFile penalize(FlowFile flowFile) {
         flowFile = validateState(flowFile);
         final MockFlowFile mockFlowFile = (MockFlowFile) flowFile;
@@ -1357,10 +1424,6 @@ public class MockProcessSession implements ProcessSession {
 
         final String curUuid = curFlowFile.getAttribute(CoreAttributes.UUID.key());
         final String providedUuid = curFlowFile.getAttribute(CoreAttributes.UUID.key());
-        if (!curUuid.equals(providedUuid)) {
-            return false;
-        }
-
-        return true;
+        return curUuid.equals(providedUuid);
     }
 }

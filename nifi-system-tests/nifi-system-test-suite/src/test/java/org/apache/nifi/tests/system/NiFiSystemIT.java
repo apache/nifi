@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.tests.system;
 
-import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientConfig;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
@@ -42,6 +41,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BooleanSupplier;
+import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -59,15 +59,10 @@ public abstract class NiFiSystemIT {
     private static final File LIB_DIR = new File("target/nifi-lib-assembly/lib");
     private static volatile String nifiFrameworkVersion = null;
 
-    protected static final Relationship REL_SUCCESS = new Relationship.Builder()
-        .name("success")
-        .description("Convenience Relationship for use in tests")
-        .build();
-
     @Rule
     public TestName name = new TestName();
     @Rule
-    public Timeout defaultTimeout = new Timeout(2, TimeUnit.MINUTES);
+    public Timeout defaultTimeout = new Timeout(5, TimeUnit.MINUTES);
 
     private NiFiClient nifiClient;
     private NiFiClientUtil clientUtil;
@@ -151,7 +146,7 @@ public abstract class NiFiSystemIT {
                     return;
                 }
 
-                logEverySecond("Waiting for {} nodes to connect but currently on {} nodes are connected", expectedNumberOfNodes, connectedNodeCount);
+                logEverySecond("Waiting for {} nodes to connect but currently only {} nodes are connected", expectedNumberOfNodes, connectedNodeCount);
 
                 if (System.currentTimeMillis() > maxTime) {
                     throw new RuntimeException("Waited up to 60 seconds for both nodes to connect but only " + connectedNodeCount + " nodes connected");
@@ -272,20 +267,32 @@ public abstract class NiFiSystemIT {
         }
     }
 
+    protected void waitForQueueNotEmpty(final String connectionId) throws InterruptedException {
+        logger.info("Waiting for Queue on Connection {} to not be empty", connectionId);
+
+        waitForQueueCountToMatch(connectionId, size -> size > 0, "greater than 0");
+
+        logger.info("Waiting for Queue on Connection {} is not empty", connectionId);
+    }
+
     protected void waitForQueueCount(final String connectionId, final int queueSize) throws InterruptedException {
         logger.info("Waiting for Queue Count of {} on Connection {}", queueSize, connectionId);
 
+        waitForQueueCountToMatch(connectionId, size -> size == queueSize, String.valueOf(queueSize));
+
+        logger.info("Queue Count for Connection {} is now {}", connectionId, queueSize);
+    }
+
+    private void waitForQueueCountToMatch(final String connectionId, final Predicate<Integer> test, final String queueSizeDescription) throws InterruptedException {
         waitFor(() -> {
             final ConnectionStatusEntity statusEntity = getConnectionStatus(connectionId);
             final int currentSize = statusEntity.getConnectionStatus().getAggregateSnapshot().getFlowFilesQueued();
             final String sourceName = statusEntity.getConnectionStatus().getSourceName();
             final String destinationName = statusEntity.getConnectionStatus().getDestinationName();
-            logEverySecond("Current Queue Size for Connection from {} to {} = {}, Waiting for {}", sourceName, destinationName, currentSize, queueSize);
+            logEverySecond("Current Queue Size for Connection from {} to {} = {}, Waiting for {}", sourceName, destinationName, currentSize, queueSizeDescription);
 
-            return currentSize == queueSize;
+            return test.test(currentSize);
         });
-
-        logger.info("Queue Count for Connection {} is now {}", connectionId, queueSize);
     }
 
     private void logEverySecond(final String message, final Object... args) {
@@ -300,6 +307,7 @@ public abstract class NiFiSystemIT {
         try {
             return getNifiClient().getFlowClient().getConnectionStatus(connectionId, true);
         } catch (final Exception e) {
+            e.printStackTrace();
             Assert.fail("Failed to obtain connection status");
             return null;
         }

@@ -16,21 +16,6 @@
  */
 package org.apache.nifi.fingerprint;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-import java.util.SortedMap;
-import java.util.TreeMap;
-import java.util.stream.Stream;
-import javax.xml.XMLConstants;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.validation.Schema;
-import javax.xml.validation.SchemaFactory;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.ConfigurableComponent;
@@ -38,9 +23,10 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.serialization.FlowEncodingVersion;
 import org.apache.nifi.controller.serialization.FlowFromDOMFactory;
-import org.apache.nifi.encrypt.StringEncryptor;
+import org.apache.nifi.encrypt.PropertyEncryptor;
+import org.apache.nifi.encrypt.SensitiveValueEncoder;
 import org.apache.nifi.nar.ExtensionManager;
-import org.apache.nifi.security.util.crypto.CipherUtility;
+import org.apache.nifi.security.xml.XmlUtils;
 import org.apache.nifi.util.BundleUtils;
 import org.apache.nifi.util.DomUtils;
 import org.apache.nifi.util.LoggingXmlParserErrorHandler;
@@ -54,6 +40,21 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
+
+import javax.xml.XMLConstants;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.validation.Schema;
+import javax.xml.validation.SchemaFactory;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.SortedMap;
+import java.util.TreeMap;
+import java.util.stream.Stream;
 
 /**
  * <p>Creates a fingerprint of a flow.xml. The order of elements or attributes in the flow.xml does not influence the fingerprint generation.
@@ -81,18 +82,18 @@ public class FingerprintFactory {
     static final String FLOW_CONFIG_XSD = "/FlowConfiguration.xsd";
     private static final String ENCRYPTED_VALUE_PREFIX = "enc{";
     private static final String ENCRYPTED_VALUE_SUFFIX = "}";
-    private final StringEncryptor encryptor;
+    private final PropertyEncryptor encryptor;
     private final DocumentBuilder flowConfigDocBuilder;
     private final ExtensionManager extensionManager;
+    private final SensitiveValueEncoder sensitiveValueEncoder;
 
     private static final Logger logger = LoggerFactory.getLogger(FingerprintFactory.class);
 
-    public FingerprintFactory(final StringEncryptor encryptor, final ExtensionManager extensionManager) {
+    public FingerprintFactory(final PropertyEncryptor encryptor, final ExtensionManager extensionManager, final SensitiveValueEncoder sensitiveValueEncoder) {
         this.encryptor = encryptor;
         this.extensionManager = extensionManager;
+        this.sensitiveValueEncoder = sensitiveValueEncoder;
 
-        final DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
-        documentBuilderFactory.setNamespaceAware(true);
         final SchemaFactory schemaFactory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
         final Schema schema;
         try {
@@ -101,18 +102,18 @@ public class FingerprintFactory {
             throw new RuntimeException("Failed to parse schema for file flow configuration.", e);
         }
         try {
-            documentBuilderFactory.setSchema(schema);
-            flowConfigDocBuilder = documentBuilderFactory.newDocumentBuilder();
+            flowConfigDocBuilder = XmlUtils.createSafeDocumentBuilder(schema, true);
             flowConfigDocBuilder.setErrorHandler(new LoggingXmlParserErrorHandler("Flow Configuration", logger));
         } catch (final Exception e) {
             throw new RuntimeException("Failed to create document builder for flow configuration.", e);
         }
     }
 
-    public FingerprintFactory(final StringEncryptor encryptor, final DocumentBuilder docBuilder, final ExtensionManager extensionManager) {
+    public FingerprintFactory(final PropertyEncryptor encryptor, final DocumentBuilder docBuilder, final ExtensionManager extensionManager, final SensitiveValueEncoder sensitiveValueEncoder) {
         this.encryptor = encryptor;
         this.flowConfigDocBuilder = docBuilder;
         this.extensionManager = extensionManager;
+        this.sensitiveValueEncoder = sensitiveValueEncoder;
     }
 
     /**
@@ -122,9 +123,7 @@ public class FingerprintFactory {
      * that is not present in Flow A, then the two will have different fingerprints.
      *
      * @param flowBytes the flow represented as bytes
-     *
      * @return a generated fingerprint
-     *
      * @throws FingerprintException if the fingerprint failed to be generated
      */
     public synchronized String createFingerprint(final byte[] flowBytes) throws FingerprintException {
@@ -134,11 +133,9 @@ public class FingerprintFactory {
     /**
      * Creates a fingerprint of a flow. The order of elements or attributes in the flow does not influence the fingerprint generation.
      *
-     * @param flowBytes the flow represented as bytes
+     * @param flowBytes  the flow represented as bytes
      * @param controller the controller
-     *
      * @return a generated fingerprint
-     *
      * @throws FingerprintException if the fingerprint failed to be generated
      */
     public synchronized String createFingerprint(final byte[] flowBytes, final FlowController controller) throws FingerprintException {
@@ -149,7 +146,6 @@ public class FingerprintFactory {
      * Creates a fingerprint from an XML document representing the flow.xml.
      *
      * @param flowDoc the DOM
-     *
      * @return the fingerprint
      */
     public synchronized String createFingerprint(final Document flowDoc, final FlowController controller) {
@@ -178,9 +174,7 @@ public class FingerprintFactory {
      * Parse the given flow.xml bytes into a Document instance.
      *
      * @param flow a flow
-     *
      * @return the DOM
-     *
      * @throws FingerprintException if the flow could not be parsed
      */
     private Document parseFlow(final byte[] flow) throws FingerprintException {
@@ -297,7 +291,7 @@ public class FingerprintFactory {
     private void orderByChildElement(final List<Element> toSort, final String childTagName) {
         toSort.sort((a, b) -> {
             final String valueA = DomUtils.getChildText(a, childTagName);
-            final String valueB = DomUtils.getChildText(b, childTagName );
+            final String valueB = DomUtils.getChildText(b, childTagName);
             return valueA.compareTo(valueB);
         });
     }
@@ -540,7 +534,7 @@ public class FingerprintFactory {
      * trouble inheriting a flow, so the sensitive value should not be disclosed through the
      * log. However, the equality or difference of the sensitive value can influence in the
      * inheritability of the flow, so it cannot be ignored completely.
-     *
+     * <p>
      * The specific derivation process is unimportant as long as it is a salted,
      * cryptographically-secure hash function with an iteration cost sufficient for password
      * storage in other applications.
@@ -549,7 +543,8 @@ public class FingerprintFactory {
      * @return a deterministic string value which represents this input but is safe to print in a log
      */
     private String getLoggableRepresentationOfSensitiveValue(String encryptedPropertyValue) {
-        return CipherUtility.getLoggableRepresentationOfSensitiveValue(decrypt(encryptedPropertyValue));
+        final String plaintextValue = decrypt(encryptedPropertyValue);
+        return sensitiveValueEncoder.getEncoded(plaintextValue);
     }
 
     private StringBuilder addPortFingerprint(final StringBuilder builder, final Element portElem) throws FingerprintException {
@@ -600,7 +595,7 @@ public class FingerprintFactory {
 
     private StringBuilder addRemoteProcessGroupFingerprint(final StringBuilder builder, final Element remoteProcessGroupElem) throws FingerprintException {
 
-        for (String tagName : new String[] {"id", "versionedComponentId", "urls", "networkInterface", "timeout", "yieldPeriod",
+        for (String tagName : new String[]{"id", "versionedComponentId", "urls", "networkInterface", "timeout", "yieldPeriod",
                 "transportProtocol", "proxyHost", "proxyPort", "proxyUser", "proxyPassword"}) {
             final String value = getFirstValue(DomUtils.getChildNodesByTagName(remoteProcessGroupElem, tagName));
             if (isEncrypted(value)) {
@@ -667,7 +662,7 @@ public class FingerprintFactory {
     }
 
     private StringBuilder addRemoteGroupPortFingerprint(final StringBuilder builder, final Element remoteGroupPortElement) {
-        for (final String childName : new String[] {"id", "targetId", "versionedComponentId", "maxConcurrentTasks", "useCompression", "batchCount", "batchSize", "batchDuration"}) {
+        for (final String childName : new String[]{"id", "targetId", "versionedComponentId", "maxConcurrentTasks", "useCompression", "batchCount", "batchSize", "batchDuration"}) {
             appendFirstValue(builder, DomUtils.getChildNodesByTagName(remoteGroupPortElement, childName));
         }
 

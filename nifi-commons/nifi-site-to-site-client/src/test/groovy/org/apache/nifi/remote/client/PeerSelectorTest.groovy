@@ -41,6 +41,7 @@ class PeerSelectorTest extends GroovyTestCase {
 
     private static final BOOTSTRAP_PEER_DESCRIPTION = new PeerDescription("localhost", -1, false)
     private static final List<String> DEFAULT_NODES = ["node1.nifi", "node2.nifi", "node3.nifi"]
+    private static final String DEFAULT_REMOTE_INSTANCE_URIS = buildRemoteInstanceUris(DEFAULT_NODES)
     private static final Set<PeerStatus> DEFAULT_PEER_STATUSES = buildPeerStatuses(DEFAULT_NODES)
     private static final Set<PeerDescription> DEFAULT_PEER_DESCRIPTIONS = DEFAULT_PEER_STATUSES*.peerDescription
     private static final Map<PeerDescription, Set<PeerStatus>> DEFAULT_PEER_NODES = buildPeersMap(DEFAULT_PEER_STATUSES)
@@ -69,6 +70,11 @@ class PeerSelectorTest extends GroovyTestCase {
     @After
     void tearDown() {
 
+    }
+
+    private static String buildRemoteInstanceUris(List<String> nodes = DEFAULT_NODES) {
+        String remoteInstanceUris = "http://" + nodes.join(":8443/nifi-api,http://") + ":8443/nifi-api";
+        remoteInstanceUris
     }
 
     private static Set<PeerStatus> buildPeerStatuses(List<String> nodes = DEFAULT_NODES) {
@@ -176,10 +182,13 @@ class PeerSelectorTest extends GroovyTestCase {
         return meanElements.sum() / meanElements.size()
     }
 
-    private static PeerStatusProvider mockPeerStatusProvider(PeerDescription bootstrapPeerDescription = BOOTSTRAP_PEER_DESCRIPTION, Map<PeerDescription, Set<PeerStatus>> peersMap = DEFAULT_PEER_NODES) {
+    private static PeerStatusProvider mockPeerStatusProvider(PeerDescription bootstrapPeerDescription = BOOTSTRAP_PEER_DESCRIPTION, String remoteInstanceUris = DEFAULT_REMOTE_INSTANCE_URIS, Map<PeerDescription, Set<PeerStatus>> peersMap = DEFAULT_PEER_NODES) {
         [getTransportProtocol       : { ->
             SiteToSiteTransportProtocol.HTTP
         },
+         getRemoteInstanceUris: { ->
+             remoteInstanceUris
+         },
          getBootstrapPeerDescription: { ->
              bootstrapPeerDescription
          },
@@ -188,9 +197,9 @@ class PeerSelectorTest extends GroovyTestCase {
          }] as PeerStatusProvider
     }
 
-    private static PeerPersistence mockPeerPersistence(Set<PeerStatus> peerStatuses = DEFAULT_PEER_STATUSES) {
+    private static PeerPersistence mockPeerPersistence(String remoteInstanceUris = DEFAULT_REMOTE_INSTANCE_URIS, Set<PeerStatus> peerStatuses = DEFAULT_PEER_STATUSES) {
         [restore: { ->
-            new PeerStatusCache(peerStatuses, System.currentTimeMillis(), SiteToSiteTransportProtocol.HTTP)
+            new PeerStatusCache(peerStatuses, System.currentTimeMillis(), remoteInstanceUris, SiteToSiteTransportProtocol.HTTP)
         },
          save   : { PeerStatusCache psc ->
              logger.mock("Persisting PeerStatusCache: ${psc}")
@@ -203,8 +212,8 @@ class PeerSelectorTest extends GroovyTestCase {
         logger.info("Using cluster map (${scenarioName}): ${clusterMap.collectEntries { k, v -> [k.peerDescription.hostname, v] }}")
 
         // Build a peer selector with this cluster
-        PeerStatusProvider mockPSP = mockPeerStatusProvider(BOOTSTRAP_PEER_DESCRIPTION, buildPeersMap(clusterMap.keySet()))
-        PeerPersistence mockPP = mockPeerPersistence(clusterMap.keySet())
+        PeerStatusProvider mockPSP = mockPeerStatusProvider(BOOTSTRAP_PEER_DESCRIPTION, DEFAULT_REMOTE_INSTANCE_URIS, buildPeersMap(clusterMap.keySet()))
+        PeerPersistence mockPP = mockPeerPersistence(DEFAULT_REMOTE_INSTANCE_URIS, clusterMap.keySet())
 
         new PeerSelector(mockPSP, mockPP)
     }
@@ -214,8 +223,8 @@ class PeerSelectorTest extends GroovyTestCase {
         // Arrange
 
         // Mock collaborators with empty data
-        mockPSP = mockPeerStatusProvider(BOOTSTRAP_PEER_DESCRIPTION, [:])
-        mockPP = mockPeerPersistence([] as Set)
+        mockPSP = mockPeerStatusProvider(BOOTSTRAP_PEER_DESCRIPTION, "", [:])
+        mockPP = mockPeerPersistence("", [] as Set)
 
         PeerSelector ps = new PeerSelector(mockPSP, mockPP)
 
@@ -234,7 +243,7 @@ class PeerSelectorTest extends GroovyTestCase {
         Set<PeerStatus> restoredPeerStatuses = buildPeerStatuses()
 
         // Mock collaborators
-        mockPP = mockPeerPersistence(restoredPeerStatuses)
+        mockPP = mockPeerPersistence(DEFAULT_REMOTE_INSTANCE_URIS, restoredPeerStatuses)
 
         PeerSelector ps = new PeerSelector(mockPSP, mockPP)
 
@@ -375,8 +384,8 @@ class PeerSelectorTest extends GroovyTestCase {
         clusterMap = clusterMap.sort { e1, e2 -> e1.value <=> e2.value }
         logger.info("Using cluster map: ${clusterMap.collectEntries { k, v -> [k.peerDescription.hostname, v] }}")
 
-        mockPSP = mockPeerStatusProvider(BOOTSTRAP_PEER_DESCRIPTION, buildPeersMap(clusterMap.keySet()))
-        mockPP = mockPeerPersistence(clusterMap.keySet())
+        mockPSP = mockPeerStatusProvider(BOOTSTRAP_PEER_DESCRIPTION, DEFAULT_REMOTE_INSTANCE_URIS, buildPeersMap(clusterMap.keySet()))
+        mockPP = mockPeerPersistence(DEFAULT_REMOTE_INSTANCE_URIS, clusterMap.keySet())
 
         PeerSelector ps = new PeerSelector(mockPSP, mockPP)
         Set<PeerStatus> peerStatuses = ps.getPeerStatuses()
@@ -399,8 +408,8 @@ class PeerSelectorTest extends GroovyTestCase {
         clusterMap = clusterMap.sort { e1, e2 -> e2.value <=> e1.value }
         logger.info("Using cluster map: ${clusterMap.collectEntries { k, v -> [k.peerDescription.hostname, v] }}")
 
-        mockPSP = mockPeerStatusProvider(BOOTSTRAP_PEER_DESCRIPTION, buildPeersMap(clusterMap.keySet()))
-        mockPP = mockPeerPersistence(clusterMap.keySet())
+        mockPSP = mockPeerStatusProvider(BOOTSTRAP_PEER_DESCRIPTION, DEFAULT_REMOTE_INSTANCE_URIS, buildPeersMap(clusterMap.keySet()))
+        mockPP = mockPeerPersistence(DEFAULT_REMOTE_INSTANCE_URIS, clusterMap.keySet())
 
         PeerSelector ps = new PeerSelector(mockPSP, mockPP)
         Set<PeerStatus> peerStatuses = ps.getPeerStatuses()
@@ -778,7 +787,7 @@ class PeerSelectorTest extends GroovyTestCase {
         cacheFile.deleteOnExit()
 
         // Construct the cache contents and write to disk
-        final String CACHE_CONTENTS = "${mockPSP.getTransportProtocol()}\n" + peerStatuses.collect { PeerStatus ps ->
+        final String CACHE_CONTENTS = "${mockPSP.getTransportProtocol()}\n" + "${AbstractPeerPersistence.REMOTE_INSTANCE_URIS_PREFIX}${mockPSP.getRemoteInstanceUris()}\n" + peerStatuses.collect { PeerStatus ps ->
             [ps.peerDescription.hostname, ps.peerDescription.port, ps.peerDescription.isSecure(), ps.isQueryForPeers()].join(":")
         }.join("\n")
         cacheFile.text = CACHE_CONTENTS
@@ -808,16 +817,17 @@ class PeerSelectorTest extends GroovyTestCase {
         // Arrange
         def nodes = DEFAULT_NODES
         def peerStatuses = DEFAULT_PEER_STATUSES
+        def remoteInstanceUris = buildRemoteInstanceUris(nodes)
 
         // Create the peer status provider with no actual remote peers
-        mockPSP = mockPeerStatusProvider(BOOTSTRAP_PEER_DESCRIPTION, [:])
+        mockPSP = mockPeerStatusProvider(BOOTSTRAP_PEER_DESCRIPTION, remoteInstanceUris, [:])
 
         // Point to the persisted cache on disk
         final File cacheFile = File.createTempFile("peers", "txt")
         cacheFile.deleteOnExit()
 
         // Construct the cache contents and write to disk
-        final String CACHE_CONTENTS = "${mockPSP.getTransportProtocol()}\n" + peerStatuses.collect { PeerStatus ps ->
+        final String CACHE_CONTENTS = "${mockPSP.getTransportProtocol()}\n" + "${AbstractPeerPersistence.REMOTE_INSTANCE_URIS_PREFIX}${mockPSP.getRemoteInstanceUris()}\n" + peerStatuses.collect { PeerStatus ps ->
             [ps.peerDescription.hostname, ps.peerDescription.port, ps.peerDescription.isSecure(), ps.isQueryForPeers()].join(":")
         }.join("\n")
         cacheFile.text = CACHE_CONTENTS
@@ -873,7 +883,7 @@ class PeerSelectorTest extends GroovyTestCase {
         // Arrange
         mockPP = [
                 restore: { ->
-                    new PeerStatusCache([] as Set<PeerStatus>, System.currentTimeMillis(), SiteToSiteTransportProtocol.HTTP)
+                    new PeerStatusCache([] as Set<PeerStatus>, System.currentTimeMillis(), DEFAULT_REMOTE_INSTANCE_URIS, SiteToSiteTransportProtocol.HTTP)
                 },
                 // Create the peer persistence to throw an exception on save
                 save   : { PeerStatusCache cache ->
@@ -955,10 +965,15 @@ class PeerSelectorTest extends GroovyTestCase {
         PeerStatus node2Status = peerStatuses.find { it.peerDescription.hostname == "node2.nifi" }
         PeerDescription node2Description = node2Status.peerDescription
 
+        String remoteInstanceUris = buildRemoteInstanceUris(nodes)
+
         // Mock the PSP
         mockPSP = [
                 getTransportProtocol       : { ->
                     SiteToSiteTransportProtocol.HTTP
+                },
+                getRemoteInstanceUris: { ->
+                    remoteInstanceUris
                 },
                 getBootstrapPeerDescription: { ->
                     bootstrapDescription
@@ -980,7 +995,7 @@ class PeerSelectorTest extends GroovyTestCase {
         ] as PeerStatusProvider
 
         // Mock the PP with only these statuses
-        mockPP = mockPeerPersistence(peerStatuses)
+        mockPP = mockPeerPersistence(remoteInstanceUris, peerStatuses)
 
         PeerSelector ps = new PeerSelector(mockPSP, mockPP)
         ps.refresh()

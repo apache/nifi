@@ -20,8 +20,8 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import javax.net.ssl.SSLContext;
 import org.apache.commons.cli.CommandLine;
-import org.apache.nifi.security.util.CertificateUtils;
 import org.apache.nifi.security.util.SslContextFactory;
+import org.apache.nifi.security.util.StandardTlsConfiguration;
 import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.toolkit.tls.commandLine.BaseCommandLine;
 import org.apache.nifi.toolkit.tls.commandLine.CommandLineParseException;
@@ -45,7 +45,7 @@ public class TlsToolkitGetStatusCommandLine extends BaseCommandLine {
     public static final String TRUSTSTORE_PASSWORD_ARG = "trustStorePassword";
     public static final String PROTOCOL_ARG = "protocol";
 
-    public static final String DEFAULT_PROTOCOL = CertificateUtils.getHighestCurrentSupportedTlsProtocolVersion();
+    public static final String DEFAULT_PROTOCOL = TlsConfiguration.getHighestCurrentSupportedTlsProtocolVersion();
     public static final String DEFAULT_KEYSTORE_TYPE = "JKS";
 
     public static final String DESCRIPTION = "Checks the status of an HTTPS endpoint by making a GET request using a supplied keystore and truststore.";
@@ -56,7 +56,7 @@ public class TlsToolkitGetStatusCommandLine extends BaseCommandLine {
 
     public TlsToolkitGetStatusCommandLine() {
         super(DESCRIPTION);
-        addOptionWithArg("u", URL_ARG, "The full url to connect to, for example: https://localhost:8443/v1/api");
+        addOptionWithArg("u", URL_ARG, "The full url to connect to, for example: https://localhost:9443/v1/api");
         addOptionWithArg("ks", KEYSTORE_ARG, "The key store to use");
         addOptionWithArg("kst", KEYSTORE_TYPE_ARG, "The type of key store being used (PKCS12 or JKS)", DEFAULT_KEYSTORE_TYPE);
         addOptionWithArg("ksp", KEYSTORE_PASSWORD_ARG, "The password of the key store being used");
@@ -120,7 +120,7 @@ public class TlsToolkitGetStatusCommandLine extends BaseCommandLine {
         }
 
         try {
-            TlsConfiguration tlsConfiguration = new TlsConfiguration(keystoreFilename, keystorePassword, keyPassword, keystoreTypeStr,
+            TlsConfiguration tlsConfiguration = new StandardTlsConfiguration(keystoreFilename, keystorePassword, keyPassword, keystoreTypeStr,
                     truststoreFilename, truststorePassword, truststoreTypeStr, protocol);
 
             if (tlsConfiguration.isAnyTruststorePopulated()) {

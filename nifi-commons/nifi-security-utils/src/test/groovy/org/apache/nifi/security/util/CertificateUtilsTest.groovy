@@ -16,12 +16,20 @@
  */
 package org.apache.nifi.security.util
 
+import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers
+import org.bouncycastle.asn1.x500.X500Name
+import org.bouncycastle.asn1.x500.style.BCStyle
+import org.bouncycastle.asn1.x500.style.IETFUtils
 import org.bouncycastle.asn1.x509.Extension
 import org.bouncycastle.asn1.x509.Extensions
 import org.bouncycastle.asn1.x509.ExtensionsGenerator
 import org.bouncycastle.asn1.x509.GeneralName
 import org.bouncycastle.asn1.x509.GeneralNames
 import org.bouncycastle.operator.OperatorCreationException
+import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder
+import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequest
+import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder
+import org.bouncycastle.util.IPAddress
 import org.junit.After
 import org.junit.Before
 import org.junit.BeforeClass
@@ -52,6 +60,7 @@ import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 
+import static org.junit.Assert.assertEquals
 import static org.junit.Assert.assertTrue
 
 @RunWith(JUnit4.class)
@@ -67,7 +76,9 @@ class CertificateUtilsTest extends GroovyTestCase {
     private static final String PROVIDER = "BC"
 
     private static final String SUBJECT_DN = "CN=NiFi Test Server,OU=Security,O=Apache,ST=CA,C=US"
+    private static final String SUBJECT_DN_LEGACY_EMAIL_ATTR_RFC2985 = "CN=NiFi Test Server/emailAddress=test@apache.org,OU=Security,O=Apache,ST=CA,C=US"
     private static final String ISSUER_DN = "CN=NiFi Test CA,OU=Security,O=Apache,ST=CA,C=US"
+    private static final List<String> SUBJECT_ALT_NAMES = ["127.0.0.1", "nifi.nifi.apache.org"]
 
     @BeforeClass
     static void setUpOnce() {
@@ -194,17 +205,17 @@ class CertificateUtilsTest extends GroovyTestCase {
         SSLSocket noneSocket = [getNeedClientAuth: { -> false }, getWantClientAuth: { -> false }] as SSLSocket
 
         // Act
-        SslContextFactory.ClientAuth needClientAuthStatus = CertificateUtils.getClientAuthStatus(needSocket)
+        ClientAuth needClientAuthStatus = CertificateUtils.getClientAuthStatus(needSocket)
         logger.info("Client auth (needSocket): ${needClientAuthStatus}")
-        SslContextFactory.ClientAuth wantClientAuthStatus = CertificateUtils.getClientAuthStatus(wantSocket)
+        ClientAuth wantClientAuthStatus = CertificateUtils.getClientAuthStatus(wantSocket)
         logger.info("Client auth (wantSocket): ${wantClientAuthStatus}")
-        SslContextFactory.ClientAuth noneClientAuthStatus = CertificateUtils.getClientAuthStatus(noneSocket)
+        ClientAuth noneClientAuthStatus = CertificateUtils.getClientAuthStatus(noneSocket)
         logger.info("Client auth (noneSocket): ${noneClientAuthStatus}")
 
         // Assert
-        assert needClientAuthStatus == SslContextFactory.ClientAuth.REQUIRED
-        assert wantClientAuthStatus == SslContextFactory.ClientAuth.WANT
-        assert noneClientAuthStatus == SslContextFactory.ClientAuth.NONE
+        assert needClientAuthStatus == ClientAuth.REQUIRED
+        assert wantClientAuthStatus == ClientAuth.WANT
+        assert noneClientAuthStatus == ClientAuth.NONE
     }
 
     @Test
@@ -424,6 +435,15 @@ class CertificateUtilsTest extends GroovyTestCase {
     }
 
     @Test
+    void testGetCommonName(){
+        String dn1 = "CN=testDN,O=testOrg"
+        String dn2 = "O=testDN,O=testOrg"
+
+        assertEquals("testDN", CertificateUtils.getCommonName(dn1))
+        assertNull(CertificateUtils.getCommonName(dn2))
+    }
+
+    @Test
     void testShouldGenerateSelfSignedCert() throws Exception {
         String dn = "CN=testDN,O=testOrg"
 
@@ -441,6 +461,12 @@ class CertificateUtilsTest extends GroovyTestCase {
         assertEquals(dn, x509Certificate.getIssuerX500Principal().getName())
         assertEquals(SIGNATURE_ALGORITHM.toUpperCase(), x509Certificate.getSigAlgName().toUpperCase())
         assertEquals("RSA", x509Certificate.getPublicKey().getAlgorithm())
+
+        assertEquals(1, x509Certificate.getSubjectAlternativeNames().size())
+
+        GeneralName gn = x509Certificate.getSubjectAlternativeNames().iterator().next()
+        assertEquals(GeneralName.dNSName, gn.getTagNo())
+        assertEquals("testDN", gn.getName().toString())
 
         x509Certificate.checkValidity()
     }
@@ -605,54 +631,51 @@ class CertificateUtilsTest extends GroovyTestCase {
     }
 
     @Test
-    void testShouldParseJavaVersion() {
+    void testGetExtensionsFromCSR() {
         // Arrange
-        def possibleVersions = ["1.5.0", "1.6.0", "1.7.0.123", "1.8.0.231", "9.0.1", "10.1.2", "11.2.3", "12.3.456"]
+        KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA")
+        KeyPair keyPair = generator.generateKeyPair()
+        Extensions sanExtensions = createDomainAlternativeNamesExtensions(SUBJECT_ALT_NAMES, SUBJECT_DN)
+
+        JcaPKCS10CertificationRequestBuilder jcaPKCS10CertificationRequestBuilder = new JcaPKCS10CertificationRequestBuilder(new X500Name(SUBJECT_DN), keyPair.getPublic())
+        jcaPKCS10CertificationRequestBuilder.addAttribute(PKCSObjectIdentifiers.pkcs_9_at_extensionRequest, sanExtensions)
+        JcaContentSignerBuilder jcaContentSignerBuilder = new JcaContentSignerBuilder("SHA256WITHRSA")
+        JcaPKCS10CertificationRequest jcaPKCS10CertificationRequest = new JcaPKCS10CertificationRequest(jcaPKCS10CertificationRequestBuilder.build(jcaContentSignerBuilder.build(keyPair.getPrivate())))
 
         // Act
-        def majorVersions = possibleVersions.collect { String version ->
-            logger.debug("Attempting to determine major version of ${version}")
-            CertificateUtils.parseJavaVersion(version)
-        }
-        logger.info("Major versions: ${majorVersions}")
+        Extensions extensions = CertificateUtils.getExtensionsFromCSR(jcaPKCS10CertificationRequest)
 
         // Assert
-        assert majorVersions == (5..12)
+        assert(extensions.equivalent(sanExtensions))
     }
 
     @Test
-    void testShouldGetCurrentSupportedTlsProtocolVersions() {
-        // Arrange
-        int javaMajorVersion = CertificateUtils.getJavaVersion()
-        logger.debug("Running on Java version: ${javaMajorVersion}")
-
-        // Act
-        def tlsVersions = CertificateUtils.getCurrentSupportedTlsProtocolVersions()
-        logger.info("Supported protocol versions for ${javaMajorVersion}: ${tlsVersions}")
-
-        // Assert
-        if (javaMajorVersion < 11) {
-            assert tlsVersions == ["TLSv1.2"] as String[]
-        } else {
-            assert tlsVersions == ["TLSv1.3", "TLSv1.2"] as String[]
-        }
+    void testExtractUserNameFromDN() {
+        String expected = "NiFi Test Server"
+        assertEquals(CertificateUtils.extractUsername(SUBJECT_DN), expected)
+        assertEquals(CertificateUtils.extractUsername(SUBJECT_DN_LEGACY_EMAIL_ATTR_RFC2985), expected)
     }
 
-    @Test
-    void testShouldGetMaxCurrentSupportedTlsProtocolVersion() {
-        // Arrange
-        int javaMajorVersion = CertificateUtils.getJavaVersion()
-        logger.debug("Running on Java version: ${javaMajorVersion}")
+    // Using this directly from tls-toolkit results in a dependency loop, so it's added here for testing purposes.
+    private static Extensions createDomainAlternativeNamesExtensions(List<String> domainAlternativeNames, String requestedDn) throws IOException {
+        List<GeneralName> namesList = new ArrayList<>()
 
-        // Act
-        def tlsVersion = CertificateUtils.getHighestCurrentSupportedTlsProtocolVersion()
-        logger.info("Highest supported protocol version for ${javaMajorVersion}: ${tlsVersion}")
-
-        // Assert
-        if (javaMajorVersion < 11) {
-            assert tlsVersion == "TLSv1.2"
-        } else {
-            assert tlsVersion == "TLSv1.3"
+        try {
+            final String cn = IETFUtils.valueToString(new X500Name(requestedDn).getRDNs(BCStyle.CN)[0].getFirst().getValue())
+            namesList.add(new GeneralName(GeneralName.dNSName, cn))
+        } catch (Exception e) {
+            throw new IOException("Failed to extract CN from request DN: " + requestedDn, e)
         }
+
+        if (domainAlternativeNames != null) {
+            for (String alternativeName : domainAlternativeNames) {
+                namesList.add(new GeneralName(IPAddress.isValid(alternativeName) ? GeneralName.iPAddress : GeneralName.dNSName, alternativeName))
+            }
+        }
+
+        GeneralNames subjectAltNames = new GeneralNames(namesList.toArray([] as GeneralName[]))
+        ExtensionsGenerator extGen = new ExtensionsGenerator()
+        extGen.addExtension(Extension.subjectAlternativeName, false, subjectAltNames)
+        return extGen.generate()
     }
 }

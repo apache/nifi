@@ -16,15 +16,8 @@
  */
 package org.apache.nifi.processor;
 
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.nio.file.Path;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.regex.Pattern;
-
+import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.controller.queue.QueueSize;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.exception.FlowFileAccessException;
@@ -35,6 +28,17 @@ import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.io.StreamCallback;
 import org.apache.nifi.provenance.ProvenanceReporter;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.file.Path;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Consumer;
+import java.util.regex.Pattern;
 
 /**
  * <p>
@@ -97,6 +101,123 @@ public interface ProcessSession {
      * via <code>Exception.getCause()</code>
      */
     void commit();
+
+    /**
+     * <p>
+     * Commits the current session ensuring all operations against FlowFiles
+     * within this session are atomically persisted. All FlowFiles operated on
+     * within this session must be accounted for by transfer or removal or the
+     * commit will fail.
+     * </p>
+     *
+     * <p>
+     * Unlike the {@link #commit()} method, the persistence of data to the repositories is not
+     * guaranteed to have occurred by the time that this method returns. Therefore, if any follow-on actions
+     * are necessary after the data has been persisted to the repository (for example, acknowledging receipt from
+     * a source system, removing a source file, etc.) that logic should be performed only by invoking
+     * {@link #commitAsync(Runnable)} or {@link #commitAsync(Runnable, Consumer)}
+     * and implementing that action in the provided callback.
+     * </p>
+     *
+     * <p>
+     * If the session cannot be committed, an error will be logged and the session will be rolled back instead.
+     * </p>
+     *
+     * @throws IllegalStateException if called from within a read or write callback (See {@link #write(FlowFile, StreamCallback)}, {@link #write(FlowFile, OutputStreamCallback)},
+     * {@link #read(FlowFile, InputStreamCallback)}).
+     *
+     * @throws FlowFileHandlingException if any FlowFile is not appropriately accounted for by transferring it to a Relationship (see {@link #transfer(FlowFile, Relationship)})
+     * or removed (see {@link #remove(FlowFile)}.
+     */
+    void commitAsync();
+
+    /**
+     * <p>
+     * Commits the current session ensuring all operations against FlowFiles
+     * within this session are atomically persisted. All FlowFiles operated on
+     * within this session must be accounted for by transfer or removal or the
+     * commit will fail.
+     * </p>
+     *
+     * <p>
+     * If the session is successfully committed, the given <code>onSuccess</code> {@link Runnable} will be called.
+     * At the point that the session commit is completed, the session will have already been committed, so any calls
+     * to {@link #rollback()} / {@link #rollback(boolean)} will not undo that session commit but instead roll back any changes
+     * that may have occurred since.
+     * </p>
+     *
+     * <p>
+     * If, for any reason, the session could not be committed, an error-level log message will be generated, but the caller will not
+     * have a chance to perform any cleanup logic. If such logic is necessary, use {@link #commitAsync(Runnable, Consumer)} instead.
+     * </p>
+     *
+     * <p>
+     * Unlike the {@link #commit()} method, the persistence of data to the repositories is not
+     * guaranteed to have occurred by the time that this method returns. As a result, the following
+     * very common idiom:
+     * </p>
+     * <pre><code>
+     * getDataFromSource();
+     * session.commit();
+     * acknowledgeReceiptOfData();
+     * </code></pre>
+     * Cannot be simply changed to:
+     * <pre><code>
+     * getDataFromSource();
+     * session.commitAsync();
+     * acknowledgeReceiptOfData();
+     * </code></pre>
+     * Doing so could result in acknowledging receipt of data from the source system before data has been committed to the repositories.
+     * If NiFi were to then be restarted, there is potential for data loss.
+     * Rather, the following idiom should take its place to ensure that there is no data loss:
+     * <pre><code>
+     * getDataFromSource();
+     * session.commitAsync( () -> acknowledgeReceiptOfData() );
+     * </code></pre>
+     *
+     * @throws IllegalStateException if called from within a callback (See {@link #write(FlowFile, StreamCallback)}, {@link #write(FlowFile, OutputStreamCallback)},
+     * {@link #read(FlowFile, InputStreamCallback)}).
+     *
+     * @throws FlowFileHandlingException if any FlowFile is not appropriately accounted for by transferring it to a Relationship (see {@link #transfer(FlowFile, Relationship)})
+     * or removed (see {@link #remove(FlowFile)}.
+     */
+    default void commitAsync(Runnable onSuccess) {
+        commitAsync(onSuccess, null);
+    }
+
+    /**
+     * <p>
+     * Commits the current session ensuring all operations against FlowFiles
+     * within this session are atomically persisted. All FlowFiles operated on
+     * within this session must be accounted for by transfer or removal or the
+     * commit will fail.
+     * </p>
+     *
+     * <p>
+     * If the session is successfully committed, the given <code>onSuccess</code> {@link Runnable} will be called.
+     * At the point that the session commit is completed, the session will have already been committed, so any calls
+     * to {@link #rollback()} / {@link #rollback(boolean)} will not undo that session commit but instead roll back any chances
+     * that may have occurred since.
+     * </p>
+     *
+     * <p>
+     * If, for any reason, the session could not be committed, the given <code>onFailure</code> {@link Consumer} will be called
+     * instead of the <code>onSuccess</code> {@link Runnable}. The Consumer will be provided the Throwable that prevented the session
+     * commit from completing.
+     * </p>
+     *
+     * <p>
+     * Unlike the {@link #commit()} method, the persistence of data to the repositories is not
+     * guaranteed to have occurred by the time that this method returns.
+     * </p>
+     *
+     * @throws IllegalStateException if called from within a callback (See {@link #write(FlowFile, StreamCallback)}, {@link #write(FlowFile, OutputStreamCallback)},
+     * {@link #read(FlowFile, InputStreamCallback)}).
+     *
+     * @throws FlowFileHandlingException if any FlowFile is not appropriately accounted for by transferring it to a Relationship (see {@link #transfer(FlowFile, Relationship)})
+     * or removed (see {@link #remove(FlowFile)}.
+     */
+    void commitAsync(Runnable onSuccess, Consumer<Throwable> onFailure);
 
     /**
      * Reverts any changes made during this session. All FlowFiles are restored
@@ -869,4 +990,55 @@ public interface ProcessSession {
      * @return the provenance reporter
      */
     ProvenanceReporter getProvenanceReporter();
+
+
+    /**
+     * Updates the value of the component's state, setting it to given value. This method does not push the new value to the
+     * remote State Provider but rather caches the value until {@link #commit()} is called. At that point, it will publish the
+     * state to the remote State Provider, if the state is the latest according to the remote State Provider.
+     *
+     * @param state the value to change the state to
+     * @param scope the scope to use when storing the state
+     * @throws IOException if unable to communicate with the underlying storage mechanism
+     */
+    void setState(Map<String, String> state, Scope scope) throws IOException;
+
+    /**
+     * Returns the current state for the component. This return value will never be <code>null</code>.
+     * If the state has not yet been set, the StateMap's version will be -1, and the map of values will be empty.
+     *
+     * @param scope the scope to use when fetching the state
+     * @return the current state for the component
+     * @throws IOException if unable to communicate with the underlying storage mechanism
+     */
+    StateMap getState(Scope scope) throws IOException;
+
+    /**
+     * Updates the value of the component's state to the new value if and only if the value currently
+     * is the same as the given oldValue. The oldValue will be compared against the value of the state as it is
+     * known to the Process Session. If the Process Session does not currently know the state, it will be fetched
+     * from the StateProvider.
+     *
+     * The value will not be provided to any remote state provider until {@link #commit()} is called. At that point,
+     * if the value that has been set by this method is the most up-to-date value, according to the state provider,
+     * then the remote state provider will be updated to match the given <code>newValue</code>.
+     *
+     * @param oldValue the old value to compare against
+     * @param newValue the new value to use if and only if the state's value is the same as the given oldValue
+     * @param scope the scope to use for storing the new state
+     * @return <code>true</code> if the state was updated to the new value, <code>false</code> if the state's value was not
+     *         equal to oldValue
+     *
+     * @throws IOException if unable to communicate with the underlying storage mechanism
+     */
+    boolean replaceState(StateMap oldValue, Map<String, String> newValue, Scope scope) throws IOException;
+
+    /**
+     * Clears all keys and values from the component's state when the session is committed
+     *
+     * @param scope the scope whose values should be cleared
+     *
+     * @throws IOException if unable to communicate with the underlying storage mechanism.
+     */
+    void clearState(Scope scope) throws IOException;
 }

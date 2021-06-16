@@ -80,7 +80,7 @@ public class ControllerServiceEntity extends ComponentEntity implements Permissi
      */
     @ApiModelProperty(
             value = "The status for this ControllerService.",
-            readOnly = true
+            accessMode = ApiModelProperty.AccessMode.READ_ONLY
     )
     public ControllerServiceStatusDTO getStatus() {
         return status;

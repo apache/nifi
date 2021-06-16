@@ -345,6 +345,20 @@ public class TestQuery {
     }
 
     @Test
+    public void testParameterReferenceWithSpace() {
+        final Map<String, String> attributes = Collections.emptyMap();
+        final Map<String, String> stateValues = Collections.emptyMap();
+        final Map<String, String> parameters = new HashMap<>();
+        parameters.put("test param", "unit");
+
+        final Query query = Query.compile("${'#{test param}'}");
+        verifyEquals("${#{'test param'}}", attributes, stateValues, parameters,"unit");
+        verifyEquals("${#{'test param'}:append(' - '):append(#{'test param'})}", attributes, stateValues, parameters,"unit - unit");
+
+        verifyEquals("${#{\"test param\"}}", attributes, stateValues, parameters,"unit");
+    }
+
+    @Test
     public void testJsonPath() throws IOException {
         Map<String,String> attributes = verifyJsonPathExpressions(
             ADDRESS_BOOK_JSON_PATH_EMPTY,
@@ -1634,6 +1648,17 @@ public class TestQuery {
 
         verifyEquals("${filename:substring(1, 2)}", attributes, "i");
         verifyEquals("${filename:substring(4)}", attributes, "-255");
+    }
+
+    @Test
+    public void testSubstringOOB() {
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("filename", "file-255");
+
+        verifyEquals("${filename:substring(10, 20)}", attributes, "");
+        verifyEquals("${filename:substring(10)}", attributes, "");
+        verifyEquals("${filename:substring(-2)}", attributes, "");
+        verifyEquals("${filename:substring(2, -2)}", attributes, "");
     }
 
     @Test

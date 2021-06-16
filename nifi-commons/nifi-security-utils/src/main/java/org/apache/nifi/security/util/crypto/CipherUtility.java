@@ -16,34 +16,33 @@
  */
 package org.apache.nifi.security.util.crypto;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.security.InvalidAlgorithmParameterException;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
-import java.security.spec.InvalidKeySpecException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import javax.crypto.Cipher;
-import javax.crypto.NoSuchPaddingException;
-import javax.crypto.SecretKey;
-import javax.crypto.SecretKeyFactory;
-import javax.crypto.spec.PBEKeySpec;
-import javax.crypto.spec.PBEParameterSpec;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.security.util.EncryptionMethod;
+import org.apache.nifi.security.util.KeyDerivationFunction;
+import org.apache.nifi.stream.io.ByteCountingInputStream;
+import org.apache.nifi.stream.io.ByteCountingOutputStream;
 import org.apache.nifi.stream.io.StreamUtils;
+
+import javax.crypto.Cipher;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import java.security.NoSuchAlgorithmException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class CipherUtility {
 
@@ -265,9 +264,9 @@ public class CipherUtility {
             final byte[] buffer = new byte[BUFFER_SIZE];
             int len;
             while ((len = in.read(buffer)) > 0) {
-                final byte[] decryptedBytes = cipher.update(buffer, 0, len);
-                if (decryptedBytes != null) {
-                    out.write(decryptedBytes);
+                final byte[] transformedBytes = cipher.update(buffer, 0, len);
+                if (transformedBytes != null) {
+                    out.write(transformedBytes);
                 }
             }
 
@@ -290,8 +289,7 @@ public class CipherUtility {
         byte[] stoppedBy = StreamUtils.copyExclusive(in, bytesOut, limit + delimiter.length, delimiter);
 
         if (stoppedBy != null) {
-            byte[] bytes = bytesOut.toByteArray();
-            return bytes;
+            return bytesOut.toByteArray();
         }
 
         // If no delimiter was found, reset the cursor
@@ -337,65 +335,10 @@ public class CipherUtility {
         }
     }
 
-    public static boolean isPBECipher(String algorithm) {
-        EncryptionMethod em = EncryptionMethod.forAlgorithm(algorithm);
-        return em != null && em.isPBECipher();
-    }
-
-    public static boolean isKeyedCipher(String algorithm) {
-        EncryptionMethod em = EncryptionMethod.forAlgorithm(algorithm);
-        return em != null && em.isKeyedCipher();
-    }
-
-    /**
-     * Initializes a {@link Cipher} object with the given PBE parameters.
-     *
-     * @param algorithm      the algorithm
-     * @param provider       the JCA provider
-     * @param password       the password
-     * @param salt           the salt
-     * @param iterationCount the KDF iteration count
-     * @param encryptMode    true to encrypt; false to decrypt
-     * @return the initialized Cipher
-     * @throws IllegalArgumentException if any parameter is invalid
-     */
-    public static Cipher initPBECipher(String algorithm, String provider, String password, byte[] salt, int iterationCount, boolean encryptMode) throws IllegalArgumentException {
-        try {
-            // Initialize secret key from password
-            final PBEKeySpec pbeKeySpec = new PBEKeySpec(password.toCharArray());
-            final SecretKeyFactory factory = SecretKeyFactory.getInstance(algorithm, provider);
-            SecretKey tempKey = factory.generateSecret(pbeKeySpec);
-
-            final PBEParameterSpec parameterSpec = new PBEParameterSpec(salt, iterationCount);
-            Cipher cipher = Cipher.getInstance(algorithm, provider);
-            cipher.init(encryptMode ? Cipher.ENCRYPT_MODE : Cipher.DECRYPT_MODE, tempKey, parameterSpec);
-            return cipher;
-        } catch (NoSuchAlgorithmException | NoSuchProviderException | InvalidKeySpecException | NoSuchPaddingException | InvalidKeyException | InvalidAlgorithmParameterException e) {
-            throw new IllegalArgumentException("One or more parameters to initialize the PBE cipher were invalid", e);
-        }
-    }
-
-    /**
-     * Returns the KDF iteration count for various PBE algorithms. These values were determined empirically from configured/chosen legacy values from the earlier version of the project.
-     * Code demonstrating this is available at {@link StringEncryptorTest#testPBEncryptionShouldBeExternallyConsistent}.
-     *
-     * @param algorithm the {@link EncryptionMethod#algorithm}
-     * @return the iteration count. Default is 0.
-     */
-    public static int getIterationCountForAlgorithm(String algorithm) {
-        int iterationCount = 0;
-        // DES/RC*/SHA-1/-256 algorithms use custom iteration counts
-        if (algorithm.matches("DES|RC|SHAA|SHA256")) {
-            iterationCount = 1000;
-        }
-        return iterationCount;
-    }
-
     /**
      * Returns the salt length for various PBE algorithms. These values were determined empirically from configured/chosen legacy values from the earlier version of the project.
-     * Code demonstrating this is available at {@link StringEncryptorTest#testPBEncryptionShouldBeExternallyConsistent}.
      *
-     * @param algorithm the {@link EncryptionMethod#algorithm}
+     * @param algorithm the {@link EncryptionMethod#getAlgorithm()}
      * @return the salt length in bytes. Default is 16.
      */
     public static int getSaltLengthForAlgorithm(String algorithm) {
@@ -408,38 +351,110 @@ public class CipherUtility {
     }
 
     /**
-     * Returns a securely-derived, deterministic value from the provided plaintext property
-     * value. This is because sensitive values should not be disclosed through the
-     * logs. However, the equality or difference of the sensitive value can be important, so it cannot be ignored completely.
+     * Returns the current timestamp in a default format. Used by many encryption operations for logging/debugging.
      *
-     * The specific derivation process is unimportant as long as it is a salted,
-     * cryptographically-secure hash function with an iteration cost sufficient for password
-     * storage in other applications.
-     *
-     * @param sensitivePropertyValue the plaintext property value
-     * @return a deterministic string value which represents this input but is safe to print in a log
+     * @return the current timestamp in 'yyyy-MM-dd HH:mm:ss.SSS Z' format
      */
-    public static String getLoggableRepresentationOfSensitiveValue(String sensitivePropertyValue) {
-        // TODO: Use DI/IoC to inject this implementation in the constructor of the FingerprintFactory
-        // There is little initialization cost, so it doesn't make sense to cache this as a field
-        SecureHasher secureHasher = new Argon2SecureHasher();
+    public static String getTimestampString() {
+        Locale currentLocale = Locale.getDefault();
+        String pattern = "yyyy-MM-dd HH:mm:ss.SSS Z";
+        SimpleDateFormat formatter = new SimpleDateFormat(pattern, currentLocale);
+        Date now = new Date();
+        return formatter.format(now);
+    }
 
-        // TODO: Extend {@link StringEncryptor} with secure hashing capability and inject?
-        return getLoggableRepresentationOfSensitiveValue(sensitivePropertyValue, secureHasher);
+    public static ByteCountingInputStream wrapStreamForCounting(InputStream inputStream) {
+        // Wrap the streams for byte counting if necessary
+        ByteCountingInputStream bcis;
+        if (!(inputStream instanceof ByteCountingInputStream)) {
+            bcis = new ByteCountingInputStream(inputStream);
+        } else {
+            bcis = (ByteCountingInputStream) inputStream;
+        }
+
+        return bcis;
+    }
+
+    public static ByteCountingOutputStream wrapStreamForCounting(OutputStream outputStream) {
+        // Wrap the streams for byte counting if necessary
+        ByteCountingOutputStream bcos;
+        if (!(outputStream instanceof ByteCountingOutputStream)) {
+            bcos = new ByteCountingOutputStream(outputStream);
+        } else {
+            bcos = (ByteCountingOutputStream) outputStream;
+        }
+
+        return bcos;
     }
 
     /**
-     * Returns a securely-derived, deterministic value from the provided plaintext property
-     * value. This is because sensitive values should not be disclosed through the
-     * logs. However, the equality or difference of the sensitive value can be important, so it cannot be ignored completely.
+     * Returns the calculated cipher text length given the plaintext length and salt length, if any. If the salt length is > 0, the salt delimiter length ({@code 8}) is included as well.
      *
-     * The specific derivation process is determined by the provided {@link SecureHasher} implementation.
-     *
-     * @param sensitivePropertyValue the plaintext property value
-     * @param secureHasher an instance of {@link SecureHasher} which will be used to mask the value
-     * @return a deterministic string value which represents this input but is safe to print in a log
+     * @param ptLength   the plaintext length
+     * @param saltLength the salt length
+     * @return the complete cipher text, salt (optional), IV, and delimiter(s) length
      */
-    public static String getLoggableRepresentationOfSensitiveValue(String sensitivePropertyValue, SecureHasher secureHasher) {
-        return "[MASKED] (" + secureHasher.hashBase64(sensitivePropertyValue) + ")";
+    public static int calculateCipherTextLength(int ptLength, int saltLength) {
+        int ctBlocks = Double.valueOf(Math.ceil(ptLength / 16.0)).intValue();
+        int ctLength = (ptLength % 16 == 0 ? ctBlocks + 1 : ctBlocks) * 16;
+        // IV length, Salt delimiter length, IV delimiter length
+        return ctLength + saltLength + 16 + (saltLength > 0 ? 8 : 0) + 6;
+    }
+
+    /**
+     * Returns the array index of {@code haystack} if {@code needle} is found within it. This is a sequence scanner.
+     *
+     * @param haystack the search space byte[]
+     * @param needle   the sequence to find
+     * @return the first index of the sequence or -1 if it does not exist
+     */
+    public static int findSequence(byte[] haystack, byte[] needle) {
+        for (int i = 0; i < haystack.length - needle.length; i++) {
+            boolean match = true;
+            for (int j = 0; j < needle.length; j++) {
+                if (haystack[i + j] != needle[j]) {
+                    match = false;
+                    break;
+                }
+            }
+            if (match) {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
+    /**
+     * Returns the raw salt from the provided "full salt" which could be KDF-specific.
+     *
+     * Examples:
+     *
+     * Argon2 -> {@code $argon2id$v=19$m=4096,t=3,p=1$abcdefABCDEF0123456789}
+     * Bcrypt -> {@code $2a$10$abcdefABCDEF0123456789}
+     * Scrypt -> {@code $s0$e0801$abcdefABCDEF0123456789}
+     *
+     * If the KDF does not have a custom encoding for the salt, the provided "full salt" is returned intact.
+     *
+     * @param fullSalt the KDF-formatted salt
+     * @param kdf the KDF used
+     * @return the raw salt
+     */
+    public static byte[] extractRawSalt(byte[] fullSalt, KeyDerivationFunction kdf) {
+        final String saltString = new String(fullSalt, StandardCharsets.UTF_8);
+        switch (kdf) {
+            case ARGON2:
+                return Argon2CipherProvider.isArgon2FormattedSalt(saltString) ? Argon2CipherProvider.extractRawSaltFromArgon2Salt(saltString) : fullSalt;
+            case BCRYPT:
+                return BcryptCipherProvider.isBcryptFormattedSalt(saltString) ? BcryptCipherProvider.extractRawSalt(saltString) : fullSalt;
+            case SCRYPT:
+                return ScryptCipherProvider.isScryptFormattedSalt(saltString) ? ScryptCipherProvider.extractRawSaltFromScryptSalt(saltString) : fullSalt;
+            // case PBKDF2:
+            // case NONE:
+            // case NIFI_LEGACY:
+            // case OPENSSL_EVP_BYTES_TO_KEY:
+            default:
+                return fullSalt;
+        }
     }
 }

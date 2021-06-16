@@ -18,9 +18,13 @@ package org.apache.nifi.toolkit.cli.impl.command.registry;
 
 import org.apache.nifi.toolkit.cli.api.Command;
 import org.apache.nifi.toolkit.cli.impl.command.AbstractCommandGroup;
+import org.apache.nifi.toolkit.cli.impl.command.registry.access.GetAccessToken;
+import org.apache.nifi.toolkit.cli.impl.command.registry.access.GetAccessTokenSpnego;
+import org.apache.nifi.toolkit.cli.impl.command.registry.access.LogoutAccessToken;
 import org.apache.nifi.toolkit.cli.impl.command.registry.bucket.CreateBucket;
 import org.apache.nifi.toolkit.cli.impl.command.registry.bucket.DeleteBucket;
 import org.apache.nifi.toolkit.cli.impl.command.registry.bucket.ListBuckets;
+import org.apache.nifi.toolkit.cli.impl.command.registry.bucket.UpdateBucketPolicy;
 import org.apache.nifi.toolkit.cli.impl.command.registry.extension.DownloadBundle;
 import org.apache.nifi.toolkit.cli.impl.command.registry.extension.GetBundleChecksum;
 import org.apache.nifi.toolkit.cli.impl.command.registry.extension.ListBundleArtifacts;
@@ -96,6 +100,10 @@ public class NiFiRegistryCommandGroup extends AbstractCommandGroup {
         commandList.add(new UpdateUserGroup());
         commandList.add(new GetAccessPolicy());
         commandList.add(new CreateOrUpdateAccessPolicy());
+        commandList.add(new UpdateBucketPolicy());
+        commandList.add(new GetAccessToken());
+        commandList.add(new GetAccessTokenSpnego());
+        commandList.add(new LogoutAccessToken());
         return new ArrayList<>(commandList);
     }
 }

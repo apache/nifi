@@ -16,9 +16,6 @@
  */
 package org.apache.nifi.cluster.protocol.impl;
 
-import java.io.IOException;
-import java.util.Collection;
-
 import org.apache.nifi.cluster.protocol.NodeProtocolSender;
 import org.apache.nifi.cluster.protocol.ProtocolException;
 import org.apache.nifi.cluster.protocol.ProtocolHandler;
@@ -31,6 +28,9 @@ import org.apache.nifi.cluster.protocol.message.ConnectionResponseMessage;
 import org.apache.nifi.cluster.protocol.message.HeartbeatMessage;
 import org.apache.nifi.cluster.protocol.message.HeartbeatResponseMessage;
 import org.apache.nifi.reporting.BulletinRepository;
+
+import java.io.IOException;
+import java.util.Collection;
 
 public class NodeProtocolSenderListener implements NodeProtocolSender, ProtocolListener {
     private final NodeProtocolSender sender;
@@ -85,8 +85,8 @@ public class NodeProtocolSenderListener implements NodeProtocolSender, ProtocolL
     }
 
     @Override
-    public ConnectionResponseMessage requestConnection(final ConnectionRequestMessage msg) throws ProtocolException, UnknownServiceAddressException {
-        return sender.requestConnection(msg);
+    public ConnectionResponseMessage requestConnection(final ConnectionRequestMessage msg, boolean allowConnectToSelf) throws ProtocolException, UnknownServiceAddressException {
+        return sender.requestConnection(msg, allowConnectToSelf);
     }
 
     @Override

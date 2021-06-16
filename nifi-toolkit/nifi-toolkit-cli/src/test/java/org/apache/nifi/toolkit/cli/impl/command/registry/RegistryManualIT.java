@@ -55,7 +55,8 @@ public class RegistryManualIT {
     private static final String TEST_USER_GROUP_NAME = "testUserGroup";
     private String testUserId;
     private String testUserGroupId;
-
+    private static final String TEST_BUCKET_NAME = "testBucket";
+    private String testBucketId;
     private PrintStream originalStdOut;
     private ByteArrayOutputStream out;
 
@@ -96,6 +97,13 @@ public class RegistryManualIT {
         );
 
        testListUserGroup(expectedUserGroup);
+    }
+
+    @Ignore("Run first and only once")
+    @Test
+    public void testCreateBucket() throws Exception {
+        runRegistryCommand("create-bucket", "--bucketName " + TEST_BUCKET_NAME);
+        testListBuckets(TEST_BUCKET_NAME);
     }
 
     @Test
@@ -187,6 +195,36 @@ public class RegistryManualIT {
         testGetAccessPolicy(action, resource);
     }
 
+    @Test
+    public void testUpdateBucketPolicyByName() throws Exception {
+        String action = "/read";
+        runRegistryCommand("update-bucket-policy",
+                "--bucketName " + TEST_BUCKET_NAME +
+                " --accessPolicyAction " + action +
+                " --userNameList " + TEST_USER_NAME +
+                " --userIdList " + testUserId
+        );
+
+        testGetAccessPolicy(action, testBucketId);
+    }
+
+    @Test public void testUpdateBucketPolicyById() throws Exception {
+        String action = "/write";
+        runRegistryCommand("update-bucket-policy",
+                "--bucketId " + testBucketId +
+                " --accessPolicyAction " + action +
+                " --groupNameList " + TEST_USER_GROUP_NAME +
+                " --groupIdList " + testUserGroupId
+        );
+
+        testGetAccessPolicy(action, testBucketId);
+    }
+
+    @Test
+    public void testListBuckets() throws Exception {
+        testListBuckets(TEST_BUCKET_NAME);
+    }
+
     private void testListUsers(String expectedUserName) throws IOException {
         runCommand(
             "\\s{3,}",
@@ -217,6 +255,20 @@ public class RegistryManualIT {
                 assertTrue("Group id shouldn't be blank!", !StringUtils.isBlank(testUserGroupId));
             }
         );
+    }
+
+    private void testListBuckets(String expectedBucketName) throws IOException {
+        runCommand("\\s{3,}",
+                () -> runRegistryCommand("list-buckets",""),
+                words -> {
+                    if (words.length > 2 && words[1].equals(expectedBucketName)) {
+                        testBucketId = words[2];
+                    }
+                },
+                () -> {
+                    assertNotNull(testBucketId);
+                    assertTrue("Bucket ID should not be blank!", !StringUtils.isBlank(testBucketId));
+                });
     }
 
     private void testGetAccessPolicy(String action, String resource) throws IOException {

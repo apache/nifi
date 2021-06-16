@@ -59,12 +59,12 @@ class GroovyProcessor implements Processor {
         def session = sessionFactory.createSession()
         def flowFile = session.get();
         if (flowFile == null) {
-            return;
+            return
         }
         flowFile = session.putAttribute(flowFile, 'from-content', setAttributeFromThisInOnScheduled)
         // transfer
         session.transfer(flowFile, REL_TEST)
-        session.commit()
+        session.commitAsync()
     }
 
     @Override
@@ -94,4 +94,4 @@ class GroovyProcessor implements Processor {
     }
 }
 
-processor = new GroovyProcessor();
+processor = new GroovyProcessor()

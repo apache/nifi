@@ -18,7 +18,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-web</artifactId>
-        <version>1.12.0-SNAPSHOT</version>
+        <version>1.14.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-web-security</artifactId>
     <build>
@@ -63,6 +63,15 @@
                 <artifactId>maven-checkstyle-plugin</artifactId>
                 <configuration>
                     <excludes>**/authentication/generated/*.java,</excludes>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.rat</groupId>
+                <artifactId>apache-rat-plugin</artifactId>
+                <configuration>
+                    <excludes combine.children="append">
+                        <exclude>src/test/resources/saml/sso-circle-meta.xml</exclude>
+                    </excludes>
                 </configuration>
             </plugin>
         </plugins>
@@ -198,8 +207,16 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
+            <groupId>org.springframework.security.extensions</groupId>
+            <artifactId>spring-security-saml2-core</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.springframework.security.kerberos</groupId>
             <artifactId>spring-security-kerberos-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>jcl-over-slf4j</artifactId>
         </dependency>
         <dependency>
             <groupId>com.nimbusds</groupId>
@@ -225,7 +242,7 @@
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-test</artifactId>
-            <version>5.0.6.RELEASE</version>
+            <version>${spring.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>

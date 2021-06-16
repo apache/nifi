@@ -108,8 +108,8 @@ import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupStatusEntity;
 import org.apache.nifi.web.api.entity.ProcessorDiagnosticsEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
-import org.apache.nifi.web.api.entity.ProcessorsRunStatusDetailsEntity;
 import org.apache.nifi.web.api.entity.ProcessorStatusEntity;
+import org.apache.nifi.web.api.entity.ProcessorsRunStatusDetailsEntity;
 import org.apache.nifi.web.api.entity.RegistryClientEntity;
 import org.apache.nifi.web.api.entity.RegistryEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupEntity;
@@ -582,6 +582,15 @@ public interface NiFiServiceFacade {
      * @return history
      */
     StatusHistoryEntity getProcessorStatusHistory(String id);
+
+    // ----------------------------------------
+    // System diagnostics history
+    // ----------------------------------------
+
+    /**
+     * @return the system diagnostics history
+     */
+    StatusHistoryEntity getNodeStatusHistory();
 
     /**
      * Get the descriptor for the specified property of the specified processor.
@@ -1209,6 +1218,33 @@ public interface NiFiServiceFacade {
     void verifyDeleteProcessGroup(String groupId);
 
     /**
+     * Creates a request to drop flowfiles in all connections in a process group (recursively).
+     *
+     * @param processGroupId The ID of the process group
+     * @param dropRequestId The ID of the drop request
+     * @return The DropRequest
+     */
+    DropRequestDTO createDropAllFlowFilesInProcessGroup(final String processGroupId, final String dropRequestId);
+
+    /**
+     * Gets the specified request for dropping all flowfiles in a process group (recursively).
+     *
+     * @param processGroupId The ID of the process group
+     * @param dropRequestId The ID of the drop request
+     * @return The DropRequest
+     */
+    DropRequestDTO getDropAllFlowFilesRequest(final String processGroupId, final String dropRequestId);
+
+    /**
+     * Cancels/removes the specified request for dropping all flowfiles in a process group (recursively).
+     *
+     * @param processGroupId The ID of the process group
+     * @param dropRequestId The ID of the drop request
+     * @return The DropRequest
+     */
+    DropRequestDTO deleteDropAllFlowFilesRequest(String processGroupId, String dropRequestId);
+
+    /**
      * Deletes the specified process group.
      *
      * @param revision Revision to compare with current base revision
@@ -1273,6 +1309,14 @@ public interface NiFiServiceFacade {
      * @return history
      */
     StatusHistoryEntity getRemoteProcessGroupStatusHistory(String id);
+
+
+    /**
+     * Verifies that transmission state of all remote process groups within the specified process group can be updated.
+     * @param processGroupId The process group in which to verify remote process groups
+     * @param shouldTransmit The transmission state to verify for
+     */
+    void verifyUpdateRemoteProcessGroups(String processGroupId, boolean shouldTransmit);
 
     /**
      * Verifies the specified remote process group can be updated.

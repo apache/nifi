@@ -36,6 +36,7 @@ import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.ranger.audit.model.AuthzAuditEvent;
 import org.apache.ranger.authorization.hadoop.config.RangerConfiguration;
+import org.apache.ranger.authorization.hadoop.config.RangerPluginConfig;
 import org.apache.ranger.plugin.audit.RangerDefaultAuditHandler;
 import org.apache.ranger.plugin.policyengine.RangerAccessRequestImpl;
 import org.apache.ranger.plugin.policyengine.RangerAccessResourceImpl;
@@ -45,6 +46,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.net.MalformedURLException;
+import java.text.NumberFormat;
 import java.util.Date;
 import java.util.Map;
 import java.util.Set;
@@ -54,7 +56,6 @@ import java.util.WeakHashMap;
  * Authorizer implementation that uses Apache Ranger to make authorization decisions.
  */
 public class RangerNiFiAuthorizer implements Authorizer, AuthorizationAuditor {
-
     private static final Logger logger = LoggerFactory.getLogger(RangerNiFiAuthorizer.class);
 
     static final String RANGER_AUDIT_PATH_PROP = "Ranger Audit Config Path";
@@ -78,6 +79,7 @@ public class RangerNiFiAuthorizer implements Authorizer, AuthorizationAuditor {
     private volatile String rangerAdminIdentity = null;
     private volatile boolean rangerKerberosEnabled = false;
     private volatile NiFiProperties nifiProperties;
+    private final NumberFormat numberFormat = NumberFormat.getInstance();
 
     @Override
     public void initialize(AuthorizerInitializationContext initializationContext) throws AuthorizerCreationException {
@@ -90,11 +92,18 @@ public class RangerNiFiAuthorizer implements Authorizer, AuthorizationAuditor {
             if (nifiPlugin == null) {
                 logger.info("RangerNiFiAuthorizer(): initializing base plugin");
 
+                final String serviceType = getConfigValue(configurationContext, RANGER_SERVICE_TYPE_PROP, DEFAULT_SERVICE_TYPE);
+                final String appId = getConfigValue(configurationContext, RANGER_APP_ID_PROP, DEFAULT_APP_ID);
+
+                nifiPlugin = createRangerBasePlugin(serviceType, appId);
+
+                final RangerPluginConfig pluginConfig = nifiPlugin.getConfig();
+
                 final PropertyValue securityConfigValue = configurationContext.getProperty(RANGER_SECURITY_PATH_PROP);
-                addRequiredResource(RANGER_SECURITY_PATH_PROP, securityConfigValue);
+                addRequiredResource(RANGER_SECURITY_PATH_PROP, securityConfigValue, pluginConfig);
 
                 final PropertyValue auditConfigValue = configurationContext.getProperty(RANGER_AUDIT_PATH_PROP);
-                addRequiredResource(RANGER_AUDIT_PATH_PROP, auditConfigValue);
+                addRequiredResource(RANGER_AUDIT_PATH_PROP, auditConfigValue, pluginConfig);
 
                 final String rangerKerberosEnabledValue = getConfigValue(configurationContext, RANGER_KERBEROS_ENABLED_PROP, Boolean.FALSE.toString());
                 rangerKerberosEnabled = rangerKerberosEnabledValue.equals(Boolean.TRUE.toString()) ? true : false;
@@ -117,10 +126,6 @@ public class RangerNiFiAuthorizer implements Authorizer, AuthorizationAuditor {
                     UserGroupInformation.loginUserFromKeytab(nifiPrincipal.trim(), nifiKeytab.trim());
                 }
 
-                final String serviceType = getConfigValue(configurationContext, RANGER_SERVICE_TYPE_PROP, DEFAULT_SERVICE_TYPE);
-                final String appId = getConfigValue(configurationContext, RANGER_APP_ID_PROP, DEFAULT_APP_ID);
-
-                nifiPlugin = createRangerBasePlugin(serviceType, appId);
                 nifiPlugin.init();
 
                 defaultAuditHandler = new RangerDefaultAuditHandler();
@@ -173,7 +178,10 @@ public class RangerNiFiAuthorizer implements Authorizer, AuthorizationAuditor {
             rangerRequest.setClientIPAddress(clientIp);
         }
 
+        final long authStart = System.nanoTime();
         final RangerAccessResult result = nifiPlugin.isAccessAllowed(rangerRequest);
+        final long authNanos = System.nanoTime() - authStart;
+        logger.debug("Performed authorization against Ranger for Resource ID {}, Identity {} in {} nanos", resourceIdentifier, identity, numberFormat.format(authNanos));
 
         // store the result for auditing purposes later if appropriate
         if (request.isAccessAttempt()) {
@@ -219,7 +227,10 @@ public class RangerNiFiAuthorizer implements Authorizer, AuthorizationAuditor {
             event.setResourceType(RANGER_NIFI_RESOURCE_NAME);
             event.setResourcePath(request.getRequestedResource().getIdentifier());
 
+            final long start = System.nanoTime();
             defaultAuditHandler.logAuthzAudit(event);
+            final long nanos = System.nanoTime() - start;
+            logger.debug("Logged authorization audits to Ranger in {} nanos", numberFormat.format(nanos));
         }
     }
 
@@ -246,8 +257,9 @@ public class RangerNiFiAuthorizer implements Authorizer, AuthorizationAuditor {
      *
      * @param name the name of the given PropertyValue from the AuthorizationConfigurationContext
      * @param resourceValue the value for the given name, should be a full path to a file
+     * @param configuration the RangerConfiguration instance to add the resource to
      */
-    private void addRequiredResource(final String name, final PropertyValue resourceValue) {
+    private void addRequiredResource(final String name, final PropertyValue resourceValue, final RangerConfiguration configuration) {
         if (resourceValue == null || StringUtils.isBlank(resourceValue.getValue())) {
             throw new AuthorizerCreationException(name + " must be specified.");
         }
@@ -258,7 +270,7 @@ public class RangerNiFiAuthorizer implements Authorizer, AuthorizationAuditor {
         }
 
         try {
-            RangerConfiguration.getInstance().addResource(resourceFile.toURI().toURL());
+            configuration.addResource(resourceFile.toURI().toURL());
         } catch (MalformedURLException e) {
             throw new AuthorizerCreationException("Error creating URI for " + resourceValue, e);
         }

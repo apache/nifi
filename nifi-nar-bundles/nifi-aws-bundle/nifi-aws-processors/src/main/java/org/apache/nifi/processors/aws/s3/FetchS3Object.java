@@ -43,6 +43,7 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.exception.FlowFileAccessException;
@@ -82,6 +83,7 @@ public class FetchS3Object extends AbstractS3Processor {
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(false)
             .build();
+
     public static final PropertyDescriptor REQUESTER_PAYS = new PropertyDescriptor.Builder()
             .name("requester-pays")
             .displayName("Requester Pays")
@@ -95,10 +97,30 @@ public class FetchS3Object extends AbstractS3Processor {
             .defaultValue("false")
             .build();
 
+    public static final PropertyDescriptor RANGE_START = new PropertyDescriptor.Builder()
+            .name("range-start")
+            .displayName("Range Start")
+            .description("The byte position at which to start reading from the object. An empty value or a value of " +
+                    "zero will start reading at the beginning of the object.")
+            .addValidator(StandardValidators.DATA_SIZE_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .required(false)
+            .build();
+
+    public static final PropertyDescriptor RANGE_LENGTH = new PropertyDescriptor.Builder()
+            .name("range-length")
+            .displayName("Range Length")
+            .description("The number of bytes to download from the object, starting from the Range Start. An empty " +
+                    "value or a value that extends beyond the end of the object will read to the end of the object.")
+            .addValidator(StandardValidators.createDataSizeBoundsValidator(1, Long.MAX_VALUE))
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .required(false)
+            .build();
+
     public static final List<PropertyDescriptor> properties = Collections.unmodifiableList(
             Arrays.asList(BUCKET, KEY, REGION, ACCESS_KEY, SECRET_KEY, CREDENTIALS_FILE, AWS_CREDENTIALS_PROVIDER_SERVICE, TIMEOUT, VERSION_ID,
                 SSL_CONTEXT_SERVICE, ENDPOINT_OVERRIDE, SIGNER_OVERRIDE, ENCRYPTION_SERVICE, PROXY_CONFIGURATION_SERVICE, PROXY_HOST,
-                PROXY_HOST_PORT, PROXY_USERNAME, PROXY_PASSWORD, REQUESTER_PAYS));
+                PROXY_HOST_PORT, PROXY_USERNAME, PROXY_PASSWORD, REQUESTER_PAYS, RANGE_START, RANGE_LENGTH));
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -138,6 +160,8 @@ public class FetchS3Object extends AbstractS3Processor {
         final String key = context.getProperty(KEY).evaluateAttributeExpressions(flowFile).getValue();
         final String versionId = context.getProperty(VERSION_ID).evaluateAttributeExpressions(flowFile).getValue();
         final boolean requesterPays = context.getProperty(REQUESTER_PAYS).asBoolean();
+        final long rangeStart = (context.getProperty(RANGE_START).isSet() ? context.getProperty(RANGE_START).evaluateAttributeExpressions(flowFile).asDataSize(DataUnit.B).longValue() : 0L);
+        final Long rangeLength = (context.getProperty(RANGE_LENGTH).isSet() ? context.getProperty(RANGE_LENGTH).evaluateAttributeExpressions(flowFile).asDataSize(DataUnit.B).longValue() : null);
 
         final AmazonS3 client = getClient();
         final GetObjectRequest request;
@@ -147,6 +171,11 @@ public class FetchS3Object extends AbstractS3Processor {
             request = new GetObjectRequest(bucket, key, versionId);
         }
         request.setRequesterPays(requesterPays);
+        if (rangeLength != null) {
+            request.setRange(rangeStart, rangeStart + rangeLength - 1);
+        } else {
+            request.setRange(rangeStart);
+        }
 
         final Map<String, String> attributes = new HashMap<>();
 
@@ -165,14 +194,12 @@ public class FetchS3Object extends AbstractS3Processor {
 
             final ObjectMetadata metadata = s3Object.getObjectMetadata();
             if (metadata.getContentDisposition() != null) {
-                final String fullyQualified = metadata.getContentDisposition();
-                final int lastSlash = fullyQualified.lastIndexOf("/");
-                if (lastSlash > -1 && lastSlash < fullyQualified.length() - 1) {
-                    attributes.put(CoreAttributes.PATH.key(), fullyQualified.substring(0, lastSlash));
-                    attributes.put(CoreAttributes.ABSOLUTE_PATH.key(), fullyQualified);
-                    attributes.put(CoreAttributes.FILENAME.key(), fullyQualified.substring(lastSlash + 1));
+                final String contentDisposition = metadata.getContentDisposition();
+
+                if (contentDisposition.equals(PutS3Object.CONTENT_DISPOSITION_INLINE) || contentDisposition.startsWith("attachment; filename=")) {
+                    setFilePathAttributes(attributes, key);
                 } else {
-                    attributes.put(CoreAttributes.FILENAME.key(), metadata.getContentDisposition());
+                    setFilePathAttributes(attributes, contentDisposition);
                 }
             }
             if (metadata.getContentMD5() != null) {
@@ -231,4 +258,14 @@ public class FetchS3Object extends AbstractS3Processor {
         session.getProvenanceReporter().fetch(flowFile, "http://" + bucket + ".amazonaws.com/" + key, transferMillis);
     }
 
+    protected void setFilePathAttributes(Map<String, String> attributes, String filePathName) {
+        final int lastSlash = filePathName.lastIndexOf("/");
+        if (lastSlash > -1 && lastSlash < filePathName.length() - 1) {
+            attributes.put(CoreAttributes.PATH.key(), filePathName.substring(0, lastSlash));
+            attributes.put(CoreAttributes.ABSOLUTE_PATH.key(), filePathName);
+            attributes.put(CoreAttributes.FILENAME.key(), filePathName.substring(lastSlash + 1));
+        } else {
+            attributes.put(CoreAttributes.FILENAME.key(), filePathName);
+        }
+    }
 }

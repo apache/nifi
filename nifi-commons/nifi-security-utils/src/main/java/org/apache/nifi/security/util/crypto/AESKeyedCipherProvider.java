@@ -16,13 +16,11 @@
  */
 package org.apache.nifi.security.util.crypto;
 
-import java.io.UnsupportedEncodingException;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.SecureRandom;
-import java.security.spec.InvalidKeySpecException;
 import java.util.Arrays;
 import java.util.List;
 import javax.crypto.Cipher;
@@ -83,7 +81,7 @@ public class AESKeyedCipherProvider extends KeyedCipherProvider {
 
     protected Cipher getInitializedCipher(EncryptionMethod encryptionMethod, SecretKey key, byte[] iv,
                                           boolean encryptMode) throws NoSuchAlgorithmException, NoSuchProviderException,
-            InvalidKeySpecException, NoSuchPaddingException, InvalidKeyException, InvalidAlgorithmParameterException, UnsupportedEncodingException {
+            NoSuchPaddingException, InvalidKeyException, InvalidAlgorithmParameterException {
         if (encryptionMethod == null) {
             throw new IllegalArgumentException("The encryption method must be specified");
         }

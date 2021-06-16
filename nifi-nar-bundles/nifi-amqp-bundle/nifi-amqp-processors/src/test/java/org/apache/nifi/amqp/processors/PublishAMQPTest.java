@@ -27,6 +27,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
 
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.util.MockFlowFile;
@@ -41,12 +42,14 @@ import com.rabbitmq.client.GetResponse;
 public class PublishAMQPTest {
 
     @Test
-    public void validateSuccessfullPublishAndTransferToSuccess() throws Exception {
+    public void validateSuccessfulPublishAndTransferToSuccess() throws Exception {
         final PublishAMQP pubProc = new LocalPublishAMQP();
         final TestRunner runner = TestRunners.newTestRunner(pubProc);
-        runner.setProperty(PublishAMQP.HOST, "injvm");
+        runner.setProperty(PublishAMQP.BROKERS, "injvm:5672");
         runner.setProperty(PublishAMQP.EXCHANGE, "myExchange");
         runner.setProperty(PublishAMQP.ROUTING_KEY, "key1");
+        runner.setProperty(PublishAMQP.USER, "user");
+        runner.setProperty(PublishAMQP.PASSWORD, "password");
 
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("foo", "bar");
@@ -107,9 +110,11 @@ public class PublishAMQPTest {
     public void validateFailedPublishAndTransferToFailure() throws Exception {
         PublishAMQP pubProc = new LocalPublishAMQP();
         TestRunner runner = TestRunners.newTestRunner(pubProc);
-        runner.setProperty(PublishAMQP.HOST, "injvm");
+        runner.setProperty(PublishAMQP.BROKERS, "injvm:5672");
         runner.setProperty(PublishAMQP.EXCHANGE, "badToTheBone");
         runner.setProperty(PublishAMQP.ROUTING_KEY, "key1");
+        runner.setProperty(PublishAMQP.USER, "user");
+        runner.setProperty(PublishAMQP.PASSWORD, "password");
 
         runner.enqueue("Hello Joe".getBytes());
 
@@ -131,7 +136,7 @@ public class PublishAMQPTest {
         }
 
         @Override
-        protected Connection createConnection(ProcessContext context) {
+        protected Connection createConnection(ProcessContext context, ExecutorService executor) {
             return connection;
         }
 

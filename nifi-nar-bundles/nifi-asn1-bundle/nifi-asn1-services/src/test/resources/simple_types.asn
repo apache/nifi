@@ -1,0 +1,53 @@
+    ORG-APACHE-NIFI-JASN1-SIMPLE
+
+    DEFINITIONS IMPLICIT TAGS ::=
+
+    BEGIN
+
+
+    BooleanWrapper ::= SEQUENCE {
+        value BOOLEAN
+    }
+
+    IntegerWrapper ::= SEQUENCE {
+        value INTEGER
+    }
+
+    BitStringWrapper ::= SEQUENCE {
+        value BIT STRING
+    }
+
+    OctetStringWrapper ::= SEQUENCE {
+        value OCTET STRING
+    }
+
+    DateWrapper ::= SEQUENCE {
+        value DATE
+    }
+
+    TimeOfDayWrapper ::= SEQUENCE {
+        value TIME-OF-DAY
+    }
+
+    DateTimeWrapper ::= SEQUENCE {
+        value DATE-TIME
+    }
+
+    RealWrapper ::= SEQUENCE {
+        value REAL
+    }
+
+    UTF8StringWrapper ::= SEQUENCE {
+        value UTF8String
+    }
+
+    BMPStringWrapper ::= SEQUENCE {
+        value BMPString
+    }
+
+    EnumeratedWrapper ::= SEQUENCE {
+        value ENUMERATED { red(0), green(1), blue(2) }
+    }
+
+
+    END

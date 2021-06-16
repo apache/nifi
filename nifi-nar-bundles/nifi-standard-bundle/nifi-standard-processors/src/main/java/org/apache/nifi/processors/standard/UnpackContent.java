@@ -23,6 +23,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Path;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -33,10 +35,11 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
+
+import net.lingala.zip4j.model.LocalFileHeader;
 import org.apache.commons.compress.archivers.ArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
-import org.apache.commons.compress.archivers.zip.ZipArchiveInputStream;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -51,9 +54,11 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.flowfile.attributes.FragmentAttributes;
+import org.apache.nifi.flowfile.attributes.StandardFlowFileMediaType;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
@@ -64,11 +69,13 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.standard.util.FileInfo;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.FlowFileUnpackager;
 import org.apache.nifi.util.FlowFileUnpackagerV1;
 import org.apache.nifi.util.FlowFileUnpackagerV2;
 import org.apache.nifi.util.FlowFileUnpackagerV3;
+import net.lingala.zip4j.io.inputstream.ZipInputStream;
 
 @EventDriven
 @SideEffectFree
@@ -92,7 +99,13 @@ import org.apache.nifi.util.FlowFileUnpackagerV3;
             + "parent FlowFile"),
     @WritesAttribute(attribute = "fragment.count", description = "The number of unpacked FlowFiles generated from the parent FlowFile"),
     @WritesAttribute(attribute = "segment.original.filename ", description = "The filename of the parent FlowFile. Extensions of .tar, .zip or .pkg are removed because "
-            + "the MergeContent processor automatically adds those extensions if it is used to rebuild the original FlowFile")})
+            + "the MergeContent processor automatically adds those extensions if it is used to rebuild the original FlowFile"),
+    @WritesAttribute(attribute = "file.lastModifiedTime", description = "The date and time that the unpacked file was last modified (tar only)."),
+    @WritesAttribute(attribute = "file.creationTime", description = "The date and time that the file was created. This attribute holds always the same value as file.lastModifiedTime (tar only)."),
+    @WritesAttribute(attribute = "file.owner", description = "The owner of the unpacked file (tar only)"),
+    @WritesAttribute(attribute = "file.group", description = "The group owner of the unpacked file (tar only)"),
+    @WritesAttribute(attribute = "file.permissions", description = "The read/write/execute permissions of the unpacked file (tar only)"),
+    @WritesAttribute(attribute = "file.encryptionMethod", description = "The encryption method for entries in Zip archives")})
 @SeeAlso(MergeContent.class)
 public class UnpackContent extends AbstractProcessor {
     // attribute keys
@@ -110,6 +123,16 @@ public class UnpackContent extends AbstractProcessor {
 
     public static final String OCTET_STREAM = "application/octet-stream";
 
+    public static final String FILE_LAST_MODIFIED_TIME_ATTRIBUTE = "file.lastModifiedTime";
+    public static final String FILE_CREATION_TIME_ATTRIBUTE = "file.creationTime";
+    public static final String FILE_OWNER_ATTRIBUTE = "file.owner";
+    public static final String FILE_GROUP_ATTRIBUTE = "file.group";
+    public static final String FILE_PERMISSIONS_ATTRIBUTE = "file.permissions";
+    public static final String FILE_ENCRYPTION_METHOD_ATTRIBUTE = "file.encryptionMethod";
+
+    public static final String FILE_MODIFIED_DATE_ATTR_FORMAT = "yyyy-MM-dd'T'HH:mm:ssZ";
+    public static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern(FILE_MODIFIED_DATE_ATTR_FORMAT).withZone(ZoneId.systemDefault());
+
     public static final PropertyDescriptor PACKAGING_FORMAT = new PropertyDescriptor.Builder()
             .name("Packaging Format")
             .description("The Packaging Format used to create the file")
@@ -126,6 +149,15 @@ public class UnpackContent extends AbstractProcessor {
             .required(true)
             .defaultValue(".*")
             .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
+            .build();
+
+    public static final PropertyDescriptor PASSWORD = new PropertyDescriptor.Builder()
+            .name("Password")
+            .displayName("Password")
+            .description("Password used for decrypting archive entries. Supports Zip files encrypted with ZipCrypto or AES")
+            .required(false)
+            .sensitive(true)
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -160,6 +192,7 @@ public class UnpackContent extends AbstractProcessor {
         final List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(PACKAGING_FORMAT);
         properties.add(FILE_FILTER);
+        properties.add(PASSWORD);
         this.properties = Collections.unmodifiableList(properties);
     }
 
@@ -183,7 +216,13 @@ public class UnpackContent extends AbstractProcessor {
         if (fileFilter == null) {
             fileFilter = Pattern.compile(context.getProperty(FILE_FILTER).getValue());
             tarUnpacker = new TarUnpacker(fileFilter);
-            zipUnpacker = new ZipUnpacker(fileFilter);
+
+            char[] password = null;
+            final PropertyValue passwordProperty = context.getProperty(PASSWORD);
+            if (passwordProperty.isSet()) {
+                password = passwordProperty.getValue().toCharArray();
+            }
+            zipUnpacker = new ZipUnpacker(fileFilter, password);
         }
     }
 
@@ -284,8 +323,12 @@ public class UnpackContent extends AbstractProcessor {
 
         abstract void unpack(ProcessSession session, FlowFile source, List<FlowFile> unpacked);
 
-        protected boolean fileMatches(ArchiveEntry entry) {
-            return fileFilter == null || fileFilter.matcher(entry.getName()).find();
+        protected boolean fileMatches(final ArchiveEntry entry) {
+            return fileMatches(entry.getName());
+        }
+
+        protected boolean fileMatches(final String entryName) {
+            return fileFilter == null || fileFilter.matcher(entryName).find();
         }
     }
 
@@ -298,6 +341,7 @@ public class UnpackContent extends AbstractProcessor {
         public void unpack(final ProcessSession session, final FlowFile source, final List<FlowFile> unpacked) {
             final String fragmentId = UUID.randomUUID().toString();
             session.read(source, new InputStreamCallback() {
+
                 @Override
                 public void process(final InputStream in) throws IOException {
                     int fragmentCount = 0;
@@ -309,7 +353,7 @@ public class UnpackContent extends AbstractProcessor {
                             }
                             final File file = new File(tarEntry.getName());
                             final Path filePath = file.toPath();
-                            final String filePathString = filePath.getParent() + "/";
+                            String filePathString = filePath.getParent() == null ? "/" : filePath.getParent() + "/";
                             final Path absPath = filePath.toAbsolutePath();
                             final String absPathString = absPath.getParent().toString() + "/";
 
@@ -320,6 +364,14 @@ public class UnpackContent extends AbstractProcessor {
                                 attributes.put(CoreAttributes.PATH.key(), filePathString);
                                 attributes.put(CoreAttributes.ABSOLUTE_PATH.key(), absPathString);
                                 attributes.put(CoreAttributes.MIME_TYPE.key(), OCTET_STREAM);
+
+                                attributes.put(FILE_PERMISSIONS_ATTRIBUTE, FileInfo.permissionToString(tarEntry.getMode()));
+                                attributes.put(FILE_OWNER_ATTRIBUTE, String.valueOf(tarEntry.getUserName()));
+                                attributes.put(FILE_GROUP_ATTRIBUTE, String.valueOf(tarEntry.getGroupName()));
+
+                                final String timeAsString = DATE_TIME_FORMATTER.format(tarEntry.getModTime().toInstant());
+                                attributes.put(FILE_LAST_MODIFIED_TIME_ATTRIBUTE, timeAsString);
+                                attributes.put(FILE_CREATION_TIME_ATTRIBUTE, timeAsString);
 
                                 attributes.put(FRAGMENT_ID, fragmentId);
                                 attributes.put(FRAGMENT_INDEX, String.valueOf(++fragmentCount));
@@ -344,8 +396,11 @@ public class UnpackContent extends AbstractProcessor {
     }
 
     private static class ZipUnpacker extends Unpacker {
-        public ZipUnpacker(Pattern fileFilter) {
+        private char[] password;
+
+        public ZipUnpacker(final Pattern fileFilter, final char[] password) {
             super(fileFilter);
+            this.password = password;
         }
 
         @Override
@@ -355,13 +410,14 @@ public class UnpackContent extends AbstractProcessor {
                 @Override
                 public void process(final InputStream in) throws IOException {
                     int fragmentCount = 0;
-                    try (final ZipArchiveInputStream zipIn = new ZipArchiveInputStream(new BufferedInputStream(in))) {
-                        ArchiveEntry zipEntry;
+                    try (final ZipInputStream zipIn = new ZipInputStream(new BufferedInputStream(in), password)) {
+                        LocalFileHeader zipEntry;
                         while ((zipEntry = zipIn.getNextEntry()) != null) {
-                            if (zipEntry.isDirectory() || !fileMatches(zipEntry)) {
+                            final String zipEntryName = zipEntry.getFileName();
+                            if (zipEntry.isDirectory() || !fileMatches(zipEntryName)) {
                                 continue;
                             }
-                            final File file = new File(zipEntry.getName());
+                            final File file = new File(zipEntryName);
                             final String parentDirectory = (file.getParent() == null) ? "/" : file.getParent();
                             final Path absPath = file.toPath().toAbsolutePath();
                             final String absPathString = absPath.getParent().toString() + "/";
@@ -376,6 +432,9 @@ public class UnpackContent extends AbstractProcessor {
 
                                 attributes.put(FRAGMENT_ID, fragmentId);
                                 attributes.put(FRAGMENT_INDEX, String.valueOf(++fragmentCount));
+
+                                final String encryptionMethod = zipEntry.getEncryptionMethod().toString();
+                                attributes.put(FILE_ENCRYPTION_METHOD_ATTRIBUTE, encryptionMethod);
 
                                 unpackedFile = session.putAllAttributes(unpackedFile, attributes);
                                 unpackedFile = session.write(unpackedFile, new OutputStreamCallback() {
@@ -493,9 +552,9 @@ public class UnpackContent extends AbstractProcessor {
         TAR_FORMAT(TAR_FORMAT_NAME, "application/tar"),
         X_TAR_FORMAT(TAR_FORMAT_NAME, "application/x-tar"),
         ZIP_FORMAT(ZIP_FORMAT_NAME, "application/zip"),
-        FLOWFILE_STREAM_FORMAT_V3(FLOWFILE_STREAM_FORMAT_V3_NAME, "application/flowfile-v3"),
-        FLOWFILE_STREAM_FORMAT_V2(FLOWFILE_STREAM_FORMAT_V2_NAME, "application/flowfile-v2"),
-        FLOWFILE_TAR_FORMAT(FLOWFILE_TAR_FORMAT_NAME, "application/flowfile-v1");
+        FLOWFILE_STREAM_FORMAT_V3(FLOWFILE_STREAM_FORMAT_V3_NAME, StandardFlowFileMediaType.VERSION_3.getMediaType()),
+        FLOWFILE_STREAM_FORMAT_V2(FLOWFILE_STREAM_FORMAT_V2_NAME, StandardFlowFileMediaType.VERSION_2.getMediaType()),
+        FLOWFILE_TAR_FORMAT(FLOWFILE_TAR_FORMAT_NAME, StandardFlowFileMediaType.VERSION_1.getMediaType());
 
 
         private final String textValue;

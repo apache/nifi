@@ -94,6 +94,37 @@ The following are available commands:
  nifi pg-get-services
  nifi pg-enable-services
  nifi pg-disable-services
+ nifi pg-create-service
+ nifi create-user
+ nifi list-users
+ nifi create-user-group
+ nifi list-user-groups
+ nifi update-user-group
+ nifi get-policy
+ nifi update-policy
+ nifi create-service
+ nifi get-services
+ nifi get-service
+ nifi disable-services
+ nifi enable-services
+ nifi get-reporting-task
+ nifi get-reporting-tasks
+ nifi create-reporting-task
+ nifi set-param
+ nifi delete-param
+ nifi list-param-contexts
+ nifi get-param-context
+ nifi create-param-context
+ nifi delete-param-context
+ nifi merge-param-context
+ nifi import-param-context
+ nifi pg-get-param-context
+ nifi pg-set-param-context
+ nifi list-templates
+ nifi download-template
+ nifi upload-template
+ nifi start-reporting-tasks
+ nifi stop-reporting-tasks
  registry current-user
  registry list-buckets
  registry create-bucket
@@ -106,12 +137,25 @@ The following are available commands:
  registry import-flow-version
  registry sync-flow-versions
  registry transfer-flow-version
+ registry diff-flow-versions
+ registry upload-bundle
+ registry upload-bundles
+ registry list-bundle-groups
+ registry list-bundle-artifacts
+ registry list-bundle-versions
+ registry download-bundle
+ registry get-bundle-checksum
+ registry list-extension-tags
+ registry list-extensions
+ registry list-users
  registry create-user
  registry update-user
+ registry list-user-groups
  registry create-user-group
  registry update-user-group
  registry get-policy
  registry update-policy
+ registry update-bucket-policy
  session keys
  session show
  session get
@@ -236,13 +280,21 @@ For example, typing tab at an empty prompt should display possible commands for 
 Typing "nifi " and then a tab will show the sub-commands for NiFi:
 
  #> nifi
- cluster-summary       get-nodes             pg-enable-services    pg-set-var
- connect-node          get-reg-client-id     pg-get-all-versions   pg-start
- create-reg-client     get-root-id           pg-get-services       pg-status
- current-user          list-reg-clients      pg-get-vars           pg-stop
- delete-node           offload-node          pg-get-version        update-reg-client
- disconnect-node       pg-change-version     pg-import
- get-node              pg-disable-services   pg-list
+ cluster-summary         enable-services         list-templates          pg-list
+ connect-node            export-param-context    list-user-groups        pg-set-param-context
+ create-param-context    get-node                list-users              pg-set-var
+ create-reg-client       get-nodes               merge-param-context     pg-start
+ create-reporting-task   get-param-context       offload-node            pg-status
+ create-service          get-policy              pg-change-version       pg-stop
+ create-user             get-reg-client-id       pg-create-service       set-param
+ create-user-group       get-reporting-task      pg-disable-services     start-reporting-tasks
+ current-user            get-reporting-tasks     pg-enable-services      stop-reporting-tasks
+ delete-node             get-root-id             pg-get-all-versions     update-policy
+ delete-param            get-service             pg-get-param-context    update-reg-client
+ delete-param-context    get-services            pg-get-services         update-user-group
+ disable-services        import-param-context    pg-get-vars             upload-template
+ disconnect-node         list-param-contexts     pg-get-version
+ download-template       list-reg-clients        pg-import
 
 Arguments that represent a path to a file, such as `-p` or when setting a properties file in the session, will auto-complete the path being typed:
 
@@ -360,7 +412,7 @@ To add a NiFi Registry command, perform the same steps, but extend from `Abstrac
 
 [[encrypt_config_tool]]
 == Encrypt-Config Tool
-The `encrypt-config` command line tool (invoked as `./bin/encrypt-config.sh` or `bin\encrypt-config.bat`) reads from a _nifi.properties_ file with plaintext sensitive configuration values, prompts for a master password or raw hexadecimal key, and encrypts each value. It replaces the plain values with the protected value in the same file, or writes to a new _nifi.properties_ file if specified.
+The `encrypt-config` command line tool (invoked as `./bin/encrypt-config.sh` or `bin\encrypt-config.bat`) reads from a _nifi.properties_ file with plaintext sensitive configuration values, prompts for a root password or raw hexadecimal key, and encrypts each value. It replaces the plain values with the protected value in the same file, or writes to a new _nifi.properties_ file if specified.
 
 The default encryption algorithm utilized is AES/GCM 128/256-bit. 128-bit is used if the JCE Unlimited Strength Cryptographic Jurisdiction Policy files are not installed, and 256-bit is used if they are installed.
 
@@ -369,37 +421,61 @@ To show help:
 
  ./bin/encrypt-config.sh -h
 
-The following are available options:
+==== NiFi
+The following are available options when targeting NiFi:
 
- * `-h`,`--help`                                 Prints this usage message
+ * `-h`,`--help`                                 Show usage information (this message)
  * `-v`,`--verbose`                              Sets verbose mode (default false)
- * `-n`,`--niFiProperties <arg>`                 The _nifi.properties_ file containing unprotected config values (will be overwritten)
- * `-l`,`--loginIdentityProviders <arg>`         The _login-identity-providers.xml_ file containing unprotected config values (will be overwritten)
- * `-a`,`--authorizers <arg>`                    The _authorizers.xml_ file containing unprotected config values (will be overwritten)
- * `-f`,`--flowXml <arg>`                        The _flow.xml.gz_ file currently protected with old password (will be overwritten)
- * `-b`,`--bootstrapConf <arg>`                  The _bootstrap.conf_ file to persist master key
- * `-o`,`--outputNiFiProperties <arg>`           The destination _nifi.properties_ file containing protected config values (will not modify input _nifi.properties_)
- * `-i`,`--outputLoginIdentityProviders <arg>`   The destination _login-identity-providers.xml_ file containing protected config values (will not modify input _login-identity-providers.xml_)
- * `-u`,`--outputAuthorizers <arg>`              The destination _authorizers.xml_ file containing protected config values (will not modify input _authorizers.xml_)
- * `-g`,`--outputFlowXml <arg>`                  The destination _flow.xml.gz_ file containing protected config values (will not modify input _flow.xml.gz_)
- * `-k`,`--key <arg>`                            The raw hexadecimal key to use to encrypt the sensitive properties
- * `-e`,`--oldKey <arg>`                         The old raw hexadecimal key to use during key migration
- * `-p`,`--password <arg>`                       The password from which to derive the key to use to encrypt the sensitive properties
- * `-w`,`--oldPassword <arg>`                    The old password from which to derive the key during migration
+ * `-n`,`--niFiProperties <file>`                The _nifi.properties_ file containing unprotected config values (will be overwritten unless `-o` is specified)
+ * `-o`,`--outputNiFiProperties <file>`          The destination _nifi.properties_ file containing protected config values (will not modify input _nifi.properties_)
+ * `-l`,`--loginIdentityProviders <file>`        The _login-identity-providers.xml_ file containing unprotected config values (will be overwritten unless `-i` is specified)
+ * `-i`,`--outputLoginIdentityProviders <file>`  The destination _login-identity-providers.xml_ file containing protected config values (will not modify input _login-identity-providers.xml_)
+ * `-a`,`--authorizers <file>`                   The _authorizers.xml_ file containing unprotected config values (will be overwritten unless `-u` is specified)
+ * `-u`,`--outputAuthorizers <file>`             The destination _authorizers.xml_ file containing protected config values (will not modify input _authorizers.xml_)
+ * `-f`,`--flowXml <file>`                       The _flow.xml.gz_ file currently protected with old password (will be overwritten unless `-g` is specified)
+ * `-g`,`--outputFlowXml <file>`                 The destination _flow.xml.gz_ file containing protected config values (will not modify input _flow.xml.gz_)
+ * `-b`,`--bootstrapConf <file>`                 The _bootstrap.conf_ file to persist root key
+ * `-k`,`--key <keyhex>`                         The raw hexadecimal key to use to encrypt the sensitive properties
+ * `-e`,`--oldKey <keyhex>`                      The old raw hexadecimal key to use during key migration
+ * `-p`,`--password <password>`                  The password from which to derive the key to use to encrypt the sensitive properties
+ * `-w`,`--oldPassword <password>`            The old password from which to derive the key during migration
  * `-r`,`--useRawKey`                            If provided, the secure console will prompt for the raw key value in hexadecimal form
  * `-m`,`--migrate`                              If provided, the _nifi.properties_ and/or _login-identity-providers.xml_ sensitive properties will be re-encrypted with a new key
  * `-x`,`--encryptFlowXmlOnly`                   If provided, the properties in _flow.xml.gz_ will be re-encrypted with a new key but the _nifi.properties_ and/or _login-identity-providers.xml_ files will not be modified
- * `-s`,`--propsKey <arg>`                       The password or key to use to encrypt the sensitive processor properties in _flow.xml.gz_
- * `-A`,`--newFlowAlgorithm <arg>`               The algorithm to use to encrypt the sensitive processor properties in _flow.xml.gz_
- * `-P`,`--newFlowProvider <arg>`                The security provider to use to encrypt the sensitive processor properties in _flow.xml.gz_
+ * `-s`,`--propsKey <password|keyhex>`           The password or key to use to encrypt the sensitive processor properties in _flow.xml.gz_
+ * `-A`,`--newFlowAlgorithm <algorithm>`         The algorithm to use to encrypt the sensitive processor properties in _flow.xml.gz_
+ * `-P`,`--newFlowProvider <algorithm>`          The security provider to use to encrypt the sensitive processor properties in _flow.xml.gz_
+ * `-c`,`--translateCli`                         Translates the _nifi.properties_ file to a format suitable for the NiFi CLI tool
 
+==== NiFi Registry
+The following are available options when targeting NiFi Registry using the `--nifiRegistry` flag:
+
+ * `-h`,`--help`                                 Show usage information (this message)
+ * `-v`,`--verbose`                              Sets verbose mode (default false)
+ * `-p`,`--password <password>`                  Protect the files using a password-derived key. If an argument is not provided to this flag, interactive mode will be triggered to prompt the user to enter the password.
+ * `-k`,`--key <keyhex>`                         Protect the files using a raw hexadecimal key. If an argument is not provided to this flag, interactive mode will be triggered to prompt the user to enter the key.
+ * `--oldPassword <password>`                    If the input files are already protected using a password-derived key, this specifies the old password so that the files can be unprotected before re-protecting.
+ * `--oldKey <keyhex>`                           If the input files are already protected using a key, this specifies the raw hexadecimal key so that the files can be unprotected before re-protecting.
+ * `-b`,`--bootstrapConf <file>`                 The _bootstrap.conf_ file containing no root key or an existing root key. If a new password or key is specified (using `-p` or `-k`) and no output _bootstrap.conf_ file is specified, then this file will be overwritten to persist the new root key.
+ * `-B`,`--outputBootstrapConf <file>`           The destination _bootstrap.conf_ file to persist root key. If specified, the input _bootstrap.conf_ will not be modified.
+ * `-r`,`--nifiRegistryProperties <file>`        The _nifi-registry.properties_ file containing unprotected config values, overwritten if no output file specified.
+ * `-R`,`--outputNifiRegistryProperties <file>`  The destination _nifi-registry.properties_ file containing protected config values.
+ * `-a`,`--authorizersXml <file>`                The _authorizers.xml_ file containing unprotected config values, overwritten if no output file specified.
+ * `-A`,`--outputAuthorizersXml <file>`          The destination _authorizers.xml_ file containing protected config values.
+ * `-i`,`--identityProvidersXml <file>`          The _identity-providers.xml_ file containing unprotected config values, overwritten if no output file specified.
+ * `-I`,`--outputIdentityProvidersXml <file>`    The destination _identity-providers.xml_ file containing protected config values.
+ * `--decrypt`                                    Can be used with `-r` to decrypt a previously encrypted NiFi Registry Properties file. Decrypted content is printed to STDOUT.
+
+=== Examples
+
+==== NiFi
 As an example of how the tool works, assume that you have installed the tool on a machine supporting 256-bit encryption and with the following existing values in the _nifi.properties_ file:
 
 [source]
 ----
 # security properties #
 nifi.sensitive.props.key=thisIsABadSensitiveKeyPassword
-nifi.sensitive.props.algorithm=PBEWITHMD5AND256BITAES-CBC-OPENSSL
+nifi.sensitive.props.algorithm=NIFI_PBKDF2_AES_GCM_256
 nifi.sensitive.props.provider=BC
 nifi.sensitive.props.additional.keys=
 
@@ -415,9 +491,9 @@ nifi.security.truststorePasswd=
 Enter the following arguments when using the tool:
 
 ----
-encrypt-config.sh
--b bootstrap.conf
--k 0123456789ABCDEFFEDCBA98765432100123456789ABCDEFFEDCBA9876543210
+encrypt-config.sh \
+-b bootstrap.conf \
+-k 0123456789ABCDEFFEDCBA98765432100123456789ABCDEFFEDCBA9876543210 \
 -n nifi.properties
 ----
 
@@ -428,7 +504,7 @@ As a result, the _nifi.properties_ file is overwritten with protected properties
 # security properties #
 nifi.sensitive.props.key=n2z+tTTbHuZ4V4V2||uWhdasyDXD4ZG2lMAes/vqh6u4vaz4xgL4aEbF4Y/dXevqk3ulRcOwf1vc4RDQ==
 nifi.sensitive.props.key.protected=aes/gcm/256
-nifi.sensitive.props.algorithm=PBEWITHMD5AND256BITAES-CBC-OPENSSL
+nifi.sensitive.props.algorithm=NIFI_PBKDF2_AES_GCM_256
 nifi.sensitive.props.provider=BC
 nifi.sensitive.props.additional.keys=
 
@@ -447,7 +523,7 @@ Additionally, the _bootstrap.conf_ file is updated with the encryption key as fo
 
 [source]
 ----
-# Master key in hexadecimal format for encrypted sensitive configuration values
+# Root key in hexadecimal format for encrypted sensitive configuration values
 nifi.bootstrap.sensitive.key=0123456789ABCDEFFEDCBA98765432100123456789ABCDEFFEDCBA9876543210
 ----
 
@@ -492,6 +568,96 @@ Example of protected _authorizers.xml_:
        ...
    </userGroupProvider>
 ----
+
+==== NiFi Registry
+As an example of how the tool works, assume that you have installed the tool on a machine supporting 256-bit encryption and with the following existing values in the _nifi-registry.properties_ file:
+
+----
+# security properties #
+nifi.registry.security.keystore=/path/to/keystore.jks
+nifi.registry.security.keystoreType=JKS
+nifi.registry.security.keystorePasswd=thisIsABadKeystorePassword
+nifi.registry.security.keyPasswd=thisIsABadKeyPassword
+nifi.registry.security.truststore=
+nifi.registry.security.truststoreType=
+nifi.registry.security.truststorePasswd=
+----
+
+Enter the following arguments when using the tool:
+
+----
+./bin/encrypt-config.sh --nifiRegistry \
+-b bootstrap.conf \
+-k 0123456789ABCDEFFEDCBA98765432100123456789ABCDEFFEDCBA9876543210 \
+-r nifi-registry.properties
+----
+
+As a result, the _nifi-registry.properties_ file is overwritten with protected properties and sibling encryption identifiers (`aes/gcm/256`, the currently supported algorithm):
+
+----
+# security properties #
+nifi.registry.security.keystore=/path/to/keystore.jks
+nifi.registry.security.keystoreType=JKS
+nifi.registry.security.keystorePasswd=oBjT92hIGRElIGOh||MZ6uYuWNBrOA6usq/Jt3DaD2e4otNirZDytac/w/KFe0HOkrJR03vcbo
+nifi.registry.security.keystorePasswd.protected=aes/gcm/256
+nifi.registry.security.keyPasswd=ac/BaE35SL/esLiJ||+ULRvRLYdIDA2VqpE0eQXDEMjaLBMG2kbKOdOwBk/hGebDKlVg==
+nifi.registry.security.keyPasswd.protected=aes/gcm/256
+nifi.registry.security.truststore=
+nifi.registry.security.truststoreType=
+nifi.registry.security.truststorePasswd=
+----
+
+When applied to _identity-providers.xml_ or _authorizers.xml_, the property elements are updated with an `encryption` attribute. For example:
+
+----
+<!-- LDAP Provider -->
+<provider>
+   <identifier>ldap-provider</identifier>
+   <class>org.apache.nifi.registry.security.ldap.LdapProvider</class>
+   <property name="Authentication Strategy">START_TLS</property>
+   <property name="Manager DN">someuser</property>
+   <property name="Manager Password" encryption="aes/gcm/128">q4r7WIgN0MaxdAKM||SGgdCTPGSFEcuH4RraMYEdeyVbOx93abdWTVSWvh1w+klA</property>
+   <property name="TLS - Keystore">/path/to/keystore.jks</property>
+   <property name="TLS - Keystore Password" encryption="aes/gcm/128">Uah59TWX+Ru5GY5p||B44RT/LJtC08QWA5ehQf01JxIpf0qSJUzug25UwkF5a50g</property>
+   <property name="TLS - Keystore Type">JKS</property>
+   ...
+</provider>
+----
+
+Additionally, the _bootstrap.conf_ file is updated with the encryption key as follows:
+
+----
+# Root key in hexadecimal format for encrypted sensitive configuration values
+nifi.registry.bootstrap.sensitive.key=0123456789ABCDEFFEDCBA98765432100123456789ABCDEFFEDCBA9876543210
+----
+
+Sensitive configuration values are encrypted by the tool by default, however you can encrypt any additional properties, if desired.
+To encrypt additional properties, specify them as comma-separated values in the `nifi.registry.sensitive.props.additional.keys` property.
+
+
+If the _nifi-registry.properties_ file already has valid protected values and you wish to protect additional values using the
+same root key already present in your _bootstrap.conf_, then run the tool without specifying a new key:
+
+----
+# bootstrap.conf already contains root key property
+# nifi-registy.properties has been updated for nifi.registry.sensitive.props.additional.keys=...
+
+./bin/encrypt-config.sh --nifiRegistry -b bootstrap.conf -r nifi-registry.properties
+----
+
+[sensitive_property_key_migration]
+=== Sensitive Property Key Migration
+
+In order to change the key used to encrypt the sensitive values, provide the new key or password using the `-k` or `-p` flags as usual,
+and provide the existing key or password using `--old-key` or `--old-password` respectively. This will allow the toolkit to decrypt the
+existing values and re-encrypt them, and update _bootstrap.conf_ with the new key. Only one of the key or password needs to be specified
+for each phase (old vs. new), and any combination is sufficient:
+
+* old key -> new key
+* old key -> new password
+* old password -> new key
+* old password -> new password
+
 
 == File Manager
 The File Manager utility (invoked as `./bin/file-manager.sh` or `bin\file-manager.bat`) allows system administrators to take a backup of an existing NiFi installation, install a new version of NiFi in a designated location (while migrating any previous configuration settings) or restore an installation from a previous backup. File Manager supports NiFi version 1.0.0 and higher.
@@ -842,7 +1008,7 @@ The following are available options:
 * `-g`,`--differentKeyAndKeystorePasswords`     Use different generated password for the key and the keystore
 * `-h`,`--help`                                 Print help and exit
 * `-k`,`--keySize <arg>`                        Number of bits for generated keys (default: `2048`)
-* `-p`,`--PORT <arg>`                           The port for the Certificate Authority to listen on (default: `8443`)
+* `-p`,`--PORT <arg>`                           The port for the Certificate Authority to listen on (default: `9443`)
 * `-s`,`--signingAlgorithm <arg>`               Algorithm to use for signing certificates (default: `SHA256WITHRSA`)
 * `-T`,`--keyStoreType <arg>`                   The type of keystores to generate (default: `jks`)
 * `-t`,`--token <arg>`                          The token to use to prevent MITM (required and must be same as one used by clients)
@@ -867,7 +1033,7 @@ The following are available options:
 * `-g`,`--differentKeyAndKeystorePasswords`     Use different generated password for the key and the keystore
 * `-h`,`--help`                                 Print help and exit
 * `-k`,`--keySize <arg>`                        Number of bits for generated keys (default: `2048`)
-* `-p`,`--PORT <arg>`                           The port to use to communicate with the Certificate Authority (default: `8443`)
+* `-p`,`--PORT <arg>`                           The port to use to communicate with the Certificate Authority (default: `9443`)
 * `--subjectAlternativeNames <arg>`             Comma-separated list of domains to use as Subject Alternative Names in the certificate
 * `-T`,`--keyStoreType <arg>`                   The type of keystores to generate (default: `jks`)
 * `-t`,`--token <arg>`                          The token to use to prevent MITM (required and must be same as one used by CA)
@@ -1240,7 +1406,7 @@ The following are available options:
 * `-k`,`--krb-conf <jaas-filename>`               Allows the specification of a JAAS configuration file to allow authentication with a ZooKeeper configured to use Kerberos.  This option is mutually exclusive with the `-a`,`--auth` option.
 * `-r`,`--receive`                                Receives data from ZooKeeper and writes to the given filename (if the `-f`,`--file` option is provided) or standard output. The data received will contain the full path to each node read from ZooKeeper. This option is mutually exclusive with the `-s`,`--send` option.
 * `-s`,`--send`                                   Sends data to ZooKeeper that is read from the given filename (if the `-f`,`--file` option is provided) or standard input. The paths for each node in the data being sent to ZooKeeper are absolute paths, and will be stored in ZooKeeper under the *path* portion of the `-z`,`--zookeeper` argument.  Typically, the *path* portion of the argument can be omitted, which will store the nodes at their absolute paths. This option is mutually exclusive with the `-r`,`--receive` option.
-* `--use-existing-acl`                            Allows the Zookeeper Migrator to write ACL values retrieved from the source Zookeeper server to destination server. Default action will apply Open rights for unsecured destinations or Creator Only rights for secured destinations.
+* `--use-existing-acl`                            Allows the ZooKeeper Migrator to write ACL values retrieved from the source ZooKeeper server to destination server. Default action will apply Open rights for unsecured destinations or Creator Only rights for secured destinations.
 * `-z`,`--zookeeper <zookeeper-endpoint>`         The ZooKeeper server(s) to use, specified by a connect string, comprised of one or more comma-separated host:port pairs followed by a path, in the format of _host:port[,host2:port...,hostn:port]/znode/path_.
 
 === Migrating Between Source and Destination ZooKeepers

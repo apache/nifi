@@ -328,6 +328,11 @@ public interface FlowManager {
     ParameterContextManager getParameterContextManager();
 
     /**
+     * @return the number of each type of component (Processor, Controller Service, Process Group, Funnel, Input Port, Output Port, Reporting Task, Remote Process Group)
+     */
+    Map<String, Integer> getComponentCounts();
+
+    /**
      * Purges all components from the flow, including:
      *
      * Process Groups (and all components within it)

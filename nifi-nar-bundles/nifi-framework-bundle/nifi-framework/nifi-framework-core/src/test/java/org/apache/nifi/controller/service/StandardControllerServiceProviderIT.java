@@ -129,16 +129,12 @@ public class StandardControllerServiceProviderIT {
     }
 
     public void testEnableReferencingServicesGraph(final StandardProcessScheduler scheduler) throws InterruptedException, ExecutionException {
-        final FlowController controller = Mockito.mock(FlowController.class);
-
-        final ProcessGroup procGroup = new MockProcessGroup(controller);
         final FlowManager flowManager = Mockito.mock(FlowManager.class);
-        Mockito.when(controller.getFlowManager()).thenReturn(flowManager);
+        final ProcessGroup procGroup = new MockProcessGroup(flowManager);
 
         Mockito.when(flowManager.getGroup(Mockito.anyString())).thenReturn(procGroup);
-        Mockito.when(controller.getExtensionManager()).thenReturn(extensionManager);
 
-        final ControllerServiceProvider serviceProvider = new StandardControllerServiceProvider(controller, scheduler, null);
+        final ControllerServiceProvider serviceProvider = new StandardControllerServiceProvider(scheduler, null, flowManager, extensionManager);
 
         // build a graph of controller services with dependencies as such:
         //

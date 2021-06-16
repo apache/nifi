@@ -16,10 +16,9 @@
  */
 package org.apache.nifi.context;
 
+import java.util.Map;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
-
-import java.util.Map;
 
 /**
  * A context for retrieving a PropertyValue from a PropertyDescriptor.

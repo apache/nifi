@@ -18,8 +18,11 @@ package org.apache.nifi.integration.processgroup;
 
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyDescriptor.Builder;
+import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ProcessorNode;
+import org.apache.nifi.controller.queue.DropFlowFileState;
+import org.apache.nifi.controller.queue.DropFlowFileStatus;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.integration.FrameworkIntegrationTest;
@@ -34,11 +37,113 @@ import org.junit.Test;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 public class StandardProcessGroupIT extends FrameworkIntegrationTest {
+    @Test
+    public void testDropAllFlowFilesFromOneConnection() throws Exception {
+        ProcessorNode sourceProcessGroup = createGenerateProcessor(1);
+        ProcessorNode destinationProcessGroup = createProcessorNode((context, session) -> {});
+
+        Connection connection = connect(sourceProcessGroup, destinationProcessGroup, Collections.singleton(REL_SUCCESS));
+
+        for (int i = 0; i < 5; i++) {
+            triggerOnce(sourceProcessGroup);
+        }
+        assertEquals(5, connection.getFlowFileQueue().size().getObjectCount());
+
+        // WHEN
+        DropFlowFileStatus dropFlowFileStatus = getRootGroup().dropAllFlowFiles("requestId", "unimportant");
+        while (dropFlowFileStatus.getState() != DropFlowFileState.COMPLETE) {
+            TimeUnit.MILLISECONDS.sleep(10);
+            dropFlowFileStatus = getRootGroup().getDropAllFlowFilesStatus("requestId");
+        }
+
+        // THEN
+        assertEquals(0, connection.getFlowFileQueue().size().getObjectCount());
+    }
+
+    @Test
+    public void testDropAllFlowFilesFromOneConnectionInChildProcessGroup() throws Exception {
+        ProcessGroup childProcessGroup = getFlowController().getFlowManager().createProcessGroup("childProcessGroup");
+        childProcessGroup.setName("ChildProcessGroup");
+        getRootGroup().addProcessGroup(childProcessGroup);
+
+        ProcessorNode sourceProcessGroup = createGenerateProcessor(1);
+        moveProcessor(sourceProcessGroup, childProcessGroup);
+
+        ProcessorNode destinationProcessGroup = createProcessorNode((context, session) -> {});
+        moveProcessor(destinationProcessGroup, childProcessGroup);
+
+        Connection connection = connect(childProcessGroup, sourceProcessGroup, destinationProcessGroup, Collections.singleton(REL_SUCCESS));
+
+        for (int i = 0; i < 5; i++) {
+            triggerOnce(sourceProcessGroup);
+        }
+        assertEquals(5, connection.getFlowFileQueue().size().getObjectCount());
+
+        // WHEN
+        DropFlowFileStatus dropFlowFileStatus = getRootGroup().dropAllFlowFiles("requestId", "unimportant");
+        while (dropFlowFileStatus.getState() != DropFlowFileState.COMPLETE) {
+            TimeUnit.MILLISECONDS.sleep(10);
+            dropFlowFileStatus = childProcessGroup.getDropAllFlowFilesStatus("requestId");
+        }
+
+        // THEN
+        assertEquals(0, connection.getFlowFileQueue().size().getObjectCount());
+    }
+
+    @Test
+    public void testDropAllFlowFilesFromMultipleConnections() throws Exception {
+        ProcessGroup childProcessGroup = getFlowController().getFlowManager().createProcessGroup("childProcessGroup");
+        childProcessGroup.setName("ChildProcessGroup");
+        getRootGroup().addProcessGroup(childProcessGroup);
+
+        ProcessorNode sourceProcessGroup1 = createGenerateProcessor(4);
+        moveProcessor(sourceProcessGroup1, childProcessGroup);
+
+        ProcessorNode sourceProcessGroup2 = createGenerateProcessor(5);
+        moveProcessor(sourceProcessGroup2, childProcessGroup);
+
+        ProcessorNode destinationProcessGroup = createProcessorNode((context, session) -> {});
+        moveProcessor(destinationProcessGroup, childProcessGroup);
+
+        Connection connection1 = connect(childProcessGroup, sourceProcessGroup1, destinationProcessGroup, Collections.singleton(REL_SUCCESS));
+        Connection connection2 = connect(childProcessGroup, sourceProcessGroup2, destinationProcessGroup, Collections.singleton(REL_SUCCESS));
+
+        for (int i = 0; i < 5; i++) {
+            triggerOnce(sourceProcessGroup1);
+        }
+        assertEquals(5, connection1.getFlowFileQueue().size().getObjectCount());
+
+        for (int i = 0; i < 10; i++) {
+            triggerOnce(sourceProcessGroup2);
+        }
+        assertEquals(10, connection2.getFlowFileQueue().size().getObjectCount());
+
+        // WHEN
+        DropFlowFileStatus dropFlowFileStatus = getRootGroup().dropAllFlowFiles("requestId", "unimportant");
+        while (dropFlowFileStatus.getState() != DropFlowFileState.COMPLETE) {
+            TimeUnit.MILLISECONDS.sleep(10);
+            dropFlowFileStatus = childProcessGroup.getDropAllFlowFilesStatus("requestId");
+        }
+
+        // THEN
+        assertEquals(5 + 10, dropFlowFileStatus.getOriginalSize().getObjectCount());
+        assertEquals(20 + 50, dropFlowFileStatus.getOriginalSize().getByteCount());
+
+        assertEquals(0, dropFlowFileStatus.getCurrentSize().getObjectCount());
+        assertEquals(0, dropFlowFileStatus.getCurrentSize().getByteCount());
+
+        assertEquals(5 + 10, dropFlowFileStatus.getDroppedSize().getObjectCount());
+        assertEquals(20 + 50, dropFlowFileStatus.getDroppedSize().getByteCount());
+
+        assertEquals(0, connection1.getFlowFileQueue().size().getObjectCount());
+        assertEquals(0, connection2.getFlowFileQueue().size().getObjectCount());
+    }
 
     @Test
     public void testComponentsAffectedByVariableOverridden() {

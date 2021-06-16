@@ -16,9 +16,6 @@
  */
 package org.apache.nifi.ssl;
 
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.IsNull.notNullValue;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -26,25 +23,17 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
-import java.security.NoSuchAlgorithmException;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
-import javax.net.ssl.SSLContext;
-import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.security.util.SslContextFactory.ClientAuth;
 import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.MockValidationContext;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -57,10 +46,7 @@ public class SSLContextServiceTest {
     private final String KEYSTORE_AND_TRUSTSTORE_PASSWORD = "passwordpassword";
     private final String JKS_TYPE = "JKS";
     private final String TRUSTSTORE_PATH = "src/test/resources/truststore.jks";
-    private final String DIFFERENT_PASS_KEYSTORE_PATH = "src/test/resources/keystore-different-password.jks";
-    private final String DIFFERENT_KEYSTORE_PASSWORD = "differentpassword";
     private static final String KEYSTORE_WITH_KEY_PASSWORD_PATH = "src/test/resources/keystore-with-key-password.jks";
-
 
     @Rule
     public TemporaryFolder tmp = new TemporaryFolder(new File("src/test/resources"));
@@ -147,9 +133,7 @@ public class SSLContextServiceTest {
         service = (SSLContextService) runner.getProcessContext().getControllerServiceLookup().getControllerService("test-good1");
         Assert.assertNotNull(service);
         SSLContextService sslService = service;
-        sslService.createSSLContext(ClientAuth.REQUIRED);
-        sslService.createSSLContext(ClientAuth.WANT);
-        sslService.createSSLContext(ClientAuth.NONE);
+        sslService.createContext();
     }
 
     @Test
@@ -258,13 +242,11 @@ public class SSLContextServiceTest {
             runner.assertValid();
             Assert.assertNotNull(service);
             assertTrue(service instanceof StandardSSLContextService);
-            service.createSSLContext(ClientAuth.NONE);
+            service.createContext();
         } catch (InitializationException e) {
         }
     }
 
-    // TODO: Remove test
-    @Ignore("This test is no longer valid as a truststore must be present if the keystore is")
     @Test
     @Deprecated
     public void testGoodKeyOnly() {
@@ -283,7 +265,7 @@ public class SSLContextServiceTest {
             Assert.assertNotNull(service);
             assertTrue(service instanceof StandardSSLContextService);
             SSLContextService sslService = service;
-            sslService.createSSLContext(ClientAuth.NONE);
+            sslService.createContext();
         } catch (Exception e) {
             System.out.println(e);
             Assert.fail("Should not have thrown a exception " + e.getMessage());
@@ -314,7 +296,7 @@ public class SSLContextServiceTest {
             runner.setProperty("SSL Context Svc ID", "test-diff-keys");
             runner.assertValid();
             Assert.assertNotNull(service);
-            service.createSSLContext(ClientAuth.NONE);
+            service.createContext();
         } catch (Exception e) {
             System.out.println(e);
             Assert.fail("Should not have thrown a exception " + e.getMessage());
@@ -342,24 +324,6 @@ public class SSLContextServiceTest {
         } catch (Exception e) {
             System.out.println(e);
             Assert.fail("Should not have thrown a exception " + e.getMessage());
-        }
-    }
-
-    @Test
-    public void testSSLAlgorithms() throws NoSuchAlgorithmException {
-        final AllowableValue[] allowableValues = SSLContextService.buildAlgorithmAllowableValues();
-
-        // we expect TLS, SSL, and all available configured JVM protocols
-        final Set<String> expected = new HashSet<>();
-        expected.add("SSL");
-        expected.add("TLS");
-        final String[] supportedProtocols = SSLContext.getDefault().createSSLEngine().getSupportedProtocols();
-        expected.addAll(Arrays.asList(supportedProtocols));
-
-        assertThat(allowableValues, notNullValue());
-        assertThat(allowableValues.length, equalTo(expected.size()));
-        for(final AllowableValue value : allowableValues) {
-            assertTrue(expected.contains(value.getValue()));
         }
     }
 }

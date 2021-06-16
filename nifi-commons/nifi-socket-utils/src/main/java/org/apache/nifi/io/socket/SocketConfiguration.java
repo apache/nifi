@@ -34,8 +34,7 @@ public final class SocketConfiguration {
     private TlsConfiguration tlsConfiguration;
 
     public SSLContext createSSLContext() throws TlsException {
-        // This is only used for client sockets, so the client auth setting is ignored
-        return SslContextFactory.createSslContext(tlsConfiguration, SslContextFactory.ClientAuth.NONE);
+        return SslContextFactory.createSslContext(tlsConfiguration);
     }
 
     public void setTlsConfiguration(final TlsConfiguration tlsConfiguration) {

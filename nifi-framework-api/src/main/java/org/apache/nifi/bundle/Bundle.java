@@ -45,4 +45,9 @@ public class Bundle {
     public ClassLoader getClassLoader() {
         return classLoader;
     }
+
+    @Override
+    public String toString() {
+        return bundleDetails.toString();
+    }
 }

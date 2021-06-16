@@ -77,6 +77,10 @@ public class SwapSummaryFieldMap implements Record {
                 return queueIdentifier;
             case SwapSchema.RESOURCE_CLAIMS:
                 return claimCounts;
+            case SwapSchema.MIN_LAST_QUEUE_DATE:
+                return swapSummary.getMinLastQueueDate();
+            case SwapSchema.TOTAL_LAST_QUEUE_DATE:
+                return swapSummary.getTotalLastQueueDate();
         }
 
         return null;
@@ -86,8 +90,21 @@ public class SwapSummaryFieldMap implements Record {
     public static SwapSummary getSwapSummary(final Record record, final ResourceClaimManager claimManager) {
         final int flowFileCount = (Integer) record.getFieldValue(SwapSchema.FLOWFILE_COUNT);
         final long flowFileSize = (Long) record.getFieldValue(SwapSchema.FLOWFILE_SIZE);
-        final QueueSize queueSize = new QueueSize(flowFileCount, flowFileSize);
 
+        // In the event that min and totalLastQueueDate are null, set them to neutral values based on
+        // the current time.
+        Long minLastQueueDate = (Long) record.getFieldValue(SwapSchema.MIN_LAST_QUEUE_DATE);
+        long now = System.currentTimeMillis();
+        if(minLastQueueDate == null) {
+            minLastQueueDate = now;
+        }
+
+        Long totalLastQueueDate = (Long) record.getFieldValue(SwapSchema.TOTAL_LAST_QUEUE_DATE);
+        if(totalLastQueueDate == null) {
+            totalLastQueueDate = now * flowFileCount;
+        }
+
+        final QueueSize queueSize = new QueueSize(flowFileCount, flowFileSize);
         final long maxFlowFileId = (Long) record.getFieldValue(SwapSchema.MAX_RECORD_ID);
 
         final Map<Record, Integer> resourceClaimRecords = (Map<Record, Integer>) record.getFieldValue(SwapSchema.RESOURCE_CLAIMS);
@@ -101,6 +118,6 @@ public class SwapSummaryFieldMap implements Record {
             }
         }
 
-        return new StandardSwapSummary(queueSize, maxFlowFileId, resourceClaims);
+        return new StandardSwapSummary(queueSize, maxFlowFileId, resourceClaims, minLastQueueDate, totalLastQueueDate);
     }
 }

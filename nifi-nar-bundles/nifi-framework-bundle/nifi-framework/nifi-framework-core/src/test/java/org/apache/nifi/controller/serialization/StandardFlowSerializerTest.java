@@ -25,7 +25,8 @@ import org.apache.nifi.controller.DummyScheduledProcessor;
 import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
-import org.apache.nifi.encrypt.StringEncryptor;
+import org.apache.nifi.encrypt.PropertyEncryptor;
+import org.apache.nifi.encrypt.PropertyEncryptorFactory;
 import org.apache.nifi.nar.ExtensionDiscoveringManager;
 import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
 import org.apache.nifi.nar.SystemBundle;
@@ -62,6 +63,8 @@ public class StandardFlowSerializerTest {
     private static final String SERIALIZED_VARIABLE_NAME = "Name with  escape needed";
     private static final String RAW_VARIABLE_VALUE = "Value with \u0001 escape needed";
     private static final String SERIALIZED_VARIABLE_VALUE = "Value with  escape needed";
+    private static final String RAW_STRING_WITH_EMOJI = "String with \uD83D\uDCA7 droplet emoji";
+    private static final String SERIALIZED_STRING_WITH_EMOJI = "String with &#128167; droplet emoji";
 
     private volatile String propsFile = StandardFlowSerializerTest.class.getResource("/standardflowserializertest.nifi.properties").getFile();
 
@@ -79,10 +82,7 @@ public class StandardFlowSerializerTest {
         otherProps.put("nifi.remote.input.socket.port", "");
         otherProps.put("nifi.remote.input.secure", "");
         final NiFiProperties nifiProperties = NiFiProperties.createBasicNiFiProperties(propsFile, otherProps);
-        final String algorithm = nifiProperties.getProperty(NiFiProperties.SENSITIVE_PROPS_ALGORITHM);
-        final String provider = nifiProperties.getProperty(NiFiProperties.SENSITIVE_PROPS_PROVIDER);
-        final String password = nifiProperties.getProperty(NiFiProperties.SENSITIVE_PROPS_KEY);
-        final StringEncryptor encryptor = StringEncryptor.createEncryptor(algorithm, provider, password);
+        final PropertyEncryptor encryptor = PropertyEncryptorFactory.getPropertyEncryptor(nifiProperties);
 
         // use the system bundle
         systemBundle = SystemBundle.create(nifiProperties);
@@ -129,5 +129,26 @@ public class StandardFlowSerializerTest {
         assertTrue(serializedFlow.contains(SERIALIZED_VARIABLE_VALUE));
         assertFalse(serializedFlow.contains(RAW_VARIABLE_VALUE));
         assertFalse(serializedFlow.contains("\u0001"));
+    }
+
+    @Test
+    public void testSerializationEmoji() throws Exception {
+        final ProcessorNode dummy = controller.getFlowManager().createProcessor(DummyScheduledProcessor.class.getName(),
+                UUID.randomUUID().toString(), systemBundle.getBundleDetails().getCoordinate());
+
+        dummy.setName(RAW_STRING_WITH_EMOJI);
+        controller.getFlowManager().getRootGroup().addProcessor(dummy);
+
+        controller.getFlowManager().getRootGroup().setVariables(Collections.singletonMap(RAW_STRING_WITH_EMOJI, RAW_STRING_WITH_EMOJI));
+
+        // serialize the controller
+        final ByteArrayOutputStream os = new ByteArrayOutputStream();
+        final Document doc = serializer.transform(controller, ScheduledStateLookup.IDENTITY_LOOKUP);
+        serializer.serialize(doc, os);
+
+        // verify the results contain the serialized string
+        final String serializedFlow = os.toString(StandardCharsets.UTF_8.name());
+        assertTrue(serializedFlow.contains(SERIALIZED_STRING_WITH_EMOJI));
+        assertFalse(serializedFlow.contains(RAW_STRING_WITH_EMOJI));
     }
 }

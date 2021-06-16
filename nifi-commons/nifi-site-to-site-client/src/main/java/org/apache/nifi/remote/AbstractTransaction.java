@@ -171,7 +171,12 @@ public abstract class AbstractTransaction implements Transaction {
     protected final void writeTransactionResponse(ResponseCode response) throws IOException {
         writeTransactionResponse(response, null);
     }
-    abstract protected void writeTransactionResponse(ResponseCode response, String explanation) throws IOException;
+
+    protected void writeTransactionResponse(ResponseCode response, String explanation) throws IOException {
+        writeTransactionResponse(response, explanation, true);
+    }
+
+    abstract protected void writeTransactionResponse(ResponseCode response, String explanation, boolean flush) throws IOException;
 
     @Override
     public final void confirm() throws IOException {
@@ -357,7 +362,7 @@ public abstract class AbstractTransaction implements Transaction {
                 }
 
                 if (transfers > 0) {
-                    writeTransactionResponse(ResponseCode.CONTINUE_TRANSACTION);
+                    writeTransactionResponse(ResponseCode.CONTINUE_TRANSACTION, null, false);
                 }
 
                 logger.debug("{} Sending data to {}", this, peer);

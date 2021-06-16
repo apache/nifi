@@ -20,6 +20,8 @@ import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
+import org.apache.nifi.components.resource.ResourceCardinality;
+import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.expression.AttributeExpression.ResultType;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.DataUnit;
@@ -407,12 +409,14 @@ public class StandardValidators {
         Optional<ValidationResult> invalidUri = Arrays.stream(input.split(","))
                 .filter(uri -> uri != null && !uri.trim().isEmpty())
                 .map(String::trim)
-                .map((uri) -> StandardValidators.URI_VALIDATOR.validate(subject,uri,context)).filter((uri) -> !uri.isValid()).findFirst();
+                .map((uri) -> StandardValidators.URI_VALIDATOR.validate(subject, uri, context)).filter((uri) -> !uri.isValid()).findFirst();
 
         return invalidUri.orElseGet(() -> new ValidationResult.Builder().subject(subject).input(input).explanation("Valid URI(s)").valid(true).build());
     };
 
     public static final Validator REGULAR_EXPRESSION_VALIDATOR = createRegexValidator(0, Integer.MAX_VALUE, false);
+
+    public static final Validator REGULAR_EXPRESSION_WITH_EL_VALIDATOR = createRegexValidator(0, Integer.MAX_VALUE, true);
 
     public static final Validator ATTRIBUTE_EXPRESSION_LANGUAGE_VALIDATOR = new Validator() {
         @Override
@@ -530,6 +534,12 @@ public class StandardValidators {
         };
     }
 
+    /**
+     * @deprecated use {@link org.apache.nifi.components.PropertyDescriptor.Builder#identifiesExternalResource(ResourceCardinality, ResourceType, ResourceType...)
+     * identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE, ResourceType.DIRECTORY, ResourceType.URL}
+     * instead.
+     */
+    @Deprecated
     public static Validator createURLorFileValidator() {
         return (subject, input, context) -> {
             if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input)) {
@@ -567,13 +577,13 @@ public class StandardValidators {
     }
 
     public static Validator createListValidator(boolean trimEntries, boolean excludeEmptyEntries,
-        Validator elementValidator){
-        return createListValidator(trimEntries,excludeEmptyEntries, elementValidator, false);
+                                                Validator elementValidator) {
+        return createListValidator(trimEntries, excludeEmptyEntries, elementValidator, false);
     }
 
     public static Validator createListValidator(boolean trimEntries, boolean excludeEmptyEntries,
-        Validator validator,
-        boolean ensureElementValidation) {
+                                                Validator validator,
+                                                boolean ensureElementValidation) {
         return (subject, input, context) -> {
             if (context.isExpressionLanguageSupported(subject) && context.isExpressionLanguagePresent(input)) {
                 return new ValidationResult.Builder().subject(subject).input(input).explanation("Expression Language Present").valid(true).build();
@@ -583,7 +593,7 @@ public class StandardValidators {
                     return new ValidationResult.Builder().subject(subject).input(null).explanation("List must have at least one non-empty element").valid(false).build();
                 }
 
-                final String[] list =  ensureElementValidation ? input.split(",",-1) : input.split(",");
+                final String[] list = ensureElementValidation ? input.split(",", -1) : input.split(",");
                 if (list.length == 0) {
                     return new ValidationResult.Builder().subject(subject).input(null).explanation("List must have at least one non-empty element").valid(false).build();
                 }
@@ -668,10 +678,10 @@ public class StandardValidators {
      * Language will not support FlowFile Attributes but only System/JVM
      * Properties
      *
-     * @param minCapturingGroups minimum capturing groups allowed
-     * @param maxCapturingGroups maximum capturing groups allowed
+     * @param minCapturingGroups                 minimum capturing groups allowed
+     * @param maxCapturingGroups                 maximum capturing groups allowed
      * @param supportAttributeExpressionLanguage whether or not to support
-     * expression language
+     *                                           expression language
      * @return validator
      */
     public static Validator createRegexValidator(final int minCapturingGroups, final int maxCapturingGroups, final boolean supportAttributeExpressionLanguage) {
@@ -822,9 +832,15 @@ public class StandardValidators {
     public static class FileExistsValidator implements Validator {
 
         private final boolean allowEL;
+        private final boolean allowFileOnly;
 
         public FileExistsValidator(final boolean allowExpressionLanguage) {
+            this(allowExpressionLanguage, false);
+        }
+
+        public FileExistsValidator(final boolean allowExpressionLanguage, final boolean fileOnly) {
             this.allowEL = allowExpressionLanguage;
+            this.allowFileOnly = fileOnly;
         }
 
         @Override
@@ -846,9 +862,13 @@ public class StandardValidators {
             }
 
             final File file = new File(substituted);
-            final boolean valid = file.exists();
-            final String explanation = valid ? null : "File " + file + " does not exist";
-            return new ValidationResult.Builder().subject(subject).input(value).valid(valid).explanation(explanation).build();
+            if (!file.exists()) {
+                return new ValidationResult.Builder().subject(subject).input(value).valid(false).explanation("File " + file + " does not exist").build();
+            }
+            if (allowFileOnly && !file.isFile()) {
+                return new ValidationResult.Builder().subject(subject).input(value).valid(false).explanation(file + " is not a file").build();
+            }
+            return new ValidationResult.Builder().subject(subject).input(value).valid(true).build();
         }
     }
 

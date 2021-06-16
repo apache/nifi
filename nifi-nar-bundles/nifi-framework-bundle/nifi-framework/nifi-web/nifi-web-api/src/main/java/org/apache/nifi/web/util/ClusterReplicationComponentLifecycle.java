@@ -203,7 +203,7 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
             final ProcessorsRunStatusDetailsEntity runStatusDetailsEntity = getResponseEntity(clusterResponse, ProcessorsRunStatusDetailsEntity.class);
 
             if (isProcessorValidationComplete(runStatusDetailsEntity, processors)) {
-                logger.debug("All {} processors of interest now have been validated", processors.size());
+                logger.debug("All {} processors of interest now have been validated: {}", processors.size(), processorIds);
                 return true;
             }
 
@@ -219,6 +219,8 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
 
         for (final ProcessorRunStatusDetailsEntity statusDetailsEntity : runStatusDetailsEntity.getRunStatusDetails()) {
             final ProcessorRunStatusDetailsDTO runStatusDetails = statusDetailsEntity.getRunStatusDetails();
+
+            logger.debug("Processor {} now has Run Status of {}", runStatusDetails.getId(), runStatusDetails.getRunStatus());
             if (!affectedComponents.containsKey(runStatusDetails.getId())) {
                 continue;
             }
@@ -452,7 +454,7 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
         URI groupUri;
         try {
             groupUri = new URI(originalUri.getScheme(), originalUri.getUserInfo(), originalUri.getHost(),
-                    originalUri.getPort(), "/nifi-api/flow/process-groups/" + groupId + "/controller-services", "includeAncestorGroups=false,includeDescendantGroups=true", originalUri.getFragment());
+                    originalUri.getPort(), "/nifi-api/flow/process-groups/" + groupId + "/controller-services", "includeAncestorGroups=false&includeDescendantGroups=true", originalUri.getFragment());
         } catch (URISyntaxException e) {
             throw new RuntimeException(e);
         }
@@ -480,6 +482,7 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
             final Set<ControllerServiceEntity> serviceEntities = controllerServicesEntity.getControllerServices();
 
             final Map<String, AffectedComponentEntity> affectedServices = serviceEntities.stream()
+                    .filter(s -> serviceIds.contains(s.getId()))
                     .collect(Collectors.toMap(ControllerServiceEntity::getId, dtoFactory::createAffectedComponentEntity));
 
             if (isControllerServiceValidationComplete(serviceEntities, affectedServices)) {
@@ -569,10 +572,19 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
                 }
 
                 final String validationStatus = serviceDto.getValidationStatus();
+                final boolean desiredStateReached = desiredStateName.equals(serviceDto.getState());
+
+                logger.debug("ControllerService[id={}, name={}] now has a state of {} with a Validation Status of {}; desired state = {}; invalid component action is {}; desired state reached = {}",
+                    serviceDto.getId(), serviceDto.getName(), serviceDto.getState(), validationStatus, desiredState, invalidComponentAction, desiredStateReached);
+
+                if (desiredStateReached) {
+                    continue;
+                }
+
+                // The desired state for this component has not yet been reached. Check how we should handle this based on the validation status.
                 if (ControllerServiceDTO.INVALID.equals(validationStatus)) {
                     switch (invalidComponentAction) {
                         case WAIT:
-                            allReachedDesiredState = false;
                             break;
                         case SKIP:
                             continue;
@@ -582,10 +594,7 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
                     }
                 }
 
-                if (!desiredStateName.equalsIgnoreCase(serviceDto.getState())) {
-                    allReachedDesiredState = false;
-                    break;
-                }
+                allReachedDesiredState = false;
             }
 
             if (allReachedDesiredState) {

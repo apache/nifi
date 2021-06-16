@@ -28,6 +28,7 @@ import org.apache.nifi.controller.queue.ConnectionEventListener;
 import org.apache.nifi.controller.queue.DropFlowFileRequest;
 import org.apache.nifi.controller.queue.DropFlowFileState;
 import org.apache.nifi.controller.queue.FlowFileQueueContents;
+import org.apache.nifi.controller.queue.IllegalClusterStateException;
 import org.apache.nifi.controller.queue.LoadBalanceStrategy;
 import org.apache.nifi.controller.queue.LoadBalancedFlowFileQueue;
 import org.apache.nifi.controller.queue.LocalQueuePartitionDiagnostics;
@@ -481,6 +482,8 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
             Long maxId = null;
             QueueSize totalQueueSize = new QueueSize(0, 0L);
             final List<ResourceClaim> resourceClaims = new ArrayList<>();
+            Long minLastQueueDate = null;
+            long totalLastQueueDate = 0L;
 
             for (final SwapSummary summary : summaries) {
                 Long summaryMaxId = summary.getMaxFlowFileId();
@@ -493,11 +496,21 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
 
                 final List<ResourceClaim> summaryResourceClaims = summary.getResourceClaims();
                 resourceClaims.addAll(summaryResourceClaims);
+
+                if(minLastQueueDate == null) {
+                    minLastQueueDate = summary.getMinLastQueueDate();
+                } else {
+                    if(summary.getMinLastQueueDate() != null) {
+                        minLastQueueDate = Long.min(minLastQueueDate, summary.getMinLastQueueDate());
+                    }
+                }
+
+                totalLastQueueDate += summary.getTotalLastQueueDate();
             }
 
             adjustSize(totalQueueSize.getObjectCount(), totalQueueSize.getByteCount());
 
-            return new StandardSwapSummary(totalQueueSize, maxId, resourceClaims);
+            return new StandardSwapSummary(totalQueueSize, maxId, resourceClaims, minLastQueueDate, totalLastQueueDate);
         } finally {
             partitionReadLock.unlock();
         }
@@ -511,6 +524,25 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
     @Override
     public QueueSize size() {
         return totalSize.get();
+    }
+
+    @Override
+    public long getTotalQueuedDuration(long fromTimestamp) {
+        long sum = 0L;
+        for (QueuePartition queuePartition : queuePartitions) {
+            long totalActiveQueuedDuration = queuePartition.getTotalActiveQueuedDuration(fromTimestamp);
+            sum += totalActiveQueuedDuration;
+        }
+        return sum;
+    }
+
+    @Override
+    public long getMinLastQueueDate() {
+        long min = 0;
+        for (QueuePartition queuePartition : queuePartitions) {
+            min = min == 0 ? queuePartition.getMinLastQueueDate() : Long.min(min, queuePartition.getMinLastQueueDate());
+        }
+        return min;
     }
 
     @Override
@@ -753,9 +785,16 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
         return partition;
     }
 
-    public void receiveFromPeer(final Collection<FlowFileRecord> flowFiles) {
+    public void receiveFromPeer(final Collection<FlowFileRecord> flowFiles) throws IllegalClusterStateException {
         partitionReadLock.lock();
         try {
+            if (offloaded) {
+                throw new IllegalClusterStateException("Node cannot accept data from load-balanced connection because it is in the process of offloading");
+            }
+            if (!clusterCoordinator.isConnected()) {
+                throw new IllegalClusterStateException("Node cannot accept data from load-balanced connection because it is not connected to cluster");
+            }
+
             if (partitioner.isRebalanceOnClusterResize()) {
                 logger.debug("Received the following FlowFiles from Peer: {}. Will re-partition FlowFiles to ensure proper balancing across the cluster.", flowFiles);
                 putAll(flowFiles);
@@ -1130,22 +1169,29 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
             partitionWriteLock.lock();
             try {
                 if (!offloaded) {
-                    return;
-                }
-
-                switch (newState) {
-                    case CONNECTED:
-                        if (nodeId != null && nodeId.equals(clusterCoordinator.getLocalNodeIdentifier())) {
-                            // the node with this queue was connected to the cluster, make sure the queue is not offloaded
-                            resetOffloadedQueue();
-                        }
-                        break;
-                    case OFFLOADED:
-                    case OFFLOADING:
-                    case DISCONNECTED:
-                    case DISCONNECTING:
-                        onNodeRemoved(nodeId);
-                        break;
+                    switch (newState) {
+                        case OFFLOADING:
+                            onNodeRemoved(nodeId);
+                            break;
+                        case CONNECTED:
+                            onNodeAdded(nodeId);
+                            break;
+                    }
+                } else {
+                    switch (newState) {
+                        case CONNECTED:
+                            if (nodeId != null && nodeId.equals(clusterCoordinator.getLocalNodeIdentifier())) {
+                                // the node with this queue was connected to the cluster, make sure the queue is not offloaded
+                                resetOffloadedQueue();
+                            }
+                            break;
+                        case OFFLOADED:
+                        case OFFLOADING:
+                        case DISCONNECTED:
+                        case DISCONNECTING:
+                            onNodeRemoved(nodeId);
+                            break;
+                    }
                 }
             } finally {
                 partitionWriteLock.unlock();

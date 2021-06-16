@@ -19,7 +19,7 @@ package org.apache.nifi.admin.service.impl;
 import org.apache.nifi.admin.dao.DataAccessException;
 import org.apache.nifi.admin.service.AdministrationException;
 import org.apache.nifi.admin.service.KeyService;
-import org.apache.nifi.admin.service.action.DeleteKeysAction;
+import org.apache.nifi.admin.service.action.DeleteKeyAction;
 import org.apache.nifi.admin.service.action.GetKeyByIdAction;
 import org.apache.nifi.admin.service.action.GetOrCreateKeyAction;
 import org.apache.nifi.admin.service.transaction.Transaction;
@@ -35,7 +35,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
- *
+ * This key service manages user JWT signing keys in the H2 user database.
  */
 public class StandardKeyService implements KeyService {
 
@@ -51,7 +51,7 @@ public class StandardKeyService implements KeyService {
     @Override
     public Key getKey(int id) {
         Transaction transaction = null;
-        Key key = null;
+        Key key;
 
         readLock.lock();
         try {
@@ -81,7 +81,7 @@ public class StandardKeyService implements KeyService {
     @Override
     public Key getOrCreateKey(String identity) {
         Transaction transaction = null;
-        Key key = null;
+        Key key;
 
         writeLock.lock();
         try {
@@ -109,7 +109,7 @@ public class StandardKeyService implements KeyService {
     }
 
     @Override
-    public void deleteKey(String identity) {
+    public void deleteKey(Integer keyId) {
         Transaction transaction = null;
 
         writeLock.lock();
@@ -118,11 +118,16 @@ public class StandardKeyService implements KeyService {
             transaction = transactionBuilder.start();
 
             // delete the keys
-            DeleteKeysAction deleteKeys = new DeleteKeysAction(identity);
-            transaction.execute(deleteKeys);
+            DeleteKeyAction deleteKey = new DeleteKeyAction(keyId);
+            Integer rowsDeleted = transaction.execute(deleteKey);
 
-            // commit the transaction
-            transaction.commit();
+            // commit the transaction if we found one and only one matching keyId/user identity
+            if (rowsDeleted == 1) {
+                transaction.commit();
+            } else {
+                rollback(transaction);
+                throw new AdministrationException("Unable to find user key for key ID " + keyId + " to remove token.");
+            }
         } catch (TransactionException | DataAccessException te) {
             rollback(transaction);
             throw new AdministrationException(te);
@@ -157,5 +162,4 @@ public class StandardKeyService implements KeyService {
     public void setProperties(NiFiProperties properties) {
         this.properties = properties;
     }
-
 }

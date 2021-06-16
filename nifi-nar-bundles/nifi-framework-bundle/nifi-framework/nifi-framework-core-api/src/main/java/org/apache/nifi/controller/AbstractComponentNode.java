@@ -20,16 +20,24 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.resource.ResourceContext;
+import org.apache.nifi.components.resource.ResourceReferenceFactory;
+import org.apache.nifi.components.resource.ResourceReferences;
+import org.apache.nifi.components.resource.StandardResourceContext;
+import org.apache.nifi.components.resource.StandardResourceReferenceFactory;
 import org.apache.nifi.components.validation.DisabledServiceValidationResult;
+import org.apache.nifi.components.validation.EnablingServiceValidationResult;
 import org.apache.nifi.components.validation.ValidationState;
 import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.components.validation.ValidationTrigger;
 import org.apache.nifi.controller.service.ControllerServiceDisabledException;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
+import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.parameter.ExpressionLanguageAgnosticParameterParser;
@@ -48,10 +56,8 @@ import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -158,28 +164,23 @@ public abstract class AbstractComponentNode implements ComponentNode {
     }
 
     private Set<URL> getAdditionalClasspathResources(final Collection<PropertyDescriptor> propertyDescriptors) {
-        final Set<String> modulePaths = new LinkedHashSet<>();
+        final Set<URL> additionalUrls = new LinkedHashSet<>();
+        final ResourceReferenceFactory resourceReferenceFactory = new StandardResourceReferenceFactory();
+
         for (final PropertyDescriptor descriptor : propertyDescriptors) {
             if (descriptor.isDynamicClasspathModifier()) {
                 final PropertyConfiguration propertyConfiguration = getProperty(descriptor);
                 final String value = propertyConfiguration == null ? null : propertyConfiguration.getEffectiveValue(getParameterContext());
 
                 if (!StringUtils.isEmpty(value)) {
-                    final StandardPropertyValue propertyValue = new StandardPropertyValue(value, null, getParameterLookup(), variableRegistry);
-                    modulePaths.add(propertyValue.evaluateAttributeExpressions().getValue());
+                    final ResourceContext resourceContext = new StandardResourceContext(resourceReferenceFactory, descriptor);
+                    final StandardPropertyValue propertyValue = new StandardPropertyValue(resourceContext, value, null, getParameterLookup(), variableRegistry);
+                    final ResourceReferences references = propertyValue.evaluateAttributeExpressions().asResources().flatten();
+                    additionalUrls.addAll(references.asURLs());
                 }
             }
         }
 
-        final Set<URL> additionalUrls = new LinkedHashSet<>();
-        try {
-            final URL[] urls = ClassLoaderUtils.getURLsForClasspath(modulePaths, null, true);
-            if (urls != null) {
-                additionalUrls.addAll(Arrays.asList(urls));
-            }
-        } catch (MalformedURLException mfe) {
-            getLogger().error("Error processing classpath resources for " + id + ": " + mfe.getMessage(), mfe);
-        }
         return additionalUrls;
     }
 
@@ -347,7 +348,8 @@ public abstract class AbstractComponentNode implements ComponentNode {
         if (!propertyConfiguration.equals(oldConfiguration)) {
             if (descriptor.getControllerServiceDefinition() != null) {
                 if (oldConfiguration != null) {
-                    final ControllerServiceNode oldNode = serviceProvider.getControllerServiceNode(effectiveValue);
+                    final String oldEffectiveValue = oldConfiguration.getEffectiveValue(getParameterContext());
+                    final ControllerServiceNode oldNode = serviceProvider.getControllerServiceNode(oldEffectiveValue);
                     if (oldNode != null) {
                         oldNode.removeReference(this, descriptor);
                     }
@@ -640,7 +642,15 @@ public abstract class AbstractComponentNode implements ComponentNode {
         final ParameterContext parameterContext = getParameterContext();
         final boolean assignedToProcessGroup = getProcessGroupIdentifier() != null;
 
+        final ConfigurableComponent component = getComponent();
         for (final PropertyDescriptor propertyDescriptor : validationContext.getProperties().keySet()) {
+            // If the property descriptor's dependency is not satisfied, the property does not need to be considered, as it's not relevant to the
+            // component's functionality.
+            final boolean dependencySatisfied = validationContext.isDependencySatisfied(propertyDescriptor, component::getPropertyDescriptor);
+            if (!dependencySatisfied) {
+                continue;
+            }
+
             final Collection<String> referencedParameters = validationContext.getReferencedParameters(propertyDescriptor.getName());
 
             if (parameterContext == null && !referencedParameters.isEmpty()) {
@@ -661,16 +671,6 @@ public abstract class AbstractComponentNode implements ComponentNode {
                         .valid(false)
                         .explanation("Property references Parameter '" + paramName + "' but the currently selected Parameter Context does not have a Parameter with that name")
                         .build());
-
-                    continue;
-                }
-
-                if (!validationContext.isParameterSet(paramName)) {
-                    results.add(new ValidationResult.Builder()
-                        .subject(propertyDescriptor.getDisplayName())
-                        .valid(false)
-                        .explanation("Property references Parameter '" + paramName + "' but the currently selected Parameter Context does not have a value set for that Parameter")
-                        .build());
                 }
             }
         }
@@ -680,14 +680,17 @@ public abstract class AbstractComponentNode implements ComponentNode {
 
     protected final Collection<ValidationResult> validateReferencedControllerServices(final ValidationContext validationContext) {
         final Set<PropertyDescriptor> propertyDescriptors = validationContext.getProperties().keySet();
-        if (propertyDescriptors == null) {
-            return Collections.emptyList();
-        }
 
+        final ConfigurableComponent component = getComponent();
         final Collection<ValidationResult> validationResults = new ArrayList<>();
         for (final PropertyDescriptor descriptor : propertyDescriptors) {
             if (descriptor.getControllerServiceDefinition() == null) {
                 // skip properties that aren't for a controller service
+                continue;
+            }
+
+            final boolean dependencySatisfied = validationContext.isDependencySatisfied(descriptor, component::getPropertyDescriptor);
+            if (!dependencySatisfied) {
                 continue;
             }
 
@@ -713,6 +716,8 @@ public abstract class AbstractComponentNode implements ComponentNode {
 
             if (!controllerServiceNode.isActive()) {
                 validationResults.add(new DisabledServiceValidationResult(descriptor.getDisplayName(), controllerServiceId));
+            } else if (ControllerServiceState.ENABLING == controllerServiceNode.getState()) {
+                validationResults.add(new EnablingServiceValidationResult(descriptor.getDisplayName(), controllerServiceId));
             }
         }
 
@@ -726,6 +731,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
         if (controllerServiceApiClass.equals(ControllerService.class)) {
             return null;
         }
+
         final ClassLoader controllerServiceApiClassLoader = controllerServiceApiClass.getClassLoader();
         final ExtensionManager extensionManager = serviceProvider.getExtensionManager();
 
@@ -738,26 +744,42 @@ public abstract class AbstractComponentNode implements ComponentNode {
         }
         final BundleCoordinate controllerServiceApiCoordinate = controllerServiceApiBundle.getBundleDetails().getCoordinate();
 
-        final Bundle controllerServiceBundle = extensionManager.getBundle(controllerServiceNode.getBundleCoordinate());
+        Bundle controllerServiceBundle = extensionManager.getBundle(controllerServiceNode.getBundleCoordinate());
+        final boolean matchesApiByBundleCoordinates;
         if (controllerServiceBundle == null) {
-            return createInvalidResult(serviceId, propertyName, "Unable to find bundle for coordinate " + controllerServiceNode.getBundleCoordinate());
+            final List<Bundle> possibleBundles = extensionManager.getBundles(controllerServiceNode.getControllerServiceImplementation().getClass().getName());
+            if (possibleBundles.size() != 1) {
+                return createInvalidResult(serviceId, propertyName, "Unable to find bundle for coordinate " + controllerServiceNode.getBundleCoordinate());
+            }
+
+            controllerServiceBundle = possibleBundles.get(0);
+            matchesApiByBundleCoordinates = false;
+        } else {
+            matchesApiByBundleCoordinates = matchesApiBundleCoordinates(extensionManager, controllerServiceBundle, controllerServiceApiCoordinate);
         }
+
         final BundleCoordinate controllerServiceCoordinate = controllerServiceBundle.getBundleDetails().getCoordinate();
+        if (!matchesApiByBundleCoordinates) {
+            final Class<? extends ControllerService> controllerServiceImplClass = controllerServiceNode.getControllerServiceImplementation().getClass();
+            logger.debug("Comparing methods from service api '{}' against service implementation '{}'",
+                    new Object[]{controllerServiceApiClass.getCanonicalName(), controllerServiceImplClass.getCanonicalName()});
 
-        final boolean matchesApi = matchesApi(extensionManager, controllerServiceBundle, controllerServiceApiCoordinate);
+            final ControllerServiceApiMatcher controllerServiceApiMatcher = new ControllerServiceApiMatcher();
+            final boolean matchesApi = controllerServiceApiMatcher.matches(controllerServiceApiClass, controllerServiceImplClass);
 
-        if (!matchesApi) {
-            final String controllerServiceType = controllerServiceNode.getComponentType();
-            final String controllerServiceApiType = controllerServiceApiClass.getSimpleName();
+            if (!matchesApi) {
+                final String controllerServiceType = controllerServiceNode.getComponentType();
+                final String controllerServiceApiType = controllerServiceApiClass.getSimpleName();
 
-            final String explanation = new StringBuilder()
-                .append(controllerServiceType).append(" - ").append(controllerServiceCoordinate.getVersion())
-                .append(" from ").append(controllerServiceCoordinate.getGroup()).append(" - ").append(controllerServiceCoordinate.getId())
-                .append(" is not compatible with ").append(controllerServiceApiType).append(" - ").append(controllerServiceApiCoordinate.getVersion())
-                .append(" from ").append(controllerServiceApiCoordinate.getGroup()).append(" - ").append(controllerServiceApiCoordinate.getId())
-                .toString();
+                final String explanation = new StringBuilder()
+                        .append(controllerServiceType).append(" - ").append(controllerServiceCoordinate.getVersion())
+                        .append(" from ").append(controllerServiceCoordinate.getGroup()).append(" - ").append(controllerServiceCoordinate.getId())
+                        .append(" is not compatible with ").append(controllerServiceApiType).append(" - ").append(controllerServiceApiCoordinate.getVersion())
+                        .append(" from ").append(controllerServiceApiCoordinate.getGroup()).append(" - ").append(controllerServiceApiCoordinate.getId())
+                        .toString();
 
-            return createInvalidResult(serviceId, propertyName, explanation);
+                return createInvalidResult(serviceId, propertyName, explanation);
+            }
         }
 
         return null;
@@ -779,7 +801,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
      * @param requiredApiCoordinate the controller service API required by the processor
      * @return true if the controller service node has the require API as an ancestor, false otherwise
      */
-    private boolean matchesApi(final ExtensionManager extensionManager, final Bundle controllerServiceImplBundle, final BundleCoordinate requiredApiCoordinate) {
+    private boolean matchesApiBundleCoordinates(final ExtensionManager extensionManager, final Bundle controllerServiceImplBundle, final BundleCoordinate requiredApiCoordinate) {
         // start with the coordinate of the controller service for cases where the API and service are in the same bundle
         BundleCoordinate controllerServiceDependencyCoordinate = controllerServiceImplBundle.getBundleDetails().getCoordinate();
 

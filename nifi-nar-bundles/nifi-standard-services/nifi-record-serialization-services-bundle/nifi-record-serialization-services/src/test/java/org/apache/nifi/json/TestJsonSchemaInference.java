@@ -54,13 +54,14 @@ public class TestJsonSchemaInference {
         }
 
         assertSame(RecordFieldType.STRING, schema.getDataType("varcharc").get().getFieldType());
-        assertSame(RecordFieldType.LONG, schema.getDataType("uuid").get().getFieldType());
-        assertSame(RecordFieldType.LONG, schema.getDataType("tinyintc").get().getFieldType());
+        assertSame(RecordFieldType.INT, schema.getDataType("uuid").get().getFieldType());
+        assertSame(RecordFieldType.INT, schema.getDataType("tinyintc").get().getFieldType());
         assertSame(RecordFieldType.STRING, schema.getDataType("textc").get().getFieldType());
         assertEquals(RecordFieldType.DATE.getDataType("yyyy-MM-dd"), schema.getDataType("datec").get());
-        assertSame(RecordFieldType.LONG, schema.getDataType("smallintc").get().getFieldType());
-        assertSame(RecordFieldType.LONG, schema.getDataType("mediumintc").get().getFieldType());
-        assertSame(RecordFieldType.LONG, schema.getDataType("intc").get().getFieldType());
+        assertSame(RecordFieldType.INT, schema.getDataType("smallintc").get().getFieldType());
+        assertSame(RecordFieldType.INT, schema.getDataType("mediumintc").get().getFieldType());
+        assertSame(RecordFieldType.LONG, schema.getDataType("longintc").get().getFieldType());
+        assertSame(RecordFieldType.INT, schema.getDataType("intc").get().getFieldType());
         assertSame(RecordFieldType.BIGINT, schema.getDataType("bigintc").get().getFieldType());
         assertSame(RecordFieldType.DOUBLE, schema.getDataType("floatc").get().getFieldType());
         assertSame(RecordFieldType.DOUBLE, schema.getDataType("doublec").get().getFieldType());
@@ -71,14 +72,14 @@ public class TestJsonSchemaInference {
         assertEquals(RecordFieldType.STRING.getDataType(), schema.getDataType("tinytextc").get());
         assertEquals(RecordFieldType.STRING.getDataType(), schema.getDataType("blobc").get());
         assertEquals(RecordFieldType.STRING.getDataType(), schema.getDataType("mediumtextc").get());
-        assertSame(RecordFieldType.LONG, schema.getDataType("enumc").get().getFieldType());
-        assertSame(RecordFieldType.LONG, schema.getDataType("setc").get().getFieldType());
-        assertSame(RecordFieldType.LONG, schema.getDataType("boolc").get().getFieldType());
+        assertSame(RecordFieldType.INT, schema.getDataType("enumc").get().getFieldType());
+        assertSame(RecordFieldType.INT, schema.getDataType("setc").get().getFieldType());
+        assertSame(RecordFieldType.INT, schema.getDataType("boolc").get().getFieldType());
         assertEquals(RecordFieldType.STRING.getDataType(), schema.getDataType("binaryc").get());
         // We currently do not read BigDecimal from JSON as ObjectMapper in InferenceSchemaStrategy automatically reads it as double
 
         final List<String> fieldNames = schema.getFieldNames();
-        assertEquals(Arrays.asList("varcharc", "uuid", "tinyintc", "textc", "datec", "smallintc", "mediumintc", "intc", "bigintc",
+        assertEquals(Arrays.asList("varcharc", "uuid", "tinyintc", "textc", "datec", "smallintc", "mediumintc", "longintc", "intc", "bigintc",
                 "floatc", "doublec", "decimalc", "timestampc", "timec", "charc", "tinytextc", "blobc", "mediumtextc", "enumc", "setc", "boolc", "binaryc"), fieldNames);
     }
 }

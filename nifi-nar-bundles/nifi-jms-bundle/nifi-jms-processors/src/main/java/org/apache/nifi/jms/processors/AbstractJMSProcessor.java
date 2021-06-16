@@ -109,6 +109,7 @@ public abstract class AbstractJMSProcessor<T extends JMSWorker> extends Abstract
             .build();
     static final PropertyDescriptor SESSION_CACHE_SIZE = new PropertyDescriptor.Builder()
             .name("Session Cache size")
+            .displayName("Session Cache Size")
             .description("This property is deprecated and no longer has any effect on the Processor. It will be removed in a later version.")
             .required(false)
             .defaultValue("1")

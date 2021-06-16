@@ -81,6 +81,8 @@ import org.apache.nifi.controller.Template;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.leader.election.LeaderElectionManager;
+import org.apache.nifi.controller.repository.FlowFileEvent;
+import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.repository.claim.ContentDirection;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceReference;
@@ -140,6 +142,7 @@ import org.apache.nifi.registry.flow.diff.StandardFlowComparator;
 import org.apache.nifi.registry.flow.diff.StaticDifferenceDescriptor;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedComponent;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedControllerService;
+import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedPort;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedProcessGroup;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedProcessor;
 import org.apache.nifi.registry.flow.mapping.InstantiatedVersionedRemoteGroupPort;
@@ -152,6 +155,7 @@ import org.apache.nifi.reporting.ComponentType;
 import org.apache.nifi.util.BundleUtils;
 import org.apache.nifi.util.FlowDifferenceFilters;
 import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.web.api.dto.AccessPolicyDTO;
 import org.apache.nifi.web.api.dto.AccessPolicySummaryDTO;
 import org.apache.nifi.web.api.dto.AffectedComponentDTO;
@@ -269,9 +273,9 @@ import org.apache.nifi.web.api.entity.ProcessGroupStatusEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupStatusSnapshotEntity;
 import org.apache.nifi.web.api.entity.ProcessorDiagnosticsEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
-import org.apache.nifi.web.api.entity.ProcessorsRunStatusDetailsEntity;
 import org.apache.nifi.web.api.entity.ProcessorRunStatusDetailsEntity;
 import org.apache.nifi.web.api.entity.ProcessorStatusEntity;
+import org.apache.nifi.web.api.entity.ProcessorsRunStatusDetailsEntity;
 import org.apache.nifi.web.api.entity.RegistryClientEntity;
 import org.apache.nifi.web.api.entity.RegistryEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupEntity;
@@ -564,6 +568,20 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     @Override
     public void verifyDeleteProcessGroup(final String groupId) {
         processGroupDAO.verifyDelete(groupId);
+    }
+
+    @Override
+    public void verifyUpdateRemoteProcessGroups(String processGroupId, boolean shouldTransmit) {
+        List<RemoteProcessGroup> allRemoteProcessGroups = processGroupDAO.getProcessGroup(processGroupId).findAllRemoteProcessGroups();
+
+        allRemoteProcessGroups.stream()
+            .map(remoteProcessGroup -> {
+                final RemoteProcessGroupDTO dto = new RemoteProcessGroupDTO();
+                dto.setId(remoteProcessGroup.getIdentifier());
+                dto.setTransmitting(shouldTransmit);
+                return dto;
+            })
+            .forEach(this::verifyUpdateRemoteProcessGroup);
     }
 
     @Override
@@ -1955,6 +1973,21 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     }
 
     @Override
+    public DropRequestDTO createDropAllFlowFilesInProcessGroup(final String processGroupId, final String dropRequestId) {
+        return dtoFactory.createDropRequestDTO(processGroupDAO.createDropAllFlowFilesRequest(processGroupId, dropRequestId));
+    }
+
+    @Override
+    public DropRequestDTO getDropAllFlowFilesRequest(final String processGroupId, final String dropRequestId) {
+        return dtoFactory.createDropRequestDTO(processGroupDAO.getDropAllFlowFilesRequest(processGroupId, dropRequestId));
+    }
+
+    @Override
+    public DropRequestDTO deleteDropAllFlowFilesRequest(String processGroupId, String dropRequestId) {
+        return dtoFactory.createDropRequestDTO(processGroupDAO.deleteDropAllFlowFilesRequest(processGroupId, dropRequestId));
+    }
+
+    @Override
     public ProcessGroupEntity deleteProcessGroup(final Revision revision, final String groupId) {
         final ProcessGroup processGroup = processGroupDAO.getProcessGroup(groupId);
         final PermissionsDTO permissions = dtoFactory.createPermissionsDto(processGroup);
@@ -2815,7 +2848,8 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                 }
             }
 
-            componentEntities.add(entityFactory.createControllerServiceReferencingComponentEntity(refComponent.getIdentifier(), dto, revisionDto, permissions, operatePermissions));
+            final List<BulletinDTO> bulletins = dtoFactory.createBulletinDtos(bulletinRepository.findBulletinsForSource(refComponent.getIdentifier()));
+            componentEntities.add(entityFactory.createControllerServiceReferencingComponentEntity(refComponent.getIdentifier(), dto, revisionDto, permissions, operatePermissions, bulletins));
         }
 
         final ControllerServiceReferencingComponentsEntity entity = new ControllerServiceReferencingComponentsEntity();
@@ -3454,6 +3488,13 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         return entityFactory.createStatusHistoryEntity(dto, permissions);
     }
 
+    @Override
+    public StatusHistoryEntity getNodeStatusHistory() {
+        final PermissionsDTO permissions = dtoFactory.createPermissionsDto(controllerFacade, NiFiUserUtils.getNiFiUser());
+        final StatusHistoryDTO dto = controllerFacade.getNodeStatusHistory();
+        return entityFactory.createStatusHistoryEntity(dto, permissions);
+    }
+
     private boolean authorizeBulletin(final Bulletin bulletin) {
         final String sourceId = bulletin.getSourceId();
         final ComponentType type = bulletin.getSourceType();
@@ -3700,7 +3741,7 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         final AuthorizationRequest request = new AuthorizationRequest.Builder()
                 .resource(ResourceFactory.getDataTransferResource(port.getResource()))
                 .identity(user.getIdentity())
-                .groups(user.getGroups())
+                .groups(user.getAllGroups())
                 .anonymous(user.isAnonymous())
                 .accessAttempt(false)
                 .action(RequestAction.WRITE)
@@ -4744,12 +4785,22 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
                         state = processorDAO.getProcessor(processorId).getPhysicalScheduledState().name();
                         break;
                     case REMOTE_INPUT_PORT:
-                        final InstantiatedVersionedRemoteGroupPort inputPort = (InstantiatedVersionedRemoteGroupPort) localComponent;
-                        state = remoteProcessGroupDAO.getRemoteProcessGroup(inputPort.getInstanceGroupId()).getInputPort(inputPort.getInstanceId()).getScheduledState().name();
+                        final InstantiatedVersionedRemoteGroupPort remoteInputPort = (InstantiatedVersionedRemoteGroupPort) localComponent;
+                        state = remoteProcessGroupDAO.getRemoteProcessGroup(remoteInputPort.getInstanceGroupId()).getInputPort(remoteInputPort.getInstanceId()).getScheduledState().name();
                         break;
                     case REMOTE_OUTPUT_PORT:
-                        final InstantiatedVersionedRemoteGroupPort outputPort = (InstantiatedVersionedRemoteGroupPort) localComponent;
-                        state = remoteProcessGroupDAO.getRemoteProcessGroup(outputPort.getInstanceGroupId()).getOutputPort(outputPort.getInstanceId()).getScheduledState().name();
+                        final InstantiatedVersionedRemoteGroupPort remoteOutputPort = (InstantiatedVersionedRemoteGroupPort) localComponent;
+                        state = remoteProcessGroupDAO.getRemoteProcessGroup(remoteOutputPort.getInstanceGroupId()).getOutputPort(remoteOutputPort.getInstanceId()).getScheduledState().name();
+                        break;
+                    case INPUT_PORT:
+                        final InstantiatedVersionedPort versionedInputPort = (InstantiatedVersionedPort) localComponent;
+                        final Port inputPort = getInputPort(versionedInputPort);
+                        state = inputPort == null ? null : inputPort.getScheduledState().name();
+                        break;
+                    case OUTPUT_PORT:
+                        final InstantiatedVersionedPort versionedOutputPort = (InstantiatedVersionedPort) localComponent;
+                        final Port outputPort = getOutputPort(versionedOutputPort);
+                        state = outputPort == null ? null : outputPort.getScheduledState().name();
                         break;
                     default:
                         state = null;
@@ -4881,6 +4932,24 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
         }
 
         return affectedComponents;
+    }
+
+    private Port getInputPort(final InstantiatedVersionedPort port) {
+        final ProcessGroup processGroup = processGroupDAO.getProcessGroup(port.getInstanceGroupId());
+        if (processGroup == null) {
+            return null;
+        }
+
+        return processGroup.getInputPort(port.getInstanceId());
+    }
+
+    private Port getOutputPort(final InstantiatedVersionedPort port) {
+        final ProcessGroup processGroup = processGroupDAO.getProcessGroup(port.getInstanceGroupId());
+        if (processGroup == null) {
+            return null;
+        }
+
+        return processGroup.getOutputPort(port.getInstanceId());
     }
 
     private void mapToConnectableId(final Collection<? extends Connectable> connectables, final Map<String, List<Connectable>> destination) {
@@ -5354,10 +5423,25 @@ public class StandardNiFiServiceFacade implements NiFiServiceFacade {
     @Override
     public Collection<CollectorRegistry> generateFlowMetrics() {
 
-        String instanceId = controllerFacade.getInstanceId();
+        final String instanceId = StringUtils.isEmpty(controllerFacade.getInstanceId()) ? "" : controllerFacade.getInstanceId();
         ProcessGroupStatus rootPGStatus = controllerFacade.getProcessGroupStatus("root");
         PrometheusMetricsUtil.createNifiMetrics(nifiMetricsRegistry, rootPGStatus, instanceId, "", "RootProcessGroup",
                 PrometheusMetricsUtil.METRICS_STRATEGY_COMPONENTS.getValue());
+
+        // Add the total byte counts (read/written) to the NiFi metrics registry
+        FlowFileEventRepository flowFileEventRepository = controllerFacade.getFlowFileEventRepository();
+        final String rootPGId = StringUtils.isEmpty(rootPGStatus.getId()) ? "" : rootPGStatus.getId();
+        final String rootPGName = StringUtils.isEmpty(rootPGStatus.getName()) ? "" : rootPGStatus.getName();
+        final FlowFileEvent aggregateEvent = flowFileEventRepository.reportAggregateEvent();
+        nifiMetricsRegistry.setDataPoint(aggregateEvent.getBytesRead(), "TOTAL_BYTES_READ",
+                instanceId, "RootProcessGroup", rootPGName, rootPGId, "");
+        nifiMetricsRegistry.setDataPoint(aggregateEvent.getBytesWritten(), "TOTAL_BYTES_WRITTEN",
+                instanceId, "RootProcessGroup", rootPGName, rootPGId, "");
+        nifiMetricsRegistry.setDataPoint(aggregateEvent.getBytesSent(), "TOTAL_BYTES_SENT",
+                instanceId, "RootProcessGroup", rootPGName, rootPGId, "");
+        nifiMetricsRegistry.setDataPoint(aggregateEvent.getBytesReceived(), "TOTAL_BYTES_RECEIVED",
+                instanceId, "RootProcessGroup", rootPGName, rootPGId, "");
+
         PrometheusMetricsUtil.createJvmMetrics(jvmMetricsRegistry, JmxJvmMetrics.getInstance(), instanceId);
 
         // Get Connection Status Analytics (predictions, e.g.)

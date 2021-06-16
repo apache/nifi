@@ -16,6 +16,15 @@
  */
 package org.apache.nifi.remote.protocol.socket;
 
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.remote.Peer;
 import org.apache.nifi.remote.PeerDescription;
@@ -39,19 +48,9 @@ import org.apache.nifi.remote.protocol.ResponseCode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-
 public class SocketClientProtocol implements ClientProtocol {
 
-    // Version 6 added to support Zero-Master Clustering, which was introduced in NiFi 1.0.0
+    // Version 6 added to support Zero-Leader Clustering, which was introduced in NiFi 1.0.0
     private final VersionNegotiator versionNegotiator = new StandardVersionNegotiator(6, 5, 4, 3, 2, 1);
 
     private RemoteDestination destination;
@@ -101,11 +100,11 @@ public class SocketClientProtocol implements ClientProtocol {
     }
 
     @Override
-    public void handshake(final Peer peer) throws IOException, HandshakeException {
+    public void handshake(final Peer peer) throws IOException {
         handshake(peer, destination.getIdentifier());
     }
 
-    public void handshake(final Peer peer, final String destinationId) throws IOException, HandshakeException {
+    public void handshake(final Peer peer, final String destinationId) throws IOException {
         if (handshakeComplete) {
             throw new IllegalStateException("Handshake has already been completed");
         }
@@ -173,8 +172,7 @@ public class SocketClientProtocol implements ClientProtocol {
                 readyForFileTransfer = true;
                 break;
             default:
-                logger.error("{} received unexpected response {} from {} when negotiating Codec", new Object[]{
-                    this, handshakeResponse, peer});
+                logger.error("{} received unexpected response {} from {} when negotiating Codec", this, handshakeResponse, peer);
                 peer.close();
                 throw new HandshakeException("Received unexpected response " + handshakeResponse);
         }
@@ -237,7 +235,7 @@ public class SocketClientProtocol implements ClientProtocol {
     }
 
     @Override
-    public FlowFileCodec negotiateCodec(final Peer peer) throws IOException, ProtocolException {
+    public FlowFileCodec negotiateCodec(final Peer peer) throws IOException {
         if (!handshakeComplete) {
             throw new IllegalStateException("Handshake has not been performed");
         }
@@ -255,13 +253,13 @@ public class SocketClientProtocol implements ClientProtocol {
         } catch (HandshakeException e) {
             throw new ProtocolException(e.toString());
         }
-        logger.debug("{} negotiated FlowFileCodec {} with {}", new Object[]{this, codec, commsSession});
+        logger.debug("{} negotiated FlowFileCodec {} with {}", this, codec, commsSession);
 
         return codec;
     }
 
     @Override
-    public Transaction startTransaction(final Peer peer, final FlowFileCodec codec, final TransferDirection direction) throws IOException, ProtocolException {
+    public Transaction startTransaction(final Peer peer, final FlowFileCodec codec, final TransferDirection direction) throws IOException {
         if (!handshakeComplete) {
             throw new IllegalStateException("Handshake has not been performed");
         }

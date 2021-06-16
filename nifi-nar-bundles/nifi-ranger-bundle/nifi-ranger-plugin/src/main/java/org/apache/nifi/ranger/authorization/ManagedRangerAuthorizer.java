@@ -18,6 +18,18 @@
  */
 package org.apache.nifi.ranger.authorization;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.StringWriter;
+import java.nio.charset.StandardCharsets;
+import java.util.Set;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
 import org.apache.commons.lang.StringUtils;
 import org.apache.nifi.authorization.AccessPolicy;
 import org.apache.nifi.authorization.AccessPolicyProvider;
@@ -33,30 +45,14 @@ import org.apache.nifi.authorization.exception.AuthorizationAccessException;
 import org.apache.nifi.authorization.exception.AuthorizerCreationException;
 import org.apache.nifi.authorization.exception.AuthorizerDestructionException;
 import org.apache.nifi.authorization.exception.UninheritableAuthorizationsException;
+import org.apache.nifi.security.xml.XmlUtils;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerException;
-import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.dom.DOMSource;
-import javax.xml.transform.stream.StreamResult;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.StringWriter;
-import java.nio.charset.StandardCharsets;
-import java.util.Set;
-
 public class ManagedRangerAuthorizer extends RangerNiFiAuthorizer implements ManagedAuthorizer {
-
-    private static final DocumentBuilderFactory DOCUMENT_BUILDER_FACTORY = DocumentBuilderFactory.newInstance();
-
     private static final String USER_GROUP_PROVIDER_ELEMENT = "userGroupProvider";
 
     private UserGroupProviderLookup userGroupProviderLookup;
@@ -132,7 +128,7 @@ public class ManagedRangerAuthorizer extends RangerNiFiAuthorizer implements Man
         final StringWriter out = new StringWriter();
         try {
             // create the document
-            final DocumentBuilder documentBuilder = DOCUMENT_BUILDER_FACTORY.newDocumentBuilder();
+            final DocumentBuilder documentBuilder = XmlUtils.createSafeDocumentBuilder(false);
             final Document document = documentBuilder.newDocument();
 
             // create the root element
@@ -196,7 +192,7 @@ public class ManagedRangerAuthorizer extends RangerNiFiAuthorizer implements Man
         final byte[] fingerprintBytes = fingerprint.getBytes(StandardCharsets.UTF_8);
 
         try (final ByteArrayInputStream in = new ByteArrayInputStream(fingerprintBytes)) {
-            final DocumentBuilder docBuilder = DOCUMENT_BUILDER_FACTORY.newDocumentBuilder();
+            final DocumentBuilder docBuilder = XmlUtils.createSafeDocumentBuilder(false);
             final Document document = docBuilder.parse(in);
             final Element rootElement = document.getDocumentElement();
 

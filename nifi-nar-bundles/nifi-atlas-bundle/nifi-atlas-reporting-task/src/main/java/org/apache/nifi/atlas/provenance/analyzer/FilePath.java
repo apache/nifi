@@ -17,11 +17,10 @@
 package org.apache.nifi.atlas.provenance.analyzer;
 
 import org.apache.atlas.v1.model.instance.Referenceable;
-import org.apache.nifi.atlas.provenance.AbstractNiFiProvenanceEventAnalyzer;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.atlas.provenance.AnalysisContext;
 import org.apache.nifi.atlas.provenance.DataSetRefs;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
-import org.apache.nifi.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,13 +34,13 @@ import static org.apache.nifi.atlas.NiFiTypes.ATTR_PATH;
 import static org.apache.nifi.atlas.NiFiTypes.ATTR_QUALIFIED_NAME;
 
 /**
- * Analyze a transit URI as a file system path.
- * <li>qualifiedName=/path/fileName@hostname (example: /tmp/dir/filename.txt@host.example.com)
- * <li>name=/path/fileName (example: /tmp/dir/filename.txt)
+ * Analyze a transit URI as a file system path. Return file or directory path depending on FilesystemPathsLevel setting.
+ * <li>qualifiedName=/path[/fileName]@namespace (example: /tmp/dir[/filename.txt]@ns1)
+ * <li>name=/path[/fileName] (example: /tmp/dir[/filename.txt])
  */
-public class FilePath extends AbstractNiFiProvenanceEventAnalyzer {
+public class FilePath extends AbstractFileSystemPathAnalyzer {
 
-    private static final Logger logger = LoggerFactory.getLogger(FilePath.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(FilePath.class);
 
     private static final String TYPE = "fs_path";
 
@@ -56,11 +55,12 @@ public class FilePath extends AbstractNiFiProvenanceEventAnalyzer {
             final String hostname = StringUtils.isEmpty(uriHost) ? InetAddress.getLocalHost().getHostName() : uriHost;
             namespace = context.getNamespaceResolver().fromHostNames(hostname);
         } catch (UnknownHostException e) {
-            logger.warn("Failed to get localhost name due to " + e, e);
+            LOGGER.warn("Failed to get localhost name due to " + e, e);
             return null;
         }
 
-        final String path = uri.getPath();
+        final String path = getPath(context, uri);
+
         ref.set(ATTR_NAME, path);
         ref.set(ATTR_PATH, path);
         ref.set(ATTR_QUALIFIED_NAME, toQualifiedName(namespace, path));

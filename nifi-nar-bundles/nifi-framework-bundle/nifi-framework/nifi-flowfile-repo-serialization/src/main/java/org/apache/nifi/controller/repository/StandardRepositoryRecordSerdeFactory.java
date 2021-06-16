@@ -18,21 +18,29 @@
 package org.apache.nifi.controller.repository;
 
 import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
+import org.apache.nifi.repository.schema.FieldCache;
+import org.apache.nifi.repository.schema.NoOpFieldCache;
 import org.wali.SerDe;
 import org.wali.UpdateType;
 
 public class StandardRepositoryRecordSerdeFactory implements RepositoryRecordSerdeFactory {
     private static final String LEGACY_SERDE_ENCODING_NAME = "org.apache.nifi.controller.repository.WriteAheadFlowFileRepository$WriteAheadRecordSerde";
     private final ResourceClaimManager resourceClaimManager;
+    private final FieldCache fieldCache;
 
     public StandardRepositoryRecordSerdeFactory(final ResourceClaimManager claimManager) {
+        this(claimManager, new NoOpFieldCache());
+    }
+
+    public StandardRepositoryRecordSerdeFactory(final ResourceClaimManager claimManager, final FieldCache fieldCache) {
         this.resourceClaimManager = claimManager;
+        this.fieldCache = fieldCache;
     }
 
     @Override
     public SerDe<SerializedRepositoryRecord> createSerDe(final String encodingName) {
         if (encodingName == null || SchemaRepositoryRecordSerde.class.getName().equals(encodingName)) {
-            final SchemaRepositoryRecordSerde serde = new SchemaRepositoryRecordSerde(resourceClaimManager);
+            final SchemaRepositoryRecordSerde serde = new SchemaRepositoryRecordSerde(resourceClaimManager, fieldCache);
             return serde;
         }
 

@@ -42,7 +42,7 @@ public abstract class FlowUpdateRequestDTO {
         this.processGroupId = processGroupId;
     }
 
-    @ApiModelProperty(value = "The unique ID of this request.", readOnly = true)
+    @ApiModelProperty(value = "The unique ID of this request.", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
     public String getRequestId() {
         return requestId;
     }
@@ -51,7 +51,7 @@ public abstract class FlowUpdateRequestDTO {
         this.requestId = requestId;
     }
 
-    @ApiModelProperty(value = "The URI for future requests to this drop request.", readOnly = true)
+    @ApiModelProperty(value = "The URI for future requests to this drop request.", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
     public String getUri() {
         return uri;
     }
@@ -61,7 +61,7 @@ public abstract class FlowUpdateRequestDTO {
     }
 
     @XmlJavaTypeAdapter(TimestampAdapter.class)
-    @ApiModelProperty(value = "The last time this request was updated.", dataType = "string", readOnly = true)
+    @ApiModelProperty(value = "The last time this request was updated.", dataType = "string", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
     public Date getLastUpdated() {
         return lastUpdated;
     }
@@ -70,7 +70,7 @@ public abstract class FlowUpdateRequestDTO {
         this.lastUpdated = lastUpdated;
     }
 
-    @ApiModelProperty(value = "Whether or not this request has completed", readOnly = true)
+    @ApiModelProperty(value = "Whether or not this request has completed", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
     public boolean isComplete() {
         return complete;
     }
@@ -79,7 +79,7 @@ public abstract class FlowUpdateRequestDTO {
         this.complete = complete;
     }
 
-    @ApiModelProperty(value = "An explanation of why this request failed, or null if this request has not failed", readOnly = true)
+    @ApiModelProperty(value = "An explanation of why this request failed, or null if this request has not failed", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
     public String getFailureReason() {
         return failureReason;
     }
@@ -88,7 +88,7 @@ public abstract class FlowUpdateRequestDTO {
         this.failureReason = reason;
     }
 
-    @ApiModelProperty(value = "The state of the request", readOnly = true)
+    @ApiModelProperty(value = "The state of the request", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
     public String getState() {
         return state;
     }
@@ -97,7 +97,7 @@ public abstract class FlowUpdateRequestDTO {
         this.state = state;
     }
 
-    @ApiModelProperty(value = "The percentage complete for the request, between 0 and 100", readOnly = true)
+    @ApiModelProperty(value = "The percentage complete for the request, between 0 and 100", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
     public int getPercentCompleted() {
         return percentCompleted;
     }

@@ -16,6 +16,25 @@
  */
 package org.apache.nifi.controller.repository;
 
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.controller.queue.FlowFileQueue;
+import org.apache.nifi.controller.repository.claim.ContentClaim;
+import org.apache.nifi.controller.repository.claim.ResourceClaim;
+import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
+import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.repository.schema.FieldCache;
+import org.apache.nifi.security.kms.EncryptionException;
+import org.apache.nifi.util.FormatUtils;
+import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.wali.EncryptedSequentialAccessWriteAheadLog;
+import org.apache.nifi.wali.SequentialAccessWriteAheadLog;
+import org.apache.nifi.wali.SnapshotCapture;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.wali.MinimalLockingWriteAheadLog;
+import org.wali.SyncListener;
+import org.wali.WriteAheadRepository;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -42,21 +61,6 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.controller.queue.FlowFileQueue;
-import org.apache.nifi.controller.repository.claim.ContentClaim;
-import org.apache.nifi.controller.repository.claim.ResourceClaim;
-import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
-import org.apache.nifi.flowfile.attributes.CoreAttributes;
-import org.apache.nifi.util.FormatUtils;
-import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.wali.SequentialAccessWriteAheadLog;
-import org.apache.nifi.wali.SnapshotCapture;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.wali.MinimalLockingWriteAheadLog;
-import org.wali.SyncListener;
-import org.wali.WriteAheadRepository;
 
 /**
  * <p>
@@ -84,28 +88,33 @@ import org.wali.WriteAheadRepository;
 public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncListener {
     static final String FLOWFILE_REPOSITORY_DIRECTORY_PREFIX = "nifi.flowfile.repository.directory";
     private static final String WRITE_AHEAD_LOG_IMPL = "nifi.flowfile.repository.wal.implementation";
+    private static final String RETAIN_ORPHANED_FLOWFILES = "nifi.flowfile.repository.retain.orphaned.flowfiles";
+    private static final String FLOWFILE_REPO_CACHE_SIZE = "nifi.flowfile.repository.wal.cache.characters";
 
     static final String SEQUENTIAL_ACCESS_WAL = "org.apache.nifi.wali.SequentialAccessWriteAheadLog";
     static final String ENCRYPTED_SEQUENTIAL_ACCESS_WAL = "org.apache.nifi.wali.EncryptedSequentialAccessWriteAheadLog";
     private static final String MINIMAL_LOCKING_WALI = "org.wali.MinimalLockingWriteAheadLog";
     private static final String DEFAULT_WAL_IMPLEMENTATION = SEQUENTIAL_ACCESS_WAL;
+    private static final int DEFAULT_CACHE_SIZE = 10_000_000;
 
-    final String walImplementation;
+    private final String walImplementation;
     protected final NiFiProperties nifiProperties;
 
-    final AtomicLong flowFileSequenceGenerator = new AtomicLong(0L);
+    private final AtomicLong flowFileSequenceGenerator = new AtomicLong(0L);
     private final boolean alwaysSync;
+    private final boolean retainOrphanedFlowFiles;
 
     private static final Logger logger = LoggerFactory.getLogger(WriteAheadFlowFileRepository.class);
     volatile ScheduledFuture<?> checkpointFuture;
 
-    final long checkpointDelayMillis;
+    private final long checkpointDelayMillis;
     private final List<File> flowFileRepositoryPaths = new ArrayList<>();
-    final List<File> recoveryFiles = new ArrayList<>();
-    private final int numPartitions;
-    final ScheduledExecutorService checkpointExecutor;
+    private final List<File> recoveryFiles = new ArrayList<>();
+    private final ScheduledExecutorService checkpointExecutor;
+    private final int maxCharactersToCache;
 
     private volatile Collection<SerializedRepositoryRecord> recoveredRecords = null;
+    private final Set<ResourceClaim> orphanedResourceClaims = Collections.synchronizedSet(new HashSet<>());
 
     private final Set<String> swapLocationSuffixes = new HashSet<>(); // guarded by synchronizing on object itself
 
@@ -113,6 +122,7 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
     private WriteAheadRepository<SerializedRepositoryRecord> wal;
     private RepositoryRecordSerdeFactory serdeFactory;
     private ResourceClaimManager claimManager;
+    private FieldCache fieldCache;
 
     // WALI Provides the ability to register callbacks for when a Partition or the entire Repository is sync'ed with the underlying disk.
     // We keep track of this because we need to ensure that the ContentClaims are destroyed only after the FlowFile Repository has been
@@ -143,15 +153,19 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
     public WriteAheadFlowFileRepository() {
         alwaysSync = false;
         checkpointDelayMillis = 0L;
-        numPartitions = 0;
         checkpointExecutor = null;
         walImplementation = null;
         nifiProperties = null;
+        retainOrphanedFlowFiles = true;
+        maxCharactersToCache = 0;
     }
 
     public WriteAheadFlowFileRepository(final NiFiProperties nifiProperties) {
         alwaysSync = Boolean.parseBoolean(nifiProperties.getProperty(NiFiProperties.FLOWFILE_REPOSITORY_ALWAYS_SYNC, "false"));
         this.nifiProperties = nifiProperties;
+
+        final String orphanedFlowFileProperty = nifiProperties.getProperty(RETAIN_ORPHANED_FLOWFILES);
+        retainOrphanedFlowFiles = orphanedFlowFileProperty == null || Boolean.parseBoolean(orphanedFlowFileProperty);
 
         // determine the database file path and ensure it exists
         String writeAheadLogImpl = nifiProperties.getProperty(WRITE_AHEAD_LOG_IMPL);
@@ -159,6 +173,7 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
             writeAheadLogImpl = DEFAULT_WAL_IMPLEMENTATION;
         }
         this.walImplementation = writeAheadLogImpl;
+        this.maxCharactersToCache = nifiProperties.getIntegerProperty(FLOWFILE_REPO_CACHE_SIZE, DEFAULT_CACHE_SIZE);
 
         // We used to use one implementation (minimal locking) of the write-ahead log, but we now want to use the other
         // (sequential access), we must address this. Since the MinimalLockingWriteAheadLog supports multiple partitions,
@@ -179,7 +194,6 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
         }
 
 
-        numPartitions = nifiProperties.getFlowFileRepositoryPartitions();
         checkpointDelayMillis = FormatUtils.getTimeDuration(nifiProperties.getFlowFileRepositoryCheckpointInterval(), TimeUnit.MILLISECONDS);
 
         checkpointExecutor = Executors.newSingleThreadScheduledExecutor();
@@ -197,11 +211,25 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
 
     @Override
     public void initialize(final ResourceClaimManager claimManager) throws IOException {
-        initialize(claimManager, new StandardRepositoryRecordSerdeFactory(claimManager));
+        final FieldCache fieldCache = new CaffeineFieldCache(maxCharactersToCache);
+        initialize(claimManager, createSerdeFactory(claimManager, fieldCache), fieldCache);
     }
 
-    public void initialize(final ResourceClaimManager claimManager, final RepositoryRecordSerdeFactory serdeFactory) throws IOException {
+    protected RepositoryRecordSerdeFactory createSerdeFactory(final ResourceClaimManager claimManager, final FieldCache fieldCache) {
+        if (EncryptedSequentialAccessWriteAheadLog.class.getName().equals(nifiProperties.getProperty(NiFiProperties.FLOWFILE_REPOSITORY_WAL_IMPLEMENTATION))) {
+            try {
+                return new EncryptedRepositoryRecordSerdeFactory(claimManager, nifiProperties, fieldCache);
+            } catch (final EncryptionException e) {
+                throw new RuntimeException(e);
+            }
+        } else {
+            return new StandardRepositoryRecordSerdeFactory(claimManager, fieldCache);
+        }
+    }
+
+    public void initialize(final ResourceClaimManager claimManager, final RepositoryRecordSerdeFactory serdeFactory, final FieldCache fieldCache) throws IOException {
         this.claimManager = claimManager;
+        this.fieldCache = fieldCache;
 
         for (final File file : flowFileRepositoryPaths) {
             Files.createDirectories(file.toPath());
@@ -222,13 +250,13 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
                     .map(File::toPath)
                     .collect(Collectors.toCollection(TreeSet::new));
 
-            wal = new MinimalLockingWriteAheadLog<>(paths, numPartitions, serdeFactory, this);
+            wal = new MinimalLockingWriteAheadLog<>(paths, 1, serdeFactory, this);
         } else {
             throw new IllegalStateException("Cannot create Write-Ahead Log because the configured property '" + WRITE_AHEAD_LOG_IMPL + "' has an invalid value of '" + walImplementation
                     + "'. Please update nifi.properties to indicate a valid value for this property.");
         }
 
-        logger.info("Initialized FlowFile Repository using {} partitions", numPartitions);
+        logger.info("Initialized FlowFile Repository");
     }
 
     @Override
@@ -247,7 +275,7 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
     }
 
     @Override
-    public Map<ResourceClaim, Set<ResourceClaimReference>> findResourceClaimReferences(final Set<ResourceClaim> resourceClaims, final FlowFileSwapManager swapManager) throws IOException {
+    public Map<ResourceClaim, Set<ResourceClaimReference>> findResourceClaimReferences(final Set<ResourceClaim> resourceClaims, final FlowFileSwapManager swapManager) {
         if (!(isSequentialAccessWAL(walImplementation))) {
             return null;
         }
@@ -565,13 +593,12 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
     private void updateClaimCounts(final RepositoryRecord record) {
         final ContentClaim currentClaim = record.getCurrentClaim();
         final ContentClaim originalClaim = record.getOriginalClaim();
-        final boolean claimChanged = !Objects.equals(currentClaim, originalClaim);
 
         if (record.getType() == RepositoryRecordType.DELETE || record.getType() == RepositoryRecordType.CONTENTMISSING) {
             decrementClaimCount(currentClaim);
         }
 
-        if (claimChanged) {
+        if (record.isContentModified()) {
             // records which have been updated - remove original if exists
             decrementClaimCount(originalClaim);
         }
@@ -864,11 +891,14 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
             }
         }
 
+        fieldCache.clear();
+
         final Map<String, FlowFileQueue> queueMap = new HashMap<>();
         for (final FlowFileQueue queue : queueProvider.getAllQueues()) {
             queueMap.put(queue.getIdentifier(), queue);
         }
 
+        final List<SerializedRepositoryRecord> dropRecords = new ArrayList<>();
         int numFlowFilesMissingQueue = 0;
         long maxId = 0;
         for (final SerializedRepositoryRecord record : recordList) {
@@ -880,23 +910,52 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
             final String queueId = record.getQueueIdentifier();
             if (queueId == null) {
                 numFlowFilesMissingQueue++;
-                logger.warn("Encounted Repository Record (id={}) with no Queue Identifier. Dropping this FlowFile", recordId);
+                logger.warn("Encountered Repository Record (id={}) with no Queue Identifier. Dropping this FlowFile", recordId);
+
+                // Add a drop record so that the record is not retained
+                dropRecords.add(new ReconstitutedSerializedRepositoryRecord.Builder()
+                    .flowFileRecord(record.getFlowFileRecord())
+                    .swapLocation(record.getSwapLocation())
+                    .type(RepositoryRecordType.DELETE)
+                    .build());
+
                 continue;
             }
 
+            final ContentClaim claim = record.getContentClaim();
             final FlowFileQueue flowFileQueue = queueMap.get(queueId);
-            if (flowFileQueue == null) {
+            final boolean orphaned = flowFileQueue == null;
+            if (orphaned) {
                 numFlowFilesMissingQueue++;
-                logger.warn("Encountered Repository Record (id={}) with Queue identifier {} but no Queue exists with that ID. Dropping this FlowFile", recordId, queueId);
+
+                if (isRetainOrphanedFlowFiles()) {
+                    if (claim == null) {
+                        logger.warn("Encountered Repository Record (id={}) with Queue identifier {} but no Queue exists with that ID. This FlowFile will not be restored to any "
+                            + "FlowFile Queue in the flow. However, it will remain in the FlowFile Repository in case the flow containing this queue is later restored.", recordId, queueId);
+                    } else {
+                        claimManager.incrementClaimantCount(claim.getResourceClaim());
+                        orphanedResourceClaims.add(claim.getResourceClaim());
+                        logger.warn("Encountered Repository Record (id={}) with Queue identifier {} but no Queue exists with that ID. "
+                                + "This FlowFile will not be restored to any FlowFile Queue in the flow. However, it will remain in the FlowFile Repository in "
+                                + "case the flow containing this queue is later restored. This may result in the following Content Claim not being cleaned "
+                                + "up by the Content Repository: {}", recordId, queueId, claim);
+                    }
+                } else {
+                    dropRecords.add(new ReconstitutedSerializedRepositoryRecord.Builder()
+                        .flowFileRecord(record.getFlowFileRecord())
+                        .swapLocation(record.getSwapLocation())
+                        .type(RepositoryRecordType.DELETE)
+                        .build());
+
+                    logger.warn("Encountered Repository Record (id={}) with Queue identifier {} but no Queue exists with that ID. This FlowFile will be dropped.", recordId, queueId);
+                }
+
                 continue;
+            } else if (claim != null) {
+                claimManager.incrementClaimantCount(claim.getResourceClaim());
             }
 
             flowFileQueue.put(record.getFlowFileRecord());
-
-            final ContentClaim claim = record.getContentClaim();
-            if (claim != null) {
-                claimManager.incrementClaimantCount(claim.getResourceClaim());
-            }
         }
 
         // If recoveredRecords has been populated it need to be nulled out now because it is no longer useful and can be garbage collected.
@@ -907,7 +966,17 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
         flowFileSequenceGenerator.set(maxId + 1);
         logger.info("Successfully restored {} FlowFiles and {} Swap Files", recordList.size() - numFlowFilesMissingQueue, recoveredSwapLocations.size());
         if (numFlowFilesMissingQueue > 0) {
-            logger.warn("On recovery, found {} FlowFiles whose queue no longer exists. These FlowFiles will be dropped.", numFlowFilesMissingQueue);
+            logger.warn("On recovery, found {} FlowFiles whose queues no longer exists.", numFlowFilesMissingQueue);
+        }
+
+        if (dropRecords.isEmpty()) {
+            logger.debug("No Drop Records to update Repository with");
+        } else {
+            final long updateStart = System.nanoTime();
+            wal.update(dropRecords, true);
+            final long updateEnd = System.nanoTime();
+            final long updateMillis = TimeUnit.MILLISECONDS.convert(updateEnd - updateStart, TimeUnit.NANOSECONDS);
+            logger.info("Successfully updated FlowFile Repository with {} Drop Records due to missing queues in {} milliseconds", dropRecords.size(), updateMillis);
         }
 
         final Runnable checkpointRunnable = new Runnable() {
@@ -929,6 +998,15 @@ public class WriteAheadFlowFileRepository implements FlowFileRepository, SyncLis
         checkpointFuture = checkpointExecutor.scheduleWithFixedDelay(checkpointRunnable, checkpointDelayMillis, checkpointDelayMillis, TimeUnit.MILLISECONDS);
 
         return maxId;
+    }
+
+    private boolean isRetainOrphanedFlowFiles() {
+        return retainOrphanedFlowFiles;
+    }
+
+    @Override
+    public Set<ResourceClaim> findOrphanedResourceClaims() {
+        return Collections.unmodifiableSet(orphanedResourceClaims);
     }
 
     @Override

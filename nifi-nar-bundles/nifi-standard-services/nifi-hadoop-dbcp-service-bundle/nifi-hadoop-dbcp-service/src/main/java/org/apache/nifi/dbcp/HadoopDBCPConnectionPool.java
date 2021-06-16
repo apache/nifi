@@ -31,6 +31,8 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.resource.ResourceCardinality;
+import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
@@ -113,7 +115,7 @@ public class HadoopDBCPConnectionPool extends AbstractControllerService implemen
                     "the classes from hadoop-common, such as Configuration and UserGroupInformation.")
             .defaultValue(null)
             .required(true)
-            .addValidator(StandardValidators.createListValidator(true, true, StandardValidators.createURLorFileValidator()))
+            .identifiesExternalResource(ResourceCardinality.MULTIPLE, ResourceType.FILE, ResourceType.DIRECTORY, ResourceType.URL)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .dynamicallyModifiesClasspath(true)
             .build();
@@ -125,7 +127,7 @@ public class HadoopDBCPConnectionPool extends AbstractControllerService implemen
                     + "will search the classpath, or will revert to a default configuration. Note that to enable authentication with Kerberos, "
                     + "the appropriate properties must be set in the configuration files.")
             .required(false)
-            .addValidator(StandardValidators.createListValidator(true, true, StandardValidators.createURLorFileValidator()))
+            .identifiesExternalResource(ResourceCardinality.MULTIPLE, ResourceType.FILE)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .dynamicallyModifiesClasspath(true)
             .build();

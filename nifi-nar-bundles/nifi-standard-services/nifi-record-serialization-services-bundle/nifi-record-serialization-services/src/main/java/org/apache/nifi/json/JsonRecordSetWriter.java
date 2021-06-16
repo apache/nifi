@@ -115,6 +115,7 @@ public class JsonRecordSetWriter extends DateTimeTextRecordSetWriter implements 
             .defaultValue("1")
             .required(true)
             .allowableValues("0", "1", "2", "3", "4", "5", "6", "7", "8", "9")
+            .dependsOn(COMPRESSION_FORMAT, COMPRESSION_FORMAT_GZIP)
             .build();
 
     private volatile boolean prettyPrint;

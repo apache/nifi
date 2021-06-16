@@ -70,7 +70,6 @@ import javax.xml.bind.DatatypeConverter;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -264,7 +263,7 @@ public class PutAccumuloRecord extends BaseAccumuloProcessor {
 
     @Override
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
-        Collection<ValidationResult> set = Collections.emptySet();
+        Collection<ValidationResult> set = new HashSet<>();
         if (!validationContext.getProperty(COLUMN_FAMILY).isSet() && !validationContext.getProperty(COLUMN_FAMILY_FIELD).isSet())
             set.add(new ValidationResult.Builder().explanation("Column Family OR Column family field name must be defined").build());
         else if (validationContext.getProperty(COLUMN_FAMILY).isSet() && validationContext.getProperty(COLUMN_FAMILY_FIELD).isSet())
@@ -280,6 +279,7 @@ public class PutAccumuloRecord extends BaseAccumuloProcessor {
         BatchWriterConfig writerConfig = new BatchWriterConfig();
         writerConfig.setMaxWriteThreads(context.getProperty(THREADS).asInteger());
         writerConfig.setMaxMemory(maxBytes.longValue());
+        writerConfig.setTimeout(context.getProperty(ACCUMULO_TIMEOUT).asTimePeriod(TimeUnit.SECONDS).longValue(), TimeUnit.SECONDS);
         tableWriter = client.createMultiTableBatchWriter(writerConfig);
         flushOnEveryFlow = context.getProperty(FLUSH_ON_FLOWFILE).asBoolean();
         if (!flushOnEveryFlow){
@@ -356,6 +356,8 @@ public class PutAccumuloRecord extends BaseAccumuloProcessor {
 
         final String tableName = processContext.getProperty(TABLE_NAME).evaluateAttributeExpressions(flowFile).getValue();
 
+        accumuloConnectorService.renewTgtIfNecessary();
+
         // create the table if EL is present, create table is true and the table does not exist.
         if (processContext.getProperty(TABLE_NAME).isExpressionLanguagePresent() && processContext.getProperty(CREATE_TABLE).asBoolean()) {
             final TableOperations tableOps = this.client.tableOperations();
@@ -417,13 +419,11 @@ public class PutAccumuloRecord extends BaseAccumuloProcessor {
         }
 
 
-        if (!failed) {
-            processSession.transfer(flowFile, REL_SUCCESS);
-        } else {
+        if (failed) {
             processSession.transfer(processSession.penalize(flowFile), REL_FAILURE);
+        } else {
+            processSession.transfer(flowFile, REL_SUCCESS);
         }
-
-        processSession.commit();
     }
 
     /**

@@ -29,26 +29,35 @@ import static org.mockito.Mockito.when;
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Configuration;
 import com.datastax.driver.core.ConsistencyLevel;
+import com.datastax.driver.core.EndPoint;
 import com.datastax.driver.core.Metadata;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Session;
+import com.datastax.driver.core.SniEndPoint;
 import com.datastax.driver.core.exceptions.InvalidQueryException;
 import com.datastax.driver.core.exceptions.NoHostAvailableException;
 import com.datastax.driver.core.exceptions.ReadTimeoutException;
 import java.io.ByteArrayOutputStream;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import javax.net.ssl.SSLContext;
 import org.apache.avro.Schema;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.codehaus.jackson.map.ObjectMapper;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -75,6 +84,11 @@ public class QueryCassandraTest {
         testRunner.assertNotValid();
         testRunner.setProperty(AbstractCassandraProcessor.USERNAME, "username");
         testRunner.assertValid();
+
+        testRunner.setProperty(QueryCassandra.TIMESTAMP_FORMAT_PATTERN, "invalid format");
+        testRunner.assertNotValid();
+        testRunner.setProperty(QueryCassandra.TIMESTAMP_FORMAT_PATTERN, "yyyy-MM-dd HH:mm:ss.SSSZ");
+        testRunner.assertValid();
     }
 
     @Test
@@ -98,19 +112,19 @@ public class QueryCassandraTest {
         testRunner.clearTransferState();
 
         // Test exceptions
-        processor.setExceptionToThrow(new NoHostAvailableException(new HashMap<InetSocketAddress, Throwable>()));
+        processor.setExceptionToThrow(new NoHostAvailableException(new HashMap<EndPoint, Throwable>()));
         testRunner.run(1, true, true);
         testRunner.assertAllFlowFilesTransferred(QueryCassandra.REL_RETRY, 1);
         testRunner.clearTransferState();
 
         processor.setExceptionToThrow(
-                new ReadTimeoutException(new InetSocketAddress("localhost", 9042), ConsistencyLevel.ANY, 0, 1, false));
+                new ReadTimeoutException(new SniEndPoint(new InetSocketAddress("localhost", 9042), ""), ConsistencyLevel.ANY, 0, 1, false));
         testRunner.run(1, true, true);
         testRunner.assertAllFlowFilesTransferred(QueryCassandra.REL_RETRY, 1);
         testRunner.clearTransferState();
 
         processor.setExceptionToThrow(
-                new InvalidQueryException(new InetSocketAddress("localhost", 9042), "invalid query"));
+                new InvalidQueryException(new SniEndPoint(new InetSocketAddress("localhost", 9042), ""), "invalid query"));
         testRunner.run(1, true, true);
         // No files transferred to failure if there was no incoming connection
         testRunner.assertAllFlowFilesTransferred(QueryCassandra.REL_FAILURE, 0);
@@ -213,21 +227,21 @@ public class QueryCassandraTest {
         testRunner.clearTransferState();
 
         // Test exceptions
-        processor.setExceptionToThrow(new NoHostAvailableException(new HashMap<InetSocketAddress, Throwable>()));
+        processor.setExceptionToThrow(new NoHostAvailableException(new HashMap<EndPoint, Throwable>()));
         testRunner.enqueue("".getBytes());
         testRunner.run(1, true, true);
         testRunner.assertAllFlowFilesTransferred(QueryCassandra.REL_RETRY, 1);
         testRunner.clearTransferState();
 
         processor.setExceptionToThrow(
-                new ReadTimeoutException(new InetSocketAddress("localhost", 9042), ConsistencyLevel.ANY, 0, 1, false));
+                new ReadTimeoutException(new SniEndPoint(new InetSocketAddress("localhost", 9042), ""), ConsistencyLevel.ANY, 0, 1, false));
         testRunner.enqueue("".getBytes());
         testRunner.run(1, true, true);
         testRunner.assertAllFlowFilesTransferred(QueryCassandra.REL_RETRY, 1);
         testRunner.clearTransferState();
 
         processor.setExceptionToThrow(
-                new InvalidQueryException(new InetSocketAddress("localhost", 9042), "invalid query"));
+                new InvalidQueryException(new SniEndPoint(new InetSocketAddress("localhost", 9042), ""), "invalid query"));
         testRunner.enqueue("".getBytes());
         testRunner.run(1, true, true);
         testRunner.assertAllFlowFilesTransferred(QueryCassandra.REL_FAILURE, 1);
@@ -366,6 +380,42 @@ public class QueryCassandraTest {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         long numberOfRows = QueryCassandra.convertToJsonStream(rs, baos, StandardCharsets.UTF_8, 0, null);
         assertEquals(2, numberOfRows);
+    }
+
+    @Test
+    public void testDefaultDateFormatInConvertToJSONStream() throws Exception {
+        ResultSet rs = CassandraQueryTestUtil.createMockDateResultSet();
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
+        DateFormat df = new SimpleDateFormat(QueryCassandra.TIMESTAMP_FORMAT_PATTERN.getDefaultValue());
+        df.setTimeZone(TimeZone.getTimeZone("UTC"));
+
+        long numberOfRows = QueryCassandra.convertToJsonStream(Optional.of(testRunner.getProcessContext()), rs, baos,
+            StandardCharsets.UTF_8, 0, null);
+        assertEquals(1, numberOfRows);
+
+        Map<String, List<Map<String, String>>> map = new ObjectMapper().readValue(baos.toByteArray(), HashMap.class);
+        String date = map.get("results").get(0).get("date");
+        assertEquals(df.format(CassandraQueryTestUtil.TEST_DATE), date);
+    }
+
+    @Test
+    public void testCustomDateFormatInConvertToJSONStream() throws Exception {
+        MockProcessContext context = (MockProcessContext) testRunner.getProcessContext();
+        ResultSet rs = CassandraQueryTestUtil.createMockDateResultSet();
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
+        final String customDateFormat = "yyyy-MM-dd HH:mm:ss.SSSZ";
+        context.setProperty(QueryCassandra.TIMESTAMP_FORMAT_PATTERN, customDateFormat);
+        DateFormat df = new SimpleDateFormat(customDateFormat);
+        df.setTimeZone(TimeZone.getTimeZone("UTC"));
+
+        long numberOfRows = QueryCassandra.convertToJsonStream(Optional.of(context), rs, baos, StandardCharsets.UTF_8, 0, null);
+        assertEquals(1, numberOfRows);
+
+        Map<String, List<Map<String, String>>> map = new ObjectMapper().readValue(baos.toByteArray(), HashMap.class);
+        String date = map.get("results").get(0).get("date");
+        assertEquals(df.format(CassandraQueryTestUtil.TEST_DATE), date);
     }
 
     private void setUpStandardProcessorConfig() {

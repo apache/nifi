@@ -292,6 +292,8 @@ public abstract class AbstractHeartbeatMonitor implements HeartbeatMonitor {
             clusterCoordinator.finishNodeConnection(nodeId);
             clusterCoordinator.reportEvent(nodeId, Severity.INFO, "Received first heartbeat from connecting node. Node connected.");
         }
+
+        clusterCoordinator.validateHeartbeat(heartbeat);
     }
 
     /**
@@ -341,4 +343,5 @@ public abstract class AbstractHeartbeatMonitor implements HeartbeatMonitor {
         public void onNodeStateChange(final NodeIdentifier nodeId, final NodeConnectionState newState) {
         }
     }
+
 }

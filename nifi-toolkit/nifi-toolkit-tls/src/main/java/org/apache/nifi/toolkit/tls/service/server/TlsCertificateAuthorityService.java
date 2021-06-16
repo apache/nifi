@@ -25,7 +25,7 @@ import java.security.KeyPair;
 import java.security.KeyStore;
 import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
-import org.apache.nifi.security.util.CertificateUtils;
+import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.toolkit.tls.configuration.TlsConfig;
 import org.apache.nifi.toolkit.tls.manager.TlsCertificateAuthorityManager;
 import org.apache.nifi.toolkit.tls.manager.writer.JsonConfigurationWriter;
@@ -62,15 +62,10 @@ public class TlsCertificateAuthorityService {
     private static Server createServer(Handler handler, int port, KeyStore keyStore, String keyPassword) throws Exception {
         Server server = new Server();
 
-        SslContextFactory sslContextFactory = new SslContextFactory();
-        sslContextFactory.setIncludeProtocols(CertificateUtils.getHighestCurrentSupportedTlsProtocolVersion());
+        SslContextFactory sslContextFactory = new SslContextFactory.Server();
+        sslContextFactory.setIncludeProtocols(TlsConfiguration.getHighestCurrentSupportedTlsProtocolVersion());
         sslContextFactory.setKeyStore(keyStore);
         sslContextFactory.setKeyManagerPassword(keyPassword);
-
-        // Need to set SslContextFactory's endpointIdentificationAlgorithm to null; this is a server,
-        // not a client.  Server does not need to perform hostname verification on the client.
-        // Previous to Jetty 9.4.15.v20190215, this defaulted to null, and now defaults to "HTTPS".
-        sslContextFactory.setEndpointIdentificationAlgorithm(null);
 
         HttpConfiguration httpsConfig = new HttpConfiguration();
         httpsConfig.addCustomizer(new SecureRequestCustomizer());

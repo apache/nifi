@@ -45,7 +45,7 @@ public class FlowConfigurationDTO {
      */
     @ApiModelProperty(
             value = "The interval in seconds between the automatic NiFi refresh requests.",
-            readOnly = true
+            accessMode = ApiModelProperty.AccessMode.READ_ONLY
     )
     public Long getAutoRefreshIntervalSeconds() {
         return autoRefreshIntervalSeconds;
@@ -61,7 +61,7 @@ public class FlowConfigurationDTO {
      */
     @ApiModelProperty(
             value = "Whether this NiFi supports a managed authorizer. Managed authorizers can visualize users, groups, and policies in the UI.",
-            readOnly = true
+            accessMode = ApiModelProperty.AccessMode.READ_ONLY
     )
     public Boolean getSupportsManagedAuthorizer() {
         return supportsManagedAuthorizer;
@@ -76,7 +76,7 @@ public class FlowConfigurationDTO {
      */
     @ApiModelProperty(
             value = "Whether this NiFi supports configurable users and groups.",
-            readOnly = true
+            accessMode = ApiModelProperty.AccessMode.READ_ONLY
     )
     public Boolean getSupportsConfigurableUsersAndGroups() {
         return supportsConfigurableUsersAndGroups;
@@ -91,7 +91,7 @@ public class FlowConfigurationDTO {
      */
     @ApiModelProperty(
             value = "Whether this NiFi supports a configurable authorizer.",
-            readOnly = true
+            accessMode = ApiModelProperty.AccessMode.READ_ONLY
     )
     public Boolean getSupportsConfigurableAuthorizer() {
         return supportsConfigurableAuthorizer;

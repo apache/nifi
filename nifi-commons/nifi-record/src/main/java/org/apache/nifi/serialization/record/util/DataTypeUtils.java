@@ -27,6 +27,7 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.type.ChoiceDataType;
 import org.apache.nifi.serialization.record.type.DecimalDataType;
+import org.apache.nifi.serialization.record.type.EnumDataType;
 import org.apache.nifi.serialization.record.type.MapDataType;
 import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.slf4j.Logger;
@@ -48,6 +49,10 @@ import java.sql.Types;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -69,6 +74,7 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
+
 
 public class DataTypeUtils {
     private static final Logger logger = LoggerFactory.getLogger(DataTypeUtils.class);
@@ -196,6 +202,8 @@ public class DataTypeUtils {
                 return toLong(value, fieldName);
             case SHORT:
                 return toShort(value, fieldName);
+            case ENUM:
+                return toEnum(value, (EnumDataType) dataType, fieldName);
             case STRING:
                 return toString(value, () -> getDateFormat(dataType.getFieldType(), dateFormat, timeFormat, timestampFormat), charset);
             case TIME:
@@ -225,11 +233,14 @@ public class DataTypeUtils {
         return null;
     }
 
-
     public static boolean isCompatibleDataType(final Object value, final DataType dataType) {
+        return isCompatibleDataType(value, dataType, false);
+    }
+
+    public static boolean isCompatibleDataType(final Object value, final DataType dataType, final boolean strict) {
         switch (dataType.getFieldType()) {
             case ARRAY:
-                return isArrayTypeCompatible(value, ((ArrayDataType) dataType).getElementType());
+                return isArrayTypeCompatible(value, ((ArrayDataType) dataType).getElementType(), strict);
             case BIGINT:
                 return isBigIntTypeCompatible(value);
             case BOOLEAN:
@@ -252,7 +263,7 @@ public class DataTypeUtils {
                 return isLongTypeCompatible(value);
             case RECORD: {
                 final RecordSchema schema = ((RecordDataType) dataType).getChildSchema();
-                return isRecordTypeCompatible(schema, value);
+                return isRecordTypeCompatible(schema, value, strict);
             }
             case SHORT:
                 return isShortTypeCompatible(value);
@@ -262,6 +273,8 @@ public class DataTypeUtils {
                 return isTimestampTypeCompatible(value, dataType.getFormat());
             case STRING:
                 return isStringTypeCompatible(value);
+            case ENUM:
+                return isEnumTypeCompatible(value, (EnumDataType) dataType);
             case MAP:
                 return isMapTypeCompatible(value);
             case CHOICE: {
@@ -620,9 +633,10 @@ public class DataTypeUtils {
      * Check if the given record structured object compatible with the schema.
      * @param schema record schema, schema validation will not be performed if schema is null
      * @param value the record structured object, i.e. Record or Map
+     * @param strict check for a strict match, i.e. all fields in the record should have a corresponding entry in the schema
      * @return True if the object is compatible with the schema
      */
-    private static boolean isRecordTypeCompatible(RecordSchema schema, Object value) {
+    private static boolean isRecordTypeCompatible(RecordSchema schema, Object value, boolean strict) {
 
         if (value == null) {
             return false;
@@ -634,6 +648,14 @@ public class DataTypeUtils {
 
         if (schema == null) {
             return true;
+        }
+
+        if (strict) {
+            if (value instanceof Record) {
+                if (!schema.getFieldNames().containsAll(((Record)value).getRawFieldNames())) {
+                    return false;
+                }
+            }
         }
 
         for (final RecordField childField : schema.getFields()) {
@@ -652,7 +674,7 @@ public class DataTypeUtils {
                 continue; // consider compatible
             }
 
-            if (!isCompatibleDataType(childValue, childField.getDataType())) {
+            if (!isCompatibleDataType(childValue, childField.getDataType(), strict)) {
                 return false;
             }
         }
@@ -720,10 +742,25 @@ public class DataTypeUtils {
     }
 
     public static boolean isArrayTypeCompatible(final Object value, final DataType elementDataType) {
-        return value != null
-                // Either an object array or a String to be converted to byte[]
-                && (value instanceof Object[]
-                || (value instanceof String && RecordFieldType.BYTE.getDataType().equals(elementDataType)));
+        return isArrayTypeCompatible(value, elementDataType, false);
+    }
+
+    public static boolean isArrayTypeCompatible(final Object value, final DataType elementDataType, final boolean strict) {
+        if (value == null) {
+            return false;
+        }
+        // Either an object array (check the element type) or a String to be converted to byte[]
+        if (value instanceof Object[]) {
+            for (Object o : ((Object[]) value)) {
+                // Check each element to ensure its type is the same or can be coerced (if need be)
+                if (!isCompatibleDataType(o, elementDataType, strict)) {
+                    return false;
+                }
+            }
+            return true;
+        } else {
+            return value instanceof String && RecordFieldType.BYTE.getDataType().equals(elementDataType);
+        }
     }
 
     @SuppressWarnings("unchecked")
@@ -1014,6 +1051,17 @@ public class DataTypeUtils {
         return value != null;
     }
 
+    public static boolean isEnumTypeCompatible(final Object value, final EnumDataType enumType) {
+        return enumType.getEnums() != null && enumType.getEnums().contains(value);
+    }
+
+    private static Object toEnum(Object value, EnumDataType dataType, String fieldName) {
+        if(dataType.getEnums() != null && dataType.getEnums().contains(value)) {
+            return value.toString();
+        }
+        throw new IllegalTypeConversionException("Cannot convert value " + value + " of type " + dataType.toString() + " for field " + fieldName);
+    }
+
     public static java.sql.Date toDate(final Object value, final Supplier<DateFormat> format, final String fieldName) {
         if (value == null) {
             return null;
@@ -1057,6 +1105,32 @@ public class DataTypeUtils {
         }
 
         throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to Date for field " + fieldName);
+    }
+
+    /**
+     * Converts a java.sql.Date object in local time zone (typically coming from a java.sql.ResultSet and having 00:00:00 time part)
+     * to UTC normalized form (storing the epoch corresponding to the UTC time with the same date/time as the input).
+     *
+     * @param dateLocalTZ java.sql.Date in local time zone
+     * @return java.sql.Date in UTC normalized form
+     */
+    public static Date convertDateToUTC(Date dateLocalTZ) {
+        ZonedDateTime zdtLocalTZ = ZonedDateTime.ofInstant(Instant.ofEpochMilli(dateLocalTZ.getTime()), ZoneId.systemDefault());
+        ZonedDateTime zdtUTC = zdtLocalTZ.withZoneSameLocal(ZoneOffset.UTC);
+        return new Date(zdtUTC.toInstant().toEpochMilli());
+    }
+
+    /**
+     * Converts a java.sql.Date object in UTC normalized form
+     * to local time zone (storing the epoch corresponding to the local time with the same date/time as the input).
+     *
+     * @param dateUTC java.sql.Date in UTC normalized form
+     * @return java.sql.Date in local time zone
+     */
+    public static Date convertDateToLocalTZ(Date dateUTC) {
+        ZonedDateTime zdtUTC = ZonedDateTime.ofInstant(Instant.ofEpochMilli(dateUTC.getTime()), ZoneOffset.UTC);
+        ZonedDateTime zdtLocalTZ = zdtUTC.withZoneSameLocal(ZoneId.systemDefault());
+        return new Date(zdtLocalTZ.toInstant().toEpochMilli());
     }
 
     public static boolean isDateTypeCompatible(final Object value, final String format) {
@@ -1525,7 +1599,12 @@ public class DataTypeUtils {
         }
 
         if (value instanceof Number) {
-            return ((Number) value).intValue();
+            try {
+                return Math.toIntExact(((Number) value).longValue());
+            } catch (ArithmeticException ae) {
+                throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to Integer for field " + fieldName
+                        + " as it causes an arithmetic overflow (the value is too large, e.g.)", ae);
+            }
         }
 
         if (value instanceof String) {
@@ -1536,6 +1615,14 @@ public class DataTypeUtils {
     }
 
     public static boolean isIntegerTypeCompatible(final Object value) {
+        if (value instanceof Number) {
+            try {
+                Math.toIntExact(((Number) value).longValue());
+                return true;
+            } catch (ArithmeticException ae) {
+                return false;
+            }
+        }
         return isNumberTypeCompatible(value, s -> isIntegral(s, Integer.MIN_VALUE, Integer.MAX_VALUE));
     }
 
@@ -1870,6 +1957,58 @@ public class DataTypeUtils {
                 throw new IllegalTypeConversionException("Cannot convert CHOICE, type must be explicit");
             default:
                 throw new IllegalTypeConversionException("Cannot convert unknown type " + fieldType.name());
+        }
+    }
+
+    /**
+     * Converts the specified java.sql.Types constant field data type (INTEGER = 4, e.g.) into a DataType
+     *
+     * @param sqlType the DataType to be converted
+     * @return the SQL type corresponding to the specified RecordFieldType
+     */
+    public static DataType getDataTypeFromSQLTypeValue(final int sqlType) {
+        switch (sqlType) {
+            case Types.BIGINT:
+                return RecordFieldType.BIGINT.getDataType();
+            case Types.BOOLEAN:
+                return RecordFieldType.BOOLEAN.getDataType();
+            case Types.TINYINT:
+                return RecordFieldType.BYTE.getDataType();
+            case Types.DATE:
+                return RecordFieldType.DATE.getDataType();
+            case Types.DOUBLE:
+                return RecordFieldType.DOUBLE.getDataType();
+            case Types.FLOAT:
+                return RecordFieldType.FLOAT.getDataType();
+            case Types.NUMERIC:
+                return RecordFieldType.DECIMAL.getDataType();
+            case Types.INTEGER:
+                return RecordFieldType.INT.getDataType();
+            case Types.SMALLINT:
+                return RecordFieldType.SHORT.getDataType();
+            case Types.CHAR:
+            case Types.VARCHAR:
+            case Types.LONGNVARCHAR:
+            case Types.LONGVARCHAR:
+            case Types.NCHAR:
+            case Types.NVARCHAR:
+            case Types.OTHER:
+            case Types.SQLXML:
+            case Types.CLOB:
+                return RecordFieldType.STRING.getDataType();
+            case Types.TIME:
+                return RecordFieldType.TIME.getDataType();
+            case Types.TIMESTAMP:
+                return RecordFieldType.TIMESTAMP.getDataType();
+            case Types.ARRAY:
+                return RecordFieldType.ARRAY.getDataType();
+            case Types.BINARY:
+            case Types.BLOB:
+                return RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BYTE.getDataType());
+            case Types.STRUCT:
+                return RecordFieldType.RECORD.getDataType();
+            default:
+                return null;
         }
     }
 

@@ -44,7 +44,7 @@ public class NiFiTestAuthorizer implements Authorizer {
     public static final String PRIVILEGED_USER_DN = "privileged@nifi";
     public static final String EXECUTED_CODE_USER_DN = "executecode@nifi";
 
-    public static final String TOKEN_USER = "user@nifi";
+    public static final String MAPPED_TOKEN_USER = "nifiadmin";
 
     /**
      * Creates a new FileAuthorizationProvider.
@@ -83,7 +83,7 @@ public class NiFiTestAuthorizer implements Authorizer {
         }
 
         // allow the token user
-        if (TOKEN_USER.equals(request.getIdentity())) {
+        if (MAPPED_TOKEN_USER.equals(request.getIdentity())) {
             return AuthorizationResult.approved();
         }
 

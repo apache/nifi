@@ -16,11 +16,9 @@
  */
 package org.apache.nifi.cluster.protocol;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.util.List;
+import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
+import org.apache.nifi.security.xml.XmlUtils;
+
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
@@ -28,8 +26,11 @@ import javax.xml.bind.Unmarshaller;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
-import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
-import org.apache.nifi.security.xml.XmlUtils;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.List;
 
 /**
  * The payload of the heartbeat. The payload contains status to inform the cluster manager the current workload of this node.
@@ -53,6 +54,7 @@ public class HeartbeatPayload {
     private long totalFlowFileBytes;
     private long systemStartTime;
     private List<NodeConnectionStatus> clusterStatus;
+    private long revisionUpdateCount;
 
     public int getActiveThreadCount() {
         return activeThreadCount;
@@ -92,6 +94,14 @@ public class HeartbeatPayload {
 
     public void setClusterStatus(final List<NodeConnectionStatus> clusterStatus) {
         this.clusterStatus = clusterStatus;
+    }
+
+    public long getRevisionUpdateCount() {
+        return revisionUpdateCount;
+    }
+
+    public void setRevisionUpdateCount(final long revisionUpdateCount) {
+        this.revisionUpdateCount = revisionUpdateCount;
     }
 
     public byte[] marshal() throws ProtocolException {

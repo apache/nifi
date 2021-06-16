@@ -20,6 +20,9 @@ org.apache.nifi.json.JsonTreeReader
 org.apache.nifi.json.JsonPathReader
 org.apache.nifi.json.JsonRecordSetWriter
 
+org.apache.nifi.lookup.RecordSetWriterLookup
+org.apache.nifi.lookup.ReaderLookup
+
 org.apache.nifi.csv.CSVReader
 org.apache.nifi.csv.CSVRecordSetWriter
 
@@ -32,5 +35,6 @@ org.apache.nifi.syslog.Syslog5424Reader
 
 org.apache.nifi.xml.XMLReader
 org.apache.nifi.xml.XMLRecordSetWriter
+org.apache.nifi.windowsevent.WindowsEventLogReader
 
 org.apache.nifi.schema.inference.VolatileSchemaCache

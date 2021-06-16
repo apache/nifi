@@ -31,6 +31,7 @@ import org.apache.nifi.controller.Snippet;
 import org.apache.nifi.controller.Template;
 import org.apache.nifi.controller.Triggerable;
 import org.apache.nifi.controller.label.Label;
+import org.apache.nifi.controller.queue.DropFlowFileStatus;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.parameter.ParameterContext;
@@ -46,7 +47,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Callable;
+import java.util.concurrent.Future;
 import java.util.function.Predicate;
 
 /**
@@ -186,6 +188,12 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
     void enableOutputPort(Port port);
 
     /**
+     * Recursively enables all Controller Services for this Process Group and all child Process Groups
+     *
+     */
+    void enableAllControllerServices();
+
+    /**
      * Starts the given Processor
      *
      * @param processor the processor to start
@@ -196,7 +204,17 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
      * @throws IllegalStateException if the processor is not valid, or is
      *             already running
      */
-    CompletableFuture<Void> startProcessor(ProcessorNode processor, boolean failIfStopping);
+    Future<Void> startProcessor(ProcessorNode processor, boolean failIfStopping);
+
+    /**
+     * Runs the given Processor once and the stops it by calling the provided callback.
+     *
+     * @param processor the processor to start
+     * @param stopCallback the callback responsible for stopping the processor
+     * @throws IllegalStateException if the processor is not valid, or is
+     *             already running
+     */
+    Future<Void> runProcessorOnce(ProcessorNode processor, Callable<Future<Void>> stopCallback);
 
     /**
      * Starts the given Input Port
@@ -224,7 +242,7 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
      *
      * @param processor to stop
      */
-    CompletableFuture<Void> stopProcessor(ProcessorNode processor);
+    Future<Void> stopProcessor(ProcessorNode processor);
 
     /**
      * Terminates the given Processor
@@ -483,6 +501,41 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
      * any child ProcessGroups
      */
     List<Connection> findAllConnections();
+
+    /**
+     * Initiates a request to drop all FlowFiles in all connections under this process group (recursively).
+     * This method returns a DropFlowFileStatus that can be used to determine the current state of the request.
+     * Additionally, the DropFlowFileStatus provides a request identifier that can then be
+     * passed to the {@link #getDropAllFlowFilesStatus(String)} and {@link #cancelDropAllFlowFiles(String)}
+     * methods in order to obtain the status later or cancel a request
+     *
+     * @param requestIdentifier the identifier of the Drop All FlowFiles Request
+     * @param requestor the entity that is requesting that the FlowFiles be dropped; this will be
+     *            included in the Provenance Events that are generated.
+     *
+     * @return the status of the drop request, or <code>null</code> if there is no
+     *         connection in the process group.
+     */
+    DropFlowFileStatus dropAllFlowFiles(String requestIdentifier, String requestor);
+
+    /**
+     * Returns the current status of a Drop All FlowFiles Request that was initiated via the
+     * {@link #dropAllFlowFiles(String, String)} method with the given identifier
+     *
+     * @param requestIdentifier the identifier of the Drop All FlowFiles Request
+     * @return the status for the request with the given identifier, or <code>null</code> if no
+     *         request status exists with that identifier
+     */
+    DropFlowFileStatus getDropAllFlowFilesStatus(String requestIdentifier);
+
+    /**
+     * Cancels the request to drop all FlowFiles that has the given identifier.
+     *
+     * @param requestIdentifier the identifier of the Drop All FlowFiles Request
+     * @return the status for the request with the given identifier after it has been canceled, or <code>null</code> if no
+     *         request status exists with that identifier
+     */
+    DropFlowFileStatus cancelDropAllFlowFiles(String requestIdentifier);
 
     /**
      * @param id of the Funnel
@@ -1104,4 +1157,21 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
      * @return <code>true</code> if there is data that is queued for Processing, <code>false</code> otherwise
      */
     boolean isDataQueuedForProcessing();
+
+    /**
+     * @return the BatchCounts that can be used for determining how many FlowFiles were transferred to each of the Output Ports
+     * in this Process Group, or <code>null</code> if this Process Group does not have an {@link #getFlowFileOutboundPolicy()}
+     * of {@link FlowFileOutboundPolicy#BATCH_OUTPUT}.
+     */
+    BatchCounts getBatchCounts();
+
+    /**
+     * @return the DataValve for the given Port, or <code>null</code> if no Data Valve is in use for the given Port
+     */
+    DataValve getDataValve(Port port);
+
+    /**
+     * @return the DataValve associated with this Process Group
+     */
+    DataValve getDataValve();
 }

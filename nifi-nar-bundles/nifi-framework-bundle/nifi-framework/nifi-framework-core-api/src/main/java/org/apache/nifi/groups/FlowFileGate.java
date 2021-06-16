@@ -17,10 +17,12 @@
 
 package org.apache.nifi.groups;
 
+import org.apache.nifi.connectable.Port;
+
 public interface FlowFileGate {
 
-    boolean tryClaim();
+    boolean tryClaim(Port port);
 
-    void releaseClaim();
+    void releaseClaim(Port port);
 
 }

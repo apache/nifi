@@ -28,6 +28,7 @@ import java.security.cert.X509Certificate;
 public class X509AuthenticationRequestToken extends NiFiAuthenticationRequestToken {
 
     private final String proxiedEntitiesChain;
+    private final String proxiedEntityGroups;
     private final X509PrincipalExtractor principalExtractor;
     private final X509Certificate[] certificates;
 
@@ -37,10 +38,13 @@ public class X509AuthenticationRequestToken extends NiFiAuthenticationRequestTok
      * @param proxiedEntitiesChain   The http servlet request
      * @param certificates  The certificate chain
      */
-    public X509AuthenticationRequestToken(final String proxiedEntitiesChain, final X509PrincipalExtractor principalExtractor, final X509Certificate[] certificates, final String clientAddress) {
+    public X509AuthenticationRequestToken(final String proxiedEntitiesChain, final String proxiedEntityGroups,
+                                          final X509PrincipalExtractor principalExtractor, final X509Certificate[] certificates,
+                                          final String clientAddress) {
         super(clientAddress);
         setAuthenticated(false);
         this.proxiedEntitiesChain = proxiedEntitiesChain;
+        this.proxiedEntityGroups = proxiedEntityGroups;
         this.principalExtractor = principalExtractor;
         this.certificates = certificates;
     }
@@ -61,6 +65,10 @@ public class X509AuthenticationRequestToken extends NiFiAuthenticationRequestTok
 
     public String getProxiedEntitiesChain() {
         return proxiedEntitiesChain;
+    }
+
+    public String getProxiedEntityGroups() {
+        return proxiedEntityGroups;
     }
 
     public X509Certificate[] getCertificates() {

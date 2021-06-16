@@ -107,6 +107,7 @@ public class TestConsumeAzureEventHub {
         when(partitionContext.getPartitionId()).thenReturn("partition-id");
         when(partitionContext.getConsumerGroupName()).thenReturn("consumer-group");
     }
+
     @Test
     public void testProcessorConfigValidityWithManagedIdentityFlag() throws InitializationException {
         TestRunner testRunner = TestRunners.newTestRunner(processor);
@@ -130,6 +131,23 @@ public class TestConsumeAzureEventHub {
         testRunner.setProperty(ConsumeAzureEventHub.USE_MANAGED_IDENTITY,"true");
         testRunner.assertValid();
     }
+
+    @Test
+    public void testReceivedApplicationProperties() throws Exception {
+        final EventData singleEvent = EventData.create("one".getBytes(StandardCharsets.UTF_8));
+        singleEvent.getProperties().put("event-sender", "Apache NiFi");
+        singleEvent.getProperties().put("application", "TestApp");
+        final Iterable<EventData> eventDataList = Arrays.asList(singleEvent);
+        eventProcessor.onEvents(partitionContext, eventDataList);
+
+        processSession.assertCommitted();
+        final List<MockFlowFile> flowFiles = processSession.getFlowFilesForRelationship(ConsumeAzureEventHub.REL_SUCCESS);
+        assertEquals(1, flowFiles.size());
+        final MockFlowFile msg1 = flowFiles.get(0);
+        msg1.assertAttributeEquals("eventhub.property.event-sender", "Apache NiFi");
+        msg1.assertAttributeEquals("eventhub.property.application", "TestApp");
+    }
+
     @Test
     public void testReceiveOne() throws Exception {
         final Iterable<EventData> eventDataList = Arrays.asList(EventData.create("one".getBytes(StandardCharsets.UTF_8)));

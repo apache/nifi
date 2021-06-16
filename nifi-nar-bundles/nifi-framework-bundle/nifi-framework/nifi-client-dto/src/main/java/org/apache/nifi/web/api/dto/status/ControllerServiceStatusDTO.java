@@ -28,7 +28,7 @@ import javax.xml.bind.annotation.XmlType;
 public class ControllerServiceStatusDTO extends ComponentStatusDTO {
 
     @ApiModelProperty(value = "The run status of this ControllerService",
-            readOnly = true,
+            accessMode = ApiModelProperty.AccessMode.READ_ONLY,
             allowableValues = "ENABLED, ENABLING, DISABLED, DISABLING")
     @Override
     public String getRunStatus() {

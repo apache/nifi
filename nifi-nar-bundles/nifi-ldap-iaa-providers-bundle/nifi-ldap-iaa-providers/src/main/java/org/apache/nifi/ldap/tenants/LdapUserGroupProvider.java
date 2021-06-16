@@ -16,24 +16,6 @@
  */
 package org.apache.nifi.ldap.tenants;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-import javax.naming.Context;
-import javax.naming.NamingEnumeration;
-import javax.naming.NamingException;
-import javax.naming.directory.Attribute;
-import javax.naming.directory.SearchControls;
-import javax.net.ssl.SSLContext;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authentication.exception.ProviderCreationException;
 import org.apache.nifi.authentication.exception.ProviderDestructionException;
@@ -53,7 +35,7 @@ import org.apache.nifi.ldap.LdapAuthenticationStrategy;
 import org.apache.nifi.ldap.LdapsSocketFactory;
 import org.apache.nifi.ldap.ReferralStrategy;
 import org.apache.nifi.security.util.SslContextFactory;
-import org.apache.nifi.security.util.SslContextFactory.ClientAuth;
+import org.apache.nifi.security.util.StandardTlsConfiguration;
 import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.security.util.TlsException;
 import org.apache.nifi.util.FormatUtils;
@@ -76,6 +58,25 @@ import org.springframework.ldap.core.support.SingleContextSource;
 import org.springframework.ldap.filter.AndFilter;
 import org.springframework.ldap.filter.EqualsFilter;
 import org.springframework.ldap.filter.HardcodedFilter;
+
+import javax.naming.Context;
+import javax.naming.NamingEnumeration;
+import javax.naming.NamingException;
+import javax.naming.directory.Attribute;
+import javax.naming.directory.SearchControls;
+import javax.net.ssl.SSLContext;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Abstract LDAP based implementation of a login identity provider.
@@ -118,7 +119,7 @@ public class LdapUserGroupProvider implements UserGroupProvider {
     private NiFiProperties properties;
 
     private ScheduledExecutorService ldapSync;
-    private AtomicReference<TenantHolder> tenants = new AtomicReference<>(null);
+    private final AtomicReference<TenantHolder> tenants = new AtomicReference<>(null);
 
     private String userSearchBase;
     private SearchScope userSearchScope;
@@ -433,6 +434,11 @@ public class LdapUserGroupProvider implements UserGroupProvider {
     @Override
     public Group getGroup(String identifier) throws AuthorizationAccessException {
         return tenants.get().getGroupsById().get(identifier);
+    }
+
+    @Override
+    public Group getGroupByName(String name) throws AuthorizationAccessException {
+        return tenants.get().getGroupsByName().get(name);
     }
 
     @Override
@@ -820,13 +826,12 @@ public class LdapUserGroupProvider implements UserGroupProvider {
         final String rawTruststore = configurationContext.getProperty("TLS - Truststore").getValue();
         final String rawTruststorePassword = configurationContext.getProperty("TLS - Truststore Password").getValue();
         final String rawTruststoreType = configurationContext.getProperty("TLS - Truststore Type").getValue();
-        final String rawClientAuth = configurationContext.getProperty("TLS - Client Auth").getValue();
         final String rawProtocol = configurationContext.getProperty("TLS - Protocol").getValue();
 
         try {
-            TlsConfiguration tlsConfiguration = new TlsConfiguration(rawKeystore, rawKeystorePassword, null, rawKeystoreType, rawTruststore, rawTruststorePassword, rawTruststoreType, rawProtocol);
-            ClientAuth clientAuth = ClientAuth.isValidClientAuthType(rawClientAuth) ? ClientAuth.valueOf(rawClientAuth) : ClientAuth.NONE;
-            return SslContextFactory.createSslContext(tlsConfiguration, clientAuth);
+            TlsConfiguration tlsConfiguration = new StandardTlsConfiguration(rawKeystore, rawKeystorePassword, null, rawKeystoreType,
+                    rawTruststore, rawTruststorePassword, rawTruststoreType, rawProtocol);
+            return SslContextFactory.createSslContext(tlsConfiguration);
         } catch (TlsException e) {
             logger.error("Encountered an error configuring TLS for LDAP user group provider: {}", e.getLocalizedMessage());
             throw new ProviderCreationException("Error configuring TLS for LDAP user group provider", e);

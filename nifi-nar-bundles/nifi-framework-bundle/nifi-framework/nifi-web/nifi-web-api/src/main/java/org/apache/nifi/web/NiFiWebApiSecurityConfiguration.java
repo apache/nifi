@@ -21,10 +21,12 @@ import org.apache.nifi.web.security.anonymous.NiFiAnonymousAuthenticationFilter;
 import org.apache.nifi.web.security.anonymous.NiFiAnonymousAuthenticationProvider;
 import org.apache.nifi.web.security.jwt.JwtAuthenticationFilter;
 import org.apache.nifi.web.security.jwt.JwtAuthenticationProvider;
+import org.apache.nifi.web.security.jwt.NiFiBearerTokenResolver;
 import org.apache.nifi.web.security.knox.KnoxAuthenticationFilter;
 import org.apache.nifi.web.security.knox.KnoxAuthenticationProvider;
 import org.apache.nifi.web.security.otp.OtpAuthenticationFilter;
 import org.apache.nifi.web.security.otp.OtpAuthenticationProvider;
+import org.apache.nifi.web.security.saml.SAMLEndpoints;
 import org.apache.nifi.web.security.x509.X509AuthenticationFilter;
 import org.apache.nifi.web.security.x509.X509AuthenticationProvider;
 import org.apache.nifi.web.security.x509.X509CertificateExtractor;
@@ -44,6 +46,8 @@ import org.springframework.security.config.annotation.web.configuration.WebSecur
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.authentication.AnonymousAuthenticationFilter;
 import org.springframework.security.web.authentication.preauth.x509.X509PrincipalExtractor;
+import org.springframework.security.web.csrf.CsrfFilter;
+import org.springframework.security.web.util.matcher.AndRequestMatcher;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -91,21 +95,41 @@ public class NiFiWebApiSecurityConfiguration extends WebSecurityConfigurerAdapte
         // the /access/download-token and /access/ui-extension-token endpoints
         webSecurity
                 .ignoring()
-                    .antMatchers("/access", "/access/config", "/access/token", "/access/kerberos",
-                            "/access/oidc/exchange", "/access/oidc/callback", "/access/oidc/request",
-                            "/access/knox/callback", "/access/knox/request");
+                    .antMatchers(
+                            "/access",
+                            "/access/config",
+                            "/access/token",
+                            "/access/kerberos",
+                            "/access/oidc/exchange",
+                            "/access/oidc/callback",
+                            "/access/oidc/logoutCallback",
+                            "/access/oidc/request",
+                            "/access/knox/callback",
+                            "/access/knox/request",
+                            SAMLEndpoints.SERVICE_PROVIDER_METADATA,
+                            SAMLEndpoints.LOGIN_REQUEST,
+                            SAMLEndpoints.LOGIN_CONSUMER,
+                            SAMLEndpoints.LOGIN_EXCHANGE,
+                            // the logout sequence will be protected by a request identifier set in a Cookie so these
+                            // paths need to be listed here in order to pass through our normal authn filters
+                            SAMLEndpoints.SINGLE_LOGOUT_REQUEST,
+                            SAMLEndpoints.SINGLE_LOGOUT_CONSUMER,
+                            SAMLEndpoints.LOCAL_LOGOUT,
+                            "/access/logout/complete");
     }
 
     @Override
     protected void configure(HttpSecurity http) throws Exception {
+        NiFiCsrfTokenRepository csrfRepository = new NiFiCsrfTokenRepository();
+        csrfRepository.setHeaderName(NiFiBearerTokenResolver.AUTHORIZATION);
+        csrfRepository.setCookieName(NiFiBearerTokenResolver.JWT_COOKIE_NAME);
+
         http
                 .cors().and()
                 .rememberMe().disable()
-                .authorizeRequests()
-                    .anyRequest().fullyAuthenticated()
-                    .and()
-                .sessionManagement()
-                    .sessionCreationPolicy(SessionCreationPolicy.STATELESS);
+                .authorizeRequests().anyRequest().fullyAuthenticated().and()
+                .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS).and()
+                .csrf().requireCsrfProtectionMatcher(new AndRequestMatcher(CsrfFilter.DEFAULT_CSRF_MATCHER, new CsrfCookieRequestMatcher())).csrfTokenRepository(csrfRepository);
 
         // x509
         http.addFilterBefore(x509FilterBean(), AnonymousAuthenticationFilter.class);

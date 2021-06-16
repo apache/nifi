@@ -70,7 +70,7 @@ import java.util.regex.Pattern;
 
 @TriggerWhenEmpty
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
-@Tags({"hadoop", "HDFS", "get", "fetch", "ingest", "source", "filesystem"})
+@Tags({"hadoop", "HCFS", "HDFS", "get", "fetch", "ingest", "source", "filesystem"})
 @CapabilityDescription("Fetch files from Hadoop Distributed File System (HDFS) into FlowFiles. This Processor will delete the file from HDFS after fetching it.")
 @WritesAttributes({
     @WritesAttribute(attribute = "filename", description = "The name of the file that was read from HDFS."),
@@ -80,10 +80,10 @@ import java.util.regex.Pattern;
 @SeeAlso({PutHDFS.class, ListHDFS.class})
 @Restricted(restrictions = {
     @Restriction(
-        requiredPermission = RequiredPermission.READ_FILESYSTEM,
+        requiredPermission = RequiredPermission.READ_DISTRIBUTED_FILESYSTEM,
         explanation = "Provides operator the ability to retrieve any file that NiFi has access to in HDFS or the local filesystem."),
     @Restriction(
-        requiredPermission = RequiredPermission.WRITE_FILESYSTEM,
+        requiredPermission = RequiredPermission.WRITE_DISTRIBUTED_FILESYSTEM,
         explanation = "Provides operator the ability to delete any file that NiFi has access to in HDFS or the local filesystem.")
 })
 public class GetHDFS extends AbstractHadoopProcessor {
@@ -325,12 +325,14 @@ public class GetHDFS extends AbstractHadoopProcessor {
 
         processBatchOfFiles(files, context, session);
 
-        queueLock.lock();
-        try {
-            processing.removeAll(files);
-        } finally {
-            queueLock.unlock();
-        }
+        session.commitAsync(() -> {
+            queueLock.lock();
+            try {
+                processing.removeAll(files);
+            } finally {
+                queueLock.unlock();
+            }
+        });
     }
 
     protected void processBatchOfFiles(final List<Path> files, final ProcessContext context, final ProcessSession session) {
@@ -396,7 +398,6 @@ public class GetHDFS extends AbstractHadoopProcessor {
                 session.transfer(flowFile, REL_SUCCESS);
                 getLogger().info("retrieved {} from HDFS {} in {} milliseconds at a rate of {}",
                         new Object[]{flowFile, file, millis, dataRate});
-                session.commit();
             } catch (final Throwable t) {
                 getLogger().error("Error retrieving file {} from HDFS due to {}", new Object[]{file, t});
                 session.rollback();

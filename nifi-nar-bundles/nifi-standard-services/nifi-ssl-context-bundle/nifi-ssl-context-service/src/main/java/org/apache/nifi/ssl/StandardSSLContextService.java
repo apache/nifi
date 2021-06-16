@@ -16,22 +16,17 @@
  */
 package org.apache.nifi.ssl;
 
-import java.io.File;
-import java.net.MalformedURLException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import javax.net.ssl.SSLContext;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
+import org.apache.nifi.components.resource.ResourceCardinality;
+import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.processor.exception.ProcessException;
@@ -40,9 +35,22 @@ import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.security.util.KeyStoreUtils;
 import org.apache.nifi.security.util.KeystoreType;
 import org.apache.nifi.security.util.SslContextFactory;
+import org.apache.nifi.security.util.StandardTlsConfiguration;
 import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.security.util.TlsException;
+import org.apache.nifi.security.util.TlsPlatform;
 import org.apache.nifi.util.StringUtils;
+
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
+import java.io.File;
+import java.net.MalformedURLException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
 @Tags({"ssl", "secure", "certificate", "keystore", "truststore", "jks", "p12", "pkcs12", "pkcs", "tls"})
 @CapabilityDescription("Standard implementation of the SSLContextService. Provides the ability to configure "
@@ -52,28 +60,17 @@ import org.apache.nifi.util.StringUtils;
         + "allows a specific set of SSL protocols to be chosen.")
 public class StandardSSLContextService extends AbstractControllerService implements SSLContextService {
 
-    public static final String STORE_TYPE_JKS = "JKS";
-    public static final String STORE_TYPE_PKCS12 = "PKCS12";
-
-    // Shared description for other SSL context services
-    public static final String COMMON_TLS_PROTOCOL_DESCRIPTION = "The algorithm to use for this TLS/SSL context. \"TLS\" will instruct NiFi to allow all supported protocol versions " +
-            "and choose the highest available protocol for each connection. " +
-            "Java 8 enabled TLSv1.2, which is now the lowest version supported for incoming connections. " +
-            "Java 11 enabled TLSv1.3. Depending on the version of Java NiFi is running on, different protocol versions will be available. " +
-            "With \"TLS\" selected, as new protocol versions are made available, NiFi will automatically select them. " +
-            "It is recommended unless a specific protocol version is needed. ";
-
     public static final PropertyDescriptor TRUSTSTORE = new PropertyDescriptor.Builder()
             .name("Truststore Filename")
             .description("The fully-qualified filename of the Truststore")
             .defaultValue(null)
-            .addValidator(createFileExistsAndReadableValidator())
+            .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE)
             .sensitive(false)
             .build();
     public static final PropertyDescriptor TRUSTSTORE_TYPE = new PropertyDescriptor.Builder()
             .name("Truststore Type")
-            .description("The Type of the Truststore. Either JKS or PKCS12")
-            .allowableValues(STORE_TYPE_JKS, STORE_TYPE_PKCS12)
+            .description("The Type of the Truststore")
+            .allowableValues(KeystoreType.values())
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .sensitive(false)
             .build();
@@ -89,13 +86,13 @@ public class StandardSSLContextService extends AbstractControllerService impleme
             .name("Keystore Filename")
             .description("The fully-qualified filename of the Keystore")
             .defaultValue(null)
-            .addValidator(createFileExistsAndReadableValidator())
+            .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE)
             .sensitive(false)
             .build();
     public static final PropertyDescriptor KEYSTORE_TYPE = new PropertyDescriptor.Builder()
             .name("Keystore Type")
             .description("The Type of the Keystore")
-            .allowableValues(STORE_TYPE_JKS, STORE_TYPE_PKCS12)
+            .allowableValues(KeystoreType.values())
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .sensitive(false)
             .build();
@@ -118,11 +115,10 @@ public class StandardSSLContextService extends AbstractControllerService impleme
     public static final PropertyDescriptor SSL_ALGORITHM = new PropertyDescriptor.Builder()
             .name("SSL Protocol")
             .displayName("TLS Protocol")
-            .defaultValue("TLS")
+            .defaultValue(TlsConfiguration.TLS_PROTOCOL)
             .required(false)
-            .allowableValues(SSLContextService.buildAlgorithmAllowableValues())
-            .description(COMMON_TLS_PROTOCOL_DESCRIPTION +
-                    "For outgoing connections, legacy protocol versions like \"TLSv1.0\" are supported, but discouraged unless necessary. ")
+            .allowableValues(getProtocolAllowableValues())
+            .description("SSL or TLS Protocol Version for encrypted connections. Supported versions include insecure legacy options and depend on the specific version of Java used.")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .sensitive(false)
             .build();
@@ -171,21 +167,6 @@ public class StandardSSLContextService extends AbstractControllerService impleme
         resetValidationCache();
     }
 
-    private static Validator createFileExistsAndReadableValidator() {
-        // Not using the FILE_EXISTS_VALIDATOR because the default is to allow expression language
-        return (subject, input, context) -> {
-            final File file = new File(input);
-            final boolean valid = file.exists() && file.canRead();
-            final String explanation = valid ? null : "File " + file + " does not exist or cannot be read";
-            return new ValidationResult.Builder()
-                    .subject(subject)
-                    .input(input)
-                    .valid(valid)
-                    .explanation(explanation)
-                    .build();
-        };
-    }
-
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return properties;
@@ -229,18 +210,80 @@ public class StandardSSLContextService extends AbstractControllerService impleme
      */
     @Override
     public TlsConfiguration createTlsConfiguration() {
-        return new TlsConfiguration(getKeyStoreFile(), getKeyStorePassword(),
+        return new StandardTlsConfiguration(getKeyStoreFile(), getKeyStorePassword(),
                 getKeyPassword(), getKeyStoreType(), getTrustStoreFile(),
                 getTrustStorePassword(), getTrustStoreType(), getSslAlgorithm());
     }
 
+    /**
+     * Create and initialize {@link SSLContext} using configured properties. This method is preferred over deprecated
+     * methods due to not requiring a client authentication policy. Invokes createTlsConfiguration() to prepare
+     * properties for processing.
+     *
+     * @return {@link SSLContext} initialized using configured properties
+     */
     @Override
-    public SSLContext createSSLContext(final SslContextFactory.ClientAuth clientAuth) throws ProcessException {
+    public SSLContext createContext() {
+        final TlsConfiguration tlsConfiguration = createTlsConfiguration();
+        if (!tlsConfiguration.isTruststorePopulated()) {
+            getLogger().warn("Trust Store properties not found: using platform default Certificate Authorities");
+        }
+
         try {
-            return SslContextFactory.createSslContext(createTlsConfiguration(), clientAuth);
-        } catch (TlsException e) {
-            getLogger().error("Encountered an error creating the SSL context from the SSL context service: {}", new String[]{e.getLocalizedMessage()});
-            throw new ProcessException("Error creating SSL context", e);
+            final TrustManager[] trustManagers = SslContextFactory.getTrustManagers(tlsConfiguration);
+            return SslContextFactory.createSslContext(tlsConfiguration, trustManagers);
+        } catch (final TlsException e) {
+            getLogger().error("Unable to create SSLContext: {}", e.getLocalizedMessage());
+            throw new ProcessException("Unable to create SSLContext", e);
+        }
+    }
+
+    /**
+     * Returns a configured {@link SSLContext} from the populated configuration values. This method is deprecated
+     * due to the Client Authentication policy not being applicable when initializing the SSLContext
+     *
+     * @param clientAuth the desired level of client authentication
+     * @return the configured SSLContext
+     * @throws ProcessException if there is a problem configuring the context
+     * @deprecated The {@link #createContext()} method should be used instead
+     */
+    @Deprecated
+    @Override
+    public SSLContext createSSLContext(final org.apache.nifi.security.util.ClientAuth clientAuth) throws ProcessException {
+        return createContext();
+    }
+
+    /**
+     * Returns a configured {@link SSLContext} from the populated configuration values. This method is deprecated
+     * due to the use of the deprecated {@link ClientAuth} enum
+     * {@link #createContext()} method is preferred.
+     *
+     * @param clientAuth the desired level of client authentication
+     * @return the configured SSLContext
+     * @throws ProcessException if there is a problem configuring the context
+     * @deprecated The {@link #createContext()} method should be used instead
+     */
+    @Deprecated
+    @Override
+    public SSLContext createSSLContext(final ClientAuth clientAuth) throws ProcessException {
+        return createContext();
+    }
+
+    /**
+     * Create X.509 Trust Manager using configured properties
+     *
+     * @return {@link X509TrustManager} initialized using configured properties
+     */
+    @Override
+    public X509TrustManager createTrustManager() {
+        try {
+            final X509TrustManager trustManager = SslContextFactory.getX509TrustManager(createTlsConfiguration());
+            if (trustManager == null) {
+                throw new ProcessException("X.509 Trust Manager not found using configured properties");
+            }
+            return trustManager;
+        } catch (final TlsException e) {
+            throw new ProcessException("Unable to create X.509 Trust Manager", e);
         }
     }
 
@@ -406,12 +449,12 @@ public class StandardSSLContextService extends AbstractControllerService impleme
     }
 
     /**
-     * Returns a list of {@link ValidationResult}s when validating an actual JKS or PKCS12 file on disk. Verifies the
+     * Returns a list of {@link ValidationResult}s when validating an actual truststore file on disk. Verifies the
      * file permissions and existence, and attempts to open the file given the provided password.
      *
      * @param filename     the path of the file on disk
      * @param password     the file password
-     * @param type         the type (JKS or PKCS12)
+     * @param type         the truststore type
      * @return the list of validation results (empty is valid)
      */
     private static List<ValidationResult> validateTruststoreFile(String filename, String password, String type) {
@@ -452,13 +495,13 @@ public class StandardSSLContextService extends AbstractControllerService impleme
     }
 
     /**
-     * Returns a list of {@link ValidationResult}s when validating an actual JKS or PKCS12 file on disk. Verifies the
+     * Returns a list of {@link ValidationResult}s when validating an actual keystore file on disk. Verifies the
      * file permissions and existence, and attempts to open the file given the provided (keystore or key) password.
      *
      * @param filename     the path of the file on disk
      * @param password     the file password
      * @param keyPassword  the (optional) key-specific password
-     * @param type         the type (JKS or PKCS12)
+     * @param type         the keystore type
      * @return the list of validation results (empty is valid)
      */
     private static List<ValidationResult> validateKeystoreFile(String filename, String password, String keyPassword, String type) {
@@ -526,5 +569,19 @@ public class StandardSSLContextService extends AbstractControllerService impleme
     @Override
     public String toString() {
         return "SSLContextService[id=" + getIdentifier() + "]";
+    }
+
+    private static AllowableValue[] getProtocolAllowableValues() {
+        final List<AllowableValue> allowableValues = new ArrayList<>();
+
+        allowableValues.add(new AllowableValue(TlsConfiguration.SSL_PROTOCOL, TlsConfiguration.SSL_PROTOCOL, "Negotiate latest SSL or TLS protocol version based on platform supported versions"));
+        allowableValues.add(new AllowableValue(TlsConfiguration.TLS_PROTOCOL, TlsConfiguration.TLS_PROTOCOL, "Negotiate latest TLS protocol version based on platform supported versions"));
+
+        for (final String supportedProtocol : TlsPlatform.getSupportedProtocols()) {
+            final String description = String.format("Require %s protocol version", supportedProtocol);
+            allowableValues.add(new AllowableValue(supportedProtocol, supportedProtocol, description));
+        }
+
+        return allowableValues.toArray(new AllowableValue[allowableValues.size()]);
     }
 }

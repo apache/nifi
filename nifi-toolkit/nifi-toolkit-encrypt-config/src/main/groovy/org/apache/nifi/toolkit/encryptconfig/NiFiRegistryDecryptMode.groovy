@@ -17,7 +17,9 @@
 package org.apache.nifi.toolkit.encryptconfig
 
 import groovy.cli.commons.CliBuilder
-import org.apache.nifi.properties.AESSensitivePropertyProvider
+import org.apache.nifi.properties.ConfigEncryptionTool
+import org.apache.nifi.properties.PropertyProtectionScheme
+import org.apache.nifi.properties.StandardSensitivePropertyProviderFactory
 import org.apache.nifi.toolkit.encryptconfig.util.BootstrapUtil
 import org.apache.nifi.toolkit.encryptconfig.util.ToolUtilities
 import org.slf4j.Logger
@@ -72,6 +74,10 @@ class NiFiRegistryDecryptMode extends DecryptMode {
             config.inputFilePath = options.r
             config.fileType = FileType.properties  // disables auto-detection, which is still experimental
 
+            if (options.S) {
+                config.protectionScheme = PropertyProtectionScheme.valueOf((String) options.S)
+            }
+
             // one of [-p, -k, -b]
             String keyHex = null
             String password = null
@@ -104,13 +110,15 @@ class NiFiRegistryDecryptMode extends DecryptMode {
 
                 // check we have found the key
                 if (config.key) {
-                    logger.debug("Master key found in ${config.inputBootstrapPath}. This key will be used for decryption operations.")
+                    logger.debug("Root key found in ${config.inputBootstrapPath}. This key will be used for decryption operations.")
                 } else {
-                    logger.warn("Bootstrap Conf flag present, but master key could not be found in ${config.inputBootstrapPath}.")
+                    logger.warn("Bootstrap Conf flag present, but root key could not be found in ${config.inputBootstrapPath}.")
                 }
             }
 
-            config.decryptionProvider = new AESSensitivePropertyProvider(config.key)
+            config.decryptionProvider = StandardSensitivePropertyProviderFactory
+                    .withKeyAndBootstrapSupplier(config.key, ConfigEncryptionTool.getBootstrapSupplier(config.inputBootstrapPath))
+                    .getProvider(config.protectionScheme)
 
             run(config)
 

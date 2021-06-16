@@ -143,8 +143,8 @@ attributeRefOrFunctionCall	: (attributeRef | standaloneFunction | parameterRefer
 referenceOrFunction : DOLLAR LBRACE attributeRefOrFunctionCall (COLON functionCall)* RBRACE ->
                       	^(EXPRESSION attributeRefOrFunctionCall functionCall*);
 
-parameterReference : PARAMETER_REFERENCE_START ATTRIBUTE_NAME RBRACE ->
-    ^(PARAMETER_REFERENCE ATTRIBUTE_NAME);
+parameterReference : PARAMETER_REFERENCE_START singleAttrRef RBRACE ->
+    ^(PARAMETER_REFERENCE singleAttrRef);
 
 expression : referenceOrFunction;
 

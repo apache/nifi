@@ -21,8 +21,6 @@ import static org.apache.nifi.processors.standard.util.HTTPUtils.PROXY_PORT;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -30,11 +28,6 @@ import java.net.InetAddress;
 import java.net.MalformedURLException;
 import java.net.UnknownHostException;
 import java.security.Principal;
-import java.security.KeyManagementException;
-import java.security.KeyStore;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.UnrecoverableKeyException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
@@ -81,7 +74,6 @@ import org.apache.http.conn.ManagedHttpClientConnection;
 import org.apache.http.conn.socket.ConnectionSocketFactory;
 import org.apache.http.conn.socket.PlainConnectionSocketFactory;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
-import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
 import org.apache.http.entity.ContentProducer;
 import org.apache.http.entity.EntityTemplate;
 import org.apache.http.impl.client.BasicCredentialsProvider;
@@ -90,8 +82,6 @@ import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.protocol.HttpCoreContext;
-import org.apache.http.ssl.SSLContextBuilder;
-import org.apache.http.ssl.SSLContexts;
 import org.apache.http.util.EntityUtils;
 import org.apache.http.util.VersionInfo;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -108,6 +98,7 @@ import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.flowfile.attributes.StandardFlowFileMediaType;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.DataUnit;
@@ -121,7 +112,6 @@ import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.standard.util.HTTPUtils;
 import org.apache.nifi.security.util.CertificateUtils;
-import org.apache.nifi.security.util.KeyStoreUtils;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.stream.io.GZIPOutputStream;
 import org.apache.nifi.stream.io.LeakyBucketStreamThrottler;
@@ -148,9 +138,6 @@ public class PostHTTP extends AbstractProcessor {
     public static final String CONTENT_TYPE_HEADER = "Content-Type";
     public static final String ACCEPT = "Accept";
     public static final String ACCEPT_ENCODING = "Accept-Encoding";
-    public static final String APPLICATION_FLOW_FILE_V1 = "application/flowfile";
-    public static final String APPLICATION_FLOW_FILE_V2 = "application/flowfile-v2";
-    public static final String APPLICATION_FLOW_FILE_V3 = "application/flowfile-v3";
     public static final String DEFAULT_CONTENT_TYPE = "application/octet-stream";
     public static final String FLOWFILE_CONFIRMATION_HEADER = "x-prefer-acknowledge-uri";
     public static final String LOCATION_HEADER_NAME = "Location";
@@ -164,6 +151,8 @@ public class PostHTTP extends AbstractProcessor {
     public static final String TRANSACTION_ID_HEADER = "x-nifi-transaction-id";
     public static final String PROTOCOL_VERSION = "3";
     public static final String REMOTE_DN = "remote.dn";
+
+    private static final String FLOW_FILE_CONNECTION_LOG = "Connection to URI {} will be using Content Type {} if sending data as FlowFile";
 
     public static final PropertyDescriptor URL = new PropertyDescriptor.Builder()
             .name("URL")
@@ -389,8 +378,7 @@ public class PostHTTP extends AbstractProcessor {
         } else {
             final SSLContext sslContext;
             try {
-                sslContext = createSSLContext(sslContextService);
-                getLogger().info("PostHTTP supports protocol: " + sslContext.getProtocol());
+                sslContext = sslContextService.createContext();
             } catch (final Exception e) {
                 throw new ProcessException(e);
             }
@@ -507,38 +495,6 @@ public class PostHTTP extends AbstractProcessor {
             return url;
         }
         return url.substring(0, index);
-    }
-
-    private SSLContext createSSLContext(final SSLContextService service)
-            throws KeyStoreException, IOException, NoSuchAlgorithmException, CertificateException, KeyManagementException, UnrecoverableKeyException {
-        SSLContextBuilder builder = SSLContexts.custom();
-        final String trustFilename = service.getTrustStoreFile();
-        if (trustFilename != null) {
-            final KeyStore truststore = KeyStoreUtils.getTrustStore(service.getTrustStoreType());
-            try (final InputStream in = new FileInputStream(new File(service.getTrustStoreFile()))) {
-                truststore.load(in, service.getTrustStorePassword().toCharArray());
-            }
-            builder = builder.loadTrustMaterial(truststore, new TrustSelfSignedStrategy());
-        }
-
-        final String keyFilename = service.getKeyStoreFile();
-        if (keyFilename != null) {
-            final KeyStore keystore = KeyStoreUtils.getKeyStore(service.getKeyStoreType());
-            try (final InputStream in = new FileInputStream(new File(service.getKeyStoreFile()))) {
-                keystore.load(in, service.getKeyStorePassword().toCharArray());
-            }
-            builder = builder.loadKeyMaterial(keystore, service.getKeyStorePassword().toCharArray());
-            final String alias = keystore.aliases().nextElement();
-            final Certificate cert = keystore.getCertificate(alias);
-            if (cert instanceof X509Certificate) {
-                principal = ((X509Certificate) cert).getSubjectDN();
-            }
-        }
-
-        builder = builder.setProtocol(service.getSslAlgorithm());
-
-        final SSLContext sslContext = builder.build();
-        return sslContext;
     }
 
     @Override
@@ -709,11 +665,11 @@ public class PostHTTP extends AbstractProcessor {
         final String contentType;
         if (sendAsFlowFile) {
             if (accepts.isFlowFileV3Accepted()) {
-                contentType = APPLICATION_FLOW_FILE_V3;
+                contentType = StandardFlowFileMediaType.VERSION_3.getMediaType();
             } else if (accepts.isFlowFileV2Accepted()) {
-                contentType = APPLICATION_FLOW_FILE_V2;
+                contentType = StandardFlowFileMediaType.VERSION_2.getMediaType();
             } else if (accepts.isFlowFileV1Accepted()) {
-                contentType = APPLICATION_FLOW_FILE_V1;
+                contentType = StandardFlowFileMediaType.VERSION_1.getMediaType();
             } else {
                 logger.error("Cannot send {} to {} because the destination does not accept FlowFiles and this processor is "
                         + "configured to deliver FlowFiles; routing to failure",
@@ -942,9 +898,9 @@ public class PostHTTP extends AbstractProcessor {
                     for (final Header header : headers) {
                         for (final String accepted : header.getValue().split(",")) {
                             final String trimmed = accepted.trim();
-                            if (trimmed.equals(APPLICATION_FLOW_FILE_V3)) {
+                            if (trimmed.equals(StandardFlowFileMediaType.VERSION_3.getMediaType())) {
                                 acceptsFlowFileV3 = true;
-                            } else if (trimmed.equals(APPLICATION_FLOW_FILE_V2)) {
+                            } else if (trimmed.equals(StandardFlowFileMediaType.VERSION_2.getMediaType())) {
                                 acceptsFlowFileV2 = true;
                             }
                         }
@@ -962,11 +918,11 @@ public class PostHTTP extends AbstractProcessor {
 
                 if (getLogger().isDebugEnabled()) {
                     if (acceptsFlowFileV3) {
-                        getLogger().debug("Connection to URI " + uri + " will be using Content Type " + APPLICATION_FLOW_FILE_V3 + " if sending data as FlowFile");
+                        getLogger().debug(FLOW_FILE_CONNECTION_LOG, new Object[]{uri, StandardFlowFileMediaType.VERSION_3.getMediaType()});
                     } else if (acceptsFlowFileV2) {
-                        getLogger().debug("Connection to URI " + uri + " will be using Content Type " + APPLICATION_FLOW_FILE_V2 + " if sending data as FlowFile");
+                        getLogger().debug(FLOW_FILE_CONNECTION_LOG, new Object[]{uri, StandardFlowFileMediaType.VERSION_2.getMediaType()});
                     } else if (acceptsFlowFileV1) {
-                        getLogger().debug("Connection to URI " + uri + " will be using Content Type " + APPLICATION_FLOW_FILE_V1 + " if sending data as FlowFile");
+                        getLogger().debug(FLOW_FILE_CONNECTION_LOG, new Object[]{uri, StandardFlowFileMediaType.VERSION_1.getMediaType()});
                     }
                 }
             }

@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.web.dao.impl;
 
+import org.apache.nifi.authorization.user.NiFiUser;
+import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Port;
 import org.apache.nifi.connectable.Position;
@@ -23,6 +25,7 @@ import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.flow.FlowManager;
+import org.apache.nifi.controller.queue.DropFlowFileStatus;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.groups.FlowFileConcurrency;
@@ -45,6 +48,7 @@ import org.apache.nifi.web.api.entity.ParameterContextReferenceEntity;
 import org.apache.nifi.web.api.entity.VariableEntity;
 import org.apache.nifi.web.dao.ProcessGroupDAO;
 
+import javax.ws.rs.WebApplicationException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -53,8 +57,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
 public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGroupDAO {
@@ -224,10 +226,8 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
     }
 
     @Override
-    public Future<Void> scheduleComponents(final String groupId, final ScheduledState state, final Set<String> componentIds) {
+    public void scheduleComponents(final String groupId, final ScheduledState state, final Set<String> componentIds) {
         final ProcessGroup group = locateProcessGroup(flowController, groupId);
-
-        CompletableFuture<Void> future = CompletableFuture.completedFuture(null);
 
         final Set<ProcessGroup> validGroups = new HashSet<>();
         validGroups.add(group);
@@ -239,8 +239,7 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
             if (ScheduledState.RUNNING.equals(state)) {
                 switch (connectable.getConnectableType()) {
                     case PROCESSOR:
-                        final CompletableFuture<?> processorFuture = connectable.getProcessGroup().startProcessor((ProcessorNode) connectable, true);
-                        future = CompletableFuture.allOf(future, processorFuture);
+                        connectable.getProcessGroup().startProcessor((ProcessorNode) connectable, true);
                         break;
                     case INPUT_PORT:
                         connectable.getProcessGroup().startInputPort((Port) connectable);
@@ -257,8 +256,7 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
             } else if (ScheduledState.STOPPED.equals(state)) {
                 switch (connectable.getConnectableType()) {
                     case PROCESSOR:
-                        final CompletableFuture<?> processorFuture = connectable.getProcessGroup().stopProcessor((ProcessorNode) connectable);
-                        future = CompletableFuture.allOf(future, processorFuture);
+                        connectable.getProcessGroup().stopProcessor((ProcessorNode) connectable);
                         break;
                     case INPUT_PORT:
                         connectable.getProcessGroup().stopInputPort((Port) connectable);
@@ -274,8 +272,6 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
                 }
             }
         }
-
-        return future;
     }
 
     @Override
@@ -318,16 +314,16 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
     }
 
     @Override
-    public Future<Void> activateControllerServices(final String groupId, final ControllerServiceState state, final Collection<String> serviceIds) {
+    public void activateControllerServices(final String groupId, final ControllerServiceState state, final Collection<String> serviceIds) {
         final FlowManager flowManager = flowController.getFlowManager();
         final List<ControllerServiceNode> serviceNodes = serviceIds.stream()
             .map(flowManager::getControllerServiceNode)
             .collect(Collectors.toList());
 
         if (state == ControllerServiceState.ENABLED) {
-            return flowController.getControllerServiceProvider().enableControllerServicesAsync(serviceNodes);
+            flowController.getControllerServiceProvider().enableControllerServicesAsync(serviceNodes);
         } else {
-            return flowController.getControllerServiceProvider().disableControllerServicesAsync(serviceNodes);
+            flowController.getControllerServiceProvider().disableControllerServicesAsync(serviceNodes);
         }
     }
 
@@ -474,6 +470,32 @@ public class StandardProcessGroupDAO extends ComponentDAO implements ProcessGrou
         if (!trackedVersionControlInformation.isEmpty()) {
             throw new IllegalStateException("The Registry cannot be removed because a Process Group currently under version control is tracking to it.");
         }
+    }
+
+    @Override
+    public DropFlowFileStatus createDropAllFlowFilesRequest(String processGroupId, String dropRequestId) {
+        ProcessGroup processGroup = locateProcessGroup(flowController, processGroupId);
+
+        final NiFiUser user = NiFiUserUtils.getNiFiUser();
+        if (user == null) {
+            throw new WebApplicationException(new Throwable("Unable to access details for current user."));
+        }
+
+        return processGroup.dropAllFlowFiles(dropRequestId, user.getIdentity());
+    }
+
+    @Override
+    public DropFlowFileStatus getDropAllFlowFilesRequest(String processGroupId, String dropRequestId) {
+        ProcessGroup processGroup = locateProcessGroup(flowController, processGroupId);
+
+        return processGroup.getDropAllFlowFilesStatus(dropRequestId);
+    }
+
+    @Override
+    public DropFlowFileStatus deleteDropAllFlowFilesRequest(String processGroupId, String dropRequestId) {
+        ProcessGroup processGroup = locateProcessGroup(flowController, processGroupId);
+
+        return processGroup.cancelDropAllFlowFiles(dropRequestId);
     }
 
     @Override

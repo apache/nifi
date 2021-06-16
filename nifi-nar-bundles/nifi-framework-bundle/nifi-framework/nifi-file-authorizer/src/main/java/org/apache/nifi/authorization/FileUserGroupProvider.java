@@ -46,7 +46,6 @@ import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
 import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.stream.XMLOutputFactory;
 import javax.xml.stream.XMLStreamException;
@@ -99,7 +98,6 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
         }
     }
 
-    private static final DocumentBuilderFactory DOCUMENT_BUILDER_FACTORY = DocumentBuilderFactory.newInstance();
     private static final XMLOutputFactory XML_OUTPUT_FACTORY = XMLOutputFactory.newInstance();
 
     private static final String USER_ELEMENT = "user";
@@ -372,6 +370,15 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
     }
 
     @Override
+    public Group getGroupByName(String name) throws AuthorizationAccessException {
+        if (name == null) {
+            return null;
+        }
+
+        return userGroupHolder.get().getGroupsByName().get(name);
+    }
+
+    @Override
     public UserAndGroups getUserAndGroups(final String identity) throws AuthorizationAccessException {
         final UserGroupHolder holder = userGroupHolder.get();
         final User user = holder.getUser(identity);
@@ -591,7 +598,7 @@ public class FileUserGroupProvider implements ConfigurableUserGroupProvider {
 
         final byte[] fingerprintBytes = fingerprint.getBytes(StandardCharsets.UTF_8);
         try (final ByteArrayInputStream in = new ByteArrayInputStream(fingerprintBytes)) {
-            final DocumentBuilder docBuilder = DOCUMENT_BUILDER_FACTORY.newDocumentBuilder();
+            final DocumentBuilder docBuilder = XmlUtils.createSafeDocumentBuilder(false);
             final Document document = docBuilder.parse(in);
             final Element rootElement = document.getDocumentElement();
 

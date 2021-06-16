@@ -17,6 +17,8 @@
 package org.apache.nifi.web.security.requests;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
@@ -40,6 +42,8 @@ public class ContentLengthFilter implements Filter {
     public final static int MAX_LENGTH_DEFAULT = 10_000_000;
     private int maxContentLength;
 
+    private static final List<String> BYPASS_URI_PREFIXES = Arrays.asList("/nifi-api/data-transfer", "/nifi-api/site-to-site");
+
     public void init() {
         maxContentLength = MAX_LENGTH_DEFAULT;
         logger.debug("Filter initialized without configuration and set max content length: " + formatSize(maxContentLength));
@@ -60,6 +64,13 @@ public class ContentLengthFilter implements Filter {
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
         HttpServletRequest httpRequest = (HttpServletRequest) request;
         String httpMethod = httpRequest.getMethod();
+
+        // If the request is in the framework allow list, do not evaluate or block based on content length
+        if (!isSubjectToFilter(httpRequest)) {
+            logger.trace("Request {} is not subject to content length checks", httpRequest.getRequestURI());
+            chain.doFilter(request, response);
+            return;
+        }
 
         // Check the HTTP method because the spec says clients don't have to send a content-length header for methods
         // that don't use it.  So even though an attacker may provide a large body in a GET request, the body should go
@@ -88,6 +99,31 @@ public class ContentLengthFilter implements Filter {
 
     @Override
     public void destroy() {
+    }
+
+    /**
+     * Returns the currently configured max content length in bytes.
+     *
+     * @return the max content length
+     */
+    public int getMaxContentLength() {
+        return maxContentLength;
+    }
+
+    /**
+     * Returns {@code true} if this request is subject to the filter operation, {@code false} if not.
+     *
+     * @param request the incoming request
+     * @return true if this request should be filtered
+     */
+    private boolean isSubjectToFilter(HttpServletRequest request) {
+        for (String uriPrefix : BYPASS_URI_PREFIXES) {
+            if (request.getRequestURI().startsWith(uriPrefix)) {
+                logger.debug("Incoming request {} matches filter bypass prefix {}; content length filter is not applied", request.getRequestURI(), uriPrefix);
+                return false;
+            }
+        }
+        return true;
     }
 
     /**

@@ -16,56 +16,39 @@
  */
 package org.apache.nifi.processors.standard;
 
-import java.io.Closeable;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import javax.net.ssl.SSLContext;
-import org.apache.commons.io.IOUtils;
+
 import org.apache.nifi.json.JsonTreeReader;
-import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.ProcessSessionFactory;
+import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.schema.access.SchemaAccessUtils;
-import org.apache.nifi.security.util.SslContextFactory;
-import org.apache.nifi.security.util.TlsConfiguration;
+import org.apache.nifi.security.util.ClientAuth;
 import org.apache.nifi.security.util.TlsException;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.record.MockRecordWriter;
+import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
-import org.apache.nifi.ssl.StandardRestrictedSSLContextService;
-import org.apache.nifi.ssl.StandardSSLContextService;
+import org.apache.nifi.util.LogMessage;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
+import org.apache.nifi.web.util.ssl.SslContextUtils;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
+import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class TestListenTCPRecord {
-    static final Logger LOGGER = LoggerFactory.getLogger(TestListenTCPRecord.class);
-
-    private static final String KEYSTORE = "src/test/resources/keystore.jks";
-    private static final String KEYSTORE_PASSWORD = "passwordpassword";
-    private static final String KEYSTORE_TYPE = "JKS";
-    private static final String TRUSTSTORE = "src/test/resources/truststore.jks";
-    private static final String TRUSTSTORE_PASSWORD = "passwordpassword";
-    private static final String TRUSTSTORE_TYPE = "JKS";
-    private static final String CLIENT_KEYSTORE = "src/test/resources/client-keystore.p12";
-    private static final String CLIENT_KEYSTORE_TYPE = "PKCS12";
-
-    // TODO: The NiFi SSL classes don't yet support TLSv1.3, so set the CS version explicitly
-    private static final String TLS_PROTOCOL_VERSION = "TLSv1.2";
-
-    private static TlsConfiguration clientTlsConfiguration;
-    private static TlsConfiguration trustOnlyTlsConfiguration;
-
     static final String SCHEMA_TEXT = "{\n" +
             "  \"name\": \"syslogRecord\",\n" +
             "  \"namespace\": \"nifi\",\n" +
@@ -77,26 +60,35 @@ public class TestListenTCPRecord {
             "  ]\n" +
             "}";
 
-    static final List<String> DATA;
+    static final String DATA = "[" +
+            "{\"timestamp\" : \"123456789\", \"logsource\" : \"syslog\", \"message\" : \"This is a test 1\"}," +
+            "{\"timestamp\" : \"123456789\", \"logsource\" : \"syslog\", \"message\" : \"This is a test 2\"}," +
+            "{\"timestamp\" : \"123456789\", \"logsource\" : \"syslog\", \"message\" : \"This is a test 3\"}" +
+            "]";
 
-    static {
-        final List<String> data = new ArrayList<>();
-        data.add("[");
-        data.add("{\"timestamp\" : \"123456789\", \"logsource\" : \"syslog\", \"message\" : \"This is a test 1\"},");
-        data.add("{\"timestamp\" : \"123456789\", \"logsource\" : \"syslog\", \"message\" : \"This is a test 2\"},");
-        data.add("{\"timestamp\" : \"123456789\", \"logsource\" : \"syslog\", \"message\" : \"This is a test 3\"}");
-        data.add("]");
-        DATA = Collections.unmodifiableList(data);
-    }
+    private static final Logger LOGGER = LoggerFactory.getLogger(TestListenTCPRecord.class);
 
-    private ListenTCPRecord proc;
+    private static final long TEST_TIMEOUT = 30000;
+
+    private static final String LOCALHOST = "localhost";
+
+    private static final String SSL_CONTEXT_IDENTIFIER = SSLContextService.class.getName();
+
+    private static SSLContext keyStoreSslContext;
+
+    private static SSLContext trustStoreSslContext;
+
     private TestRunner runner;
+
+    @BeforeClass
+    public static void configureServices() throws TlsException {
+        keyStoreSslContext = SslContextUtils.createKeyStoreSslContext();
+        trustStoreSslContext = SslContextUtils.createTrustStoreSslContext();
+    }
 
     @Before
     public void setup() throws InitializationException {
-        proc = new ListenTCPRecord();
-        runner = TestRunners.newTestRunner(proc);
-        runner.setProperty(ListenTCPRecord.PORT, "0");
+        runner = TestRunners.newTestRunner(ListenTCPRecord.class);
 
         final String readerId = "record-reader";
         final RecordReaderFactory readerFactory = new JsonTreeReader();
@@ -112,11 +104,6 @@ public class TestListenTCPRecord {
 
         runner.setProperty(ListenTCPRecord.RECORD_READER, readerId);
         runner.setProperty(ListenTCPRecord.RECORD_WRITER, writerId);
-
-        clientTlsConfiguration = new TlsConfiguration(CLIENT_KEYSTORE, KEYSTORE_PASSWORD, null, CLIENT_KEYSTORE_TYPE,
-                TRUSTSTORE, TRUSTSTORE_PASSWORD, TRUSTSTORE_TYPE, TLS_PROTOCOL_VERSION);
-        trustOnlyTlsConfiguration = new TlsConfiguration(null, null, null, null,
-                TRUSTSTORE, TRUSTSTORE_PASSWORD, TRUSTSTORE_TYPE, TLS_PROTOCOL_VERSION);
     }
 
     @Test
@@ -124,19 +111,19 @@ public class TestListenTCPRecord {
         runner.setProperty(ListenTCPRecord.PORT, "1");
         runner.assertValid();
 
-        configureProcessorSslContextService();
+        enableSslContextService(keyStoreSslContext);
         runner.setProperty(ListenTCPRecord.CLIENT_AUTH, "");
         runner.assertNotValid();
 
-        runner.setProperty(ListenTCPRecord.CLIENT_AUTH, SslContextFactory.ClientAuth.REQUIRED.name());
+        runner.setProperty(ListenTCPRecord.CLIENT_AUTH, ClientAuth.REQUIRED.name());
         runner.assertValid();
     }
 
-    @Test
-    public void testOneRecordPerFlowFile() throws IOException, InterruptedException {
+    @Test(timeout = TEST_TIMEOUT)
+    public void testRunOneRecordPerFlowFile() throws IOException, InterruptedException {
         runner.setProperty(ListenTCPRecord.RECORD_BATCH_SIZE, "1");
 
-        runTCP(DATA, 3, null);
+        run(3, null);
 
         List<MockFlowFile> mockFlowFiles = runner.getFlowFilesForRelationship(ListenTCPRecord.REL_SUCCESS);
         for (int i = 0; i < mockFlowFiles.size(); i++) {
@@ -149,11 +136,11 @@ public class TestListenTCPRecord {
         }
     }
 
-    @Test
-    public void testMultipleRecordsPerFlowFileLessThanBatchSize() throws IOException, InterruptedException {
+    @Test(timeout = TEST_TIMEOUT)
+    public void testRunMultipleRecordsPerFlowFileLessThanBatchSize() throws IOException, InterruptedException {
         runner.setProperty(ListenTCPRecord.RECORD_BATCH_SIZE, "5");
 
-        runTCP(DATA, 1, null);
+        run(1, null);
 
         final List<MockFlowFile> mockFlowFiles = runner.getFlowFilesForRelationship(ListenTCPRecord.REL_SUCCESS);
         Assert.assertEquals(1, mockFlowFiles.size());
@@ -168,16 +155,12 @@ public class TestListenTCPRecord {
         Assert.assertTrue(content.contains("This is a test " + 3));
     }
 
-    @Test
-    public void testTLSClientAuthRequiredAndClientCertProvided() throws InitializationException, IOException, InterruptedException, TlsException {
+    @Test(timeout = TEST_TIMEOUT)
+    public void testRunClientAuthRequired() throws InitializationException, IOException, InterruptedException {
+        runner.setProperty(ListenTCPRecord.CLIENT_AUTH, ClientAuth.REQUIRED.name());
+        enableSslContextService(keyStoreSslContext);
 
-        runner.setProperty(ListenTCPRecord.CLIENT_AUTH, SslContextFactory.ClientAuth.REQUIRED.name());
-        configureProcessorSslContextService();
-
-        // Make an SSLContext with a key and trust store to send the test messages
-        final SSLContext clientSslContext = SslContextFactory.createSslContext(clientTlsConfiguration);
-
-        runTCP(DATA, 1, clientSslContext);
+        run(1, keyStoreSslContext);
 
         final List<MockFlowFile> mockFlowFiles = runner.getFlowFilesForRelationship(ListenTCPRecord.REL_SUCCESS);
         Assert.assertEquals(1, mockFlowFiles.size());
@@ -189,29 +172,12 @@ public class TestListenTCPRecord {
         Assert.assertTrue(content.contains("This is a test " + 3));
     }
 
-    @Test
-    public void testTLSClientAuthRequiredAndClientCertNotProvided() throws InitializationException, IOException, InterruptedException, TlsException {
+    @Test(timeout = TEST_TIMEOUT)
+    public void testRunClientAuthNone() throws InitializationException, IOException, InterruptedException {
+        runner.setProperty(ListenTCPRecord.CLIENT_AUTH, ClientAuth.NONE.name());
+        enableSslContextService(keyStoreSslContext);
 
-        runner.setProperty(ListenTCPRecord.CLIENT_AUTH, SslContextFactory.ClientAuth.REQUIRED.name());
-        runner.setProperty(ListenTCPRecord.READ_TIMEOUT, "5 seconds");
-        configureProcessorSslContextService();
-
-        // Make an SSLContext that only has the trust store, this should not work since the processor has client auth REQUIRED
-        final SSLContext clientSslContext = SslContextFactory.createSslContext(trustOnlyTlsConfiguration);
-
-        runTCP(DATA, 0, clientSslContext);
-    }
-
-    @Test
-    public void testTLSClientAuthNoneAndClientCertNotProvided() throws InitializationException, IOException, InterruptedException, TlsException {
-
-        runner.setProperty(ListenTCPRecord.CLIENT_AUTH, SslContextFactory.ClientAuth.NONE.name());
-        configureProcessorSslContextService();
-
-        // Make an SSLContext that only has the trust store, this should work since the processor has client auth NONE
-        final SSLContext clientSslContext = SslContextFactory.createSslContext(trustOnlyTlsConfiguration);
-
-        runTCP(DATA, 1, clientSslContext);
+        run(1, trustStoreSslContext);
 
         final List<MockFlowFile> mockFlowFiles = runner.getFlowFilesForRelationship(ListenTCPRecord.REL_SUCCESS);
         Assert.assertEquals(1, mockFlowFiles.size());
@@ -223,103 +189,56 @@ public class TestListenTCPRecord {
         Assert.assertTrue(content.contains("This is a test " + 3));
     }
 
-    protected void runTCP(final List<String> messages, final int expectedTransferred, final SSLContext sslContext)
-            throws IOException, InterruptedException {
+    protected void run(final int expectedTransferred, final SSLContext sslContext) throws IOException, InterruptedException {
+        final int port = NetworkUtils.availablePort();
+        runner.setProperty(ListenTCPRecord.PORT, Integer.toString(port));
 
-        SocketSender sender = null;
-        try {
-            // schedule to start listening on a random port
-            final ProcessSessionFactory processSessionFactory = runner.getProcessSessionFactory();
-            final ProcessContext context = runner.getProcessContext();
-            proc.onScheduled(context);
-            Thread.sleep(100);
+        // Run Processor and start listener without shutting down
+        runner.run(1, false, true);
 
-            sender = new SocketSender(proc.getDispatcherPort(), "localhost", sslContext, messages, 0);
-
-            final Thread senderThread = new Thread(sender);
-            senderThread.setDaemon(true);
-            senderThread.start();
-
-            long timeout = 10000;
-
-            // call onTrigger until we processed all the records, or a certain amount of time passes
-            int numTransferred = 0;
-            long startTime = System.currentTimeMillis();
-            while (numTransferred < expectedTransferred && (System.currentTimeMillis() - startTime < timeout)) {
-                proc.onTrigger(context, processSessionFactory);
-                numTransferred = runner.getFlowFilesForRelationship(ListenTCPRecord.REL_SUCCESS).size();
-                Thread.sleep(100);
+        final Thread thread = new Thread(() -> {
+            try (final Socket socket = getSocket(port, sslContext)) {
+                final OutputStream outputStream = socket.getOutputStream();
+                outputStream.write(DATA.getBytes(StandardCharsets.UTF_8));
+                outputStream.flush();
+            } catch (final IOException e) {
+                LOGGER.error("Failed Sending Records to Port [{}]", port, e);
             }
+        });
+        thread.start();
 
-            // should have transferred the expected events
-            runner.assertTransferCount(ListenTCPRecord.REL_SUCCESS, expectedTransferred);
-        } finally {
-            // unschedule to close connections
-            proc.onUnscheduled();
-            IOUtils.closeQuietly(sender);
+        // Run Processor until success leveraging test method timeouts for failure status
+        int iterations = 0;
+        while (getSuccessCount() < expectedTransferred) {
+            runner.run(1, false, false);
+            iterations++;
+
+            final Optional<LogMessage> firstErrorMessage = runner.getLogger().getErrorMessages().stream().findFirst();
+            Assert.assertNull(firstErrorMessage.orElse(null));
         }
+        LOGGER.info("Completed after iterations [{}]", iterations);
     }
 
-    private SSLContextService configureProcessorSslContextService() throws InitializationException {
-        final SSLContextService sslContextService = new StandardRestrictedSSLContextService();
-        runner.addControllerService("ssl-context", sslContextService);
-        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE, "src/test/resources/truststore.jks");
-        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_PASSWORD, "passwordpassword");
-        runner.setProperty(sslContextService, StandardSSLContextService.TRUSTSTORE_TYPE, "JKS");
-        runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE, "src/test/resources/keystore.jks");
-        runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE_PASSWORD, "passwordpassword");
-        runner.setProperty(sslContextService, StandardSSLContextService.KEYSTORE_TYPE, "JKS");
+    private int getSuccessCount() {
+        return runner.getFlowFilesForRelationship(ListenTCPRecord.REL_SUCCESS).size();
+    }
+
+    private Socket getSocket(final int port, final SSLContext sslContext) throws IOException {
+        final Socket socket;
+        if (sslContext == null) {
+            socket = new Socket(LOCALHOST, port);
+        } else {
+            socket = sslContext.getSocketFactory().createSocket(LOCALHOST, port);
+        }
+        return socket;
+    }
+
+    private void enableSslContextService(final SSLContext sslContext) throws InitializationException {
+        final RestrictedSSLContextService sslContextService = Mockito.mock(RestrictedSSLContextService.class);
+        Mockito.when(sslContextService.getIdentifier()).thenReturn(SSL_CONTEXT_IDENTIFIER);
+        Mockito.when(sslContextService.createContext()).thenReturn(sslContext);
+        runner.addControllerService(SSL_CONTEXT_IDENTIFIER, sslContextService);
         runner.enableControllerService(sslContextService);
-
-        runner.setProperty(ListenTCPRecord.SSL_CONTEXT_SERVICE, "ssl-context");
-        return sslContextService;
+        runner.setProperty(ListenTCPRecord.SSL_CONTEXT_SERVICE, SSL_CONTEXT_IDENTIFIER);
     }
-
-    private static class SocketSender implements Runnable, Closeable {
-
-        private final int port;
-        private final String host;
-        private final SSLContext sslContext;
-        private final List<String> data;
-        private final long delay;
-
-        private Socket socket;
-
-        public SocketSender(final int port, final String host, final SSLContext sslContext, final List<String> data, final long delay) {
-            this.port = port;
-            this.host = host;
-            this.sslContext = sslContext;
-            this.data = data;
-            this.delay = delay;
-        }
-
-        @Override
-        public void run() {
-            try {
-                if (sslContext != null) {
-                    socket = sslContext.getSocketFactory().createSocket(host, port);
-                } else {
-                    socket = new Socket(host, port);
-                }
-
-                for (final String message : data) {
-                    socket.getOutputStream().write(message.getBytes(StandardCharsets.UTF_8));
-                    if (delay > 0) {
-                        Thread.sleep(delay);
-                    }
-                }
-
-                socket.getOutputStream().flush();
-            } catch (final Exception e) {
-                LOGGER.error(e.getMessage(), e);
-            } finally {
-                IOUtils.closeQuietly(socket);
-            }
-        }
-
-        public void close() {
-            IOUtils.closeQuietly(socket);
-        }
-    }
-
 }

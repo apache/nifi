@@ -304,6 +304,7 @@ div.local-changes-message {
 }
 
 #variable-registry-table {
+    position: relative;
     height: 400px;
 }
 
@@ -384,7 +385,7 @@ div.variable-step {
     margin-bottom: 2px;
 }
 
-div.parameter-context-step {
+div.parameter-context-step, div.referencing-components-loading {
     min-width: 16px;
     width: 16px;
     height: 16px;

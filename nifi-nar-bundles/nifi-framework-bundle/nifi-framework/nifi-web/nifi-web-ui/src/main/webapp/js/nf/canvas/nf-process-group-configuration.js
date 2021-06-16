@@ -222,6 +222,12 @@
                                     + 'spawn many children, no additional FlowFiles will be allowed to enter the Process Group through a Local Input Port until the previous FlowFile '
                                     + '- and all of its child/descendent FlowFiles - have been processed.'
                             }, {
+                                text: 'Single Batch Per Node',
+                                value: "SINGLE_BATCH_PER_NODE",
+                                description: 'When an Input Port pulls a FlowFile into the Process Group, FlowFiles will continue to be ingested into the Process Group until all input queues '
+                                    + 'have been emptied. At that point, no additional FlowFiles will be allowed to enter the Process Group through a Local Input Port until the entire batch '
+                                    + 'of FlowFiles has been processed.'
+                            },{
                                 text: 'Unbounded',
                                 value: 'UNBOUNDED',
                                 description: 'The number of FlowFiles that can be processed concurrently is unbounded.'
@@ -235,7 +241,7 @@
                         options: [{
                                 text: 'Stream When Available',
                                 value: 'STREAM_WHEN_AVAILABLE',
-                                description: 'FlowFiles that are queued up to be transferred out of a ProcessGroup by an Output Port will be transferred out '
+                                description: 'FlowFiles that are queued up to be transferred out of a Process Group by an Output Port will be transferred out '
                                         + 'of the Process Group as soon as they are available.'
                             }, {
                                 text: 'Batch Output',
@@ -265,7 +271,18 @@
                         $('#read-only-process-group-name').text(processGroup.name);
                         $('#read-only-process-group-comments').text(processGroup.comments);
 
-                        var concurrencyName = processGroup.flowfileConcurrency == "UNBOUNDED" ? "Unbounded" : "Single FlowFile Per Node";
+                        // Determine the user-friendly name for the selected FlowFile Concurrency
+                        var concurrencyName;
+                        if (processGroup.flowfileConcurrency == "UNBOUNDED") {
+                            concurrencyName = "Unbounded";
+                        } else if (processGroup.flowfileConcurrency == "SINGLE_FLOWFILE_PER_NODE") {
+                            concurrencyName = "Single FlowFile Per Node";
+                        } else if (processGroup.flowfileConcurrency == "SINGLE_BATCH_PER_NODE") {
+                            concurrencyName = "Single Batch Per Node";
+                        } else {
+                            concurrencyName = "Unknown";
+                        }
+
                         $('#read-only-process-group-flowfile-concurrency').text(concurrencyName);
 
                         var outboundPolicyName = processGroup.flowfileOutboundPolicy == "BATCH_OUTPUT" ? "Batch Output" : "Stream When Available";

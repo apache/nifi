@@ -17,11 +17,12 @@
 
 package org.apache.nifi.cluster.coordination;
 
-import org.apache.nifi.cluster.coordination.node.OffloadCode;
+import org.apache.nifi.cluster.coordination.heartbeat.NodeHeartbeat;
 import org.apache.nifi.cluster.coordination.node.DisconnectionCode;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
 import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
 import org.apache.nifi.cluster.coordination.node.NodeWorkload;
+import org.apache.nifi.cluster.coordination.node.OffloadCode;
 import org.apache.nifi.cluster.event.NodeEvent;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.reporting.Severity;
@@ -31,6 +32,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Future;
 
 /**
  * <p>
@@ -84,7 +86,7 @@ public interface ClusterCoordinator {
      * @param offloadCode the code that represents why this node is being asked to be offloaded
      * @param explanation an explanation as to why the node is being asked to be offloaded
      */
-    void requestNodeOffload(NodeIdentifier nodeId, OffloadCode offloadCode, String explanation);
+    Future<Void> requestNodeOffload(NodeIdentifier nodeId, OffloadCode offloadCode, String explanation);
 
     /**
      * Sends a request to the node to disconnect from the cluster.
@@ -95,7 +97,7 @@ public interface ClusterCoordinator {
      * @param explanation an explanation as to why the node is being asked to disconnect
      *            from the cluster
      */
-    void requestNodeDisconnect(NodeIdentifier nodeId, DisconnectionCode disconnectionCode, String explanation);
+    Future<Void> requestNodeDisconnect(NodeIdentifier nodeId, DisconnectionCode disconnectionCode, String explanation);
 
     /**
      * Notifies the Cluster Coordinator that the node with the given ID has requested to disconnect
@@ -275,6 +277,12 @@ public interface ClusterCoordinator {
      * @param eventListener the event listener to notify
      */
     void registerEventListener(ClusterTopologyEventListener eventListener);
+
+    /**
+     * Validates that the heartbeat is valid and if not takes appropriate action to rectify
+     */
+    default void validateHeartbeat(NodeHeartbeat nodeHeartbeat) {
+    }
 
     /**
      * Stops notifying the given listener when cluster topology events occurs

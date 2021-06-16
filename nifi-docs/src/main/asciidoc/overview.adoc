@@ -120,7 +120,7 @@ A few of these benefits include:
 * The points at which data enters and exits the system as well as how it flows through are well understood and easily tracked
 
 == NiFi Architecture
-image::zero-master-node.png["NiFi Architecture Diagram"]
+image::zero-leader-node.png["NiFi Architecture Diagram"]
 
 NiFi executes within a JVM on a host operating system.  The primary
 components of NiFi on the JVM are as follows:
@@ -145,9 +145,9 @@ The Provenance Repository is where all provenance event data is stored.  The rep
 
 NiFi is also able to operate within a cluster.
 
-image::zero-master-cluster.png["NiFi Cluster Architecture Diagram"]
+image::zero-leader-cluster.png["NiFi Cluster Architecture Diagram"]
 
-Starting with the NiFi 1.0 release, a Zero-Master Clustering paradigm is employed. Each node in a NiFi cluster performs the same tasks on the data, but each operates on a different set of data. Apache ZooKeeper elects a single node as the Cluster Coordinator, and failover is handled automatically by ZooKeeper. All cluster nodes report heartbeat and status information to the Cluster Coordinator. The Cluster Coordinator is responsible for disconnecting and connecting nodes. Additionally, every cluster has one Primary Node, also elected by ZooKeeper. As a DataFlow manager, you can interact with the NiFi cluster through the user interface (UI) of any node. Any change you make is replicated to all nodes in the cluster, allowing for multiple entry points.
+Starting with the NiFi 1.0 release, a Zero-Leader Clustering paradigm is employed. Each node in a NiFi cluster performs the same tasks on the data, but each operates on a different set of data. Apache ZooKeeper elects a single node as the Cluster Coordinator, and failover is handled automatically by ZooKeeper. All cluster nodes report heartbeat and status information to the Cluster Coordinator. The Cluster Coordinator is responsible for disconnecting and connecting nodes. Additionally, every cluster has one Primary Node, also elected by ZooKeeper. As a DataFlow manager, you can interact with the NiFi cluster through the user interface (UI) of any node. Any change you make is replicated to all nodes in the cluster, allowing for multiple entry points.
 
 == Performance Expectations and Characteristics of NiFi
 NiFi is designed to fully leverage the capabilities of the underlying host system

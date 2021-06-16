@@ -29,7 +29,9 @@ import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerServiceInitializationContext;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.prometheus.util.PrometheusMetricsUtil;
+import org.apache.nifi.registry.VariableDescriptor;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.WriteResult;
@@ -43,6 +45,7 @@ import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.state.MockStateManager;
 import org.apache.nifi.util.MockControllerServiceInitializationContext;
 import org.apache.nifi.util.MockPropertyValue;
+import org.apache.nifi.util.MockVariableRegistry;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -59,6 +62,7 @@ import java.util.UUID;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -111,6 +115,22 @@ public class TestPrometheusRecordSink {
         }
     }
 
+    @Test
+    public void testTwoInstances() throws InitializationException {
+        PrometheusRecordSink sink1 = initTask();
+        try {
+            PrometheusRecordSink sink2 = initTask();
+            fail("Should have reported Address In Use");
+        } catch (ProcessException pe) {
+            // Do nothing, this is the expected behavior
+        }
+        try {
+            sink1.onStopped();
+        } catch (Exception e) {
+            // Do nothing, just need to shut down the server before the next run
+        }
+    }
+
     private String getMetrics() throws IOException {
         URL url = new URL("http://localhost:" + portString + "/metrics");
         HttpURLConnection con = (HttpURLConnection) url.openConnection();
@@ -131,9 +151,11 @@ public class TestPrometheusRecordSink {
         final PrometheusRecordSink task = new PrometheusRecordSink();
         ConfigurationContext context = mock(ConfigurationContext.class);
         final StateManager stateManager = new MockStateManager(task);
-
+        final MockVariableRegistry variableRegistry = new MockVariableRegistry();
         final PropertyValue pValue = mock(StandardPropertyValue.class);
-        when(context.getProperty(PrometheusMetricsUtil.METRICS_ENDPOINT_PORT)).thenReturn(new MockPropertyValue(portString));
+
+        variableRegistry.setVariable(new VariableDescriptor("port"), portString);
+        when(context.getProperty(PrometheusMetricsUtil.METRICS_ENDPOINT_PORT)).thenReturn(new MockPropertyValue("${port}", null, variableRegistry));
         when(context.getProperty(PrometheusRecordSink.SSL_CONTEXT)).thenReturn(pValue);
         when(pValue.asControllerService(SSLContextService.class)).thenReturn(null);
 

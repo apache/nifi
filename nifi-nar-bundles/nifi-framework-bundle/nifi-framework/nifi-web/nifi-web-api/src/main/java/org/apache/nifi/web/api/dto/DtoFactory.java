@@ -61,6 +61,7 @@ import org.apache.nifi.cluster.event.NodeEvent;
 import org.apache.nifi.cluster.manager.StatusMerger;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.components.PropertyDependency;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.state.Scope;
@@ -122,6 +123,7 @@ import org.apache.nifi.groups.ProcessGroupCounts;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroupCounts;
 import org.apache.nifi.history.History;
+import org.apache.nifi.nar.ExtensionDefinition;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarClassLoadersHolder;
 import org.apache.nifi.parameter.Parameter;
@@ -1555,8 +1557,8 @@ public final class DtoFactory {
         orderedProperties.putAll(sortedProperties);
 
         // build the descriptor and property dtos
-        dto.setDescriptors(new LinkedHashMap<String, PropertyDescriptorDTO>());
-        dto.setProperties(new LinkedHashMap<String, String>());
+        dto.setDescriptors(new LinkedHashMap<>());
+        dto.setProperties(new LinkedHashMap<>());
         for (final Map.Entry<PropertyDescriptor, String> entry : orderedProperties.entrySet()) {
             final PropertyDescriptor descriptor = entry.getKey();
 
@@ -1567,6 +1569,8 @@ public final class DtoFactory {
             String propertyValue = entry.getValue();
             if (propertyValue != null && descriptor.isSensitive()) {
                 propertyValue = SENSITIVE_VALUE_MASK;
+            } else if (propertyValue == null && descriptor.getDefaultValue() != null) {
+                propertyValue = descriptor.getDefaultValue();
             }
 
             // set the property value
@@ -1635,8 +1639,8 @@ public final class DtoFactory {
         orderedProperties.putAll(sortedProperties);
 
         // build the descriptor and property dtos
-        dto.setDescriptors(new LinkedHashMap<String, PropertyDescriptorDTO>());
-        dto.setProperties(new LinkedHashMap<String, String>());
+        dto.setDescriptors(new LinkedHashMap<>());
+        dto.setProperties(new LinkedHashMap<>());
         for (final Map.Entry<PropertyDescriptor, String> entry : orderedProperties.entrySet()) {
             final PropertyDescriptor descriptor = entry.getKey();
 
@@ -1648,6 +1652,8 @@ public final class DtoFactory {
             String propertyValue = entry.getValue();
             if (propertyValue != null && descriptor.isSensitive()) {
                 propertyValue = SENSITIVE_VALUE_MASK;
+            } else if (propertyValue == null && descriptor.getDefaultValue() != null) {
+                propertyValue = descriptor.getDefaultValue();
             }
 
             // set the property value
@@ -2851,7 +2857,13 @@ public final class DtoFactory {
             }
         }
 
-        return entityFactory.createAffectedComponentEntity(affectedComponent, revision, permissions, groupNameDto);
+        final List<BulletinDTO> bulletins = createBulletins(componentNode);
+        return entityFactory.createAffectedComponentEntity(affectedComponent, revision, permissions, groupNameDto, bulletins);
+    }
+
+    private List<BulletinDTO> createBulletins(final ComponentNode componentNode) {
+        final List<BulletinDTO> bulletins = createBulletinDtos(bulletinRepository.findBulletinsForSource(componentNode.getIdentifier()));
+        return bulletins;
     }
 
     public VariableRegistryDTO createVariableRegistryDto(final ProcessGroup processGroup, final RevisionManager revisionManager) {
@@ -3095,16 +3107,17 @@ public final class DtoFactory {
     /**
      * Gets the DocumentedTypeDTOs from the specified classes.
      *
-     * @param classes classes
+     * @param extensionDefinitions extensionDefinitions
      * @param bundleGroupFilter if specified, must be member of bundle group
      * @param bundleArtifactFilter if specified, must be member of bundle artifact
      * @param typeFilter if specified, type must match
      * @return dtos
      */
-    public Set<DocumentedTypeDTO> fromDocumentedTypes(final Set<Class> classes, final String bundleGroupFilter, final String bundleArtifactFilter, final String typeFilter) {
+    public Set<DocumentedTypeDTO> fromDocumentedTypes(final Set<ExtensionDefinition> extensionDefinitions, final String bundleGroupFilter, final String bundleArtifactFilter, final String typeFilter) {
         final Map<Class, Bundle> classBundles = new HashMap<>();
-        for (final Class cls : classes) {
-            classBundles.put(cls, extensionManager.getBundle(cls.getClassLoader()));
+        for (final ExtensionDefinition extensionDefinition : extensionDefinitions) {
+            final Class cls = extensionManager.getClass(extensionDefinition);
+            classBundles.put(cls, extensionDefinition.getBundle());
         }
         return fromDocumentedTypes(classBundles, bundleGroupFilter, bundleArtifactFilter, typeFilter);
     }
@@ -4065,6 +4078,20 @@ public final class DtoFactory {
             dto.setAllowableValues(allowableValues);
         }
 
+        // Add any dependencies
+        final Set<PropertyDependency> dependencies = propertyDescriptor.getDependencies();
+        final List<PropertyDependencyDTO> dependencyDtos = dependencies.stream()
+            .map(this::createPropertyDependencyDto)
+            .collect(Collectors.toList());
+        dto.setDependencies(dependencyDtos);
+
+        return dto;
+    }
+
+    private PropertyDependencyDTO createPropertyDependencyDto(final PropertyDependency dependency) {
+        final PropertyDependencyDTO dto = new PropertyDependencyDTO();
+        dto.setPropertyName(dependency.getPropertyName());
+        dto.setDependentValues(dependency.getDependentValues());
         return dto;
     }
 

@@ -16,12 +16,11 @@
  */
 package org.apache.nifi.util;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.context.PropertyContext;
-
-import java.util.LinkedHashMap;
-import java.util.Map;
 
 public class MockPropertyContext implements PropertyContext {
 

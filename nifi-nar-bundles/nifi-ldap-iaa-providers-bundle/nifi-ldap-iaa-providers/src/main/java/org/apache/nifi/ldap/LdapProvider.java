@@ -16,6 +16,11 @@
  */
 package org.apache.nifi.ldap;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import javax.naming.Context;
+import javax.net.ssl.SSLContext;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authentication.AuthenticationResponse;
 import org.apache.nifi.authentication.LoginCredentials;
@@ -28,7 +33,7 @@ import org.apache.nifi.authentication.exception.ProviderCreationException;
 import org.apache.nifi.authentication.exception.ProviderDestructionException;
 import org.apache.nifi.configuration.NonComponentConfigurationContext;
 import org.apache.nifi.security.util.SslContextFactory;
-import org.apache.nifi.security.util.SslContextFactory.ClientAuth;
+import org.apache.nifi.security.util.StandardTlsConfiguration;
 import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.security.util.TlsException;
 import org.apache.nifi.util.FormatUtils;
@@ -49,12 +54,6 @@ import org.springframework.security.ldap.authentication.LdapAuthenticationProvid
 import org.springframework.security.ldap.search.FilterBasedLdapUserSearch;
 import org.springframework.security.ldap.search.LdapUserSearch;
 import org.springframework.security.ldap.userdetails.LdapUserDetails;
-
-import javax.naming.Context;
-import javax.net.ssl.SSLContext;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Abstract LDAP based implementation of a login identity provider.
@@ -253,13 +252,12 @@ public class LdapProvider implements LoginIdentityProvider {
         final String rawTruststore = configurationContext.getProperty("TLS - Truststore");
         final String rawTruststorePassword = configurationContext.getProperty("TLS - Truststore Password");
         final String rawTruststoreType = configurationContext.getProperty("TLS - Truststore Type");
-        final String rawClientAuth = configurationContext.getProperty("TLS - Client Auth");
         final String rawProtocol = configurationContext.getProperty("TLS - Protocol");
 
         try {
-            TlsConfiguration tlsConfiguration = new TlsConfiguration(rawKeystore, rawKeystorePassword, null, rawKeystoreType, rawTruststore, rawTruststorePassword, rawTruststoreType, rawProtocol);
-            ClientAuth clientAuth = ClientAuth.isValidClientAuthType(rawClientAuth) ? ClientAuth.valueOf(rawClientAuth) : ClientAuth.NONE;
-            return SslContextFactory.createSslContext(tlsConfiguration, clientAuth);
+            TlsConfiguration tlsConfiguration = new StandardTlsConfiguration(rawKeystore, rawKeystorePassword, null, rawKeystoreType,
+                    rawTruststore, rawTruststorePassword, rawTruststoreType, rawProtocol);
+            return SslContextFactory.createSslContext(tlsConfiguration);
         } catch (TlsException e) {
             logger.error("Encountered an error configuring TLS for LDAP identity provider: {}", e.getLocalizedMessage());
             throw new ProviderCreationException("Error configuring TLS for LDAP identity provider", e);

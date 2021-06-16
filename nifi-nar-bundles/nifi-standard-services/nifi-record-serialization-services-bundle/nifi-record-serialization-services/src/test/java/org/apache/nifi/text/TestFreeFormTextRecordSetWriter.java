@@ -17,14 +17,11 @@
 package org.apache.nifi.text;
 
 import org.apache.nifi.reporting.InitializationException;
-import org.apache.nifi.schema.access.SchemaAccessUtils;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -35,14 +32,10 @@ public class TestFreeFormTextRecordSetWriter {
     private TestRunner setup(FreeFormTextRecordSetWriter writer) throws InitializationException, IOException {
         TestRunner runner = TestRunners.newTestRunner(TestFreeFormTextRecordSetWriterProcessor.class);
 
-        final String outputSchemaText = new String(Files.readAllBytes(Paths.get("src/test/resources/text/testschema")));
-
         runner.addControllerService("writer", writer);
         runner.setProperty(TestFreeFormTextRecordSetWriterProcessor.WRITER, "writer");
 
-        runner.setProperty(writer, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, SchemaAccessUtils.SCHEMA_TEXT_PROPERTY);
-        runner.setProperty(writer, SchemaAccessUtils.SCHEMA_TEXT, outputSchemaText);
-        runner.setProperty(writer, FreeFormTextRecordSetWriter.TEXT, "ID: ${ID}, Name: ${NAME}, Age: ${AGE}, Country: ${COUNTRY}, Username: ${login.name}");
+        runner.setProperty(writer, FreeFormTextRecordSetWriter.TEXT, "ID: ${ID}, Name: ${NAME}, Age: ${AGE}, Country: ${COUNTRY}, Username: ${user.name}");
 
         return runner;
     }
@@ -54,7 +47,7 @@ public class TestFreeFormTextRecordSetWriter {
 
         runner.enableControllerService(writer);
         Map<String, String> attributes = new HashMap<>();
-        attributes.put("login.name", "jdoe64");
+        attributes.put("user.name", "jdoe64");
         runner.enqueue("", attributes);
         runner.run();
         // In addition to making sure a flow file was output successfully, also check nothing got rolled back into the incoming queue. May be a moot point as there is a

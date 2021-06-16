@@ -28,4 +28,6 @@ public interface Port extends Connectable {
      * Port a chance to initialize any resources needed.</p>
      */
     void onSchedulingStart();
+
+    void disable();
 }

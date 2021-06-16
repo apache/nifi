@@ -28,6 +28,7 @@ public class ParameterDTO {
     private String description;
     private Boolean sensitive;
     private String value;
+    private Boolean valueRemoved;
     private Set<AffectedComponentEntity> referencingComponents;
 
     @ApiModelProperty("The name of the Parameter")
@@ -64,6 +65,16 @@ public class ParameterDTO {
 
     public void setValue(final String value) {
         this.value = value;
+    }
+
+    @ApiModelProperty("Whether or not the value of the Parameter was removed. When a request is made to change a parameter, the value may be null. The absence of the value may be used either to " +
+        "indicate that the value is not to be changed, or that the value is to be set to null (i.e., removed). This denotes which of the two scenarios is being encountered.")
+    public Boolean getValueRemoved() {
+        return valueRemoved;
+    }
+
+    public void setValueRemoved(final Boolean valueRemoved) {
+        this.valueRemoved = valueRemoved;
     }
 
     @ApiModelProperty("The set of all components in the flow that are referencing this Parameter")

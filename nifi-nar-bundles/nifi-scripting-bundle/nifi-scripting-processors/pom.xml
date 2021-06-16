@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-scripting-bundle</artifactId>
-        <version>1.12.0-SNAPSHOT</version>
+        <version>1.14.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>nifi-scripting-processors</artifactId>
@@ -41,7 +41,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-utils</artifactId>
-            <version>1.12.0-SNAPSHOT</version>
+            <version>1.14.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -54,7 +54,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-record-path</artifactId>
-            <version>1.12.0-SNAPSHOT</version>
+            <version>1.14.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -68,7 +68,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-rules-engine-service-api</artifactId>
-            <version>1.12.0-SNAPSHOT</version>
+            <version>1.14.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.ivy</groupId>
@@ -103,7 +103,7 @@
         <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
-            <version>2.6</version>
+            <version>2.8.0</version>
         </dependency>
         <dependency>
             <groupId>commons-net</groupId>
@@ -114,18 +114,18 @@
         <dependency>
             <groupId>xerces</groupId>
             <artifactId>xercesImpl</artifactId>
-            <version>2.12.0</version>
+            <version>2.12.1</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock</artifactId>
-            <version>1.12.0-SNAPSHOT</version>
+            <version>1.14.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock-record-utils</artifactId>
-            <version>1.12.0-SNAPSHOT</version>
+            <version>1.14.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
         <dependency>

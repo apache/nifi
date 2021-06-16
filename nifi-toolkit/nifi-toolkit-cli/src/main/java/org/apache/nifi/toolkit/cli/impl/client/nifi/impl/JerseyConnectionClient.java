@@ -19,6 +19,7 @@ package org.apache.nifi.toolkit.cli.impl.client.nifi.impl;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ConnectionClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.RequestConfig;
 import org.apache.nifi.web.api.entity.ConnectionEntity;
 import org.apache.nifi.web.api.entity.DropRequestEntity;
 import org.apache.nifi.web.api.entity.FlowFileEntity;
@@ -28,8 +29,7 @@ import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
 import java.io.IOException;
-import java.util.Collections;
-import java.util.Map;
+import java.io.InputStream;
 
 public class JerseyConnectionClient extends AbstractJerseyClient implements ConnectionClient {
     private final WebTarget connectionTarget;
@@ -37,11 +37,11 @@ public class JerseyConnectionClient extends AbstractJerseyClient implements Conn
     private final WebTarget flowFileQueueTarget;
 
     public JerseyConnectionClient(final WebTarget baseTarget) {
-        this(baseTarget, Collections.emptyMap());
+        this(baseTarget, null);
     }
 
-    public JerseyConnectionClient(final WebTarget baseTarget, final Map<String,String> headers) {
-        super(headers);
+    public JerseyConnectionClient(final WebTarget baseTarget, final RequestConfig requestConfig) {
+        super(requestConfig);
 
         this.connectionTarget = baseTarget.path("/connections/{id}");
         this.processGroupTarget = baseTarget.path("/process-groups/{pgId}");
@@ -269,6 +269,29 @@ public class JerseyConnectionClient extends AbstractJerseyClient implements Conn
             }
 
             return getRequestBuilder(target).get(FlowFileEntity.class);
+        });
+    }
+
+    @Override
+    public InputStream getFlowFileContent(final String connectionId, final String flowFileUuid, final String nodeId) throws NiFiClientException, IOException {
+        if (connectionId == null) {
+            throw new IllegalArgumentException("Connection ID cannot be null");
+        }
+        if (flowFileUuid == null) {
+            throw new IllegalArgumentException("FlowFile UUID cannot be null");
+        }
+
+        return executeAction("Error retrieving FlowFile Content", () -> {
+            WebTarget target = flowFileQueueTarget
+                .path("flowfiles/{uuid}/content")
+                .resolveTemplate("id", connectionId)
+                .resolveTemplate("uuid", flowFileUuid);
+
+            if (nodeId != null) {
+                target = target.queryParam("clusterNodeId", nodeId);
+            }
+
+            return getRequestBuilder(target).get(InputStream.class);
         });
     }
 }

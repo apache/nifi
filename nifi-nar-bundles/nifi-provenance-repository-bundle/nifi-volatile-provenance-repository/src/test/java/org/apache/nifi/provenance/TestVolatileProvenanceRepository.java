@@ -16,15 +16,6 @@
  */
 package org.apache.nifi.provenance;
 
-import static org.junit.Assert.assertEquals;
-
-import java.io.IOException;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
 import org.apache.nifi.authorization.user.NiFiUser;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.provenance.search.Query;
@@ -33,6 +24,16 @@ import org.apache.nifi.provenance.search.SearchTerms;
 import org.apache.nifi.util.NiFiProperties;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import java.io.IOException;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+
+import static org.junit.Assert.assertEquals;
 
 public class TestVolatileProvenanceRepository {
 
@@ -101,10 +102,10 @@ public class TestVolatileProvenanceRepository {
         }
 
         final Query query = new Query(UUID.randomUUID().toString());
-        query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.FlowFileUUID, "00000*"));
-        query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.Filename, "file-*"));
-        query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.ComponentID, "12?4"));
-        query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.TransitURI, "nifi://*"));
+        query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.FlowFileUUID, "00000*", null));
+        query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.Filename, "file-*", null));
+        query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.ComponentID, "12?4", null));
+        query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.TransitURI, "nifi://*", null));
         query.setMaxResults(100);
 
         final QuerySubmission submission = repo.submitQuery(query, createUser());
@@ -116,6 +117,56 @@ public class TestVolatileProvenanceRepository {
         for (final ProvenanceEventRecord match : submission.getResult().getMatchingEvents()) {
             System.out.println(match);
         }
+    }
+
+    @Test(timeout = 1000)
+    public void testSearchForInverseValue() throws InterruptedException {
+        repo = new VolatileProvenanceRepository(NiFiProperties.createBasicNiFiProperties(null));
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("abc", "xyz");
+
+        final ProvenanceEventBuilder builder = new StandardProvenanceEventRecord.Builder();
+        builder.setEventTime(System.currentTimeMillis());
+        builder.setEventType(ProvenanceEventType.RECEIVE);
+        builder.setTransitUri("nifi://unit-test");
+        builder.setComponentId("1234");
+        builder.setComponentType("dummy processor");
+
+        final String uuid_prefix = "00000000-0000-0000-0000-000000000000";
+
+        for (int i = 0; i < 2; i++) {
+            attributes.put("uuid", uuid_prefix + i);
+            attributes.put("file.owner", "testOwner1");
+            builder.fromFlowFile(createFlowFile(i, 3000L, attributes));
+            repo.registerEvent(builder.build());
+        }
+
+        for (int i = 2; i < 10; i++) {
+            attributes.put("uuid", uuid_prefix + i);
+            attributes.put("file.owner", "testOwner2");
+            builder.fromFlowFile(createFlowFile(i, 3000L, attributes));
+            repo.registerEvent(builder.build());
+        }
+
+        final Query query = new Query(UUID.randomUUID().toString());
+        query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.ComponentID, "1234", null));
+        query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.newSearchableAttribute("abc"), "x?z", null));
+
+        // set up query to search for event with uuid NOT ending in *000 and file.owner NOT testOwner2 and testAttribute NOT fitting pattern of testAttributeValu?
+        query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.FlowFileUUID, "*000", Boolean.TRUE));
+        query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.newSearchableAttribute("file.owner"), "testOwner2", Boolean.TRUE));
+        query.addSearchTerm(SearchTerms.newSearchTerm(SearchableFields.newSearchableAttribute("testAttribute"), "testAttributeValu?", Boolean.TRUE));
+
+        query.setMaxResults(100);
+
+        final QuerySubmission submission = repo.submitQuery(query, createUser());
+        while (!submission.getResult().isFinished()) {
+            Thread.sleep(100L);
+        }
+
+        assertEquals(1, submission.getResult().getMatchingEvents().size());
+        assertEquals("00000000-0000-0000-0000-0000000000001", submission.getResult().getMatchingEvents().get(0).getFlowFileUuid());
     }
 
     private FlowFile createFlowFile(final long id, final long fileSize, final Map<String, String> attributes) {
@@ -188,6 +239,16 @@ public class TestVolatileProvenanceRepository {
 
             @Override
             public Set<String> getGroups() {
+                return Collections.EMPTY_SET;
+            }
+
+            @Override
+            public Set<String> getIdentityProviderGroups() {
+                return Collections.EMPTY_SET;
+            }
+
+            @Override
+            public Set<String> getAllGroups() {
                 return Collections.EMPTY_SET;
             }
 

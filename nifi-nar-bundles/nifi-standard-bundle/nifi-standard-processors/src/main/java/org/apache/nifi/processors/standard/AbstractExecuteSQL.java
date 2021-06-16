@@ -91,6 +91,7 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
             .displayName("SQL Pre-Query")
             .description("A semicolon-delimited list of queries executed before the main SQL query is executed. " +
                     "For example, set session properties before main query. " +
+                    "It's possible to include semicolons in the statements themselves by escaping them with a backslash ('\\;'). " +
                     "Results/outputs from these queries will be suppressed if there are no errors.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -114,6 +115,7 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
             .displayName("SQL Post-Query")
             .description("A semicolon-delimited list of queries executed after the main SQL query is executed. " +
                     "Example like setting session properties after main query. " +
+                    "It's possible to include semicolons in the statements themselves by escaping them with a backslash ('\\;'). " +
                     "Results/outputs from these queries will be suppressed if there are no errors.")
             .required(false)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -127,6 +129,7 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
             .defaultValue("0 seconds")
             .required(true)
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .sensitive(false)
             .build();
 
@@ -138,7 +141,7 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
             .defaultValue("0")
             .required(true)
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
     public static final PropertyDescriptor OUTPUT_BATCH_SIZE = new PropertyDescriptor.Builder()
@@ -152,7 +155,7 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
             .defaultValue("0")
             .required(true)
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
     public static final PropertyDescriptor FETCH_SIZE = new PropertyDescriptor.Builder()
@@ -163,7 +166,7 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
             .defaultValue("0")
             .required(true)
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .build();
 
     protected List<PropertyDescriptor> propDescriptors;
@@ -210,11 +213,11 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
         final List<FlowFile> resultSetFlowFiles = new ArrayList<>();
 
         final ComponentLog logger = getLogger();
-        final Integer queryTimeout = context.getProperty(QUERY_TIMEOUT).asTimePeriod(TimeUnit.SECONDS).intValue();
-        final Integer maxRowsPerFlowFile = context.getProperty(MAX_ROWS_PER_FLOW_FILE).evaluateAttributeExpressions().asInteger();
-        final Integer outputBatchSizeField = context.getProperty(OUTPUT_BATCH_SIZE).evaluateAttributeExpressions().asInteger();
+        final int queryTimeout = context.getProperty(QUERY_TIMEOUT).evaluateAttributeExpressions(fileToProcess).asTimePeriod(TimeUnit.SECONDS).intValue();
+        final Integer maxRowsPerFlowFile = context.getProperty(MAX_ROWS_PER_FLOW_FILE).evaluateAttributeExpressions(fileToProcess).asInteger();
+        final Integer outputBatchSizeField = context.getProperty(OUTPUT_BATCH_SIZE).evaluateAttributeExpressions(fileToProcess).asInteger();
         final int outputBatchSize = outputBatchSizeField == null ? 0 : outputBatchSizeField;
-        final Integer fetchSize = context.getProperty(FETCH_SIZE).evaluateAttributeExpressions().asInteger();
+        final Integer fetchSize = context.getProperty(FETCH_SIZE).evaluateAttributeExpressions(fileToProcess).asInteger();
 
         List<String> preQueries = getQueries(context.getProperty(SQL_PRE_QUERY).evaluateAttributeExpressions(fileToProcess).getValue());
         List<String> postQueries = getQueries(context.getProperty(SQL_POST_QUERY).evaluateAttributeExpressions(fileToProcess).getValue());
@@ -330,8 +333,8 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
                                     resultSetFF = session.putAttribute(resultSetFF, FRAGMENT_INDEX, String.valueOf(fragmentIndex));
                                 }
 
-                                logger.info("{} contains {} records; transferring to 'success'",
-                                        new Object[]{resultSetFF, nrOfRows.get()});
+                                logger.info("{} contains {} records; transferring to 'success'", new Object[]{resultSetFF, nrOfRows.get()});
+
                                 // Report a FETCH event if there was an incoming flow file, or a RECEIVE event otherwise
                                 if(context.hasIncomingConnection()) {
                                     session.getProvenanceReporter().fetch(resultSetFF, "Retrieved " + nrOfRows.get() + " rows", executionTimeElapsed + fetchTimeElapsed);
@@ -348,14 +351,16 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
                                         session.remove(fileToProcess);
                                         fileToProcess = null;
                                     }
-                                    session.commit();
+
+                                    session.commitAsync();
                                     resultSetFlowFiles.clear();
                                 }
 
                                 fragmentIndex++;
                             } catch (Exception e) {
-                                // Remove the result set flow file and propagate the exception
+                                // Remove any result set flow file(s) and propagate the exception
                                 session.remove(resultSetFF);
+                                session.remove(resultSetFlowFiles);
                                 if (e instanceof ProcessException) {
                                     throw (ProcessException) e;
                                 } else {
@@ -472,7 +477,8 @@ public abstract class AbstractExecuteSQL extends AbstractProcessor {
             return null;
         }
         final List<String> queries = new LinkedList<>();
-        for (String query : value.split(";")) {
+        for (String query : value.split("(?<!\\\\);")) {
+            query = query.replaceAll("\\\\;", ";");
             if (query.trim().length() > 0) {
                 queries.add(query.trim());
             }

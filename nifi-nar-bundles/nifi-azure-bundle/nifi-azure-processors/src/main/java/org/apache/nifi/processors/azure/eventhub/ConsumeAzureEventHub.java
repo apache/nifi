@@ -17,13 +17,13 @@
 package org.apache.nifi.processors.azure.eventhub;
 
 import com.microsoft.azure.eventhubs.EventData;
+import com.microsoft.azure.eventhubs.ReceiverDisconnectedException;
 import com.microsoft.azure.eventprocessorhost.CloseReason;
 import com.microsoft.azure.eventprocessorhost.EventProcessorHost;
 import com.microsoft.azure.eventprocessorhost.EventProcessorOptions;
 import com.microsoft.azure.eventprocessorhost.IEventProcessor;
 import com.microsoft.azure.eventprocessorhost.IEventProcessorFactory;
 import com.microsoft.azure.eventprocessorhost.PartitionContext;
-import com.microsoft.azure.eventhubs.ReceiverDisconnectedException;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -47,6 +47,7 @@ import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.azure.eventhub.utils.AzureEventHubUtils;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
@@ -75,7 +76,6 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import static org.apache.nifi.util.StringUtils.isEmpty;
-import org.apache.nifi.processors.azure.eventhub.utils.AzureEventHubUtils;
 
 @Tags({"azure", "microsoft", "cloud", "eventhub", "events", "streaming", "streams"})
 @CapabilityDescription("Receives messages from Azure Event Hubs, writing the contents of the message to the content of the FlowFile.")
@@ -86,7 +86,8 @@ import org.apache.nifi.processors.azure.eventhub.utils.AzureEventHubUtils;
         @WritesAttribute(attribute = "eventhub.offset", description = "The offset into the partition at which the message was stored"),
         @WritesAttribute(attribute = "eventhub.sequence", description = "The sequence number associated with the message"),
         @WritesAttribute(attribute = "eventhub.name", description = "The name of the event hub from which the message was pulled"),
-        @WritesAttribute(attribute = "eventhub.partition", description = "The name of the partition from which the message was pulled")
+        @WritesAttribute(attribute = "eventhub.partition", description = "The name of the partition from which the message was pulled"),
+        @WritesAttribute(attribute = "eventhub.property.*", description = "The application properties of this message. IE: 'application' would be 'eventhub.property.application'")
 })
 public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
 
@@ -381,16 +382,13 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
                 }
 
                 // Commit NiFi first.
-                session.commit();
                 // If creating an Event Hub checkpoint failed, then the same message can be retrieved again.
-                context.checkpoint();
-
+                session.commitAsync(context::checkpoint);
             } catch (Exception e) {
                 getLogger().error("Unable to fully process received message due to " + e, e);
                 // FlowFiles those are already committed will not get rollback.
                 session.rollback();
             }
-
         }
 
         private void putEventHubAttributes(Map<String, String> attributes, String eventHubName, String partitionId, EventData eventData) {
@@ -400,6 +398,9 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
                 attributes.put("eventhub.offset", systemProperties.getOffset());
                 attributes.put("eventhub.sequence", String.valueOf(systemProperties.getSequenceNumber()));
             }
+
+            final Map<String,String> applicationProperties = AzureEventHubUtils.getApplicationProperties(eventData);
+            attributes.putAll(applicationProperties);
 
             attributes.put("eventhub.name", eventHubName);
             attributes.put("eventhub.partition", partitionId);
@@ -414,8 +415,8 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
 
                 final Map<String, String> attributes = new HashMap<>();
                 putEventHubAttributes(attributes, eventHubName, partitionId, eventData);
-
                 flowFile = session.putAllAttributes(flowFile, attributes);
+
                 flowFile = session.write(flowFile, out -> {
                     out.write(eventData.getBytes());
                 });

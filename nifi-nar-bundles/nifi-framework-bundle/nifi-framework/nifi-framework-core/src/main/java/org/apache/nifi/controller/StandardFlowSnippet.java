@@ -37,6 +37,7 @@ import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroupPortDescriptor;
 import org.apache.nifi.logging.LogLevel;
+import org.apache.nifi.nar.ExtensionDefinition;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.processor.Processor;
@@ -113,22 +114,23 @@ public class StandardFlowSnippet implements FlowSnippet {
 
     public void verifyComponentTypesInSnippet() {
         final Map<String, Set<BundleCoordinate>> processorClasses = new HashMap<>();
-        for (final Class<?> c : extensionManager.getExtensions(Processor.class)) {
-            final String name = c.getName();
+        for (final ExtensionDefinition extensionDefinition : extensionManager.getExtensions(Processor.class)) {
+            final String name = extensionDefinition.getImplementationClassName();
             processorClasses.put(name, extensionManager.getBundles(name).stream().map(bundle -> bundle.getBundleDetails().getCoordinate()).collect(Collectors.toSet()));
         }
         verifyProcessorsInSnippet(dto, processorClasses);
 
         final Map<String, Set<BundleCoordinate>> controllerServiceClasses = new HashMap<>();
-        for (final Class<?> c : extensionManager.getExtensions(ControllerService.class)) {
-            final String name = c.getName();
+        for (final ExtensionDefinition extensionDefinition : extensionManager.getExtensions(ControllerService.class)) {
+            final String name = extensionDefinition.getImplementationClassName();
             controllerServiceClasses.put(name, extensionManager.getBundles(name).stream().map(bundle -> bundle.getBundleDetails().getCoordinate()).collect(Collectors.toSet()));
         }
         verifyControllerServicesInSnippet(dto, controllerServiceClasses);
 
         final Set<String> prioritizerClasses = new HashSet<>();
-        for (final Class<?> c : extensionManager.getExtensions(FlowFilePrioritizer.class)) {
-            prioritizerClasses.add(c.getName());
+        for (final ExtensionDefinition extensionDefinition : extensionManager.getExtensions(FlowFilePrioritizer.class)) {
+            final String name = extensionDefinition.getImplementationClassName();
+            prioritizerClasses.add(name);
         }
 
         final Set<ConnectionDTO> allConns = new HashSet<>();
@@ -308,6 +310,9 @@ public class StandardFlowSnippet implements FlowSnippet {
             inputPort.setProcessGroup(group);
             inputPort.setMaxConcurrentTasks(portDTO.getConcurrentlySchedulableTaskCount());
             inputPort.setComments(portDTO.getComments());
+            if (portDTO.getState().equals(ScheduledState.DISABLED.toString())) {
+                inputPort.disable();
+            }
             group.addInputPort(inputPort);
         }
 
@@ -333,6 +338,9 @@ public class StandardFlowSnippet implements FlowSnippet {
             outputPort.setProcessGroup(group);
             outputPort.setMaxConcurrentTasks(portDTO.getConcurrentlySchedulableTaskCount());
             outputPort.setComments(portDTO.getComments());
+            if (portDTO.getState().equals(ScheduledState.DISABLED.toString())) {
+                outputPort.disable();
+            }
             group.addOutputPort(outputPort);
         }
 

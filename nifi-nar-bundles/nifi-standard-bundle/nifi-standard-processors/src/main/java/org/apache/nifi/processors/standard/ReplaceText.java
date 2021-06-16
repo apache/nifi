@@ -17,6 +17,7 @@
 package org.apache.nifi.processors.standard;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.text.StringSubstitutor;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -46,8 +47,6 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.io.InputStreamCallback;
-import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.io.StreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.stream.io.StreamUtils;
@@ -97,6 +96,7 @@ public class ReplaceText extends AbstractProcessor {
     public static final String regexReplaceValue = "Regex Replace";
     public static final String literalReplaceValue = "Literal Replace";
     public static final String alwaysReplace = "Always Replace";
+    public static final String SUBSTITUTE_VARIABLES_VALUE = "Substitute Variables";
     private static final Pattern unescapedBackReferencePattern = Pattern.compile("[^\\\\]\\$(\\d+)");
     private static final String DEFAULT_REGEX = "(?s)(^.*$)";
     private static final String DEFAULT_REPLACEMENT_VALUE = "$1";
@@ -122,6 +122,9 @@ public class ReplaceText extends AbstractProcessor {
     static final AllowableValue ALWAYS_REPLACE = new AllowableValue(alwaysReplace, alwaysReplace,
         "Always replaces the entire line or the entire contents of the FlowFile (depending on the value of the <Evaluation Mode> property) and does not bother searching "
             + "for any value. When this strategy is chosen, the <Search Value> property is ignored.");
+    static final AllowableValue SUBSTITUTE_VARIABLES = new AllowableValue(SUBSTITUTE_VARIABLES_VALUE, SUBSTITUTE_VARIABLES_VALUE,
+            "Substitute variable references (specified in ${var} form) using FlowFile attributes for looking up the replacement value by variable name. "
+                    + "When this strategy is chosen, both the <Search Value> and <Replacement Value> properties are ignored.");
 
     public static final PropertyDescriptor SEARCH_VALUE = new PropertyDescriptor.Builder()
         .name("Regular Expression")
@@ -165,7 +168,7 @@ public class ReplaceText extends AbstractProcessor {
     public static final PropertyDescriptor REPLACEMENT_STRATEGY = new PropertyDescriptor.Builder()
         .name("Replacement Strategy")
         .description("The strategy for how and what to replace within the FlowFile's text content.")
-        .allowableValues(PREPEND, APPEND, REGEX_REPLACE, LITERAL_REPLACE, ALWAYS_REPLACE)
+        .allowableValues(PREPEND, APPEND, REGEX_REPLACE, LITERAL_REPLACE, ALWAYS_REPLACE, SUBSTITUTE_VARIABLES)
         .defaultValue(REGEX_REPLACE.getValue())
         .required(true)
         .build();
@@ -174,7 +177,7 @@ public class ReplaceText extends AbstractProcessor {
         .description("Run the 'Replacement Strategy' against each line separately (Line-by-Line) or buffer the entire file "
             + "into memory (Entire Text) and run against that.")
         .allowableValues(LINE_BY_LINE, ENTIRE_TEXT)
-        .defaultValue(ENTIRE_TEXT)
+        .defaultValue(LINE_BY_LINE)
         .required(true)
         .build();
 
@@ -248,6 +251,7 @@ public class ReplaceText extends AbstractProcessor {
             case appendValue:
             case prependValue:
             case alwaysReplace:
+            case SUBSTITUTE_VARIABLES_VALUE:
             default:
                 // nothing to check, search value is not used
                 break;
@@ -260,14 +264,6 @@ public class ReplaceText extends AbstractProcessor {
     public void setup(ProcessContext context) {
         final String replacementStrategy = context.getProperty(REPLACEMENT_STRATEGY).getValue();
         final String evaluateMode = context.getProperty(EVALUATION_MODE).getValue();
-        final int maxBufferSize = context.getProperty(MAX_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
-
-        final byte[] buffer;
-        if (replacementStrategy.equalsIgnoreCase(regexReplaceValue) || replacementStrategy.equalsIgnoreCase(literalReplaceValue)) {
-            buffer = new byte[maxBufferSize];
-        } else {
-            buffer = null;
-        }
 
         switch (replacementStrategy) {
             case prependValue:
@@ -285,15 +281,19 @@ public class ReplaceText extends AbstractProcessor {
                         && context.getProperty(REPLACEMENT_VALUE).getValue().isEmpty()) {
                     replacementStrategyExecutor = new AlwaysReplace();
                 } else {
-                    replacementStrategyExecutor = new RegexReplace(buffer, context);
+                    final String regex = context.getProperty(SEARCH_VALUE).evaluateAttributeExpressions().getValue();
+                    replacementStrategyExecutor = new RegexReplace(regex);
                 }
 
                 break;
             case literalReplaceValue:
-                replacementStrategyExecutor = new LiteralReplace(buffer);
+                replacementStrategyExecutor = new LiteralReplace();
                 break;
             case alwaysReplace:
                 replacementStrategyExecutor = new AlwaysReplace();
+                break;
+            case SUBSTITUTE_VARIABLES_VALUE:
+                replacementStrategyExecutor = new SubstituteVariablesReplace();
                 break;
             default:
                 throw new AssertionError();
@@ -382,7 +382,7 @@ public class ReplaceText extends AbstractProcessor {
         return value;
     }
 
-    private class AlwaysReplace implements ReplacementStrategyExecutor {
+    private static class AlwaysReplace implements ReplacementStrategyExecutor {
         @Override
         public FlowFile replace(FlowFile flowFile, final ProcessSession session, final ProcessContext context, final String evaluateMode, final Charset charset, final int maxBufferSize) {
 
@@ -390,12 +390,7 @@ public class ReplaceText extends AbstractProcessor {
             final StringBuilder lineEndingBuilder = new StringBuilder(2);
 
             if (evaluateMode.equalsIgnoreCase(ENTIRE_TEXT)) {
-                flowFile = session.write(flowFile, new StreamCallback() {
-                    @Override
-                    public void process(final InputStream in, final OutputStream out) throws IOException {
-                        out.write(replacementValue.getBytes(charset));
-                    }
-                });
+                flowFile = session.write(flowFile, out -> out.write(replacementValue.getBytes(charset)));
             } else {
                 flowFile = session.write(flowFile, new StreamReplaceCallback(charset, maxBufferSize, context.getProperty(LINE_BY_LINE_EVALUATION_MODE).getValue(),
                     ((bw, oneLine) -> {
@@ -427,7 +422,7 @@ public class ReplaceText extends AbstractProcessor {
         }
     }
 
-    private class PrependReplace implements ReplacementStrategyExecutor {
+    private static class PrependReplace implements ReplacementStrategyExecutor {
         @Override
         public FlowFile replace(FlowFile flowFile, final ProcessSession session, final ProcessContext context, final String evaluateMode, final Charset charset, final int maxBufferSize) {
             final String replacementValue = context.getProperty(REPLACEMENT_VALUE).evaluateAttributeExpressions(flowFile).getValue();
@@ -454,7 +449,7 @@ public class ReplaceText extends AbstractProcessor {
 
     }
 
-    private class AppendReplace implements ReplacementStrategyExecutor {
+    private static class AppendReplace implements ReplacementStrategyExecutor {
 
         @Override
         public FlowFile replace(FlowFile flowFile, final ProcessSession session, final ProcessContext context, final String evaluateMode, final Charset charset, final int maxBufferSize) {
@@ -506,10 +501,8 @@ public class ReplaceText extends AbstractProcessor {
     }
 
 
-    private class RegexReplace implements ReplacementStrategyExecutor {
-        private final byte[] buffer;
+    private static class RegexReplace implements ReplacementStrategyExecutor {
         private final int numCapturingGroups;
-        private final Map<String, String> additionalAttrs;
 
         // back references are not supported in the evaluated expression
         private final AttributeValueDecorator escapeBackRefDecorator = new AttributeValueDecorator() {
@@ -520,12 +513,8 @@ public class ReplaceText extends AbstractProcessor {
             }
         };
 
-        public RegexReplace(final byte[] buffer, final ProcessContext context) {
-            this.buffer = buffer;
-
-            final String regexValue = context.getProperty(SEARCH_VALUE).evaluateAttributeExpressions().getValue();
-            numCapturingGroups = Pattern.compile(regexValue).matcher("").groupCount();
-            additionalAttrs = new HashMap<>(numCapturingGroups);
+        public RegexReplace(final String regex) {
+            numCapturingGroups = Pattern.compile(regex).matcher("").groupCount();
         }
 
         @Override
@@ -534,19 +523,17 @@ public class ReplaceText extends AbstractProcessor {
 
             final String searchRegex = context.getProperty(SEARCH_VALUE).evaluateAttributeExpressions(flowFile, quotedAttributeDecorator).getValue();
             final Pattern searchPattern = Pattern.compile(searchRegex);
+            final Map<String, String> additionalAttrs = new HashMap<>(numCapturingGroups);
 
-            final int flowFileSize = (int) flowFile.getSize();
             FlowFile updatedFlowFile;
             if (evaluateMode.equalsIgnoreCase(ENTIRE_TEXT)) {
-                session.read(flowFile, new InputStreamCallback() {
-                    @Override
-                    public void process(final InputStream in) throws IOException {
-                        StreamUtils.fillBuffer(in, buffer, false);
-                    }
-                });
+                final int flowFileSize = (int) flowFile.getSize();
+                final int bufferSize = Math.min(maxBufferSize, flowFileSize);
+                final byte[] buffer = new byte[bufferSize];
+
+                session.read(flowFile, in -> StreamUtils.fillBuffer(in, buffer, false));
 
                 final String contentString = new String(buffer, 0, flowFileSize, charset);
-                additionalAttrs.clear();
                 final Matcher matcher = searchPattern.matcher(contentString);
 
                 final PropertyValue replacementValueProperty = context.getProperty(REPLACEMENT_VALUE);
@@ -571,12 +558,7 @@ public class ReplaceText extends AbstractProcessor {
                     matcher.appendTail(sb);
 
                     final String updatedValue = sb.toString();
-                    updatedFlowFile = session.write(flowFile, new OutputStreamCallback() {
-                        @Override
-                        public void process(final OutputStream out) throws IOException {
-                            out.write(updatedValue.getBytes(charset));
-                        }
-                    });
+                    updatedFlowFile = session.write(flowFile, out -> out.write(updatedValue.getBytes(charset)));
                 } else {
                     return flowFile;
                 }
@@ -585,8 +567,7 @@ public class ReplaceText extends AbstractProcessor {
                 final Matcher matcher = searchPattern.matcher("");
                 updatedFlowFile = session.write(flowFile, new StreamReplaceCallback(charset, maxBufferSize, context.getProperty(LINE_BY_LINE_EVALUATION_MODE).getValue(),
                     (bw, oneLine) -> {
-                        additionalAttrs.clear();
-                            matcher.reset(oneLine);
+                        matcher.reset(oneLine);
 
                         int matches = 0;
                         StringBuffer sb = new StringBuffer();
@@ -626,22 +607,17 @@ public class ReplaceText extends AbstractProcessor {
         }
     }
 
-    private class LiteralReplace implements ReplacementStrategyExecutor {
-        private final byte[] buffer;
-
-        public LiteralReplace(final byte[] buffer) {
-            this.buffer = buffer;
-        }
-
+    private static class LiteralReplace implements ReplacementStrategyExecutor {
         @Override
         public FlowFile replace(FlowFile flowFile, final ProcessSession session, final ProcessContext context, final String evaluateMode, final Charset charset, final int maxBufferSize) {
-
             final String replacementValue = context.getProperty(REPLACEMENT_VALUE).evaluateAttributeExpressions(flowFile).getValue();
-            final AttributeValueDecorator quotedAttributeDecorator = Pattern::quote;
-            final String searchValue = context.getProperty(SEARCH_VALUE).evaluateAttributeExpressions(flowFile, quotedAttributeDecorator).getValue();
+            final String searchValue = context.getProperty(SEARCH_VALUE).evaluateAttributeExpressions(flowFile).getValue();
 
-            final int flowFileSize = (int) flowFile.getSize();
             if (evaluateMode.equalsIgnoreCase(ENTIRE_TEXT)) {
+                final int flowFileSize = (int) flowFile.getSize();
+                final int bufferSize = Math.min(maxBufferSize, flowFileSize);
+                final byte[] buffer = new byte[bufferSize];
+
                 flowFile = session.write(flowFile, new StreamCallback() {
                     @Override
                     public void process(final InputStream in, final OutputStream out) throws IOException {
@@ -685,6 +661,41 @@ public class ReplaceText extends AbstractProcessor {
         }
     }
 
+    private static class SubstituteVariablesReplace implements ReplacementStrategyExecutor {
+        @Override
+        public FlowFile replace(FlowFile flowFile, final ProcessSession session, final ProcessContext context, final String evaluateMode, final Charset charset, final int maxBufferSize) {
+            final Map<String, String> flowFileAttributes = flowFile.getAttributes();
+
+            if (evaluateMode.equalsIgnoreCase(ENTIRE_TEXT)) {
+                final int flowFileSize = (int) flowFile.getSize();
+                final int bufferSize = Math.min(maxBufferSize, flowFileSize);
+                final byte[] buffer = new byte[bufferSize];
+
+                flowFile = session.write(flowFile, new StreamCallback() {
+                    @Override
+                    public void process(final InputStream in, final OutputStream out) throws IOException {
+                        StreamUtils.fillBuffer(in, buffer, false);
+                        final String originalContent = new String(buffer, 0, flowFileSize, charset);
+                        final String substitutedContent = StringSubstitutor.replace(originalContent, flowFileAttributes);
+                        out.write(substitutedContent.getBytes(charset));
+                    }
+                });
+            } else {
+                flowFile = session.write(flowFile, new StreamReplaceCallback(charset, maxBufferSize, context.getProperty(LINE_BY_LINE_EVALUATION_MODE).getValue(),
+                        (bw, oneLine) -> {
+                            final String substitutedLine = StringSubstitutor.replace(oneLine, flowFileAttributes);
+                            bw.write(substitutedLine);
+                        }));
+            }
+            return flowFile;
+        }
+
+        @Override
+        public boolean isAllDataBufferedForEntireText() {
+            return true;
+        }
+    }
+
     /**
      * If we have a '$' followed by anything other than a number, then escape
      * it. E.g., '$d' becomes '\$d' so that it can be used as a literal in a
@@ -710,7 +721,7 @@ public class ReplaceText extends AbstractProcessor {
     }
 
 
-    private class StreamReplaceCallback implements StreamCallback {
+    private static class StreamReplaceCallback implements StreamCallback {
         private final Charset charset;
         private final int maxBufferSize;
         private final String lineByLineEvaluationMode;

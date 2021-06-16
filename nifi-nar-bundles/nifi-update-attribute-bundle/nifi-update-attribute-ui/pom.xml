@@ -18,14 +18,13 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-update-attribute-bundle</artifactId>
-        <version>1.12.0-SNAPSHOT</version>
+        <version>1.14.0-SNAPSHOT</version>
     </parent>
     <artifactId>nifi-update-attribute-ui</artifactId>
     <packaging>war</packaging>
     <properties>
         <maven.javadoc.skip>true</maven.javadoc.skip>
         <source.skip>true</source.skip>
-        <jersey.version>2.26</jersey.version>
     </properties>
     <build>
         <plugins>
@@ -90,29 +89,24 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-utils</artifactId>
-            <version>1.12.0-SNAPSHOT</version>
+            <version>1.14.0-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-custom-ui-utilities</artifactId>
-            <version>1.12.0-SNAPSHOT</version>
+            <version>1.14.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-processor-utils</artifactId>
-            <version>1.12.0-SNAPSHOT</version>
+            <version>1.14.0-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-expression-language</artifactId>
-            <version>1.12.0-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-web-utils</artifactId>
-            <version>1.12.0-SNAPSHOT</version>
+            <version>1.14.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>javax.servlet</groupId>

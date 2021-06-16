@@ -1,0 +1,138 @@
+<!--
+Licensed to the Apache Software Foundation (ASF) under one or more
+contributor license agreements.  See the NOTICE file distributed with
+this work for additional information regarding copyright ownership.
+The ASF licenses this file to You under the Apache License, Version 2.0
+(the "License"); you may not use this file except in compliance with
+the License.  You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+<div class="pad-top-sm pad-bottom-sm pad-right-xxl pad-left-xxl">
+    <div layout="row" layout-align="space-between center">
+        <div flex fxLayout="row" fxLayoutAlign="start center">
+            <span class="push-top-sm pad-right-sm">Sort by:</span>
+            <div fxLayout="row" fxLayoutAlign="end center" [matMenuTriggerFor]="dropletGridSortMenu">
+                <div class="push-top-sm" id="droplet-sort-by-field">{{nfRegistryService.getSortByLabel()}}</div>
+                <i class="push-top-sm fa fa-caret-down pad-left-sm" aria-hidden="true"></i>
+            </div>
+        </div>
+        <div flex fxLayout="row" fxLayoutAlign="end center">
+            <td-chips [(ngModel)]="nfRegistryService.dropletsSearchTerms"
+                      [items]="nfRegistryService.autoCompleteDroplets"
+                      (add)="nfRegistryService.filterDroplets(nfRegistryService.activeDropletColumn.name, nfRegistryService.activeDropletColumn.sortOrder);"
+                      (remove)="nfRegistryService.filterDroplets(nfRegistryService.activeDropletColumn.name, nfRegistryService.activeDropletColumn.sortOrder);"class="push-right-sm"></td-chips>
+        </div>
+        <mat-menu #dropletGridSortMenu="matMenu" [overlapTrigger]="false">
+            <div *ngFor="let column of nfRegistryService.dropletColumns">
+                <button mat-menu-item *ngIf="column.sortable" (click)="nfRegistryService.sortDroplets(column);">
+                    {{nfRegistryService.generateSortMenuLabels(column)}}
+                </button>
+            </div>
+        </mat-menu>
+        <button [disabled]="nfRegistryService.buckets.length === 0 || (nfRegistryService.filterWritableBuckets(nfRegistryService.buckets)).length === 0"
+                (click)="nfRegistryService.openImportNewFlowDialog(nfRegistryService.buckets, nfRegistryService.bucket)"
+                class="push-left-sm push-top-sm" data-automation-id="import-new-flow-button"
+                color="fds-primary" mat-raised-button i18n="Import new flow button|A button for importing a new flow in the registry.">
+            Import New Flow
+        </button>
+    </div>
+</div>
+<div id="import-new-flow-disabled-message" flex fxLayout="row" fxLayoutAlign="end center" class="pad-right-xxl pad-bottom-sm" *ngIf="(nfRegistryService.filterWritableBuckets(nfRegistryService.buckets)).length === 0 && nfRegistryService.buckets.length != 0">
+    <span>You are not authorized to import flows.</span>
+</div>
+<div id="nifi-registry-explorer-grid-list-viewer-droplet-container" class="pad-right-xxl pad-left-xxl"
+     *ngIf="nfRegistryService.filteredDroplets.length > 0">
+    <div *ngFor="let droplet of nfRegistryService.filteredDroplets" [@flyInOut]>
+        <td-expansion-panel class="mat-elevation-z5" label={{droplet.name}} sublabel={{droplet.type}}
+                            [disabled]="disabled" (expanded)="nfRegistryService.getDropletSnapshotMetadata(droplet)">
+            <ng-template td-expansion-panel-label>
+                <div fxLayout="column" fxLayoutAlign="space-between start">
+                    <span class="md-title">{{droplet.name}} - {{droplet.bucketName}}</span>
+                    <span class="md-subhead">{{droplet.type}}</span>
+                </div>
+            </ng-template>
+            <ng-template td-expansion-panel-sublabel>
+                <div fxLayout="row" fxLayoutAlign="space-between center">
+                    <div class="pad-right-xxl pad-left-xxl" fxLayout="column" fxLayoutAlign="space-between start">
+                        <span class="uppercase">Versions</span> {{droplet.versionCount}}
+                    </div>
+                </div>
+            </ng-template>
+            <div id="nifi-registry-explorer-grid-list-viewer-droplet-container-details" class="mat-padding">
+                <div fxLayout="column" fxLayoutAlign="space-between stretch">
+                    <div fxLayout="row" fxLayoutAlign="end center">
+                        <button color="fds-primary" [matMenuTriggerFor]="primaryButtonDropdownMenu" mat-raised-button>
+                            Actions<i class="fa fa-caret-down" aria-hidden="true"></i>
+                        </button>
+                        <mat-menu class="fds-primary-dropdown-button-menu" #primaryButtonDropdownMenu="matMenu"
+                                  [overlapTrigger]="false">
+                            <button mat-menu-item *ngFor="let action of nfRegistryService.dropletActions"
+                                    [disabled]="action.disabled(droplet)"
+                                    (click)="nfRegistryService.executeDropletAction(action, droplet)">
+                                {{action.name}}
+                            </button>
+                        </mat-menu>
+                    </div>
+                    <div fxLayout="row">
+                        <div fxFlex="25" class="pad-left-sm">
+                            <div>
+                                <span class="uppercase">Bucket Identifier</span>
+                                <p class="ellipsis" matTooltip="{{droplet.bucketIdentifier}}" *ngIf="droplet.bucketIdentifier">{{droplet.bucketIdentifier}}</p>
+                            </div>
+                            <div class="pad-top-md">
+                                <span class="uppercase">{{droplet.type}} Identifier</span>
+                                <p class="ellipsis" matTooltip="{{droplet.identifier}} "*ngIf="droplet.identifier">{{droplet.identifier}}</p>
+                            </div>
+                            <div class="pad-top-md">
+                                <span class="uppercase">Description</span>
+                                <p class="nf-registry-droplet-description" matTooltip="{{droplet.description}}" *ngIf="droplet.description">{{droplet.description}}</p>
+                                <p *ngIf="!droplet.description">No description specified</p>
+                            </div>
+                        </div>
+                        <div fxFlex="75">
+                            <span class="uppercase">Change Log</span>
+                            <button class="nf-registry-change-log-refresh" (click)="nfRegistryService.getDropletSnapshotMetadata(droplet)" matTooltip="Refresh" mat-icon-button>
+                                <i class="fa fa-refresh info" aria-hidden="true"></i>
+                            </button>
+                            <div id="nifi-registry-explorer-grid-list-viewer-droplet-container-details-change-log">
+                                <td-steps mode="vertical">
+                                    <td-step label="Version {{snapshotMeta.version}} - {{snapshotMeta.timestamp | amTimeAgo}}" sublabel="by {{snapshotMeta.author}}"
+                                             *ngFor="let snapshotMeta of droplet.snapshotMetadata; let i = index"
+                                             [active]="i === 0 ? true : false">
+                                        <div fxLayout="column" fxLayoutAlign="space-between stretch">
+                                            <div *ngIf="snapshotMeta.comments" fxLayout="row" class="mat-body-2">
+                                                {{snapshotMeta.comments}}
+                                            </div>
+                                            <div *ngIf="!snapshotMeta.comments" fxLayout="row" class="mat-body-2">
+                                                No comments specified
+                                            </div>
+                                            <div fxLayout="row" class="mat-caption">
+                                                {{(snapshotMeta.timestamp/1000 | amFromUnix) | amDateFormat:'MMM-DD-YYYY'}} at {{(snapshotMeta.timestamp/1000 | amFromUnix) | amDateFormat:'h:mm A'}}
+                                            </div>
+                                        </div>
+                                    </td-step>
+                                </td-steps>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </td-expansion-panel>
+        <div class="pad-bottom-sm"></div>
+    </div>
+</div>
+<div class="pad-right-xxl pad-left-xxl" *ngIf="nfRegistryService.filteredDroplets.length === 0 && nfRegistryService.buckets.length != 0 && !nfRegistryService.inProgress">
+    <p class="text-center">No results match this query.</p>
+</div>
+<div class="pad-right-xxl pad-left-xxl" *ngIf="nfRegistryService.filteredDroplets.length === 0 && nfRegistryService.buckets.length === 0 && !nfRegistryService.inProgress">
+    <p class="text-center">There are no buckets to display.</p>
+</div>
+<router-outlet></router-outlet>

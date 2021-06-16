@@ -26,7 +26,8 @@ public class ParameterContextValidationRequestDTO extends AsynchronousRequestDTO
     private ParameterContextDTO parameterContext;
     private ComponentValidationResultsEntity componentValidationResults;
 
-    @ApiModelProperty(value = "The Validation Results that were calculated for each component. This value may not be set until the request completes.", readOnly = true)
+    @ApiModelProperty(value = "The Validation Results that were calculated for each component. This value may not be set until the request completes.",
+            accessMode = ApiModelProperty.AccessMode.READ_ONLY)
     public ComponentValidationResultsEntity getComponentValidationResults() {
         return componentValidationResults;
     }

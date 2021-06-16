@@ -33,8 +33,7 @@ public final class ServerSocketConfiguration {
     }
 
     public SSLContext createSSLContext() throws TlsException {
-        // ClientAuth was hardcoded to REQUIRED in removed SSLContextFactory and overridden in SocketUtils when the socket is created
-        return SslContextFactory.createSslContext(tlsConfiguration, SslContextFactory.ClientAuth.REQUIRED);
+        return SslContextFactory.createSslContext(tlsConfiguration);
     }
 
     public void setTlsConfiguration(final TlsConfiguration tlsConfiguration) {

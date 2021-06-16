@@ -21,6 +21,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.nifi.components.resource.ResourceReferences;
 import org.apache.nifi.hadoop.KerberosProperties;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessorInitializationContext;
@@ -42,7 +43,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 public class GetHDFSSequenceFileTest {
-    private AbstractHadoopProcessor.HdfsResources hdfsResources;
+    private HdfsResources hdfsResources;
     private GetHDFSSequenceFile getHDFSSequenceFile;
     private Configuration configuration;
     private FileSystem fileSystem;
@@ -54,7 +55,7 @@ public class GetHDFSSequenceFileTest {
         configuration = mock(Configuration.class);
         fileSystem = mock(FileSystem.class);
         userGroupInformation = mock(UserGroupInformation.class);
-        hdfsResources = new AbstractHadoopProcessor.HdfsResources(configuration, fileSystem, userGroupInformation, null);
+        hdfsResources = new HdfsResources(configuration, fileSystem, userGroupInformation, null);
         getHDFSSequenceFile = new TestableGetHDFSSequenceFile();
         getHDFSSequenceFile.kerberosProperties = mock(KerberosProperties.class);
         reloginTried = false;
@@ -85,7 +86,7 @@ public class GetHDFSSequenceFileTest {
 
     @Test
     public void testGetFlowFilesNoUgiShouldntCallDoAs() throws Exception {
-        hdfsResources = new AbstractHadoopProcessor.HdfsResources(configuration, fileSystem, null, null);
+        hdfsResources = new HdfsResources(configuration, fileSystem, null, null);
         init();
         SequenceFileReader reader = mock(SequenceFileReader.class);
         Path file = mock(Path.class);
@@ -95,7 +96,7 @@ public class GetHDFSSequenceFileTest {
 
     public class TestableGetHDFSSequenceFile extends GetHDFSSequenceFile {
         @Override
-        HdfsResources resetHDFSResources(String configResources, ProcessContext context) throws IOException {
+        HdfsResources resetHDFSResources(ResourceReferences configResources, ProcessContext context) throws IOException {
             return hdfsResources;
         }
 

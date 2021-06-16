@@ -16,9 +16,12 @@
  */
 package org.apache.nifi.web;
 
+import javax.servlet.ServletContext;
+import javax.ws.rs.core.Context;
 import org.apache.nifi.web.api.config.AccessDeniedExceptionMapper;
 import org.apache.nifi.web.api.config.AdministrationExceptionMapper;
 import org.apache.nifi.web.api.config.AuthenticationCredentialsNotFoundExceptionMapper;
+import org.apache.nifi.web.api.config.AuthenticationNotSupportedExceptionMapper;
 import org.apache.nifi.web.api.config.AuthorizationAccessExceptionMapper;
 import org.apache.nifi.web.api.config.ClusterExceptionMapper;
 import org.apache.nifi.web.api.config.IllegalArgumentExceptionMapper;
@@ -30,9 +33,9 @@ import org.apache.nifi.web.api.config.IllegalNodeReconnectionExceptionMapper;
 import org.apache.nifi.web.api.config.IllegalStateExceptionMapper;
 import org.apache.nifi.web.api.config.InvalidAuthenticationExceptionMapper;
 import org.apache.nifi.web.api.config.InvalidRevisionExceptionMapper;
+import org.apache.nifi.web.api.config.JsonContentConversionExceptionMapper;
 import org.apache.nifi.web.api.config.JsonMappingExceptionMapper;
 import org.apache.nifi.web.api.config.JsonParseExceptionMapper;
-import org.apache.nifi.web.api.config.JsonContentConversionExceptionMapper;
 import org.apache.nifi.web.api.config.MutableRequestExceptionMapper;
 import org.apache.nifi.web.api.config.NiFiCoreExceptionMapper;
 import org.apache.nifi.web.api.config.NoClusterCoordinatorExceptionMapper;
@@ -55,9 +58,6 @@ import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.server.filter.EncodingFilter;
 import org.springframework.context.ApplicationContext;
 import org.springframework.web.context.support.WebApplicationContextUtils;
-
-import javax.servlet.ServletContext;
-import javax.ws.rs.core.Context;
 
 public class NiFiWebApiResourceConfig extends ResourceConfig {
 
@@ -105,6 +105,7 @@ public class NiFiWebApiResourceConfig extends ResourceConfig {
         // exception mappers
         register(AccessDeniedExceptionMapper.class);
         register(AuthorizationAccessExceptionMapper.class);
+        register(AuthenticationNotSupportedExceptionMapper.class);
         register(InvalidAuthenticationExceptionMapper.class);
         register(AuthenticationCredentialsNotFoundExceptionMapper.class);
         register(AdministrationExceptionMapper.class);

@@ -16,20 +16,14 @@
  */
 package org.apache.nifi.util.file.classloader;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.xml.bind.DatatypeConverter;
 import java.io.File;
 import java.io.FilenameFilter;
-import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashSet;
@@ -37,6 +31,11 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+import javax.xml.bind.DatatypeConverter;
+
+import org.apache.nifi.util.security.MessageDigestUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ClassLoaderUtils {
 
@@ -138,25 +137,20 @@ public class ClassLoaderUtils {
         return additionalClasspath.toArray(new URL[additionalClasspath.size()]);
     }
 
-    public static String generateAdditionalUrlsFingerprint(Set<URL> urls) {
-        List<String> listOfUrls = urls.stream().map(Object::toString).collect(Collectors.toList());
-        StringBuffer urlBuffer = new StringBuffer();
+    /**
+     * Generate fingerprint from URLs associated with classpath resources
+     *
+     * @param urls URLs used for generating fingerprint string
+     * @return Fingerprint string from provided URLs
+     */
+    public static String generateAdditionalUrlsFingerprint(final Set<URL> urls) {
+        final StringBuilder formattedUrls = new StringBuilder();
 
-        //Sorting so that the order is maintained for generating the fingerprint
-        Collections.sort(listOfUrls);
-        try {
-            MessageDigest md = MessageDigest.getInstance("MD5");
-            listOfUrls.forEach(url -> {
-                urlBuffer.append(url).append("-").append(getLastModified(url)).append(";");
-            });
-            byte[] bytesOfAdditionalUrls = urlBuffer.toString().getBytes("UTF-8");
-            byte[] bytesOfDigest = md.digest(bytesOfAdditionalUrls);
+        final List<String> sortedUrls = urls.stream().map(Object::toString).sorted().collect(Collectors.toList());
+        sortedUrls.forEach(url -> formattedUrls.append(url).append("-").append(getLastModified(url)).append(";"));
+        final byte[] formattedUrlsBinary = formattedUrls.toString().getBytes(StandardCharsets.UTF_8);
 
-            return DatatypeConverter.printHexBinary(bytesOfDigest);
-        } catch (NoSuchAlgorithmException | UnsupportedEncodingException e) {
-            LOGGER.error("Unable to generate fingerprint for the provided additional resources {}", new Object[]{urls, e});
-            return null;
-        }
+        return DatatypeConverter.printHexBinary(MessageDigestUtils.getDigest(formattedUrlsBinary));
     }
 
     private static long getLastModified(String url) {

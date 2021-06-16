@@ -59,3 +59,7 @@ export NIFI_LOG_DIR
 # restriction).
 NIFI_ALLOW_EXPLICIT_KEYTAB="$(setOrDefault "$NIFI_ALLOW_EXPLICIT_KEYTAB" true)"
 export NIFI_ALLOW_EXPLICIT_KEYTAB
+
+# Set to true to deny access to the Local File System from HDFS Processors
+# This flag forces HDFS Processors to evaluate the File System path during scheduling
+export NIFI_HDFS_DENY_LOCAL_FILE_SYSTEM_ACCESS=false

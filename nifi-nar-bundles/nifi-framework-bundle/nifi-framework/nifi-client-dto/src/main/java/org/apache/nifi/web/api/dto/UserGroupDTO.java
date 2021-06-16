@@ -51,7 +51,7 @@ public class UserGroupDTO extends TenantDTO {
             value = "The access policies this user group belongs to. This field was incorrectly defined as an AccessPolicyEntity. For "
                     + "compatibility reasons the field will remain of this type, however only the fields that are present in the "
                     + "AccessPolicySummaryEntity will be populated here.",
-            readOnly = true
+            accessMode = ApiModelProperty.AccessMode.READ_ONLY
     )
     public Set<AccessPolicyEntity> getAccessPolicies() {
         return accessPolicies;

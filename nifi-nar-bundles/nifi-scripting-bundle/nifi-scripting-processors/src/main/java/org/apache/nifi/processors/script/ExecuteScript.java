@@ -16,9 +16,7 @@
  */
 package org.apache.nifi.processors.script;
 
-
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -54,18 +52,15 @@ import org.apache.nifi.search.Searchable;
 import javax.script.Bindings;
 import javax.script.ScriptContext;
 import javax.script.ScriptEngine;
-import javax.script.ScriptException;
 import javax.script.SimpleBindings;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.charset.Charset;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Scanner;
 import java.util.Set;
 
 @Tags({"script", "execute", "groovy", "python", "jython", "jruby", "ruby", "javascript", "js", "lua", "luaj", "clojure"})
@@ -96,7 +91,7 @@ public class ExecuteScript extends AbstractSessionFactoryProcessor implements Se
     public static final Relationship REL_SUCCESS = ScriptingComponentUtils.REL_SUCCESS;
     public static final Relationship REL_FAILURE = ScriptingComponentUtils.REL_FAILURE;
 
-    private String scriptToRun = null;
+    private volatile String scriptToRun = null;
     volatile ScriptingComponentHelper scriptingComponentHelper = new ScriptingComponentHelper();
 
 
@@ -124,7 +119,7 @@ public class ExecuteScript extends AbstractSessionFactoryProcessor implements Se
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         synchronized (scriptingComponentHelper.isInitialized) {
             if (!scriptingComponentHelper.isInitialized.get()) {
-                scriptingComponentHelper.createResources();
+                scriptingComponentHelper.createResources(false);
             }
         }
 
@@ -164,9 +159,6 @@ public class ExecuteScript extends AbstractSessionFactoryProcessor implements Se
     public void setup(final ProcessContext context) {
         scriptingComponentHelper.setupVariables(context);
 
-        // Create a script engine for each possible task
-        int maxTasks = context.getMaxConcurrentTasks();
-        scriptingComponentHelper.setup(maxTasks, getLogger());
         scriptToRun = scriptingComponentHelper.getScriptBody();
 
         try {
@@ -178,6 +170,10 @@ public class ExecuteScript extends AbstractSessionFactoryProcessor implements Se
         } catch (IOException ioe) {
             throw new ProcessException(ioe);
         }
+
+        // Create a script engine for each possible task
+        int maxTasks = context.getMaxConcurrentTasks();
+        scriptingComponentHelper.setupScriptRunners(maxTasks, scriptToRun, getLogger());
     }
 
     /**
@@ -195,17 +191,18 @@ public class ExecuteScript extends AbstractSessionFactoryProcessor implements Se
     public void onTrigger(ProcessContext context, ProcessSessionFactory sessionFactory) throws ProcessException {
         synchronized (scriptingComponentHelper.isInitialized) {
             if (!scriptingComponentHelper.isInitialized.get()) {
-                scriptingComponentHelper.createResources();
+                scriptingComponentHelper.createResources(false);
             }
         }
-        ScriptEngine scriptEngine = scriptingComponentHelper.engineQ.poll();
+        ScriptRunner scriptRunner = scriptingComponentHelper.scriptRunnerQ.poll();
         ComponentLog log = getLogger();
-        if (scriptEngine == null) {
+        if (scriptRunner == null) {
             // No engine available so nothing more to do here
             return;
         }
         ProcessSession session = sessionFactory.createSession();
         try {
+            ScriptEngine scriptEngine = scriptRunner.getScriptEngine();
 
             try {
                 Bindings bindings = scriptEngine.getBindings(ScriptContext.ENGINE_SCOPE);
@@ -228,42 +225,33 @@ public class ExecuteScript extends AbstractSessionFactoryProcessor implements Se
                     }
                 }
 
-                scriptEngine.setBindings(bindings, ScriptContext.ENGINE_SCOPE);
-
-                // Execute any engine-specific configuration before the script is evaluated
-                ScriptEngineConfigurator configurator =
-                        scriptingComponentHelper.scriptEngineConfiguratorMap.get(scriptingComponentHelper.getScriptEngineName().toLowerCase());
-
-                // Evaluate the script with the configurator (if it exists) or the engine
-                if (configurator != null) {
-                    configurator.eval(scriptEngine, scriptToRun, scriptingComponentHelper.getModules());
-                } else {
-                    scriptEngine.eval(scriptToRun);
-                }
+                scriptRunner.run(bindings);
 
                 // Commit this session for the user. This plus the outermost catch statement mimics the behavior
                 // of AbstractProcessor. This class doesn't extend AbstractProcessor in order to share a base
                 // class with InvokeScriptedProcessor
-                session.commit();
-            } catch (ScriptException e) {
+                session.commitAsync();
+                scriptingComponentHelper.scriptRunnerQ.offer(scriptRunner);
+            } catch (Throwable t) {
+                // Create a new ScriptRunner to replace the one that caused an exception
+                scriptingComponentHelper.setupScriptRunners(false, 1, scriptToRun, getLogger());
+
                 // The below 'session.rollback(true)' reverts any changes made during this session (all FlowFiles are
                 // restored back to their initial session state and back to their original queues after being penalized).
                 // However if the incoming relationship is full of flow files, this processor will keep failing and could
                 // cause resource exhaustion. In case a user does not want to yield, it can be set to 0s in the processor
                 // configuration.
                 context.yield();
-                throw new ProcessException(e);
+                throw new ProcessException(t);
             }
         } catch (final Throwable t) {
             // Mimic AbstractProcessor behavior here
-            getLogger().error("{} failed to process due to {}; rolling back session", new Object[]{this, t});
+            getLogger().error("{} failed to process due to {}; rolling back session", this, t);
 
             // the rollback might not penalize the incoming flow file if the exception is thrown before the user gets
             // the flow file from the session binding (ff = session.get()).
             session.rollback(true);
             throw t;
-        } finally {
-            scriptingComponentHelper.engineQ.offer(scriptEngine);
         }
     }
 
@@ -277,39 +265,11 @@ public class ExecuteScript extends AbstractSessionFactoryProcessor implements Se
         // Create the resources whether or not they have been created already, this method is guaranteed to have the instance classloader set
         // as the thread context class loader. Other methods that call createResources() may be called from other threads with different
         // classloaders
-        scriptingComponentHelper.createResources();
+        scriptingComponentHelper.createResources(false);
     }
 
     @Override
     public Collection<SearchResult> search(SearchContext context) {
-        Collection<SearchResult> results = new ArrayList<>();
-
-        String term = context.getSearchTerm();
-
-        String scriptFile = context.getProperty(ScriptingComponentUtils.SCRIPT_FILE).evaluateAttributeExpressions().getValue();
-        String script = context.getProperty(ScriptingComponentUtils.SCRIPT_BODY).getValue();
-
-        if (StringUtils.isBlank(script)) {
-            try {
-                script = IOUtils.toString(new FileInputStream(scriptFile), "UTF-8");
-            } catch (Exception e) {
-                getLogger().error(String.format("Could not read from path %s", scriptFile), e);
-                return results;
-            }
-        }
-
-        Scanner scanner = new Scanner(script);
-        int index = 1;
-
-        while (scanner.hasNextLine()) {
-            String line = scanner.nextLine();
-            if (StringUtils.containsIgnoreCase(line, term)) {
-                String text = String.format("Matched script at line %d: %s", index, line);
-                results.add(new SearchResult.Builder().label(text).match(term).build());
-            }
-            index++;
-        }
-
-        return results;
+        return ScriptingComponentUtils.search(context, getLogger());
     }
 }

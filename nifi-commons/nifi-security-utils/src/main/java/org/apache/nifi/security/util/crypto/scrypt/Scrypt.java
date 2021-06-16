@@ -110,6 +110,27 @@ public class Scrypt {
         }
     }
 
+    /**
+     * Hash the supplied input and generate raw unencoded output.
+     *
+     * @param input input in bytes
+     * @param salt  the raw salt (16 bytes)
+     * @param n     CPU cost parameter
+     * @param r     memory cost parameter
+     * @param p     parallelization parameter
+     * @param dkLen the desired key length in bits
+     * @return the hashed password
+     */
+    public static byte[] scrypt(byte[] input, byte[] salt, int n, int r, int p, int dkLen) {
+        try {
+            byte[] derived = deriveScryptKey(input, salt, n, r, p, dkLen);
+
+            return derived;
+        } catch (GeneralSecurityException e) {
+            throw new IllegalStateException("JVM doesn't support SHA1PRNG or HMAC_SHA256?");
+        }
+    }
+
     public static String formatSalt(byte[] salt, int n, int r, int p) {
         String params = encodeParams(n, r, p);
 

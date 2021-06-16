@@ -48,6 +48,7 @@ import org.apache.nifi.controller.Template;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.repository.ContentNotFoundException;
+import org.apache.nifi.controller.repository.FlowFileEventRepository;
 import org.apache.nifi.controller.repository.claim.ContentDirection;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
@@ -58,13 +59,14 @@ import org.apache.nifi.controller.status.ProcessorStatus;
 import org.apache.nifi.controller.status.RemoteProcessGroupStatus;
 import org.apache.nifi.controller.status.analytics.StatusAnalytics;
 import org.apache.nifi.controller.status.analytics.StatusAnalyticsEngine;
-import org.apache.nifi.controller.status.history.ComponentStatusRepository;
+import org.apache.nifi.controller.status.history.StatusHistoryRepository;
 import org.apache.nifi.diagnostics.SystemDiagnostics;
 import org.apache.nifi.flowfile.FlowFilePrioritizer;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.ProcessGroupCounts;
 import org.apache.nifi.groups.RemoteProcessGroup;
+import org.apache.nifi.nar.ExtensionDefinition;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
@@ -100,6 +102,7 @@ import org.apache.nifi.web.api.dto.provenance.ProvenanceEventDTO;
 import org.apache.nifi.web.api.dto.provenance.ProvenanceOptionsDTO;
 import org.apache.nifi.web.api.dto.provenance.ProvenanceRequestDTO;
 import org.apache.nifi.web.api.dto.provenance.ProvenanceResultsDTO;
+import org.apache.nifi.web.api.dto.provenance.ProvenanceSearchValueDTO;
 import org.apache.nifi.web.api.dto.provenance.ProvenanceSearchableFieldDTO;
 import org.apache.nifi.web.api.dto.provenance.lineage.LineageDTO;
 import org.apache.nifi.web.api.dto.provenance.lineage.LineageRequestDTO;
@@ -279,6 +282,22 @@ public class ControllerFacade implements Authorizable {
     }
 
     /**
+     * Returns the status history for the node.
+     *
+     * @return status history
+     */
+    public StatusHistoryDTO getNodeStatusHistory() {
+        final boolean authorized = isAuthorized(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser());
+        final StatusHistoryDTO statusHistory = flowController.getNodeStatusHistory();
+
+        if (!authorized)  {
+            statusHistory.getComponentDetails().put(StatusHistoryRepository.COMPONENT_DETAIL_TYPE, "Node");
+        }
+
+        return statusHistory;
+    }
+
+    /**
      * Returns the status history for the specified processor.
      *
      * @param processorId processor id
@@ -299,8 +318,8 @@ public class ControllerFacade implements Authorizable {
 
         // if not authorized
         if (!authorized) {
-            statusHistory.getComponentDetails().put(ComponentStatusRepository.COMPONENT_DETAIL_NAME, processorId);
-            statusHistory.getComponentDetails().put(ComponentStatusRepository.COMPONENT_DETAIL_TYPE, "Processor");
+            statusHistory.getComponentDetails().put(StatusHistoryRepository.COMPONENT_DETAIL_NAME, processorId);
+            statusHistory.getComponentDetails().put(StatusHistoryRepository.COMPONENT_DETAIL_TYPE, "Processor");
         }
 
         return statusHistory;
@@ -325,9 +344,9 @@ public class ControllerFacade implements Authorizable {
 
         // if not authorized
         if (!connection.isAuthorized(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser())) {
-            statusHistory.getComponentDetails().put(ComponentStatusRepository.COMPONENT_DETAIL_NAME, connectionId);
-            statusHistory.getComponentDetails().put(ComponentStatusRepository.COMPONENT_DETAIL_SOURCE_NAME, connection.getSource().getIdentifier());
-            statusHistory.getComponentDetails().put(ComponentStatusRepository.COMPONENT_DETAIL_DESTINATION_NAME, connection.getDestination().getIdentifier());
+            statusHistory.getComponentDetails().put(StatusHistoryRepository.COMPONENT_DETAIL_NAME, connectionId);
+            statusHistory.getComponentDetails().put(StatusHistoryRepository.COMPONENT_DETAIL_SOURCE_NAME, connection.getSource().getIdentifier());
+            statusHistory.getComponentDetails().put(StatusHistoryRepository.COMPONENT_DETAIL_DESTINATION_NAME, connection.getDestination().getIdentifier());
         }
 
         return statusHistory;
@@ -355,7 +374,7 @@ public class ControllerFacade implements Authorizable {
 
         // if not authorized
         if (!group.isAuthorized(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser())) {
-            statusHistory.getComponentDetails().put(ComponentStatusRepository.COMPONENT_DETAIL_NAME, groupId);
+            statusHistory.getComponentDetails().put(StatusHistoryRepository.COMPONENT_DETAIL_NAME, groupId);
         }
 
         return statusHistory;
@@ -380,8 +399,8 @@ public class ControllerFacade implements Authorizable {
 
         // if not authorized
         if (!remoteProcessGroup.isAuthorized(authorizer, RequestAction.READ, NiFiUserUtils.getNiFiUser())) {
-            statusHistory.getComponentDetails().put(ComponentStatusRepository.COMPONENT_DETAIL_NAME, remoteProcessGroupId);
-            statusHistory.getComponentDetails().remove(ComponentStatusRepository.COMPONENT_DETAIL_URI);
+            statusHistory.getComponentDetails().put(StatusHistoryRepository.COMPONENT_DETAIL_NAME, remoteProcessGroupId);
+            statusHistory.getComponentDetails().remove(StatusHistoryRepository.COMPONENT_DETAIL_URI);
         }
 
         return statusHistory;
@@ -497,7 +516,7 @@ public class ControllerFacade implements Authorizable {
     public Set<DocumentedTypeDTO> getControllerServiceTypes(final String serviceType, final String serviceBundleGroup, final String serviceBundleArtifact, final String serviceBundleVersion,
                                                             final String bundleGroupFilter, final String bundleArtifactFilter, final String typeFilter) {
 
-        final Set<Class> serviceImplementations = getExtensionManager().getExtensions(ControllerService.class);
+        final Set<ExtensionDefinition> extensionDefinitions = getExtensionManager().getExtensions(ControllerService.class);
 
         // identify the controller services that implement the specified serviceType if applicable
         if (serviceType != null) {
@@ -520,7 +539,8 @@ public class ControllerFacade implements Authorizable {
             final Map<Class, Bundle> matchingServiceImplementations = new HashMap<>();
 
             // check each type and remove those that aren't in the specified ancestry
-            for (final Class csClass : serviceImplementations) {
+            for (final ExtensionDefinition extensionDefinition : extensionDefinitions) {
+                final Class csClass = getExtensionManager().getClass(extensionDefinition);
                 if (implementsServiceType(serviceClass, csClass)) {
                     matchingServiceImplementations.put(csClass, getExtensionManager().getBundle(csClass.getClassLoader()));
                 }
@@ -528,7 +548,7 @@ public class ControllerFacade implements Authorizable {
 
             return dtoFactory.fromDocumentedTypes(matchingServiceImplementations, bundleGroupFilter, bundleArtifactFilter, typeFilter);
         } else {
-            return dtoFactory.fromDocumentedTypes(serviceImplementations, bundleGroupFilter, bundleArtifactFilter, typeFilter);
+            return dtoFactory.fromDocumentedTypes(extensionDefinitions, bundleGroupFilter, bundleArtifactFilter, typeFilter);
         }
     }
 
@@ -1020,16 +1040,16 @@ public class ControllerFacade implements Authorizable {
         // if the request was specified
         if (requestDto != null) {
             // add each search term specified
-            final Map<String, String> searchTerms = requestDto.getSearchTerms();
+            final Map<String, ProvenanceSearchValueDTO> searchTerms = requestDto.getSearchTerms();
             if (searchTerms != null) {
-                for (final Map.Entry<String, String> searchTerm : searchTerms.entrySet()) {
+                for (final Map.Entry<String, ProvenanceSearchValueDTO> searchTerm : searchTerms.entrySet()) {
                     SearchableField field;
 
                     field = SearchableFields.getSearchableField(searchTerm.getKey());
                     if (field == null) {
                         field = SearchableFields.newSearchableAttribute(searchTerm.getKey());
                     }
-                    query.addSearchTerm(SearchTerms.newSearchTerm(field, searchTerm.getValue()));
+                    query.addSearchTerm(SearchTerms.newSearchTerm(field, searchTerm.getValue().getValue(), searchTerm.getValue().getInverse()));
                 }
             }
 
@@ -1096,9 +1116,12 @@ public class ControllerFacade implements Authorizable {
             requestDto.setMaximumFileSize(query.getMaxFileSize());
             requestDto.setMaxResults(query.getMaxResults());
             if (query.getSearchTerms() != null) {
-                final Map<String, String> searchTerms = new HashMap<>();
+                final Map<String, ProvenanceSearchValueDTO> searchTerms = new HashMap<>();
                 for (final SearchTerm searchTerm : query.getSearchTerms()) {
-                    searchTerms.put(searchTerm.getSearchableField().getFriendlyName(), searchTerm.getValue());
+                    final ProvenanceSearchValueDTO searchValueDTO = new ProvenanceSearchValueDTO();
+                    searchValueDTO.setValue(searchTerm.getValue());
+                    searchValueDTO.setInverse(searchTerm.isInverted());
+                    searchTerms.put(searchTerm.getSearchableField().getFriendlyName(), searchValueDTO);
                 }
                 requestDto.setSearchTerms(searchTerms);
             }
@@ -1627,6 +1650,10 @@ public class ControllerFacade implements Authorizable {
     public ProcessorDiagnosticsDTO getProcessorDiagnostics(final ProcessorNode processor, final ProcessorStatus processorStatus, final BulletinRepository bulletinRepository,
             final Function<String, ControllerServiceEntity> serviceEntityFactory) {
         return dtoFactory.createProcessorDiagnosticsDto(processor, processorStatus, bulletinRepository, flowController, serviceEntityFactory);
+    }
+
+    public FlowFileEventRepository getFlowFileEventRepository() {
+        return flowController.getFlowFileEventRepository();
     }
 
     /*

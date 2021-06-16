@@ -126,6 +126,16 @@
         <url-pattern>/login</url-pattern>
     </servlet-mapping>
 
+    <!-- servlet to logout page -->
+    <servlet>
+        <servlet-name>Logout</servlet-name>
+        <jsp-file>/WEB-INF/pages/logout.jsp</jsp-file>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>Logout</servlet-name>
+        <url-pattern>/logout-complete</url-pattern>
+    </servlet-mapping>
+
     <!-- login filter -->
     <filter>
         <filter-name>LoginFilter</filter-name>

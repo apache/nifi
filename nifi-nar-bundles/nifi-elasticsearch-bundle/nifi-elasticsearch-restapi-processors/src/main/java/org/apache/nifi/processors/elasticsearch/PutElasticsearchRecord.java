@@ -50,14 +50,12 @@ import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.util.DataTypeUtils;
-import org.apache.nifi.util.StringUtils;
 
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -85,6 +83,32 @@ public class PutElasticsearchRecord extends AbstractProcessor implements Elastic
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
         .required(true)
         .build();
+
+    static final PropertyDescriptor INDEX_OP = new PropertyDescriptor.Builder()
+            .name("put-es-record-index-op")
+            .displayName("Index Operation")
+            .description("The type of the operation used to index (create, delete, index, update, upsert)")
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .required(false)
+            .allowableValues(
+                    IndexOperationRequest.Operation.Create.getValue(),
+                    IndexOperationRequest.Operation.Delete.getValue(),
+                    IndexOperationRequest.Operation.Index.getValue(),
+                    IndexOperationRequest.Operation.Update.getValue(),
+                    IndexOperationRequest.Operation.Upsert.getValue()
+            )
+            .defaultValue(IndexOperationRequest.Operation.Index.getValue())
+            .build();
+
+    static final PropertyDescriptor INDEX_OP_RECORD_PATH = new PropertyDescriptor.Builder()
+            .name("put-es-record-index-op-path")
+            .displayName("Index Operation Record Path")
+            .description("A record path expression to retrieve the Index Operation field for use with Elasticsearch. If left blank " +
+                    "the Index Operation will be determined using the main Index Operation property.")
+            .addValidator(new RecordPathValidator())
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .build();
 
     static final PropertyDescriptor ID_RECORD_PATH = new PropertyDescriptor.Builder()
         .name("put-es-record-id-path")
@@ -127,8 +151,8 @@ public class PutElasticsearchRecord extends AbstractProcessor implements Elastic
         .build();
 
     static final List<PropertyDescriptor> DESCRIPTORS = Collections.unmodifiableList(Arrays.asList(
-        INDEX, TYPE, CLIENT_SERVICE, RECORD_READER, BATCH_SIZE, ID_RECORD_PATH, INDEX_RECORD_PATH, TYPE_RECORD_PATH,
-        LOG_ERROR_RESPONSES, ERROR_RECORD_WRITER
+        INDEX_OP, INDEX, TYPE, CLIENT_SERVICE, RECORD_READER, BATCH_SIZE, ID_RECORD_PATH, INDEX_OP_RECORD_PATH,
+        INDEX_RECORD_PATH, TYPE_RECORD_PATH, LOG_ERROR_RESPONSES, ERROR_RECORD_WRITER
     ));
     static final Set<Relationship> RELATIONSHIPS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
         REL_SUCCESS, REL_FAILURE, REL_RETRY, REL_FAILED_RECORDS
@@ -167,8 +191,13 @@ public class PutElasticsearchRecord extends AbstractProcessor implements Elastic
             return;
         }
 
+        final String indexOp = context.getProperty(INDEX_OP).evaluateAttributeExpressions(input).getValue();
         final String index = context.getProperty(INDEX).evaluateAttributeExpressions(input).getValue();
         final String type  = context.getProperty(TYPE).evaluateAttributeExpressions(input).getValue();
+
+        final String indexOpPath = context.getProperty(INDEX_OP_RECORD_PATH).isSet()
+                ? context.getProperty(INDEX_OP_RECORD_PATH).evaluateAttributeExpressions(input).getValue()
+                : null;
         final String idPath = context.getProperty(ID_RECORD_PATH).isSet()
                 ? context.getProperty(ID_RECORD_PATH).evaluateAttributeExpressions(input).getValue()
                 : null;
@@ -179,6 +208,7 @@ public class PutElasticsearchRecord extends AbstractProcessor implements Elastic
                 ? context.getProperty(TYPE_RECORD_PATH).evaluateAttributeExpressions(input).getValue()
                 : null;
 
+        RecordPath ioPath = indexOpPath != null ? recordPathCache.getCompiled(indexOpPath) : null;
         RecordPath path = idPath != null ? recordPathCache.getCompiled(idPath) : null;
         RecordPath iPath = indexPath != null ? recordPathCache.getCompiled(indexPath) : null;
         RecordPath tPath = typePath != null ? recordPathCache.getCompiled(typePath) : null;
@@ -195,12 +225,10 @@ public class PutElasticsearchRecord extends AbstractProcessor implements Elastic
             while ((record = reader.nextRecord()) != null) {
                 final String idx = getFromRecordPath(record, iPath, index);
                 final String t   = getFromRecordPath(record, tPath, type);
-                final IndexOperationRequest.Operation o = IndexOperationRequest.Operation.Index;
+                final IndexOperationRequest.Operation o = IndexOperationRequest.Operation.forValue(getFromRecordPath(record, ioPath, indexOp));
                 final String id  = path != null ? getFromRecordPath(record, path, null) : null;
 
                 Map<String, Object> contentMap = (Map<String, Object>) DataTypeUtils.convertRecordFieldtoObject(record, RecordFieldType.RECORD.getRecordDataType(record.getSchema()));
-
-                removeEmpty(contentMap);
 
                 operationList.add(new IndexOperationRequest(idx, t, id, contentMap, o));
                 originals.add(record);
@@ -302,31 +330,6 @@ public class PutElasticsearchRecord extends AbstractProcessor implements Elastic
         } else {
             return null;
         }
-    }
-
-    private void removeEmpty(Map<String, Object> input) {
-        Map<String, Object> copy = new HashMap<>(input);
-
-        for (Map.Entry<String, Object> entry : input.entrySet()) {
-            if (entry.getValue() == null) {
-               copy.remove(entry.getKey());
-            } else {
-                if (StringUtils.isBlank(entry.getValue().toString())) {
-                    copy.remove(entry.getKey());
-                } else if (entry.getValue() instanceof Map) {
-                    removeEmpty((Map<String, Object>) entry.getValue());
-                } else if (entry.getValue() instanceof List) {
-                    for (Object value : (List)entry.getValue()) {
-                        if (value instanceof Map) {
-                            removeEmpty((Map<String, Object>) value);
-                        }
-                    }
-                }
-            }
-        }
-
-        input.clear();
-        input.putAll(copy);
     }
 
     private String getFromRecordPath(Record record, RecordPath path, final String fallback) {

@@ -33,7 +33,7 @@ There are three repositories that are utilized by NiFi. Each exists within the O
 - The Content Repository holds the content for current and past FlowFiles.
 - The Provenance Repository holds the history of FlowFiles.
 
-image::zero-master-node.png["NiFi Architecture Diagram"]
+image::zero-leader-node.png["NiFi Architecture Diagram"]
 
 === FlowFile Repository
 FlowFiles that are actively being processed by the system are held in a hash map in the JVM memory (more about that in <<DeeperView>>). This makes it very efficient to process them, but requires a secondary mechanism to provide durability of data across process restarts due to a number of reasons, such as power loss, kernel panics, system upgrades, and maintenance cycles. The FlowFile Repository is a "Write-Ahead Log" (or data record) of the metadata of each of the FlowFiles that currently exist in the system. This FlowFile metadata includes all the attributes associated with the FlowFile, a pointer to the actual content of the FlowFile (which exists in the Content Repo) and the state of the FlowFile, such as which Connection/Queue the FlowFile belongs in. This Write-Ahead Log provides NiFi the resiliency it needs to handle restarts and unexpected system failures.

@@ -19,6 +19,7 @@ package org.apache.nifi.controller;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.controller.queue.FlowFileQueue;
 import org.apache.nifi.controller.queue.QueueSize;
+import org.apache.nifi.controller.repository.CaffeineFieldCache;
 import org.apache.nifi.controller.repository.FlowFileRecord;
 import org.apache.nifi.controller.repository.FlowFileRepository;
 import org.apache.nifi.controller.repository.FlowFileSwapManager;
@@ -35,6 +36,7 @@ import org.apache.nifi.controller.swap.SwapDeserializer;
 import org.apache.nifi.controller.swap.SwapSerializer;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.reporting.Severity;
+import org.apache.nifi.repository.schema.FieldCache;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
@@ -78,11 +80,11 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
     private static final Pattern SWAP_FILE_PATTERN = Pattern.compile("\\d+-.+?(\\..*?)?\\.swap");
     private static final Pattern TEMP_SWAP_FILE_PATTERN = Pattern.compile("\\d+-.+?(\\..*?)?\\.swap\\.part");
 
-    public static final int SWAP_ENCODING_VERSION = 10;
     public static final String EVENT_CATEGORY = "Swap FlowFiles";
     private static final Logger logger = LoggerFactory.getLogger(FileSystemSwapManager.class);
 
     private final File storageDirectory;
+    private final FieldCache fieldCache = new CaffeineFieldCache(10_000_000);
 
     // effectively final
     private FlowFileRepository flowFileRepository;
@@ -117,6 +119,13 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
         this.flowFileRepository = initializationContext.getFlowFileRepository();
     }
 
+    protected InputStream getInputStream(final File file) throws IOException {
+        return new FileInputStream(file);
+    }
+
+    protected OutputStream getOutputStream(final File file) throws IOException {
+        return new FileOutputStream(file);
+    }
 
     @Override
     public String swapOut(final List<FlowFileRecord> toSwap, final FlowFileQueue flowFileQueue, final String partitionName) throws IOException {
@@ -133,14 +142,14 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
         final String swapLocation = swapFile.getAbsolutePath();
 
         final SwapSerializer serializer = new SchemaSwapSerializer();
-        try (final FileOutputStream fos = new FileOutputStream(swapTempFile);
-            final OutputStream out = new BufferedOutputStream(fos)) {
+        try (final OutputStream os = getOutputStream(swapTempFile);
+            final OutputStream out = new BufferedOutputStream(os)) {
             out.write(MAGIC_HEADER);
             final DataOutputStream dos = new DataOutputStream(out);
             dos.writeUTF(serializer.getSerializationName());
 
             serializer.serializeFlowFiles(toSwap, flowFileQueue, swapLocation, out);
-            fos.getFD().sync();
+            out.flush();
         } catch (final IOException ioe) {
             // we failed to write out the entire swap file. Delete the temporary file, if we can.
             swapTempFile.delete();
@@ -165,7 +174,7 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
             warn("Cannot swap in FlowFiles from location " + swapLocation + " because the FlowFile Repository does not know about this Swap Location. " +
                 "This file should be manually removed. This typically occurs when a Swap File is written but the FlowFile Repository is not updated yet to reflect this. " +
                 "This is generally not a cause for concern, but may be indicative of a failure to update the FlowFile Repository.");
-            final SwapSummary swapSummary = new StandardSwapSummary(new QueueSize(0, 0), 0L, Collections.emptyList());
+            final SwapSummary swapSummary = new StandardSwapSummary(new QueueSize(0, 0), 0L, Collections.emptyList(), 0L, 0L);
             return new StandardSwapContents(swapSummary, Collections.emptyList());
         }
 
@@ -186,8 +195,8 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
             throw new FileNotFoundException("Failed to swap in FlowFiles from external storage location " + swapLocation + " into FlowFile Queue because the file could not be found");
         }
 
-        try (final InputStream fis = new FileInputStream(swapFile);
-                final InputStream bis = new BufferedInputStream(fis);
+        try (final InputStream is = getInputStream(swapFile);
+                final InputStream bis = new BufferedInputStream(is);
                 final DataInputStream in = new DataInputStream(bis)) {
 
             final SwapDeserializer deserializer = createSwapDeserializer(in);
@@ -316,7 +325,7 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
             }
 
             // Read the queue identifier from the swap file to check if the swap file is for this queue
-            try (final InputStream fis = new FileInputStream(swapFile);
+            try (final InputStream fis = getInputStream(swapFile);
                     final InputStream bufferedIn = new BufferedInputStream(fis);
                     final DataInputStream in = new DataInputStream(bufferedIn)) {
 
@@ -349,7 +358,7 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
         final File swapFile = new File(swapLocation);
 
         // read record from disk via the swap file
-        try (final InputStream fis = new FileInputStream(swapFile);
+        try (final InputStream fis = getInputStream(swapFile);
                 final InputStream bufferedIn = new BufferedInputStream(fis);
                 final DataInputStream in = new DataInputStream(bufferedIn)) {
 
@@ -372,7 +381,7 @@ public class FileSystemSwapManager implements FlowFileSwapManager {
         if (Arrays.equals(magicHeader, MAGIC_HEADER)) {
             final String serializationName = dis.readUTF();
             if (serializationName.equals(SchemaSwapDeserializer.getSerializationName())) {
-                return new SchemaSwapDeserializer();
+                return new SchemaSwapDeserializer(fieldCache);
             }
 
             throw new IOException("Cannot find a suitable Deserializer for swap file, written with Serialization Name '" + serializationName + "'");

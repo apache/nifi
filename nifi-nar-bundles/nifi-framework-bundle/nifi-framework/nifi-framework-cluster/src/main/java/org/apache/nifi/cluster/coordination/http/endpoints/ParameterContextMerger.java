@@ -23,6 +23,7 @@ import org.apache.nifi.web.api.dto.AffectedComponentDTO;
 import org.apache.nifi.web.api.dto.ParameterContextDTO;
 import org.apache.nifi.web.api.dto.ParameterDTO;
 import org.apache.nifi.web.api.entity.AffectedComponentEntity;
+import org.apache.nifi.web.api.entity.BulletinEntity;
 import org.apache.nifi.web.api.entity.ParameterContextEntity;
 import org.apache.nifi.web.api.entity.ParameterEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupEntity;
@@ -30,6 +31,7 @@ import org.apache.nifi.web.api.entity.ProcessGroupEntity;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -134,6 +136,22 @@ public class ParameterContextMerger {
 
     static void merge(final AffectedComponentEntity merged, final AffectedComponentEntity additional) {
         PermissionsDtoMerger.mergePermissions(merged.getPermissions(), additional.getPermissions());
+
+        // Merge the bulletins
+        if (merged.getPermissions().getCanRead() == Boolean.TRUE) {
+            final List<BulletinEntity> additionalBulletins = additional.getBulletins();
+            if (additionalBulletins != null) {
+                List<BulletinEntity> mergedBulletins = merged.getBulletins();
+                if (mergedBulletins == null) {
+                    mergedBulletins = new ArrayList<>();
+                    merged.setBulletins(mergedBulletins);
+                }
+
+                mergedBulletins.addAll(additionalBulletins);
+            }
+        } else {
+            merged.setBulletins(null);
+        }
 
         if (!Boolean.TRUE.equals(merged.getPermissions().getCanRead()) || additional.getComponent() == null) {
             merged.setComponent(null);

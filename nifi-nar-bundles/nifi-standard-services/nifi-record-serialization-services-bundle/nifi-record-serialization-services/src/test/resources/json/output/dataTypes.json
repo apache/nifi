@@ -12,6 +12,7 @@
   "date" : "2017-01-01",
   "time" : "17:00:00",
   "char" : "c",
+  "enum" : null,
   "string" : "string",
   "record" : null,
   "choice" : 48,

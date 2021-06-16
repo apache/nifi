@@ -24,7 +24,7 @@ import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.security.util.SslContextFactory;
+import org.apache.nifi.security.util.ClientAuth;
 import org.apache.nifi.ssl.SSLContextService;
 import org.bson.Document;
 
@@ -44,6 +44,23 @@ public interface MongoDBClientService extends ControllerService {
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.URI_VALIDATOR)
             .build();
+     PropertyDescriptor DB_USER = new PropertyDescriptor.Builder()
+            .name("Database User")
+            .displayName("Database User")
+            .description("Database user name")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
+     PropertyDescriptor DB_PASSWORD = new PropertyDescriptor.Builder()
+            .name("Password")
+            .displayName("Password")
+            .description("The password for the database user")
+            .required(false)
+            .sensitive(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
      PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
             .name("ssl-context-service")
             .displayName("SSL Context Service")
@@ -59,7 +76,7 @@ public interface MongoDBClientService extends ControllerService {
                     + "Possible values are REQUIRED, WANT, NONE. This property is only used when an SSL Context "
                     + "has been defined and enabled.")
             .required(false)
-            .allowableValues(SslContextFactory.ClientAuth.values())
+            .allowableValues(ClientAuth.values())
             .defaultValue("REQUIRED")
             .build();
 

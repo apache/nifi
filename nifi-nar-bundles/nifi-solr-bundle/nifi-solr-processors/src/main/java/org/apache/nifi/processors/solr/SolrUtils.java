@@ -18,25 +18,6 @@
  */
 package org.apache.nifi.processors.solr;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.SortedMap;
-import java.util.TreeMap;
-import java.util.concurrent.TimeUnit;
-import javax.net.ssl.SSLContext;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.HttpClient;
@@ -55,7 +36,6 @@ import org.apache.nifi.kerberos.KerberosCredentialsService;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.security.util.SslContextFactory;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.record.DataType;
 import org.apache.nifi.serialization.record.ListRecordSet;
@@ -78,12 +58,28 @@ import org.apache.solr.common.SolrDocument;
 import org.apache.solr.common.SolrInputDocument;
 import org.apache.solr.common.params.ModifiableSolrParams;
 import org.apache.solr.common.params.MultiMapSolrParams;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import javax.net.ssl.SSLContext;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.SortedMap;
+import java.util.TreeMap;
+import java.util.concurrent.TimeUnit;
 
 public class SolrUtils {
-
-    static final Logger LOGGER = LoggerFactory.getLogger(SolrUtils.class);
 
     public static final AllowableValue SOLR_TYPE_CLOUD = new AllowableValue(
             "Cloud", "Cloud", "A SolrCloud instance.");
@@ -251,11 +247,11 @@ public class SolrUtils {
         }
 
         if (sslContextService != null) {
-            final SSLContext sslContext = sslContextService.createSSLContext(SslContextFactory.ClientAuth.REQUIRED);
+            final SSLContext sslContext = sslContextService.createContext();
             final SSLConnectionSocketFactory sslSocketFactory = new SSLConnectionSocketFactory(sslContext);
-            HttpClientUtil.setSchemaRegistryProvider(new HttpClientUtil.SchemaRegistryProvider() {
+            HttpClientUtil.setSocketFactoryRegistryProvider(new HttpClientUtil.SocketFactoryRegistryProvider() {
                 @Override
-                public Registry<ConnectionSocketFactory> getSchemaRegistry() {
+                public Registry<ConnectionSocketFactory> getSocketFactoryRegistry() {
                     RegistryBuilder<ConnectionSocketFactory> builder = RegistryBuilder.create();
                     builder.register("http", PlainConnectionSocketFactory.getSocketFactory());
                     builder.register("https", sslSocketFactory);
@@ -326,7 +322,7 @@ public class SolrUtils {
      * Writes each SolrDocument in XML format to the OutputStream.
      */
     private static class QueryResponseOutputStreamCallback implements OutputStreamCallback {
-        private QueryResponse response;
+        private final QueryResponse response;
 
         public QueryResponseOutputStreamCallback(QueryResponse response) {
             this.response = response;

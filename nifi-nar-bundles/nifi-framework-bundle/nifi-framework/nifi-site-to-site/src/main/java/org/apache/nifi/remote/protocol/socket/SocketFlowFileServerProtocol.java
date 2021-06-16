@@ -48,7 +48,7 @@ public class SocketFlowFileServerProtocol extends AbstractFlowFileServerProtocol
 
     public static final String RESOURCE_NAME = "SocketFlowFileProtocol";
 
-    // Version 6 added to support Zero-Master Clustering, which was introduced in NiFi 1.0.0
+    // Version 6 added to support Zero-Leader Clustering, which was introduced in NiFi 1.0.0
     private final VersionNegotiator versionNegotiator = new StandardVersionNegotiator(6, 5, 4, 3, 2, 1);
 
     private PeerDescriptionModifier peerDescriptionModifier;
@@ -59,7 +59,7 @@ public class SocketFlowFileServerProtocol extends AbstractFlowFileServerProtocol
     }
 
     @Override
-    protected HandshakeProperties doHandshake(Peer peer) throws IOException, HandshakeException {
+    protected HandshakeProperties doHandshake(Peer peer) throws IOException {
 
         HandshakeProperties confirmed = new HandshakeProperties();
 
@@ -117,7 +117,7 @@ public class SocketFlowFileServerProtocol extends AbstractFlowFileServerProtocol
     }
 
     @Override
-    public FlowFileCodec negotiateCodec(final Peer peer) throws IOException, ProtocolException {
+    public FlowFileCodec negotiateCodec(final Peer peer) throws IOException {
         if (!handshakeCompleted) {
             throw new IllegalStateException("Handshake has not been completed");
         }
@@ -125,7 +125,7 @@ public class SocketFlowFileServerProtocol extends AbstractFlowFileServerProtocol
             throw new IllegalStateException("Protocol is shutdown");
         }
 
-        logger.debug("{} Negotiating Codec with {} using {}", new Object[]{this, peer, peer.getCommunicationsSession()});
+        logger.debug("{} Negotiating Codec with {} using {}", this, peer, peer.getCommunicationsSession());
         final CommunicationsSession commsSession = peer.getCommunicationsSession();
         final DataInputStream dis = new DataInputStream(commsSession.getInput().getInputStream());
         final DataOutputStream dos = new DataOutputStream(commsSession.getOutput().getOutputStream());
@@ -137,7 +137,7 @@ public class SocketFlowFileServerProtocol extends AbstractFlowFileServerProtocol
         // Negotiate the FlowFileCodec to use.
         try {
             negotiatedFlowFileCodec = RemoteResourceFactory.receiveCodecNegotiation(dis, dos);
-            logger.debug("{} Negotiated Codec {} with {}", new Object[]{this, negotiatedFlowFileCodec, peer});
+            logger.debug("{} Negotiated Codec {} with {}", this, negotiatedFlowFileCodec, peer);
             return negotiatedFlowFileCodec;
         } catch (final HandshakeException e) {
             throw new ProtocolException(e.toString());
@@ -154,9 +154,9 @@ public class SocketFlowFileServerProtocol extends AbstractFlowFileServerProtocol
             throw new IllegalStateException("Protocol is shutdown");
         }
 
-        logger.debug("{} Reading Request Type from {} using {}", new Object[]{this, peer, peer.getCommunicationsSession()});
+        logger.debug("{} Reading Request Type from {} using {}", this, peer, peer.getCommunicationsSession());
         final RequestType requestType = RequestType.readRequestType(new DataInputStream(peer.getCommunicationsSession().getInput().getInputStream()));
-        logger.debug("{} Got Request Type {} from {}", new Object[]{this, requestType, peer});
+        logger.debug("{} Got Request Type {} from {}", this, requestType, peer);
 
         return requestType;
     }

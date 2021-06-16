@@ -16,6 +16,21 @@
  */
 package org.apache.nifi.security.kms;
 
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.security.repository.config.RepositoryEncryptionConfiguration;
+import org.apache.nifi.security.util.EncryptionMethod;
+import org.apache.nifi.security.util.crypto.AESKeyedCipherProvider;
+import org.apache.nifi.util.NiFiBootstrapUtils;
+import org.bouncycastle.util.encoders.DecoderException;
+import org.bouncycastle.util.encoders.Hex;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.crypto.BadPaddingException;
+import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -24,8 +39,6 @@ import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.security.KeyManagementException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -34,22 +47,7 @@ import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.regex.Pattern;
-import java.util.stream.Stream;
-import javax.crypto.BadPaddingException;
-import javax.crypto.Cipher;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.security.repository.config.RepositoryEncryptionConfiguration;
-import org.apache.nifi.security.util.EncryptionMethod;
-import org.apache.nifi.security.util.crypto.AESKeyedCipherProvider;
-import org.apache.nifi.util.NiFiProperties;
-import org.bouncycastle.util.encoders.Hex;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class CryptoUtils {
     private static final Logger logger = LoggerFactory.getLogger(CryptoUtils.class);
@@ -59,9 +57,6 @@ public class CryptoUtils {
     // TODO: Move to RepositoryEncryptionUtils in NIFI-6617
     public static final String LEGACY_SKP_FQCN = "org.apache.nifi.provenance.StaticKeyProvider";
     public static final String LEGACY_FBKP_FQCN = "org.apache.nifi.provenance.FileBasedKeyProvider";
-
-    private static final String RELATIVE_NIFI_PROPS_PATH = "conf/nifi.properties";
-    private static final String BOOTSTRAP_KEY_PREFIX = "nifi.bootstrap.sensitive.key=";
 
     // TODO: Enforce even length
     private static final Pattern HEX_PATTERN = Pattern.compile("(?i)^[0-9a-f]+$");
@@ -96,9 +91,8 @@ public class CryptoUtils {
      *
      * @param arrays the component byte[] in order
      * @return a concatenated byte[]
-     * @throws IOException this should never be thrown
      */
-    public static byte[] concatByteArrays(byte[]... arrays) throws IOException {
+    public static byte[] concatByteArrays(byte[]... arrays) {
         int totalByteLength = 0;
         for (byte[] bytes : arrays) {
             totalByteLength += bytes.length;
@@ -227,22 +221,22 @@ public class CryptoUtils {
 
     /**
      * Returns a map containing the key IDs and the parsed key from a key provider definition file.
-     * The values in the file are decrypted using the master key provided. If the file is missing or empty,
+     * The values in the file are decrypted using the root key provided. If the file is missing or empty,
      * cannot be read, or if no valid keys are read, a {@link KeyManagementException} will be thrown.
      *
      * @param filepath  the key definition file path
-     * @param masterKey the master key used to decrypt each key definition
+     * @param rootKey the root key used to decrypt each key definition
      * @return a Map of key IDs to SecretKeys
      * @throws KeyManagementException if the file is missing or invalid
      */
-    public static Map<String, SecretKey> readKeys(String filepath, SecretKey masterKey) throws KeyManagementException {
+    public static Map<String, SecretKey> readKeys(String filepath, SecretKey rootKey) throws KeyManagementException {
         Map<String, SecretKey> keys = new HashMap<>();
 
         if (StringUtils.isBlank(filepath)) {
             throw new KeyManagementException("The key provider file is not present and readable");
         }
-        if (masterKey == null) {
-            throw new KeyManagementException("The master key must be provided to decrypt the individual keys");
+        if (rootKey == null) {
+            throw new KeyManagementException("The root key must be provided to decrypt the individual keys");
         }
 
         File file = new File(filepath);
@@ -251,7 +245,7 @@ public class CryptoUtils {
         }
 
         try (BufferedReader br = new BufferedReader(new FileReader(file))) {
-            AESKeyedCipherProvider masterCipherProvider = new AESKeyedCipherProvider();
+            AESKeyedCipherProvider rootCipherProvider = new AESKeyedCipherProvider();
 
             String line;
             int l = 1;
@@ -266,13 +260,13 @@ public class CryptoUtils {
                         byte[] base64Bytes = Base64.getDecoder().decode(components[1]);
                         byte[] ivBytes = Arrays.copyOfRange(base64Bytes, 0, IV_LENGTH);
 
-                        Cipher masterCipher = null;
+                        Cipher rootCipher = null;
                         try {
-                            masterCipher = masterCipherProvider.getCipher(EncryptionMethod.AES_GCM, masterKey, ivBytes, false);
+                            rootCipher = rootCipherProvider.getCipher(EncryptionMethod.AES_GCM, rootKey, ivBytes, false);
                         } catch (Exception e) {
                             throw new KeyManagementException("Error building cipher to decrypt FileBaseKeyProvider definition at " + filepath, e);
                         }
-                        byte[] individualKeyBytes = masterCipher.doFinal(Arrays.copyOfRange(base64Bytes, IV_LENGTH, base64Bytes.length));
+                        byte[] individualKeyBytes = rootCipher.doFinal(Arrays.copyOfRange(base64Bytes, IV_LENGTH, base64Bytes.length));
 
                         SecretKey key = new SecretKeySpec(individualKeyBytes, "AES");
                         logger.debug("Read and decrypted key for " + keyId);
@@ -302,93 +296,20 @@ public class CryptoUtils {
     }
 
     /**
-     * Returns the master key from the {@code bootstrap.conf} file used to encrypt various sensitive properties and data encryption keys.
+     * Returns the root key from the {@code bootstrap.conf} file used to encrypt various sensitive properties and data encryption keys.
      *
-     * @return the master key
+     * @return the root key
      * @throws KeyManagementException if the key cannot be read
      */
-    public static SecretKey getMasterKey() throws KeyManagementException {
+    public static SecretKey getRootKey() throws KeyManagementException {
         try {
-            // Get the master encryption key from bootstrap.conf
-            String masterKeyHex = extractKeyFromBootstrapFile();
-            return new SecretKeySpec(Hex.decode(masterKeyHex), "AES");
-        } catch (IOException e) {
+            // Get the root encryption key from bootstrap.conf
+            String rootKeyHex = NiFiBootstrapUtils.extractKeyFromBootstrapFile();
+            return new SecretKeySpec(Hex.decode(rootKeyHex), "AES");
+        } catch (IOException | DecoderException e) {
             logger.error("Encountered an error: ", e);
             throw new KeyManagementException(e);
         }
-    }
-
-    /**
-     * Returns the key (if any) used to encrypt sensitive properties, extracted from {@code $NIFI_HOME/conf/bootstrap.conf}.
-     *
-     * @return the key in hexadecimal format
-     * @throws IOException if the file is not readable
-     */
-    public static String extractKeyFromBootstrapFile() throws IOException {
-        return extractKeyFromBootstrapFile("");
-    }
-
-    /**
-     * Returns the key (if any) used to encrypt sensitive properties, extracted from {@code $NIFI_HOME/conf/bootstrap.conf}.
-     *
-     * @param bootstrapPath the path to the bootstrap file
-     * @return the key in hexadecimal format
-     * @throws IOException if the file is not readable
-     */
-    public static String extractKeyFromBootstrapFile(String bootstrapPath) throws IOException {
-        File expectedBootstrapFile;
-        if (StringUtils.isBlank(bootstrapPath)) {
-            // Guess at location of bootstrap.conf file from nifi.properties file
-            String defaultNiFiPropertiesPath = getDefaultFilePath();
-            File propertiesFile = new File(defaultNiFiPropertiesPath);
-            File confDir = new File(propertiesFile.getParent());
-            if (confDir.exists() && confDir.canRead()) {
-                expectedBootstrapFile = new File(confDir, "bootstrap.conf");
-            } else {
-                logger.error("Cannot read from bootstrap.conf file at {} to extract encryption key -- conf/ directory is missing or permissions are incorrect", confDir.getAbsolutePath());
-                throw new IOException("Cannot read from bootstrap.conf");
-            }
-        } else {
-            expectedBootstrapFile = new File(bootstrapPath);
-        }
-
-        if (expectedBootstrapFile.exists() && expectedBootstrapFile.canRead()) {
-            try (Stream<String> stream = Files.lines(Paths.get(expectedBootstrapFile.getAbsolutePath()))) {
-                Optional<String> keyLine = stream.filter(l -> l.startsWith(BOOTSTRAP_KEY_PREFIX)).findFirst();
-                if (keyLine.isPresent()) {
-                    return keyLine.get().split("=", 2)[1];
-                } else {
-                    logger.warn("No encryption key present in the bootstrap.conf file at {}", expectedBootstrapFile.getAbsolutePath());
-                    return "";
-                }
-            } catch (IOException e) {
-                logger.error("Cannot read from bootstrap.conf file at {} to extract encryption key", expectedBootstrapFile.getAbsolutePath());
-                throw new IOException("Cannot read from bootstrap.conf", e);
-            }
-        } else {
-            logger.error("Cannot read from bootstrap.conf file at {} to extract encryption key -- file is missing or permissions are incorrect", expectedBootstrapFile.getAbsolutePath());
-            throw new IOException("Cannot read from bootstrap.conf");
-        }
-    }
-
-    /**
-     * Returns the default file path to {@code $NIFI_HOME/conf/nifi.properties}. If the system
-     * property {@code nifi.properties.file.path} is not set, it will be set to the relative
-     * path {@code conf/nifi.properties}.
-     *
-     * @return the path to the nifi.properties file
-     */
-    public static String getDefaultFilePath() {
-        String systemPath = System.getProperty(NiFiProperties.PROPERTIES_FILE_PATH);
-
-        if (systemPath == null || systemPath.trim().isEmpty()) {
-            logger.warn("The system variable {} is not set, so it is being set to '{}'", NiFiProperties.PROPERTIES_FILE_PATH, RELATIVE_NIFI_PROPS_PATH);
-            System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, RELATIVE_NIFI_PROPS_PATH);
-            systemPath = RELATIVE_NIFI_PROPS_PATH;
-        }
-
-        logger.info("Determined default nifi.properties path to be '{}'", systemPath);
-        return systemPath;
     }
 
     /**

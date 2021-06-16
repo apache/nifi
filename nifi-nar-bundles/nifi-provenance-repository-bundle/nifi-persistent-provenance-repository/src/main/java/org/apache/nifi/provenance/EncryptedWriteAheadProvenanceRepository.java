@@ -16,15 +16,8 @@
  */
 package org.apache.nifi.provenance;
 
-import java.io.IOException;
-import java.security.KeyManagementException;
-import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
-import org.apache.commons.codec.DecoderException;
-import org.apache.commons.codec.binary.Hex;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.events.EventReporter;
-import org.apache.nifi.properties.NiFiPropertiesLoader;
 import org.apache.nifi.provenance.serialization.RecordReaders;
 import org.apache.nifi.provenance.store.EventFileManager;
 import org.apache.nifi.provenance.store.RecordReaderFactory;
@@ -32,11 +25,16 @@ import org.apache.nifi.provenance.store.RecordWriterFactory;
 import org.apache.nifi.provenance.toc.StandardTocWriter;
 import org.apache.nifi.provenance.toc.TocUtil;
 import org.apache.nifi.provenance.toc.TocWriter;
+import org.apache.nifi.security.kms.CryptoUtils;
 import org.apache.nifi.security.kms.KeyProvider;
 import org.apache.nifi.security.kms.KeyProviderFactory;
 import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.crypto.SecretKey;
+import java.io.IOException;
+import java.security.KeyManagementException;
 
 /**
  * This class is an implementation of the {@link WriteAheadProvenanceRepository} provenance repository which provides transparent
@@ -53,10 +51,13 @@ public class EncryptedWriteAheadProvenanceRepository extends WriteAheadProvenanc
     /**
      * This constructor exists solely for the use of the Java Service Loader mechanism and should not be used.
      */
+    @SuppressWarnings("unused")
     public EncryptedWriteAheadProvenanceRepository() {
         super();
     }
 
+    // Created via reflection from FlowController
+    @SuppressWarnings("unused")
     public EncryptedWriteAheadProvenanceRepository(final NiFiProperties nifiProperties) {
         super(RepositoryConfiguration.create(nifiProperties));
     }
@@ -84,9 +85,9 @@ public class EncryptedWriteAheadProvenanceRepository extends WriteAheadProvenanc
         if (getConfig().supportsEncryption()) {
             try {
                 KeyProvider keyProvider;
-                if (KeyProviderFactory.requiresMasterKey(getConfig().getKeyProviderImplementation())) {
-                    SecretKey masterKey = getMasterKey();
-                    keyProvider = buildKeyProvider(masterKey);
+                if (KeyProviderFactory.requiresRootKey(getConfig().getKeyProviderImplementation())) {
+                    SecretKey rootKey = CryptoUtils.getRootKey();
+                    keyProvider = buildKeyProvider(rootKey);
                 } else {
                     keyProvider = buildKeyProvider();
                 }
@@ -133,7 +134,7 @@ public class EncryptedWriteAheadProvenanceRepository extends WriteAheadProvenanc
         return buildKeyProvider(null);
     }
 
-    private KeyProvider buildKeyProvider(SecretKey masterKey) throws KeyManagementException {
+    private KeyProvider buildKeyProvider(SecretKey rootKey) throws KeyManagementException {
         RepositoryConfiguration config = super.getConfig();
         if (config == null) {
             throw new KeyManagementException("The repository configuration is missing");
@@ -145,17 +146,6 @@ public class EncryptedWriteAheadProvenanceRepository extends WriteAheadProvenanc
                     + NiFiProperties.PROVENANCE_REPO_ENCRYPTION_KEY_PROVIDER_IMPLEMENTATION_CLASS);
         }
 
-        return KeyProviderFactory.buildKeyProvider(implementationClassName, config.getKeyProviderLocation(), config.getKeyId(), config.getEncryptionKeys(), masterKey);
-    }
-
-    private static SecretKey getMasterKey() throws KeyManagementException {
-        try {
-            // Get the master encryption key from bootstrap.conf
-            String masterKeyHex = NiFiPropertiesLoader.extractKeyFromBootstrapFile();
-            return new SecretKeySpec(Hex.decodeHex(masterKeyHex.toCharArray()), "AES");
-        } catch (IOException | DecoderException e) {
-            logger.error("Encountered an error: ", e);
-            throw new KeyManagementException(e);
-        }
+        return KeyProviderFactory.buildKeyProvider(implementationClassName, config.getKeyProviderLocation(), config.getKeyId(), config.getEncryptionKeys(), rootKey);
     }
 }

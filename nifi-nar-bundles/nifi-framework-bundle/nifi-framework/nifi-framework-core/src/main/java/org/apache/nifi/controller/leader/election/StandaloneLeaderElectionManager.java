@@ -41,6 +41,11 @@ public class StandaloneLeaderElectionManager implements LeaderElectionManager {
     }
 
     @Override
+    public boolean isActiveParticipant(final String roleName) {
+        return true;
+    }
+
+    @Override
     public String getLeader(final String roleName) {
         return null;
     }

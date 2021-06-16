@@ -83,10 +83,11 @@
 
     <!-- valid logging levels: TRACE, DEBUG, INFO, WARN, ERROR -->
     <logger name="org.apache.nifi" level="INFO"/>
-    <logger name="org.apache.nifi.processors" level="WARN"/>
+    <logger name="org.apache.nifi.processors" level="INFO"/>
     <logger name="org.apache.nifi.processors.standard.LogAttribute" level="INFO"/>
     <logger name="org.apache.nifi.processors.standard.LogMessage" level="INFO"/>
     <logger name="org.apache.nifi.controller.repository.StandardProcessSession" level="WARN" />
+    <logger name="org.apache.nifi.connectable.LocalPort" level="DEBUG"/>
 
 
     <logger name="org.apache.zookeeper.ClientCnxn" level="ERROR" />
@@ -122,6 +123,9 @@
     <!-- Suppress non-error messages from SSHJ which was emitting large amounts of INFO logs by default -->
     <logger name="net.schmizz.sshj" level="WARN" />
     <logger name="com.hierynomus.sshj" level="WARN" />
+
+    <!-- Suppress non-error messages from SMBJ which was emitting large amounts of INFO logs by default -->
+    <logger name="com.hierynomus.smbj" level="WARN" />
 
     <!--
         Logger for capturing user events. We do not want to propagate these
