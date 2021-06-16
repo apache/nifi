@@ -22,7 +22,6 @@ import net.schmizz.sshj.Config;
 import net.schmizz.sshj.DefaultConfig;
 import net.schmizz.sshj.SSHClient;
 import net.schmizz.sshj.common.Factory;
-import net.schmizz.sshj.connection.ConnectionException;
 import net.schmizz.sshj.connection.ConnectionImpl;
 import net.schmizz.sshj.sftp.FileAttributes;
 import net.schmizz.sshj.sftp.FileMode;
@@ -32,12 +31,15 @@ import net.schmizz.sshj.sftp.RemoteResourceInfo;
 import net.schmizz.sshj.sftp.Response;
 import net.schmizz.sshj.sftp.SFTPClient;
 import net.schmizz.sshj.sftp.SFTPException;
-import net.schmizz.sshj.transport.TransportException;
 import net.schmizz.sshj.transport.verification.PromiscuousVerifier;
+import net.schmizz.sshj.userauth.keyprovider.KeyFormat;
 import net.schmizz.sshj.userauth.keyprovider.KeyProvider;
+import net.schmizz.sshj.userauth.keyprovider.KeyProviderUtil;
+import net.schmizz.sshj.userauth.method.AuthKeyboardInteractive;
 import net.schmizz.sshj.userauth.method.AuthMethod;
 import net.schmizz.sshj.userauth.method.AuthPassword;
 import net.schmizz.sshj.userauth.method.AuthPublickey;
+import net.schmizz.sshj.userauth.method.PasswordResponseProvider;
 import net.schmizz.sshj.userauth.password.PasswordFinder;
 import net.schmizz.sshj.userauth.password.PasswordUtils;
 import net.schmizz.sshj.xfer.FilePermission;
@@ -430,7 +432,7 @@ public class SFTPTransfer implements FileTransfer {
         final SFTPClient sftpClient = getSFTPClient(origFlowFile);
         RemoteFile rf = null;
         RemoteFile.ReadAheadRemoteFileInputStream rfis = null;
-        FlowFile resultFlowFile = null;
+        FlowFile resultFlowFile;
         try {
             rf = sftpClient.open(remoteFileName);
             rfis = rf.new ReadAheadRemoteFileInputStream(16);
@@ -539,10 +541,10 @@ public class SFTPTransfer implements FileTransfer {
         if (directoryName.getParent() != null && !directoryName.getParentFile().equals(new File(File.separator))) {
             ensureDirectoryExists(flowFile, directoryName.getParentFile());
         }
-        logger.debug("Remote Directory {} does not exist; creating it", new Object[] {remoteDirectory});
+        logger.debug("Remote Directory {} does not exist; creating it", remoteDirectory);
         try {
             sftpClient.mkdir(remoteDirectory);
-            logger.debug("Created {}", new Object[] {remoteDirectory});
+            logger.debug("Created {}", remoteDirectory);
         } catch (final SFTPException e) {
             throw new IOException("Failed to create remote directory " + remoteDirectory + " due to " + getMessage(e), e);
         }
@@ -556,12 +558,12 @@ public class SFTPTransfer implements FileTransfer {
         }
     }
 
-    private static KeepAliveProvider NO_OP_KEEP_ALIVE = new KeepAliveProvider() {
+    private static final KeepAliveProvider NO_OP_KEEP_ALIVE = new KeepAliveProvider() {
         @Override
         public KeepAlive provide(final ConnectionImpl connection) {
             return new KeepAlive(connection, "no-op-keep-alive") {
                 @Override
-                protected void doKeepAlive() throws TransportException, ConnectionException {
+                protected void doKeepAlive() {
                     // do nothing;
                 }
             };
@@ -668,28 +670,11 @@ public class SFTPTransfer implements FileTransfer {
 
         // Connect to the host and port
         final String hostname = ctx.getProperty(HOSTNAME).evaluateAttributeExpressions(flowFile).getValue();
-        final int port = ctx.getProperty(PORT).evaluateAttributeExpressions(flowFile).asInteger().intValue();
+        final int port = ctx.getProperty(PORT).evaluateAttributeExpressions(flowFile).asInteger();
         sshClient.connect(hostname, port);
 
         // Setup authentication methods...
-        final List<AuthMethod> authMethods = new ArrayList<>();
-
-        // Add public-key auth if a private key is specified
-        final String privateKeyFile = ctx.getProperty(PRIVATE_KEY_PATH).evaluateAttributeExpressions(flowFile).getValue();
-        if (privateKeyFile != null) {
-            final String privateKeyPassphrase = ctx.getProperty(PRIVATE_KEY_PASSPHRASE).evaluateAttributeExpressions(flowFile).getValue();
-            final KeyProvider keyProvider = privateKeyPassphrase == null ? sshClient.loadKeys(privateKeyFile) : sshClient.loadKeys(privateKeyFile, privateKeyPassphrase);
-            final AuthMethod publicKeyAuth = new AuthPublickey(keyProvider);
-            authMethods.add(publicKeyAuth);
-        }
-
-        // Add password auth if a password is specified
-        final String password = ctx.getProperty(FileTransfer.PASSWORD).evaluateAttributeExpressions(flowFile).getValue();
-        if (password != null) {
-            final PasswordFinder passwordFinder = PasswordUtils.createOneOff(password.toCharArray());
-            final AuthMethod passwordAuth = new AuthPassword(passwordFinder);
-            authMethods.add(passwordAuth);
-        }
+        final List<AuthMethod> authMethods = getAuthMethods(sshClient, flowFile);
 
         // Authenticate...
         final String username = ctx.getProperty(USERNAME).evaluateAttributeExpressions(flowFile).getValue();
@@ -711,7 +696,7 @@ public class SFTPTransfer implements FileTransfer {
             this.homeDir = "";
             // For some combination of server configuration and user home directory, getHome() can fail with "2: File not found"
             // Since  homeDir is only used tor SEND provenance event transit uri, this is harmless. Log and continue.
-            logger.debug("Failed to retrieve {} home directory due to {}", new Object[]{username, e.getMessage()});
+            logger.debug("Failed to retrieve {} home directory due to {}", username, e.getMessage());
         }
 
         return sftpClient;
@@ -793,7 +778,6 @@ public class SFTPTransfer implements FileTransfer {
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public FileInfo getRemoteFileInfo(final FlowFile flowFile, final String path, String filename) throws IOException {
         final SFTPClient sftpClient = getSFTPClient(flowFile);
 
@@ -840,7 +824,7 @@ public class SFTPTransfer implements FileTransfer {
         }
         final String tempPath = (path == null) ? tempFilename : (path.endsWith("/")) ? path + tempFilename : path + "/" + tempFilename;
 
-        int perms = 0;
+        int perms;
         final String permissions = ctx.getProperty(PERMISSIONS).evaluateAttributeExpressions(flowFile).getValue();
         if (permissions == null || permissions.trim().isEmpty()) {
             sftpClient.getFileTransfer().setPreserveAttributes(false); //We will accept whatever the default permissions are of the destination
@@ -872,7 +856,7 @@ public class SFTPTransfer implements FileTransfer {
 
                 sftpClient.setattr(tempPath, modifiedAttributes);
             } catch (final Exception e) {
-                logger.error("Failed to set lastModifiedTime on {} to {} due to {}", new Object[] {tempPath, lastModifiedTime, e});
+                logger.error("Failed to set lastModifiedTime on {} to {} due to {}", tempPath, lastModifiedTime, e);
             }
         }
 
@@ -881,7 +865,7 @@ public class SFTPTransfer implements FileTransfer {
             try {
                 sftpClient.chown(tempPath, Integer.parseInt(owner));
             } catch (final Exception e) {
-                logger.error("Failed to set owner on {} to {} due to {}", new Object[] {tempPath, owner, e});
+                logger.error("Failed to set owner on {} to {} due to {}", tempPath, owner, e);
             }
         }
 
@@ -890,7 +874,7 @@ public class SFTPTransfer implements FileTransfer {
             try {
                 sftpClient.chgrp(tempPath, Integer.parseInt(group));
             } catch (final Exception e) {
-                logger.error("Failed to set group on {} to {} due to {}", new Object[] {tempPath, group, e});
+                logger.error("Failed to set group on {} to {} due to {}", tempPath, group, e);
             }
         }
 
@@ -969,4 +953,54 @@ public class SFTPTransfer implements FileTransfer {
         return number;
     }
 
+    protected List<AuthMethod> getAuthMethods(final SSHClient client, final FlowFile flowFile) {
+        final List<AuthMethod> authMethods = new ArrayList<>();
+
+        final String privateKeyPath = ctx.getProperty(PRIVATE_KEY_PATH).evaluateAttributeExpressions(flowFile).getValue();
+        if (privateKeyPath != null) {
+            final String privateKeyPassphrase = ctx.getProperty(PRIVATE_KEY_PASSPHRASE).evaluateAttributeExpressions(flowFile).getValue();
+            final KeyProvider keyProvider = getKeyProvider(client, privateKeyPath, privateKeyPassphrase);
+            final AuthMethod authPublicKey = new AuthPublickey(keyProvider);
+            authMethods.add(authPublicKey);
+        }
+
+        final String password = ctx.getProperty(FileTransfer.PASSWORD).evaluateAttributeExpressions(flowFile).getValue();
+        if (password != null) {
+            final AuthMethod authPassword = new AuthPassword(getPasswordFinder(password));
+            authMethods.add(authPassword);
+
+            final PasswordResponseProvider passwordProvider = new PasswordResponseProvider(getPasswordFinder(password));
+            final AuthMethod authKeyboardInteractive = new AuthKeyboardInteractive(passwordProvider);
+            authMethods.add(authKeyboardInteractive);
+        }
+
+        if (logger.isDebugEnabled()) {
+            final List<String> methods = authMethods.stream().map(AuthMethod::getName).collect(Collectors.toList());
+            logger.debug("Authentication Methods Configured {}", methods);
+        }
+        return authMethods;
+    }
+
+    private KeyProvider getKeyProvider(final SSHClient client, final String privateKeyLocation, final String privateKeyPassphrase) {
+        final KeyFormat keyFormat = getKeyFormat(privateKeyLocation);
+        logger.debug("Loading Private Key File [{}] Format [{}]", privateKeyLocation, keyFormat);
+        try {
+            return privateKeyPassphrase == null ? client.loadKeys(privateKeyLocation) : client.loadKeys(privateKeyLocation, privateKeyPassphrase);
+        } catch (final IOException e) {
+            throw new ProcessException(String.format("Loading Private Key File [%s] Format [%s] Failed", privateKeyLocation, keyFormat), e);
+        }
+    }
+
+    private KeyFormat getKeyFormat(final String privateKeyLocation) {
+        try {
+            final File privateKeyFile = new File(privateKeyLocation);
+            return KeyProviderUtil.detectKeyFileFormat(privateKeyFile);
+        } catch (final IOException e) {
+            throw new ProcessException(String.format("Reading Private Key File [%s] Format Failed", privateKeyLocation), e);
+        }
+    }
+
+    private PasswordFinder getPasswordFinder(final String password) {
+        return PasswordUtils.createOneOff(password.toCharArray());
+    }
 }
