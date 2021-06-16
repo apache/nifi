@@ -36,6 +36,7 @@ import org.opensaml.saml2.metadata.provider.MetadataProviderException;
 import org.opensaml.xml.XMLObject;
 import org.opensaml.xml.encryption.DecryptionException;
 import org.opensaml.xml.schema.XSString;
+import org.opensaml.xml.schema.impl.XSAnyImpl;
 import org.opensaml.xml.validation.ValidationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -381,7 +382,7 @@ public class StandardSAMLService implements SAMLService {
                         LOGGER.debug("Found group {} for {}", groupName, userIdentity);
                         groups.add(groupName);
                     } else {
-                        LOGGER.debug("Value was not XSString, but was " + value.getClass().getCanonicalName());
+                        LOGGER.debug("Value was not XSString and XSAnyImpl, but was " + value.getClass().getCanonicalName());
                     }
                 }
             }
