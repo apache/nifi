@@ -154,6 +154,7 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
     protected volatile ClientType client;
     protected volatile Region region;
 
+    private static final String VPCE_ENDPOINT_SUFFIX = ".vpce.amazonaws.com";
     private static final Pattern VPCE_ENDPOINT_PATTERN = Pattern.compile("^(?:.+[vpce-][a-z0-9-]+\\.)?([a-z0-9-]+)$");
 
     // If protocol is changed to be a property, ensure other uses are also changed
@@ -318,7 +319,7 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
             if (!urlstr.isEmpty()) {
                 getLogger().info("Overriding endpoint with {}", urlstr);
 
-                if (urlstr.endsWith(".vpce.amazonaws.com")) {
+                if (urlstr.endsWith(VPCE_ENDPOINT_SUFFIX)) {
                     // handling vpce endpoints
                     // falling back to the configured region if the parse fails
                     // e.g. in case of https://vpce-***-***.sqs.{region}.vpce.amazonaws.com
@@ -343,7 +344,7 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
         Refer NIFI-5456, NIFI-5893 & NIFI-8662
      */
     private String parseRegionForVPCE(String url, String configuredRegion) {
-        int index = url.length() - ".vpce.amazonaws.com".length();
+        int index = url.length() - VPCE_ENDPOINT_SUFFIX.length();
 
         Matcher matcher = VPCE_ENDPOINT_PATTERN.matcher(url.substring(0, index));
 
