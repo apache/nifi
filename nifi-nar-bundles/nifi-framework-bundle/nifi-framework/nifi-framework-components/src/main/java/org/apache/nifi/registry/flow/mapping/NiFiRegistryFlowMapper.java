@@ -68,9 +68,9 @@ import org.apache.nifi.flow.VersionedProcessor;
 import org.apache.nifi.flow.VersionedPropertyDescriptor;
 import org.apache.nifi.flow.VersionedRemoteGroupPort;
 import org.apache.nifi.flow.VersionedRemoteProcessGroup;
-import org.apache.nifi.registry.flow.VersionedResourceCardinality;
-import org.apache.nifi.registry.flow.VersionedResourceDefinition;
-import org.apache.nifi.registry.flow.VersionedResourceType;
+import org.apache.nifi.flow.VersionedResourceCardinality;
+import org.apache.nifi.flow.VersionedResourceDefinition;
+import org.apache.nifi.flow.VersionedResourceType;
 import org.apache.nifi.remote.PublicPort;
 import org.apache.nifi.remote.RemoteGroupPort;
 

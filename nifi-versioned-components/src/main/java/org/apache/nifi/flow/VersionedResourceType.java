@@ -15,18 +15,28 @@
  * limitations under the License.
  */
 
-package org.apache.nifi.registry.flow;
+package org.apache.nifi.flow;
 
-public enum VersionedResourceCardinality {
+public enum VersionedResourceType {
+    /**
+     * Referenced Resource is a File on a local (or mounted) file system
+     */
+    FILE,
 
     /**
-     * Exactly one resource must be specified
+     * Referenced Resource is a directory on a local (or mounted) file system
      */
-    SINGLE,
+    DIRECTORY,
 
     /**
-     * One or more resources may be supplied, as a comma-separated list
+     * Referenced Resource is UTF-8 text, rather than an external entity
      */
-    MULTIPLE;
+    TEXT,
+
+    /**
+     * Referenced Resource is a URL that uses the HTTP, HTTPS, or file protocol
+     * (i.e., <code>http://...</code>, <code>https://...</code>, or <code>file:...</code>)
+     */
+    URL;
 
 }
