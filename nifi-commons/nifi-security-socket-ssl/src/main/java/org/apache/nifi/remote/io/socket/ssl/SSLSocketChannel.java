@@ -71,10 +71,10 @@ public class SSLSocketChannel implements Closeable {
     /**
      * SSLSocketChannel constructor with SSLContext and remote address parameters
      *
-     * @param sslContext SSLContext used to create SSLEngine with specified client mode
+     * @param sslContext    SSLContext used to create SSLEngine with specified client mode
      * @param remoteAddress Remote Address used for connection
-     * @param port Remote Port used for connection
-     * @param bindAddress Local address used for binding server channel when provided
+     * @param port          Remote Port used for connection
+     * @param bindAddress   Local address used for binding server channel when provided
      * @param useClientMode Use Client Mode
      * @throws IOException Thrown on failures creating Socket Channel
      */
@@ -93,7 +93,7 @@ public class SSLSocketChannel implements Closeable {
     /**
      * SSLSocketChannel constructor with SSLContext and connected SocketChannel
      *
-     * @param sslContext SSLContext used to create SSLEngine with specified client mode
+     * @param sslContext    SSLContext used to create SSLEngine with specified client mode
      * @param socketChannel Connected SocketChannel
      * @param useClientMode Use Client Mode
      * @throws IOException Thrown on SocketChannel.getRemoteAddress()
@@ -105,7 +105,7 @@ public class SSLSocketChannel implements Closeable {
     /**
      * SSLSocketChannel constructor with configured SSLEngine and connected SocketChannel
      *
-     * @param sslEngine SSLEngine configured with mode and client authentication
+     * @param sslEngine     SSLEngine configured with mode and client authentication
      * @param socketChannel Connected SocketChannel
      * @throws IOException Thrown on SocketChannel.getRemoteAddress()
      */
@@ -359,7 +359,7 @@ public class SSLSocketChannel implements Closeable {
      *
      * @param buffer Byte array buffer
      * @param offset Buffer offset
-     * @param len Length of bytes to read
+     * @param len    Length of bytes to read
      * @return Number of bytes read
      * @throws IOException Thrown on read failures
      */
@@ -435,9 +435,9 @@ public class SSLSocketChannel implements Closeable {
     /**
      * Write data to channel performs multiple iterations based on data length
      *
-     * @param data Byte array to be written
+     * @param data   Byte array to be written
      * @param offset Byte array offset
-     * @param len Length of bytes for writing
+     * @param len    Length of bytes for writing
      * @throws IOException Thrown on write failures
      */
     public void write(final byte[] data, final int offset, final int len) throws IOException {
@@ -703,7 +703,7 @@ public class SSLSocketChannel implements Closeable {
         }
     }
 
-    private void checkTimeoutExceeded(final long started) throws SocketTimeoutException{
+    private void checkTimeoutExceeded(final long started) throws SocketTimeoutException {
         if (System.currentTimeMillis() > started + timeoutMillis) {
             throw new SocketTimeoutException(String.format("Timeout Exceeded [%d ms] for [%s:%d]", timeoutMillis, remoteAddress, port));
         }
