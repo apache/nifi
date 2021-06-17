@@ -279,6 +279,22 @@ The default UserGroupProvider is the FileUserGroupProvider, however, you can dev
 
 NOTE: Initial User Identities are only created if the specified Users File is missing or empty during NiFi Registry startup. Changes to the configured Initial Users Identities will not take effect if the Users File is populated.
 
+===== DatabaseUserGroupProvider
+
+If you are using database for storing buckets and flows (like described in the 'Database Properties' section above), you can store the users, groups and policies in the same database either. 
+
+**Note:** This UserGroupProvider is available from version 0.8.0.
+
+
+The DatabaseUserGroupProvider takes the DB-connection information from `nifi-registry.properties` file, so in the `authorizers.xml` file you don't need to give any addition information about the DB (full example of `authorizers.xml` file for using database implementation desribed in `DatabaseAccessPolicyProvider` section).
+
+The users and groups are stored in the DB in the tables:
+
+* **UGP_USER -** Stores all the users by: user-ID (IDENTIFIER) and user-name (IDENTITY).
+* **UGP_GROUP -** Stores all the groups by: group-ID (IDENTIFIER) and group-name (IDENTITY).
+* **UGP_USER_GROUP -** Mapping between users and groups, so each row contains the fields: USER_IDENTIFIER and GROUP_IDENTIFIER, represents that the user is contained in the group.
+
+
 ===== LdapUserGroupProvider
 
 Another option for the UserGroupProvider is the LdapUserGroupProvider. By default, this option is commented out but can be configured in lieu of the FileUserGroupProvider.
@@ -629,6 +645,40 @@ the member attribute of each group. The users from LDAP will be read only while 
 In this example, the users and groups are loaded from LDAP but the servers are managed in a local file. The `Initial Admin Identity` value came
 from an attribute in a LDAP entry based on the `User Identity Attribute`. The `NiFi Identity` values are established in the local file using the
 `Initial User Identity` properties.
+
+===== DatabaseAccessPolicyProvider
+Like `DatabaseUserGroupProvider` described above, this type of PolicyProvider takes the DB connection details from `nifi-registry.properties` file. 
+The policies are stored in the tables:
+
+
+* **APP_POLICY -** Stores a policy object contains: Identifier, Resource and Action (for more info about policies, Please see **Access Policies** section below).
+* **APP_POLICY_GROUP -** Mapping between a gruop and a policy that it has. Contains: PolicyIdentifier and GroupIdentifier.
+* **APP_POLICY_USER -** Mapping between a user and a policy that it has. Contains: PolicyIdentifier and UserIdentifier.
+
+Here is an example of an implementation of Database access-policy provider:
+
+----
+<authorizers>
+    <userGroupProvider>
+        <identifier>database-user-group-provider</identifier>
+        <class>org.apache.nifi.registry.security.authorization.database.DatabaseUserGroupProvider</class>
+        <property name="Initial User Identity 1">AdminUserName</property>
+    </userGroupProvider>
+    <accessPolicyProvider>
+        <identifier>database-access-policy-provider</identifier>
+        <class>org.apache.nifi.registry.security.authorization.database.DatabaseAccessPolicyProvider</class>
+        <property name="User Group Provider">database-user-group-provider</property>
+        <property name="Initial Admin Identity">AdminUserName</property>
+        <property name="NiFi Identity 1"></property>
+    </accessPolicyProvider>
+    <authorizer>
+        <identifier>managed-authorizer</identifier>
+        <class>org.apache.nifi.registry.security.authorization.StandardManagedAuthorizer</class>
+        <property name="Access Policy Provider">database-access-policy-provider</property>
+    </authorizer>
+</authorizers>
+----
+
 
 === Access Policies
 
