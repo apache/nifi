@@ -327,14 +327,20 @@ public class SSLSocketChannel implements Closeable {
     }
 
     /**
-     * Read one byte and discard
+     * Read and return one byte
      *
-     * @return Number of bytes read
+     * @return Byte read or -1 when end of stream reached
      * @throws IOException Thrown on read failures
      */
     public int read() throws IOException {
         final byte[] buffer = new byte[1];
-        return read(buffer);
+
+        final int bytesRead = read(buffer);
+        if (bytesRead == END_OF_STREAM) {
+            return END_OF_STREAM;
+        }
+
+        return Byte.toUnsignedInt(buffer[0]);
     }
 
     /**

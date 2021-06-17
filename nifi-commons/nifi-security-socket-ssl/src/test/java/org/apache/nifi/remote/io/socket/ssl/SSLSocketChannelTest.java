@@ -96,6 +96,8 @@ public class SSLSocketChannelTest {
 
     private static final byte[] MESSAGE_BYTES = MESSAGE.getBytes(StandardCharsets.UTF_8);
 
+    private static final int FIRST_BYTE_OFFSET = 1;
+
     private static SSLContext sslContext;
 
     @BeforeClass
@@ -232,9 +234,14 @@ public class SSLSocketChannelTest {
             }
         }
 
+        final byte firstByteRead = (byte) sslSocketChannel.read();
+        assertEquals("Channel Message first byte not matched", MESSAGE_BYTES[0], firstByteRead);
+
         final byte[] messageBytes = new byte[MESSAGE_BYTES.length];
-        final int messageBytesRead = sslSocketChannel.read(messageBytes);
-        assertEquals("Channel Message Bytes Read not matched", messageBytes.length, messageBytesRead);
+        messageBytes[0] = firstByteRead;
+
+        final int messageBytesRead = sslSocketChannel.read(messageBytes, FIRST_BYTE_OFFSET, messageBytes.length);
+        assertEquals("Channel Message Bytes Read not matched", messageBytes.length - FIRST_BYTE_OFFSET, messageBytesRead);
 
         final String message  = new String(messageBytes, MESSAGE_CHARSET);
         assertEquals("Channel Message not matched", MESSAGE, message);
