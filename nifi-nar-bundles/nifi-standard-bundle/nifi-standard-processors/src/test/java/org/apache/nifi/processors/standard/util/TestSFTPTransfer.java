@@ -270,7 +270,7 @@ public class TestSFTPTransfer {
         MockPropertyContext mockPropertyContext = new MockPropertyContext(propertyDescriptorValues);
         SFTPTransfer sftpTransfer = new SFTPTransfer(mockPropertyContext, new MockComponentLogger());
 
-        sftpTransfer.restrictSSHOptions(defaultConfig);
+        sftpTransfer.updateConfigAlgorithms(defaultConfig);
 
         assertEquals(1, defaultConfig.getCipherFactories().size());
         assertEquals(1, defaultConfig.getKeyAlgorithms().size());
