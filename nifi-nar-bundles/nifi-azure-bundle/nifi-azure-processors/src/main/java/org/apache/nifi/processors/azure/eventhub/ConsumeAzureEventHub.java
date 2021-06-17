@@ -236,7 +236,7 @@ public class ConsumeAzureEventHub extends AbstractSessionFactoryProcessor {
     static final PropertyDescriptor STORAGE_SAS_TOKEN = new PropertyDescriptor.Builder()
             .name("storage-sas-token")
             .displayName("Storage SAS Token")
-            .description("The Azure Storage SAS token to store event hub consumer group state. Always starts with a ? character.")
+            .description("The Azure Storage SAS token to store Event Hub consumer group state. Always starts with a ? character.")
             .sensitive(true)
             .addValidator(StandardValidators.createRegexMatchingValidatorWithEL(SAS_TOKEN_PATTERN,
                     "Token must start with a ? character."))
