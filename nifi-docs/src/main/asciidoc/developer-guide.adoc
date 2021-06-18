@@ -1455,7 +1455,7 @@ The appropriate data is then copied from the InputStream of the
 original FlowFile to the OutputStream for the new FlowFile.
 
 *Clone Method*
-If the content of the newly created created FlowFile is to be only a
+If the content of the newly created FlowFile is to be only a
 contiguous subset of the bytes of the original FlowFile, it is
 preferred
 to use the `clone(FlowFile, long, long)` method instead of the
