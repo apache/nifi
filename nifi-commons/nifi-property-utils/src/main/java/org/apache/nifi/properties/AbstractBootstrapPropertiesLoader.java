@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.properties;
 
+import org.apache.nifi.properties.BootstrapProperties.BootstrapPropertyKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -95,7 +96,7 @@ public abstract class AbstractBootstrapPropertiesLoader {
             properties.load(bootstrapInput);
             return new BootstrapProperties(propertyPrefix, properties, bootstrapPath);
         } catch (final IOException e) {
-            logger.error("Cannot read from bootstrap.conf file at {}", bootstrapPath);
+            logger.debug("Cannot read from bootstrap.conf file at {}", bootstrapPath);
             throw new IOException("Cannot read from bootstrap.conf", e);
         }
     }
@@ -112,7 +113,7 @@ public abstract class AbstractBootstrapPropertiesLoader {
     public String extractKeyFromBootstrapFile(final String bootstrapPath) throws IOException {
         final BootstrapProperties bootstrapProperties = loadBootstrapProperties(bootstrapPath);
 
-        return bootstrapProperties.getBootstrapSensitiveKey().orElseGet(() -> {
+        return bootstrapProperties.getProperty(BootstrapPropertyKey.SENSITIVE_KEY).orElseGet(() -> {
             logger.warn("No encryption key present in the bootstrap.conf file at {}", bootstrapProperties.getConfigFilePath());
             return "";
         });
@@ -136,7 +137,7 @@ public abstract class AbstractBootstrapPropertiesLoader {
             if (confDir.exists() && confDir.canRead()) {
                 expectedBootstrapFile = new File(confDir, BOOTSTRAP_CONF);
             } else {
-                logger.error("Cannot read from bootstrap.conf file at {} -- conf/ directory is missing or permissions are incorrect", confDir.getAbsolutePath());
+                logger.debug("Cannot read from bootstrap.conf file at {} -- conf/ directory is missing or permissions are incorrect", confDir.getAbsolutePath());
                 throw new IOException("Cannot read from bootstrap.conf");
             }
         } else {
@@ -146,7 +147,7 @@ public abstract class AbstractBootstrapPropertiesLoader {
         if (expectedBootstrapFile.exists() && expectedBootstrapFile.canRead()) {
             return expectedBootstrapFile;
         } else {
-            logger.error("Cannot read from bootstrap.conf file at {} -- file is missing or permissions are incorrect", expectedBootstrapFile.getAbsolutePath());
+            logger.debug("Cannot read from bootstrap.conf file at {} -- file is missing or permissions are incorrect", expectedBootstrapFile.getAbsolutePath());
             throw new IOException("Cannot read from bootstrap.conf");
         }
     }

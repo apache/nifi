@@ -477,15 +477,15 @@ The protection scheme can be selected during encryption using the `--protectionS
 The default protection scheme, `AES-G/CM` simply encrypts sensitive properties and marks their protection as either `aes/gcm/256` or `aes/gcm/256` as appropriate.  This protection is all done within NiFi itself.
 
 ==== HASHICORP_VAULT_TRANSIT
-This protection scheme uses HashiCorp Vault's Transit Secrets Engine (https://www.vaultproject.io/docs/secrets/transit) to outsource encryption to a configured Vault server. All HashiCorp Vault configuration is stored in the `bootstrap-hashicorp-vault.properties` file, as referenced in the `bootstrap.conf` of a NiFi or NiFi Registry instance.  Therefore, when using the HASHICORP_VAULT_TRANSIT protection scheme, the `nifi(.registry)?.bootstrap.sensitive.props.hashicorp.vault.properties` property in the `bootstrap.conf` specified using the `-b` flag must be available to the Encrypt Configuration Tool and must be configured as follows:
+This protection scheme uses HashiCorp Vault's Transit Secrets Engine (https://www.vaultproject.io/docs/secrets/transit) to outsource encryption to a configured Vault server. All HashiCorp Vault configuration is stored in the `bootstrap-hashicorp-vault.conf` file, as referenced in the `bootstrap.conf` of a NiFi or NiFi Registry instance.  Therefore, when using the HASHICORP_VAULT_TRANSIT protection scheme, the `nifi(.registry)?.bootstrap.protection.hashicorp.vault.conf` property in the `bootstrap.conf` specified using the `-b` flag must be available to the Encrypt Configuration Tool and must be configured as follows:
 
 ===== Required properties
 [options="header,footer"]
 |===
 |Property Name|Description|Default
 |`vault.uri`|The HashiCorp Vault URI (e.g., `https://vault-server:8200`).  If not set, this provider will be disabled.|_none_
-|`vault.auth.props.file`|Filename of a properties file containing Vault authentication properties.  See the `Authentication-specific property keys` section of https://docs.spring.io/spring-vault/docs/2.3.x/reference/html/#vault.core.environment-vault-configuration" for all authentication property keys. If not set, this provider will be disabled.|_none_
-|`vault.transit.path`|The HashiCorp Vault `path` specifying the Transit Secrets Engine (e.g., `nifi-transit`).|_none_
+|`vault.authPropertiesFilename`|Filename of a properties file containing Vault authentication properties.  See the `Authentication-specific property keys` section of https://docs.spring.io/spring-vault/docs/2.3.x/reference/html/#vault.core.environment-vault-configuration" for all authentication property keys. If not set, this provider will be disabled.|_none_
+|`vault.transit.path`|The HashiCorp Vault `path` specifying the Transit Secrets Engine (e.g., `nifi-transit`).  Valid characters include alphanumeric, dash, and underscore.|_none_
 |===
 
 ===== Optional properties
@@ -494,14 +494,14 @@ This protection scheme uses HashiCorp Vault's Transit Secrets Engine (https://ww
 |Property Name|Description|Default
 |`vault.connection.timeout`|The connection timeout of the Vault client|`5 secs`
 |`vault.read.timeout`|The read timeout of the Vault client|`15 secs`
-|`vault.enabled.tls.cipher.suites`|A comma-separated list of the enabled TLS cipher suites|_none_
-|`vault.enabled.tls.protocols`|A comma-separated list of the enabled TLS protocols|_none_
-|`vault.keystore`|Path to a keystore.  Required if the Vault server is TLS-enabled|_none_
-|`vault.keystoreType`|Keystore type (JKS or PKCS12).  Required if the Vault server is TLS-enabled|_none_
-|`vault.keystorePasswd`|Keystore password.  Required if the Vault server is TLS-enabled|_none_
-|`vault.truststore`|Path to a truststore.  Required if the Vault server is TLS-enabled|_none_
-|`vault.truststoreType`|Truststore type (JKS or PKCS12).  Required if the Vault server is TLS-enabled|_none_
-|`vault.truststorePasswd`|Truststore password.  Required if the Vault server is TLS-enabled|_none_
+|`vault.ssl.enabledCipherSuites`|A comma-separated list of the enabled TLS cipher suites|_none_
+|`vault.ssl.enabledProtocols`|A comma-separated list of the enabled TLS protocols|_none_
+|`vault.ssl.key-store`|Path to a keystore.  Required if the Vault server is TLS-enabled|_none_
+|`vault.ssl.key-store-type`|Keystore type (JKS or PKCS12).  Required if the Vault server is TLS-enabled|_none_
+|`vault.ssl.key-store-password`|Keystore password.  Required if the Vault server is TLS-enabled|_none_
+|`vault.ssl.trust-store`|Path to a truststore.  Required if the Vault server is TLS-enabled|_none_
+|`vault.ssl.trust-store-type`|Truststore type (JKS or PKCS12).  Required if the Vault server is TLS-enabled|_none_
+|`vault.ssl.trust-store-password`|Truststore password.  Required if the Vault server is TLS-enabled|_none_
 |===
 
 === Examples

@@ -18,6 +18,7 @@ package org.apache.nifi.vault.hashicorp;
 
 import org.apache.nifi.vault.hashicorp.config.HashiCorpVaultConfiguration;
 import org.apache.nifi.vault.hashicorp.config.HashiCorpVaultProperties;
+import org.apache.nifi.vault.hashicorp.config.HashiCorpVaultPropertySource;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
@@ -114,7 +115,7 @@ public class TestHashiCorpVaultConfiguration {
     }
 
     public void runTest(final String expectedScheme) {
-        config = new HashiCorpVaultConfiguration(propertiesBuilder.build());
+        config = new HashiCorpVaultConfiguration(new HashiCorpVaultPropertySource(propertiesBuilder.build()));
 
         VaultEndpoint endpoint = config.vaultEndpoint();
         Assert.assertEquals("localhost", endpoint.getHost());

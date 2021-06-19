@@ -82,7 +82,7 @@ public class NiFiRegistryPropertiesLoader {
                         try {
                             return NiFiRegistryBootstrapUtils.loadBootstrapProperties();
                         } catch (IOException e) {
-                            logger.warn("Cannot read bootstrap.conf -- file is missing or not readable.  Defaulting to empty bootstrap.conf");
+                            logger.debug("Cannot read bootstrap.conf -- file is missing or not readable.  Defaulting to empty bootstrap.conf");
                             return BootstrapProperties.EMPTY;
                         }
                     });

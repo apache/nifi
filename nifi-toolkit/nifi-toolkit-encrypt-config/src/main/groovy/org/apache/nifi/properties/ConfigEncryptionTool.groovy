@@ -598,7 +598,8 @@ class ConfigEncryptionTool {
     }
 
     private NiFiPropertiesLoader getNiFiPropertiesLoader(final String keyHex) {
-        return protectionScheme.requiresSecretKey() ? NiFiPropertiesLoader.withKey(keyHex) : new NiFiPropertiesLoader()
+        return protectionScheme.requiresSecretKey() || migrationProtectionScheme.requiresSecretKey()
+                ? NiFiPropertiesLoader.withKey(keyHex) : new NiFiPropertiesLoader()
     }
 
     /**

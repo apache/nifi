@@ -16,29 +16,18 @@
  */
 package org.apache.nifi.properties;
 
+import org.apache.nifi.properties.BootstrapProperties.BootstrapPropertyKey;
 import org.apache.nifi.vault.hashicorp.HashiCorpVaultCommunicationService;
 import org.apache.nifi.vault.hashicorp.StandardHashiCorpVaultCommunicationService;
-import org.apache.nifi.vault.hashicorp.config.HashiCorpVaultProperties;
+import org.apache.nifi.vault.hashicorp.config.HashiCorpVaultConfiguration;
+import org.apache.nifi.vault.hashicorp.config.HashiCorpVaultConfiguration.VaultConfigurationKey;
+import org.springframework.core.env.PropertySource;
 
 import java.io.IOException;
 import java.nio.file.Paths;
-import java.util.Optional;
 
 public abstract class AbstractHashiCorpVaultSensitivePropertyProvider extends AbstractSensitivePropertyProvider {
     private static final String VAULT_PREFIX = "vault";
-
-    private static final String URI = "vault.uri";
-    private static final String AUTH_PROPS_FILE = "vault.auth.props.file";
-    private static final String CONNECTION_TIMEOUT = "vault.connection.timeout";
-    private static final String READ_TIMEOUT = "vault.read.timeout";
-    private static final String ENABLED_TLS_CIPHER_SUITES = "vault.enabled.tls.cipher.suites";
-    private static final String ENABLED_TLS_PROTOCOLS = "vault.enabled.tls.protocols";
-    private static final String KEYSTORE = "vault.keystore";
-    private static final String KEYSTORE_TYPE = "vault.keystoreType";
-    private static final String KEYSTORE_PASSWD = "vault.keystorePasswd";
-    private static final String TRUSTSTORE = "vault.truststore";
-    private static final String TRUSTSTORE_TYPE = "vault.truststoreType";
-    private static final String TRUSTSTORE_PASSWD = "vault.truststorePasswd";
 
     private final String path;
     private final HashiCorpVaultCommunicationService vaultCommunicationService;
@@ -47,10 +36,16 @@ public abstract class AbstractHashiCorpVaultSensitivePropertyProvider extends Ab
     AbstractHashiCorpVaultSensitivePropertyProvider(final BootstrapProperties bootstrapProperties) {
         super(bootstrapProperties);
 
-        vaultBootstrapProperties = getVaultBootstrapProperties(bootstrapProperties);
+        final String vaultBootstrapConfFilename = bootstrapProperties
+                .getProperty(BootstrapPropertyKey.HASHICORP_VAULT_SENSITIVE_PROPERTY_PROVIDER_CONF).orElse(null);
+        vaultBootstrapProperties = getVaultBootstrapProperties(vaultBootstrapConfFilename);
         path = getSecretsEnginePath(vaultBootstrapProperties);
         if (hasRequiredVaultProperties()) {
-            vaultCommunicationService = new StandardHashiCorpVaultCommunicationService(getVaultProperties());
+            try {
+                vaultCommunicationService = new StandardHashiCorpVaultCommunicationService(getVaultPropertySource(vaultBootstrapConfFilename));
+            } catch (IOException e) {
+                throw new SensitivePropertyProtectionException("Error configuring HashiCorpVaultCommunicationService", e);
+            }
         } else {
             vaultCommunicationService = null;
         }
@@ -58,20 +53,19 @@ public abstract class AbstractHashiCorpVaultSensitivePropertyProvider extends Ab
 
     /**
      * Return the configured Secrets Engine path for this sensitive property provider.
-     * @param vaultBootstrapProperties The Properties from the file located at bootstrap.sensitive.props.hashicorp.vault.properties
+     * @param vaultBootstrapProperties The Properties from the file located at bootstrap.protection.hashicorp.vault.conf
      * @return The Secrets Engine path
      */
     protected abstract String getSecretsEnginePath(final BootstrapProperties vaultBootstrapProperties);
 
-    private static BootstrapProperties getVaultBootstrapProperties(final BootstrapProperties bootstrapProperties) {
+    private static BootstrapProperties getVaultBootstrapProperties(final String vaultBootstrapConfFilename) {
         final BootstrapProperties vaultBootstrapProperties;
-        if (bootstrapProperties.getHashiCorpVaultPropertiesFile().isPresent()) {
-            final String vaultPropertiesFilename = bootstrapProperties.getHashiCorpVaultPropertiesFile().get();
+        if (vaultBootstrapConfFilename != null) {
             try {
                 vaultBootstrapProperties = AbstractBootstrapPropertiesLoader.loadBootstrapProperties(
-                        Paths.get(vaultPropertiesFilename), VAULT_PREFIX);
+                        Paths.get(vaultBootstrapConfFilename), VAULT_PREFIX);
             } catch (IOException e) {
-                throw new SensitivePropertyProtectionException("Could not load " + vaultPropertiesFilename, e);
+                throw new SensitivePropertyProtectionException("Could not load " + vaultBootstrapConfFilename, e);
             }
         } else {
             vaultBootstrapProperties = null;
@@ -79,24 +73,8 @@ public abstract class AbstractHashiCorpVaultSensitivePropertyProvider extends Ab
         return vaultBootstrapProperties;
     }
 
-    private HashiCorpVaultProperties getVaultProperties() {
-        final HashiCorpVaultProperties.HashiCorpVaultPropertiesBuilder builder = new HashiCorpVaultProperties.HashiCorpVaultPropertiesBuilder();
-        Optional.ofNullable(vaultBootstrapProperties.getProperty(URI)).ifPresent(builder::setUri);
-        Optional.ofNullable(vaultBootstrapProperties.getProperty(AUTH_PROPS_FILE)).ifPresent(builder::setAuthPropertiesFilename);
-
-        Optional.ofNullable(vaultBootstrapProperties.getProperty(ENABLED_TLS_PROTOCOLS)).ifPresent(builder::setEnabledTlsProtocols);
-        Optional.ofNullable(vaultBootstrapProperties.getProperty(ENABLED_TLS_CIPHER_SUITES)).ifPresent(builder::setEnabledTlsCipherSuites);
-        Optional.ofNullable(vaultBootstrapProperties.getProperty(KEYSTORE)).ifPresent(builder::setKeyStore);
-        Optional.ofNullable(vaultBootstrapProperties.getProperty(KEYSTORE_TYPE)).ifPresent(builder::setKeyStoreType);
-        Optional.ofNullable(vaultBootstrapProperties.getProperty(KEYSTORE_PASSWD)).ifPresent(builder::setKeyStorePassword);
-        Optional.ofNullable(vaultBootstrapProperties.getProperty(TRUSTSTORE)).ifPresent(builder::setTrustStore);
-        Optional.ofNullable(vaultBootstrapProperties.getProperty(TRUSTSTORE_TYPE)).ifPresent(builder::setTrustStoreType);
-        Optional.ofNullable(vaultBootstrapProperties.getProperty(TRUSTSTORE_PASSWD)).ifPresent(builder::setTrustStorePassword);
-
-        Optional.ofNullable(vaultBootstrapProperties.getProperty(READ_TIMEOUT)).ifPresent(builder::setReadTimeout);
-        Optional.ofNullable(vaultBootstrapProperties.getProperty(CONNECTION_TIMEOUT)).ifPresent(builder::setConnectionTimeout);
-
-        return builder.build();
+    private PropertySource<?> getVaultPropertySource(final String vaultBootstrapConfFilename) throws IOException {
+        return HashiCorpVaultConfiguration.createPropertiesFileSource(vaultBootstrapConfFilename);
     }
 
     /**
@@ -129,8 +107,8 @@ public abstract class AbstractHashiCorpVaultSensitivePropertyProvider extends Ab
 
     private boolean hasRequiredVaultProperties() {
         return vaultBootstrapProperties != null
-                && (vaultBootstrapProperties.getProperty(URI) != null)
-                && (vaultBootstrapProperties.getProperty(AUTH_PROPS_FILE) != null);
+                && (vaultBootstrapProperties.getProperty(VaultConfigurationKey.URI.getKey()) != null)
+                && (vaultBootstrapProperties.getProperty(VaultConfigurationKey.AUTH_PROPERTIES_FILENAME.getKey()) != null);
     }
 
     /**

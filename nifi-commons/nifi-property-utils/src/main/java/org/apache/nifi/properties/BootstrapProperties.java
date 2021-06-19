@@ -29,10 +29,17 @@ import java.util.Set;
  */
 public class BootstrapProperties extends StandardReadableProperties {
     private static final String PROPERTY_KEY_FORMAT = "%s.%s";
-    private static final String BOOTSTRAP_SENSITIVE_KEY = "bootstrap.sensitive.key";
 
-    // HashiCorp Vault Sensitive Property Provider configuration
-    private static final String BOOTSTRAP_SPP_HASHICORP_VAULT_PROPERTIES = "bootstrap.sensitive.props.hashicorp.vault.properties";
+    public enum BootstrapPropertyKey {
+        SENSITIVE_KEY("bootstrap.sensitive.key"),
+        HASHICORP_VAULT_SENSITIVE_PROPERTY_PROVIDER_CONF("bootstrap.protection.hashicorp.vault.conf");
+
+        private final String key;
+
+        BootstrapPropertyKey(final String key) {
+            this.key = key;
+        }
+    }
 
     private final String propertyPrefix;
     private final Path configFilePath;
@@ -100,19 +107,12 @@ public class BootstrapProperties extends StandardReadableProperties {
     }
 
     /**
-     * Returns the bootstrap sensitive key.
-     * @return The bootstrap sensitive key
+     * Returns the optional property value with the given BootstrapPropertyKey.
+     * @param key A BootstrapPropertyKey, representing properties in bootstrap.conf
+     * @return The property value
      */
-    public Optional<String> getBootstrapSensitiveKey() {
-        return Optional.ofNullable(getProperty(getPropertyKey(BOOTSTRAP_SENSITIVE_KEY)));
-    }
-
-    /**
-     * Returns the location of the HashiCorp Vault sensitive property provider
-     * @return The location of the HashiCorp Vault sensitive property provider
-     */
-    public Optional<String> getHashiCorpVaultPropertiesFile() {
-        return Optional.ofNullable(getProperty(getPropertyKey(BOOTSTRAP_SPP_HASHICORP_VAULT_PROPERTIES)));
+    public Optional<String> getProperty(final BootstrapPropertyKey key) {
+        return Optional.ofNullable(getProperty(getPropertyKey(key.key)));
     }
 
     @Override
@@ -147,13 +147,5 @@ public class BootstrapProperties extends StandardReadableProperties {
 
     private static boolean isBlank(final String string) {
         return (string == null) || string.isEmpty() || string.trim().isEmpty();
-    }
-
-    /**
-     * Returns the property prefix for these properties (e.g., 'nifi').
-     * @return The property prefix
-     */
-    public String getPropertyPrefix() {
-        return propertyPrefix;
     }
 }

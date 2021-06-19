@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.properties;
 
+import org.apache.nifi.properties.BootstrapProperties.BootstrapPropertyKey;
 import org.apache.nifi.util.NiFiBootstrapUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -76,7 +77,7 @@ public class StandardSensitivePropertyProviderFactory implements SensitiveProper
     }
 
     private String getKeyHex() {
-        return keyHex.orElseGet(() -> getBootstrapProperties().getBootstrapSensitiveKey()
+        return keyHex.orElseGet(() -> getBootstrapProperties().getProperty(BootstrapPropertyKey.SENSITIVE_KEY)
                 .orElseThrow(() -> new SensitivePropertyProtectionException("Could not read root key from bootstrap.conf")));
     }
 
@@ -90,7 +91,7 @@ public class StandardSensitivePropertyProviderFactory implements SensitiveProper
             try {
                 return NiFiBootstrapUtils.loadBootstrapProperties();
             } catch (final IOException e) {
-                logger.warn("Could not load bootstrap.conf from disk, so using empty bootstrap.conf", e);
+                logger.debug("Could not load bootstrap.conf from disk, so using empty bootstrap.conf", e);
                 return BootstrapProperties.EMPTY;
             }
         });

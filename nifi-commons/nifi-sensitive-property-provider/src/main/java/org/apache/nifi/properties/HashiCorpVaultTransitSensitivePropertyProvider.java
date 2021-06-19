@@ -18,12 +18,14 @@ package org.apache.nifi.properties;
 
 import org.apache.commons.lang3.StringUtils;
 
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 
 /**
  * Uses the HashiCorp Vault Transit Secrets Engine to encrypt sensitive values at rest.
  */
 public class HashiCorpVaultTransitSensitivePropertyProvider extends AbstractHashiCorpVaultSensitivePropertyProvider {
+    private static final Charset PROPERTY_CHARSET = StandardCharsets.UTF_8;
     private static final String TRANSIT_PATH = "vault.transit.path";
 
     HashiCorpVaultTransitSensitivePropertyProvider(final BootstrapProperties bootstrapProperties) {
@@ -35,8 +37,15 @@ public class HashiCorpVaultTransitSensitivePropertyProvider extends AbstractHash
         if (vaultBootstrapProperties == null) {
             return null;
         }
+        final String transitPath = vaultBootstrapProperties.getProperty(TRANSIT_PATH);
+        // Validate transit path
+        try {
+            PropertyProtectionScheme.fromIdentifier(getProtectionScheme().getIdentifier(transitPath));
+        } catch (IllegalArgumentException e) {
+            throw new SensitivePropertyProtectionException(TRANSIT_PATH + " contains unsupported characters");
+        }
 
-        return vaultBootstrapProperties.getProperty(TRANSIT_PATH);
+        return transitPath;
     }
 
     @Override
@@ -62,7 +71,7 @@ public class HashiCorpVaultTransitSensitivePropertyProvider extends AbstractHash
             throw new IllegalArgumentException("Cannot encrypt an empty value");
         }
 
-        return getVaultCommunicationService().encrypt(getPath(), unprotectedValue.getBytes(StandardCharsets.UTF_8));
+        return getVaultCommunicationService().encrypt(getPath(), unprotectedValue.getBytes(PROPERTY_CHARSET));
     }
 
     /**
@@ -78,6 +87,6 @@ public class HashiCorpVaultTransitSensitivePropertyProvider extends AbstractHash
             throw new IllegalArgumentException("Cannot encrypt an empty value");
         }
 
-        return new String(getVaultCommunicationService().decrypt(getPath(), protectedValue), StandardCharsets.UTF_8);
+        return new String(getVaultCommunicationService().decrypt(getPath(), protectedValue), PROPERTY_CHARSET);
     }
 }

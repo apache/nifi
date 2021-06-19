@@ -18,6 +18,8 @@ package org.apache.nifi.vault.hashicorp;
 
 import org.apache.nifi.vault.hashicorp.config.HashiCorpVaultConfiguration;
 import org.apache.nifi.vault.hashicorp.config.HashiCorpVaultProperties;
+import org.apache.nifi.vault.hashicorp.config.HashiCorpVaultPropertySource;
+import org.springframework.core.env.PropertySource;
 import org.springframework.vault.authentication.SimpleSessionManager;
 import org.springframework.vault.client.ClientHttpRequestFactoryFactory;
 import org.springframework.vault.core.VaultTemplate;
@@ -36,17 +38,26 @@ public class StandardHashiCorpVaultCommunicationService implements HashiCorpVaul
 
     /**
      * Creates a VaultCommunicationService that uses Spring Vault.
-     * @param vaultProperties Properties to configure the service
+     * @param propertySources Property sources to configure the service
      * @throws HashiCorpVaultConfigurationException If the configuration was invalid
      */
-    public StandardHashiCorpVaultCommunicationService(final HashiCorpVaultProperties vaultProperties) throws HashiCorpVaultConfigurationException {
-        vaultConfiguration = new HashiCorpVaultConfiguration(vaultProperties);
+    public StandardHashiCorpVaultCommunicationService(final PropertySource<?>... propertySources) throws HashiCorpVaultConfigurationException {
+        vaultConfiguration = new HashiCorpVaultConfiguration(propertySources);
 
         vaultTemplate = new VaultTemplate(vaultConfiguration.vaultEndpoint(),
                 ClientHttpRequestFactoryFactory.create(vaultConfiguration.clientOptions(), vaultConfiguration.sslConfiguration()),
                 new SimpleSessionManager(vaultConfiguration.clientAuthentication()));
 
         transitOperations = vaultTemplate.opsForTransit();
+    }
+
+    /**
+     * Creates a VaultCommunicationService that uses Spring Vault.
+     * @param vaultProperties Properties to configure the service
+     * @throws HashiCorpVaultConfigurationException If the configuration was invalid
+     */
+    public StandardHashiCorpVaultCommunicationService(final HashiCorpVaultProperties vaultProperties) throws HashiCorpVaultConfigurationException {
+        this(new HashiCorpVaultPropertySource(vaultProperties));
     }
 
     @Override
