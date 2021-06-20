@@ -42,7 +42,7 @@ public class HashiCorpVaultTransitSensitivePropertyProvider extends AbstractHash
         try {
             PropertyProtectionScheme.fromIdentifier(getProtectionScheme().getIdentifier(transitPath));
         } catch (IllegalArgumentException e) {
-            throw new SensitivePropertyProtectionException(TRANSIT_PATH + " contains unsupported characters");
+            throw new SensitivePropertyProtectionException(String.format("{} [{}] contains unsupported characters", TRANSIT_PATH, transitPath), e);
         }
 
         return transitPath;

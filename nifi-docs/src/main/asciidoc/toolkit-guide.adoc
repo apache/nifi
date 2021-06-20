@@ -497,10 +497,10 @@ This protection scheme uses HashiCorp Vault's Transit Secrets Engine (https://ww
 |`vault.ssl.enabledCipherSuites`|A comma-separated list of the enabled TLS cipher suites|_none_
 |`vault.ssl.enabledProtocols`|A comma-separated list of the enabled TLS protocols|_none_
 |`vault.ssl.key-store`|Path to a keystore.  Required if the Vault server is TLS-enabled|_none_
-|`vault.ssl.key-store-type`|Keystore type (JKS or PKCS12).  Required if the Vault server is TLS-enabled|_none_
+|`vault.ssl.key-store-type`|Keystore type (JKS, BCFKS or PKCS12).  Required if the Vault server is TLS-enabled|_none_
 |`vault.ssl.key-store-password`|Keystore password.  Required if the Vault server is TLS-enabled|_none_
 |`vault.ssl.trust-store`|Path to a truststore.  Required if the Vault server is TLS-enabled|_none_
-|`vault.ssl.trust-store-type`|Truststore type (JKS or PKCS12).  Required if the Vault server is TLS-enabled|_none_
+|`vault.ssl.trust-store-type`|Truststore type (JKS, BCFKS or PKCS12).  Required if the Vault server is TLS-enabled|_none_
 |`vault.ssl.trust-store-password`|Truststore password.  Required if the Vault server is TLS-enabled|_none_
 |===
 

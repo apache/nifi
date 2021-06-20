@@ -380,7 +380,7 @@ class NiFiPropertiesLoaderGroovyTest extends GroovyTestCase {
         logger.expected(msg)
 
         // Assert
-        assert msg == "Cannot read from bootstrap.conf"
+        assert msg =~ "Cannot read from .*bootstrap.conf"
     }
 
     @Test
@@ -401,7 +401,7 @@ class NiFiPropertiesLoaderGroovyTest extends GroovyTestCase {
         logger.expected(msg)
 
         // Assert
-        assert msg == "Cannot read from bootstrap.conf"
+        assert msg =~ "Cannot read from .*bootstrap.conf"
 
         // Clean up to allow for indexing, etc.
         Files.setPosixFilePermissions(unreadableFile.toPath(), originalPermissions)

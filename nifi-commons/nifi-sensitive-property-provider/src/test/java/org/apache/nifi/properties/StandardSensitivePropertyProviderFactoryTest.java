@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.properties;
 
+import org.apache.commons.io.FilenameUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.junit.AfterClass;
@@ -68,9 +69,9 @@ public class StandardSensitivePropertyProviderFactoryTest {
 
         final String bootstrapConfText = String.format("%s=%s\n%s=%s",
                 "nifi.bootstrap.sensitive.key", BOOTSTRAP_KEY_HEX,
-                "nifi.bootstrap.protection.hashicorp.vault.conf", hashicorpVaultBootstrapConf);
+                "nifi.bootstrap.protection.hashicorp.vault.conf", FilenameUtils.separatorsToUnix(hashicorpVaultBootstrapConf.toString()));
         IOUtil.writeText(bootstrapConfText, bootstrapConf.toFile());
-        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, nifiProperties.toString());
+        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, FilenameUtils.separatorsToUnix(nifiProperties.toString()));
 
         niFiProperties = new NiFiProperties();
     }

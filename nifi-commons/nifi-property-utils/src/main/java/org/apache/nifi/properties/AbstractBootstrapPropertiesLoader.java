@@ -96,8 +96,7 @@ public abstract class AbstractBootstrapPropertiesLoader {
             properties.load(bootstrapInput);
             return new BootstrapProperties(propertyPrefix, properties, bootstrapPath);
         } catch (final IOException e) {
-            logger.debug("Cannot read from bootstrap.conf file at {}", bootstrapPath);
-            throw new IOException("Cannot read from bootstrap.conf", e);
+            throw new IOException("Cannot read from " + bootstrapPath, e);
         }
     }
 
@@ -137,8 +136,7 @@ public abstract class AbstractBootstrapPropertiesLoader {
             if (confDir.exists() && confDir.canRead()) {
                 expectedBootstrapFile = new File(confDir, BOOTSTRAP_CONF);
             } else {
-                logger.debug("Cannot read from bootstrap.conf file at {} -- conf/ directory is missing or permissions are incorrect", confDir.getAbsolutePath());
-                throw new IOException("Cannot read from bootstrap.conf");
+                throw new IOException(String.format("Cannot read {} directory for {}", confDir, bootstrapPath));
             }
         } else {
             expectedBootstrapFile = new File(bootstrapPath);
@@ -147,8 +145,7 @@ public abstract class AbstractBootstrapPropertiesLoader {
         if (expectedBootstrapFile.exists() && expectedBootstrapFile.canRead()) {
             return expectedBootstrapFile;
         } else {
-            logger.debug("Cannot read from bootstrap.conf file at {} -- file is missing or permissions are incorrect", expectedBootstrapFile.getAbsolutePath());
-            throw new IOException("Cannot read from bootstrap.conf");
+            throw new IOException("Cannot read from " + expectedBootstrapFile.getAbsolutePath());
         }
     }
 
