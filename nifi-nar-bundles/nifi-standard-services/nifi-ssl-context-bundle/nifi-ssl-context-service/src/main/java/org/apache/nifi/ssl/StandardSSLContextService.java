@@ -51,6 +51,7 @@ import java.net.MalformedURLException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -154,7 +155,7 @@ public class StandardSSLContextService extends AbstractControllerService impleme
 
         final Collection<ValidationResult> results = new ArrayList<>();
 
-        final Map<PropertyDescriptor, String> properties = evaluateProperties(context.getProperties(), context);
+        final Map<PropertyDescriptor, String> properties = evaluateProperties(context);
         results.addAll(validateStore(properties, KeystoreValidationGroup.KEYSTORE));
         results.addAll(validateStore(properties, KeystoreValidationGroup.TRUSTSTORE));
 
@@ -191,7 +192,7 @@ public class StandardSSLContextService extends AbstractControllerService impleme
             }
         }
 
-        final Map<PropertyDescriptor, String> properties = evaluateProperties(validationContext.getProperties(), validationContext);
+        final Map<PropertyDescriptor, String> properties = evaluateProperties(validationContext);
         results.addAll(validateStore(properties, KeystoreValidationGroup.KEYSTORE));
         results.addAll(validateStore(properties, KeystoreValidationGroup.TRUSTSTORE));
 
@@ -200,13 +201,15 @@ public class StandardSSLContextService extends AbstractControllerService impleme
         return results;
     }
 
-    private Map<PropertyDescriptor, String> evaluateProperties(final Map<PropertyDescriptor, String> properties, final PropertyContext context) {
-        for (final PropertyDescriptor pd : properties.keySet()) {
-            if (pd.isExpressionLanguageSupported() && context.getProperty(pd).isSet()) {
-                properties.put(pd, context.getProperty(pd).evaluateAttributeExpressions().getValue());
-            }
+    private Map<PropertyDescriptor, String> evaluateProperties(final PropertyContext context) {
+        final Map<PropertyDescriptor, String> evaluatedProperties = new HashMap<>(getSupportedPropertyDescriptors().size(), 1);
+        for (final PropertyDescriptor pd : getSupportedPropertyDescriptors()) {
+            final PropertyValue pv = pd.isExpressionLanguageSupported()
+                    ? context.getProperty(pd).evaluateAttributeExpressions()
+                    : context.getProperty(pd);
+            evaluatedProperties.put(pd, pv.isSet() ? pv.getValue() : null);
         }
-        return properties;
+        return evaluatedProperties;
     }
 
     private void resetValidationCache() {
