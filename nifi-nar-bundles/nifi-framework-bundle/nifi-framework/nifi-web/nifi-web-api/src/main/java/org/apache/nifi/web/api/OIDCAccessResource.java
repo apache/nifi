@@ -48,6 +48,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.util.WebUtils;
 
+import javax.annotation.PreDestroy;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -461,8 +462,6 @@ public class OIDCAccessResource extends AccessResource {
         httpPost.setEntity(new UrlEncodedFormEntity(params));
 
         try (CloseableHttpResponse response = httpClient.execute(httpPost)) {
-            httpClient.close();
-
             if (response.getStatusLine().getStatusCode() == HTTPResponse.SC_OK) {
                 // Redirect to logout page
                 logger.debug("You are logged out of the OpenId Connect Provider.");
@@ -473,6 +472,11 @@ public class OIDCAccessResource extends AccessResource {
                         "Response status: " + response.getStatusLine().getStatusCode());
             }
         }
+    }
+
+    @PreDestroy
+    private final void closeClient() throws IOException {
+        httpClient.close();
     }
 
     private AuthenticationResponse parseOidcResponse(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse, boolean isLogin) throws Exception {
