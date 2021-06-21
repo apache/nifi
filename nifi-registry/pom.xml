@@ -91,7 +91,8 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <inceptionYear>2017</inceptionYear>
         <jax.rs.api.version>2.1</jax.rs.api.version>
-        <spring.boot.version>2.2.6.RELEASE</spring.boot.version>
+        <spring.boot.version>2.5.1</spring.boot.version>
+        <spring.version>5.3.8</spring.version>
         <spring.security.version>5.4.6</spring.security.version>
         <flyway.version>6.5.7</flyway.version>
         <flyway.tests.version>6.4.0</flyway.tests.version>
