@@ -145,9 +145,9 @@ class TestPutDatabaseRecord {
 
         def tableSchema = [
                 [
-                        new PutDatabaseRecord.ColumnDescription('id', 4, true, 2),
-                        new PutDatabaseRecord.ColumnDescription('name', 12, true, 255),
-                        new PutDatabaseRecord.ColumnDescription('code', 4, true, 10)
+                        new PutDatabaseRecord.ColumnDescription('id', 4, true, 2, false),
+                        new PutDatabaseRecord.ColumnDescription('name', 12, true, 255, true),
+                        new PutDatabaseRecord.ColumnDescription('code', 4, true, 10, true)
                 ],
                 false,
                 ['id'] as Set<String>,
@@ -169,7 +169,7 @@ class TestPutDatabaseRecord {
             assertEquals('UPDATE PERSONS SET name = ?, code = ? WHERE id = ?',
                     generateUpdate(schema, 'PERSONS', null, tableSchema, settings).sql)
 
-            assertEquals('DELETE FROM PERSONS WHERE (id = ? OR (id is null AND ? is null)) AND (name = ? OR (name is null AND ? is null)) AND (code = ? OR (code is null AND ? is null))',
+            assertEquals('DELETE FROM PERSONS WHERE (id = ?) AND (name = ? OR (name is null AND ? is null)) AND (code = ? OR (code is null AND ? is null))',
                     generateDelete(schema, 'PERSONS', tableSchema, settings).sql)
         }
     }
@@ -193,9 +193,9 @@ class TestPutDatabaseRecord {
 
         def tableSchema = [
                 [
-                        new PutDatabaseRecord.ColumnDescription('id', 4, true, 2),
-                        new PutDatabaseRecord.ColumnDescription('name', 12, true, 255),
-                        new PutDatabaseRecord.ColumnDescription('code', 4, true, 10)
+                        new PutDatabaseRecord.ColumnDescription('id', 4, true, 2, false),
+                        new PutDatabaseRecord.ColumnDescription('name', 12, true, 255, true),
+                        new PutDatabaseRecord.ColumnDescription('code', 4, true, 10, true)
                 ],
                 false,
                 ['id'] as Set<String>,
@@ -1236,9 +1236,9 @@ class TestPutDatabaseRecord {
 
         def tableSchema = [
                 [
-                        new PutDatabaseRecord.ColumnDescription('id', 4, true, 2),
-                        new PutDatabaseRecord.ColumnDescription('name', 12, true, 255),
-                        new PutDatabaseRecord.ColumnDescription('code', 4, true, 10)
+                        new PutDatabaseRecord.ColumnDescription('id', 4, true, 2, false),
+                        new PutDatabaseRecord.ColumnDescription('name', 12, true, 255, true),
+                        new PutDatabaseRecord.ColumnDescription('code', 4, true, 10, true)
                 ],
                 false,
                 ['id'] as Set<String>,
