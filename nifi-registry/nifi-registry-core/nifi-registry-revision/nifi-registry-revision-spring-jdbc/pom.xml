@@ -32,7 +32,7 @@
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-jdbc</artifactId>
-            <version>5.2.5.RELEASE</version>
+            <version>${spring.version}</version>
         </dependency>
         <!-- Test Deps -->
         <dependency>
