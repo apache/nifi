@@ -40,7 +40,7 @@
         </profile>
     </profiles>
 
-    <!-- This module should kept to having no dependencies -->
+    <!-- This module should kept to having no retained dependencies -->
     <dependencies>
         <dependency>
             <groupId>io.swagger</groupId>
