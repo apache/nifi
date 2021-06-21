@@ -20,6 +20,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.controller.ConfigurationContext;
 
 import java.io.IOException;
+import java.util.Map;
 
 /**
  * Control a WebSocket client instance.
@@ -33,6 +34,10 @@ public interface WebSocketClientService extends WebSocketService {
     void stopClient() throws Exception;
 
     void connect(final String clientId) throws IOException;
+
+    default void connect(final String clientId, final Map<String, String> flowFileAttributes) throws IOException {
+        connect(clientId);
+    }
 
     String getTargetUri();
 
