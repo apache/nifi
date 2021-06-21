@@ -32,6 +32,12 @@
                 <artifactId>nifi-sql-reporting-tasks</artifactId>
                 <version>1.14.0-SNAPSHOT</version>
             </dependency>
+            <!-- Override jackson-databind 2.9.9.3 from calcite-core -->
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-databind</artifactId>
+                <version>${jackson.version}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 </project>

@@ -25,4 +25,19 @@
         <module>nifi-lookup-services</module>
         <module>nifi-lookup-services-nar</module>
     </modules>
+    <dependencyManagement>
+        <dependencies>
+            <!-- Override jackson from maxmind:geoip2 -->
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-annotations</artifactId>
+                <version>${jackson.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-core</artifactId>
+                <version>${jackson.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 </project>
