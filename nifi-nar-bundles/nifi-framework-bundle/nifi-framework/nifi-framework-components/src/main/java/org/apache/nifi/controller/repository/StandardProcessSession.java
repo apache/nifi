@@ -2824,6 +2824,9 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                     }
 
                     closed = true;
+
+                    countingOut.close();
+                    rawStream.close();
                     writeRecursionSet.remove(sourceFlowFile);
 
                     final long bytesWritten = countingOut.getBytesWritten();
