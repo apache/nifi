@@ -39,8 +39,9 @@ docker run --rm --entrypoint /bin/bash apache/nifi:1.12.0 -c 'readlink /opt/nifi
 
 ## Capabilities
 This image currently supports running in standalone mode either unsecured or with user authentication provided through:
-   * [Two-Way SSL with Client Certificates](http://nifi.apache.org/docs/nifi-docs/html/administration-guide.html#security-configuration)
-   * [Lightweight Directory Access Protocol (LDAP)](http://nifi.apache.org/docs/nifi-docs/html/administration-guide.html#ldap_login_identity_provider)
+  * [Single User Authentication](https://nifi.apache.org/docs/nifi-docs/html/administration-guide.html#single_user_identity_provider)    
+  * [Mutual TLS with Client Certificates](https://nifi.apache.org/docs/nifi-docs/html/administration-guide.html#security-configuration)
+  * [Lightweight Directory Access Protocol (LDAP)](https://nifi.apache.org/docs/nifi-docs/html/administration-guide.html#ldap_login_identity_provider)
 
 This image also contains the NiFi Toolkit (as of version 1.8.0) preconfigured to use either in secure and unsecure mode.
 
@@ -77,7 +78,7 @@ The minimum to run a NiFi instance is as follows:
 This will provide a running instance, exposing the instance UI to the host system on at port 8443,
 viewable at `https://localhost:8443/nifi`.
 
-You can also pass in environment variables to change the NiFi communication ports and hostname using the Docker '-e' switch as follows:
+Environment variables can be used to set the NiFi communication ports and hostname using the Docker '-e' switch as follows:
 
     docker run --name nifi \
       -p 9443:9443 \
@@ -85,7 +86,16 @@ You can also pass in environment variables to change the NiFi communication port
       -e NIFI_WEB_HTTPS_PORT='9443' \
       apache/nifi:latest
 
-For a list of the environment variables recognised in this build, look into the .sh/secure.sh and .sh/start.sh scripts
+Single User Authentication credentials can be specified using environment variables as follows:
+
+    docker run --name nifi \
+      -p 8443:8443 \
+      -d \
+      -e SINGLE_USER_CREDENTIALS_USERNAME=admin \
+      -e SINGLE_USER_CREDENTIALS_PASSWORD=ctsBtRBKHRAx69EqUghvvgEvjnaLjFEB \
+      apache/nifi:latest
+
+See `secure.sh` and `start.sh` scripts for supported environment variables.
 
 ### Standalone Instance secured with HTTPS and Mutual TLS Authentication
 In this configuration, the user will need to provide certificates and associated configuration information.
