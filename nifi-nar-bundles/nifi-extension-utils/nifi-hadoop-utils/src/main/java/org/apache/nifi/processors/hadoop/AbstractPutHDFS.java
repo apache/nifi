@@ -272,58 +272,36 @@ public abstract class AbstractPutHDFS extends AbstractHadoopProcessor {
     }
 
     /**
-     * Returns with the expected block size. Note: this might be overwritten by implementations.
+     * Returns with the expected block size.
      */
-    protected long getBlockSize(final ProcessContext context, final ProcessSession session, final FlowFile flowFile) {
-        final String dirValue = context.getProperty(DIRECTORY).evaluateAttributeExpressions(flowFile).getValue();
-        final Path configuredRootDirPath = new Path(dirValue);
-
-        try {
-            return getFileSystem().getFileStatus(configuredRootDirPath).getBlockSize();
-        } catch (final IOException e) {
-            getLogger().warn("Error happened during acquiring status for {}. Determining the block size using default value.", configuredRootDirPath, e);
-            return getFileSystem().getDefaultBlockSize(configuredRootDirPath);
-        }
-    }
+    protected abstract long getBlockSize(final ProcessContext context, final ProcessSession session, final FlowFile flowFile);
 
     /**
-     * Returns with the expected buffer size. Note: this might be overwritten by implementations.
+     * Returns with the expected buffer size.
      */
-    protected int getBufferSize(final ProcessContext context, final ProcessSession session, final FlowFile flowFile) {
-        return getConfiguration().getInt(BUFFER_SIZE_KEY, BUFFER_SIZE_DEFAULT);
-    }
+    protected abstract int getBufferSize(final ProcessContext context, final ProcessSession session, final FlowFile flowFile);
 
     /**
-     * Returns with the expected replication factor. Note: this might be overwritten by implementations.
+     * Returns with the expected replication factor.
      */
-    protected short getReplication(final ProcessContext context, final ProcessSession session, final FlowFile flowFile) {
-        final String dirValue = context.getProperty(DIRECTORY).evaluateAttributeExpressions(flowFile).getValue();
-        final Path configuredRootDirPath = new Path(dirValue);
-        return getFileSystem().getDefaultReplication(configuredRootDirPath);
-    }
+    protected abstract short getReplication(final ProcessContext context, final ProcessSession session, final FlowFile flowFile);
 
     /**
-     * Returns if file system should ignore location. Note: this might be overwritten by implementations.
+     * Returns if file system should ignore locality.
      */
-    protected boolean shouldIgnoreLocality(final ProcessContext context, final ProcessSession session) {
-        return false;
-    }
+    protected abstract boolean shouldIgnoreLocality(final ProcessContext context, final ProcessSession session);
 
     /**
-     * I returns a non-null value, changes the owner of the uploaded file to this value after it is written. This only
-     * works if NiFi is running as a user that has privilege to change owner. Note: this might be overwritten by implementations.
+     * If returns a non-null value, the uploaded file's owner will be changed to this value after it is written. This only
+     * works if NiFi is running as a user that has privilege to change owner.
      */
-    protected String getOwner(final ProcessContext context, final FlowFile flowFile) {
-        return null;
-    }
+    protected abstract String getOwner(final ProcessContext context, final FlowFile flowFile);
 
     /**
-     * I returns a non-null value, changes the group of the uploaded file to this value after it is written. This only
-     * works if NiFi is running as a user that has privilege to change group. Note: this might be overwritten by implementations.
+     * I returns a non-null value, thee uploaded file's group will be changed to this value after it is written. This only
+     * works if NiFi is running as a user that has privilege to change group.
      */
-    protected String getGroup(final ProcessContext context, final FlowFile flowFile) {
-        return null;
-    }
+    protected abstract String getGroup(final ProcessContext context, final FlowFile flowFile);
 
     /**
      * @return The relationship the flow file will be transferred in case of successful execution.
