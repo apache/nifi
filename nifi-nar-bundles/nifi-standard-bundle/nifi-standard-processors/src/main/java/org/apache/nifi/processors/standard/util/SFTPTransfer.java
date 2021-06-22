@@ -76,6 +76,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -95,14 +96,14 @@ public class SFTPTransfer implements FileTransfer {
     static {
         DefaultConfig defaultConfig = new DefaultConfig();
 
-        DEFAULT_KEY_ALGORITHM_NAMES = defaultConfig.getKeyAlgorithms().stream()
-                .map(Factory.Named::getName).collect(Collectors.toUnmodifiableSet());
-        DEFAULT_CIPHER_NAMES = defaultConfig.getCipherFactories().stream()
-                .map(Factory.Named::getName).collect(Collectors.toUnmodifiableSet());
-        DEFAULT_MESSAGE_AUTHENTICATION_CODE_NAMES = defaultConfig.getMACFactories().stream()
-                .map(Factory.Named::getName).collect(Collectors.toUnmodifiableSet());
-        DEFAULT_KEY_EXCHANGE_ALGORITHM_NAMES = defaultConfig.getKeyExchangeFactories().stream()
-                .map(Factory.Named::getName).collect(Collectors.toUnmodifiableSet());
+        DEFAULT_KEY_ALGORITHM_NAMES = Collections.unmodifiableSet(defaultConfig.getKeyAlgorithms().stream()
+                .map(Factory.Named::getName).collect(Collectors.toSet()));
+        DEFAULT_CIPHER_NAMES = Collections.unmodifiableSet(defaultConfig.getCipherFactories().stream()
+                .map(Factory.Named::getName).collect(Collectors.toSet()));
+        DEFAULT_MESSAGE_AUTHENTICATION_CODE_NAMES = Collections.unmodifiableSet(defaultConfig.getMACFactories().stream()
+                .map(Factory.Named::getName).collect(Collectors.toSet()));
+        DEFAULT_KEY_EXCHANGE_ALGORITHM_NAMES = Collections.unmodifiableSet(defaultConfig.getKeyExchangeFactories().stream()
+                .map(Factory.Named::getName).collect(Collectors.toSet()));
     }
 
     /**
