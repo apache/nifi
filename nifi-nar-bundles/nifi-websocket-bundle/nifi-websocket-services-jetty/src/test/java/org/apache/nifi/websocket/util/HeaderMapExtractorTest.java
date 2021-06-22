@@ -30,36 +30,34 @@ import static org.junit.Assert.assertTrue;
 
 public class HeaderMapExtractorTest {
 
-    private static final Map<String, String> FLOW_FILE_ATTRIBUTES;
-    private static final Map<String, List<String>> EXPECTED_HEADER_MAP;
+    @Test
+    public void testMapExtractor() {
 
-    static {
+        // GIVEN
         final Map<String, String> attributes = new HashMap<>();
         attributes.put("header.AUTHORIZATION", "AUTH_VALUE");
         attributes.put("header.MULTI_HEADER_KEY", "FIRST, SECOND   ,THIRD");
-        attributes.put("headers.dots.dots.dots.DOTS_KEY", "DOTS_VALUE");
+        attributes.put("header.dots.dots.dots.DOTS_KEY", "DOTS_VALUE");
         attributes.put("something.else.SOMETHING_ELSE_KEY", "SOMETHING_ELSE_VALUE");
         attributes.put("header.EMPTY_VALUE_KEY", "");
-        FLOW_FILE_ATTRIBUTES = Collections.unmodifiableMap(attributes);
-    }
+        attributes.put("headerButNotReally.UNRECOGNIZED", "NOT_A_HEADER_VALUE");
 
-    static {
-        final Map<String, List<String>> headers = new HashMap<>();
-        headers.put("AUTHORIZATION", Collections.singletonList("AUTH_VALUE"));
-        headers.put("MULTI_HEADER_KEY", Arrays.asList("FIRST", "SECOND", "THIRD"));
-        headers.put("dots.dots.dots.DOTS_KEY", Collections.singletonList("DOTS_VALUE"));
-        EXPECTED_HEADER_MAP = Collections.unmodifiableMap(headers);
-    }
+        final Map<String, List<String>> expected = new HashMap<>();
+        expected.put("AUTHORIZATION", Collections.singletonList("AUTH_VALUE"));
+        expected.put("MULTI_HEADER_KEY", Arrays.asList("FIRST", "SECOND", "THIRD"));
+        expected.put("dots.dots.dots.DOTS_KEY", Collections.singletonList("DOTS_VALUE"));
 
-    @Test
-    public void testMapExtractor() {
-        final Map<String, List<String>> headerMap = HeaderMapExtractor.getHeaderMap(FLOW_FILE_ATTRIBUTES);
+        // WHEN
+        final Map<String, List<String>> actual = HeaderMapExtractor.getHeaderMap(attributes);
 
-        assertEquals(EXPECTED_HEADER_MAP.size(), headerMap.size());
-        for (Map.Entry<String, List<String>> entry : headerMap.entrySet()) {
-            assertTrue(EXPECTED_HEADER_MAP.containsKey(entry.getKey()));
+        // THEN
+        assertEquals(expected, actual);
+
+        assertEquals(expected.size(), actual.size());
+        for (Map.Entry<String, List<String>> entry : actual.entrySet()) {
+            assertTrue(expected.containsKey(entry.getKey()));
             final List<String> actualHeaderValues = entry.getValue();
-            final List<String> expectedHeaderValues = EXPECTED_HEADER_MAP.get(entry.getKey());
+            final List<String> expectedHeaderValues = expected.get(entry.getKey());
             for (int i = 0; i < actualHeaderValues.size(); i++) {
                 assertEquals(expectedHeaderValues.get(i), actualHeaderValues.get(i));
             }

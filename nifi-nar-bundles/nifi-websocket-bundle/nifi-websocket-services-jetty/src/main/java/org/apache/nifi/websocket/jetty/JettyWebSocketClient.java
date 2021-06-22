@@ -285,6 +285,11 @@ public class JettyWebSocketClient extends AbstractJettyWebSocketService implemen
     }
 
     @Override
+    public void connect(final String clientId) throws IOException {
+        connect(clientId, null, Collections.emptyMap());
+    }
+
+    @Override
     public void connect(final String clientId, final Map<String, String> flowFileAttributes) throws IOException {
         connect(clientId, null, flowFileAttributes);
     }

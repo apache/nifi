@@ -25,23 +25,19 @@
 <p>
     This processor acts as a WebSocket client endpoint to interact with a remote WebSocket server.
     It is capable of receiving messages from a websocket server and it transfers them to downstream relationships
-    according to the received message types. Dynamic properties and custom header attributes can be configured by
-    incoming
-    flowfile attributes.
+    according to the received message types.
 </p>
 <p>
-    Any flowfile attributes can be referenced in the processor and in its WebSocket Client Service. For dynamic
-    properties
-    use the NiFi Expression Language and reference a flowfile attribute. For instance to the "dynamic.url =
-    currentValue"
-    flowfile attribute can be referenced in the WebSocket Client Service with the ${dynamic.url} expression.
+    The processor may have an incoming relationship, in which case flowfile attributes are passed down to its WebSocket Client Service.
+    This can be used to fine-tune the connection configuration (url and headers for example). For example "dynamic.url =
+    currentValue" flowfile attribute can be referenced in the WebSocket Client Service with the ${dynamic.url} expression.
 </p>
 <p>
     You can define custom websocket headers in the incoming flowfile as additional attributes. The attribute key
     shall start with "header." and continue with they header key. For example: "header.Authorization". The attribute
     value will be the corresponding header value.
 <ol>
-    <li>header.Autorization | AuthorizationPassword</li>
+    <li>header.Autorization | Basic base64UserNamePassWord</li>
     <li>header.Content-Type | application, audio, example</li>
 </ol>
 <p>

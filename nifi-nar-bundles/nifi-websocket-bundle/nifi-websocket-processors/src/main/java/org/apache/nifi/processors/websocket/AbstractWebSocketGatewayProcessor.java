@@ -40,7 +40,6 @@ import org.apache.nifi.websocket.WebSocketService;
 import org.apache.nifi.websocket.WebSocketSessionInfo;
 
 import java.io.IOException;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -130,10 +129,14 @@ public abstract class AbstractWebSocketGatewayProcessor extends AbstractSessionF
                 final ProcessSession session = processSessionFactory.createSession();
                 final FlowFile flowFile = session.get();
                 final Map<String, String> attributes = flowFile.getAttributes();
-                session.remove(flowFile);
-                webSocketClientService.connect(endpointId, attributes);
+                try {
+                    webSocketClientService.connect(endpointId, attributes);
+                } finally {
+                    session.remove(flowFile);
+                    session.commitAsync();
+                }
             } else {
-                webSocketClientService.connect(endpointId, Collections.emptyMap());
+                webSocketClientService.connect(endpointId);
             }
         }
 

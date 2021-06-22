@@ -24,13 +24,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-public class HeaderMapExtractor {
+public final class HeaderMapExtractor {
+
+    private HeaderMapExtractor(){
+        // Utility class, not meant to be instantiated.
+    }
+
+    public static final String HEADER_PREFIX = "header.";
 
     public static Map<String, List<String>> getHeaderMap(final Map<String, String> flowFileAttributes) {
         return flowFileAttributes.entrySet().stream()
-                .filter(entry -> entry.getKey().startsWith("header"))
+                .filter(entry -> entry.getKey().startsWith(HEADER_PREFIX))
                 .filter(entry -> StringUtils.isNotBlank(entry.getValue()))
-                .map(entry -> new AbstractMap.SimpleImmutableEntry<>(StringUtils.substringAfter(entry.getKey(), "."), entry.getValue()))
+                .map(entry -> new AbstractMap.SimpleImmutableEntry<>(StringUtils.substringAfter(entry.getKey(), HEADER_PREFIX), entry.getValue()))
                 .collect(Collectors.toMap(Map.Entry::getKey, HeaderMapExtractor::headerValueMapper));
     }
 

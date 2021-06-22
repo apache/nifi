@@ -33,7 +33,11 @@ public interface WebSocketClientService extends WebSocketService {
 
     void stopClient() throws Exception;
 
-    void connect(final String clientId, final Map<String, String> flowFileAttributes) throws IOException;
+    void connect(final String clientId) throws IOException;
+
+    default void connect(final String clientId, final Map<String, String> flowFileAttributes) throws IOException {
+        connect(clientId);
+    }
 
     String getTargetUri();
 

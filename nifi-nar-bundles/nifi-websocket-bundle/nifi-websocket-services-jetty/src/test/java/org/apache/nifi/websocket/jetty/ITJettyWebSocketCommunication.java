@@ -166,7 +166,7 @@ public class ITJettyWebSocketCommunication {
 
         clientService.registerProcessor(clientId, clientProcessor);
 
-        clientService.connect(clientId, Collections.emptyMap());
+        clientService.connect(clientId);
 
         assertTrue("WebSocket client should be able to fire connected event.", clientConnectedServer.await(5, TimeUnit.SECONDS));
         assertTrue("WebSocket server should be able to fire connected event.", serverIsConnectedByClient.await(5, TimeUnit.SECONDS));

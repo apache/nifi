@@ -37,7 +37,6 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import java.net.InetSocketAddress;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -95,7 +94,7 @@ public class TestConnectWebSocket extends TestListenWebSocket {
             processor.consume(webSocketSession, binaryMessage, 0, binaryMessage.length);
             processor.consume(webSocketSession, binaryMessage, 0, binaryMessage.length);
             return null;
-        }).when(service).connect(endpointId, Collections.emptyMap());
+        }).when(service).connect(endpointId);
         runner.addControllerService(serviceId, service);
 
         runner.enableControllerService(service);
