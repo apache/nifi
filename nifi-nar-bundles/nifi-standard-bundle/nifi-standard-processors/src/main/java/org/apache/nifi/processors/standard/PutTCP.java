@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import org.apache.commons.io.IOUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
@@ -24,23 +23,20 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.event.transport.configuration.TransportProtocol;
+import org.apache.nifi.event.transport.netty.DelimitedInputStream;
+import org.apache.nifi.event.transport.netty.NettyEventSenderFactory;
+import org.apache.nifi.event.transport.netty.StreamingNettyEventSenderFactory;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.put.AbstractPutEventProcessor;
-import org.apache.nifi.processor.util.put.sender.ChannelSender;
-import org.apache.nifi.processor.util.put.sender.SocketChannelSender;
-import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.StopWatch;
-
-import javax.net.ssl.SSLContext;
-import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.List;
@@ -97,31 +93,6 @@ import java.util.concurrent.TimeUnit;
 public class PutTCP extends AbstractPutEventProcessor {
 
     /**
-     * Creates a concrete instance of a ChannelSender object to use for sending messages over a TCP stream.
-     *
-     * @param context
-     *            - the current process context.
-     *
-     * @return ChannelSender object.
-     */
-    @Override
-    protected ChannelSender createSender(final ProcessContext context) throws IOException {
-        final String protocol = TCP_VALUE.getValue();
-        final String hostname = context.getProperty(HOSTNAME).evaluateAttributeExpressions().getValue();
-        final int port = context.getProperty(PORT).evaluateAttributeExpressions().asInteger();
-        final int timeout = context.getProperty(TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue();
-        final int bufferSize = context.getProperty(MAX_SOCKET_SEND_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
-        final SSLContextService sslContextService = (SSLContextService) context.getProperty(SSL_CONTEXT_SERVICE).asControllerService();
-
-        SSLContext sslContext = null;
-        if (sslContextService != null) {
-            sslContext = sslContextService.createContext();
-        }
-
-        return createSender(protocol, hostname, port, timeout, bufferSize, sslContext);
-    }
-
-    /**
      * Creates a Universal Resource Identifier (URI) for this processor. Constructs a URI of the form TCP://< host >:< port > where the host and port
      * values are taken from the configured property values.
      *
@@ -168,46 +139,25 @@ public class PutTCP extends AbstractPutEventProcessor {
         final ProcessSession session = sessionFactory.createSession();
         final FlowFile flowFile = session.get();
         if (flowFile == null) {
-            final PruneResult result = pruneIdleSenders(context.getProperty(IDLE_EXPIRATION).asTimePeriod(TimeUnit.MILLISECONDS).longValue());
-            // yield if we closed an idle connection, or if there were no connections in the first place
-            if (result.getNumClosed() > 0 || (result.getNumClosed() == 0 && result.getNumConsidered() == 0)) {
-                context.yield();
-            }
             return;
         }
 
-        ChannelSender sender = acquireSender(context, session, flowFile);
-        if (sender == null) {
-            return;
-        }
-
-        // really shouldn't happen since we know the protocol is TCP here, but this is more graceful so we
-        // can cast to a SocketChannelSender later in order to obtain the OutputStream
-        if (!(sender instanceof SocketChannelSender)) {
-            getLogger().error("Processor can only be used with a SocketChannelSender, but obtained: " + sender.getClass().getCanonicalName());
-            context.yield();
-            return;
-        }
-
-        boolean closeSender = isConnectionPerFlowFile(context);
         try {
-            // We might keep the connection open across invocations of the processor so don't auto-close this
-            final OutputStream out = ((SocketChannelSender)sender).getOutputStream();
-            final String delimiter = getOutgoingMessageDelimiter(context, flowFile);
+            StopWatch stopWatch = new StopWatch(true);
+            session.read(flowFile, new InputStreamCallback() {
+                @Override
+                public void process(final InputStream in) throws IOException {
+                    InputStream event = in;
 
-            final StopWatch stopWatch = new StopWatch(true);
-            try (final InputStream rawIn = session.read(flowFile);
-                 final BufferedInputStream in = new BufferedInputStream(rawIn)) {
-                IOUtils.copy(in, out);
-                if (delimiter != null) {
-                    final Charset charSet = Charset.forName(context.getProperty(CHARSET).getValue());
-                    out.write(delimiter.getBytes(charSet), 0, delimiter.length());
+                    String delimiter = getOutgoingMessageDelimiter(context, flowFile);
+                    if (delimiter != null) {
+                        final Charset charSet = Charset.forName(context.getProperty(CHARSET).getValue());
+                        event = new DelimitedInputStream(in, delimiter.getBytes(charSet));
+                    }
+
+                    eventSender.sendEvent(event);
                 }
-                out.flush();
-            } catch (final Exception e) {
-                closeSender = true;
-                throw e;
-            }
+            });
 
             session.getProvenanceReporter().send(flowFile, transitUri, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
             session.transfer(flowFile, REL_SUCCESS);
@@ -215,14 +165,6 @@ public class PutTCP extends AbstractPutEventProcessor {
         } catch (Exception e) {
             onFailure(context, session, flowFile);
             getLogger().error("Exception while handling a process session, transferring {} to failure.", new Object[] { flowFile }, e);
-        } finally {
-            if (closeSender) {
-                getLogger().debug("Closing sender");
-                sender.close();
-            } else {
-                getLogger().debug("Relinquishing sender");
-                relinquishSender(sender);
-            }
         }
     }
 
@@ -243,15 +185,13 @@ public class PutTCP extends AbstractPutEventProcessor {
         context.yield();
     }
 
-    /**
-     * Gets the current value of the "Connection Per FlowFile" property.
-     *
-     * @param context
-     *            - the current process context.
-     *
-     * @return boolean value - true if a connection per FlowFile is specified.
-     */
-    protected boolean isConnectionPerFlowFile(final ProcessContext context) {
-        return context.getProperty(CONNECTION_PER_FLOWFILE).getValue().equalsIgnoreCase("true");
+    @Override
+    protected String getProtocol(final ProcessContext context) {
+        return TCP_VALUE.getValue();
+    }
+
+    @Override
+    protected NettyEventSenderFactory<?> getNettyEventSenderFactory(final String hostname, final int port, final String protocol) {
+        return new StreamingNettyEventSenderFactory(getLogger(), hostname, port, TransportProtocol.valueOf(protocol));
     }
 }
