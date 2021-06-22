@@ -23,6 +23,7 @@ import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
+import io.netty.channel.FixedRecvByteBufAllocator;
 import io.netty.channel.socket.nio.NioDatagramChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import org.apache.nifi.event.transport.EventException;
@@ -117,6 +118,8 @@ public class NettyEventServerFactory extends EventLoopGroupFactory implements Ev
             final Bootstrap bootstrap = new Bootstrap();
             bootstrap.channel(NioDatagramChannel.class);
             bootstrap.handler(new StandardChannelInitializer<>(handlerSupplier));
+
+
             return bootstrap;
         } else {
             final ServerBootstrap bootstrap = new ServerBootstrap();
@@ -129,6 +132,7 @@ public class NettyEventServerFactory extends EventLoopGroupFactory implements Ev
 
             if (socketReceiveBuffer != null) {
                 bootstrap.option(ChannelOption.SO_RCVBUF, socketReceiveBuffer);
+                bootstrap.option(ChannelOption.RCVBUF_ALLOCATOR, new FixedRecvByteBufAllocator(socketReceiveBuffer));
             }
 
             return bootstrap;

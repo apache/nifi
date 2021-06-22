@@ -22,17 +22,20 @@ import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.event.transport.configuration.TransportProtocol;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
+import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.put.AbstractPutEventProcessor;
 import org.apache.nifi.processor.util.put.sender.ChannelSender;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.StopWatch;
+import org.apache.nifi.util.StringUtils;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -81,22 +84,10 @@ import java.util.concurrent.TimeUnit;
 @TriggerWhenEmpty // trigger even when queue is empty so that the processor can check for idle senders to prune.
 public class PutUDP extends AbstractPutEventProcessor {
 
-    /**
-     * Creates a concrete instance of a ChannelSender object to use for sending UDP datagrams.
-     *
-     * @param context
-     *            - the current process context.
-     *
-     * @return ChannelSender object.
-     */
     @Override
-    protected ChannelSender createSender(final ProcessContext context) throws IOException {
-        final String protocol = UDP_VALUE.getValue();
-        final String hostname = context.getProperty(HOSTNAME).evaluateAttributeExpressions().getValue();
-        final int port = context.getProperty(PORT).evaluateAttributeExpressions().asInteger();
-        final int bufferSize = context.getProperty(MAX_SOCKET_SEND_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
-
-        return createSender(protocol, hostname, port, 0, bufferSize, null);
+    protected void init(final ProcessorInitializationContext context) {
+        protocol = TransportProtocol.UDP;
+        super.init(context);
     }
 
     /**
@@ -109,11 +100,10 @@ public class PutUDP extends AbstractPutEventProcessor {
      */
     @Override
     protected String createTransitUri(final ProcessContext context) {
-        final String protocol = UDP_VALUE.getValue();
         final String host = context.getProperty(HOSTNAME).evaluateAttributeExpressions().getValue();
         final String port = context.getProperty(PORT).evaluateAttributeExpressions().getValue();
 
-        return new StringBuilder().append(protocol).append("://").append(host).append(":").append(port).toString();
+        return new StringBuilder().append(protocol.name()).append("://").append(host).append(":").append(port).toString();
     }
 
     /**
@@ -131,31 +121,25 @@ public class PutUDP extends AbstractPutEventProcessor {
         final ProcessSession session = sessionFactory.createSession();
         final FlowFile flowFile = session.get();
         if (flowFile == null) {
-            final PruneResult result = pruneIdleSenders(context.getProperty(IDLE_EXPIRATION).asTimePeriod(TimeUnit.MILLISECONDS).longValue());
-            // yield if we closed an idle connection, or if there were no connections in the first place
-            if (result.getNumClosed() > 0 || (result.getNumClosed() == 0 && result.getNumConsidered() == 0)) {
-                context.yield();
-            }
             return;
         }
 
-        ChannelSender sender = acquireSender(context, session, flowFile);
-        if (sender == null) {
+        if (eventSender == null) {
             return;
         }
 
         try {
             byte[] content = readContent(session, flowFile);
             StopWatch stopWatch = new StopWatch(true);
-            sender.send(content);
+            if (content != null) {
+                eventSender.sendEvent(content);
+            }
             session.getProvenanceReporter().send(flowFile, transitUri, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
             session.transfer(flowFile, REL_SUCCESS);
             session.commitAsync();
         } catch (Exception e) {
             getLogger().error("Exception while handling a process session, transferring {} to failure.", new Object[] { flowFile }, e);
             onFailure(context, session, flowFile);
-        } finally {
-            relinquishSender(sender);
         }
     }
 
@@ -175,8 +159,6 @@ public class PutUDP extends AbstractPutEventProcessor {
         session.commitAsync();
         context.yield();
     }
-
-
 
     /**
      * Helper method to read the FlowFile content stream into a byte array.

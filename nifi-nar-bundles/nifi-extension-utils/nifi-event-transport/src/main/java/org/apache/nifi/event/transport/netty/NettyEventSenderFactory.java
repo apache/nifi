@@ -22,6 +22,7 @@ import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
+import io.netty.channel.FixedRecvByteBufAllocator;
 import io.netty.channel.pool.ChannelHealthChecker;
 import io.netty.channel.pool.ChannelPool;
 import io.netty.channel.pool.ChannelPoolHandler;
@@ -49,6 +50,7 @@ import java.util.function.Supplier;
  */
 public class NettyEventSenderFactory<T> extends EventLoopGroupFactory implements EventSenderFactory<T> {
     private static final int MAX_PENDING_ACQUIRES = 1024;
+    private final static int FRAME_SIZE = 32768;
 
     private final String address;
 
@@ -106,7 +108,7 @@ public class NettyEventSenderFactory<T> extends EventLoopGroupFactory implements
         this.maxConnections = maxConnections;
     }
 
-    /**
+    /*
      * Get Event Sender with connected Channel
      *
      * @return Connected Event Sender
@@ -116,6 +118,8 @@ public class NettyEventSenderFactory<T> extends EventLoopGroupFactory implements
         bootstrap.remoteAddress(new InetSocketAddress(address, port));
         final EventLoopGroup group = getEventLoopGroup();
         bootstrap.group(group);
+        bootstrap.option(ChannelOption.SO_SNDBUF, FRAME_SIZE);
+        bootstrap.option(ChannelOption.SO_RCVBUF, FRAME_SIZE);
 
         if (TransportProtocol.UDP.equals(protocol)) {
             bootstrap.channel(NioDatagramChannel.class);

@@ -20,6 +20,12 @@ import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
+import org.apache.nifi.event.transport.EventSender;
+import org.apache.nifi.event.transport.configuration.LineEnding;
+import org.apache.nifi.event.transport.configuration.TransportProtocol;
+import org.apache.nifi.event.transport.netty.ByteArrayNettyEventSenderFactory;
+import org.apache.nifi.event.transport.netty.StringNettyEventSenderFactory;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractSessionFactoryProcessor;
@@ -36,6 +42,8 @@ import org.apache.nifi.ssl.SSLContextService;
 
 import javax.net.ssl.SSLContext;
 import java.io.IOException;
+import java.nio.charset.Charset;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -85,16 +93,15 @@ public abstract class AbstractPutEventProcessor extends AbstractSessionFactoryPr
 
     // Putting these properties here so sub-classes don't have to redefine them, but they are
     // not added to the properties by default since not all processors may need them
-
     public static final AllowableValue TCP_VALUE = new AllowableValue("TCP", "TCP");
     public static final AllowableValue UDP_VALUE = new AllowableValue("UDP", "UDP");
-
     public static final PropertyDescriptor PROTOCOL = new PropertyDescriptor
             .Builder().name("Protocol")
             .description("The protocol for communication.")
             .required(true)
             .allowableValues(TCP_VALUE, UDP_VALUE)
             .defaultValue(TCP_VALUE.getValue())
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     public static final PropertyDescriptor MESSAGE_DELIMITER = new PropertyDescriptor.Builder()
             .name("Message Delimiter")
@@ -115,6 +122,7 @@ public abstract class AbstractPutEventProcessor extends AbstractSessionFactoryPr
             .required(true)
             .defaultValue("UTF-8")
             .addValidator(StandardValidators.CHARACTER_SET_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
     public static final PropertyDescriptor TIMEOUT = new PropertyDescriptor.Builder()
             .name("Timeout")
@@ -122,6 +130,7 @@ public abstract class AbstractPutEventProcessor extends AbstractSessionFactoryPr
             .required(false)
             .defaultValue("10 seconds")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
     public static final PropertyDescriptor OUTGOING_MESSAGE_DELIMITER = new PropertyDescriptor.Builder()
             .name("Outgoing Message Delimiter")
@@ -140,7 +149,6 @@ public abstract class AbstractPutEventProcessor extends AbstractSessionFactoryPr
             .defaultValue("false")
             .allowableValues("true", "false")
             .build();
-
     public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
             .name("SSL Context Service")
             .description("The Controller Service to use in order to obtain an SSL Context. If this property is set, " +
@@ -158,14 +166,12 @@ public abstract class AbstractPutEventProcessor extends AbstractSessionFactoryPr
             .description("FlowFiles that failed to send to the destination are sent out this relationship.")
             .build();
 
-    private static final long SENDER_POOL_POLL_TIMEOUT = 250;
-    private static final TimeUnit SENDER_POOL_POLL_TIMEOUT_UNIT = TimeUnit.MILLISECONDS;
-
     private Set<Relationship> relationships;
     private List<PropertyDescriptor> descriptors;
 
     protected volatile String transitUri;
-    private volatile BlockingQueue<ChannelSender> senderPool;
+    protected EventSender<byte[]> eventSender;
+    protected TransportProtocol protocol;
 
     protected final BlockingQueue<FlowFileMessageBatch> completeBatches = new LinkedBlockingQueue<>();
     protected final Set<FlowFileMessageBatch> activeBatches = Collections.synchronizedSet(new HashSet<>());
@@ -177,6 +183,8 @@ public abstract class AbstractPutEventProcessor extends AbstractSessionFactoryPr
         descriptors.add(PORT);
         descriptors.add(MAX_SOCKET_SEND_BUFFER_SIZE);
         descriptors.add(IDLE_EXPIRATION);
+        descriptors.add(CHARSET);
+        descriptors.add(TIMEOUT);
         descriptors.addAll(getAdditionalProperties());
         this.descriptors = Collections.unmodifiableList(descriptors);
 
@@ -218,18 +226,14 @@ public abstract class AbstractPutEventProcessor extends AbstractSessionFactoryPr
     @OnScheduled
     public void onScheduled(final ProcessContext context) throws IOException {
         // initialize the queue of senders, one per task, senders will get created on the fly in onTrigger
-        this.senderPool = new LinkedBlockingQueue<>(context.getMaxConcurrentTasks());
+        this.eventSender = getEventSender(context);
         this.transitUri = createTransitUri(context);
     }
 
     @OnStopped
-    public void closeSenders() {
-        if (senderPool != null) {
-            ChannelSender sender = pollSenderPool();
-            while (sender != null) {
-                sender.close();
-                sender = pollSenderPool();
-            }
+    public void closeSenders() throws Exception {
+        if (eventSender != null) {
+            eventSender.close();
         }
     }
 
@@ -243,145 +247,28 @@ public abstract class AbstractPutEventProcessor extends AbstractSessionFactoryPr
      */
     protected abstract String createTransitUri(final ProcessContext context);
 
-    /**
-     * Sub-classes create a ChannelSender given a context.
-     *
-     * @param context the current context
-     * @return an implementation of ChannelSender
-     * @throws IOException if an error occurs creating the ChannelSender
-     */
-    protected abstract ChannelSender createSender(final ProcessContext context) throws IOException;
+    protected EventSender<byte[]> getEventSender(final ProcessContext context) {
+        final String hostname = context.getProperty(HOSTNAME).evaluateAttributeExpressions().getValue();
+        final int port = context.getProperty(PORT).evaluateAttributeExpressions().asInteger();
+        final Charset charset = Charset.forName(context.getProperty(CHARSET).evaluateAttributeExpressions().getValue());
 
-    /**
-     * Close any senders that haven't been active with in the given threshold
-     *
-     * @param idleThreshold the threshold to consider a sender as idle
-     * @return the number of connections that were closed as a result of being idle
-     */
-    protected PruneResult pruneIdleSenders(final long idleThreshold) {
-        int numClosed = 0;
-        int numConsidered = 0;
+        final LineEnding lineEnding = TransportProtocol.TCP.equals(protocol) ? LineEnding.UNIX : LineEnding.NONE;
+        final ByteArrayNettyEventSenderFactory factory = new ByteArrayNettyEventSenderFactory(getLogger(), hostname, port, protocol);
+        factory.setThreadNamePrefix(String.format("%s[%s]", AbstractPutEventProcessor.class.getSimpleName(), getIdentifier()));
+        factory.setWorkerThreads(context.getMaxConcurrentTasks());
+        factory.setMaxConnections(context.getMaxConcurrentTasks());
 
-        long currentTime = System.currentTimeMillis();
-        final List<ChannelSender> putBack = new ArrayList<>();
+        final int timeout = context.getProperty(TIMEOUT).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS).intValue();
+        factory.setTimeout(Duration.ofMillis(timeout));
 
-        // if a connection hasn't been used with in the threshold then it gets closed
-        ChannelSender sender;
-        while ((sender = pollSenderPool()) != null) {
-            numConsidered++;
-            if (currentTime > (sender.getLastUsed() + idleThreshold)) {
-                getLogger().debug("Closing idle connection...");
-                sender.close();
-                numClosed++;
-            } else {
-                putBack.add(sender);
-            }
+        final PropertyValue sslContextServiceProperty = context.getProperty(SSL_CONTEXT_SERVICE);
+        if (sslContextServiceProperty.isSet()) {
+            final SSLContextService sslContextService = sslContextServiceProperty.asControllerService(SSLContextService.class);
+            final SSLContext sslContext = sslContextService.createContext();
+            factory.setSslContext(sslContext);
         }
 
-        // re-queue senders that weren't idle, but if the queue is full then close the sender
-        for (ChannelSender putBackSender : putBack) {
-            boolean returned = senderPool.offer(putBackSender);
-            if (!returned) {
-                putBackSender.close();
-            }
-        }
-
-        return new PruneResult(numClosed, numConsidered);
-    }
-
-    /**
-     * Helper for sub-classes to create a sender.
-     *
-     * @param protocol the protocol for the sender
-     * @param host the host to send to
-     * @param port the port to send to
-     * @param timeout the timeout for connecting and communicating over the channel
-     * @param maxSendBufferSize the maximum size of the socket send buffer
-     * @param sslContext an SSLContext, or null if not using SSL
-     *
-     * @return a ChannelSender based on the given properties
-     *
-     * @throws IOException if an error occurs creating the sender
-     */
-    protected ChannelSender createSender(final String protocol,
-                                         final String host,
-                                         final int port,
-                                         final int timeout,
-                                         final int maxSendBufferSize,
-                                         final SSLContext sslContext) throws IOException {
-
-        ChannelSender sender;
-        if (protocol.equals(UDP_VALUE.getValue())) {
-            sender = new DatagramChannelSender(host, port, maxSendBufferSize, getLogger());
-        } else {
-            // if an SSLContextService is provided then we make a secure sender
-            if (sslContext != null) {
-                sender = new SSLSocketChannelSender(host, port, maxSendBufferSize, sslContext, getLogger());
-            } else {
-                sender = new SocketChannelSender(host, port, maxSendBufferSize, getLogger());
-            }
-        }
-
-        sender.setTimeout(timeout);
-        sender.open();
-        return sender;
-    }
-
-    /**
-     * Helper method to acquire an available ChannelSender from the pool. If the pool is empty then the a new sender is created.
-     *
-     * @param context
-     *            - the current process context.
-     *
-     * @param session
-     *            - the current process session.
-     * @param flowFile
-     *            - the FlowFile being processed in this session.
-     *
-     * @return ChannelSender - the sender that has been acquired or null if no sender is available and a new sender cannot be created.
-     */
-    protected ChannelSender acquireSender(final ProcessContext context, final ProcessSession session, final FlowFile flowFile) {
-        ChannelSender sender = pollSenderPool();
-        if (sender == null) {
-            try {
-                getLogger().debug("No available connections, creating a new one...");
-                sender = createSender(context);
-            } catch (IOException e) {
-                getLogger().error("No available connections, and unable to create a new one, transferring {} to failure",
-                        new Object[]{flowFile}, e);
-                session.transfer(flowFile, REL_FAILURE);
-                session.commitAsync();
-                context.yield();
-                sender = null;
-            }
-        }
-
-        return sender;
-    }
-
-
-    /**
-     * Helper method to relinquish the ChannelSender back to the pool. If the sender is disconnected or the pool is full
-     * then the sender is closed and discarded.
-     *
-     * @param sender the sender to return or close
-     */
-    protected void relinquishSender(final ChannelSender sender) {
-        if (sender != null) {
-            // if the connection is still open then then try to return the sender to the pool.
-            if (sender.isConnected()) {
-                boolean returned = senderPool.offer(sender);
-                // if the pool is full then close the sender.
-                if (!returned) {
-                    getLogger().debug("Sender wasn't returned because queue was full, closing sender");
-                    sender.close();
-                }
-            } else {
-                // probably already closed here, but quietly close anyway to be safe.
-                getLogger().debug("Sender is not connected, closing sender");
-                sender.close();
-            }
-        }
+        return factory.getEventSender();
     }
 
     /**
@@ -610,24 +497,5 @@ public abstract class AbstractPutEventProcessor extends AbstractSessionFactoryPr
             delimiter = delimiter.replace("\\n", "\n").replace("\\r", "\r").replace("\\t", "\t");
         }
         return delimiter;
-    }
-
-    /**
-     * Poll Sender Pool when not empty using a timeout to avoid blocking indefinitely
-     *
-     * @return Channel Sender or null when not found
-     */
-    private ChannelSender pollSenderPool() {
-        ChannelSender channelSender = null;
-
-        if (!senderPool.isEmpty()) {
-            try {
-                channelSender = senderPool.poll(SENDER_POOL_POLL_TIMEOUT, SENDER_POOL_POLL_TIMEOUT_UNIT);
-            } catch (final InterruptedException e) {
-                getLogger().warn("Interrupted while polling for ChannelSender", e);
-            }
-        }
-
-        return channelSender;
     }
 }
