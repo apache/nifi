@@ -42,7 +42,7 @@ public class HashiCorpVaultTransitSensitivePropertyProvider extends AbstractHash
         try {
             PropertyProtectionScheme.fromIdentifier(getProtectionScheme().getIdentifier(transitPath));
         } catch (IllegalArgumentException e) {
-            throw new SensitivePropertyProtectionException(String.format("{} [{}] contains unsupported characters", TRANSIT_PATH, transitPath), e);
+            throw new SensitivePropertyProtectionException(String.format("%s [%s] contains unsupported characters", TRANSIT_PATH, transitPath), e);
         }
 
         return transitPath;
@@ -84,7 +84,7 @@ public class HashiCorpVaultTransitSensitivePropertyProvider extends AbstractHash
     @Override
     public String unprotect(final String protectedValue) throws SensitivePropertyProtectionException {
         if (StringUtils.isBlank(protectedValue)) {
-            throw new IllegalArgumentException("Cannot encrypt an empty value");
+            throw new IllegalArgumentException("Cannot decrypt an empty value");
         }
 
         return new String(getVaultCommunicationService().decrypt(getPath(), protectedValue), PROPERTY_CHARSET);

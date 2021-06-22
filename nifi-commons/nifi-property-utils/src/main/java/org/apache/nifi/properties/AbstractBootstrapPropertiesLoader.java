@@ -136,7 +136,7 @@ public abstract class AbstractBootstrapPropertiesLoader {
             if (confDir.exists() && confDir.canRead()) {
                 expectedBootstrapFile = new File(confDir, BOOTSTRAP_CONF);
             } else {
-                throw new IOException(String.format("Cannot read {} directory for {}", confDir, bootstrapPath));
+                throw new IOException(String.format("Cannot read %s directory for %s", confDir, bootstrapPath));
             }
         } else {
             expectedBootstrapFile = new File(bootstrapPath);
