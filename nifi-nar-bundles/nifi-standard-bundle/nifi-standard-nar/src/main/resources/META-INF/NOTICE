@@ -262,18 +262,9 @@ The following binary components are provided under the Common Development and Di
     (CDDL 1.1) (GPL2 w/ CPE) jersey-core (com.sun.jersey:jersey-core:jar:1.19 - https://jersey.java.net/jersey-core/)
     (CDDL 1.1) (GPL2 w/ CPE) jersey-client (com.sun.jersey:jersey-client:jar:1.19 - https://jersey.java.net/jersey-client/)
     (CDDL 1.1) (GPL2 w/ CPE) jersey-server (com.sun.jersey:jersey-server:jar:1.19 - https://jersey.java.net/jersey-server/)
-    (CDDL 1.1) (GPL2 w/ CPE) JavaMail API (compat) (javax.mail:mail:jar:1.4.7 - http://kenai.com/projects/javamail/mail)
     (CDDL 1.1) (GPL2 w/ CPE) Javax JMS Api (javax.jms:javax.jms-api:jar:2.0.1 - http://java.net/projects/jms-spec/pages/Home)
     (CDDL 1.1) (GPL2 w/ CPE) Expression Language 3.0 API (javax.el:javax.el-api:jar:3.0.0 - http://uel-spec.java.net)
     (CDDL 1.1) (GPL2 w/ CPE) javax.ws.rs-api (javax.ws.rs:javax.ws.rs-api:jar:2.1 - http://jax-rs-spec.java.net)
-
-*****************
-Common Development and Distribution License v1.0:
-*****************
-
-The following binary components are provided under the Common Development and Distribution License v1.0.  See project link for details.
-
-    (CDDL 1.0) JavaBeans Activation Framework (JAF) (javax.activation:activation:jar:1.1 - http://java.sun.com/products/javabeans/jaf/index.jsp)
 
 *****************
 Mozilla Public License v2.0
@@ -291,5 +282,20 @@ The following binary components are provided to the 'Public Domain'.  See projec
 
     (Public Domain) XZ for Java (org.tukaani:xz:jar:1.5 - http://tukaani.org/xz/java.html
 
+************************
+Eclipse Distribution License 1.0
+************************
 
+The following binary components are provided under the Eclipse Distribution License 1.0.
 
+    (EDL 1.0) Jakarta Activation API (jakarta.activation:jakarta.activation-api:jar:2.0.1)
+    (EDL 1.0) Jakarta Activation (com.sun.activation:jakarta.activation:jar:2.0.1)
+
+************************
+Eclipse Public License 2.0
+************************
+
+The following binary components are provided under the Eclipse Public License 2.0.
+
+    (EPL 2.0) Jakarta Mail API (jakarta.mail:jakarta.mail-api:jar:2.0.1)
+    (EPL 2.0) Jakarta Mail (com.sun.mail:jakarta.mail:jar:2.0.1)
