@@ -21,17 +21,18 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.mail.BodyPart;
-import javax.mail.Message;
-import javax.mail.MessagingException;
-import javax.mail.internet.MimeMessage.RecipientType;
-import javax.mail.internet.MimeMultipart;
-import javax.mail.internet.MimeUtility;
+import jakarta.mail.BodyPart;
+import jakarta.mail.Message;
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage.RecipientType;
+import jakarta.mail.internet.MimeMultipart;
+import jakarta.mail.internet.MimeUtility;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.binary.StringUtils;
@@ -59,7 +60,7 @@ public class TestPutEmail {
      */
     private static final class PutEmailExtension extends PutEmail {
         private MessagingException e;
-        private ArrayList<Message> messages = new ArrayList<>();
+        private final ArrayList<Message> messages = new ArrayList<>();
 
         @Override
         protected void send(Message msg) throws MessagingException {
@@ -178,7 +179,7 @@ public class TestPutEmail {
     }
 
     @Test
-    public void testInvalidAddress() throws Exception {
+    public void testInvalidAddress() {
         // verifies that unparsable addresses lead to the flow file being routed to failure
         runner.setProperty(PutEmail.SMTP_HOSTNAME, "smtp-host");
         runner.setProperty(PutEmail.HEADER_XMAILER, "TestingNiFi");
@@ -197,7 +198,7 @@ public class TestPutEmail {
     }
 
     @Test
-    public void testEmptyFrom() throws Exception {
+    public void testEmptyFrom() {
         // verifies that if the FROM property evaluates to an empty string at
         // runtime the flow file is transferred to failure.
         runner.setProperty(PutEmail.SMTP_HOSTNAME, "smtp-host");
@@ -250,12 +251,12 @@ public class TestPutEmail {
         final MimeMultipart multipart = (MimeMultipart) message.getContent();
         final BodyPart part = multipart.getBodyPart(0);
         final InputStream is = part.getDataHandler().getInputStream();
-        final String decodedText = StringUtils.newStringUtf8(Base64.decodeBase64(IOUtils.toString(is, "UTF-8")));
+        final String decodedText = StringUtils.newStringUtf8(Base64.decodeBase64(IOUtils.toString(is, StandardCharsets.UTF_8)));
         assertEquals("Message Body", decodedText);
 
         final BodyPart attachPart = multipart.getBodyPart(1);
         final InputStream attachIs = attachPart.getDataHandler().getInputStream();
-        final String text = IOUtils.toString(attachIs, "UTF-8");
+        final String text = IOUtils.toString(attachIs, StandardCharsets.UTF_8);
         assertEquals("test한的ほу́.pdf", MimeUtility.decodeText(attachPart.getFileName()));
         assertEquals("Some text", text);
 
@@ -275,7 +276,7 @@ public class TestPutEmail {
         runner.setProperty(PutEmail.BCC, "recipientbcc@apache.org,anotherbcc@apache.org");
         runner.setProperty(PutEmail.CONTENT_AS_MESSAGE, "${sendContent}");
 
-        Map<String, String> attributes = new HashMap<String, String>();
+        Map<String, String> attributes = new HashMap<>();
         attributes.put("sendContent", "true");
         attributes.put("body", "Message Body");
 
