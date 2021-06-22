@@ -1947,7 +1947,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         if (claim != null) {
             context.getContentRepository().incrementClaimaintCount(claim);
         }
-        final StandardRepositoryRecord record = new StandardRepositoryRecord(null);
+        final StandardRepositoryRecord record = new StandardRepositoryRecord(null, currRec);
         record.setWorking(clone, clone.getAttributes(), false);
         records.put(clone.getId(), record);
 
