@@ -47,7 +47,7 @@ public class NettyEventSenderTest {
     @Test
     public void testClose() {
         final SocketAddress socketAddress = InetSocketAddress.createUnresolved(LOCALHOST, NetworkUtils.getAvailableTcpPort());
-        final NettyEventSender<?> sender = new NettyEventSender<>(group, channelPool, socketAddress);
+        final NettyEventSender<?> sender = new NettyEventSender<>(group, channelPool, socketAddress, false);
         doReturn(shutdownFuture).when(group).shutdownGracefully();
         sender.close();
 

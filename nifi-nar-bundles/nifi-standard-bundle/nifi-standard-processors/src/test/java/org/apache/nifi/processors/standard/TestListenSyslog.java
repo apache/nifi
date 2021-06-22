@@ -164,7 +164,6 @@ public class TestListenSyslog {
         runner.run(1, STOP_ON_FINISH_DISABLED);
 
         sendMessages(protocol, port, LineEnding.UNIX, VALID_MESSAGE);
-
         runner.run(1, STOP_ON_FINISH_ENABLED, INITIALIZE_DISABLED);
 
         final List<MockFlowFile> invalidFlowFiles = runner.getFlowFilesForRelationship(ListenSyslog.REL_INVALID);

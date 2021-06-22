@@ -17,8 +17,12 @@
 
 package org.apache.nifi.processors.standard;
 
-import org.apache.commons.lang3.ArrayUtils;
-import org.apache.nifi.processors.standard.util.TCPTestServer;
+import org.apache.nifi.event.transport.EventServer;
+import org.apache.nifi.event.transport.configuration.TransportProtocol;
+import org.apache.nifi.event.transport.message.ByteArrayMessage;
+import org.apache.nifi.event.transport.netty.ByteArrayMessageNettyEventServerFactory;
+import org.apache.nifi.event.transport.netty.NettyEventServerFactory;
+import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.security.util.KeyStoreUtils;
 import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.ssl.SSLContextService;
@@ -32,15 +36,12 @@ import org.junit.Test;
 import org.junit.rules.Timeout;
 import org.mockito.Mockito;
 
-import javax.net.ServerSocketFactory;
 import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLServerSocketFactory;
-import java.net.InetAddress;
-import java.util.List;
-import java.util.concurrent.ArrayBlockingQueue;
+import java.util.Arrays;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
-import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
@@ -52,7 +53,6 @@ public class TestPutTCP {
     private final static int MIN_VALID_PORT = 1;
     private final static int MAX_VALID_PORT = 65535;
     private final static int MAX_INVALID_PORT = 65536;
-    private final static int BUFFER_SIZE = 1024;
     private final static int VALID_LARGE_FILE_SIZE = 32768;
     private final static int VALID_SMALL_FILE_SIZE = 64;
     private final static int LOAD_TEST_ITERATIONS = 500;
@@ -68,16 +68,17 @@ public class TestPutTCP {
     @Rule
     public Timeout timeout = new Timeout(30, TimeUnit.SECONDS);
 
-    private TCPTestServer server;
+    private EventServer eventServer;
     private int port;
-    private ArrayBlockingQueue<List<Byte>> received;
+    private TransportProtocol PROTOCOL = TransportProtocol.TCP;
     private TestRunner runner;
+    private BlockingQueue<ByteArrayMessage> messages;
 
     @Before
     public void setup() throws Exception {
-        received = new ArrayBlockingQueue<>(BUFFER_SIZE);
         runner = TestRunners.newTestRunner(PutTCP.class);
         runner.setVariable(SERVER_VARIABLE, TCP_SERVER_ADDRESS);
+        port = NetworkUtils.getAvailableTcpPort();
     }
 
     @After
@@ -103,11 +104,10 @@ public class TestPutTCP {
 
     @Test
     public void testRunSuccess() throws Exception {
-        createTestServer(OUTGOING_MESSAGE_DELIMITER);
         configureProperties(TCP_SERVER_ADDRESS, OUTGOING_MESSAGE_DELIMITER, false);
+        createTestServer(TCP_SERVER_ADDRESS, port);
         sendTestData(VALID_FILES);
         assertMessagesReceived(VALID_FILES);
-        assertServerConnections(1);
     }
 
     @Test
@@ -116,7 +116,6 @@ public class TestPutTCP {
 
         final SSLContext sslContext = SslContextUtils.createSslContext(tlsConfiguration);
         assertNotNull("SSLContext not found", sslContext);
-
         final String identifier = SSLContextService.class.getName();
         final SSLContextService sslContextService = Mockito.mock(SSLContextService.class);
         Mockito.when(sslContextService.getIdentifier()).thenReturn(identifier);
@@ -124,28 +123,24 @@ public class TestPutTCP {
         runner.addControllerService(identifier, sslContextService);
         runner.enableControllerService(sslContextService);
         runner.setProperty(PutTCP.SSL_CONTEXT_SERVICE, identifier);
-
-        final SSLServerSocketFactory serverSocketFactory = sslContext.getServerSocketFactory();
-        createTestServer(OUTGOING_MESSAGE_DELIMITER, false, serverSocketFactory);
         configureProperties(TCP_SERVER_ADDRESS, OUTGOING_MESSAGE_DELIMITER, false);
+        createTestServer(TCP_SERVER_ADDRESS, port, sslContext);
         sendTestData(VALID_FILES);
         assertMessagesReceived(VALID_FILES);
-        assertServerConnections(1);
     }
 
     @Test
     public void testRunSuccessServerVariableExpression() throws Exception {
-        createTestServer(OUTGOING_MESSAGE_DELIMITER);
         configureProperties(TCP_SERVER_ADDRESS_EL, OUTGOING_MESSAGE_DELIMITER, false);
+        createTestServer(TCP_SERVER_ADDRESS, port);
         sendTestData(VALID_FILES);
         assertMessagesReceived(VALID_FILES);
-        assertServerConnections(1);
     }
 
     @Test
     public void testRunSuccessPruneSenders() throws Exception {
-        createTestServer(OUTGOING_MESSAGE_DELIMITER);
         configureProperties(TCP_SERVER_ADDRESS, OUTGOING_MESSAGE_DELIMITER, false);
+        createTestServer(TCP_SERVER_ADDRESS, port);
         sendTestData(VALID_FILES);
         assertTransfers(VALID_FILES.length);
         assertMessagesReceived(VALID_FILES);
@@ -156,31 +151,28 @@ public class TestPutTCP {
         runner.clearTransferState();
         sendTestData(VALID_FILES);
         assertMessagesReceived(VALID_FILES);
-        assertServerConnections(2);
     }
 
     @Test
     public void testRunSuccessMultiCharDelimiter() throws Exception {
-        createTestServer(OUTGOING_MESSAGE_DELIMITER_MULTI_CHAR);
         configureProperties(TCP_SERVER_ADDRESS, OUTGOING_MESSAGE_DELIMITER_MULTI_CHAR, false);
+        createTestServer(TCP_SERVER_ADDRESS, port);
         sendTestData(VALID_FILES);
         assertMessagesReceived(VALID_FILES);
-        assertServerConnections(1);
     }
 
     @Test
     public void testRunSuccessConnectionPerFlowFile() throws Exception {
-        createTestServer(OUTGOING_MESSAGE_DELIMITER, true);
         configureProperties(TCP_SERVER_ADDRESS, OUTGOING_MESSAGE_DELIMITER, true);
+        createTestServer(TCP_SERVER_ADDRESS, port);
         sendTestData(VALID_FILES);
         assertMessagesReceived(VALID_FILES);
-        assertServerConnections(VALID_FILES.length);
     }
 
     @Test
     public void testRunSuccessConnectionFailure() throws Exception {
-        createTestServer(OUTGOING_MESSAGE_DELIMITER);
         configureProperties(TCP_SERVER_ADDRESS, OUTGOING_MESSAGE_DELIMITER, false);
+        createTestServer(TCP_SERVER_ADDRESS, port);
         sendTestData(VALID_FILES);
         assertMessagesReceived(VALID_FILES);
 
@@ -189,67 +181,64 @@ public class TestPutTCP {
         Thread.sleep(500);
         runner.assertQueueEmpty();
 
-        createTestServer(OUTGOING_MESSAGE_DELIMITER);
         configureProperties(TCP_SERVER_ADDRESS, OUTGOING_MESSAGE_DELIMITER, false);
+        createTestServer(TCP_SERVER_ADDRESS, port);
         sendTestData(VALID_FILES);
         assertMessagesReceived(VALID_FILES);
-        assertServerConnections(1);
     }
 
     @Test
     public void testRunSuccessEmptyFile() throws Exception {
-        createTestServer(OUTGOING_MESSAGE_DELIMITER);
         configureProperties(TCP_SERVER_ADDRESS, OUTGOING_MESSAGE_DELIMITER, false);
+        createTestServer(TCP_SERVER_ADDRESS, port);
         sendTestData(EMPTY_FILE);
         assertTransfers(1);
         runner.assertQueueEmpty();
-        assertServerConnections(1);
     }
 
     @Test
     public void testRunSuccessLargeValidFile() throws Exception {
-        createTestServer(OUTGOING_MESSAGE_DELIMITER);
         configureProperties(TCP_SERVER_ADDRESS, OUTGOING_MESSAGE_DELIMITER, true);
+        createTestServer(TCP_SERVER_ADDRESS, port);
         final String[] testData = createContent(VALID_LARGE_FILE_SIZE);
         sendTestData(testData);
         assertMessagesReceived(testData);
-        assertServerConnections(testData.length);
     }
 
     @Test
     public void testRunSuccessFiveHundredMessages() throws Exception {
-        createTestServer(OUTGOING_MESSAGE_DELIMITER);
+        configureProperties(TCP_SERVER_ADDRESS, OUTGOING_MESSAGE_DELIMITER, false);
+        createTestServer(TCP_SERVER_ADDRESS, port);
         Thread.sleep(1000);
         final String[] testData = createContent(VALID_SMALL_FILE_SIZE);
-        configureProperties(TCP_SERVER_ADDRESS, OUTGOING_MESSAGE_DELIMITER, false);
         sendTestData(testData, LOAD_TEST_ITERATIONS, LOAD_TEST_THREAD_COUNT);
         assertMessagesReceived(testData, LOAD_TEST_ITERATIONS);
-        assertServerConnections(1);
     }
 
-    private void createTestServer(final String delimiter) throws Exception {
-        createTestServer(delimiter, false);
+    private void createTestServer(final String address, final int port, final SSLContext sslContext) throws Exception {
+        messages = new LinkedBlockingQueue<>();
+        final byte[] delimiter = getDelimiter();
+        NettyEventServerFactory serverFactory = new ByteArrayMessageNettyEventServerFactory(runner.getLogger(), address, port, PROTOCOL, delimiter, VALID_LARGE_FILE_SIZE, messages);
+        if (sslContext != null) {
+            serverFactory.setSslContext(sslContext);
+        }
+        eventServer = serverFactory.getEventServer();
     }
 
-    private void createTestServer(final String delimiter, final boolean closeOnMessageReceived) throws Exception {
-        createTestServer(delimiter, closeOnMessageReceived, ServerSocketFactory.getDefault());
-    }
-
-    private void createTestServer(final String delimiter, final boolean closeOnMessageReceived, final ServerSocketFactory serverSocketFactory) throws Exception {
-        server = new TCPTestServer(InetAddress.getByName(TCP_SERVER_ADDRESS), received, delimiter, closeOnMessageReceived);
-        server.startServer(serverSocketFactory);
-        port = server.getPort();
+    private void createTestServer(final String address, final int port) throws Exception {
+        createTestServer(address, port, null);
     }
 
     private void shutdownServer() {
-        if (server != null) {
-            server.shutdown();
+        if (eventServer != null) {
+            eventServer.shutdown();
         }
     }
 
     private void configureProperties(String host, String outgoingMessageDelimiter, boolean connectionPerFlowFile) {
         runner.setProperty(PutTCP.HOSTNAME, host);
         runner.setProperty(PutTCP.PORT, Integer.toString(port));
+
         if (outgoingMessageDelimiter != null) {
             runner.setProperty(PutTCP.OUTGOING_MESSAGE_DELIMITER, outgoingMessageDelimiter);
         }
@@ -285,23 +274,16 @@ public class TestPutTCP {
     private void assertMessagesReceived(final String[] sentData, final int iterations) throws Exception {
         for (int i = 0; i < iterations; i++) {
             for (String item : sentData) {
-                final List<Byte> message = received.take();
+                final ByteArrayMessage message = messages.take();
                 assertNotNull(String.format("Message [%d] not found", i), message);
-                final Byte[] messageBytes = new Byte[message.size()];
-                assertArrayEquals(item.getBytes(), ArrayUtils.toPrimitive(message.toArray(messageBytes)));
+                assert(Arrays.asList(sentData).contains(new String(message.getMessage())));
             }
         }
 
         runner.assertTransferCount(PutTCP.REL_SUCCESS, sentData.length * iterations);
         runner.clearTransferState();
 
-        assertNull("Unexpected Message Found", received.poll());
-    }
-
-    private void assertServerConnections(final int connections) throws InterruptedException {
-        while (server.getTotalConnections() != connections) {
-            Thread.sleep(10);
-        }
+        assertNull("Unexpected extra messages found", messages.poll());
     }
 
     private String[] createContent(final int size) {
@@ -312,5 +294,14 @@ public class TestPutTCP {
         }
 
         return new String[] { new String(content) };
+    }
+
+    private byte[] getDelimiter() {
+        String delimiter = runner.getProcessContext().getProperty(PutTCP.OUTGOING_MESSAGE_DELIMITER).getValue();
+        if (delimiter != null) {
+            return delimiter.getBytes();
+        } else {
+            return null;
+        }
     }
 }

@@ -55,7 +55,6 @@ public class ByteArrayMessageNettyEventServerFactory extends NettyEventServerFac
                                                    final int maxFrameLength,
                                                    final BlockingQueue<ByteArrayMessage> messages) {
         super(address, port, protocol);
-
         final LogExceptionChannelHandler logExceptionChannelHandler = new LogExceptionChannelHandler(log);
         final ByteArrayMessageChannelHandler byteArrayMessageChannelHandler = new ByteArrayMessageChannelHandler(messages);
 

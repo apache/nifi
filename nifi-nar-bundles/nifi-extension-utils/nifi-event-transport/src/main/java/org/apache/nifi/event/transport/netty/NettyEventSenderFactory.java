@@ -49,6 +49,7 @@ import java.util.function.Supplier;
  */
 public class NettyEventSenderFactory<T> extends EventLoopGroupFactory implements EventSenderFactory<T> {
     private static final int MAX_PENDING_ACQUIRES = 1024;
+    private Integer socketSendBufferSize = null;
 
     private final String address;
 
@@ -64,10 +65,21 @@ public class NettyEventSenderFactory<T> extends EventLoopGroupFactory implements
 
     private SSLContext sslContext;
 
+    private boolean singleEventPerConnection = false;
+
     public NettyEventSenderFactory(final String address, final int port, final TransportProtocol protocol) {
         this.address = address;
         this.port = port;
         this.protocol = protocol;
+    }
+
+    /**
+     * Set Socket Send Buffer Size for TCP Sockets
+     *
+     * @param socketSendBufferSize Send Buffer size can be null to use default setting
+     */
+    public void setSocketSendBufferSize(final Integer socketSendBufferSize) {
+        this.socketSendBufferSize = socketSendBufferSize;
     }
 
     /**
@@ -107,6 +119,16 @@ public class NettyEventSenderFactory<T> extends EventLoopGroupFactory implements
     }
 
     /**
+     * Send a single event for the session and close the connection. Useful for endpoints which can not be configured
+     * to listen for a delimiter.
+     *
+     * @param singleEventPerConnection true if the connection should be ended after an event is sent
+     */
+    public void setSingleEventPerConnection(final boolean singleEventPerConnection) {
+        this.singleEventPerConnection = singleEventPerConnection;
+    }
+
+    /*
      * Get Event Sender with connected Channel
      *
      * @return Connected Event Sender
@@ -130,12 +152,15 @@ public class NettyEventSenderFactory<T> extends EventLoopGroupFactory implements
     private void setChannelOptions(final Bootstrap bootstrap) {
         final int timeoutMilliseconds = (int) timeout.toMillis();
         bootstrap.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, timeoutMilliseconds);
+        if (socketSendBufferSize != null) {
+            bootstrap.option(ChannelOption.SO_SNDBUF, socketSendBufferSize);
+        }
     }
 
     private EventSender<T> getConfiguredEventSender(final Bootstrap bootstrap) {
         final SocketAddress remoteAddress = bootstrap.config().remoteAddress();
         final ChannelPool channelPool = getChannelPool(bootstrap);
-        return new NettyEventSender<>(bootstrap.config().group(), channelPool, remoteAddress);
+        return new NettyEventSender<>(bootstrap.config().group(), channelPool, remoteAddress, singleEventPerConnection);
     }
 
     private ChannelPool getChannelPool(final Bootstrap bootstrap) {
