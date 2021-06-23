@@ -25,30 +25,24 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
-import javax.net.ssl.SSLContext;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.TriggerWhenEmpty;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
-import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.event.transport.EventException;
 import org.apache.nifi.event.transport.EventSender;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
-import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processor.util.put.AbstractPutEventProcessor;
-import org.apache.nifi.processor.util.put.sender.ChannelSender;
 import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.stream.io.ByteCountingInputStream;
 import org.apache.nifi.stream.io.StreamUtils;
@@ -145,7 +139,6 @@ public class PutSplunk extends AbstractPutEventProcessor {
                 processDelimitedMessages(context, session, flowFile, eventSender, delimiter);
             }
         } catch (EventException e) {
-            session.getProvenanceReporter().send(flowFile, transitUri);
             session.transfer(flowFile, REL_FAILURE);
             session.commitAsync();
             context.yield();

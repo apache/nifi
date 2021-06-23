@@ -23,7 +23,6 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.event.transport.configuration.TransportProtocol;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -95,7 +94,6 @@ public class PutTCP extends AbstractPutEventProcessor {
 
     @Override
     protected void init(final ProcessorInitializationContext context) {
-        protocol = TransportProtocol.TCP;
         super.init(context);
     }
 
@@ -110,7 +108,7 @@ public class PutTCP extends AbstractPutEventProcessor {
      */
     @Override
     protected String createTransitUri(final ProcessContext context) {
-        final String protocol = this.protocol.name();
+        final String protocol = TCP_VALUE.getValue();
         final String host = context.getProperty(HOSTNAME).evaluateAttributeExpressions().getValue();
         final String port = context.getProperty(PORT).evaluateAttributeExpressions().getValue();
 
@@ -183,18 +181,16 @@ public class PutTCP extends AbstractPutEventProcessor {
         context.yield();
     }
 
-//    /**
-//     * Gets the current value of the "Connection Per FlowFile" property.
-//     *
-//     * @param context
-//     *            - the current process context.
-//     *
-//     * @return boolean value - true if a connection per FlowFile is specified.
-//     */
-//    protected boolean isConnectionPerFlowFile(final ProcessContext context) {
-//        return context.getProperty(CONNECTION_PER_FLOWFILE).getValue().equalsIgnoreCase("true");
-//    }
-
+    /**
+     * Helper method to read the FlowFile content stream into a byte array.
+     *
+     * @param context
+     *            - the current process context.
+     * @param session
+     *            - the current process session.
+     * @param flowFile
+     *            - the FlowFile that has failed to have been processed.
+     */
     protected byte[] readContent(final ProcessContext context, final ProcessSession session, final FlowFile flowFile) {
         final ByteArrayOutputStream baos = new ByteArrayOutputStream((int) flowFile.getSize() + 1);
         session.read(flowFile, new InputStreamCallback() {
@@ -211,5 +207,10 @@ public class PutTCP extends AbstractPutEventProcessor {
         }
 
         return baos.toByteArray();
+    }
+
+    @Override
+    protected String getProtocol(final ProcessContext context) {
+        return TCP_VALUE.getValue();
     }
 }

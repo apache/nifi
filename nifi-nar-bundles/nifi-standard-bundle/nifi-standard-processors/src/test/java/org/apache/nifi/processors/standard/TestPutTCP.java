@@ -17,8 +17,6 @@
 
 package org.apache.nifi.processors.standard;
 
-import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.event.transport.EventServer;
 import org.apache.nifi.event.transport.configuration.TransportProtocol;
 import org.apache.nifi.event.transport.message.ByteArrayMessage;
@@ -39,8 +37,6 @@ import org.junit.rules.Timeout;
 import org.mockito.Mockito;
 
 import javax.net.ssl.SSLContext;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -57,7 +53,6 @@ public class TestPutTCP {
     private final static int MIN_VALID_PORT = 1;
     private final static int MAX_VALID_PORT = 65535;
     private final static int MAX_INVALID_PORT = 65536;
-    private final static int BUFFER_SIZE = 1024;
     private final static int VALID_LARGE_FILE_SIZE = 32768;
     private final static int VALID_SMALL_FILE_SIZE = 64;
     private final static int LOAD_TEST_ITERATIONS = 500;
@@ -65,7 +60,6 @@ public class TestPutTCP {
     private final static int DEFAULT_ITERATIONS = 1;
     private final static int DEFAULT_THREAD_COUNT = 1;
     private final static char CONTENT_CHAR = 'x';
-    private static final Charset CHARSET = StandardCharsets.UTF_8;
     private final static String OUTGOING_MESSAGE_DELIMITER = "\n";
     private final static String OUTGOING_MESSAGE_DELIMITER_MULTI_CHAR = "{delimiter}\r\n";
     private final static String[] EMPTY_FILE = { "" };
@@ -84,7 +78,7 @@ public class TestPutTCP {
     public void setup() throws Exception {
         runner = TestRunners.newTestRunner(PutTCP.class);
         runner.setVariable(SERVER_VARIABLE, TCP_SERVER_ADDRESS);
-        port = NetworkUtils.getAvailableUdpPort();
+        port = NetworkUtils.getAvailableTcpPort();
     }
 
     @After

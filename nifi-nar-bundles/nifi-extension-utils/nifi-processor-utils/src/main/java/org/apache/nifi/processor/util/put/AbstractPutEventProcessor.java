@@ -22,10 +22,8 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.event.transport.EventSender;
-import org.apache.nifi.event.transport.configuration.LineEnding;
 import org.apache.nifi.event.transport.configuration.TransportProtocol;
 import org.apache.nifi.event.transport.netty.ByteArrayNettyEventSenderFactory;
-import org.apache.nifi.event.transport.netty.StringNettyEventSenderFactory;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractSessionFactoryProcessor;
@@ -34,15 +32,10 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processor.util.put.sender.ChannelSender;
-import org.apache.nifi.processor.util.put.sender.DatagramChannelSender;
-import org.apache.nifi.processor.util.put.sender.SSLSocketChannelSender;
-import org.apache.nifi.processor.util.put.sender.SocketChannelSender;
 import org.apache.nifi.ssl.SSLContextService;
 
 import javax.net.ssl.SSLContext;
 import java.io.IOException;
-import java.nio.charset.Charset;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -171,7 +164,6 @@ public abstract class AbstractPutEventProcessor extends AbstractSessionFactoryPr
 
     protected volatile String transitUri;
     protected EventSender<byte[]> eventSender;
-    protected TransportProtocol protocol;
 
     protected final BlockingQueue<FlowFileMessageBatch> completeBatches = new LinkedBlockingQueue<>();
     protected final Set<FlowFileMessageBatch> activeBatches = Collections.synchronizedSet(new HashSet<>());
@@ -183,7 +175,6 @@ public abstract class AbstractPutEventProcessor extends AbstractSessionFactoryPr
         descriptors.add(PORT);
         descriptors.add(MAX_SOCKET_SEND_BUFFER_SIZE);
         descriptors.add(IDLE_EXPIRATION);
-        descriptors.add(CHARSET);
         descriptors.add(TIMEOUT);
         descriptors.addAll(getAdditionalProperties());
         this.descriptors = Collections.unmodifiableList(descriptors);
@@ -250,11 +241,9 @@ public abstract class AbstractPutEventProcessor extends AbstractSessionFactoryPr
     protected EventSender<byte[]> getEventSender(final ProcessContext context) {
         final String hostname = context.getProperty(HOSTNAME).evaluateAttributeExpressions().getValue();
         final int port = context.getProperty(PORT).evaluateAttributeExpressions().asInteger();
-        final Charset charset = Charset.forName(context.getProperty(CHARSET).evaluateAttributeExpressions().getValue());
-
-        final LineEnding lineEnding = TransportProtocol.TCP.equals(protocol) ? LineEnding.UNIX : LineEnding.NONE;
-        final ByteArrayNettyEventSenderFactory factory = new ByteArrayNettyEventSenderFactory(getLogger(), hostname, port, protocol);
-        factory.setThreadNamePrefix(String.format("%s[%s]", AbstractPutEventProcessor.class.getSimpleName(), getIdentifier()));
+        final String protocol = getProtocol(context);
+        final ByteArrayNettyEventSenderFactory factory = new ByteArrayNettyEventSenderFactory(getLogger(), hostname, port, TransportProtocol.valueOf(protocol));
+        factory.setThreadNamePrefix(String.format("%s[%s]", getClass().getSimpleName(), getIdentifier()));
         factory.setWorkerThreads(context.getMaxConcurrentTasks());
         factory.setMaxConnections(context.getMaxConcurrentTasks());
 
@@ -497,5 +486,9 @@ public abstract class AbstractPutEventProcessor extends AbstractSessionFactoryPr
             delimiter = delimiter.replace("\\n", "\n").replace("\\r", "\r").replace("\\t", "\t");
         }
         return delimiter;
+    }
+
+    protected String getProtocol(final ProcessContext context) {
+        return context.getProperty(PROTOCOL).getValue();
     }
 }

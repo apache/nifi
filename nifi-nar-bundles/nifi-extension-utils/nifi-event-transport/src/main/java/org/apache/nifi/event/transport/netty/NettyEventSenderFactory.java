@@ -22,7 +22,6 @@ import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
-import io.netty.channel.FixedRecvByteBufAllocator;
 import io.netty.channel.pool.ChannelHealthChecker;
 import io.netty.channel.pool.ChannelPool;
 import io.netty.channel.pool.ChannelPoolHandler;
@@ -50,7 +49,7 @@ import java.util.function.Supplier;
  */
 public class NettyEventSenderFactory<T> extends EventLoopGroupFactory implements EventSenderFactory<T> {
     private static final int MAX_PENDING_ACQUIRES = 1024;
-    private final static int FRAME_SIZE = 32768;
+    private final static int FRAME_SIZE = 40000;
 
     private final String address;
 

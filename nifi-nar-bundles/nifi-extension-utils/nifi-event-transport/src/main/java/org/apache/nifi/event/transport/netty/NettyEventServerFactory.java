@@ -108,9 +108,17 @@ public class NettyEventServerFactory extends EventLoopGroupFactory implements Ev
     @Override
     public EventServer getEventServer() {
         final AbstractBootstrap<?, ?> bootstrap = getBootstrap();
+        setBufferSize(bootstrap);
         final EventLoopGroup group = getEventLoopGroup();
         bootstrap.group(group);
         return getBoundEventServer(bootstrap, group);
+    }
+
+    private void setBufferSize(AbstractBootstrap<?, ?> bootstrap) {
+        if (socketReceiveBuffer != null) {
+            bootstrap.option(ChannelOption.SO_RCVBUF, socketReceiveBuffer);
+            bootstrap.option(ChannelOption.RCVBUF_ALLOCATOR, new FixedRecvByteBufAllocator(socketReceiveBuffer));
+        }
     }
 
     private AbstractBootstrap<?, ?> getBootstrap() {
@@ -118,7 +126,6 @@ public class NettyEventServerFactory extends EventLoopGroupFactory implements Ev
             final Bootstrap bootstrap = new Bootstrap();
             bootstrap.channel(NioDatagramChannel.class);
             bootstrap.handler(new StandardChannelInitializer<>(handlerSupplier));
-
 
             return bootstrap;
         } else {
@@ -128,11 +135,6 @@ public class NettyEventServerFactory extends EventLoopGroupFactory implements Ev
                 bootstrap.childHandler(new StandardChannelInitializer<>(handlerSupplier));
             } else {
                 bootstrap.childHandler(new ServerSslHandlerChannelInitializer<>(handlerSupplier, sslContext, clientAuth));
-            }
-
-            if (socketReceiveBuffer != null) {
-                bootstrap.option(ChannelOption.SO_RCVBUF, socketReceiveBuffer);
-                bootstrap.option(ChannelOption.RCVBUF_ALLOCATOR, new FixedRecvByteBufAllocator(socketReceiveBuffer));
             }
 
             return bootstrap;
