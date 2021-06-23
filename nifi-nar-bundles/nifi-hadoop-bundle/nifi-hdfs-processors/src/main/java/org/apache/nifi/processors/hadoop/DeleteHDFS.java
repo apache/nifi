@@ -145,7 +145,7 @@ public class DeleteHDFS extends AbstractHadoopProcessor {
         // We need a FlowFile to report provenance correctly.
         final FlowFile finalFlowFile = originalFlowFile != null ? originalFlowFile : session.create();
 
-        final String fileOrDirectoryName = context.getProperty(FILE_OR_DIRECTORY).evaluateAttributeExpressions(finalFlowFile).getValue();
+        final String fileOrDirectoryName = getNormalizedPath(context, FILE_OR_DIRECTORY, finalFlowFile).toString();
 
         final FileSystem fileSystem = getFileSystem();
         final UserGroupInformation ugi = getUserGroupInformation();

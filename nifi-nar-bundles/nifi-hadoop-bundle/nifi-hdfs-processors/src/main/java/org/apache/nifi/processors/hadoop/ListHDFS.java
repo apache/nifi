@@ -402,8 +402,6 @@ public class ListHDFS extends AbstractHadoopProcessor {
         }
         lastRunTimestamp = now;
 
-        final String directory = context.getProperty(DIRECTORY).evaluateAttributeExpressions().getValue();
-
         // Ensure that we are using the latest listing information before we try to perform a listing of HDFS files.
         try {
             final StateMap stateMap = session.getState(Scope.CLUSTER);
@@ -443,7 +441,7 @@ public class ListHDFS extends AbstractHadoopProcessor {
 
         final Set<FileStatus> statuses;
         try {
-            final Path rootPath = new Path(directory);
+            final Path rootPath = getNormalizedPath(context, DIRECTORY);
             statuses = getStatuses(rootPath, recursive, hdfs, createPathFilter(context), fileFilterMode);
             getLogger().debug("Found a total of {} files in HDFS", new Object[] {statuses.size()});
         } catch (final IOException | IllegalArgumentException e) {

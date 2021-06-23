@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.processors.hadoop;
 
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.resource.FileResourceReference;
@@ -39,11 +41,14 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Optional;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -206,5 +211,59 @@ public class AbstractHadoopTest {
         runner.setProperty(kerberosProperties.getKerberosPrincipal(), "principal");
         runner.setProperty(kerberosProperties.getKerberosKeytab(), temporaryFile.getAbsolutePath());
         runner.assertValid();
+    }
+
+    @Test
+    public void testGetNormalizedPathWithoutFileSystem() throws URISyntaxException {
+        AbstractHadoopProcessor processor = initProcessorForTestGetNormalizedPath("abfs://container1@storageaccount1");
+        TestRunner runner = initTestRunnerForTestGetNormalizedPath(processor, "/dir1");
+
+        Path path = processor.getNormalizedPath(runner.getProcessContext(), AbstractHadoopProcessor.DIRECTORY);
+
+        assertEquals("/dir1", path.toString());
+        assertTrue(runner.getLogger().getWarnMessages().isEmpty());
+    }
+
+    @Test
+    public void testGetNormalizedPathWithCorrectFileSystem() throws URISyntaxException {
+        AbstractHadoopProcessor processor = initProcessorForTestGetNormalizedPath("abfs://container2@storageaccount2");
+        TestRunner runner = initTestRunnerForTestGetNormalizedPath(processor, "abfs://container2@storageaccount2/dir2");
+
+        Path path = processor.getNormalizedPath(runner.getProcessContext(), AbstractHadoopProcessor.DIRECTORY);
+
+        assertEquals("/dir2", path.toString());
+        assertTrue(runner.getLogger().getWarnMessages().isEmpty());
+    }
+
+    @Test
+    public void testGetNormalizedPathWithIncorrectFileSystem() throws URISyntaxException {
+        AbstractHadoopProcessor processor = initProcessorForTestGetNormalizedPath("abfs://container3@storageaccount3");
+        TestRunner runner = initTestRunnerForTestGetNormalizedPath(processor, "abfs://container*@storageaccount*/dir3");
+
+        Path path = processor.getNormalizedPath(runner.getProcessContext(), AbstractHadoopProcessor.DIRECTORY);
+
+        assertEquals("/dir3", path.toString());
+        assertFalse(runner.getLogger().getWarnMessages().isEmpty());
+    }
+
+    private AbstractHadoopProcessor initProcessorForTestGetNormalizedPath(String fileSystemUri) throws URISyntaxException {
+        final FileSystem fileSystem = mock(FileSystem.class);
+        when(fileSystem.getUri()).thenReturn(new URI(fileSystemUri));
+
+        final PutHDFS processor = new PutHDFS() {
+            @Override
+            protected FileSystem getFileSystem() {
+                return fileSystem;
+            }
+        };
+
+        return processor;
+    }
+
+    private TestRunner initTestRunnerForTestGetNormalizedPath(AbstractHadoopProcessor processor, String directory) throws URISyntaxException {
+        final TestRunner runner = TestRunners.newTestRunner(processor);
+        runner.setProperty(AbstractHadoopProcessor.DIRECTORY, directory);
+
+        return runner;
     }
 }

@@ -125,7 +125,7 @@ public class FetchHDFS extends AbstractHadoopProcessor {
 
         final Path path;
         try {
-            path = new Path(filenameValue);
+            path = getNormalizedPath(context, FILENAME, flowFile);
         } catch (IllegalArgumentException e) {
             getLogger().error("Failed to retrieve content from {} for {} due to {}; routing to failure", new Object[] {filenameValue, flowFile, e});
             flowFile = session.putAttribute(flowFile, "hdfs.failure.reason", e.getMessage());
