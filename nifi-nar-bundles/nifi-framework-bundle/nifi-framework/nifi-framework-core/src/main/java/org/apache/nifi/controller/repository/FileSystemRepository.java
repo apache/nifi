@@ -487,11 +487,11 @@ public class FileSystemRepository implements ContentRepository {
 
         final ResourceClaim resourceClaim = resourceClaimManager.newResourceClaim(containerName, sectionName, id, false, false);
         if (resourceClaimManager.getClaimantCount(resourceClaim) == 0) {
-            removeIncompleteContent(fileToRemove);
+            removeIncompleteContent(fileToRemove, containerName);
         }
     }
 
-    private void removeIncompleteContent(final Path fileToRemove) {
+    private void removeIncompleteContent(final Path fileToRemove, String containerName) {
         String fileDescription = null;
         try {
             fileDescription = fileToRemove.toFile().getAbsolutePath() + " (" + Files.size(fileToRemove) + " bytes)";
@@ -502,8 +502,8 @@ public class FileSystemRepository implements ContentRepository {
         LOG.info("Found unknown file {} in File System Repository; {} file", fileDescription, archiveData ? "archiving" : "removing");
 
         try {
-            if (archiveData) {
-                archive(fileToRemove);
+            if (archiveData && archive(fileToRemove)) {
+                containerStateMap.get(containerName).incrementArchiveCount();
             } else {
                 Files.delete(fileToRemove);
             }
