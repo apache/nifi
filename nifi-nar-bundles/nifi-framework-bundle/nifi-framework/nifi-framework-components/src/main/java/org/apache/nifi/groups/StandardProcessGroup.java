@@ -2513,7 +2513,7 @@ public final class StandardProcessGroup implements ProcessGroup {
                 if (procNode.isRunning()) {
                     throw new IllegalStateException("Processor " + procNode.getIdentifier() + " cannot be removed because it is running");
                 }
-                final int activeThreadCount = scheduler.getActiveThreadCount(procNode);
+                final int activeThreadCount = procNode.getActiveThreadCount();
                 if (activeThreadCount != 0) {
                     throw new IllegalStateException("Processor " + procNode.getIdentifier() + " cannot be removed because it still has " + activeThreadCount + " active threads");
                 }

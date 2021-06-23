@@ -443,6 +443,33 @@ public class ParameterContextIT extends NiFiSystemIT {
     }
 
     @Test
+    public void testParamChangeWhileReferencingProcessorStartingButInvalid() throws NiFiClientException, IOException, InterruptedException {
+        final ParameterContextEntity contextEntity = createParameterContext("clone", "true");
+
+        // Set the Parameter Context on the root Process Group
+        setParameterContext("root", contextEntity);
+
+        // Create simple dataflow: GenerateFlowFile -> SplitByLine -> <auto-terminate>
+        // Set SplitByLine to use a parameter for the "Use Clone" property such that it's valid.
+        ProcessorEntity generate = getClientUtil().createProcessor("GenerateFlowFile");
+        ProcessorEntity splitByLine = getClientUtil().createProcessor("SplitByLine");
+
+        getClientUtil().updateProcessorProperties(splitByLine, Collections.singletonMap("Use Clone", "#{clone}"));
+        getClientUtil().setAutoTerminatedRelationships(splitByLine, Collections.singleton("success"));
+        getClientUtil().createConnection(generate, splitByLine, "success");
+
+        getNifiClient().getProcessorClient().startProcessor(splitByLine);
+
+        // Change parameter to an invalid value. This will result in the processor being stopped, becoming invalid, and then being transitioned to a 'starting' state while invalid.
+        final ParameterContextUpdateRequestEntity updateToInvalidRequestEntity = updateParameterContext(contextEntity, "clone", "invalid");
+        getClientUtil().waitForParameterContextRequestToComplete(contextEntity.getId(), updateToInvalidRequestEntity.getRequest().getRequestId());
+
+        // Change back to a valid value and wait for the update to complete
+        final ParameterContextUpdateRequestEntity updateToValidRequestEntity = updateParameterContext(contextEntity, "clone", "true");
+        getClientUtil().waitForParameterContextRequestToComplete(contextEntity.getId(), updateToValidRequestEntity.getRequest().getRequestId());
+    }
+
+    @Test
     public void testProcessorRestartedWhenParameterChanged() throws NiFiClientException, IOException, InterruptedException {
         testProcessorRestartedWhenParameterChanged("#{name}");
     }
