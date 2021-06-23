@@ -86,7 +86,10 @@ final class QuestDbQueries {
                     "outputBytes LONG," +
                     "outputCount LONG," +
                     "queuedBytes LONG," +
-                    "queuedCount LONG" +
+                    "queuedCount LONG," +
+                    "totalQueuedDuration LONG," +
+                    "maxQueuedDuration LONG," +
+                    "averageQueuedDuration LONG" +
             ") TIMESTAMP(capturedAt) PARTITION BY DAY";
 
     public static final String CREATE_PROCESS_GROUP_STATUS =
