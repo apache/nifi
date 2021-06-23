@@ -34,6 +34,7 @@ import org.apache.nifi.components.resource.ResourceCardinality;
 import org.apache.nifi.components.resource.ResourceReferences;
 import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.hadoop.KerberosProperties;
 import org.apache.nifi.hadoop.SecurityUtil;
 import org.apache.nifi.kerberos.KerberosCredentialsService;
@@ -606,4 +607,26 @@ public abstract class AbstractHadoopProcessor extends AbstractProcessor {
         }
     }
 
+    protected Path getNormalizedPath(ProcessContext context, PropertyDescriptor property) {
+        return getNormalizedPath(context, property, null);
+    }
+
+    protected Path getNormalizedPath(ProcessContext context, PropertyDescriptor property, FlowFile flowFile) {
+        final String propertyValue = context.getProperty(property).evaluateAttributeExpressions(flowFile).getValue();
+        final Path path = new Path(propertyValue);
+        final URI uri = path.toUri();
+
+        final URI fileSystemUri = getFileSystem().getUri();
+
+        if (uri.getScheme() != null) {
+            if (!uri.getScheme().equals(fileSystemUri.getScheme()) || !uri.getAuthority().equals(fileSystemUri.getAuthority())) {
+                getLogger().warn("The filesystem component of the URI configured in the '{}' property ({}) does not match the filesystem URI from the Hadoop configuration file ({}) " +
+                        "and will be ignored.", property.getDisplayName(), uri, fileSystemUri);
+            }
+
+            return new Path(uri.getPath());
+        } else {
+            return path;
+        }
+    }
 }

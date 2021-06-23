@@ -582,7 +582,8 @@ public class GetHDFSFileInfo extends AbstractHadoopProcessor {
      */
     protected HDFSFileInfoRequest buildRequestDetails(ProcessContext context, FlowFile ff) {
         HDFSFileInfoRequest req = new HDFSFileInfoRequest();
-        req.setFullPath(context.getProperty(FULL_PATH).evaluateAttributeExpressions(ff).getValue());
+        String fullPath = getNormalizedPath(context, FULL_PATH, ff).toString();
+        req.setFullPath(fullPath);
         req.setRecursive(context.getProperty(RECURSE_SUBDIRS).asBoolean());
 
         PropertyValue pv;
