@@ -29,7 +29,7 @@ import java.util.stream.Collectors;
 
 public class SimpleProcessLogger implements ComponentLog {
 
-    public static final String NEW_LINE_ARROW = "\u2517\u25B6";
+    public static final String NEW_LINE_ARROW = "\u21B3";
     public static final String CAUSES = NEW_LINE_ARROW + " causes: ";
 
     private final Logger logger;

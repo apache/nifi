@@ -24,6 +24,7 @@ import org.slf4j.Logger;
 
 import java.lang.reflect.Field;
 
+import static org.apache.nifi.processor.SimpleProcessLogger.NEW_LINE_ARROW;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -34,7 +35,6 @@ import static org.mockito.Mockito.when;
 
 public class TestSimpleProcessLogger {
 
-    private static final String NEW_LINE_ARROW = "\u2517\u25B6";
     private static final String EXPECTED_CAUSES = "java.lang.RuntimeException: third" + System.lineSeparator() +
             NEW_LINE_ARROW + " causes: java.lang.RuntimeException: second" + System.lineSeparator() +
             NEW_LINE_ARROW + " causes: java.lang.RuntimeException: first";
