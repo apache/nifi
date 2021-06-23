@@ -44,6 +44,11 @@ prop_replace 'nifi.cluster.protocol.is.secure'  'true'
 "${scripts_dir}/toolkit.sh"
 prop_replace 'baseUrl' "https://${NIFI_WEB_HTTPS_HOST:-$HOSTNAME}:${NIFI_WEB_HTTPS_PORT:-8443}" ${nifi_toolkit_props_file}
 
+prop_replace 'keystore'           "${NIFI_HOME}/conf/keystore.p12"      ${nifi_toolkit_props_file}
+prop_replace 'keystoreType'       "PKCS12"                              ${nifi_toolkit_props_file}
+prop_replace 'truststore'         "${NIFI_HOME}/conf/truststore.p12"    ${nifi_toolkit_props_file}
+prop_replace 'truststoreType'     "PKCS12"                              ${nifi_toolkit_props_file}
+
 if [ -n "${NIFI_WEB_HTTP_PORT}" ]; then
     prop_replace 'nifi.web.https.port'                        ''
     prop_replace 'nifi.web.https.host'                        ''
@@ -56,6 +61,10 @@ if [ -n "${NIFI_WEB_HTTP_PORT}" ]; then
     prop_replace 'nifi.security.truststore'                   ''
     prop_replace 'nifi.security.truststoreType'               ''
     prop_replace 'nifi.security.user.login.identity.provider' ''
+    prop_replace 'keystore'                                   '' ${nifi_toolkit_props_file}
+    prop_replace 'keystoreType'                               '' ${nifi_toolkit_props_file}
+    prop_replace 'truststore'                                 '' ${nifi_toolkit_props_file}
+    prop_replace 'truststoreType'                             '' ${nifi_toolkit_props_file}
     prop_replace 'baseUrl' "http://${NIFI_WEB_HTTP_HOST:-$HOSTNAME}:${NIFI_WEB_HTTP_PORT}" ${nifi_toolkit_props_file}
 fi
 
@@ -80,6 +89,10 @@ prop_replace 'nifi.analytics.connection.model.score.name'       "${NIFI_ANALYTIC
 prop_replace 'nifi.analytics.connection.model.score.threshold'  "${NIFI_ANALYTICS_MODEL_SCORE_THRESHOLD:-.90}"
 
 prop_replace 'nifi.sensitive.props.key'   "${NIFI_SENSITIVE_PROPS_KEY:-}"
+
+if [ -n "${SINGLE_USER_CREDENTIALS_USERNAME}" ] && [ -n "${SINGLE_USER_CREDENTIALS_PASSWORD}" ]; then
+    ${NIFI_HOME}/bin/nifi.sh set-single-user-credentials "${SINGLE_USER_CREDENTIALS_USERNAME}" "${SINGLE_USER_CREDENTIALS_PASSWORD}"
+fi
 
 . "${scripts_dir}/update_cluster_state_management.sh"
 
