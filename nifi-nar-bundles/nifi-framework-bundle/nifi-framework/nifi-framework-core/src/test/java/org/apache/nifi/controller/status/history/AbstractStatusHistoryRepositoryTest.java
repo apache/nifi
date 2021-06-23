@@ -161,6 +161,10 @@ public abstract class AbstractStatusHistoryRepositoryTest {
         status.setOutputBytes(106);
         status.setMaxQueuedCount(107);
         status.setMaxQueuedBytes(108);
+
+        status.setTotalQueuedDuration(103L * 110L);
+        status.setMaxQueuedDuration(111);
+
         return status;
     }
 
@@ -261,6 +265,10 @@ public abstract class AbstractStatusHistoryRepositoryTest {
         Assert.assertEquals(105L, snapshot.getStatusMetric(ConnectionStatusDescriptor.OUTPUT_COUNT.getDescriptor()).longValue());
         Assert.assertEquals(104L, snapshot.getStatusMetric(ConnectionStatusDescriptor.QUEUED_BYTES.getDescriptor()).longValue());
         Assert.assertEquals(103L, snapshot.getStatusMetric(ConnectionStatusDescriptor.QUEUED_COUNT.getDescriptor()).longValue());
+
+        Assert.assertEquals(103L * 110L, snapshot.getStatusMetric(ConnectionStatusDescriptor.TOTAL_QUEUED_DURATION.getDescriptor()).longValue());
+        Assert.assertEquals(111L, snapshot.getStatusMetric(ConnectionStatusDescriptor.MAX_QUEUED_DURATION.getDescriptor()).longValue());
+        Assert.assertEquals(110L, snapshot.getStatusMetric(ConnectionStatusDescriptor.AVERAGE_QUEUED_DURATION.getDescriptor()).longValue());
     }
 
     protected void assertRemoteProcessGroupSnapshot(final StatusSnapshot snapshot) {
