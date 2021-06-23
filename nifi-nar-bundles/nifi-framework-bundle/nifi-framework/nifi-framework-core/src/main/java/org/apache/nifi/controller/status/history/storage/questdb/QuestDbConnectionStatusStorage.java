@@ -35,6 +35,9 @@ public class QuestDbConnectionStatusStorage extends QuestDbComponentStatusStorag
         METRICS.put(5, ConnectionStatusDescriptor.OUTPUT_COUNT.getDescriptor());
         METRICS.put(6, ConnectionStatusDescriptor.QUEUED_BYTES.getDescriptor());
         METRICS.put(7, ConnectionStatusDescriptor.QUEUED_COUNT.getDescriptor());
+        METRICS.put(8, ConnectionStatusDescriptor.TOTAL_QUEUED_DURATION.getDescriptor());
+        METRICS.put(9, ConnectionStatusDescriptor.MAX_QUEUED_DURATION.getDescriptor());
+        METRICS.put(10, ConnectionStatusDescriptor.AVERAGE_QUEUED_DURATION.getDescriptor());
     }
 
     public QuestDbConnectionStatusStorage(final QuestDbContext dbContext, final ComponentDetailsStorage componentDetails) {
