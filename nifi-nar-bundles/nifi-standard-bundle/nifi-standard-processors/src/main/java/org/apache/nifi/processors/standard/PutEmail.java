@@ -246,6 +246,7 @@ public class PutEmail extends AbstractProcessor {
     private static final Charset CONTENT_CHARSET = StandardCharsets.UTF_8;
 
     private List<PropertyDescriptor> properties;
+
     private Set<Relationship> relationships;
 
     /**
@@ -343,11 +344,8 @@ public class PutEmail extends AbstractProcessor {
         }
 
         final Properties properties = this.getMailPropertiesFromFlowFile(context, flowFile);
-
         final Session mailSession = this.createMailSession(properties);
-
         final Message message = new MimeMessage(mailSession);
-        final ComponentLog logger = getLogger();
 
         try {
             message.addFrom(toInetAddresses(context, flowFile, FROM));
@@ -365,9 +363,9 @@ public class PutEmail extends AbstractProcessor {
             this.setMessageHeader("X-Mailer", context.getProperty(HEADER_XMAILER).evaluateAttributeExpressions(flowFile).getValue(), message);
             message.setSubject(context.getProperty(SUBJECT).evaluateAttributeExpressions(flowFile).getValue());
 
-            String messageText = getMessage(flowFile, context, session);
+            final String messageText = getMessage(flowFile, context, session);
 
-            String contentType = context.getProperty(CONTENT_TYPE).evaluateAttributeExpressions(flowFile).getValue();
+            final String contentType = context.getProperty(CONTENT_TYPE).evaluateAttributeExpressions(flowFile).getValue();
             message.setContent(messageText, contentType);
             message.setSentDate(new Date());
 
@@ -385,7 +383,7 @@ public class PutEmail extends AbstractProcessor {
                 });
 
                 mimeFile.setFileName(MimeUtility.encodeText(flowFile.getAttribute(CoreAttributes.FILENAME.key())));
-                MimeMultipart multipart = new MimeMultipart();
+                final MimeMultipart multipart = new MimeMultipart();
                 multipart.addBodyPart(mimeText);
                 multipart.addBodyPart(mimeFile);
                 message.setContent(multipart);
@@ -395,10 +393,10 @@ public class PutEmail extends AbstractProcessor {
 
             session.getProvenanceReporter().send(flowFile, "mailto:" + message.getAllRecipients()[0].toString());
             session.transfer(flowFile, REL_SUCCESS);
-            logger.info("Sent email as a result of receiving {}", flowFile);
+            getLogger().debug("Sent email as a result of receiving {}", flowFile);
         } catch (final ProcessException | MessagingException | IOException e) {
             context.yield();
-            logger.error("Failed to send email for {}: {}; routing to failure", new Object[]{flowFile, e.getMessage()}, e);
+            getLogger().error("Failed to send email for {}: {}; routing to failure", flowFile, e.getMessage(), e);
             session.transfer(flowFile, REL_FAILURE);
         }
     }
@@ -430,8 +428,7 @@ public class PutEmail extends AbstractProcessor {
      * @return session
      */
     private Session createMailSession(final Properties properties) {
-        String authValue = properties.getProperty("mail.smtp.auth");
-        final boolean auth = Boolean.parseBoolean(authValue);
+        final boolean auth = Boolean.parseBoolean(properties.getProperty("mail.smtp.auth"));
 
         /*
          * Conditionally create a password authenticator if the 'auth' parameter is set.
@@ -439,7 +436,8 @@ public class PutEmail extends AbstractProcessor {
         return auth ? Session.getInstance(properties, new Authenticator() {
             @Override
             public PasswordAuthentication getPasswordAuthentication() {
-                String username = properties.getProperty("mail.smtp.user"), password = properties.getProperty("mail.smtp.password");
+                final String username = properties.getProperty("mail.smtp.user");
+                final String password = properties.getProperty("mail.smtp.password");
                 return new PasswordAuthentication(username, password);
             }
         }) : Session.getInstance(properties); // without auth
@@ -453,25 +451,17 @@ public class PutEmail extends AbstractProcessor {
      * @return mail properties
      */
     private Properties getMailPropertiesFromFlowFile(final ProcessContext context, final FlowFile flowFile) {
-
         final Properties properties = new Properties();
 
-        final ComponentLog logger = this.getLogger();
-
-        for (Entry<String, PropertyDescriptor> entry : propertyToContext.entrySet()) {
-
+        for (final Entry<String, PropertyDescriptor> entry : propertyToContext.entrySet()) {
             // Evaluate the property descriptor against the flow file
-            String flowFileValue = context.getProperty(entry.getValue()).evaluateAttributeExpressions(flowFile).getValue();
-
-            String property = entry.getKey();
-
-            logger.debug("Evaluated Mail Property: {} with Value: {}", property, flowFileValue);
+            final String flowFileValue = context.getProperty(entry.getValue()).evaluateAttributeExpressions(flowFile).getValue();
+            final String property = entry.getKey();
 
             // Nullable values are not allowed, so filter out
             if (null != flowFileValue) {
                 properties.setProperty(property, flowFileValue);
             }
-
         }
 
         return properties;
@@ -481,14 +471,14 @@ public class PutEmail extends AbstractProcessor {
     public static final String BODY_SEPARATOR = "\n\n--------------------------------------------------\n";
 
     private static String formatAttributes(final FlowFile flowFile, final String messagePrepend) {
-        StringBuilder message = new StringBuilder(messagePrepend);
+        final StringBuilder message = new StringBuilder(messagePrepend);
         message.append(BODY_SEPARATOR);
         message.append("\nStandard FlowFile Metadata:");
         message.append(String.format("\n\t%1$s = '%2$s'", "id", flowFile.getAttribute(CoreAttributes.UUID.key())));
         message.append(String.format("\n\t%1$s = '%2$s'", "entryDate", new Date(flowFile.getEntryDate())));
         message.append(String.format("\n\t%1$s = '%2$s'", "fileSize", flowFile.getSize()));
         message.append("\nFlowFile Attributes:");
-        for (Entry<String, String> attribute : flowFile.getAttributes().entrySet()) {
+        for (final Entry<String, String> attribute : flowFile.getAttributes().entrySet()) {
             message.append(String.format("\n\t%1$s = '%2$s'", attribute.getKey(), attribute.getValue()));
         }
         message.append("\n");
@@ -505,7 +495,7 @@ public class PutEmail extends AbstractProcessor {
     private InternetAddress[] toInetAddresses(final ProcessContext context, final FlowFile flowFile,
             PropertyDescriptor propertyDescriptor) throws AddressException {
         InternetAddress[] parse;
-        String value = context.getProperty(propertyDescriptor).evaluateAttributeExpressions(flowFile).getValue();
+        final String value = context.getProperty(propertyDescriptor).evaluateAttributeExpressions(flowFile).getValue();
         if (value == null || value.isEmpty()){
             if (propertyDescriptor.isRequired()) {
                 final String exceptionMsg = "Required property '" + propertyDescriptor.getDisplayName() + "' evaluates to an empty string.";
@@ -533,5 +523,4 @@ public class PutEmail extends AbstractProcessor {
     protected void send(final Message msg) throws MessagingException {
         Transport.send(msg);
     }
-
 }
