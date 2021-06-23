@@ -273,10 +273,9 @@ public abstract class AbstractPutHDFSRecord extends AbstractHadoopProcessor {
             FlowFile putFlowFile = flowFile;
             try {
                 final String filenameValue = putFlowFile.getAttribute(CoreAttributes.FILENAME.key()); // TODO codec extension
-                final String directoryValue = context.getProperty(DIRECTORY).evaluateAttributeExpressions(putFlowFile).getValue();
 
                 // create the directory if it doesn't exist
-                final Path directoryPath = new Path(directoryValue);
+                final Path directoryPath = getNormalizedPath(context, DIRECTORY, putFlowFile);
                 createDirectory(fileSystem, directoryPath, remoteOwner, remoteGroup);
 
                 // write to tempFile first and on success rename to destFile

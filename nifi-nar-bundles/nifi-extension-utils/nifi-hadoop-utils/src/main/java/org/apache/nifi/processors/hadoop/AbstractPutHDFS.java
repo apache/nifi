@@ -100,13 +100,12 @@ public abstract class AbstractPutHDFS extends AbstractHadoopProcessor {
                 Path tempDotCopyFile = null;
                 FlowFile putFlowFile = flowFile;
                 try {
-                    final String dirValue = context.getProperty(DIRECTORY).evaluateAttributeExpressions(putFlowFile).getValue();
-                    final Path configuredRootDirPath = new Path(dirValue);
+                    final Path dirPath = getNormalizedPath(context, DIRECTORY, putFlowFile);
 
                     final String conflictResponse = context.getProperty(CONFLICT_RESOLUTION).getValue();
-                    final long blockSize = getBlockSize(context, session, putFlowFile);
+                    final long blockSize = getBlockSize(context, session, putFlowFile, dirPath);
                     final int bufferSize = getBufferSize(context, session, putFlowFile);
-                    final short replication = getReplication(context, session, putFlowFile);
+                    final short replication = getReplication(context, session, putFlowFile, dirPath);
 
                     final CompressionCodec codec = getCompressionCodec(context, configuration);
 
@@ -114,19 +113,19 @@ public abstract class AbstractPutHDFS extends AbstractHadoopProcessor {
                             ? putFlowFile.getAttribute(CoreAttributes.FILENAME.key()) + codec.getDefaultExtension()
                             : putFlowFile.getAttribute(CoreAttributes.FILENAME.key());
 
-                    final Path tempCopyFile = new Path(configuredRootDirPath, "." + filename);
-                    final Path copyFile = new Path(configuredRootDirPath, filename);
+                    final Path tempCopyFile = new Path(dirPath, "." + filename);
+                    final Path copyFile = new Path(dirPath, filename);
 
                     // Create destination directory if it does not exist
                     try {
-                        if (!hdfs.getFileStatus(configuredRootDirPath).isDirectory()) {
-                            throw new IOException(configuredRootDirPath.toString() + " already exists and is not a directory");
+                        if (!hdfs.getFileStatus(dirPath).isDirectory()) {
+                            throw new IOException(dirPath.toString() + " already exists and is not a directory");
                         }
                     } catch (FileNotFoundException fe) {
-                        if (!hdfs.mkdirs(configuredRootDirPath)) {
-                            throw new IOException(configuredRootDirPath.toString() + " could not be created");
+                        if (!hdfs.mkdirs(dirPath)) {
+                            throw new IOException(dirPath.toString() + " could not be created");
                         }
-                        changeOwner(context, hdfs, configuredRootDirPath, flowFile);
+                        changeOwner(context, hdfs, dirPath, flowFile);
                     }
 
                     final boolean destinationExists = hdfs.exists(copyFile);
@@ -274,7 +273,7 @@ public abstract class AbstractPutHDFS extends AbstractHadoopProcessor {
     /**
      * Returns with the expected block size.
      */
-    protected abstract long getBlockSize(final ProcessContext context, final ProcessSession session, final FlowFile flowFile);
+    protected abstract long getBlockSize(final ProcessContext context, final ProcessSession session, final FlowFile flowFile, final Path dirPath);
 
     /**
      * Returns with the expected buffer size.
@@ -284,7 +283,7 @@ public abstract class AbstractPutHDFS extends AbstractHadoopProcessor {
     /**
      * Returns with the expected replication factor.
      */
-    protected abstract short getReplication(final ProcessContext context, final ProcessSession session, final FlowFile flowFile);
+    protected abstract short getReplication(final ProcessContext context, final ProcessSession session, final FlowFile flowFile, final Path dirPath);
 
     /**
      * Returns if file system should ignore locality.

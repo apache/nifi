@@ -189,11 +189,9 @@ public class PutHDFS extends AbstractPutHDFS {
     }
 
     @Override
-    protected long getBlockSize(final ProcessContext context, final ProcessSession session, final FlowFile flowFile) {
-        final String dirValue = context.getProperty(DIRECTORY).evaluateAttributeExpressions(flowFile).getValue();
-        final Path configuredRootDirPath = new Path(dirValue);
+    protected long getBlockSize(final ProcessContext context, final ProcessSession session, final FlowFile flowFile, Path dirPath) {
         final Double blockSizeProp = context.getProperty(BLOCK_SIZE).asDataSize(DataUnit.B);
-        return blockSizeProp != null ? blockSizeProp.longValue() : getFileSystem().getDefaultBlockSize(configuredRootDirPath);
+        return blockSizeProp != null ? blockSizeProp.longValue() : getFileSystem().getDefaultBlockSize(dirPath);
     }
 
     @Override
@@ -203,12 +201,10 @@ public class PutHDFS extends AbstractPutHDFS {
     }
 
     @Override
-    protected short getReplication(final ProcessContext context, final ProcessSession session, final FlowFile flowFile) {
-        final String dirValue = context.getProperty(DIRECTORY).evaluateAttributeExpressions(flowFile).getValue();
-        final Path configuredRootDirPath = new Path(dirValue);
+    protected short getReplication(final ProcessContext context, final ProcessSession session, final FlowFile flowFile, Path dirPath) {
         final Integer replicationProp = context.getProperty(REPLICATION_FACTOR).asInteger();
         return replicationProp != null ? replicationProp.shortValue() : getFileSystem()
-                .getDefaultReplication(configuredRootDirPath);
+                .getDefaultReplication(dirPath);
     }
 
     @Override
