@@ -74,12 +74,14 @@ public class PropertiesFileFlowDefinitionParser implements DataflowDefinitionPar
     // After the name of the parameter context, it may or may not have a ".<parameter name>" component, then an equals (=) and a value.
     private static final Pattern PARAMETER_CONTEXT_PATTERN = Pattern.compile("\\Qnifi.stateless.parameters.\\E(.*?)(\\..*)?");
     private static final Pattern REPORTING_TASK_PATTERN = Pattern.compile("\\Qnifi.stateless.reporting.task.\\E(.*?)\\.(.*)");
-    private static final Pattern PARAMETER_PROVIDER_PATTERN = Pattern.compile("\\Qnifi.stateless.parameter.provider.\\E(.*?)\\.(.*)");
+    private static final String PARAMETER_PROVIDER_PREFIX = "nifi.stateless.parameter.provider.";
+    private static final Pattern PARAMETER_PROVIDER_PATTERN = Pattern.compile("\\Q" + PARAMETER_PROVIDER_PREFIX + "\\E(.*?)\\.(.*)");
 
     // Any property value of the form env{...} can be used to reference an environment variable. For example, env{ABC} references the ABC environment variable.
     private static final Pattern ENV_VARIABLE_PATTERN = Pattern.compile("env\\{(.*)}");
 
     // Property names/keys
+    private static final String PROPERTIES_PREFIX = "properties.";
     private static final String FAILURE_PORTS_KEY = "nifi.stateless.failure.port.names";
     private static final String REGISTRY_URL_KEY = "nifi.stateless.registry.url";
     private static final String BUCKET_ID_KEY = "nifi.stateless.flow.bucketId";
@@ -194,16 +196,17 @@ public class PropertiesFileFlowDefinitionParser implements DataflowDefinitionPar
             // We consider 'abc' the <parameter provider key> and 'name' the <relative property name>
             final String parameterProviderKey = matcher.group(1);
             final ParameterProviderDefinition definition = parameterProviderDefinitions.computeIfAbsent(parameterProviderKey, key -> new ParameterProviderDefinition());
+            definition.setName(parameterProviderKey);
             final String relativePropertyName = matcher.group(2);
             final String propertyValue = properties.get(propertyName);
 
-            if (relativePropertyName.startsWith("properties.")) {
-                if (relativePropertyName.length() < 12) {
+            if (relativePropertyName.startsWith(PROPERTIES_PREFIX)) {
+                if (relativePropertyName.length() <= PROPERTIES_PREFIX.length()) {
                     logger.warn("Encountered unexpected property <" + propertyName + "> in flow definition. This property will be ignored.");
                     continue;
                 }
 
-                final String providerPropertyName = relativePropertyName.substring(11);
+                final String providerPropertyName = relativePropertyName.substring(PROPERTIES_PREFIX.length());
                 definition.getPropertyValues().put(providerPropertyName, propertyValue);
             } else {
                 switch (relativePropertyName) {
@@ -220,6 +223,22 @@ public class PropertiesFileFlowDefinitionParser implements DataflowDefinitionPar
                         logger.warn("Encountered unexpected property <" + propertyName + "> in flow definition. This property will be ignored.");
                         break;
                 }
+            }
+        }
+
+        // Validate that all providers have the required necessary information
+        for (final Map.Entry<String, ParameterProviderDefinition> entry : parameterProviderDefinitions.entrySet()) {
+            final String providerKey = entry.getKey();
+            final ParameterProviderDefinition definition = entry.getValue();
+
+            if (definition.getName() == null) {
+                logger.warn("Parameter Provider identified in Properties with key <" + providerKey + "> was not provided a name. Will default name to <" + providerKey + ">");
+                definition.setName(providerKey);
+            }
+
+            if (definition.getType() == null) {
+                throw new IllegalArgumentException("Parameter Provider <" + definition.getName() + "> does not have a Type set. This must be set by adding a property named " +
+                    PARAMETER_PROVIDER_PREFIX + providerKey + ".type");
             }
         }
 

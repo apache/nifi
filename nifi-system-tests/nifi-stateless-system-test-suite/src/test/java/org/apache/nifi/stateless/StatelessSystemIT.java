@@ -137,6 +137,12 @@ public class StatelessSystemIT {
 
     protected StatelessDataflow loadDataflow(final VersionedFlowSnapshot versionedFlowSnapshot, final List<ParameterContextDefinition> parameterContexts, final Set<String> failurePortNames,
                                              final TransactionThresholds transactionThresholds) throws IOException, StatelessConfigurationException {
+        return loadDataflow(versionedFlowSnapshot, parameterContexts, Collections.emptyList(), failurePortNames, transactionThresholds);
+    }
+
+    protected StatelessDataflow loadDataflow(final VersionedFlowSnapshot versionedFlowSnapshot, final List<ParameterContextDefinition> parameterContexts,
+                                             final List<ParameterProviderDefinition> parameterProviderDefinitions, final Set<String> failurePortNames,
+                                             final TransactionThresholds transactionThresholds) throws IOException, StatelessConfigurationException {
 
         final DataflowDefinition<VersionedFlowSnapshot> dataflowDefinition = new DataflowDefinition<VersionedFlowSnapshot>() {
             @Override
@@ -166,7 +172,7 @@ public class StatelessSystemIT {
 
             @Override
             public List<ParameterProviderDefinition> getParameterProviderDefinitions() {
-                return Collections.emptyList();
+                return parameterProviderDefinitions;
             }
 
             @Override

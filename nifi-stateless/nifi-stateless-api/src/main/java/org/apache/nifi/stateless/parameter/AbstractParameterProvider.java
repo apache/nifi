@@ -31,7 +31,7 @@ public abstract class AbstractParameterProvider extends AbstractConfigurableComp
 
     @Override
     public final String getIdentifier() {
-        return context.getIdentifier();
+        return context == null ? "<Unknown ID>" : context.getIdentifier();
     }
 
     /**
@@ -45,7 +45,7 @@ public abstract class AbstractParameterProvider extends AbstractConfigurableComp
      * An empty method that is intended for subclasses to optionally override in order to provide initialization
      * @param context the initialization context
      */
-    protected void init(ParameterProviderInitializationContext context){
+    protected void init(ParameterProviderInitializationContext context) {
 
     }
 }

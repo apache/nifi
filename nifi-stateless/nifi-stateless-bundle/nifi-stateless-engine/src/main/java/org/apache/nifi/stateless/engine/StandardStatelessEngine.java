@@ -21,12 +21,16 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.components.state.StatelessStateManagerProvider;
 import org.apache.nifi.components.validation.StandardValidationTrigger;
 import org.apache.nifi.components.validation.ValidationTrigger;
 import org.apache.nifi.controller.ProcessScheduler;
+import org.apache.nifi.controller.PropertyConfiguration;
 import org.apache.nifi.controller.ReloadComponent;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.flow.FlowManager;
@@ -45,6 +49,9 @@ import org.apache.nifi.nar.InstanceClassLoader;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterDescriptor;
+import org.apache.nifi.parameter.ParameterTokenList;
+import org.apache.nifi.parameter.StandardParameterTokenList;
+import org.apache.nifi.processor.StandardValidationContext;
 import org.apache.nifi.provenance.ProvenanceRepository;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
@@ -70,6 +77,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -197,11 +205,14 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
         }
 
         // Create a Composite Parameter Provider that wraps all of the others.
-        return new CompositeParameterProvider(providers);
+        final CompositeParameterProvider provider = new CompositeParameterProvider(providers);
+        final ParameterProviderInitializationContext initializationContext = new StandardParameterProviderInitializationContext(provider, Collections.emptyMap(), UUID.randomUUID().toString());
+        provider.initialize(initializationContext);
+        return provider;
     }
 
     private ParameterProvider createParameterProvider(final ParameterProviderDefinition definition) {
-        final BundleCoordinate bundleCoordinate = determineBundleCoordinate(definition);
+        final BundleCoordinate bundleCoordinate = determineBundleCoordinate(definition, "Parameter Provider");
         final Bundle bundle = extensionManager.getBundle(bundleCoordinate);
         if (bundle == null) {
             throw new IllegalStateException("Unable to find bundle for coordinate " + bundleCoordinate.getCoordinate());
@@ -218,14 +229,44 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
 
             final ParameterProvider parameterProvider = (ParameterProvider) rawClass.newInstance();
 
-            final Map<String, String> properties = Collections.unmodifiableMap(definition.getPropertyValues());
+            // Initialize the provider
+            final Map<String, String> properties = resolveProperties(definition.getPropertyValues(), parameterProvider, parameterProvider.getPropertyDescriptors());
             final ParameterProviderInitializationContext initializationContext = new StandardParameterProviderInitializationContext(parameterProvider, properties, providerId);
-
             parameterProvider.initialize(initializationContext);
+
+            // Ensure that the Parameter Provider is valid.
+            final List<ValidationResult> validationResults = validate(parameterProvider, properties, providerId);
+            if (!validationResults.isEmpty()) {
+                throw new IllegalStateException("Parameter Provider with name <" + definition.getName() + "> is not valid: " + validationResults);
+            }
+
             return parameterProvider;
         } catch (final Exception e) {
             throw new IllegalStateException("Could not create Parameter Provider " + definition.getName() + " of type " + definition.getType(), e);
         }
+    }
+
+    private List<ValidationResult> validate(final ConfigurableComponent component, final Map<String, String> properties, final String componentId) {
+        final Map<PropertyDescriptor, PropertyConfiguration> propertyMap = new HashMap<>();
+
+        for (final Map.Entry<String, String> property : properties.entrySet()) {
+            final String propertyName = property.getKey();
+            final String propertyValue = property.getValue();
+
+            final PropertyDescriptor descriptor = component.getPropertyDescriptor(propertyName);
+            final ParameterTokenList tokenList = new StandardParameterTokenList(null, Collections.emptyList());
+            final PropertyConfiguration propertyConfiguration = new PropertyConfiguration(propertyValue, tokenList, Collections.emptyList());
+
+            propertyMap.put(descriptor, propertyConfiguration);
+        }
+
+        final ValidationContext validationContext = new StandardValidationContext(controllerServiceProvider, propertyMap,
+            null, null, componentId, VariableRegistry.EMPTY_REGISTRY, null);
+
+        final Collection<ValidationResult> validationResults = component.validate(validationContext);
+        return validationResults.stream()
+            .filter(validationResult -> !validationResult.isValid())
+            .collect(Collectors.toList());
     }
 
     private void loadNecessaryExtensions(final DataflowDefinition<VersionedFlowSnapshot> dataflowDefinition) {
@@ -298,18 +339,27 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
     }
 
     private ReportingTaskNode createReportingTask(final ReportingTaskDefinition taskDefinition) {
-        final BundleCoordinate bundleCoordinate = determineBundleCoordinate(taskDefinition);
+        final BundleCoordinate bundleCoordinate = determineBundleCoordinate(taskDefinition, "Reporting Task");
         final ReportingTaskNode taskNode = flowManager.createReportingTask(taskDefinition.getType(), UUID.randomUUID().toString(), bundleCoordinate, Collections.emptySet(), true, true);
-        taskNode.setProperties(resolveProperties(taskDefinition.getPropertyValues(), taskNode));
+
+        final Map<String, String> properties = resolveProperties(taskDefinition.getPropertyValues(), taskNode.getComponent(), taskNode.getProperties().keySet());
+        taskNode.setProperties(properties);
         taskNode.setSchedulingStrategy(SchedulingStrategy.TIMER_DRIVEN);
         taskNode.setSchedulingPeriod(taskDefinition.getSchedulingFrequency());
+
+        // Ensure that the Parameter Provider is valid.
+        final List<ValidationResult> validationResults = validate(taskNode.getComponent(), properties, taskNode.getIdentifier());
+        if (!validationResults.isEmpty()) {
+            throw new IllegalStateException("Reporting Task with name <" + taskNode.getName() + "> is not valid: " + validationResults);
+        }
+
         return taskNode;
     }
 
-    private Map<String, String> resolveProperties(final Map<String, String> configured, final ReportingTaskNode taskNode) {
+    private Map<String, String> resolveProperties(final Map<String, String> configured, final ConfigurableComponent component, final Collection<PropertyDescriptor> componentDescriptors) {
         // Map property display name to actual names.
         final Map<String, String> displayNameToActualName = new HashMap<>();
-        for (final PropertyDescriptor descriptor : taskNode.getProperties().keySet()) {
+        for (final PropertyDescriptor descriptor : componentDescriptors) {
             displayNameToActualName.put(descriptor.getDisplayName(), descriptor.getName());
         }
 
@@ -326,13 +376,13 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
             String resolvedValue = configuredValue;
             if (actual != null) {
                 // This is a 'known' / non-dynamic property
-                final PropertyDescriptor descriptor = taskNode.getPropertyDescriptor(actual);
+                final PropertyDescriptor descriptor = component.getPropertyDescriptor(actual);
                 final List<AllowableValue> allowableValues = descriptor.getAllowableValues();
                 if (allowableValues != null && !allowableValues.isEmpty()) {
                     for (final AllowableValue allowableValue : allowableValues) {
                         if (allowableValue.getDisplayName().equalsIgnoreCase(configuredValue)) {
                             resolvedValue = allowableValue.getValue();
-                            logger.debug("Resolving property value of {} for {} of {} to {}", configuredValue, configuredName, taskNode, resolvedValue);
+                            logger.debug("Resolving property value of {} for {} of {} to {}", configuredValue, configuredName, component, resolvedValue);
                             break;
                         }
                     }
@@ -347,37 +397,37 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
     }
 
 
-    private BundleCoordinate determineBundleCoordinate(final ConfigurableExtensionDefinition taskDefinition) {
-        final String explicitCoordinates = taskDefinition.getBundleCoordinates();
+    private BundleCoordinate determineBundleCoordinate(final ConfigurableExtensionDefinition extensionDefinition, final String extensionType) {
+        final String explicitCoordinates = extensionDefinition.getBundleCoordinates();
         if (explicitCoordinates != null && !explicitCoordinates.trim().isEmpty()) {
-            final String resolvedClassName = resolveExtensionClassName(taskDefinition);
-            taskDefinition.setType(resolvedClassName);
+            final String resolvedClassName = resolveExtensionClassName(extensionDefinition, extensionType);
+            extensionDefinition.setType(resolvedClassName);
 
-            final BundleCoordinate coordinate = parseBundleCoordinate(taskDefinition);
+            final BundleCoordinate coordinate = parseBundleCoordinate(extensionDefinition);
             return coordinate;
         }
 
-        final String specifiedType = taskDefinition.getType();
+        final String specifiedType = extensionDefinition.getType();
         String resolvedClassName = specifiedType;
         if (!specifiedType.contains(".")) {
-            final List<Bundle> possibleBundles = extensionManager.getBundles(taskDefinition.getType());
+            final List<Bundle> possibleBundles = extensionManager.getBundles(extensionDefinition.getType());
             if (possibleBundles.isEmpty()) {
                 logger.debug("Could not find extension type of <{}>. Will try to find matching Reporting Task type based on class name", specifiedType);
 
-                resolvedClassName = resolveExtensionClassName(taskDefinition);
-                taskDefinition.setType(resolvedClassName);
+                resolvedClassName = resolveExtensionClassName(extensionDefinition, extensionType);
+                extensionDefinition.setType(resolvedClassName);
                 logger.info("Resolved extension class {} to {}", specifiedType, resolvedClassName);
             }
         }
 
         final List<Bundle> possibleBundles = extensionManager.getBundles(resolvedClassName);
         if (possibleBundles.isEmpty()) {
-            throw new IllegalArgumentException("Extension '" + taskDefinition.getName() + "' (" + taskDefinition.getType() +
-                ") does not specify a Bundle and no Bundles could be found for type " + taskDefinition.getType());
+            throw new IllegalArgumentException("Extension '" + extensionDefinition.getName() + "' (" + extensionDefinition.getType() +
+                ") does not specify a Bundle and no Bundles could be found for type " + extensionDefinition.getType());
         }
 
         if (possibleBundles.size() > 1) {
-            throw new IllegalArgumentException("Extension '" + taskDefinition.getName() + "' (" + taskDefinition.getType() +
+            throw new IllegalArgumentException("Extension '" + extensionDefinition.getName() + "' (" + extensionDefinition.getType() +
                 ") does not specify a Bundle and multiple Bundles exist for this type. The extension must specify a bundle to use.");
         }
 
@@ -402,7 +452,7 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
     }
 
 
-    private String resolveExtensionClassName(final ConfigurableExtensionDefinition extensionDefinition) {
+    private String resolveExtensionClassName(final ConfigurableExtensionDefinition extensionDefinition, final String extensionType) {
         final String specifiedType = extensionDefinition.getType();
         if (specifiedType.contains(".")) {
             return specifiedType;
@@ -422,13 +472,13 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
         }
 
         if (possibleResolvedClassNames.isEmpty()) {
-            throw new IllegalArgumentException("Reporting Task '" + extensionDefinition.getName() + "' (" + extensionDefinition.getType() + ") does not specify a Bundle, and no Reporting Task" +
-                " implementations exist with a class name of " + extensionDefinition.getType() + ".");
+            throw new IllegalArgumentException(String.format("%s '%s' (%s) does not specify a Bundle, and no %s implementations exist with a class name of %s.",
+                extensionType, extensionDefinition.getName(), extensionDefinition.getType(), extensionType, extensionDefinition.getType()));
         }
 
         if (possibleResolvedClassNames.size() > 1) {
-            throw new IllegalArgumentException("Reporting Task '" + extensionDefinition.getName() + "' (" + extensionDefinition.getType() + ") does not specify a Bundle, and no Reporting Task" +
-                " implementations exist with a class name of " + extensionDefinition.getType() + ". Perhaps you meant one of: " + possibleResolvedClassNames);
+            throw new IllegalArgumentException(String.format("%s '%s' (%s) does not specify a Bundle, and no %s implementations exist with a class name of %s. Perhaps you meant one of: %s",
+                extensionType, extensionDefinition.getName(), extensionDefinition.getType(), extensionType, extensionDefinition.getType(), possibleResolvedClassNames));
         }
 
         return possibleResolvedClassNames.iterator().next();
