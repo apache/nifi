@@ -57,7 +57,7 @@ class GroovyProcessor implements Processor {
     @Override
     void onTrigger(ProcessContext context, ProcessSessionFactory sessionFactory) throws ProcessException {
         def session = sessionFactory.createSession()
-        def flowFile = session.get();
+        def flowFile = session.get()
         if (flowFile == null) {
             return
         }
