@@ -4085,6 +4085,7 @@ The value of the `nifi.nar.library.provider.<providerName>.implementation` must 
 | Name                       |  Description
 | resources                  |  List of HDFS resources, separated by comma.
 | source.directory           |  The source directory of NAR files within HDFS. Note: the provider does not check for files recursively.
+| storage.location           |  Optional. If set the storage location defined in the core-site.xml will be overwritten by this value.
 | kerberos.principal         |  Optional. Kerberos principal to authenticate as.
 | kerberos.keytab            |  Optional. Kerberos keytab associated with the principal.
 | kerberos.password          |  Optional. Kerberos password associated with the principal.
