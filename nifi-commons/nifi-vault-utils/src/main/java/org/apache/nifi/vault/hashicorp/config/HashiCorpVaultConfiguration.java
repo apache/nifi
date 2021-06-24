@@ -38,7 +38,7 @@ import java.util.concurrent.TimeUnit;
  */
 public class HashiCorpVaultConfiguration extends EnvironmentVaultConfiguration {
     public enum VaultConfigurationKey {
-        AUTH_PROPERTIES_FILENAME("vault.authPropertiesFilename"),
+        AUTH_PROPERTIES_FILENAME("vault.authentication.properties.file"),
         READ_TIMEOUT("vault.read.timeout"),
         CONNECTION_TIMEOUT("vault.connection.timeout"),
         URI("vault.uri");

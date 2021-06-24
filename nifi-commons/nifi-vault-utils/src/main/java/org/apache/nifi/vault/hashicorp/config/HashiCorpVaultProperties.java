@@ -79,7 +79,7 @@ public class HashiCorpVaultProperties {
         return ssl;
     }
 
-    @HashiCorpVaultProperty
+    @HashiCorpVaultProperty(key = "authentication.properties.file")
     public String getAuthPropertiesFilename() {
         return authPropertiesFilename;
     }

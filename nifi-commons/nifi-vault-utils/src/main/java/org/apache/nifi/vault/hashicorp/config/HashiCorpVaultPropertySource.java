@@ -33,7 +33,7 @@ public class HashiCorpVaultPropertySource extends PropertySource<HashiCorpVaultP
     public HashiCorpVaultPropertySource(final HashiCorpVaultProperties source) {
         super(HashiCorpVaultPropertySource.class.getName(), source);
 
-        propertyLookup = new BeanPropertyLookup(PREFIX, HashiCorpVaultProperties.class, HashiCorpVaultProperty.class);
+        propertyLookup = new BeanPropertyLookup(PREFIX, HashiCorpVaultProperties.class);
     }
 
     @Override
