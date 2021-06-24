@@ -29,6 +29,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.apache.nifi.processors.azure.storage.DeleteAzureDataLakeStorage.FS_TYPE_DIRECTORY;
+import static org.apache.nifi.processors.azure.storage.DeleteAzureDataLakeStorage.FS_TYPE_FILE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -41,9 +43,73 @@ public class ITDeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT
     }
 
     @Test
+    public void testDeleteDirectoryWithFiles() {
+        // GIVEN
+        String directory = "TestDirectory";
+        String filename = "testFile.txt";
+        String fileContent = "AzureFileContent";
+        String inputFlowFileContent = "InputFlowFileContent";
+
+        createDirectoryAndUploadFile(directory, filename, fileContent);
+
+        // WHEN
+        // THEN
+        testSuccessfulDelete(fileSystemName, directory, null, inputFlowFileContent, inputFlowFileContent);
+    }
+
+    @Test
+    public void testDeleteEmptyDirectoryWithFSTypeDirectory() {
+        // GIVEN
+        String directory = "TestDirectory";
+        String inputFlowFileContent = "InputFlowFileContent";
+
+        createDirectory(directory);
+
+        // WHEN
+        // THEN
+        testSuccessfulDelete(fileSystemName, directory, null, inputFlowFileContent, inputFlowFileContent);
+    }
+
+    @Test
+    public void testDeleteSubdirectory() {
+        // GIVEN
+        String parentDirectory = "TestParentDirectory";
+        String childDirectory = "TestParentDirectory/TestChildDirectory";
+        String filename = "testFile.txt";
+        String fileContent = "AzureFileContent";
+        String inputFlowFileContent = "InputFlowFileContent";
+
+        createDirectory(parentDirectory);
+        createDirectoryAndUploadFile(childDirectory, filename, fileContent);
+
+        // WHEN
+        // THEN
+        testSuccessfulDelete(fileSystemName, childDirectory, null, inputFlowFileContent, inputFlowFileContent);
+        assertTrue(directoryExists(parentDirectory));
+    }
+
+    @Test
+    public void testDeleteParentDirectory() {
+        // GIVEN
+        String parentDirectory = "TestParentDirectory";
+        String childDirectory = "TestParentDirectory/TestChildDirectory";
+        String filename = "testFile.txt";
+        String fileContent = "AzureFileContent";
+        String inputFlowFileContent = "InputFlowFileContent";
+
+        createDirectory(parentDirectory);
+        createDirectoryAndUploadFile(childDirectory, filename, fileContent);
+
+        // WHEN
+        // THEN
+        testSuccessfulDelete(fileSystemName, parentDirectory, null, inputFlowFileContent, inputFlowFileContent);
+        assertFalse(directoryExists(childDirectory));
+    }
+
+    @Test
     public void testDeleteFileFromRoot() {
         // GIVEN
-        String directory= "";
+        String directory = "";
         String filename = "testFile.txt";
         String fileContent = "AzureFileContent";
         String inputFlowFileContent = "InputFlowFileContent";
@@ -73,7 +139,7 @@ public class ITDeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT
     @Test
     public void testDeleteFileFromDeepDirectory() {
         // GIVEN
-        String directory= "Directory01/Directory02/Directory03/Directory04/Directory05/Directory06/Directory07/"
+        String directory = "Directory01/Directory02/Directory03/Directory04/Directory05/Directory06/Directory07/"
                 + "Directory08/Directory09/Directory10/Directory11/Directory12/Directory13/Directory14/Directory15/"
                 + "Directory16/Directory17/Directory18/Directory19/Directory20/TestDirectory";
         String filename = "testFile.txt";
@@ -90,7 +156,7 @@ public class ITDeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT
     @Test
     public void testDeleteFileWithWhitespaceInFilename() {
         // GIVEN
-        String directory= "TestDirectory";
+        String directory = "TestDirectory";
         String filename = "A test file.txt";
         String fileContent = "AzureFileContent";
         String inputFlowFileContent = "InputFlowFileContent";
@@ -105,7 +171,7 @@ public class ITDeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT
     @Test
     public void testDeleteFileWithWhitespaceInDirectoryName() {
         // GIVEN
-        String directory= "A Test Directory";
+        String directory = "A Test Directory";
         String filename = "testFile.txt";
         String fileContent = "AzureFileContent";
         String inputFlowFileContent = "InputFlowFileContent";
@@ -118,7 +184,7 @@ public class ITDeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT
     }
 
     @Test
-    public void testDeleteEmptyDirectory() {
+    public void testDeleteEmptyDirectoryWithFSTypeFile() {
         // GIVEN
         String parentDirectory = "ParentDirectory";
         String childDirectory = "ChildDirectory";
@@ -282,7 +348,7 @@ public class ITDeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT
     }
 
     @Test
-    public void testDeleteNonEmptyDirectory() {
+    public void testDeleteNonEmptyDirectoryWithFSTypeFile() {
         // GIVEN
         String directory = "TestDirectory";
         String filename = "testFile.txt";
@@ -314,7 +380,7 @@ public class ITDeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT
 
     private void testSuccessfulDelete(String fileSystem, String directory, String filename, String inputFlowFileContent, String expectedFlowFileContent) {
         testSuccessfulDeleteWithExpressionLanguage(fileSystem, directory, filename, Collections.emptyMap(), inputFlowFileContent, expectedFlowFileContent,
-                                                   directory, filename);
+                directory, filename);
     }
 
     private void testSuccessfulDeleteWithExpressionLanguage(String expLangFileSystem, String expLangDirectory, String expLangFilename, Map<String, String> attributes,
@@ -340,7 +406,7 @@ public class ITDeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT
         startRunner(inputFlowFileContent, Collections.emptyMap());
 
         // THEN
-        DataLakeStorageException e = (DataLakeStorageException)runner.getLogger().getErrorMessages().get(0).getThrowable();
+        DataLakeStorageException e = (DataLakeStorageException) runner.getLogger().getErrorMessages().get(0).getThrowable();
         assertEquals(expectedErrorCode, e.getStatusCode());
 
         assertFailure(expectedFlowFileContent);
@@ -368,10 +434,19 @@ public class ITDeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT
         return fileClient.exists();
     }
 
+    private boolean directoryExists(String directory) {
+        DataLakeDirectoryClient directoryClient = fileSystemClient.getDirectoryClient(directory);
+
+        return directoryClient.exists();
+    }
+
     private void setRunnerProperties(String fileSystem, String directory, String filename) {
+        runner.setProperty(DeleteAzureDataLakeStorage.FILESYSTEM_OBJECT_TYPE, filename != null ? FS_TYPE_FILE.getValue() : FS_TYPE_DIRECTORY.getValue());
         runner.setProperty(DeleteAzureDataLakeStorage.FILESYSTEM, fileSystem);
         runner.setProperty(DeleteAzureDataLakeStorage.DIRECTORY, directory);
-        runner.setProperty(DeleteAzureDataLakeStorage.FILE, filename);
+        if (filename != null) {
+            runner.setProperty(DeleteAzureDataLakeStorage.FILE, filename);
+        }
         runner.assertValid();
     }
 
@@ -391,7 +466,11 @@ public class ITDeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT
         ProvenanceEventType actualEventType = runner.getProvenanceEvents().get(0).getEventType();
         assertEquals(expectedEventType, actualEventType);
 
-        assertFalse(fileExists(directory, filename));
+        if (filename != null) {
+            assertFalse(fileExists(directory, filename));
+        } else {
+            assertFalse(directoryExists(directory));
+        }
     }
 
     private void assertFailure(String expectedFlowFileContent) {
