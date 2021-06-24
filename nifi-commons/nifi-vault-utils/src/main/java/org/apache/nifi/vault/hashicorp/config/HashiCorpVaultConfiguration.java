@@ -75,12 +75,12 @@ public class HashiCorpVaultConfiguration extends EnvironmentVaultConfiguration {
         }
 
         if (env.containsProperty(VaultConfigurationKey.AUTH_PROPERTIES_FILENAME.key)) {
+            final String authPropertiesFilename = env.getProperty(VaultConfigurationKey.AUTH_PROPERTIES_FILENAME.key);
             try {
-                    final PropertySource<?> authPropertiesSource = createPropertiesFileSource(env
-                            .getProperty(VaultConfigurationKey.AUTH_PROPERTIES_FILENAME.key));
-                    env.getPropertySources().addFirst(authPropertiesSource);
+                final PropertySource<?> authPropertiesSource = createPropertiesFileSource(authPropertiesFilename);
+                env.getPropertySources().addFirst(authPropertiesSource);
             } catch (IOException e) {
-                throw new HashiCorpVaultConfigurationException("Could not load HashiCorp Vault authentication properties", e);
+                throw new HashiCorpVaultConfigurationException("Could not load HashiCorp Vault authentication properties " + authPropertiesFilename, e);
             }
         }
 
