@@ -56,6 +56,7 @@ public class HDFSNarProvider implements NarProvider {
 
     private static final String RESOURCES_PARAMETER = "resources";
     private static final String SOURCE_DIRECTORY_PARAMETER = "source.directory";
+    private static final String STORAGE_LOCATION = "storage.location";
     private static final String KERBEROS_PRINCIPAL_PARAMETER = "kerberos.principal";
     private static final String KERBEROS_KEYTAB_PARAMETER = "kerberos.keytab";
     private static final String KERBEROS_PASSWORD_PARAMETER = "kerberos.password";
@@ -64,9 +65,11 @@ public class HDFSNarProvider implements NarProvider {
     private static final String DELIMITER = "/";
     private static final int BUFFER_SIZE_DEFAULT = 4096;
     private static final Object RESOURCES_LOCK = new Object();
+    private static final String STORAGE_LOCATION_PROPERTY = "fs.defaultFS";
 
     private volatile List<String> resources = null;
     private volatile Path sourceDirectory = null;
+    private volatile String storageLocation = null;
 
     private volatile NarProviderInitializationContext context;
 
@@ -87,6 +90,7 @@ public class HDFSNarProvider implements NarProvider {
         }
 
         this.sourceDirectory = new Path(sourceDirectory);
+        this.storageLocation = context.getProperties().get(STORAGE_LOCATION);
 
         this.context = context;
         this.initialized = true;
@@ -99,7 +103,6 @@ public class HDFSNarProvider implements NarProvider {
         }
 
         final HdfsResources hdfsResources = getHdfsResources();
-
 
         try {
             final FileStatus[] fileStatuses = hdfsResources.getUserGroupInformation()
@@ -160,6 +163,11 @@ public class HDFSNarProvider implements NarProvider {
 
         for (final String resource : resources) {
             config.addResource(new Path(resource));
+        }
+
+        // If storage location property is set, the original location will be overwritten
+        if (storageLocation != null) {
+            config.set(STORAGE_LOCATION_PROPERTY, storageLocation);
         }
 
         // first check for timeout on HDFS connection, because FileSystem has a hard coded 15 minute timeout
