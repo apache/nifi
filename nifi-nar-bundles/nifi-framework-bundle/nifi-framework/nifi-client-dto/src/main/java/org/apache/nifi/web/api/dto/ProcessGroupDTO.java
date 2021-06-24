@@ -36,9 +36,6 @@ public class ProcessGroupDTO extends ComponentDTO {
     private ParameterContextReferenceEntity parameterContext;
     private String flowfileConcurrency;
     private String flowfileOutboundPolicy;
-    private String defaultFlowFileExpiration;
-    private Long defaultBackPressureObjectThreshold;
-    private String defaultBackPressureDataSizeThreshold;
 
     private Integer runningCount;
     private Integer stoppedCount;
@@ -367,7 +364,7 @@ public class ProcessGroupDTO extends ComponentDTO {
         this.flowfileConcurrency = flowfileConcurrency;
     }
 
-    @ApiModelProperty(value = "The Outbound Policy that is used for determining how FlowFiles should be transferred out of the Process Group.",
+    @ApiModelProperty(value = "The Oubound Policy that is used for determining how FlowFiles should be transferred out of the Process Group.",
         allowableValues = "STREAM_WHEN_AVAILABLE, BATCH_OUTPUT")
     public String getFlowfileOutboundPolicy() {
         return flowfileOutboundPolicy;
@@ -375,32 +372,5 @@ public class ProcessGroupDTO extends ComponentDTO {
 
     public void setFlowfileOutboundPolicy(final String flowfileOutboundPolicy) {
         this.flowfileOutboundPolicy = flowfileOutboundPolicy;
-    }
-
-    @ApiModelProperty(value = "The default FlowFile Expiration for this Process Group.")
-    public String getDefaultFlowFileExpiration() {
-        return defaultFlowFileExpiration;
-    }
-
-    public void setDefaultFlowFileExpiration(String defaultFlowFileExpiration) {
-        this.defaultFlowFileExpiration = defaultFlowFileExpiration;
-    }
-
-    @ApiModelProperty(value = "Default value used in this Process Group for the maximum number of objects that can be queued before back pressure is applied.")
-    public Long getDefaultBackPressureObjectThreshold() {
-        return defaultBackPressureObjectThreshold;
-    }
-
-    public void setDefaultBackPressureObjectThreshold(final Long defaultBackPressureObjectThreshold) {
-        this.defaultBackPressureObjectThreshold = defaultBackPressureObjectThreshold;
-    }
-
-    @ApiModelProperty(value = "Default value used in this Process Group for the maximum data size of objects that can be queued before back pressure is applied.")
-    public String getDefaultBackPressureDataSizeThreshold() {
-        return defaultBackPressureDataSizeThreshold == null ? "" : defaultBackPressureDataSizeThreshold;
-    }
-
-    public void setDefaultBackPressureDataSizeThreshold(final String defaultBackPressureDataSizeThreshold) {
-        this.defaultBackPressureDataSizeThreshold = defaultBackPressureDataSizeThreshold;
     }
 }

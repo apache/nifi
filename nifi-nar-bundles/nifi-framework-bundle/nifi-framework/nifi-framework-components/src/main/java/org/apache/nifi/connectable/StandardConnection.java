@@ -84,7 +84,7 @@ public final class StandardConnection implements Connection, ConnectionEventList
         relationships = new AtomicReference<>(Collections.unmodifiableCollection(builder.relationships));
         scheduler = builder.scheduler;
 
-        flowFileQueue = builder.flowFileQueueFactory.createFlowFileQueue(LoadBalanceStrategy.DO_NOT_LOAD_BALANCE, null, this, processGroup.get());
+        flowFileQueue = builder.flowFileQueueFactory.createFlowFileQueue(LoadBalanceStrategy.DO_NOT_LOAD_BALANCE, null, this);
         hashCode = new HashCodeBuilder(7, 67).append(id).toHashCode();
     }
 
@@ -456,9 +456,6 @@ public final class StandardConnection implements Connection, ConnectionEventList
         }
 
         public StandardConnection build() {
-            if (processGroup == null) {
-                throw new IllegalStateException("Cannot build a Connection without a Process Group");
-            }
             if (source == null) {
                 throw new IllegalStateException("Cannot build a Connection without a Source");
             }

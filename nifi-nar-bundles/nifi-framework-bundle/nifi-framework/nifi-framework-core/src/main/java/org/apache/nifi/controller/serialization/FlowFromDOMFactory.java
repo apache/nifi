@@ -185,9 +185,6 @@ public class FlowFromDOMFactory {
         dto.setComments(getString(element, "comment"));
         dto.setFlowfileConcurrency(getString(element, "flowfileConcurrency"));
         dto.setFlowfileOutboundPolicy(getString(element, "flowfileOutboundPolicy"));
-        dto.setDefaultFlowFileExpiration(getString(element, "defaultFlowFileExpiration"));
-        dto.setDefaultBackPressureObjectThreshold(getLong(element, "defaultBackPressureObjectThreshold"));
-        dto.setDefaultBackPressureDataSizeThreshold(getString(element, "defaultBackPressureDataSizeThreshold"));
 
         final Map<String, String> variables = new HashMap<>();
         final NodeList variableList = DomUtils.getChildNodesByTagName(element, "variable");
@@ -586,10 +583,8 @@ public class FlowFromDOMFactory {
         return Integer.parseInt(getString(element, childElementName));
     }
 
-    private static Long getLong(final Element element, final String childElementName) {
-        // missing element must be handled gracefully, e.g. flow definition from a previous version without this element
-        String longString = getString(element, childElementName);
-        return longString == null ? null : Long.parseLong(longString);
+    private static long getLong(final Element element, final String childElementName) {
+        return Long.parseLong(getString(element, childElementName));
     }
 
     private static boolean getBoolean(final Element element, final String childElementName) {

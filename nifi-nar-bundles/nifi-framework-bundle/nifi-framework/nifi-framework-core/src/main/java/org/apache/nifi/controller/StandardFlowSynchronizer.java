@@ -1146,8 +1146,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
     /**
      * Updates the process group corresponding to the specified DTO. Any field
      * in DTO that is <code>null</code> (with the exception of the required ID)
-     * will be ignored, or in the case of back pressure settings, will obtain
-     * value from the parent of this process group
+     * will be ignored.
      *
      * @throws IllegalStateException if no process group can be found with the
      * ID of DTO or with the ID of the DTO's parentGroupId, if the template ID
@@ -1162,9 +1161,6 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
         final String comments = dto.getComments();
         final String flowfileConcurrencyName = dto.getFlowfileConcurrency();
         final String flowfileOutboundPolicyName = dto.getFlowfileOutboundPolicy();
-        final String defaultFlowFileExpiration = dto.getDefaultFlowFileExpiration();
-        final Long defaultBackPressureObjectThreshold = dto.getDefaultBackPressureObjectThreshold();
-        final String defaultBackPressureDataSizeThreshold = dto.getDefaultBackPressureDataSizeThreshold();
 
         if (name != null) {
             group.setName(name);
@@ -1197,9 +1193,6 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
             }
         }
 
-        group.setDefaultFlowFileExpiration(defaultFlowFileExpiration);
-        group.setDefaultBackPressureObjectThreshold(defaultBackPressureObjectThreshold);
-        group.setDefaultBackPressureDataSizeThreshold(defaultBackPressureDataSizeThreshold);
     }
 
     private <T extends Connectable & Triggerable> ScheduledState getScheduledState(final T component, final FlowController flowController) {
@@ -1312,9 +1305,6 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
             processGroup.setFlowFileOutboundPolicy(FlowFileOutboundPolicy.valueOf(flowfileOutboundPolicyName));
         }
 
-        processGroup.setDefaultFlowFileExpiration(processGroupDTO.getDefaultFlowFileExpiration());
-        processGroup.setDefaultBackPressureObjectThreshold(processGroupDTO.getDefaultBackPressureObjectThreshold());
-        processGroup.setDefaultBackPressureDataSizeThreshold(processGroupDTO.getDefaultBackPressureDataSizeThreshold());
 
         final String parameterContextId = getString(processGroupElement, "parameterContextId");
         if (parameterContextId != null) {
