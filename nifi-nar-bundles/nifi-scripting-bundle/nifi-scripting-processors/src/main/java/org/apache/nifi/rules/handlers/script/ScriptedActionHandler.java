@@ -80,11 +80,10 @@ public class ScriptedActionHandler extends AbstractScriptedControllerService imp
     public void setup() {
         if (scriptNeedsReload.get() || actionHandler.get() == null) {
             if (ScriptingComponentHelper.isFile(scriptingComponentHelper.getScriptPath())) {
-                reloadScriptFile(scriptingComponentHelper.getScriptPath());
+                scriptNeedsReload.set(reloadScriptFile(scriptingComponentHelper.getScriptPath()));
             } else {
-                reloadScriptBody(scriptingComponentHelper.getScriptBody());
+                scriptNeedsReload.set(reloadScriptBody(scriptingComponentHelper.getScriptBody()));
             }
-            scriptNeedsReload.set(false);
         }
     }
 

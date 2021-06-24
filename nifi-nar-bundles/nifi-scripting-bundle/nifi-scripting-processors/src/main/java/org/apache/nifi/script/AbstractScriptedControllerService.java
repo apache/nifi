@@ -119,7 +119,7 @@ public abstract class AbstractScriptedControllerService extends AbstractControll
     @Override
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
 
-        Collection<ValidationResult> commonValidationResults = super.customValidate(validationContext);
+        Collection<ValidationResult> commonValidationResults = new ArrayList<>(super.customValidate(validationContext));
         commonValidationResults.addAll(scriptingComponentHelper.customValidate(validationContext));
 
         if (!commonValidationResults.isEmpty()) {
@@ -173,7 +173,7 @@ public abstract class AbstractScriptedControllerService extends AbstractControll
         validationResults.set(results);
 
         // return whether there was any issues loading the configured script
-        return results.isEmpty();
+        return !results.isEmpty();
     }
 
     /**

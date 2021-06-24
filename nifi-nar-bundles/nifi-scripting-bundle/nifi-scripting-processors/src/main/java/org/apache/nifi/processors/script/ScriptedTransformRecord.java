@@ -168,7 +168,7 @@ public class ScriptedTransformRecord extends AbstractProcessor implements Search
     @OnScheduled
     public void setup(final ProcessContext context) throws IOException {
         if (!scriptingComponentHelper.isInitialized.get()) {
-            scriptingComponentHelper.createResources();
+            scriptingComponentHelper.createResources(false);
         }
 
         scriptingComponentHelper.setupVariables(context);
