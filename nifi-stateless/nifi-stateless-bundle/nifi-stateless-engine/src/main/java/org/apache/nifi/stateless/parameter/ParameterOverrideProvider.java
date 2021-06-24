@@ -17,6 +17,8 @@
 
 package org.apache.nifi.stateless.parameter;
 
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.Validator;
 import org.apache.nifi.stateless.config.ParameterOverride;
 
 import java.util.ArrayList;
@@ -31,6 +33,14 @@ public class ParameterOverrideProvider extends AbstractParameterProvider impleme
     @Override
     public void init(final ParameterProviderInitializationContext context) {
         parameterOverrides = parseConfiguration(context);
+    }
+
+    @Override
+    protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
+        return new PropertyDescriptor.Builder()
+            .name(propertyDescriptorName)
+            .addValidator(Validator.VALID)
+            .build();
     }
 
     private List<ParameterOverride> parseConfiguration(final ParameterProviderInitializationContext context) {
