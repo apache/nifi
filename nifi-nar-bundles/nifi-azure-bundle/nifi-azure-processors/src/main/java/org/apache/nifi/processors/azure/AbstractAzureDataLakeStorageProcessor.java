@@ -16,13 +16,6 @@
  */
 package org.apache.nifi.processors.azure;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import com.azure.core.credential.AccessToken;
 import com.azure.core.credential.TokenCredential;
 import com.azure.identity.ClientSecretCredential;
@@ -32,7 +25,6 @@ import com.azure.identity.ManagedIdentityCredentialBuilder;
 import com.azure.storage.common.StorageSharedKeyCredential;
 import com.azure.storage.file.datalake.DataLakeServiceClient;
 import com.azure.storage.file.datalake.DataLakeServiceClientBuilder;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
@@ -49,6 +41,13 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.services.azure.storage.ADLSCredentialsDetails;
 import org.apache.nifi.services.azure.storage.ADLSCredentialsService;
 import reactor.core.publisher.Mono;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_FILENAME;
 
@@ -134,7 +133,7 @@ public abstract class AbstractAzureDataLakeStorageProcessor extends AbstractProc
         final String servicePrincipalClientId = credentialsDetails.getServicePrincipalClientId();
         final String servicePrincipalClientSecret = credentialsDetails.getServicePrincipalClientSecret();
 
-        final String endpoint = String.format("https://%s.%s", accountName,endpointSuffix);
+        final String endpoint = String.format("https://%s.%s", accountName, endpointSuffix);
 
         final DataLakeServiceClient storageClient;
         if (StringUtils.isNotBlank(accountKey)) {
