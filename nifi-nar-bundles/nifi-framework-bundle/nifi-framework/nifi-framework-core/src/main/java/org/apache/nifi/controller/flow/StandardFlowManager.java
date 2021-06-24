@@ -259,7 +259,7 @@ public class StandardFlowManager extends AbstractFlowManager implements FlowMana
 
         final ProcessGroup group = new StandardProcessGroup(requireNonNull(id), flowController.getControllerServiceProvider(), processScheduler, flowController.getEncryptor(),
             flowController.getExtensionManager(), flowController.getStateManagerProvider(), this, flowController.getFlowRegistryClient(),
-            flowController.getReloadComponent(), mutableVariableRegistry, flowController, nifiProperties);
+            flowController.getReloadComponent(), mutableVariableRegistry, flowController);
         onProcessGroupAdded(group);
 
         return group;

@@ -83,7 +83,6 @@ import org.apache.nifi.parameter.ParameterDescriptor;
 import org.apache.nifi.parameter.ParameterReference;
 import org.apache.nifi.parameter.ParameterUpdate;
 import org.apache.nifi.parameter.StandardParameterUpdate;
-import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.StandardProcessContext;
 import org.apache.nifi.registry.ComponentVariableRegistry;
@@ -134,8 +133,6 @@ import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.util.FlowDifferenceFilters;
-import org.apache.nifi.util.FormatUtils;
-import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.ReflectionUtils;
 import org.apache.nifi.util.SnippetUtils;
 import org.apache.nifi.web.ResourceNotFoundException;
@@ -164,7 +161,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -174,7 +170,6 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Predicate;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static java.util.Objects.requireNonNull;
@@ -193,9 +188,6 @@ public final class StandardProcessGroup implements ProcessGroup {
     private final AtomicReference<String> name;
     private final AtomicReference<Position> position;
     private final AtomicReference<String> comments;
-    private final AtomicReference<String> defaultFlowFileExpiration;
-    private final AtomicReference<Long> defaultBackPressureObjectThreshold;  // use AtomicReference vs AtomicLong to allow storing null
-    private final AtomicReference<String> defaultBackPressureDataSizeThreshold;
     private final AtomicReference<String> versionedComponentId = new AtomicReference<>();
     private final AtomicReference<StandardVersionControlInformation> versionControlInfo = new AtomicReference<>();
     private static final SecureRandom randomGenerator = new SecureRandom();
@@ -229,30 +221,17 @@ public final class StandardProcessGroup implements ProcessGroup {
     private volatile FlowFileOutboundPolicy flowFileOutboundPolicy = FlowFileOutboundPolicy.STREAM_WHEN_AVAILABLE;
     private volatile BatchCounts batchCounts = new NoOpBatchCounts();
     private final DataValve dataValve;
-    private final Map<String, String> niFiPropertiesBackPressure;
 
     private final ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
     private final Lock readLock = rwLock.readLock();
     private final Lock writeLock = rwLock.writeLock();
 
     private static final Logger LOG = LoggerFactory.getLogger(StandardProcessGroup.class);
-    private static final String DEFAULT_FLOWFILE_EXPIRATION = "0 sec";
-    private static final String DEFAULT_BACKPRESSURE_OBJECT = "0";
-    private static final String DEFAULT_BACKPRESSURE_DATA_SIZE = "0 GB";
 
     public StandardProcessGroup(final String id, final ControllerServiceProvider serviceProvider, final ProcessScheduler scheduler,
                                 final PropertyEncryptor encryptor, final ExtensionManager extensionManager,
                                 final StateManagerProvider stateManagerProvider, final FlowManager flowManager, final FlowRegistryClient flowRegistryClient,
                                 final ReloadComponent reloadComponent, final MutableVariableRegistry variableRegistry, final NodeTypeProvider nodeTypeProvider) {
-        this(id, serviceProvider, scheduler, encryptor, extensionManager, stateManagerProvider, flowManager, flowRegistryClient,
-                reloadComponent, variableRegistry, nodeTypeProvider, null);
-    }
-    public StandardProcessGroup(final String id, final ControllerServiceProvider serviceProvider, final ProcessScheduler scheduler,
-                                final PropertyEncryptor encryptor, final ExtensionManager extensionManager,
-                                final StateManagerProvider stateManagerProvider, final FlowManager flowManager, final FlowRegistryClient flowRegistryClient,
-                                final ReloadComponent reloadComponent, final MutableVariableRegistry variableRegistry, final NodeTypeProvider nodeTypeProvider,
-                                final NiFiProperties niFiProperties) {
-
         this.id = id;
         this.controllerServiceProvider = serviceProvider;
         this.parent = new AtomicReference<>();
@@ -272,16 +251,6 @@ public final class StandardProcessGroup implements ProcessGroup {
 
         final StateManager dataValveStateManager = stateManagerProvider.getStateManager(id + "-DataValve");
         dataValve = new StandardDataValve(this, dataValveStateManager);
-
-        this.defaultFlowFileExpiration = new AtomicReference<>();
-        this.defaultBackPressureObjectThreshold = new AtomicReference<>();
-        this.defaultBackPressureDataSizeThreshold = new AtomicReference<>();
-        // save only the nifi properties needed, and account for the possibility those properties are missing
-        niFiPropertiesBackPressure = new ConcurrentHashMap<>();
-        niFiPropertiesBackPressure.put(NiFiProperties.BACKPRESSURE_COUNT,
-                niFiProperties.getProperty(NiFiProperties.BACKPRESSURE_COUNT) == null ? DEFAULT_BACKPRESSURE_OBJECT : niFiProperties.getProperty(NiFiProperties.BACKPRESSURE_COUNT));
-        niFiPropertiesBackPressure.put(NiFiProperties.BACKPRESSURE_SIZE,
-                niFiProperties.getProperty(NiFiProperties.BACKPRESSURE_SIZE) == null ? DEFAULT_BACKPRESSURE_DATA_SIZE : niFiProperties.getProperty(NiFiProperties.BACKPRESSURE_SIZE));
     }
 
     @Override
@@ -5596,94 +5565,5 @@ public final class StandardProcessGroup implements ProcessGroup {
     @Override
     public DataValve getDataValve() {
         return dataValve;
-    }
-
-    @Override
-    public void setDefaultFlowFileExpiration(final String defaultFlowFileExpiration) {
-        // use default if value not provided
-        if (StringUtils.isBlank(defaultFlowFileExpiration)) {
-            this.defaultFlowFileExpiration.set(DEFAULT_FLOWFILE_EXPIRATION);
-        } else {
-            // Validate entry: must include time unit label
-            Pattern pattern = Pattern.compile(FormatUtils.TIME_DURATION_REGEX);
-            String caseAdjustedExpiration = defaultFlowFileExpiration.toLowerCase();
-            if (pattern.matcher(caseAdjustedExpiration).matches()) {
-                this.defaultFlowFileExpiration.set(caseAdjustedExpiration);
-            } else {
-                throw new IllegalArgumentException("The Default FlowFile Expiration of the process group must contain a valid time unit.");
-            }
-        }
-    }
-
-    @Override
-    public String getDefaultFlowFileExpiration() {
-        // Use value in this object if it has been set. Otherwise, inherit from parent group; if at root group, use the default.
-        if (defaultFlowFileExpiration.get() == null) {
-            if (isRootGroup()) {
-                return DEFAULT_FLOWFILE_EXPIRATION;
-            } else {
-                return parent.get().getDefaultFlowFileExpiration();
-            }
-        }
-        return defaultFlowFileExpiration.get();
-    }
-
-    @Override
-    public void setDefaultBackPressureObjectThreshold(final Long defaultBackPressureObjectThreshold) {
-        // use default if value not provided
-        if (defaultBackPressureObjectThreshold == null) {
-            this.defaultBackPressureObjectThreshold.set(Long.parseLong(niFiPropertiesBackPressure.get(NiFiProperties.BACKPRESSURE_COUNT)));
-        } else {
-            // Validate field is numeric
-            Pattern pattern = Pattern.compile("(\\d+)");
-            if (pattern.matcher(String.valueOf(defaultBackPressureObjectThreshold)).matches()) {
-                this.defaultBackPressureObjectThreshold.set(defaultBackPressureObjectThreshold);
-            } else {
-                throw new IllegalArgumentException("The Default Back Pressure Object Threshold of the process group must be numeric.");
-            }
-        }
-    }
-
-    @Override
-    public Long getDefaultBackPressureObjectThreshold() {
-        // Use value in this object if it has been set. Otherwise, inherit from parent group; if at root group, obtain from nifi properties.
-        if (defaultBackPressureObjectThreshold.get() == null) {
-            if (isRootGroup()) {
-                return Long.parseLong(niFiPropertiesBackPressure.get(NiFiProperties.BACKPRESSURE_COUNT));
-            } else {
-                return getParent().getDefaultBackPressureObjectThreshold();
-            }
-        }
-            return defaultBackPressureObjectThreshold.get();
-    }
-
-    @Override
-    public void setDefaultBackPressureDataSizeThreshold(final String defaultBackPressureDataSizeThreshold) {
-        // use default if value not provided
-        if (StringUtils.isBlank(defaultBackPressureDataSizeThreshold)) {
-            this.defaultBackPressureDataSizeThreshold.set(niFiPropertiesBackPressure.get(NiFiProperties.BACKPRESSURE_SIZE));
-        } else {
-            // Validate entry: must include size unit label
-            Pattern pattern = Pattern.compile(DataUnit.DATA_SIZE_REGEX);
-            String caseAdjustedSizeThreshold = defaultBackPressureDataSizeThreshold.toUpperCase();
-            if (pattern.matcher(caseAdjustedSizeThreshold).matches()) {
-                this.defaultBackPressureDataSizeThreshold.set(caseAdjustedSizeThreshold);
-            } else {
-                throw new IllegalArgumentException("The Default Back Pressure Data Size Threshold of the process group must contain a valid data size unit.");
-            }
-        }
-    }
-
-    @Override
-    public String getDefaultBackPressureDataSizeThreshold() {
-        // Use value in this object if it has been set. Otherwise, inherit from parent group; if at root group, obtain from nifi properties.
-        if (StringUtils.isEmpty(defaultBackPressureDataSizeThreshold.get())) {
-            if (isRootGroup()) {
-                return niFiPropertiesBackPressure.get(NiFiProperties.BACKPRESSURE_SIZE);
-            } else {
-                return parent.get().getDefaultBackPressureDataSizeThreshold();
-            }
-        }
-        return defaultBackPressureDataSizeThreshold.get();
     }
 }
