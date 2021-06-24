@@ -377,11 +377,10 @@ public class FrameworkIntegrationTest {
         FileUtils.deleteFile(dir, true);
     }
 
-    protected FlowFileQueue createFlowFileQueue(final String uuid, final ProcessGroup processGroup) {
+    protected FlowFileQueue createFlowFileQueue(final String uuid) {
         final RepositoryContext repoContext = getRepositoryContext();
         return new StandardFlowFileQueue(uuid, ConnectionEventListener.NOP_EVENT_LISTENER, repoContext.getFlowFileRepository(), repoContext.getProvenanceRepository(),
-            resourceClaimManager, processScheduler, flowFileSwapManager, flowController.createEventReporter(), 20000,
-                processGroup.getDefaultFlowFileExpiration(), processGroup.getDefaultBackPressureObjectThreshold(), processGroup.getDefaultBackPressureDataSizeThreshold());
+            resourceClaimManager, processScheduler, flowFileSwapManager, flowController.createEventReporter(), 20000, 10000L, "1 GB");
     }
 
     protected final ProcessorNode createProcessorNode(final Class<? extends Processor> processorType) {
@@ -476,14 +475,13 @@ public class FrameworkIntegrationTest {
     protected final Connection connect(ProcessGroup processGroup, final ProcessorNode source, final ProcessorNode destination, final Collection<Relationship> relationships) {
         final String id = UUID.randomUUID().toString();
         final Connection connection = new StandardConnection.Builder(processScheduler)
-                .source(source)
-                .destination(destination)
-                .processGroup(processGroup)
-                .relationships(relationships)
-                .id(id)
-                .clustered(false)
-                .flowFileQueueFactory((loadBalanceStrategy, partitioningAttribute, eventListener, processGroup1) -> createFlowFileQueue(id, processGroup))
-                .build();
+            .source(source)
+            .destination(destination)
+            .relationships(relationships)
+            .id(id)
+            .clustered(false)
+            .flowFileQueueFactory((loadBalanceStrategy, partitioningAttribute, eventListener) -> createFlowFileQueue(id))
+            .build();
 
         source.addConnection(connection);
         destination.addConnection(connection);

@@ -1267,9 +1267,12 @@
          * @param nfBirdseyeRef   The nfBirdseye module.
          * @param nfGraphRef   The nfGraph module.
          */
-        init: function (nfBirdseyeRef, nfGraphRef) {
+        init: function (nfBirdseyeRef, nfGraphRef, defaultBackPressureObjectThresholdRef, defaultBackPressureDataSizeThresholdRef) {
             nfBirdseye = nfBirdseyeRef;
             nfGraph = nfGraphRef;
+
+            defaultBackPressureObjectThreshold = defaultBackPressureObjectThresholdRef;
+            defaultBackPressureDataSizeThreshold = defaultBackPressureDataSizeThresholdRef;
 
             // initially hide the relationship names container
             $('#relationship-names-container').hide();
@@ -1380,7 +1383,7 @@
          * @argument {string} sourceId      The source id
          * @argument {string} destinationId The destination id
          */
-        createConnection: function (sourceId, destinationId, defaultSettings) {
+        createConnection: function (sourceId, destinationId) {
             // select the source and destination
             var source = d3.select('#id-' + sourceId);
             var destination = d3.select('#id-' + destinationId);
@@ -1398,9 +1401,9 @@
             // initialize the connection dialog
             $.when(initializeSourceNewConnectionDialog(source), initializeDestinationNewConnectionDialog(destination)).done(function () {
                 // set the default values
-                $('#flow-file-expiration').val(defaultSettings.flowfileExpiration);
-                $('#back-pressure-object-threshold').val(defaultSettings.objectThreshold);
-                $('#back-pressure-data-size-threshold').val(defaultSettings.dataSizeThreshold);
+                $('#flow-file-expiration').val('0 sec');
+                $('#back-pressure-object-threshold').val(defaultBackPressureObjectThreshold);
+                $('#back-pressure-data-size-threshold').val(defaultBackPressureDataSizeThreshold);
 
                 // select the first tab
                 $('#connection-configuration-tabs').find('li:first').click();

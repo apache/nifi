@@ -74,7 +74,7 @@ public class FlowFileRepositoryLifecycleIT extends FrameworkIntegrationTest {
 
         shutdown();
 
-        final FlowFileQueue restoredQueue = createFlowFileQueue(queue.getIdentifier(), getRootGroup());
+        final FlowFileQueue restoredQueue = createFlowFileQueue(queue.getIdentifier());
         initialize();
         getFlowController().initializeFlow(() -> Collections.singleton(restoredQueue));
 
