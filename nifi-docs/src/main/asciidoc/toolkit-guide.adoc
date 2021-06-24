@@ -484,8 +484,8 @@ This protection scheme uses HashiCorp Vault's Transit Secrets Engine (https://ww
 |===
 |Property Name|Description|Default
 |`vault.uri`|The HashiCorp Vault URI (e.g., `https://vault-server:8200`).  If not set, this provider will be disabled.|_none_
-|`vault.authPropertiesFilename`|Filename of a properties file containing Vault authentication properties.  See the `Authentication-specific property keys` section of https://docs.spring.io/spring-vault/docs/2.3.x/reference/html/#vault.core.environment-vault-configuration" for all authentication property keys. If not set, this provider will be disabled.|_none_
-|`vault.transit.path`|The HashiCorp Vault `path` specifying the Transit Secrets Engine (e.g., `nifi-transit`).  Valid characters include alphanumeric, dash, and underscore.|_none_
+|`vault.authPropertiesFilename`|Filename of a properties file containing Vault authentication properties.  See the `Authentication-specific property keys` section of https://docs.spring.io/spring-vault/docs/2.3.x/reference/html/#vault.core.environment-vault-configuration for all authentication property keys. If not set, all Spring Vault authentication properties must be configured directly in bootstrap-hashicorp-vault.conf.|_none_
+|`vault.transit.path`|The HashiCorp Vault `path` specifying the Transit Secrets Engine (e.g., `nifi-transit`).  Valid characters include alphanumeric, dash, and underscore.  If not set, this provider will be disabled.|_none_
 |===
 
 ===== Optional properties

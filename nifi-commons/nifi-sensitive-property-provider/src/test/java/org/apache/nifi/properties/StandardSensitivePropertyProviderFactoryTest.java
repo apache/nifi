@@ -35,6 +35,7 @@ import java.util.Properties;
 import java.util.function.Supplier;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
@@ -129,6 +130,30 @@ public class StandardSensitivePropertyProviderFactoryTest {
         configureHashicorpVault(properties);
 
         final SensitivePropertyProvider spp = factory.getProvider(PropertyProtectionScheme.HASHICORP_VAULT_TRANSIT);
+    }
+
+    @Test
+    public void testHashicorpVaultTransit_isSupported() throws IOException {
+        configureDefaultFactory();
+        final Properties properties = new Properties();
+        properties.put("vault.transit.path", "nifi-transit");
+        properties.put("vault.uri", "http://localhost:8200");
+        properties.put("vault.token", "test-token");
+        configureHashicorpVault(properties);
+
+        SensitivePropertyProvider spp = factory.getProvider(PropertyProtectionScheme.HASHICORP_VAULT_TRANSIT);
+        assertTrue(spp.isSupported());
+
+        properties.remove("vault.uri");
+        configureHashicorpVault(properties);
+        configureDefaultFactory();
+        spp = factory.getProvider(PropertyProtectionScheme.HASHICORP_VAULT_TRANSIT);
+        assertFalse(spp.isSupported());
+
+        properties.put("vault.uri", "http://localhost:8200");
+        properties.remove("vault.transit.path");
+        spp = factory.getProvider(PropertyProtectionScheme.HASHICORP_VAULT_TRANSIT);
+        assertFalse(spp.isSupported());
     }
 
     @Test

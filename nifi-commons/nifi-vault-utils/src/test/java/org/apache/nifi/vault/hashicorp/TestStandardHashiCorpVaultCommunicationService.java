@@ -70,7 +70,8 @@ public class TestStandardHashiCorpVaultCommunicationService {
         // Once to check if the URI is https, and once by VaultTemplate
         Mockito.verify(properties, Mockito.times(2)).getUri();
 
-        Mockito.verify(properties, Mockito.times(1)).getAuthPropertiesFilename();
+        // Once to check if the property is set, and once to retrieve the value
+        Mockito.verify(properties, Mockito.times(2)).getAuthPropertiesFilename();
 
         // These should not be called because TLS is not configured
         this.ensureTlsPropertiesAccessed(0);

@@ -87,7 +87,7 @@ public abstract class AbstractHashiCorpVaultSensitivePropertyProvider extends Ab
 
     protected HashiCorpVaultCommunicationService getVaultCommunicationService() {
         if (vaultCommunicationService == null) {
-            throw new SensitivePropertyProtectionException(getIdentifierKey() + " protection scheme is not configured in bootstrap.conf");
+            throw new SensitivePropertyProtectionException(getIdentifierKey() + " protection scheme is not fully configured in hashicorp-vault-bootstrap.conf");
         }
         return vaultCommunicationService;
     }
@@ -108,7 +108,7 @@ public abstract class AbstractHashiCorpVaultSensitivePropertyProvider extends Ab
     private boolean hasRequiredVaultProperties() {
         return vaultBootstrapProperties != null
                 && (vaultBootstrapProperties.getProperty(VaultConfigurationKey.URI.getKey()) != null)
-                && (vaultBootstrapProperties.getProperty(VaultConfigurationKey.AUTH_PROPERTIES_FILENAME.getKey()) != null);
+                && hasRequiredSecretsEngineProperties(vaultBootstrapProperties);
     }
 
     /**
