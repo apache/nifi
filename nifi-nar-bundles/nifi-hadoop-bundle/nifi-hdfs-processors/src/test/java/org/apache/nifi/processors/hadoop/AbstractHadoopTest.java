@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.hadoop;
 
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.nifi.components.ValidationContext;
@@ -26,7 +25,6 @@ import org.apache.nifi.components.resource.ResourceReference;
 import org.apache.nifi.components.resource.ResourceReferences;
 import org.apache.nifi.components.resource.StandardResourceReferences;
 import org.apache.nifi.hadoop.KerberosProperties;
-import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.MockValidationContext;
