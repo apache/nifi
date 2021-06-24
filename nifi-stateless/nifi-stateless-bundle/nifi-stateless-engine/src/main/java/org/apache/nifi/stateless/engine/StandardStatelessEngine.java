@@ -46,11 +46,10 @@ import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.nar.ExtensionDefinition;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.InstanceClassLoader;
+import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.parameter.Parameter;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterDescriptor;
-import org.apache.nifi.parameter.ParameterTokenList;
-import org.apache.nifi.parameter.StandardParameterTokenList;
 import org.apache.nifi.processor.StandardValidationContext;
 import org.apache.nifi.provenance.ProvenanceRepository;
 import org.apache.nifi.registry.VariableRegistry;
@@ -81,6 +80,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -247,20 +247,21 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
     }
 
     private List<ValidationResult> validate(final ConfigurableComponent component, final Map<String, String> properties, final String componentId) {
-        final Map<PropertyDescriptor, PropertyConfiguration> propertyMap = new HashMap<>();
+        final Map<PropertyDescriptor, PropertyConfiguration> explicitlyConfiguredPropertyMap = new HashMap<>();
 
         for (final Map.Entry<String, String> property : properties.entrySet()) {
             final String propertyName = property.getKey();
             final String propertyValue = property.getValue();
 
             final PropertyDescriptor descriptor = component.getPropertyDescriptor(propertyName);
-            final ParameterTokenList tokenList = new StandardParameterTokenList(null, Collections.emptyList());
-            final PropertyConfiguration propertyConfiguration = new PropertyConfiguration(propertyValue, tokenList, Collections.emptyList());
+            final PropertyConfiguration propertyConfiguration = new PropertyConfiguration(propertyValue, null, Collections.emptyList());
 
-            propertyMap.put(descriptor, propertyConfiguration);
+            explicitlyConfiguredPropertyMap.put(descriptor, propertyConfiguration);
         }
 
-        final ValidationContext validationContext = new StandardValidationContext(controllerServiceProvider, propertyMap,
+        final Map<PropertyDescriptor, PropertyConfiguration> fullPropertyMap = buildConfiguredAndDefaultPropertyMap(component, explicitlyConfiguredPropertyMap);
+
+        final ValidationContext validationContext = new StandardValidationContext(controllerServiceProvider, fullPropertyMap,
             null, null, componentId, VariableRegistry.EMPTY_REGISTRY, null);
 
         final Collection<ValidationResult> validationResults = component.validate(validationContext);
@@ -268,6 +269,25 @@ public class StandardStatelessEngine implements StatelessEngine<VersionedFlowSna
             .filter(validationResult -> !validationResult.isValid())
             .collect(Collectors.toList());
     }
+
+    public Map<PropertyDescriptor, PropertyConfiguration> buildConfiguredAndDefaultPropertyMap(final ConfigurableComponent component, final Map<PropertyDescriptor, PropertyConfiguration> properties) {
+        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, component.getClass(), component.getIdentifier())) {
+            final List<PropertyDescriptor> supported = component.getPropertyDescriptors();
+            if (supported == null || supported.isEmpty()) {
+                return Collections.unmodifiableMap(properties);
+            } else {
+                final Map<PropertyDescriptor, PropertyConfiguration> props = new LinkedHashMap<>();
+
+                for (final PropertyDescriptor descriptor : supported) {
+                    props.put(descriptor, null);
+                }
+
+                props.putAll(properties);
+                return props;
+            }
+        }
+    }
+
 
     private void loadNecessaryExtensions(final DataflowDefinition<VersionedFlowSnapshot> dataflowDefinition) {
         final VersionedProcessGroup group = dataflowDefinition.getFlowSnapshot().getFlowContents();
