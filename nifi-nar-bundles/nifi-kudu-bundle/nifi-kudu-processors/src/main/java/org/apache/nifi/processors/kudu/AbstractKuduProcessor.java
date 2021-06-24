@@ -139,6 +139,16 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
             .build();
 
+    static final PropertyDescriptor KUDU_SASL_PROTOCOL_NAME = new Builder()
+            .name("kudu-sasl-protocol-name")
+            .displayName("Kudu SASL Protocol Name")
+            .description("The SASL protocol name to use for authenticating via Kerberos. Must match the service principal name.")
+            .required(false)
+            .defaultValue("kudu")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
+
     private volatile KuduClient kuduClient;
     private final ReadWriteLock kuduClientReadWriteLock = new ReentrantReadWriteLock();
     private final Lock kuduClientReadLock = kuduClientReadWriteLock.readLock();
@@ -200,6 +210,7 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
         final String masters = context.getProperty(KUDU_MASTERS).evaluateAttributeExpressions().getValue();
         final int operationTimeout = context.getProperty(KUDU_OPERATION_TIMEOUT_MS).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS).intValue();
         final int adminOperationTimeout = context.getProperty(KUDU_KEEP_ALIVE_PERIOD_TIMEOUT_MS).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS).intValue();
+        final String saslProtocolName = context.getProperty(KUDU_SASL_PROTOCOL_NAME).evaluateAttributeExpressions().getValue();
         final int workerCount = context.getProperty(WORKER_COUNT).asInteger();
 
         // Create Executor following approach of Executors.newCachedThreadPool() using worker count as maximum pool size
@@ -217,6 +228,7 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
         return new KuduClient.KuduClientBuilder(masters)
                 .defaultOperationTimeoutMs(operationTimeout)
                 .defaultSocketReadTimeoutMs(adminOperationTimeout)
+                .saslProtocolName(saslProtocolName)
                 .workerCount(workerCount)
                 .nioExecutor(nioExecutor)
                 .build();
