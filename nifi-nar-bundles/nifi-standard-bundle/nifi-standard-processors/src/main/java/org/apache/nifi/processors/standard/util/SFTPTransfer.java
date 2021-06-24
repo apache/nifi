@@ -173,6 +173,7 @@ public class SFTPTransfer implements FileTransfer {
                     + convertFactorySetToString(DEFAULT_KEY_ALGORITHM_NAMES))
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor CIPHERS_ALLOWED = new PropertyDescriptor.Builder()
@@ -181,6 +182,7 @@ public class SFTPTransfer implements FileTransfer {
             .description("A comma-separated list of Ciphers allowed for SFTP connections. Leave unset to allow all. Available options are: " + convertFactorySetToString(DEFAULT_CIPHER_NAMES))
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor MESSAGE_AUTHENTICATION_CODES_ALLOWED = new PropertyDescriptor.Builder()
@@ -190,6 +192,7 @@ public class SFTPTransfer implements FileTransfer {
                     + convertFactorySetToString(DEFAULT_MESSAGE_AUTHENTICATION_CODE_NAMES))
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
 
     public static final PropertyDescriptor KEY_EXCHANGE_ALGORITHMS_ALLOWED = new PropertyDescriptor.Builder()
@@ -199,6 +202,7 @@ public class SFTPTransfer implements FileTransfer {
                     + convertFactorySetToString(DEFAULT_KEY_EXCHANGE_ALGORITHM_NAMES))
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
             .build();
 
     /**
