@@ -621,7 +621,7 @@ public abstract class AbstractEventAccess implements EventAccess {
             status.setRunStatus(RunStatus.Running);
         } else if (procNode.getValidationStatus() == ValidationStatus.VALIDATING) {
             status.setRunStatus(RunStatus.Validating);
-        } else if (procNode.getValidationStatus() == ValidationStatus.INVALID) {
+        } else if (procNode.getValidationStatus() == ValidationStatus.INVALID && procNode.getActiveThreadCount() == 0) {
             status.setRunStatus(RunStatus.Invalid);
         } else {
             status.setRunStatus(RunStatus.Stopped);
@@ -629,7 +629,7 @@ public abstract class AbstractEventAccess implements EventAccess {
 
         status.setExecutionNode(procNode.getExecutionNode());
         status.setTerminatedThreadCount(procNode.getTerminatedThreadCount());
-        status.setActiveThreadCount(processScheduler.getActiveThreadCount(procNode));
+        status.setActiveThreadCount(procNode.getActiveThreadCount());
 
         return status;
     }
