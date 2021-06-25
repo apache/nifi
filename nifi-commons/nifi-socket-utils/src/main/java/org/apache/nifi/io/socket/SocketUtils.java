@@ -188,9 +188,6 @@ public final class SocketUtils {
                 }
             } finally {
                 if (!socket.isClosed()) {
-                    if (socket.getChannel().isOpen()) {
-                        socket.getChannel().close();
-                    }
                     socket.close();
                 }
             }
