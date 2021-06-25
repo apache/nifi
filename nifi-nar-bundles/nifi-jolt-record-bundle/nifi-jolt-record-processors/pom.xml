@@ -113,8 +113,10 @@
                         <exclude>src/test/resources/TestJoltTransformRecord/defaultrSpec.json</exclude>
                         <exclude>src/test/resources/TestJoltTransformRecord/defaultrOutput.json</exclude>
                         <exclude>src/test/resources/TestJoltTransformRecord/shiftrSpec.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformRecord/shiftrSpecMultipleOutputRecords.json</exclude>
                         <exclude>src/test/resources/TestJoltTransformRecord/sortrOutput.json</exclude>
                         <exclude>src/test/resources/TestJoltTransformRecord/shiftrOutput.json</exclude>
+                        <exclude>src/test/resources/TestJoltTransformRecord/shiftrOutputMultipleOutputRecords.json</exclude>
                         <exclude>src/test/resources/TestJoltTransformRecord/removrSpec.json</exclude>
                         <exclude>src/test/resources/TestJoltTransformRecord/removrOutput.json</exclude>
                         <exclude>src/test/resources/TestJoltTransformRecord/defaultrSpec.json</exclude>
@@ -135,6 +137,7 @@
                         <exclude>src/test/resources/TestTransformFactory/cardrSpec.json</exclude>
                         <exclude>src/test/resources/TestTransformFactory/defaultrSpec.json</exclude>
                         <exclude>src/test/resources/TestTransformFactory/shiftrSpec.json</exclude>
+                        <exclude>src/test/resources/TestTransformFactory/shiftrSpecMultipleOutputRecords.json</exclude>
                         <exclude>src/test/resources/TestTransformFactory/removrSpec.json</exclude>
                         <exclude>src/test/resources/TestTransformFactory/defaultrSpec.json</exclude>
                         <exclude>src/test/resources/TestTransformFactory/modifierDefaultSpec.json</exclude>

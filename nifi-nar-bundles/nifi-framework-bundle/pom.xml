@@ -23,15 +23,14 @@
     <packaging>pom</packaging>
     <description>NiFi: Framework Bundle</description>
     <properties>
-        <spring.version>4.3.19.RELEASE</spring.version>
-        <spring.security.version>4.2.13.RELEASE</spring.security.version>
+        <spring.version>5.3.8</spring.version>
+        <spring.security.version>5.4.6</spring.security.version>
     </properties>
     <modules>
         <module>nifi-framework</module>
         <module>nifi-framework-nar</module>
         <module>nifi-server-nar</module>
         <module>nifi-headless-server-nar</module>
-        <module>nifi-stateless-bundle</module>
     </modules>
     <dependencyManagement>
         <dependencies>
@@ -148,6 +147,11 @@
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi</groupId>
+                <artifactId>nifi-sensitive-property-provider</artifactId>
+                <version>1.14.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.nifi</groupId>
                 <artifactId>nifi-framework-authorization</artifactId>
                 <version>1.14.0-SNAPSHOT</version>
             </dependency>
@@ -214,7 +218,7 @@
             <dependency>
                 <groupId>org.apache.tika</groupId>
                 <artifactId>tika-core</artifactId>
-                <version>1.24</version>
+                <version>1.26</version>
             </dependency>
             <dependency>
                 <groupId>commons-codec</groupId>
@@ -302,7 +306,7 @@
             <dependency>
                 <groupId>commons-io</groupId>
                 <artifactId>commons-io</artifactId>
-                <version>2.6</version>
+                <version>2.10.0</version>
             </dependency>
             <dependency>
                 <groupId>javax.mail</groupId>
@@ -539,6 +543,10 @@
                     <exclusion>
                         <groupId>com.io7m.xom</groupId>
                         <artifactId>xom</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>xalan</groupId>
+                        <artifactId>xalan</artifactId>
                     </exclusion>
                 </exclusions>
             </dependency>

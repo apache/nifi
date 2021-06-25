@@ -23,6 +23,9 @@
 
     <artifactId>nifi-easyrules-service</artifactId>
     <packaging>jar</packaging>
+    <properties>
+        <easy.rules.version>4.1.0</easy.rules.version>
+    </properties>
     <dependencies>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -42,22 +45,22 @@
         <dependency>
             <groupId>org.jeasy</groupId>
             <artifactId>easy-rules-core</artifactId>
-            <version>3.4.0</version>
+            <version>${easy.rules.version}</version>
         </dependency>
         <dependency>
             <groupId>org.jeasy</groupId>
             <artifactId>easy-rules-mvel</artifactId>
-            <version>3.4.0</version>
+            <version>${easy.rules.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jeasy</groupId>
+            <artifactId>easy-rules-spel</artifactId>
+            <version>${easy.rules.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-jexl3</artifactId>
             <version>3.1</version>
-        </dependency>
-        <dependency>
-            <groupId>org.jeasy</groupId>
-            <artifactId>easy-rules-spel</artifactId>
-            <version>3.4.0</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>

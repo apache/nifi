@@ -54,7 +54,7 @@
         <dependency>
             <groupId>com.jayway.jsonpath</groupId>
             <artifactId>json-path</artifactId>
-            <version>2.4.0</version>
+            <version>2.6.0</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
@@ -74,7 +74,7 @@
         <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
-            <version>2.6</version>
+            <version>2.10.0</version>
         </dependency>
         <dependency>
             <groupId>io.krakens</groupId>
@@ -134,6 +134,8 @@
                     <excludes combine.children="append">
                         <exclude>src/test/resources/avro/avro_embed_schema.avro</exclude>
                         <exclude>src/test/resources/avro/avro_schemaless.avro</exclude>
+                        <exclude>src/test/resources/avro/avro_schemaless_decimal.avro</exclude>
+                        <exclude>src/test/resources/avro/avro_schemaless_decimal.avsc</exclude>
                         <exclude>src/test/resources/avro/datatypes.avsc</exclude>
                         <exclude>src/test/resources/avro/decimals.avsc</exclude>
                         <exclude>src/test/resources/avro/logical-types.avsc</exclude>

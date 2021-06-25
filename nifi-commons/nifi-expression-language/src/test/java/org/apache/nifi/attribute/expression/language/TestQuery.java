@@ -345,6 +345,20 @@ public class TestQuery {
     }
 
     @Test
+    public void testParameterReferenceWithSpace() {
+        final Map<String, String> attributes = Collections.emptyMap();
+        final Map<String, String> stateValues = Collections.emptyMap();
+        final Map<String, String> parameters = new HashMap<>();
+        parameters.put("test param", "unit");
+
+        final Query query = Query.compile("${'#{test param}'}");
+        verifyEquals("${#{'test param'}}", attributes, stateValues, parameters,"unit");
+        verifyEquals("${#{'test param'}:append(' - '):append(#{'test param'})}", attributes, stateValues, parameters,"unit - unit");
+
+        verifyEquals("${#{\"test param\"}}", attributes, stateValues, parameters,"unit");
+    }
+
+    @Test
     public void testJsonPath() throws IOException {
         Map<String,String> attributes = verifyJsonPathExpressions(
             ADDRESS_BOOK_JSON_PATH_EMPTY,

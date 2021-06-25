@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.web;
 
-import javax.servlet.ServletContext;
-import javax.ws.rs.core.Context;
 import org.apache.nifi.web.api.config.AccessDeniedExceptionMapper;
 import org.apache.nifi.web.api.config.AdministrationExceptionMapper;
 import org.apache.nifi.web.api.config.AuthenticationCredentialsNotFoundExceptionMapper;
@@ -59,6 +57,9 @@ import org.glassfish.jersey.server.filter.EncodingFilter;
 import org.springframework.context.ApplicationContext;
 import org.springframework.web.context.support.WebApplicationContextUtils;
 
+import javax.servlet.ServletContext;
+import javax.ws.rs.core.Context;
+
 public class NiFiWebApiResourceConfig extends ResourceConfig {
 
     public NiFiWebApiResourceConfig(@Context ServletContext servletContext) {
@@ -97,6 +98,8 @@ public class NiFiWebApiResourceConfig extends ResourceConfig {
         register(ctx.getBean("countersResource"));
         register(ctx.getBean("systemDiagnosticsResource"));
         register(ctx.getBean("accessResource"));
+        register(ctx.getBean("samlResource"));
+        register(ctx.getBean("oidcResource"));
         register(ctx.getBean("accessPolicyResource"));
         register(ctx.getBean("tenantsResource"));
         register(ctx.getBean("versionsResource"));

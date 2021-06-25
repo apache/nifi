@@ -16,20 +16,19 @@
  */
 package org.apache.nifi.lookup;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyDescriptor.Builder;
+import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
-import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
@@ -44,60 +43,87 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+
+import static org.apache.nifi.expression.ExpressionLanguageScope.NONE;
 
 @Tags({"lookup", "parse", "record", "row", "reader"})
 @SeeAlso({RecordSetWriterLookup.class})
-@CapabilityDescription("Provides a RecordReaderFactory that can be used to dynamically select another RecordReaderFactory. This service " +
-        "requires an variable named 'recordreader.name' to be passed in when asking for a record record, and will throw an exception " +
-        "if the variable is missing. The value of 'recordreader.name' will be used to select the RecordReaderFactory that has been " +
-        "registered with that name. This will allow multiple RecordReaderFactory's to be defined and registered, and then selected " +
-        "dynamically at runtime by tagging flow files with the appropriate 'recordreader.name' variable.")
-@DynamicProperty(name = "Name of the RecordReader", value = "A RecordReaderFactory controller service", expressionLanguageScope = ExpressionLanguageScope.NONE,
-        description = "")
+@CapabilityDescription("Provides a RecordReaderFactory that can be used to dynamically select another RecordReaderFactory. " +
+    "This will allow multiple RecordReaderFactories to be defined and registered, and then selected " +
+    "dynamically at runtime by referencing a FlowFile attribute in the Service to Use property.")
+@DynamicProperty(name = "Name of the RecordReader", value = "A RecordReaderFactory controller service", description = "", expressionLanguageScope = NONE)
 public class ReaderLookup extends AbstractControllerService implements RecordReaderFactory {
 
-    public static final String RECORDREADER_NAME_VARIABLE = "recordreader.name";
+    static final PropertyDescriptor SERVICE_TO_USE = new Builder()
+        .name("Service to Use")
+        .displayName("Service to Use")
+        .description("Specifies the name of the user-defined property whose associated Controller Service should be used.")
+        .required(true)
+        .defaultValue("${recordreader.name}")
+        .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+        .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+        .build();
+
 
     private volatile Map<String, RecordReaderFactory> recordReaderFactoryMap;
+    private volatile PropertyValue serviceToUseValue;
 
     @Override
-    protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
-        return new PropertyDescriptor.Builder()
-                .name(propertyDescriptorName)
-                .description("The RecordReaderFactory to return when recordreader.name = '" + propertyDescriptorName + "'")
-                .identifiesControllerService(RecordReaderFactory.class)
-                .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
-                .build();
+    protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
+        return Collections.singletonList(SERVICE_TO_USE);
     }
 
     @Override
-    protected Collection<ValidationResult> customValidate(ValidationContext context) {
+    protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(final String propertyDescriptorName) {
+        return new Builder()
+            .name(propertyDescriptorName)
+            .description("The RecordReaderFactory to return when '" + propertyDescriptorName + "' is the chosen Record Reader")
+            .identifiesControllerService(RecordReaderFactory.class)
+            .build();
+    }
+
+    @Override
+    protected Collection<ValidationResult> customValidate(final ValidationContext context) {
         final List<ValidationResult> results = new ArrayList<>();
 
-        int numDefinedServices = 0;
+        final Set<String> serviceNames = new HashSet<>();
         for (final PropertyDescriptor descriptor : context.getProperties().keySet()) {
             if (descriptor.isDynamic()) {
-                numDefinedServices++;
+                serviceNames.add(descriptor.getName());
             }
 
             final String referencedId = context.getProperty(descriptor).getValue();
             if (this.getIdentifier().equals(referencedId)) {
                 results.add(new ValidationResult.Builder()
                         .subject(descriptor.getDisplayName())
-                        .explanation("the current service cannot be registered as a RecordReaderFactory to lookup")
+                        .explanation("The current service cannot be registered as a RecordReaderFactory to lookup")
                         .valid(false)
                         .build());
             }
         }
 
-        if (numDefinedServices == 0) {
+        if (serviceNames.isEmpty()) {
             results.add(new ValidationResult.Builder()
                     .subject(this.getClass().getSimpleName())
-                    .explanation("at least one RecordReaderFactory must be defined via dynamic properties")
+                    .explanation("At least one RecordReaderFactory must be defined via dynamic properties")
                     .valid(false)
                     .build());
+        }
+
+        final PropertyValue serviceToUseValue = context.getProperty(SERVICE_TO_USE);
+        if (!serviceToUseValue.isExpressionLanguagePresent()) {
+            final String selectedValue = serviceToUseValue.getValue();
+            if (!serviceNames.contains(selectedValue)) {
+                results.add(new ValidationResult.Builder()
+                    .subject(SERVICE_TO_USE.getDisplayName())
+                    .explanation("No service is defined with the name <" + selectedValue + ">")
+                    .valid(false)
+                    .build());
+            }
         }
 
         return results;
@@ -115,42 +141,22 @@ public class ReaderLookup extends AbstractControllerService implements RecordRea
         }
 
         recordReaderFactoryMap = Collections.unmodifiableMap(serviceMap);
-    }
-
-    @OnDisabled
-    public void onDisabled() {
-        recordReaderFactoryMap = null;
+        serviceToUseValue = context.getProperty(SERVICE_TO_USE);
     }
 
 
     @Override
-    public RecordReader createRecordReader(FlowFile flowFile, InputStream in, ComponentLog logger) throws MalformedRecordException, IOException, SchemaNotFoundException {
-        if(flowFile == null) {
-            throw new UnsupportedOperationException("Cannot lookup a RecordReaderFactory without variables.");
+    public RecordReader createRecordReader(final Map<String, String> variables, final InputStream in, final long inputLength, final ComponentLog logger)
+                throws MalformedRecordException, IOException, SchemaNotFoundException {
+
+        final String serviceName = serviceToUseValue.evaluateAttributeExpressions(variables).getValue();
+        if (serviceName.trim().isEmpty()) {
+            throw new ProcessException("Unable to determine which Record Reader to use: after evaluating the property value against supplied variables, got an empty value");
         }
 
-        return createRecordReader(flowFile.getAttributes(), in, flowFile.getSize(), logger);
-    }
-
-    @Override
-    public RecordReader createRecordReader(Map<String, String> variables, InputStream in, long inputLength, ComponentLog logger) throws MalformedRecordException, IOException, SchemaNotFoundException {
-        if(variables == null) {
-            throw new UnsupportedOperationException("Cannot lookup a RecordReaderFactory without variables.");
-        }
-
-        if (!variables.containsKey(RECORDREADER_NAME_VARIABLE)) {
-            throw new ProcessException("Variables must contain a variables name '" + RECORDREADER_NAME_VARIABLE + "'");
-        }
-
-        final String recordReaderName = variables.get(RECORDREADER_NAME_VARIABLE);
-        if (StringUtils.isBlank(recordReaderName)) {
-            throw new ProcessException(RECORDREADER_NAME_VARIABLE + " cannot be null or blank");
-        }
-
-        final RecordReaderFactory recordReaderFactory = recordReaderFactoryMap.get(recordReaderName);
+        final RecordReaderFactory recordReaderFactory = recordReaderFactoryMap.get(serviceName);
         if (recordReaderFactory == null) {
-            throw new ProcessException("No RecordReaderFactory was found for " + RECORDREADER_NAME_VARIABLE
-                    + "'" + recordReaderName + "'");
+            throw new ProcessException("No RecordReaderFactory was configured with the name <" + serviceName + ">");
         }
 
         return recordReaderFactory.createRecordReader(variables, in, inputLength, logger);

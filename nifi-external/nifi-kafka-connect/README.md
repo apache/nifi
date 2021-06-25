@@ -341,15 +341,10 @@ sent to S3 or to HDFS, those services will perform much better if the data is fi
 processors are extremely popular in NiFi for this reason. They allow many small FlowFiles to be merged together into one larger FlowFile.
 
 With traditional NiFi, we can simply set a minimum and maximum size for the merged data along with a timeout. However, with Stateless NiFi and Kafka Connect,
-this may not work as well, because only a limited number of FlowFiles will be made available to the Processor. There, we can still use these Processor in
-order to merge the data together, but with a few limitations, discussed here.
+this may not work as well, because only a limited number of FlowFiles will be made available to the Processor. We can still use these Processor in
+order to merge the data together, but with a bit of a limitation.
 
-(1) The MergeContent / MergeRecord processor must be the first component in the dataflow after the Input Port. The Sink Connector will queue up some number
-of FlowFiles before triggering the dataflow. When Kafka Connect calls the Connector's `flush` method, the dataflow will be triggered. 
-If the MergeContent / MergeRecord processor is not the first processor in the flow, the processor will either merge only a single FlowFile in each batch 
-(if the configuration allows) or the processor will never make progress, and the dataflow will eventually timeout and be restarted.
-
-(2) If MergeContent / MergeRecord are triggered but do not have enough FlowFiles to create a batch, the processor will do nothing. If there are more FlowFiles
+If MergeContent / MergeRecord are triggered but do not have enough FlowFiles to create a batch, the processor will do nothing. If there are more FlowFiles
 queued up than the configured maximum number of entries, the Processor will merge up to that number of FlowFiles but then leave the rest sitting in the queue.
 The next invocation will then not have enough FlowFiles to create a batch and therefore will remain queued. In either of these situations, the result can be
 that the dataflow is constantly triggering the merge processor, which makes no process, and as a result the dataflow times out and rolls back the entire session.

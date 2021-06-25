@@ -30,16 +30,6 @@ public abstract class AbstractScriptedRecordFactory<T> extends AbstractScriptedC
     protected final AtomicReference<T> recordFactory = new AtomicReference<>();
 
     public void setup() {
-        // Create a single script engine, the Processor object is reused by each task
-        if (scriptEngine == null) {
-            scriptingComponentHelper.setup(1, getLogger());
-            scriptEngine = scriptingComponentHelper.engineQ.poll();
-        }
-
-        if (scriptEngine == null) {
-            throw new ProcessException("No script engine available!");
-        }
-
         if (scriptNeedsReload.get() || recordFactory.get() == null) {
             if (ScriptingComponentHelper.isFile(scriptingComponentHelper.getScriptPath())) {
                 if (!reloadScriptFile(scriptingComponentHelper.getScriptPath())) {

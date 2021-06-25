@@ -25,7 +25,7 @@ import org.apache.nifi.authorization.user.StandardNiFiUser;
 import org.apache.nifi.authorization.util.IdentityMapping;
 import org.apache.nifi.authorization.util.IdentityMappingUtil;
 import org.apache.nifi.key.Key;
-import org.apache.nifi.properties.StandardNiFiProperties;
+import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.security.token.LoginAuthenticationToken;
 import org.codehaus.jettison.json.JSONObject;
 import org.junit.After;
@@ -244,7 +244,7 @@ public class JwtServiceTest {
         Properties props = new Properties();
         props.setProperty(SECURITY_IDENTITY_MAPPING_PATTERN_PREFIX+"kerb",  "^(.*?)@(.*?)$");
         props.setProperty(SECURITY_IDENTITY_MAPPING_VALUE_PREFIX+"kerb", "$1");
-        identityMappings = IdentityMappingUtil.getIdentityMappings(new StandardNiFiProperties(props));
+        identityMappings = IdentityMappingUtil.getIdentityMappings(new NiFiProperties(props));
     }
 
     @After
@@ -590,38 +590,6 @@ public class JwtServiceTest {
         logger.info("Token was valid");
         logger.info("Logging out user: " + authID);
         jwtService.logOut(token);
-        logger.info("Logged out user: " + authID);
-        logger.info("Checking that token is now invalid...");
-        jwtService.getAuthenticationFromToken(token);
-
-        // Assert
-        // Should throw exception when user is not found
-    }
-
-    @Test
-    public void testShouldLogOutUserUsingAuthHeader() throws Exception {
-        // Arrange
-        expectedException.expect(JwtException.class);
-        expectedException.expectMessage("Unable to validate the access token.");
-
-        // Token expires in 60 seconds
-        final int EXPIRATION_MILLIS = 60000;
-        LoginAuthenticationToken loginAuthenticationToken = new LoginAuthenticationToken(DEFAULT_IDENTITY,
-                EXPIRATION_MILLIS,
-                "MockIdentityProvider");
-        logger.info("Generating token for " + loginAuthenticationToken);
-
-        // Act
-        String token = jwtService.generateSignedToken(loginAuthenticationToken);
-
-        logger.info("Generated JWT: " + token);
-        logger.info("Validating token...");
-        String authID = jwtService.getAuthenticationFromToken(token);
-        assertEquals(DEFAULT_IDENTITY, authID);
-        logger.info("Token was valid");
-        logger.info("Logging out user: " + authID);
-        String header = "Bearer " + token;
-        jwtService.logOutUsingAuthHeader(header);
         logger.info("Logged out user: " + authID);
         logger.info("Checking that token is now invalid...");
         jwtService.getAuthenticationFromToken(token);

@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<providers>
+
+    <!-- NOTE: The providers in this file must be listed in the order defined in providers.xsd which is the following:
+            1) Flow Persistence Provider (Must occur once and only once)
+            2) Event Hook Providers (May occur 0 or more times)
+            3) Bundle Persistence Provider (Must occur once and only once)
+     -->
+
+    <flowPersistenceProvider>
+        <class>org.apache.nifi.registry.provider.flow.FileSystemFlowPersistenceProvider</class>
+        <property name="Flow Storage Directory">./flow_storage</property>
+    </flowPersistenceProvider>
+
+    <!--
+    <flowPersistenceProvider>
+        <class>org.apache.nifi.registry.provider.flow.git.GitFlowPersistenceProvider</class>
+        <property name="Flow Storage Directory">./flow_storage</property>
+        <property name="Remote To Push"></property>
+        <property name="Remote Access User"></property>
+        <property name="Remote Access Password"></property>
+        <property name="Remote Clone Repository"></property>
+    </flowPersistenceProvider>
+    -->
+
+    <!--
+    <flowPersistenceProvider>
+        <class>org.apache.nifi.registry.provider.flow.DatabaseFlowPersistenceProvider</class>
+    </flowPersistenceProvider>
+    -->
+
+    <!--
+    <eventHookProvider>
+    	<class>org.apache.nifi.registry.provider.hook.ScriptEventHookProvider</class>
+    	<property name="Script Path"></property>
+    	<property name="Working Directory"></property>
+    	-->
+    	<!-- Optional Whitelist Event types
+        <property name="Whitelisted Event Type 1">CREATE_FLOW</property>
+        <property name="Whitelisted Event Type 2">DELETE_FLOW</property>
+    	-->
+    <!--
+    </eventHookProvider>
+    -->
+
+    <!-- This will log all events to a separate file specified by the EVENT_APPENDER in logback.xml -->
+    <!--
+    <eventHookProvider>
+        <class>org.apache.nifi.registry.provider.hook.LoggingEventHookProvider</class>
+    </eventHookProvider>
+    -->
+
+    <extensionBundlePersistenceProvider>
+        <class>org.apache.nifi.registry.provider.extension.FileSystemBundlePersistenceProvider</class>
+        <property name="Extension Bundle Storage Directory">./extension_bundles</property>
+    </extensionBundlePersistenceProvider>
+
+    <!-- Example S3 Bundle Persistence Provider
+            - Requires nifi-registry-aws-assembly to be added to the classpath via a custom extension dir in nifi-registry.properties
+                Example: nifi.registry.extension.dir.aws=./ext/aws/lib
+                Where "./ext/aws/lib" contains the extracted contents of nifi-registry-aws-assembly
+            - "Region" - The name of the S3 region where the bucket exists
+            - "Bucket Name" - The name of an existing bucket to store extension bundles
+            - "Key Prefix" - An optional prefix that if specified will be added to the beginning of all S3 keys
+            - "Credentials Provider" - Indicates how credentials will be provided, must be a value of DEFAULT_CHAIN or STATIC
+                - DEFAULT_CHAIN will consider in order: Java system properties, environment variables, credential profiles (~/.aws/credentials)
+                - STATIC requires that "Access Key" and "Secret Access Key" be specified directly in this file
+            - "Access Key" - The access key to use when using STATIC credentials provider
+            - "Secret Access Key" - The secret access key to use when using STATIC credentials provider
+            - "Endpoint URL" - An optional URL that overrides the default AWS S3 endpoint URL.
+                 Set this when using an AWS S3 API compatible service hosted at a different URL.
+     -->
+    <!--
+    <extensionBundlePersistenceProvider>
+        <class>org.apache.nifi.registry.aws.S3BundlePersistenceProvider</class>
+        <property name="Region">us-east-1</property>
+        <property name="Bucket Name">my-bundles</property>
+        <property name="Key Prefix"></property>
+        <property name="Credentials Provider">DEFAULT_CHAIN</property>
+        <property name="Access Key"></property>
+        <property name="Secret Access Key"></property>
+        <property name="Endpoint URL"></property>
+    </extensionBundlePersistenceProvider>
+    -->
+
+</providers>

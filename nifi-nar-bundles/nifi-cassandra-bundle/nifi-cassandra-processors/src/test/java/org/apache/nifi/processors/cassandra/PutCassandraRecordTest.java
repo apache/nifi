@@ -27,6 +27,7 @@ import com.datastax.driver.core.Session;
 import com.datastax.driver.core.Statement;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.record.MockRecordParser;
+import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
@@ -115,6 +116,23 @@ public class PutCassandraRecordTest {
         recordReader.addRecord("Sally Doe", 47, "Curling");
         recordReader.addRecord("Jimmy Doe", 14, null);
         recordReader.addRecord("Pizza Doe", 14, null);
+
+        testRunner.enqueue("");
+        testRunner.run();
+
+        testRunner.assertAllFlowFilesTransferred(PutCassandraRecord.REL_SUCCESS, 1);
+    }
+
+    @Test
+    public void testStringArrayPut() throws InitializationException {
+        setUpStandardTestConfig();
+
+        recordReader.addSchemaField(new RecordField("names", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.STRING.getDataType())));
+        recordReader.addSchemaField("age", RecordFieldType.INT);
+
+        recordReader.addRecord(new Object[]{"John", "Doe"}, 1);
+        recordReader.addRecord(new Object[]{"John", "Doe"}, 2);
+        recordReader.addRecord(new Object[]{"John", "Doe"}, 3);
 
         testRunner.enqueue("");
         testRunner.run();

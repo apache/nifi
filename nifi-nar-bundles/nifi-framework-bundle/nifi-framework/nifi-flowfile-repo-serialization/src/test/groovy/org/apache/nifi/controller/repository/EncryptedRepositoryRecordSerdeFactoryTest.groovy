@@ -20,7 +20,6 @@ package org.apache.nifi.controller.repository
 import org.apache.commons.lang3.SystemUtils
 import org.apache.nifi.controller.repository.claim.ResourceClaimManager
 import org.apache.nifi.controller.repository.claim.StandardResourceClaimManager
-import org.apache.nifi.properties.StandardNiFiProperties
 import org.apache.nifi.security.kms.EncryptionException
 import org.apache.nifi.util.NiFiProperties
 import org.bouncycastle.jce.provider.BouncyCastleProvider
@@ -74,7 +73,7 @@ class EncryptedRepositoryRecordSerdeFactoryTest extends GroovyTestCase {
                 (NiFiProperties.FLOWFILE_REPOSITORY_ENCRYPTION_KEY)                              : KEY_1_HEX,
                 (NiFiProperties.FLOWFILE_REPOSITORY_ENCRYPTION_KEY_ID)                           : KEY_ID
         ]
-        mockNiFiProperties = new StandardNiFiProperties(new Properties(flowfileEncryptionProps))
+        mockNiFiProperties = new NiFiProperties(new Properties(flowfileEncryptionProps))
     }
 
     @After
@@ -124,7 +123,7 @@ class EncryptedRepositoryRecordSerdeFactoryTest extends GroovyTestCase {
     @Test
     void testCreateSerDeShouldFailWithUnpopulatedNiFiProperties() {
         // Arrange
-        NiFiProperties emptyNiFiProperties = new StandardNiFiProperties(new Properties([:]))
+        NiFiProperties emptyNiFiProperties = new NiFiProperties(new Properties([:]))
 
         // Act
         def msg = shouldFail(EncryptionException) {
@@ -144,7 +143,7 @@ class EncryptedRepositoryRecordSerdeFactoryTest extends GroovyTestCase {
                 (NiFiProperties.FLOWFILE_REPOSITORY_ENCRYPTION_KEY)                              : KEY_1_HEX,
                 (NiFiProperties.FLOWFILE_REPOSITORY_ENCRYPTION_KEY_ID)                           : KEY_ID
         ]
-        NiFiProperties invalidNiFiProperties = new StandardNiFiProperties(new Properties(invalidFlowfileEncryptionProps))
+        NiFiProperties invalidNiFiProperties = new NiFiProperties(new Properties(invalidFlowfileEncryptionProps))
 
         // Act
         def msg = shouldFail(EncryptionException) {

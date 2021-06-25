@@ -139,8 +139,9 @@ application and highlights the different segments of the UI. Each segment is dis
 in the document.
 
 When the application is started, the user is able to navigate to the UI by going to the default address of
-`http://<hostname>:8080/nifi` in a web browser. There are no permissions configured by default, so anyone is
-able to view and modify the dataflow. For information on securing the system, see the link:administration-guide.html[System Administrator’s Guide].
+`https://localhost:8443/nifi` in a web browser. The default configuration generates a username and password
+with full system administration privileges.
+For information on securing the system, see the link:administration-guide.html[System Administrator’s Guide].
 
 When a DFM navigates to the UI for the first time, a blank canvas is provided on which a dataflow can be built:
 
@@ -1776,7 +1777,7 @@ NiFi provides various mechanisms for getting around a dataflow. The <<User_Inter
 
 A hyperlink can be used to navigate directly to a component on the NiFi canvas. This is especially useful when link:administration-guide.html#multi-tenant-authorization[Multi-Tenant Authorization] is configured. For example, a URL can be given to a user to direct them to the specific process group to which they have privileges.
 
-The default URL for a NiFI instance is `http://<hostname>:8080/nifi`, which points to the root process group.  When a component is selected on the canvas, the URL is updated with the component's process group id and component id in the form `http://<hostname>:8080/nifi/?processGroupId=<UUID>&componentIds=<UUIDs>`.  In the following screenshot, the GenerateFlowFile processor in the process group PG1 is the selected component:
+The default URL for a NiFI instance is `https://localhost:8443/nifi`, which points to the root process group.  When a component is selected on the canvas, the URL is updated with the component's process group id and component id in the form `https://localhost:8443/nifi/?processGroupId=<UUID>&componentIds=<UUIDs>`.  In the following screenshot, the GenerateFlowFile processor in the process group PG1 is the selected component:
 
 image::component-linking-processor.png["Component Linking Processor Example"]
 

@@ -16,37 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import static org.apache.nifi.processors.standard.util.JmsProperties.ACKNOWLEDGEMENT_MODE;
-import static org.apache.nifi.processors.standard.util.JmsProperties.ACK_MODE_CLIENT;
-import static org.apache.nifi.processors.standard.util.JmsProperties.BATCH_SIZE;
-import static org.apache.nifi.processors.standard.util.JmsProperties.CLIENT_ID_PREFIX;
-import static org.apache.nifi.processors.standard.util.JmsProperties.DESTINATION_NAME;
-import static org.apache.nifi.processors.standard.util.JmsProperties.JMS_PROPS_TO_ATTRIBUTES;
-import static org.apache.nifi.processors.standard.util.JmsProperties.JMS_PROVIDER;
-import static org.apache.nifi.processors.standard.util.JmsProperties.MESSAGE_SELECTOR;
-import static org.apache.nifi.processors.standard.util.JmsProperties.PASSWORD;
-import static org.apache.nifi.processors.standard.util.JmsProperties.SSL_CONTEXT_SERVICE;
-import static org.apache.nifi.processors.standard.util.JmsProperties.TIMEOUT;
-import static org.apache.nifi.processors.standard.util.JmsProperties.URL;
-import static org.apache.nifi.processors.standard.util.JmsProperties.USERNAME;
-
-import java.io.BufferedOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-import javax.jms.JMSException;
-import javax.jms.MapMessage;
-import javax.jms.Message;
-import javax.jms.MessageConsumer;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
@@ -60,6 +29,38 @@ import org.apache.nifi.processors.standard.util.JmsFactory;
 import org.apache.nifi.processors.standard.util.JmsProcessingSummary;
 import org.apache.nifi.processors.standard.util.WrappedMessageConsumer;
 import org.apache.nifi.util.StopWatch;
+
+import javax.jms.JMSException;
+import javax.jms.MapMessage;
+import javax.jms.Message;
+import javax.jms.MessageConsumer;
+import java.io.BufferedOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import static org.apache.nifi.processors.standard.util.JmsProperties.ACKNOWLEDGEMENT_MODE;
+import static org.apache.nifi.processors.standard.util.JmsProperties.ACK_MODE_CLIENT;
+import static org.apache.nifi.processors.standard.util.JmsProperties.BATCH_SIZE;
+import static org.apache.nifi.processors.standard.util.JmsProperties.CLIENT_ID_PREFIX;
+import static org.apache.nifi.processors.standard.util.JmsProperties.DESTINATION_NAME;
+import static org.apache.nifi.processors.standard.util.JmsProperties.JMS_PROPS_TO_ATTRIBUTES;
+import static org.apache.nifi.processors.standard.util.JmsProperties.JMS_PROVIDER;
+import static org.apache.nifi.processors.standard.util.JmsProperties.MESSAGE_SELECTOR;
+import static org.apache.nifi.processors.standard.util.JmsProperties.PASSWORD;
+import static org.apache.nifi.processors.standard.util.JmsProperties.SSL_CONTEXT_SERVICE;
+import static org.apache.nifi.processors.standard.util.JmsProperties.TIMEOUT;
+import static org.apache.nifi.processors.standard.util.JmsProperties.URL;
+import static org.apache.nifi.processors.standard.util.JmsProperties.USERNAME;
 
 public abstract class JmsConsumer extends AbstractProcessor {
 
@@ -152,7 +153,18 @@ public abstract class JmsConsumer extends AbstractProcessor {
             return;
         }
 
-        session.commit();
+        session.commitAsync(() -> {
+            // if we need to acknowledge the messages, do so now.
+            final Message lastMessage = processingSummary.getLastMessageReceived();
+            if (clientAcknowledge && lastMessage != null) {
+                try {
+                    lastMessage.acknowledge();  // acknowledge all received messages by acknowledging only the last.
+                } catch (final JMSException e) {
+                    logger.error("Failed to acknowledge {} JMS Message(s). This may result in duplicate messages. Reason for failure: {}",
+                        new Object[]{processingSummary.getMessagesReceived(), e});
+                }
+            }
+        });
 
         stopWatch.stop();
         if (processingSummary.getFlowFilesCreated() > 0) {
@@ -161,17 +173,6 @@ public abstract class JmsConsumer extends AbstractProcessor {
             final String dataRate = stopWatch.calculateDataRate(processingSummary.getBytesReceived());
             logger.info("Received {} messages in {} milliseconds, at a rate of {} messages/sec or {}",
                     new Object[]{processingSummary.getMessagesReceived(), stopWatch.getDuration(TimeUnit.MILLISECONDS), messagesPerSec, dataRate});
-        }
-
-        // if we need to acknowledge the messages, do so now.
-        final Message lastMessage = processingSummary.getLastMessageReceived();
-        if (clientAcknowledge && lastMessage != null) {
-            try {
-                lastMessage.acknowledge();  // acknowledge all received messages by acknowledging only the last.
-            } catch (final JMSException e) {
-                logger.error("Failed to acknowledge {} JMS Message(s). This may result in duplicate messages. Reason for failure: {}",
-                        new Object[]{processingSummary.getMessagesReceived(), e});
-            }
         }
     }
 

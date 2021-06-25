@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.reporting.script
 
-import org.apache.commons.io.FileUtils
 import org.apache.nifi.components.PropertyDescriptor
 import org.apache.nifi.controller.ConfigurationContext
 import org.apache.nifi.logging.ComponentLog
@@ -31,12 +30,14 @@ import org.apache.nifi.util.MockEventAccess
 import org.apache.nifi.util.MockReportingContext
 import org.apache.nifi.util.TestRunners
 import org.junit.Before
-import org.junit.BeforeClass
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
+
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.Paths
+import java.nio.file.StandardCopyOption
 
 import static org.junit.Assert.assertEquals
 import static org.junit.Assert.assertTrue
@@ -46,19 +47,14 @@ import static org.mockito.Mockito.*
  */
 @RunWith(JUnit4.class)
 class ScriptedReportingTaskTest {
-    private static final Logger logger = LoggerFactory.getLogger(ScriptedReportingTaskTest)
+    private static final String PROVENANCE_EVENTS_SCRIPT = "test_log_provenance_events.groovy"
+    private static final String LOG_VM_STATS = "test_log_vm_stats.groovy"
+    private static final String SOURCE_DIR = "src/test/resources/groovy"
+    private static final String TARGET_DIR = "target"
+
     def task
     def runner
     def scriptingComponent
-
-
-    @BeforeClass
-    static void setUpOnce() throws Exception {
-        logger.metaClass.methodMissing = { String name, args ->
-            logger.info("[${name?.toUpperCase()}] ${(args as List).join(" ")}")
-        }
-        FileUtils.copyDirectory('src/test/resources' as File, 'target/test/resources' as File)
-    }
 
     @Before
     void setUp() {
@@ -71,13 +67,17 @@ class ScriptedReportingTaskTest {
     void testProvenanceGroovyScript() {
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
         properties.put(new PropertyDescriptor.Builder().name("Script Engine").build(), "Groovy");
-        properties.put(ScriptingComponentUtils.SCRIPT_FILE, 'target/test/resources/groovy/test_log_provenance_events.groovy');
+
+        Path targetPath = Paths.get(TARGET_DIR, PROVENANCE_EVENTS_SCRIPT)
+        targetPath.toFile().deleteOnExit()
+        Files.copy(Paths.get(SOURCE_DIR, PROVENANCE_EVENTS_SCRIPT), targetPath, StandardCopyOption.REPLACE_EXISTING)
+        properties.put(ScriptingComponentUtils.SCRIPT_FILE, targetPath.toString());
 
         final ConfigurationContext configurationContext = new MockConfigurationContext(properties, null)
 
         final MockReportingContext context = new MockReportingContext([:], null, VariableRegistry.EMPTY_REGISTRY)
         context.setProperty("Script Engine", "Groovy")
-        context.setProperty(ScriptingComponentUtils.SCRIPT_FILE.name, 'target/test/resources/groovy/test_log_provenance_events.groovy');
+        context.setProperty(ScriptingComponentUtils.SCRIPT_FILE.name, targetPath.toString())
 
         final MockEventAccess eventAccess = context.getEventAccess();
         4.times { i ->
@@ -96,11 +96,12 @@ class ScriptedReportingTaskTest {
         task.onTrigger context
 
         // This script should return a variable x with the number of events and a variable e with the first event
-        def se = task.scriptEngine
+        def sr = task.scriptRunner
+        def se = sr.scriptEngine
         assertEquals 3, se.x
         assertEquals '1234', se.e.componentId
         assertEquals 'xyz', se.e.attributes.abc
-        task.offerScriptEngine(se)
+        task.offerScriptRunner(sr)
     }
 
     private ProvenanceEventRecord createProvenanceEvent(final long id) {
@@ -116,13 +117,17 @@ class ScriptedReportingTaskTest {
     void testVMEventsGroovyScript() {
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
         properties.put(new PropertyDescriptor.Builder().name("Script Engine").build(), "Groovy");
-        properties.put(ScriptingComponentUtils.SCRIPT_FILE, 'target/test/resources/groovy/test_log_vm_stats.groovy');
+
+        Path targetPath = Paths.get(TARGET_DIR, LOG_VM_STATS)
+        targetPath.toFile().deleteOnExit()
+        Files.copy(Paths.get(SOURCE_DIR, LOG_VM_STATS), targetPath, StandardCopyOption.REPLACE_EXISTING)
+        properties.put(ScriptingComponentUtils.SCRIPT_FILE, targetPath.toString());
 
         final ConfigurationContext configurationContext = new MockConfigurationContext(properties, null)
 
         final MockReportingContext context = new MockReportingContext([:], null, VariableRegistry.EMPTY_REGISTRY)
         context.setProperty("Script Engine", "Groovy")
-        context.setProperty(ScriptingComponentUtils.SCRIPT_FILE.name, 'target/test/resources/groovy/test_log_vm_stats.groovy');
+        context.setProperty(ScriptingComponentUtils.SCRIPT_FILE.name, targetPath.toString());
 
         def logger = mock(ComponentLog)
         def initContext = mock(ReportingInitializationContext)
@@ -134,10 +139,11 @@ class ScriptedReportingTaskTest {
 
         task.setup configurationContext
         task.onTrigger context
-        def se = task.scriptEngine
+        def sr = task.scriptRunner
+        def se = sr.scriptEngine
         // This script should store a variable called x with a map of stats to values
         assertTrue se.x?.uptime >= 0
-        task.offerScriptEngine(se)
+        task.offerScriptRunner(sr)
 
     }
 
@@ -145,13 +151,17 @@ class ScriptedReportingTaskTest {
     void testVMEventsJythonScript() {
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
         properties.put(new PropertyDescriptor.Builder().name("Script Engine").build(), "Groovy");
-        properties.put(ScriptingComponentUtils.SCRIPT_FILE, 'target/test/resources/groovy/test_log_vm_stats.groovy');
+
+        Path targetPath = Paths.get(TARGET_DIR, LOG_VM_STATS)
+        targetPath.toFile().deleteOnExit()
+        Files.copy(Paths.get(SOURCE_DIR, LOG_VM_STATS), targetPath, StandardCopyOption.REPLACE_EXISTING)
+        properties.put(ScriptingComponentUtils.SCRIPT_FILE, targetPath.toString());
 
         final ConfigurationContext configurationContext = new MockConfigurationContext(properties, null)
 
         final MockReportingContext context = new MockReportingContext([:], null, VariableRegistry.EMPTY_REGISTRY)
         context.setProperty("Script Engine", "Groovy")
-        context.setProperty(ScriptingComponentUtils.SCRIPT_FILE.name, 'target/test/resources/groovy/test_log_vm_stats.groovy');
+        context.setProperty(ScriptingComponentUtils.SCRIPT_FILE.name, targetPath.toString());
 
         def logger = mock(ComponentLog)
         def initContext = mock(ReportingInitializationContext)
@@ -163,20 +173,21 @@ class ScriptedReportingTaskTest {
 
         task.setup configurationContext
         task.onTrigger context
-        def se = task.scriptEngine
+        def sr = task.scriptRunner
+        def se = sr.scriptEngine
         // This script should store a variable called x with a map of stats to values
         assertTrue se.x?.uptime >= 0
-        task.offerScriptEngine(se)
+        task.offerScriptRunner(sr)
 
     }
 
     class MockScriptedReportingTask extends ScriptedReportingTask implements AccessibleScriptingComponentHelper {
-        def getScriptEngine() {
-            return scriptingComponentHelper.engineQ.poll()
+        def getScriptRunner() {
+            return scriptingComponentHelper.scriptRunnerQ.poll()
         }
 
-        def offerScriptEngine(engine) {
-            scriptingComponentHelper.engineQ.offer(engine)
+        def offerScriptRunner(runner) {
+            scriptingComponentHelper.scriptRunnerQ.offer(runner)
         }
 
         @Override

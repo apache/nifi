@@ -20,7 +20,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 public abstract class AbstractConfigurableComponent implements ConfigurableComponent {
@@ -93,7 +92,6 @@ public abstract class AbstractConfigurableComponent implements ConfigurableCompo
         // goes through context properties, should match supported properties + supported dynamic properties
         final Collection<ValidationResult> results = new ArrayList<>();
         final Set<PropertyDescriptor> contextDescriptors = context.getProperties().keySet();
-        final List<PropertyDescriptor> supportedDescriptors = getSupportedPropertyDescriptors();
 
         for (final PropertyDescriptor descriptor : contextDescriptors) {
             // If the property descriptor's dependency is not satisfied, the property does not need to be considered, as it's not relevant to the
@@ -123,19 +121,6 @@ public abstract class AbstractConfigurableComponent implements ConfigurableCompo
             final ValidationResult result = descriptor.validate(value, context);
             if (!result.isValid()) {
                 results.add(result);
-            }
-        }
-
-        // validate any dynamic properties
-        for (final Map.Entry<PropertyDescriptor, String> entry : context.getProperties().entrySet()) {
-            final PropertyDescriptor descriptor = entry.getKey();
-            final String value = entry.getValue();
-
-            if (supportedDescriptors != null && !supportedDescriptors.contains(descriptor)) {
-                final ValidationResult result = descriptor.validate(value, context);
-                if (!result.isValid()) {
-                    results.add(result);
-                }
             }
         }
 

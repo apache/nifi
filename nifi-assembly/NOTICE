@@ -345,13 +345,13 @@ The following binary components are provided under the Apache Software License v
 
   (ASLv2) Spring Framework
     The following NOTICE information applies:
-      Spring Framework 4.x,5.x.RELEASE
-      Copyright (c) 2002-2015 Pivotal, Inc.
+      Spring Framework 5
+      Copyright (c) 2002-2021 Pivotal, Inc.
 
   (ASLv2) Spring Security
     The following NOTICE information applies:
-          Spring Framework 4.0.3.RELEASE
-          Copyright (c) 2002-2015 Pivotal, Inc.
+          Spring Security 5
+          Copyright (c) 2002-2021 Pivotal, Inc.
 
   (ASLv2) Apache Flume
     The following NOTICE information applies:
@@ -1952,8 +1952,8 @@ The following binary components are provided under the Apache Software License v
 
   (ASLv2) Zip4j
     The following NOTICE information applies:
-      Zip4j 2.7.0.
-      Copyright 2020 Srikanth Reddy Lingala
+      Zip4j 2
+      Copyright 2021 Srikanth Reddy Lingala
 
   (ASLv2) QuestDB (org.questdb:core:core-4.2.1.jar - https://github.com/questdb/questdb)
     The following NOTICE information applies:

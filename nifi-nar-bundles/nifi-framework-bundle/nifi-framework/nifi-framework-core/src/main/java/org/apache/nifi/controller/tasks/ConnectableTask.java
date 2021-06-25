@@ -251,8 +251,8 @@ public class ConnectableTask {
             } catch (final Throwable t) {
                 // Use ComponentLog to log the event so that a bulletin will be created for this processor
                 final ComponentLog procLog = new SimpleProcessLogger(connectable.getIdentifier(), connectable.getRunnableComponent());
-                procLog.error("{} failed to process session due to {}; Processor Administratively Yielded for {}",
-                    new Object[] {connectable.getRunnableComponent(), t, schedulingAgent.getAdministrativeYieldDuration()}, t);
+                procLog.error("Failed to process session due to {}; Processor Administratively Yielded for {}",
+                    new Object[] {t, schedulingAgent.getAdministrativeYieldDuration()}, t);
                 logger.warn("Administratively Yielding {} due to uncaught Exception: {}", connectable.getRunnableComponent(), t.toString(), t);
 
                 connectable.yield(schedulingAgent.getAdministrativeYieldDuration(TimeUnit.NANOSECONDS), TimeUnit.NANOSECONDS);
@@ -260,18 +260,10 @@ public class ConnectableTask {
         } finally {
             try {
                 if (batch) {
-                    try {
-                        rawSession.commit();
-                    } catch (final Throwable t) {
+                    rawSession.commitAsync(null, t -> {
                         final ComponentLog procLog = new SimpleProcessLogger(connectable.getIdentifier(), connectable.getRunnableComponent());
                         procLog.error("Failed to commit session {} due to {}; rolling back", new Object[] { rawSession, t.toString() }, t);
-
-                        try {
-                            rawSession.rollback(true);
-                        } catch (final Exception e1) {
-                            procLog.error("Failed to roll back session {} due to {}", new Object[] { rawSession, t.toString() }, t);
-                        }
-                    }
+                    });
                 }
 
                 final long processingNanos = System.nanoTime() - startNanos;

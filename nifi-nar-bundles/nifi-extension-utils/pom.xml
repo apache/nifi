@@ -37,6 +37,7 @@
         <module>nifi-service-utils</module>
         <module>nifi-prometheus-utils</module>
         <module>nifi-kerberos-test-utils</module>
+        <module>nifi-event-transport</module>
     </modules>
 
 </project>

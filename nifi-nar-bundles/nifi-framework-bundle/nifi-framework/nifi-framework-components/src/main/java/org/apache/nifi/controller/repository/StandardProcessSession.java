@@ -93,6 +93,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -190,6 +191,10 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         }
     }
 
+    protected RepositoryContext getRepositoryContext() {
+        return context;
+    }
+
     protected long getSessionId() {
         return sessionId;
     }
@@ -220,19 +225,49 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         resetState();
     }
 
-    private void checkpoint(final boolean copyCollections) {
+    private void validateCommitState() {
         verifyTaskActive();
+
+        if (!readRecursionSet.isEmpty()) {
+            throw new IllegalStateException("Cannot commit session while reading from FlowFile");
+        }
+        if (!writeRecursionSet.isEmpty()) {
+            throw new IllegalStateException("Cannot commit session while writing to FlowFile");
+        }
+
+        for (final StandardRepositoryRecord record : records.values()) {
+            if (record.isMarkedForDelete()) {
+                continue;
+            }
+
+            final Relationship relationship = record.getTransferRelationship();
+            if (relationship == null) {
+                final String createdThisSession = record.getOriginalQueue() == null ? "was created" : "was not created";
+                throw new FlowFileHandlingException(record.getCurrent() + " transfer relationship not specified. This FlowFile " + createdThisSession + " in this session and was not transferred " +
+                    "to any Relationship via ProcessSession.transfer()");
+            }
+
+            final Collection<Connection> destinations = context.getConnections(relationship);
+            if (destinations.isEmpty() && !context.getConnectable().isAutoTerminated(relationship)) {
+                if (relationship != Relationship.SELF) {
+                    throw new FlowFileHandlingException(relationship + " does not have any destinations for " + context.getConnectable());
+                }
+            }
+        }
+    }
+
+    private void checkpoint(final boolean copyCollections) {
+        try {
+            validateCommitState();
+        } catch (final Exception e) {
+            rollback();
+            throw e;
+        }
+
         resetWriteClaims(false);
 
         closeStreams(openInputStreams, "committed", "input");
         closeStreams(openOutputStreams, "committed", "output");
-
-        if (!readRecursionSet.isEmpty()) {
-            throw new IllegalStateException();
-        }
-        if (!writeRecursionSet.isEmpty()) {
-            throw new IllegalStateException();
-        }
 
         if (this.checkpoint == null) {
             this.checkpoint = new Checkpoint();
@@ -255,18 +290,9 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             if (record.isMarkedForDelete()) {
                 continue;
             }
+
             final Relationship relationship = record.getTransferRelationship();
-            if (relationship == null) {
-                rollback();
-                throw new FlowFileHandlingException(record.getCurrent() + " transfer relationship not specified");
-            }
             final List<Connection> destinations = new ArrayList<>(context.getConnections(relationship));
-            if (destinations.isEmpty() && !context.getConnectable().isAutoTerminated(relationship)) {
-                if (relationship != Relationship.SELF) {
-                    rollback();
-                    throw new FlowFileHandlingException(relationship + " does not have any destinations for " + context.getConnectable());
-                }
-            }
 
             if (destinations.isEmpty() && relationship == Relationship.SELF) {
                 record.setDestination(record.getOriginalQueue());
@@ -329,9 +355,60 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
 
     @Override
     public synchronized void commit() {
-        verifyTaskActive();
+        commit(false);
+    }
+
+    @Override
+    public void commitAsync() {
+        try {
+            commit(true);
+        } catch (final Throwable t) {
+            LOG.error("Failed to asynchronously commit session {} for {}", this, connectableDescription, t);
+
+            try {
+                rollback();
+            } catch (final Throwable t2) {
+                LOG.error("Failed to roll back session {} for {}", this, connectableDescription, t2);
+            }
+
+            throw t;
+        }
+    }
+
+    @Override
+    public void commitAsync(final Runnable onSuccess, final Consumer<Throwable> onFailure) {
+        try {
+            commit(true);
+        } catch (final Throwable t) {
+            LOG.error("Failed to asynchronously commit session {} for {}", this, connectableDescription, t);
+
+            try {
+                rollback();
+            } catch (final Throwable t2) {
+                LOG.error("Failed to roll back session {} for {}", this, connectableDescription, t2);
+            }
+
+            if (onFailure != null) {
+                onFailure.accept(t);
+            }
+
+            throw t;
+        }
+
+        if (onSuccess != null) {
+            try {
+                onSuccess.run();
+            } catch (final Exception e) {
+                LOG.error("Successfully committed session {} for {} but failed to trigger success callback", this, connectableDescription, e);
+            }
+        }
+
+        LOG.debug("Successfully committed session {} for {}", this, connectableDescription);
+    }
+
+    private void commit(final boolean asynchronous) {
         checkpoint(this.checkpoint != null); // If a checkpoint already exists, we need to copy the collection
-        commit(this.checkpoint);
+        commit(this.checkpoint, asynchronous);
 
         acknowledgeRecords();
         resetState();
@@ -339,8 +416,16 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         this.checkpoint = null;
     }
 
+    /**
+     * Commits the given checkpoint, updating repositories as necessary, and performing any necessary cleanup of resources, etc.
+     * Subclasses may choose to perform these tasks asynchronously if the asynchronous flag indicates that it is acceptable to do so.
+     * However, this implementation will perform the commit synchronously, regardless of the {@code asynchronous} flag.
+     *
+     * @param checkpoint the session checkpoint to commit
+     * @param asynchronous whether or not the commit is allowed to be performed asynchronously.
+     */
     @SuppressWarnings({"unchecked", "rawtypes"})
-    protected void commit(final Checkpoint checkpoint) {
+    protected void commit(final Checkpoint checkpoint, final boolean asynchronous) {
         try {
             final long commitStartNanos = System.nanoTime();
 
@@ -1127,7 +1212,6 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         return details.toString();
     }
 
-
     private void decrementClaimCount(final ContentClaim claim) {
         if (claim == null) {
             return;
@@ -1263,8 +1347,16 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                 final ProvenanceEventBuilder eventBuilder = entry.getValue();
                 for (final String childId : eventBuilder.getChildFlowFileIds()) {
                     if (!flowFileIds.contains(childId)) {
-                        throw new IllegalStateException("Cannot migrate " + eventFlowFile + " to a new session because it was forked to create " + eventBuilder.getChildFlowFileIds().size()
+                        throw new FlowFileHandlingException("Cannot migrate " + eventFlowFile + " to a new session because it was forked to create " + eventBuilder.getChildFlowFileIds().size()
                             + " children and not all children are being migrated. If any FlowFile is forked, all of its children must also be migrated at the same time as the forked FlowFile");
+                    }
+                }
+            } else {
+                final ProvenanceEventBuilder eventBuilder = entry.getValue();
+                for (final String childId : eventBuilder.getChildFlowFileIds()) {
+                    if (flowFileIds.contains(childId)) {
+                        throw new FlowFileHandlingException("Cannot migrate " + eventFlowFile + " to a new session because it was forked from a Parent FlowFile, but the parent is not being migrated. "
+                            + "If any FlowFile is forked, the parent and all children must be migrated at the same time.");
                     }
                 }
             }
@@ -1272,9 +1364,15 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
 
         // If we have a FORK event where a FlowFile is a child of the FORK event, we want to create a FORK
         // event builder for the new owner of the FlowFile and remove the child from our fork event builder.
+        final Set<FlowFile> forkedFlowFilesMigrated = new HashSet<>();
         for (final Map.Entry<FlowFile, ProvenanceEventBuilder> entry : forkEventBuilders.entrySet()) {
             final FlowFile eventFlowFile = entry.getKey();
             final ProvenanceEventBuilder eventBuilder = entry.getValue();
+
+            // If the FlowFile that the event is attached to is not being migrated, we should not migrate the fork event builder either.
+            if (!flowFiles.contains(eventFlowFile)) {
+                continue;
+            }
 
             final Set<String> childrenIds = new HashSet<>(eventBuilder.getChildFlowFileIds());
 
@@ -1294,8 +1392,11 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
 
             if (copy != null) {
                 newOwner.forkEventBuilders.put(eventFlowFile, copy);
+                forkedFlowFilesMigrated.add(eventFlowFile);
             }
         }
+
+        forkedFlowFilesMigrated.forEach(forkEventBuilders::remove);
 
         newOwner.processingStartTime = Math.min(newOwner.processingStartTime, processingStartTime);
 
@@ -2723,6 +2824,9 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                     }
 
                     closed = true;
+
+                    countingOut.close();
+                    rawStream.close();
                     writeRecursionSet.remove(sourceFlowFile);
 
                     final long bytesWritten = countingOut.getBytesWritten();
@@ -3661,6 +3765,30 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
 
         private StandardRepositoryRecord getRecord(final FlowFile flowFile) {
             return records.get(flowFile.getId());
+        }
+
+        public int getFlowFilesIn() {
+            return flowFilesIn;
+        }
+
+        public int getFlowFilesOut() {
+            return flowFilesOut;
+        }
+
+        public int getFlowFilesRemoved() {
+            return removedCount;
+        }
+
+        public long getBytesIn() {
+            return contentSizeIn;
+        }
+
+        public long getBytesOut() {
+            return contentSizeOut;
+        }
+
+        public long getBytesRemoved() {
+            return removedBytes;
         }
     }
 }

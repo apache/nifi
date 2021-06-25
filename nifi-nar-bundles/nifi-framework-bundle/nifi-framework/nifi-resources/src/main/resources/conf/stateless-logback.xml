@@ -62,6 +62,9 @@
     <!-- Suppress non-error messages from SMBJ which was emitting large amounts of INFO logs by default -->
     <logger name="com.hierynomus.smbj" level="WARN" />
 
+    <!-- Suppress non-error messages from AWS KCL which was emitting large amounts of INFO logs by default -->
+    <logger name="com.amazonaws.services.kinesis" level="WARN" />
+
     <logger name="org.apache.nifi.stateless" level="INFO" additivity="false">
         <appender-ref ref="CONSOLE" />
         <appender-ref ref="APP_FILE" />

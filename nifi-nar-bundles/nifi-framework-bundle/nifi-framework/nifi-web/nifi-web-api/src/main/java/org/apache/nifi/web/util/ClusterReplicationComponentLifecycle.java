@@ -572,10 +572,19 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
                 }
 
                 final String validationStatus = serviceDto.getValidationStatus();
+                final boolean desiredStateReached = desiredStateName.equals(serviceDto.getState());
+
+                logger.debug("ControllerService[id={}, name={}] now has a state of {} with a Validation Status of {}; desired state = {}; invalid component action is {}; desired state reached = {}",
+                    serviceDto.getId(), serviceDto.getName(), serviceDto.getState(), validationStatus, desiredState, invalidComponentAction, desiredStateReached);
+
+                if (desiredStateReached) {
+                    continue;
+                }
+
+                // The desired state for this component has not yet been reached. Check how we should handle this based on the validation status.
                 if (ControllerServiceDTO.INVALID.equals(validationStatus)) {
                     switch (invalidComponentAction) {
                         case WAIT:
-                            allReachedDesiredState = false;
                             break;
                         case SKIP:
                             continue;
@@ -585,10 +594,7 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
                     }
                 }
 
-                if (!desiredStateName.equalsIgnoreCase(serviceDto.getState())) {
-                    allReachedDesiredState = false;
-                    break;
-                }
+                allReachedDesiredState = false;
             }
 
             if (allReachedDesiredState) {

@@ -16,12 +16,6 @@
  */
 package org.apache.nifi.util;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Path;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Predicate;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationResult;
@@ -36,6 +30,13 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.state.MockStateManager;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Predicate;
 
 public interface TestRunner {
 
@@ -170,6 +171,20 @@ public interface TestRunner {
      *            processors to stop running before calling the {@link org.apache.nifi.annotation.lifecycle.OnUnscheduled @OnUnscheduled} annotation
      */
     void run(int iterations, boolean stopOnFinish, final boolean initialize, final long runWait);
+
+    /**
+     * Invokes all methods on the Processor that are annotated with the
+     * {@link org.apache.nifi.annotation.lifecycle.OnUnscheduled @OnUnscheduled} annotation. If
+     * any of these methods throws an Exception, the Unit Test will fail
+     */
+    void unSchedule();
+
+    /**
+     * Invokes all methods on the Processor that are annotated with the
+     * {@link org.apache.nifi.annotation.lifecycle.OnStopped @OnStopped} annotation. If
+     * any of these methods throws an Exception, the Unit Test will fail
+     */
+    void stop();
 
     /**
      * Invokes all methods on the Processor that are annotated with the
@@ -845,6 +860,13 @@ public interface TestRunner {
      */
     void setValidateExpressionUsage(boolean validate);
 
+    /**
+     * Specifies whether or not the TestRunner will allow ProcessSession.commit() to be called.
+     * By default, the value is <code>false</code>, meaning that any call to ProcessSession.commit() will throw
+     * an Exception. See JavaDocs for {@link ProcessSession#commit()} for more information
+     * @param allow whethr or not to allow asynchronous session commits (i.e., calls to ProcessSession.commit())
+     */
+    void setAllowSynchronousSessionCommits(boolean allow);
 
     /**
      * Removes the {@link PropertyDescriptor} from the {@link ProcessContext},

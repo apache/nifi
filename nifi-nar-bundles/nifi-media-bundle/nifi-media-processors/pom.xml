@@ -49,20 +49,11 @@
         <dependency>
             <groupId>org.apache.tika</groupId>
             <artifactId>tika-parsers</artifactId>
-            <version>1.24.1</version>
+            <version>1.26</version>
             <exclusions>
                 <exclusion>
                     <groupId>com.fasterxml.jackson.core</groupId>
                     <artifactId>jackson-core</artifactId>
-                </exclusion>
-                <!--This must be excluded because it appears to have an invalid ASF unfriendly license.
-                This might cause weird behavior in usage of Tika Parsers - not sure.  Have emailed the
-                Tika community 
-                https://lists.apache.org/thread.html/283e34e24db9382512b58bc24bc000efeffabba5e3475bc72e624967@%3Cuser.tika.apache.org%3E
-                -->
-                <exclusion>
-                    <groupId>javax.measure</groupId>
-                    <artifactId>jsr-275</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>

@@ -20,6 +20,8 @@ package org.apache.nifi.registry.flow.mapping;
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.nifi.bundle.BundleCoordinate;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.resource.ResourceCardinality;
+import org.apache.nifi.components.resource.ResourceDefinition;
 import org.apache.nifi.connectable.Connectable;
 import org.apache.nifi.connectable.Connection;
 import org.apache.nifi.connectable.Funnel;
@@ -66,6 +68,9 @@ import org.apache.nifi.registry.flow.VersionedProcessor;
 import org.apache.nifi.registry.flow.VersionedPropertyDescriptor;
 import org.apache.nifi.registry.flow.VersionedRemoteGroupPort;
 import org.apache.nifi.registry.flow.VersionedRemoteProcessGroup;
+import org.apache.nifi.registry.flow.VersionedResourceCardinality;
+import org.apache.nifi.registry.flow.VersionedResourceDefinition;
+import org.apache.nifi.registry.flow.VersionedResourceType;
 import org.apache.nifi.remote.PublicPort;
 import org.apache.nifi.remote.RemoteGroupPort;
 
@@ -458,6 +463,9 @@ public class NiFiRegistryFlowMapper {
             versionedDescriptor.setDisplayName(descriptor.getDisplayName());
             versionedDescriptor.setSensitive(descriptor.isSensitive());
 
+            final VersionedResourceDefinition versionedResourceDefinition = mapResourceDefinition(descriptor.getResourceDefinition());
+            versionedDescriptor.setResourceDefinition(versionedResourceDefinition);
+
             final Class<?> referencedServiceType = descriptor.getControllerServiceDefinition();
             versionedDescriptor.setIdentifiesControllerService(referencedServiceType != null);
 
@@ -485,6 +493,23 @@ public class NiFiRegistryFlowMapper {
         }
 
         return descriptors;
+    }
+
+    private VersionedResourceDefinition mapResourceDefinition(final ResourceDefinition resourceDefinition) {
+        if (resourceDefinition == null) {
+            return null;
+        }
+
+        final ResourceCardinality cardinality = resourceDefinition.getCardinality();
+        final VersionedResourceCardinality versionedCardinality = VersionedResourceCardinality.valueOf(cardinality.name());
+
+        final Set<VersionedResourceType> versionedResourceTypes = new HashSet<>();
+        resourceDefinition.getResourceTypes().forEach(resourceType -> versionedResourceTypes.add(VersionedResourceType.valueOf(resourceType.name())));
+
+        final VersionedResourceDefinition versionedResourceDefinition = new VersionedResourceDefinition();
+        versionedResourceDefinition.setCardinality(versionedCardinality);
+        versionedResourceDefinition.setResourceTypes(versionedResourceTypes);
+        return versionedResourceDefinition;
     }
 
     private Bundle mapBundle(final BundleCoordinate coordinate) {

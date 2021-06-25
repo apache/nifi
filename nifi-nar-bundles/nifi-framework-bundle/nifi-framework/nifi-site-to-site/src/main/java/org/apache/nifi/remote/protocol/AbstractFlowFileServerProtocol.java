@@ -375,7 +375,7 @@ public abstract class AbstractFlowFileServerProtocol implements ServerProtocol {
             throw new ProtocolException("After sending data, expected TRANSACTION_FINISHED response but got " + transactionResponse);
         }
 
-        session.commit();
+        session.commitAsync();
 
         StopWatch stopWatch = transaction.getStopWatch();
         long bytesSent = transaction.getBytesSent();
