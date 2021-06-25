@@ -255,7 +255,6 @@ public class TestPutUDP {
 
         runner.assertTransferCount(PutUDP.REL_SUCCESS, sentData.length * iterations);
 
-        // Check that we have no unexpected extra data.
         assertNull("Unexpected extra messages found", messages.poll());
     }
 

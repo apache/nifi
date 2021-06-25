@@ -291,8 +291,7 @@ public class TestPutSplunk {
             assertNotNull(packet);
             assertArrayEquals(item.getBytes(), packet.getMessage());
         }
-
-        // Check that we have no unexpected extra data.
+        
         assertNull("Unexpected extra messages found", messages.poll());
     }
 }
