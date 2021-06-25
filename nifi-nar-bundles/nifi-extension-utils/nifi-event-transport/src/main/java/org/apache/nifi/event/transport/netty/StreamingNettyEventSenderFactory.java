@@ -28,7 +28,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Netty Event Sender Factory for String messages
+ * Netty Event Sender Factory for messages in an InputStream
  */
 public class StreamingNettyEventSenderFactory extends NettyEventSenderFactory<InputStream> {
     /**

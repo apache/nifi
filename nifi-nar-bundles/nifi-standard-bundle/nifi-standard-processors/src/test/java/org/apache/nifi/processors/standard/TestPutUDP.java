@@ -100,7 +100,7 @@ public class TestPutUDP {
         }
     }
 
-    @Test
+    @Test(timeout = DEFAULT_TEST_TIMEOUT_PERIOD)
     public void testValidFiles() throws Exception {
         configureProperties(UDP_SERVER_ADDRESS, true);
         sendTestData(VALID_FILES);
@@ -125,7 +125,6 @@ public class TestPutUDP {
         checkInputQueueIsEmpty();
     }
 
-//    @Ignore("This test is timing out but should pass. Needs fixing.")
     @Test(timeout = LONG_TEST_TIMEOUT_PERIOD)
     public void testLargeValidFile() throws Exception {
         configureProperties(UDP_SERVER_ADDRESS, true);
