@@ -217,7 +217,7 @@ public class TestPutTCP {
 
     private void createTestServer(final String address, final int port, final SSLContext sslContext) throws Exception {
         messages = new LinkedBlockingQueue<>();
-        final byte[] delimiter = getDelimiter();// OUTGOING_MESSAGE_DELIMITER.getBytes(CHARSET);
+        final byte[] delimiter = getDelimiter();
         NettyEventServerFactory serverFactory = new ByteArrayMessageNettyEventServerFactory(runner.getLogger(), address, port, PROTOCOL, delimiter, VALID_LARGE_FILE_SIZE, messages);
         if (sslContext != null) {
             serverFactory.setSslContext(sslContext);
@@ -283,7 +283,7 @@ public class TestPutTCP {
         runner.assertTransferCount(PutTCP.REL_SUCCESS, sentData.length * iterations);
         runner.clearTransferState();
 
-        assertNull("Unexpected Message Found", messages.poll());
+        assertNull("Unexpected extra messages found", messages.poll());
     }
 
     private String[] createContent(final int size) {

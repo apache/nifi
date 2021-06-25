@@ -49,7 +49,7 @@ import java.util.function.Supplier;
  */
 public class NettyEventSenderFactory<T> extends EventLoopGroupFactory implements EventSenderFactory<T> {
     private static final int MAX_PENDING_ACQUIRES = 1024;
-    private final static int FRAME_SIZE = 40000;
+    private Integer socketSendBufferSize = null;
 
     private final String address;
 
@@ -69,6 +69,15 @@ public class NettyEventSenderFactory<T> extends EventLoopGroupFactory implements
         this.address = address;
         this.port = port;
         this.protocol = protocol;
+    }
+
+    /**
+     * Set Socket Send Buffer Size for TCP Sockets
+     *
+     * @param socketSendBufferSize Send Buffer size can be null to use default setting
+     */
+    public void setSocketSendBufferSize(final Integer socketSendBufferSize) {
+        this.socketSendBufferSize = socketSendBufferSize;
     }
 
     /**
@@ -117,8 +126,6 @@ public class NettyEventSenderFactory<T> extends EventLoopGroupFactory implements
         bootstrap.remoteAddress(new InetSocketAddress(address, port));
         final EventLoopGroup group = getEventLoopGroup();
         bootstrap.group(group);
-        bootstrap.option(ChannelOption.SO_SNDBUF, FRAME_SIZE);
-        bootstrap.option(ChannelOption.SO_RCVBUF, FRAME_SIZE);
 
         if (TransportProtocol.UDP.equals(protocol)) {
             bootstrap.channel(NioDatagramChannel.class);
@@ -133,6 +140,10 @@ public class NettyEventSenderFactory<T> extends EventLoopGroupFactory implements
     private void setChannelOptions(final Bootstrap bootstrap) {
         final int timeoutMilliseconds = (int) timeout.toMillis();
         bootstrap.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, timeoutMilliseconds);
+        if (socketSendBufferSize != null) {
+            bootstrap.option(ChannelOption.SO_SNDBUF, socketSendBufferSize);
+            bootstrap.option(ChannelOption.SO_RCVBUF, socketSendBufferSize);
+        }
     }
 
     private EventSender<T> getConfiguredEventSender(final Bootstrap bootstrap) {

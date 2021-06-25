@@ -80,11 +80,6 @@ import java.util.concurrent.TimeUnit;
 @TriggerWhenEmpty // trigger even when queue is empty so that the processor can check for idle senders to prune.
 public class PutUDP extends AbstractPutEventProcessor {
 
-    @Override
-    protected void init(final ProcessorInitializationContext context) {
-        super.init(context);
-    }
-
     /**
      * Creates a Universal Resource Identifier (URI) for this processor. Constructs a URI of the form UDP://host:port where the host and port values are taken from the configured property values.
      *
@@ -120,12 +115,8 @@ public class PutUDP extends AbstractPutEventProcessor {
             return;
         }
 
-        if (eventSender == null) {
-            return;
-        }
-
         try {
-            byte[] content = readContent(session, flowFile);
+            final byte[] content = readContent(session, flowFile);
             StopWatch stopWatch = new StopWatch(true);
             if (content != null) {
                 eventSender.sendEvent(content);

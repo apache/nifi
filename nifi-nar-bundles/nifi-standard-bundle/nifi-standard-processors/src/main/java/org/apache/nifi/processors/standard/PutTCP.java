@@ -23,6 +23,10 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.event.transport.configuration.TransportProtocol;
+import org.apache.nifi.event.transport.netty.DelimitedInputStream;
+import org.apache.nifi.event.transport.netty.NettyEventSenderFactory;
+import org.apache.nifi.event.transport.netty.StreamingNettyEventSenderFactory;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -31,10 +35,7 @@ import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.processor.util.put.AbstractPutEventProcessor;
-import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.StopWatch;
-
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
@@ -92,11 +93,6 @@ import java.util.concurrent.TimeUnit;
 @TriggerWhenEmpty // trigger even when queue is empty so that the processor can check for idle senders to prune.
 public class PutTCP extends AbstractPutEventProcessor {
 
-    @Override
-    protected void init(final ProcessorInitializationContext context) {
-        super.init(context);
-    }
-
     /**
      * Creates a Universal Resource Identifier (URI) for this processor. Constructs a URI of the form TCP://< host >:< port > where the host and port
      * values are taken from the configured property values.
@@ -147,14 +143,23 @@ public class PutTCP extends AbstractPutEventProcessor {
             return;
         }
 
-        if (eventSender == null) {
-            return;
-        }
-
         try {
-            byte[] content = readContent(context, session, flowFile);
             StopWatch stopWatch = new StopWatch(true);
-            eventSender.sendEvent(content);
+            session.read(flowFile, new InputStreamCallback() {
+                @Override
+                public void process(final InputStream in) throws IOException {
+                    InputStream event = in;
+
+                    String delimiter = getOutgoingMessageDelimiter(context, flowFile);
+                    if (delimiter != null) {
+                        final Charset charSet = Charset.forName(context.getProperty(CHARSET).getValue());
+                        event = new DelimitedInputStream(in, delimiter.getBytes(charSet));
+                    }
+
+                    eventSender.sendEvent(event);
+                }
+            });
+
             session.getProvenanceReporter().send(flowFile, transitUri, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
             session.transfer(flowFile, REL_SUCCESS);
             session.commitAsync();
@@ -181,36 +186,13 @@ public class PutTCP extends AbstractPutEventProcessor {
         context.yield();
     }
 
-    /**
-     * Helper method to read the FlowFile content stream into a byte array.
-     *
-     * @param context
-     *            - the current process context.
-     * @param session
-     *            - the current process session.
-     * @param flowFile
-     *            - the FlowFile that has failed to have been processed.
-     */
-    protected byte[] readContent(final ProcessContext context, final ProcessSession session, final FlowFile flowFile) {
-        final ByteArrayOutputStream baos = new ByteArrayOutputStream((int) flowFile.getSize() + 1);
-        session.read(flowFile, new InputStreamCallback() {
-            @Override
-            public void process(final InputStream in) throws IOException {
-                StreamUtils.copy(in, baos);
-            }
-        });
-
-        String delimiter = getOutgoingMessageDelimiter(context, flowFile);
-        if (delimiter != null) {
-            final Charset charSet = Charset.forName(context.getProperty(CHARSET).getValue());
-            baos.write(delimiter.getBytes(charSet), 0, delimiter.length());
-        }
-
-        return baos.toByteArray();
-    }
-
     @Override
     protected String getProtocol(final ProcessContext context) {
         return TCP_VALUE.getValue();
+    }
+
+    @Override
+    protected NettyEventSenderFactory<?> getNettyEventSenderFactory(final String hostname, final int port, final String protocol) {
+        return new StreamingNettyEventSenderFactory(getLogger(), hostname, port, TransportProtocol.valueOf(protocol));
     }
 }

@@ -47,7 +47,7 @@ public class TestPutUDP {
     private final static String INVALID_IP_ADDRESS = "300.300.300.300";
     private static final String DELIMITER = "\n";
     private static final Charset CHARSET = StandardCharsets.UTF_8;
-    private final static int MAX_FRAME_LENGTH = 32768;
+    private final static int MAX_FRAME_LENGTH = 32800;
     private final static int VALID_LARGE_FILE_SIZE = 32768;
     private final static int VALID_SMALL_FILE_SIZE = 64;
     private final static int INVALID_LARGE_FILE_SIZE = 1000000;
@@ -125,13 +125,12 @@ public class TestPutUDP {
         checkInputQueueIsEmpty();
     }
 
-    @Ignore("This test is timing out but should pass. Needs fixing.")
-    @Test(timeout = DEFAULT_TEST_TIMEOUT_PERIOD)
+//    @Ignore("This test is timing out but should pass. Needs fixing.")
+    @Test(timeout = LONG_TEST_TIMEOUT_PERIOD)
     public void testLargeValidFile() throws Exception {
         configureProperties(UDP_SERVER_ADDRESS, true);
         final String[] testData = createContent(VALID_LARGE_FILE_SIZE);
         sendTestData(testData);
-        //checkRelationships(1, testData.length);
         checkReceivedAllData(testData);
         checkInputQueueIsEmpty();
     }
@@ -166,7 +165,7 @@ public class TestPutUDP {
         checkInputQueueIsEmpty();
     }
 
-    @Test(timeout = DEFAULT_TEST_TIMEOUT_PERIOD)
+    @Test(timeout = LONG_TEST_TIMEOUT_PERIOD)
     public void testReconfiguration() throws Exception {
         configureProperties(UDP_SERVER_ADDRESS, true);
         sendTestData(VALID_FILES);
@@ -200,7 +199,7 @@ public class TestPutUDP {
     private void configureProperties(final String host, final boolean expectValid) {
         runner.setProperty(PutUDP.HOSTNAME, host);
         runner.setProperty(PutUDP.PORT, Integer.toString(port));
-        runner.setProperty(PutUDP.MAX_SOCKET_SEND_BUFFER_SIZE, "5 MB");
+        runner.setProperty(PutUDP.MAX_SOCKET_SEND_BUFFER_SIZE, "40000B");
 
         if (expectValid) {
             runner.assertValid();
@@ -234,7 +233,7 @@ public class TestPutUDP {
 
     private void checkNoDataReceived() throws Exception {
         Thread.sleep(DATA_WAIT_PERIOD);
-        assertNull(messages.poll());
+        assertNull("Unexpected extra messages found", messages.poll());
     }
 
     private void checkInputQueueIsEmpty() {
@@ -258,7 +257,7 @@ public class TestPutUDP {
         runner.assertTransferCount(PutUDP.REL_SUCCESS, sentData.length * iterations);
 
         // Check that we have no unexpected extra data.
-        assertNull(messages.poll());
+        assertNull("Unexpected extra messages found", messages.poll());
     }
 
     private String[] createContent(final int size) {

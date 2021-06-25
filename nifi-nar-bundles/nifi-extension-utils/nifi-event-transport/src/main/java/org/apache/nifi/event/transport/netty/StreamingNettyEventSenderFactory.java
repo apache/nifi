@@ -17,30 +17,34 @@
 package org.apache.nifi.event.transport.netty;
 
 import io.netty.channel.ChannelHandler;
-import io.netty.handler.codec.bytes.ByteArrayEncoder;
+import io.netty.handler.stream.ChunkedWriteHandler;
 import org.apache.nifi.event.transport.configuration.TransportProtocol;
 import org.apache.nifi.event.transport.netty.channel.LogExceptionChannelHandler;
+import org.apache.nifi.event.transport.netty.codec.InputStreamMessageEncoder;
 import org.apache.nifi.logging.ComponentLog;
+
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Netty Event Sender Factory for byte array messages
+ * Netty Event Sender Factory for String messages
  */
-public class ByteArrayNettyEventSenderFactory extends NettyEventSenderFactory<byte[]> {
+public class StreamingNettyEventSenderFactory extends NettyEventSenderFactory<InputStream> {
     /**
-     * Netty Event Sender Factory using byte array
+     * Netty Event Sender Factory with configurable character set for String encoding
      *
      * @param log Component Log
      * @param address Remote Address
      * @param port Remote Port Number
      * @param protocol Channel Protocol
      */
-    public ByteArrayNettyEventSenderFactory(final ComponentLog log, final String address, final int port, final TransportProtocol protocol) {
+    public StreamingNettyEventSenderFactory(final ComponentLog log, final String address, final int port, final TransportProtocol protocol) {
         super(address, port, protocol);
         final List<ChannelHandler> handlers = new ArrayList<>();
         handlers.add(new LogExceptionChannelHandler(log));
-        handlers.add(new ByteArrayEncoder());
+        handlers.add(new ChunkedWriteHandler());
+        handlers.add(new InputStreamMessageEncoder());
         setHandlerSupplier(() -> handlers);
     }
 }

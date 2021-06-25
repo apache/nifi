@@ -24,9 +24,11 @@ import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.event.transport.EventSender;
 import org.apache.nifi.event.transport.configuration.TransportProtocol;
 import org.apache.nifi.event.transport.netty.ByteArrayNettyEventSenderFactory;
+import org.apache.nifi.event.transport.netty.NettyEventSenderFactory;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.AbstractSessionFactoryProcessor;
+import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
@@ -94,7 +96,6 @@ public abstract class AbstractPutEventProcessor extends AbstractSessionFactoryPr
             .required(true)
             .allowableValues(TCP_VALUE, UDP_VALUE)
             .defaultValue(TCP_VALUE.getValue())
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     public static final PropertyDescriptor MESSAGE_DELIMITER = new PropertyDescriptor.Builder()
             .name("Message Delimiter")
@@ -163,7 +164,7 @@ public abstract class AbstractPutEventProcessor extends AbstractSessionFactoryPr
     private List<PropertyDescriptor> descriptors;
 
     protected volatile String transitUri;
-    protected EventSender<byte[]> eventSender;
+    protected EventSender eventSender;
 
     protected final BlockingQueue<FlowFileMessageBatch> completeBatches = new LinkedBlockingQueue<>();
     protected final Set<FlowFileMessageBatch> activeBatches = Collections.synchronizedSet(new HashSet<>());
@@ -238,14 +239,16 @@ public abstract class AbstractPutEventProcessor extends AbstractSessionFactoryPr
      */
     protected abstract String createTransitUri(final ProcessContext context);
 
-    protected EventSender<byte[]> getEventSender(final ProcessContext context) {
+    protected EventSender<?> getEventSender(final ProcessContext context) {
         final String hostname = context.getProperty(HOSTNAME).evaluateAttributeExpressions().getValue();
         final int port = context.getProperty(PORT).evaluateAttributeExpressions().asInteger();
         final String protocol = getProtocol(context);
-        final ByteArrayNettyEventSenderFactory factory = new ByteArrayNettyEventSenderFactory(getLogger(), hostname, port, TransportProtocol.valueOf(protocol));
+
+        final NettyEventSenderFactory factory = getNettyEventSenderFactory(hostname, port, protocol);
         factory.setThreadNamePrefix(String.format("%s[%s]", getClass().getSimpleName(), getIdentifier()));
         factory.setWorkerThreads(context.getMaxConcurrentTasks());
         factory.setMaxConnections(context.getMaxConcurrentTasks());
+        factory.setSocketSendBufferSize(context.getProperty(MAX_SOCKET_SEND_BUFFER_SIZE).asDataSize(DataUnit.B).intValue());
 
         final int timeout = context.getProperty(TIMEOUT).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS).intValue();
         factory.setTimeout(Duration.ofMillis(timeout));
@@ -491,4 +494,10 @@ public abstract class AbstractPutEventProcessor extends AbstractSessionFactoryPr
     protected String getProtocol(final ProcessContext context) {
         return context.getProperty(PROTOCOL).getValue();
     }
+
+    protected NettyEventSenderFactory<?> getNettyEventSenderFactory(final String hostname, final int port, final String protocol) {
+        return new ByteArrayNettyEventSenderFactory(getLogger(), hostname, port, TransportProtocol.valueOf(protocol));
+    }
+
+
 }

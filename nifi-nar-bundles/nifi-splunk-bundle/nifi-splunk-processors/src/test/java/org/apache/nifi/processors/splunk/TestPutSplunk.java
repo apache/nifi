@@ -72,7 +72,7 @@ public class TestPutSplunk {
 
     @Test(timeout = DEFAULT_TEST_TIMEOUT_PERIOD)
     public void testUDPSendWholeFlowFile() throws Exception {
-        createTestServer(LOCALHOST, TransportProtocol.UDP);
+        createTestServer(TransportProtocol.UDP);
         runner.setProperty(PutSplunk.MESSAGE_DELIMITER, OUTGOING_MESSAGE_DELIMITER);
         final String message = "This is one message, should send the whole FlowFile";
 
@@ -83,12 +83,12 @@ public class TestPutSplunk {
         final MockFlowFile mockFlowFile = runner.getFlowFilesForRelationship(PutSplunk.REL_SUCCESS).get(0);
         mockFlowFile.assertContentEquals(message);
 
-        checkReceivedAllData(new String[] { message });
+        checkReceivedAllData(message);
     }
 
     @Test(timeout = DEFAULT_TEST_TIMEOUT_PERIOD)
     public void testTCPSendWholeFlowFile() throws Exception {
-        createTestServer(LOCALHOST, TransportProtocol.TCP);
+        createTestServer(TransportProtocol.TCP);
         final String message = "This is one message, should send the whole FlowFile";
         runner.enqueue(message);
         runner.run(1);
@@ -97,12 +97,12 @@ public class TestPutSplunk {
         final MockFlowFile mockFlowFile = runner.getFlowFilesForRelationship(PutSplunk.REL_SUCCESS).get(0);
         mockFlowFile.assertContentEquals(message);
 
-        checkReceivedAllData(new String[] { message });
+        checkReceivedAllData(message);
     }
 
     @Test(timeout = DEFAULT_TEST_TIMEOUT_PERIOD)
     public void testTCPSendMultipleFlowFiles() throws Exception {
-        createTestServer(LOCALHOST, TransportProtocol.TCP);
+        createTestServer(TransportProtocol.TCP);
 
         final String message = "This is one message, should send the whole FlowFile";
 
@@ -114,12 +114,12 @@ public class TestPutSplunk {
         final MockFlowFile mockFlowFile = runner.getFlowFilesForRelationship(PutSplunk.REL_SUCCESS).get(0);
         mockFlowFile.assertContentEquals(message);
 
-        checkReceivedAllData(new String[] { message, message });
+        checkReceivedAllData(message, message);
     }
 
     @Test(timeout = DEFAULT_TEST_TIMEOUT_PERIOD)
     public void testTCPSendWholeFlowFileAlreadyHasNewLine() throws Exception {
-        createTestServer(LOCALHOST, TransportProtocol.TCP);
+        createTestServer(TransportProtocol.TCP);
 
         final String message = "This is one message, should send the whole FlowFile\n";
 
@@ -130,12 +130,12 @@ public class TestPutSplunk {
         final MockFlowFile mockFlowFile = runner.getFlowFilesForRelationship(PutSplunk.REL_SUCCESS).get(0);
         mockFlowFile.assertContentEquals(message);
 
-        checkReceivedAllData(new String[] { message.trim() });
+        checkReceivedAllData(message.trim());
     }
 
     @Test(timeout = DEFAULT_TEST_TIMEOUT_PERIOD)
     public void testUDPSendDelimitedMessages() throws Exception {
-        createTestServer(LOCALHOST, TransportProtocol.UDP);
+        createTestServer(TransportProtocol.UDP);
         final String delimiter = "DD";
         runner.setProperty(PutSplunk.MESSAGE_DELIMITER, delimiter);
 
@@ -148,12 +148,12 @@ public class TestPutSplunk {
         final MockFlowFile mockFlowFile = runner.getFlowFilesForRelationship(PutSplunk.REL_SUCCESS).get(0);
         mockFlowFile.assertContentEquals(message);
 
-        checkReceivedAllData(new String[] { "This is message 1", "This is message 2", "This is message 3" });
+        checkReceivedAllData("This is message 1", "This is message 2", "This is message 3");
     }
 
     @Test(timeout = DEFAULT_TEST_TIMEOUT_PERIOD)
     public void testTCPSendDelimitedMessages() throws Exception {
-        createTestServer(LOCALHOST, TransportProtocol.TCP);
+        createTestServer(TransportProtocol.TCP);
         final String delimiter = "DD";
         runner.setProperty(PutSplunk.MESSAGE_DELIMITER, delimiter);
 
@@ -167,12 +167,12 @@ public class TestPutSplunk {
         final MockFlowFile mockFlowFile = runner.getFlowFilesForRelationship(PutSplunk.REL_SUCCESS).get(0);
         mockFlowFile.assertContentEquals(message);
 
-        checkReceivedAllData(new String[] { "This is message 1", "This is message 2", "This is message 3" });
+        checkReceivedAllData("This is message 1", "This is message 2", "This is message 3");
     }
 
     @Test(timeout = DEFAULT_TEST_TIMEOUT_PERIOD)
     public void testTCPSendDelimitedMessagesWithEL() throws Exception {
-        createTestServer(LOCALHOST, TransportProtocol.TCP);
+        createTestServer(TransportProtocol.TCP);
 
         final String delimiter = "DD";
         runner.setProperty(PutSplunk.MESSAGE_DELIMITER, "${flow.file.delim}");
@@ -190,12 +190,12 @@ public class TestPutSplunk {
         final MockFlowFile mockFlowFile = runner.getFlowFilesForRelationship(PutSplunk.REL_SUCCESS).get(0);
         mockFlowFile.assertContentEquals(message);
 
-        checkReceivedAllData(new String[] { "This is message 1", "This is message 2", "This is message 3" });
+        checkReceivedAllData("This is message 1", "This is message 2", "This is message 3");
     }
 
     @Test(timeout = DEFAULT_TEST_TIMEOUT_PERIOD)
     public void testTCPSendDelimitedMessagesEndsWithDelimiter() throws Exception {
-        createTestServer(LOCALHOST, TransportProtocol.TCP);
+        createTestServer(TransportProtocol.TCP);
         final String delimiter = "DD";
         runner.setProperty(PutSplunk.MESSAGE_DELIMITER, delimiter);
 
@@ -209,13 +209,13 @@ public class TestPutSplunk {
         final MockFlowFile mockFlowFile = runner.getFlowFilesForRelationship(PutSplunk.REL_SUCCESS).get(0);
         mockFlowFile.assertContentEquals(message);
 
-        checkReceivedAllData(new String[] { "This is message 1", "This is message 2", "This is message 3" });
+        checkReceivedAllData("This is message 1", "This is message 2", "This is message 3");
 
     }
 
     @Test(timeout = DEFAULT_TEST_TIMEOUT_PERIOD)
     public void testTCPSendDelimitedMessagesWithNewLineDelimiter() throws Exception {
-        createTestServer(LOCALHOST, TransportProtocol.TCP);
+        createTestServer(TransportProtocol.TCP);
         final String delimiter = "\\n";
         runner.setProperty(PutSplunk.MESSAGE_DELIMITER, delimiter);
         runner.setProperty(PutSplunk.CHARSET, "UTF-8");
@@ -229,12 +229,12 @@ public class TestPutSplunk {
         final MockFlowFile mockFlowFile = runner.getFlowFilesForRelationship(PutSplunk.REL_SUCCESS).get(0);
         mockFlowFile.assertContentEquals(message);
 
-        checkReceivedAllData(new String[] { "This is message 1", "This is message 2", "This is message 3" });
+        checkReceivedAllData("This is message 1", "This is message 2", "This is message 3");
     }
 
     @Test(timeout = DEFAULT_TEST_TIMEOUT_PERIOD)
     public void testCompletingPreviousBatchOnNextExecution() throws Exception {
-        createTestServer(LOCALHOST, TransportProtocol.UDP);
+        createTestServer(TransportProtocol.UDP);
 
         final String message = "This is one message, should send the whole FlowFile";
 
@@ -245,7 +245,7 @@ public class TestPutSplunk {
         final MockFlowFile mockFlowFile = runner.getFlowFilesForRelationship(PutSplunk.REL_SUCCESS).get(0);
         mockFlowFile.assertContentEquals(message);
 
-        checkReceivedAllData(new String[] { message });
+        checkReceivedAllData(message);
     }
 
     @Test(timeout = DEFAULT_TEST_TIMEOUT_PERIOD)
@@ -260,8 +260,8 @@ public class TestPutSplunk {
         runner.assertAllFlowFilesTransferred(PutSplunk.REL_FAILURE, 1);
     }
 
-    private void createTestServer(final String address, final TransportProtocol protocol) {
-        createTestServer(address, protocol, null);
+    private void createTestServer(final TransportProtocol protocol) {
+        createTestServer(LOCALHOST, protocol, null);
     }
 
     private void createTestServer(final String address, final TransportProtocol protocol, final SSLContext sslContext) {
@@ -284,7 +284,7 @@ public class TestPutSplunk {
         eventServer = serverFactory.getEventServer();
     }
 
-    private void checkReceivedAllData(final String[] sentData) throws Exception {
+    private void checkReceivedAllData(final String... sentData) throws Exception {
         // check each sent FlowFile was successfully sent and received.
         for (String item : sentData) {
             ByteArrayMessage packet = messages.take();
@@ -293,6 +293,6 @@ public class TestPutSplunk {
         }
 
         // Check that we have no unexpected extra data.
-        assertNull(messages.poll());
+        assertNull("Unexpected extra messages found", messages.poll());
     }
 }

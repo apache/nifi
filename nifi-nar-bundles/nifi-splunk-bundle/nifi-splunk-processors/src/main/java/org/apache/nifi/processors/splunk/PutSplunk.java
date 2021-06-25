@@ -35,7 +35,6 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.event.transport.EventException;
-import org.apache.nifi.event.transport.EventSender;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
@@ -122,10 +121,6 @@ public class PutSplunk extends AbstractPutEventProcessor {
             return;
         }
 
-        if (eventSender == null) {
-            return;
-        }
-
         String delimiter = context.getProperty(MESSAGE_DELIMITER).evaluateAttributeExpressions(flowFile).getValue();
         if (delimiter != null) {
             delimiter = delimiter.replace("\\n", "\n").replace("\\r", "\r").replace("\\t", "\t");
@@ -134,9 +129,9 @@ public class PutSplunk extends AbstractPutEventProcessor {
         // if no delimiter then treat the whole FlowFile as a single message
         try {
             if (delimiter == null) {
-                processSingleMessage(context, session, flowFile, eventSender);
+                processSingleMessage(context, session, flowFile);
             } else {
-                processDelimitedMessages(context, session, flowFile, eventSender, delimiter);
+                processDelimitedMessages(context, session, flowFile, delimiter);
             }
         } catch (EventException e) {
             session.transfer(flowFile, REL_FAILURE);
@@ -148,7 +143,7 @@ public class PutSplunk extends AbstractPutEventProcessor {
     /**
      * Send the entire FlowFile as a single message.
      */
-    private void processSingleMessage(final ProcessContext context, final ProcessSession session, final FlowFile flowFile, final EventSender<byte[]> sender) {
+    private void processSingleMessage(final ProcessContext context, final ProcessSession session, final FlowFile flowFile) {
         // copy the contents of the FlowFile to the ByteArrayOutputStream
         final ByteArrayOutputStream baos = new ByteArrayOutputStream((int)flowFile.getSize() + 1);
         session.read(flowFile, new InputStreamCallback() {
@@ -174,7 +169,7 @@ public class PutSplunk extends AbstractPutEventProcessor {
         activeBatches.add(messageBatch);
 
         // attempt to send the data and add the appropriate range
-        sender.sendEvent(buf);
+        eventSender.sendEvent(buf);
         messageBatch.addSuccessfulRange(0L, flowFile.getSize());
     }
 
@@ -182,7 +177,7 @@ public class PutSplunk extends AbstractPutEventProcessor {
      * Read delimited messages from the FlowFile tracking which messages are sent successfully.
      */
     private void processDelimitedMessages(final ProcessContext context, final ProcessSession session, final FlowFile flowFile,
-                                          final EventSender<byte[]> sender, final String delimiter) {
+                                          final String delimiter) {
 
         final String protocol = context.getProperty(PROTOCOL).getValue();
         final byte[] delimiterBytes = delimiter.getBytes(StandardCharsets.UTF_8);
@@ -233,7 +228,7 @@ public class PutSplunk extends AbstractPutEventProcessor {
                                 // If the message has no data, ignore it.
                                 if (data.length != 0) {
                                     final long rangeStart = messageStartOffset;
-                                    sender.sendEvent(data);
+                                    eventSender.sendEvent(data);
                                     messageBatch.addSuccessfulRange(rangeStart, messageEndOffset);
                                     messagesSent.incrementAndGet();
                                 }
