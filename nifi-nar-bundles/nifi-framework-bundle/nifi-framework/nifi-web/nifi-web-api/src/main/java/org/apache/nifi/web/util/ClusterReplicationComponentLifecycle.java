@@ -337,20 +337,34 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
 
     private boolean isProcessorActionComplete(final ProcessorsRunStatusDetailsEntity runStatusDetailsEntity, final Map<String, AffectedComponentEntity> affectedComponents,
                                               final ScheduledState desiredState, final InvalidComponentAction invalidComponentAction) throws LifecycleManagementException {
-        final String desiredStateName = desiredState.name();
 
         updateAffectedProcessors(runStatusDetailsEntity.getRunStatusDetails(), affectedComponents);
 
+        boolean allReachedDesiredState = true;
         for (final ProcessorRunStatusDetailsEntity entity : runStatusDetailsEntity.getRunStatusDetails()) {
             final ProcessorRunStatusDetailsDTO runStatusDetailsDto = entity.getRunStatusDetails();
             if (!affectedComponents.containsKey(runStatusDetailsDto.getId())) {
                 continue;
             }
 
-            if (ProcessorRunStatusDetailsDTO.INVALID.equals(runStatusDetailsDto.getRunStatus())) {
+            final boolean desiredStateReached = isDesiredProcessorStateReached(runStatusDetailsDto, desiredState);
+            logger.debug("Processor[id={}, name={}] now has a state of {} with {} Active Threads, Validation Errors: {}; desired state = {}; invalid component action: {}; desired state reached = {}",
+                runStatusDetailsDto.getId(), runStatusDetailsDto.getName(), runStatusDetailsDto.getRunStatus(), runStatusDetailsDto.getActiveThreadCount(), runStatusDetailsDto.getValidationErrors(),
+                desiredState, invalidComponentAction, desiredStateReached);
+
+            if (desiredStateReached) {
+                continue;
+            }
+
+            // If the desired state is stopped and there are active threads, return false. We don't consider the validation status in this case.
+            if (desiredState == ScheduledState.STOPPED && runStatusDetailsDto.getActiveThreadCount() != 0) {
+                return false;
+            }
+
+            if (ProcessorRunStatusDetailsDTO.INVALID.equalsIgnoreCase(runStatusDetailsDto.getRunStatus())) {
                 switch (invalidComponentAction) {
                     case WAIT:
-                        return false;
+                        break;
                     case SKIP:
                         continue;
                     case FAIL:
@@ -359,20 +373,31 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
                 }
             }
 
-            final String runStatus = runStatusDetailsDto.getRunStatus();
-            final boolean stateMatches = desiredStateName.equalsIgnoreCase(runStatus);
-            if (!stateMatches) {
-                return false;
-            }
+            allReachedDesiredState = false;
+        }
 
-            if (desiredState == ScheduledState.STOPPED && runStatusDetailsDto.getActiveThreadCount() != 0) {
-                return false;
-            }
+        if (allReachedDesiredState) {
+            logger.debug("All {} Processors of interest now have the desired state of {}", runStatusDetailsEntity.getRunStatusDetails().size(), desiredState);
+            return true;
+        }
+
+        return false;
+    }
+
+    private boolean isDesiredProcessorStateReached(final ProcessorRunStatusDetailsDTO runStatusDetailsDto, final ScheduledState desiredState) {
+        final String runStatus = runStatusDetailsDto.getRunStatus();
+        final boolean stateMatches = desiredState.name().equalsIgnoreCase(runStatus);
+
+        if (!stateMatches) {
+            return false;
+        }
+
+        if (desiredState == ScheduledState.STOPPED && runStatusDetailsDto.getActiveThreadCount() != 0) {
+            return false;
         }
 
         return true;
     }
-
 
 
     @Override
@@ -582,7 +607,7 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
                 }
 
                 // The desired state for this component has not yet been reached. Check how we should handle this based on the validation status.
-                if (ControllerServiceDTO.INVALID.equals(validationStatus)) {
+                if (ControllerServiceDTO.INVALID.equalsIgnoreCase(validationStatus)) {
                     switch (invalidComponentAction) {
                         case WAIT:
                             break;
