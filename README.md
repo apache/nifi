@@ -15,7 +15,7 @@
 [<img src="https://nifi.apache.org/assets/images/apache-nifi-logo.svg" width="300" height="126" alt="Apache NiFi"/>][nifi]
 
 <p align="center">
-<a href="./README_zhCN.md">中文</a>
+<a href="./README_ZhCN.md">中文</a>
 </p>
 
 [![ci-workflow](https://github.com/apache/nifi/workflows/ci-workflow/badge.svg)](https://github.com/apache/nifi/actions)
