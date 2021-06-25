@@ -185,6 +185,9 @@ public class PropertiesFileFlowDefinitionParser implements DataflowDefinitionPar
     private List<ParameterProviderDefinition> getParameterProviders(final Map<String, String> properties, final List<ParameterOverride> parameterOverrides) {
         final Map<String, ParameterProviderDefinition> parameterProviderDefinitions = new LinkedHashMap<>();
 
+        parameterProviderDefinitions.put("Default Parameter Override Provider", createParameterOverrideProvider(parameterOverrides));
+        parameterProviderDefinitions.put("Default Environment Variable Provider", createEnvironmentVariableProvider());
+
         for (final String propertyName : properties.keySet()) {
             final Matcher matcher = PARAMETER_PROVIDER_PATTERN.matcher(propertyName);
             if (!matcher.matches()) {
@@ -241,9 +244,6 @@ public class PropertiesFileFlowDefinitionParser implements DataflowDefinitionPar
                     PARAMETER_PROVIDER_PREFIX + providerKey + ".type");
             }
         }
-
-        parameterProviderDefinitions.put("Default Parameter Override Provider", createParameterOverrideProvider(parameterOverrides));
-        parameterProviderDefinitions.put("Default Environment Variable Provider", createEnvironmentVariableProvider());
 
         return new ArrayList<>(parameterProviderDefinitions.values());
     }
