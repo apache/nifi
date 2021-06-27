@@ -22,7 +22,7 @@ package org.apache.nifi.processors.azure.storage.utils;
  */
 public enum AzureBlobClientSideEncryptionMethod {
 
-    NONE("None", "The blobs sent to Azure is not encrypted."),
+    NONE("None", "The blobs sent to Azure are not encrypted."),
     SYMMETRIC("Symmetric","The blobs sent to Azure are encrypted using a symmetric algorithm.");
 
     private final String cseName;

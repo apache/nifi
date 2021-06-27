@@ -20,17 +20,9 @@ import org.apache.nifi.processor.Processor;
 import org.apache.nifi.util.MockFlowFile;
 import org.junit.Before;
 import org.junit.Test;
-// import org.junit.runner.RunWith;
-// import org.junit.runners.Parameterized;
 import java.util.concurrent.TimeUnit;
 
-// @RunWith(Parameterized.class)
 public class ITListAzureBlobStorage extends AbstractAzureBlobStorageIT {
-
-    /* @Parameterized.Parameters
-    public static Object[][] data() {
-        return new Object[10][0];
-    }*/
 
     @Override
     protected Class<? extends Processor> getProcessorClass() {
@@ -45,7 +37,7 @@ public class ITListAzureBlobStorage extends AbstractAzureBlobStorageIT {
     }
 
     @Test
-    public void testListBlobs() throws Exception{
+    public void testListBlobs() throws Exception {
         runner.assertValid();
         runner.run(1);
 
@@ -62,7 +54,7 @@ public class ITListAzureBlobStorage extends AbstractAzureBlobStorageIT {
         assertResult();
     }
 
-    private void assertResult() throws Exception {
+    private void assertResult() {
         runner.assertTransferCount(ListAzureBlobStorage.REL_SUCCESS, 1);
         runner.assertAllFlowFilesTransferred(ListAzureBlobStorage.REL_SUCCESS, 1);
 

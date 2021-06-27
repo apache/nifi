@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.processors.azure.storage.utils;
 
-import com.google.common.base.Strings;
 import com.microsoft.azure.keyvault.cryptography.SymmetricKey;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
@@ -26,15 +25,20 @@ import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.util.StringUtils;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
 public class AzureBlobClientSideEncryptionUtils {
+
+    private static final String DEFAULT_KEY_ID = "nifi";
+
     public static final PropertyDescriptor CSE_KEY_TYPE = new PropertyDescriptor.Builder()
             .name("cse-key-type")
-            .displayName("Client-Side Encryption key type")
+            .displayName("Client-Side Encryption Key Type")
             .required(true)
             .allowableValues(buildCseEncryptionMethodAllowableValues())
             .defaultValue(AzureBlobClientSideEncryptionMethod.NONE.name())
@@ -43,30 +47,28 @@ public class AzureBlobClientSideEncryptionUtils {
 
     public static final PropertyDescriptor CSE_KEY_ID = new PropertyDescriptor.Builder()
             .name("cse-key-id")
-            .displayName("Client-Side Encryption key ID")
+            .displayName("Client-Side Encryption Key ID")
             .description("Specifies the ID of the key to use for client-side encryption.")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(false)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .dependsOn(CSE_KEY_TYPE, AzureBlobClientSideEncryptionMethod.SYMMETRIC.name())
             .build();
 
     public static final PropertyDescriptor CSE_SYMMETRIC_KEY_HEX = new PropertyDescriptor.Builder()
             .name("cse-symmetric-key-hex")
-            .displayName("Symmetric Key (hexadecimal)")
+            .displayName("Symmetric Key")
             .description("When using symmetric client-side encryption, this is the raw key, encoded in hexadecimal")
             .required(false)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
+            .dependsOn(CSE_KEY_TYPE, AzureBlobClientSideEncryptionMethod.SYMMETRIC.name())
             .sensitive(true)
             .build();
 
     private static AllowableValue[] buildCseEncryptionMethodAllowableValues() {
-        final AzureBlobClientSideEncryptionMethod[] encryptionMethods = AzureBlobClientSideEncryptionMethod.values();
-        List<AllowableValue> allowableValues = new ArrayList<>(encryptionMethods.length);
-        for (AzureBlobClientSideEncryptionMethod em : encryptionMethods) {
-            allowableValues.add(new AllowableValue(em.name(), em.name(), em.toString()));
-        }
-
-        return allowableValues.toArray(new AllowableValue[0]);
+        return Arrays.stream(AzureBlobClientSideEncryptionMethod.values())
+            .map(v -> new AllowableValue(v.name(), v.name(), v.getDescription()))
+            .toArray(AllowableValue[]::new);
     }
 
     public static Collection<ValidationResult> validateClientSideEncryptionProperties(ValidationContext validationContext) {
@@ -79,7 +81,7 @@ public class AzureBlobClientSideEncryptionUtils {
 
         final String cseSymmetricKeyHex = validationContext.getProperty(CSE_SYMMETRIC_KEY_HEX).getValue();
 
-        if (cseKeyType != AzureBlobClientSideEncryptionMethod.NONE && Strings.isNullOrEmpty(cseKeyId)) {
+        if (cseKeyType != AzureBlobClientSideEncryptionMethod.NONE && StringUtils.isBlank(cseKeyId)) {
             validationResults.add(new ValidationResult.Builder().subject(CSE_KEY_ID.getDisplayName())
                     .explanation("a key ID must be set when client-side encryption is enabled.").build());
         }
@@ -92,18 +94,18 @@ public class AzureBlobClientSideEncryptionUtils {
     }
 
     private static List<ValidationResult> validateSymmetricKey(String keyHex) {
-        List<ValidationResult> validationResults = new ArrayList<>();
-        if (Strings.isNullOrEmpty(keyHex)) {
+        final List<ValidationResult> validationResults = new ArrayList<>();
+        if (StringUtils.isBlank(keyHex)) {
             validationResults.add(new ValidationResult.Builder().subject(CSE_SYMMETRIC_KEY_HEX.getDisplayName())
                     .explanation("a symmetric key must not be set when client-side encryption is enabled with symmetric encryption.").build());
         } else {
             byte[] keyBytes;
             try {
                 keyBytes = Hex.decodeHex(keyHex.toCharArray());
-                new SymmetricKey("nifi", keyBytes);
+                new SymmetricKey(DEFAULT_KEY_ID, keyBytes);
             } catch (DecoderException e) {
                 validationResults.add(new ValidationResult.Builder().subject(CSE_SYMMETRIC_KEY_HEX.getDisplayName())
-                        .explanation("the symmetric key must be valid hexadecimal string.").build());
+                        .explanation("the symmetric key must be a valid hexadecimal string.").build());
             } catch (IllegalArgumentException e) {
                 validationResults.add(new ValidationResult.Builder().subject(CSE_SYMMETRIC_KEY_HEX.getDisplayName())
                         .explanation(e.getMessage()).build());

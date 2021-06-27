@@ -31,10 +31,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.microsoft.azure.keyvault.cryptography.SymmetricKey;
 import com.microsoft.azure.storage.OperationContext;
 import org.apache.commons.codec.DecoderException;
-import org.apache.commons.codec.binary.Hex;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -54,7 +52,6 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.azure.AbstractAzureBlobProcessor;
 import org.apache.nifi.processors.azure.storage.utils.AzureBlobClientSideEncryptionUtils;
 import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
-import org.apache.nifi.processors.azure.storage.utils.AzureBlobClientSideEncryptionMethod;
 
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.BlobProperties;
@@ -62,7 +59,6 @@ import com.microsoft.azure.storage.blob.CloudBlob;
 import com.microsoft.azure.storage.blob.CloudBlobClient;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
 import com.microsoft.azure.storage.blob.BlobRequestOptions;
-import com.microsoft.azure.storage.blob.BlobEncryptionPolicy;
 
 @Tags({ "azure", "microsoft", "cloud", "storage", "blob" })
 @SeeAlso({ ListAzureBlobStorage.class, FetchAzureBlobStorage.class, DeleteAzureBlobStorage.class })
@@ -131,13 +127,6 @@ public class PutAzureBlobStorage extends AbstractAzureBlobProcessor {
 
         final boolean createContainer = context.getProperty(CREATE_CONTAINER).asBoolean();
 
-        final String cseKeyTypeValue = context.getProperty(AzureBlobClientSideEncryptionUtils.CSE_KEY_TYPE).getValue();
-        final AzureBlobClientSideEncryptionMethod cseKeyType = AzureBlobClientSideEncryptionMethod.valueOf(cseKeyTypeValue);
-
-        final String cseKeyId = context.getProperty(AzureBlobClientSideEncryptionUtils.CSE_KEY_ID).getValue();
-
-        final String cseSymmetricKeyHex = context.getProperty(AzureBlobClientSideEncryptionUtils.CSE_SYMMETRIC_KEY_HEX).getValue();
-
         AtomicReference<Exception> storedException = new AtomicReference<>();
         try {
             CloudBlobClient blobClient = AzureStorageUtils.createCloudBlobClient(context, getLogger(), flowFile);
@@ -151,14 +140,7 @@ public class PutAzureBlobStorage extends AbstractAzureBlobProcessor {
             final OperationContext operationContext = new OperationContext();
             AzureStorageUtils.setProxy(operationContext, context);
 
-            BlobRequestOptions blobRequestOptions = new BlobRequestOptions();
-
-            if (cseKeyType == AzureBlobClientSideEncryptionMethod.SYMMETRIC) {
-                byte[] keyBytes = Hex.decodeHex(cseSymmetricKeyHex.toCharArray());
-                SymmetricKey key = new SymmetricKey(cseKeyId, keyBytes);
-                BlobEncryptionPolicy policy = new BlobEncryptionPolicy(key, null);
-                blobRequestOptions.setEncryptionPolicy(policy);
-            }
+            BlobRequestOptions blobRequestOptions = createBlobRequestOptions(context);
 
             final Map<String, String> attributes = new HashMap<>();
             long length = flowFile.getSize();
