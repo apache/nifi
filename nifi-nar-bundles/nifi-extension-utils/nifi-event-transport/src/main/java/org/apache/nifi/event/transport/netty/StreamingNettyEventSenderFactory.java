@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.event.transport.netty;
 
-import io.netty.channel.ChannelHandler;
 import io.netty.handler.stream.ChunkedWriteHandler;
 import org.apache.nifi.event.transport.configuration.TransportProtocol;
 import org.apache.nifi.event.transport.netty.channel.LogExceptionChannelHandler;
@@ -24,16 +23,14 @@ import org.apache.nifi.event.transport.netty.codec.InputStreamMessageEncoder;
 import org.apache.nifi.logging.ComponentLog;
 
 import java.io.InputStream;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 
 /**
  * Netty Event Sender Factory for messages in an InputStream
  */
 public class StreamingNettyEventSenderFactory extends NettyEventSenderFactory<InputStream> {
     /**
-     * Netty Event Sender Factory using InputStream
+     * Netty Event Sender Factory using InputStream. Uses a custom InputStreamMessageEncoder and a ChunkedWriteHandler.
      *
      * @param log Component Log
      * @param address Remote Address

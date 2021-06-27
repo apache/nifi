@@ -38,7 +38,7 @@ public class InputStreamMessageEncoder extends MessageToMessageEncoder<InputStre
         ChunkedStream chunkedMessage = new ChunkedStream(messageStream);
         out.add(chunkedMessage);
 
-        // If the message being sent requires a delimiter added to the end of the message, pass through a DelimitedInputStream
+        // If the message being sent requires a delimiter added to the end of the message, provide a DelimitedInputStream
         if (messageStream instanceof DelimitedInputStream) {
             DelimitedInputStream delimStream = (DelimitedInputStream) messageStream;
             out.add(Unpooled.wrappedBuffer(delimStream.getDelimiter()));
