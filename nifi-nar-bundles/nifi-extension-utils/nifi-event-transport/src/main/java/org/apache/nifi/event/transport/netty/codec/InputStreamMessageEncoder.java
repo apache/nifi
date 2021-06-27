@@ -17,6 +17,7 @@
 package org.apache.nifi.event.transport.netty.codec;
 
 import io.netty.buffer.Unpooled;
+import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToMessageEncoder;
 import io.netty.handler.stream.ChunkedStream;
@@ -29,6 +30,7 @@ import java.util.List;
  * Message encoder for an InputStream, which wraps the stream in a ChunkedStream for use with a ChunkedWriter. Can add a delimiter
  * to the end of the output objects if the InputStream is a DelimitedInputStream.
  */
+@ChannelHandler.Sharable
 public class InputStreamMessageEncoder extends MessageToMessageEncoder<InputStream> {
 
     @Override

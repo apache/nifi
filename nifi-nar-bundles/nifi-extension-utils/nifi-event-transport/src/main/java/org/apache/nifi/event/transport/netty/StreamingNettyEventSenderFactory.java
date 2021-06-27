@@ -25,6 +25,7 @@ import org.apache.nifi.logging.ComponentLog;
 
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -32,7 +33,7 @@ import java.util.List;
  */
 public class StreamingNettyEventSenderFactory extends NettyEventSenderFactory<InputStream> {
     /**
-     * Netty Event Sender Factory with configurable character set for String encoding
+     * Netty Event Sender Factory using InputStream
      *
      * @param log Component Log
      * @param address Remote Address
@@ -41,10 +42,13 @@ public class StreamingNettyEventSenderFactory extends NettyEventSenderFactory<In
      */
     public StreamingNettyEventSenderFactory(final ComponentLog log, final String address, final int port, final TransportProtocol protocol) {
         super(address, port, protocol);
-        final List<ChannelHandler> handlers = new ArrayList<>();
-        handlers.add(new LogExceptionChannelHandler(log));
-        handlers.add(new ChunkedWriteHandler());
-        handlers.add(new InputStreamMessageEncoder());
-        setHandlerSupplier(() -> handlers);
+        final LogExceptionChannelHandler logExceptionChannelHandler = new LogExceptionChannelHandler(log);
+        final InputStreamMessageEncoder inputStreamMessageEncoder = new InputStreamMessageEncoder();
+
+        setHandlerSupplier(() -> Arrays.asList(
+                logExceptionChannelHandler,
+                new ChunkedWriteHandler(),
+                inputStreamMessageEncoder
+        ));
     }
 }
