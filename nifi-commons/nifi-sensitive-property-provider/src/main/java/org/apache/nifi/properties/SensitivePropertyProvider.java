@@ -56,4 +56,9 @@ public interface SensitivePropertyProvider {
      * @return the raw value to be used by the application
      */
     String unprotect(String protectedValue) throws SensitivePropertyProtectionException;
+
+    /**
+     * Cleans up resources that may have been allocated/used by an SPP implementation
+     */
+    void cleanUp();
 }

@@ -129,4 +129,9 @@ public abstract class AbstractHashiCorpVaultSensitivePropertyProvider extends Ab
         return getProtectionScheme().getIdentifier(path);
     }
 
+    /**
+     * No cleanup necessary
+     */
+    @Override
+    public void cleanUp() { }
 }

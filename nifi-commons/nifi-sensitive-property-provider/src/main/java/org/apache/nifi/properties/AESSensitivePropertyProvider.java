@@ -257,4 +257,10 @@ public class AESSensitivePropertyProvider extends AbstractSensitivePropertyProvi
     public static String getDelimiter() {
         return DELIMITER;
     }
+
+    /**
+     * No cleanup necessary
+     */
+    @Override
+    public void cleanUp() { }
 }
