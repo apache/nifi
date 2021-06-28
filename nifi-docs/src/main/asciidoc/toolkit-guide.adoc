@@ -435,7 +435,7 @@ The following are available options when targeting NiFi:
  * `-f`,`--flowXml <file>`                       The _flow.xml.gz_ file currently protected with old password (will be overwritten unless `-g` is specified)
  * `-g`,`--outputFlowXml <file>`                 The destination _flow.xml.gz_ file containing protected config values (will not modify input _flow.xml.gz_)
  * `-b`,`--bootstrapConf <file>`                 The bootstrap.conf file to persist root key and to optionally provide any configuration for the protection scheme.
- * `-S`,`--protectionScheme <protectionScheme>`  Selects the protection scheme for encrypted properties.  Valid values are: [AES_GCM, HASHICORP_VAULT_TRANSIT] (default is AES_GCM)
+ * `-S`,`--protectionScheme <protectionScheme>`  Selects the protection scheme for encrypted properties.  Valid values are: [AES_GCM, HASHICORP_VAULT_TRANSIT, AWS_KMS] (default is AES_GCM)
  * `-k`,`--key <keyhex>`                         The raw hexadecimal key to use to encrypt the sensitive properties
  * `-e`,`--oldKey <keyhex>`                      The old raw hexadecimal key to use during key migration
  * `-H`,`--oldProtectionScheme <protectionScheme>` The old protection scheme to use during encryption migration (see --protectionScheme for possible values).  Default is AES_GCM
@@ -456,7 +456,7 @@ The following are available options when targeting NiFi Registry using the `--ni
  * `-v`,`--verbose`                              Sets verbose mode (default false)
  * `-p`,`--password <password>`                  Protect the files using a password-derived key. If an argument is not provided to this flag, interactive mode will be triggered to prompt the user to enter the password.
  * `-k`,`--key <keyhex>`                         Protect the files using a raw hexadecimal key. If an argument is not provided to this flag, interactive mode will be triggered to prompt the user to enter the key.
- * `-S`,`--protectionScheme <protectionScheme>`  Selects the protection scheme for encrypted properties.  Valid values are: [AES_GCM, HASHICORP_VAULT_TRANSIT]  (default is AES_GCM)
+ * `-S`,`--protectionScheme <protectionScheme>`  Selects the protection scheme for encrypted properties.  Valid values are: [AES_GCM, HASHICORP_VAULT_TRANSIT, AWS_KMS]  (default is AES_GCM)
  * `--oldPassword <password>`                    If the input files are already protected using a password-derived key, this specifies the old password so that the files can be unprotected before re-protecting.
  * `--oldKey <keyhex>`                           If the input files are already protected using a key, this specifies the raw hexadecimal key so that the files can be unprotected before re-protecting.
  * `-H`,`--oldProtectionScheme <protectionScheme>`The old protection scheme to use during encryption migration (see --protectionScheme for possible values).  Default is AES_GCM.
@@ -502,6 +502,26 @@ This protection scheme uses HashiCorp Vault's Transit Secrets Engine (https://ww
 |`vault.ssl.trust-store`|Path to a truststore.  Required if the Vault server is TLS-enabled|_none_
 |`vault.ssl.trust-store-type`|Truststore type (JKS, BCFKS or PKCS12).  Required if the Vault server is TLS-enabled|_none_
 |`vault.ssl.trust-store-password`|Truststore password.  Required if the Vault server is TLS-enabled|_none_
+|===
+
+==== AWS_KMS
+This protection scheme uses AWS Key Management Service, or AWS KMS for short (https://aws.amazon.com/kms/) for encryption/decryption . All AWS KMS configuration/credentials is stored in the `bootstrap-aws.conf` file, as referenced in the `bootstrap.conf` of a NiFi or NiFi Registry instance.  Therefore, when using the AWS_KMS protection scheme, the `nifi(.registry)?.bootstrap.protection.aws.kms.conf` property in the `bootstrap.conf` specified using the `-b` flag must be available to the Encrypt Configuration Tool and must be configured as follows:
+
+===== Required properties
+[options="header,footer"]
+|===
+|Property Name|Description|Default
+|`aws.kms.key.id`|The key id or ARN to be used by AWS KMS to identify the key used for encryption/decryption.|_none_
+|===
+
+===== Optional properties
+====== All of the following must be configured, or will be ignored entirely
+[options="header,footer"]
+|===
+|Property Name|Description|Default
+|`aws.region`|The region to configure AWS KMS Client with for encryption/decryption.|_none_
+|`aws.access.key.id`|The access key ID credential used to access AWS KMS.|_none_
+|`aws.secret.key.id`|The secret key ID credential used to access AWS KMS.|_none_
 |===
 
 === Examples
@@ -698,6 +718,37 @@ for each phase (old vs. new), and any combination is sufficient:
 
 In order to change the protection scheme (e.g., migrating from AES encryption to Vault encryption), specify the `--protectionScheme`
 and `--oldProtectionScheme` in the migration command.
+
+The following is an example of the commands for protection scheme migration from AES_GCM to AWS_KMS then back. Execute these commands at the `nifi` directory with the `nifi-toolkit` directory as a sibling directory. In addition, make sure to update `bootstrap-aws.conf` with your AWS KMS Key ARN/ID and have your credentials and region for AWS configured.
+
+----
+# This command encrypts nifi.properties with the AES_GCM protection scheme
+./../nifi-toolkit-1.14.0-SNAPSHOT/bin/encrypt-config.sh \
+-b conf/bootstrap.conf \
+-n conf/nifi.properties \
+-k 0123456789ABCDEFFEDCBA98765432100123456789ABCDEFFEDCBA9876543210 \
+-v
+
+# This command migrates nifi.properties from using AES_GCM to using AWS_KMS protection scheme
+./../nifi-toolkit-1.14.0-SNAPSHOT/bin/encrypt-config.sh \
+-b /Users/emilio.setiadarma/test-nifi-deploy/nifi-1.14.0-SNAPSHOT/conf/bootstrap.conf \
+-n /Users/emilio.setiadarma/test-nifi-deploy/nifi-1.14.0-SNAPSHOT/conf/nifi.properties \
+-S AWS_KMS \
+-H AES_GCM \
+-e 0123456789ABCDEFFEDCBA98765432100123456789ABCDEFFEDCBA9876543210 \
+-m \
+-v
+
+# This command migrates nifi.properties back from AWS_KMS to AES_GCM protection scheme
+./../nifi-toolkit-1.14.0-SNAPSHOT/bin/encrypt-config.sh \
+-b conf/bootstrap.conf \
+-n conf/nifi.properties \
+-S AES_GCM \
+-k 0123456789ABCDEFFEDCBA98765432100123456789ABCDEFFEDCBA9876543210 \
+-H AES_GCM \
+-m \
+-v
+----
 
 == File Manager
 The File Manager utility (invoked as `./bin/file-manager.sh` or `bin\file-manager.bat`) allows system administrators to take a backup of an existing NiFi installation, install a new version of NiFi in a designated location (while migrating any previous configuration settings) or restore an installation from a previous backup. File Manager supports NiFi version 1.0.0 and higher.

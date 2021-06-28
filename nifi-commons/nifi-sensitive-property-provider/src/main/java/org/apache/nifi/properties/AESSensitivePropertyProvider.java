@@ -257,4 +257,14 @@ public class AESSensitivePropertyProvider extends AbstractSensitivePropertyProvi
     public static String getDelimiter() {
         return DELIMITER;
     }
+
+    /**
+     * Closes any clients that may have been opened by the SPP and releases
+     * any resources possibly used by any SPP implementation
+     * Note: If there is nothing to be done, then this function is a no-op
+     */
+    @Override
+    public void close() {
+        return;
+    }
 }

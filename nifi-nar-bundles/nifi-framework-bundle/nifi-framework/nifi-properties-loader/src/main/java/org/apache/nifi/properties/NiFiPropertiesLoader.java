@@ -173,8 +173,14 @@ public class NiFiPropertiesLoader {
                     .getSupportedSensitivePropertyProviders()
                     .forEach(protectedNiFiProperties::addSensitivePropertyProvider);
         }
-
-        return protectedNiFiProperties.getUnprotectedProperties();
+        NiFiProperties props = protectedNiFiProperties.getUnprotectedProperties();
+        if (protectedNiFiProperties.hasProtectedKeys()) {
+            // releases resources used by SPP
+            getSensitivePropertyProviderFactory()
+                    .getSupportedSensitivePropertyProviders()
+                    .forEach(SensitivePropertyProvider::close);
+        }
+        return props;
     }
 
     /**

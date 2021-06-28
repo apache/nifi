@@ -56,4 +56,11 @@ public interface SensitivePropertyProvider {
      * @return the raw value to be used by the application
      */
     String unprotect(String protectedValue) throws SensitivePropertyProtectionException;
+
+    /**
+     * Closes any clients that may have been opened by the SPP and releases
+     * any resources possibly used by any SPP implementation
+     * Note: If there is nothing to be done, then this function is a no-op
+     */
+    void close();
 }

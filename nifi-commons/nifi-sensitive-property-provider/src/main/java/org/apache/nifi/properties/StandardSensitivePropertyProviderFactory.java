@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.properties;
 
+import org.apache.nifi.properties.aws.AWSSensitivePropertyProvider;
 import org.apache.nifi.properties.BootstrapProperties.BootstrapPropertyKey;
 import org.apache.nifi.util.NiFiBootstrapUtils;
 import org.slf4j.Logger;
@@ -105,6 +106,9 @@ public class StandardSensitivePropertyProviderFactory implements SensitiveProper
         switch (protectionScheme) {
             case AES_GCM:
                 return providerMap.computeIfAbsent(protectionScheme, s -> new AESSensitivePropertyProvider(keyHex));
+            // Other providers may choose to pass getBootstrapProperties() into the constructor
+            case AWS_KMS:
+                return providerMap.computeIfAbsent(protectionScheme, s -> new AWSSensitivePropertyProvider(getBootstrapProperties()));
             case HASHICORP_VAULT_TRANSIT:
                 return providerMap.computeIfAbsent(protectionScheme, s -> new HashiCorpVaultTransitSensitivePropertyProvider(getBootstrapProperties()));
             default:
