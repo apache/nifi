@@ -75,6 +75,13 @@ language governing permissions and limitations under the License. -->
             <artifactId>nifi-mock</artifactId>
             <version>1.15.0-SNAPSHOT</version>
             <scope>test</scope>
+            <!-- Exclude transitive dependency of software.amazon.awssdk:kms included in nifi-sensitive-property-provider -->
+            <exclusions>
+                <exclusion>
+                    <artifactId>netty-transport-native-epoll</artifactId>
+                    <groupId>io.netty</groupId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
