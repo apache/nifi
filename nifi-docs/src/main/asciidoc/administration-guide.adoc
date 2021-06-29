@@ -2640,8 +2640,13 @@ configured recipients whenever NiFi is started.
 defined in the `notification.services.file` property. The services with the specified identifiers will be used to notify their
 configured recipients whenever NiFi is stopped.
 |`nifi.died.notification.services`|This property is a comma-separated list of Notification Service identifiers that correspond to the Notification Services
-defined in the `notification.services.file` property. The services with the specified identifiers will be used to notify their
-configured recipients if the bootstrap determines that NiFi has unexpectedly died.
+                                 defined in the `notification.services.file` property. The services with the specified identifiers will be used to notify their
+                                 configured recipients if the bootstrap determines that NiFi has unexpectedly died.
+|`nifi.diagnostics.on.shutdown.enabled`|(true or false) This property decides whether to run NiFi diagnostics before shutting down.
+|`nifi.diagnostics.on.shutdown.verbose`|(true or false) This property decides whether to run NiFi diagnostics in verbose mode.
+|`nifi.diagnostics.on.shutdown.directory`|This property specifies the location of the NiFi diagnostics directory.
+|`nifi.diagnostics.on.shutdown.max.filecount`|This property specifies the maximum permitted number of diagnostic files. If the limit is exceeded, the oldest files are deleted.
+|`nifi.diagnostics.on.shutdown.max.directory.size`|This property specifies the maximum permitted size of the diagnostics directory. If the limit is exceeded, the oldest files are deleted.
 |====
 
 [[notification_services]]
@@ -4262,3 +4267,21 @@ Example configuration:
    nifi.nar.library.provider.hdfs2.implementation=org.apache.nifi.nar.hadoop.HDFSNarProvider
    nifi.nar.library.provider.hdfs2.resources=/etc/hadoop/core-site.xml
    nifi.nar.library.provider.hdfs2.source.directory=/other/dir/for/customNars
+
+== NiFi diagnostics
+
+It is possible to run diagnostics on NiFi with
+
+```
+$ ./bin/nifi.sh --diagnostics --verbose <dumpfilePath>
+```
+
+During the diagnostic, NiFi sends a request to an already running NiFi instance, which collects information about clusters,
+components, part of the configuration, memory usage, etc., and writes it to the specified file or, failing that, to the logs.
+
+The verbose switch is optional and can be used to control the level of diagnostic detail. In case of a missing dump file path, NiFi writes the diagnostics information to the bootstrap.log file.
+
+=== Automatic diagnostics on restart and shutdown
+
+NiFi supports automatic diagnostics in the event of a shutdown. The feature is disabled by default. The settings can be found in the nifi.properties file and the feature can be enabled there also.
+In the case of a lengthy diagnostic, NiFi may terminate before the diagnostics are completed. In this case, the graceful.shutdown.seconds property should be set to a higher value in the bootstrap.conf.
