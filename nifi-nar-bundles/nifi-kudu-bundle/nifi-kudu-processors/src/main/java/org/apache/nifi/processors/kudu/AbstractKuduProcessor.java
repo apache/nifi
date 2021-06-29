@@ -55,7 +55,10 @@ import org.apache.nifi.util.StringUtils;
 
 import javax.security.auth.login.LoginException;
 import java.math.BigDecimal;
+import java.sql.Date;
 import java.sql.Timestamp;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -403,13 +406,33 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
                         row.addVarchar(columnIndex, DataTypeUtils.toString(value, recordFieldName));
                         break;
                     case DATE:
-                        row.addDate(columnIndex, DataTypeUtils.toDate(value, () -> DataTypeUtils.getDateFormat(RecordFieldType.DATE.getDefaultFormat()), recordFieldName));
+                        row.addDate(columnIndex, getDate(value, recordFieldName));
                         break;
                     default:
                         throw new IllegalStateException(String.format("unknown column type %s", colType));
                 }
             }
         }
+    }
+
+    /**
+     * Get java.sql.Date from Record Field Value with optional parsing when input value is a String
+     *
+     * @param value Record Field Value
+     * @param recordFieldName Record Field Name
+     * @return Date object or null when value is null
+     */
+    private Date getDate(final Object value, final String recordFieldName) {
+        return DataTypeUtils.toDate(value, () -> getDateFormat(), recordFieldName);
+    }
+
+    /**
+     * Get Date Format using Date Record Field default pattern and system time zone to avoid unnecessary conversion
+     *
+     * @return Date Format used to parsing date fields
+     */
+    private DateFormat getDateFormat() {
+        return new SimpleDateFormat(RecordFieldType.DATE.getDefaultFormat());
     }
 
     /**
