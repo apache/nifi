@@ -31,7 +31,7 @@ public class TestScriptedFilterRecord extends TestScriptedRouterProcessor {
     private static final Object[] NON_MATCHING_RECORD_2 = new Object[] {2, "ipsum"};
 
     @Test
-    public void testIncomingFlowFileContainsMatchingRecordsOnly() throws Exception {
+    public void testIncomingFlowFileContainsMatchingRecordsOnly() {
         // given
         recordReader.addRecord(MATCHING_RECORD_1);
         recordReader.addRecord(MATCHING_RECORD_2);
@@ -41,11 +41,11 @@ public class TestScriptedFilterRecord extends TestScriptedRouterProcessor {
 
         // then
         thenIncomingFlowFileIsRoutedToOriginal();
-        thenMatchingFlowFileContains(new Object[][]{MATCHING_RECORD_1, MATCHING_RECORD_2});
+        thenMatchingFlowFileContains(MATCHING_RECORD_1, MATCHING_RECORD_2);
     }
 
     @Test
-    public void testIncomingFlowFileContainsNonMatchingRecordsOnly() throws Exception {
+    public void testIncomingFlowFileContainsNonMatchingRecordsOnly() {
         // given
         recordReader.addRecord(NON_MATCHING_RECORD_1);
         recordReader.addRecord(NON_MATCHING_RECORD_2);
@@ -59,7 +59,7 @@ public class TestScriptedFilterRecord extends TestScriptedRouterProcessor {
     }
 
     @Test
-    public void testIncomingFlowFileContainsMatchingAndNonMatchingRecords() throws Exception {
+    public void testIncomingFlowFileContainsMatchingAndNonMatchingRecords() {
         // given
         recordReader.addRecord(MATCHING_RECORD_1);
         recordReader.addRecord(NON_MATCHING_RECORD_1);
@@ -71,11 +71,11 @@ public class TestScriptedFilterRecord extends TestScriptedRouterProcessor {
 
         // then
         thenIncomingFlowFileIsRoutedToOriginal();
-        thenMatchingFlowFileContains(new Object[][]{MATCHING_RECORD_1, MATCHING_RECORD_2});
+        thenMatchingFlowFileContains(MATCHING_RECORD_1, MATCHING_RECORD_2);
     }
 
     @Test
-    public void testIncomingFlowFileContainsNoRecords() throws Exception {
+    public void testIncomingFlowFileContainsNoRecords() {
         // when
         whenTriggerProcessor();
 
@@ -85,7 +85,7 @@ public class TestScriptedFilterRecord extends TestScriptedRouterProcessor {
     }
 
     @Test
-    public void testIncomingFlowFileCannotBeRead() throws Exception {
+    public void testIncomingFlowFileCannotBeRead() {
         // given
         recordReader.failAfter(0);
 
@@ -97,7 +97,7 @@ public class TestScriptedFilterRecord extends TestScriptedRouterProcessor {
         thenMatchingFlowFileIsEmpty();
     }
 
-    private void thenMatchingFlowFileContains(final Object[][] records) {
+    private void thenMatchingFlowFileContains(final Object[]... records) {
         testRunner.assertTransferCount(ScriptedFilterRecord.RELATIONSHIP_MATCHING, 1);
         final MockFlowFile resultFlowFile = testRunner.getFlowFilesForRelationship(ScriptedFilterRecord.RELATIONSHIP_MATCHING).get(0);
         Assert.assertEquals(givenExpectedFlowFile(records), resultFlowFile.getContent());
@@ -115,7 +115,7 @@ public class TestScriptedFilterRecord extends TestScriptedRouterProcessor {
     }
 
     @Override
-    protected String getScript() {
+    protected String getScriptBody() {
         return SCRIPT;
     }
 

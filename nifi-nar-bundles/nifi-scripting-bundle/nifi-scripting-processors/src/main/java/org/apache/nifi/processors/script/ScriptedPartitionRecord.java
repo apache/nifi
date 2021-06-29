@@ -64,12 +64,12 @@ public class ScriptedPartitionRecord extends ScriptedRouterProcessor<String> {
                 "This happens regardless the records are matching to a relationship or not.")
             .build();
 
-    static final Relationship RELATIONSHIP_FAILED = new Relationship.Builder()
+    static final Relationship RELATIONSHIP_FAILURE = new Relationship.Builder()
             .name("failed")
             .description("In case of any issue during processing the incoming FlowFile, the incoming FlowFile will be routed to this relationship.")
             .build();
 
-    static final Relationship RELATIONSHIP_UNMATCHED = new Relationship.Builder()
+    static final Relationship RELATIONSHIP_SUCCESS = new Relationship.Builder()
             .name("unmatched")
             .description("Records where the script evaluation returns with an unknown partition are routed to this relationship.")
             .build();
@@ -78,8 +78,8 @@ public class ScriptedPartitionRecord extends ScriptedRouterProcessor<String> {
 
     static {
         RELATIONSHIPS.add(RELATIONSHIP_ORIGINAL);
-        RELATIONSHIPS.add(RELATIONSHIP_FAILED);
-        RELATIONSHIPS.add(RELATIONSHIP_UNMATCHED);
+        RELATIONSHIPS.add(RELATIONSHIP_FAILURE);
+        RELATIONSHIPS.add(RELATIONSHIP_SUCCESS);
     }
 
     private final AtomicReference<Set<Relationship>> relationships = new AtomicReference<>();
@@ -164,13 +164,13 @@ public class ScriptedPartitionRecord extends ScriptedRouterProcessor<String> {
 
     @Override
     protected Relationship getFailedRelationship() {
-        return RELATIONSHIP_FAILED;
+        return RELATIONSHIP_FAILURE;
     }
 
     @Override
     protected Optional<Relationship> resolveRelationship(final String scriptResult) {
         return partitions.containsKey(scriptResult)
             ? Optional.of(partitions.get(scriptResult))
-            : Optional.of(RELATIONSHIP_UNMATCHED);
+            : Optional.of(RELATIONSHIP_SUCCESS);
     }
 }

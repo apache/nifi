@@ -53,7 +53,14 @@ abstract class TestScriptedRouterProcessor {
         testRunner.addControllerService("record-reader", recordReader);
         testRunner.addControllerService("record-writer", recordWriter);
 
-        testRunner.setProperty(ScriptingComponentUtils.SCRIPT_BODY, getScript());
+        if (getScriptBody() != null) {
+            testRunner.removeProperty(ScriptingComponentUtils.SCRIPT_FILE);
+            testRunner.setProperty(ScriptingComponentUtils.SCRIPT_BODY, getScriptBody());
+        } else if (getScriptFile() != null) {
+            testRunner.removeProperty(ScriptingComponentUtils.SCRIPT_BODY);
+            testRunner.setProperty(ScriptingComponentUtils.SCRIPT_FILE, getScriptFile());
+        }
+
         testRunner.setProperty(ScriptedTransformRecord.LANGUAGE, "Groovy");
 
         testRunner.enableControllerService(recordReader);
@@ -82,7 +89,7 @@ abstract class TestScriptedRouterProcessor {
     /**
      * Generates the expected flow file content based on the records. Results the same format as the {@code MockRecordWriter} uses.
      */
-    protected String givenExpectedFlowFile(final Object[][] records) {
+    protected String givenExpectedFlowFile(final Object[]... records) {
         final StringBuilder expectedFlowFile = new StringBuilder(HEADER).append('\n');
 
         for (final Object[] record : records) {
@@ -102,9 +109,15 @@ abstract class TestScriptedRouterProcessor {
 
     protected abstract Class<? extends Processor> givenProcessorType();
 
-    protected abstract String getScript();
-
     protected abstract Relationship getOriginalRelationship();
 
     protected abstract Relationship getFailedRelationship();
+
+    protected String getScriptBody() {
+        return null;
+    }
+
+    protected String getScriptFile() {
+        return null;
+    }
 }

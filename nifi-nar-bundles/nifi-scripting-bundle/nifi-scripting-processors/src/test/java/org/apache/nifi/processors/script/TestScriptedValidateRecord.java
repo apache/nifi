@@ -41,12 +41,12 @@ public class TestScriptedValidateRecord extends TestScriptedRouterProcessor {
 
         // then
         thenIncomingFlowFileIsRoutedToOriginal();
-        thenValidFlowFileContains(new Object[][]{VALID_RECORD_1, VALID_RECORD_2});
+        thenValidFlowFileContains(VALID_RECORD_1, VALID_RECORD_2);
         thenNoInvalidFlowFile();
     }
 
     @Test
-    public void testIncomingFlowFileContainsInvalidRecordsOnly() throws Exception {
+    public void testIncomingFlowFileContainsInvalidRecordsOnly() {
         // given
         recordReader.addRecord(INVALID_RECORD_1);
         recordReader.addRecord(INVALID_RECORD_2);
@@ -56,12 +56,12 @@ public class TestScriptedValidateRecord extends TestScriptedRouterProcessor {
 
         // then
         thenIncomingFlowFileIsRoutedToOriginal();
-        thenInvalidFlowFileContains(new Object[][]{INVALID_RECORD_1, INVALID_RECORD_2});
+        thenInvalidFlowFileContains(INVALID_RECORD_1, INVALID_RECORD_2);
         thenNoValidFlowFile();
     }
 
     @Test
-    public void testIncomingFlowFileContainsBothValidAndInvalidRecords() throws Exception {
+    public void testIncomingFlowFileContainsBothValidAndInvalidRecords() {
         // given
         recordReader.addRecord(VALID_RECORD_1);
         recordReader.addRecord(INVALID_RECORD_1);
@@ -73,12 +73,12 @@ public class TestScriptedValidateRecord extends TestScriptedRouterProcessor {
 
         // then
         thenIncomingFlowFileIsRoutedToOriginal();
-        thenValidFlowFileContains(new Object[][]{VALID_RECORD_1, VALID_RECORD_2});
-        thenInvalidFlowFileContains(new Object[][]{INVALID_RECORD_1, INVALID_RECORD_2});
+        thenValidFlowFileContains(VALID_RECORD_1, VALID_RECORD_2);
+        thenInvalidFlowFileContains(INVALID_RECORD_1, INVALID_RECORD_2);
     }
 
     @Test
-    public void testIncomingFlowFileContainsNoRecords() throws Exception {
+    public void testIncomingFlowFileContainsNoRecords() {
         // when
         whenTriggerProcessor();
 
@@ -89,7 +89,7 @@ public class TestScriptedValidateRecord extends TestScriptedRouterProcessor {
     }
 
     @Test
-    public void testIncomingFlowFileCannotBeRead() throws Exception {
+    public void testIncomingFlowFileCannotBeRead() {
         // given
         recordReader.failAfter(0);
 
@@ -102,14 +102,14 @@ public class TestScriptedValidateRecord extends TestScriptedRouterProcessor {
         thenNoInvalidFlowFile();
     }
 
-    private void thenValidFlowFileContains(final Object[][] records) {
+    private void thenValidFlowFileContains(final Object[]... records) {
         testRunner.assertTransferCount(ScriptedValidateRecord.RELATIONSHIP_VALID, 1);
         final MockFlowFile resultFlowFile = testRunner.getFlowFilesForRelationship(ScriptedValidateRecord.RELATIONSHIP_VALID).get(0);
         Assert.assertEquals(givenExpectedFlowFile(records), resultFlowFile.getContent());
         Assert.assertEquals("text/plain", resultFlowFile.getAttribute("mime.type"));
     }
 
-    private void thenInvalidFlowFileContains(final Object[][] records) {
+    private void thenInvalidFlowFileContains(final Object[]... records) {
         testRunner.assertTransferCount(ScriptedValidateRecord.RELATIONSHIP_INVALID, 1);
         final MockFlowFile resultFlowFile = testRunner.getFlowFilesForRelationship(ScriptedValidateRecord.RELATIONSHIP_INVALID).get(0);
         Assert.assertEquals(givenExpectedFlowFile(records), resultFlowFile.getContent());
@@ -130,7 +130,7 @@ public class TestScriptedValidateRecord extends TestScriptedRouterProcessor {
     }
 
     @Override
-    protected String getScript() {
+    protected String getScriptBody() {
         return SCRIPT;
     }
 
@@ -141,6 +141,6 @@ public class TestScriptedValidateRecord extends TestScriptedRouterProcessor {
 
     @Override
     protected Relationship getFailedRelationship() {
-        return ScriptedValidateRecord.RELATIONSHIP_FAILED;
+        return ScriptedValidateRecord.RELATIONSHIP_FAILURE;
     }
 }

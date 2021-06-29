@@ -26,7 +26,7 @@ import javax.script.ScriptException;
 interface ScriptEvaluator {
 
     /**
-     * Evaluates the enclosed script using the record as arugment. Returns with the script's return value.
+     * Evaluates the enclosed script using the record as argument. Returns with the script's return value.
      *
      * @param record The script to evaluate.
      * @param index The index of the record.

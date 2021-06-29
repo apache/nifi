@@ -40,7 +40,6 @@ import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.WriteResult;
-import org.apache.nifi.serialization.record.ListRecordSet;
 import org.apache.nifi.serialization.record.PushBackRecordSet;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
@@ -57,6 +56,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.function.BiFunction;
+import java.util.stream.Collectors;
 
 @EventDriven
 @SupportsBatching
@@ -175,62 +177,44 @@ public abstract class ScriptedRouterProcessor<T> extends ScriptedProcessor {
                         final RecordSchema schema = writerFactory.getSchema(originalAttributes, reader.getSchema());
                         final RecordSet recordSet = reader.createRecordSet();
                         final PushBackRecordSet pushBackSet = new PushBackRecordSet(recordSet);
-                        final Map<Relationship, List<Record>> outgoingRecords = new HashMap<>();
+                        final Map<Relationship, RecordSetFlowFileBuilder> recordSetFlowFileBuilders = new HashMap<>();
+                        final BiFunction<FlowFile, OutputStream, RecordSetWriter> recordSetWriterFactory = (outgoingFlowFile, out) -> {
+                            try {
+                                return writerFactory.createWriter(getLogger(), schema, out, outgoingFlowFile);
+                            } catch (final IOException | SchemaNotFoundException e) {
+                                throw new ProcessException("Could not create RecordSetWriter", e);
+                            }
+                        };
+
                         int index = 0;
 
                         // Reading in records and evaluate script
                         while (pushBackSet.isAnotherRecord()) {
                             final Record record = pushBackSet.next();
                             final Object evaluatedValue = evaluator.evaluate(record, index++);
+                            getLogger().debug("Evaluated scripted against {} (index {}), producing result of {}", record, index - 1, evaluatedValue);
 
                             if (evaluatedValue != null && scriptResultType.isInstance(evaluatedValue)) {
                                 final Optional<Relationship> outgoingRelationship = resolveRelationship(scriptResultType.cast(evaluatedValue));
 
                                 if (outgoingRelationship.isPresent()) {
-                                    if (!outgoingRecords.containsKey(outgoingRelationship.get())) {
-                                        outgoingRecords.put(outgoingRelationship.get(), new LinkedList<>());
+                                    if (!recordSetFlowFileBuilders.containsKey(outgoingRelationship.get())) {
+                                        recordSetFlowFileBuilders.put(outgoingRelationship.get(), new RecordSetFlowFileBuilder(incomingFlowFile, session, recordSetWriterFactory));
                                     }
 
-                                    outgoingRecords.get(outgoingRelationship.get()).add(record);
+                                    final int recordCount = recordSetFlowFileBuilders.get(outgoingRelationship.get()).addRecord(record);
+                                    session.adjustCounter("Record Processed", recordCount, false);
                                 } else {
                                     getLogger().debug("Record with evaluated value {} has no outgoing relationship determined", String.valueOf(evaluatedValue));
                                 }
                             } else {
-                                throw new ProcessException("Script result is not applicable: " + String.valueOf(evaluatedValue));
+                                throw new ProcessException("Script returned a value of " + evaluatedValue
+                                        + " but this Processor requires that the object returned by an instance of " + scriptResultType.getSimpleName());
                             }
                         }
 
-                        // Creating and sending outgoing flow files
-                        for (final Map.Entry<Relationship, List<Record>> entry : outgoingRecords.entrySet()) {
-                            final Relationship relationship = entry.getKey();
-                            final List<Record> records = entry.getValue();
-
-                            if (records.isEmpty()) {
-                                getLogger().debug("No outgoing records for relationship {}", relationship.getName());
-                                continue;
-                            }
-
-                            FlowFile outgoingFlowFile = session.create(incomingFlowFile);
-                            final Map<String, String> attributesToAdd = new HashMap<>();
-
-                            try (
-                                final OutputStream out = session.write(outgoingFlowFile);
-                                final RecordSetWriter writer = writerFactory.createWriter(getLogger(), schema, out, outgoingFlowFile);
-                            ) {
-                                attributesToAdd.put("mime.type", writer.getMimeType());
-
-                                if (records.size() == 1) {
-                                    final WriteResult writeResult = writer.write(records.get(0));
-                                    attributesToAdd.putAll(writeResult.getAttributes());
-                                } else {
-                                    final WriteResult writeResult = writer.write(new ListRecordSet(schema, records));
-                                    attributesToAdd.putAll(writeResult.getAttributes());
-                                }
-                            }
-
-                            session.putAllAttributes(outgoingFlowFile, attributesToAdd);
-                            session.transfer(outgoingFlowFile, relationship);
-                        }
+                        // Sending outgoing flow files
+                        recordSetFlowFileBuilders.forEach((key, value) -> session.transfer(value.build(), key));
                     } catch (final ScriptException | SchemaNotFoundException | MalformedRecordException e) {
                         throw new ProcessException("Failed to parse incoming FlowFile", e);
                     }
@@ -265,4 +249,71 @@ public abstract class ScriptedRouterProcessor<T> extends ScriptedProcessor {
      * the original or failed).
      */
     protected abstract Optional<Relationship> resolveRelationship(final T scriptResult);
+
+    /**
+     * Helper class contains all the information necessary to prepare an outgoing flow file.
+     */
+    private static final class RecordSetFlowFileBuilder {
+        private final ProcessSession session;
+        private final FlowFile incomingFlowFile;
+        final private FlowFile outgoingFlowFile;
+        private final OutputStream out;
+        private final RecordSetWriter writer;
+        private final List<Map<String, String>> attributes = new LinkedList<>();
+
+        private int recordCount = 0;
+
+        RecordSetFlowFileBuilder(
+            final FlowFile incomingFlowFile,
+            final ProcessSession session,
+            final BiFunction<FlowFile, OutputStream, RecordSetWriter> recordSetWriterSupplier
+        ) throws IOException {
+            this.session = session;
+            this.incomingFlowFile = incomingFlowFile;
+            this.outgoingFlowFile = session.create(incomingFlowFile);
+            this.out = session.write(outgoingFlowFile);
+            this.writer = recordSetWriterSupplier.apply(outgoingFlowFile, out);
+            this.writer.beginRecordSet();
+        }
+
+        int addRecord(final Record record) throws IOException {
+            final WriteResult writeResult = writer.write(record);
+            attributes.add(writeResult.getAttributes());
+            recordCount = writeResult.getRecordCount();
+            return recordCount;
+        }
+
+        private Map<String, String> getWriteAttributes() {
+            final Map<String, String> result = new HashMap<>();
+            final Set<String> attributeNames = attributes.stream().map(a -> a.keySet()).flatMap(x -> x.stream()).collect(Collectors.toSet());
+
+            for (final String attributeName : attributeNames) {
+                final Set<String> attributeValues = attributes.stream().map(a -> a.get(attributeName)).collect(Collectors.toSet());
+
+                // Only adding values to the flow file attributes from writing if the value is the same for every written record
+                if (attributeValues.size() == 1) {
+                    result.put(attributeName, attributeValues.iterator().next());
+                }
+            }
+
+            return result;
+        }
+
+        FlowFile build() {
+            final Map<String, String> attributesToAdd = new HashMap<>(incomingFlowFile.getAttributes());
+            attributesToAdd.putAll(getWriteAttributes());
+            attributesToAdd.put("mime.type", writer.getMimeType());
+            attributesToAdd.put("record.count", String.valueOf(recordCount));
+
+            try {
+                writer.finishRecordSet();
+                writer.close();
+                out.close();
+            } catch (final IOException e) {
+                throw new ProcessException("Resources used for record writing might not be closed", e);
+            }
+
+            return session.putAllAttributes(outgoingFlowFile, attributesToAdd);
+        }
+    }
 }

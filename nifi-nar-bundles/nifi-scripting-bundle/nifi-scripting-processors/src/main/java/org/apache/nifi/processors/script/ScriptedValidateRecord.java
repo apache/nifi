@@ -29,7 +29,7 @@ import java.util.Set;
 @CapabilityDescription(
         "This processor provides the ability to validate records in FlowFiles using the user-provided script. " +
         "The script is expected to have a record as incoming argument and return with a boolean value. " +
-        "Based on this result, the processor categorizes the records as \"valid\" or \"invalid\" and routes them to the respected relationship in batch. " +
+        "Based on this result, the processor categorizes the records as \"valid\" or \"invalid\" and routes them to the respective relationship in batch. " +
         "Additionally the original FlowFile will be routed to the \"original\" relationship or in case of unsuccessful processing, to the \"failed\" relationship."
 )
 @SeeAlso(classNames = {
@@ -60,8 +60,8 @@ public class ScriptedValidateRecord extends ScriptedRouterProcessor<Boolean> {
                 "This happens regardless the FlowFiles might routed to \"valid\" and \"invalid\" relationships.")
             .build();
 
-    static final Relationship RELATIONSHIP_FAILED = new Relationship.Builder()
-            .name("failed")
+    static final Relationship RELATIONSHIP_FAILURE = new Relationship.Builder()
+            .name("failure")
             .description("In case of any issue during processing the incoming flow file, the incoming FlowFile will be routed to this relationship.")
             .build();
 
@@ -71,7 +71,7 @@ public class ScriptedValidateRecord extends ScriptedRouterProcessor<Boolean> {
         RELATIONSHIPS.add(RELATIONSHIP_VALID);
         RELATIONSHIPS.add(RELATIONSHIP_INVALID);
         RELATIONSHIPS.add(RELATIONSHIP_ORIGINAL);
-        RELATIONSHIPS.add(RELATIONSHIP_FAILED);
+        RELATIONSHIPS.add(RELATIONSHIP_FAILURE);
     }
 
     public ScriptedValidateRecord() {
@@ -90,7 +90,7 @@ public class ScriptedValidateRecord extends ScriptedRouterProcessor<Boolean> {
 
     @Override
     protected Relationship getFailedRelationship() {
-        return RELATIONSHIP_FAILED;
+        return RELATIONSHIP_FAILURE;
     }
 
     @Override
