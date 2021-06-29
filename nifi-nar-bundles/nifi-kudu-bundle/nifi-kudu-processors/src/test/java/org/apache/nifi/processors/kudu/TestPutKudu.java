@@ -75,6 +75,7 @@ import java.util.stream.IntStream;
 import static org.apache.nifi.processors.kudu.TestPutKudu.ResultCode.EXCEPTION;
 import static org.apache.nifi.processors.kudu.TestPutKudu.ResultCode.FAIL;
 import static org.apache.nifi.processors.kudu.TestPutKudu.ResultCode.OK;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
@@ -476,6 +477,31 @@ public class TestPutKudu {
         // comparing dates, even though java.sql.Date is supposed to ignore time
         Assert.assertEquals(String.format("Expecting the date to be %s, but got %s", today.toString(), row.getDate("sql_date").toString()),
                 row.getDate("sql_date").toString(), today.toString());
+    }
+
+    @Test
+    public void testBuildPartialRowWithDateString() {
+        final String dateFieldName = "created";
+        final String dateFieldValue = "2000-01-01";
+
+        final Schema kuduSchema = new Schema(Collections.singletonList(
+                new ColumnSchema.ColumnSchemaBuilder(dateFieldName, Type.DATE).nullable(true).build()
+        ));
+
+        final RecordSchema schema = new SimpleRecordSchema(Collections.singletonList(
+                new RecordField(dateFieldName, RecordFieldType.DATE.getDataType())
+        ));
+
+        final Map<String, Object> values = new HashMap<>();
+        values.put(dateFieldName, dateFieldValue);
+        final MapRecord record = new MapRecord(schema, values);
+
+        final PartialRow row = kuduSchema.newPartialRow();
+
+        processor.buildPartialRow(kuduSchema, row, record, schema.getFieldNames(), true, true);
+
+        final java.sql.Date rowDate = row.getDate(dateFieldName);
+        assertEquals("Partial Row Date Field not matched", dateFieldValue, rowDate.toString());
     }
 
     private PartialRow buildPartialRow(Long id, String name, Short age, String kuduIdName, String recordIdName, String airport_code, java.sql.Date sql_date, Boolean lowercaseFields) {
