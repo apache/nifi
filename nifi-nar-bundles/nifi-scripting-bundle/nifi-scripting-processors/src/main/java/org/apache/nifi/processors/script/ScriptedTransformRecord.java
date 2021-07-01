@@ -29,7 +29,6 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.PropertyDescriptor.Builder;
 import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
@@ -37,7 +36,6 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
-import org.apache.nifi.script.ScriptingComponentUtils;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
@@ -50,7 +48,6 @@ import org.apache.nifi.serialization.record.RecordSchema;
 import javax.script.ScriptEngine;
 import javax.script.ScriptException;
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -82,28 +79,6 @@ import java.util.concurrent.atomic.AtomicReference;
     "org.apache.nifi.processors.jolt.record.JoltTransformRecord",
     "org.apache.nifi.processors.standard.LookupRecord"})
 public class ScriptedTransformRecord extends ScriptedProcessor {
-    static final PropertyDescriptor RECORD_READER = new Builder()
-        .name("Record Reader")
-        .displayName("Record Reader")
-        .description("The Record Reader to use parsing the incoming FlowFile into Records")
-        .required(true)
-        .identifiesControllerService(RecordReaderFactory.class)
-        .build();
-    static final PropertyDescriptor RECORD_WRITER = new Builder()
-        .name("Record Writer")
-        .displayName("Record Writer")
-        .description("The Record Writer to use for serializing Records after they have been transformed")
-        .required(true)
-        .identifiesControllerService(RecordSetWriterFactory.class)
-        .build();
-    static final PropertyDescriptor LANGUAGE = new Builder()
-        .name("Script Engine")
-        .displayName("Script Language")
-        .description("The Language to use for the script")
-        .allowableValues(SCRIPT_OPTIONS)
-        .defaultValue("Groovy")
-        .required(true)
-        .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
         .name("success")
@@ -114,14 +89,6 @@ public class ScriptedTransformRecord extends ScriptedProcessor {
         .name("failure")
         .description("Any FlowFile that cannot be transformed will be routed to this Relationship")
         .build();
-
-    private static final List<PropertyDescriptor> DESCRIPTORS = Arrays.asList(
-        RECORD_READER,
-        RECORD_WRITER,
-        LANGUAGE,
-        ScriptingComponentUtils.SCRIPT_BODY,
-        ScriptingComponentUtils.SCRIPT_FILE,
-        ScriptingComponentUtils.MODULES);
 
     @Override
     public Set<Relationship> getRelationships() {
@@ -143,7 +110,7 @@ public class ScriptedTransformRecord extends ScriptedProcessor {
             return;
         }
 
-        final ScriptRunner scriptRunner = pollScriptEngine();
+        final ScriptRunner scriptRunner = pollScriptRunner();
         if (scriptRunner == null) {
             // This shouldn't happen. But just in case.
             session.rollback();
@@ -163,7 +130,7 @@ public class ScriptedTransformRecord extends ScriptedProcessor {
 
             transform(flowFile, evaluator, context, session);
         } finally {
-            offerScriptEngine(scriptRunner);
+            offerScriptRunner(scriptRunner);
         }
     }
 

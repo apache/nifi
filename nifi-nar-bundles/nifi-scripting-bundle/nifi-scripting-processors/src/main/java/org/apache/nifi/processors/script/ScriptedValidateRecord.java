@@ -35,6 +35,7 @@ import java.util.Set;
 @SeeAlso(classNames = {
         "org.apache.nifi.processors.script.ScriptedTransformRecord",
         "org.apache.nifi.processors.script.ScriptedFilterRecord",
+        "org.apache.nifi.processors.script.ScriptedRouteRecord",
         "org.apache.nifi.processors.script.ScriptedPartitionRecord"
 })
 public class ScriptedValidateRecord extends ScriptedRouterProcessor<Boolean> {
@@ -89,7 +90,7 @@ public class ScriptedValidateRecord extends ScriptedRouterProcessor<Boolean> {
     }
 
     @Override
-    protected Relationship getFailedRelationship() {
+    protected Relationship getFailureRelationship() {
         return RELATIONSHIP_FAILURE;
     }
 

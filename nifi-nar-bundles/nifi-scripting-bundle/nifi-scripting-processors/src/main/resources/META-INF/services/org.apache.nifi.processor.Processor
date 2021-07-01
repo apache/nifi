@@ -18,4 +18,4 @@ org.apache.nifi.processors.script.ExecuteScript
 org.apache.nifi.processors.script.ScriptedTransformRecord
 org.apache.nifi.processors.script.ScriptedValidateRecord
 org.apache.nifi.processors.script.ScriptedFilterRecord
-org.apache.nifi.processors.script.ScriptedPartitionRecord
+org.apache.nifi.processors.script.ScriptedRouteRecord

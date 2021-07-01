@@ -16,7 +16,9 @@
  */
 
 if (record.getValue("first") == 1) {
-   return "partition1";
+   return "route1";
+} else if (record.getValue("first") == 2) {
+   return "route2";
 } else {
-   return "partition2";
+   return "route3";
 }

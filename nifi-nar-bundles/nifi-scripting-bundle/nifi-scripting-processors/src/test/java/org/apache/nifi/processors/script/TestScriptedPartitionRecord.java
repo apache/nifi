@@ -20,9 +20,9 @@ import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.util.MockFlowFile;
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.Test;
 
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -30,83 +30,8 @@ public class TestScriptedPartitionRecord extends TestScriptedRouterProcessor {
     private static final Object[] PARTITION_1_RECORD_1 = new Object[] {1, "lorem"};
     private static final Object[] PARTITION_1_RECORD_2 = new Object[] {1, "ipsum"};
     private static final Object[] PARTITION_2_RECORD_1 = new Object[] {2, "lorem"};
-    private static final Object[] PARTITION_3_RECORD_1 = new Object[] {3, "lorem"};
     private static final String PARTITION_1 = "partition1";
     private static final String PARTITION_2 = "partition2";
-    private static final String PARTITION_3 = "partition3";
-    private static final String RELATIONSHIP_1 = "relationship1";
-    private static final String RELATIONSHIP_2 = "relationship2";
-
-    @Before
-    public void setUp() throws Exception {
-        super.setUp();
-        testRunner.setProperty(PARTITION_1, RELATIONSHIP_1);
-        testRunner.setProperty(PARTITION_2, RELATIONSHIP_2);
-    }
-
-    @Test
-    public void testIncomingFlowFilesContainsRecordForOneRoute() {
-        // given
-        recordReader.addRecord(PARTITION_1_RECORD_1);
-        recordReader.addRecord(PARTITION_1_RECORD_2);
-
-        // when
-        whenTriggerProcessor();
-
-        // then
-        thenIncomingFlowFileIsRoutedToOriginal();
-        thenGivenRouteContains(RELATIONSHIP_1, PARTITION_1_RECORD_1, PARTITION_1_RECORD_2);
-        thenGivenRouteIsEmpty(RELATIONSHIP_2);
-        thenNonMatchingIsEmpty();
-    }
-
-    @Test
-    public void testIncomingFlowFilesContainsRecordForMultipleRoutes() {
-        // given
-        recordReader.addRecord(PARTITION_1_RECORD_1);
-        recordReader.addRecord(PARTITION_2_RECORD_1);
-
-        // when
-        whenTriggerProcessor();
-
-        // then
-        thenIncomingFlowFileIsRoutedToOriginal();
-        thenGivenRouteContains(RELATIONSHIP_1, PARTITION_1_RECORD_1);
-        thenGivenRouteContains(RELATIONSHIP_2, PARTITION_2_RECORD_1);
-        thenNonMatchingIsEmpty();
-    }
-
-    @Test
-    public void testIncomingFlowFilesContainsNonMatchingRecord() {
-        // given
-        recordReader.addRecord(PARTITION_1_RECORD_1);
-        recordReader.addRecord(PARTITION_2_RECORD_1);
-        recordReader.addRecord(PARTITION_3_RECORD_1);
-
-        // when
-        whenTriggerProcessor();
-
-        // then
-        thenIncomingFlowFileIsRoutedToOriginal();
-        thenGivenRouteContains(RELATIONSHIP_1, PARTITION_1_RECORD_1);
-        thenGivenRouteContains(RELATIONSHIP_2, PARTITION_2_RECORD_1);
-        thenNonMatchingContains(PARTITION_3_RECORD_1);
-    }
-
-    @Test
-    public void testIncomingFlowFilesContainsOnlyNonMatchingRecord() {
-        // given
-        recordReader.addRecord(PARTITION_3_RECORD_1);
-
-        // when
-        whenTriggerProcessor();
-
-        // then
-        thenIncomingFlowFileIsRoutedToOriginal();
-        thenGivenRouteIsEmpty(RELATIONSHIP_1);
-        thenGivenRouteIsEmpty(RELATIONSHIP_2);
-        thenNonMatchingContains(PARTITION_3_RECORD_1);
-    }
 
     @Test
     public void testIncomingFlowFileContainsNoRecords() {
@@ -115,107 +40,83 @@ public class TestScriptedPartitionRecord extends TestScriptedRouterProcessor {
 
         // then
         thenIncomingFlowFileIsRoutedToOriginal();
-        thenGivenRouteIsEmpty(RELATIONSHIP_1);
-        thenGivenRouteIsEmpty(RELATIONSHIP_2);
-        thenNonMatchingIsEmpty();
+        thenNoPartitionExists();
     }
 
     @Test
-    public void testIncomingFlowFileCannotBeRead() {
+    public void testWhenSinglePartitionAndSingleRecord() {
         // given
-        recordReader.failAfter(0);
-
-        // when
-        whenTriggerProcessor();
-
-        // then
-        thenIncomingFlowFileIsRoutedToFailed();
-        thenGivenRouteIsEmpty(RELATIONSHIP_1);
-        thenGivenRouteIsEmpty(RELATIONSHIP_2);
-        thenNonMatchingIsEmpty();
-    }
-
-    @Test
-    public void testMultiplePartitionPointToTheSameRelationship() {
-        // given
-        testRunner.setProperty(PARTITION_3, RELATIONSHIP_1);
         recordReader.addRecord(PARTITION_1_RECORD_1);
-        recordReader.addRecord(PARTITION_3_RECORD_1);
 
         // when
         whenTriggerProcessor();
+        thenIncomingFlowFileIsRoutedToOriginal();
 
         // then
-        thenIncomingFlowFileIsRoutedToOriginal();
-        thenGivenRouteContains(RELATIONSHIP_1, PARTITION_1_RECORD_1, PARTITION_3_RECORD_1);
-        thenGivenRouteIsEmpty(RELATIONSHIP_2);
-        thenNonMatchingIsEmpty();
+        thenTheFollowingPartitionsExists(PARTITION_1);
+        thenPartitionContains(PARTITION_1, 1, 1, PARTITION_1_RECORD_1);
     }
 
     @Test
-    public void testPartitionPointsToStaticRelationship() {
+    public void testWhenSinglePartitionAndMultipleRecords() {
         // given
-        testRunner.setProperty(PARTITION_3, ScriptedPartitionRecord.RELATIONSHIP_FAILURE.getName());
+        recordReader.addRecord(PARTITION_1_RECORD_1);
+        recordReader.addRecord(PARTITION_1_RECORD_2);
 
         // when
-        testRunner.assertNotValid();
+        whenTriggerProcessor();
+        thenIncomingFlowFileIsRoutedToOriginal();
+
+        // then
+        thenTheFollowingPartitionsExists(PARTITION_1);
+        thenPartitionContains(PARTITION_1, 1, 1, PARTITION_1_RECORD_1, PARTITION_1_RECORD_2);
     }
 
     @Test
-    public void testDynamicRelationshipsAreManagedProperly() {
-        // The default test set up
-        thenProcessorRelationshipsAre(RELATIONSHIP_1, RELATIONSHIP_2);
+    public void testWhenMultiplePartitions() {
+        // given
+        recordReader.addRecord(PARTITION_1_RECORD_1);
+        recordReader.addRecord(PARTITION_1_RECORD_2);
+        recordReader.addRecord(PARTITION_2_RECORD_1);
 
-        // Adding additional partition pointing to relationship2
-        testRunner.setProperty(PARTITION_3, RELATIONSHIP_2);
-        thenProcessorRelationshipsAre(RELATIONSHIP_1, RELATIONSHIP_2);
+        // when
+        whenTriggerProcessor();
+        thenIncomingFlowFileIsRoutedToOriginal();
 
-        // Removing additional partition pointing to relationship2 - should not remove relationship2
-        testRunner.removeProperty(PARTITION_3);
-        thenProcessorRelationshipsAre(RELATIONSHIP_1, RELATIONSHIP_2);
-
-        // Removing the remaining partition pointing to relationship2 - relationship2 should be removed
-        testRunner.removeProperty(PARTITION_2);
-        thenProcessorRelationshipsAre(RELATIONSHIP_1);
-
-        // Adding a partition pointing to relationship2 - should add the relationship back
-        testRunner.setProperty(PARTITION_2, RELATIONSHIP_2);
-        thenProcessorRelationshipsAre(RELATIONSHIP_1, RELATIONSHIP_2);
+        // then
+        thenTheFollowingPartitionsExists(PARTITION_1, PARTITION_2);
+        thenPartitionContains(PARTITION_2, 1, 2, PARTITION_2_RECORD_1);
+        thenPartitionContains(PARTITION_1, 2, 2, PARTITION_1_RECORD_1, PARTITION_1_RECORD_2);
     }
 
-    private void thenGivenRouteIsEmpty(final String route) {
-        testRunner.assertTransferCount(route, 0);
+    private void thenNoPartitionExists() {
+        Assert.assertEquals(0, testRunner.getFlowFilesForRelationship(ScriptedPartitionRecord.RELATIONSHIP_SUCCESS).size());
     }
 
-    private void thenGivenRouteContains(final String route, final Object[]... records) {
-        testRunner.assertTransferCount(route, 1);
-        final MockFlowFile resultFlowFile = testRunner.getFlowFilesForRelationship(route).get(0);
-        Assert.assertEquals(givenExpectedFlowFile(records), resultFlowFile.getContent());
-        Assert.assertEquals("text/plain", resultFlowFile.getAttribute("mime.type"));
-    }
+    private void thenTheFollowingPartitionsExists(final String... partitions) {
+        final List<MockFlowFile> outgoingFlowFiles = testRunner.getFlowFilesForRelationship(ScriptedPartitionRecord.RELATIONSHIP_SUCCESS);
 
-    private void thenNonMatchingContains(final Object[]... records) {
-        testRunner.assertTransferCount(ScriptedPartitionRecord.RELATIONSHIP_SUCCESS, 1);
-        final MockFlowFile resultFlowFile = testRunner.getFlowFilesForRelationship(ScriptedPartitionRecord.RELATIONSHIP_SUCCESS).get(0);
-        Assert.assertEquals(givenExpectedFlowFile(records), resultFlowFile.getContent());
-        Assert.assertEquals("text/plain", resultFlowFile.getAttribute("mime.type"));
-    }
+        Assert.assertEquals(partitions.length, outgoingFlowFiles.size());
 
-    private void thenNonMatchingIsEmpty() {
-        testRunner.assertTransferCount(ScriptedPartitionRecord.RELATIONSHIP_SUCCESS, 0);
-    }
+        final Set<String> outgoingPartitions = outgoingFlowFiles.stream().map(ff -> ff.getAttribute("partition")).collect(Collectors.toSet());
 
-    private void thenProcessorRelationshipsAre(final String... dynamicRelationships) {
-        final Set<String> relationshipNames = testRunner.getProcessor().getRelationships().stream().map(r -> r.getName()).collect(Collectors.toSet());
-
-        Assert.assertEquals(dynamicRelationships.length + 3, relationshipNames.size());
-        Assert.assertTrue(relationshipNames.contains(ScriptedPartitionRecord.RELATIONSHIP_ORIGINAL.getName()));
-        Assert.assertTrue(relationshipNames.contains(ScriptedPartitionRecord.RELATIONSHIP_FAILURE.getName()));
-        Assert.assertTrue(relationshipNames.contains(ScriptedPartitionRecord.RELATIONSHIP_SUCCESS.getName()));
-
-        for (final String dynamicRelationship : dynamicRelationships) {
-            Assert.assertTrue(relationshipNames.contains(dynamicRelationship));
+        for (final String partition : partitions) {
+            Assert.assertTrue(outgoingPartitions.contains(partition));
         }
+    }
+
+    private void thenPartitionContains(final String partition, int index, int count, final Object[]... records) {
+        final Set<MockFlowFile> outgoingFlowFiles = testRunner.getFlowFilesForRelationship(ScriptedPartitionRecord.RELATIONSHIP_SUCCESS)
+                .stream().filter(ff -> ff.getAttribute("partition").equals(partition)).collect(Collectors.toSet());
+
+        Assert.assertEquals(1, outgoingFlowFiles.size());
+        final MockFlowFile resultFlowFile = outgoingFlowFiles.iterator().next();
+        Assert.assertEquals(givenExpectedFlowFile(records), resultFlowFile.getContent());
+        Assert.assertEquals("text/plain", resultFlowFile.getAttribute("mime.type"));
+        Assert.assertEquals(String.valueOf(index), resultFlowFile.getAttribute("fragment.index"));
+        Assert.assertEquals(String.valueOf(count), resultFlowFile.getAttribute("fragment.count"));
+
+
     }
 
     @Override

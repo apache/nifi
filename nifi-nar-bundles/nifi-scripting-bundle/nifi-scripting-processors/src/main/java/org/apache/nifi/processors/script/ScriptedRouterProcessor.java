@@ -33,13 +33,11 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.InputStreamCallback;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
-import org.apache.nifi.script.ScriptingComponentUtils;
 import org.apache.nifi.serialization.MalformedRecordException;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
-import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.PushBackRecordSet;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
@@ -50,15 +48,11 @@ import javax.script.ScriptException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.function.BiFunction;
-import java.util.stream.Collectors;
 
 @EventDriven
 @SupportsBatching
@@ -70,43 +64,10 @@ import java.util.stream.Collectors;
 })
 @WritesAttributes({
         @WritesAttribute(attribute = "mime.type", description = "Sets the mime.type attribute to the MIME Type specified by the Record Writer"),
+        @WritesAttribute(attribute = "record.count", description = "The number of records within the flow file."),
         @WritesAttribute(attribute = "record.error.message", description = "This attribute provides on failure the error message encountered by the Reader or Writer.")
 })
 public abstract class ScriptedRouterProcessor<T> extends ScriptedProcessor {
-
-    static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
-            .name("Record Reader")
-            .displayName("Record Reader")
-            .description("The Record Reader to use parsing the incoming FlowFile into Records")
-            .required(true)
-            .identifiesControllerService(RecordReaderFactory.class)
-            .build();
-
-    static final PropertyDescriptor RECORD_WRITER = new PropertyDescriptor.Builder()
-            .name("Record Writer")
-            .displayName("Record Writer")
-            .description("The Record Writer to use for serializing Records after they have been transformed")
-            .required(true)
-            .identifiesControllerService(RecordSetWriterFactory.class)
-            .build();
-
-    static final PropertyDescriptor LANGUAGE = new PropertyDescriptor.Builder()
-            .name("Script Engine")
-            .displayName("Script Language")
-            .description("The Language to use for the script")
-            .allowableValues(SCRIPT_OPTIONS)
-            .defaultValue("Groovy")
-            .required(true)
-            .build();
-
-    private static final List<PropertyDescriptor> DESCRIPTORS = Arrays.asList(
-            RECORD_READER,
-            RECORD_WRITER,
-            LANGUAGE,
-            ScriptingComponentUtils.SCRIPT_BODY,
-            ScriptingComponentUtils.SCRIPT_FILE,
-            ScriptingComponentUtils.MODULES);
-
     private final Class<T> scriptResultType;
 
     /**
@@ -128,7 +89,7 @@ public abstract class ScriptedRouterProcessor<T> extends ScriptedProcessor {
             return;
         }
 
-        final ScriptRunner scriptRunner = pollScriptEngine();
+        final ScriptRunner scriptRunner = pollScriptRunner();
         if (scriptRunner == null) {
             // This shouldn't happen. But just in case.
             session.rollback();
@@ -145,16 +106,16 @@ public abstract class ScriptedRouterProcessor<T> extends ScriptedProcessor {
                 evaluator = createEvaluator(scriptEngine, flowFile);
             } catch (final ScriptException se) {
                 getLogger().error("Failed to initialize script engine", se);
-                session.transfer(flowFile, getFailedRelationship());
+                session.transfer(flowFile, getFailureRelationship());
                 return;
             }
 
             success = route(context, session, flowFile, evaluator);
         } finally {
-            offerScriptEngine(scriptRunner);
+            offerScriptRunner(scriptRunner);
         }
 
-        session.transfer(flowFile, success ? getOriginalRelationship() : getFailedRelationship());
+        session.transfer(flowFile, success ? getOriginalRelationship() : getFailureRelationship());
     }
 
     private boolean route(
@@ -177,7 +138,7 @@ public abstract class ScriptedRouterProcessor<T> extends ScriptedProcessor {
                         final RecordSchema schema = writerFactory.getSchema(originalAttributes, reader.getSchema());
                         final RecordSet recordSet = reader.createRecordSet();
                         final PushBackRecordSet pushBackSet = new PushBackRecordSet(recordSet);
-                        final Map<Relationship, RecordSetFlowFileBuilder> recordSetFlowFileBuilders = new HashMap<>();
+                        final Map<Relationship, RecordBatchingProcessorFlowFileBuilder> recordSetFlowFileBuilders = new HashMap<>();
                         final BiFunction<FlowFile, OutputStream, RecordSetWriter> recordSetWriterFactory = (outgoingFlowFile, out) -> {
                             try {
                                 return writerFactory.createWriter(getLogger(), schema, out, outgoingFlowFile);
@@ -199,7 +160,7 @@ public abstract class ScriptedRouterProcessor<T> extends ScriptedProcessor {
 
                                 if (outgoingRelationship.isPresent()) {
                                     if (!recordSetFlowFileBuilders.containsKey(outgoingRelationship.get())) {
-                                        recordSetFlowFileBuilders.put(outgoingRelationship.get(), new RecordSetFlowFileBuilder(incomingFlowFile, session, recordSetWriterFactory));
+                                        recordSetFlowFileBuilders.put(outgoingRelationship.get(), new RecordBatchingProcessorFlowFileBuilder(incomingFlowFile, session, recordSetWriterFactory));
                                     }
 
                                     final int recordCount = recordSetFlowFileBuilders.get(outgoingRelationship.get()).addRecord(record);
@@ -214,7 +175,7 @@ public abstract class ScriptedRouterProcessor<T> extends ScriptedProcessor {
                         }
 
                         // Sending outgoing flow files
-                        recordSetFlowFileBuilders.forEach((key, value) -> session.transfer(value.build(), key));
+                        recordSetFlowFileBuilders.forEach((relationship, builder) -> session.transfer(builder.build(), relationship));
                     } catch (final ScriptException | SchemaNotFoundException | MalformedRecordException e) {
                         throw new ProcessException("Failed to parse incoming FlowFile", e);
                     }
@@ -236,7 +197,7 @@ public abstract class ScriptedRouterProcessor<T> extends ScriptedProcessor {
     /**
      * @return Returns with the relationship used for route the incoming FlowFile in case of unsuccessful processing.
      */
-    protected abstract Relationship getFailedRelationship();
+    protected abstract Relationship getFailureRelationship();
 
     /**
      * Returns a relationship based on the script's result value. As the script uses a given record as input, this helps
@@ -249,71 +210,4 @@ public abstract class ScriptedRouterProcessor<T> extends ScriptedProcessor {
      * the original or failed).
      */
     protected abstract Optional<Relationship> resolveRelationship(final T scriptResult);
-
-    /**
-     * Helper class contains all the information necessary to prepare an outgoing flow file.
-     */
-    private static final class RecordSetFlowFileBuilder {
-        private final ProcessSession session;
-        private final FlowFile incomingFlowFile;
-        final private FlowFile outgoingFlowFile;
-        private final OutputStream out;
-        private final RecordSetWriter writer;
-        private final List<Map<String, String>> attributes = new LinkedList<>();
-
-        private int recordCount = 0;
-
-        RecordSetFlowFileBuilder(
-            final FlowFile incomingFlowFile,
-            final ProcessSession session,
-            final BiFunction<FlowFile, OutputStream, RecordSetWriter> recordSetWriterSupplier
-        ) throws IOException {
-            this.session = session;
-            this.incomingFlowFile = incomingFlowFile;
-            this.outgoingFlowFile = session.create(incomingFlowFile);
-            this.out = session.write(outgoingFlowFile);
-            this.writer = recordSetWriterSupplier.apply(outgoingFlowFile, out);
-            this.writer.beginRecordSet();
-        }
-
-        int addRecord(final Record record) throws IOException {
-            final WriteResult writeResult = writer.write(record);
-            attributes.add(writeResult.getAttributes());
-            recordCount = writeResult.getRecordCount();
-            return recordCount;
-        }
-
-        private Map<String, String> getWriteAttributes() {
-            final Map<String, String> result = new HashMap<>();
-            final Set<String> attributeNames = attributes.stream().map(a -> a.keySet()).flatMap(x -> x.stream()).collect(Collectors.toSet());
-
-            for (final String attributeName : attributeNames) {
-                final Set<String> attributeValues = attributes.stream().map(a -> a.get(attributeName)).collect(Collectors.toSet());
-
-                // Only adding values to the flow file attributes from writing if the value is the same for every written record
-                if (attributeValues.size() == 1) {
-                    result.put(attributeName, attributeValues.iterator().next());
-                }
-            }
-
-            return result;
-        }
-
-        FlowFile build() {
-            final Map<String, String> attributesToAdd = new HashMap<>(incomingFlowFile.getAttributes());
-            attributesToAdd.putAll(getWriteAttributes());
-            attributesToAdd.put("mime.type", writer.getMimeType());
-            attributesToAdd.put("record.count", String.valueOf(recordCount));
-
-            try {
-                writer.finishRecordSet();
-                writer.close();
-                out.close();
-            } catch (final IOException e) {
-                throw new ProcessException("Resources used for record writing might not be closed", e);
-            }
-
-            return session.putAllAttributes(outgoingFlowFile, attributesToAdd);
-        }
-    }
 }

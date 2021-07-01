@@ -18,6 +18,7 @@ package org.apache.nifi.processors.script;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.flowfile.FlowFile;
@@ -28,6 +29,8 @@ import org.apache.nifi.script.ScriptingComponentUtils;
 import org.apache.nifi.search.SearchContext;
 import org.apache.nifi.search.SearchResult;
 import org.apache.nifi.search.Searchable;
+import org.apache.nifi.serialization.RecordReaderFactory;
+import org.apache.nifi.serialization.RecordSetWriterFactory;
 
 import javax.script.Bindings;
 import javax.script.Compilable;
@@ -39,7 +42,9 @@ import javax.script.SimpleBindings;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -50,6 +55,40 @@ abstract class ScriptedProcessor extends AbstractProcessor implements Searchable
     protected volatile String scriptToRun = null;
     protected final AtomicReference<CompiledScript> compiledScriptRef = new AtomicReference<>();
     private final ScriptingComponentHelper scriptingComponentHelper = new ScriptingComponentHelper();
+
+    static final PropertyDescriptor RECORD_READER = new PropertyDescriptor.Builder()
+            .name("Record Reader")
+            .displayName("Record Reader")
+            .description("The Record Reader to use parsing the incoming FlowFile into Records")
+            .required(true)
+            .identifiesControllerService(RecordReaderFactory.class)
+            .build();
+
+    static final PropertyDescriptor RECORD_WRITER = new PropertyDescriptor.Builder()
+            .name("Record Writer")
+            .displayName("Record Writer")
+            .description("The Record Writer to use for serializing Records after they have been transformed")
+            .required(true)
+            .identifiesControllerService(RecordSetWriterFactory.class)
+            .build();
+
+    static final PropertyDescriptor LANGUAGE = new PropertyDescriptor.Builder()
+            .name("Script Engine")
+            .displayName("Script Language")
+            .description("The Language to use for the script")
+            .allowableValues(SCRIPT_OPTIONS)
+            .defaultValue("Groovy")
+            .required(true)
+            .build();
+
+    protected static final List<PropertyDescriptor> DESCRIPTORS = Arrays.asList(
+            RECORD_READER,
+            RECORD_WRITER,
+            LANGUAGE,
+            ScriptingComponentUtils.SCRIPT_BODY,
+            ScriptingComponentUtils.SCRIPT_FILE,
+            ScriptingComponentUtils.MODULES);
+
 
     @OnScheduled
     public void setup(final ProcessContext context) throws IOException {
@@ -119,11 +158,11 @@ abstract class ScriptedProcessor extends AbstractProcessor implements Searchable
         return bindings;
     }
 
-    protected ScriptRunner pollScriptEngine() {
+    protected ScriptRunner pollScriptRunner() {
         return scriptingComponentHelper.scriptRunnerQ.poll();
     }
 
-    protected void offerScriptEngine(ScriptRunner scriptRunner) {
+    protected void offerScriptRunner(ScriptRunner scriptRunner) {
         scriptingComponentHelper.scriptRunnerQ.offer(scriptRunner);
     }
 }
