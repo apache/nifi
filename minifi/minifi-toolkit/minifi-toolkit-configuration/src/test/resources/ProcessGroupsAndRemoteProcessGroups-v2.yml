@@ -24,6 +24,7 @@ Core Properties:
   bored yield duration: 10 millis
   max concurrent threads: 1
 FlowFile Repository:
+  implementation: org.apache.nifi.controller.repository.WriteAheadFlowFileRepository
   partitions: 256
   checkpoint interval: 2 mins
   always sync: false

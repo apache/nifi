@@ -25,6 +25,7 @@ Core Properties:
   max concurrent threads: 1
   variable registry properties: ''
 FlowFile Repository:
+  implementation: org.apache.nifi.controller.repository.WriteAheadFlowFileRepository
   partitions: 256
   checkpoint interval: 2 mins
   always sync: false

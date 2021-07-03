@@ -719,6 +719,31 @@ public class ConfigTransformerTest {
     }
 
     @Test
+    public void testFlowFileRepoOverride() throws IOException, ConfigurationChangeException, SchemaLoaderException {
+        Properties pre216Properties = new Properties();
+        try (InputStream pre216PropertiesStream = ConfigTransformerTest.class.getClassLoader().getResourceAsStream("NIFI-8753/nifi.properties.before")) {
+            pre216Properties.load(pre216PropertiesStream);
+        }
+        pre216Properties.setProperty(ConfigTransformer.NIFI_VERSION_KEY, ConfigTransformer.NIFI_VERSION);
+
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        try (InputStream configStream = ConfigTransformerTest.class.getClassLoader().getResourceAsStream("NIFI-8753/config.yml")) {
+            ConfigTransformer.writeNiFiProperties(SchemaLoader.loadConfigSchemaFromYaml(configStream), outputStream);
+        }
+        Properties properties = new Properties();
+        properties.load(new ByteArrayInputStream(outputStream.toByteArray()));
+
+        for (String name : pre216Properties.stringPropertyNames()) {
+            // Verify the Content Repo property was overridden
+            if("nifi.flowfile.repository.implementation".equals(name)) {
+                assertNotEquals("Property key " + name + " was not overridden.", pre216Properties.getProperty(name), properties.getProperty(name));
+            } else {
+                assertEquals("Property key " + name + " doesn't match.", pre216Properties.getProperty(name), properties.getProperty(name));
+            }
+        }
+    }
+
+    @Test
     public void testNullSensitiveKey() throws IOException, ConfigurationChangeException, SchemaLoaderException {
         final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         try (final InputStream configStream = ConfigTransformerTest.class.getClassLoader().getResourceAsStream("MINIFI-537/config.yml")) {
