@@ -56,7 +56,7 @@ limitations under the License.
         <dependency>
             <groupId>com.palantir.docker.compose</groupId>
             <artifactId>docker-compose-rule-junit4</artifactId>
-            <version>0.33.0</version>
+            <version>1.5.0</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
