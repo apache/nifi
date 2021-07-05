@@ -51,14 +51,15 @@ import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR
 public class DeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcessor {
 
     public static final AllowableValue FS_TYPE_FILE = new AllowableValue("file", "File", "The object to be deleted is a file.");
-    public static final AllowableValue FS_TYPE_FOLDER = new AllowableValue("folder", "Folder", "The object to be deleted is a folder.");
+    public static final AllowableValue FS_TYPE_DIRECTORY = new AllowableValue("folder", "Folder", "The object to be deleted is a folder.");
 
-    public static final PropertyDescriptor FILE_SYSTEM_OBJECT_TYPE = new PropertyDescriptor.Builder()
-            .name("file-system-object-type")
-            .displayName("File System Object Type")
+    public static final PropertyDescriptor FILESYSTEM_OBJECT_TYPE = new PropertyDescriptor.Builder()
+            .name("filesystem-object-type")
+            .displayName("Filesystem Object Type")
             .description("They type of the file system object to be deleted. It can be either folder or file.")
-            .allowableValues(FS_TYPE_FILE, FS_TYPE_FOLDER)
+            .allowableValues(FS_TYPE_FILE, FS_TYPE_DIRECTORY)
             .required(true)
+            .defaultValue(FS_TYPE_FILE.toString())
             .build();
 
     public static final PropertyDescriptor FILE = new PropertyDescriptor.Builder()
@@ -68,13 +69,13 @@ public class DeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageProc
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .required(true)
             .defaultValue(String.format("${%s}", ATTR_NAME_FILENAME))
-            .dependsOn(FILE_SYSTEM_OBJECT_TYPE, FS_TYPE_FILE)
+            .dependsOn(FILESYSTEM_OBJECT_TYPE, FS_TYPE_FILE)
             .build();
 
     private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
             ADLS_CREDENTIALS_SERVICE,
-            FILE_SYSTEM_OBJECT_TYPE,
             FILESYSTEM,
+            FILESYSTEM_OBJECT_TYPE,
             DIRECTORY,
             FILE
     ));
@@ -86,7 +87,7 @@ public class DeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageProc
             return;
         }
         try {
-            final boolean isFile = context.getProperty(FILE_SYSTEM_OBJECT_TYPE).getValue().equals(FS_TYPE_FILE.getValue());
+            final boolean isFile = context.getProperty(FILESYSTEM_OBJECT_TYPE).getValue().equals(FS_TYPE_FILE.getValue());
             final DataLakeServiceClient storageClient = getStorageClient(context, flowFile);
 
             final String fileSystem = evaluateFileSystemProperty(context, flowFile);
