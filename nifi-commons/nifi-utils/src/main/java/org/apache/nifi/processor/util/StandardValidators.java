@@ -671,11 +671,11 @@ public class StandardValidators {
         return new Validator() {
             @Override
             public ValidationResult validate(final String subject, final String input, final ValidationContext context) {
-                final PropertyValue prefixProperty = context.newPropertyValue(input);
-                final String prefix;
-                if (prefixProperty.isExpressionLanguagePresent()) {
+                final PropertyValue property = context.newPropertyValue(input);
+                final String propertyValue;
+                if (property.isExpressionLanguagePresent()) {
                     try {
-                        prefix = prefixProperty.evaluateAttributeExpressions().getValue();
+                        propertyValue = property.evaluateAttributeExpressions().getValue();
                     } catch (final Exception e) {
                         return new ValidationResult.Builder()
                                 .subject(subject)
@@ -684,10 +684,10 @@ public class StandardValidators {
                                 .build();
                     }
                 } else {
-                    prefix = prefixProperty.getValue();
+                    propertyValue = property.getValue();
                 }
 
-                if (pattern.matcher(prefix).matches()) {
+                if (pattern.matcher(propertyValue).matches()) {
                     return new ValidationResult.Builder()
                             .subject(subject)
                             .valid(true)
