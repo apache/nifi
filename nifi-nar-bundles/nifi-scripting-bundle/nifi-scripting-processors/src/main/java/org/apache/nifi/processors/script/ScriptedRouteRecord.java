@@ -75,7 +75,7 @@ public class ScriptedRouteRecord extends ScriptedRouterProcessor<String> {
             .description("Records where the script evaluation returns with an unknown partition are routed to this relationship.")
             .build();
 
-    private static Set<Relationship> RELATIONSHIPS = new HashSet<>();
+    private static final Set<Relationship> RELATIONSHIPS = new HashSet<>();
 
     static {
         RELATIONSHIPS.add(RELATIONSHIP_ORIGINAL);
@@ -134,7 +134,7 @@ public class ScriptedRouteRecord extends ScriptedRouterProcessor<String> {
 
     private boolean shouldDeleteDynamicRelationship(final String routeName, final String oldValue) {
         // If no further route points to the same relationship and it is not a static relationship, it must be removed
-        final Set<String> staticRelationships = RELATIONSHIPS.stream().map(r -> r.getName()).collect(Collectors.toSet());
+        final Set<String> staticRelationships = RELATIONSHIPS.stream().map(Relationship::getName).collect(Collectors.toSet());
         return !routes.entrySet().stream().filter(e -> !e.getKey().equals(routeName)).map(e -> e.getValue().getName()).collect(Collectors.toSet()).contains(oldValue)
             && !staticRelationships.contains(oldValue);
     }
@@ -143,7 +143,7 @@ public class ScriptedRouteRecord extends ScriptedRouterProcessor<String> {
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
         final List<ValidationResult> results = new ArrayList<>();
         final Map<PropertyDescriptor, String> properties = validationContext.getProperties();
-        final Set<String> staticRelationships = RELATIONSHIPS.stream().map(r -> r.getName()).collect(Collectors.toSet());
+        final Set<String> staticRelationships = RELATIONSHIPS.stream().map(Relationship::getName).collect(Collectors.toSet());
 
         for (final Map.Entry<PropertyDescriptor, String> entry : properties.entrySet()) {
             if (entry.getKey().isDynamic() && staticRelationships.contains(entry.getValue())) {

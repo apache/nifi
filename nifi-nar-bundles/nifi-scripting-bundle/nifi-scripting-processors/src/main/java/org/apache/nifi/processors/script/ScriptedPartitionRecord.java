@@ -96,7 +96,7 @@ public class ScriptedPartitionRecord extends ScriptedProcessor {
                     + "the unchanged FlowFile will be routed to this relationship")
             .build();
 
-    private static Set<Relationship> RELATIONSHIPS = new HashSet<>();
+    private static final Set<Relationship> RELATIONSHIPS = new HashSet<>();
 
     static {
         RELATIONSHIPS.add(RELATIONSHIP_ORIGINAL);

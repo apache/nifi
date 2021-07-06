@@ -39,7 +39,7 @@ import java.util.stream.Collectors;
 final class RecordBatchingProcessorFlowFileBuilder {
     private final ProcessSession session;
     private final FlowFile incomingFlowFile;
-    final private FlowFile outgoingFlowFile;
+    private final FlowFile outgoingFlowFile;
     private final OutputStream out;
     private final RecordSetWriter writer;
     private final List<Map<String, String>> attributes = new LinkedList<>();
@@ -68,7 +68,7 @@ final class RecordBatchingProcessorFlowFileBuilder {
 
     private Map<String, String> getWriteAttributes() {
         final Map<String, String> result = new HashMap<>();
-        final Set<String> attributeNames = attributes.stream().map(a -> a.keySet()).flatMap(x -> x.stream()).collect(Collectors.toSet());
+        final Set<String> attributeNames = attributes.stream().map(Map::keySet).flatMap(Set::stream).collect(Collectors.toSet());
 
         for (final String attributeName : attributeNames) {
             final Set<String> attributeValues = attributes.stream().map(a -> a.get(attributeName)).collect(Collectors.toSet());

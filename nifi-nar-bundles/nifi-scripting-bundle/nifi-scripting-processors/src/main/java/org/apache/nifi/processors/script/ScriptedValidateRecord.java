@@ -66,7 +66,7 @@ public class ScriptedValidateRecord extends ScriptedRouterProcessor<Boolean> {
             .description("In case of any issue during processing the incoming flow file, the incoming FlowFile will be routed to this relationship.")
             .build();
 
-    private static Set<Relationship> RELATIONSHIPS = new HashSet<>();
+    private static final Set<Relationship> RELATIONSHIPS = new HashSet<>();
 
     static {
         RELATIONSHIPS.add(RELATIONSHIP_VALID);
