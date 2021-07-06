@@ -437,7 +437,28 @@ public class TestJdbcCommon {
         testConvertToAvroStreamForBigDecimal(bigDecimal, dbPrecision, 10, expectedScale, expectedScale);
     }
 
+    @Test
+    public void testConvertToAvroStreamForBigDecimalWithZeroScale() throws SQLException, IOException {
+        final int dbPrecision = 5;
+        final int dbScale = 0;
+
+        final int expectedPrecision = dbPrecision;
+        final int expectedScale = dbScale;
+
+        final int defaultPrecision = 15;
+        final int defaultScale = 15;
+
+        final BigDecimal bigDecimal = new BigDecimal("1.123", new MathContext(dbPrecision));
+        final BigDecimal expectedValue = new BigDecimal("1");
+        testConvertToAvroStreamForBigDecimal(bigDecimal, expectedValue, dbPrecision, dbScale, defaultPrecision, defaultScale, expectedPrecision, expectedScale);
+    }
+
     private void testConvertToAvroStreamForBigDecimal(BigDecimal bigDecimal, int dbPrecision, int defaultPrecision, int expectedPrecision, int expectedScale) throws SQLException, IOException {
+        testConvertToAvroStreamForBigDecimal(bigDecimal, bigDecimal, dbPrecision, expectedScale, defaultPrecision, -1, expectedPrecision, expectedScale);
+    }
+
+    private void testConvertToAvroStreamForBigDecimal(BigDecimal bigDecimal, BigDecimal expectedValue, int dbPrecision, int dbScale, int defaultPrecision, int defaultScale,
+                                                      int expectedPrecision, int expectedScale) throws SQLException, IOException {
 
         final ResultSetMetaData metadata = mock(ResultSetMetaData.class);
         when(metadata.getColumnCount()).thenReturn(1);
@@ -445,7 +466,7 @@ public class TestJdbcCommon {
         when(metadata.getColumnName(1)).thenReturn("The.Chairman");
         when(metadata.getTableName(1)).thenReturn("1the::table");
         when(metadata.getPrecision(1)).thenReturn(dbPrecision);
-        when(metadata.getScale(1)).thenReturn(expectedScale);
+        when(metadata.getScale(1)).thenReturn(dbScale);
 
         final ResultSet rs = JdbcCommonTestUtils.resultSetReturningMetadata(metadata);
 
@@ -453,8 +474,11 @@ public class TestJdbcCommon {
 
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
-        final JdbcCommon.AvroConversionOptions options = JdbcCommon.AvroConversionOptions
-                .builder().convertNames(true).useLogicalTypes(true).defaultPrecision(defaultPrecision).build();
+        final JdbcCommon.AvroConversionOptions.Builder optionsBuilder = JdbcCommon.AvroConversionOptions
+                .builder().convertNames(true).useLogicalTypes(true).defaultPrecision(defaultPrecision);
+        if (defaultScale > -1) optionsBuilder.defaultScale(defaultScale);
+
+        final JdbcCommon.AvroConversionOptions options = optionsBuilder.build();
         JdbcCommon.convertToAvroStream(rs, baos, options, null);
 
         final byte[] serializedBytes = baos.toByteArray();
@@ -480,7 +504,7 @@ public class TestJdbcCommon {
             while (dataFileReader.hasNext()) {
                 record = dataFileReader.next(record);
                 assertEquals("_1the__table", record.getSchema().getName());
-                assertEquals(bigDecimal, record.get("The_Chairman"));
+                assertEquals(expectedValue, record.get("The_Chairman"));
             }
         }
     }
