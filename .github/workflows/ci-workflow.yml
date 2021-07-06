@@ -19,7 +19,7 @@ on: [push, pull_request]
 
 jobs:
   ubuntu-build-en:
-    timeout-minutes: 90
+    timeout-minutes: 120
     runs-on: ubuntu-latest
     name: Ubuntu Zulu JDK11 EN
     steps:
@@ -94,7 +94,7 @@ jobs:
           MAVEN_OPTS: -Xmx2g -XX:ReservedCodeCacheSize=1g -XX:+UseG1GC -Dorg.slf4j.simpleLogger.defaultLogLevel=WARN -Duser.language=en -Duser.country=AU -Duser.region=AU -Duser.timezone=Australia/Melbourne -Dhttp.keepAlive=false -Dmaven.wagon.http.pool=false
         run: |
           mvn -V -T 0.7C package verify -B -Pcontrib-check,include-grpc,nifi-registry-no-integration-tests -Ddir-only -ntp -ff -pl -nifi-assembly,-nifi-toolkit/nifi-toolkit-assembly,-nifi-system-tests -nsu
-      - name: Upload artifact
+      - name: Upload JUnit Results
         uses: actions/upload-artifact@v2
         if: always()
         with:
@@ -106,7 +106,7 @@ jobs:
           df -h
 
   osx-build-jp:
-    timeout-minutes: 90
+    timeout-minutes: 120
     runs-on: macos-latest
     name: MacOS Adopt JDK8 JP
     steps:
@@ -177,7 +177,7 @@ jobs:
           MAVEN_OPTS: -Xmx2g -XX:ReservedCodeCacheSize=1g -XX:+UseG1GC -Dorg.slf4j.simpleLogger.defaultLogLevel=WARN -Duser.language=ja -Duser.country=JP -Duser.region=JP -Duser.timezone=Asia/Tokyo -Dhttp.keepAlive=false -Dmaven.wagon.http.pool=false
         run: |
           mvn -V -T 0.7C package verify -B -Pcontrib-check,include-grpc,nifi-registry-no-integration-tests -Ddir-only -ntp -ff -pl -nifi-assembly,-nifi-toolkit/nifi-toolkit-assembly,-nifi-system-tests -nsu
-      - name: Upload artifact
+      - name: Upload JUnit Results
         uses: actions/upload-artifact@v2
         if: always()
         with:
@@ -189,7 +189,7 @@ jobs:
           df -h
 
   windows-build:
-    timeout-minutes: 90
+    timeout-minutes: 120
     runs-on: windows-latest
     name: Windows Zulu JDK8 FR
     steps:
@@ -251,7 +251,7 @@ jobs:
           MAVEN_OPTS: -Xmx2g -Dorg.slf4j.simpleLogger.defaultLogLevel=WARN -Duser.language=fr -Duser.country=FR -Duser.region=FR -Duser.timezone=Europe/Paris -Dhttp.keepAlive=false -Dmaven.wagon.http.pool=false
         run: |
           mvn -V -T 0.7C package -B -Pnifi-registry-no-integration-tests -Ddir-only -ntp -ff -pl -nifi-assembly -pl -nifi-system-tests -nsu
-      - name: Upload artifact
+      - name: Upload JUnit Results
         uses: actions/upload-artifact@v2
         if: ${{ false }}
         with:
