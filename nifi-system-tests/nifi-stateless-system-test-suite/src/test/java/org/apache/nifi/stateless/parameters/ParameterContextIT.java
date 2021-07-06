@@ -84,7 +84,7 @@ public class ParameterContextIT extends StatelessSystemIT {
 
 
     @Test
-    public void testInvalidParameterProvider() throws IOException, StatelessConfigurationException {
+    public void testInvalidParameterProvider() {
         final VersionedFlowBuilder flowBuilder = new VersionedFlowBuilder();
         final VersionedPort outPort = flowBuilder.createOutputPort("Out");
         final VersionedProcessor generate = flowBuilder.createSimpleProcessor("GenerateFlowFile");
@@ -105,11 +105,9 @@ public class ParameterContextIT extends StatelessSystemIT {
         parameterContext.getParameters().add(createVersionedParameter("three", "-1"));  // Set value to -1. This should be overridden by the Numeric Parameter Context.
         flowBuilder.getRootGroup().setParameterContextName("Context 1");
 
-        try {
+        Assert.assertThrows(IllegalStateException.class, () -> {
             loadDataflow(flowSnapshot, Collections.emptyList(), parameterProviders, Collections.emptySet(), TransactionThresholds.SINGLE_FLOWFILE);
-            Assert.fail("Expected to fail on startup because parameter provider is not valid");
-        } catch (final IllegalStateException expected) {
-        }
+        });
     }
 
 
@@ -135,11 +133,9 @@ public class ParameterContextIT extends StatelessSystemIT {
         parameterContext.getParameters().add(createVersionedParameter("three", "1"));  // Set value to -1. This should be overridden by the Numeric Parameter Context.
         flowBuilder.getRootGroup().setParameterContextName("Context 1");
 
-        try {
+        Assert.assertThrows(IllegalStateException.class, () -> {
             loadDataflow(flowSnapshot, Collections.emptyList(), parameterProviders, Collections.emptySet(), TransactionThresholds.SINGLE_FLOWFILE);
-            Assert.fail("Expected to fail on startup because parameter provider is not valid");
-        } catch (final IllegalStateException expected) {
-        }
+        });
     }
 
     @Test
