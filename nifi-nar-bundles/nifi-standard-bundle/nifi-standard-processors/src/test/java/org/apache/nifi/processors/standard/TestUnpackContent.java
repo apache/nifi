@@ -46,6 +46,8 @@ import org.junit.Test;
 
 public class TestUnpackContent {
 
+    private static final String FIRST_FRAGMENT_INDEX = "1";
+
     private static final Path dataPath = Paths.get("src/test/resources/TestUnpackContent");
 
     @Test
@@ -501,6 +503,7 @@ public class TestUnpackContent {
 
         final MockFlowFile unpacked = runner.getFlowFilesForRelationship(UnpackContent.REL_SUCCESS).iterator().next();
         unpacked.assertAttributeEquals(UnpackContent.FILE_ENCRYPTION_METHOD_ATTRIBUTE, encryptionMethod.toString());
+        unpacked.assertAttributeEquals(UnpackContent.FRAGMENT_INDEX, FIRST_FRAGMENT_INDEX);
 
         final byte[] unpackedBytes = runner.getContentAsByteArray(unpacked);
         final String unpackedContents = new String(unpackedBytes);
