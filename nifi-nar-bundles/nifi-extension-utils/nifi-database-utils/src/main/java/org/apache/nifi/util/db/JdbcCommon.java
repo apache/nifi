@@ -582,7 +582,7 @@ public class JdbcCommon {
                             decimalPrecision = meta.getPrecision(i);
                             //For the float data type Oracle return decimalScale < 0 which cause is not expected to org.apache.avro.LogicalTypes
                             //Hence falling back to default scale if decimalScale < 0
-                            decimalScale = meta.getScale(i) > 0 ? meta.getScale(i) : options.defaultScale;
+                            decimalScale = meta.getScale(i) >= 0 ? meta.getScale(i) : options.defaultScale;
                         } else {
                             // If not, use default precision.
                             decimalPrecision = options.defaultPrecision;
