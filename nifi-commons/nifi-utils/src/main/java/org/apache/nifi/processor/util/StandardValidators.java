@@ -670,11 +670,7 @@ public class StandardValidators {
     /**
      * Creates a @{link Validator} that ensure that a value is matching with
      * the provided Regular Expression.
-     * If <code>supportAttributeExpressionLanguage</code> is set to
-     * <code>true</code>, the value may also include the Expression Language,
-     * and the result of evaluating the Expression Language will be applied
-     * before the Regular Expression is performed. In this case, the Expression
-     * Language should not support FlowFile Attributes but only Variable Registry
+     * The property should not support FlowFile Attributes but only Variable Registry
      * and System/JVM Properties.
      *
      * @param pattern                 pattern the input should match with
