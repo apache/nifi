@@ -505,7 +505,7 @@ This protection scheme uses HashiCorp Vault's Transit Secrets Engine (https://ww
 |===
 
 ==== AWS_KMS
-This protection scheme uses AWS Key Management Service, or AWS KMS for short (https://aws.amazon.com/kms/) for encryption/decryption . All AWS KMS configuration/credentials is stored in the `bootstrap-aws.conf` file, as referenced in the `bootstrap.conf` of a NiFi or NiFi Registry instance.  Therefore, when using the AWS_KMS protection scheme, the `nifi(.registry)?.bootstrap.protection.aws.kms.conf` property in the `bootstrap.conf` specified using the `-b` flag must be available to the Encrypt Configuration Tool and must be configured as follows:
+This protection scheme uses AWS Key Management Service, or AWS KMS for short (https://aws.amazon.com/kms/) for encryption/decryption. All AWS KMS configuration/credentials details are to be stored in the `bootstrap-aws.conf` file, as referenced in the `bootstrap.conf` of a NiFi or NiFi Registry instance. If the configuration/credentials details are not fully specified in `bootstrap-aws.conf`, then the protection scheme will attempt to use the default AWS credentials/configuration chain. Therefore, when using the AWS_KMS protection scheme, the `nifi(.registry)?.bootstrap.protection.aws.kms.conf` property in the `bootstrap.conf` specified using the `-b` flag must be available to the Encrypt Configuration Tool and must be configured as follows:
 
 ===== Required properties
 [options="header,footer"]
@@ -515,7 +515,7 @@ This protection scheme uses AWS Key Management Service, or AWS KMS for short (ht
 |===
 
 ===== Optional properties
-====== All of the following must be configured, or will be ignored entirely
+====== All of the following must be configured, or will be ignored entirely.
 [options="header,footer"]
 |===
 |Property Name|Description|Default
@@ -721,26 +721,28 @@ and `--oldProtectionScheme` in the migration command.
 
 The following is an example of the commands for protection scheme migration from AES_GCM to AWS_KMS then back. Execute these commands at the `nifi` directory with the `nifi-toolkit` directory as a sibling directory. In addition, make sure to update `bootstrap-aws.conf` with your AWS KMS Key ARN/ID and have your credentials and region for AWS configured.
 
+This command encrypts nifi.properties with the AES_GCM protection scheme
 ----
-# This command encrypts nifi.properties with the AES_GCM protection scheme
-./../nifi-toolkit-1.14.0-SNAPSHOT/bin/encrypt-config.sh \
+./../nifi-toolkit-*-SNAPSHOT/bin/encrypt-config.sh \
 -b conf/bootstrap.conf \
 -n conf/nifi.properties \
 -k 0123456789ABCDEFFEDCBA98765432100123456789ABCDEFFEDCBA9876543210 \
 -v
-
-# This command migrates nifi.properties from using AES_GCM to using AWS_KMS protection scheme
-./../nifi-toolkit-1.14.0-SNAPSHOT/bin/encrypt-config.sh \
--b /Users/emilio.setiadarma/test-nifi-deploy/nifi-1.14.0-SNAPSHOT/conf/bootstrap.conf \
--n /Users/emilio.setiadarma/test-nifi-deploy/nifi-1.14.0-SNAPSHOT/conf/nifi.properties \
+----
+This command migrates nifi.properties from using AES_GCM to using AWS_KMS protection scheme
+----
+./../nifi-toolkit-*-SNAPSHOT/bin/encrypt-config.sh \
+-b conf/bootstrap.conf \
+-n conf/nifi.properties \
 -S AWS_KMS \
 -H AES_GCM \
 -e 0123456789ABCDEFFEDCBA98765432100123456789ABCDEFFEDCBA9876543210 \
 -m \
 -v
-
-# This command migrates nifi.properties back from AWS_KMS to AES_GCM protection scheme
-./../nifi-toolkit-1.14.0-SNAPSHOT/bin/encrypt-config.sh \
+----
+This command migrates nifi.properties back from AWS_KMS to AES_GCM protection scheme
+----
+./../nifi-toolkit-*-SNAPSHOT/bin/encrypt-config.sh \
 -b conf/bootstrap.conf \
 -n conf/nifi.properties \
 -S AES_GCM \
