@@ -65,6 +65,8 @@ public class NettyEventSenderFactory<T> extends EventLoopGroupFactory implements
 
     private SSLContext sslContext;
 
+    private boolean singleEventPerConnection = false;
+
     public NettyEventSenderFactory(final String address, final int port, final TransportProtocol protocol) {
         this.address = address;
         this.port = port;
@@ -116,6 +118,16 @@ public class NettyEventSenderFactory<T> extends EventLoopGroupFactory implements
         this.maxConnections = maxConnections;
     }
 
+    /**
+     * Send a single event for the session and close the connection. Useful for endpoints which can not be configured
+     * to listen for a delimiter.
+     *
+     * @param singleEventPerConnection true if the connection should be ended after an event is sent
+     */
+    public void setSingleEventPerConnection(final boolean singleEventPerConnection) {
+        this.singleEventPerConnection = singleEventPerConnection;
+    }
+
     /*
      * Get Event Sender with connected Channel
      *
@@ -149,7 +161,7 @@ public class NettyEventSenderFactory<T> extends EventLoopGroupFactory implements
     private EventSender<T> getConfiguredEventSender(final Bootstrap bootstrap) {
         final SocketAddress remoteAddress = bootstrap.config().remoteAddress();
         final ChannelPool channelPool = getChannelPool(bootstrap);
-        return new NettyEventSender<>(bootstrap.config().group(), channelPool, remoteAddress);
+        return new NettyEventSender<>(bootstrap.config().group(), channelPool, remoteAddress, singleEventPerConnection);
     }
 
     private ChannelPool getChannelPool(final Bootstrap bootstrap) {

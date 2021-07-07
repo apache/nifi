@@ -249,6 +249,7 @@ public abstract class AbstractPutEventProcessor extends AbstractSessionFactoryPr
         factory.setWorkerThreads(context.getMaxConcurrentTasks());
         factory.setMaxConnections(context.getMaxConcurrentTasks());
         factory.setSocketSendBufferSize(context.getProperty(MAX_SOCKET_SEND_BUFFER_SIZE).asDataSize(DataUnit.B).intValue());
+        factory.setSingleEventPerConnection(context.getProperty(CONNECTION_PER_FLOWFILE).asBoolean());
 
         final int timeout = context.getProperty(TIMEOUT).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS).intValue();
         factory.setTimeout(Duration.ofMillis(timeout));
@@ -498,6 +499,4 @@ public abstract class AbstractPutEventProcessor extends AbstractSessionFactoryPr
     protected NettyEventSenderFactory<?> getNettyEventSenderFactory(final String hostname, final int port, final String protocol) {
         return new ByteArrayNettyEventSenderFactory(getLogger(), hostname, port, TransportProtocol.valueOf(protocol));
     }
-
-
 }
