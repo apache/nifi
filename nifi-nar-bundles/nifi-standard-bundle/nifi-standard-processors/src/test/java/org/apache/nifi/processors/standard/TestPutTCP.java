@@ -37,11 +37,11 @@ import org.junit.rules.Timeout;
 import org.mockito.Mockito;
 
 import javax.net.ssl.SSLContext;
+import java.util.Arrays;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
-import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
@@ -276,7 +276,7 @@ public class TestPutTCP {
             for (String item : sentData) {
                 final ByteArrayMessage message = messages.take();
                 assertNotNull(String.format("Message [%d] not found", i), message);
-                assertArrayEquals(item.getBytes(), message.getMessage());
+                assert(Arrays.asList(sentData).contains(new String(message.getMessage())));
             }
         }
 

@@ -154,7 +154,6 @@ public class NettyEventSenderFactory<T> extends EventLoopGroupFactory implements
         bootstrap.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, timeoutMilliseconds);
         if (socketSendBufferSize != null) {
             bootstrap.option(ChannelOption.SO_SNDBUF, socketSendBufferSize);
-            bootstrap.option(ChannelOption.SO_RCVBUF, socketSendBufferSize);
         }
     }
 
