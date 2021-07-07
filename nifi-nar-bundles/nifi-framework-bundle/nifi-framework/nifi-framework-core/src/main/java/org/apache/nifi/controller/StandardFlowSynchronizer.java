@@ -1197,13 +1197,13 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
             }
         }
 
-        if (defaultFlowFileExpiration == null) {
+        if (defaultFlowFileExpiration != null) {
             group.setDefaultFlowFileExpiration(defaultFlowFileExpiration);
         }
-        if (defaultBackPressureObjectThreshold == null) {
+        if (defaultBackPressureObjectThreshold != null) {
             group.setDefaultBackPressureObjectThreshold(defaultBackPressureObjectThreshold);
         }
-        if (defaultBackPressureDataSizeThreshold == null) {
+        if (defaultBackPressureDataSizeThreshold != null) {
             group.setDefaultBackPressureDataSizeThreshold(defaultBackPressureDataSizeThreshold);
         }
     }
