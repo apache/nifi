@@ -1197,9 +1197,15 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
             }
         }
 
-        group.setDefaultFlowFileExpiration(defaultFlowFileExpiration);
-        group.setDefaultBackPressureObjectThreshold(defaultBackPressureObjectThreshold);
-        group.setDefaultBackPressureDataSizeThreshold(defaultBackPressureDataSizeThreshold);
+        if (defaultFlowFileExpiration == null) {
+            group.setDefaultFlowFileExpiration(defaultFlowFileExpiration);
+        }
+        if (defaultBackPressureObjectThreshold == null) {
+            group.setDefaultBackPressureObjectThreshold(defaultBackPressureObjectThreshold);
+        }
+        if (defaultBackPressureDataSizeThreshold == null) {
+            group.setDefaultBackPressureDataSizeThreshold(defaultBackPressureDataSizeThreshold);
+        }
     }
 
     private <T extends Connectable & Triggerable> ScheduledState getScheduledState(final T component, final FlowController flowController) {
