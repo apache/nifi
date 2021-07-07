@@ -16,28 +16,22 @@
  */
 package org.apache.nifi.event.transport.netty;
 
-import java.io.IOException;
+import java.io.FilterInputStream;
 import java.io.InputStream;
 
 /**
  * A delimited InputStream which retains a delimiter for later use
  */
-public class DelimitedInputStream extends InputStream {
+public class DelimitedInputStream extends FilterInputStream {
 
-    private final InputStream in;
     private final byte[] delimiter;
 
     public DelimitedInputStream(final InputStream in, final byte[] delimiter) {
-        this.in = in;
+        super(in);
         this.delimiter = delimiter;
     }
 
     public byte[] getDelimiter() {
         return delimiter;
-    }
-
-    @Override
-    public int read() throws IOException {
-        return in.read();
     }
 }
