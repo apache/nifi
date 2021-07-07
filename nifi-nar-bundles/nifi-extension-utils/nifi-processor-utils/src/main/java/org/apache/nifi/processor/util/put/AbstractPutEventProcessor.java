@@ -243,13 +243,14 @@ public abstract class AbstractPutEventProcessor extends AbstractSessionFactoryPr
         final String hostname = context.getProperty(HOSTNAME).evaluateAttributeExpressions().getValue();
         final int port = context.getProperty(PORT).evaluateAttributeExpressions().asInteger();
         final String protocol = getProtocol(context);
+        final boolean singleEventPerConnection = context.getProperty(CONNECTION_PER_FLOWFILE).getValue() != null ? context.getProperty(CONNECTION_PER_FLOWFILE).asBoolean() : false;
 
         final NettyEventSenderFactory factory = getNettyEventSenderFactory(hostname, port, protocol);
         factory.setThreadNamePrefix(String.format("%s[%s]", getClass().getSimpleName(), getIdentifier()));
         factory.setWorkerThreads(context.getMaxConcurrentTasks());
         factory.setMaxConnections(context.getMaxConcurrentTasks());
         factory.setSocketSendBufferSize(context.getProperty(MAX_SOCKET_SEND_BUFFER_SIZE).asDataSize(DataUnit.B).intValue());
-        factory.setSingleEventPerConnection(context.getProperty(CONNECTION_PER_FLOWFILE).asBoolean());
+        factory.setSingleEventPerConnection(singleEventPerConnection);
 
         final int timeout = context.getProperty(TIMEOUT).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS).intValue();
         factory.setTimeout(Duration.ofMillis(timeout));
