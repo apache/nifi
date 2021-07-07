@@ -1486,14 +1486,14 @@ public class PutDatabaseRecord extends AbstractProcessor {
         private final int dataType;
         private final boolean required;
         private final Integer columnSize;
-        private final boolean isNullable;
+        private final boolean nullable;
 
-        public ColumnDescription(final String columnName, final int dataType, final boolean required, final Integer columnSize, final boolean isNullable) {
+        public ColumnDescription(final String columnName, final int dataType, final boolean required, final Integer columnSize, final boolean nullable) {
             this.columnName = columnName;
             this.dataType = dataType;
             this.required = required;
             this.columnSize = columnSize;
-            this.isNullable = isNullable;
+            this.nullable = nullable;
         }
 
         public int getDataType() {
@@ -1513,7 +1513,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
         }
 
         public boolean isNullable() {
-            return isNullable;
+            return nullable;
         }
 
         public static ColumnDescription from(final ResultSet resultSet) throws SQLException {
