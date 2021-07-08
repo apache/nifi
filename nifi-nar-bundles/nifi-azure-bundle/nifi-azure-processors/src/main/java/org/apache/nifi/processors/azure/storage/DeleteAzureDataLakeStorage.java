@@ -51,7 +51,7 @@ import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR
 public class DeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcessor {
 
     public static final AllowableValue FS_TYPE_FILE = new AllowableValue("file", "File", "The object to be deleted is a file.");
-    public static final AllowableValue FS_TYPE_DIRECTORY = new AllowableValue("folder", "Folder", "The object to be deleted is a folder.");
+    public static final AllowableValue FS_TYPE_DIRECTORY = new AllowableValue("directory", "Directory", "The object to be deleted is a directory.");
 
     public static final PropertyDescriptor FILESYSTEM_OBJECT_TYPE = new PropertyDescriptor.Builder()
             .name("filesystem-object-type")
@@ -105,7 +105,7 @@ public class DeleteAzureDataLakeStorage extends AbstractAzureDataLakeStorageProc
             } else {
                 directoryClient.deleteWithResponse(true, new DataLakeRequestConditions(), Duration.ofSeconds(10), Context.NONE);
                 session.transfer(flowFile, REL_SUCCESS);
-                session.getProvenanceReporter().invokeRemoteProcess(flowFile, directoryClient.getDirectoryUrl(), "Folder deleted");
+                session.getProvenanceReporter().invokeRemoteProcess(flowFile, directoryClient.getDirectoryUrl(), "Directory deleted");
             }
         } catch (Exception e) {
             getLogger().error("Failed to delete the specified file from Azure Data Lake Storage", e);
