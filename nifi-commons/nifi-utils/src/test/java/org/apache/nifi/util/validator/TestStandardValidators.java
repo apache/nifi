@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.util.validator;
 
+import static org.hamcrest.CoreMatchers.*;
+import static org.hamcrest.MatcherAssert.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -530,58 +532,82 @@ public class TestStandardValidators {
 
     @Test
     public void testRegexMatchingValidatorWithoutEL() {
-        Validator val = StandardValidators.createRegexMatchingValidatorWithEL(Pattern.compile("^\\?.*$"));
-        PropertyValue property = mock(PropertyValue.class);
-        when(property.isExpressionLanguagePresent()).thenReturn(false);
+        Validator val = StandardValidators.createRegexMatchingValidator(Pattern.compile("^\\?.*$"));
         ValidationContext vc = mock(ValidationContext.class);
-        when(vc.newPropertyValue(any())).thenReturn(property);
+        when(vc.isExpressionLanguagePresent(any())).thenReturn(false);
+        when(vc.isExpressionLanguageSupported(any())).thenReturn(false);
 
-        validatePropertyIsInvalid(val, null, property, vc);
+        validatePropertyIsInvalid(val, null, vc);
 
-        validatePropertyIsInvalid(val, "", property, vc);
+        validatePropertyIsInvalid(val, "", vc);
 
-        validatePropertyIsInvalid(val, "token", property, vc);
+        validatePropertyIsInvalid(val, "invalid string", vc);
 
-        validatePropertyIsValid(val, "?", property, vc);
+        validatePropertyIsValid(val, "?valid string", vc);
     }
 
     @Test
     public void testRegexMatchingValidatorWithEL() {
-        Validator val = StandardValidators.createRegexMatchingValidatorWithEL(Pattern.compile("^\\?.*$"));
-        PropertyValue property = mock(PropertyValue.class);
-        when(property.isExpressionLanguagePresent()).thenReturn(true);
+        Validator val = StandardValidators.createRegexMatchingValidator(Pattern.compile("^\\?.*$"), true);
         ValidationContext vc = mock(ValidationContext.class);
-        when(vc.newPropertyValue(any())).thenReturn(property);
+        when(vc.isExpressionLanguagePresent(any())).thenReturn(true);
+        when(vc.isExpressionLanguageSupported(any())).thenReturn(true);
 
-        validatePropertyWithELIsInvalid(val, null, property, vc);
+        validatePropertyWithELIsInvalid(val, null, vc);
 
-        validatePropertyWithELIsInvalid(val, "", property, vc);
+        validatePropertyWithELIsInvalid(val, "", vc);
 
-        validatePropertyWithELIsInvalid(val, "token", property, vc);
+        validatePropertyWithELIsInvalid(val, "invalid string", vc);
 
-        validatePropertyWithELIsValid(val, "?", property, vc);
+        validatePropertyWithELIsValid(val, "?valid string", vc);
     }
 
-    private void validatePropertyIsValid(Validator val, String input, PropertyValue property, ValidationContext vc) {
-        when(property.getValue()).thenReturn(input);
+    @Test
+    public void testRegexMatchingValidatorWithELError() {
+        Validator val = StandardValidators.createRegexMatchingValidator(Pattern.compile("^\\?.*$"), true);
+        ValidationContext vc = mock(ValidationContext.class);
+        when(vc.isExpressionLanguagePresent(any())).thenReturn(true);
+        when(vc.isExpressionLanguageSupported(any())).thenReturn(true);
+
+        ValidationResult vr = val.validate("foo", "invalid", vc);
+        assertFalse(vr.isValid());
+        assertThat(vr.getExplanation(), containsString("Failed to evaluate the Attribute Expression Language"));
+    }
+
+    @Test
+    public void testRegexMatchingValidatorWithELWithoutEvaluation() {
+        Validator val = StandardValidators.createRegexMatchingValidator(Pattern.compile("^\\?.*$"), false);
+        ValidationContext vc = mock(ValidationContext.class);
+        when(vc.isExpressionLanguagePresent(any())).thenReturn(true);
+        when(vc.isExpressionLanguageSupported(any())).thenReturn(true);
+
+        ValidationResult vr = val.validate("foo", "valid", vc);
+        assertTrue(vr.isValid());
+        assertEquals("Expression Language Present", vr.getExplanation());
+    }
+
+    private void validatePropertyIsValid(final Validator val, final String input, final ValidationContext vc) {
         ValidationResult vr = val.validate("foo", input, vc);
         assertTrue(vr.isValid());
     }
 
-    private void validatePropertyIsInvalid(Validator val, String input, PropertyValue property, ValidationContext vc) {
-        when(property.getValue()).thenReturn(input);
+    private void validatePropertyIsInvalid(final Validator val, final String input, final ValidationContext vc) {
         ValidationResult vr = val.validate("foo", input, vc);
         assertFalse(vr.isValid());
     }
 
-    private void validatePropertyWithELIsValid(Validator val, String input, PropertyValue property, ValidationContext vc) {
+    private void validatePropertyWithELIsValid(Validator val, String input, ValidationContext vc) {
+        PropertyValue property = mock(PropertyValue.class);
+        when(vc.newPropertyValue(input)).thenReturn(property);
         when(property.evaluateAttributeExpressions()).thenReturn(property);
         when(property.evaluateAttributeExpressions().getValue()).thenReturn(input);
         ValidationResult vr = val.validate("foo", input, vc);
         assertTrue(vr.isValid());
     }
 
-    private void validatePropertyWithELIsInvalid(Validator val, String input, PropertyValue property, ValidationContext vc) {
+    private void validatePropertyWithELIsInvalid(Validator val, String input, ValidationContext vc) {
+        PropertyValue property = mock(PropertyValue.class);
+        when(vc.newPropertyValue(input)).thenReturn(property);
         when(property.evaluateAttributeExpressions()).thenReturn(property);
         when(property.evaluateAttributeExpressions().getValue()).thenReturn(input);
         ValidationResult vr = val.validate("foo", input, vc);
