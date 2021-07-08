@@ -127,12 +127,4 @@ limitations under the License.
             </build>
         </profile>
     </profiles>
-
-    <repositories>
-        <repository>
-            <id>palantir.bintray</id>
-            <name>Palantir Bintray</name>
-            <url>https://dl.bintray.com/palantir/releases</url>
-        </repository>
-    </repositories>
 </project>
