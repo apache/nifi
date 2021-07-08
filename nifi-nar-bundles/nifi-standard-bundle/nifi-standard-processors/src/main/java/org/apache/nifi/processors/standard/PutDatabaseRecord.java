@@ -67,7 +67,6 @@ import java.sql.BatchUpdateException;
 import java.sql.Clob;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
-import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -756,11 +755,6 @@ public class PutDatabaseRecord extends AbstractProcessor {
                                 // try with the original object and field datatype
                                 sqlType = DataTypeUtils.getSQLTypeValue(dataType);
                             }
-                        }
-
-                        if (sqlType == Types.DATE && currentValue instanceof Date) {
-                            // convert Date from the internal UTC normalized form to local time zone needed by database drivers
-                            currentValue = DataTypeUtils.convertDateToLocalTZ((Date) currentValue);
                         }
 
                         // If DELETE type, insert the object twice if the column is nullable because of the null check (see generateDelete for details)

@@ -62,6 +62,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -78,7 +80,7 @@ import static org.apache.nifi.processors.kudu.TestPutKudu.ResultCode.OK;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -89,6 +91,10 @@ public class TestPutKudu {
     public static final String SKIP_HEAD_LINE = "false";
     public static final String TABLE_SCHEMA = "id,stringVal,num32Val,doubleVal,decimalVal,dateVal";
 
+    private static final String DATE_FIELD = "created";
+    private static final String ISO_8601_YEAR_MONTH_DAY = "2000-01-01";
+    private static final String ISO_8601_YEAR_MONTH_DAY_PATTERN = "yyyy-MM-dd";
+
     private TestRunner testRunner;
 
     private MockPutKudu processor;
@@ -98,13 +104,13 @@ public class TestPutKudu {
     private final java.sql.Date today = new java.sql.Date(System.currentTimeMillis());
 
     @Before
-    public void setUp() throws InitializationException {
+    public void setUp() {
         processor = new MockPutKudu();
         testRunner = TestRunners.newTestRunner(processor);
         setUpTestRunner(testRunner);
     }
 
-    private void setUpTestRunner(TestRunner testRunner) throws InitializationException {
+    private void setUpTestRunner(TestRunner testRunner) {
         testRunner.setProperty(PutKudu.TABLE_NAME, DEFAULT_TABLE_NAME);
         testRunner.setProperty(PutKudu.KUDU_MASTERS, DEFAULT_MASTERS);
         testRunner.setProperty(PutKudu.SKIP_HEAD_LINE, SKIP_HEAD_LINE);
@@ -130,7 +136,7 @@ public class TestPutKudu {
         readerFactory.addSchemaField("dateVal", RecordFieldType.DATE);
         for (int i = 0; i < numOfRecord; i++) {
             readerFactory.addRecord(i, "val_" + i, 1000 + i, 100.88 + i,
-                    new BigDecimal(111.111D).add(BigDecimal.valueOf(i)), today);
+                    new BigDecimal("111.111").add(BigDecimal.valueOf(i)), today);
         }
 
         testRunner.addControllerService("mock-reader-factory", readerFactory);
@@ -164,7 +170,7 @@ public class TestPutKudu {
     }
 
     @Test
-    public void testWriteKuduWithDefaults() throws IOException, InitializationException {
+    public void testWriteKuduWithDefaults() throws InitializationException {
         createRecordReader(100);
 
         final String filename = "testWriteKudu-" + System.currentTimeMillis();
@@ -251,7 +257,7 @@ public class TestPutKudu {
     }
 
     @Test
-    public void testValidSchemaShouldBeSuccessful() throws InitializationException, IOException {
+    public void testValidSchemaShouldBeSuccessful() throws InitializationException {
         createRecordReader(10);
         final String filename = "testValidSchemaShouldBeSuccessful-" + System.currentTimeMillis();
 
@@ -266,9 +272,8 @@ public class TestPutKudu {
     }
 
     @Test
-    public void testAddingMissingFieldsWhenHandleSchemaDriftIsAllowed() throws InitializationException, IOException {
-        // given
-        processor.setTableSchema(new Schema(Arrays.asList()));
+    public void testAddingMissingFieldsWhenHandleSchemaDriftIsAllowed() throws InitializationException {
+        processor.setTableSchema(new Schema(Collections.emptyList()));
         createRecordReader(5);
         final String filename = "testAddingMissingFieldsWhenHandleSchemaDriftIsAllowed-" + System.currentTimeMillis();
 
@@ -278,10 +283,8 @@ public class TestPutKudu {
         testRunner.setProperty(PutKudu.HANDLE_SCHEMA_DRIFT, "true");
         testRunner.enqueue("trigger", flowFileAttributes);
 
-        // when
         testRunner.run();
 
-        // then
         testRunner.assertAllFlowFilesTransferred(PutKudu.REL_SUCCESS, 1);
     }
 
@@ -311,7 +314,7 @@ public class TestPutKudu {
     }
 
     @Test
-    public void testReadAsStringAndWriteAsInt() throws InitializationException, IOException {
+    public void testReadAsStringAndWriteAsInt() throws InitializationException {
         createRecordReader(0);
         // add the favorite color as a string
         readerFactory.addRecord(1, "name0", "0", "89.89", "111.111", today);
@@ -327,11 +330,11 @@ public class TestPutKudu {
     }
 
     @Test
-    public void testMissingColumInReader() throws InitializationException, IOException {
+    public void testMissingColumnInReader() throws InitializationException {
         createRecordReader(0);
         readerFactory.addRecord("name0", "0", "89.89"); //missing id
 
-        final String filename = "testMissingColumInReader-" + System.currentTimeMillis();
+        final String filename = "testMissingColumnInReader-" + System.currentTimeMillis();
 
         final Map<String, String> flowFileAttributes = new HashMap<>();
         flowFileAttributes.put(CoreAttributes.FILENAME.key(), filename);
@@ -345,7 +348,7 @@ public class TestPutKudu {
     @Test
     public void testInsertManyFlowFiles() throws Exception {
         createRecordReader(50);
-        final String content1 = "{ \"field1\" : \"value1\", \"field2\" : \"valu11\" }";
+        final String content1 = "{ \"field1\" : \"value1\", \"field2\" : \"value11\" }";
         final String content2 = "{ \"field1\" : \"value1\", \"field2\" : \"value11\" }";
         final String content3 = "{ \"field1\" : \"value3\", \"field2\" : \"value33\" }";
 
@@ -475,33 +478,45 @@ public class TestPutKudu {
         // Comparing string representations of dates, because java.sql.Date does not override
         // java.util.Date.equals method and therefore compares milliseconds instead of
         // comparing dates, even though java.sql.Date is supposed to ignore time
-        Assert.assertEquals(String.format("Expecting the date to be %s, but got %s", today.toString(), row.getDate("sql_date").toString()),
+        Assert.assertEquals(String.format("Expecting the date to be %s, but got %s", today, row.getDate("sql_date").toString()),
                 row.getDate("sql_date").toString(), today.toString());
     }
 
     @Test
-    public void testBuildPartialRowWithDateString() {
-        final String dateFieldName = "created";
-        final String dateFieldValue = "2000-01-01";
+    public void testBuildPartialRowWithDateDefaultTimeZone() throws ParseException {
+        final SimpleDateFormat dateFormat = new SimpleDateFormat(ISO_8601_YEAR_MONTH_DAY_PATTERN);
+        final java.util.Date dateFieldValue = dateFormat.parse(ISO_8601_YEAR_MONTH_DAY);
 
+        assertPartialRowDateFieldEquals(dateFieldValue);
+    }
+
+    @Test
+    public void testBuildPartialRowWithDateString() {
+        assertPartialRowDateFieldEquals(ISO_8601_YEAR_MONTH_DAY);
+    }
+
+    private void assertPartialRowDateFieldEquals(final Object dateFieldValue) {
+        final PartialRow row = buildPartialRowDateField(dateFieldValue);
+        final java.sql.Date rowDate = row.getDate(DATE_FIELD);
+        assertEquals("Partial Row Date Field not matched", ISO_8601_YEAR_MONTH_DAY, rowDate.toString());
+    }
+
+    private PartialRow buildPartialRowDateField(final Object dateFieldValue) {
         final Schema kuduSchema = new Schema(Collections.singletonList(
-                new ColumnSchema.ColumnSchemaBuilder(dateFieldName, Type.DATE).nullable(true).build()
+                new ColumnSchema.ColumnSchemaBuilder(DATE_FIELD, Type.DATE).nullable(true).build()
         ));
 
         final RecordSchema schema = new SimpleRecordSchema(Collections.singletonList(
-                new RecordField(dateFieldName, RecordFieldType.DATE.getDataType())
+                new RecordField(DATE_FIELD, RecordFieldType.DATE.getDataType())
         ));
 
         final Map<String, Object> values = new HashMap<>();
-        values.put(dateFieldName, dateFieldValue);
+        values.put(DATE_FIELD, dateFieldValue);
         final MapRecord record = new MapRecord(schema, values);
 
         final PartialRow row = kuduSchema.newPartialRow();
-
         processor.buildPartialRow(kuduSchema, row, record, schema.getFieldNames(), true, true);
-
-        final java.sql.Date rowDate = row.getDate(dateFieldName);
-        assertEquals("Partial Row Date Field not matched", dateFieldValue, rowDate.toString());
+        return row;
     }
 
     private PartialRow buildPartialRow(Long id, String name, Short age, String kuduIdName, String recordIdName, String airport_code, java.sql.Date sql_date, Boolean lowercaseFields) {
