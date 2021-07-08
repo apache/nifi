@@ -156,7 +156,7 @@ public class UnpackContent extends AbstractProcessor {
     public static final PropertyDescriptor PASSWORD = new PropertyDescriptor.Builder()
             .name("Password")
             .displayName("Password")
-            .description("Password used for decrypting archive entries. Supports Zip files encrypted with ZipCrypto or AES")
+            .description("Password used for decrypting archive entries. Supports Zip files encrypted with ZipCrypto or AES. Configuring a password disables support for alternative Zip compression algorithms.")
             .required(false)
             .sensitive(true)
             .addValidator(StandardValidators.NON_BLANK_VALIDATOR)
