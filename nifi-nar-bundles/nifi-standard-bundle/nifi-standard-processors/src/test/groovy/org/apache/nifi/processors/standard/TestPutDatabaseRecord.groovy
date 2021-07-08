@@ -248,14 +248,12 @@ class TestPutDatabaseRecord {
         parser.addSchemaField("dt", RecordFieldType.DATE)
 
         LocalDate testDate1 = LocalDate.of(2021, 1, 26)
-        Date nifiDate1 = new Date(testDate1.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()) // in UTC
         Date jdbcDate1 = Date.valueOf(testDate1) // in local TZ
         LocalDate testDate2 = LocalDate.of(2021, 7, 26)
-        Date nifiDate2 = new Date(testDate2.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()) // in URC
         Date jdbcDate2 = Date.valueOf(testDate2) // in local TZ
 
-        parser.addRecord(1, 'rec1', 101, nifiDate1)
-        parser.addRecord(2, 'rec2', 102, nifiDate2)
+        parser.addRecord(1, 'rec1', 101, jdbcDate1)
+        parser.addRecord(2, 'rec2', 102, jdbcDate2)
         parser.addRecord(3, 'rec3', 103, null)
         parser.addRecord(4, 'rec4', 104, null)
         parser.addRecord(5, null, 105, null)
@@ -275,12 +273,12 @@ class TestPutDatabaseRecord {
         assertEquals(1, rs.getInt(1))
         assertEquals('rec1', rs.getString(2))
         assertEquals(101, rs.getInt(3))
-        assertEquals(jdbcDate1, rs.getDate(4))
+        assertEquals(jdbcDate1.toString(), rs.getDate(4).toString())
         assertTrue(rs.next())
         assertEquals(2, rs.getInt(1))
         assertEquals('rec2', rs.getString(2))
         assertEquals(102, rs.getInt(3))
-        assertEquals(jdbcDate2, rs.getDate(4))
+        assertEquals(jdbcDate2.toString(), rs.getDate(4).toString())
         assertTrue(rs.next())
         assertEquals(3, rs.getInt(1))
         assertEquals('rec3', rs.getString(2))
@@ -314,14 +312,12 @@ class TestPutDatabaseRecord {
         parser.addSchemaField("dt", RecordFieldType.DATE)
 
         LocalDate testDate1 = LocalDate.of(2021, 1, 26)
-        Date nifiDate1 = new Date(testDate1.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()) // in UTC
         Date jdbcDate1 = Date.valueOf(testDate1) // in local TZ
         LocalDate testDate2 = LocalDate.of(2021, 7, 26)
-        Date nifiDate2 = new Date(testDate2.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()) // in URC
         Date jdbcDate2 = Date.valueOf(testDate2) // in local TZ
 
-        parser.addRecord(1, 'rec1', nifiDate1)
-        parser.addRecord(2, 'rec2', nifiDate2)
+        parser.addRecord(1, 'rec1', jdbcDate1)
+        parser.addRecord(2, 'rec2', jdbcDate2)
         parser.addRecord(3, 'rec3', null)
         parser.addRecord(4, 'rec4', null)
         parser.addRecord(5, null, null)
@@ -342,12 +338,12 @@ class TestPutDatabaseRecord {
         assertEquals('rec1', rs.getString(2))
         // Zero value because of the constraint
         assertEquals(0, rs.getInt(3))
-        assertEquals(jdbcDate1, rs.getDate(4))
+        assertEquals(jdbcDate1.toString(), rs.getDate(4).toString())
         assertTrue(rs.next())
         assertEquals(2, rs.getInt(1))
         assertEquals('rec2', rs.getString(2))
         assertEquals(0, rs.getInt(3))
-        assertEquals(jdbcDate2, rs.getDate(4))
+        assertEquals(jdbcDate2.toString(), rs.getDate(4).toString())
         assertTrue(rs.next())
         assertEquals(3, rs.getInt(1))
         assertEquals('rec3', rs.getString(2))
@@ -1274,11 +1270,12 @@ class TestPutDatabaseRecord {
         parser.addSchemaField("dt", RecordFieldType.BIGINT)
 
         LocalDate testDate1 = LocalDate.of(2021, 1, 26)
-        BigInteger nifiDate1 = testDate1.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli() // in UTC
         Date jdbcDate1 = Date.valueOf(testDate1) // in local TZ
+        BigInteger nifiDate1 = jdbcDate1.getTime() // in local TZ
+
         LocalDate testDate2 = LocalDate.of(2021, 7, 26)
-        BigInteger nifiDate2 = testDate2.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli() // in UTC
         Date jdbcDate2 = Date.valueOf(testDate2) // in local TZ
+        BigInteger nifiDate2 = jdbcDate2.getTime() // in local TZ
 
         parser.addRecord(1, 'rec1', 101, nifiDate1)
         parser.addRecord(2, 'rec2', 102, nifiDate2)
@@ -1301,12 +1298,12 @@ class TestPutDatabaseRecord {
         assertEquals(1, rs.getInt(1))
         assertEquals('rec1', rs.getString(2))
         assertEquals(101, rs.getInt(3))
-        assertEquals(jdbcDate1, rs.getDate(4))
+        assertEquals(jdbcDate1.toString(), rs.getDate(4).toString())
         assertTrue(rs.next())
         assertEquals(2, rs.getInt(1))
         assertEquals('rec2', rs.getString(2))
         assertEquals(102, rs.getInt(3))
-        assertEquals(jdbcDate2, rs.getDate(4))
+        assertEquals(jdbcDate2.toString(), rs.getDate(4).toString())
         assertTrue(rs.next())
         assertEquals(3, rs.getInt(1))
         assertEquals('rec3', rs.getString(2))

@@ -52,13 +52,11 @@ import java.sql.Date;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.TimeZone;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -521,17 +519,15 @@ public class TestAvroTypeUtil {
 
     @Test
     public void testDateConversion() {
-        final Calendar c = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
-        c.set(2019, Calendar.JANUARY, 1, 0, 0, 0);
-        c.set(Calendar.MILLISECOND, 0);
-        final long epochMillis = c.getTimeInMillis();
+        final String date = "2019-01-01";
 
         final LogicalTypes.Date dateType = LogicalTypes.date();
         final Schema fieldSchema = Schema.create(Type.INT);
         dateType.addToSchema(fieldSchema);
-        final Object convertedValue = AvroTypeUtil.convertToAvroObject(new Date(epochMillis), fieldSchema);
+        final Object convertedValue = AvroTypeUtil.convertToAvroObject(Date.valueOf(date), fieldSchema);
         assertTrue(convertedValue instanceof Integer);
-        assertEquals(LocalDate.of(2019, 1, 1).toEpochDay(), (int) convertedValue);
+        final int epochDay = (int) LocalDate.parse(date).toEpochDay();
+        assertEquals(epochDay, convertedValue);
     }
 
     @Test

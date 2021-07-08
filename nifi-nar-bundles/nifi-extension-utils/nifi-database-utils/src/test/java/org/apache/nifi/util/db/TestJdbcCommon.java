@@ -62,22 +62,12 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.time.Instant;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
-import java.time.ZoneOffset;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeFormatterBuilder;
-import java.time.temporal.ChronoField;
-import java.time.temporal.ChronoUnit;
-import java.time.temporal.TemporalAccessor;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
-import java.util.function.BiFunction;
 import java.util.stream.IntStream;
 
 import static org.junit.Assert.assertEquals;
@@ -751,7 +741,7 @@ public class TestJdbcCommon {
 
         testConvertToAvroStreamForDateTime(options,
                 (record, date) -> {
-                    final int expectedDaysSinceEpoch = (int) ChronoUnit.DAYS.between(LocalDate.ofEpochDay(0), date.toLocalDate());
+                    final int expectedDaysSinceEpoch = (int) date.toLocalDate().toEpochDay();
                     final int actualDaysSinceEpoch = (int) record.get("date");
                     LOGGER.debug("comparing days since epoch, expecting '{}', actual '{}'", expectedDaysSinceEpoch, actualDaysSinceEpoch);
                     assertEquals(expectedDaysSinceEpoch, actualDaysSinceEpoch);
@@ -781,48 +771,22 @@ public class TestJdbcCommon {
         final ResultSet rs = mock(ResultSet.class);
         when(rs.getMetaData()).thenReturn(metadata);
 
-        // create a ZonedDateTime (UTC) given a formatting pattern and a date/time string
-        BiFunction<String, String, ZonedDateTime> toZonedDateTime = (format, dateStr) -> {
-            DateTimeFormatterBuilder dateTimeFormatterBuilder = new DateTimeFormatterBuilder().appendPattern(format);
-            TemporalAccessor temporalAccessor = DateTimeFormatter.ofPattern(format).parse(dateStr);
-            if (!temporalAccessor.isSupported(ChronoField.EPOCH_DAY)) {
-                ZonedDateTime utcNow = LocalDateTime.now().atZone(ZoneId.systemDefault());
-                dateTimeFormatterBuilder.parseDefaulting(ChronoField.DAY_OF_MONTH, utcNow.getDayOfMonth())
-                        .parseDefaulting(ChronoField.MONTH_OF_YEAR, utcNow.getMonthValue())
-                        .parseDefaulting(ChronoField.YEAR, utcNow.getYear());
-
-            }
-            if (!temporalAccessor.isSupported(ChronoField.MILLI_OF_SECOND)) {
-                dateTimeFormatterBuilder.parseDefaulting(ChronoField.HOUR_OF_DAY, 0)
-                        .parseDefaulting(ChronoField.MINUTE_OF_HOUR, 0)
-                        .parseDefaulting(ChronoField.SECOND_OF_MINUTE, 0);
-            }
-            DateTimeFormatter formatter = dateTimeFormatterBuilder.toFormatter();
-            LocalDateTime dateTime = LocalDateTime.parse(dateStr, formatter);
-            ZonedDateTime zonedDateTime = dateTime.atZone(ZoneOffset.UTC).withZoneSameInstant(ZoneOffset.UTC);
-            LOGGER.debug("calculated ZonedDateTime '{}' from format '{}', date/time string '{}'", zonedDateTime, format, dateStr);
-            return zonedDateTime;
-        };
-
         when(metadata.getColumnCount()).thenReturn(3);
         when(metadata.getTableName(anyInt())).thenReturn("table");
 
         when(metadata.getColumnType(1)).thenReturn(Types.DATE);
         when(metadata.getColumnName(1)).thenReturn("date");
-        ZonedDateTime parsedDate = toZonedDateTime.apply("yyyy/MM/dd", "2017/05/10");
-        final java.sql.Date date = java.sql.Date.valueOf(parsedDate.toLocalDate());
+        final java.sql.Date date = java.sql.Date.valueOf("2017-05-10");
         when(rs.getObject(1)).thenReturn(date);
 
         when(metadata.getColumnType(2)).thenReturn(Types.TIME);
         when(metadata.getColumnName(2)).thenReturn("time");
-        ZonedDateTime parsedTime = toZonedDateTime.apply("HH:mm:ss.SSS", "12:34:56.789");
-        final Time time = Time.valueOf(parsedTime.toLocalTime());
+        final Time time = Time.valueOf("12:34:56");
         when(rs.getObject(2)).thenReturn(time);
 
         when(metadata.getColumnType(3)).thenReturn(Types.TIMESTAMP);
         when(metadata.getColumnName(3)).thenReturn("timestamp");
-        ZonedDateTime parsedDateTime = toZonedDateTime.apply("yyyy/MM/dd HH:mm:ss.SSS", "2017/05/11 19:59:39.123");
-        final Timestamp timestamp = Timestamp.valueOf(parsedDateTime.toLocalDateTime());
+        final Timestamp timestamp = Timestamp.valueOf("2017-05-11 19:59:39");
         when(rs.getObject(3)).thenReturn(timestamp);
 
         final AtomicInteger counter = new AtomicInteger(1);

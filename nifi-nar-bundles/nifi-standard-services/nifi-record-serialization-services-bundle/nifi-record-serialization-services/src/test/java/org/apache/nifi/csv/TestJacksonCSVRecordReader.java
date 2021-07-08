@@ -35,11 +35,8 @@ import java.io.ByteArrayInputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.sql.Date;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.List;
-import java.util.TimeZone;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -85,6 +82,7 @@ public class TestJacksonCSVRecordReader {
 
     @Test
     public void testDate() throws IOException, MalformedRecordException {
+        final String dateValue = "1983-11-30";
         final String text = "date\n11/30/1983";
 
         final List<RecordField> fields = new ArrayList<>();
@@ -96,13 +94,8 @@ public class TestJacksonCSVRecordReader {
                      "MM/dd/yyyy", RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "UTF-8")) {
 
             final Record record = reader.nextRecord();
-            final Date date = (Date) record.getValue("date");
-            final Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("gmt"));
-            calendar.setTimeInMillis(date.getTime());
-
-            assertEquals(1983, calendar.get(Calendar.YEAR));
-            assertEquals(10, calendar.get(Calendar.MONTH));
-            assertEquals(30, calendar.get(Calendar.DAY_OF_MONTH));
+            final Object date = record.getValue("date");
+            assertEquals(java.sql.Date.valueOf(dateValue), date);
         }
     }
 

@@ -96,7 +96,7 @@ public class TestWriteJsonResult {
         valueMap.put("float", 8.0F);
         valueMap.put("double", 8.0D);
         valueMap.put("decimal", BigDecimal.valueOf(8.1D));
-        valueMap.put("date", new Date(time));
+        valueMap.put("date", Date.valueOf("2017-01-01"));
         valueMap.put("time", new Time(time));
         valueMap.put("timestamp", new Timestamp(time));
         valueMap.put("record", null);
@@ -166,7 +166,8 @@ public class TestWriteJsonResult {
         final Map<String, Object> values = new HashMap<>();
         values.put("timestamp", new java.sql.Timestamp(37293723L));
         values.put("time", new java.sql.Time(37293723L));
-        values.put("date", new java.sql.Date(37293723L));
+        final java.sql.Date date = java.sql.Date.valueOf("1970-01-01");
+        values.put("date", date);
 
         final List<RecordField> fields = new ArrayList<>();
         fields.add(new RecordField("timestamp", RecordFieldType.TIMESTAMP.getDataType()));
@@ -186,7 +187,7 @@ public class TestWriteJsonResult {
 
         final byte[] data = baos.toByteArray();
 
-        final String expected = "[{\"timestamp\":37293723,\"time\":37293723,\"date\":37293723}]";
+        final String expected = String.format("[{\"timestamp\":37293723,\"time\":37293723,\"date\":%d}]", date.getTime());
 
         final String output = new String(data, StandardCharsets.UTF_8);
         assertEquals(expected, output);
@@ -442,7 +443,9 @@ public class TestWriteJsonResult {
         final Map<String, Object> values1 = new HashMap<>();
         values1.put("timestamp", new java.sql.Timestamp(37293723L));
         values1.put("time", new java.sql.Time(37293723L));
-        values1.put("date", new java.sql.Date(37293723L));
+
+        final java.sql.Date date = java.sql.Date.valueOf("1970-01-01");
+        values1.put("date", date);
 
         final List<RecordField> fields1 = new ArrayList<>();
         fields1.add(new RecordField("timestamp", RecordFieldType.TIMESTAMP.getDataType()));
@@ -456,7 +459,7 @@ public class TestWriteJsonResult {
         final Map<String, Object> values2 = new HashMap<>();
         values2.put("timestamp", new java.sql.Timestamp(37293999L));
         values2.put("time", new java.sql.Time(37293999L));
-        values2.put("date", new java.sql.Date(37293999L));
+        values2.put("date", date);
 
 
         final Record record2 = new MapRecord(schema, values2);
@@ -471,7 +474,8 @@ public class TestWriteJsonResult {
 
         final byte[] data = baos.toByteArray();
 
-        final String expected = "{\"timestamp\":37293723,\"time\":37293723,\"date\":37293723}\n{\"timestamp\":37293999,\"time\":37293999,\"date\":37293999}";
+        final long dateTime = date.getTime();
+        final String expected = String.format("{\"timestamp\":37293723,\"time\":37293723,\"date\":%d}\n{\"timestamp\":37293999,\"time\":37293999,\"date\":%d}", dateTime, dateTime);
 
         final String output = new String(data, StandardCharsets.UTF_8);
         assertEquals(expected, output);

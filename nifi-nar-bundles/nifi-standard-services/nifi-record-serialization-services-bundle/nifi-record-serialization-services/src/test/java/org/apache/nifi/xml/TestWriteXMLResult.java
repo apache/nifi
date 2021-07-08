@@ -173,6 +173,7 @@ public class TestWriteXMLResult {
         final DateFormat df = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss.SSS");
         df.setTimeZone(TimeZone.getTimeZone("gmt"));
         final long time = df.parse("2017/01/01 17:00:00.000").getTime();
+        final String date = "2017-01-01";
 
         final Map<String, Object> map = new LinkedHashMap<>();
         map.put("height", 48);
@@ -190,7 +191,7 @@ public class TestWriteXMLResult {
         valueMap.put("float", 8.0F);
         valueMap.put("double", 8.0D);
         valueMap.put("decimal", 8.1D);
-        valueMap.put("date", new Date(time));
+        valueMap.put("date", Date.valueOf(date));
         valueMap.put("time", new Time(time));
         valueMap.put("timestamp", new Timestamp(time));
         valueMap.put("record", null);

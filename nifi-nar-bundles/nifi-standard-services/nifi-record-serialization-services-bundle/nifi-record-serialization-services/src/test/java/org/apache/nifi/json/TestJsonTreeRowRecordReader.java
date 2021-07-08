@@ -44,6 +44,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -450,6 +451,26 @@ public class TestJsonTreeRowRecordReader {
         }
     }
 
+    @Test
+    public void testDateCoercedFromString() throws IOException, MalformedRecordException {
+        final String dateField = "date";
+        final List<RecordField> recordFields = Collections.singletonList(new RecordField(dateField, RecordFieldType.DATE.getDataType()));
+        final RecordSchema schema = new SimpleRecordSchema(recordFields);
+
+        final String date = "2000-01-01";
+        final String datePattern = "yyyy-MM-dd";
+        final String json = String.format("{ \"%s\": \"%s\" }", dateField, date);
+        for (final boolean coerceTypes : new boolean[] {true, false}) {
+            try (final InputStream in = new ByteArrayInputStream(json.getBytes(StandardCharsets.UTF_8));
+                 final JsonTreeRowRecordReader reader = new JsonTreeRowRecordReader(in, mock(ComponentLog.class), schema, datePattern, timeFormat, timestampFormat)) {
+
+                final Record record = reader.nextRecord(coerceTypes, false);
+                final Object value = record.getValue(dateField);
+                assertTrue("With coerceTypes set to " + coerceTypes + ", value is not a Date", value instanceof java.sql.Date);
+                assertEquals(date, value.toString());
+            }
+        }
+    }
 
     @Test
     public void testTimestampCoercedFromString() throws IOException, MalformedRecordException {

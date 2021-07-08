@@ -30,10 +30,15 @@ import java.nio.charset.StandardCharsets;
 import java.sql.Date;
 import java.sql.Timestamp;
 import java.sql.Types;
+import java.text.DateFormat;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -42,6 +47,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.TimeZone;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.DoubleAdder;
 import java.util.function.Function;
@@ -56,6 +62,16 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 public class TestDataTypeUtils {
+    private static final ZoneId SYSTEM_DEFAULT_ZONE_ID = ZoneOffset.systemDefault();
+
+    private static final String ISO_8601_YEAR_MONTH_DAY = "2000-01-01";
+
+    private static final String CUSTOM_MONTH_DAY_YEAR = "01-01-2000";
+
+    private static final String CUSTOM_MONTH_DAY_YEAR_PATTERN = "MM-dd-yyyy";
+
+    private static final String DATE_FIELD = "date";
+
     /**
      * This is a unit test to verify conversion java Date objects to Timestamps. Support for this was
      * required in order to help the MongoDB packages handle date/time logical types in the Record API.
@@ -923,23 +939,73 @@ public class TestDataTypeUtils {
         assertEquals(0, zdt.getNano());
     }
 
+    /**
+     * Convert String to java.sql.Date using implicit default DateFormat with GMT Time Zone
+     *
+     * Running this method on a system with a time zone other than GMT should return the same year-month-day
+     */
     @Test
-    public void testConvertDateToLocalTZ() {
-        int year = 2021;
-        int month = 1;
-        int dayOfMonth = 25;
+    public void testConvertTypeStringToDateDefaultTimeZoneFormat() {
+        final Object converted = DataTypeUtils.convertType(ISO_8601_YEAR_MONTH_DAY, RecordFieldType.DATE.getDataType(), DATE_FIELD);
+        assertTrue("Converted value is not java.sql.Date", converted instanceof java.sql.Date);
+        assertEquals(ISO_8601_YEAR_MONTH_DAY, converted.toString());
+    }
 
-        Date dateUTC = new Date(ZonedDateTime.of(LocalDateTime.of(year, month, dayOfMonth,0,0,0), ZoneId.of("UTC")).toInstant().toEpochMilli());
+    /**
+     * Convert String to java.sql.Date using custom pattern DateFormat with configured GMT Time Zone
+     */
+    @Test
+    public void testConvertTypeStringToDateConfiguredTimeZoneFormat() {
+        final DateFormat dateFormat = DataTypeUtils.getDateFormat(CUSTOM_MONTH_DAY_YEAR_PATTERN, "GMT");
+        final Object converted = DataTypeUtils.convertType(CUSTOM_MONTH_DAY_YEAR, RecordFieldType.DATE.getDataType(), () -> dateFormat, null, null,"date");
+        assertTrue("Converted value is not java.sql.Date", converted instanceof java.sql.Date);
+        assertEquals(ISO_8601_YEAR_MONTH_DAY, converted.toString());
+    }
 
-        Date dateLocalTZ = DataTypeUtils.convertDateToLocalTZ(dateUTC);
+    /**
+     * Convert String to java.sql.Date using custom pattern DateFormat with system default Time Zone
+     */
+    @Test
+    public void testConvertTypeStringToDateConfiguredSystemDefaultTimeZoneFormat() {
+        final DateFormat dateFormat = DataTypeUtils.getDateFormat(CUSTOM_MONTH_DAY_YEAR_PATTERN, TimeZone.getDefault().getID());
+        final Object converted = DataTypeUtils.convertType(CUSTOM_MONTH_DAY_YEAR, RecordFieldType.DATE.getDataType(), () -> dateFormat, null, null,"date");
+        assertTrue("Converted value is not java.sql.Date", converted instanceof java.sql.Date);
+        assertEquals(ISO_8601_YEAR_MONTH_DAY, converted.toString());
+    }
 
-        ZonedDateTime zdt = ZonedDateTime.ofInstant(Instant.ofEpochMilli(dateLocalTZ.getTime()), ZoneId.systemDefault());
-        assertEquals(year, zdt.getYear());
-        assertEquals(month, zdt.getMonthValue());
-        assertEquals(dayOfMonth, zdt.getDayOfMonth());
-        assertEquals(0, zdt.getHour());
-        assertEquals(0, zdt.getMinute());
-        assertEquals(0, zdt.getSecond());
-        assertEquals(0, zdt.getNano());
+    @Test
+    public void testToLocalDateFromString() {
+        assertToLocalDateEquals(ISO_8601_YEAR_MONTH_DAY, ISO_8601_YEAR_MONTH_DAY);
+    }
+
+    @Test
+    public void testToLocalDateFromSqlDate() {
+        assertToLocalDateEquals(ISO_8601_YEAR_MONTH_DAY, java.sql.Date.valueOf(ISO_8601_YEAR_MONTH_DAY));
+    }
+
+    @Test
+    public void testToLocalDateFromUtilDate() {
+        final LocalDate localDate = LocalDate.parse(ISO_8601_YEAR_MONTH_DAY);
+        final long epochMillis = toEpochMilliSystemDefaultZone(localDate);
+        assertToLocalDateEquals(ISO_8601_YEAR_MONTH_DAY, new java.util.Date(epochMillis));
+    }
+
+    @Test
+    public void testToLocalDateFromNumberEpochMillis() {
+        final LocalDate localDate = LocalDate.parse(ISO_8601_YEAR_MONTH_DAY);
+        final long epochMillis = toEpochMilliSystemDefaultZone(localDate);
+        assertToLocalDateEquals(ISO_8601_YEAR_MONTH_DAY, epochMillis);
+    }
+
+    private long toEpochMilliSystemDefaultZone(final LocalDate localDate) {
+        final LocalTime localTime = LocalTime.of(0, 0);
+        final Instant instantSystemDefaultZone = ZonedDateTime.of(localDate, localTime, SYSTEM_DEFAULT_ZONE_ID).toInstant();
+        return instantSystemDefaultZone.toEpochMilli();
+    }
+
+    private void assertToLocalDateEquals(final String expected, final Object value) {
+        final DateTimeFormatter systemDefaultZoneFormatter = DataTypeUtils.getDateTimeFormatter(RecordFieldType.DATE.getDefaultFormat(), SYSTEM_DEFAULT_ZONE_ID);
+        final LocalDate localDate = DataTypeUtils.toLocalDate(value, () -> systemDefaultZoneFormatter, DATE_FIELD);
+        assertEquals(String.format("Value Class [%s] to LocalDate not matched", value.getClass()), expected, localDate.toString());
     }
 }

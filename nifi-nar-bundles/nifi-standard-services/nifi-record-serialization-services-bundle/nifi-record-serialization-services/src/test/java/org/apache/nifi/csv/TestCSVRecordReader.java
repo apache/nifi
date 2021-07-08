@@ -37,14 +37,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
-import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Collections;
 import java.util.List;
 import java.util.TimeZone;
@@ -92,6 +90,7 @@ public class TestCSVRecordReader {
 
     @Test
     public void testDate() throws IOException, MalformedRecordException {
+        final String dateValue = "1983-11-30";
         final String text = "date\n11/30/1983";
 
         final List<RecordField> fields = new ArrayList<>();
@@ -104,13 +103,8 @@ public class TestCSVRecordReader {
                      "MM/dd/yyyy", RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "UTF-8")) {
 
                 final Record record = reader.nextRecord(coerceTypes, false);
-                final java.sql.Date date = (Date) record.getValue("date");
-                final Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("gmt"));
-                calendar.setTimeInMillis(date.getTime());
-
-                assertEquals(1983, calendar.get(Calendar.YEAR));
-                assertEquals(10, calendar.get(Calendar.MONTH));
-                assertEquals(30, calendar.get(Calendar.DAY_OF_MONTH));
+                final Object date = record.getValue("date");
+                assertEquals(java.sql.Date.valueOf(dateValue), date);
             }
         }
     }
@@ -137,6 +131,7 @@ public class TestCSVRecordReader {
 
     @Test
     public void testDateNoCoersionExpectedFormat() throws IOException, MalformedRecordException {
+        final String dateValue = "1983-11-30";
         final String text = "date\n11/30/1983";
 
         final List<RecordField> fields = new ArrayList<>();
@@ -148,13 +143,8 @@ public class TestCSVRecordReader {
                      "MM/dd/yyyy", RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), "UTF-8")) {
 
             final Record record = reader.nextRecord(false, false);
-            final java.sql.Date date = (Date) record.getValue("date");
-            final Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("gmt"));
-            calendar.setTimeInMillis(date.getTime());
-
-            assertEquals(1983, calendar.get(Calendar.YEAR));
-            assertEquals(10, calendar.get(Calendar.MONTH));
-            assertEquals(30, calendar.get(Calendar.DAY_OF_MONTH));
+            final Object date = record.getValue("date");
+            assertEquals(java.sql.Date.valueOf(dateValue), date);
         }
     }
 

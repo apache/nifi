@@ -398,7 +398,14 @@ public class JdbcCommon {
                         } else {
                             rec.put(i-1, value);
                         }
-
+                    } else if (javaSqlType == DATE) {
+                        if (options.useLogicalTypes) {
+                            // Handle SQL DATE fields using system default time zone without conversion
+                            rec.put(i - 1, AvroTypeUtil.convertToAvroObject(value, fieldSchema));
+                        } else {
+                            // As string for backward compatibility.
+                            rec.put(i - 1, value.toString());
+                        }
                     } else if (value instanceof java.sql.Date) {
                         if (options.useLogicalTypes) {
                             // Delegate mapping to AvroTypeUtil in order to utilize logical types.
