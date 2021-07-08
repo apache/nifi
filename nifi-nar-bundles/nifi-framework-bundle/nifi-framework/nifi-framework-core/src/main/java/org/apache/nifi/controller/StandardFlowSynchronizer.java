@@ -683,6 +683,7 @@ public class StandardFlowSynchronizer implements FlowSynchronizer {
                 && CollectionUtils.isEmpty(contents.getOutputPorts())
                 && CollectionUtils.isEmpty(contents.getProcessGroups())
                 && CollectionUtils.isEmpty(contents.getRemoteProcessGroups())
+                && CollectionUtils.isEmpty(contents.getControllerServices())
                 && parameterContextId == null;
     }
 
