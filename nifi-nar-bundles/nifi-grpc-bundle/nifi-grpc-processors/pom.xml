@@ -75,6 +75,13 @@ language governing permissions and limitations under the License. -->
             <artifactId>nifi-mock</artifactId>
             <version>1.14.0-SNAPSHOT</version>
             <scope>test</scope>
+<!--The following is added to make sure the resolve dependencies issues bringing in AWS KMS dependency-->
+            <exclusions>
+                <exclusion>
+                    <artifactId>netty-transport-native-epoll</artifactId>
+                    <groupId>io.netty</groupId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
