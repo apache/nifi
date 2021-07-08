@@ -57,8 +57,8 @@ import javax.security.auth.login.LoginException;
 import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.Timestamp;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -427,17 +427,8 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
      * @return Date object or null when value is null
      */
     private Date getDate(final Object value, final String recordFieldName, final String format) {
-        return DataTypeUtils.toDate(value, () -> getDateFormat(format), recordFieldName);
-    }
-
-    /**
-     * Get Date Format using Date Record Field default pattern and system time zone to avoid unnecessary conversion
-     *
-     * @param format Date Format Pattern
-     * @return Date Format used to parsing date fields
-     */
-    private DateFormat getDateFormat(final String format) {
-        return new SimpleDateFormat(format);
+        final LocalDate localDate = DataTypeUtils.toLocalDate(value, () -> DataTypeUtils.getDateTimeFormatter(format, ZoneId.systemDefault()), recordFieldName);
+        return Date.valueOf(localDate);
     }
 
     /**

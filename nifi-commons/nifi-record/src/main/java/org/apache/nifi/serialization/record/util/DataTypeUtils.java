@@ -50,9 +50,11 @@ import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -110,7 +112,7 @@ public class DataTypeUtils {
     private static final Pattern FLOATING_POINT_PATTERN = Pattern.compile(doubleRegex);
     private static final Pattern DECIMAL_PATTERN = Pattern.compile(decimalRegex);
 
-    private static final TimeZone gmt = TimeZone.getTimeZone("gmt");
+    private static final TimeZone GMT_TIME_ZONE = TimeZone.getTimeZone("GMT");
 
     private static final Supplier<DateFormat> DEFAULT_DATE_FORMAT = () -> getDateFormat(RecordFieldType.DATE.getDefaultFormat());
     private static final Supplier<DateFormat> DEFAULT_TIME_FORMAT = () -> getDateFormat(RecordFieldType.TIME.getDefaultFormat());
@@ -189,7 +191,7 @@ public class DataTypeUtils {
             case CHAR:
                 return toCharacter(value, fieldName);
             case DATE:
-                return toDate(value, dateFormat, fieldName);
+                return convertTypeToDate(value, dateFormat, fieldName);
             case DECIMAL:
                 return toBigDecimal(value, fieldName);
             case DOUBLE:
@@ -1108,6 +1110,133 @@ public class DataTypeUtils {
     }
 
     /**
+     * Get Date Time Formatter using Zone Identifier
+     *
+     * @param pattern Date Format Pattern
+     * @param zoneId Time Zone Identifier
+     * @return Date Time Formatter or null when provided pattern is null
+     */
+    public static DateTimeFormatter getDateTimeFormatter(final String pattern, final ZoneId zoneId) {
+        if (pattern == null || zoneId == null) {
+            return null;
+        }
+        return DateTimeFormatter.ofPattern(pattern).withZone(zoneId);
+    }
+
+    /**
+     * Convert value to Local Date with support for conversion from numbers or formatted strings
+     *
+     * @param value Value to be converted
+     * @param formatter Supplier for Date Time Formatter can be null when string parsing is not necessary
+     * @param fieldName Field Name for value to be converted
+     * @return Local Date or null when value to be converted is null
+     * @throws IllegalTypeConversionException Thrown when conversion from string fails or unsupported value provided
+     */
+    public static LocalDate toLocalDate(final Object value, final Supplier<DateTimeFormatter> formatter, final String fieldName) {
+        LocalDate localDate;
+
+        if (value == null) {
+            return null;
+        } else if (value instanceof LocalDate) {
+            localDate = (LocalDate) value;
+        } else if (value instanceof java.sql.Date) {
+            final java.sql.Date date = (java.sql.Date) value;
+            localDate = date.toLocalDate();
+        } else if (value instanceof java.util.Date) {
+            final java.util.Date date = (java.util.Date) value;
+            localDate = parseLocalDateEpochMillis(date.getTime());
+        } else if (value instanceof Number) {
+            final long epochMillis = ((Number) value).longValue();
+            localDate = parseLocalDateEpochMillis(epochMillis);
+        } else if (value instanceof String) {
+            try {
+                localDate = parseLocalDate((String) value, formatter);
+            } catch (final RuntimeException e) {
+                final String message = String.format("Failed Conversion of Field [%s] from String [%s] to LocalDate", fieldName, value);
+                throw new IllegalTypeConversionException(message, e);
+            }
+        } else {
+            final String message = String.format("Failed Conversion of Field [%s] from Value [%s] Type [%s] to LocalDate", fieldName, value, value.getClass());
+            throw new IllegalTypeConversionException(message);
+        }
+
+        return localDate;
+    }
+
+    /**
+     * Convert value to java.sql.Date using java.time.LocalDate parsing and conversion from DateFormat to DateTimeFormatter
+     *
+     * Transitional method supporting conversion from legacy java.text.DateFormat to java.time.DateTimeFormatter
+     *
+     * @param value Value object to be converted
+     * @param format Supplier function for java.text.DateFormat when necessary for parsing
+     * @param fieldName Field name being parsed
+     * @return java.sql.Date or null when value is null
+     */
+    private static Date convertTypeToDate(final Object value, final Supplier<DateFormat> format, final String fieldName) {
+        if (value == null) {
+            return null;
+        } else {
+            final LocalDate localDate = toLocalDate(value, () -> {
+                final SimpleDateFormat dateFormat = (SimpleDateFormat) format.get();
+                return dateFormat == null ? null : DateTimeFormatter.ofPattern(dateFormat.toPattern());
+            }, fieldName);
+            return Date.valueOf(localDate);
+        }
+    }
+
+    /**
+     * Parse Local Date from String using Date Time Formatter when supplied
+     *
+     * @param value String not null containing either formatted string or number of epoch milliseconds
+     * @param formatter Supplier for Date Time Formatter
+     * @return Local Date or null when provided value is empty
+     */
+    private static LocalDate parseLocalDate(final String value, final Supplier<DateTimeFormatter> formatter) {
+        LocalDate localDate = null;
+
+        final String normalized = value.trim();
+        if (!normalized.isEmpty()) {
+            if (formatter == null) {
+                localDate = parseLocalDateEpochMillis(normalized);
+            } else {
+                final DateTimeFormatter dateTimeFormatter = formatter.get();
+                if (dateTimeFormatter == null) {
+                    localDate = parseLocalDateEpochMillis(normalized);
+                } else {
+                    localDate = LocalDate.parse(normalized, dateTimeFormatter);
+                }
+            }
+        }
+
+        return localDate;
+    }
+
+
+    /**
+     * Parse Local Date from string expected to contain number of epoch milliseconds
+     *
+     * @param number Number string expected to contain epoch milliseconds
+     * @return Local Date converted from epoch milliseconds
+     */
+    private static LocalDate parseLocalDateEpochMillis(final String number) {
+        final long epochMillis = Long.parseLong(number);
+        return parseLocalDateEpochMillis(epochMillis);
+    }
+
+    /**
+     * Parse Local Date from epoch milliseconds using System Default Zone Offset
+     *
+     * @param epochMillis Epoch milliseconds
+     * @return Local Date converted from epoch milliseconds
+     */
+    private static LocalDate parseLocalDateEpochMillis(final long epochMillis) {
+        final Instant instant = Instant.ofEpochMilli(epochMillis);
+        final ZonedDateTime zonedDateTime = instant.atZone(ZoneOffset.systemDefault());
+        return zonedDateTime.toLocalDate();
+    }
+
+    /**
      * Converts a java.sql.Date object in local time zone (typically coming from a java.sql.ResultSet and having 00:00:00 time part)
      * to UTC normalized form (storing the epoch corresponding to the UTC time with the same date/time as the input).
      *
@@ -1118,19 +1247,6 @@ public class DataTypeUtils {
         ZonedDateTime zdtLocalTZ = ZonedDateTime.ofInstant(Instant.ofEpochMilli(dateLocalTZ.getTime()), ZoneId.systemDefault());
         ZonedDateTime zdtUTC = zdtLocalTZ.withZoneSameLocal(ZoneOffset.UTC);
         return new Date(zdtUTC.toInstant().toEpochMilli());
-    }
-
-    /**
-     * Converts a java.sql.Date object in UTC normalized form
-     * to local time zone (storing the epoch corresponding to the local time with the same date/time as the input).
-     *
-     * @param dateUTC java.sql.Date in UTC normalized form
-     * @return java.sql.Date in local time zone
-     */
-    public static Date convertDateToLocalTZ(Date dateUTC) {
-        ZonedDateTime zdtUTC = ZonedDateTime.ofInstant(Instant.ofEpochMilli(dateUTC.getTime()), ZoneOffset.UTC);
-        ZonedDateTime zdtLocalTZ = zdtUTC.withZoneSameLocal(ZoneId.systemDefault());
-        return new Date(zdtLocalTZ.toInstant().toEpochMilli());
     }
 
     public static boolean isDateTypeCompatible(final Object value, final String format) {
@@ -1212,22 +1328,42 @@ public class DataTypeUtils {
         throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to Time for field " + fieldName);
     }
 
-    public static DateFormat getDateFormat(final String format) {
-        if (format == null) {
+    /**
+     * Get Date Format using GMT Time Zone
+     *
+     * This Date Format can produce unexpected results when the system default Time Zone is not GMT
+     *
+     * @param pattern Date Format Pattern used for new SimpleDateFormat()
+     * @return Date Format or null when pattern not provided
+     */
+    public static DateFormat getDateFormat(final String pattern) {
+        if (pattern == null) {
             return null;
         }
-        final DateFormat df = new SimpleDateFormat(format);
-        df.setTimeZone(gmt);
-        return df;
+        return getDateFormat(pattern, GMT_TIME_ZONE);
     }
 
-    public static DateFormat getDateFormat(final String format, final String timezoneID) {
-        if (format == null || timezoneID == null) {
+    /**
+     * Get Date Format using specified Time Zone to adjust Date during processing
+     *
+     * @param pattern Date Format Pattern used for new SimpleDateFormat()
+     * @param timeZoneId Time Zone Identifier used for TimeZone.getTimeZone()
+     * @return Date Format or null when input parameters not provided
+     */
+    public static DateFormat getDateFormat(final String pattern, final String timeZoneId) {
+        if (pattern == null || timeZoneId == null) {
             return null;
         }
-        final DateFormat df = new SimpleDateFormat(format);
-        df.setTimeZone(TimeZone.getTimeZone(timezoneID));
-        return df;
+        return getDateFormat(pattern, TimeZone.getTimeZone(timeZoneId));
+    }
+
+    private static DateFormat getDateFormat(final String pattern, final TimeZone timeZone) {
+        if (pattern == null) {
+            return null;
+        }
+        final DateFormat dateFormat = new SimpleDateFormat(pattern);
+        dateFormat.setTimeZone(timeZone);
+        return dateFormat;
     }
 
     public static boolean isTimeTypeCompatible(final Object value, final String format) {
