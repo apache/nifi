@@ -33,7 +33,6 @@ import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.properties.PropertyProtectionScheme;
-import org.apache.nifi.properties.ProtectedPropertyContext;
 import org.apache.nifi.properties.ProtectedPropertyContext.PropertyLocation;
 import org.apache.nifi.properties.SensitivePropertyProtectionException;
 import org.apache.nifi.properties.SensitivePropertyProviderFactoryAware;
