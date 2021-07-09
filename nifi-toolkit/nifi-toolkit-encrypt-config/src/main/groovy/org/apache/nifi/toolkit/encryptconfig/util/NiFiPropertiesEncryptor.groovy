@@ -34,13 +34,12 @@ class NiFiPropertiesEncryptor extends PropertiesEncryptor {
         super(encryptionProvider, decryptionProvider)
     }
 
-    @Override
-    Properties encrypt(Properties properties) {
+    Properties encrypt(final Properties properties) {
         Set<String> propertiesToEncrypt = new HashSet<>()
         propertiesToEncrypt.addAll(DEFAULT_SENSITIVE_PROPERTIES)
         propertiesToEncrypt.addAll(getAdditionalSensitivePropertyKeys(properties))
 
-        return encrypt(properties, propertiesToEncrypt)
+        encrypt(properties, propertiesToEncrypt)
     }
 
     private static String[] getAdditionalSensitivePropertyKeys(Properties properties) {

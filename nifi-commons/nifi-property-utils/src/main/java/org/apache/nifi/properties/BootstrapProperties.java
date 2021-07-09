@@ -18,6 +18,7 @@ package org.apache.nifi.properties;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collections;
 import java.util.Enumeration;
 import java.util.Objects;
 import java.util.Optional;
@@ -33,12 +34,21 @@ public class BootstrapProperties extends StandardReadableProperties {
     public enum BootstrapPropertyKey {
         SENSITIVE_KEY("bootstrap.sensitive.key"),
         HASHICORP_VAULT_SENSITIVE_PROPERTY_PROVIDER_CONF("bootstrap.protection.hashicorp.vault.conf"),
-        AWS_KMS_SENSITIVE_PROPERTY_PROVIDER_CONF("bootstrap.protection.aws.kms.conf");
+        AWS_KMS_SENSITIVE_PROPERTY_PROVIDER_CONF("bootstrap.protection.aws.kms.conf"),
+        CONTEXT_MAPPING_PREFIX("bootstrap.protection.context.mapping.");
 
         private final String key;
 
         BootstrapPropertyKey(final String key) {
             this.key = key;
+        }
+
+        /**
+         * Returns the property key.
+         * @return The property key
+         */
+        public String getKey() {
+            return key;
         }
     }
 
@@ -127,7 +137,7 @@ public class BootstrapProperties extends StandardReadableProperties {
     public static final BootstrapProperties EMPTY = new BootstrapProperties("", new Properties(), Paths.get("conf/bootstrap.conf")) {
         @Override
         public Set<String> getPropertyKeys() {
-            return null;
+            return Collections.EMPTY_SET;
         }
 
         @Override

@@ -280,10 +280,11 @@ public class AWSSensitivePropertyProvider extends AbstractSensitivePropertyProvi
      * An encryption-based provider would return a cipher text, while a remote-lookup provider could return a unique ID to retrieve the secured value.
      *
      * @param unprotectedValue the sensitive value.
+     * @param context The context of the value (ignored in this implementation)
      * @return the value to persist in the {@code nifi.properties} file.
      */
     @Override
-    public String protect(final String unprotectedValue) throws SensitivePropertyProtectionException {
+    public String protect(final String unprotectedValue, final ProtectedPropertyContext context) throws SensitivePropertyProtectionException {
         if (StringUtils.isBlank(unprotectedValue)) {
             throw new IllegalArgumentException("Cannot encrypt a blank value");
         }
@@ -304,10 +305,11 @@ public class AWSSensitivePropertyProvider extends AbstractSensitivePropertyProvi
      * An encryption-based provider would decrypt a cipher text and return the plaintext, while a remote-lookup provider could retrieve the secured value.
      *
      * @param protectedValue the protected value read from the {@code nifi.properties} file.
+     * @param context The context of the value (ignored in this implementation)
      * @return the raw value to be used by the application.
      */
     @Override
-    public String unprotect(final String protectedValue) throws SensitivePropertyProtectionException {
+    public String unprotect(final String protectedValue, final ProtectedPropertyContext context) throws SensitivePropertyProtectionException {
         if (StringUtils.isBlank(protectedValue)) {
             throw new IllegalArgumentException("Cannot decrypt a blank value");
         }
