@@ -259,12 +259,10 @@ public class AESSensitivePropertyProvider extends AbstractSensitivePropertyProvi
     }
 
     /**
-     * Closes any clients that may have been opened by the SPP and releases
-     * any resources possibly used by any SPP implementation
-     * Note: If there is nothing to be done, then this function is a no-op
+     * No cleanup necessary
      */
     @Override
-    public void close() {
+    public void cleanUp() {
         return;
     }
 }

@@ -14,9 +14,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.properties.aws;
+package org.apache.nifi.properties;
 
-import org.apache.nifi.properties.BootstrapProperties;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -110,7 +109,7 @@ public class AWSSensitivePropertyProviderIT {
         Files.deleteIfExists(mockBootstrapConf);
         Files.deleteIfExists(mockAWSBootstrapConf);
 
-        spp.close();
+        spp.cleanUp();
     }
 
     @Test

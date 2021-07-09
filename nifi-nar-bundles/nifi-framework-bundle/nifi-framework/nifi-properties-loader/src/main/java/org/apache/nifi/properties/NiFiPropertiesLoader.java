@@ -178,7 +178,7 @@ public class NiFiPropertiesLoader {
             // releases resources used by SPP
             getSensitivePropertyProviderFactory()
                     .getSupportedSensitivePropertyProviders()
-                    .forEach(SensitivePropertyProvider::close);
+                    .forEach(SensitivePropertyProvider::cleanUp);
         }
         return props;
     }

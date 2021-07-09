@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.properties;
 
-import org.apache.nifi.properties.aws.AWSSensitivePropertyProvider;
 import org.apache.nifi.properties.BootstrapProperties.BootstrapPropertyKey;
 import org.apache.nifi.util.NiFiBootstrapUtils;
 import org.slf4j.Logger;

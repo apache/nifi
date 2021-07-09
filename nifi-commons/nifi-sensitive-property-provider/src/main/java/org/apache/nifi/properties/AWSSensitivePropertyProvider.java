@@ -14,14 +14,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.properties.aws;
+package org.apache.nifi.properties;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.properties.AbstractBootstrapPropertiesLoader;
-import org.apache.nifi.properties.AbstractSensitivePropertyProvider;
-import org.apache.nifi.properties.BootstrapProperties;
-import org.apache.nifi.properties.PropertyProtectionScheme;
-import org.apache.nifi.properties.SensitivePropertyProtectionException;
 import org.apache.nifi.properties.BootstrapProperties.BootstrapPropertyKey;
 
 import org.bouncycastle.util.encoders.Base64;
@@ -55,10 +50,7 @@ import java.nio.file.Paths;
 public class AWSSensitivePropertyProvider extends AbstractSensitivePropertyProvider {
     private static final Logger logger = LoggerFactory.getLogger(AWSSensitivePropertyProvider.class);
 
-    private static final String IMPLEMENTATION_NAME = "AWS KMS Sensitive Property Provider";
-    private static final String IMPLEMENTATION_KEY = "aws/kms";
-
-    private static final String AWS_KMS_PREFIX = "aws";
+    private static final String AWS_PREFIX = "aws";
     private static final String ACCESS_KEY_PROPS_NAME = "aws.access.key.id";
     private static final String SECRET_KEY_PROPS_NAME = "aws.secret.key.id";
     private static final String REGION_KEY_PROPS_NAME = "aws.region";
@@ -70,7 +62,7 @@ public class AWSSensitivePropertyProvider extends AbstractSensitivePropertyProvi
     private BootstrapProperties awsBootstrapProperties;
     private String keyId;
 
-    public AWSSensitivePropertyProvider(BootstrapProperties bootstrapProperties) throws SensitivePropertyProtectionException {
+    AWSSensitivePropertyProvider(BootstrapProperties bootstrapProperties) throws SensitivePropertyProtectionException {
         super(bootstrapProperties);
         // if either awsBootstrapProperties or keyId is loaded as null values, then isSupported will return false
         awsBootstrapProperties = getAWSBootstrapProperties(bootstrapProperties);
@@ -161,7 +153,8 @@ public class AWSSensitivePropertyProvider extends AbstractSensitivePropertyProvi
         KeyMetadata metadata = response.keyMetadata();
 
         if (!metadata.enabled()) {
-            throw new SensitivePropertyProtectionException("The key is not enabled");
+            final String msg = String.format("AWS KMS key [%s] is not enabled", keyId);
+            throw new SensitivePropertyProtectionException(msg);
         }
     }
 
@@ -194,7 +187,6 @@ public class AWSSensitivePropertyProvider extends AbstractSensitivePropertyProvi
         // Load the bootstrap-aws.conf file based on path specified in
         // "nifi.bootstrap.protection.aws.kms.conf" property of bootstrap.conf
         String filePath = bootstrapProperties.getProperty(BootstrapPropertyKey.AWS_KMS_SENSITIVE_PROPERTY_PROVIDER_CONF).orElse(null);
-        logger.info("bootstrap-aws.conf file path" + ": " + filePath);
         if (StringUtils.isBlank(filePath)) {
             logger.warn("File Path to bootstrap-aws.conf in bootstrap.conf is blank");
             return null;
@@ -202,7 +194,7 @@ public class AWSSensitivePropertyProvider extends AbstractSensitivePropertyProvi
 
         try {
             cloudBootstrapProperties = AbstractBootstrapPropertiesLoader.loadBootstrapProperties(
-                    Paths.get(filePath), AWS_KMS_PREFIX);
+                    Paths.get(filePath), AWS_PREFIX);
         } catch (IOException e) {
             throw new SensitivePropertyProtectionException("Could not load " + filePath, e);
         }
@@ -237,7 +229,7 @@ public class AWSSensitivePropertyProvider extends AbstractSensitivePropertyProvi
      */
     @Override
     public String getName() {
-        return IMPLEMENTATION_NAME;
+        return PropertyProtectionScheme.AWS_KMS.getName();
     }
 
     /**
@@ -247,7 +239,7 @@ public class AWSSensitivePropertyProvider extends AbstractSensitivePropertyProvi
      */
     @Override
     public String getIdentifierKey() {
-        return IMPLEMENTATION_KEY;
+        return PropertyProtectionScheme.AWS_KMS.getIdentifier();
     }
 
 
@@ -315,7 +307,7 @@ public class AWSSensitivePropertyProvider extends AbstractSensitivePropertyProvi
                 initializeClient();
                 validate();
             } catch (SdkClientException | KmsException | SensitivePropertyProtectionException e) {
-                logger.error("Encountered an error initializing the client for {}: {}", IMPLEMENTATION_NAME, e.getMessage());
+                logger.error("Encountered an error initializing the client for {}: {}", getName(), e.getMessage());
                 throw new SensitivePropertyProtectionException("Error initializing the AWS KMS Client", e);
             }
         }
@@ -350,7 +342,7 @@ public class AWSSensitivePropertyProvider extends AbstractSensitivePropertyProvi
                 initializeClient();
                 validate();
             } catch (SdkClientException | KmsException | SensitivePropertyProtectionException e) {
-                logger.error("Encountered an error initializing the client for {}: {}", IMPLEMENTATION_NAME, e.getMessage());
+                logger.error("Encountered an error initializing the client for {}: {}", getName(), e.getMessage());
                 throw new SensitivePropertyProtectionException("Error initializing the AWS KMS Client", e);
             }
         }
@@ -368,12 +360,10 @@ public class AWSSensitivePropertyProvider extends AbstractSensitivePropertyProvi
     }
 
     /**
-     * Closes any clients that may have been opened by the SPP and releases
-     * any resources possibly used by any SPP implementation
-     * Note: If there is nothing to be done, then this function is a no-op
+     * Closes AWS KMS client that may have been opened
      */
     @Override
-    public void close() {
+    public void cleanUp() {
         if (isClientOpen()) {
             client.close();
             client = null;
