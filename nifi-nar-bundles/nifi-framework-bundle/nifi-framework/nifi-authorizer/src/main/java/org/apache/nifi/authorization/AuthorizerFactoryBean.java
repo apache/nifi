@@ -26,6 +26,7 @@ import org.apache.nifi.authorization.generated.Property;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.properties.PropertyProtectionScheme;
+import org.apache.nifi.properties.ProtectedPropertyContext.PropertyLocation;
 import org.apache.nifi.properties.SensitivePropertyProtectionException;
 import org.apache.nifi.properties.SensitivePropertyProviderFactoryAware;
 import org.apache.nifi.security.xml.XmlUtils;
@@ -383,7 +384,7 @@ public class AuthorizerFactoryBean extends SensitivePropertyProviderFactoryAware
 
         for (final Property property : properties) {
             if (!StringUtils.isBlank(property.getEncryption())) {
-                String decryptedValue = decryptValue(property.getValue(), property.getEncryption());
+                String decryptedValue = decryptValue(property.getValue(), property.getEncryption(), property.getName());
                 authorizerProperties.put(property.getName(), decryptedValue);
             } else {
                 authorizerProperties.put(property.getName(), property.getValue());
@@ -481,8 +482,9 @@ public class AuthorizerFactoryBean extends SensitivePropertyProviderFactoryAware
         };
     }
 
-    private String decryptValue(final String cipherText, final String protectionScheme) throws SensitivePropertyProtectionException {
-        return getSensitivePropertyProviderFactory().getProvider(PropertyProtectionScheme.fromIdentifier(protectionScheme)).unprotect(cipherText);
+    private String decryptValue(final String cipherText, final String protectionScheme, final String propertyName) throws SensitivePropertyProtectionException {
+        return getSensitivePropertyProviderFactory().getProvider(PropertyProtectionScheme.fromIdentifier(protectionScheme))
+                .unprotect(cipherText, PropertyLocation.AUTHORIZERS.contextFor(propertyName));
     }
 
     @Override

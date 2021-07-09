@@ -327,7 +327,8 @@ public class ApplicationPropertiesProtector<T extends ProtectedProperties<U>, U 
 
             try {
                 final SensitivePropertyProvider sensitivePropertyProvider = getSensitivePropertyProvider(protectionScheme);
-                return sensitivePropertyProvider.unprotect(retrievedValue);
+                return sensitivePropertyProvider.unprotect(retrievedValue, protectedProperties.getApplicationProperties()
+                        .getPropertyLocation().contextFor(key));
             } catch (SensitivePropertyProtectionException e) {
                 logger.error("Error unprotecting value for " + key, e);
                 throw e;

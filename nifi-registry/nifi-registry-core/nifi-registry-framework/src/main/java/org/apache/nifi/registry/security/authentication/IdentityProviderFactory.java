@@ -17,6 +17,7 @@
 package org.apache.nifi.registry.security.authentication;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.properties.ProtectedPropertyContext.PropertyLocation;
 import org.apache.nifi.properties.SensitivePropertyProtectionException;
 import org.apache.nifi.properties.SensitivePropertyProvider;
 import org.apache.nifi.registry.extension.ExtensionManager;
@@ -194,7 +195,7 @@ public class IdentityProviderFactory implements IdentityProviderLookup, Disposab
 
         for (final Property property : provider.getProperty()) {
             if (!StringUtils.isBlank(property.getEncryption())) {
-                String decryptedValue = decryptValue(property.getValue(), property.getEncryption());
+                String decryptedValue = decryptValue(property.getValue(), property.getEncryption(), property.getName());
                 providerProperties.put(property.getName(), decryptedValue);
             } else {
                 providerProperties.put(property.getName(), property.getValue());
@@ -270,7 +271,7 @@ public class IdentityProviderFactory implements IdentityProviderLookup, Disposab
         }
     }
 
-    private String decryptValue(String cipherText, String encryptionScheme) throws SensitivePropertyProtectionException {
+    private String decryptValue(final String cipherText, final String encryptionScheme, final String propertyName) throws SensitivePropertyProtectionException {
         if (sensitivePropertyProvider == null) {
             throw new SensitivePropertyProtectionException("Sensitive Property Provider dependency was never wired, so protected " +
                     "properties cannot be decrypted. This usually indicates that a master key for this NiFi Registry was not " +
@@ -285,7 +286,7 @@ public class IdentityProviderFactory implements IdentityProviderLookup, Disposab
                     ". Cannot configure this Identity Provider due to failing to decrypt protected configuration properties.");
         }
 
-        return sensitivePropertyProvider.unprotect(cipherText);
+        return sensitivePropertyProvider.unprotect(cipherText, PropertyLocation.LOGIN_IDENTITY_PROVIDERS.contextFor(propertyName));
     }
 
 }

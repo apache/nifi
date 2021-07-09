@@ -17,6 +17,7 @@
 package org.apache.nifi.properties;
 
 import org.apache.commons.io.FilenameUtils;
+import org.apache.nifi.properties.ProtectedPropertyContext.PropertyLocation;
 import org.apache.nifi.util.NiFiProperties;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.junit.AfterClass;
@@ -169,14 +170,15 @@ public class StandardSensitivePropertyProviderFactoryTest {
     @Test
     public void testAES_GCM() throws IOException {
         configureDefaultFactory();
+        final ProtectedPropertyContext context = PropertyLocation.NIFI_PROPERTIES.contextFor("propertyName");
 
         final SensitivePropertyProvider spp = factory.getProvider(PropertyProtectionScheme.AES_GCM);
         assertNotNull(spp);
         assertTrue(spp.isSupported());
 
         final String cleartext = "test";
-        assertEquals(cleartext, spp.unprotect(spp.protect(cleartext)));
-        assertNotEquals(cleartext, spp.protect(cleartext));
+        assertEquals(cleartext, spp.unprotect(spp.protect(cleartext, context), context));
+        assertNotEquals(cleartext, spp.protect(cleartext, context));
         assertEquals(AES_GCM_128, spp.getIdentifierKey());
 
         // Key is now different
@@ -186,8 +188,8 @@ public class StandardSensitivePropertyProviderFactoryTest {
         assertTrue(sppAdHocKey.isSupported());
         assertEquals(AES_GCM_128, sppAdHocKey.getIdentifierKey());
 
-        assertNotEquals(spp.protect(cleartext), sppAdHocKey.protect(cleartext));
-        assertEquals(cleartext, sppAdHocKey.unprotect(sppAdHocKey.protect(cleartext)));
+        assertNotEquals(spp.protect(cleartext, context), sppAdHocKey.protect(cleartext, context));
+        assertEquals(cleartext, sppAdHocKey.unprotect(sppAdHocKey.protect(cleartext, context), context));
 
         // This should use the same keyHex as the second one
         configureAdHocKeyAndPropertiesFactory();
@@ -196,6 +198,6 @@ public class StandardSensitivePropertyProviderFactoryTest {
         assertTrue(sppKeyProperties.isSupported());
         assertEquals(AES_GCM_128, sppKeyProperties.getIdentifierKey());
 
-        assertEquals(cleartext, sppKeyProperties.unprotect(sppKeyProperties.protect(cleartext)));
+        assertEquals(cleartext, sppKeyProperties.unprotect(sppKeyProperties.protect(cleartext, context), context));
     }
 }

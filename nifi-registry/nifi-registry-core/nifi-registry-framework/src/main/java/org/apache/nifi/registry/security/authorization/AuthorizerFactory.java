@@ -18,6 +18,7 @@ package org.apache.nifi.registry.security.authorization;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Validate;
+import org.apache.nifi.properties.ProtectedPropertyContext.PropertyLocation;
 import org.apache.nifi.properties.SensitivePropertyProtectionException;
 import org.apache.nifi.properties.SensitivePropertyProvider;
 import org.apache.nifi.registry.extension.ExtensionClassLoader;
@@ -313,7 +314,7 @@ public class AuthorizerFactory implements UserGroupProviderLookup, AccessPolicyP
 
         for (final Prop property : properties) {
             if (!StringUtils.isBlank(property.getEncryption())) {
-                String decryptedValue = decryptValue(property.getValue(), property.getEncryption());
+                String decryptedValue = decryptValue(property.getValue(), property.getEncryption(), property.getName());
                 authorizerProperties.put(property.getName(), decryptedValue);
             } else {
                 authorizerProperties.put(property.getName(), property.getValue());
@@ -508,7 +509,7 @@ public class AuthorizerFactory implements UserGroupProviderLookup, AccessPolicyP
         }
     }
 
-    private String decryptValue(String cipherText, String encryptionScheme) throws SensitivePropertyProtectionException {
+    private String decryptValue(final String cipherText, final String encryptionScheme, final String propertyName) throws SensitivePropertyProtectionException {
         if (sensitivePropertyProvider == null) {
             throw new SensitivePropertyProtectionException("Sensitive Property Provider dependency was never wired, so protected" +
                     "properties cannot be decrypted. This usually indicates that a master key for this NiFi Registry was not " +
@@ -523,7 +524,7 @@ public class AuthorizerFactory implements UserGroupProviderLookup, AccessPolicyP
                     ". Cannot configure this Identity Provider due to failing to decrypt protected configuration properties.");
         }
 
-        return sensitivePropertyProvider.unprotect(cipherText);
+        return sensitivePropertyProvider.unprotect(cipherText, PropertyLocation.AUTHORIZERS.contextFor(propertyName));
     }
 
 

@@ -1726,10 +1726,11 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         ConfigEncryptionTool tool = new ConfigEncryptionTool()
 
         // Sanity check for decryption
+        String propertyName = "Manager Password"
         String cipherText = "q4r7WIgN0MaxdAKM||SGgdCTPGSFEcuH4RraMYEdeyVbOx93abdWTVSWvh1w+klA"
         String EXPECTED_PASSWORD = "thisIsABadPassword"
         final SensitivePropertyProvider spp = StandardSensitivePropertyProviderFactory.withKey(KEY_HEX_128).getProvider(tool.protectionScheme)
-        assert spp.unprotect(cipherText) == EXPECTED_PASSWORD
+        assert spp.unprotect(cipherText, loginIdentityProvidersContext(propertyName)) == EXPECTED_PASSWORD
 
         tool.keyHex = KEY_HEX_128
 
@@ -1840,6 +1841,18 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         assert decryptedLines == lines
     }
 
+    private static ProtectedPropertyContext loginIdentityProvidersContext(final String propertyName) {
+        ProtectedPropertyContext.PropertyLocation.LOGIN_IDENTITY_PROVIDERS.contextFor(propertyName)
+    }
+
+    private static ProtectedPropertyContext authorizersContext(final String propertyName) {
+        ProtectedPropertyContext.PropertyLocation.AUTHORIZERS.contextFor(propertyName)
+    }
+
+    private static ProtectedPropertyContext nifiPropertiesContext(final String propertyName) {
+        ProtectedPropertyContext.PropertyLocation.NIFI_PROPERTIES.contextFor(propertyName)
+    }
+
     @Test
     void testShouldEncryptLoginIdentityProviders() {
         // Arrange
@@ -1873,8 +1886,9 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         assert passwordLines.every { it.contains(encryptionScheme) }
         passwordLines.each {
             String ct = (it =~ ">(.*)</property>")[0][1]
+            String propertyName = (it =~ 'name="(.*)"')[0][1]
             logger.info("Cipher text: ${ct}")
-            assert spp.unprotect(ct) == PASSWORD
+            assert spp.unprotect(ct, loginIdentityProvidersContext(propertyName)) == PASSWORD
         }
     }
 
@@ -1912,8 +1926,9 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         assert populatedPasswordLines.every { it.contains(encryptionScheme) }
         populatedPasswordLines.each {
             String ct = (it =~ ">(.*)</property>")[0][1]
+            String propertyName = (it =~ 'name="(.*)"')[0][1]
             logger.info("Cipher text: ${ct}")
-            assert spp.unprotect(ct) == PASSWORD
+            assert spp.unprotect(ct, loginIdentityProvidersContext(propertyName)) == PASSWORD
         }
     }
 
@@ -1950,8 +1965,9 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         assert passwordLines.every { it.contains(encryptionScheme) }
         passwordLines.each {
             String ct = (it =~ ">(.*)</property>")[0][1]
+            String propertyName = (it =~ 'name="(.*)"')[0][1]
             logger.info("Cipher text: ${ct}")
-            assert spp.unprotect(ct) == PASSWORD
+            assert spp.unprotect(ct, loginIdentityProvidersContext(propertyName)) == PASSWORD
         }
     }
 
@@ -1988,8 +2004,9 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         assert passwordLines.every { it.contains(encryptionScheme) }
         passwordLines.each {
             String ct = (it =~ ">(.*)</property>")[0][1]
+            String propertyName = (it =~ 'name="(.*)"')[0][1]
             logger.info("Cipher text: ${ct}")
-            assert spp.unprotect(ct) == PASSWORD
+            assert spp.unprotect(ct, loginIdentityProvidersContext(propertyName)) == PASSWORD
         }
     }
 
@@ -2028,8 +2045,9 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         assert populatedPasswordLines.every { it.contains(encryptionScheme) }
         populatedPasswordLines.each {
             String ct = (it =~ ">(.*)</property>")[0][1]
+            String propertyName = (it =~ 'name="(.*)"')[0][1]
             logger.info("Cipher text: ${ct}")
-            assert spp.unprotect(ct) == PASSWORD
+            assert spp.unprotect(ct, loginIdentityProvidersContext(propertyName)) == PASSWORD
         }
     }
 
@@ -2364,7 +2382,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
                 }
 
                 encryptedValues.each {
-                    assert spp.unprotect(it.text()) == PASSWORD
+                    assert spp.unprotect((String) it.text(), (ProtectedPropertyContext) loginIdentityProvidersContext((String) it.@name)) == PASSWORD
                 }
 
                 // Check that the key was persisted to the bootstrap.conf
@@ -2446,7 +2464,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
                 }
 
                 encryptedValues.each {
-                    assert spp.unprotect(it.text()) == PASSWORD
+                    assert spp.unprotect((String) it.text(), (ProtectedPropertyContext) loginIdentityProvidersContext((String) it.@name)) == PASSWORD
                 }
 
                 // Check that the key was persisted to the bootstrap.conf
@@ -2479,6 +2497,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
     void testShouldDecryptAuthorizers() {
         // Arrange
         String authorizersPath = "src/test/resources/authorizers-populated-encrypted.xml"
+        String propertyName = "Manager Password"
         File authorizersFile = new File(authorizersPath)
 
         setupTmpDir()
@@ -2492,7 +2511,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         String cipherText = "q4r7WIgN0MaxdAKM||SGgdCTPGSFEcuH4RraMYEdeyVbOx93abdWTVSWvh1w+klA"
         String EXPECTED_PASSWORD = "thisIsABadPassword"
         final SensitivePropertyProvider spp = StandardSensitivePropertyProviderFactory.withKey(KEY_HEX_128).getProvider(tool.protectionScheme)
-        assert spp.unprotect(cipherText) == EXPECTED_PASSWORD
+        assert spp.unprotect(cipherText, authorizersContext(propertyName)) == EXPECTED_PASSWORD
 
         tool.keyHex = KEY_HEX_128
 
@@ -2636,8 +2655,9 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         assert passwordLines.every { it.contains(encryptionScheme) }
         passwordLines.each {
             String ct = (it =~ ">(.*)</property>")[0][1]
+            String propertyName = (it =~ 'name="(.*)"')[0][1]
             logger.info("Cipher text: ${ct}")
-            assert spp.unprotect(ct) == PASSWORD
+            assert spp.unprotect(ct, authorizersContext(propertyName)) == PASSWORD
         }
     }
 
@@ -2675,8 +2695,9 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         assert populatedPasswordLines.every { it.contains(encryptionScheme) }
         populatedPasswordLines.each {
             String ct = (it =~ ">(.*)</property>")[0][1]
+            String propertyName = (it =~ 'name="(.*)"')[0][1]
             logger.info("Cipher text: ${ct}")
-            assert spp.unprotect(ct) == PASSWORD
+            assert spp.unprotect(ct, authorizersContext(propertyName)) == PASSWORD
         }
     }
 
@@ -2713,8 +2734,9 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         assert passwordLines.every { it.contains(encryptionScheme) }
         passwordLines.each {
             String ct = (it =~ ">(.*)</property>")[0][1]
+            String propertyName = (it =~ 'name="(.*)"')[0][1]
             logger.info("Cipher text: ${ct}")
-            assert spp.unprotect(ct) == PASSWORD
+            assert spp.unprotect(ct, authorizersContext(propertyName)) == PASSWORD
         }
     }
 
@@ -2751,8 +2773,9 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         assert passwordLines.every { it.contains(encryptionScheme) }
         passwordLines.each {
             String ct = (it =~ ">(.*)</property>")[0][1]
+            String propertyName = (it =~ 'name="(.*)"')[0][1]
             logger.info("Cipher text: ${ct}")
-            assert spp.unprotect(ct) == PASSWORD
+            assert spp.unprotect(ct, authorizersContext(propertyName)) == PASSWORD
         }
     }
 
@@ -2791,8 +2814,9 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         assert populatedPasswordLines.every { it.contains(encryptionScheme) }
         populatedPasswordLines.each {
             String ct = (it =~ ">(.*)</property>")[0][1]
+            String propertyName = (it =~ 'name="(.*)"')[0][1]
             logger.info("Cipher text: ${ct}")
-            assert spp.unprotect(ct) == PASSWORD
+            assert spp.unprotect(ct, authorizersContext(propertyName)) == PASSWORD
         }
     }
 
@@ -3091,7 +3115,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
                 }
 
                 encryptedValues.each {
-                    assert spp.unprotect(it.text()) == PASSWORD
+                    assert spp.unprotect((String) it.text(), (ProtectedPropertyContext) authorizersContext((String) it.@name)) == PASSWORD
                 }
 
                 // Check that the key was persisted to the bootstrap.conf
@@ -3172,7 +3196,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
                 }
 
                 encryptedValues.each {
-                    assert spp.unprotect(it.text()) == PASSWORD
+                    assert spp.unprotect((String) it.text(), (ProtectedPropertyContext) authorizersContext((String) it.@name)) == PASSWORD
                 }
 
                 // Check that the key was persisted to the bootstrap.conf
@@ -3253,7 +3277,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
                 }
 
                 encryptedValues.each {
-                    assert spp.unprotect(it.text()) == PASSWORD
+                    assert spp.unprotect((String) it.text(), (ProtectedPropertyContext) authorizersContext((String) it.@name)) == PASSWORD
                 }
 
                 // Check that the key was persisted to the bootstrap.conf
@@ -3381,7 +3405,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
                     it.@name =~ "Password" && it.@encryption =~ "aes/gcm/\\d{3}"
                 }
                 lipEncryptedValues.each {
-                    assert spp.unprotect(it.text()) == PASSWORD
+                    assert spp.unprotect((String) it.text(), (ProtectedPropertyContext) authorizersContext((String) it.@name)) == PASSWORD
                 }
                 // Check that the comments are still there
                 def lipTrimmedLines = inputLIPFile.readLines().collect { it.trim() }.findAll { it }
@@ -3407,7 +3431,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
                     it.@name =~ "Password" && it.@encryption =~ "aes/gcm/\\d{3}"
                 }
                 authorizersEncryptedValues.each {
-                    assert spp.unprotect(it.text()) == PASSWORD
+                    assert spp.unprotect((String) it.text(), (ProtectedPropertyContext) authorizersContext((String) it.@name)) == PASSWORD
                 }
                 // Check that the comments are still there
                 def authorizersTrimmedLines = inputAuthorizersFile.readLines().collect { it.trim() }.findAll { it }
@@ -3786,7 +3810,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
                 assert newSensitivePropertyKey != originalSensitiveValues.get(NiFiProperties.SENSITIVE_PROPS_KEY)
 
                 // Check that the decrypted value is the new password
-                assert spp.unprotect(newSensitivePropertyKey) == newFlowPassword
+                assert spp.unprotect(newSensitivePropertyKey, nifiPropertiesContext(NiFiProperties.SENSITIVE_PROPS_KEY)) == newFlowPassword
 
                 // Check that all other values stayed the same
                 originalEncryptedValues.every { String key, String originalValue ->
@@ -3798,7 +3822,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
                 // Check that all other (decrypted) values stayed the same
                 originalSensitiveValues.every { String key, String originalValue ->
                     if (key != NiFiProperties.SENSITIVE_PROPS_KEY) {
-                        assert spp.unprotect(updatedProperties.getProperty(key)) == originalValue
+                        assert spp.unprotect(updatedProperties.getProperty(key), nifiPropertiesContext(key)) == originalValue
                     }
                 }
 
@@ -3919,7 +3943,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
                 assert newSensitivePropertyKey != originalSensitiveValues.get(NiFiProperties.SENSITIVE_PROPS_KEY)
 
                 // Check that the decrypted value is the new password
-                assert spp.unprotect(newSensitivePropertyKey) == newFlowPassword
+                assert spp.unprotect(newSensitivePropertyKey, nifiPropertiesContext(NiFiProperties.SENSITIVE_PROPS_KEY)) == newFlowPassword
 
                 // Check that all other values stayed the same
                 originalEncryptedValues.every { String key, String originalValue ->
@@ -3931,7 +3955,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
                 // Check that all other (decrypted) values stayed the same
                 originalSensitiveValues.every { String key, String originalValue ->
                     if (key != NiFiProperties.SENSITIVE_PROPS_KEY) {
-                        assert spp.unprotect(updatedProperties.getProperty(key)) == originalValue
+                        assert spp.unprotect(updatedProperties.getProperty(key), nifiPropertiesContext(key)) == originalValue
                     }
                 }
 
@@ -4071,7 +4095,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
                 assert newSensitivePropertyKey != originalSensitiveValues.get(NiFiProperties.SENSITIVE_PROPS_KEY)
 
                 // Check that the decrypted value is the new password
-                assert spp.unprotect(newSensitivePropertyKey) == newFlowPassword
+                assert spp.unprotect(newSensitivePropertyKey, nifiPropertiesContext(NiFiProperties.SENSITIVE_PROPS_KEY)) == newFlowPassword
 
                 // Check that all other values stayed the same
                 originalEncryptedValues.every { String key, String originalValue ->
@@ -4083,7 +4107,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
                 // Check that all other (decrypted) values stayed the same
                 originalSensitiveValues.every { String key, String originalValue ->
                     if (key != NiFiProperties.SENSITIVE_PROPS_KEY) {
-                        assert spp.unprotect(updatedProperties.getProperty(key)) == originalValue
+                        assert spp.unprotect(updatedProperties.getProperty(key), nifiPropertiesContext(key)) == originalValue
                     }
                 }
 

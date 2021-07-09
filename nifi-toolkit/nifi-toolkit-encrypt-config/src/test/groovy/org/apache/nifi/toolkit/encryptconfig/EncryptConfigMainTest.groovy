@@ -19,6 +19,7 @@ package org.apache.nifi.toolkit.encryptconfig
 
 import org.apache.nifi.properties.NiFiPropertiesLoader
 import org.apache.nifi.properties.PropertyProtectionScheme
+import org.apache.nifi.properties.ProtectedPropertyContext
 import org.apache.nifi.properties.SensitivePropertyProvider
 import org.apache.nifi.toolkit.encryptconfig.util.BootstrapUtil
 import org.apache.nifi.util.NiFiProperties
@@ -221,7 +222,8 @@ class EncryptConfigMainTest extends GroovyTestCase {
                     it.@name =~ "Password" && it.@encryption =~ "aes/gcm/\\d{3}"
                 }
                 lipEncryptedValues.each {
-                    assert spp.unprotect(it.text()) == TestUtil.PASSWORD
+                    assert spp.unprotect((String) it.text(), (ProtectedPropertyContext) ProtectedPropertyContext.PropertyLocation.LOGIN_IDENTITY_PROVIDERS
+                            .contextFor((String) it.@name)) == TestUtil.PASSWORD
                 }
                 // Check that the comments are still there
                 def lipTrimmedLines = inputLIPFile.readLines().collect { it.trim() }.findAll { it }
@@ -245,7 +247,8 @@ class EncryptConfigMainTest extends GroovyTestCase {
                     it.@name =~ "Password" && it.@encryption =~ "aes/gcm/\\d{3}"
                 }
                 authorizersEncryptedValues.each {
-                    assert spp.unprotect(it.text()) == TestUtil.PASSWORD
+                    assert spp.unprotect((String) it.text(), (ProtectedPropertyContext) ProtectedPropertyContext.PropertyLocation.AUTHORIZERS
+                            .contextFor((String) it.@name)) == TestUtil.PASSWORD
                 }
                 // Check that the comments are still there
                 def authorizersTrimmedLines = inputAuthorizersFile.readLines().collect { it.trim() }.findAll { it }

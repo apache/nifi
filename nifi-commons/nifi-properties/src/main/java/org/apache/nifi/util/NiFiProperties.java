@@ -17,6 +17,7 @@
 package org.apache.nifi.util;
 
 import org.apache.nifi.properties.ApplicationProperties;
+import org.apache.nifi.properties.ProtectedPropertyContext.PropertyLocation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -400,6 +401,11 @@ public class NiFiProperties extends ApplicationProperties {
 
     public NiFiProperties(final Map<String, String> props) {
         super(props);
+    }
+
+    @Override
+    public PropertyLocation getPropertyLocation() {
+        return PropertyLocation.NIFI_PROPERTIES;
     }
 
     public NiFiProperties(final Properties props) {

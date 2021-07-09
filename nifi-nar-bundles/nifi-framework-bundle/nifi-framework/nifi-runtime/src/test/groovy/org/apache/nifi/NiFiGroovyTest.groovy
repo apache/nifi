@@ -21,6 +21,7 @@ import ch.qos.logback.core.AppenderBase
 import org.apache.nifi.properties.ApplicationPropertiesProtector
 import org.apache.nifi.properties.NiFiPropertiesLoader
 import org.apache.nifi.properties.PropertyProtectionScheme
+import org.apache.nifi.properties.ProtectedPropertyContext
 import org.apache.nifi.properties.SensitivePropertyProvider
 import org.apache.nifi.properties.StandardSensitivePropertyProviderFactory
 import org.apache.nifi.util.NiFiProperties
@@ -216,7 +217,7 @@ class NiFiGroovyTest extends GroovyTestCase {
                 .getProvider(PropertyProtectionScheme.AES_GCM)
         def map = encryptedProperties.getPropertyKeys().collectEntries { String key ->
             if (encryptedProperties.getProperty(key + ApplicationPropertiesProtector.PROTECTED_KEY_SUFFIX) == spp.getIdentifierKey()) {
-                [(key): spp.unprotect(encryptedProperties.getProperty(key))]
+                [(key): spp.unprotect(encryptedProperties.getProperty(key), ProtectedPropertyContext.PropertyLocation.NIFI_PROPERTIES.contextFor(key))]
             } else if (!key.endsWith(ApplicationPropertiesProtector.PROTECTED_KEY_SUFFIX)) {
                 [(key): encryptedProperties.getProperty(key)]
             }

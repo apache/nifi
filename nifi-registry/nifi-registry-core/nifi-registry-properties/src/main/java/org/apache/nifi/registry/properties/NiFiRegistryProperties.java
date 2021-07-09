@@ -18,6 +18,7 @@ package org.apache.nifi.registry.properties;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.properties.ApplicationProperties;
+import org.apache.nifi.properties.ProtectedPropertyContext.PropertyLocation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -134,6 +135,11 @@ public class NiFiRegistryProperties extends ApplicationProperties {
 
     public NiFiRegistryProperties(final Map<String, String> props) {
         super(props);
+    }
+
+    @Override
+    public PropertyLocation getPropertyLocation() {
+        return PropertyLocation.NIFI_REGISTRY_PROPERTIES;
     }
 
     public NiFiRegistryProperties(final Properties props) {

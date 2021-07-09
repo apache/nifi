@@ -47,6 +47,8 @@ class AESSensitivePropertyProviderTest extends GroovyTestCase {
 
     private static final SecureRandom secureRandom = new SecureRandom()
 
+    private static final ProtectedPropertyContext PROPERTY_CONTEXT = ProtectedPropertyContext.PropertyLocation.NIFI_PROPERTIES.contextFor("propertyName")
+
     private static final Base64.Encoder encoder = Base64.encoder
     private static final Base64.Decoder decoder = Base64.decoder
 
@@ -139,7 +141,7 @@ class AESSensitivePropertyProviderTest extends GroovyTestCase {
         Map<Integer, String> CIPHER_TEXTS = KEY_SIZES.collectEntries { int keySize ->
             SensitivePropertyProvider spp = new AESSensitivePropertyProvider(Hex.decode(getKeyOfSize(keySize)))
             logger.info("Initialized ${spp.name} with key size ${keySize}")
-            [(keySize): spp.protect(PLAINTEXT)]
+            [(keySize): spp.protect(PLAINTEXT, PROPERTY_CONTEXT)]
         }
         CIPHER_TEXTS.each { ks, ct -> logger.info("Encrypted for ${ks} length key: ${ct}") }
 
@@ -171,7 +173,7 @@ class AESSensitivePropertyProviderTest extends GroovyTestCase {
             logger.info("Initialized ${spp.name} with key size ${keySize}")
             EMPTY_PLAINTEXTS.each { String emptyPlaintext ->
                 def msg = shouldFail(IllegalArgumentException) {
-                    spp.protect(emptyPlaintext)
+                    spp.protect(emptyPlaintext, PROPERTY_CONTEXT)
                 }
                 logger.expected("${msg} for keySize ${keySize} and plaintext [${emptyPlaintext}]")
 
@@ -203,7 +205,7 @@ class AESSensitivePropertyProviderTest extends GroovyTestCase {
         Map<Integer, String> plaintexts = CIPHER_TEXTS.collectEntries { int keySize, String cipherText ->
             SensitivePropertyProvider spp = new AESSensitivePropertyProvider(Hex.decode(getKeyOfSize(keySize)))
             logger.info("Initialized ${spp.name} with key size ${keySize}")
-            [(keySize): spp.unprotect(cipherText)]
+            [(keySize): spp.unprotect(cipherText, PROPERTY_CONTEXT)]
         }
         plaintexts.each { ks, pt -> logger.info("Decrypted for ${ks} length key: ${pt}") }
 
@@ -227,7 +229,7 @@ class AESSensitivePropertyProviderTest extends GroovyTestCase {
             logger.info("Initialized ${spp.name} with key size ${keySize}")
             EMPTY_CIPHER_TEXTS.each { String emptyCipherText ->
                 def msg = shouldFail(IllegalArgumentException) {
-                    spp.unprotect(emptyCipherText)
+                    spp.unprotect(emptyCipherText, PROPERTY_CONTEXT)
                 }
                 logger.expected("${msg} for keySize ${keySize} and cipher text [${emptyCipherText}]")
 
@@ -259,7 +261,7 @@ class AESSensitivePropertyProviderTest extends GroovyTestCase {
         Map<Integer, String> plaintexts = CIPHER_TEXTS.collectEntries { int keySize, String cipherText ->
             SensitivePropertyProvider spp = new AESSensitivePropertyProvider(Hex.decode(getKeyOfSize(keySize)))
             logger.info("Initialized ${spp.name} with key size ${keySize}")
-            [(keySize): spp.unprotect("\t" + cipherText + "\n")]
+            [(keySize): spp.unprotect("\t" + cipherText + "\n", PROPERTY_CONTEXT)]
         }
         plaintexts.each { ks, pt -> logger.info("Decrypted for ${ks} length key: ${pt}") }
 
@@ -276,13 +278,13 @@ class AESSensitivePropertyProviderTest extends GroovyTestCase {
         KEY_SIZES.each { int keySize ->
             SensitivePropertyProvider spp = new AESSensitivePropertyProvider(Hex.decode(getKeyOfSize(keySize)))
             logger.info("Initialized ${spp.name} with key size ${keySize}")
-            String cipherText = spp.protect(PLAINTEXT)
+            String cipherText = spp.protect(PLAINTEXT, PROPERTY_CONTEXT)
             // Swap two characters in the cipher text
             final String MALFORMED_CIPHER_TEXT = manipulateString(cipherText, 25, 28)
             logger.info("Manipulated ${cipherText} to\n${MALFORMED_CIPHER_TEXT.padLeft(163)}")
 
             def msg = shouldFail(SensitivePropertyProtectionException) {
-                spp.unprotect(MALFORMED_CIPHER_TEXT)
+                spp.unprotect(MALFORMED_CIPHER_TEXT, PROPERTY_CONTEXT)
             }
             logger.expected("${msg} for keySize ${keySize} and cipher text [${MALFORMED_CIPHER_TEXT}]")
 
@@ -300,14 +302,14 @@ class AESSensitivePropertyProviderTest extends GroovyTestCase {
         KEY_SIZES.each { int keySize ->
             SensitivePropertyProvider spp = new AESSensitivePropertyProvider(Hex.decode(getKeyOfSize(keySize)))
             logger.info("Initialized ${spp.name} with key size ${keySize}")
-            String cipherText = spp.protect(PLAINTEXT)
+            String cipherText = spp.protect(PLAINTEXT, PROPERTY_CONTEXT)
 
             // Remove the IV from the "complete" cipher text
             final String MISSING_IV_CIPHER_TEXT = cipherText[18..-1]
             logger.info("Manipulated ${cipherText} to\n${MISSING_IV_CIPHER_TEXT.padLeft(172)}")
 
             def msg = shouldFail(IllegalArgumentException) {
-                spp.unprotect(MISSING_IV_CIPHER_TEXT)
+                spp.unprotect(MISSING_IV_CIPHER_TEXT, PROPERTY_CONTEXT)
             }
             logger.expected("${msg} for keySize ${keySize} and cipher text [${MISSING_IV_CIPHER_TEXT}]")
 
@@ -316,7 +318,7 @@ class AESSensitivePropertyProviderTest extends GroovyTestCase {
             logger.info("Manipulated ${cipherText} to\n${MISSING_IV_CIPHER_TEXT_WITH_DELIMITER.padLeft(172)}")
 
             def msgWithDelimiter = shouldFail(IllegalArgumentException) {
-                spp.unprotect(MISSING_IV_CIPHER_TEXT_WITH_DELIMITER)
+                spp.unprotect(MISSING_IV_CIPHER_TEXT_WITH_DELIMITER, PROPERTY_CONTEXT)
             }
             logger.expected("${msgWithDelimiter} for keySize ${keySize} and cipher text [${MISSING_IV_CIPHER_TEXT_WITH_DELIMITER}]")
 
@@ -347,7 +349,7 @@ class AESSensitivePropertyProviderTest extends GroovyTestCase {
             logger.info("Initialized ${spp.name} with key size ${keySize}")
             EMPTY_CIPHER_TEXTS.each { String emptyCipherText ->
                 def msg = shouldFail(IllegalArgumentException) {
-                    spp.unprotect(emptyCipherText)
+                    spp.unprotect(emptyCipherText, PROPERTY_CONTEXT)
                 }
                 logger.expected("${msg} for keySize ${keySize} and cipher text [${emptyCipherText}]")
 
@@ -366,13 +368,13 @@ class AESSensitivePropertyProviderTest extends GroovyTestCase {
         KEY_SIZES.each { int keySize ->
             SensitivePropertyProvider spp = new AESSensitivePropertyProvider(Hex.decode(getKeyOfSize(keySize)))
             logger.info("Initialized ${spp.name} with key size ${keySize}")
-            String cipherText = spp.protect(PLAINTEXT)
+            String cipherText = spp.protect(PLAINTEXT, PROPERTY_CONTEXT)
             // Swap two characters in the IV
             final String MALFORMED_IV_CIPHER_TEXT = manipulateString(cipherText, 8, 11)
             logger.info("Manipulated ${cipherText} to\n${MALFORMED_IV_CIPHER_TEXT.padLeft(163)}")
 
             def msg = shouldFail(SensitivePropertyProtectionException) {
-                spp.unprotect(MALFORMED_IV_CIPHER_TEXT)
+                spp.unprotect(MALFORMED_IV_CIPHER_TEXT, PROPERTY_CONTEXT)
             }
             logger.expected("${msg} for keySize ${keySize} and cipher text [${MALFORMED_IV_CIPHER_TEXT}]")
 
@@ -456,7 +458,7 @@ class AESSensitivePropertyProviderTest extends GroovyTestCase {
 
         // Act
         def encryptedValues = values.collect { String v ->
-            def encryptedValue = spp.protect(v)
+            def encryptedValue = spp.protect(v, PROPERTY_CONTEXT)
             logger.info("${v} -> ${encryptedValue}")
             def (String iv, String cipherText) = encryptedValue.tokenize("||")
             logger.info("Normal Base64 encoding would be ${encoder.encodeToString(decoder.decode(iv))}||${encoder.encodeToString(decoder.decode(cipherText))}")
@@ -464,7 +466,7 @@ class AESSensitivePropertyProviderTest extends GroovyTestCase {
         }
 
         // Assert
-        assert values == encryptedValues.collect { spp.unprotect(it) }
+        assert values == encryptedValues.collect { spp.unprotect(it, PROPERTY_CONTEXT) }
     }
 
     /**
@@ -484,9 +486,9 @@ class AESSensitivePropertyProviderTest extends GroovyTestCase {
         SensitivePropertyProvider spp = new AESSensitivePropertyProvider(key)
 
         // Act
-        String rawValue = spp.unprotect(cipherText)
+        String rawValue = spp.unprotect(cipherText, PROPERTY_CONTEXT)
         logger.info("Decrypted ${cipherText} to ${rawValue}")
-        String rawUnpaddedValue = spp.unprotect(unpaddedCipherText)
+        String rawUnpaddedValue = spp.unprotect(unpaddedCipherText, PROPERTY_CONTEXT)
         logger.info("Decrypted ${unpaddedCipherText} to ${rawUnpaddedValue}")
 
         // Assert

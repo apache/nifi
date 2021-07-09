@@ -17,6 +17,7 @@
 package org.apache.nifi.toolkit.encryptconfig.util
 
 import groovy.xml.XmlUtil
+import org.apache.nifi.properties.ProtectedPropertyContext
 import org.apache.nifi.properties.SensitivePropertyProvider
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -46,6 +47,14 @@ class NiFiRegistryAuthorizersXmlEncryptor extends XmlEncryptor {
         super(encryptionProvider, decryptionProvider)
     }
 
+    String decrypt(final String encryptedXmlContent) {
+        super.decrypt(encryptedXmlContent, ProtectedPropertyContext.PropertyLocation.AUTHORIZERS)
+    }
+
+    String encrypt(final String plainXmlContent) {
+        this.encrypt(plainXmlContent, ProtectedPropertyContext.PropertyLocation.AUTHORIZERS)
+    }
+
     /**
      * Overrides the super class implementation to marking xml nodes that should be encrypted.
      * This is done using logic specific to the authorizers.xml file type targeted by this subclass,
@@ -55,10 +64,11 @@ class NiFiRegistryAuthorizersXmlEncryptor extends XmlEncryptor {
      * is invoked to encrypt them.
      *
      * @param plainXmlContent the plaintext content of an authorizers.xml file
+     * @param propertyLocation The property location
      * @return the comment with sensitive values encrypted and marked with the cipher.
      */
     @Override
-    String encrypt(String plainXmlContent) {
+    String encrypt(final String plainXmlContent, final ProtectedPropertyContext.PropertyLocation propertyLocation) {
         // First, mark the XML nodes to encrypt that are specific to authorizers.xml by adding an attribute encryption="none"
         String markedXmlContent = markXmlNodesForEncryption(plainXmlContent, "userGroupProvider", {
             it.find {
@@ -70,7 +80,7 @@ class NiFiRegistryAuthorizersXmlEncryptor extends XmlEncryptor {
         })
 
         // Now, return the results of the base implementation, which encrypts any node with an encryption="none" attribute
-        return super.encrypt(markedXmlContent)
+        return super.encrypt(markedXmlContent, propertyLocation)
     }
 
     List<String> serializeXmlContentAndPreserveFormat(String updatedXmlContent, String originalXmlContent) {

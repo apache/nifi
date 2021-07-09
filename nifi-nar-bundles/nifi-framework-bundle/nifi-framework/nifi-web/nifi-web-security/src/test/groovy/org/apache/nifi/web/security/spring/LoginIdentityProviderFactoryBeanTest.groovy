@@ -78,7 +78,7 @@ class LoginIdentityProviderFactoryBeanTest extends GroovyTestCase {
         logger.info("Cipher text: ${CIPHER_TEXT}")
 
         // Act
-        String decrypted = bean.decryptValue(CIPHER_TEXT, ENCRYPTION_SCHEME)
+        String decrypted = bean.decryptValue(CIPHER_TEXT, ENCRYPTION_SCHEME, "propertyName")
         logger.info("Decrypted ${CIPHER_TEXT} -> ${decrypted}")
 
         // Assert

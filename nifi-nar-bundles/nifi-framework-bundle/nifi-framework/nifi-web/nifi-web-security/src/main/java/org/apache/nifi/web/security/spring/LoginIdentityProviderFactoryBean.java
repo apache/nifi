@@ -33,6 +33,8 @@ import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.properties.PropertyProtectionScheme;
+import org.apache.nifi.properties.ProtectedPropertyContext;
+import org.apache.nifi.properties.ProtectedPropertyContext.PropertyLocation;
 import org.apache.nifi.properties.SensitivePropertyProtectionException;
 import org.apache.nifi.properties.SensitivePropertyProviderFactoryAware;
 import org.apache.nifi.security.xml.XmlUtils;
@@ -209,7 +211,7 @@ public class LoginIdentityProviderFactoryBean extends SensitivePropertyProviderF
 
         for (final Property property : provider.getProperty()) {
             if (!StringUtils.isBlank(property.getEncryption())) {
-                String decryptedValue = decryptValue(property.getValue(), property.getEncryption());
+                String decryptedValue = decryptValue(property.getValue(), property.getEncryption(), property.getName());
                 providerProperties.put(property.getName(), decryptedValue);
             } else {
                 providerProperties.put(property.getName(), property.getValue());
@@ -219,9 +221,9 @@ public class LoginIdentityProviderFactoryBean extends SensitivePropertyProviderF
         return new StandardLoginIdentityProviderConfigurationContext(provider.getIdentifier(), providerProperties);
     }
 
-    private String decryptValue(final String cipherText, final String protectionScheme) throws SensitivePropertyProtectionException {
+    private String decryptValue(final String cipherText, final String protectionScheme, final String propertyName) throws SensitivePropertyProtectionException {
         return getSensitivePropertyProviderFactory().getProvider(PropertyProtectionScheme.fromIdentifier(protectionScheme))
-                .unprotect(cipherText);
+                .unprotect(cipherText, PropertyLocation.LOGIN_IDENTITY_PROVIDERS.contextFor(propertyName));
     }
 
     private void performMethodInjection(final LoginIdentityProvider instance, final Class loginIdentityProviderClass)

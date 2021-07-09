@@ -16,13 +16,15 @@
  */
 package org.apache.nifi.properties;
 
+import org.apache.nifi.properties.ProtectedPropertyContext.PropertyLocation;
+
 import java.util.Map;
 import java.util.Properties;
 
 /**
  * A tagging class that represents the main configuration properties for an application (e.g. NiFi or NiFi Registry).
  */
-public class ApplicationProperties extends StandardReadableProperties {
+public abstract class ApplicationProperties extends StandardReadableProperties {
     public ApplicationProperties(Properties properties) {
         super(properties);
     }
@@ -30,4 +32,10 @@ public class ApplicationProperties extends StandardReadableProperties {
     public ApplicationProperties(Map<String, String> properties) {
         super(properties);
     }
+
+    /**
+     * Should return a PropertyLocation representing the location of these ApplicationProperties.
+     * @return The relevant PropertyLocation
+     */
+    public abstract PropertyLocation getPropertyLocation();
 }

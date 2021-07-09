@@ -21,6 +21,7 @@ import groovy.cli.commons.OptionAccessor
 import org.apache.commons.cli.HelpFormatter
 import org.apache.nifi.properties.ConfigEncryptionTool
 import org.apache.nifi.properties.PropertyProtectionScheme
+import org.apache.nifi.properties.ProtectedPropertyContext
 import org.apache.nifi.properties.SensitivePropertyProvider
 import org.apache.nifi.properties.StandardSensitivePropertyProviderFactory
 import org.apache.nifi.toolkit.encryptconfig.util.BootstrapUtil
@@ -120,7 +121,7 @@ class DecryptMode implements ToolMode {
             case FileType.properties:
                 PropertiesEncryptor propertiesEncryptor = new PropertiesEncryptor(null, config.decryptionProvider)
                 Properties properties = propertiesEncryptor.loadFile(config.inputFilePath)
-                properties = propertiesEncryptor.decrypt(properties)
+                properties = propertiesEncryptor.decrypt(properties, ProtectedPropertyContext.PropertyLocation.fromFilename(config.inputFilePath))
                 decryptedSerializedContent = propertiesEncryptor.serializePropertiesAndPreserveFormatIfPossible(properties, config.inputFilePath)
                 break
 
@@ -134,7 +135,7 @@ class DecryptMode implements ToolMode {
                 }
 
                 String xmlContent = xmlEncryptor.loadXmlFile(config.inputFilePath)
-                xmlContent = xmlEncryptor.decrypt(xmlContent)
+                xmlContent = xmlEncryptor.decrypt(xmlContent, ProtectedPropertyContext.PropertyLocation.fromFilename(config.inputFilePath))
                 decryptedSerializedContent = xmlEncryptor.serializeXmlContentAndPreserveFormatIfPossible(xmlContent, config.inputFilePath)
                 break
 

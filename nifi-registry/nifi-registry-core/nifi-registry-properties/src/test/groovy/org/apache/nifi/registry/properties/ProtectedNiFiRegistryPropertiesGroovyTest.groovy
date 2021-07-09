@@ -19,6 +19,7 @@ package org.apache.nifi.registry.properties
 import org.apache.nifi.properties.ApplicationPropertiesProtector
 import org.apache.nifi.properties.MultipleSensitivePropertyProtectionException
 import org.apache.nifi.properties.PropertyProtectionScheme
+import org.apache.nifi.properties.ProtectedPropertyContext
 import org.apache.nifi.properties.SensitivePropertyProtectionException
 import org.apache.nifi.properties.SensitivePropertyProvider
 import org.apache.nifi.properties.StandardSensitivePropertyProviderFactory
@@ -356,7 +357,7 @@ class ProtectedNiFiRegistryPropertiesGroovyTest extends GroovyTestCase {
                 .keySet()
                 .findAll { String key ->
             try {
-                spp.unprotect(properties.getProperty(key))
+                spp.unprotect(properties.getProperty(key), ProtectedPropertyContext.PropertyLocation.NIFI_REGISTRY_PROPERTIES.contextFor(key))
                 return false
             } catch (SensitivePropertyProtectionException e) {
                 logger.expected("Caught a malformed value for ${key}")

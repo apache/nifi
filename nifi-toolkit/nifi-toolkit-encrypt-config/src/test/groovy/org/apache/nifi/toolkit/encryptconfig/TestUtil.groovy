@@ -18,6 +18,7 @@ package org.apache.nifi.toolkit.encryptconfig
 
 import org.apache.commons.lang3.SystemUtils
 import org.apache.nifi.properties.PropertyProtectionScheme
+import org.apache.nifi.properties.ProtectedPropertyContext.PropertyLocation
 import org.apache.nifi.properties.SensitivePropertyProvider
 import org.apache.nifi.toolkit.encryptconfig.util.NiFiRegistryAuthorizersXmlEncryptor
 import org.apache.nifi.toolkit.encryptconfig.util.NiFiRegistryIdentityProvidersXmlEncryptor
@@ -101,8 +102,12 @@ class TestUtil {
     }
 
     static String generateTmpFilePath() {
+        generateTmpFilePath("tmp_file")
+    }
+
+    static String generateTmpFilePath(final String tempFileSuffix) {
         File tmpDir = setupTmpDir()
-        return "${tmpDir.getAbsolutePath()}/${UUID.randomUUID().toString()}.tmp_file"
+        return "${tmpDir.getAbsolutePath()}/${UUID.randomUUID().toString()}.${tempFileSuffix}"
     }
 
     static File generateTmpFile() {
@@ -110,8 +115,17 @@ class TestUtil {
         tmpFile
     }
 
+    static File generateTmpFile(final String tempFileSuffix) {
+        File tmpFile = new File(generateTmpFilePath(tempFileSuffix))
+        tmpFile
+    }
+
     static String copyFileToTempFile(String filePath) {
-        File tmpFile = generateTmpFile()
+        copyFileToTempFile(filePath, "tmp_file")
+    }
+
+    static String copyFileToTempFile(String filePath, final String tempFileSuffix) {
+        File tmpFile = generateTmpFile(tempFileSuffix)
         tmpFile.text = new File(filePath).text
         return tmpFile.getAbsolutePath()
     }
@@ -203,6 +217,7 @@ class TestUtil {
                 pathToProtectedXmlToVerify,
                 expectedProtectionScheme,
                 expectedKey,
+                PropertyLocation.AUTHORIZERS,
                 { rootNode ->
                     try {
                         rootNode.userGroupProvider.find {
@@ -240,6 +255,7 @@ class TestUtil {
                 pathToProtectedXmlToVerify,
                 expectedProtectionScheme,
                 expectedKey,
+                PropertyLocation.LOGIN_IDENTITY_PROVIDERS,
                 { rootNode ->
                     try {
                         rootNode.provider.find {
@@ -273,6 +289,7 @@ class TestUtil {
             String pathToProtectedXmlToVerify,
             String expectedProtectionScheme = PROTECTION_SCHEME,
             String expectedKey = KEY_HEX,
+            PropertyLocation propertyLocation,
             callbackToGetNodesToVerify) {
 
         String originalUnprotectedXml = new File(pathToOriginalUnprotectedXml).text
@@ -306,7 +323,7 @@ class TestUtil {
             String propertyValue = value
             assert it.@encryption == expectedProtectionScheme
             assert !plaintextValues.contains(propertyValue)
-            assert plaintextValues.contains(spp.unprotect(propertyValue))
+            assert plaintextValues.contains(spp.unprotect(propertyValue, propertyLocation.contextFor((String) it.@name)))
         }
 
         return true

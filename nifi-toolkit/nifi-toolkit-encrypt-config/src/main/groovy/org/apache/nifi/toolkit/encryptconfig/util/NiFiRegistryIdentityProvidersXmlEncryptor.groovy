@@ -17,6 +17,8 @@
 package org.apache.nifi.toolkit.encryptconfig.util
 
 import groovy.xml.XmlUtil
+import org.apache.nifi.properties.ProtectedPropertyContext
+import org.apache.nifi.properties.ProtectedPropertyContext.PropertyLocation
 import org.apache.nifi.properties.SensitivePropertyProvider
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -45,6 +47,14 @@ class NiFiRegistryIdentityProvidersXmlEncryptor extends XmlEncryptor {
         super(encryptionProvider, decryptionProvider)
     }
 
+    String decrypt(final String encryptedXmlContent) {
+        super.decrypt(encryptedXmlContent, ProtectedPropertyContext.PropertyLocation.LOGIN_IDENTITY_PROVIDERS)
+    }
+
+    String encrypt(final String plainXmlContent) {
+        this.encrypt(plainXmlContent, ProtectedPropertyContext.PropertyLocation.LOGIN_IDENTITY_PROVIDERS)
+    }
+
     /**
      * Overrides the super class implementation to marking xml nodes that should be encrypted.
      * This is done using logic specific to the identity-providers.xml file type targeted by this
@@ -54,10 +64,11 @@ class NiFiRegistryIdentityProvidersXmlEncryptor extends XmlEncryptor {
      * is invoked to encrypt them.
      *
      * @param plainXmlContent the plaintext content of an identity-providers.xml file
+     * @param propertyLocation The property location
      * @return the comment with sensitive values encrypted and marked with the cipher.
      */
     @Override
-    String encrypt(String plainXmlContent) {
+    String encrypt(final String plainXmlContent, final PropertyLocation propertyLocation) {
         // First, mark the XML nodes to encrypt that are specific to authorizers.xml by adding an attribute encryption="none"
         String markedXmlContent = markXmlNodesForEncryption(plainXmlContent, "provider", {
             it.find {
@@ -69,7 +80,7 @@ class NiFiRegistryIdentityProvidersXmlEncryptor extends XmlEncryptor {
         })
 
         // Now, return the results of the base implementation, which encrypts any node with an encryption="none" attribute
-        return super.encrypt(markedXmlContent)
+        return super.encrypt(markedXmlContent, propertyLocation)
     }
 
     List<String> serializeXmlContentAndPreserveFormat(String updatedXmlContent, String originalXmlContent) {
