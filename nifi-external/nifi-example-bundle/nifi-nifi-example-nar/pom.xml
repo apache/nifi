@@ -22,7 +22,7 @@
         <version>1.14.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>nifi-example-nar</artifactId>
+    <artifactId>nifi-nifi-example-nar</artifactId>
     <packaging>nar</packaging>
     <properties>
         <maven.javadoc.skip>true</maven.javadoc.skip>
