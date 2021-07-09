@@ -40,56 +40,7 @@ limitations under the License.
         <module>minifi-c2</module>
         <module>minifi-integration-tests</module>
     </modules>
-
-    <url>https://nifi.apache.org/minifi</url>
-    <organization>
-        <name>Apache NiFi Project - MiNiFi subproject</name>
-        <url>https://nifi.apache.org/</url>
-    </organization>
-    <licenses>
-        <license>
-            <name>Apache License, Version 2.0</name>
-            <url>https://www.apache.org/licenses/LICENSE-2.0</url>
-        </license>
-    </licenses>
-    <mailingLists>
-        <mailingList>
-            <name>Dev</name>
-            <subscribe>dev-subscribe@nifi.apache.org</subscribe>
-            <unsubscribe>dev-unsubscribe@nifi.apache.org</unsubscribe>
-            <post>dev@nifi.apache.org</post>
-            <archive>https://mail-archives.apache.org/mod_mbox/nifi-dev</archive>
-        </mailingList>
-        <mailingList>
-            <name>Users</name>
-            <subscribe>users-subscribe@nifi.apache.org</subscribe>
-            <unsubscribe>users-unsubscribe@nifi.apache.org</unsubscribe>
-            <post>users@nifi.apache.org</post>
-            <archive>https://mail-archives.apache.org/mod_mbox/nifi-users</archive>
-        </mailingList>
-        <mailingList>
-            <name>Commits</name>
-            <subscribe>commits-subscribe@nifi.apache.org</subscribe>
-            <unsubscribe>commits-unsubscribe@nifi.apache.org</unsubscribe>
-            <post>commits@nifi.apache.org</post>
-            <archive>https://mail-archives.apache.org/mod_mbox/nifi-commits</archive>
-        </mailingList>
-    </mailingLists>
-    <prerequisites>
-        <maven>${maven.min-version}</maven>
-    </prerequisites>
-    <scm>
-        <connection>scm:git:git://git.apache.org/nifi.git</connection>
-        <developerConnection>scm:git:https://gitbox.apache.org/repos/asf/nifi.git</developerConnection>
-        <url>https://gitbox.apache.org/repos/asf?p=nifi.git</url>
-      <tag>HEAD</tag>
-    </scm>
-    <issueManagement>
-        <system>JIRA</system>
-        <url>https://issues.apache.org/jira/browse/MINIFI</url>
-    </issueManagement>
     <properties>
-        <inceptionYear>2016</inceptionYear>
         <jersey.version>2.29</jersey.version>
         <spring.version>5.3.8</spring.version>
         <spring.security.version>5.4.6</spring.security.version>
