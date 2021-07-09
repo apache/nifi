@@ -22,6 +22,7 @@ import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.processors.standard.TailFile.TailFileState;
 import org.apache.nifi.state.MockStateManager;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.After;
@@ -29,6 +30,8 @@ import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.BufferedWriter;
 import java.io.ByteArrayOutputStream;
@@ -58,6 +61,7 @@ import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeFalse;
 
 public class TestTailFile {
+    private static final Logger logger = LoggerFactory.getLogger(TestTailFile.class);
 
     private File file;
     private File existingFile;
@@ -118,7 +122,7 @@ public class TestTailFile {
             otherRaf.close();
         }
 
-        processor.cleanup();
+        processor.cleanup(new MockProcessContext(processor));
 
         final File[] files = file.getParentFile().listFiles();
         if (files != null) {
@@ -832,6 +836,73 @@ public class TestTailFile {
         runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 1);
         runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0).assertContentEquals("return\r\r\n");
     }
+
+    @Test
+    public void testMultiLineWaitsForRegexMatchShutdownBetweenReads() throws IOException {
+        testMultiLineWaitsForRegexMatch(true);
+    }
+
+    @Test
+    public void testMultiLineWaitsForRegexMatchWithoutShutdownBetweenReads() throws IOException {
+        testMultiLineWaitsForRegexMatch(false);
+    }
+
+    private void testMultiLineWaitsForRegexMatch(final boolean shutdownBetweenReads) throws IOException {
+        runner.setProperty(TailFile.LINE_START_REGEX, "<\\d>");
+        runner.setProperty(TailFile.ROLLING_FILENAME_PATTERN, "log.*");
+
+        final String line1 = "<1>Hello, World\n";
+        final String line2 = "<2>Good-bye, World\n";
+        final String line3 = "<3>Start of multi-line\n";
+        final String line4 = "<4>Last One\n";
+
+        raf.write(line1.getBytes());
+        raf.write(line2.getBytes());
+
+        runner.run(1, shutdownBetweenReads, true);
+
+        runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 1);
+        runner.clearTransferState();
+
+        raf.write(line3.getBytes());
+        runner.run(1, shutdownBetweenReads, shutdownBetweenReads);
+        runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 1);
+        runner.clearTransferState();
+
+        for (int i=0; i < 10; i++) {
+            logger.info("i = " + i);
+            raf.write(String.valueOf(i).getBytes());
+            raf.write("\n".getBytes());
+
+            runner.run(1, shutdownBetweenReads, shutdownBetweenReads);
+            runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 0);
+        }
+
+        // The state should indicate that the position is only equal to the length of the first 2 lines because that's all that has been emitted.
+        final Map<String, String> stateMap = runner.getStateManager().getState(Scope.LOCAL).toMap();
+        assertEquals(String.valueOf(line1.length() + line2.length() + line3.length() + 20), stateMap.get("file.0.length"));
+        assertEquals(String.valueOf(line1.length() + line2.length()), stateMap.get("file.0.position"));
+
+        raf.write(line4.getBytes());
+        runner.run(1, shutdownBetweenReads, shutdownBetweenReads);
+        runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 1);
+
+        final MockFlowFile multiLineOutputFile = runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0);
+        multiLineOutputFile.assertContentEquals("<3>Start of multi-line\n0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n");
+        runner.clearTransferState();
+
+        // roll the file
+        raf.close();
+        file.renameTo(new File("target/log.1"));
+        raf = new RandomAccessFile(file, "rw");
+        raf.write(new byte[0]);
+
+        runner.run(1, shutdownBetweenReads, shutdownBetweenReads);
+        runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 1);
+        final MockFlowFile finalOutputFile = runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0);
+        finalOutputFile.assertContentEquals("<4>Last One\n");
+    }
+
 
     @Test
     public void testRolloverAndUpdateAtSameTime() throws IOException {

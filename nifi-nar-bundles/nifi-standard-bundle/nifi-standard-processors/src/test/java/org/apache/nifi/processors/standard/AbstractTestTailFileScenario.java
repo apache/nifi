@@ -18,6 +18,7 @@ package org.apache.nifi.processors.standard;
 
 import org.apache.commons.lang3.SystemUtils;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.After;
@@ -110,7 +111,7 @@ public class AbstractTestTailFileScenario {
             randomAccessFile.close();
         }
 
-        processor.cleanup();
+        processor.cleanup(new MockProcessContext(processor));
     }
 
     public void testScenario(List<Action> actions) throws Exception {

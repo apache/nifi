@@ -32,6 +32,7 @@ import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.annotation.notification.OnPrimaryNodeStateChange;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyDescriptor.Builder;
 import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
@@ -40,6 +41,7 @@ import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.AbstractProcessor;
+import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
@@ -60,6 +62,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -84,6 +87,8 @@ import java.util.zip.Checksum;
 
 import static org.apache.nifi.expression.ExpressionLanguageScope.NONE;
 import static org.apache.nifi.expression.ExpressionLanguageScope.VARIABLE_REGISTRY;
+import static org.apache.nifi.processor.util.StandardValidators.DATA_SIZE_VALIDATOR;
+import static org.apache.nifi.processor.util.StandardValidators.REGULAR_EXPRESSION_VALIDATOR;
 
 // note: it is important that this Processor is not marked as @SupportsBatching because the session commits must complete before persisting state locally; otherwise, data loss may occur
 @TriggerSerially
@@ -108,6 +113,7 @@ import static org.apache.nifi.expression.ExpressionLanguageScope.VARIABLE_REGIST
 public class TailFile extends AbstractProcessor {
 
     static final String MAP_PREFIX = "file.";
+    private static final byte[] NEW_LINE_BYTES = "\n".getBytes(StandardCharsets.UTF_8);
 
     static final AllowableValue LOCATION_LOCAL = new AllowableValue("Local", "Local",
             "State is stored locally. Each node in a cluster will tail a different file.");
@@ -130,7 +136,7 @@ public class TailFile extends AbstractProcessor {
             "Start with the data at the end of the File to Tail. Do not ingest any data thas has already been rolled over or any "
             + "data in the File to Tail that has already been written.");
 
-    static final PropertyDescriptor BASE_DIRECTORY = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor BASE_DIRECTORY = new Builder()
             .name("tail-base-directory")
             .displayName("Base directory")
             .description("Base directory used to look for files to tail. This property is required when using Multifile mode.")
@@ -139,7 +145,7 @@ public class TailFile extends AbstractProcessor {
             .required(false)
             .build();
 
-    static final PropertyDescriptor MODE = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor MODE = new Builder()
             .name("tail-mode")
             .displayName("Tailing mode")
             .description("Mode to use: single file will tail only one file, multiple file will look for a list of file. In Multiple mode"
@@ -150,7 +156,7 @@ public class TailFile extends AbstractProcessor {
             .defaultValue(MODE_SINGLEFILE.getValue())
             .build();
 
-    static final PropertyDescriptor FILENAME = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor FILENAME = new Builder()
             .displayName("File(s) to Tail")
             .name("File to Tail")
             .description("Path of the file to tail in case of single file mode. If using multifile mode, regular expression to find files "
@@ -161,7 +167,7 @@ public class TailFile extends AbstractProcessor {
             .required(true)
             .build();
 
-    static final PropertyDescriptor ROLLING_FILENAME_PATTERN = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor ROLLING_FILENAME_PATTERN = new Builder()
             .name("Rolling Filename Pattern")
             .description("If the file to tail \"rolls over\" as would be the case with log files, this filename pattern will be used to "
                     + "identify files that have rolled over so that if NiFi is restarted, and the file has rolled over, it will be able to pick up where it left off. "
@@ -173,7 +179,7 @@ public class TailFile extends AbstractProcessor {
             .required(false)
             .build();
 
-    static final PropertyDescriptor POST_ROLLOVER_TAIL_PERIOD = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor POST_ROLLOVER_TAIL_PERIOD = new Builder()
         .name("Post-Rollover Tail Period")
         .description("When a file is rolled over, the processor will continue tailing the rolled over file until it has not been modified for this amount of time. " +
             "This allows for another process to rollover a file, and then flush out any buffered data. Note that when this value is set, and the tailed file rolls over, " +
@@ -186,7 +192,7 @@ public class TailFile extends AbstractProcessor {
         .defaultValue("0 sec")
         .build();
 
-    static final PropertyDescriptor STATE_LOCATION = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor STATE_LOCATION = new Builder()
             .displayName("State Location")
             .name("File Location") //retained name of property for backward compatibility of configs
             .description("Specifies where the state is located either local or cluster so that state can be stored "
@@ -196,7 +202,7 @@ public class TailFile extends AbstractProcessor {
             .defaultValue(LOCATION_LOCAL.getValue())
             .build();
 
-    static final PropertyDescriptor START_POSITION = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor START_POSITION = new Builder()
             .name("Initial Start Position")
             .description("When the Processor first begins to tail data, this property specifies where the Processor should begin reading data. Once data has been ingested from a file, "
                     + "the Processor will continue from the last point from which it has received data.")
@@ -205,7 +211,7 @@ public class TailFile extends AbstractProcessor {
             .required(true)
             .build();
 
-    static final PropertyDescriptor RECURSIVE = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor RECURSIVE = new Builder()
             .name("tailfile-recursive-lookup")
             .displayName("Recursive lookup")
             .description("When using Multiple files mode, this property defines if files must be listed recursively or not"
@@ -215,7 +221,7 @@ public class TailFile extends AbstractProcessor {
             .required(true)
             .build();
 
-    static final PropertyDescriptor LOOKUP_FREQUENCY = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor LOOKUP_FREQUENCY = new Builder()
             .name("tailfile-lookup-frequency")
             .displayName("Lookup frequency")
             .description("Only used in Multiple files mode. It specifies the minimum "
@@ -225,7 +231,7 @@ public class TailFile extends AbstractProcessor {
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
 
-    static final PropertyDescriptor MAXIMUM_AGE = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor MAXIMUM_AGE = new Builder()
             .name("tailfile-maximum-age")
             .displayName("Maximum age")
             .description("Only used in Multiple files mode. It specifies the necessary "
@@ -237,7 +243,7 @@ public class TailFile extends AbstractProcessor {
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .build();
 
-    static final PropertyDescriptor REREAD_ON_NUL = new PropertyDescriptor.Builder()
+    static final PropertyDescriptor REREAD_ON_NUL = new Builder()
             .name("reread-on-nul")
             .displayName("Reread when NUL encountered")
             .description("If this option is set to 'true', when a NUL character is read, the processor will yield and try to read the same part again later. "
@@ -251,6 +257,30 @@ public class TailFile extends AbstractProcessor {
             .defaultValue("false")
             .build();
 
+    static final PropertyDescriptor LINE_START_PATTERN = new Builder()
+        .name("Line Start Pattern")
+        .displayName("Line Start Pattern")
+        .description("A Regular Expression to match against the start of a log line. If specified, any line that matches the expression, and any following lines, will be buffered until another line" +
+            " matches the Expression. In doing this, we can avoid splitting apart multi-line messages in the file. This assumes that the data is in UTF-8 format.")
+        .required(false)
+        .addValidator(REGULAR_EXPRESSION_VALIDATOR)
+        .expressionLanguageSupported(NONE)
+        .dependsOn(MODE, MODE_SINGLEFILE)
+        .build();
+
+    static final PropertyDescriptor MAX_BUFFER_LENGTH = new Builder()
+        .name("Max Buffer Size")
+        .displayName("Max Buffer Size")
+        .description("When using the Line Start Pattern, there may be situations in which the data in the file being tailed never matches the Regular Expression. This would result in the processor " +
+            "buffering all data from the tailed file, which can quickly exhaust the heap. To avoid this, the Processor will buffer only up to this amount of data before flushing the buffer, even if" +
+            " it means ingesting partial data from the file.")
+        .required(true)
+        .addValidator(DATA_SIZE_VALIDATOR)
+        .expressionLanguageSupported(NONE)
+        .defaultValue("64 KB")
+        .dependsOn(LINE_START_PATTERN)
+        .build();
+
     static final Relationship REL_SUCCESS = new Relationship.Builder()
             .name("success")
             .description("All FlowFiles are routed to this Relationship.")
@@ -260,6 +290,10 @@ public class TailFile extends AbstractProcessor {
     private volatile AtomicLong lastLookup = new AtomicLong(0L);
     private volatile AtomicBoolean isMultiChanging = new AtomicBoolean(false);
     private volatile boolean requireStateLookup = true;
+
+    private volatile ByteArrayOutputStream linesBuffer = new ByteArrayOutputStream();
+    private volatile Pattern lineStartPattern;
+    private volatile long maxBufferBytes;
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -275,6 +309,8 @@ public class TailFile extends AbstractProcessor {
         properties.add(LOOKUP_FREQUENCY);
         properties.add(MAXIMUM_AGE);
         properties.add(REREAD_ON_NUL);
+        properties.add(LINE_START_PATTERN);
+        properties.add(MAX_BUFFER_LENGTH);
         return properties;
     }
 
@@ -338,6 +374,14 @@ public class TailFile extends AbstractProcessor {
             filesToTail.add(context.getProperty(FILENAME).evaluateAttributeExpressions().getValue());
         }
         return filesToTail;
+    }
+
+    @OnScheduled
+    public void compileRegex(final ProcessContext context) {
+        final String regex = context.getProperty(LINE_START_PATTERN).getValue();
+        lineStartPattern = (regex == null) ? null : Pattern.compile(regex);
+
+        this.maxBufferBytes = context.getProperty(MAX_BUFFER_LENGTH).asDataSize(DataUnit.B).longValue();
     }
 
     @OnScheduled
@@ -581,13 +625,16 @@ public class TailFile extends AbstractProcessor {
     }
 
     @OnStopped
-    public void cleanup() {
+    public void cleanup(final ProcessContext context) {
         for (TailFileObject tfo : states.values()) {
             cleanReader(tfo);
             final TailFileState state = tfo.getState();
-            tfo.setState(new TailFileState(state.getFilename(), state.getFile(), null, state.getPosition(),
+            tfo.setState(new TailFileState(state.getFilename(), state.getFile(), null, state.getPosition() - linesBuffer.size(),
                 state.getTimestamp(), state.getLength(), state.getChecksum(), state.getBuffer(), state.isTailingPostRollover()));
+            persistState(tfo, null, context);
         }
+
+        linesBuffer.reset();
     }
 
     private void cleanReader(TailFileObject tfo) {
@@ -643,7 +690,7 @@ public class TailFile extends AbstractProcessor {
             return;
         }
 
-        for (String tailFile : states.keySet()) {
+        for (final String tailFile : states.keySet()) {
             try {
                 processTailFile(context, session, tailFile);
             } catch (NulCharacterEncounteredException e) {
@@ -651,6 +698,12 @@ public class TailFile extends AbstractProcessor {
                 context.yield();
                 return;
             }
+        }
+
+        // If a Line Start Pattern is being used and data is buffered, the Position that has been stored in the state will
+        // not be accurate. To address this, we call cleanup(), which will handle updating the state to the correct values for us.
+        if (lineStartPattern != null && linesBuffer.size() > 0) {
+            cleanup(context);
         }
     }
 
@@ -667,7 +720,7 @@ public class TailFile extends AbstractProcessor {
             if (START_BEGINNING_OF_TIME.getValue().equals(recoverPosition)) {
                 recoverRolledFiles(context, session, tailFile, tfo.getExpectedRecoveryChecksum(), tfo.getState().getTimestamp(), tfo.getState().getPosition());
             } else if (START_CURRENT_FILE.getValue().equals(recoverPosition)) {
-                cleanup();
+                cleanup(context);
                 tfo.setState(new TailFileState(tailFile, null, null, 0L, 0L, 0L, null, tfo.getState().getBuffer()));
             } else {
                 final String filename = tailFile;
@@ -687,7 +740,7 @@ public class TailFile extends AbstractProcessor {
                     }
 
                     fileChannel.position(position);
-                    cleanup();
+                    cleanup(context);
                     tfo.setState(new TailFileState(filename, file, fileChannel, position, timestamp, file.length(), checksum, tfo.getState().getBuffer()));
                 } catch (final IOException ioe) {
                     getLogger().error("Attempted to position Reader at current position in file {} but failed to do so due to {}", new Object[]{file, ioe.toString()}, ioe);
@@ -847,8 +900,12 @@ public class TailFile extends AbstractProcessor {
             flowFile = session.putAllAttributes(flowFile, attributes);
 
             session.getProvenanceReporter().receive(flowFile, file.toURI().toString(), "FlowFile contains bytes " + position + " through " + positionHolder.get() + " of source file",
-                    TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos));
+                TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos));
             session.transfer(flowFile, REL_SUCCESS);
+            getLogger().debug("Created {} and routed to success", flowFile);
+        }
+
+        if (flowFile.getSize() > 0 || linesBuffer.size() > 0) {
             position = positionHolder.get();
 
             // Set timestamp to the latest of when the file was modified and the current timestamp stored in the state.
@@ -858,7 +915,6 @@ public class TailFile extends AbstractProcessor {
             // rotated file a second time.
             timestamp = Math.max(state.getTimestamp(), file.lastModified());
             length = file.length();
-            getLogger().debug("Created {} and routed to success", new Object[]{flowFile});
         }
 
         // Create a new state object to represent our current position, timestamp, etc.
@@ -930,7 +986,7 @@ public class TailFile extends AbstractProcessor {
                         case '\n': {
                             baos.write(ch);
                             seenCR = false;
-                            flushByteArrayOutputStream(baos, out, checksum);
+                            flushByteArrayOutputStream(baos, out, checksum, false);
                             rePos = pos + i + 1;
                             linesRead++;
                             break;
@@ -948,7 +1004,7 @@ public class TailFile extends AbstractProcessor {
                         default: {
                             if (seenCR) {
                                 seenCR = false;
-                                flushByteArrayOutputStream(baos, out, checksum);
+                                flushByteArrayOutputStream(baos, out, checksum, false);
                                 linesRead++;
                                 baos.write(ch);
                                 rePos = pos + i;
@@ -963,7 +1019,7 @@ public class TailFile extends AbstractProcessor {
             }
 
             if (readFully) {
-                flushByteArrayOutputStream(baos, out, checksum);
+                flushByteArrayOutputStream(baos, out, checksum, true);
                 rePos = reader.position();
             }
 
@@ -976,14 +1032,53 @@ public class TailFile extends AbstractProcessor {
         }
     }
 
-    private void flushByteArrayOutputStream(final ByteArrayOutputStream baos, final OutputStream out, final Checksum checksum) throws IOException {
-        baos.writeTo(out);
+    private void flushByteArrayOutputStream(final ByteArrayOutputStream baos, final OutputStream out, final Checksum checksum, final boolean ignoreRegex) throws IOException {
         final byte[] baosBuffer = baos.toByteArray();
-        checksum.update(baosBuffer, 0, baos.size());
+        baos.reset();
+
+        // If the regular expression is being ignored, we need to flush anything that is buffered.
+        // This happens, for example, when a file has been rolled over. At that point, we want to flush whatever we have,
+        // even if the regex hasn't been matched.
+        if (ignoreRegex) {
+            flushLinesBuffer(out, checksum);
+        }
+
+        if (lineStartPattern == null) {
+            out.write(baosBuffer);
+
+            checksum.update(baosBuffer, 0, baosBuffer.length);
+            if (getLogger().isTraceEnabled()) {
+                getLogger().trace("Checksum updated to {}", checksum.getValue());
+            }
+
+            return;
+        }
+
+        final String bufferAsString = new String(baosBuffer, StandardCharsets.UTF_8);
+        final String[] lines = bufferAsString.split("\n");
+        for (final String line : lines) {
+            final boolean startsWithRegex = lineStartPattern.matcher(line).lookingAt();
+
+            if (startsWithRegex || linesBuffer.size() >= maxBufferBytes) {
+                // We found a line that matches our start regex. Flush what we have buffered and reset our buffer.
+                flushLinesBuffer(out, checksum);
+            }
+
+            // This line does not match our start regex. Buffer this line until we encounter a line that does.
+            linesBuffer.write(line.getBytes(StandardCharsets.UTF_8));
+            linesBuffer.write(NEW_LINE_BYTES);
+        }
+    }
+
+    private void flushLinesBuffer(final OutputStream out, final Checksum checksum) throws IOException {
+        linesBuffer.writeTo(out);
+
+        checksum.update(linesBuffer.toByteArray(), 0, linesBuffer.size());
         if (getLogger().isTraceEnabled()) {
             getLogger().trace("Checksum updated to {}", checksum.getValue());
         }
-        baos.reset();
+
+        linesBuffer.reset();
     }
 
     /**
@@ -1074,7 +1169,8 @@ public class TailFile extends AbstractProcessor {
 
     private void persistState(final Map<String, String> state, final ProcessSession session, final ProcessContext context) {
         try {
-            final StateMap oldState = session.getState(getStateScope(context));
+            final Scope scope = getStateScope(context);
+            final StateMap oldState = session == null ? context.getStateManager().getState(scope) : session.getState(scope);
             Map<String, String> updatedState = new HashMap<>();
 
             for(String key : oldState.toMap().keySet()) {
@@ -1092,7 +1188,11 @@ public class TailFile extends AbstractProcessor {
 
             updatedState.putAll(state);
 
-            session.setState(updatedState, getStateScope(context));
+            if (session == null) {
+                context.getStateManager().setState(updatedState, scope);
+            } else {
+                session.setState(updatedState, scope);
+            }
         } catch (final IOException e) {
             getLogger().warn("Failed to store state due to {}; some data may be duplicated on restart of NiFi", new Object[]{e});
         }
@@ -1361,7 +1461,7 @@ public class TailFile extends AbstractProcessor {
 
                 // use a timestamp of lastModified() + 1 so that we do not ingest this file again.
                 getLogger().debug("Completed tailing of file {}; will cleanup state", tailFile);
-                cleanup();
+                cleanup(context);
                 tfo.setState(new TailFileState(tailFile, null, null, 0L, fileToTail.lastModified() + 1L, fileToTail.length(), null, tfo.getState().getBuffer(), tailingPostRollover));
             }
 
@@ -1383,9 +1483,16 @@ public class TailFile extends AbstractProcessor {
      * @return the new, updated state that reflects that the given file has been
      * ingested.
      */
-    private TailFileState consumeFileFully(final File file, final ProcessContext context, final ProcessSession session, TailFileObject tfo) {
+    private TailFileState consumeFileFully(final File file, final ProcessContext context, final ProcessSession session, TailFileObject tfo) throws IOException {
         FlowFile flowFile = session.create();
-        flowFile = session.importFrom(file.toPath(), true, flowFile);
+
+        try (final InputStream fis = new FileInputStream(file)) {
+            flowFile = session.write(flowFile, out -> {
+                flushLinesBuffer(out, new CRC32());
+                StreamUtils.copy(fis, out);
+            });
+        }
+
         if (flowFile.getSize() == 0L) {
             session.remove(flowFile);
         } else {
@@ -1399,7 +1506,7 @@ public class TailFile extends AbstractProcessor {
             getLogger().debug("Created {} from {} and routed to success", new Object[]{flowFile, file});
 
             // use a timestamp of lastModified() + 1 so that we do not ingest this file again.
-            cleanup();
+            cleanup(context);
             tfo.setState(new TailFileState(context.getProperty(FILENAME).evaluateAttributeExpressions().getValue(), null, null, 0L, file.lastModified() + 1L, file.length(), null,
                     tfo.getState().getBuffer()));
 
