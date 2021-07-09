@@ -33,4 +33,15 @@ public interface SensitivePropertyProviderFactory {
      */
     Collection<SensitivePropertyProvider> getSupportedSensitivePropertyProviders();
 
+    /**
+     * Returns a ProtectedPropertyContext with the given property name.  The ProtectedPropertyContext's
+     * contextName will be the name found in a matching context mapping from bootstrap.conf, or 'default' if
+     * no matching mapping was found.
+     * @param groupIdentifier The identifier of a group that contains the configuration property.  The definition
+     *                        of a group depends on the type of configuration file.
+     * @param propertyName A property name
+     * @return The property context, using any mappings configured in bootstrap.conf to match against the
+     * provided group identifier (or the default context if none match).
+     */
+    ProtectedPropertyContext getPropertyContext(String groupIdentifier, String propertyName);
 }

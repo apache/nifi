@@ -32,6 +32,13 @@ public class SensitivePropertyProviderFactoryAware {
         return sensitivePropertyProviderFactory;
     }
 
+    protected String decryptValue(final String cipherText, final String protectionScheme, final String propertyName, final String groupIdentifier) throws SensitivePropertyProtectionException {
+        final SensitivePropertyProviderFactory sensitivePropertyProviderFactory = getSensitivePropertyProviderFactory();
+        final ProtectedPropertyContext protectedPropertyContext = sensitivePropertyProviderFactory.getPropertyContext(groupIdentifier, propertyName);
+        return sensitivePropertyProviderFactory.getProvider(PropertyProtectionScheme.fromIdentifier(protectionScheme))
+                .unprotect(cipherText, protectedPropertyContext);
+    }
+
     /**
      * Configures and sets the SensitivePropertyProviderFactory.
      * @param keyHex An key in hex format, which some providers may use for encryption

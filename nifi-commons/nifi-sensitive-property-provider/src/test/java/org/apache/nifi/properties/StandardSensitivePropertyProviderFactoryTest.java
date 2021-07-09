@@ -30,6 +30,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.security.Security;
 import java.util.Properties;
 import java.util.function.Supplier;
@@ -53,6 +54,7 @@ public class StandardSensitivePropertyProviderFactoryTest {
     private static Path bootstrapConf;
     private static Path hashicorpVaultBootstrapConf;
     private static Path nifiProperties;
+    private static String defaultBootstrapContents;
 
     private static NiFiProperties niFiProperties;
 
@@ -65,16 +67,28 @@ public class StandardSensitivePropertyProviderFactoryTest {
 
         nifiProperties = Files.createTempFile("nifi", ".properties").toAbsolutePath();
 
-        bootstrapConf = Files.move(bootstrapConf, tempConfDir.resolve("bootstrap.conf"));
         nifiProperties = Files.move(nifiProperties, tempConfDir.resolve("nifi.properties"));
 
-        final String bootstrapConfText = String.format("%s=%s\n%s=%s",
+        defaultBootstrapContents = String.format("%s=%s\n%s=%s",
                 "nifi.bootstrap.sensitive.key", BOOTSTRAP_KEY_HEX,
                 "nifi.bootstrap.protection.hashicorp.vault.conf", FilenameUtils.separatorsToUnix(hashicorpVaultBootstrapConf.toString()));
-        IOUtil.writeText(bootstrapConfText, bootstrapConf.toFile());
+        bootstrapConf = writeDefaultBootstrapConf();
         System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, FilenameUtils.separatorsToUnix(nifiProperties.toString()));
 
         niFiProperties = new NiFiProperties();
+    }
+
+    private static Path writeDefaultBootstrapConf() throws IOException {
+        return writeBootstrapConf(defaultBootstrapContents);
+    }
+
+    private static Path writeBootstrapConf(final String contents) throws IOException {
+        final Path tempBootstrapConf = Files.createTempFile("bootstrap", ".conf").toAbsolutePath();
+        final Path bootstrapConf = Files.move(tempBootstrapConf, tempConfDir.resolve("bootstrap.conf"), StandardCopyOption.REPLACE_EXISTING);
+
+        final String bootstrapConfText = String.format(contents);
+        IOUtil.writeText(bootstrapConfText, bootstrapConf.toFile());
+        return bootstrapConf;
     }
 
     @AfterClass
@@ -119,6 +133,26 @@ public class StandardSensitivePropertyProviderFactoryTest {
     private void configureHashicorpVault(final Properties properties) throws IOException {
         try (OutputStream out = new FileOutputStream(hashicorpVaultBootstrapConf.toFile())) {
             properties.store(out, "HashiCorpVault test");
+        }
+    }
+
+    @Test
+    public void testGetPropertyContextUnconfigured() {
+        configureDefaultFactory();
+        assertEquals("default/prop", factory.getPropertyContext("ldap-provider", "prop").getContextKey());
+
+    }
+
+    @Test
+    public void testGetPropertyContext() throws IOException {
+        configureDefaultFactory();
+        writeBootstrapConf(defaultBootstrapContents + "\n" +
+                "nifi.bootstrap.protection.context.mapping.ldap=ldap-.*");
+        try {
+            assertEquals("ldap/prop", factory.getPropertyContext("ldap-provider", "prop").getContextKey());
+            assertEquals("ldap/prop", factory.getPropertyContext("ldap-user-group-provider", "prop").getContextKey());
+        } finally {
+            writeDefaultBootstrapConf();
         }
     }
 
@@ -169,14 +203,15 @@ public class StandardSensitivePropertyProviderFactoryTest {
     @Test
     public void testAES_GCM() throws IOException {
         configureDefaultFactory();
+        final ProtectedPropertyContext context = ProtectedPropertyContext.defaultContext("propertyName");
 
         final SensitivePropertyProvider spp = factory.getProvider(PropertyProtectionScheme.AES_GCM);
         assertNotNull(spp);
         assertTrue(spp.isSupported());
 
         final String cleartext = "test";
-        assertEquals(cleartext, spp.unprotect(spp.protect(cleartext)));
-        assertNotEquals(cleartext, spp.protect(cleartext));
+        assertEquals(cleartext, spp.unprotect(spp.protect(cleartext, context), context));
+        assertNotEquals(cleartext, spp.protect(cleartext, context));
         assertEquals(AES_GCM_128, spp.getIdentifierKey());
 
         // Key is now different
@@ -186,8 +221,8 @@ public class StandardSensitivePropertyProviderFactoryTest {
         assertTrue(sppAdHocKey.isSupported());
         assertEquals(AES_GCM_128, sppAdHocKey.getIdentifierKey());
 
-        assertNotEquals(spp.protect(cleartext), sppAdHocKey.protect(cleartext));
-        assertEquals(cleartext, sppAdHocKey.unprotect(sppAdHocKey.protect(cleartext)));
+        assertNotEquals(spp.protect(cleartext, context), sppAdHocKey.protect(cleartext, context));
+        assertEquals(cleartext, sppAdHocKey.unprotect(sppAdHocKey.protect(cleartext, context), context));
 
         // This should use the same keyHex as the second one
         configureAdHocKeyAndPropertiesFactory();
@@ -196,6 +231,6 @@ public class StandardSensitivePropertyProviderFactoryTest {
         assertTrue(sppKeyProperties.isSupported());
         assertEquals(AES_GCM_128, sppKeyProperties.getIdentifierKey());
 
-        assertEquals(cleartext, sppKeyProperties.unprotect(sppKeyProperties.protect(cleartext)));
+        assertEquals(cleartext, sppKeyProperties.unprotect(sppKeyProperties.protect(cleartext, context), context));
     }
 }

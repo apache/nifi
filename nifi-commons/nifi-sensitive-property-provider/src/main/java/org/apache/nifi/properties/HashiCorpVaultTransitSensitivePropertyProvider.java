@@ -62,11 +62,12 @@ public class HashiCorpVaultTransitSensitivePropertyProvider extends AbstractHash
      * Returns the encrypted cipher text.
      *
      * @param unprotectedValue the sensitive value
+     * @param context The property context, unused in this provider
      * @return the value to persist in the {@code nifi.properties} file
      * @throws SensitivePropertyProtectionException if there is an exception encrypting the value
      */
     @Override
-    public String protect(final String unprotectedValue) throws SensitivePropertyProtectionException {
+    public String protect(final String unprotectedValue, final ProtectedPropertyContext context) throws SensitivePropertyProtectionException {
         if (StringUtils.isBlank(unprotectedValue)) {
             throw new IllegalArgumentException("Cannot encrypt an empty value");
         }
@@ -78,11 +79,12 @@ public class HashiCorpVaultTransitSensitivePropertyProvider extends AbstractHash
      * Returns the decrypted plaintext.
      *
      * @param protectedValue the cipher text read from the {@code nifi.properties} file
+     * @param context The property context, unused in this provider
      * @return the raw value to be used by the application
      * @throws SensitivePropertyProtectionException if there is an error decrypting the cipher text
      */
     @Override
-    public String unprotect(final String protectedValue) throws SensitivePropertyProtectionException {
+    public String unprotect(final String protectedValue, final ProtectedPropertyContext context) throws SensitivePropertyProtectionException {
         if (StringUtils.isBlank(protectedValue)) {
             throw new IllegalArgumentException("Cannot decrypt an empty value");
         }

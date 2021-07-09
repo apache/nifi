@@ -20,6 +20,7 @@ import groovy.io.GroovyPrintWriter
 import org.apache.commons.configuration2.PropertiesConfiguration
 import org.apache.commons.configuration2.PropertiesConfigurationLayout
 import org.apache.commons.configuration2.builder.fluent.Configurations
+import org.apache.nifi.properties.ProtectedPropertyContext
 import org.apache.nifi.properties.SensitivePropertyProvider
 import org.apache.nifi.util.StringUtils
 import org.slf4j.Logger
@@ -107,7 +108,7 @@ class PropertiesEncryptor {
                 continue
             }
             if (propertiesToDecrypt.keySet().contains(propertyName)) {
-                String decryptedPropertyValue = decryptionProvider.unprotect(propertyValue)
+                String decryptedPropertyValue = decryptionProvider.unprotect(propertyValue, ProtectedPropertyContext.defaultContext(propertyName))
                 unprotectedProperties.setProperty(propertyName, decryptedPropertyValue)
             } else {
                 unprotectedProperties.setProperty(propertyName, propertyValue)
@@ -135,7 +136,7 @@ class PropertiesEncryptor {
             String propertyValue = properties.getProperty(propertyName)
             // empty properties are not encrypted
             if (!StringUtils.isEmpty(propertyValue) && propertiesToEncrypt.contains(propertyName)) {
-                String encryptedPropertyValue = encryptionProvider.protect(propertyValue)
+                String encryptedPropertyValue = encryptionProvider.protect(propertyValue, ProtectedPropertyContext.defaultContext(propertyName))
                 protectedProperties.setProperty(propertyName, encryptedPropertyValue)
                 protectedProperties.setProperty(protectionPropertyForProperty(propertyName), encryptionProvider.getIdentifierKey())
             } else {

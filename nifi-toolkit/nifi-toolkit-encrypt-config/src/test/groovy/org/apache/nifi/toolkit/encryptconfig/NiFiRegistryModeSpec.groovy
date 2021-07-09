@@ -168,9 +168,9 @@ class NiFiRegistryModeSpec extends Specification {
         setup:
         NiFiRegistryMode tool = new NiFiRegistryMode()
         def inBootstrapConf1 = copyFileToTempFile(RESOURCE_REGISTRY_BOOTSTRAP_DEFAULT)
-        def inAuthorizers1 = copyFileToTempFile(RESOURCE_REGISTRY_AUTHORIZERS_POPULATED_UNPROTECTED)
+        def inAuthorizers1 = copyFileToTempFile(RESOURCE_REGISTRY_AUTHORIZERS_POPULATED_UNPROTECTED, "authorizers.xml")
         def inBootstrapConf2 = copyFileToTempFile(RESOURCE_REGISTRY_BOOTSTRAP_DEFAULT)
-        def inAuthorizers2 = copyFileToTempFile(RESOURCE_REGISTRY_AUTHORIZERS_POPULATED_UNPROTECTED)
+        def inAuthorizers2 = copyFileToTempFile(RESOURCE_REGISTRY_AUTHORIZERS_POPULATED_UNPROTECTED, "authorizers.xml")
         def outAuthorizers2 = generateTmpFilePath()
 
         when: "run with args: -k <key> -b <file> -a <file>"
@@ -194,9 +194,9 @@ class NiFiRegistryModeSpec extends Specification {
         setup:
         NiFiRegistryMode tool = new NiFiRegistryMode()
         def inBootstrapConf1 = copyFileToTempFile(RESOURCE_REGISTRY_BOOTSTRAP_DEFAULT)
-        def inAuthorizersXml1 = copyFileToTempFile(RESOURCE_REGISTRY_AUTHORIZERS_COMMENTED)
+        def inAuthorizersXml1 = copyFileToTempFile(RESOURCE_REGISTRY_AUTHORIZERS_COMMENTED, "authorizers.xml")
         def inBootstrapConf2 = copyFileToTempFile(RESOURCE_REGISTRY_BOOTSTRAP_DEFAULT)
-        def inAuthorizersXml2 = copyFileToTempFile(RESOURCE_REGISTRY_AUTHORIZERS_EMPTY)
+        def inAuthorizersXml2 = copyFileToTempFile(RESOURCE_REGISTRY_AUTHORIZERS_EMPTY, "authorizers.xml")
         def outAuthorizers2 = generateTmpFilePath()
 
         when: "run with args: -k <key> -b <file> -a <file_with_no_sensitive_props>"
@@ -221,9 +221,9 @@ class NiFiRegistryModeSpec extends Specification {
         setup:
         NiFiRegistryMode tool = new NiFiRegistryMode()
         def inBootstrapConf1 = copyFileToTempFile(RESOURCE_REGISTRY_BOOTSTRAP_DEFAULT)
-        def inIdentityProviders1 = copyFileToTempFile(RESOURCE_REGISTRY_IDENTITY_PROVIDERS_POPULATED_UNPROTECTED)
+        def inIdentityProviders1 = copyFileToTempFile(RESOURCE_REGISTRY_IDENTITY_PROVIDERS_POPULATED_UNPROTECTED, "login-identity-providers.xml")
         def inBootstrapConf2 = copyFileToTempFile(RESOURCE_REGISTRY_BOOTSTRAP_DEFAULT)
-        def inIdentityProviders2 = copyFileToTempFile(RESOURCE_REGISTRY_IDENTITY_PROVIDERS_POPULATED_UNPROTECTED)
+        def inIdentityProviders2 = copyFileToTempFile(RESOURCE_REGISTRY_IDENTITY_PROVIDERS_POPULATED_UNPROTECTED, "login-identity-providers.xml")
         def outIdentityProviders2 = generateTmpFilePath()
 
         when: "run with args: -k <key> -b <file> -i <file>"
@@ -247,9 +247,9 @@ class NiFiRegistryModeSpec extends Specification {
         setup:
         NiFiRegistryMode tool = new NiFiRegistryMode()
         def inBootstrapConf1 = copyFileToTempFile(RESOURCE_REGISTRY_BOOTSTRAP_DEFAULT)
-        def inIdentityProviders1 = copyFileToTempFile(RESOURCE_REGISTRY_IDENTITY_PROVIDERS_COMMENTED)
+        def inIdentityProviders1 = copyFileToTempFile(RESOURCE_REGISTRY_IDENTITY_PROVIDERS_COMMENTED, "login-identity-providers.xml")
         def inBootstrapConf2 = copyFileToTempFile(RESOURCE_REGISTRY_BOOTSTRAP_DEFAULT)
-        def inIdentityProviders2 = copyFileToTempFile(RESOURCE_REGISTRY_IDENTITY_PROVIDERS_EMPTY)
+        def inIdentityProviders2 = copyFileToTempFile(RESOURCE_REGISTRY_IDENTITY_PROVIDERS_EMPTY, "login-identity-providers.xml")
         def outIdentityProviders2 = generateTmpFilePath()
 
         when: "run with args: -k <key> -b <file> -i <file_with_no_sensitive_props>"
@@ -274,9 +274,9 @@ class NiFiRegistryModeSpec extends Specification {
         setup:
         NiFiRegistryMode tool = new NiFiRegistryMode()
         def inBootstrapConf1 = copyFileToTempFile(RESOURCE_REGISTRY_BOOTSTRAP_DEFAULT)
-        def inRegistryProperties1 = copyFileToTempFile(RESOURCE_REGISTRY_PROPERTIES_POPULATED_UNPROTECTED)
-        def inAuthorizers1 = copyFileToTempFile(RESOURCE_REGISTRY_AUTHORIZERS_POPULATED_UNPROTECTED)
-        def inIdentityProviders1 = copyFileToTempFile(RESOURCE_REGISTRY_IDENTITY_PROVIDERS_POPULATED_UNPROTECTED)
+        def inRegistryProperties1 = copyFileToTempFile(RESOURCE_REGISTRY_PROPERTIES_POPULATED_UNPROTECTED, "nifi-registry.properties")
+        def inAuthorizers1 = copyFileToTempFile(RESOURCE_REGISTRY_AUTHORIZERS_POPULATED_UNPROTECTED, "authorizers")
+        def inIdentityProviders1 = copyFileToTempFile(RESOURCE_REGISTRY_IDENTITY_PROVIDERS_POPULATED_UNPROTECTED, "login-identity-providers.xml")
 
         when: "run with args: -k <key> -b <file> -r <file> -a <file_with_no_sensitive_props> -i <file_with_no_sensitive_props>"
         tool.run("-k ${KEY_HEX} -b ${inBootstrapConf1} -r ${inRegistryProperties1} -a ${inAuthorizers1} -i ${inIdentityProviders1}".split(" "))

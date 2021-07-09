@@ -101,8 +101,12 @@ class TestUtil {
     }
 
     static String generateTmpFilePath() {
+        generateTmpFilePath("tmp_file")
+    }
+
+    static String generateTmpFilePath(final String tempFileSuffix) {
         File tmpDir = setupTmpDir()
-        return "${tmpDir.getAbsolutePath()}/${UUID.randomUUID().toString()}.tmp_file"
+        return "${tmpDir.getAbsolutePath()}/${UUID.randomUUID().toString()}.${tempFileSuffix}"
     }
 
     static File generateTmpFile() {
@@ -110,8 +114,17 @@ class TestUtil {
         tmpFile
     }
 
+    static File generateTmpFile(final String tempFileSuffix) {
+        File tmpFile = new File(generateTmpFilePath(tempFileSuffix))
+        tmpFile
+    }
+
     static String copyFileToTempFile(String filePath) {
-        File tmpFile = generateTmpFile()
+        copyFileToTempFile(filePath, "tmp_file")
+    }
+
+    static String copyFileToTempFile(String filePath, final String tempFileSuffix) {
+        File tmpFile = generateTmpFile(tempFileSuffix)
         tmpFile.text = new File(filePath).text
         return tmpFile.getAbsolutePath()
     }
@@ -306,7 +319,7 @@ class TestUtil {
             String propertyValue = value
             assert it.@encryption == expectedProtectionScheme
             assert !plaintextValues.contains(propertyValue)
-            assert plaintextValues.contains(spp.unprotect(propertyValue))
+            assert plaintextValues.contains(spp.unprotect(propertyValue, org.apache.nifi.properties.ProtectedPropertyContext.defaultContext((String) it.@name)))
         }
 
         return true

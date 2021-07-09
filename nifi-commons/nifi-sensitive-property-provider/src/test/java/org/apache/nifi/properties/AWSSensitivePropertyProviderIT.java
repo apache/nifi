@@ -121,9 +121,9 @@ public class AWSSensitivePropertyProviderIT {
 
     private static void runEncryptDecryptTest() {
         logger.info("Plaintext: " + SAMPLE_PLAINTEXT);
-        String protectedValue = spp.protect(SAMPLE_PLAINTEXT);
+        String protectedValue = spp.protect(SAMPLE_PLAINTEXT, ProtectedPropertyContext.defaultContext("property"));
         logger.info("Protected Value: " + protectedValue);
-        String unprotectedValue = spp.unprotect(protectedValue);
+        String unprotectedValue = spp.unprotect(protectedValue, ProtectedPropertyContext.defaultContext("property"));
         logger.info("Unprotected Value: " + unprotectedValue);
 
         Assert.assertEquals(SAMPLE_PLAINTEXT, unprotectedValue);
