@@ -19,7 +19,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-hive-bundle</artifactId>
-        <version>1.14.0-SNAPSHOT</version>
+        <version>1.14.0</version>
     </parent>
 
     <artifactId>nifi-hive3-processors</artifactId>
@@ -29,28 +29,28 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-api</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.14.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-processor-utils</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.14.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-security-kerberos</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.14.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-dbcp-service-api</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.14.0</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-hive-services-api</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.14.0</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -60,7 +60,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-hadoop-record-utils</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.14.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
@@ -105,7 +105,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-hadoop-utils</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.14.0</version>
         </dependency>
         <dependency>
             <groupId>com.github.stephenc.findbugs</groupId>
@@ -115,13 +115,13 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock-record-utils</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.14.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-mock</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.14.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -137,13 +137,13 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-schema-registry-service-api</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.14.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-record-serialization-services</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.14.0</version>
             <scope>test</scope>
             <exclusions>
                 <exclusion>
@@ -155,7 +155,7 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-kerberos-test-utils</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.14.0</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
