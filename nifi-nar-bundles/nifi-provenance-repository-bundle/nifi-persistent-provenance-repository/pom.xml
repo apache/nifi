@@ -17,7 +17,7 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-provenance-repository-bundle</artifactId>
-        <version>1.14.0-SNAPSHOT</version>
+        <version>1.14.0</version>
     </parent>
     <artifactId>nifi-persistent-provenance-repository</artifactId>
     <packaging>jar</packaging>
@@ -33,37 +33,37 @@
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-data-provenance-utils</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.14.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-schema-utils</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.14.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-utils</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.14.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-security-utils</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.14.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-security-utils-api</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.14.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-security-kms</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.14.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-properties</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.14.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.lucene</groupId>
