@@ -768,7 +768,9 @@ class ConfigEncryptionTool {
         try {
             def doc = getXmlSlurper().parseText(encryptedXml)
             // Find the provider element by class even if it has been renamed
-            def passwords = doc.provider.find { it.'class' as String == LDAP_PROVIDER_CLASS }.property.findAll {
+            def provider = doc.provider.find { it.'class' as String == LDAP_PROVIDER_CLASS }
+            String groupIdentifier = provider.identifier.text()
+            def passwords = provider.property.findAll {
                 it.@name =~ "Password" && it.@encryption != ""
             }
 
@@ -785,8 +787,12 @@ class ConfigEncryptionTool {
                 if (isVerbose) {
                     logger.info("Attempting to decrypt ${password.text()} using protection scheme ${password.@encryption}")
                 }
-                final ProtectedPropertyContext context = ProtectedPropertyContext.PropertyLocation.LOGIN_IDENTITY_PROVIDERS.contextFor((String) password.@name)
-                String decryptedValue = sensitivePropertyProvider.unprotect((String) password.text().trim(), (ProtectedPropertyContext) context)
+                final Optional<String> matchingContextLocation = providerFactory.getCustomPropertyContextLocation(groupIdentifier);
+                final String propertyName = (String) password.@name
+                final ProtectedPropertyContext context = matchingContextLocation.isPresent()
+                        ? PropertyLocation.contextFor(propertyName, matchingContextLocation.get())
+                        : ProtectedPropertyContext.PropertyLocation.LOGIN_IDENTITY_PROVIDERS.contextFor(propertyName);
+                String decryptedValue = sensitivePropertyProvider.unprotect((String) password.text().trim(), context)
                 password.replaceNode {
                     property(name: password.@name, encryption: "none", decryptedValue)
                 }
@@ -808,9 +814,11 @@ class ConfigEncryptionTool {
             def filename = "authorizers.xml"
             def doc = getXmlSlurper().parseText(encryptedXml)
             // Find the provider element by class even if it has been renamed
-            def passwords = doc.userGroupProvider.find {
+            def userGroupProvider = doc.userGroupProvider.find {
                 it.'class' as String == LDAP_USER_GROUP_PROVIDER_CLASS
-            }.property.findAll {
+            }
+            String groupIdentifier = userGroupProvider.identifier.text()
+            def passwords = userGroupProvider.property.findAll {
                 it.@name =~ "Password" && it.@encryption != ""
             }
 
@@ -828,8 +836,12 @@ class ConfigEncryptionTool {
                 }
                 final SensitivePropertyProvider sensitivePropertyProvider = providerFactory
                         .getProvider(PropertyProtectionScheme.fromIdentifier((String) password.@encryption))
-                final ProtectedPropertyContext context = ProtectedPropertyContext.PropertyLocation.AUTHORIZERS.contextFor((String) password.@name)
-                String decryptedValue = sensitivePropertyProvider.unprotect((String) password.text().trim(), (ProtectedPropertyContext) context)
+                final Optional<String> matchingContextLocation = providerFactory.getCustomPropertyContextLocation(groupIdentifier);
+                final String propertyName = (String) password.@name
+                final ProtectedPropertyContext context = matchingContextLocation.isPresent()
+                        ? PropertyLocation.contextFor(propertyName, matchingContextLocation.get())
+                        : ProtectedPropertyContext.PropertyLocation.AUTHORIZERS.contextFor(propertyName);
+                String decryptedValue = sensitivePropertyProvider.unprotect((String) password.text().trim(), context)
                 password.replaceNode {
                     property(name: password.@name, encryption: "none", decryptedValue)
                 }
@@ -1573,7 +1585,8 @@ class ConfigEncryptionTool {
                 try {
                     NiFiBootstrapUtils.loadBootstrapProperties(bootstrapConfPath)
                 } catch (final IOException e) {
-                    throw new SensitivePropertyProtectionException(e.getCause(), e)
+                    logger.warn("Could not load default bootstrap.conf: " + e.getMessage())
+                    return BootstrapProperties.EMPTY
                 }
             }
         }

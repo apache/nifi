@@ -31,6 +31,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.security.Security;
 import java.util.Properties;
 import java.util.function.Supplier;
@@ -54,6 +55,7 @@ public class StandardSensitivePropertyProviderFactoryTest {
     private static Path bootstrapConf;
     private static Path hashicorpVaultBootstrapConf;
     private static Path nifiProperties;
+    private static String defaultBootstrapContents;
 
     private static NiFiProperties niFiProperties;
 
@@ -66,16 +68,28 @@ public class StandardSensitivePropertyProviderFactoryTest {
 
         nifiProperties = Files.createTempFile("nifi", ".properties").toAbsolutePath();
 
-        bootstrapConf = Files.move(bootstrapConf, tempConfDir.resolve("bootstrap.conf"));
         nifiProperties = Files.move(nifiProperties, tempConfDir.resolve("nifi.properties"));
 
-        final String bootstrapConfText = String.format("%s=%s\n%s=%s",
+        defaultBootstrapContents = String.format("%s=%s\n%s=%s",
                 "nifi.bootstrap.sensitive.key", BOOTSTRAP_KEY_HEX,
                 "nifi.bootstrap.protection.hashicorp.vault.conf", FilenameUtils.separatorsToUnix(hashicorpVaultBootstrapConf.toString()));
-        IOUtil.writeText(bootstrapConfText, bootstrapConf.toFile());
+        bootstrapConf = writeDefaultBootstrapConf();
         System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, FilenameUtils.separatorsToUnix(nifiProperties.toString()));
 
         niFiProperties = new NiFiProperties();
+    }
+
+    private static Path writeDefaultBootstrapConf() throws IOException {
+        return writeBootstrapConf(defaultBootstrapContents);
+    }
+
+    private static Path writeBootstrapConf(final String contents) throws IOException {
+        final Path tempBootstrapConf = Files.createTempFile("bootstrap", ".conf").toAbsolutePath();
+        final Path bootstrapConf = Files.move(tempBootstrapConf, tempConfDir.resolve("bootstrap.conf"), StandardCopyOption.REPLACE_EXISTING);
+
+        final String bootstrapConfText = String.format(contents);
+        IOUtil.writeText(bootstrapConfText, bootstrapConf.toFile());
+        return bootstrapConf;
     }
 
     @AfterClass
@@ -120,6 +134,25 @@ public class StandardSensitivePropertyProviderFactoryTest {
     private void configureHashicorpVault(final Properties properties) throws IOException {
         try (OutputStream out = new FileOutputStream(hashicorpVaultBootstrapConf.toFile())) {
             properties.store(out, "HashiCorpVault test");
+        }
+    }
+
+    @Test
+    public void testGetCustomPropertyContextLocationUnconfigured() {
+        configureDefaultFactory();
+        assertFalse(factory.getCustomPropertyContextLocation("ldap-provider").isPresent());
+    }
+
+    @Test
+    public void testGetCustomPropertyContextLocation() throws IOException {
+        configureDefaultFactory();
+        writeBootstrapConf(defaultBootstrapContents + "\n" +
+                "nifi.bootstrap.protection.xml.context.location.mapping.ldap=ldap-.*");
+        try {
+            assertEquals("ldap", factory.getCustomPropertyContextLocation("ldap-provider").get());
+            assertEquals("ldap", factory.getCustomPropertyContextLocation("ldap-user-group-provider").get());
+        } finally {
+            writeDefaultBootstrapConf();
         }
     }
 

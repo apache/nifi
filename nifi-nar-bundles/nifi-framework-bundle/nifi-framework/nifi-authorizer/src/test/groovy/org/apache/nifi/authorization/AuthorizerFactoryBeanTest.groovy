@@ -17,6 +17,7 @@
 package org.apache.nifi.authorization
 
 import org.apache.nifi.authorization.generated.Property
+import org.apache.nifi.properties.ProtectedPropertyContext
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.junit.Before
 import org.junit.BeforeClass
@@ -77,7 +78,7 @@ class AuthorizerFactoryBeanTest extends GroovyTestCase {
         logger.info("Cipher text: ${CIPHER_TEXT}")
 
         // Act
-        String decrypted = bean.decryptValue(CIPHER_TEXT, ENCRYPTION_SCHEME, "propertyName")
+        String decrypted = bean.decryptValue(CIPHER_TEXT, ENCRYPTION_SCHEME, "propertyName", "ldap-user-group-provider", ProtectedPropertyContext.PropertyLocation.AUTHORIZERS)
         logger.info("Decrypted ${CIPHER_TEXT} -> ${decrypted}")
 
         // Assert

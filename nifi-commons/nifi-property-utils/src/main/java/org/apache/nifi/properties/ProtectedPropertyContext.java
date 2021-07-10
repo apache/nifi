@@ -31,12 +31,14 @@ public class ProtectedPropertyContext {
         LOGIN_IDENTITY_PROVIDERS("login-identity-providers.xml"),
         AUTHORIZERS("authorizers.xml"),
         NIFI_PROPERTIES("nifi.properties"),
-        NIFI_REGISTRY_PROPERTIES("nifi-registry.properties");
+        NIFI_REGISTRY_PROPERTIES("nifi-registry.properties"),
+        CUSTOM("custom");
+
+        private final String location;
 
         PropertyLocation(final String location) {
             this.location = location;
         }
-        private final String location;
 
         /**
          * Returns the location of the property, representing a configuration filename.
@@ -56,6 +58,16 @@ public class ProtectedPropertyContext {
         }
 
         /**
+         * Creates a ProtectedPropertyContext for the given property name, with a custom location.
+         * @param propertyName The property name in this location
+         * @param customLocation A custom location name for the property context
+         * @return A property context representing a property with the given name at this location
+         */
+        public static ProtectedPropertyContext contextFor(final String propertyName, final String customLocation) {
+            return new ProtectedPropertyContext(propertyName, customLocation);
+        }
+
+        /**
          * Selects the appropriate PropertyLocation based on a configuration filename.
          * @param filename The configuration filename
          * @return The matching PropertyLocation
@@ -72,6 +84,7 @@ public class ProtectedPropertyContext {
 
     private final String propertyName;
     private final PropertyLocation propertyLocation;
+    private final String customLocation;
 
     /**
      * Creates a property context with a property name and location.
@@ -81,6 +94,18 @@ public class ProtectedPropertyContext {
     private ProtectedPropertyContext(final String propertyName, final PropertyLocation propertyLocation) {
         this.propertyName = Objects.requireNonNull(propertyName);
         this.propertyLocation = Objects.requireNonNull(propertyLocation);
+        this.customLocation = null;
+    }
+
+    /**
+     * Creates a property context with a property name and custom location.
+     * @param propertyName The property name
+     * @param customLocation A custom location for the property
+     */
+    private ProtectedPropertyContext(final String propertyName, final String customLocation) {
+        this.propertyName = Objects.requireNonNull(propertyName);
+        this.customLocation = Objects.requireNonNull(customLocation);
+        this.propertyLocation = PropertyLocation.CUSTOM;
     }
 
     /**
@@ -88,6 +113,7 @@ public class ProtectedPropertyContext {
      * @return The context key
      */
     public String getContextKey() {
-        return String.format("%s||%s", propertyLocation.getLocation(), propertyName);
+        final String locationName = PropertyLocation.CUSTOM == propertyLocation ? customLocation : propertyLocation.location;
+        return String.format("%s||%s", locationName, propertyName);
     }
 }

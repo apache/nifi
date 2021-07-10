@@ -18,6 +18,7 @@ package org.apache.nifi.properties;
 
 import org.apache.nifi.properties.BootstrapProperties.BootstrapPropertyKey;
 import org.apache.nifi.util.NiFiBootstrapUtils;
+import org.apache.nifi.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,6 +30,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Supplier;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class StandardSensitivePropertyProviderFactory implements SensitivePropertyProviderFactory {
@@ -37,6 +39,7 @@ public class StandardSensitivePropertyProviderFactory implements SensitiveProper
     private final Optional<String> keyHex;
     private final Supplier<BootstrapProperties> bootstrapPropertiesSupplier;
     private final Map<PropertyProtectionScheme, SensitivePropertyProvider> providerMap;
+    private Map<String, Pattern> customPropertyContextLocationMap;
 
     /**
      * Creates a StandardSensitivePropertyProviderFactory using the default bootstrap.conf location and
@@ -74,6 +77,18 @@ public class StandardSensitivePropertyProviderFactory implements SensitiveProper
         this.keyHex = Optional.ofNullable(keyHex);
         this.bootstrapPropertiesSupplier = bootstrapPropertiesSupplier == null ? () -> null : bootstrapPropertiesSupplier;
         this.providerMap = new HashMap<>();
+        this.customPropertyContextLocationMap = null;
+    }
+
+    private void populateCustomPropertyContextLocationMap() {
+        final BootstrapProperties bootstrapProperties = getBootstrapProperties();
+        customPropertyContextLocationMap = new HashMap<>();
+        final String xmlContextLocationMappingKeyPrefix = BootstrapPropertyKey.XML_CONTEXT_LOCATION_MAPPING.getKey();
+        bootstrapProperties.getPropertyKeys().stream()
+                .filter(k -> k.contains(xmlContextLocationMappingKeyPrefix))
+                .forEach(k -> {
+                    customPropertyContextLocationMap.put(StringUtils.substringAfter(k, xmlContextLocationMappingKeyPrefix), Pattern.compile(bootstrapProperties.getProperty(k)));
+                });
     }
 
     private String getKeyHex() {
@@ -120,6 +135,17 @@ public class StandardSensitivePropertyProviderFactory implements SensitiveProper
                 .map(this::getProvider)
                 .filter(SensitivePropertyProvider::isSupported)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public Optional<String> getCustomPropertyContextLocation(final String groupIdentifier) {
+        if (customPropertyContextLocationMap == null) {
+            populateCustomPropertyContextLocationMap();
+        }
+        return customPropertyContextLocationMap.entrySet().stream()
+                .filter(entry -> entry.getValue().matcher(groupIdentifier).find())
+                .map(Map.Entry::getKey)
+                .findFirst();
     }
 
 }

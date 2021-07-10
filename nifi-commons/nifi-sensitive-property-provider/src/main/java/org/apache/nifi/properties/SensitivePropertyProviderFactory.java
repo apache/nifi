@@ -17,6 +17,7 @@
 package org.apache.nifi.properties;
 
 import java.util.Collection;
+import java.util.Optional;
 
 public interface SensitivePropertyProviderFactory {
 
@@ -33,4 +34,13 @@ public interface SensitivePropertyProviderFactory {
      */
     Collection<SensitivePropertyProvider> getSupportedSensitivePropertyProviders();
 
+    /**
+     * Given the &lt;identifier&gt; value providing a group context for an XML configuration file property,
+     * returns the custom property context location, if applicable.
+     * @param groupIdentifier The value of &lt;identifier&gt; from the enclosing XML block of a property in
+     *                        one of the XML configuration files.
+     * @return An optional custom property context location, if any mappings are configured in bootstrap.conf
+     * and the identifier matches one of the mapping patterns.
+     */
+    Optional<String> getCustomPropertyContextLocation(String groupIdentifier);
 }

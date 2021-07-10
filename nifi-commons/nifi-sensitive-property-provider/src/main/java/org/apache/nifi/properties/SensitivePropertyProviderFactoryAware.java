@@ -16,6 +16,9 @@
  */
 package org.apache.nifi.properties;
 
+import org.apache.nifi.properties.ProtectedPropertyContext.PropertyLocation;
+
+import java.util.Optional;
 import java.util.function.Supplier;
 
 /**
@@ -30,6 +33,17 @@ public class SensitivePropertyProviderFactoryAware {
             sensitivePropertyProviderFactory = StandardSensitivePropertyProviderFactory.withDefaults();
         }
         return sensitivePropertyProviderFactory;
+    }
+
+    protected String decryptValue(final String cipherText, final String protectionScheme, final String propertyName, final String groupIdentifier,
+                                  final PropertyLocation defaultPropertyLocation) throws SensitivePropertyProtectionException {
+        final SensitivePropertyProviderFactory sensitivePropertyProviderFactory = getSensitivePropertyProviderFactory();
+        final Optional<String> matchingContextLocation = sensitivePropertyProviderFactory.getCustomPropertyContextLocation(groupIdentifier);
+        final ProtectedPropertyContext protectedPropertyContext = matchingContextLocation.isPresent()
+                ? PropertyLocation.contextFor(propertyName, matchingContextLocation.get())
+                : defaultPropertyLocation.contextFor(propertyName);
+        return sensitivePropertyProviderFactory.getProvider(PropertyProtectionScheme.fromIdentifier(protectionScheme))
+                .unprotect(cipherText, protectedPropertyContext);
     }
 
     /**
