@@ -216,7 +216,8 @@ public class StatelessFlowManager extends AbstractFlowManager implements FlowMan
             statelessEngine.getFlowRegistryClient(),
             statelessEngine.getReloadComponent(),
             mutableVariableRegistry,
-            new StatelessNodeTypeProvider());
+            new StatelessNodeTypeProvider(),
+            null);
     }
 
     @Override
@@ -242,6 +243,7 @@ public class StatelessFlowManager extends AbstractFlowManager implements FlowMan
             .source(requireNonNull(source))
             .destination(destination)
             .flowFileQueueFactory(flowFileQueueFactory)
+            .processGroup(destination.getProcessGroup())
             .build();
 
         return connection;
