@@ -281,12 +281,12 @@ NOTE: Initial User Identities are only created if the specified Users File is mi
 
 ===== DatabaseUserGroupProvider
 
-If you are using database for storing buckets and flows (like described in the 'Database Properties' section above), you can store the users, groups and policies in the same database either. 
+If you are using database for storing buckets and flows (as described in the 'Database Properties' section above), you can store the users, groups and policies in the same database as well. 
 
 **Note:** This UserGroupProvider is available from version 0.8.0.
 
 
-The DatabaseUserGroupProvider takes the DB-connection information from `nifi-registry.properties` file, so in the `authorizers.xml` file you don't need to give any addition information about the DB (full example of `authorizers.xml` file for using database implementation desribed in `DatabaseAccessPolicyProvider` section).
+The DatabaseUserGroupProvider takes the database connection information from `nifi-registry.properties` file, so in the `authorizers.xml` file you don't need to give any additional information about the DB (full example of `authorizers.xml` file for using database implementation desribed in `DatabaseAccessPolicyProvider` section).
 
 The users and groups are stored in the DB in the tables:
 
@@ -647,7 +647,7 @@ from an attribute in a LDAP entry based on the `User Identity Attribute`. The `N
 `Initial User Identity` properties.
 
 ===== DatabaseAccessPolicyProvider
-Like `DatabaseUserGroupProvider` described above, this type of PolicyProvider takes the DB connection details from `nifi-registry.properties` file. 
+Like `DatabaseUserGroupProvider` described above, this type of PolicyProvider takes the database connection details from `nifi-registry.properties` file. 
 The policies are stored in the tables:
 
 
