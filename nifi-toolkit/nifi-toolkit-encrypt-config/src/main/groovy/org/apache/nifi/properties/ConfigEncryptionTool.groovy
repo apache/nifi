@@ -787,11 +787,7 @@ class ConfigEncryptionTool {
                 if (isVerbose) {
                     logger.info("Attempting to decrypt ${password.text()} using protection scheme ${password.@encryption}")
                 }
-                final Optional<String> matchingContextLocation = providerFactory.getCustomPropertyContextLocation(groupIdentifier);
-                final String propertyName = (String) password.@name
-                final ProtectedPropertyContext context = matchingContextLocation.isPresent()
-                        ? PropertyLocation.contextFor(propertyName, matchingContextLocation.get())
-                        : ProtectedPropertyContext.PropertyLocation.LOGIN_IDENTITY_PROVIDERS.contextFor(propertyName);
+                final ProtectedPropertyContext context = getContext(providerFactory, (String) password.@name, groupIdentifier, ProtectedPropertyContext.PropertyLocation.LOGIN_IDENTITY_PROVIDERS)
                 String decryptedValue = sensitivePropertyProvider.unprotect((String) password.text().trim(), context)
                 password.replaceNode {
                     property(name: password.@name, encryption: "none", decryptedValue)
@@ -836,11 +832,7 @@ class ConfigEncryptionTool {
                 }
                 final SensitivePropertyProvider sensitivePropertyProvider = providerFactory
                         .getProvider(PropertyProtectionScheme.fromIdentifier((String) password.@encryption))
-                final Optional<String> matchingContextLocation = providerFactory.getCustomPropertyContextLocation(groupIdentifier);
-                final String propertyName = (String) password.@name
-                final ProtectedPropertyContext context = matchingContextLocation.isPresent()
-                        ? PropertyLocation.contextFor(propertyName, matchingContextLocation.get())
-                        : ProtectedPropertyContext.PropertyLocation.AUTHORIZERS.contextFor(propertyName);
+                final ProtectedPropertyContext context = getContext(providerFactory, (String) password.@name, groupIdentifier, ProtectedPropertyContext.PropertyLocation.AUTHORIZERS)
                 String decryptedValue = sensitivePropertyProvider.unprotect((String) password.text().trim(), context)
                 password.replaceNode {
                     property(name: password.@name, encryption: "none", decryptedValue)
@@ -858,6 +850,15 @@ class ConfigEncryptionTool {
         }
     }
 
+    ProtectedPropertyContext getContext(final SensitivePropertyProviderFactory providerFactory, final String propertyName, final String groupIdentifier, 
+                                        final PropertyLocation defaultLocation) {
+        final Optional<String> matchingContextLocation = providerFactory.getCustomPropertyContextLocation(groupIdentifier);
+        final ProtectedPropertyContext context = matchingContextLocation.isPresent()
+                ? PropertyLocation.contextFor(propertyName, matchingContextLocation.get())
+                : defaultLocation.contextFor(propertyName);
+        context
+    }
+
     String encryptLoginIdentityProviders(final String plainXml, final String newKeyHex = keyHex, final PropertyProtectionScheme newProtectionScheme = protectionScheme) {
         final SensitivePropertyProviderFactory providerFactory = getSensitivePropertyProviderFactory(newKeyHex)
 
@@ -865,9 +866,9 @@ class ConfigEncryptionTool {
         try {
             def doc = getXmlSlurper().parseText(plainXml)
             // Find the provider element by class even if it has been renamed
-            def passwords = doc.provider.find { it.'class' as String == LDAP_PROVIDER_CLASS }
-                    .property.findAll {
-                // Only operate on un-encrypted passwords
+            def provider = doc.provider.find { it.'class' as String == LDAP_PROVIDER_CLASS }
+            String groupIdentifier = provider.identifier.text()
+            def passwords = provider.property.findAll {
                 it.@name =~ "Password" && (it.@encryption == "none" || it.@encryption == "") && it.text()
             }
 
@@ -883,8 +884,8 @@ class ConfigEncryptionTool {
                 if (isVerbose) {
                     logger.info("Attempting to encrypt ${password.name()} using protection scheme ${sensitivePropertyProvider.identifierKey}")
                 }
-                String encryptedValue = sensitivePropertyProvider.protect((String) password.text().trim(), (ProtectedPropertyContext) PropertyLocation.LOGIN_IDENTITY_PROVIDERS
-                        .contextFor((String) password.@name))
+                final ProtectedPropertyContext context = getContext(providerFactory, (String) password.@name, groupIdentifier, ProtectedPropertyContext.PropertyLocation.LOGIN_IDENTITY_PROVIDERS)
+                String encryptedValue = sensitivePropertyProvider.protect((String) password.text().trim(), context)
                 password.replaceNode {
                     property(name: password.@name, encryption: sensitivePropertyProvider.identifierKey, encryptedValue)
                 }
@@ -909,10 +910,13 @@ class ConfigEncryptionTool {
         try {
             def filename = "authorizers.xml"
             def doc = getXmlSlurper().parseText(plainXml)
+
             // Find the provider element by class even if it has been renamed
-            def passwords = doc.userGroupProvider.find { it.'class' as String == LDAP_USER_GROUP_PROVIDER_CLASS }
-                    .property.findAll {
-                // Only operate on un-encrypted passwords
+            def userGroupProvider = doc.userGroupProvider.find {
+                it.'class' as String == LDAP_USER_GROUP_PROVIDER_CLASS
+            }
+            String groupIdentifier = userGroupProvider.identifier.text()
+            def passwords = userGroupProvider.property.findAll {
                 it.@name =~ "Password" && (it.@encryption == "none" || it.@encryption == "") && it.text()
             }
 
@@ -928,8 +932,8 @@ class ConfigEncryptionTool {
                 if (isVerbose) {
                     logger.info("Attempting to encrypt ${password.name()} using protection scheme ${sensitivePropertyProvider.identifierKey}")
                 }
-                String encryptedValue = sensitivePropertyProvider.protect((String) password.text().trim(), (ProtectedPropertyContext) PropertyLocation.AUTHORIZERS
-                        .contextFor((String) password.@name))
+                final ProtectedPropertyContext context = getContext(providerFactory, (String) password.@name, groupIdentifier, ProtectedPropertyContext.PropertyLocation.AUTHORIZERS)
+                String encryptedValue = sensitivePropertyProvider.protect((String) password.text().trim(), context)
                 password.replaceNode {
                     property(name: password.@name, encryption: sensitivePropertyProvider.identifierKey, encryptedValue)
                 }
