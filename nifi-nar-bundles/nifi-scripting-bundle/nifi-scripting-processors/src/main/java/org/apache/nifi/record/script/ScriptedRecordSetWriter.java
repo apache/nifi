@@ -25,13 +25,15 @@ import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.logging.ComponentLog;
-import org.apache.nifi.processors.script.ScriptEngineConfigurator;
+import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
 import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.record.RecordSchema;
 
 import javax.script.Invocable;
+import javax.script.ScriptContext;
+import javax.script.ScriptEngine;
 import javax.script.ScriptException;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -88,23 +90,26 @@ public class ScriptedRecordSetWriter extends AbstractScriptedRecordFactory<Recor
         final Collection<ValidationResult> results = new HashSet<>();
 
         try {
+            // Create a single script engine, the Processor object is reused by each task
+            if (scriptRunner == null) {
+                scriptingComponentHelper.setupScriptRunners(1, scriptBody, getLogger());
+                scriptRunner = scriptingComponentHelper.scriptRunnerQ.poll();
+            }
+
+            if (scriptRunner == null) {
+                throw new ProcessException("No script runner available!");
+            }
             // get the engine and ensure its invocable
+            ScriptEngine scriptEngine = scriptRunner.getScriptEngine();
             if (scriptEngine instanceof Invocable) {
                 final Invocable invocable = (Invocable) scriptEngine;
 
-                // Find a custom configurator and invoke their eval() method
-                ScriptEngineConfigurator configurator = scriptingComponentHelper.scriptEngineConfiguratorMap.get(scriptingComponentHelper.getScriptEngineName().toLowerCase());
-                if (configurator != null) {
-                    configurator.reset();
-                    configurator.init(scriptEngine, scriptBody, scriptingComponentHelper.getModules());
-                    configurator.eval(scriptEngine, scriptBody, scriptingComponentHelper.getModules());
-                } else {
-                    // evaluate the script
-                    scriptEngine.eval(scriptBody);
-                }
+                // evaluate the script
+                scriptRunner.run(scriptEngine.getBindings(ScriptContext.ENGINE_SCOPE));
+
 
                 // get configured processor from the script (if it exists)
-                final Object obj = scriptEngine.get("writer");
+                final Object obj = scriptRunner.getScriptEngine().get("writer");
                 if (obj != null) {
                     final ComponentLog logger = getLogger();
 

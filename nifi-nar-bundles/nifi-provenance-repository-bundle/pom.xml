@@ -27,7 +27,7 @@
         <module>nifi-provenance-repository-nar</module>
     </modules>
     <properties>
-        <lucene.version>8.0.0</lucene.version>
+        <lucene.version>8.8.2</lucene.version>
     </properties>
     <dependencyManagement>
         <dependencies>
@@ -54,6 +54,11 @@
             <dependency>
                 <groupId>org.apache.lucene</groupId>
                 <artifactId>lucene-queryparser</artifactId>
+                <version>${lucene.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.lucene</groupId>
+                <artifactId>lucene-backward-codecs</artifactId>
                 <version>${lucene.version}</version>
             </dependency>
             <dependency>

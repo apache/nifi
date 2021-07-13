@@ -19,7 +19,7 @@ import NfStorage from 'services/nf-storage.service';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { FdsDialogService } from '@nifi-fds/core';
 import { of } from 'rxjs';
-import { map, catchError } from 'rxjs/operators';
+import { map, catchError, take, switchMap } from 'rxjs/operators';
 
 var MILLIS_PER_SECOND = 1000;
 var headers = new Headers({'Content-Type': 'application/json'});
@@ -62,6 +62,138 @@ NfRegistryApi.prototype = {
         return this.http.get(url).pipe(
             map(function (response) {
                 return response;
+            }),
+            catchError(function (error) {
+                self.dialogService.openConfirm({
+                    title: 'Error',
+                    message: error.error,
+                    acceptButton: 'Ok',
+                    acceptButtonColor: 'fds-warn'
+                });
+                return of(error);
+            })
+        );
+    },
+
+    /**
+     * Retrieves the specified versioned flow snapshot for an existing droplet the registry has stored.
+     *
+     * @param {string}  dropletUri      The uri of the droplet to request.
+     * @param {number}  versionNumber   The version of the flow to request.
+     * @returns {*}
+     */
+    exportDropletVersionedSnapshot: function (dropletUri, versionNumber) {
+        var self = this;
+        var url = '../nifi-registry-api/' + dropletUri + '/versions/' + versionNumber + '/export';
+        var options = {
+            headers: headers,
+            observe: 'response',
+            responseType: 'text'
+        };
+
+        return self.http.get(url, options).pipe(
+            map(function (response) {
+                // export the VersionedFlowSnapshot by creating a hidden anchor element
+                var stringSnapshot = encodeURIComponent(response.body);
+                var filename = response.headers.get('Filename');
+
+                var anchorElement = document.createElement('a');
+                anchorElement.href = 'data:application/json;charset=utf-8,' + stringSnapshot;
+                anchorElement.download = filename;
+                anchorElement.style = 'display: none;';
+
+                document.body.appendChild(anchorElement);
+                anchorElement.click();
+                document.body.removeChild(anchorElement);
+
+                return response;
+            }),
+            catchError(function (error) {
+                self.dialogService.openConfirm({
+                    title: 'Error',
+                    message: error.error,
+                    acceptButton: 'Ok',
+                    acceptButtonColor: 'fds-warn'
+                });
+                return of(error);
+            })
+        );
+    },
+
+    /**
+     * Uploads a new versioned flow snapshot to the existing droplet the registry has stored.
+     *
+     * @param {string} dropletUri      The uri of the droplet to request.
+     * @param file                     The file to be uploaded.
+     * @param {string} comments        The optional comments.
+     * @returns {*}
+     */
+    uploadVersionedFlowSnapshot: function (dropletUri, file, comments) {
+        var self = this;
+        var url = '../nifi-registry-api/' + dropletUri + '/versions/import';
+        var versionHeaders = new HttpHeaders()
+            .set('Content-Type', 'application/json')
+            .set('Comments', comments);
+
+        return self.http.post(url, file, { 'headers': versionHeaders }).pipe(
+            map(function (response) {
+                return response;
+            }),
+            catchError(function (error) {
+                self.dialogService.openConfirm({
+                    title: 'Error',
+                    message: error.error,
+                    acceptButton: 'Ok',
+                    acceptButtonColor: 'fds-warn'
+                });
+                return of(error);
+            })
+        );
+    },
+
+    /**
+     * Uploads a new flow to the existing droplet the registry has stored.
+     *
+     * @param {string} bucketUri      The uri of the droplet to request.
+     * @param file                     The file to be uploaded.
+     * @param {string} name            The flow name.
+     * @param {string} description     The optional description.
+     * @returns {*}
+     */
+    uploadFlow: function (bucketUri, file, name, description) {
+        var self = this;
+
+        var url = '../nifi-registry-api/' + bucketUri + '/flows';
+        var flow = { 'name': name, 'description': description };
+
+        // first, create Flow version 0
+        return self.http.post(url, flow, headers).pipe(
+            take(1),
+            switchMap(function (response) {
+                var flowUri = response.link.href;
+                var importVersionUrl = '../nifi-registry-api/' + flowUri + '/versions/import';
+
+                // then, import file as Flow version 1
+                return self.http.post(importVersionUrl, file, headers).pipe(
+                    map(function (snapshot) {
+                        return snapshot;
+                    }),
+                    catchError(function (error) {
+                        // delete Flow version 0
+                        var deleteUri = flowUri + '?versions=0';
+                        self.deleteDroplet(deleteUri).subscribe(function (response) {
+                            return response;
+                        });
+
+                        self.dialogService.openConfirm({
+                            title: 'Error',
+                            message: error.error,
+                            acceptButton: 'Ok',
+                            acceptButtonColor: 'fds-warn'
+                        });
+                        return of(error);
+                    })
+                );
             }),
             catchError(function (error) {
                 self.dialogService.openConfirm({

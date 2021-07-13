@@ -599,15 +599,15 @@ public class ExpressionCompiler {
             }
             case ESCAPE_CSV: {
                 verifyArgCount(argEvaluators, 0, "escapeCsv");
-                return addToken(CharSequenceTranslatorEvaluator.csvEscapeEvaluator(toStringEvaluator(subjectEvaluator)), "escapeJson");
+                return addToken(CharSequenceTranslatorEvaluator.csvEscapeEvaluator(toStringEvaluator(subjectEvaluator)), "escapeCsv");
             }
             case ESCAPE_HTML3: {
                 verifyArgCount(argEvaluators, 0, "escapeHtml3");
-                return addToken(CharSequenceTranslatorEvaluator.html3EscapeEvaluator(toStringEvaluator(subjectEvaluator)), "escapeJson");
+                return addToken(CharSequenceTranslatorEvaluator.html3EscapeEvaluator(toStringEvaluator(subjectEvaluator)), "escapeHtml3");
             }
             case ESCAPE_HTML4: {
                 verifyArgCount(argEvaluators, 0, "escapeHtml4");
-                return addToken(CharSequenceTranslatorEvaluator.html4EscapeEvaluator(toStringEvaluator(subjectEvaluator)), "escapeJson");
+                return addToken(CharSequenceTranslatorEvaluator.html4EscapeEvaluator(toStringEvaluator(subjectEvaluator)), "escapeHtml4");
             }
             case ESCAPE_JSON: {
                 verifyArgCount(argEvaluators, 0, "escapeJson");
@@ -615,27 +615,27 @@ public class ExpressionCompiler {
             }
             case ESCAPE_XML: {
                 verifyArgCount(argEvaluators, 0, "escapeXml");
-                return addToken(CharSequenceTranslatorEvaluator.xmlEscapeEvaluator(toStringEvaluator(subjectEvaluator)), "escapeJson");
+                return addToken(CharSequenceTranslatorEvaluator.xmlEscapeEvaluator(toStringEvaluator(subjectEvaluator)), "escapeXml");
             }
             case UNESCAPE_CSV: {
                 verifyArgCount(argEvaluators, 0, "unescapeCsv");
-                return addToken(CharSequenceTranslatorEvaluator.csvUnescapeEvaluator(toStringEvaluator(subjectEvaluator)), "escapeJson");
+                return addToken(CharSequenceTranslatorEvaluator.csvUnescapeEvaluator(toStringEvaluator(subjectEvaluator)), "unescapeCsv");
             }
             case UNESCAPE_HTML3: {
                 verifyArgCount(argEvaluators, 0, "unescapeHtml3");
-                return addToken(CharSequenceTranslatorEvaluator.html3UnescapeEvaluator(toStringEvaluator(subjectEvaluator)), "escapeJson");
+                return addToken(CharSequenceTranslatorEvaluator.html3UnescapeEvaluator(toStringEvaluator(subjectEvaluator)), "unescapeHtml3");
             }
             case UNESCAPE_HTML4: {
                 verifyArgCount(argEvaluators, 0, "unescapeHtml4");
-                return addToken(CharSequenceTranslatorEvaluator.html4UnescapeEvaluator(toStringEvaluator(subjectEvaluator)), "escapeJson");
+                return addToken(CharSequenceTranslatorEvaluator.html4UnescapeEvaluator(toStringEvaluator(subjectEvaluator)), "unescapeHtml4");
             }
             case UNESCAPE_JSON: {
                 verifyArgCount(argEvaluators, 0, "unescapeJson");
-                return addToken(CharSequenceTranslatorEvaluator.jsonUnescapeEvaluator(toStringEvaluator(subjectEvaluator)), "escapeJson");
+                return addToken(CharSequenceTranslatorEvaluator.jsonUnescapeEvaluator(toStringEvaluator(subjectEvaluator)), "unescapeJson");
             }
             case UNESCAPE_XML: {
                 verifyArgCount(argEvaluators, 0, "unescapeXml");
-                return addToken(CharSequenceTranslatorEvaluator.xmlUnescapeEvaluator(toStringEvaluator(subjectEvaluator)), "escapeJson");
+                return addToken(CharSequenceTranslatorEvaluator.xmlUnescapeEvaluator(toStringEvaluator(subjectEvaluator)), "unescapeXml");
             }
             case SUBSTRING_BEFORE: {
                 verifyArgCount(argEvaluators, 1, "substringBefore");

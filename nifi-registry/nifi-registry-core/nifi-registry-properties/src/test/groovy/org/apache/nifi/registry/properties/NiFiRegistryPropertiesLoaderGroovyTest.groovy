@@ -17,7 +17,6 @@
 package org.apache.nifi.registry.properties
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider
-import org.junit.After
 import org.junit.AfterClass
 import org.junit.Before
 import org.junit.BeforeClass
@@ -46,7 +45,7 @@ class NiFiRegistryPropertiesLoaderGroovyTest extends GroovyTestCase {
     private static final String PASSWORD_KEY_HEX_128 = "2C576A9585DB862F5ECBEE5B4FFFCCA1"
 
     @BeforeClass
-    public static void setUpOnce() throws Exception {
+    static void setUpOnce() throws Exception {
         Security.addProvider(new BouncyCastleProvider())
 
         logger.metaClass.methodMissing = { String name, args ->
@@ -55,21 +54,15 @@ class NiFiRegistryPropertiesLoaderGroovyTest extends GroovyTestCase {
     }
 
     @Before
-    public void setUp() throws Exception {
-    }
-
-    @After
-    public void tearDown() throws Exception {
-        // Clear the sensitive property providers between runs
-        NiFiRegistryPropertiesLoader.@sensitivePropertyProviderFactory = null
+    void setUp() throws Exception {
     }
 
     @AfterClass
-    public static void tearDownOnce() {
+    static void tearDownOnce() {
     }
 
     @Test
-    public void testConstructorShouldCreateNewInstance() throws Exception {
+    void testConstructorShouldCreateNewInstance() throws Exception {
         // Arrange
 
         // Act
@@ -101,31 +94,6 @@ class NiFiRegistryPropertiesLoaderGroovyTest extends GroovyTestCase {
         // Assert
         assert propertiesLoader1.@keyHex == KEY_HEX
         assert !propertiesLoader2.@keyHex
-    }
-
-    @Test
-    public void testShouldGetDefaultProviderKey() throws Exception {
-        // Arrange
-        final String expectedProviderKey = "aes/gcm/${Cipher.getMaxAllowedKeyLength("AES") > 128 ? 256 : 128}"
-        logger.info("Expected provider key: ${expectedProviderKey}")
-
-        // Act
-        String defaultKey = NiFiRegistryPropertiesLoader.getDefaultProviderKey()
-        logger.info("Default key: ${defaultKey}")
-        // Assert
-        assert defaultKey == expectedProviderKey
-    }
-
-    @Test
-    public void testShouldInitializeSensitivePropertyProviderFactory() throws Exception {
-        // Arrange
-        NiFiRegistryPropertiesLoader propertiesLoader = new NiFiRegistryPropertiesLoader()
-
-        // Act
-        propertiesLoader.initializeSensitivePropertyProviderFactory()
-
-        // Assert
-        assert propertiesLoader.@sensitivePropertyProviderFactory
     }
 
     @Test

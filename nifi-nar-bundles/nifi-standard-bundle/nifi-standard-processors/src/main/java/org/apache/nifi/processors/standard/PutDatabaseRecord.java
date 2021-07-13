@@ -697,6 +697,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
                     final RecordSchema recordSchema = currentRecord.getSchema();
                     final Map<String, ColumnDescription> columns = tableSchema.getColumns();
 
+                    int deleteIndex = 0;
                     for (int i = 0; i < fieldIndexes.size(); i++) {
                         final int currentFieldIndex = fieldIndexes.get(i);
                         Object currentValue = values[currentFieldIndex];
@@ -762,10 +763,12 @@ public class PutDatabaseRecord extends AbstractProcessor {
                             currentValue = DataTypeUtils.convertDateToLocalTZ((Date) currentValue);
                         }
 
-                        // If DELETE type, insert the object twice because of the null check (see generateDelete for details)
+                        // If DELETE type, insert the object twice if the column is nullable because of the null check (see generateDelete for details)
                         if (DELETE_TYPE.equalsIgnoreCase(statementType)) {
-                            setParameter(ps, i * 2 + 1, currentValue, fieldSqlType, sqlType);
-                            setParameter(ps, i * 2 + 2, currentValue, fieldSqlType, sqlType);
+                            setParameter(ps, ++deleteIndex, currentValue, fieldSqlType, sqlType);
+                            if (column.isNullable()) {
+                                setParameter(ps, ++deleteIndex, currentValue, fieldSqlType, sqlType);
+                            }
                         } else if (UPSERT_TYPE.equalsIgnoreCase(statementType)) {
                             final int timesToAddObjects = databaseAdapter.getTimesToAddColumnObjectsForUpsert();
                             for (int j = 0; j < timesToAddObjects; j++) {
@@ -1284,9 +1287,16 @@ public class PutDatabaseRecord extends AbstractProcessor {
                     //   (column = ? OR (column is null AND ? is null))
                     sqlBuilder.append("(");
                     sqlBuilder.append(columnName);
-                    sqlBuilder.append(" = ? OR (");
-                    sqlBuilder.append(columnName);
-                    sqlBuilder.append(" is null AND ? is null))");
+                    sqlBuilder.append(" = ?");
+
+                    // Only need null check if the column is nullable, otherwise the row wouldn't exist
+                    if (desc.isNullable()) {
+                        sqlBuilder.append(" OR (");
+                        sqlBuilder.append(columnName);
+                        sqlBuilder.append(" is null AND ? is null))");
+                    } else {
+                        sqlBuilder.append(")");
+                    }
                     includedColumns.add(i);
                 } else {
                     // User is ignoring unmapped fields, but log at debug level just in case
@@ -1476,12 +1486,14 @@ public class PutDatabaseRecord extends AbstractProcessor {
         private final int dataType;
         private final boolean required;
         private final Integer columnSize;
+        private final boolean nullable;
 
-        public ColumnDescription(final String columnName, final int dataType, final boolean required, final Integer columnSize) {
+        public ColumnDescription(final String columnName, final int dataType, final boolean required, final Integer columnSize, final boolean nullable) {
             this.columnName = columnName;
             this.dataType = dataType;
             this.required = required;
             this.columnSize = columnSize;
+            this.nullable = nullable;
         }
 
         public int getDataType() {
@@ -1498,6 +1510,10 @@ public class PutDatabaseRecord extends AbstractProcessor {
 
         public boolean isRequired() {
             return required;
+        }
+
+        public boolean isNullable() {
+            return nullable;
         }
 
         public static ColumnDescription from(final ResultSet resultSet) throws SQLException {
@@ -1524,7 +1540,7 @@ public class PutDatabaseRecord extends AbstractProcessor {
             final boolean isAutoIncrement = "YES".equalsIgnoreCase(autoIncrementValue);
             final boolean required = !isNullable && !isAutoIncrement && defaultValue == null;
 
-            return new ColumnDescription(columnName, dataType, required, colSize == 0 ? null : colSize);
+            return new ColumnDescription(columnName, dataType, required, colSize == 0 ? null : colSize, isNullable);
         }
 
         @Override

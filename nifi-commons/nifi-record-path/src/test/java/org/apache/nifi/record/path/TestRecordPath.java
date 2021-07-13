@@ -38,6 +38,7 @@ import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -51,6 +52,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class TestRecordPath {
 
@@ -67,6 +69,7 @@ public class TestRecordPath {
         // substring is not a filter function so cannot be used as a predicate
         try {
             RecordPath.compile("/name[substring(., 1, 2)]");
+            fail("Expected RecordPathException");
         } catch (final RecordPathException e) {
             // expected
         }
@@ -1644,6 +1647,135 @@ public class TestRecordPath {
     }
 
     @Test
+    public void testEscapeJson() {
+        final RecordSchema address = new SimpleRecordSchema(Collections.singletonList(
+                new RecordField("address_1", RecordFieldType.STRING.getDataType())
+        ));
+
+        final RecordSchema person = new SimpleRecordSchema(Arrays.asList(
+                new RecordField("firstName", RecordFieldType.STRING.getDataType()),
+                new RecordField("age", RecordFieldType.INT.getDataType()),
+                new RecordField("nicknames", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.STRING.getDataType())),
+                new RecordField("addresses", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.RECORD.getRecordDataType(address)))
+        ));
+
+        final RecordSchema schema = new SimpleRecordSchema(Collections.singletonList(
+                new RecordField("person", RecordFieldType.RECORD.getRecordDataType(person))
+        ));
+
+        final Map<String, Object> values = new HashMap<String, Object>(){{
+            put("person", new MapRecord(person, new HashMap<String, Object>(){{
+                put("firstName", "John");
+                put("age", 30);
+                put("nicknames", new String[] {"J", "Johnny"});
+                put("addresses", new MapRecord[]{
+                        new MapRecord(address, Collections.singletonMap("address_1", "123 Somewhere Street")),
+                        new MapRecord(address, Collections.singletonMap("address_1", "456 Anywhere Road"))
+                });
+            }}));
+        }};
+
+        final Record record = new MapRecord(schema, values);
+
+        assertEquals("\"John\"", RecordPath.compile("escapeJson(/person/firstName)").evaluate(record).getSelectedFields().findFirst().orElseThrow(IllegalStateException::new).getValue());
+        assertEquals("30", RecordPath.compile("escapeJson(/person/age)").evaluate(record).getSelectedFields().findFirst().orElseThrow(IllegalStateException::new).getValue());
+        assertEquals(
+                "{\"firstName\":\"John\",\"age\":30,\"nicknames\":[\"J\",\"Johnny\"],\"addresses\":[{\"address_1\":\"123 Somewhere Street\"},{\"address_1\":\"456 Anywhere Road\"}]}",
+                RecordPath.compile("escapeJson(/person)").evaluate(record).getSelectedFields().findFirst().orElseThrow(IllegalStateException::new).getValue()
+        );
+    }
+
+    @Test
+    public void testUnescapeJson() {
+        final RecordSchema address = new SimpleRecordSchema(Collections.singletonList(
+                new RecordField("address_1", RecordFieldType.STRING.getDataType())
+        ));
+
+        final RecordSchema person = new SimpleRecordSchema(Arrays.asList(
+                new RecordField("firstName", RecordFieldType.STRING.getDataType()),
+                new RecordField("age", RecordFieldType.INT.getDataType()),
+                new RecordField("nicknames", RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.STRING.getDataType())),
+                new RecordField("addresses", RecordFieldType.CHOICE.getChoiceDataType(
+                        RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.RECORD.getRecordDataType(address)),
+                        RecordFieldType.RECORD.getRecordDataType(address)
+                ))
+        ));
+
+        final RecordSchema schema = new SimpleRecordSchema(Arrays.asList(
+                new RecordField("person", RecordFieldType.RECORD.getRecordDataType(person)),
+                new RecordField("json_str", RecordFieldType.STRING.getDataType())
+        ));
+
+        // test CHOICE resulting in nested ARRAY of RECORDs
+        final Record recordAddressesArray = new MapRecord(schema,
+                Collections.singletonMap(
+                        "json_str",
+                        "{\"firstName\":\"John\",\"age\":30,\"nicknames\":[\"J\",\"Johnny\"],\"addresses\":[{\"address_1\":\"123 Somewhere Street\"},{\"address_1\":\"456 Anywhere Road\"}]}")
+        );
+        assertEquals(
+                new HashMap<String, Object>(){{
+                    put("firstName", "John");
+                    put("age", 30);
+                    put("nicknames", Arrays.asList("J", "Johnny"));
+                    put("addresses", Arrays.asList(
+                            Collections.singletonMap("address_1", "123 Somewhere Street"),
+                            Collections.singletonMap("address_1", "456 Anywhere Road")
+                    ));
+                }},
+                RecordPath.compile("unescapeJson(/json_str)").evaluate(recordAddressesArray).getSelectedFields().findFirst().orElseThrow(IllegalStateException::new).getValue()
+        );
+
+        // test CHOICE resulting in nested single RECORD
+        final Record recordAddressesSingle = new MapRecord(schema,
+                Collections.singletonMap(
+                        "json_str",
+                        "{\"firstName\":\"John\",\"age\":30,\"nicknames\":[\"J\",\"Johnny\"],\"addresses\":{\"address_1\":\"123 Somewhere Street\"}}")
+        );
+        assertEquals(
+                new HashMap<String, Object>(){{
+                    put("firstName", "John");
+                    put("age", 30);
+                    put("nicknames", Arrays.asList("J", "Johnny"));
+                    put("addresses", Collections.singletonMap("address_1", "123 Somewhere Street"));
+                }},
+                RecordPath.compile("unescapeJson(/json_str)").evaluate(recordAddressesSingle).getSelectedFields().findFirst().orElseThrow(IllegalStateException::new).getValue()
+        );
+
+        // test simple String field
+        final Record recordJustName = new MapRecord(schema, Collections.singletonMap("json_str", "{\"firstName\":\"John\"}"));
+        assertEquals(
+                new HashMap<String, Object>(){{put("firstName", "John");}},
+                RecordPath.compile("unescapeJson(/json_str)").evaluate(recordJustName).getSelectedFields().findFirst().orElseThrow(IllegalStateException::new).getValue()
+        );
+
+        // test simple String
+        final Record recordJustString = new MapRecord(schema, Collections.singletonMap("json_str", "\"John\""));
+        assertEquals("John", RecordPath.compile("unescapeJson(/json_str)").evaluate(recordJustString).getSelectedFields().findFirst().orElseThrow(IllegalStateException::new).getValue());
+
+        // test simple Int
+        final Record recordJustInt = new MapRecord(schema, Collections.singletonMap("json_str", "30"));
+        assertEquals(30, RecordPath.compile("unescapeJson(/json_str)").evaluate(recordJustInt).getSelectedFields().findFirst().orElseThrow(IllegalStateException::new).getValue());
+
+        // test invalid JSON
+        final Record recordInvalidJson = new MapRecord(schema, Collections.singletonMap("json_str", "{\"invalid\": \"json"));
+        try {
+            RecordPath.compile("unescapeJson(/json_str)").evaluate(recordInvalidJson).getSelectedFields().findFirst().orElseThrow(IllegalStateException::new).getValue();
+            fail("Expected a RecordPathException for invalid JSON");
+        } catch (RecordPathException rpe) {
+            assertEquals("Unable to deserialise JSON String into Record Path value", rpe.getMessage());
+        }
+
+        // test not String
+        final Record recordNotString = new MapRecord(schema, Collections.singletonMap("person", new MapRecord(person, Collections.singletonMap("age", 30))));
+        try {
+            RecordPath.compile("unescapeJson(/person/age)").evaluate(recordNotString).getSelectedFields().findFirst().orElseThrow(IllegalStateException::new).getValue();
+            fail("Expected IllegalArgumentException for non-String input");
+        } catch (IllegalArgumentException iae) {
+            assertEquals("Argument supplied to unescapeJson must be a String", iae.getMessage());
+        }
+    }
+
+    @Test
     public void testHash() {
         final Record record = getCaseTestRecord();
         assertEquals("61409aa1fd47d4a5332de23cbf59a36f", RecordPath.compile("hash(/firstName, 'MD5')").evaluate(record).getSelectedFields().findFirst().get().getValue());
@@ -1746,6 +1878,28 @@ public class TestRecordPath {
 
         value = fieldValueOpt.get().getValue().toString();
         assertEquals(Uuid5Util.fromString(input, null), value);
+    }
+
+    @Test
+    public void testPredicateAsPath() {
+        final List<RecordField> fields = new ArrayList<>();
+        fields.add(new RecordField("id", RecordFieldType.INT.getDataType()));
+        fields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
+
+        final RecordSchema schema = new SimpleRecordSchema(fields);
+
+        final Map<String, Object> values = new HashMap<>();
+        values.put("id", 48);
+        values.put("name", null);
+        final Record record = new MapRecord(schema, values);
+
+        assertEquals(Boolean.TRUE, RecordPath.compile("isEmpty( /name )").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals(Boolean.FALSE, RecordPath.compile("isEmpty( /id )").evaluate(record).getSelectedFields().findFirst().get().getValue());
+
+        assertEquals(Boolean.TRUE, RecordPath.compile("/id = 48").evaluate(record).getSelectedFields().findFirst().get().getValue());
+        assertEquals(Boolean.FALSE, RecordPath.compile("/id > 48").evaluate(record).getSelectedFields().findFirst().get().getValue());
+
+        assertEquals(Boolean.FALSE, RecordPath.compile("not(/id = 48)").evaluate(record).getSelectedFields().findFirst().get().getValue());
     }
 
     private List<RecordField> getDefaultFields() {

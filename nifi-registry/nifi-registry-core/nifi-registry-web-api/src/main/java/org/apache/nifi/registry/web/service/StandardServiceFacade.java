@@ -109,6 +109,8 @@ public class StandardServiceFacade implements ServiceFacade {
     private final PermissionsService permissionsService;
     private final LinkService linkService;
 
+    private static final int LATEST_VERSION = -1;
+
     @Autowired
     public StandardServiceFacade(final RegistryService registryService,
                                  final ExtensionService extensionService,
@@ -358,6 +360,48 @@ public class StandardServiceFacade implements ServiceFacade {
         final VersionedFlowSnapshot lastSnapshot = registryService.getFlowSnapshot(bucketIdentifier, flowIdentifier, latestVersion);
         populateLinksAndPermissions(lastSnapshot);
         return lastSnapshot;
+    }
+
+    @Override
+    public VersionedFlowSnapshot importVersionedFlowSnapshot(VersionedFlowSnapshot versionedFlowSnapshot, String bucketIdentifier,
+                                                             String flowIdentifier, String comments) {
+        // set new snapshotMetadata
+        final VersionedFlowSnapshotMetadata metadata = new VersionedFlowSnapshotMetadata();
+        metadata.setBucketIdentifier(bucketIdentifier);
+        metadata.setFlowIdentifier(flowIdentifier);
+        metadata.setVersion(LATEST_VERSION);
+
+        // if there are new comments, then set it
+        // otherwise, keep the original comments
+        if (StringUtils.isNotBlank(comments)) {
+            metadata.setComments(comments);
+        } else if (versionedFlowSnapshot.getSnapshotMetadata() != null && StringUtils.isNotBlank(versionedFlowSnapshot.getSnapshotMetadata().getComments())) {
+            metadata.setComments(versionedFlowSnapshot.getSnapshotMetadata().getComments());
+        }
+
+        versionedFlowSnapshot.setSnapshotMetadata(metadata);
+
+        final String userIdentity = NiFiUserUtils.getNiFiUserIdentity();
+        versionedFlowSnapshot.getSnapshotMetadata().setAuthor(userIdentity);
+
+        return createFlowSnapshot(versionedFlowSnapshot);
+    }
+
+    @Override
+    public ExportedVersionedFlowSnapshot exportFlowSnapshot(String bucketIdentifier, String flowIdentifier, Integer versionNumber) {
+        final VersionedFlowSnapshot versionedFlowSnapshot = getFlowSnapshot(bucketIdentifier, flowIdentifier, versionNumber);
+
+        String flowName = versionedFlowSnapshot.getFlow().getName();
+        final String dashFlowName = flowName.replaceAll("\\s", "-");
+        final String filename = String.format("%s-version-%d.json", dashFlowName, versionedFlowSnapshot.getSnapshotMetadata().getVersion());
+
+        versionedFlowSnapshot.setFlow(null);
+        versionedFlowSnapshot.setBucket(null);
+        versionedFlowSnapshot.getSnapshotMetadata().setBucketIdentifier(null);
+        versionedFlowSnapshot.getSnapshotMetadata().setFlowIdentifier(null);
+        versionedFlowSnapshot.getSnapshotMetadata().setLink(null);
+
+        return new ExportedVersionedFlowSnapshot(versionedFlowSnapshot, filename);
     }
 
     @Override

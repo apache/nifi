@@ -331,12 +331,16 @@ public class JoltTransformRecord extends AbstractProcessor {
             } else {
 
                 final JoltTransform transform = getTransform(context, original);
-                final Record transformedFirstRecord = transform(firstRecord, transform);
+                final List<Record >transformedFirstRecords = transform(firstRecord, transform);
 
-                if (transformedFirstRecord == null) {
+                if (transformedFirstRecords.isEmpty()) {
                     throw new ProcessException("Error transforming the first record");
                 }
 
+                final Record transformedFirstRecord = transformedFirstRecords.get(0);
+                if (transformedFirstRecord == null) {
+                    throw new ProcessException("Error transforming the first record");
+                }
                 final RecordSchema writeSchema = writerFactory.getSchema(original.getAttributes(), transformedFirstRecord.getSchema());
 
                 // TODO: Is it possible that two Records with the same input schema could have different schemas after transformation?
@@ -349,11 +353,24 @@ public class JoltTransformRecord extends AbstractProcessor {
                     writer.beginRecordSet();
 
                     writer.write(transformedFirstRecord);
-
                     Record record;
+                    // If multiple output records were generated, write them out
+                    for (int i = 1; i < transformedFirstRecords.size(); i++) {
+                        record = transformedFirstRecords.get(i);
+                        if (record == null) {
+                            throw new ProcessException("Error transforming the first record");
+                        }
+                        writer.write(record);
+                    }
+
                     while ((record = reader.nextRecord()) != null) {
-                        final Record transformedRecord = transform(record, transform);
-                        writer.write(transformedRecord);
+                        final List<Record> transformedRecords = transform(record, transform);
+                        if (transformedRecords == null) {
+                            throw new ProcessException("Error transforming the record");
+                        }
+                        for (Record transformedRecord : transformedRecords) {
+                            writer.write(transformedRecord);
+                        }
                     }
 
                     writeResult = writer.finishRecordSet();
@@ -388,7 +405,7 @@ public class JoltTransformRecord extends AbstractProcessor {
         session.transfer(original, REL_ORIGINAL);
     }
 
-    private Record transform(final Record record, final JoltTransform transform) {
+    private List<Record> transform(final Record record, final JoltTransform transform) {
         Map<String, Object> recordMap = (Map<String, Object>) DataTypeUtils.convertRecordFieldtoObject(record, RecordFieldType.RECORD.getRecordDataType(record.getSchema()));
 
         // JOLT expects arrays to be of type List where our Record code uses Object[].
@@ -399,8 +416,23 @@ public class JoltTransformRecord extends AbstractProcessor {
         // JOLT expects arrays to be of type List where our Record code uses Object[].
         // Make another pass of the transformed objects to change List to Object[].
         final Object normalizedRecordValues = normalizeRecordObjects(transformedObject);
-        final Record updatedRecord = DataTypeUtils.toRecord(normalizedRecordValues, "r");
-        return updatedRecord;
+        final List<Record> recordList = new ArrayList<>();
+
+        if (normalizedRecordValues == null) {
+            return recordList;
+        }
+
+        // If the top-level object is an array, return a list of the records inside. Otherwise return a singleton list with the single transformed record
+        if (normalizedRecordValues instanceof Object[]) {
+            for (Object o : (Object[]) normalizedRecordValues) {
+                if (o != null) {
+                    recordList.add(DataTypeUtils.toRecord(o, "r"));
+                }
+            }
+        } else {
+            recordList.add(DataTypeUtils.toRecord(normalizedRecordValues, "r"));
+        }
+        return recordList;
     }
 
     private JoltTransform getTransform(final ProcessContext context, final FlowFile flowFile) {
@@ -460,7 +492,7 @@ public class JoltTransformRecord extends AbstractProcessor {
         } else if (o instanceof Object[]) {
             return Arrays.stream(((Object[]) o)).map(JoltTransformRecord::normalizeJoltObjects).collect(Collectors.toList());
         } else if (o instanceof Collection) {
-            Collection c = (Collection) o;
+            Collection<?> c = (Collection<?>) o;
             return c.stream().map(JoltTransformRecord::normalizeJoltObjects).collect(Collectors.toList());
         } else {
             return o;
@@ -474,13 +506,21 @@ public class JoltTransformRecord extends AbstractProcessor {
             m.forEach((k, v) -> m.put(k, normalizeRecordObjects(v)));
             return m;
         } else if (o instanceof List) {
-            return ((List<Object>) o).stream().map(JoltTransformRecord::normalizeRecordObjects).toArray(Object[]::new);
+            final List<Object> objectList = (List<Object>) o;
+            final Object[] objectArray = new Object[objectList.size()];
+            for (int i = 0; i < objectArray.length; i++) {
+                objectArray[i] = normalizeRecordObjects(objectList.get(i));
+            }
+            return objectArray;
         } else if (o instanceof Collection) {
-            Collection c = (Collection) o;
-            return c.stream().map(JoltTransformRecord::normalizeRecordObjects).collect(Collectors.toList());
+            Collection<?> c = (Collection<?>) o;
+            final List<Object> objectList = new ArrayList<>();
+            for (Object obj : c) {
+                objectList.add(normalizeRecordObjects(obj));
+            }
+            return objectList;
         } else {
             return o;
         }
     }
-
 }

@@ -18,6 +18,9 @@ package org.apache.nifi.registry.web.api;
 
 class HttpStatusMessages {
 
+    /* 2xx messages */
+    static final String MESSAGE_201 = "The resource has been successfully created.";
+
     /* 4xx messages */
     static final String MESSAGE_400 = "NiFi Registry was unable to complete the request because it was invalid. The request should not be retried without modification.";
     static final String MESSAGE_401 = "Client could not be authenticated.";

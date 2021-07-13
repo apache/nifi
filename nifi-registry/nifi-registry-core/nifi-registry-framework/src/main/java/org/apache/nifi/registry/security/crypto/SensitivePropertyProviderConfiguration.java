@@ -16,24 +16,24 @@
  */
 package org.apache.nifi.registry.security.crypto;
 
-import org.apache.nifi.registry.properties.AESSensitivePropertyProvider;
-import org.apache.nifi.registry.properties.SensitivePropertyProtectionException;
-import org.apache.nifi.registry.properties.SensitivePropertyProvider;
-import org.apache.nifi.registry.properties.SensitivePropertyProviderFactory;
+import org.apache.nifi.properties.PropertyProtectionScheme;
+import org.apache.nifi.properties.SensitivePropertyProtectionException;
+import org.apache.nifi.properties.SensitivePropertyProvider;
+import org.apache.nifi.properties.StandardSensitivePropertyProviderFactory;
+import org.apache.nifi.registry.properties.util.NiFiRegistryBootstrapUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import javax.crypto.NoSuchPaddingException;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
+import java.io.IOException;
 
 @Configuration
-public class SensitivePropertyProviderConfiguration implements SensitivePropertyProviderFactory {
-
+public class SensitivePropertyProviderConfiguration {
     private static final Logger logger = LoggerFactory.getLogger(SensitivePropertyProviderConfiguration.class);
+
+    private static final PropertyProtectionScheme DEFAULT_SCHEME = PropertyProtectionScheme.AES_GCM;
 
     @Autowired(required = false)
     private CryptoKeyProvider masterKeyProvider;
@@ -43,7 +43,6 @@ public class SensitivePropertyProviderConfiguration implements SensitiveProperty
      *         or null if the master key is not present.
      */
     @Bean
-    @Override
     public SensitivePropertyProvider getProvider() {
         if (masterKeyProvider == null || masterKeyProvider.isEmpty()) {
             // This NiFi Registry was not configured with a master key, so the assumption is
@@ -56,11 +55,18 @@ public class SensitivePropertyProviderConfiguration implements SensitiveProperty
             // returned provider, which has a copy of the sensitive master key material
             // to be reaped when it goes out of scope in order to decrease the time
             // key material is held in memory.
-            String key = masterKeyProvider.getKey();
-            return new AESSensitivePropertyProvider(masterKeyProvider.getKey());
-        } catch (MissingCryptoKeyException | NoSuchAlgorithmException | NoSuchProviderException | NoSuchPaddingException e) {
-            logger.warn("Error creating AES Sensitive Property Provider", e);
-            throw new SensitivePropertyProtectionException("Error creating AES Sensitive Property Provider", e);
+            return StandardSensitivePropertyProviderFactory
+                    .withKeyAndBootstrapSupplier(masterKeyProvider.getKey(), () -> {
+                        try {
+                            return NiFiRegistryBootstrapUtils.loadBootstrapProperties();
+                        } catch (IOException e) {
+                            throw new SensitivePropertyProtectionException("Error creating Sensitive Property Provider", e);
+                        }
+                    })
+                    .getProvider(DEFAULT_SCHEME);
+        } catch (final MissingCryptoKeyException e) {
+            logger.warn("Error creating Sensitive Property Provider", e);
+            throw new SensitivePropertyProtectionException("Error creating Sensitive Property Provider", e);
         }
     }
 

@@ -23,6 +23,6 @@
     <packaging>pom</packaging>
     <modules>
         <module>nifi-ssl-context-service</module>
-        <module>nifi-ssl-context-nar</module>
+        <module>nifi-ssl-context-service-nar</module>
     </modules>
 </project>

@@ -2645,7 +2645,7 @@ The binary distribution of this product bundles 'normalize.css'
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
   SOFTWARE.
 
-The binary distribution of this product bundles 'JUnit Platform' and 'JUnit Jupiter' modules under an EPL v2 license
+The binary distribution of this product bundles 'JUnit Platform', 'JUnit Jupiter', 'Jakarta Mail', and 'Jakarta Mail API' modules under an EPL v2 license
 
   Eclipse Public License - v 2.0
 
@@ -3030,7 +3030,7 @@ The binary distribution of this product bundles 'Extensions on qpid-proton-j lib
     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
     SOFTWARE
 
-The binary distribution of this product bundles 'Jakarta Activation API 1.2.1' and 'Jakarta XML Binding API 2.3.2' modules under an EDL v1.0 license
+The binary distribution of this product bundles 'Jakarta Activation', 'Jakarta Activation API' and 'Jakarta XML Binding API 2.3.2' modules under an EDL v1.0 license
 
     Copyright (c) 2007, Eclipse Foundation, Inc. and its licensors.
 

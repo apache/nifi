@@ -66,67 +66,112 @@ Apache NiFi was made for dataflow. It supports highly configurable directed grap
 
 ## Getting Started
 
-- Read through the [quickstart guide for development](http://nifi.apache.org/quickstart.html).
-  It will include information on getting a local copy of the source, give pointers on issue
-  tracking, and provide some warnings about common problems with development environments.
-- For a more comprehensive guide to development and information about contributing to the project
-  read through the [NiFi Developer's Guide](http://nifi.apache.org/developer-guide.html).
+Read through the [quickstart guide for development](https://nifi.apache.org/quickstart.html).
+It will include information on getting a local copy of the source, give pointers on issue
+tracking, and provide some warnings about common problems with development environments.
 
-To build:
-- Execute `mvn clean install` or for parallel build execute `mvn -T 2.0C clean install`. On a
-  modest development laptop that is a couple of years old, the latter build takes a bit under ten
-  minutes. After a large amount of output you should eventually see a success message.
+For a more comprehensive guide to development and information about contributing to the project
+read through the [NiFi Developer's Guide](https://nifi.apache.org/developer-guide.html).
 
-        laptop:nifi myuser$ mvn -T 2.0C clean install
-        [INFO] Scanning for projects...
-        [INFO] Inspecting build with total of 115 modules...
-            ...tens of thousands of lines elided...
-        [INFO] ------------------------------------------------------------------------
-        [INFO] BUILD SUCCESS
-        [INFO] ------------------------------------------------------------------------
-        [INFO] Total time: 09:24 min (Wall Clock)
-        [INFO] Finished at: 2015-04-30T00:30:36-05:00
-        [INFO] Final Memory: 173M/1359M
-        [INFO] ------------------------------------------------------------------------
-- Execute `mvn clean install -DskipTests` to compile tests, but skip running them.
+### Building
 
-To deploy:
-- Change directory to 'nifi-assembly'. In the target directory, there should be a build of nifi.
+Run `mvn clean install` or for parallel build execute `mvn -T 2.0C clean install`.
 
-        laptop:nifi myuser$ cd nifi-assembly
-        laptop:nifi-assembly myuser$ ls -lhd target/nifi*
-        drwxr-xr-x  3 myuser  mygroup   102B Apr 30 00:29 target/nifi-1.0.0-SNAPSHOT-bin
-        -rw-r--r--  1 myuser  mygroup   144M Apr 30 00:30 target/nifi-1.0.0-SNAPSHOT-bin.tar.gz
-        -rw-r--r--  1 myuser  mygroup   144M Apr 30 00:30 target/nifi-1.0.0-SNAPSHOT-bin.zip
+The parallel build should take around fifteen minutes on modern hardware.
 
-- For testing ongoing development you could use the already unpacked build present in the directory
-  named "nifi-*version*-bin", where *version* is the current project version. To deploy in another
-  location make use of either the tarball or zipfile and unpack them wherever you like. The
-  distribution will be within a common parent directory named for the version.
+    laptop:nifi myuser$ mvn -T 2.0C clean install
+    [INFO] Scanning for projects...
+    [INFO] Inspecting build with total of 115 modules...
+        ...tens of thousands of lines elided...
+    [INFO] ------------------------------------------------------------------------
+    [INFO] BUILD SUCCESS
+    [INFO] ------------------------------------------------------------------------
+    [INFO] Total time: 09:24 min (Wall Clock)
+    [INFO] Finished at: 2015-04-30T00:30:36-05:00
+    [INFO] Final Memory: 173M/1359M
+    [INFO] ------------------------------------------------------------------------
 
-        laptop:nifi-assembly myuser$ mkdir ~/example-nifi-deploy
-        laptop:nifi-assembly myuser$ tar xzf target/nifi-*-bin.tar.gz -C ~/example-nifi-deploy
-        laptop:nifi-assembly myuser$ ls -lh ~/example-nifi-deploy/
-        total 0
-        drwxr-xr-x  10 myuser  mygroup   340B Apr 30 01:06 nifi-1.0.0-SNAPSHOT
+Run `mvn clean install -DskipTests` to skip unit test execution.
 
-To run NiFi:
-- Change directory to the location where you installed NiFi and run it.
+### Deploying
 
-        laptop:~ myuser$ cd ~/example-nifi-deploy/nifi-*
-        laptop:nifi-1.0.0-SNAPSHOT myuser$ ./bin/nifi.sh start
-  Issuing `bin/nifi.sh start` executes the `nifi.sh` script that starts NiFi in the background and then exits. If you want `nifi.sh` to wait for NiFi to finish scheduling all components before exiting, use the `--wait-for-init` flag with an optional timeout specified in seconds.
+Change directories to `nifi-assembly`. The `target` directory contains binary archives.
 
-        laptop:nifi-1.0.0-SNAPSHOT myuser$ ./bin/nifi.sh start --wait-for-init 120 
-- Direct your browser to http://localhost:8080/nifi/ and you should see a screen like this screenshot:
-  ![image of a NiFi dataflow canvas](nifi-docs/src/main/asciidoc/images/nifi_first_launch_screenshot.png?raw=true)
+    laptop:nifi myuser$ cd nifi-assembly
+    laptop:nifi-assembly myuser$ ls -lhd target/nifi*
+    drwxr-xr-x  3 myuser  mygroup   102B Apr 30 00:29 target/nifi-1.0.0-SNAPSHOT-bin
+    -rw-r--r--  1 myuser  mygroup   144M Apr 30 00:30 target/nifi-1.0.0-SNAPSHOT-bin.tar.gz
+    -rw-r--r--  1 myuser  mygroup   144M Apr 30 00:30 target/nifi-1.0.0-SNAPSHOT-bin.zip
 
-- For help building your first data flow see the [NiFi User Guide](http://nifi.apache.org/docs/nifi-docs/html/user-guide.html)
+Copy the `nifi-VERSION-bin.tar.gz` or `nifi-VERSION-bin.zip` to a separate deployment directory.
+Extracting the distribution will create a new directory named for the version.
 
-- If you are testing ongoing development, you will likely want to stop your instance.
+    laptop:nifi-assembly myuser$ mkdir ~/example-nifi-deploy
+    laptop:nifi-assembly myuser$ tar xzf target/nifi-*-bin.tar.gz -C ~/example-nifi-deploy
+    laptop:nifi-assembly myuser$ ls -lh ~/example-nifi-deploy/
+    total 0
+    drwxr-xr-x  10 myuser  mygroup   340B Apr 30 01:06 nifi-1.0.0-SNAPSHOT
 
-        laptop:~ myuser$ cd ~/example-nifi-deploy/nifi-*
-        laptop:nifi-1.0.0-SNAPSHOT myuser$ ./bin/nifi.sh stop
+### Starting
+
+Change directories to the deployment location and run the following command to start NiFi.
+
+    laptop:~ myuser$ cd ~/example-nifi-deploy/nifi-*
+    laptop:nifi-1.0.0-SNAPSHOT myuser$ ./bin/nifi.sh start
+  
+Running `bin/nifi.sh start` starts NiFi in the background and exits. Use `--wait-for-init` with an optional timeout in
+seconds to wait for a complete startup before exiting.
+
+    laptop:nifi-1.0.0-SNAPSHOT myuser$ ./bin/nifi.sh start --wait-for-init 120
+  
+### Authenticating
+
+The default configuration generates a random username and password on startup. NiFi writes the generated credentials
+to the application log located in `logs/nifi-app.log` under the NiFi installation directory.
+
+The following command can be used to find the generated credentials on operating systems with `grep` installed:
+
+    laptop:nifi-1.0.0-SNAPSHOT myuser$ grep Generated logs/nifi-app*log
+
+NiFi logs the generated credentials as follows:
+
+    Generated Username [USERNAME]
+    Generated Password [PASSWORD]
+
+The `USERNAME` will be a random UUID composed of 36 characters. The `PASSWORD` will be a random string composed of
+32 characters. The generated credentials will be stored in `conf/login-identity-providers.xml` with the password stored
+using bcrypt hashing. Record these credentials in a secure location for access to NiFi.
+
+The random username and password can be replaced with custom credentials using the following command:
+
+    ./bin/nifi.sh set-single-user-credentials <username> <password>
+  
+### Running
+
+Open the following link in a web browser to access NiFi: https://localhost:8443/nifi
+
+The web browser will display a warning message indicating a potential security risk due to the self-signed
+certificate NiFi generated during initialization. Accepting the potential security risk and continuing to load
+the interface is an option for initial development installations. Production deployments should provision a certificate
+from a trusted certificate authority and update the NiFi keystore and truststore configuration.
+
+Accessing NiFi after accepting the self-signed certificate will display the login screen.
+![NiFi Login Screen](nifi-docs/src/main/asciidoc/images/nifi-login.png?raw=true)
+
+Using the generated credentials, enter the generated username in the `User` field
+and the generated password in the `Password` field, then select `LOG IN` to access the system.
+![NiFi Flow Authenticated Screen](nifi-docs/src/main/asciidoc/images/nifi-flow-authenticated.png?raw=true)
+
+### Configuring
+
+The [NiFi User Guide](https://nifi.apache.org/docs/nifi-docs/html/user-guide.html) describes how to build a data flow.
+
+### Stopping
+
+Run the following command to stop NiFi:
+
+    laptop:~ myuser$ cd ~/example-nifi-deploy/nifi-*
+    laptop:nifi-1.0.0-SNAPSHOT myuser$ ./bin/nifi.sh stop
 
 ## MiNiFi subproject
 
@@ -190,38 +235,39 @@ Registry—a subproject of Apache NiFi—is a complementary application that pro
 
 ### Getting Registry Started
 
-1) Build nifi
-    See [Gettin Started](#getting-started) for NiFi
+1) Build NiFi (see [Getting Started for NiFi](#getting-started) )
     
-    or
+or
     
-    Build only the Registry subproject:
-    
-            cd nifi/nifi-registry
-            mvn clean install
-    
-    If you wish to enable style and license checks, specify the contrib-check profile:
-        
-            mvn clean install -Pcontrib-check
+Build only the Registry subproject:
 
-3) Start Registry
+    cd nifi/nifi-registry
+    mvn clean install
 
-        cd nifi-registry/nifi-registry-assembly/target/nifi-registry-<VERSION>-bin/nifi-registry-<VERSION>/
-        ./bin/nifi-registry.sh start
-   
-   Note that the application web server can take a while to load before it is accessible.   
+    
+If you wish to enable style and license checks, specify the contrib-check profile:
 
-4) Accessing the application web UI
+    mvn clean install -Pcontrib-check
+
+
+2) Start Registry
+
+    cd nifi-registry/nifi-registry-assembly/target/nifi-registry-<VERSION>-bin/nifi-registry-<VERSION>/
+    ./bin/nifi-registry.sh start
+
+Note that the application web server can take a while to load before it is accessible.   
+
+3) Accessing the application web UI
  
-    With the default settings, the application UI will be available at [http://localhost:18080/nifi-registry](http://localhost:18080/nifi-registry) 
+With the default settings, the application UI will be available at [http://localhost:18080/nifi-registry](http://localhost:18080/nifi-registry) 
    
-5) Accessing the application REST API
+4) Accessing the application REST API
 
-    If you wish to test against the application REST API, you can access the REST API directly. With the default settings, the base URL of the REST API will be at `http://localhost:18080/nifi-registry-api`. A UI for testing the REST API will be available at [http://localhost:18080/nifi-registry-api/swagger/ui.html](http://localhost:18080/nifi-registry-api/swagger/ui.html) 
+If you wish to test against the application REST API, you can access the REST API directly. With the default settings, the base URL of the REST API will be at `http://localhost:18080/nifi-registry-api`. A UI for testing the REST API will be available at [http://localhost:18080/nifi-registry-api/swagger/ui.html](http://localhost:18080/nifi-registry-api/swagger/ui.html) 
 
-6) Accessing the application logs
+5) Accessing the application logs
 
-    Logs will be available in `logs/nifi-registry-app.log`
+Logs will be available in `logs/nifi-registry-app.log`
 
 ### Database Testing
 
@@ -264,32 +310,34 @@ For a full list of the available DataSource factories, consult the `nifi-registr
 
 ## Getting Help
 If you have questions, you can reach out to our mailing list: dev@nifi.apache.org
-([archive](http://mail-archives.apache.org/mod_mbox/nifi-dev)). For more interactive discussions, community members can often be found in the following locations:
+([archive](https://lists.apache.org/list.html?dev@nifi.apache.org)). For more interactive discussions, community members can often be found in the following locations:
 
 - Apache NiFi Slack Workspace: https://apachenifi.slack.com/
 
   New users can join the workspace using the following [invite link](https://s.apache.org/nifi-community-slack).
   
-- IRC: #nifi on [irc.freenode.net](http://webchat.freenode.net/?channels=#nifi)
+- IRC: #nifi on [irc.freenode.net](https://webchat.freenode.net/?channels=#nifi)
 
 To submit a feature request or bug report, please file a Jira at [https://issues.apache.org/jira/projects/NIFI/issues](https://issues.apache.org/jira/projects/NIFI/issues). If this is a **security vulnerability report**, please email [security@nifi.apache.org](mailto:security@nifi.apache.org) directly and review the [Apache NiFi Security Vulnerability Disclosure](https://nifi.apache.org/security.html) and [Apache Software Foundation Security](https://www.apache.org/security/committers.html) processes first. 
 
 ## Documentation
 
-See http://nifi.apache.org/ for the latest NiFi documentation.
+See https://nifi.apache.org/ for the latest NiFi documentation.
 
 See https://nifi.apache.org/minifi and https://cwiki.apache.org/confluence/display/MINIFI for the latest MiNiFi-specific documentation.
+
+See https://nifi.apache.org/registry for the latest Registry-specific documentation.
 
 ## License
 
 Except as otherwise noted this software is licensed under the
-[Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0.html)
+[Apache License, Version 2.0](https://www.apache.org/licenses/LICENSE-2.0.html)
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-  http://www.apache.org/licenses/LICENSE-2.0
+  https://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -304,7 +352,7 @@ currently reside may have restrictions on the import, possession, use, and/or
 re-export to another country, of encryption software. BEFORE using any
 encryption software, please check your country's laws, regulations and
 policies concerning the import, possession, or use, and re-export of encryption
-software, to see if this is permitted. See <http://www.wassenaar.org/> for more
+software, to see if this is permitted. See <https://www.wassenaar.org/> for more
 information.
 
 The U.S. Government Department of Commerce, Bureau of Industry and Security
@@ -321,9 +369,11 @@ The following provides more details on the included cryptographic software:
 Apache NiFi uses BouncyCastle, JCraft Inc., and the built-in
 Java cryptography libraries for SSL, SSH, and the protection
 of sensitive configuration parameters. See
-http://bouncycastle.org/about.html
-http://www.jcraft.com/c-info.html
-http://www.oracle.com/us/products/export/export-regulations-345813.html
+
+- https://bouncycastle.org/about.html
+- http://www.jcraft.com/c-info.html
+- https://www.oracle.com/corporate/security-practices/corporate/governance/global-trade-compliance.html
+
 for more details on each of these libraries cryptography features.
 
 [nifi]: https://nifi.apache.org/

@@ -20,36 +20,9 @@ package org.apache.nifi.stateless.config;
 import java.util.HashMap;
 import java.util.Map;
 
-public class ReportingTaskDefinition {
-    private String name;
-    private String type;
-    private String bundleCoordinates;
+public class ReportingTaskDefinition extends ConfigurableExtensionDefinition {
     private String schedulingFrequency;
     private Map<String, String> propertyValues = new HashMap<>();
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(final String name) {
-        this.name = name;
-    }
-
-    public String getType() {
-        return type;
-    }
-
-    public void setType(final String type) {
-        this.type = type;
-    }
-
-    public String getBundleCoordinates() {
-        return bundleCoordinates;
-    }
-
-    public void setBundleCoordinates(final String bundleCoordinates) {
-        this.bundleCoordinates = bundleCoordinates;
-    }
 
     public String getSchedulingFrequency() {
         return schedulingFrequency;

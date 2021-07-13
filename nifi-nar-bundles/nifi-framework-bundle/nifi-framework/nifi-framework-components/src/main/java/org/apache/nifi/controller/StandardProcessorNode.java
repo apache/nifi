@@ -1025,7 +1025,29 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
 
     @Override
     public int getActiveThreadCount() {
-        return processScheduler.getActiveThreadCount(this);
+        final int activeThreadCount = processScheduler.getActiveThreadCount(this);
+
+        // When getScheduledState() is called, we map the 'physical' state of STOPPING to STOPPED. This is done in order to maintain
+        // backward compatibility because the UI and other clients will not know of the (relatively newer) 'STOPPING' state.
+        // Because of there previously was no STOPPING state, the way to determine of a processor had truly stopped was to check if its
+        // Scheduled State was STOPPED AND it had no active threads.
+        //
+        // Also, we can have a situation in which a processor is started while invalid. Before the processor becomes valid, it can be stopped.
+        // In this situation, the processor state will become STOPPING until the background thread checks the state, calls any necessary lifecycle methods,
+        // and finally updates the state to STOPPED. In the interim, we have a situation where a call to getScheduledState() returns STOPPED and there are no
+        // active threads, which the client will interpret as the processor being fully stopped. However, in this situation, an attempt to update the processor, etc.
+        // will fail because the processor is not truly fully stopped.
+        //
+        // To prevent this situation, we return 1 for the number of active tasks when the processor is considered STOPPING. In doing this, we ensure that the condition
+        // of (getScheduledState() == STOPPED and activeThreads == 0) never happens while the processor is still stopping.
+        //
+        // This probably is calling for a significant refactoring / rethinking of this class. It would make sense, for example, to extract some of the logic into a separate
+        // StateTransition class as we've done with Controller Services. That would at least more cleanly encapsulate this logic. However, this is a simple enough work around for the time being.
+        if (activeThreadCount == 0 && getPhysicalScheduledState() == ScheduledState.STOPPING) {
+            return 1;
+        }
+
+        return activeThreadCount;
     }
 
     List<Connection> getIncomingNonLoopConnections() {
@@ -1389,7 +1411,7 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
     }
 
     private void run(ScheduledExecutorService taskScheduler, long administrativeYieldMillis, long timeoutMillis, Supplier<ProcessContext> processContextFactory,
-                     SchedulingAgentCallback schedulingAgentCallback, boolean failIfStopping, ScheduledState desiredSate, ScheduledState scheduledState) {
+                     SchedulingAgentCallback schedulingAgentCallback, boolean failIfStopping, ScheduledState desiredState, ScheduledState scheduledState) {
 
         final Processor processor = processorRef.get().getProcessor();
         final ComponentLog procLog = new SimpleProcessLogger(StandardProcessorNode.this.getIdentifier(), processor);
@@ -1403,10 +1425,10 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
             if (currentState == ScheduledState.STOPPED) {
                 starting = this.scheduledState.compareAndSet(ScheduledState.STOPPED, scheduledState);
                 if (starting) {
-                    desiredState = desiredSate;
+                    this.desiredState = desiredState;
                 }
             } else if (currentState == ScheduledState.STOPPING && !failIfStopping) {
-                desiredState = desiredSate;
+                this.desiredState = desiredState;
                 return;
             } else {
                 starting = false;

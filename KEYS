@@ -1307,7 +1307,9 @@ uid           [ultimate] Ferenc Gerlits <fgerlits@gmail.com>
 sig 3        4317A11925EE7727 2021-03-22  Ferenc Gerlits <fgerlits@gmail.com>
 sub   rsa4096 2021-03-22 [E] [expires: 2025-03-21]
 sig          4317A11925EE7727 2021-03-22  Ferenc Gerlits <fgerlits@gmail.com>
+
 -----BEGIN PGP PUBLIC KEY BLOCK-----
+
 mQINBGBY1VsBEACzC5TThpK2pC8yESExQiL9uMAOkVNGHsbjwpq9Lua51vUXFbnA
 eG/1UtGgu/vSX2DZVsfwDk8Lu8nDDem5DCVInLYpIdzI0Ci7DxNSntBBlWcLx95a
 JcahTjUAGIozY55tZMt4TqDpHGcPkAQ6mTlhsczCC233DIQYx6rfcCnvI5RO089w
@@ -1366,7 +1368,9 @@ uid           [ultimate] Adam Debreceni <adam.debreceni@protonmail.com>
 sig 3        576CB454DDD6500D 2021-01-20  Adam Debreceni <adebreceni@apache.org>
 sub   rsa4096 2021-01-20 [E] [expires: 2023-01-20]
 sig          576CB454DDD6500D 2021-01-20  Adam Debreceni <adebreceni@apache.org>
+
 -----BEGIN PGP PUBLIC KEY BLOCK-----
+
 mQINBGAH/CABEADM+g8UUTuAgXEqKY0jYme4SH6PmBWRbkTHIh8l6SpKBMPATOl7
 hX6Tlzlv/8JchS89CgqBSwAFAmifO7uBht3rICMnZSHzgZDHD73duC3YZpHjXxmj
 zyT6CIUL2LviRU/sVUO2oVcSWPXt9rDQUJo1u+7ZrLa5zjJtW6VMceYFYlnXa21w

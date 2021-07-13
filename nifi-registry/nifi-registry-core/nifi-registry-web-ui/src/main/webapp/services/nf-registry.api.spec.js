@@ -1400,4 +1400,166 @@ describe('NfRegistry API w/ Angular testing utils', function () {
         // Finally, assert that there are no outstanding requests.
         httpMock.verify();
     }));
+
+    it('should GET to export versioned snapshot.', inject([HttpTestingController], function (httpMock) {
+        var url = 'testUrl';
+        var versionNumber = 1;
+        var reqUrl = '../nifi-registry-api/' + url + '/versions/' + versionNumber + '/export';
+
+        var response = '{'
+            + 'body: {'
+                + 'flowContents: {'
+                    + 'componentType: \'PROCESS_GROUP\','
+                    + 'connections: [],'
+                    + 'controllerServices: [],'
+                    + 'funnels: [],'
+                    + 'identifier: \'123\','
+                    + 'inputPorts: [],'
+                    + 'labels: [],'
+                    + 'name: \'Test snapshot\','
+                    + 'outputPorts: [],'
+                    + 'processGroups: []'
+                + '},'
+                + 'snapshotMetadata: {'
+                    + 'author: \'anonymous\','
+                    + 'bucketIdentifier: \'123\','
+                    + 'comments: \'Test comments\','
+                    + 'flowIdentifier: \'555\','
+                    + 'link: {'
+                        + 'href: \'buckets/123/flows/555/versions/2\','
+                        + 'params: {}'
+                    + '},'
+                    + 'version: 2'
+                + '}'
+            + '},'
+            + 'headers: {'
+                + 'headers: ['
+                    + '{\'filename\': [\'Test-flow-version-1\']}'
+                + '],'
+                + 'normalizedNames: {\'filename\': \'filename\'}'
+            + '},'
+            + 'ok: true,'
+            + 'status: 200,'
+            + 'statusText: \'OK\','
+            + 'type: 4,'
+            + 'url: \'testUrl\''
+        + '}';
+
+        var stringResponse = encodeURIComponent(response);
+
+        var anchor = document.createElement('a');
+
+        anchor.href = 'data:application/json;charset=utf-8,' + stringResponse;
+        anchor.download = 'Test-flow-version-3.json';
+        anchor.style = 'display: none;';
+
+        spyOn(document.body, 'appendChild');
+        spyOn(document.body, 'removeChild');
+
+        // api call
+        nfRegistryApi.exportDropletVersionedSnapshot(url, versionNumber).subscribe(function (res) {
+            expect(res.body).toEqual(response);
+            expect(res.status).toEqual(200);
+        });
+
+        // the request it made
+        req = httpMock.expectOne(reqUrl);
+        expect(req.request.method).toEqual('GET');
+
+        // Next, fulfill the request by transmitting a response.
+        req.flush(response);
+
+        // Finally, assert that there are no outstanding requests.
+        httpMock.verify();
+
+        expect(document.body.appendChild).toHaveBeenCalled();
+        expect(document.body.removeChild).toHaveBeenCalled();
+    }));
+
+    it('should POST to upload versioned flow snapshot.', inject([HttpTestingController], function (httpMock) {
+        var url = 'testUrl';
+        var reqUrl = '../nifi-registry-api/' + url + '/versions/import';
+
+        var response = {
+            flowContents: {
+                componentType: 'PROCESS_GROUP',
+                connections: [],
+                controllerServices: [],
+                funnels: [],
+                name: 'Test name',
+                identifier: '123'
+            },
+            snapshotMetadata: {
+                author: 'anonymous',
+                comments: 'This is snapshot #5',
+                timestamp: 1619806926583,
+                version: 3
+            }
+        };
+
+        var testFile = new File([], 'filename');
+
+        // api call
+        nfRegistryApi.uploadVersionedFlowSnapshot(url, testFile, '').subscribe(function (res) {
+            expect(res).toEqual(response);
+            expect(res.flowContents.name).toEqual('Test name');
+            expect(res.snapshotMetadata.comments).toEqual('This is snapshot #5');
+        });
+
+        // the request it made
+        req = httpMock.expectOne(reqUrl);
+        expect(req.request.method).toEqual('POST');
+
+        // Next, fulfill the request by transmitting a response.
+        req.flush(response);
+
+        // Finally, assert that there are no outstanding requests.
+        httpMock.verify();
+    }));
+
+    it('should POST to upload new flow snapshot.', inject([HttpTestingController], function (httpMock) {
+        var bucketUri = 'buckets/123';
+        var flowUri = 'buckets/123/flows/456';
+        var createFlowReqUrl = '../nifi-registry-api/' + bucketUri + '/flows';
+        var importFlowReqUrl = '../nifi-registry-api/' + flowUri + '/versions/import';
+        var headers = new Headers({'Content-Type': 'application/json'});
+
+        var response = {
+            bucketIdentifier: '123',
+            bucketName: 'Bucket 1',
+            createdTimestamp: 1620168949158,
+            description: 'Test description',
+            identifier: '456',
+            link: {
+                href: 'buckets/123/flows/456',
+                params: {}
+            },
+            modifiedTimestamp: 1620175586179,
+            name: 'Test Flow name',
+            permissions: {canDelete: true, canRead: true, canWrite: true},
+            type: 'Flow',
+            versionCount: 0
+        };
+
+        var testFile = new File([], 'filename.json');
+
+        // api call
+        nfRegistryApi.uploadFlow(bucketUri, testFile, headers).subscribe(function (res) {
+            expect(res).toEqual(response);
+        });
+
+        // the request it made
+        req = httpMock.expectOne(createFlowReqUrl);
+        expect(req.request.method).toEqual('POST');
+
+        // Next, fulfill the request by transmitting a response.
+        req.flush(response);
+
+        // the inner request it made
+        req = httpMock.expectOne(importFlowReqUrl);
+        expect(req.request.method).toEqual('POST');
+
+        // Finally, assert that there are no outstanding requests.
+        httpMock.verify();
+    }));
 });

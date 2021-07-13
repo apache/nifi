@@ -116,10 +116,10 @@ public class TestAzureStorageUtilsGetStorageCredentialsDetails {
 
     private void configureProcessorProperties(String accountName, String accountKey, String sasToken) {
         if (accountName != null) {
-            processContext.setProperty(AzureStorageUtils.ACCOUNT_NAME, ACCOUNT_NAME_VALUE);
+            processContext.setProperty(AzureStorageUtils.ACCOUNT_NAME, accountName);
         }
         if (accountKey != null) {
-            processContext.setProperty(AzureStorageUtils.ACCOUNT_KEY, ACCOUNT_KEY_VALUE);
+            processContext.setProperty(AzureStorageUtils.ACCOUNT_KEY, accountKey);
         }
         if (sasToken != null) {
             processContext.setProperty(AzureStorageUtils.PROP_SAS_TOKEN, sasToken);

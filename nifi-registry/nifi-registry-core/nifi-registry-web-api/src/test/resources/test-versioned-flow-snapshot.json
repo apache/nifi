@@ -1,0 +1,23 @@
+{
+  "flowContents": {
+    "componentType": "PROCESS_GROUP",
+    "connections": [],
+    "controllerServices": [],
+    "funnels": [],
+    "identifier": "123",
+    "inputPorts": [],
+    "labels": [],
+    "name": "Test snapshot",
+    "outputPorts": [],
+    "processGroups": [],
+    "processors": [],
+    "remoteProcessGroups": [],
+    "variables": {}
+  },
+  "snapshotMetadata": {
+    "author": "anonymous",
+    "comments": "This is snapshot #5",
+    "timestamp": 1618078687616,
+    "version": 5
+  }
+}

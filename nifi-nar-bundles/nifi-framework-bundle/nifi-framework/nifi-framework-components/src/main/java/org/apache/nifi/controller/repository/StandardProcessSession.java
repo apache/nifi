@@ -229,10 +229,10 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
         verifyTaskActive();
 
         if (!readRecursionSet.isEmpty()) {
-            throw new IllegalStateException();
+            throw new IllegalStateException("Cannot commit session while reading from FlowFile");
         }
         if (!writeRecursionSet.isEmpty()) {
-            throw new IllegalStateException();
+            throw new IllegalStateException("Cannot commit session while writing to FlowFile");
         }
 
         for (final StandardRepositoryRecord record : records.values()) {
@@ -242,7 +242,9 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
 
             final Relationship relationship = record.getTransferRelationship();
             if (relationship == null) {
-                throw new FlowFileHandlingException(record.getCurrent() + " transfer relationship not specified");
+                final String createdThisSession = record.getOriginalQueue() == null ? "was created" : "was not created";
+                throw new FlowFileHandlingException(record.getCurrent() + " transfer relationship not specified. This FlowFile " + createdThisSession + " in this session and was not transferred " +
+                    "to any Relationship via ProcessSession.transfer()");
             }
 
             final Collection<Connection> destinations = context.getConnections(relationship);
@@ -368,6 +370,8 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
             } catch (final Throwable t2) {
                 LOG.error("Failed to roll back session {} for {}", this, connectableDescription, t2);
             }
+
+            throw t;
         }
     }
 
@@ -388,7 +392,7 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                 onFailure.accept(t);
             }
 
-            return;
+            throw t;
         }
 
         if (onSuccess != null) {
@@ -1343,8 +1347,16 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                 final ProvenanceEventBuilder eventBuilder = entry.getValue();
                 for (final String childId : eventBuilder.getChildFlowFileIds()) {
                     if (!flowFileIds.contains(childId)) {
-                        throw new IllegalStateException("Cannot migrate " + eventFlowFile + " to a new session because it was forked to create " + eventBuilder.getChildFlowFileIds().size()
+                        throw new FlowFileHandlingException("Cannot migrate " + eventFlowFile + " to a new session because it was forked to create " + eventBuilder.getChildFlowFileIds().size()
                             + " children and not all children are being migrated. If any FlowFile is forked, all of its children must also be migrated at the same time as the forked FlowFile");
+                    }
+                }
+            } else {
+                final ProvenanceEventBuilder eventBuilder = entry.getValue();
+                for (final String childId : eventBuilder.getChildFlowFileIds()) {
+                    if (flowFileIds.contains(childId)) {
+                        throw new FlowFileHandlingException("Cannot migrate " + eventFlowFile + " to a new session because it was forked from a Parent FlowFile, but the parent is not being migrated. "
+                            + "If any FlowFile is forked, the parent and all children must be migrated at the same time.");
                     }
                 }
             }
@@ -1352,9 +1364,15 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
 
         // If we have a FORK event where a FlowFile is a child of the FORK event, we want to create a FORK
         // event builder for the new owner of the FlowFile and remove the child from our fork event builder.
+        final Set<FlowFile> forkedFlowFilesMigrated = new HashSet<>();
         for (final Map.Entry<FlowFile, ProvenanceEventBuilder> entry : forkEventBuilders.entrySet()) {
             final FlowFile eventFlowFile = entry.getKey();
             final ProvenanceEventBuilder eventBuilder = entry.getValue();
+
+            // If the FlowFile that the event is attached to is not being migrated, we should not migrate the fork event builder either.
+            if (!flowFiles.contains(eventFlowFile)) {
+                continue;
+            }
 
             final Set<String> childrenIds = new HashSet<>(eventBuilder.getChildFlowFileIds());
 
@@ -1374,8 +1392,11 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
 
             if (copy != null) {
                 newOwner.forkEventBuilders.put(eventFlowFile, copy);
+                forkedFlowFilesMigrated.add(eventFlowFile);
             }
         }
+
+        forkedFlowFilesMigrated.forEach(forkEventBuilders::remove);
 
         newOwner.processingStartTime = Math.min(newOwner.processingStartTime, processingStartTime);
 
@@ -2803,6 +2824,9 @@ public class StandardProcessSession implements ProcessSession, ProvenanceEventEn
                     }
 
                     closed = true;
+
+                    countingOut.close();
+                    rawStream.close();
                     writeRecursionSet.remove(sourceFlowFile);
 
                     final long bytesWritten = countingOut.getBytesWritten();

@@ -234,9 +234,8 @@ public class ConvertAvroToORC extends AbstractProcessor {
                     try {
 
                         int recordCount = 0;
-                        GenericRecord currRecord = null;
                         while (reader.hasNext()) {
-                            currRecord = reader.next(currRecord);
+                            GenericRecord currRecord = reader.next();
                             List<Schema.Field> fields = currRecord.getSchema().getFields();
                             if (fields != null) {
                                 Object[] row = new Object[fields.size()];
@@ -284,7 +283,7 @@ public class ConvertAvroToORC extends AbstractProcessor {
             flowFile = session.putAttribute(flowFile, CoreAttributes.MIME_TYPE.key(), ORC_MIME_TYPE);
             flowFile = session.putAttribute(flowFile, CoreAttributes.FILENAME.key(), newFilename.toString());
             session.transfer(flowFile, REL_SUCCESS);
-            session.getProvenanceReporter().modifyContent(flowFile, "Converted "+totalRecordCount.get()+" records", System.currentTimeMillis() - startTime);
+            session.getProvenanceReporter().modifyContent(flowFile, "Converted " + totalRecordCount.get() + " records", System.currentTimeMillis() - startTime);
 
         } catch (ProcessException | IllegalArgumentException e) {
             getLogger().error("Failed to convert {} from Avro to ORC due to {}; transferring to failure", new Object[]{flowFile, e});

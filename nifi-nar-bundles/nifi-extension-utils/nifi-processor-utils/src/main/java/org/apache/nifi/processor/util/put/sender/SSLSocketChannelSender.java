@@ -68,9 +68,10 @@ public class SSLSocketChannelSender extends SocketChannelSender {
 
     @Override
     public void close() {
-        super.close();
-        IOUtils.closeQuietly(sslOutputStream);
+        // Close SSLSocketChannel before closing other resources
         IOUtils.closeQuietly(sslChannel);
+        IOUtils.closeQuietly(sslOutputStream);
+        super.close();
         sslChannel = null;
     }
 

@@ -67,12 +67,14 @@ describe('NfRegistryBucketGridListViewer Component', function () {
         spyOn(nfRegistryApi, 'getBuckets').and.callFake(function () {
         }).and.returnValue(of([{
             identifier: '2f7f9e54-dc09-4ceb-aa58-9fe581319cdc',
-            name: 'Bucket #1'
+            name: 'Bucket #1',
+            permissions: {'canDelete': true, 'canRead': true, 'canWrite': true}
         }]));
         spyOn(nfRegistryApi, 'getBucket').and.callFake(function () {
         }).and.returnValue(of({
             identifier: '2f7f9e54-dc09-4ceb-aa58-9fe581319cdc',
-            name: 'Bucket #1'
+            name: 'Bucket #1',
+            permissions: {'canDelete': true, 'canRead': true, 'canWrite': true}
         }));
         spyOn(nfRegistryApi, 'getDroplets').and.callFake(function () {
         }).and.returnValue(of([{
@@ -89,7 +91,8 @@ describe('NfRegistryBucketGridListViewer Component', function () {
                     'rel': 'self'
                 },
                 'href': 'flows/2e04b4fb-9513-47bb-aa74-1ae34616bfdc'
-            }
+            },
+            'permissions': {'canDelete': true, 'canRead': true, 'canWrite': true}
         }]));
         // 1st change detection triggers ngOnInit which makes getBuckets, getBucket, and getDroplets calls
         fixture.detectChanges();
@@ -150,12 +153,14 @@ describe('NfRegistryBucketGridListViewer Component', function () {
         spyOn(nfRegistryApi, 'getBuckets').and.callFake(function () {
         }).and.returnValue(of([{
             identifier: '2f7f9e54-dc09-4ceb-aa58-9fe581319cdc',
-            name: 'Bucket #1'
+            name: 'Bucket #1',
+            permissions: {'canDelete': true, 'canRead': true, 'canWrite': true}
         }]));
         spyOn(nfRegistryApi, 'getBucket').and.callFake(function () {
         }).and.returnValue(of({
             identifier: '2f7f9e54-dc09-4ceb-aa58-9fe581319cdc',
-            name: 'Bucket #1'
+            name: 'Bucket #1',
+            permissions: {'canDelete': true, 'canRead': true, 'canWrite': true}
         }));
         spyOn(nfRegistryApi, 'getDroplets').and.callFake(function () {
         }).and.returnValue(of([{
@@ -172,7 +177,8 @@ describe('NfRegistryBucketGridListViewer Component', function () {
                     'rel': 'self'
                 },
                 'href': 'flows/2e04b4fb-9513-47bb-aa74-1ae34616bfdc'
-            }
+            },
+            'permissions': {'canDelete': true, 'canRead': true, 'canWrite': true}
         }]));
         // 1st change detection triggers ngOnInit which makes getBuckets, getBucket, and getDroplets calls
         fixture.detectChanges();

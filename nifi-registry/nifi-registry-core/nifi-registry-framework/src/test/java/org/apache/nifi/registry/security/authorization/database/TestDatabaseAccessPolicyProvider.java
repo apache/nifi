@@ -45,6 +45,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
@@ -286,9 +287,11 @@ public class TestDatabaseAccessPolicyProvider extends DatabaseBaseTest {
 
     @Test
     public void testOnConfiguredAppliesIdentityMappings() {
+        final Properties props = new Properties();
         // Set up an identity mapping for kerberos principals
-        properties.setProperty("nifi.registry.security.identity.mapping.pattern.kerb", "^(.*?)@(.*?)$");
-        properties.setProperty("nifi.registry.security.identity.mapping.value.kerb", "$1");
+        props.setProperty("nifi.registry.security.identity.mapping.pattern.kerb", "^(.*?)@(.*?)$");
+        props.setProperty("nifi.registry.security.identity.mapping.value.kerb", "$1");
+        properties = new NiFiRegistryProperties(props);
 
         identityMapper = new DefaultIdentityMapper(properties);
         ((DatabaseAccessPolicyProvider)policyProvider).setIdentityMapper(identityMapper);
@@ -311,10 +314,12 @@ public class TestDatabaseAccessPolicyProvider extends DatabaseBaseTest {
 
     @Test
     public void testOnConfiguredAppliesGroupMappings() {
+        final Properties props = new Properties();
         // Set up an identity mapping for kerberos principals
-        properties.setProperty("nifi.registry.security.group.mapping.pattern.anyGroup", "^(.*)$");
-        properties.setProperty("nifi.registry.security.group.mapping.value.anyGroup", "$1");
-        properties.setProperty("nifi.registry.security.group.mapping.transform.anyGroup", "LOWER");
+        props.setProperty("nifi.registry.security.group.mapping.pattern.anyGroup", "^(.*)$");
+        props.setProperty("nifi.registry.security.group.mapping.value.anyGroup", "$1");
+        props.setProperty("nifi.registry.security.group.mapping.transform.anyGroup", "LOWER");
+        properties = new NiFiRegistryProperties(props);
 
         identityMapper = new DefaultIdentityMapper(properties);
         ((DatabaseAccessPolicyProvider)policyProvider).setIdentityMapper(identityMapper);

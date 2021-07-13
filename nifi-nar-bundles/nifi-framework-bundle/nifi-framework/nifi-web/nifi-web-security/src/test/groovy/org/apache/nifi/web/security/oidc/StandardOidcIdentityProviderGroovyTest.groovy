@@ -68,17 +68,15 @@ class StandardOidcIdentityProviderGroovyTest extends GroovyTestCase {
 
     private static final Key SIGNING_KEY = new Key(id: 1, identity: "signingKey", key: "mock-signing-key-value")
     private static final Map<String, Object> DEFAULT_NIFI_PROPERTIES = [
-//            isOidcEnabled                 : false,
-            isOidcEnabled                 : true,
-            getOidcDiscoveryUrl           : "https://localhost/oidc",
-            isLoginIdentityProviderEnabled: false,
-            isKnoxSsoEnabled              : false,
-            getOidcConnectTimeout         : 1000,
-            getOidcReadTimeout            : 1000,
-            getOidcClientId               : "expected_client_id",
-            getOidcClientSecret           : "expected_client_secret",
-            getOidcClaimIdentifyingUser   : "username",
-            getOidcPreferredJwsAlgorithm  : ""
+            "nifi.security.user.oidc.discovery.url"           : "https://localhost/oidc",
+            "nifi.security.user.login.identity.provider"      : "provider",
+            "nifi.security.user.knox.url"                     : "url",
+            "nifi.security.user.oidc.connect.timeout"         : "1000",
+            "nifi.security.user.oidc.read.timeout"            : "1000",
+            "nifi.security.user.oidc.client.id"               : "expected_client_id",
+            "nifi.security.user.oidc.client.secret"           : "expected_client_secret",
+            "nifi.security.user.oidc.claim.identifying.user"  : "username",
+            "nifi.security.user.oidc.preferred.jwsalgorithm"  : ""
     ]
 
     // Mock collaborators
@@ -108,10 +106,7 @@ class StandardOidcIdentityProviderGroovyTest extends GroovyTestCase {
 
     private static NiFiProperties buildNiFiProperties(Map<String, Object> props = [:]) {
         def combinedProps = DEFAULT_NIFI_PROPERTIES + props
-        def mockNFP = combinedProps.collectEntries { String k, def v ->
-            [k, { -> return v }]
-        }
-        mockNFP as NiFiProperties
+        new NiFiProperties(combinedProps)
     }
 
     private static JwtService buildJwtService() {
@@ -414,7 +409,9 @@ class StandardOidcIdentityProviderGroovyTest extends GroovyTestCase {
     @Test
     void testConvertOIDCTokenToLoginAuthenticationTokenShouldHandleNoEmailClaimHasFallbackClaims() {
         // Arrange
-        StandardOidcIdentityProvider soip = buildIdentityProviderWithMockTokenValidator(["getOidcClaimIdentifyingUser": "email", "getOidcFallbackClaimsIdentifyingUser": ["upn"] ])
+        StandardOidcIdentityProvider soip = buildIdentityProviderWithMockTokenValidator(
+                ["nifi.security.user.oidc.claim.identifying.user": "email",
+                 "nifi.security.user.oidc.fallback.claims.identifying.user": "upn" ])
         String expectedUpn = "xxx@aaddomain";
 
         OIDCTokenResponse mockResponse = mockOIDCTokenResponse(["email": null, "upn": expectedUpn])

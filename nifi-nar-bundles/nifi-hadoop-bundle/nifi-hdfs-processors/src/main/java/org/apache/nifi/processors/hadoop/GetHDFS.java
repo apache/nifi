@@ -345,7 +345,7 @@ public class GetHDFS extends AbstractHadoopProcessor {
         final Double bufferSizeProp = context.getProperty(BUFFER_SIZE).asDataSize(DataUnit.B);
         int bufferSize = bufferSizeProp != null ? bufferSizeProp.intValue() : conf.getInt(BUFFER_SIZE_KEY,
                 BUFFER_SIZE_DEFAULT);
-        final Path rootDir = new Path(context.getProperty(DIRECTORY).evaluateAttributeExpressions().getValue());
+        final Path rootDir = getNormalizedPath(context, DIRECTORY);
 
         final CompressionType compressionType = CompressionType.valueOf(context.getProperty(COMPRESSION_CODEC).toString());
         final boolean inferCompressionCodec = compressionType == CompressionType.AUTOMATIC;
@@ -427,7 +427,7 @@ public class GetHDFS extends AbstractHadoopProcessor {
         if (System.currentTimeMillis() >= nextPollTime && listingLock.tryLock()) {
             try {
                 final FileSystem hdfs = getFileSystem();
-                final Path directoryPath = new Path(context.getProperty(DIRECTORY).evaluateAttributeExpressions().getValue());
+                final Path directoryPath = getNormalizedPath(context, DIRECTORY);
 
                 if (!hdfs.exists(directoryPath)) {
                     context.yield();

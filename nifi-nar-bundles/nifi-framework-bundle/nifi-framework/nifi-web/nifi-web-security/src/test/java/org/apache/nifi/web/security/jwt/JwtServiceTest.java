@@ -25,7 +25,7 @@ import org.apache.nifi.authorization.user.StandardNiFiUser;
 import org.apache.nifi.authorization.util.IdentityMapping;
 import org.apache.nifi.authorization.util.IdentityMappingUtil;
 import org.apache.nifi.key.Key;
-import org.apache.nifi.properties.StandardNiFiProperties;
+import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.security.token.LoginAuthenticationToken;
 import org.codehaus.jettison.json.JSONObject;
 import org.junit.After;
@@ -244,7 +244,7 @@ public class JwtServiceTest {
         Properties props = new Properties();
         props.setProperty(SECURITY_IDENTITY_MAPPING_PATTERN_PREFIX+"kerb",  "^(.*?)@(.*?)$");
         props.setProperty(SECURITY_IDENTITY_MAPPING_VALUE_PREFIX+"kerb", "$1");
-        identityMappings = IdentityMappingUtil.getIdentityMappings(new StandardNiFiProperties(props));
+        identityMappings = IdentityMappingUtil.getIdentityMappings(new NiFiProperties(props));
     }
 
     @After

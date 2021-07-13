@@ -153,6 +153,17 @@ public class TestJacksonExtensionManifestParser {
         assertNotNull(extensionManifest);
     }
 
+    @Test
+    public void testDocsForUnknownProperties() throws IOException {
+        final ExtensionManifest extensionManifest = parse("src/test/resources/descriptors/extension-manifest-unknown-property.xml");
+        assertNotNull(extensionManifest);
+        assertEquals("1.8.0", extensionManifest.getSystemApiVersion());
+
+        final List<Extension> extensionDetails = extensionManifest.getExtensions();
+        assertEquals(1, extensionDetails.size());
+
+    }
+
     private ExtensionManifest parse(final String file) throws IOException {
         try (final InputStream inputStream = new FileInputStream(file)) {
             return parser.parse(inputStream);

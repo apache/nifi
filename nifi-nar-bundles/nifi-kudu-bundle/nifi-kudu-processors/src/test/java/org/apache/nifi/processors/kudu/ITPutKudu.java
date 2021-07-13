@@ -68,6 +68,8 @@ public class ITPutKudu {
             new MiniKuduCluster.MiniKuduClusterBuilder()
                 .addMasterServerFlag("--use_hybrid_clock=false")
                 .addTabletServerFlag("--use_hybrid_clock=false")
+                .enableKerberos()
+                .principal("oryx")
     );
 
     private TestRunner testRunner;
@@ -99,6 +101,9 @@ public class ITPutKudu {
         testRunner.setProperty(PutKudu.LOWERCASE_FIELD_NAMES, "false");
         testRunner.setProperty(PutKudu.RECORD_READER, "mock-reader-factory");
         testRunner.setProperty(PutKudu.INSERT_OPERATION, OperationType.INSERT_IGNORE.toString());
+        testRunner.setProperty(PutKudu.KERBEROS_PRINCIPAL, "test-user");
+        testRunner.setProperty(PutKudu.KERBEROS_PASSWORD, "test-user");
+        testRunner.setProperty(PutKudu.KUDU_SASL_PROTOCOL_NAME, "oryx");
     }
 
     private void createKuduTable() throws KuduException {

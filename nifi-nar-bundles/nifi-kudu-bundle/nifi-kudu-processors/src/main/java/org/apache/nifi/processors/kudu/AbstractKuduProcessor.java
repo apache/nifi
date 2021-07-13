@@ -55,11 +55,15 @@ import org.apache.nifi.util.StringUtils;
 
 import javax.security.auth.login.LoginException;
 import java.math.BigDecimal;
+import java.sql.Date;
 import java.sql.Timestamp;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.SynchronousQueue;
@@ -114,7 +118,7 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
             .displayName("Kudu Operation Timeout")
             .description("Default timeout used for user operations (using sessions and scanners)")
             .required(false)
-            .defaultValue(String.valueOf(AsyncKuduClient.DEFAULT_OPERATION_TIMEOUT_MS) + "ms")
+            .defaultValue(AsyncKuduClient.DEFAULT_OPERATION_TIMEOUT_MS + "ms")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
@@ -124,7 +128,7 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
             .displayName("Kudu Keep Alive Period Timeout")
             .description("Default timeout used for user operations")
             .required(false)
-            .defaultValue(String.valueOf(AsyncKuduClient.DEFAULT_KEEP_ALIVE_PERIOD_MS) + "ms")
+            .defaultValue(AsyncKuduClient.DEFAULT_KEEP_ALIVE_PERIOD_MS + "ms")
             .addValidator(StandardValidators.TIME_PERIOD_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
@@ -137,6 +141,16 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
             .required(true)
             .defaultValue(Integer.toString(DEFAULT_WORKER_COUNT))
             .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
+            .build();
+
+    static final PropertyDescriptor KUDU_SASL_PROTOCOL_NAME = new Builder()
+            .name("kudu-sasl-protocol-name")
+            .displayName("Kudu SASL Protocol Name")
+            .description("The SASL protocol name to use for authenticating via Kerberos. Must match the service principal name.")
+            .required(false)
+            .defaultValue("kudu")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
     private volatile KuduClient kuduClient;
@@ -200,6 +214,7 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
         final String masters = context.getProperty(KUDU_MASTERS).evaluateAttributeExpressions().getValue();
         final int operationTimeout = context.getProperty(KUDU_OPERATION_TIMEOUT_MS).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS).intValue();
         final int adminOperationTimeout = context.getProperty(KUDU_KEEP_ALIVE_PERIOD_TIMEOUT_MS).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS).intValue();
+        final String saslProtocolName = context.getProperty(KUDU_SASL_PROTOCOL_NAME).evaluateAttributeExpressions().getValue();
         final int workerCount = context.getProperty(WORKER_COUNT).asInteger();
 
         // Create Executor following approach of Executors.newCachedThreadPool() using worker count as maximum pool size
@@ -217,6 +232,7 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
         return new KuduClient.KuduClientBuilder(masters)
                 .defaultOperationTimeoutMs(operationTimeout)
                 .defaultSocketReadTimeoutMs(adminOperationTimeout)
+                .saslProtocolName(saslProtocolName)
                 .workerCount(workerCount)
                 .nioExecutor(nioExecutor)
                 .build();
@@ -391,13 +407,37 @@ public abstract class AbstractKuduProcessor extends AbstractProcessor {
                         row.addVarchar(columnIndex, DataTypeUtils.toString(value, recordFieldName));
                         break;
                     case DATE:
-                        row.addDate(columnIndex, DataTypeUtils.toDate(value, () -> DataTypeUtils.getDateFormat(RecordFieldType.DATE.getDefaultFormat()), recordFieldName));
+                        final Optional<DataType> fieldDataType = record.getSchema().getDataType(recordFieldName);
+                        final String format = fieldDataType.isPresent() ? fieldDataType.get().getFormat() : RecordFieldType.DATE.getDefaultFormat();
+                        row.addDate(columnIndex, getDate(value, recordFieldName, format));
                         break;
                     default:
                         throw new IllegalStateException(String.format("unknown column type %s", colType));
                 }
             }
         }
+    }
+
+    /**
+     * Get java.sql.Date from Record Field Value with optional parsing when input value is a String
+     *
+     * @param value Record Field Value
+     * @param recordFieldName Record Field Name
+     * @param format Date Format Pattern
+     * @return Date object or null when value is null
+     */
+    private Date getDate(final Object value, final String recordFieldName, final String format) {
+        return DataTypeUtils.toDate(value, () -> getDateFormat(format), recordFieldName);
+    }
+
+    /**
+     * Get Date Format using Date Record Field default pattern and system time zone to avoid unnecessary conversion
+     *
+     * @param format Date Format Pattern
+     * @return Date Format used to parsing date fields
+     */
+    private DateFormat getDateFormat(final String format) {
+        return new SimpleDateFormat(format);
     }
 
     /**

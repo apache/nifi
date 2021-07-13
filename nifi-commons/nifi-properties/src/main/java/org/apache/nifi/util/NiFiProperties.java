@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.util;
 
+import org.apache.nifi.properties.ApplicationProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,7 +47,7 @@ import java.util.stream.Stream;
  * this class or passing it along. Its use should be refactored and minimized
  * over time.
  */
-public abstract class NiFiProperties {
+public class NiFiProperties extends ApplicationProperties {
     private static final Logger logger = LoggerFactory.getLogger(NiFiProperties.class);
 
     // core properties
@@ -101,6 +102,7 @@ public abstract class NiFiProperties {
     public static final String CONTENT_REPOSITORY_ENCRYPTION_KEY_ID = "nifi.content.repository.encryption.key.id";
     public static final String CONTENT_REPOSITORY_ENCRYPTION_KEY_PROVIDER_IMPLEMENTATION_CLASS = "nifi.content.repository.encryption.key.provider.implementation";
     public static final String CONTENT_REPOSITORY_ENCRYPTION_KEY_PROVIDER_LOCATION = "nifi.content.repository.encryption.key.provider.location";
+    public static final String CONTENT_REPOSITORY_ENCRYPTION_KEY_PROVIDER_PASSWORD = "nifi.content.repository.encryption.key.provider.password";
 
     // flowfile repository properties
     public static final String FLOWFILE_REPOSITORY_IMPLEMENTATION = "nifi.flowfile.repository.implementation";
@@ -112,6 +114,7 @@ public abstract class NiFiProperties {
     public static final String FLOWFILE_REPOSITORY_ENCRYPTION_KEY_ID = "nifi.flowfile.repository.encryption.key.id";
     public static final String FLOWFILE_REPOSITORY_ENCRYPTION_KEY_PROVIDER_IMPLEMENTATION_CLASS = "nifi.flowfile.repository.encryption.key.provider.implementation";
     public static final String FLOWFILE_REPOSITORY_ENCRYPTION_KEY_PROVIDER_LOCATION = "nifi.flowfile.repository.encryption.key.provider.location";
+    public static final String FLOWFILE_REPOSITORY_ENCRYPTION_KEY_PROVIDER_PASSWORD = "nifi.flowfile.repository.encryption.key.provider.password";
     public static final String FLOWFILE_SWAP_MANAGER_IMPLEMENTATION = "nifi.swap.manager.implementation";
     public static final String QUEUE_SWAP_THRESHOLD = "nifi.queue.swap.threshold";
 
@@ -134,6 +137,7 @@ public abstract class NiFiProperties {
     public static final String PROVENANCE_REPO_ENCRYPTION_KEY_ID = "nifi.provenance.repository.encryption.key.id";
     public static final String PROVENANCE_REPO_ENCRYPTION_KEY_PROVIDER_IMPLEMENTATION_CLASS = "nifi.provenance.repository.encryption.key.provider.implementation";
     public static final String PROVENANCE_REPO_ENCRYPTION_KEY_PROVIDER_LOCATION = "nifi.provenance.repository.encryption.key.provider.location";
+    public static final String PROVENANCE_REPO_ENCRYPTION_KEY_PROVIDER_PASSWORD = "nifi.provenance.repository.encryption.key.provider.password";
     public static final String PROVENANCE_REPO_DEBUG_FREQUENCY = "nifi.provenance.repository.debug.frequency";
 
     // status repository properties
@@ -246,7 +250,7 @@ public abstract class NiFiProperties {
     public static final String FLOW_ELECTION_MAX_CANDIDATES = "nifi.cluster.flow.election.max.candidates";
 
     // cluster load balance properties
-    public static final String LOAD_BALANCE_ADDRESS = "nifi.cluster.load.balance.address";
+    public static final String LOAD_BALANCE_HOST = "nifi.cluster.load.balance.host";
     public static final String LOAD_BALANCE_PORT = "nifi.cluster.load.balance.port";
     public static final String LOAD_BALANCE_CONNECTIONS_PER_NODE = "nifi.cluster.load.balance.connections.per.node";
     public static final String LOAD_BALANCE_MAX_THREAD_COUNT = "nifi.cluster.load.balance.max.thread.count";
@@ -383,29 +387,22 @@ public abstract class NiFiProperties {
     public static final String DEFAULT_ANALYTICS_CONNECTION_SCORE_NAME = "rSquared";
     public static final double DEFAULT_ANALYTICS_CONNECTION_SCORE_THRESHOLD = .90;
 
-    // runtime monitoring defaults
-    public static final String DEFAULT_MONITOR_LONG_RUNNING_TASK_SCHEDULE = "1 min";
-    public static final String DEFAULT_MONITOR_LONG_RUNNING_TASK_THRESHOLD = "5 mins";
-
     // Status repository defaults
     public static final int DEFAULT_COMPONENT_STATUS_REPOSITORY_PERSIST_NODE_DAYS = 14;
     public static final int DEFAULT_COMPONENT_STATUS_REPOSITORY_PERSIST_COMPONENT_DAYS = 3;
     public static final String DEFAULT_COMPONENT_STATUS_REPOSITORY_PERSIST_LOCATION = "./status_repository";
 
-    /**
-     * Retrieves the property value for the given property key.
-     *
-     * @param key the key of property value to lookup
-     * @return value of property at given key or null if not found
-     */
-    public abstract String getProperty(String key);
+    public NiFiProperties() {
+        this(Collections.EMPTY_MAP);
+    }
 
-    /**
-     * Retrieves all known property keys.
-     *
-     * @return all known property keys
-     */
-    public abstract Set<String> getPropertyKeys();
+    public NiFiProperties(final Map<String, String> props) {
+        super(props);
+    }
+
+    public NiFiProperties(final Properties props) {
+        super(props);
+    }
 
     // getters for core properties //
     public File getFlowConfigurationFile() {
@@ -823,16 +820,16 @@ public abstract class NiFiProperties {
 
     public InetSocketAddress getClusterLoadBalanceAddress() {
         try {
-            String address = getProperty(LOAD_BALANCE_ADDRESS);
-            if (StringUtils.isBlank(address)) {
-                address = getProperty(CLUSTER_NODE_ADDRESS);
+            String host = getProperty(LOAD_BALANCE_HOST);
+            if (StringUtils.isBlank(host)) {
+                host = getProperty(CLUSTER_NODE_ADDRESS);
             }
-            if (StringUtils.isBlank(address)) {
-                address = "localhost";
+            if (StringUtils.isBlank(host)) {
+                host = "localhost";
             }
 
             final int port = getIntegerProperty(LOAD_BALANCE_PORT, DEFAULT_LOAD_BALANCE_PORT);
-            return InetSocketAddress.createUnresolved(address, port);
+            return InetSocketAddress.createUnresolved(host, port);
         } catch (final Exception e) {
             throw new RuntimeException("Invalid load balance address/port due to: " + e, e);
         }
@@ -1591,14 +1588,10 @@ public abstract class NiFiProperties {
     }
 
     public boolean isTlsConfigurationPresent() {
-        return StringUtils.isNotBlank(getProperty(NiFiProperties.SECURITY_KEYSTORE))
-            && getProperty(NiFiProperties.SECURITY_KEYSTORE_PASSWD) != null
-            && StringUtils.isNotBlank(getProperty(NiFiProperties.SECURITY_TRUSTSTORE))
-            && getProperty(NiFiProperties.SECURITY_TRUSTSTORE_PASSWD) != null;
-    }
-
-    public int size() {
-        return getPropertyKeys().size();
+        return StringUtils.isNotBlank(getProperty(SECURITY_KEYSTORE))
+            && getProperty(SECURITY_KEYSTORE_PASSWD) != null
+            && StringUtils.isNotBlank(getProperty(SECURITY_TRUSTSTORE))
+            && getProperty(SECURITY_TRUSTSTORE_PASSWD) != null;
     }
 
     public String getFlowFileRepoEncryptionKeyId() {
@@ -1624,8 +1617,7 @@ public abstract class NiFiProperties {
 
     /**
      * Returns a map of keyId -> key in hex loaded from the {@code nifi.properties} file if a
-     * {@code StaticKeyProvider} is defined. If {@code FileBasedKeyProvider} is defined, use
-     * {@code CryptoUtils#readKeys()} instead -- this method will return an empty map.
+     * {@code StaticKeyProvider} is defined. If {@code FileBasedKeyProvider} is defined this method will return an empty map.
      *
      * @return a Map of the keys identified by key ID
      */
@@ -1756,8 +1748,7 @@ public abstract class NiFiProperties {
 
     /**
      * Returns a map of keyId -> key in hex loaded from the {@code nifi.properties} file if a
-     * {@code StaticKeyProvider} is defined. If {@code FileBasedKeyProvider} is defined, use
-     * {@code CryptoUtils#readKeys()} instead -- this method will return an empty map.
+     * {@code StaticKeyProvider} is defined. If {@code FileBasedKeyProvider} is defined this method will return an empty map.
      *
      * @return a Map of the keys identified by key ID
      */
@@ -1788,8 +1779,7 @@ public abstract class NiFiProperties {
 
     /**
      * Returns a map of keyId -> key in hex loaded from the {@code nifi.properties} file if a
-     * {@code StaticKeyProvider} is defined. If {@code FileBasedKeyProvider} is defined, use
-     * {@code CryptoUtils#readKeys()} instead -- this method will return an empty map.
+     * {@code StaticKeyProvider} is defined. If {@code FileBasedKeyProvider} is defined this method will return an empty map.
      *
      * @return a Map of the keys identified by key ID
      */
@@ -2026,6 +2016,11 @@ public abstract class NiFiProperties {
             public Set<String> getPropertyKeys() {
                 return properties.stringPropertyNames();
             }
+
+            @Override
+            public int size() {
+                return getPropertyKeys().size();
+            }
         };
     }
 
@@ -2076,5 +2071,10 @@ public abstract class NiFiProperties {
             throw new IllegalArgumentException(remoteInputHost + " is not a correct value for " + REMOTE_INPUT_HOST + ". It should be a valid hostname without protocol or port.");
         }
         // Other properties to validate...
+    }
+
+    @Override
+    public String toString() {
+        return "NiFiProperties instance with " + size() + " properties";
     }
 }

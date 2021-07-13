@@ -25,6 +25,7 @@ import org.junit.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -40,7 +41,9 @@ public class TestPropertiesFileFlowDefinitionParser {
     public void testParse() throws IOException, StatelessConfigurationException {
         final PropertiesFileFlowDefinitionParser parser = new PropertiesFileFlowDefinitionParser();
 
-        final DataflowDefinition dataflowDefinition = parser.parseFlowDefinition(new File("src/test/resources/flow-configuration.properties"), createStatelessEngineConfiguration());
+        final List<ParameterOverride> parameterOverrides = new ArrayList<>();
+        final StatelessEngineConfiguration engineConfig = createStatelessEngineConfiguration();
+        final DataflowDefinition<?> dataflowDefinition = parser.parseFlowDefinition(new File("src/test/resources/flow-configuration.properties"), engineConfig, parameterOverrides);
         assertEquals(new HashSet<>(Arrays.asList("foo", "bar", "baz")), dataflowDefinition.getFailurePortNames());
 
         final List<ParameterContextDefinition> contextDefinitions = dataflowDefinition.getParameterContexts();

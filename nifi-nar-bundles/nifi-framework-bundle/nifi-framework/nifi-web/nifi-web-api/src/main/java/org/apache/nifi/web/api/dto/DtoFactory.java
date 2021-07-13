@@ -2512,6 +2512,9 @@ public final class DtoFactory {
         dto.setVersionControlInformation(createVersionControlInformationDto(group));
         dto.setFlowfileConcurrency(group.getFlowFileConcurrency().name());
         dto.setFlowfileOutboundPolicy(group.getFlowFileOutboundPolicy().name());
+        dto.setDefaultFlowFileExpiration(group.getDefaultFlowFileExpiration());
+        dto.setDefaultBackPressureObjectThreshold(group.getDefaultBackPressureObjectThreshold());
+        dto.setDefaultBackPressureDataSizeThreshold(group.getDefaultBackPressureDataSizeThreshold());
 
         final ParameterContext parameterContext = group.getParameterContext();
         if (parameterContext != null) {
@@ -4342,6 +4345,9 @@ public final class DtoFactory {
         copy.setVersionedComponentId(original.getVersionedComponentId());
         copy.setFlowfileConcurrency(original.getFlowfileConcurrency());
         copy.setFlowfileOutboundPolicy(original.getFlowfileOutboundPolicy());
+        copy.setDefaultFlowFileExpiration(original.getDefaultFlowFileExpiration());
+        copy.setDefaultBackPressureObjectThreshold(original.getDefaultBackPressureObjectThreshold());
+        copy.setDefaultBackPressureDataSizeThreshold(original.getDefaultBackPressureDataSizeThreshold());
 
         copy.setRunningCount(original.getRunningCount());
         copy.setStoppedCount(original.getStoppedCount());
