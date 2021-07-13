@@ -58,11 +58,12 @@ public class AWSSensitivePropertyProvider extends AbstractSensitivePropertyProvi
 
     private static final Charset PROPERTY_CHARSET = StandardCharsets.UTF_8;
 
+    private final BootstrapProperties awsBootstrapProperties;
     private KmsClient client;
-    private BootstrapProperties awsBootstrapProperties;
     private String keyId;
 
-    AWSSensitivePropertyProvider(BootstrapProperties bootstrapProperties) throws SensitivePropertyProtectionException {
+
+    AWSSensitivePropertyProvider(final BootstrapProperties bootstrapProperties) throws SensitivePropertyProtectionException {
         super(bootstrapProperties);
         // if either awsBootstrapProperties or keyId is loaded as null values, then isSupported will return false
         awsBootstrapProperties = getAWSBootstrapProperties(bootstrapProperties);
@@ -73,46 +74,48 @@ public class AWSSensitivePropertyProvider extends AbstractSensitivePropertyProvi
 
     /**
      * Initializes the KMS Client to be used for encrypt, decrypt and other interactions with AWS KMS
-     * First attempts to use default AWS Credentials Provider Chain
-     * If that attempt fails, attempt to initialize credentials using bootstrap-aws.conf
+     * First attempts to use credentials/configuration in bootstrap-aws.conf
+     * If credentials/configuration in bootstrap-aws.conf is not fully configured, attempt to initialize credentials using default AWS credentials/configuration chain
      * Note: This does not verify if credentials are valid
      */
-    private void initializeClient() {
+    private final void initializeClient() {
         if (awsBootstrapProperties == null) {
             logger.warn("Cannot initialize client if awsBootstrapProperties is null");
             return;
         }
-        String accessKeyId = awsBootstrapProperties.getProperty(ACCESS_KEY_PROPS_NAME);
-        String secretKeyId = awsBootstrapProperties.getProperty(SECRET_KEY_PROPS_NAME);
-        String region = awsBootstrapProperties.getProperty(REGION_KEY_PROPS_NAME);
+        final String accessKeyId = awsBootstrapProperties.getProperty(ACCESS_KEY_PROPS_NAME);
+        final String secretKeyId = awsBootstrapProperties.getProperty(SECRET_KEY_PROPS_NAME);
+        final String region = awsBootstrapProperties.getProperty(REGION_KEY_PROPS_NAME);
 
         if (StringUtils.isNotBlank(accessKeyId) && StringUtils.isNotBlank(secretKeyId) && StringUtils.isNotBlank(region)) {
             logger.debug("Credentials/Configuration provided in bootstrap-aws.conf");
             try {
-                AwsBasicCredentials credentials = AwsBasicCredentials.create(accessKeyId, secretKeyId);
+                final AwsBasicCredentials credentials = AwsBasicCredentials.create(accessKeyId, secretKeyId);
                 client = KmsClient.builder()
                         .region(Region.of(region))
                         .credentialsProvider(StaticCredentialsProvider.create(credentials))
                         .build();
-            } catch (KmsException | NullPointerException | IllegalArgumentException e) {
-                logger.error("Credentials/Configuration provided in bootstrap-aws.conf are invalid");
-                throw new SensitivePropertyProtectionException("Require valid credentials/configuration to initialize KMS client");
+            } catch (final KmsException | NullPointerException | IllegalArgumentException e) {
+                final String msg = "Valid configuration/credentials are required to initialize KMS client";
+                logger.error(msg);
+                throw new SensitivePropertyProtectionException(msg, e);
             }
         } else {
             // attempts to initialize client with credentials provider chain
             logger.debug("Credentials/Configuration not provided in bootstrap-aws.conf, attempting to use default configuration");
             try {
-                DefaultCredentialsProvider credentialsProvider = DefaultCredentialsProvider.builder()
+                final DefaultCredentialsProvider credentialsProvider = DefaultCredentialsProvider.builder()
                         .build();
                 // the following is needed to check the default credential builder, if it fails, throws SdkClientException
                 credentialsProvider.resolveCredentials();
                 client = KmsClient.builder()
                         .credentialsProvider(credentialsProvider)
                         .build();
-            } catch (SdkClientException e) {
+            } catch (final SdkClientException e) {
                 // this exception occurs if default credentials are not provided
-                logger.error("Default credentials/configuration for AWS are invalid");
-                throw new SensitivePropertyProtectionException("Require valid credentials/configuration to initialize KMS client");
+                final String msg = "Valid configuration/credentials are required to initialize KMS client";
+                logger.error(msg);
+                throw new SensitivePropertyProtectionException(msg, e);
             }
         }
     }
@@ -121,7 +124,7 @@ public class AWSSensitivePropertyProvider extends AbstractSensitivePropertyProvi
      * Checks if the client used to communicate with AWS KMS service is open
      * @return true if the client has been initialized and open, false otherwise
      */
-    private boolean isClientOpen() {
+    private final boolean isClientOpen() {
         return client != null;
     }
 
@@ -130,27 +133,29 @@ public class AWSSensitivePropertyProvider extends AbstractSensitivePropertyProvi
      * Note: This function performs checks on the key and indirectly also validates the credentials and
      * configurations provided during the initialization of the client
      */
-    private void validate() throws KmsException, SensitivePropertyProtectionException {
+    private final void validate() throws KmsException, SensitivePropertyProtectionException {
         if (!isClientOpen()) {
-            logger.error("The AWS KMS Client failed to open, cannot validate key");
-            throw new SensitivePropertyProtectionException("The AWS KMS Client failed to open, cannot validate key");
+            final String msg = "The AWS KMS Client failed to open, cannot validate key";
+            logger.error(msg);
+            throw new SensitivePropertyProtectionException(msg);
         }
         if (StringUtils.isBlank(keyId)) {
-            logger.error("The AWS KMS Key provided is blank");
-            throw new SensitivePropertyProtectionException("The AWS KMS Key provided is blank");
+            final String msg = "The AWS KMS key provided is blank";
+            logger.error(msg);
+            throw new SensitivePropertyProtectionException(msg);
         }
 
         // asking for a Key Description is the best way to check whether a key is valid
         // because AWS KMS accepts various formats for its keys.
 
-        DescribeKeyRequest request = DescribeKeyRequest.builder()
+        final DescribeKeyRequest request = DescribeKeyRequest.builder()
                 .keyId(keyId)
                 .build();
 
         // using the KmsClient in a DescribeKey request indirectly also verifies if the credentials provided
-        // during the initialization of the key is valid
-        DescribeKeyResponse response = client.describeKey(request);
-        KeyMetadata metadata = response.keyMetadata();
+        // during the initialization of the key are valid
+        final DescribeKeyResponse response = client.describeKey(request);
+        final KeyMetadata metadata = response.keyMetadata();
 
         if (!metadata.enabled()) {
             final String msg = String.format("AWS KMS key [%s] is not enabled", keyId);
@@ -163,7 +168,7 @@ public class AWSSensitivePropertyProvider extends AbstractSensitivePropertyProvi
      * Note: This function does not verify if the key is correctly formatted/valid
      * @param props the properties representing bootstrap-aws.conf
      */
-    private void loadRequiredAWSProperties(BootstrapProperties props) {
+    private void loadRequiredAWSProperties(final BootstrapProperties props) {
         if (props != null) {
             keyId = props.getProperty(KMS_KEY_PROPS_NAME);
         }
@@ -176,17 +181,17 @@ public class AWSSensitivePropertyProvider extends AbstractSensitivePropertyProvi
      * @param bootstrapProperties BootstrapProperties object corresponding to bootstrap.conf
      * @return BootstrapProperties object corresponding to bootstrap-aws.conf, null otherwise
      */
-    private BootstrapProperties getAWSBootstrapProperties(BootstrapProperties bootstrapProperties) {
+    private BootstrapProperties getAWSBootstrapProperties(final BootstrapProperties bootstrapProperties) {
         if (bootstrapProperties == null) {
             logger.warn("The file bootstrap.conf provided to AWS SPP is null");
             return null;
         }
 
-        BootstrapProperties cloudBootstrapProperties;
+        final BootstrapProperties cloudBootstrapProperties;
 
         // Load the bootstrap-aws.conf file based on path specified in
         // "nifi.bootstrap.protection.aws.kms.conf" property of bootstrap.conf
-        String filePath = bootstrapProperties.getProperty(BootstrapPropertyKey.AWS_KMS_SENSITIVE_PROPERTY_PROVIDER_CONF).orElse(null);
+        final String filePath = bootstrapProperties.getProperty(BootstrapPropertyKey.AWS_KMS_SENSITIVE_PROPERTY_PROVIDER_CONF).orElse(null);
         if (StringUtils.isBlank(filePath)) {
             logger.warn("File Path to bootstrap-aws.conf in bootstrap.conf is blank");
             return null;
@@ -248,20 +253,20 @@ public class AWSSensitivePropertyProvider extends AbstractSensitivePropertyProvi
      *
      * @return the ciphertext blob to persist in the {@code nifi.properties} file
      */
-    private byte[] encrypt(byte[] input) {
-        SdkBytes plainBytes = SdkBytes.fromByteArray(input);
+    private byte[] encrypt(final byte[] input) {
+        final SdkBytes plainBytes = SdkBytes.fromByteArray(input);
 
         // builds an encryption request to be sent to the kmsClient
-        EncryptRequest encryptRequest = EncryptRequest.builder()
+        final EncryptRequest encryptRequest = EncryptRequest.builder()
                 .keyId(keyId)
                 .plaintext(plainBytes)
                 .build();
 
         // sends request, records response
-        EncryptResponse response = client.encrypt(encryptRequest);
+        final EncryptResponse response = client.encrypt(encryptRequest);
 
         // get encrypted data
-        SdkBytes encryptedData = response.ciphertextBlob();
+        final SdkBytes encryptedData = response.ciphertextBlob();
 
         return encryptedData.asByteArray();
     }
@@ -271,20 +276,20 @@ public class AWSSensitivePropertyProvider extends AbstractSensitivePropertyProvi
      *
      * @return the "unprotected" byte[] of this value, which could be used by the application
      */
-    private byte[] decrypt(byte[] input) {
-        SdkBytes cipherBytes = SdkBytes.fromByteArray(input);
+    private byte[] decrypt(final byte[] input) {
+        final SdkBytes cipherBytes = SdkBytes.fromByteArray(input);
 
         // builds a decryption request to be sent to the kmsClient
-        DecryptRequest decryptRequest = DecryptRequest.builder()
+        final DecryptRequest decryptRequest = DecryptRequest.builder()
                 .ciphertextBlob(cipherBytes)
                 .keyId(keyId)
                 .build();
 
         // sends request, records response
-        DecryptResponse response = client.decrypt(decryptRequest);
+        final DecryptResponse response = client.decrypt(decryptRequest);
 
         // get decrypted data
-        SdkBytes decryptedData = response.plaintext();
+        final SdkBytes decryptedData = response.plaintext();
 
         return decryptedData.asByteArray();
     }
@@ -297,7 +302,7 @@ public class AWSSensitivePropertyProvider extends AbstractSensitivePropertyProvi
      * @return the value to persist in the {@code nifi.properties} file
      */
     @Override
-    public String protect(String unprotectedValue) throws SensitivePropertyProtectionException {
+    public String protect(final String unprotectedValue) throws SensitivePropertyProtectionException {
         if (StringUtils.isBlank(unprotectedValue)) {
             throw new IllegalArgumentException("Cannot encrypt a null/empty value");
         }
@@ -306,18 +311,18 @@ public class AWSSensitivePropertyProvider extends AbstractSensitivePropertyProvi
             try {
                 initializeClient();
                 validate();
-            } catch (SdkClientException | KmsException | SensitivePropertyProtectionException e) {
+            } catch (final SdkClientException | KmsException | SensitivePropertyProtectionException e) {
                 logger.error("Encountered an error initializing the client for {}: {}", getName(), e.getMessage());
                 throw new SensitivePropertyProtectionException("Error initializing the AWS KMS Client", e);
             }
         }
 
         try {
-            byte[] plainBytes = unprotectedValue.getBytes(PROPERTY_CHARSET);
-            byte[] cipherBytes = encrypt(plainBytes);
+            final byte[] plainBytes = unprotectedValue.getBytes(PROPERTY_CHARSET);
+            final byte[] cipherBytes = encrypt(plainBytes);
             logger.debug(getName() + " encrypted a sensitive value successfully");
             return Base64.toBase64String(cipherBytes);
-        } catch (SdkClientException | KmsException | EncoderException e) {
+        } catch (final SdkClientException | KmsException | EncoderException e) {
             final String msg = "Error encrypting a protected value";
             logger.error(msg, e);
             throw new SensitivePropertyProtectionException(msg, e);
@@ -332,7 +337,7 @@ public class AWSSensitivePropertyProvider extends AbstractSensitivePropertyProvi
      * @return the raw value to be used by the application
      */
     @Override
-    public String unprotect(String protectedValue) throws SensitivePropertyProtectionException {
+    public String unprotect(final String protectedValue) throws SensitivePropertyProtectionException {
         if (StringUtils.isBlank(protectedValue)) {
             throw new IllegalArgumentException("Cannot decrypt a null/empty cipher");
         }
@@ -341,18 +346,18 @@ public class AWSSensitivePropertyProvider extends AbstractSensitivePropertyProvi
             try {
                 initializeClient();
                 validate();
-            } catch (SdkClientException | KmsException | SensitivePropertyProtectionException e) {
+            } catch (final SdkClientException | KmsException | SensitivePropertyProtectionException e) {
                 logger.error("Encountered an error initializing the client for {}: {}", getName(), e.getMessage());
                 throw new SensitivePropertyProtectionException("Error initializing the AWS KMS Client", e);
             }
         }
 
         try {
-            byte[] cipherBytes = Base64.decode(protectedValue);
-            byte[] plainBytes = decrypt(cipherBytes);
+            final byte[] cipherBytes = Base64.decode(protectedValue);
+            final byte[] plainBytes = decrypt(cipherBytes);
             logger.debug(getName() + " decrypted a sensitive value successfully");
             return new String(plainBytes, PROPERTY_CHARSET);
-        } catch (SdkClientException | KmsException | DecoderException e) {
+        } catch (final SdkClientException | KmsException | DecoderException e) {
             final String msg = "Error decrypting a protected value";
             logger.error(msg, e);
             throw new SensitivePropertyProtectionException(msg, e);
