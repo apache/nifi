@@ -614,7 +614,7 @@
                                 </requireSameVersions>
                                 <requireMavenVersion>
                                     <!-- We do not test this value so we should probably make it something fairly recent -->
-                                    <version>3.1.1</version>
+                                    <version>3.6.0</version>
                                 </requireMavenVersion>
                             </rules>
                         </configuration>
