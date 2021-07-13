@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
 # this work for additional information regarding copyright ownership.
@@ -13,7 +15,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#!/bin/bash
-DOCKER_IMAGE="$(egrep -v '(^#|^\s*$|^\s*\t*#)' DockerImage.txt)"
-echo "Running Docker Image: $DOCKER_IMAGE"
-docker run -it -d -p 8080:8080 -p 8181:8181 $DOCKER_IMAGE
+set -e
+set -o pipefail
+
+DOCKER_IMAGE="$(grep -Ev '(^#|^\s*$|^\s*\t*#)' DockerImage.txt)"
+NIFI_IMAGE_VERSION="$(echo "${DOCKER_IMAGE}" | cut -d : -f 2)"
+
+echo "Running Docker Image: ${DOCKER_IMAGE}"
+docker run -d --name "nifi-${NIFI_IMAGE_VERSION}" -p 8080:8080 -p 8443:8443 -p 10000:10000 -p 8000:8000 -p 8181:8181 "${DOCKER_IMAGE}"

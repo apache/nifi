@@ -14,10 +14,14 @@
 # limitations under the License.
 
 # Place files you want to exclude from the docker build here similar to .gitignore https://docs.docker.com/engine/reference/builder/#dockerignore-file
-DockerBuild.sh
-DockerRun.sh
-DockerImage.txt
-
-target/
+integration-test.sh
 *.iml
 pom.xml
+
+# ignore target/
+target/
+
+# except nifi assembly files and scripts
+!target/*.zip
+!target/sh/
+!target/sh/*.sh
