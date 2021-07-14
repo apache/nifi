@@ -100,7 +100,6 @@ public class AWSSensitivePropertyProvider extends AbstractSensitivePropertyProvi
                 throw new SensitivePropertyProtectionException(msg, e);
             }
         } else {
-            // attempts to initialize client with credentials provider chain
             logger.debug("Using AWS credentials from default credentials provider");
             try {
                 final DefaultCredentialsProvider credentialsProvider = DefaultCredentialsProvider.builder()
@@ -110,7 +109,6 @@ public class AWSSensitivePropertyProvider extends AbstractSensitivePropertyProvi
                         .credentialsProvider(credentialsProvider)
                         .build();
             } catch (final SdkClientException e) {
-                // this exception occurs if default credentials are not provided
                 final String msg = "Valid configuration/credentials are required to initialize KMS client";
                 throw new SensitivePropertyProtectionException(msg, e);
             }
