@@ -39,8 +39,8 @@ import java.util.Set;
     "org.apache.nifi.processors.script.ScriptedPartitionRecord"
 })
 public class ScriptedFilterRecord extends ScriptedRouterProcessor<Boolean> {
-    static final Relationship RELATIONSHIP_MATCHING = new Relationship.Builder()
-            .name("matching")
+    static final Relationship RELATIONSHIP_SUCCESS = new Relationship.Builder()
+            .name("success")
             .description(
                 "Matching records of the original FlowFile will be routed to this relationship. " +
                 "If there are no matching records, no FlowFile will be routed here."
@@ -54,8 +54,8 @@ public class ScriptedFilterRecord extends ScriptedRouterProcessor<Boolean> {
                 "This happens regardless the number of filtered or remaining records.")
             .build();
 
-    static final Relationship RELATIONSHIP_FAILED = new Relationship.Builder()
-            .name("failed")
+    static final Relationship RELATIONSHIP_FAILURE = new Relationship.Builder()
+            .name("failure")
             .description("In case of any issue during processing the incoming FlowFile, the incoming FlowFile will be routed to this relationship.")
             .build();
 
@@ -63,8 +63,8 @@ public class ScriptedFilterRecord extends ScriptedRouterProcessor<Boolean> {
 
     static {
         RELATIONSHIPS.add(RELATIONSHIP_ORIGINAL);
-        RELATIONSHIPS.add(RELATIONSHIP_FAILED);
-        RELATIONSHIPS.add(RELATIONSHIP_MATCHING);
+        RELATIONSHIPS.add(RELATIONSHIP_FAILURE);
+        RELATIONSHIPS.add(RELATIONSHIP_SUCCESS);
     }
 
     public ScriptedFilterRecord() {
@@ -83,11 +83,11 @@ public class ScriptedFilterRecord extends ScriptedRouterProcessor<Boolean> {
 
     @Override
     protected Relationship getFailureRelationship() {
-        return RELATIONSHIP_FAILED;
+        return RELATIONSHIP_FAILURE;
     }
 
     @Override
     protected Optional<Relationship> resolveRelationship(final Boolean scriptResult) {
-        return scriptResult ? Optional.of(RELATIONSHIP_MATCHING) : Optional.empty();
+        return scriptResult ? Optional.of(RELATIONSHIP_SUCCESS) : Optional.empty();
     }
 }

@@ -98,15 +98,15 @@ public class TestScriptedFilterRecord extends TestScriptedRouterProcessor {
     }
 
     private void thenMatchingFlowFileContains(final Object[]... records) {
-        testRunner.assertTransferCount(ScriptedFilterRecord.RELATIONSHIP_MATCHING, 1);
-        final MockFlowFile resultFlowFile = testRunner.getFlowFilesForRelationship(ScriptedFilterRecord.RELATIONSHIP_MATCHING).get(0);
+        testRunner.assertTransferCount(ScriptedFilterRecord.RELATIONSHIP_SUCCESS, 1);
+        final MockFlowFile resultFlowFile = testRunner.getFlowFilesForRelationship(ScriptedFilterRecord.RELATIONSHIP_SUCCESS).get(0);
         Assert.assertEquals(givenExpectedFlowFile(records), resultFlowFile.getContent());
         Assert.assertEquals("text/plain", resultFlowFile.getAttribute("mime.type"));
 
     }
 
     private void thenMatchingFlowFileIsEmpty() {
-        testRunner.assertTransferCount(ScriptedFilterRecord.RELATIONSHIP_MATCHING, 0);
+        testRunner.assertTransferCount(ScriptedFilterRecord.RELATIONSHIP_SUCCESS, 0);
     }
 
     @Override
@@ -126,6 +126,6 @@ public class TestScriptedFilterRecord extends TestScriptedRouterProcessor {
 
     @Override
     protected Relationship getFailedRelationship() {
-        return ScriptedFilterRecord.RELATIONSHIP_FAILED;
+        return ScriptedFilterRecord.RELATIONSHIP_FAILURE;
     }
 }

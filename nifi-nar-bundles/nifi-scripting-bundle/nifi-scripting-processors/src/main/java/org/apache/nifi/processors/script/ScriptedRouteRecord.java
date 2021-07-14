@@ -66,7 +66,7 @@ public class ScriptedRouteRecord extends ScriptedRouterProcessor<String> {
             .build();
 
     static final Relationship RELATIONSHIP_FAILURE = new Relationship.Builder()
-            .name("failed")
+            .name("failure")
             .description("In case of any issue during processing the incoming FlowFile, the incoming FlowFile will be routed to this relationship.")
             .build();
 

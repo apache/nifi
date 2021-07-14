@@ -48,7 +48,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
-abstract class ScriptedProcessor extends AbstractProcessor implements Searchable {
+abstract class ScriptedRecordProcessor extends AbstractProcessor implements Searchable {
     protected static final String PYTHON_SCRIPT_LANGUAGE = "python";
     protected static final Set<String> SCRIPT_OPTIONS = ScriptingComponentUtils.getAvailableEngines();
 

@@ -78,7 +78,7 @@ import java.util.concurrent.atomic.AtomicReference;
     "org.apache.nifi.processors.standard.QueryRecord",
     "org.apache.nifi.processors.jolt.record.JoltTransformRecord",
     "org.apache.nifi.processors.standard.LookupRecord"})
-public class ScriptedTransformRecord extends ScriptedProcessor {
+public class ScriptedTransformRecord extends ScriptedRecordProcessor {
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
         .name("success")

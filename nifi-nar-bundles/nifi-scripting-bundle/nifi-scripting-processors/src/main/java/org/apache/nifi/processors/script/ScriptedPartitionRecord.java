@@ -39,6 +39,7 @@ import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
+import org.apache.nifi.serialization.WriteResult;
 import org.apache.nifi.serialization.record.PushBackRecordSet;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
@@ -54,7 +55,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.BiFunction;
 
 @EventDriven
 @SideEffectFree
@@ -80,7 +80,7 @@ import java.util.function.BiFunction;
         "org.apache.nifi.processors.script.ScriptedValidateRecord",
         "org.apache.nifi.processors.script.ScriptedFilterRecord"
 })
-public class ScriptedPartitionRecord extends ScriptedProcessor {
+public class ScriptedPartitionRecord extends ScriptedRecordProcessor {
 
     static final Relationship RELATIONSHIP_SUCCESS = new Relationship.Builder()
             .name("success")
@@ -170,14 +170,9 @@ public class ScriptedPartitionRecord extends ScriptedProcessor {
                         final RecordSchema schema = writerFactory.getSchema(originalAttributes, reader.getSchema());
                         final RecordSet recordSet = reader.createRecordSet();
                         final PushBackRecordSet pushBackSet = new PushBackRecordSet(recordSet);
-                        final Map<String, RecordBatchingProcessorFlowFileBuilder> recordSetFlowFileBuilders = new HashMap<>();
-                        final BiFunction<FlowFile, OutputStream, RecordSetWriter> recordSetWriterFactory = (outgoingFlowFile, out) -> {
-                            try {
-                                return writerFactory.createWriter(getLogger(), schema, out, outgoingFlowFile);
-                            } catch (final IOException | SchemaNotFoundException e) {
-                                throw new ProcessException("Could not create RecordSetWriter", e);
-                            }
-                        };
+
+                        final Map<String, FlowFile> outgoingFlowFiles = new HashMap<>();
+                        final Map<String, RecordSetWriter> recordSetWriters = new HashMap<>();
 
                         int index = 0;
 
@@ -190,33 +185,51 @@ public class ScriptedPartitionRecord extends ScriptedProcessor {
                             if (evaluatedValue != null && evaluatedValue instanceof String) {
                                 final String partition = (String) evaluatedValue;
 
-                                if (!recordSetFlowFileBuilders.containsKey(partition)) {
-                                    recordSetFlowFileBuilders.put(partition, new RecordBatchingProcessorFlowFileBuilder(incomingFlowFile, session, recordSetWriterFactory));
+                                if (!outgoingFlowFiles.containsKey(partition)) {
+                                    final FlowFile outgoingFlowFile = session.create(incomingFlowFile);
+                                    final OutputStream out = session.write(outgoingFlowFile);
+                                    final RecordSetWriter writer = writerFactory.createWriter(getLogger(), schema, out, outgoingFlowFile);
+
+                                    writer.beginRecordSet();
+                                    outgoingFlowFiles.put(partition, outgoingFlowFile);
+                                    recordSetWriters.put(partition, writer);
                                 }
 
-                                final int recordCount = recordSetFlowFileBuilders.get(partition).addRecord(record);
-                                session.adjustCounter("Record Processed", recordCount, false);
-
+                                recordSetWriters.get(partition).write(record);
                             } else {
                                 throw new ProcessException("Script returned a value of " + evaluatedValue
-                                        + " but this Processor requires that the object returned by an instance of String");
+                                        + " but this Processor requires that the object returned be an instance of String");
                             }
                         }
 
                         // Sending outgoing flow files
-                        int fragmentIndex = 1;
+                        int fragmentIndex = 0;
 
-                        for (final Map.Entry<String, RecordBatchingProcessorFlowFileBuilder> entry : recordSetFlowFileBuilders.entrySet()) {
-                            final String partitionName = entry.getKey();
-                            final RecordBatchingProcessorFlowFileBuilder builder = entry.getValue();
+                        for (final String partition : outgoingFlowFiles.keySet()) {
+                            final RecordSetWriter writer = recordSetWriters.get(partition);
+                            final FlowFile outgoingFlowFile = outgoingFlowFiles.get(partition);
 
-                            FlowFile outgoingFlowFile = builder.build();
-                            outgoingFlowFile = session.putAttribute(outgoingFlowFile, "partition", partitionName);
-                            outgoingFlowFile = session.putAttribute(outgoingFlowFile, "fragment.index", String.valueOf(fragmentIndex));
-                            outgoingFlowFile = session.putAttribute(outgoingFlowFile, "fragment.count", String.valueOf(recordSetFlowFileBuilders.size()));
+                            final Map<String, String> attributes = new HashMap<>(incomingFlowFile.getAttributes());
+                            attributes.put("mime.type", writer.getMimeType());
+                            attributes.put("partition", partition);
+                            attributes.put("fragment.index", String.valueOf(fragmentIndex));
+                            attributes.put("fragment.count", String.valueOf(outgoingFlowFiles.size()));
+
+                            try {
+                                final WriteResult finalResult = writer.finishRecordSet();
+                                final int outgoingFlowFileRecords = finalResult.getRecordCount();
+                                attributes.put("record.count", String.valueOf(outgoingFlowFileRecords));
+                                writer.close();
+                            } catch (final IOException e) {
+                                throw new ProcessException("Resources used for record writing might not be closed", e);
+                            }
+
+                            session.putAllAttributes(outgoingFlowFile, attributes);
                             session.transfer(outgoingFlowFile, RELATIONSHIP_SUCCESS);
                             fragmentIndex++;
                         }
+
+                        session.adjustCounter("Record Processed", index, false);
                     } catch (final ScriptException | SchemaNotFoundException | MalformedRecordException e) {
                         throw new ProcessException("Failed to parse incoming FlowFile", e);
                     }
