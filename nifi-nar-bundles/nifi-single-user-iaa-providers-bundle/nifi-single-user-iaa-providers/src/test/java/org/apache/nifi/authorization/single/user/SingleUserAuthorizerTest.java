@@ -16,10 +16,14 @@
  */
 package org.apache.nifi.authorization.single.user;
 
+import org.apache.nifi.authorization.AuthorizerInitializationContext;
 import org.apache.nifi.authorization.exception.AuthorizerCreationException;
 import org.apache.nifi.util.NiFiProperties;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
 import java.net.URISyntaxException;
 import java.nio.file.Path;
@@ -27,7 +31,9 @@ import java.nio.file.Paths;
 import java.util.Properties;
 
 import static org.junit.Assert.assertThrows;
+import static org.mockito.Mockito.when;
 
+@RunWith(MockitoJUnitRunner.class)
 public class SingleUserAuthorizerTest {
     private static final String BLANK_PROVIDERS = "/conf/login-identity-providers.xml";
 
@@ -37,41 +43,67 @@ public class SingleUserAuthorizerTest {
 
     private static final String UNSUPPORTED_PROVIDER_IDENTIFIER = "unsupported-provider";
 
+    private static final String AUTHORIZER_IDENTIFIER = "single-user-authorizer";
+
+    private static final String OTHER_AUTHORIZER_IDENTIFIER = "other-authorizer";
+
     private static final String EMPTY_PROPERTIES_PATH = "";
 
     private SingleUserAuthorizer authorizer;
 
+    @Mock
+    private AuthorizerInitializationContext initializationContext;
+
     @Before
     public void setAuthorizer() {
         authorizer = new SingleUserAuthorizer();
+        when(initializationContext.getIdentifier()).thenReturn(AUTHORIZER_IDENTIFIER);
     }
 
     @Test
-    public void testSetPropertiesSingleUserIdentityProviderConfigured() throws URISyntaxException {
+    public void testInitializeSingleUserAuthorizerNotConfigured() throws URISyntaxException {
         final Path providersPath = Paths.get(getClass().getResource(BLANK_PROVIDERS).toURI());
         final Properties properties = new Properties();
         properties.put(NiFiProperties.LOGIN_IDENTITY_PROVIDER_CONFIGURATION_FILE, providersPath.toString());
         properties.put(NiFiProperties.SECURITY_USER_LOGIN_IDENTITY_PROVIDER, PROVIDER_IDENTIFIER);
+        properties.put(NiFiProperties.SECURITY_USER_AUTHORIZER, OTHER_AUTHORIZER_IDENTIFIER);
         final NiFiProperties niFiProperties = NiFiProperties.createBasicNiFiProperties(EMPTY_PROPERTIES_PATH, properties);
         authorizer.setProperties(niFiProperties);
+        authorizer.initialize(initializationContext);
     }
 
     @Test
-    public void testSetPropertiesSingleUserIdentityProviderNotSpecified() throws URISyntaxException {
+    public void testInitializeSingleUserIdentityProviderConfigured() throws URISyntaxException {
         final Path providersPath = Paths.get(getClass().getResource(BLANK_PROVIDERS).toURI());
         final Properties properties = new Properties();
         properties.put(NiFiProperties.LOGIN_IDENTITY_PROVIDER_CONFIGURATION_FILE, providersPath.toString());
+        properties.put(NiFiProperties.SECURITY_USER_LOGIN_IDENTITY_PROVIDER, PROVIDER_IDENTIFIER);
+        properties.put(NiFiProperties.SECURITY_USER_AUTHORIZER, AUTHORIZER_IDENTIFIER);
         final NiFiProperties niFiProperties = NiFiProperties.createBasicNiFiProperties(EMPTY_PROPERTIES_PATH, properties);
-        assertThrows(AuthorizerCreationException.class, () -> authorizer.setProperties(niFiProperties));
+        authorizer.setProperties(niFiProperties);
+        authorizer.initialize(initializationContext);
     }
 
     @Test
-    public void testSetPropertiesAuthorizerCreationException() throws URISyntaxException {
+    public void testInitializeSingleUserIdentityProviderNotSpecified() throws URISyntaxException {
+        final Path providersPath = Paths.get(getClass().getResource(BLANK_PROVIDERS).toURI());
+        final Properties properties = new Properties();
+        properties.put(NiFiProperties.LOGIN_IDENTITY_PROVIDER_CONFIGURATION_FILE, providersPath.toString());
+        properties.put(NiFiProperties.SECURITY_USER_AUTHORIZER, AUTHORIZER_IDENTIFIER);
+        final NiFiProperties niFiProperties = NiFiProperties.createBasicNiFiProperties(EMPTY_PROPERTIES_PATH, properties);
+        authorizer.setProperties(niFiProperties);
+        assertThrows(AuthorizerCreationException.class, () -> authorizer.initialize(initializationContext));
+    }
+
+    @Test
+    public void testInitializeAuthorizerCreationException() throws URISyntaxException {
         final Path providersPath = Paths.get(getClass().getResource(UNSUPPORTED_PROVIDERS).toURI());
         final Properties properties = new Properties();
         properties.put(NiFiProperties.LOGIN_IDENTITY_PROVIDER_CONFIGURATION_FILE, providersPath.toString());
         properties.put(NiFiProperties.SECURITY_USER_LOGIN_IDENTITY_PROVIDER, UNSUPPORTED_PROVIDER_IDENTIFIER);
+        properties.put(NiFiProperties.SECURITY_USER_AUTHORIZER, AUTHORIZER_IDENTIFIER);
         final NiFiProperties niFiProperties = NiFiProperties.createBasicNiFiProperties(EMPTY_PROPERTIES_PATH, properties);
-        assertThrows(AuthorizerCreationException.class, () -> authorizer.setProperties(niFiProperties));
+        authorizer.setProperties(niFiProperties);
+        assertThrows(AuthorizerCreationException.class, () -> authorizer.initialize(initializationContext));
     }
 }
