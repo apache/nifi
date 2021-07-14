@@ -262,7 +262,5 @@ public class AESSensitivePropertyProvider extends AbstractSensitivePropertyProvi
      * No cleanup necessary
      */
     @Override
-    public void cleanUp() {
-        return;
-    }
+    public void cleanUp() { }
 }

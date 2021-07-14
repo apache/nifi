@@ -59,7 +59,6 @@ public interface SensitivePropertyProvider {
 
     /**
      * Cleans up resources that may have been allocated/used by an SPP implementation
-     * Note: If there is nothing to be done, then this function is a no-op (i.e. no cleanup necessary)
      */
     void cleanUp();
 }

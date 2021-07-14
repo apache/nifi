@@ -505,13 +505,13 @@ This protection scheme uses HashiCorp Vault's Transit Secrets Engine (https://ww
 |===
 
 ==== AWS_KMS
-This protection scheme uses AWS Key Management Service, or AWS KMS for short (https://aws.amazon.com/kms/) for encryption/decryption. All AWS KMS configuration/credentials details are to be stored in the `bootstrap-aws.conf` file, as referenced in the `bootstrap.conf` of a NiFi or NiFi Registry instance. If the configuration/credentials details are not fully specified in `bootstrap-aws.conf`, then the protection scheme will attempt to use the default AWS credentials/configuration chain. Therefore, when using the AWS_KMS protection scheme, the `nifi(.registry)?.bootstrap.protection.aws.kms.conf` property in the `bootstrap.conf` specified using the `-b` flag must be available to the Encrypt Configuration Tool and must be configured as follows:
+This protection scheme uses AWS Key Management Service (https://aws.amazon.com/kms/) for encryption and decryption. AWS KMS configuration properties can be stored in the `bootstrap-aws.conf` file, as referenced in the `bootstrap.conf` of NiFi or NiFi Registry. If the configuration properties are not specified in `bootstrap-aws.conf`, then the provider will attempt to use the AWS default credentials provider, which checks standard environment variables and system properties.
 
 ===== Required properties
 [options="header,footer"]
 |===
 |Property Name|Description|Default
-|`aws.kms.key.id`|The key id or ARN to be used by AWS KMS to identify the key used for encryption/decryption.|_none_
+|`aws.kms.key.id`|The identifier or ARN that the AWS KMS client uses for encryption and decryption.|_none_
 |===
 
 ===== Optional properties
@@ -519,7 +519,7 @@ This protection scheme uses AWS Key Management Service, or AWS KMS for short (ht
 [options="header,footer"]
 |===
 |Property Name|Description|Default
-|`aws.region`|The region to configure AWS KMS Client with for encryption/decryption.|_none_
+|`aws.region`|The AWS region used to configure the AWS KMS Client.|_none_
 |`aws.access.key.id`|The access key ID credential used to access AWS KMS.|_none_
 |`aws.secret.key.id`|The secret key ID credential used to access AWS KMS.|_none_
 |===
@@ -719,7 +719,8 @@ for each phase (old vs. new), and any combination is sufficient:
 In order to change the protection scheme (e.g., migrating from AES encryption to Vault encryption), specify the `--protectionScheme`
 and `--oldProtectionScheme` in the migration command.
 
-The following is an example of the commands for protection scheme migration from AES_GCM to AWS_KMS then back. Execute these commands at the `nifi` directory with the `nifi-toolkit` directory as a sibling directory. In addition, make sure to update `bootstrap-aws.conf` with your AWS KMS Key ARN/ID and have your credentials and region for AWS configured.
+The following is an example of the commands for protection scheme migration from AES_GCM to AWS_KMS then back. Execute these commands at the `nifi` directory with the `nifi-toolkit` directory as a sibling directory. In addition, make sure to update `bootstrap-aws.conf` with your AWS KMS Key ARN/ID and have your credentials and region configured.
+
 
 This command encrypts nifi.properties with the AES_GCM protection scheme
 ----

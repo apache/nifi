@@ -105,7 +105,6 @@ public class StandardSensitivePropertyProviderFactory implements SensitiveProper
         switch (protectionScheme) {
             case AES_GCM:
                 return providerMap.computeIfAbsent(protectionScheme, s -> new AESSensitivePropertyProvider(keyHex));
-            // Other providers may choose to pass getBootstrapProperties() into the constructor
             case AWS_KMS:
                 return providerMap.computeIfAbsent(protectionScheme, s -> new AWSSensitivePropertyProvider(getBootstrapProperties()));
             case HASHICORP_VAULT_TRANSIT:

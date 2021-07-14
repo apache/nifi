@@ -175,7 +175,6 @@ public class NiFiPropertiesLoader {
         }
         NiFiProperties props = protectedNiFiProperties.getUnprotectedProperties();
         if (protectedNiFiProperties.hasProtectedKeys()) {
-            // releases resources used by SPP
             getSensitivePropertyProviderFactory()
                     .getSupportedSensitivePropertyProviders()
                     .forEach(SensitivePropertyProvider::cleanUp);
