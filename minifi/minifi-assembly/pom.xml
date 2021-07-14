@@ -20,7 +20,7 @@ limitations under the License.
     <parent>
         <artifactId>minifi</artifactId>
         <groupId>org.apache.nifi.minifi</groupId>
-        <version>1.14.0-SNAPSHOT</version>
+        <version>1.15.0-SNAPSHOT</version>
     </parent>
     <artifactId>minifi-assembly</artifactId>
     <packaging>pom</packaging>
@@ -124,13 +124,13 @@ limitations under the License.
         <dependency>
             <groupId>org.apache.nifi.minifi</groupId>
             <artifactId>minifi-framework-nar</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.15.0-SNAPSHOT</version>
             <type>nar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi.minifi</groupId>
             <artifactId>minifi-server-nar</artifactId>
-            <version>1.14.0-SNAPSHOT</version>
+            <version>1.15.0-SNAPSHOT</version>
             <type>nar</type>
         </dependency>
         <dependency>
@@ -249,11 +249,11 @@ limitations under the License.
                                             </then>
                                             <else>
                                                 <echo message="Downloading Commons Daemon Windows binaries." />
-                                                <property name="commons.daemon.file" value="commons-daemon-${commons.daemon.version}-bin-windows.zip"/>
-                                                <get src="${commons.daemon.mirror.url}/${commons.daemon.file}" dest="${java.io.tmpdir}/${commons.daemon.file}" skipexisting="true"/>
-                                                <local name="checksum.matches"/>
-                                                <checksum file="${java.io.tmpdir}/${commons.daemon.file}" algorithm="SHA-512" property="${commons.daemon.sha512sum}" verifyProperty="checksum.matches"/>
-                                                <echo message="Checksum match = ${checksum.matches}"/>
+                                                <property name="commons.daemon.file" value="commons-daemon-${commons.daemon.version}-bin-windows.zip" />
+                                                <get src="${commons.daemon.mirror.url}/${commons.daemon.file}" dest="${java.io.tmpdir}/${commons.daemon.file}" skipexisting="true" />
+                                                <local name="checksum.matches" />
+                                                <checksum file="${java.io.tmpdir}/${commons.daemon.file}" algorithm="SHA-512" property="${commons.daemon.sha512sum}" verifyProperty="checksum.matches" />
+                                                <echo message="Checksum match = ${checksum.matches}" />
                                                 <condition property="checksum.matches.fail">
                                                     <equals arg1="${checksum.matches}" arg2="false" />
                                                 </condition>
