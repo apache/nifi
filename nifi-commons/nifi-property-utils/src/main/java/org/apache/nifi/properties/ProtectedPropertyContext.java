@@ -109,11 +109,11 @@ public class ProtectedPropertyContext {
     }
 
     /**
-     * Returns the context key, in the format [propertyLocation]||[propertyName]
+     * Returns the context key, in the format [propertyLocation]/[propertyName]
      * @return The context key
      */
     public String getContextKey() {
         final String locationName = PropertyLocation.CUSTOM == propertyLocation ? customLocation : propertyLocation.location;
-        return String.format("%s||%s", locationName, propertyName);
+        return String.format("%s/%s", locationName, propertyName);
     }
 }
