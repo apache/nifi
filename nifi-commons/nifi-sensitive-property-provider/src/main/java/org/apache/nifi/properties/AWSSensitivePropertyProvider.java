@@ -62,7 +62,8 @@ public class AWSSensitivePropertyProvider extends AbstractSensitivePropertyProvi
     private final BootstrapProperties awsBootstrapProperties;
     private KmsClient client;
     private String keyId;
-    
+
+
     AWSSensitivePropertyProvider(final BootstrapProperties bootstrapProperties) throws SensitivePropertyProtectionException {
         super(bootstrapProperties);
         Objects.requireNonNull(bootstrapProperties, "The file bootstrap.conf provided to AWS SPP is null");
