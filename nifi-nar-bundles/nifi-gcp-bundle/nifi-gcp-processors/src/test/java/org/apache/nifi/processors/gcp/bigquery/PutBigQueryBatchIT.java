@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 
 import org.apache.nifi.processors.gcp.AbstractGCPProcessor;
 import org.apache.nifi.reporting.InitializationException;
@@ -136,4 +137,67 @@ public class PutBigQueryBatchIT extends AbstractBigQueryIT {
         }
         runner.assertAllFlowFilesTransferred(AbstractBigQueryProcessor.REL_SUCCESS, 1);
     }
+
+
+
+
+    @Test
+    public void PutBigQueryBatchParquetTest() throws Exception {
+        final String path = "src/test/resources/bigquery/TestParquetReader.parquet";
+
+        String methodName = Thread.currentThread().getStackTrace()[1].getMethodName();
+        runner = setCredentialsControllerService(runner);
+        runner.setProperty(AbstractGCPProcessor.GCP_CREDENTIALS_PROVIDER_SERVICE, CONTROLLER_SERVICE);
+        runner.setProperty(BigQueryAttributes.DATASET_ATTR, dataset.getDatasetId().getDataset());
+        runner.setProperty(BigQueryAttributes.TABLE_NAME_ATTR, methodName);
+        //runner.setProperty(BigQueryAttributes.TABLE_SCHEMA_ATTR, TABLE_SCHEMA_STRING);
+        runner.setProperty(BigQueryAttributes.SOURCE_TYPE_ATTR, FormatOptions.parquet().getType());
+        runner.enqueue(Paths.get(path));
+        runner.run(1);
+        for (MockFlowFile flowFile : runner.getFlowFilesForRelationship(AbstractBigQueryProcessor.REL_SUCCESS)) {
+            validateNoServiceExceptionAttribute(flowFile);
+        }
+        runner.assertAllFlowFilesTransferred(AbstractBigQueryProcessor.REL_SUCCESS, 1);
+    }
+
+
+    @Test
+    public void PutBigQueryBatchOrcTest() throws Exception {
+        final String path = "src/test/resources/bigquery/TestOrcFile.emptyFile.orc";
+
+        String methodName = Thread.currentThread().getStackTrace()[1].getMethodName();
+        runner = setCredentialsControllerService(runner);
+        runner.setProperty(AbstractGCPProcessor.GCP_CREDENTIALS_PROVIDER_SERVICE, CONTROLLER_SERVICE);
+        runner.setProperty(BigQueryAttributes.DATASET_ATTR, dataset.getDatasetId().getDataset());
+        runner.setProperty(BigQueryAttributes.TABLE_NAME_ATTR, methodName);
+        runner.setProperty(BigQueryAttributes.SOURCE_TYPE_ATTR, FormatOptions.orc().getType());
+        runner.enqueue(Paths.get(path));
+        runner.run(1);
+        for (MockFlowFile flowFile : runner.getFlowFilesForRelationship(AbstractBigQueryProcessor.REL_SUCCESS)) {
+            validateNoServiceExceptionAttribute(flowFile);
+        }
+        runner.assertAllFlowFilesTransferred(AbstractBigQueryProcessor.REL_SUCCESS, 1);
+    }
+
+
+    @Test
+    public void PutBigQueryBatchdataStoreTest() throws Exception {
+        final String path = "src/test/resources/bigquery/datastore_backup/2021-07-09T19:53:20_37141.overall_export_metadata";
+
+        String methodName = Thread.currentThread().getStackTrace()[1].getMethodName();
+        runner = setCredentialsControllerService(runner);
+        runner.setProperty(AbstractGCPProcessor.GCP_CREDENTIALS_PROVIDER_SERVICE, CONTROLLER_SERVICE);
+        runner.setProperty(BigQueryAttributes.DATASET_ATTR, dataset.getDatasetId().getDataset());
+        runner.setProperty(BigQueryAttributes.TABLE_NAME_ATTR, methodName);
+        runner.setProperty(BigQueryAttributes.SOURCE_TYPE_ATTR, FormatOptions.datastoreBackup().getType());
+        runner.enqueue(Paths.get(path));
+        runner.run(1);
+        for (MockFlowFile flowFile : runner.getFlowFilesForRelationship(AbstractBigQueryProcessor.REL_SUCCESS)) {
+            validateNoServiceExceptionAttribute(flowFile);
+        }
+        runner.assertAllFlowFilesTransferred(AbstractBigQueryProcessor.REL_SUCCESS, 1);
+    }
+
+
+
 }

@@ -33,6 +33,8 @@ import org.junit.Test;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 
+import java.nio.file.Paths;
+
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.when;
 
@@ -98,6 +100,7 @@ public class PutBigQueryBatchTest extends AbstractBQTest {
         runner.setProperty(PutBigQueryBatch.MAXBAD_RECORDS, MAXBAD_RECORDS);
         runner.setProperty(PutBigQueryBatch.IGNORE_UNKNOWN, IGNORE_UNKNOWN);
         runner.setProperty(PutBigQueryBatch.READ_TIMEOUT, READ_TIMEOUT);
+
     }
 
     @Test
@@ -159,4 +162,101 @@ public class PutBigQueryBatchTest extends AbstractBQTest {
         runner.removeProperty(PutBigQueryBatch.PROJECT_ID);
         runner.assertNotValid();
     }
+
+
+
+    @Test
+    public void testParquetLoad() throws Exception {
+        final String path = "src/test/resources/bigquery/TestParquetReader.parquet";
+        when(table.exists()).thenReturn(Boolean.TRUE);
+        when(bq.create(ArgumentMatchers.isA(JobInfo.class))).thenReturn(job);
+        when(bq.writer(ArgumentMatchers.isA(WriteChannelConfiguration.class))).thenReturn(tableDataWriteChannel);
+        when(tableDataWriteChannel.getJob()).thenReturn(job);
+        when(job.waitFor(ArgumentMatchers.isA(RetryOption.class))).thenReturn(job);
+        when(job.getStatus()).thenReturn(jobStatus);
+        when(job.getStatistics()).thenReturn(stats);
+
+        when(stats.getCreationTime()).thenReturn(0L);
+        when(stats.getStartTime()).thenReturn(1L);
+        when(stats.getEndTime()).thenReturn(2L);
+
+        final TestRunner runner = buildNewRunner(getProcessor());
+        addRequiredPropertiesToRunner(runner);
+        runner.removeProperty(PutBigQueryBatch.SOURCE_TYPE);
+
+        runner.removeProperty(PutBigQueryBatch.TABLE_SCHEMA);
+        runner.setProperty(PutBigQueryBatch.SOURCE_TYPE,FormatOptions.parquet().getType());
+
+
+        runner.assertValid();
+        runner.enqueue(Paths.get(path));
+        //runner.enqueue("{ \"data\": \"datavalue\" }");
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(PutBigQueryBatch.REL_SUCCESS);
+    }
+
+
+    @Test
+    public void testOrcLoad() throws Exception {
+        final String path = "src/test/resources/bigquery/TestOrcFile.emptyFile.orc";
+        when(table.exists()).thenReturn(Boolean.TRUE);
+        when(bq.create(ArgumentMatchers.isA(JobInfo.class))).thenReturn(job);
+        when(bq.writer(ArgumentMatchers.isA(WriteChannelConfiguration.class))).thenReturn(tableDataWriteChannel);
+        when(tableDataWriteChannel.getJob()).thenReturn(job);
+        when(job.waitFor(ArgumentMatchers.isA(RetryOption.class))).thenReturn(job);
+        when(job.getStatus()).thenReturn(jobStatus);
+        when(job.getStatistics()).thenReturn(stats);
+
+        when(stats.getCreationTime()).thenReturn(0L);
+        when(stats.getStartTime()).thenReturn(1L);
+        when(stats.getEndTime()).thenReturn(2L);
+
+        final TestRunner runner = buildNewRunner(getProcessor());
+        addRequiredPropertiesToRunner(runner);
+        runner.removeProperty(PutBigQueryBatch.SOURCE_TYPE);
+        runner.removeProperty(PutBigQueryBatch.TABLE_SCHEMA);
+        runner.setProperty(PutBigQueryBatch.SOURCE_TYPE,FormatOptions.orc().getType());
+
+
+        runner.assertValid();
+        runner.enqueue(Paths.get(path));
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(PutBigQueryBatch.REL_SUCCESS);
+    }
+
+
+    @Test
+    public void testdataStoreLoad() throws Exception {
+        final String path = "src/test/resources/bigquery/datastore_backup/2021-07-09T19:53:20_37141.overall_export_metadata";
+        when(table.exists()).thenReturn(Boolean.TRUE);
+        when(bq.create(ArgumentMatchers.isA(JobInfo.class))).thenReturn(job);
+        when(bq.writer(ArgumentMatchers.isA(WriteChannelConfiguration.class))).thenReturn(tableDataWriteChannel);
+        when(tableDataWriteChannel.getJob()).thenReturn(job);
+        when(job.waitFor(ArgumentMatchers.isA(RetryOption.class))).thenReturn(job);
+        when(job.getStatus()).thenReturn(jobStatus);
+        when(job.getStatistics()).thenReturn(stats);
+
+        when(stats.getCreationTime()).thenReturn(0L);
+        when(stats.getStartTime()).thenReturn(1L);
+        when(stats.getEndTime()).thenReturn(2L);
+
+        final TestRunner runner = buildNewRunner(getProcessor());
+        addRequiredPropertiesToRunner(runner);
+        runner.removeProperty(PutBigQueryBatch.SOURCE_TYPE);
+        runner.removeProperty(PutBigQueryBatch.TABLE_SCHEMA);
+        runner.setProperty(PutBigQueryBatch.SOURCE_TYPE,FormatOptions.datastoreBackup().getType());
+
+
+        runner.assertValid();
+        runner.enqueue(Paths.get(path));
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(PutBigQueryBatch.REL_SUCCESS);
+    }
+
 }
