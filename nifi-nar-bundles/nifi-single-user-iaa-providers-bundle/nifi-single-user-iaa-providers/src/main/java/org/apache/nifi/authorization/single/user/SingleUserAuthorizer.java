@@ -53,6 +53,8 @@ public class SingleUserAuthorizer implements Authorizer {
 
     private static final String BLANK_PROVIDER = "provider";
 
+    private NiFiProperties niFiProperties;
+
     /**
      * Set NiFi Properties using method injection
      *
@@ -60,14 +62,7 @@ public class SingleUserAuthorizer implements Authorizer {
      */
     @AuthorizerContext
     public void setProperties(final NiFiProperties niFiProperties) {
-        final File configuration = niFiProperties.getLoginIdentityProviderConfigurationFile();
-        final String identifier = niFiProperties.getProperty(NiFiProperties.SECURITY_USER_LOGIN_IDENTITY_PROVIDER, BLANK_PROVIDER);
-        if (isSingleUserLoginIdentityProviderConfigured(identifier, configuration)) {
-            LOGGER.debug("Required Login Identity Provider Configured [{}]", REQUIRED_PROVIDER);
-        } else {
-            final String message = String.format("%s requires %s to be configured", getClass().getSimpleName(), REQUIRED_PROVIDER);
-            throw new AuthorizerCreationException(message);
-        }
+        this.niFiProperties = niFiProperties;
     }
 
     @Override
@@ -75,9 +70,27 @@ public class SingleUserAuthorizer implements Authorizer {
         return AuthorizationResult.approved();
     }
 
+    /**
+     * Initialize Provider and confirm that the Single User Login Identity Provider is also configured
+     *
+     * @param initializationContext Initialization Context
+     */
     @Override
     public void initialize(final AuthorizerInitializationContext initializationContext) {
         LOGGER.info("Initializing Authorizer");
+
+        final String securityUserAuthorizer = niFiProperties.getProperty(NiFiProperties.SECURITY_USER_AUTHORIZER);
+        final String authorizerIdentifier = initializationContext.getIdentifier();
+        if (authorizerIdentifier.equals(securityUserAuthorizer)) {
+            final File configuration = niFiProperties.getLoginIdentityProviderConfigurationFile();
+            final String identifier = niFiProperties.getProperty(NiFiProperties.SECURITY_USER_LOGIN_IDENTITY_PROVIDER, BLANK_PROVIDER);
+            if (isSingleUserLoginIdentityProviderConfigured(identifier, configuration)) {
+                LOGGER.debug("Required Login Identity Provider Configured [{}]", REQUIRED_PROVIDER);
+            } else {
+                final String message = String.format("%s requires %s to be configured", getClass().getSimpleName(), REQUIRED_PROVIDER);
+                throw new AuthorizerCreationException(message);
+            }
+        }
     }
 
     @Override
