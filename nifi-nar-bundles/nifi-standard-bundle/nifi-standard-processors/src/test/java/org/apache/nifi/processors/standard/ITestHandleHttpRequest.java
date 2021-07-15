@@ -17,23 +17,31 @@
 package org.apache.nifi.processors.standard;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertNull;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.when;
 
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.PrintWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.IntStream;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
@@ -41,10 +49,6 @@ import javax.servlet.AsyncContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import com.google.api.client.util.Charsets;
-import com.google.common.base.Optional;
-import com.google.common.collect.Iterables;
-import com.google.common.io.Files;
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.MediaType;
@@ -53,17 +57,21 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
+import org.apache.nifi.annotation.notification.PrimaryNodeState;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.http.HttpContextMap;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processors.standard.util.HTTPUtils;
+import org.apache.nifi.remote.io.socket.NetworkUtils;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.security.util.TlsException;
 import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.web.util.ssl.SslContextUtils;
+import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -179,11 +187,11 @@ public class ITestHandleHttpRequest {
                             .addFormDataPart("p1", "v1")
                             .addFormDataPart("p2", "v2")
                             .addFormDataPart("file1", "my-file-text.txt",
-                                    RequestBody.create(MediaType.parse("text/plain"), createTextFile("my-file-text.txt", "Hello", "World")))
+                                    RequestBody.create(createTextFile("Hello", "World"), MediaType.parse("text/plain")))
                             .addFormDataPart("file2", "my-file-data.json",
-                                    RequestBody.create(MediaType.parse("application/json"), createTextFile("my-file-text.txt", "{ \"name\":\"John\", \"age\":30 }")))
+                                    RequestBody.create(createTextFile( "{ \"name\":\"John\", \"age\":30 }"), MediaType.parse("application/json")))
                             .addFormDataPart("file3", "my-file-binary.bin",
-                                    RequestBody.create(MediaType.parse("application/octet-stream"), generateRandomBinaryData(100)))
+                                    RequestBody.create(generateRandomBinaryData(), MediaType.parse("application/octet-stream")))
                             .build();
 
                     Request request = new Request.Builder()
@@ -324,7 +332,6 @@ public class ITestHandleHttpRequest {
         // We cannot rely on the order we sent them in.
         for (int i = 1; i < 4; i++) {
             MockFlowFile mff = findFlowFile(flowFilesForRelationship, "http.multipart.name", String.format("p%d", i));
-            String contextId = mff.getAttribute(HTTPUtils.HTTP_CONTEXT_ID);
             mff.assertAttributeEquals("http.multipart.name", String.format("p%d", i));
             mff.assertAttributeExists("http.param.p1");
             mff.assertAttributeEquals("http.param.p1", "v1");
@@ -364,11 +371,11 @@ public class ITestHandleHttpRequest {
                             .addFormDataPart("p1", "v1")
                             .addFormDataPart("p2", "v2")
                             .addFormDataPart("file1", "my-file-text.txt",
-                                    RequestBody.create(MediaType.parse("text/plain"), createTextFile("my-file-text.txt", "Hello", "World")))
+                                    RequestBody.create(createTextFile("my-file-text.txt", "Hello", "World"), MediaType.parse("text/plain")))
                             .addFormDataPart("file2", "my-file-data.json",
-                                    RequestBody.create(MediaType.parse("application/json"), createTextFile("my-file-text.txt", "{ \"name\":\"John\", \"age\":30 }")))
+                                    RequestBody.create(createTextFile("my-file-text.txt", "{ \"name\":\"John\", \"age\":30 }"), MediaType.parse("application/json")))
                             .addFormDataPart("file3", "my-file-binary.bin",
-                                    RequestBody.create(MediaType.parse("application/octet-stream"), generateRandomBinaryData(100)))
+                                    RequestBody.create(generateRandomBinaryData(), MediaType.parse("application/octet-stream")))
                             .build();
 
                     Request request = new Request.Builder()
@@ -383,12 +390,12 @@ public class ITestHandleHttpRequest {
 
                     Callback callback = new Callback() {
                         @Override
-                        public void onFailure(Call call, IOException e) {
+                        public void onFailure(@NotNull Call call, @NotNull IOException e) {
                             // Not going to happen
                         }
 
                         @Override
-                        public void onResponse(Call call, Response response) {
+                        public void onResponse(@NotNull Call call, @NotNull Response response) {
                             responseCode.set(response.code());
                             resultReady.countDown();
                         }
@@ -409,25 +416,27 @@ public class ITestHandleHttpRequest {
         Assert.assertEquals(503, responseCode.get());
     }
 
-    private byte[] generateRandomBinaryData(int i) {
+    private byte[] generateRandomBinaryData() {
         byte[] bytes = new byte[100];
         new Random().nextBytes(bytes);
         return bytes;
     }
 
 
-    private File createTextFile(String fileName, String... lines) throws IOException {
-        File file = new File(fileName);
+    private File createTextFile(String... lines) throws IOException {
+        File file = new File(getClass().getSimpleName());
         file.deleteOnExit();
-        for (String string : lines) {
-            Files.append(string, file, Charsets.UTF_8);
+        try (final PrintWriter writer = new PrintWriter(new FileWriter(file))) {
+            for (final String line : lines) {
+                writer.println(line);
+            }
         }
         return file;
     }
 
 
     protected MockFlowFile findFlowFile(List<MockFlowFile> flowFilesForRelationship, String attributeName, String attributeValue) {
-        Optional<MockFlowFile> optional = Iterables.tryFind(flowFilesForRelationship, ff -> ff.getAttribute(attributeName).equals(attributeValue));
+        Optional<MockFlowFile> optional = flowFilesForRelationship.stream().filter(ff -> ff.getAttribute(attributeName).equals(attributeValue)).findFirst();
         Assert.assertTrue(optional.isPresent());
         return optional.get();
     }
@@ -450,7 +459,6 @@ public class ITestHandleHttpRequest {
         contextMap.setRegisterSuccessfully(false);
 
         final int[] responseCode = new int[1];
-        responseCode[0] = 0;
         final Thread httpThread = new Thread(new Runnable() {
             @Override
             public void run() {
@@ -543,12 +551,12 @@ public class ITestHandleHttpRequest {
 
                     Callback callback = new Callback() {
                         @Override
-                        public void onFailure(Call call, IOException e) {
+                        public void onFailure(@NotNull Call call, @NotNull IOException e) {
                             // Will only happen once for the first non-rejected request, but not important
                         }
 
                         @Override
-                        public void onResponse(Call call, Response response) throws IOException {
+                        public void onResponse(@NotNull Call call, @NotNull Response response) {
                             responses.add(response);
                             cleanupDone.countDown();
                         }
@@ -583,8 +591,62 @@ public class ITestHandleHttpRequest {
         assertEquals(responses.size(), nrOfRequests - 1);
         for (Response response : responses) {
             assertEquals(HttpServletResponse.SC_SERVICE_UNAVAILABLE, response.code());
-            assertTrue("Unexpected HTTP response for rejected requests", new String(response.body().bytes()).contains("Processor is shutting down"));
         }
+    }
+
+    @Test(timeout = 15000)
+    public void testOnPrimaryNodeChangePrimaryNodeRevoked() throws Exception {
+        processor = new HandleHttpRequest();
+        final TestRunner runner = TestRunners.newTestRunner(processor);
+        final int port = NetworkUtils.getAvailableTcpPort();
+        runner.setProperty(HandleHttpRequest.PORT, Integer.toString(port));
+
+        final MockHttpContextMap contextMap = new MockHttpContextMap();
+        final String contextMapId = MockHttpContextMap.class.getSimpleName();
+        runner.addControllerService(contextMapId, contextMap);
+        runner.enableControllerService(contextMap);
+        runner.setProperty(HandleHttpRequest.HTTP_CONTEXT_MAP, contextMapId);
+
+        final ProcessContext processContext = spy(runner.getProcessContext());
+        when(processContext.getExecutionNode()).thenReturn(ExecutionNode.PRIMARY);
+        processor.initializeServer(processContext);
+
+        final OkHttpClient client = new OkHttpClient.Builder().build();
+
+        final String url = String.format("http://localhost:%d", port);
+        final ExecutorService executorService = Executors.newSingleThreadExecutor();
+
+        final CountDownLatch requestCompleted = new CountDownLatch(1);
+        final CountDownLatch requestStarted = new CountDownLatch(1);
+
+        final AtomicReference<IOException> requestException = new AtomicReference<>();
+        final AtomicInteger responseStatus = new AtomicInteger();
+        executorService.execute(() -> {
+            final Request request = new Request.Builder().url(url).get().build();
+            final Call call = client.newCall(request);
+            call.enqueue(new Callback() {
+                @Override
+                public void onFailure(@NotNull Call call, @NotNull IOException e) {
+                    requestException.set(e);
+                    requestCompleted.countDown();
+                }
+
+                @Override
+                public void onResponse(@NotNull Call call, @NotNull Response response) {
+                    responseStatus.set(response.code());
+                    requestCompleted.countDown();
+                }
+            });
+            requestStarted.countDown();
+        });
+
+        requestStarted.await();
+        Thread.sleep(1000);
+        processor.onPrimaryNodeChange(PrimaryNodeState.PRIMARY_NODE_REVOKED);
+        requestCompleted.await();
+
+        assertNull("HTTP Request Exception found", requestException.get());
+        assertEquals("HTTP Status not matched", HttpServletResponse.SC_SERVICE_UNAVAILABLE, responseStatus.get());
     }
 
     @Test
@@ -610,7 +672,7 @@ public class ITestHandleHttpRequest {
         runner.enableControllerService(contextMap);
         runner.setProperty(HandleHttpRequest.HTTP_CONTEXT_MAP, "http-context-map");
 
-        final RestrictedSSLContextService sslContextService = Mockito.mock(RestrictedSSLContextService.class);
+        final RestrictedSSLContextService sslContextService = mock(RestrictedSSLContextService.class);
         final String serviceIdentifier = RestrictedSSLContextService.class.getName();
         Mockito.when(sslContextService.getIdentifier()).thenReturn(serviceIdentifier);
         Mockito.when(sslContextService.createContext()).thenReturn(keyStoreSslContext);
@@ -683,7 +745,7 @@ public class ITestHandleHttpRequest {
             }
 
             @Override
-            void rejectPendingRequests() {
+            void drainContainerQueue() {
                 // Skip this, otherwise it would wait to make sure there are no more requests
             }
         };
@@ -691,7 +753,7 @@ public class ITestHandleHttpRequest {
 
     private void sendRequest(HttpURLConnection connection, CountDownLatch requestSent) throws Exception {
         Future<InputStream> executionFuture = Executors.newSingleThreadExecutor()
-                .submit(() -> connection.getInputStream());
+                .submit(connection::getInputStream);
 
         requestSent.countDown();
 
@@ -701,12 +763,12 @@ public class ITestHandleHttpRequest {
     private void sendRequest(OkHttpClient client, Request request, CountDownLatch requestSent) {
         Callback callback = new Callback() {
             @Override
-            public void onFailure(Call call, IOException e) {
+            public void onFailure(@NotNull Call call, @NotNull IOException e) {
                 // We (may) get a timeout as the processor doesn't answer unless there is some kind of error
             }
 
             @Override
-            public void onResponse(Call call, Response response) throws IOException {
+            public void onResponse(@NotNull Call call, @NotNull Response response) {
                 // Not called as the processor doesn't answer unless there is some kind of error
             }
         };
@@ -745,10 +807,6 @@ public class ITestHandleHttpRequest {
 
         public int size() {
             return responseMap.size();
-        }
-
-        public boolean isRegisterSuccessfully() {
-            return registerSuccessfully;
         }
 
         public void setRegisterSuccessfully(boolean registerSuccessfully) {
