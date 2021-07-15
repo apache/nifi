@@ -93,7 +93,7 @@
         <inceptionYear>2014</inceptionYear>
         <okhttp.version>4.9.1</okhttp.version>
         <org.bouncycastle.version>1.69</org.bouncycastle.version>
-        <org.slf4j.version>1.7.30</org.slf4j.version>
+        <org.slf4j.version>1.7.31</org.slf4j.version>
         <ranger.version>2.1.0</ranger.version>
         <jetty.version>9.4.42.v20210604</jetty.version>
         <jackson.version>2.12.3</jackson.version>
