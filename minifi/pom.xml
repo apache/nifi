@@ -899,7 +899,7 @@ limitations under the License.
             <dependency>
                 <groupId>org.apache.activemq</groupId>
                 <artifactId>activemq-client</artifactId>
-                <version>5.15.6</version>
+                <version>5.15.15</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.activemq</groupId>
