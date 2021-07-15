@@ -17,7 +17,10 @@
 package org.apache.nifi.processors.hadoop;
 
 import org.apache.commons.lang3.SystemUtils;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.hadoop.KerberosProperties;
@@ -34,17 +37,23 @@ import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.security.PrivilegedExceptionAction;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class GetHDFSTest {
@@ -265,6 +274,54 @@ public class GetHDFSTest {
         runner.assertNotValid();
     }
 
+    @Test
+    public void testDirectoryCheckWrappedInUGIDotDoAsWhenDirectoryExists() throws IOException, InterruptedException {
+        // GIVEN, WHEN
+        boolean directoryExists = true;
+
+        // THEN
+        directoryExistsWrappedInUGIDotDoAs(directoryExists);
+    }
+
+    @Test
+    public void testDirectoryCheckWrappedInUGIDotDoAsWhenDirectoryDoesNotExist() throws IOException, InterruptedException {
+        // GIVEN, WHEN
+        boolean directoryExists = false;
+
+        // THEN
+        directoryExistsWrappedInUGIDotDoAs(directoryExists);
+    }
+
+    private void directoryExistsWrappedInUGIDotDoAs(boolean directoryExists) throws IOException, InterruptedException {
+        // GIVEN
+        int wantedNumberOfInvocations = directoryExists ? 2 : 1;
+        FileSystem mockFileSystem = mock(FileSystem.class);
+        UserGroupInformation mockUserGroupInformation = mock(UserGroupInformation.class);
+
+        GetHDFS testSubject = new TestableGetHDFSForUGI(kerberosProperties, mockFileSystem, mockUserGroupInformation);
+        TestRunner runner = TestRunners.newTestRunner(testSubject);
+        runner.setProperty(GetHDFS.DIRECTORY, "src/test/resources/testdata");
+
+        // WHEN
+        Answer<?> answer = new Answer<Object>() {
+            @Override
+            public Object answer(InvocationOnMock invocationOnMock) throws Throwable {
+                when(mockFileSystem.exists(any(Path.class))).thenReturn(directoryExists);
+                when(mockFileSystem.listStatus(any(Path.class))).thenReturn(new FileStatus[0]);
+                return ((PrivilegedExceptionAction)invocationOnMock.getArgument(0)).run();
+            }
+        };
+        when(mockUserGroupInformation.doAs(any(PrivilegedExceptionAction.class))).thenAnswer(answer);
+        runner.run();
+
+        // THEN
+        verify(mockUserGroupInformation, times(wantedNumberOfInvocations)).doAs(any(PrivilegedExceptionAction.class));
+        verify(mockFileSystem).exists(any(Path.class));
+        if (directoryExists) {
+            verify(mockFileSystem).listStatus(any(Path.class));
+        }
+    }
+
     private static class TestableGetHDFS extends GetHDFS {
 
         private final KerberosProperties testKerberosProperties;
@@ -279,4 +336,24 @@ public class GetHDFSTest {
         }
     }
 
+    private static class TestableGetHDFSForUGI extends TestableGetHDFS {
+        private FileSystem mockFileSystem;
+        private UserGroupInformation mockUserGroupInformation;
+
+        public TestableGetHDFSForUGI(KerberosProperties testKerberosProperties, FileSystem mockFileSystem, UserGroupInformation mockUserGroupInformation) {
+            super(testKerberosProperties);
+            this.mockFileSystem = mockFileSystem;
+            this.mockUserGroupInformation = mockUserGroupInformation;
+        }
+
+        @Override
+        protected FileSystem getFileSystem() {
+            return mockFileSystem;
+        }
+
+        @Override
+        protected UserGroupInformation getUserGroupInformation() {
+            return mockUserGroupInformation;
+        }
+    }
 }
