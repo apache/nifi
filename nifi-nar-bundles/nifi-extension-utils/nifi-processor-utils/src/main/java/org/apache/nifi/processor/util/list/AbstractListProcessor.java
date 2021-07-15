@@ -501,7 +501,22 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
             entitiesForTimestamp.add(entity);
         }
 
-        if (orderedEntries.size() > 0) {
+        if (orderedEntries.isEmpty()) {
+            getLogger().debug("There is no data to list. Yielding.");
+            context.yield();
+            return;
+        }
+        
+        final boolean writerSet = context.getProperty(RECORD_WRITER).isSet();
+        if (writerSet) {
+            try {
+                createRecordsForEntities(context, session, orderedEntries);
+            } catch (final IOException | SchemaNotFoundException e) {
+                getLogger().error("Failed to write listing to FlowFile", e);
+                context.yield();
+                return;
+            }
+        } else {
             for (Map.Entry<Long, List<T>> timestampEntities : orderedEntries.entrySet()) {
                 List<T> entities = timestampEntities.getValue();
                 for (T entity : entities) {
