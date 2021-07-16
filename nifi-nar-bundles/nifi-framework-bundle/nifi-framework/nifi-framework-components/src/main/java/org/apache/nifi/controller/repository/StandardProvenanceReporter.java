@@ -161,8 +161,8 @@ public class StandardProvenanceReporter implements InternalProvenanceReporter {
     }
 
     @Override
-    public void receive(final FlowFile flowFile, final String transitUri, final String sourceSystemFlowFileIdentifier, final long transmissionMillis) {
-        receive(flowFile, transitUri, sourceSystemFlowFileIdentifier, null, transmissionMillis);
+    public void receive(final FlowFile flowFile, final String transitUri, final String details, final long transmissionMillis) {
+        receive(flowFile, transitUri, null, details, transmissionMillis);
     }
 
     @Override
@@ -170,8 +170,12 @@ public class StandardProvenanceReporter implements InternalProvenanceReporter {
         verifyFlowFileKnown(flowFile);
 
         try {
-            final ProvenanceEventRecord record = build(flowFile, ProvenanceEventType.RECEIVE)
-                .setTransitUri(transitUri).setSourceSystemFlowFileIdentifier(sourceSystemFlowFileIdentifier).setEventDuration(transmissionMillis).setDetails(details).build();
+            final ProvenanceEventBuilder builder = build(flowFile, ProvenanceEventType.RECEIVE);
+            builder.setTransitUri(transitUri);
+            builder.setSourceSystemFlowFileIdentifier(sourceSystemFlowFileIdentifier);
+            builder.setEventDuration(transmissionMillis);
+            builder.setDetails(details);
+            final ProvenanceEventRecord record = builder.build();
             events.add(record);
 
             bytesReceived += flowFile.getSize();
