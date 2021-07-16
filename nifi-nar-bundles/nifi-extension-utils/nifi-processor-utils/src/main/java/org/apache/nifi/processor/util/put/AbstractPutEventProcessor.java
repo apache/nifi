@@ -266,31 +266,6 @@ public abstract class AbstractPutEventProcessor extends AbstractSessionFactoryPr
     }
 
     /**
-     * The results from pruning connections.
-     */
-    protected static class PruneResult {
-
-        private final int numClosed;
-
-        private final int numConsidered;
-
-        public PruneResult(final int numClosed, final int numConsidered) {
-            this.numClosed = numClosed;
-            this.numConsidered = numConsidered;
-        }
-
-        public int getNumClosed() {
-            return numClosed;
-        }
-
-        public int getNumConsidered() {
-            return numConsidered;
-        }
-
-    }
-
-
-    /**
      * Represents a range of messages from a FlowFile.
      */
     protected static class Range {
