@@ -429,7 +429,8 @@ public class GetHDFS extends AbstractHadoopProcessor {
                 final FileSystem hdfs = getFileSystem();
                 final Path directoryPath = getNormalizedPath(context, DIRECTORY);
 
-                if (!hdfs.exists(directoryPath)) {
+                final boolean directoryExists = getUserGroupInformation().doAs((PrivilegedExceptionAction<Boolean>) () -> hdfs.exists(directoryPath));
+                if (!directoryExists) {
                     context.yield();
                     getLogger().warn("The directory {} does not exist.", new Object[]{directoryPath});
                 } else {
