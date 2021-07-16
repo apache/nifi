@@ -66,13 +66,6 @@ prop_replace 'nifi.cluster.protocol.is.secure' "${NIFI_CLUSTER_IS_NODE:-false}"
 # Setup nifi-toolkit
 prop_replace 'baseUrl' "https://${NIFI_WEB_HTTPS_HOST:-$HOSTNAME}:${NIFI_WEB_HTTPS_PORT:-8443}" ${nifi_toolkit_props_file}
 
-# Check if the user has specified a nifi.web.proxy.host setting and handle appropriately
-if [ -z "${NIFI_WEB_PROXY_HOST}" ]; then
-    echo 'NIFI_WEB_PROXY_HOST was not set but NiFi is configured to run in a secure mode.  The NiFi UI may be inaccessible if using port mapping.'
-else
-    prop_replace 'nifi.web.proxy.host' "${NIFI_WEB_PROXY_HOST}"
-fi
-
 # Configure Authorizer and Login Identity Provider
 prop_replace 'nifi.security.user.authorizer' "${NIFI_SECURITY_USER_AUTHORIZER:-managed-authorizer}"
 prop_replace 'nifi.security.user.login.identity.provider' "${NIFI_SECURITY_USER_LOGIN_IDENTITY_PROVIDER}"
