@@ -35,6 +35,7 @@ fi
 # Establish baseline properties
 prop_replace 'nifi.web.https.port'              "${NIFI_WEB_HTTPS_PORT:-8443}"
 prop_replace 'nifi.web.https.host'              "${NIFI_WEB_HTTPS_HOST:-$HOSTNAME}"
+prop_replace 'nifi.web.proxy.host'              "${NIFI_WEB_PROXY_HOST}"
 prop_replace 'nifi.remote.input.host'           "${NIFI_REMOTE_INPUT_HOST:-$HOSTNAME}"
 prop_replace 'nifi.remote.input.socket.port'    "${NIFI_REMOTE_INPUT_SOCKET_PORT:-10000}"
 prop_replace 'nifi.remote.input.secure'         'true'
@@ -66,6 +67,15 @@ if [ -n "${NIFI_WEB_HTTP_PORT}" ]; then
     prop_replace 'truststore'                                 '' ${nifi_toolkit_props_file}
     prop_replace 'truststoreType'                             '' ${nifi_toolkit_props_file}
     prop_replace 'baseUrl' "http://${NIFI_WEB_HTTP_HOST:-$HOSTNAME}:${NIFI_WEB_HTTP_PORT}" ${nifi_toolkit_props_file}
+
+    if [ -n "${NIFI_WEB_PROXY_HOST}" ]; then
+        echo 'NIFI_WEB_PROXY_HOST was set but NiFi is not configured to run in a secure mode. Unsetting nifi.web.proxy.host.'
+        prop_replace 'nifi.web.proxy.host' ''
+    fi
+else
+    if [ -z "${NIFI_WEB_PROXY_HOST}" ]; then
+        echo 'NIFI_WEB_PROXY_HOST was not set but NiFi is configured to run in a secure mode. The NiFi UI may be inaccessible if using port mapping or connecting through a proxy.'
+    fi
 fi
 
 prop_replace 'nifi.variable.registry.properties'    "${NIFI_VARIABLE_REGISTRY_PROPERTIES:-}"
@@ -110,14 +120,9 @@ case ${AUTH} in
         . "${scripts_dir}/secure.sh"
         . "${scripts_dir}/update_login_providers.sh"
         ;;
-    *)
-        if [ ! -z "${NIFI_WEB_PROXY_HOST}" ]; then
-            echo 'NIFI_WEB_PROXY_HOST was set but NiFi is not configured to run in a secure mode.  Will not update nifi.web.proxy.host.'
-        fi
-        ;;
 esac
 
-# Continuously provide logs so that 'docker logs' can    produce them
+# Continuously provide logs so that 'docker logs' can produce them
 "${NIFI_HOME}/bin/nifi.sh" run &
 nifi_pid="$!"
 tail -F --pid=${nifi_pid} "${NIFI_HOME}/logs/nifi-app.log" &
