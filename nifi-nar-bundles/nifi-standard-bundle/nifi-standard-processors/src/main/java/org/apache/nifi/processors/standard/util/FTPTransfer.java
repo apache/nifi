@@ -590,21 +590,6 @@ public class FTPTransfer implements FileTransfer {
 
         final String remoteHostname = ctx.getProperty(HOSTNAME).evaluateAttributeExpressions(flowFile).getValue();
         this.remoteHostName = remoteHostname;
-        InetAddress inetAddress = null;
-        try {
-            inetAddress = InetAddress.getByAddress(remoteHostname, null);
-        } catch (final UnknownHostException uhe) {
-        }
-
-        if (inetAddress == null) {
-            inetAddress = InetAddress.getByName(remoteHostname);
-        }
-
-        final boolean useUtf8Encoding = ctx.getProperty(UTF8_ENCODING).isSet() ? ctx.getProperty(UTF8_ENCODING).asBoolean() : false;
-        if (useUtf8Encoding) {
-            client.setControlEncoding("UTF-8");
-            client.setAutodetectUTF8(useUtf8Encoding);
-        }
 
         client.connect(remoteHostName, ctx.getProperty(PORT).evaluateAttributeExpressions(flowFile).asInteger());
         this.closed = false;
