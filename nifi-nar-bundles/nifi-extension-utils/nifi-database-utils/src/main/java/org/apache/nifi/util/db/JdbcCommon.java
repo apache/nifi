@@ -398,7 +398,14 @@ public class JdbcCommon {
                         } else {
                             rec.put(i-1, value);
                         }
-
+                    } else if (javaSqlType == DATE) {
+                        if (options.useLogicalTypes) {
+                            // Handle SQL DATE fields using system default time zone without conversion
+                            rec.put(i - 1, AvroTypeUtil.convertToAvroObject(value, fieldSchema));
+                        } else {
+                            // As string for backward compatibility.
+                            rec.put(i - 1, value.toString());
+                        }
                     } else if (value instanceof java.sql.Date) {
                         if (options.useLogicalTypes) {
                             // Delegate mapping to AvroTypeUtil in order to utilize logical types.
@@ -582,7 +589,7 @@ public class JdbcCommon {
                             decimalPrecision = meta.getPrecision(i);
                             //For the float data type Oracle return decimalScale < 0 which cause is not expected to org.apache.avro.LogicalTypes
                             //Hence falling back to default scale if decimalScale < 0
-                            decimalScale = meta.getScale(i) > 0 ? meta.getScale(i) : options.defaultScale;
+                            decimalScale = meta.getScale(i) >= 0 ? meta.getScale(i) : options.defaultScale;
                         } else {
                             // If not, use default precision.
                             decimalPrecision = options.defaultPrecision;

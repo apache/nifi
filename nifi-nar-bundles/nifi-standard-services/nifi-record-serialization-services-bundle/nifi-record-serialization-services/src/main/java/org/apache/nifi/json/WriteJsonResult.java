@@ -44,6 +44,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.math.BigInteger;
 import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -80,7 +81,8 @@ public class WriteJsonResult extends AbstractRecordSetWriter implements RecordSe
         this.outputGrouping = outputGrouping;
         this.mimeType = mimeType;
 
-        final DateFormat df = dateFormat == null ? null : DataTypeUtils.getDateFormat(dateFormat);
+        // Use DateFormat with default TimeZone to avoid unexpected conversion of year-month-day
+        final DateFormat df = dateFormat == null ? null : new SimpleDateFormat(dateFormat);
         final DateFormat tf = timeFormat == null ? null : DataTypeUtils.getDateFormat(timeFormat);
         final DateFormat tsf = timestampFormat == null ? null : DataTypeUtils.getDateFormat(timestampFormat);
 
