@@ -588,8 +588,7 @@ public class FTPTransfer implements FileTransfer {
         client.setDefaultTimeout(ctx.getProperty(CONNECTION_TIMEOUT).asTimePeriod(TimeUnit.MILLISECONDS).intValue());
         client.setRemoteVerificationEnabled(false);
 
-        final String remoteHostname = ctx.getProperty(HOSTNAME).evaluateAttributeExpressions(flowFile).getValue();
-        this.remoteHostName = remoteHostname;
+        this.remoteHostName = ctx.getProperty(HOSTNAME).evaluateAttributeExpressions(flowFile).getValue();
 
         client.connect(remoteHostName, ctx.getProperty(PORT).evaluateAttributeExpressions(flowFile).asInteger());
         this.closed = false;
