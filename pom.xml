@@ -422,7 +422,7 @@
                 <plugin>
                     <groupId>org.codehaus.groovy</groupId>
                     <artifactId>groovy-eclipse-batch</artifactId>
-                    <version>${nifi.groovy.version}-01</version>
+                    <version>${nifi.groovy.version}-02</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
