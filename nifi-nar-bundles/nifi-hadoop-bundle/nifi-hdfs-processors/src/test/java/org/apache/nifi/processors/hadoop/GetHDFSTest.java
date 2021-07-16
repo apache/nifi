@@ -54,6 +54,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 public class GetHDFSTest {
@@ -275,26 +276,25 @@ public class GetHDFSTest {
     }
 
     @Test
-    public void testDirectoryCheckWrappedInUGIDotDoAsWhenDirectoryExists() throws IOException, InterruptedException {
+    public void testDirectoryCheckWrappedInUGICallWhenDirectoryExists() throws IOException, InterruptedException {
         // GIVEN, WHEN
         boolean directoryExists = true;
 
         // THEN
-        directoryExistsWrappedInUGIDotDoAs(directoryExists);
+        directoryExistsWrappedInUGICall(directoryExists);
     }
 
     @Test
-    public void testDirectoryCheckWrappedInUGIDotDoAsWhenDirectoryDoesNotExist() throws IOException, InterruptedException {
+    public void testDirectoryCheckWrappedInUGICallWhenDirectoryDoesNotExist() throws IOException, InterruptedException {
         // GIVEN, WHEN
         boolean directoryExists = false;
 
         // THEN
-        directoryExistsWrappedInUGIDotDoAs(directoryExists);
+        directoryExistsWrappedInUGICall(directoryExists);
     }
 
-    private void directoryExistsWrappedInUGIDotDoAs(boolean directoryExists) throws IOException, InterruptedException {
+    private void directoryExistsWrappedInUGICall(boolean directoryExists) throws IOException, InterruptedException {
         // GIVEN
-        int wantedNumberOfInvocations = directoryExists ? 2 : 1;
         FileSystem mockFileSystem = mock(FileSystem.class);
         UserGroupInformation mockUserGroupInformation = mock(UserGroupInformation.class);
 
@@ -304,22 +304,31 @@ public class GetHDFSTest {
 
         // WHEN
         Answer<?> answer = new Answer<Object>() {
+            private int callCounter = 0;
             @Override
             public Object answer(InvocationOnMock invocationOnMock) throws Throwable {
-                when(mockFileSystem.exists(any(Path.class))).thenReturn(directoryExists);
-                when(mockFileSystem.listStatus(any(Path.class))).thenReturn(new FileStatus[0]);
-                return ((PrivilegedExceptionAction)invocationOnMock.getArgument(0)).run();
+                final Object result;
+                if (callCounter == 0) {
+                    when(mockFileSystem.exists(any(Path.class))).thenReturn(directoryExists);
+                    result = ((PrivilegedExceptionAction) invocationOnMock.getArgument(0)).run();
+                    verify(mockUserGroupInformation, times(callCounter + 1)).doAs(any(PrivilegedExceptionAction.class));
+                    verify(mockFileSystem).exists(any(Path.class));
+                } else {
+                    when(mockFileSystem.listStatus(any(Path.class))).thenReturn(new FileStatus[0]);
+                    result = ((PrivilegedExceptionAction) invocationOnMock.getArgument(0)).run();
+                    verify(mockUserGroupInformation, times(callCounter + 1)).doAs(any(PrivilegedExceptionAction.class));
+                    verify(mockFileSystem).listStatus(any(Path.class));
+                }
+                ++callCounter;
+                return result;
             }
         };
         when(mockUserGroupInformation.doAs(any(PrivilegedExceptionAction.class))).thenAnswer(answer);
         runner.run();
 
         // THEN
-        verify(mockUserGroupInformation, times(wantedNumberOfInvocations)).doAs(any(PrivilegedExceptionAction.class));
-        verify(mockFileSystem).exists(any(Path.class));
-        if (directoryExists) {
-            verify(mockFileSystem).listStatus(any(Path.class));
-        }
+        verify(mockFileSystem).getUri();
+        verifyNoMoreInteractions(mockFileSystem, mockUserGroupInformation);
     }
 
     private static class TestableGetHDFS extends GetHDFS {
