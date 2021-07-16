@@ -81,11 +81,6 @@ limitations under the License.
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.minifi</groupId>
-                <artifactId>minifi-nar-utils</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.nifi.minifi</groupId>
                 <artifactId>minifi-utils</artifactId>
                 <version>1.15.0-SNAPSHOT</version>
             </dependency>
@@ -121,11 +116,6 @@ limitations under the License.
                 <groupId>org.apache.nifi.minifi</groupId>
                 <artifactId>minifi-runtime</artifactId>
                 <version>1.15.0-SNAPSHOT</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.nifi.minifi</groupId>
-                <artifactId>minifi-persistent-provenance-repository</artifactId>
-                <version>1.14.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.nifi.minifi</groupId>
