@@ -16,12 +16,16 @@
  */
 package org.apache.nifi.processors.standard.util;
 
+import net.schmizz.keepalive.KeepAlive;
+import net.schmizz.keepalive.KeepAliveProvider;
 import net.schmizz.sshj.SSHClient;
 import net.schmizz.sshj.DefaultConfig;
 import net.schmizz.sshj.common.Factory;
+import net.schmizz.sshj.connection.ConnectionImpl;
 import net.schmizz.sshj.sftp.Response;
 import net.schmizz.sshj.sftp.SFTPClient;
 import net.schmizz.sshj.sftp.SFTPException;
+import net.schmizz.sshj.transport.Transport;
 import net.schmizz.sshj.userauth.method.AuthKeyboardInteractive;
 import net.schmizz.sshj.userauth.method.AuthMethod;
 import net.schmizz.sshj.userauth.method.AuthPassword;
@@ -50,6 +54,7 @@ import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -330,5 +335,36 @@ public class TestSFTPTransfer {
 
         final SSHClient sshClient = new SSHClient();
         assertThrows(ProcessException.class, () -> sftpTransfer.getAuthMethods(sshClient, null));
+    }
+
+    @Test
+    public void testGetKeepAliveProviderEnabled() {
+        final ProcessContext processContext = mock(ProcessContext.class);
+        when(processContext.getProperty(SFTPTransfer.USE_KEEPALIVE_ON_TIMEOUT)).thenReturn(new MockPropertyValue(Boolean.TRUE.toString()));
+
+        final KeepAlive keepAlive = getKeepAlive(processContext);
+        assertNotSame("Keep Alive Interval not configured", 0, keepAlive.getKeepAliveInterval());
+    }
+
+    @Test
+    public void testGetKeepAliveProviderDisabled() {
+        final ProcessContext processContext = mock(ProcessContext.class);
+        when(processContext.getProperty(SFTPTransfer.USE_KEEPALIVE_ON_TIMEOUT)).thenReturn(new MockPropertyValue(Boolean.FALSE.toString()));
+
+        final KeepAlive keepAlive = getKeepAlive(processContext);
+        assertEquals("Keep Alive Interval configured", 0, keepAlive.getKeepAliveInterval());
+    }
+
+    private KeepAlive getKeepAlive(final ProcessContext processContext) {
+        final SFTPClient sftpClient = mock(SFTPClient.class);
+        final SFTPTransfer sftpTransfer = createSftpTransfer(processContext, sftpClient);
+
+        final Transport transport = mock(Transport.class);
+        when(transport.getConfig()).thenReturn(new DefaultConfig());
+        final KeepAliveProvider mockKeepAliveProvider = mock(KeepAliveProvider.class);
+        final ConnectionImpl connection = new ConnectionImpl(transport, mockKeepAliveProvider);
+
+        final KeepAliveProvider keepAliveProvider = sftpTransfer.getKeepAliveProvider();
+        return keepAliveProvider.provide(connection);
     }
 }
