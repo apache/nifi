@@ -58,7 +58,7 @@ import java.util.concurrent.TimeUnit;
 
 @SupportsBatching
 @InputRequirement(Requirement.INPUT_REQUIRED)
-@Tags({"hadoop", "hdfs", "get", "ingest", "fetch", "source"})
+@Tags({"hadoop", "hcfs", "hdfs", "get", "ingest", "fetch", "source"})
 @CapabilityDescription("Retrieves a file from HDFS. The content of the incoming FlowFile is replaced by the content of the file in HDFS. "
         + "The file in HDFS is left intact without any changes being made to it.")
 @WritesAttribute(attribute="hdfs.failure.reason", description="When a FlowFile is routed to 'failure', this attribute is added indicating why the file could "
@@ -66,7 +66,7 @@ import java.util.concurrent.TimeUnit;
 @SeeAlso({ListHDFS.class, GetHDFS.class, PutHDFS.class})
 @Restricted(restrictions = {
     @Restriction(
-        requiredPermission = RequiredPermission.READ_FILESYSTEM,
+        requiredPermission = RequiredPermission.READ_DISTRIBUTED_FILESYSTEM,
         explanation = "Provides operator the ability to retrieve any file that NiFi has access to in HDFS or the local filesystem.")
 })
 public class FetchHDFS extends AbstractHadoopProcessor {
@@ -125,7 +125,7 @@ public class FetchHDFS extends AbstractHadoopProcessor {
 
         final Path path;
         try {
-            path = new Path(filenameValue);
+            path = getNormalizedPath(context, FILENAME, flowFile);
         } catch (IllegalArgumentException e) {
             getLogger().error("Failed to retrieve content from {} for {} due to {}; routing to failure", new Object[] {filenameValue, flowFile, e});
             flowFile = session.putAttribute(flowFile, "hdfs.failure.reason", e.getMessage());

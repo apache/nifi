@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.mongodb;
 
+import com.mongodb.MongoException;
 import com.mongodb.WriteConcern;
 import com.mongodb.client.MongoCollection;
 import org.apache.nifi.annotation.behavior.EventDriven;
@@ -144,7 +145,7 @@ public class PutMongoRecord extends AbstractMongoProcessor {
             if (inserts.size() > 0) {
                 collection.insertMany(inserts);
             }
-        } catch (SchemaNotFoundException | IOException | MalformedRecordException e) {
+        } catch (SchemaNotFoundException | IOException | MalformedRecordException | MongoException e) {
             getLogger().error("PutMongoRecord failed with error:", e);
             session.transfer(flowFile, REL_FAILURE);
             error = true;
@@ -158,7 +159,6 @@ public class PutMongoRecord extends AbstractMongoProcessor {
                 getLogger().info("Inserted {} records into MongoDB", new Object[]{ added });
             }
         }
-        session.commit();
     }
 
     private Document convertArrays(Document doc) {

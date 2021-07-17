@@ -205,7 +205,7 @@ public class PutHive3QL extends AbstractHive3QLProcessor {
         }
     }
 
-    private InitConnection<FunctionContext, Connection> initConnection = (context, session, fc, ff) -> {
+    private InitConnection<FunctionContext, Connection> initConnection = (context, session, fc, ffs) -> {
         final Hive3DBCPService dbcpService = context.getProperty(HIVE_DBCP_SERVICE).asControllerService(Hive3DBCPService.class);
         final Connection connection = dbcpService.getConnection();
         fc.connectionUrl = dbcpService.getConnectionURL();

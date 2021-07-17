@@ -1,0 +1,56 @@
+nifi-sql-reporting-nar
+Copyright 2016-2020 The Apache Software Foundation
+
+This product includes software developed at
+The Apache Software Foundation (http://www.apache.org/).
+
+******************
+Apache Software License v2
+******************
+
+The following binary components are provided under the Apache Software License v2
+
+    (ASLv2) Apache Commons Codec
+      The following NOTICE information applies:
+        Apache Commons Codec
+        Copyright 2002-2017 The Apache Software Foundation
+
+        src/test/org/apache/commons/codec/language/DoubleMetaphoneTest.java
+        contains test data from http://aspell.net/test/orig/batch0.tab.
+        Copyright (C) 2002 Kevin Atkinson (kevina@gnu.org)
+
+        ===============================================================================
+
+        The content of package org.apache.commons.codec.language.bm has been translated
+        from the original php source code available at http://stevemorse.org/phoneticinfo.htm
+        with permission from the original authors.
+        Original source copyright:
+        Copyright (c) 2008 Alexander Beider & Stephen P. Morse.
+
+    (ASLv2) Apache Commons Logging
+      The following NOTICE information applies:
+        Apache Commons Logging
+        Copyright 2003-2014 The Apache Software Foundation
+
+    (ASLv2) Apache HttpComponents
+      The following NOTICE information applies:
+        Apache HttpClient
+        Copyright 1999-2019 The Apache Software Foundation
+
+        Apache HttpCore
+        Copyright 2005-2019 The Apache Software Foundation
+
+        Apache HttpMime
+        Copyright 1999-2019 The Apache Software Foundation
+
+        This project contains annotations derived from JCIP-ANNOTATIONS
+        Copyright (c) 2005 Brian Goetz and Tim Peierls. See http://www.jcip.net
+
+************************
+Common Development and Distribution License 1.1
+************************
+
+The following binary components are provided under the Common Development and Distribution License 1.1. See project link for details.
+
+    (CDDL 1.1) (GPL2 w/ CPE) JSON Processing API (javax.json:javax.json-api:jar:1.0 - http://json-processing-spec.java.net)
+    (CDDL 1.1) (GPL2 w/ CPE) JSON Processing Default Provider (org.glassfish:javax.json:jar:1.0.4 - https://jsonp.java.net)

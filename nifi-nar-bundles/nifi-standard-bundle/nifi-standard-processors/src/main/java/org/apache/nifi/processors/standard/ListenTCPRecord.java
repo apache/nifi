@@ -16,6 +16,27 @@
  */
 package org.apache.nifi.processors.standard;
 
+import static org.apache.nifi.processor.util.listen.ListenerProperties.NETWORK_INTF_NAME;
+
+import java.io.IOException;
+import java.io.OutputStream;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.NetworkInterface;
+import java.net.SocketTimeoutException;
+import java.nio.channels.ServerSocketChannel;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
+import javax.net.ssl.SSLContext;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.annotation.behavior.InputRequirement;
@@ -43,7 +64,7 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processor.util.listen.ListenerProperties;
 import org.apache.nifi.record.listen.SocketChannelRecordReader;
 import org.apache.nifi.record.listen.SocketChannelRecordReaderDispatcher;
-import org.apache.nifi.security.util.SslContextFactory;
+import org.apache.nifi.security.util.ClientAuth;
 import org.apache.nifi.serialization.RecordReader;
 import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.RecordSetWriter;
@@ -53,28 +74,6 @@ import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.ssl.RestrictedSSLContextService;
 import org.apache.nifi.ssl.SSLContextService;
-
-import javax.net.ssl.SSLContext;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.NetworkInterface;
-import java.net.SocketTimeoutException;
-import java.nio.channels.ServerSocketChannel;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
-
-import static org.apache.nifi.processor.util.listen.ListenerProperties.NETWORK_INTF_NAME;
 
 @SupportsBatching
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
@@ -191,8 +190,8 @@ public class ListenTCPRecord extends AbstractProcessor {
             .displayName("Client Auth")
             .description("The client authentication policy to use for the SSL Context. Only used if an SSL Context Service is provided.")
             .required(false)
-            .allowableValues(SSLContextService.ClientAuth.values())
-            .defaultValue(SSLContextService.ClientAuth.REQUIRED.name())
+            .allowableValues(ClientAuth.values())
+            .defaultValue(ClientAuth.REQUIRED.name())
             .build();
 
     static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -229,7 +228,7 @@ public class ListenTCPRecord extends AbstractProcessor {
 
     private volatile int port;
     private volatile SocketChannelRecordReaderDispatcher dispatcher;
-    private volatile BlockingQueue<SocketChannelRecordReader> socketReaders = new LinkedBlockingQueue<>();
+    private final BlockingQueue<SocketChannelRecordReader> socketReaders = new LinkedBlockingQueue<>();
 
     @Override
     public Set<Relationship> getRelationships() {
@@ -277,12 +276,12 @@ public class ListenTCPRecord extends AbstractProcessor {
         }
 
         SSLContext sslContext = null;
-        SslContextFactory.ClientAuth clientAuth = null;
+        ClientAuth clientAuth = null;
         final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
         if (sslContextService != null) {
             final String clientAuthValue = context.getProperty(CLIENT_AUTH).getValue();
-            sslContext = sslContextService.createSSLContext(SSLContextService.ClientAuth.valueOf(clientAuthValue));
-            clientAuth = SslContextFactory.ClientAuth.valueOf(clientAuthValue);
+            sslContext = sslContextService.createContext();
+            clientAuth = ClientAuth.valueOf(clientAuthValue);
         }
 
         // create a ServerSocketChannel in non-blocking mode and bind to the given address and port
@@ -309,7 +308,11 @@ public class ListenTCPRecord extends AbstractProcessor {
 
         SocketChannelRecordReader socketRecordReader;
         while ((socketRecordReader = socketReaders.poll()) != null) {
-            IOUtils.closeQuietly(socketRecordReader.getRecordReader());
+            try {
+                socketRecordReader.close();
+            } catch (Exception e) {
+                getLogger().error("Couldn't close " + socketRecordReader, e);
+            }
         }
     }
 
@@ -457,9 +460,4 @@ public class ListenTCPRecord extends AbstractProcessor {
     private String getRemoteAddress(final SocketChannelRecordReader socketChannelRecordReader) {
         return socketChannelRecordReader.getRemoteAddress() == null ? "null" : socketChannelRecordReader.getRemoteAddress().toString();
     }
-
-    public final int getDispatcherPort() {
-        return dispatcher == null ? 0 : dispatcher.getPort();
-    }
-
 }

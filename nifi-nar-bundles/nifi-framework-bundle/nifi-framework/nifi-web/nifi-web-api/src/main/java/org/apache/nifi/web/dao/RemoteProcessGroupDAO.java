@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.web.dao;
 
+import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.remote.RemoteGroupPort;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
@@ -120,4 +122,12 @@ public interface RemoteProcessGroupDAO {
      * @param remoteProcessGroupId The remote process group id
      */
     void deleteRemoteProcessGroup(String remoteProcessGroupId);
+
+    /**
+     * Gets the specified RemoteProcessGroupId.
+     *
+     * @param remoteProcessGroupId RemoteProcessGroupId id
+     * @return state map
+     */
+    StateMap getState(String remoteProcessGroupId, Scope scope);
 }

@@ -16,16 +16,26 @@
  */
 package org.apache.nifi.diagnostics.bootstrap.tasks;
 
-import org.apache.nifi.diagnostics.DiagnosticsDumpElement;
+import org.apache.nifi.controller.FlowController;
+import org.apache.nifi.controller.GarbageCollectionEvent;
+import org.apache.nifi.controller.GarbageCollectionLog;
 import org.apache.nifi.diagnostics.DiagnosticTask;
+import org.apache.nifi.diagnostics.DiagnosticsDumpElement;
 import org.apache.nifi.diagnostics.StandardDiagnosticsDumpElement;
 
 import java.lang.management.GarbageCollectorMXBean;
 import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class GarbageCollectionDiagnosticTask implements DiagnosticTask {
+    private final FlowController flowController;
+
+    public GarbageCollectionDiagnosticTask(final FlowController flowController) {
+        this.flowController = flowController;
+    }
+
     @Override
     public DiagnosticsDumpElement captureDump(final boolean verbose) {
         final List<GarbageCollectorMXBean> garbageCollectors = ManagementFactory.getGarbageCollectorMXBeans();
@@ -34,6 +44,22 @@ public class GarbageCollectionDiagnosticTask implements DiagnosticTask {
         for (final GarbageCollectorMXBean garbageCollector : garbageCollectors) {
             details.add(garbageCollector.getName() + " Collection Count : " + garbageCollector.getCollectionCount());
             details.add(garbageCollector.getName() + " Collection Time (ms) : " + garbageCollector.getCollectionTime());
+        }
+
+        final GarbageCollectionLog gcLog = flowController.getGarbageCollectionLog();
+        final List<GarbageCollectionEvent> events = gcLog.getGarbageCollectionEvents();
+        details.add("");
+
+        details.add("Longest Garbage Collection Event: " + gcLog.getLongestGarbageCollectionEvent());
+        details.add("Number of Garbage Collection Events Per Action: " + gcLog.getGarbageCollectionCounts());
+        details.add("Average Duration of Garbage Collection Event Per Action: " + gcLog.getAverageGarbageCollectionDurations());
+
+        details.add("");
+        details.add("Last " + events.size() + " Garbage Collection Events that had a duration exceeding " + gcLog.getMinDurationThreshold() + " millis:");
+
+        Collections.reverse(events); // Reverse events so that we show the most recent events first
+        for (final GarbageCollectionEvent event : events) {
+            details.add(event.toString());
         }
 
         return new StandardDiagnosticsDumpElement("Garbage Collection", details);

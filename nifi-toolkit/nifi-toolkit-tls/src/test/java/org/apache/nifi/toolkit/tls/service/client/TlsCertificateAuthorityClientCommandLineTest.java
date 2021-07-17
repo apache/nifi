@@ -42,7 +42,7 @@ public class TlsCertificateAuthorityClientCommandLineTest {
     @Before
     public void setup() {
         tlsCertificateAuthorityClientCommandLine = new TlsCertificateAuthorityClientCommandLine();
-        testToken = "testToken";
+        testToken = "testToken16bytes";
     }
 
     @Test
@@ -174,5 +174,12 @@ public class TlsCertificateAuthorityClientCommandLineTest {
         String testCertificateFile = "testCertificateFile";
         tlsCertificateAuthorityClientCommandLine.parse("-t", testToken, "-C", testCertificateFile);
         assertEquals(testCertificateFile, tlsCertificateAuthorityClientCommandLine.getCertificateDirectory());
+    }
+
+    @Test
+    public void testConfigClientSAN() throws CommandLineParseException {
+        tlsCertificateAuthorityClientCommandLine.parse("-t", testToken, "--" + TlsCertificateAuthorityClientCommandLine.SUBJECT_ALTERNATIVE_NAMES, "nifi.apache.org,minifi.apache.org");
+        assertEquals("nifi.apache.org", tlsCertificateAuthorityClientCommandLine.getDomainAlternativeNames().get(0));
+        assertEquals("minifi.apache.org", tlsCertificateAuthorityClientCommandLine.getDomainAlternativeNames().get(1));
     }
 }

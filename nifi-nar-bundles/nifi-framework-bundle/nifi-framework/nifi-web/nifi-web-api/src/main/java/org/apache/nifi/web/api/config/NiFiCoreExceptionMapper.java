@@ -16,13 +16,13 @@
  */
 package org.apache.nifi.web.api.config;
 
-import javax.ws.rs.core.Response;
-import javax.ws.rs.ext.ExceptionMapper;
-import javax.ws.rs.ext.Provider;
-import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.web.NiFiCoreException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.ws.rs.core.Response;
+import javax.ws.rs.ext.ExceptionMapper;
+import javax.ws.rs.ext.Provider;
 
 /**
  * Maps NiFi core exceptions into client responses.
@@ -35,12 +35,7 @@ public class NiFiCoreExceptionMapper implements ExceptionMapper<NiFiCoreExceptio
     @Override
     public Response toResponse(NiFiCoreException exception) {
         // log the error
-        logger.info(String.format("%s. Returning %s response.", exception, Response.Status.CONFLICT));
-
-        if (logger.isDebugEnabled()) {
-            logger.debug(StringUtils.EMPTY, exception);
-        }
-
+        logger.warn("{}. Returning {} response.", exception, Response.Status.CONFLICT, exception);
         return Response.status(Response.Status.CONFLICT).entity(exception.getMessage()).type("text/plain").build();
     }
 

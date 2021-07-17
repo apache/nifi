@@ -17,24 +17,30 @@
 
 package org.apache.nifi.processors.kudu;
 
+import org.apache.kudu.Schema;
+import org.apache.kudu.client.DeleteIgnore;
+import org.apache.kudu.client.InsertIgnore;
 import org.apache.kudu.client.KuduClient;
 import org.apache.kudu.client.KuduSession;
 import org.apache.kudu.client.KuduTable;
 import org.apache.kudu.client.Delete;
 import org.apache.kudu.client.Insert;
+import org.apache.kudu.client.Operation;
+import org.apache.kudu.client.UpdateIgnore;
 import org.apache.kudu.client.Upsert;
 import org.apache.kudu.client.Update;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.security.krb.KerberosUser;
 import org.apache.nifi.serialization.record.Record;
 
-import javax.security.auth.login.LoginException;
 import java.security.PrivilegedAction;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.util.Arrays;
 import java.util.List;
 import java.util.LinkedList;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -43,7 +49,10 @@ import static org.mockito.Mockito.when;
 public class MockPutKudu extends PutKudu {
 
     private KuduSession session;
-    private LinkedList<Insert> insertQueue;
+    private LinkedList<Operation> opQueue;
+
+    // Atomic reference is used as the set and use of the schema are in different thread
+    private AtomicReference<Schema> tableSchema = new AtomicReference<>();
 
     private boolean loggedIn = false;
     private boolean loggedOut = false;
@@ -54,36 +63,55 @@ public class MockPutKudu extends PutKudu {
 
     public MockPutKudu(KuduSession session) {
         this.session = session;
-        this.insertQueue = new LinkedList<>();
+        this.opQueue = new LinkedList<>();
     }
 
-    public void queue(Insert... operations) {
-        insertQueue.addAll(Arrays.asList(operations));
-    }
-
-    @Override
-    protected Insert insertRecordToKudu(KuduTable kuduTable, Record record, List<String> fieldNames, Boolean ignoreNull) {
-        Insert insert = insertQueue.poll();
-        return insert != null ? insert : mock(Insert.class);
+    public void queue(Operation... operations) {
+        opQueue.addAll(Arrays.asList(operations));
     }
 
     @Override
-    protected Upsert upsertRecordToKudu(KuduTable kuduTable, Record record, List<String> fieldNames, Boolean ignoreNull) {
-        return mock(Upsert.class);
+    protected Operation createKuduOperation(OperationType operationType, Record record,
+                                            List<String> fieldNames, boolean ignoreNull,
+                                            boolean lowercaseFields, KuduTable kuduTable) {
+        Operation operation = opQueue.poll();
+        if (operation == null) {
+            switch (operationType) {
+                case INSERT:
+                    operation = mock(Insert.class);
+                    break;
+                case INSERT_IGNORE:
+                    operation = mock(InsertIgnore.class);
+                    break;
+                case UPSERT:
+                    operation = mock(Upsert.class);
+                    break;
+                case UPDATE:
+                    operation = mock(Update.class);
+                    break;
+                case UPDATE_IGNORE:
+                    operation = mock(UpdateIgnore.class);
+                    break;
+                case DELETE:
+                    operation = mock(Delete.class);
+                    break;
+                case DELETE_IGNORE:
+                    operation = mock(DeleteIgnore.class);
+                    break;
+                default:
+                    throw new IllegalArgumentException(String.format("OperationType: %s not supported by Kudu", operationType));
+            }
+        }
+        return operation;
     }
 
     @Override
-    protected Delete deleteRecordFromKudu(KuduTable kuduTable, Record record, List<String> fieldNames, Boolean ignoreNull) {
-        return mock(Delete.class);
+    protected boolean supportsIgnoreOperations() {
+        return true;
     }
 
     @Override
-    protected Update updateRecordToKudu(KuduTable kuduTable, Record record, List<String> fieldNames, Boolean ignoreNull) {
-        return mock(Update.class);
-    }
-
-    @Override
-    public KuduClient buildClient(final String masters, ProcessContext context) {
+    public KuduClient buildClient(ProcessContext context) {
         final KuduClient client = mock(KuduClient.class);
 
         try {
@@ -96,16 +124,18 @@ public class MockPutKudu extends PutKudu {
     }
 
     @Override
-    public KuduClient getKuduClient() {
+    protected void executeOnKuduClient(Consumer<KuduClient> actionOnKuduClient) {
         final KuduClient client = mock(KuduClient.class);
 
         try {
-            when(client.openTable(anyString())).thenReturn(mock(KuduTable.class));
+            final KuduTable kuduTable = mock(KuduTable.class);
+            when(client.openTable(anyString())).thenReturn(kuduTable);
+            when(kuduTable.getSchema()).thenReturn(tableSchema.get());
         } catch (final Exception e) {
             throw new AssertionError(e);
         }
 
-        return client;
+        actionOnKuduClient.accept(client);
     }
 
     public boolean loggedIn() {
@@ -117,7 +147,16 @@ public class MockPutKudu extends PutKudu {
     }
 
     @Override
-    protected KerberosUser loginKerberosUser(final String principal, final String keytab) throws LoginException {
+    protected KerberosUser createKerberosKeytabUser(String principal, String keytab, ProcessContext context) {
+        return createMockKerberosUser(principal);
+    }
+
+    @Override
+    protected KerberosUser createKerberosPasswordUser(String principal, String password, ProcessContext context) {
+        return createMockKerberosUser(principal);
+    }
+
+    private KerberosUser createMockKerberosUser(final String principal) {
         return new KerberosUser() {
 
             @Override
@@ -162,7 +201,11 @@ public class MockPutKudu extends PutKudu {
     }
 
     @Override
-    protected KuduSession getKuduSession(KuduClient client) {
+    protected KuduSession createKuduSession(final KuduClient client) {
         return session;
+    }
+
+    void setTableSchema(final Schema tableSchema) {
+        this.tableSchema.set(tableSchema);
     }
 }

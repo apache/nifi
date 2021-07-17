@@ -139,8 +139,9 @@ application and highlights the different segments of the UI. Each segment is dis
 in the document.
 
 When the application is started, the user is able to navigate to the UI by going to the default address of
-`http://<hostname>:8080/nifi` in a web browser. There are no permissions configured by default, so anyone is
-able to view and modify the dataflow. For information on securing the system, see the link:administration-guide.html[System Administrator’s Guide].
+`https://localhost:8443/nifi` in a web browser. The default configuration generates a username and password
+with full system administration privileges.
+For information on securing the system, see the link:administration-guide.html[System Administrator’s Guide].
 
 When a DFM navigates to the UI for the first time, a blank canvas is provided on which a dataflow can be built:
 
@@ -161,8 +162,7 @@ The Operate Palette sits to the left-hand side of the screen. It consists of but
 used by DFMs to manage the flow, as well as by administrators who manage user access
 and configure system properties, such as how many system resources should be provided to the application.
 
-On the right side of the canvas is Search, and the Global Menu. You can use Search to easily find components on the
-canvas and to search by component name, type, identifier, configuration properties, and their values. The Global Menu
+On the right side of the canvas is Search, and the Global Menu. For more information on search refer to <<search>>. The Global Menu
 contains options that allow you to manipulate existing components on the canvas:
 
 image::global-menu.png[NiFi Global Menu]
@@ -301,6 +301,7 @@ While the options available from the context menu vary, the following options ar
 NOTE: For Processors, Ports, Remote Process Groups, Connections and Labels, it is possible to open the configuration dialog by double-clicking on the desired component.
 
 - *Start* or *Stop*: This option allows the user to start or stop a Processor; the option will be either Start or Stop, depending on the current state of the Processor.
+- *Run Once*: This option allows the user to run a selected Processor exactly once. If the Processor is prevented from executing (e.g. there are no incoming flow files or the outgoing connection has backpressure applied) the Processor won't get triggered. *Execution* settings apply - i.e. *Primary Node* and *All Nodes* setting will result in running the Processor only once on the Primary Node or one time on each of the nodes, respectively. Works only with *Timer Driven* and *CRON driven* Scheduling Strategy.
 - *Enable* or *Disable*: This option allows the user to enable or disable a Processor; the option will be either Enable or Disable, depending on the current state of the Processor.
 - *View data provenance*: This option displays the NiFi Data Provenance table, with information about data provenance events for the FlowFiles routed through that Processor (see <<data_provenance>>).
 - *View status history*: This option opens a graphical representation of the Processor's statistical information over time.
@@ -346,8 +347,8 @@ link:administration-guide.html[System Administrator’s Guide].
 [[process_group]]
 image:iconProcessGroup.png["Process Group", width=32]
 *Process Group*: Process Groups can be used to logically group a set of components so that the dataflow is easier to understand
-and maintain. When a Process Group is dragged onto the canvas, the DFM is prompted to name the Process Group. All Process
-Groups within the same parent group must have unique names. The Process Group will then be nested within that parent group.
+and maintain. When a Process Group is dragged onto the canvas, the DFM is prompted to name the Process Group. The Process Group will
+then be nested within that parent group.
 
 Once you have dragged a Process Group onto the canvas, you can interact with it by right-clicking on the Process Group and selecting an option from the
 context menu. The options available to you from the context menu vary, depending on the privileges assigned to you.
@@ -364,13 +365,17 @@ NOTE: It is also possible to double-click on the Process Group to enter it.
 
 - *Start*: This option allows the user to start a Process Group.
 - *Stop*: This option allows the user to stop a Process Group.
+- *Enable*: This option allows the user to enable all Processors in the Process Group.
+- *Disable*: This option allows the user to disable all Processors in the Process Group.
 - *View status history*: This option opens a graphical representation of the Process Group's statistical information over time.
 - *View connections->Upstream*: This option allows the user to see and "jump to" upstream connections that are coming into the Process Group.
 - *View connections->Downstream*: This option allows the user to see and "jump to" downstream connections that are going out of the Process Group.
 - *Center in view*: This option centers the view of the canvas on the given Process Group.
 - *Group*: This option allows the user to create a new Process Group that contains the selected Process Group and any other components selected on the canvas.
+- *Download flow definition*: This option allows the user to download the flow definition of the process group as a JSON file. The file can be used as a backup or imported into a link:https://nifi.apache.org/registry.html[NiFi Registry^] using the <<toolkit-guide.adoc#nifi_CLI,NiFi CLI>>. (Note: If "Download flow definition" is selected for a versioned process group, there is no versioning information in the download. In other words, the resulting contents of the JSON file is the same whether the process group is versioned or not.)
 - *Create template*: This option allows the user to create a template from the selected Process Group.
 - *Copy*: This option places a copy of the selected Process Group on the clipboard, so that it may be pasted elsewhere on the canvas by right-clicking on the canvas and selecting Paste. The Copy/Paste actions also may be done using the keystrokes Ctrl-C (Command-C) and Ctrl-V (Command-V).
+- *Empty all queues*: This option allows the user to empty all queues in the selected Process Group. All FlowFiles from all connections waiting at the time of the request will be removed.
 - *Delete*: This option allows the DFM to delete a Process Group.
 
 
@@ -575,6 +580,12 @@ The first configuration option is the Scheduling Strategy. There are three possi
 	option can be set to 0. In this case, the number of threads is limited only by the size of the Event-Driven Thread Pool that
 	the administrator has configured.
 
+[WARNING]
+.Experimental
+============
+This implementation is marked <<experimental_warning, *experimental*>> as of Apache NiFi 1.10.0 (October 2019). The API, configuration, and internal behavior may change without warning, and such changes may occur during a minor release. Use at your own risk.
+============
+
 *CRON driven*: When using the CRON driven scheduling mode, the Processor is scheduled to run periodically, similar to the
 		Timer driven scheduling mode. However, the CRON driven mode provides significantly more flexibility at the expense of
 		increasing the complexity of the configuration. The CRON driven scheduling value is a string of six required fields and one
@@ -627,7 +638,7 @@ For example:
 * The string `0 20 14 ? * MON-FRI` indicates that you want to schedule the processor to run at 2:20 PM every Monday through Friday.
 * The string `0 15 10 ? * 6L 2011-2017` indicates that you want to schedule the processor to run at 10:15 AM, on the last Friday of every month, between 2011 and 2017.
 
-For additional information and examples, see the link:http://www.quartz-scheduler.org/documentation/quartz-2.x/tutorials/crontrigger.html[Chron Trigger Tutorial^] in the Quartz documentation.
+For additional information and examples, see the link:https://www.quartz-scheduler.org/documentation/quartz-2.2.2/tutorials/tutorial-lesson-06.html[cron triggers tutorial] in the link:https://www.quartz-scheduler.org/documentation/[Quartz Documentation^].
 
 ===== Concurrent Tasks
 Next, the Scheduling tab provides a configuration option named 'Concurrent Tasks'. This controls how many threads the Processor
@@ -715,6 +726,127 @@ image::comments-tab.png["Comments Tab"]
 
 You can access additional documentation about each Processor's usage by right-clicking on the Processor and selecting 'Usage' from the context menu. Alternatively, select Help from the Global Menu in the top-right corner of the UI to display a Help page with all of the documentation, including usage documentation for all the Processors that are available. Click on the desired Processor to view usage documentation.
 
+
+[[Configuring_a_ProcessGroup]]
+=== Configuring a Process Group
+To configure a Process Group, right-click on the Process Group and select the `Configure` option from the context menu. The configuration dialog is opened with two tabs: General and Controller Services.
+
+image::configure-process-group.png["Configure Process Group"]
+
+
+[[General_tab_ProcessGroup]]
+==== General Tab
+This tab contains several different configuration items. First is the Process Group Name. This is the name that is shown at the top of the Process Group on the canvas as well as in the breadcrumbs at the bottom of the UI. For the Root Process Group (i.e., the highest level group), this is also the name that is shown as the title of the browser tab. Note that this information is visible to any other NiFi instance that connects remotely to this instance (using Remote Process Groups, a.k.a., <<site-to-site>>).
+
+The next configuration element is the Process Group Parameter Context, which is used to provide parameters to components of the flow. From this drop-down, the user is able to choose which Parameter Context should be bound to this Process Group and can optionally create a new one to bind to the Process Group. For more information refer to <<Parameters>> and <<parameter-contexts,Parameter Contexts>>.
+
+The third element in the configuration dialog is the Process Group Comments. This provides a mechanism for providing any useful information or context about the Process Group.
+
+The next two elements, Process Group FlowFile Currency and Process Group Outbound Policy, are covered in the following sections.
+
+[[Flowfile_Concurrency]]
+===== FlowFile Concurrency
+FlowFile Concurrency is used to control how data is brought into the Process Group. There are three options available:
+
+* Unbounded (the default)
+* Single FlowFile Per Node
+* Single Batch Per Node
+
+When the FlowFile Concurrency is set to "Unbounded", the Input Ports in the Process Group will ingest data as quickly as they
+are able, provided that backpressure does not prevent them from doing so.
+
+When the FlowFile Concurrency is configured to "Single FlowFile Per Node", the Input Ports will only allow a single FlowFile through at at time.
+Once that FlowFile enters the Process Group, no additional FlowFiles will be brought in until all FlowFiles have left the Process Group (either by
+being removed from the system/auto-terminated, or by exiting through an Output Port). This will often result in slower performance, as it reduces
+the parallelization that NiFi uses to process the data. However, there are several reasons that a user may want to use this approach. A common use case
+is one in which each incoming FlowFile contains references to several other data items, such as a list of files in a directory. The user may want to
+process the entire listing before allowing any other data to enter the Process Group.
+
+When the FlowFile Concurrency is configured to "Single Batch Per Node", the Input Ports will behave similarly to the way that they behave in the
+"Single FlowFile Per Node" mode, but when a FlowFile is ingested, the Input Ports will continue to ingest all data until all of the queues feeding
+the Input Ports have been emptied. At that point, they will not bring any more data into the Process Group until all data has finished processing and
+has left the Process Group (see <<Connecting_Batch_Oriented_Groups>>).
+
+NOTE: The FlowFile Concurrency controls only when data will be pulled into the Process Group from an Input Port. It does not prevent a Processor within the
+Process Group from ingesting data from outside of NiFi.
+
+[[Outbound_Policy]]
+===== Outbound Policy
+While the FlowFile Concurrency dictates how data should be brought into the Process Group, the Outbound Policy controls the flow of data out of the Process Group.
+There are two available options available:
+
+* Stream When Available (the default)
+* Batch Output
+
+When the Outbound Policy is configured to "Stream When Available",
+data that arrives at an Output Port is immediately transferred out of the Process Group, assuming that no backpressure is applied.
+
+When the Outbound Policy is configured to "Batch Output", the Output Ports will not transfer data out of the Process Group until
+all data that is in the Process Group is queued up at an Output Port (i.e., no data leaves the Process Group until all of the data has finished processing).
+It doesn't matter whether the data is all queued up for the same Output Port, or if some data is queued up for Output Port A while other data is queued up
+for Output Port B. These conditions are both considered the same in terms of the completion of the FlowFile Processing.
+
+Using an Outbound Policy of "Batch Output" along with a FlowFile Concurrency of "Single FlowFile Per Node" allows a user to easily ingest a single FlowFile
+(which in and of itself may represent a batch of data) and then wait until all processing of that FlowFile has completed before continuing on to the next step
+in the dataflow (i.e., the next component outside of the Process Group). Additionally, when using this mode, each FlowFile that is transferred out of the Process Group
+will be given a series of attributes named "batch.output.<Port Name>" for each Output Port in the Process Group. The value will be equal to the number of FlowFiles
+that were routed to that Output Port for this batch of data. For example, consider a case where a single FlowFile is split into 5 FlowFiles, and two FlowFiles go to Output Port A, one goes
+to Output Port B, and two go to Output Port C, and no FlowFiles go to Output Port D. In this case, each FlowFile will have attributes `batch.output.A = 2`,
+`batch.output.B = 1`, `batch.output.C = 2`, `batch.output.D = 0`.
+
+The Outbound Policy of "Batch Output" doesn't provide any benefits when used in conjunction with a FlowFile Concurrency of "Unbounded".
+As a result, the Outbound Policy is ignored if the FlowFile Concurrency is set to "Unbounded".
+
+
+[[Connecting_Batch_Oriented_Groups]]
+===== Connecting Batch-Oriented Process Groups
+
+A common use case in NiFi is to perform some batch-oriented process and only after that process completes perform another process on that same batch of data.
+
+NiFi makes this possible by encapsulating each of these processes in its own Process Group. The Outbound Policy of the first Process Group should be configured as "Batch Output"
+while the FlowFile Concurrency should be either "Single FlowFile Per Node" or "Single Batch Per Node". With this configuration, the first Process Group
+will process an entire batch of data (which will either be a single FlowFile or many FlowFiles depending on the FlowFile Concurrency) as a coherent batch of data.
+When processing has completed for that batch of data, the data will be held until all FlowFiles are finished processing and ready to leave the Process Group. At that point, the data can be transferred out of the Process Group as a batch. This configuration - when a Process Group is configured with an Outbound Policy of "Batch Output"
+and an Output Port is connected directly to the Input Port of a Process Group with a FlowFile Concurrency of "Single Batch Per Node" - is treated as a slightly special case.
+The receiving Process Group will ingest data not only until its input queues are empty but until they are empty AND the source Process Group has transferred all of the data from that
+batch out of the Process Group. This allows a collection of FlowFiles to be transferred as a single batch of data between Process Groups - even if those FlowFiles
+are spread across multiple ports.
+
+
+[[Flowfile_Concurrency_Caveats]]
+===== Caveats
+
+When using a FlowFile Concurrency of "Single FlowFile Per Node", there are a couple of caveats to consider.
+
+First, an Input Port is free to bring data into the Process Group if there is no data queued up in that Process Group on the same node.
+This means that in a 5-node cluster, for example, there may be up to 5 incoming FlowFiles being processed simultaneously. Additionally,
+if a connection is configured to use <<Load_Balancing>>, it may transfer data to another node in the cluster, allowing data to enter
+the Process Group while that FlowFile is still being processed. As a result, it is not recommended to use Load-Balanced Connections
+within a Process Group that is not configured for "Unbounded" FlowFile Concurrency.
+
+When using the Outbound Policy of "Batch Output", it is important to consider backpressure. Consider a case where no data will be transferred
+out of a Process Group until all data is finished processing. Also consider that the connection to Output Port A has a backpressure threshold
+of 10,000 FlowFiles (the default). If that queue reaches the threshold of 10,000, the upstream Processor will no longer be triggered. As a result,
+data will not finish processing, and the flow will end in a deadlock, as the Output Port will not run until the processing completes and
+the Processor will not run until the Output Port runs. To avoid this, if a large number of FlowFiles are expected to be generated from a single
+input FlowFile, it is recommended that backpressure for Connections ending in an Output Port be configured in such a way to allow for the
+largest expected number of FlowFiles or backpressure for those Connections be disabled all together (by setting the Backpressure Threshold to 0).
+See <<Backpressure>> for more information.
+
+[[Default_Connection_Settings]]
+===== Default Settings for Connections
+The final three elements in the Process Group configuration dialog are for Default FlowFile Expiration, Default Back Pressure Object Threshold, and
+Default Back Pressure Data Size Threshold. These settings configure the default values when creating a new Connection. Each Connection represents a queue,
+and every queue has settings for flowfile expiration, back pressure object count, and back pressure data size. The settings specified here will effect the
+default values for all new Connections created within the Process Group; it will not effect existing Connections. Child Process Groups created within the
+configured Process Group will inherit the default settings. Again, existing Process Groups will not be effected. If not overridden with these options, the
+root Process Group obtains its default back pressure settings from nifi.properties, and has a default FlowFile expiration of "0 sec", i.e. do not expire.
+
+NOTE: Setting the Default FlowFile Expiration to a non-zero value may lead to data loss due to a FlowFile expiring as its time limit is reached.
+
+==== Controller Services
+The Controller Services tab in the Process Group configuration dialog is covered in <<Controller_Services_for_Dataflows>>.
+
 [[Parameters]]
 === Parameters
 The values of properties in the flow, including sensitive properties, can be parameterized using Parameters. Parameters are created and configured within the NiFi UI. Any property can be configured to reference a Parameter with the following conditions:
@@ -762,7 +894,8 @@ The Add Parameter window has the following settings:
 
 - *Name* - A name that is used to denote the Parameter. Only alpha-numeric characters (a-z, A-Z, 0-9), hyphens ( - ), underscores ( _ ), periods ( . ), and spaces are allowed.
 
-- *Value* - The value that will be used when the Parameter is referenced. Parameter values do not support Expression Language or embedded parameter references.
+- *Value* - The value that will be used when the Parameter is referenced. If a Parameter makes use of the Expression Language, it is important to note that the Expression Language will be evaluated
+in the context of the component that references the Parameter. Please see the <<parameters-and-el>> section below for more information.
 
 - *Set empty string* - Check to explicitly set the value of the Parameter to an empty string. Unchecked by default. (Note: If checked but a value is set, the checkbox is ignored.)
 
@@ -779,6 +912,28 @@ To complete the process, select "Apply" from the Parameter Context window. The f
 image:parameters-validate-affected-components.png[Validate Affected Components]
 
 The Referencing Components section now lists an aggregation of all the components referenced by the set of parameters added/edited/deleted, organized by process group.
+
+
+[[parameters-and-el]]
+==== Parameters and Expression Language
+
+When adding a Parameter that makes use of the Expression Language, it is important to understand the context in which the Expression Language will be evaluated. The expression is always evaluated
+in the context of the Process or Controller Service that references the Parameter. Take, for example, a scenario where Parameter with the name `Time` is added with a value of `${now()}`. The
+Expression Language results in a call to determine the system time when it is evaluated. When added as a Parameter, the system time is not evaluated when the Parameter is added, but rather when a
+Processor or Controller Service evaluates the Expression. That is, if a Processor has a Property whose value is set to `#{Time}` it will function in exactly the same manner as if the Property's
+value were set to `${now()}`. Each time that the property is referenced, it will produce a different timestamp.
+
+Furthermore, some Properties do not allow for Expression Language, while others allow for Expression Language but do not evaluate expressions against FlowFile attributes. To help understand how
+this works, consider a Parameter named `File` whose value is `${filename}`. Then consider three different properties, each with a different Expression Language Scope and a FlowFile whose filename
+is `test.txt`. If each of those Properties is set to `#{File}`, then the follow table illustrates the resultant value.
+
+|===
+| Configured Property Value | Expression Language Scope | Effective Property Value | Notes
+
+| #{File} | FlowFile Attributes | test.txt | The filename is resolved by looking at the `filename` attribute.
+| #{File} | Variable Registry Only | _Empty String_ | FlowFile attributes are not in scope, and we assume there is no Variable in the Variable Registry named "filename"
+| #{File} | None | ${filename} | The literal text "${filename}" will be unevaluated.
+|===
 
 
 [[assigning_parameter_context_to_PG]]
@@ -1106,7 +1261,7 @@ image:process-group-controller-services-scope.png["Process Group Controller Serv
 
 Use the following steps to add a Controller Service:
 
-1. Click Configure, either from the Operate Palette, or from the Process Group context menu.  This displays the process group Configuration window.  The window has two tabs: General and Controller Services. The General tab is for settings that pertain to general information about the process group. For example, if configuring the root process group, the DFM can provide a unique name for the overall dataflow, as well as comments that describe the flow (Note: this information is visible to any other NiFi instance that connects remotely to this instance (using Remote Process Groups, a.k.a., Site-to-Site)).
+1. Click Configure, either from the Operate Palette, or from the Process Group context menu.  This displays the process group Configuration window.  The window has two tabs: General and Controller Services. The <<General_tab_ProcessGroup>> is for settings that pertain to general information about the process group.
 +
 image::process-group-configuration-window.png["Process Group Configuration Window"]
 2. From the Process Group Configuration page, select the Controller Services tab.
@@ -1197,6 +1352,7 @@ image:connection-settings.png["Connection Settings"]
 
 The Connection name is optional. If not specified, the name shown for the Connection will be names of the Relationships that are active for the Connection.
 
+[[Flowfile_Expiration]]
 ===== FlowFile Expiration
 FlowFile expiration is a concept by which data that cannot be processed in a timely fashion can be automatically removed from the flow.
 This is useful, for example, when the volume of data is expected to exceed the volume that can be sent to a remote site.
@@ -1206,6 +1362,7 @@ value of `0 sec` indicates that the data will never expire. When a file expirati
 
 image:file_expiration_clock.png["File Expiration Indicator"]
 
+[[Backpressure]]
 ===== Back Pressure
 NiFi provides two configuration elements for Back Pressure. These thresholds indicate how much data should be
 allowed to exist in the queue before the component that is the source of the Connection is no longer scheduled to run.
@@ -1230,6 +1387,8 @@ When the queue is completely full, the Connection is highlighted in red.
 
 image:back_pressure_full.png["Back Pressure Queue Full"]
 
+
+[[Load_Balancing]]
 ===== Load Balancing
 
 [[load_balance_strategy]]
@@ -1238,7 +1397,9 @@ To distribute the data in a flow across the nodes in the cluster, NiFi offers th
 
 - *Do not load balance*: Do not load balance FlowFiles between nodes in the cluster. This is the default.
 - *Partition by attribute*: Determines which node to send a given FlowFile to based on the value of a user-specified FlowFile Attribute. All FlowFiles that have the same value for the Attribute will be sent to the same node in the cluster. If the destination node is disconnected from the cluster or if unable to communicate, the data does not fail over to another node. The data will queue, waiting for the node to be available again. Additionally, if a node joins or leaves the cluster necessitating a rebalance of the data, consistent hashing is applied to avoid having to redistribute all of the data.
-- *Round robin*: FlowFiles will be distributed to nodes in the cluster in a round-robin fashion. If a node is disconnected from the cluster or if unable to communicate with a node, the data that is queued for that node will be automatically redistributed to another node(s).
+- *Round robin*: FlowFiles will be distributed to nodes in the cluster in a round-robin fashion. If a node is disconnected from the cluster or if unable to communicate with a node, the data that is
+queued for that node will be automatically redistributed to another node(s). If a node is not able to receive the data as fast other nodes in the cluster, the node may also be skipped for one or
+more iterations in order to maximize throughput of data distribution across the cluster.
 - *Single node*: All FlowFiles will be sent to a single node in the cluster.  Which node they are sent to is not configurable. If the node is disconnected from the cluster or if unable to communicate with the node, the data that is queued for that node will remain queued until the node is available again.
 
 NOTE: In addition to the UI settings, there are <<administration-guide.adoc#cluster_node_properties,Cluster Node Properties>> related to load balancing that must also be configured in _nifi.properties_.
@@ -1445,7 +1606,7 @@ To create an Output Port for Site-to-Site in a child Process Group, enter the na
 
 image::add-output-port-S2S.png["Add Output Port for Site-to-Site"]
 
-In addition to other instances of NiFi, some other applications may use a Site-to-Site client in order to push data to or receive data from a NiFi instance. For example, NiFi provides an Apache Storm spout and an Apache Spark Receiver that are able to pull data from NiFi's Output Ports for Site-to-Site connections.
+In addition to other instances of NiFi, some other applications may use a Site-to-Site client in order to push data to or receive data from a NiFi instance.
 
 NOTE: For information on how to enable and configure Site-to-Site on a NiFi instance, see the
 link:administration-guide.html#site_to_site_properties[Site-to-Site Properties] section of the
@@ -1513,7 +1674,7 @@ Once started, the status indicator of a Processor will change to a Play symbol (
 image:iconRun.png["Run"]
 ).
 
-
+[[stopping_components]]
 === Stopping a Component
 
 A component can be stopped any time that it is running. A component is stopped by right-clicking on the component
@@ -1530,7 +1691,24 @@ image:iconStop.png["Stop"]
 
 Stopping a component does not interrupt its currently running tasks. Rather, it stops scheduling new tasks to
 be performed. The number of active tasks is shown in the top-right corner of the Processor (See <<processor_anatomy>>
-for more information).
+for more information). See <<terminating_tasks>> for how to terminate the running tasks.
+
+[[terminating_tasks]]
+=== Terminating a Component's tasks
+
+When a component is stopped, it does not interrupt the currently running tasks. This allows for the current execution to complete while no new
+tasks are scheduled, which is the desired behaviour in many cases. In some cases, it is desirable to terminate the running tasks, particularly
+in cases where a task has hung and is no longer responsive, or while developing new flows.
+
+To be able to terminate the running task(s), the component must first be stopped (see <<stopping_components>>). Once the component is in the
+Stopped state, the Terminate option will become available only if there are tasks still running (See <<processor_anatomy>>). The Terminate option
+(image:iconTerminate.png["Terminate"]) can be accessed either via the context menu or the Operations Palette while the component is selected.
+
+The number of tasks that are actively being terminated will be displayed in parentheses next to the number of active tasks e.g. image:terminated-thread.png["Terminated-Threads"]. For example, if there is one active task at the time that Terminate is selected, this will display "0 (1)" - meaning
+0 active tasks and 1 task being terminated.
+
+A task may not terminate immediately, as different components may respond to the Terminate command differently. However, the components can be
+reconfigured and started/stopped regardless of whether there are tasks still in the terminating state.
 
 === Enabling/Disabling a Component
 
@@ -1610,7 +1788,7 @@ NiFi provides various mechanisms for getting around a dataflow. The <<User_Inter
 
 A hyperlink can be used to navigate directly to a component on the NiFi canvas. This is especially useful when link:administration-guide.html#multi-tenant-authorization[Multi-Tenant Authorization] is configured. For example, a URL can be given to a user to direct them to the specific process group to which they have privileges.
 
-The default URL for a NiFI instance is `http://<hostname>:8080/nifi`, which points to the root process group.  When a component is selected on the canvas, the URL is updated with the component's process group id and component id in the form `http://<hostname>:8080/nifi/?processGroupId=<UUID>&componentIds=<UUIDs>`.  In the following screenshot, the GenerateFlowFile processor in the process group PG1 is the selected component:
+The default URL for a NiFI instance is `https://localhost:8443/nifi`, which points to the root process group.  When a component is selected on the canvas, the URL is updated with the component's process group id and component id in the form `https://localhost:8443/nifi/?processGroupId=<UUID>&componentIds=<UUIDs>`.  In the following screenshot, the GenerateFlowFile processor in the process group PG1 is the selected component:
 
 image::component-linking-processor.png["Component Linking Processor Example"]
 
@@ -1641,6 +1819,106 @@ and select "Align horizontally" to achieve these results:
 
 image:align-horizontally-after.png["Align Horizontally Example Before"]
 
+[[search]]
+== Search Components in DataFlow
+
+NiFi UI provides searching functionality in order to help easily find components on the canvas. You can use search to find components by name, type, identifier, configuration properties, and their values. Search also makes it possible to refine and narrow the search result based on certain conditions using Filters and Keywords.
+
+[caption="Example 1: "]
+.The result will contain components that match for "processor1".
+=====================================================================
+processor1
+=====================================================================
+
+=== Filters
+
+Filters can be added to the search box as key-value pairs where the keys are predefined and check certain conditions based on the given value. The syntax is "key:value".
+
+[caption="Example 2: "]
+.The search will be executed under Process Groups (directly or via contained Process Groups) containing the string "myGroup" in their name or id. The result will contain components that match for "processor1".
+=====================================================================
+group:myGroup processor1
+=====================================================================
+
+Filters can be used together with other search terms and multiple filters can be used. The only constraint is that the search must start with the filters. Unknown filters or known filters with unknown values are ignored. If the same filter key appears multiple times, the first will be used. The order of different filters has no effect on the result.
+
+[caption="Example 3: "]
+.Search will be restricted to the currently active process group (and process groups within that). The result will contain components that match for "import" but property matches will be excluded.
+=====================================================================
+scope:here properties:exclude import
+=====================================================================
+
+The supported filters are the following:
+
+*scope*: This filter narrows the scope of the search based on the user's currently active Process Group. The only valid value is "here". The usage of this filter looks like "scope:here". Any other value is considered as invalid, thus the filter will be ignored during search.
+
+*group*: This filter narrows the scope of the search based on the provided Process Group name or id. Search will be restricted to groups (and their components - including subgroups and their components) the names or ids of which match the filter value. If no group matches the filter, the result list will be empty.
+
+*properties*: With this, users can prevent property matches to appear in the search result. Valid values are: "no", "none", "false", "exclude" and "0".
+
+=== Keywords
+
+Users can use pre-defined (case-insensitive) keywords in the search box that will check certain conditions.
+
+[caption="Example 4: "]
+."disabled" will be treated both as keyword and regular search term. The result will contain disabled Ports and Processors as all other components that match for "disabled" in any way.
+=====================================================================
+disabled
+=====================================================================
+
+Keywords can be used with filters (see below) but not with other search terms (otherwise they won't be treated as keywords) and only one keyword can be used at a time. Note however that keywords will also be treated as general search terms at the same time.
+
+[caption="Example 5: "]
+.Search will be restricted to the currently selected process group (and its sub process groups). "invalid" here (as it is alone after the filter) will be treated both as a keyword and a regular search term. The result will contain invalid Processors and Ports as well as all other components that match for "invalid" in any way.
+=====================================================================
+scope:here invalid
+=====================================================================
+
+The supported keywords are the following:
+
+- *Scheduled state*
+
+** *disabled*: Adds disabled Ports and Processors to the result list.
+
+** *invalid*: Adds Ports and Processors to the result list where the component is invalid.
+
+** *running*: Adds running Ports and Processors to the result list.
+
+** *stopped*: Adds stopped Ports and Processors to the result list.
+
+** *validating*: Adds Processors to the result list that are validating at the time.
+
+- *Scheduling strategy*
+
+** *event*: Adds Processors to the result list where the Scheduling Strategy is "Event Driven".
+
+** *timer*: Adds Processors to the result list where the Scheduling Strategy is "Timer Driven".
+
+- *Execution*
+
+** *primary:* Adds Processors to the result list that are set to run on the primary node only (whether if the Processor is currently running or not).
+
+- *Back pressure*
+
+** *back pressure*: Adds Connections to the result list that are applying back pressure at the time.
+
+** *pressure*: See "back pressure".
+
+- *Expiration*
+
+** *expiration*: Adds Connections to the result list that contain expired Flow Files.
+
+** *expires*: See "expiration".
+
+- *Transmission*
+
+** *not transmitting*: Adds Remote Process Groups to the result list that are not transmitting data at the time.
+
+** *transmitting*: Adds Remote Process Groups to the result list that are transmitting data at the time.
+
+** *transmission disabled*: See "not transmitting".
+
+** *transmitting enabled*: See "transmitting".
 
 [[monitoring]]
 == Monitoring of DataFlow
@@ -2484,6 +2762,7 @@ The provenance event types are:
 |FORK                    |Indicates that one or more FlowFiles were derived from a parent FlowFile
 |JOIN                    |Indicates that a single FlowFile is derived from joining together multiple parent FlowFiles
 |RECEIVE                 |Indicates a provenance event for receiving data from an external process
+|REMOTE_INVOCATION       |Indicates that a remote invocation was requested to an external endpoint (e.g. deleting a remote resource)
 |REPLAY                  |Indicates a provenance event for replaying a FlowFile
 |ROUTE                   |Indicates that a FlowFile was routed to a specified relationship and provides information about why the FlowFile was routed to this relationship
 |SEND                    |Indicates a provenance event for sending data to an external process
@@ -2499,10 +2778,13 @@ image:search-events.png["Search Events"]
 
 For example, to determine if a particular FlowFile was received, search for an Event Type of "RECEIVE" and include an
 identifier for the FlowFile, such as its uuid or filename. The asterisk (*) may be used as a wildcard for any number of characters.
-So, to determine whether a FlowFile with "ABC" anywhere in its filename was received at any time on Jan. 6, 2015, the search shown in the following
+So, to determine whether a FlowFile with "ABC" anywhere in its filename was received at any time on July 29, 2016, the search shown in the following
 image could be performed:
 
 image:search-receive-event-abc.png["Search for RECEIVE Event"]
+
+If all filenames that do not have "ABC" anywhere in the filename is desired, then click the checkbox with the label "Exclude from search results" beneath
+this entry before performing the search.
 
 [[event_details]]
 === Details of an Event
@@ -2607,6 +2889,12 @@ The next section has more information about implementing an Encrypted Provenance
 While OS-level access control can offer some security over the provenance data written to the disk in a repository, there are scenarios where the data may be sensitive, compliance and regulatory requirements exist, or NiFi is running on hardware not under the direct control of the organization (cloud, etc.). In this case, the provenance repository allows for all data to be encrypted before being persisted to the disk.
 
 [WARNING]
+.Experimental
+============
+This implementation is marked <<experimental_warning, *experimental*>> as of Apache NiFi 1.10.0 (October 2019). The API, configuration, and internal behavior may change without warning, and such changes may occur during a minor release. Use at your own risk.
+============
+
+[WARNING]
 .Performance
 ============
 The current implementation of the encrypted provenance repository intercepts the record writer and reader of `WriteAheadProvenanceRepository`, which offers significant performance improvements over the legacy `PersistentProvenanceRepository` and uses the `AES/GCM` algorithm, which is fairly performant on commodity hardware. In most scenarios, the added cost will not be significant (unnoticable on a flow with hundreds of provenance events per second, moderately noticable on a flow with thousands - tens of thousands of events per second). However, administrators should perform their own risk assessment and performance analysis and decide how to move forward. Switching back and forth between encrypted/unencrypted implementations is not recommended at this time.
@@ -2644,8 +2932,37 @@ key4=kZprfcTSTH69UuOU3jMkZfrtiVR/eqWmmbdku3bQcUJ/+UToecNB5lzOVEMBChyEXppyXXC35Wa
 key5=c6FzfnKm7UR7xqI2NFpZ+fEKBfSU7+1NvRw+XWQ9U39MONWqk5gvoyOCdFR1kUgeg46jrN5dGXk13sRqE0GETQ==
 ....
 
-Each line defines a key ID and then the Base64-encoded cipher text of a 16 byte IV and wrapped AES-128, AES-192, or AES-256 key depending on the JCE policies available. The individual keys are wrapped by AES/GCM encryption using the **master key** defined by `nifi.bootstrap.sensitive.key` in _conf/bootstrap.conf_.
+Each line defines a key ID and then the Base64-encoded cipher text of a 16 byte IV and wrapped AES-128, AES-192, or AES-256 key depending on the JCE policies available. The individual keys are wrapped by AES/GCM encryption using the **root key** defined by `nifi.bootstrap.sensitive.key` in _conf/bootstrap.conf_.
 
+===== KeyStoreKeyProvider
+The `KeyStoreKeyProvider` implementation reads from a standard `java.security.KeyStore` using the configured password to load AES Secret Key entries.
+
+The provider supports the following Keystore Types:
+
+* BCFKS
+* PKCS12
+
+The keystore filename extension must be either `.p12` indicating PKCS12 or `.bcfks` indicating BCFKS.
+
+The `keytool` command can be used to generate an AES-256 Secret Key stored in a PKCS12 file for repository encryption:
+
+...
+keytool -genseckey -alias primary-key -keyalg AES -keysize 256 -keystore repository.p12 -storetype PKCS12
+...
+
+Enter a keystore password when prompted. The same value must be used for both the keystore password and key password.
+The keystore password will be used in the provider configuration properties.
+
+The following configuration properties support using a PKCS12 keystore with a Secret Key:
+
+...
+nifi.provenance.repository.encryption.key.provider.implementation=org.apache.nifi.security.kms.KeyStoreKeyProvider
+nifi.provenance.repository.encryption.key.provider.location=./conf/repository.p12
+nifi.provenance.repository.encryption.key.provider.password=KEYSTORE_PASSWORD
+nifi.provenance.repository.encryption.key.id=primary-key
+...
+
+[[provenance-repository-key-rotation]]
 ===== Key Rotation
 Simply update _nifi.properties_ to reference a new key ID in `nifi.provenance.repository.encryption.key.id`. Previously-encrypted events can still be decrypted as long as that key is still available in the key definition file or `nifi.provenance.repository.encryption.key.id.<OldKeyID>` as the key ID is serialized alongside the encrypted record.
 
@@ -2668,11 +2985,249 @@ When switching between implementation "families" (i.e. `VolatileProvenanceReposi
 
 * Switching between unencrypted and encrypted repositories
 ** If a user has an existing repository (`WriteAheadProvenanceRepository` only -- **not** `PersistentProvenanceRepository`) that is not encrypted and switches their configuration to use an encrypted repository, the application writes an error to the log but starts up. However, previous events are not accessible through the provenance query interface and new events will overwrite the existing events. The same behavior occurs if a user switches from an encrypted repository to an unencrypted repository. Automatic roll-over is a future effort (link:https://issues.apache.org/jira/browse/NIFI-3722[NIFI-3722^]) but NiFi is not intended for long-term storage of provenance events so the impact should be minimal. There are two scenarios for roll-over:
-*** Encrypted -> unencrypted -- if the previous repository implementation was encrypted, these events should be handled seamlessly as long as the key provider available still has the keys used to encrypt the events (see **Key Rotation**)
+*** Encrypted -> unencrypted -- if the previous repository implementation was encrypted, these events should be handled seamlessly as long as the key provider available still has the keys used to encrypt the events (see <<provenance-repository-key-rotation,Key Rotation>>)
 *** Unencrypted -> encrypted -- if the previous repository implementation was unencrypted, these events should be handled seamlessly as the previously recorded events simply need to be read with a plaintext schema record reader and then written back with the encrypted record writer
 ** There is also a future effort to provide a standalone tool in NiFi Toolkit to encrypt/decrypt an existing provenance repository to make the transition easier. The translation process could take a long time depending on the size of the existing repository, and being able to perform this task outside of application startup would be valuable (link:https://issues.apache.org/jira/browse/NIFI-3723[NIFI-3723^]).
 * Multiple repositories -- No additional effort or testing has been applied to multiple repositories at this time. It is possible/likely issues will occur with repositories on different physical devices. There is no option to provide a heterogenous environment (i.e. one encrypted, one plaintext repository).
 * Corruption -- when a disk is filled or corrupted, there have been reported issues with the repository becoming corrupted and recovery steps are necessary. This is likely to continue to be an issue with the encrypted repository, although still limited in scope to individual records (i.e. an entire repository file won't be irrecoverable due to the encryption).
+
+[[encrypted-content]]
+== Encrypted Content Repository
+While OS-level access control can offer some security over the flowfile content data written to the disk in a repository, there are scenarios where the data may be sensitive, compliance and regulatory requirements exist, or NiFi is running on hardware not under the direct control of the organization (cloud, etc.). In this case, the content repository allows for all data to be encrypted before being persisted to the disk. For more information on the internal workings of the content repository, see <<nifi-in-depth.adoc#content-repository,NiFi In-Depth - Content Repository>>.
+
+[WARNING]
+.Experimental
+============
+This implementation is marked <<experimental_warning, *experimental*>> as of Apache NiFi 1.10.0 (October 2019). The API, configuration, and internal behavior may change without warning, and such changes may occur during a minor release. Use at your own risk.
+============
+
+[WARNING]
+.Performance
+============
+The current implementation of the encrypted content repository intercepts the serialization of content data via the `EncryptedContentRepositoryOutputStream` and uses the `AES/CTR` algorithm, which is fairly performant on commodity hardware. This use of a stream cipher (because the content is operated on in a streaming manner for performance) differs from the use of an authenticated encryption algorithm (AEAD) like `AES/GCM` in the <<encrypted-provenance,Encrypted Provenance Repository>>. In most scenarios, the added cost will not be significant (unnoticable on a flow with hundreds of content read/write events per second, moderately noticable on a flow with thousands - tens of thousands of events per second). However, administrators should perform their own risk assessment and performance analysis and decide how to move forward. Switching back and forth between encrypted/unencrypted implementations is not recommended at this time.
+============
+
+=== What is it?
+
+The `EncryptedFileSystemRepository` is a new implementation of the content repository which encrypts all content data before it is written to the repository. This allows for storage on systems where OS-level access controls are not sufficient to protect the data while still allowing querying and access to the data through the NiFi UI/API.
+
+=== How does it work?
+
+The `FileSystemRepository` was introduced in NiFi 0.2.1 and provided the only persistent content repository implementation. The encrypted version wraps that implementation with functionality to return to the `Session` (usually `StandardProcessSession`) a special `OutputStream`/`InputStream` which encrypt and decrypt the serialized bytes respectively. This allows all components to continue interacting with the content repository interface in the same way as before and continue operating on content data in a streaming manner, without requiring any changes to handle the data protection.
+
+The fully qualified class `org.apache.nifi.content.EncryptedFileSystemRepository` is specified as the content repository implementation in _nifi.properties_ as the value of `nifi.content.repository.implementation`. In addition, <<administration-guide.adoc#encrypted-file-system-content-repository-properties,new properties>> must be populated to allow successful initialization.
+
+==== StaticKeyProvider
+The `StaticKeyProvider` implementation defines keys directly in _nifi.properties_. Individual keys are provided in hexadecimal encoding. The keys can also be encrypted like any other sensitive property in _nifi.properties_ using the <<administration-guide.adoc#encrypt-config_tool,`./encrypt-config.sh`>> tool in the NiFi Toolkit.
+
+The following configuration section would result in a key provider with two available keys, "Key1" (active) and "AnotherKey".
+....
+nifi.content.repository.encryption.key.provider.implementation=org.apache.nifi.security.kms.StaticKeyProvider
+nifi.content.repository.encryption.key.id=Key1
+nifi.content.repository.encryption.key=0123456789ABCDEFFEDCBA98765432100123456789ABCDEFFEDCBA9876543210
+nifi.content.repository.encryption.key.id.AnotherKey=0101010101010101010101010101010101010101010101010101010101010101
+....
+
+==== FileBasedKeyProvider
+The `FileBasedKeyProvider` implementation reads from an encrypted definition file of the format:
+
+....
+key1=NGCpDpxBZNN0DBodz0p1SDbTjC2FG5kp1pCmdUKJlxxtcMSo6GC4fMlTyy1mPeKOxzLut3DRX+51j6PCO5SznA==
+key2=GYxPbMMDbnraXs09eGJudAM5jTvVYp05XtImkAg4JY4rIbmHOiVUUI6OeOf7ZW+hH42jtPgNW9pSkkQ9HWY/vQ==
+key3=SFe11xuz7J89Y/IQ7YbJPOL0/YKZRFL/VUxJgEHxxlXpd/8ELA7wwN59K1KTr3BURCcFP5YGmwrSKfr4OE4Vlg==
+key4=kZprfcTSTH69UuOU3jMkZfrtiVR/eqWmmbdku3bQcUJ/+UToecNB5lzOVEMBChyEXppyXXC35Wa6GEXFK6PMKw==
+key5=c6FzfnKm7UR7xqI2NFpZ+fEKBfSU7+1NvRw+XWQ9U39MONWqk5gvoyOCdFR1kUgeg46jrN5dGXk13sRqE0GETQ==
+....
+
+Each line defines a key ID and then the Base64-encoded cipher text of a 16 byte IV and wrapped AES-128, AES-192, or AES-256 key depending on the JCE policies available. The individual keys are wrapped by AES/GCM encryption using the **root key** defined by `nifi.bootstrap.sensitive.key` in _conf/bootstrap.conf_.
+
+==== KeyStoreKeyProvider
+The `KeyStoreKeyProvider` implementation reads from a standard `java.security.KeyStore` using the configured password to load AES Secret Key entries.
+
+The provider supports the following Keystore Types:
+
+* BCFKS
+* PKCS12
+
+The keystore filename extension must be either `.p12` indicating PKCS12 or `.bcfks` indicating BCFKS.
+
+The `keytool` command can be used to generate an AES-256 Secret Key stored in a PKCS12 file for repository encryption:
+
+...
+keytool -genseckey -alias primary-key -keyalg AES -keysize 256 -keystore repository.p12 -storetype PKCS12
+...
+
+Enter a keystore password when prompted. The same value must be used for both the keystore password and key password.
+The keystore password will be used in the provider configuration properties.
+
+The following configuration properties support using a PKCS12 keystore with a Secret Key:
+
+...
+nifi.content.repository.encryption.key.provider.implementation=org.apache.nifi.security.kms.KeyStoreKeyProvider
+nifi.content.repository.encryption.key.provider.location=./conf/repository.p12
+nifi.content.repository.encryption.key.provider.password=KEYSTORE_PASSWORD
+nifi.content.repository.encryption.key.id=primary-key
+...
+
+.Data Protection vs. Key Protection
+****
+Even though the flowfile content is encrypted using `AES/CTR` to handle streaming data, if using the _Config Encrypt
+Tool_ or `FileBasedKeyProvider`, those _keys_ will be protected using `AES/GCM` to provide authenticated encryption
+over the key material.
+****
+
+[[content-repository-key-rotation]]
+==== Key Rotation
+Simply update _nifi.properties_ to reference a new key ID in `nifi.content.repository.encryption.key.id`. Previously-encrypted content claims can still be decrypted as long as that key is still available in the key definition file or `nifi.content.repository.encryption.key.id.<OldKeyID>` as the key ID is serialized alongside the encrypted content.
+
+=== Writing and Reading Content Claims
+Once the repository is initialized, all content claim write operations are serialized using `RepositoryObjectStreamEncryptor` (the only currently existing implementation is `RepositoryObjectAESCTREncryptor`) to an `OutputStream`. The actual implementation is `EncryptedContentRepositoryOutputStream`, which encrypts the data written by the component via `StandardProcessSession` inline and the encryption metadata (`keyId`, `algorithm`, `version`, `IV`) is serialized and prepended. The complete `OutputStream` is then written to the repository on disk as normal.
+
+image:encrypted-content-hex.png["Encrypted content repository file on disk"]
+
+On content claim read, the process is reversed. The encryption metadata (`RepositoryObjectEncryptionMetadata`) is parsed and used to decrypt the serialized bytes, which are then deserialized into a `CipherInputStream` object. The delegation to the normal repository file system interaction allows for "random-access" (i.e. immediate seek without decryption of unnecessary content claims).
+
+Within the NiFi UI/API, there is no detectable difference between an encrypted and unencrypted content repository. The Provenance Query operations to view content work as expected with no change to the process.
+
+=== Potential Issues
+
+[WARNING]
+.Switching Implementations
+============
+When switching between implementation "families" (i.e. `VolatileContentRepository` or `FileSystemRepository` to `EncryptedFileSystemRepository`), the existing repository must be cleared from the file system before starting NiFi. A terminal command like `localhost:$NIFI_HOME $ rm -rf content_repository/` is sufficient.
+============
+
+* Switching between unencrypted and encrypted repositories
+** If a user has an existing repository (`FileSystemRepository`) that is not encrypted and switches their configuration to use an encrypted repository, the application writes an error to the log but starts up. However, previous content claims are not accessible through the provenance query interface and new content claims will overwrite the existing claims. The same behavior occurs if a user switches from an encrypted repository to an unencrypted repository. Automatic roll-over is a future effort (link:https://issues.apache.org/jira/browse/NIFI-6783[NIFI-6783^]) but NiFi is not intended for long-term storage of content claims so the impact should be minimal. There are two scenarios for roll-over:
+*** Encrypted -> unencrypted -- if the previous repository implementation was encrypted, these claims should be handled seamlessly as long as the key provider available still has the keys used to encrypt the claims (see <<content-repository-key-rotation,Key Rotation>>)
+*** Unencrypted -> encrypted -- if the previous repository implementation was unencrypted, these claims should be handled seamlessly as the previously written claims simply need to be read with a plaintext `InputStream` and then be written back with the `EncryptedContentRepositoryOutputStream`
+** There is also a future effort to provide a standalone tool in NiFi Toolkit to encrypt/decrypt an existing content repository to make the transition easier. The translation process could take a long time depending on the size of the existing repository, and being able to perform this task outside of application startup would be valuable (link:https://issues.apache.org/jira/browse/NIFI-6783[NIFI-6783^]).
+* Multiple repositories -- No additional effort or testing has been applied to multiple repositories at this time. It is possible/likely issues will occur with repositories on different physical devices. There is no option to provide a heterogenous environment (i.e. one encrypted, one plaintext repository).
+* Corruption -- when a disk is filled or corrupted, there have been reported issues with the repository becoming corrupted and recovery steps are necessary. This is likely to continue to be an issue with the encrypted repository, although still limited in scope to individual claims (i.e. an entire repository file won't be irrecoverable due to the encryption). Some testing has been performed on scenarios where disk space is exhausted. While the flow can no longer write additional content claims to the repository in that case, the NiFi application continues to function properly, and successfully written content claims are still available via the Provenance Query operations. Stopping NiFi and removing the content repository (or moving it to a larger disk) resolves the issue.
+
+[[encrypted-flowfile]]
+== Encrypted FlowFile Repository
+While OS-level access control can offer some security over the flowfile attribute and content claim data written to the disk in a repository, there are scenarios where the data may be sensitive, compliance and regulatory requirements exist, or NiFi is running on hardware not under the direct control of the organization (cloud, etc.). In this case, the flowfile repository allows for all data to be encrypted before being persisted to the disk. For more information on the internal workings of the flowfile repository, see <<nifi-in-depth.adoc#flowfile-repository,NiFi In-Depth - FlowFile Repository>>.
+
+[WARNING]
+.Experimental
+============
+This implementation is marked <<experimental_warning, *experimental*>> as of Apache NiFi 1.11.0 (January 2020). The API, configuration, and internal behavior may change without warning, and such changes may occur during a minor release. Use at your own risk.
+============
+
+[WARNING]
+.Performance
+============
+The current implementation of the encrypted flowfile repository intercepts the serialization of flowfile record data via the `EncryptedSchemaRepositoryRecordSerde` and uses the `AES/GCM` algorithm, which is fairly performant on commodity hardware. This use of an authenticated encryption algorithm (AEAD) block cipher (because the content length is limited and known a priori) is the same as the <<encrypted-provenance,Encrypted Provenance Repository>>, but differs from the unauthenticated stream cipher used in the <<encrypted-content,Encrypted Content Repository>>. In low volume flowfile scenarios, the added cost will be minimal. However, administrators should perform their own risk assessment and performance analysis and decide how to move forward. Switching back and forth between encrypted/unencrypted implementations is not recommended at this time.
+============
+
+=== What is it?
+
+The `EncryptedSequentialAccessWriteAheadLog` is a new implementation of the flowfile write-ahead log which encrypts all flowfile attribute data before it is written to the repository. This allows for storage on systems where OS-level access controls are not sufficient to protect the data while still allowing querying and access to the data through the NiFi UI/API.
+
+=== How does it work?
+
+The `SequentialAccessWriteAheadLog` was introduced in NiFi 1.6.0 and provided a faster flowfile repository implementation. The encrypted version wraps that implementation with functionality to transparently encrypt and decrypt the serialized `RepositoryRecord` objects during file system interaction. During all writes to disk (swapping, snapshotting, journaling, and checkpointing), the flowfile containers are serialized to bytes based on a schema, and this serialized form is encrypted before writing. This allows the snapshot handler to continue interacting with the flowfile repository interface in the same way as before and continue operating on flowfile data in a random access manner, without requiring any changes to handle the data protection.
+
+The fully qualified class `org.apache.nifi.wali.EncryptedSequentialAccessWriteAheadLog` is specified as the flowfile repository write-ahead log implementation in _nifi.properties_ as the value of `nifi.flowfile.repository.wal.implementation`. In addition, <<administration-guide.adoc#encrypted-write-ahead-flowfile-repository-properties,new properties>> must be populated to allow successful initialization.
+
+==== StaticKeyProvider
+The `StaticKeyProvider` implementation defines keys directly in _nifi.properties_. Individual keys are provided in hexadecimal encoding. The keys can also be encrypted like any other sensitive property in _nifi.properties_ using the <<administration-guide.adoc#encrypt-config_tool,`./encrypt-config.sh`>> tool in the NiFi Toolkit.
+
+The following configuration section would result in a key provider with two available keys, "Key1" (active) and "AnotherKey".
+....
+nifi.flowfile.repository.encryption.key.provider.implementation=org.apache.nifi.security.kms.StaticKeyProvider
+nifi.flowfile.repository.encryption.key.id=Key1
+nifi.flowfile.repository.encryption.key=0123456789ABCDEFFEDCBA98765432100123456789ABCDEFFEDCBA9876543210
+nifi.flowfile.repository.encryption.key.id.AnotherKey=0101010101010101010101010101010101010101010101010101010101010101
+....
+
+==== FileBasedKeyProvider
+The `FileBasedKeyProvider` implementation reads from an encrypted definition file of the format:
+
+....
+key1=NGCpDpxBZNN0DBodz0p1SDbTjC2FG5kp1pCmdUKJlxxtcMSo6GC4fMlTyy1mPeKOxzLut3DRX+51j6PCO5SznA==
+key2=GYxPbMMDbnraXs09eGJudAM5jTvVYp05XtImkAg4JY4rIbmHOiVUUI6OeOf7ZW+hH42jtPgNW9pSkkQ9HWY/vQ==
+key3=SFe11xuz7J89Y/IQ7YbJPOL0/YKZRFL/VUxJgEHxxlXpd/8ELA7wwN59K1KTr3BURCcFP5YGmwrSKfr4OE4Vlg==
+key4=kZprfcTSTH69UuOU3jMkZfrtiVR/eqWmmbdku3bQcUJ/+UToecNB5lzOVEMBChyEXppyXXC35Wa6GEXFK6PMKw==
+key5=c6FzfnKm7UR7xqI2NFpZ+fEKBfSU7+1NvRw+XWQ9U39MONWqk5gvoyOCdFR1kUgeg46jrN5dGXk13sRqE0GETQ==
+....
+
+Each line defines a key ID and then the Base64-encoded cipher text of a 16 byte IV and wrapped AES-128, AES-192, or AES-256 key depending on the JCE policies available. The individual keys are wrapped by AES/GCM encryption using the **root key** defined by `nifi.bootstrap.sensitive.key` in _conf/bootstrap.conf_.
+
+==== KeyStoreKeyProvider
+The `KeyStoreKeyProvider` implementation reads from a standard `java.security.KeyStore` using the configured password to load AES Secret Key entries.
+
+The provider supports the following Keystore Types:
+
+* BCFKS
+* PKCS12
+
+The keystore filename extension must be either `.p12` indicating PKCS12 or `.bcfks` indicating BCFKS.
+
+The `keytool` command can be used to generate an AES-256 Secret Key stored in a PKCS12 file for repository encryption:
+
+...
+keytool -genseckey -alias primary-key -keyalg AES -keysize 256 -keystore repository.p12 -storetype PKCS12
+...
+
+Enter a keystore password when prompted. The same value must be used for both the keystore password and key password.
+The keystore password will be used in the provider configuration properties.
+
+The following configuration properties support using a PKCS12 keystore with a Secret Key:
+
+...
+nifi.flowfile.repository.encryption.key.provider.implementation=org.apache.nifi.security.kms.KeyStoreKeyProvider
+nifi.flowfile.repository.encryption.key.provider.location=./conf/repository.p12
+nifi.flowfile.repository.encryption.key.provider.password=KEYSTORE_PASSWORD
+nifi.flowfile.repository.encryption.key.id=primary-key
+...
+
+[[flowfile-repository-key-rotation]]
+==== Key Rotation
+Simply update _nifi.properties_ to reference a new key ID in `nifi.flowfile.repository.encryption.key.id`. Previously-encrypted flowfile records can still be decrypted as long as that key is still available in the key definition file or `nifi.flowfile.repository.encryption.key.id.<OldKeyID>` as the key ID is serialized alongside the encrypted record.
+
+=== Writing and Reading FlowFiles
+Once the repository is initialized, all flowfile record write operations are serialized using `RepositoryObjectBlockEncryptor` (the only currently existing implementation is `RepositoryObjectAESGCMEncryptor`) to the provided `DataOutputStream`. The original stream is swapped with a temporary wrapped stream, which encrypts the data written by the wrapped serializer/deserializer via `EncryptedSchemaRepositoryRecordSerde` inline and the encryption metadata (`keyId`, `algorithm`, `version`, `IV`, `cipherByteLength`) is serialized and prepended. The complete length and encrypted bytes are then written to the original `DataOutputStream` on disk as normal.
+
+image:encrypted-flowfile-hex.png["Encrypted flowfile repository journal file on disk"]
+
+On flowfile record read, the process is reversed. The encryption metadata (`RepositoryObjectEncryptionMetadata`) is parsed and used to decrypt the serialized bytes, which are then deserialized into a `DataInputStream` object.
+
+During swaps and recoveries, the flowfile records are deserialized and reserialized, so if the active key has been changed, the flowfile records will be re-encrypted with the new active key.
+
+Within the NiFi UI/API, there is no detectable difference between an encrypted and unencrypted flowfile repository. All framework interactions with flowfiles work as expected with no change to the process.
+
+=== Potential Issues
+
+[WARNING]
+.Switching Implementations
+============
+It is not recommended to switch between any implementation other than `SequentialAccessWriteAheadLog` and the `EncryptedSequentialAccessWriteAheadLog`. To migrate from a different provider, first migrate to the plaintext sequential log, allow NiFi to automatically recover the flowfiles, then stop NiFi and change the configuration to enable encryption. NiFi will automatically recover the plaintext flowfiles from the repository, and begin encrypting them on subsequent writes.
+============
+
+* Switching between unencrypted and encrypted repositories
+** If a user has an existing write-ahead repository (`WriteAheadFlowFileRepository`) that is not encrypted (uses the `SequentialAccessWriteAheadLog`) and switches their configuration to use an encrypted repository, the application handles this and all flowfile records will be recovered on startup. Future writes (including re-serialization of these same flowfiles) will be encrypted. If a user switches from an encrypted repository to an unencrypted repository, the flowfiles cannot be recovered, and it is recommended to delete the existing flowfile repository before switching in this direction. Automatic roll-over is a future effort (link:https://issues.apache.org/jira/browse/NIFI-6994[NIFI-6994^]) but NiFi is not intended for long-term storage of flowfile records so the impact should be minimal. There are two scenarios for roll-over:
+*** Encrypted -> unencrypted -- if the previous repository implementation was encrypted, these records should be handled seamlessly as long as the key provider available still has the keys used to encrypt the claims (see <<flowfile-repository-key-rotation,Key Rotation>>)
+*** Unencrypted -> encrypted -- currently handled seamlesssly for `SequentialAccessWriteAheadLog` but there are other initial implementations which could be handled
+** There is also a future effort to provide a standalone tool in NiFi Toolkit to encrypt/decrypt an existing flowfile repository to make the transition easier. The translation process could take a long time depending on the size of the existing repository, and being able to perform this task outside of application startup would be valuable (link:https://issues.apache.org/jira/browse/NIFI-6994[NIFI-6994^]).
+* Multiple repositories -- No additional effort or testing has been applied to multiple repositories at this time. Current implementations of the flowfile repository allow only for one repository, though it can reside across multiple volumes and partitions. It is possible/likely issues will occur with repositories on different physical devices. There is no option to provide a heterogenous environment (i.e. one encrypted, one plaintext partition/directory).
+* Corruption -- when a disk is filled or corrupted, there have been reported issues with the repository becoming corrupted and recovery steps are necessary. This is likely to continue to be an issue with the encrypted repository, although still limited in scope to individual records (i.e. an entire repository file won't be irrecoverable due to the encryption). It is important for the continued operation of NiFi to ensure that the disk storing the flowfile repository does not run out of available space.
+
+
+[[experimental_warning]]
+== Experimental Warning
+
+While all Apache licensed code is provided "on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied" (see https://www.apache.org/licenses/LICENSE-2.0[Apache License, Version 2.0]), some features of Apache NiFi may be marked *experimental*. Experimental features may:
+
+* have undergone less extensive testing than is normal for standard NiFi features
+* interact with unstable external dependencies
+* be subject to change (any exposed APIs should *not* be considered covered under the minor release backward compatibility guidelines of https://semver.org[Semantic Versioning])
+* potentially cause data loss
+* not be directly supported by the community in the event issues arise
+
+Every attempt is made to provide more detailed and specific information around the nature of the experimental warning on a per-feature basis. Questions around specific experimental features should be directed to the mailto:dev@nifi.apache.org[Apache NiFi Developer Mailing List].
+
 
 [[other_management_features]]
 == Other Management Features
@@ -2683,6 +3238,10 @@ all the changes that have been made to the dataflow. The history can aid in trou
 recent change to the dataflow has caused a problem and needs to be fixed. The DFM can see what changes have been made and
 adjust the flow as needed to fix the problem. While NiFi does not have an "undo" feature, the DFM can make new changes to the
 dataflow that will fix the problem.
+
+Select Node Status History to view instance specific metrics from the last 24 hours or if the instance runs for less time, then
+since it has been started. The status history can help the DFM in troubleshooting performance issues and provides a general
+view on the health of the node. The status history includes information about the memory usage and disk usage among other things.
 
 Two other tools in the Global Menu are Controller Settings and Users. The Controller Settings page provides the ability to change
 the name of the NiFi instance, add comments describing the NiFi instance, and set the maximum number of threads that are available

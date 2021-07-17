@@ -16,50 +16,10 @@
  */
 package org.apache.nifi.security.util;
 
-import org.apache.commons.lang3.StringUtils;
-import org.bouncycastle.asn1.ASN1Encodable;
-import org.bouncycastle.asn1.ASN1ObjectIdentifier;
-import org.bouncycastle.asn1.ASN1Set;
-import org.bouncycastle.asn1.DERSequence;
-import org.bouncycastle.asn1.pkcs.Attribute;
-import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers;
-import org.bouncycastle.asn1.x500.AttributeTypeAndValue;
-import org.bouncycastle.asn1.x500.RDN;
-import org.bouncycastle.asn1.x500.X500Name;
-import org.bouncycastle.asn1.x500.style.BCStyle;
-import org.bouncycastle.asn1.x509.BasicConstraints;
-import org.bouncycastle.asn1.x509.ExtendedKeyUsage;
-import org.bouncycastle.asn1.x509.Extension;
-import org.bouncycastle.asn1.x509.Extensions;
-import org.bouncycastle.asn1.x509.KeyPurposeId;
-import org.bouncycastle.asn1.x509.KeyUsage;
-import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
-import org.bouncycastle.cert.CertIOException;
-import org.bouncycastle.cert.X509CertificateHolder;
-import org.bouncycastle.cert.X509v3CertificateBuilder;
-import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
-import org.bouncycastle.cert.jcajce.JcaX509ExtensionUtils;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.bouncycastle.operator.ContentSigner;
-import org.bouncycastle.operator.OperatorCreationException;
-import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
-import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequest;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.naming.InvalidNameException;
-import javax.naming.ldap.LdapName;
-import javax.naming.ldap.Rdn;
-import javax.net.ssl.SSLPeerUnverifiedException;
-import javax.net.ssl.SSLSocket;
-import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.math.BigInteger;
 import java.net.Socket;
-import java.net.URL;
 import java.security.KeyPair;
-import java.security.KeyStore;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
 import java.security.Security;
@@ -78,11 +38,56 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import javax.naming.InvalidNameException;
+import javax.naming.ldap.LdapName;
+import javax.naming.ldap.Rdn;
+import javax.net.ssl.SSLException;
+import javax.net.ssl.SSLPeerUnverifiedException;
+import javax.net.ssl.SSLSocket;
+import org.apache.commons.lang3.StringUtils;
+import org.bouncycastle.asn1.ASN1Encodable;
+import org.bouncycastle.asn1.ASN1ObjectIdentifier;
+import org.bouncycastle.asn1.ASN1Set;
+import org.bouncycastle.asn1.DERSequence;
+import org.bouncycastle.asn1.DLSequence;
+import org.bouncycastle.asn1.pkcs.Attribute;
+import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers;
+import org.bouncycastle.asn1.x500.AttributeTypeAndValue;
+import org.bouncycastle.asn1.x500.RDN;
+import org.bouncycastle.asn1.x500.X500Name;
+import org.bouncycastle.asn1.x500.style.BCStyle;
+import org.bouncycastle.asn1.x500.style.IETFUtils;
+import org.bouncycastle.asn1.x509.BasicConstraints;
+import org.bouncycastle.asn1.x509.ExtendedKeyUsage;
+import org.bouncycastle.asn1.x509.Extension;
+import org.bouncycastle.asn1.x509.Extensions;
+import org.bouncycastle.asn1.x509.KeyPurposeId;
+import org.bouncycastle.asn1.x509.KeyUsage;
+import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
+import org.bouncycastle.asn1.x509.GeneralName;
+import org.bouncycastle.asn1.x509.GeneralNames;
+import org.bouncycastle.cert.CertIOException;
+import org.bouncycastle.cert.X509CertificateHolder;
+import org.bouncycastle.cert.X509v3CertificateBuilder;
+import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
+import org.bouncycastle.cert.jcajce.JcaX509ExtensionUtils;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.operator.ContentSigner;
+import org.bouncycastle.operator.OperatorCreationException;
+import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
+import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class CertificateUtils {
     private static final Logger logger = LoggerFactory.getLogger(CertificateUtils.class);
     private static final String PEER_NOT_AUTHENTICATED_MSG = "peer not authenticated";
     private static final Map<ASN1ObjectIdentifier, Integer> dnOrderMap = createDnOrderMap();
+
+    public static final String JAVA_8_MAX_SUPPORTED_TLS_PROTOCOL_VERSION = "TLSv1.2";
+    public static final String JAVA_11_MAX_SUPPORTED_TLS_PROTOCOL_VERSION = "TLSv1.3";
+    public static final String[] JAVA_8_SUPPORTED_TLS_PROTOCOL_VERSIONS = new String[]{JAVA_8_MAX_SUPPORTED_TLS_PROTOCOL_VERSION};
+    public static final String[] JAVA_11_SUPPORTED_TLS_PROTOCOL_VERSIONS = new String[]{JAVA_11_MAX_SUPPORTED_TLS_PROTOCOL_VERSION, JAVA_8_MAX_SUPPORTED_TLS_PROTOCOL_VERSION};
 
     static {
         Security.addProvider(new BouncyCastleProvider());
@@ -118,67 +123,6 @@ public final class CertificateUtils {
         return Collections.unmodifiableMap(orderMap);
     }
 
-    public enum ClientAuth {
-        NONE(0, "none"),
-        WANT(1, "want"),
-        NEED(2, "need");
-
-        private int value;
-        private String description;
-
-        ClientAuth(int value, String description) {
-            this.value = value;
-            this.description = description;
-        }
-
-        @Override
-        public String toString() {
-            return "Client Auth: " + this.description + " (" + this.value + ")";
-        }
-    }
-
-    /**
-     * Returns true if the given keystore can be loaded using the given keystore type and password. Returns false otherwise.
-     *
-     * @param keystore     the keystore to validate
-     * @param keystoreType the type of the keystore
-     * @param password     the password to access the keystore
-     * @return true if valid; false otherwise
-     */
-    public static boolean isStoreValid(final URL keystore, final KeystoreType keystoreType, final char[] password) {
-
-        if (keystore == null) {
-            throw new IllegalArgumentException("keystore may not be null");
-        } else if (keystoreType == null) {
-            throw new IllegalArgumentException("keystore type may not be null");
-        } else if (password == null) {
-            throw new IllegalArgumentException("password may not be null");
-        }
-
-        BufferedInputStream bis = null;
-        final KeyStore ks;
-        try {
-
-            // load the keystore
-            bis = new BufferedInputStream(keystore.openStream());
-            ks = KeyStoreUtils.getKeyStore(keystoreType.name());
-            ks.load(bis, password);
-
-            return true;
-
-        } catch (Exception e) {
-            return false;
-        } finally {
-            if (bis != null) {
-                try {
-                    bis.close();
-                } catch (final IOException ioe) {
-                    logger.warn("Failed to close input stream", ioe);
-                }
-            }
-        }
-    }
-
     /**
      * Extracts the username from the specified DN. If the username cannot be extracted because the CN is in an unrecognized format, the entire CN is returned. If the CN cannot be extracted because
      * the DN is in an unrecognized format, the entire DN is returned.
@@ -203,6 +147,27 @@ public final class CertificateUtils {
                     username = StringUtils.substring(dn, cnIndex + cnPattern.length(), separatorIndex);
                 } else {
                     username = StringUtils.substring(dn, cnIndex + cnPattern.length());
+                }
+            }
+
+            /*
+                https://tools.ietf.org/html/rfc5280#section-4.1.2.6
+
+                Legacy implementations exist where an electronic mail address is
+                embedded in the subject distinguished name as an emailAddress
+                attribute [RFC2985].  The attribute value for emailAddress is of type
+                IA5String to permit inclusion of the character '@', which is not part
+                of the PrintableString character set.  emailAddress attribute values
+                are not case-sensitive (e.g., "subscriber@example.com" is the same as
+                "SUBSCRIBER@EXAMPLE.COM").
+             */
+            final String emailPattern = "/emailAddress=";
+            final int index = StringUtils.indexOfIgnoreCase(username, emailPattern);
+            if (index >= 0) {
+                String[] dnParts = username.split(emailPattern);
+                if (dnParts.length > 0) {
+                    // only use the actual CN
+                    username = dnParts[0];
                 }
             }
         }
@@ -243,7 +208,7 @@ public final class CertificateUtils {
 
     /**
      * Returns the DN extracted from the peer certificate (the server DN if run on the client; the client DN (if available) if run on the server).
-     *
+     * <p>
      * If the client auth setting is WANT or NONE and a client certificate is not present, this method will return {@code null}.
      * If the client auth is NEED, it will throw a {@link CertificateException}.
      *
@@ -263,10 +228,10 @@ public final class CertificateUtils {
 
             if (clientMode) {
                 logger.debug("This socket is in client mode, so attempting to extract certificate from remote 'server' socket");
-               dn = extractPeerDNFromServerSSLSocket(sslSocket);
+                dn = extractPeerDNFromServerSSLSocket(sslSocket);
             } else {
                 logger.debug("This socket is in server mode, so attempting to extract certificate from remote 'client' socket");
-               dn = extractPeerDNFromClientSSLSocket(sslSocket);
+                dn = extractPeerDNFromClientSSLSocket(sslSocket);
             }
         }
 
@@ -275,7 +240,7 @@ public final class CertificateUtils {
 
     /**
      * Returns the DN extracted from the client certificate.
-     *
+     * <p>
      * If the client auth setting is WANT or NONE and a certificate is not present (and {@code respectClientAuth} is {@code true}), this method will return {@code null}.
      * If the client auth is NEED, it will throw a {@link CertificateException}.
      *
@@ -286,34 +251,34 @@ public final class CertificateUtils {
     private static String extractPeerDNFromClientSSLSocket(SSLSocket sslSocket) throws CertificateException {
         String dn = null;
 
-            /** The clientAuth value can be "need", "want", or "none"
-             * A client must send client certificates for need, should for want, and will not for none.
-             * This method should throw an exception if none are provided for need, return null if none are provided for want, and return null (without checking) for none.
-             */
+        /** The clientAuth value can be "need", "want", or "none"
+         * A client must send client certificates for need, should for want, and will not for none.
+         * This method should throw an exception if none are provided for need, return null if none are provided for want, and return null (without checking) for none.
+         */
 
-            ClientAuth clientAuth = getClientAuthStatus(sslSocket);
-            logger.debug("SSL Socket client auth status: {}", clientAuth);
+        ClientAuth clientAuth = getClientAuthStatus(sslSocket);
+        logger.debug("SSL Socket client auth status: {}", clientAuth);
 
-            if (clientAuth != ClientAuth.NONE) {
-                try {
-                    final Certificate[] certChains = sslSocket.getSession().getPeerCertificates();
-                    if (certChains != null && certChains.length > 0) {
-                        X509Certificate x509Certificate = convertAbstractX509Certificate(certChains[0]);
-                        dn = x509Certificate.getSubjectDN().getName().trim();
-                        logger.debug("Extracted DN={} from client certificate", dn);
-                    }
-                } catch (SSLPeerUnverifiedException e) {
-                    if (e.getMessage().equals(PEER_NOT_AUTHENTICATED_MSG)) {
-                        logger.error("The incoming request did not contain client certificates and thus the DN cannot" +
-                                " be extracted. Check that the other endpoint is providing a complete client certificate chain");
-                    }
-                    if (clientAuth == ClientAuth.WANT) {
-                        logger.warn("Suppressing missing client certificate exception because client auth is set to 'want'");
-                        return dn;
-                    }
-                    throw new CertificateException(e);
+        if (clientAuth != ClientAuth.NONE) {
+            try {
+                final Certificate[] certChains = sslSocket.getSession().getPeerCertificates();
+                if (certChains != null && certChains.length > 0) {
+                    X509Certificate x509Certificate = convertAbstractX509Certificate(certChains[0]);
+                    dn = x509Certificate.getSubjectDN().getName().trim();
+                    logger.debug("Extracted DN={} from client certificate", dn);
                 }
+            } catch (SSLPeerUnverifiedException e) {
+                if (e.getMessage().equals(PEER_NOT_AUTHENTICATED_MSG)) {
+                    logger.error("The incoming request did not contain client certificates and thus the DN cannot" +
+                            " be extracted. Check that the other endpoint is providing a complete client certificate chain");
+                }
+                if (clientAuth == ClientAuth.WANT) {
+                    logger.warn("Suppressing missing client certificate exception because client auth is set to 'want'");
+                    return null;
+                }
+                throw new CertificateException(e);
             }
+        }
         return dn;
     }
 
@@ -328,26 +293,26 @@ public final class CertificateUtils {
         String dn = null;
         if (socket instanceof SSLSocket) {
             final SSLSocket sslSocket = (SSLSocket) socket;
-                try {
-                    final Certificate[] certChains = sslSocket.getSession().getPeerCertificates();
-                    if (certChains != null && certChains.length > 0) {
-                        X509Certificate x509Certificate = convertAbstractX509Certificate(certChains[0]);
-                        dn = x509Certificate.getSubjectDN().getName().trim();
-                        logger.debug("Extracted DN={} from server certificate", dn);
-                    }
-                } catch (SSLPeerUnverifiedException e) {
-                    if (e.getMessage().equals(PEER_NOT_AUTHENTICATED_MSG)) {
-                        logger.error("The server did not present a certificate and thus the DN cannot" +
-                                " be extracted. Check that the other endpoint is providing a complete certificate chain");
-                    }
-                    throw new CertificateException(e);
+            try {
+                final Certificate[] certChains = sslSocket.getSession().getPeerCertificates();
+                if (certChains != null && certChains.length > 0) {
+                    X509Certificate x509Certificate = convertAbstractX509Certificate(certChains[0]);
+                    dn = x509Certificate.getSubjectDN().getName().trim();
+                    logger.debug("Extracted DN={} from server certificate", dn);
                 }
+            } catch (SSLPeerUnverifiedException e) {
+                if (e.getMessage().equals(PEER_NOT_AUTHENTICATED_MSG)) {
+                    logger.error("The server did not present a certificate and thus the DN cannot" +
+                            " be extracted. Check that the other endpoint is providing a complete certificate chain");
+                }
+                throw new CertificateException(e);
+            }
         }
         return dn;
     }
 
     private static ClientAuth getClientAuthStatus(SSLSocket sslSocket) {
-        return sslSocket.getNeedClientAuth() ? ClientAuth.NEED : sslSocket.getWantClientAuth() ? ClientAuth.WANT : ClientAuth.NONE;
+        return sslSocket.getNeedClientAuth() ? ClientAuth.REQUIRED : sslSocket.getWantClientAuth() ? ClientAuth.WANT : ClientAuth.NONE;
     }
 
     /**
@@ -358,6 +323,7 @@ public final class CertificateUtils {
      * @return a new {@code java.security.cert.X509Certificate}
      * @throws CertificateException if there is an error generating the new certificate
      */
+    @SuppressWarnings("deprecation")
     public static X509Certificate convertLegacyX509Certificate(javax.security.cert.X509Certificate legacyCertificate) throws CertificateException {
         if (legacyCertificate == null) {
             throw new IllegalArgumentException("The X.509 certificate cannot be null");
@@ -403,9 +369,9 @@ public final class CertificateUtils {
 
     /**
      * Reorders DN to the order the elements appear in the RFC 2253 table
-     *
+     * <p>
      * https://www.ietf.org/rfc/rfc2253.txt
-     *
+     * <p>
      * String  X.500 AttributeType
      * ------------------------------
      * CN      commonName
@@ -496,9 +462,26 @@ public final class CertificateUtils {
      * @param signingAlgorithm        the signing algorithm to use for the {@link X509Certificate}
      * @param certificateDurationDays the duration in days for which the {@link X509Certificate} should be valid
      * @return a self-signed {@link X509Certificate} suitable for use as a Certificate Authority
-     * @throws CertificateException      if there is an generating the new certificate
+     * @throws CertificateException if there is an generating the new certificate
      */
     public static X509Certificate generateSelfSignedX509Certificate(KeyPair keyPair, String dn, String signingAlgorithm, int certificateDurationDays)
+            throws CertificateException {
+        return generateSelfSignedX509Certificate(keyPair, dn, signingAlgorithm, certificateDurationDays, null);
+    }
+
+    /**
+     * Generates a self-signed {@link X509Certificate} suitable for use as a Certificate Authority.
+     *
+     * @param keyPair                 the {@link KeyPair} to generate the {@link X509Certificate} for
+     * @param dn                      the distinguished name to user for the {@link X509Certificate}
+     * @param signingAlgorithm        the signing algorithm to use for the {@link X509Certificate}
+     * @param certificateDurationDays the duration in days for which the {@link X509Certificate} should be valid
+     * @param dnsSubjectAlternativeNames An optional array of dnsName SANs
+     * @return a self-signed {@link X509Certificate} suitable for use as a Certificate Authority
+     * @throws CertificateException if there is an generating the new certificate
+     */
+    public static X509Certificate generateSelfSignedX509Certificate(KeyPair keyPair, String dn, String signingAlgorithm, int certificateDurationDays,
+                                                                    String[] dnsSubjectAlternativeNames)
             throws CertificateException {
         try {
             ContentSigner sigGen = new JcaContentSignerBuilder(signingAlgorithm).setProvider(BouncyCastleProvider.PROVIDER_NAME).build(keyPair.getPrivate());
@@ -527,6 +510,24 @@ public final class CertificateUtils {
             // (2) extendedKeyUsage extension
             certBuilder.addExtension(Extension.extendedKeyUsage, false, new ExtendedKeyUsage(new KeyPurposeId[]{KeyPurposeId.id_kp_clientAuth, KeyPurposeId.id_kp_serverAuth}));
 
+            // (3) subjectAlternativeName extension. Include CN as a SAN entry if it exists.
+            final String cn = getCommonName(dn);
+            List<GeneralName> generalNames = new ArrayList<>();
+            if (StringUtils.isNotBlank(cn)) {
+                generalNames.add(new GeneralName(GeneralName.dNSName, cn));
+            }
+            if (dnsSubjectAlternativeNames != null) {
+                for (String subjectAlternativeName : dnsSubjectAlternativeNames) {
+                    if (StringUtils.isNotBlank(subjectAlternativeName)) {
+                        generalNames.add(new GeneralName(GeneralName.dNSName, subjectAlternativeName));
+                    }
+                }
+            }
+            if (!generalNames.isEmpty()) {
+                certBuilder.addExtension(Extension.subjectAlternativeName, false, new GeneralNames(generalNames.toArray(
+                        new GeneralName[generalNames.size()])));
+            }
+
             // Sign the certificate
             X509CertificateHolder certificateHolder = certBuilder.build(sigGen);
             return new JcaX509CertificateConverter().setProvider(BouncyCastleProvider.PROVIDER_NAME).getCertificate(certificateHolder);
@@ -538,12 +539,12 @@ public final class CertificateUtils {
     /**
      * Generates an issued {@link X509Certificate} from the given issuer certificate and {@link KeyPair}
      *
-     * @param dn the distinguished name to use
-     * @param publicKey the public key to issue the certificate to
-     * @param issuer the issuer's certificate
-     * @param issuerKeyPair the issuer's keypair
+     * @param dn               the distinguished name to use
+     * @param publicKey        the public key to issue the certificate to
+     * @param issuer           the issuer's certificate
+     * @param issuerKeyPair    the issuer's keypair
      * @param signingAlgorithm the signing algorithm to use
-     * @param days the number of days it should be valid for
+     * @param days             the number of days it should be valid for
      * @return an issued {@link X509Certificate} from the given issuer certificate and {@link KeyPair}
      * @throws CertificateException if there is an error issuing the certificate
      */
@@ -555,13 +556,13 @@ public final class CertificateUtils {
     /**
      * Generates an issued {@link X509Certificate} from the given issuer certificate and {@link KeyPair}
      *
-     * @param dn the distinguished name to use
-     * @param publicKey the public key to issue the certificate to
-     * @param extensions extensions extracted from the CSR
-     * @param issuer the issuer's certificate
-     * @param issuerKeyPair the issuer's keypair
+     * @param dn               the distinguished name to use
+     * @param publicKey        the public key to issue the certificate to
+     * @param extensions       extensions extracted from the CSR
+     * @param issuer           the issuer's certificate
+     * @param issuerKeyPair    the issuer's keypair
      * @param signingAlgorithm the signing algorithm to use
-     * @param days the number of days it should be valid for
+     * @param days             the number of days it should be valid for
      * @return an issued {@link X509Certificate} from the given issuer certificate and {@link KeyPair}
      * @throws CertificateException if there is an error issuing the certificate
      */
@@ -594,7 +595,7 @@ public final class CertificateUtils {
             certBuilder.addExtension(Extension.extendedKeyUsage, false, new ExtendedKeyUsage(new KeyPurposeId[]{KeyPurposeId.id_kp_clientAuth, KeyPurposeId.id_kp_serverAuth}));
 
             // (3) subjectAlternativeName
-            if(extensions != null && extensions.getExtension(Extension.subjectAlternativeName) != null) {
+            if (extensions != null && extensions.getExtension(Extension.subjectAlternativeName) != null) {
                 certBuilder.addExtension(Extension.subjectAlternativeName, false, extensions.getExtensionParsedValue(Extension.subjectAlternativeName));
             }
 
@@ -607,15 +608,15 @@ public final class CertificateUtils {
 
     /**
      * Returns true if the two provided DNs are equivalent, regardless of the order of the elements. Returns false if one or both are invalid DNs.
-     *
+     * <p>
      * Example:
-     *
+     * <p>
      * CN=test1, O=testOrg, C=US compared to CN=test1, O=testOrg, C=US -> true
      * CN=test1, O=testOrg, C=US compared to O=testOrg, CN=test1, C=US -> true
      * CN=test1, O=testOrg, C=US compared to CN=test2, O=testOrg, C=US -> false
      * CN=test1, O=testOrg, C=US compared to O=testOrg, CN=test2, C=US -> false
      * CN=test1, O=testOrg, C=US compared to                           -> false
-     *                           compared to                           -> true
+     * compared to                           -> true
      *
      * @param dn1 the first DN to compare
      * @param dn2 the second DN to compare
@@ -655,12 +656,46 @@ public final class CertificateUtils {
                 ASN1Encodable extension = attValue.getObjectAt(0);
                 if (extension instanceof Extensions) {
                     return (Extensions) extension;
-                } else if (extension instanceof DERSequence) {
+                } else if (extension instanceof DERSequence || extension instanceof DLSequence) {
                     return Extensions.getInstance(extension);
                 }
             }
         }
         return null;
+    }
+
+    /**
+     * Returns {@code true} if this exception is due to a TLS problem (either directly or because of its cause, if present). Traverses the cause chain recursively.
+     *
+     * @param e the exception to evaluate
+     * @return true if the direct or indirect cause of this exception was TLS-related
+     */
+    public static boolean isTlsError(Throwable e) {
+        if (e == null) {
+            return false;
+        } else {
+            if (e instanceof CertificateException || e instanceof TlsException || e instanceof SSLException) {
+                return true;
+            } else if (e.getCause() != null) {
+                return isTlsError(e.getCause());
+            } else {
+                return false;
+            }
+        }
+    }
+
+    /**
+     * Extracts the common name from the given DN.
+     *
+     * @param dn the distinguished name to evaluate
+     * @return the common name if it exists, null otherwise.
+     */
+    public static String getCommonName(final String dn) {
+        RDN[] rdns = new X500Name(dn).getRDNs(BCStyle.CN);
+        if (rdns.length == 0) {
+            return null;
+        }
+        return  IETFUtils.valueToString(rdns[0].getFirst().getValue());
     }
 
     private CertificateUtils() {

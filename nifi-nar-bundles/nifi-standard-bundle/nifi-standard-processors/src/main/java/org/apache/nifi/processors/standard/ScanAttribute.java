@@ -16,21 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import org.apache.nifi.annotation.behavior.EventDriven;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
@@ -40,6 +25,8 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.resource.ResourceCardinality;
+import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.logging.ComponentLog;
@@ -52,6 +39,20 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.util.file.monitor.LastModifiedMonitor;
 import org.apache.nifi.util.file.monitor.SynchronousFileWatcher;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @EventDriven
 @SideEffectFree
@@ -86,7 +87,7 @@ public class ScanAttribute extends AbstractProcessor {
             .description("A new-line-delimited text file that includes the terms that should trigger a match. Empty lines are ignored.  The contents of "
                     + "the text file are loaded into memory when the processor is scheduled and reloaded when the contents are modified.")
             .required(true)
-            .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
+            .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
     public static final PropertyDescriptor DICTIONARY_FILTER = new PropertyDescriptor.Builder()
@@ -157,8 +158,7 @@ public class ScanAttribute extends AbstractProcessor {
     private Set<String> createDictionary(final ProcessContext context) throws IOException {
         final Set<String> terms = new HashSet<>();
 
-        final File file = new File(context.getProperty(DICTIONARY_FILE).evaluateAttributeExpressions().getValue());
-        try (final InputStream fis = new FileInputStream(file);
+        try (final InputStream fis = context.getProperty(DICTIONARY_FILE).evaluateAttributeExpressions().asResource().read();
                 final BufferedReader reader = new BufferedReader(new InputStreamReader(fis))) {
 
             String line;

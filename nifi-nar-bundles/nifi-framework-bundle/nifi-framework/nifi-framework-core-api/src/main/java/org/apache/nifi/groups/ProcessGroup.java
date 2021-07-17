@@ -31,9 +31,11 @@ import org.apache.nifi.controller.Snippet;
 import org.apache.nifi.controller.Template;
 import org.apache.nifi.controller.Triggerable;
 import org.apache.nifi.controller.label.Label;
+import org.apache.nifi.controller.queue.DropFlowFileStatus;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.parameter.ParameterContext;
+import org.apache.nifi.parameter.ParameterUpdate;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
@@ -45,7 +47,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Callable;
+import java.util.concurrent.Future;
 import java.util.function.Predicate;
 
 /**
@@ -185,6 +188,12 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
     void enableOutputPort(Port port);
 
     /**
+     * Recursively enables all Controller Services for this Process Group and all child Process Groups
+     *
+     */
+    void enableAllControllerServices();
+
+    /**
      * Starts the given Processor
      *
      * @param processor the processor to start
@@ -195,7 +204,17 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
      * @throws IllegalStateException if the processor is not valid, or is
      *             already running
      */
-    CompletableFuture<Void> startProcessor(ProcessorNode processor, boolean failIfStopping);
+    Future<Void> startProcessor(ProcessorNode processor, boolean failIfStopping);
+
+    /**
+     * Runs the given Processor once and the stops it by calling the provided callback.
+     *
+     * @param processor the processor to start
+     * @param stopCallback the callback responsible for stopping the processor
+     * @throws IllegalStateException if the processor is not valid, or is
+     *             already running
+     */
+    Future<Void> runProcessorOnce(ProcessorNode processor, Callable<Future<Void>> stopCallback);
 
     /**
      * Starts the given Input Port
@@ -223,7 +242,7 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
      *
      * @param processor to stop
      */
-    CompletableFuture<Void> stopProcessor(ProcessorNode processor);
+    Future<Void> stopProcessor(ProcessorNode processor);
 
     /**
      * Terminates the given Processor
@@ -484,12 +503,54 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
     List<Connection> findAllConnections();
 
     /**
+     * Initiates a request to drop all FlowFiles in all connections under this process group (recursively).
+     * This method returns a DropFlowFileStatus that can be used to determine the current state of the request.
+     * Additionally, the DropFlowFileStatus provides a request identifier that can then be
+     * passed to the {@link #getDropAllFlowFilesStatus(String)} and {@link #cancelDropAllFlowFiles(String)}
+     * methods in order to obtain the status later or cancel a request
+     *
+     * @param requestIdentifier the identifier of the Drop All FlowFiles Request
+     * @param requestor the entity that is requesting that the FlowFiles be dropped; this will be
+     *            included in the Provenance Events that are generated.
+     *
+     * @return the status of the drop request, or <code>null</code> if there is no
+     *         connection in the process group.
+     */
+    DropFlowFileStatus dropAllFlowFiles(String requestIdentifier, String requestor);
+
+    /**
+     * Returns the current status of a Drop All FlowFiles Request that was initiated via the
+     * {@link #dropAllFlowFiles(String, String)} method with the given identifier
+     *
+     * @param requestIdentifier the identifier of the Drop All FlowFiles Request
+     * @return the status for the request with the given identifier, or <code>null</code> if no
+     *         request status exists with that identifier
+     */
+    DropFlowFileStatus getDropAllFlowFilesStatus(String requestIdentifier);
+
+    /**
+     * Cancels the request to drop all FlowFiles that has the given identifier.
+     *
+     * @param requestIdentifier the identifier of the Drop All FlowFiles Request
+     * @return the status for the request with the given identifier after it has been canceled, or <code>null</code> if no
+     *         request status exists with that identifier
+     */
+    DropFlowFileStatus cancelDropAllFlowFiles(String requestIdentifier);
+
+    /**
      * @param id of the Funnel
      * @return the Funnel with the given ID, if it exists as a child or
      * descendant of this ProcessGroup. This performs a recursive search of all
      * descendant ProcessGroups
      */
     Funnel findFunnel(String id);
+
+    /**
+     * Gets a collection of identifiers representing all ancestor controller services
+     *
+     * @return collection of ancestor controller service identifiers
+     */
+    Set<String> getAncestorServiceIds();
 
     /**
      * @param id of the Controller Service
@@ -840,6 +901,20 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
      */
     void verifyCanDelete(boolean ignorePortConnections);
 
+
+    /**
+     * Ensures that the ProcessGroup is eligible to be deleted.
+     *
+     * @param ignorePortConnections if true, the Connections that are currently connected to Ports
+     * will be ignored. Otherwise, the ProcessGroup is not eligible for deletion if its input ports
+     * or output ports have any connections
+     * @param ignoreTemplates if true, the Templates that are currently part of hte Process Group will be ignored.
+     * Otherwise, the ProcessGroup is not eligible for deletion if it has any templates
+     *
+     * @throws IllegalStateException if the ProcessGroup is not eligible for deletion
+     */
+    void verifyCanDelete(boolean ignorePortConnections, boolean ignoreTemplates);
+
     void verifyCanStart(Connectable connectable);
 
     void verifyCanStart();
@@ -881,12 +956,13 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
     void verifyCanUpdateVariables(Map<String, String> updatedVariables);
 
     /**
-     * Ensures that the contents of the Process Group can be update to match the given new flow
+     * Ensures that the contents of the Process Group can be updated to match the given new flow
      *
-     * @param updatedFlow the updated version of the flow
+     * @param updatedFlow the proposed updated flow
      * @param verifyConnectionRemoval whether or not to verify that connections that are not present in the updated flow can be removed
-     * @param verifyNotDirty whether or not to verify that the Process Group is not 'dirty'. If <code>true</code> and the Process Group has been changed since
-     *            it was last synchronized with the FlowRegistry, then this method will throw an IllegalStateException
+     * @param verifyNotDirty for versioned flows only, whether or not to verify that the Process Group is not 'dirty'. If <code>true</code>
+     *            and the Process Group has been changed since it was last synchronized with the FlowRegistry, then this method will throw
+     *            an IllegalStateException
      *
      * @throws IllegalStateException if the Process Group is not in a state that will allow the update
      */
@@ -1035,6 +1111,103 @@ public interface ProcessGroup extends ComponentAuthorizable, Positionable, Versi
 
     /**
      * Called to notify the Process Group whenever the Parameter Context that it is bound to has changed.
+     *
+     * @param updatedParameters a Map of parameter name to the ParameterUpdate that describes how the Parameter was updated
      */
-    void onParameterContextUpdated();
+    void onParameterContextUpdated(Map<String, ParameterUpdate> updatedParameters);
+
+    /**
+     * @return the FlowFileGate that must be used for obtaining a claim before an InputPort is allowed to bring data into a ProcessGroup
+     */
+    FlowFileGate getFlowFileGate();
+
+    /**
+     * @return the FlowFileConcurrency that is currently configured for the ProcessGroup
+     */
+    FlowFileConcurrency getFlowFileConcurrency();
+
+    /**
+     * Sets the FlowFileConcurrency to use for this ProcessGroup
+     * @param flowFileConcurrency the FlowFileConcurrency to use
+     */
+    void setFlowFileConcurrency(FlowFileConcurrency flowFileConcurrency);
+
+    /**
+     * @return the FlowFile Outbound Policy that governs the behavior of this Process Group
+     */
+    FlowFileOutboundPolicy getFlowFileOutboundPolicy();
+
+    /**
+     * Specifies the FlowFile Outbound Policy that should be applied to this Process Group
+     * @param outboundPolicy the policy to enforce.
+     */
+    void setFlowFileOutboundPolicy(FlowFileOutboundPolicy outboundPolicy);
+
+    /**
+     * @return true if at least one FlowFile resides in a FlowFileQueue in this Process Group or a child ProcessGroup, false otherwise
+     */
+    boolean isDataQueued();
+
+    /**
+     * Indicates whether or not data is queued for Processing. Data is considered queued for processing if it is enqueued in a Connection and
+     * the destination of that Connection is not an Output Port, OR if the data is enqueued within a child group, regardless of whether or not it is
+     * queued before an Output Port. I.e., any data that is enqueued in this Process Group is enqueued for Processing unless it is ready to be transferred
+     * out of this Process Group.
+     *
+     * @return <code>true</code> if there is data that is queued for Processing, <code>false</code> otherwise
+     */
+    boolean isDataQueuedForProcessing();
+
+    /**
+     * @return the BatchCounts that can be used for determining how many FlowFiles were transferred to each of the Output Ports
+     * in this Process Group, or <code>null</code> if this Process Group does not have an {@link #getFlowFileOutboundPolicy()}
+     * of {@link FlowFileOutboundPolicy#BATCH_OUTPUT}.
+     */
+    BatchCounts getBatchCounts();
+
+    /**
+     * @return the DataValve for the given Port, or <code>null</code> if no Data Valve is in use for the given Port
+     */
+    DataValve getDataValve(Port port);
+
+    /**
+     * @return the DataValve associated with this Process Group
+     */
+    DataValve getDataValve();
+
+    /**
+     * @return the default flowfile expiration of the ProcessGroup
+     */
+    String getDefaultFlowFileExpiration();
+
+    /**
+     * Updates the default flowfile expiration of this ProcessGroup.
+     *
+     * @param defaultFlowFileExpiration new default flowfile expiration value (must include time unit label)
+     */
+    void setDefaultFlowFileExpiration(String defaultFlowFileExpiration);
+
+    /**
+     * @return the default back pressure object threshold of this ProcessGroup
+     */
+    Long getDefaultBackPressureObjectThreshold();
+
+    /**
+     * Updates the default back pressure object threshold of this ProcessGroup
+     *
+     * @param defaultBackPressureObjectThreshold new default back pressure object threshold value
+     */
+    void setDefaultBackPressureObjectThreshold(Long defaultBackPressureObjectThreshold);
+
+    /**
+     * @returnthe default back pressure size threshold of this ProcessGroup
+     */
+    String getDefaultBackPressureDataSizeThreshold();
+
+    /**
+     * Updates the default back pressure size threshold of this ProcessGroup
+     *
+     * @param defaultBackPressureDataSizeThreshold new default back pressure size threshold (must include size unit label)
+     */
+    void setDefaultBackPressureDataSizeThreshold(String defaultBackPressureDataSizeThreshold);
 }

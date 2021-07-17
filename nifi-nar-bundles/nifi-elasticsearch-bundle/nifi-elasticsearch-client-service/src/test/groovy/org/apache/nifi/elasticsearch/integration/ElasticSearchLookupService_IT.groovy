@@ -39,6 +39,8 @@ class ElasticSearchLookupService_IT {
     private ElasticSearchClientService service
     private ElasticSearchLookupService lookupService
 
+    static String TYPE  = System.getProperty("type_name")
+
     @Before
     void before() throws Exception {
         runner = TestRunners.newTestRunner(TestControllerServiceProcessor.class)
@@ -54,7 +56,7 @@ class ElasticSearchLookupService_IT {
         runner.setProperty(TestControllerServiceProcessor.LOOKUP_SERVICE, "Lookup Service")
         runner.setProperty(lookupService, ElasticSearchLookupService.CLIENT_SERVICE, "Client Service")
         runner.setProperty(lookupService, ElasticSearchLookupService.INDEX, "user_details")
-        runner.setProperty(lookupService, ElasticSearchLookupService.TYPE, "details")
+        runner.setProperty(lookupService, ElasticSearchLookupService.TYPE, TYPE)
 
         try {
             runner.enableControllerService(service)
@@ -141,7 +143,7 @@ class ElasticSearchLookupService_IT {
 
         runner.disableControllerService(lookupService)
         runner.setProperty(lookupService, ElasticSearchLookupService.INDEX, "nested")
-        runner.setProperty(lookupService, ElasticSearchLookupService.TYPE, "nested_complex")
+        runner.setProperty(lookupService, ElasticSearchLookupService.TYPE, TYPE)
         runner.enableControllerService(lookupService)
 
         Optional<Record> response = lookupService.lookup(coordinates)
@@ -162,7 +164,7 @@ class ElasticSearchLookupService_IT {
     void testDetectedSchema() throws LookupFailureException {
         runner.disableControllerService(lookupService)
         runner.setProperty(lookupService, ElasticSearchLookupService.INDEX, "complex")
-        runner.setProperty(lookupService, ElasticSearchLookupService.TYPE, "complex")
+        runner.setProperty(lookupService, ElasticSearchLookupService.TYPE, TYPE)
         runner.enableControllerService(lookupService)
         def coordinates = ["_id": "1" ]
 
@@ -196,7 +198,7 @@ class ElasticSearchLookupService_IT {
         runner.setProperty(lookupService, "\$.subField.longField", "/longField2")
         runner.setProperty(lookupService, '$.subField.dateField', '/dateField2')
         runner.setProperty(lookupService, ElasticSearchLookupService.INDEX, "nested")
-        runner.setProperty(lookupService, ElasticSearchLookupService.TYPE, "nested_complex")
+        runner.setProperty(lookupService, ElasticSearchLookupService.TYPE, TYPE)
         runner.enableControllerService(lookupService)
 
         def coordinates = ["msg": "Hello, world"]

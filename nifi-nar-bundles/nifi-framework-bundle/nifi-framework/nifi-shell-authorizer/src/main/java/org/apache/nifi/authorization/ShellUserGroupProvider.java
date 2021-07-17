@@ -22,16 +22,18 @@ import org.apache.nifi.authorization.exception.AuthorizerDestructionException;
 import org.apache.nifi.authorization.util.ShellRunner;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.util.FormatUtils;
+import org.apache.nifi.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -50,26 +52,31 @@ public class ShellUserGroupProvider implements UserGroupProvider {
     private final static Map<String, User> usersById = new HashMap<>();   // id == identifier
     private final static Map<String, User> usersByName = new HashMap<>(); // name == identity
     private final static Map<String, Group> groupsById = new HashMap<>();
+    private final static Map<String, Group> groupsByName = new HashMap<>();
 
     public static final String REFRESH_DELAY_PROPERTY = "Refresh Delay";
     private static final long MINIMUM_SYNC_INTERVAL_MILLISECONDS = 10_000;
 
     public static final String EXCLUDE_USER_PROPERTY = "Exclude Users";
     public static final String EXCLUDE_GROUP_PROPERTY = "Exclude Groups";
+    public static final String LEGACY_IDENTIFIER_MODE = "Legacy Identifier Mode";
+    public static final String COMMAND_TIMEOUT_PROPERTY = "Command Timeout";
+
+    private static final String DEFAULT_COMMAND_TIMEOUT = "60 seconds";
 
     private long fixedDelay;
     private Pattern excludeUsers;
     private Pattern excludeGroups;
+    private boolean legacyIdentifierMode;
+    private int timeoutSeconds;
 
     // Our scheduler has one thread for users, one for groups:
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
 
-    // Our shell timeout, in seconds:
-    @SuppressWarnings("FieldCanBeLocal")
-    private final Integer shellTimeout = 10;
-
     // Commands selected during initialization:
     private ShellCommandsProvider selectedShellCommands;
+
+    private ShellRunner shellRunner;
 
     // Start of the UserGroupProvider implementation.  Javadoc strings
     // copied from the interface definition for reference.
@@ -134,7 +141,7 @@ public class ShellUserGroupProvider implements UserGroupProvider {
         if (user == null) {
             logger.debug("getUser (by name) user not found: " + identity);
         } else {
-            logger.debug("getUser (by name) found user: " + user + " for name: " + identity);
+            logger.debug("getUser (by name) found user: " + user.getIdentity() + " for name: " + identity);
         }
         return user;
     }
@@ -176,10 +183,27 @@ public class ShellUserGroupProvider implements UserGroupProvider {
         if (group == null) {
             logger.debug("getGroup (by id) group not found: " + identifier);
         } else {
-            logger.debug("getGroup (by id) found group: " + group + " for id: " + identifier);
+            logger.debug("getGroup (by id) found group: {} for id: {}", group.getName(), identifier);
         }
         return group;
 
+    }
+
+    @Override
+    public Group getGroupByName(String name) throws AuthorizationAccessException {
+        Group group;
+
+        synchronized (groupsByName) {
+            group = groupsByName.get(name);
+        }
+
+        if (group == null) {
+            logger.debug("getGroup (by name) group not found: " + name);
+        } else {
+            logger.debug("getGroup (by name) found group: {} for name: {}", group.getName(), name);
+        }
+
+        return group;
     }
 
     /**
@@ -194,10 +218,12 @@ public class ShellUserGroupProvider implements UserGroupProvider {
         logger.debug("Retrieved user {} for identity {}", new Object[]{user, identity});
 
         Set<Group> groups = new HashSet<>();
-
-        for (Group g : getGroups()) {
-            if (user != null && g.getUsers().contains(user.getIdentity())) {
-                groups.add(g);
+        if (user != null) {
+            for (Group g : getGroups()) {
+                if (g.getUsers().contains(user.getIdentifier())) {
+                    logger.debug("User {} belongs to group {}", new Object[]{user.getIdentity(), g.getName()});
+                    groups.add(g);
+                }
             }
         }
 
@@ -235,7 +261,12 @@ public class ShellUserGroupProvider implements UserGroupProvider {
      */
     @Override
     public void onConfigured(AuthorizerConfigurationContext configurationContext) throws AuthorizerCreationException {
+        logger.info("Configuring ShellUserGroupProvider");
+
         fixedDelay = getDelayProperty(configurationContext, REFRESH_DELAY_PROPERTY, "5 mins");
+        timeoutSeconds = getTimeoutProperty(configurationContext, COMMAND_TIMEOUT_PROPERTY, DEFAULT_COMMAND_TIMEOUT);
+        shellRunner = new ShellRunner(timeoutSeconds);
+        logger.debug("Configured ShellRunner with command timeout of '{}' seconds", new Object[]{timeoutSeconds});
 
         // Our next init step is to select the command set based on the operating system name:
         ShellCommandsProvider commands = getCommandsProvider();
@@ -248,10 +279,10 @@ public class ShellUserGroupProvider implements UserGroupProvider {
         // Our next init step is to run the system check from that command set to determine if the other commands
         // will work on this host or not.
         try {
-            ShellRunner.runShell(commands.getSystemCheck());
-        } catch (final IOException ioexc) {
-            logger.error("initialize exception: " + ioexc + " system check command: " + commands.getSystemCheck());
-            throw new AuthorizerCreationException(SYS_CHECK_ERROR, ioexc.getCause());
+            shellRunner.runShell(commands.getSystemCheck());
+        } catch (final Exception e) {
+            logger.error("initialize exception: " + e + " system check command: " + commands.getSystemCheck());
+            throw new AuthorizerCreationException(SYS_CHECK_ERROR, e);
         }
 
         // The next step is to add the user and group exclude regexes:
@@ -261,6 +292,9 @@ public class ShellUserGroupProvider implements UserGroupProvider {
         } catch (final PatternSyntaxException e) {
             throw new AuthorizerCreationException(e);
         }
+
+        // Get the value for Legacy Identifier Mo
+        legacyIdentifierMode = Boolean.parseBoolean(getProperty(configurationContext, LEGACY_IDENTIFIER_MODE, "true"));
 
         // With our command set selected, and our system check passed, we can pull in the users and groups:
         refreshUsersAndGroups();
@@ -272,8 +306,9 @@ public class ShellUserGroupProvider implements UserGroupProvider {
             }catch (final Throwable t) {
                 logger.error("", t);
             }
-        }, fixedDelay, fixedDelay, TimeUnit.SECONDS);
+        }, fixedDelay, fixedDelay, TimeUnit.MILLISECONDS);
 
+        logger.info("Completed configuration of ShellUserGroupProvider");
     }
 
     private static ShellCommandsProvider getCommandsProviderFromName(String osName) {
@@ -330,6 +365,26 @@ public class ShellUserGroupProvider implements UserGroupProvider {
         return syncInterval;
     }
 
+    private int getTimeoutProperty(AuthorizerConfigurationContext authContext, String propertyName, String defaultValue) {
+        final PropertyValue timeoutProperty = authContext.getProperty(propertyName);
+
+        final String propertyValue;
+        if (timeoutProperty.isSet()) {
+            propertyValue = timeoutProperty.getValue();
+        } else {
+            propertyValue = defaultValue;
+        }
+
+        final long timeoutValue;
+        try {
+            timeoutValue = Math.round(FormatUtils.getPreciseTimeDuration(propertyValue, TimeUnit.SECONDS));
+        } catch (final IllegalArgumentException ignored) {
+            throw new AuthorizerCreationException(String.format("The %s '%s' is not a valid time interval.", propertyName, propertyValue));
+        }
+
+        return Math.toIntExact(timeoutValue);
+    }
+
     /**
      * Called immediately before instance destruction for implementers to release resources.
      *
@@ -339,7 +394,13 @@ public class ShellUserGroupProvider implements UserGroupProvider {
     public void preDestruction() throws AuthorizerDestructionException {
         try {
             scheduler.shutdownNow();
-        } catch (final Exception ignored) {
+        } catch (final Exception e) {
+            logger.warn("Error shutting down refresh scheduler: " + e.getMessage(), e);
+        }
+        try {
+            shellRunner.shutdown();
+        } catch (final Exception e) {
+            logger.warn("Error shutting down ShellRunner: " + e.getMessage(), e);
         }
     }
 
@@ -365,7 +426,7 @@ public class ShellUserGroupProvider implements UserGroupProvider {
             List<String> userLines;
 
             try {
-                userLines = ShellRunner.runShell(command, description);
+                userLines = shellRunner.runShell(command, description);
                 rebuildUsers(userLines, idToUser, usernameToUser, gidToUser);
             } catch (final IOException ioexc) {
                 logger.error("refreshOneUser shell exception: " + ioexc);
@@ -399,7 +460,7 @@ public class ShellUserGroupProvider implements UserGroupProvider {
             List<String> groupLines;
 
             try {
-                groupLines = ShellRunner.runShell(command, description);
+                groupLines = shellRunner.runShell(command, description);
                 rebuildGroups(groupLines, gidToGroup);
             } catch (final IOException ioexc) {
                 logger.error("refreshOneGroup shell exception: " + ioexc);
@@ -408,6 +469,9 @@ public class ShellUserGroupProvider implements UserGroupProvider {
             if (gidToGroup.size() > 0) {
                 synchronized (groupsById) {
                     groupsById.putAll(gidToGroup);
+                }
+                synchronized (groupsByName) {
+                    gidToGroup.values().forEach(g -> groupsByName.put(g.getName(), g));
                 }
             }
         } else {
@@ -421,6 +485,8 @@ public class ShellUserGroupProvider implements UserGroupProvider {
      * other methods for record parse, extract, and object construction.
      */
     private void refreshUsersAndGroups() {
+        final long startTime = System.currentTimeMillis();
+
         Map<String, User> uidToUser = new HashMap<>();
         Map<String, User> usernameToUser = new HashMap<>();
         Map<String, User> gidToUser = new HashMap<>();
@@ -430,8 +496,8 @@ public class ShellUserGroupProvider implements UserGroupProvider {
         List<String> groupLines;
 
         try {
-            userLines = ShellRunner.runShell(selectedShellCommands.getUsersList(), "Get Users List");
-            groupLines = ShellRunner.runShell(selectedShellCommands.getGroupsList(), "Get Groups List");
+            userLines = shellRunner.runShell(selectedShellCommands.getUsersList(), "Get Users List");
+            groupLines = shellRunner.runShell(selectedShellCommands.getGroupsList(), "Get Groups List");
         } catch (final IOException ioexc) {
             logger.error("refreshUsersAndGroups shell exception: " + ioexc);
             return;
@@ -444,6 +510,13 @@ public class ShellUserGroupProvider implements UserGroupProvider {
         synchronized (usersById) {
             usersById.clear();
             usersById.putAll(uidToUser);
+
+            if (logger.isTraceEnabled()) {
+                logger.trace("=== Users by id...");
+                Set<User> sortedUsers = new TreeSet<>(Comparator.comparing(User::getIdentity));
+                sortedUsers.addAll(usersById.values());
+                sortedUsers.forEach(u -> logger.trace("=== " + u.toString()));
+            }
         }
 
         synchronized (usersByName) {
@@ -455,8 +528,24 @@ public class ShellUserGroupProvider implements UserGroupProvider {
         synchronized (groupsById) {
             groupsById.clear();
             groupsById.putAll(gidToGroup);
-            logger.debug("groups now size: " + groupsById.size());
+            logger.debug("groupsById now size: " + groupsById.size());
+
+            if (logger.isTraceEnabled()) {
+                logger.trace("=== Groups by id...");
+                Set<Group> sortedGroups = new TreeSet<>(Comparator.comparing(Group::getName));
+                sortedGroups.addAll(groupsById.values());
+                sortedGroups.forEach(g -> logger.trace("=== " + g.toString()));
+            }
         }
+
+        synchronized (groupsByName) {
+            groupsByName.clear();
+            gidToGroup.values().forEach(g -> groupsByName.put(g.getName(), g));
+            logger.debug("groupsByName now size: " + groupsByName.size());
+        }
+
+        final long endTime = System.currentTimeMillis();
+        logger.info("Refreshed users and groups, took {} seconds", (endTime - startTime) / 1000);
     }
 
     /**
@@ -468,25 +557,35 @@ public class ShellUserGroupProvider implements UserGroupProvider {
      */
     private void rebuildUsers(List<String> userLines, Map<String, User> idToUser, Map<String, User> usernameToUser, Map<String, User> gidToUser) {
         userLines.forEach(line -> {
+            logger.trace("Processing user: {}", new Object[]{line});
+
             String[] record = line.split(":");
             if (record.length > 2) {
-                String name = record[0], id = record[1], gid = record[2];
+                String userIdentity = record[0], userIdentifier = record[1], primaryGroupIdentifier = record[2];
 
-                if (name != null && id != null && !name.equals("") && !id.equals("") && !excludeUsers.matcher(name).matches()) {
-                    User user = new User.Builder().identity(name).identifierGenerateFromSeed(id).build();
+                if (!StringUtils.isBlank(userIdentifier) && !StringUtils.isBlank(userIdentity) && !excludeUsers.matcher(userIdentity).matches()) {
+                    User user = new User.Builder()
+                            .identity(userIdentity)
+                            .identifierGenerateFromSeed(getUserIdentifierSeed(userIdentity))
+                            .build();
                     idToUser.put(user.getIdentifier(), user);
-                    usernameToUser.put(name, user);
+                    usernameToUser.put(userIdentity, user);
+                    logger.debug("Refreshed user {}", new Object[]{user});
 
-                    if (gid != null && !gid.equals("")) {
+                    if (!StringUtils.isBlank(primaryGroupIdentifier)) {
                         // create a temporary group to deterministically generate the group id and associate this user
-                        Group group = new Group.Builder().name(gid).identifierGenerateFromSeed(gid).build();
+                        Group group = new Group.Builder()
+                                .name(primaryGroupIdentifier)
+                                .identifierGenerateFromSeed(getGroupIdentifierSeed(primaryGroupIdentifier))
+                                .build();
                         gidToUser.put(group.getIdentifier(), user);
+                        logger.debug("Associated primary group {} with user {}", new Object[]{group.getIdentifier(), userIdentity});
                     } else {
-                        logger.warn("Null or empty primary group id for: " + name);
+                        logger.warn("Null or empty primary group id for: " + userIdentity);
                     }
 
                 } else {
-                    logger.warn("Null, empty, or skipped user name: " + name + " or id: " + id);
+                    logger.warn("Null, empty, or skipped user name: " + userIdentity + " or id: " + userIdentifier);
                 }
             } else {
                 logger.warn("Unexpected record format.  Expected 3 or more colon separated values per line.");
@@ -506,16 +605,34 @@ public class ShellUserGroupProvider implements UserGroupProvider {
      */
     private void rebuildGroups(List<String> groupLines, Map<String, Group> groupsById) {
         groupLines.forEach(line -> {
+            logger.trace("Processing group: {}", new Object[]{line});
+
             String[] record = line.split(":");
             if (record.length > 1) {
                 Set<String> users = new HashSet<>();
-                String name = record[0], id = record[1];
+                String groupName = record[0], groupIdentifier = record[1];
 
                 try {
-                    List<String> memberLines = ShellRunner.runShell(selectedShellCommands.getGroupMembers(name));
+                    String groupMembersCommand = selectedShellCommands.getGroupMembers(groupName);
+                    List<String> memberLines = shellRunner.runShell(groupMembersCommand);
                     // Use the first line only, and log if the line count isn't exactly one:
                     if (!memberLines.isEmpty()) {
-                        users.addAll(Arrays.asList(memberLines.get(0).split(",")));
+                        String memberLine = memberLines.get(0);
+                        if (!StringUtils.isBlank(memberLine)) {
+                            String[] members = memberLine.split(",");
+                            for (String userIdentity : members) {
+                                if (!StringUtils.isBlank(userIdentity)) {
+                                    User tempUser = new User.Builder()
+                                            .identity(userIdentity)
+                                            .identifierGenerateFromSeed(getUserIdentifierSeed(userIdentity))
+                                            .build();
+                                    users.add(tempUser.getIdentifier());
+                                    logger.debug("Added temp user {} for group {}", new Object[]{tempUser, groupName});
+                                }
+                            }
+                        } else {
+                            logger.debug("list membership returned no members");
+                        }
                     } else {
                         logger.debug("list membership returned zero lines.");
                     }
@@ -527,12 +644,16 @@ public class ShellUserGroupProvider implements UserGroupProvider {
                     logger.error("list membership shell exception: " + ioexc);
                 }
 
-                if (name != null && id != null && !name.equals("") && !id.equals("") && !excludeGroups.matcher(name).matches()) {
-                    Group group = new Group.Builder().name(name).identifierGenerateFromSeed(id).addUsers(users).build();
+                if (!StringUtils.isBlank(groupIdentifier) && !StringUtils.isBlank(groupName) && !excludeGroups.matcher(groupName).matches()) {
+                    Group group = new Group.Builder()
+                            .name(groupName)
+                            .identifierGenerateFromSeed(getGroupIdentifierSeed(groupIdentifier))
+                            .addUsers(users)
+                            .build();
                     groupsById.put(group.getIdentifier(), group);
-                    logger.debug("Refreshed group: " + group);
+                    logger.debug("Refreshed group {}", new Object[] {group});
                 } else {
-                    logger.warn("Null, empty, or skipped group name: " + name + " or id: " + id);
+                    logger.warn("Null, empty, or skipped group name: " + groupName + " or id: " + groupIdentifier);
                 }
             } else {
                 logger.warn("Unexpected record format.  Expected 1 or more comma separated values.");
@@ -552,18 +673,37 @@ public class ShellUserGroupProvider implements UserGroupProvider {
             Group primaryGroup = gidToGroup.get(primaryGid);
 
             if (primaryGroup == null) {
-                logger.warn("user: " + primaryUser + " primary group not found");
+                logger.warn("Primary group {} not found for {}", new Object[]{primaryGid, primaryUser.getIdentity()});
             } else if (!excludeGroups.matcher(primaryGroup.getName()).matches()) {
                 Set<String> groupUsers = primaryGroup.getUsers();
-                if (!groupUsers.contains(primaryUser.getIdentity())) {
-                    Set<String> secondSet = new HashSet<>(groupUsers);
-                    secondSet.add(primaryUser.getIdentity());
-                    Group group = new Group.Builder().name(primaryGroup.getName()).identifierGenerateFromSeed(primaryGid).addUsers(secondSet).build();
-                    gidToGroup.put(group.getIdentifier(), group);
+                if (!groupUsers.contains(primaryUser.getIdentifier())) {
+                    Set<String> updatedUserIdentifiers = new HashSet<>(groupUsers);
+                    updatedUserIdentifiers.add(primaryUser.getIdentifier());
+
+                    Group updatedGroup = new Group.Builder()
+                            .identifier(primaryGroup.getIdentifier())
+                            .name(primaryGroup.getName())
+                            .addUsers(updatedUserIdentifiers)
+                            .build();
+                    gidToGroup.put(updatedGroup.getIdentifier(), updatedGroup);
+                    logger.debug("Added user {} to primary group {}", new Object[]{primaryUser, updatedGroup});
+                } else {
+                    logger.debug("Primary group {} already contains user {}", new Object[]{primaryGroup, primaryUser});
                 }
+            } else {
+                logger.debug("Primary group {} excluded from matcher for {}", new Object[]{primaryGroup.getName(), primaryUser.getIdentity()});
             }
         });
     }
+
+    private String getUserIdentifierSeed(final String userIdentifier) {
+        return legacyIdentifierMode ? userIdentifier : userIdentifier + "-user";
+    }
+
+    private String getGroupIdentifierSeed(final String groupIdentifier) {
+        return legacyIdentifierMode ? groupIdentifier : groupIdentifier + "-group";
+    }
+
 
     /**
      * @return The fixed refresh delay.
@@ -586,6 +726,10 @@ public class ShellUserGroupProvider implements UserGroupProvider {
 
         synchronized (groupsById) {
             groupsById.clear();
+        }
+
+        synchronized (groupsByName) {
+            groupsByName.clear();
         }
     }
 

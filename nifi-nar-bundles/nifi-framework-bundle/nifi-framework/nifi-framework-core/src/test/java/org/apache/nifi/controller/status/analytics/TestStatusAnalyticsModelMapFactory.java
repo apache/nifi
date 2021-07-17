@@ -51,9 +51,8 @@ public class TestStatusAnalyticsModelMapFactory {
 
     @Test
     public void getConnectionStatusModelMap() {
-        Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> modelMap = StatusAnalyticsModelMapFactory
-                .getConnectionStatusModelMap(extensionManager, nifiProperties);
-
+        StatusAnalyticsModelMapFactory factory = new StatusAnalyticsModelMapFactory(extensionManager,nifiProperties);
+        Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> modelMap = factory.getConnectionStatusModelMap();
         assertNotNull(modelMap.get("queuedCount"));
         assertNotNull(modelMap.get("queuedBytes"));
         StatusAnalyticsModel countModel = modelMap.get("queuedCount").getKey();

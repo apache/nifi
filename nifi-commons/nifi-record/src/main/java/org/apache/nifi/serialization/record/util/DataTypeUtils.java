@@ -26,6 +26,8 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.type.ArrayDataType;
 import org.apache.nifi.serialization.record.type.ChoiceDataType;
+import org.apache.nifi.serialization.record.type.DecimalDataType;
+import org.apache.nifi.serialization.record.type.EnumDataType;
 import org.apache.nifi.serialization.record.type.MapDataType;
 import org.apache.nifi.serialization.record.type.RecordDataType;
 import org.slf4j.Logger;
@@ -34,6 +36,7 @@ import org.slf4j.LoggerFactory;
 import java.io.InputStream;
 import java.io.Reader;
 import java.lang.reflect.Array;
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -46,10 +49,17 @@ import java.sql.Types;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -66,6 +76,7 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
+
 
 public class DataTypeUtils {
     private static final Logger logger = LoggerFactory.getLogger(DataTypeUtils.class);
@@ -92,13 +103,49 @@ public class DataTypeUtils {
             "(" + Base10Decimal + OptionalBase10Exponent + ")" +
         ")";
 
-    private static final Pattern FLOATING_POINT_PATTERN = Pattern.compile(doubleRegex);
+    private static final String decimalRegex =
+        OptionalSign +
+            "(" + Base10Digits + OptionalBase10Decimal + ")" + "|" +
+            "(" + Base10Digits + OptionalBase10Decimal + Base10Exponent + ")" + "|" +
+            "(" + Base10Decimal + OptionalBase10Exponent + ")";
 
-    private static final TimeZone gmt = TimeZone.getTimeZone("gmt");
+    private static final Pattern FLOATING_POINT_PATTERN = Pattern.compile(doubleRegex);
+    private static final Pattern DECIMAL_PATTERN = Pattern.compile(decimalRegex);
+
+    private static final TimeZone GMT_TIME_ZONE = TimeZone.getTimeZone("GMT");
 
     private static final Supplier<DateFormat> DEFAULT_DATE_FORMAT = () -> getDateFormat(RecordFieldType.DATE.getDefaultFormat());
     private static final Supplier<DateFormat> DEFAULT_TIME_FORMAT = () -> getDateFormat(RecordFieldType.TIME.getDefaultFormat());
     private static final Supplier<DateFormat> DEFAULT_TIMESTAMP_FORMAT = () -> getDateFormat(RecordFieldType.TIMESTAMP.getDefaultFormat());
+
+    private static final int FLOAT_SIGNIFICAND_PRECISION = 24; // As specified in IEEE 754 binary32
+    private static final int DOUBLE_SIGNIFICAND_PRECISION = 53; // As specified in IEEE 754 binary64
+
+    private static final Long MAX_GUARANTEED_PRECISE_WHOLE_IN_FLOAT = Double.valueOf(Math.pow(2, FLOAT_SIGNIFICAND_PRECISION)).longValue();
+    private static final Long MIN_GUARANTEED_PRECISE_WHOLE_IN_FLOAT = -MAX_GUARANTEED_PRECISE_WHOLE_IN_FLOAT;
+    private static final Long MAX_GUARANTEED_PRECISE_WHOLE_IN_DOUBLE = Double.valueOf(Math.pow(2, DOUBLE_SIGNIFICAND_PRECISION)).longValue();
+    private static final Long MIN_GUARANTEED_PRECISE_WHOLE_IN_DOUBLE = -MAX_GUARANTEED_PRECISE_WHOLE_IN_DOUBLE;
+
+    private static final BigInteger MAX_FLOAT_VALUE_IN_BIGINT = BigInteger.valueOf(MAX_GUARANTEED_PRECISE_WHOLE_IN_FLOAT);
+    private static final BigInteger MIN_FLOAT_VALUE_IN_BIGINT = BigInteger.valueOf(MIN_GUARANTEED_PRECISE_WHOLE_IN_FLOAT);
+    private static final BigInteger MAX_DOUBLE_VALUE_IN_BIGINT = BigInteger.valueOf(MAX_GUARANTEED_PRECISE_WHOLE_IN_DOUBLE);
+    private static final BigInteger MIN_DOUBLE_VALUE_IN_BIGINT = BigInteger.valueOf(MIN_GUARANTEED_PRECISE_WHOLE_IN_DOUBLE);
+
+    private static final double MAX_FLOAT_VALUE_IN_DOUBLE = Float.valueOf(Float.MAX_VALUE).doubleValue();
+    private static final double MIN_FLOAT_VALUE_IN_DOUBLE = -MAX_FLOAT_VALUE_IN_DOUBLE;
+
+    private static final Map<RecordFieldType, Predicate<Object>> NUMERIC_VALIDATORS = new EnumMap<>(RecordFieldType.class);
+
+    static {
+        NUMERIC_VALIDATORS.put(RecordFieldType.BIGINT, value -> value instanceof BigInteger);
+        NUMERIC_VALIDATORS.put(RecordFieldType.LONG, value -> value instanceof Long);
+        NUMERIC_VALIDATORS.put(RecordFieldType.INT, value -> value instanceof Integer);
+        NUMERIC_VALIDATORS.put(RecordFieldType.BYTE, value -> value instanceof Byte);
+        NUMERIC_VALIDATORS.put(RecordFieldType.SHORT, value -> value instanceof Short);
+        NUMERIC_VALIDATORS.put(RecordFieldType.DOUBLE, value -> value instanceof Double);
+        NUMERIC_VALIDATORS.put(RecordFieldType.FLOAT, value -> value instanceof Float);
+        NUMERIC_VALIDATORS.put(RecordFieldType.DECIMAL, value -> value instanceof BigDecimal);
+    }
 
     public static Object convertType(final Object value, final DataType dataType, final String fieldName) {
         return convertType(value, dataType, fieldName, StandardCharsets.UTF_8);
@@ -144,7 +191,9 @@ public class DataTypeUtils {
             case CHAR:
                 return toCharacter(value, fieldName);
             case DATE:
-                return toDate(value, dateFormat, fieldName);
+                return convertTypeToDate(value, dateFormat, fieldName);
+            case DECIMAL:
+                return toBigDecimal(value, fieldName);
             case DOUBLE:
                 return toDouble(value, fieldName);
             case FLOAT:
@@ -155,6 +204,8 @@ public class DataTypeUtils {
                 return toLong(value, fieldName);
             case SHORT:
                 return toShort(value, fieldName);
+            case ENUM:
+                return toEnum(value, (EnumDataType) dataType, fieldName);
             case STRING:
                 return toString(value, () -> getDateFormat(dataType.getFieldType(), dateFormat, timeFormat, timestampFormat), charset);
             case TIME:
@@ -184,11 +235,14 @@ public class DataTypeUtils {
         return null;
     }
 
-
     public static boolean isCompatibleDataType(final Object value, final DataType dataType) {
+        return isCompatibleDataType(value, dataType, false);
+    }
+
+    public static boolean isCompatibleDataType(final Object value, final DataType dataType, final boolean strict) {
         switch (dataType.getFieldType()) {
             case ARRAY:
-                return isArrayTypeCompatible(value, ((ArrayDataType) dataType).getElementType());
+                return isArrayTypeCompatible(value, ((ArrayDataType) dataType).getElementType(), strict);
             case BIGINT:
                 return isBigIntTypeCompatible(value);
             case BOOLEAN:
@@ -199,6 +253,8 @@ public class DataTypeUtils {
                 return isCharacterTypeCompatible(value);
             case DATE:
                 return isDateTypeCompatible(value, dataType.getFormat());
+            case DECIMAL:
+                return isDecimalTypeCompatible(value);
             case DOUBLE:
                 return isDoubleTypeCompatible(value);
             case FLOAT:
@@ -209,7 +265,7 @@ public class DataTypeUtils {
                 return isLongTypeCompatible(value);
             case RECORD: {
                 final RecordSchema schema = ((RecordDataType) dataType).getChildSchema();
-                return isRecordTypeCompatible(schema, value);
+                return isRecordTypeCompatible(schema, value, strict);
             }
             case SHORT:
                 return isShortTypeCompatible(value);
@@ -219,6 +275,8 @@ public class DataTypeUtils {
                 return isTimestampTypeCompatible(value, dataType.getFormat());
             case STRING:
                 return isStringTypeCompatible(value);
+            case ENUM:
+                return isEnumTypeCompatible(value, (EnumDataType) dataType);
             case MAP:
                 return isMapTypeCompatible(value);
             case CHOICE: {
@@ -454,6 +512,10 @@ public class DataTypeUtils {
             if (value instanceof BigInteger) {
                 return RecordFieldType.BIGINT.getDataType();
             }
+            if (value instanceof BigDecimal) {
+                final BigDecimal bigDecimal = (BigDecimal) value;
+                return RecordFieldType.DECIMAL.getDecimalDataType(bigDecimal.precision(), bigDecimal.scale());
+            }
         }
 
         if (value instanceof Boolean) {
@@ -474,7 +536,23 @@ public class DataTypeUtils {
 
         // A value of a Map could be either a Record or a Map type. In either case, it must have Strings as keys.
         if (value instanceof Map) {
-            final Map<String, ?> map = (Map<String, ?>) value;
+            final Map<String, Object> map;
+            // Only transform the map if the keys aren't strings
+            boolean allStrings = true;
+            for (final Object key : ((Map<?, ?>) value).keySet()) {
+                if (!(key instanceof String)) {
+                    allStrings = false;
+                    break;
+                }
+            }
+
+            if (allStrings) {
+                map = (Map<String, Object>) value;
+            } else {
+                final Map<?, ?> m = (Map<?, ?>) value;
+                map = new HashMap<>(m.size());
+                m.forEach((k, v) -> map.put(k == null ? null : k.toString(), v));
+            }
             return inferRecordDataType(map);
 //            // Check if all types are the same.
 //            if (map.isEmpty()) {
@@ -557,9 +635,10 @@ public class DataTypeUtils {
      * Check if the given record structured object compatible with the schema.
      * @param schema record schema, schema validation will not be performed if schema is null
      * @param value the record structured object, i.e. Record or Map
+     * @param strict check for a strict match, i.e. all fields in the record should have a corresponding entry in the schema
      * @return True if the object is compatible with the schema
      */
-    private static boolean isRecordTypeCompatible(RecordSchema schema, Object value) {
+    private static boolean isRecordTypeCompatible(RecordSchema schema, Object value, boolean strict) {
 
         if (value == null) {
             return false;
@@ -571,6 +650,14 @@ public class DataTypeUtils {
 
         if (schema == null) {
             return true;
+        }
+
+        if (strict) {
+            if (value instanceof Record) {
+                if (!schema.getFieldNames().containsAll(((Record)value).getRawFieldNames())) {
+                    return false;
+                }
+            }
         }
 
         for (final RecordField childField : schema.getFields()) {
@@ -589,7 +676,7 @@ public class DataTypeUtils {
                 continue; // consider compatible
             }
 
-            if (!isCompatibleDataType(childValue, childField.getDataType())) {
+            if (!isCompatibleDataType(childValue, childField.getDataType(), strict)) {
                 return false;
             }
         }
@@ -657,10 +744,25 @@ public class DataTypeUtils {
     }
 
     public static boolean isArrayTypeCompatible(final Object value, final DataType elementDataType) {
-        return value != null
-                // Either an object array or a String to be converted to byte[]
-                && (value instanceof Object[]
-                || (value instanceof String && RecordFieldType.BYTE.getDataType().equals(elementDataType)));
+        return isArrayTypeCompatible(value, elementDataType, false);
+    }
+
+    public static boolean isArrayTypeCompatible(final Object value, final DataType elementDataType, final boolean strict) {
+        if (value == null) {
+            return false;
+        }
+        // Either an object array (check the element type) or a String to be converted to byte[]
+        if (value instanceof Object[]) {
+            for (Object o : ((Object[]) value)) {
+                // Check each element to ensure its type is the same or can be coerced (if need be)
+                if (!isCompatibleDataType(o, elementDataType, strict)) {
+                    return false;
+                }
+            }
+            return true;
+        } else {
+            return value instanceof String && RecordFieldType.BYTE.getDataType().equals(elementDataType);
+        }
     }
 
     @SuppressWarnings("unchecked")
@@ -951,6 +1053,17 @@ public class DataTypeUtils {
         return value != null;
     }
 
+    public static boolean isEnumTypeCompatible(final Object value, final EnumDataType enumType) {
+        return enumType.getEnums() != null && enumType.getEnums().contains(value);
+    }
+
+    private static Object toEnum(Object value, EnumDataType dataType, String fieldName) {
+        if(dataType.getEnums() != null && dataType.getEnums().contains(value)) {
+            return value.toString();
+        }
+        throw new IllegalTypeConversionException("Cannot convert value " + value + " of type " + dataType.toString() + " for field " + fieldName);
+    }
+
     public static java.sql.Date toDate(final Object value, final Supplier<DateFormat> format, final String fieldName) {
         if (value == null) {
             return null;
@@ -994,6 +1107,146 @@ public class DataTypeUtils {
         }
 
         throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to Date for field " + fieldName);
+    }
+
+    /**
+     * Get Date Time Formatter using Zone Identifier
+     *
+     * @param pattern Date Format Pattern
+     * @param zoneId Time Zone Identifier
+     * @return Date Time Formatter or null when provided pattern is null
+     */
+    public static DateTimeFormatter getDateTimeFormatter(final String pattern, final ZoneId zoneId) {
+        if (pattern == null || zoneId == null) {
+            return null;
+        }
+        return DateTimeFormatter.ofPattern(pattern).withZone(zoneId);
+    }
+
+    /**
+     * Convert value to Local Date with support for conversion from numbers or formatted strings
+     *
+     * @param value Value to be converted
+     * @param formatter Supplier for Date Time Formatter can be null when string parsing is not necessary
+     * @param fieldName Field Name for value to be converted
+     * @return Local Date or null when value to be converted is null
+     * @throws IllegalTypeConversionException Thrown when conversion from string fails or unsupported value provided
+     */
+    public static LocalDate toLocalDate(final Object value, final Supplier<DateTimeFormatter> formatter, final String fieldName) {
+        LocalDate localDate;
+
+        if (value == null) {
+            return null;
+        } else if (value instanceof LocalDate) {
+            localDate = (LocalDate) value;
+        } else if (value instanceof java.sql.Date) {
+            final java.sql.Date date = (java.sql.Date) value;
+            localDate = date.toLocalDate();
+        } else if (value instanceof java.util.Date) {
+            final java.util.Date date = (java.util.Date) value;
+            localDate = parseLocalDateEpochMillis(date.getTime());
+        } else if (value instanceof Number) {
+            final long epochMillis = ((Number) value).longValue();
+            localDate = parseLocalDateEpochMillis(epochMillis);
+        } else if (value instanceof String) {
+            try {
+                localDate = parseLocalDate((String) value, formatter);
+            } catch (final RuntimeException e) {
+                final String message = String.format("Failed Conversion of Field [%s] from String [%s] to LocalDate", fieldName, value);
+                throw new IllegalTypeConversionException(message, e);
+            }
+        } else {
+            final String message = String.format("Failed Conversion of Field [%s] from Value [%s] Type [%s] to LocalDate", fieldName, value, value.getClass());
+            throw new IllegalTypeConversionException(message);
+        }
+
+        return localDate;
+    }
+
+    /**
+     * Convert value to java.sql.Date using java.time.LocalDate parsing and conversion from DateFormat to DateTimeFormatter
+     *
+     * Transitional method supporting conversion from legacy java.text.DateFormat to java.time.DateTimeFormatter
+     *
+     * @param value Value object to be converted
+     * @param format Supplier function for java.text.DateFormat when necessary for parsing
+     * @param fieldName Field name being parsed
+     * @return java.sql.Date or null when value is null
+     */
+    private static Date convertTypeToDate(final Object value, final Supplier<DateFormat> format, final String fieldName) {
+        if (value == null) {
+            return null;
+        } else {
+            final LocalDate localDate = toLocalDate(value, () -> {
+                final SimpleDateFormat dateFormat = (SimpleDateFormat) format.get();
+                return dateFormat == null ? null : DateTimeFormatter.ofPattern(dateFormat.toPattern());
+            }, fieldName);
+            return Date.valueOf(localDate);
+        }
+    }
+
+    /**
+     * Parse Local Date from String using Date Time Formatter when supplied
+     *
+     * @param value String not null containing either formatted string or number of epoch milliseconds
+     * @param formatter Supplier for Date Time Formatter
+     * @return Local Date or null when provided value is empty
+     */
+    private static LocalDate parseLocalDate(final String value, final Supplier<DateTimeFormatter> formatter) {
+        LocalDate localDate = null;
+
+        final String normalized = value.trim();
+        if (!normalized.isEmpty()) {
+            if (formatter == null) {
+                localDate = parseLocalDateEpochMillis(normalized);
+            } else {
+                final DateTimeFormatter dateTimeFormatter = formatter.get();
+                if (dateTimeFormatter == null) {
+                    localDate = parseLocalDateEpochMillis(normalized);
+                } else {
+                    localDate = LocalDate.parse(normalized, dateTimeFormatter);
+                }
+            }
+        }
+
+        return localDate;
+    }
+
+
+    /**
+     * Parse Local Date from string expected to contain number of epoch milliseconds
+     *
+     * @param number Number string expected to contain epoch milliseconds
+     * @return Local Date converted from epoch milliseconds
+     */
+    private static LocalDate parseLocalDateEpochMillis(final String number) {
+        final long epochMillis = Long.parseLong(number);
+        return parseLocalDateEpochMillis(epochMillis);
+    }
+
+    /**
+     * Parse Local Date from epoch milliseconds using System Default Zone Offset
+     *
+     * @param epochMillis Epoch milliseconds
+     * @return Local Date converted from epoch milliseconds
+     */
+    private static LocalDate parseLocalDateEpochMillis(final long epochMillis) {
+        final Instant instant = Instant.ofEpochMilli(epochMillis);
+        final ZonedDateTime zonedDateTime = instant.atZone(ZoneOffset.systemDefault());
+        return zonedDateTime.toLocalDate();
+    }
+
+    /**
+     * Converts a java.sql.Date object in local time zone (typically coming from a java.sql.ResultSet and having 00:00:00 time part)
+     * to UTC normalized form (storing the epoch corresponding to the UTC time with the same date/time as the input).
+     *
+     * @param dateLocalTZ java.sql.Date in local time zone
+     * @return java.sql.Date in UTC normalized form
+     */
+    public static Date convertDateToUTC(Date dateLocalTZ) {
+        ZonedDateTime zdtLocalTZ = ZonedDateTime.ofInstant(Instant.ofEpochMilli(dateLocalTZ.getTime()), ZoneId.systemDefault());
+        ZonedDateTime zdtUTC = zdtLocalTZ.withZoneSameLocal(ZoneOffset.UTC);
+        return new Date(zdtUTC.toInstant().toEpochMilli());
     }
 
     public static boolean isDateTypeCompatible(final Object value, final String format) {
@@ -1075,22 +1328,42 @@ public class DataTypeUtils {
         throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to Time for field " + fieldName);
     }
 
-    public static DateFormat getDateFormat(final String format) {
-        if (format == null) {
+    /**
+     * Get Date Format using GMT Time Zone
+     *
+     * This Date Format can produce unexpected results when the system default Time Zone is not GMT
+     *
+     * @param pattern Date Format Pattern used for new SimpleDateFormat()
+     * @return Date Format or null when pattern not provided
+     */
+    public static DateFormat getDateFormat(final String pattern) {
+        if (pattern == null) {
             return null;
         }
-        final DateFormat df = new SimpleDateFormat(format);
-        df.setTimeZone(gmt);
-        return df;
+        return getDateFormat(pattern, GMT_TIME_ZONE);
     }
 
-    public static DateFormat getDateFormat(final String format, final String timezoneID) {
-        if (format == null || timezoneID == null) {
+    /**
+     * Get Date Format using specified Time Zone to adjust Date during processing
+     *
+     * @param pattern Date Format Pattern used for new SimpleDateFormat()
+     * @param timeZoneId Time Zone Identifier used for TimeZone.getTimeZone()
+     * @return Date Format or null when input parameters not provided
+     */
+    public static DateFormat getDateFormat(final String pattern, final String timeZoneId) {
+        if (pattern == null || timeZoneId == null) {
             return null;
         }
-        final DateFormat df = new SimpleDateFormat(format);
-        df.setTimeZone(TimeZone.getTimeZone(timezoneID));
-        return df;
+        return getDateFormat(pattern, TimeZone.getTimeZone(timeZoneId));
+    }
+
+    private static DateFormat getDateFormat(final String pattern, final TimeZone timeZone) {
+        if (pattern == null) {
+            return null;
+        }
+        final DateFormat dateFormat = new SimpleDateFormat(pattern);
+        dateFormat.setTimeZone(timeZone);
+        return dateFormat;
     }
 
     public static boolean isTimeTypeCompatible(final Object value, final String format) {
@@ -1187,6 +1460,10 @@ public class DataTypeUtils {
         return isNumberTypeCompatible(value, DataTypeUtils::isIntegral);
     }
 
+    public static boolean isDecimalTypeCompatible(final Object value) {
+        return isNumberTypeCompatible(value, DataTypeUtils::isDecimal);
+    }
+
     public static Boolean toBoolean(final Object value, final String fieldName) {
         if (value == null) {
             return null;
@@ -1219,6 +1496,50 @@ public class DataTypeUtils {
             return string.equalsIgnoreCase("true") || string.equalsIgnoreCase("false");
         }
         return false;
+    }
+
+    public static BigDecimal toBigDecimal(final Object value, final String fieldName) {
+        if (value == null) {
+            return null;
+        }
+
+        if (value instanceof BigDecimal) {
+            return (BigDecimal) value;
+        }
+
+        if (value instanceof Number) {
+            final Number number = (Number) value;
+
+            if (number instanceof Byte
+                    || number instanceof Short
+                    || number instanceof Integer
+                    || number instanceof Long) {
+                return BigDecimal.valueOf(number.longValue());
+            }
+
+            if (number instanceof BigInteger) {
+                return new BigDecimal((BigInteger) number);
+            }
+
+            if (number instanceof Float) {
+                return new BigDecimal(Float.toString((Float) number));
+            }
+
+            if (number instanceof Double) {
+                return new BigDecimal(Double.toString((Double) number));
+            }
+        }
+
+        if (value instanceof String) {
+            try {
+                return new BigDecimal((String) value);
+            } catch (NumberFormatException nfe) {
+                throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to BigDecimal for field " + fieldName
+                        + ", value is not a valid representation of BigDecimal", nfe);
+            }
+        }
+
+        throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to BigDecimal for field " + fieldName);
     }
 
     public static Double toDouble(final Object value, final String fieldName) {
@@ -1275,6 +1596,14 @@ public class DataTypeUtils {
 
     public static boolean isFloatTypeCompatible(final Object value) {
         return isNumberTypeCompatible(value, s -> isFloatingPoint(s));
+    }
+
+    private static boolean isDecimal(final String value) {
+        if (value == null || value.isEmpty()) {
+            return false;
+        }
+
+        return DECIMAL_PATTERN.matcher(value).matches();
     }
 
     private static boolean isFloatingPoint(final String value) {
@@ -1406,7 +1735,12 @@ public class DataTypeUtils {
         }
 
         if (value instanceof Number) {
-            return ((Number) value).intValue();
+            try {
+                return Math.toIntExact(((Number) value).longValue());
+            } catch (ArithmeticException ae) {
+                throw new IllegalTypeConversionException("Cannot convert value [" + value + "] of type " + value.getClass() + " to Integer for field " + fieldName
+                        + " as it causes an arithmetic overflow (the value is too large, e.g.)", ae);
+            }
         }
 
         if (value instanceof String) {
@@ -1417,6 +1751,14 @@ public class DataTypeUtils {
     }
 
     public static boolean isIntegerTypeCompatible(final Object value) {
+        if (value instanceof Number) {
+            try {
+                Math.toIntExact(((Number) value).longValue());
+                return true;
+            } catch (ArithmeticException ae) {
+                return false;
+            }
+        }
         return isNumberTypeCompatible(value, s -> isIntegral(s, Integer.MIN_VALUE, Integer.MAX_VALUE));
     }
 
@@ -1646,15 +1988,31 @@ public class DataTypeUtils {
             case FLOAT:
                 if (otherFieldType == RecordFieldType.DOUBLE) {
                     return Optional.of(otherDataType);
+                } else if (otherFieldType == RecordFieldType.DECIMAL) {
+                    return Optional.of(otherDataType);
                 }
                 break;
             case DOUBLE:
                 if (otherFieldType == RecordFieldType.FLOAT) {
                     return Optional.of(thisDataType);
+                } else if (otherFieldType == RecordFieldType.DECIMAL) {
+                    return Optional.of(otherDataType);
                 }
                 break;
+            case DECIMAL:
+                if (otherFieldType == RecordFieldType.DOUBLE) {
+                    return Optional.of(thisDataType);
+                } else if (otherFieldType == RecordFieldType.FLOAT) {
+                    return Optional.of(thisDataType);
+                } else if (otherFieldType == RecordFieldType.DECIMAL) {
+                    final DecimalDataType thisDecimalDataType = (DecimalDataType) thisDataType;
+                    final DecimalDataType otherDecimalDataType = (DecimalDataType) otherDataType;
 
-
+                    final int precision = Math.max(thisDecimalDataType.getPrecision(), otherDecimalDataType.getPrecision());
+                    final int scale = Math.max(thisDecimalDataType.getScale(), otherDecimalDataType.getScale());
+                    return Optional.of(RecordFieldType.DECIMAL.getDecimalDataType(precision, scale));
+                }
+                break;
             case CHAR:
                 if (otherFieldType == RecordFieldType.STRING) {
                     return Optional.of(otherDataType);
@@ -1714,6 +2072,8 @@ public class DataTypeUtils {
                 return Types.DOUBLE;
             case FLOAT:
                 return Types.FLOAT;
+            case DECIMAL:
+                return Types.NUMERIC;
             case INT:
                 return Types.INTEGER;
             case SHORT:
@@ -1733,6 +2093,58 @@ public class DataTypeUtils {
                 throw new IllegalTypeConversionException("Cannot convert CHOICE, type must be explicit");
             default:
                 throw new IllegalTypeConversionException("Cannot convert unknown type " + fieldType.name());
+        }
+    }
+
+    /**
+     * Converts the specified java.sql.Types constant field data type (INTEGER = 4, e.g.) into a DataType
+     *
+     * @param sqlType the DataType to be converted
+     * @return the SQL type corresponding to the specified RecordFieldType
+     */
+    public static DataType getDataTypeFromSQLTypeValue(final int sqlType) {
+        switch (sqlType) {
+            case Types.BIGINT:
+                return RecordFieldType.BIGINT.getDataType();
+            case Types.BOOLEAN:
+                return RecordFieldType.BOOLEAN.getDataType();
+            case Types.TINYINT:
+                return RecordFieldType.BYTE.getDataType();
+            case Types.DATE:
+                return RecordFieldType.DATE.getDataType();
+            case Types.DOUBLE:
+                return RecordFieldType.DOUBLE.getDataType();
+            case Types.FLOAT:
+                return RecordFieldType.FLOAT.getDataType();
+            case Types.NUMERIC:
+                return RecordFieldType.DECIMAL.getDataType();
+            case Types.INTEGER:
+                return RecordFieldType.INT.getDataType();
+            case Types.SMALLINT:
+                return RecordFieldType.SHORT.getDataType();
+            case Types.CHAR:
+            case Types.VARCHAR:
+            case Types.LONGNVARCHAR:
+            case Types.LONGVARCHAR:
+            case Types.NCHAR:
+            case Types.NVARCHAR:
+            case Types.OTHER:
+            case Types.SQLXML:
+            case Types.CLOB:
+                return RecordFieldType.STRING.getDataType();
+            case Types.TIME:
+                return RecordFieldType.TIME.getDataType();
+            case Types.TIMESTAMP:
+                return RecordFieldType.TIMESTAMP.getDataType();
+            case Types.ARRAY:
+                return RecordFieldType.ARRAY.getDataType();
+            case Types.BINARY:
+            case Types.BLOB:
+                return RecordFieldType.ARRAY.getArrayDataType(RecordFieldType.BYTE.getDataType());
+            case Types.STRUCT:
+                return RecordFieldType.RECORD.getDataType();
+            default:
+                return null;
         }
     }
 
@@ -1768,5 +2180,134 @@ public class DataTypeUtils {
         } else {
             return Charset.forName(charsetName);
         }
+    }
+
+    /**
+     * Returns true if the given value is an integer value and fits into a float variable without precision loss. This is
+     * decided based on the numerical value of the input and the significant bytes used in the float.
+     *
+     * @param value The value to check.
+     *
+     * @return True in case of the value meets the conditions, false otherwise.
+     */
+    public static boolean isIntegerFitsToFloat(final Object value) {
+        if (!(value instanceof Integer)) {
+            return false;
+        }
+
+        final int intValue = (Integer) value;
+        return MIN_GUARANTEED_PRECISE_WHOLE_IN_FLOAT <= intValue && intValue <= MAX_GUARANTEED_PRECISE_WHOLE_IN_FLOAT;
+    }
+
+    /**
+     * Returns true if the given value is a long value and fits into a float variable without precision loss. This is
+     * decided based on the numerical value of the input and the significant bytes used in the float.
+     *
+     * @param value The value to check.
+     *
+     * @return True in case of the value meets the conditions, false otherwise.
+     */
+    public static boolean isLongFitsToFloat(final Object value) {
+        if (!(value instanceof Long)) {
+            return false;
+        }
+
+        final long longValue = (Long) value;
+        return MIN_GUARANTEED_PRECISE_WHOLE_IN_FLOAT <= longValue && longValue <= MAX_GUARANTEED_PRECISE_WHOLE_IN_FLOAT;
+    }
+
+    /**
+     * Returns true if the given value is a long value and fits into a double variable without precision loss. This is
+     * decided based on the numerical value of the input and the significant bytes used in the double.
+     *
+     * @param value The value to check.
+     *
+     * @return True in case of the value meets the conditions, false otherwise.
+     */
+    public static boolean isLongFitsToDouble(final Object value) {
+        if (!(value instanceof Long)) {
+            return false;
+        }
+
+        final long longValue = (Long) value;
+        return MIN_GUARANTEED_PRECISE_WHOLE_IN_DOUBLE <= longValue && longValue <= MAX_GUARANTEED_PRECISE_WHOLE_IN_DOUBLE;
+    }
+
+    /**
+     * Returns true if the given value is a BigInteger value and fits into a float variable without precision loss. This is
+     * decided based on the numerical value of the input and the significant bytes used in the float.
+     *
+     * @param value The value to check.
+     *
+     * @return True in case of the value meets the conditions, false otherwise.
+     */
+    public static boolean isBigIntFitsToFloat(final Object value) {
+        if (!(value instanceof BigInteger)) {
+            return false;
+        }
+
+        final BigInteger bigIntValue = (BigInteger) value;
+        return bigIntValue.compareTo(MIN_FLOAT_VALUE_IN_BIGINT) >= 0 && bigIntValue.compareTo(MAX_FLOAT_VALUE_IN_BIGINT) <= 0;
+    }
+
+    /**
+     * Returns true if the given value is a BigInteger value and fits into a double variable without precision loss. This is
+     * decided based on the numerical value of the input and the significant bytes used in the double.
+     *
+     * @param value The value to check.
+     *
+     * @return True in case of the value meets the conditions, false otherwise.
+     */
+    public static boolean isBigIntFitsToDouble(final Object value) {
+        if (!(value instanceof BigInteger)) {
+            return false;
+        }
+
+        final BigInteger bigIntValue = (BigInteger) value;
+        return bigIntValue.compareTo(MIN_DOUBLE_VALUE_IN_BIGINT) >= 0 && bigIntValue.compareTo(MAX_DOUBLE_VALUE_IN_BIGINT) <= 0;
+    }
+
+    /**
+     * Returns true in case the incoming value is a double which is within the range of float variable type.
+     *
+     * <p>
+     * Note: the method only considers the covered range but not precision. The reason for this is that at this point the
+     * double representation might already slightly differs from the original text value.
+     * </p>
+     *
+     * @param value The value to check.
+     *
+     * @return True in case of the double value fits to float data type.
+     */
+    public static boolean isDoubleWithinFloatInterval(final Object value) {
+
+        if (!(value instanceof Double)) {
+            return false;
+        }
+
+        final Double doubleValue = (Double) value;
+        return MIN_FLOAT_VALUE_IN_DOUBLE <= doubleValue && doubleValue <= MAX_FLOAT_VALUE_IN_DOUBLE;
+    }
+
+    /**
+     * Checks if an incoming value satisfies the requirements of a given (numeric) type or any of it's narrow data type.
+     *
+     * @param value Incoming value.
+     * @param fieldType The expected field type.
+     *
+     * @return Returns true if the incoming value satisfies the data type of any of it's narrow data types. Otherwise returns false. Only numeric data types are supported.
+     */
+    public static boolean isFittingNumberType(final Object value, final RecordFieldType fieldType) {
+        if (NUMERIC_VALIDATORS.get(fieldType).test(value)) {
+            return true;
+        }
+
+        for (final RecordFieldType recordFieldType : fieldType.getNarrowDataTypes()) {
+            if (NUMERIC_VALIDATORS.get(recordFieldType).test(value)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

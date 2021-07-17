@@ -43,6 +43,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -480,12 +481,12 @@ public class TestLengthDelimitedJournal {
         // the BADOS will sleep for 1 second before writing. This allwos other threads to trigger corruption in the repo in the meantime.
         final ByteArrayDataOutputStream pausingBados = new ByteArrayDataOutputStream(4096) {
             private final ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            private int count = 0;
+            private final AtomicInteger count = new AtomicInteger(0);
 
             @Override
             public ByteArrayOutputStream getByteArrayOutputStream() {
                 // Pause only on the second iteration.
-                if (count++ == 1) {
+                if (count.getAndIncrement() == 1) {
                     try {
                         Thread.sleep(1000L);
                     } catch (final InterruptedException ie) {
@@ -503,11 +504,11 @@ public class TestLengthDelimitedJournal {
 
 
         final Supplier<ByteArrayDataOutputStream> badosSupplier = new Supplier<ByteArrayDataOutputStream>() {
-            private int count = 0;
+            private final AtomicInteger count = new AtomicInteger(0);
 
             @Override
             public ByteArrayDataOutputStream get() {
-                if (count++ == 0) {
+                if (count.getAndIncrement() == 0) {
                     return pausingBados;
                 }
 
@@ -525,11 +526,11 @@ public class TestLengthDelimitedJournal {
         final Thread[] threads = new Thread[2];
 
         final LengthDelimitedJournal<DummyRecord> journal = new LengthDelimitedJournal<DummyRecord>(journalFile, serdeFactory, corruptingStreamPool, 0L) {
-            private int count = 0;
+            private final AtomicInteger count = new AtomicInteger(0);
 
             @Override
             protected void poison(final Throwable t)  {
-                if (count++ == 0) { // it is only important that we sleep the first time. If we sleep every time, it just slows the test down.
+                if (count.getAndIncrement() == 0) { // it is only important that we sleep the first time. If we sleep every time, it just slows the test down.
                     try {
                         Thread.sleep(3000L);
                     } catch (InterruptedException e) {

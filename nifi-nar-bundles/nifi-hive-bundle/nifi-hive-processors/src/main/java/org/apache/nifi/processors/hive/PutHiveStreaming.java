@@ -42,6 +42,8 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.Validator;
+import org.apache.nifi.components.resource.ResourceCardinality;
+import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.hadoop.KerberosProperties;
@@ -62,14 +64,18 @@ import org.apache.nifi.processor.util.pattern.ErrorTypes;
 import org.apache.nifi.processor.util.pattern.ExceptionHandler;
 import org.apache.nifi.processor.util.pattern.RollbackOnFailure;
 import org.apache.nifi.processor.util.pattern.RoutingResult;
+import org.apache.nifi.security.krb.KerberosKeytabUser;
+import org.apache.nifi.security.krb.KerberosPasswordUser;
+import org.apache.nifi.security.krb.KerberosUser;
 import org.apache.nifi.util.hive.AuthenticationFailedException;
 import org.apache.nifi.util.hive.HiveConfigurator;
 import org.apache.nifi.util.hive.HiveOptions;
 import org.apache.nifi.util.hive.HiveUtils;
 import org.apache.nifi.util.hive.HiveWriter;
-import org.xerial.snappy.Snappy;
 import org.apache.nifi.util.hive.ValidationResources;
+import org.xerial.snappy.Snappy;
 
+import javax.security.auth.login.LoginException;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
@@ -181,7 +187,7 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
                     + "to a number greater than one, the 'hcatalog.hive.client.cache.disabled' property will be forced to 'true' to avoid concurrency issues. "
                     + "Please see the Hive documentation for more details.")
             .required(false)
-            .addValidator(HiveUtils.createMultipleFilesExistValidator())
+            .identifiesExternalResource(ResourceCardinality.MULTIPLE, ResourceType.FILE)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
@@ -318,6 +324,7 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
 
     protected volatile HiveConfigurator hiveConfigurator = new HiveConfigurator();
     protected volatile UserGroupInformation ugi;
+    final protected AtomicReference<KerberosUser> kerberosUserReference = new AtomicReference<>();
     protected volatile HiveConf hiveConfig;
 
     protected final AtomicBoolean sendHeartBeat = new AtomicBoolean(false);
@@ -353,6 +360,7 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
         kerberosProperties = new KerberosProperties(kerberosConfigFile);
         props.add(kerberosProperties.getKerberosPrincipal());
         props.add(kerberosProperties.getKerberosKeytab());
+        props.add(kerberosProperties.getKerberosPassword());
         propertyDescriptors = Collections.unmodifiableList(props);
 
         Set<Relationship> _relationships = new HashSet<>();
@@ -382,6 +390,7 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
         if (confFileProvided) {
             final String explicitPrincipal = validationContext.getProperty(kerberosProperties.getKerberosPrincipal()).evaluateAttributeExpressions().getValue();
             final String explicitKeytab = validationContext.getProperty(kerberosProperties.getKerberosKeytab()).evaluateAttributeExpressions().getValue();
+            final String explicitPassword = validationContext.getProperty(kerberosProperties.getKerberosPassword()).getValue();
             final KerberosCredentialsService credentialsService = validationContext.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
 
             final String resolvedPrincipal;
@@ -396,23 +405,22 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
 
 
             final String configFiles = validationContext.getProperty(HIVE_CONFIGURATION_RESOURCES).evaluateAttributeExpressions().getValue();
-            problems.addAll(hiveConfigurator.validate(configFiles, resolvedPrincipal, resolvedKeytab, validationResourceHolder, getLogger()));
+            problems.addAll(hiveConfigurator.validate(configFiles, resolvedPrincipal, resolvedKeytab, explicitPassword, validationResourceHolder, getLogger()));
 
-            if (credentialsService != null && (explicitPrincipal != null || explicitKeytab != null)) {
+            if (credentialsService != null && (explicitPrincipal != null || explicitKeytab != null || explicitPassword != null)) {
                 problems.add(new ValidationResult.Builder()
                     .subject("Kerberos Credentials")
                     .valid(false)
-                    .explanation("Cannot specify both a Kerberos Credentials Service and a principal/keytab")
+                        .explanation("Cannot specify a Kerberos Credentials Service while also specifying a Kerberos Principal, Kerberos Keytab, or Kerberos Password")
                     .build());
             }
 
-            final String allowExplicitKeytabVariable = System.getenv(ALLOW_EXPLICIT_KEYTAB);
-            if ("false".equalsIgnoreCase(allowExplicitKeytabVariable) && (explicitPrincipal != null || explicitKeytab != null)) {
+            if (!isAllowExplicitKeytab() && explicitKeytab != null) {
                 problems.add(new ValidationResult.Builder()
                     .subject("Kerberos Credentials")
                     .valid(false)
-                    .explanation("The '" + ALLOW_EXPLICIT_KEYTAB + "' system environment variable is configured to forbid explicitly configuring principal/keytab in processors. "
-                        + "The Kerberos Credentials Service should be used instead of setting the Kerberos Keytab or Kerberos Principal property.")
+                    .explanation("The '" + ALLOW_EXPLICIT_KEYTAB + "' system environment variable is configured to forbid explicitly configuring Kerberos Keytab in processors. "
+                            + "The Kerberos Credentials Service should be used instead of setting the Kerberos Keytab or Kerberos Principal property.")
                     .build());
             }
         }
@@ -446,6 +454,7 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
         if (SecurityUtil.isSecurityEnabled(hiveConfig)) {
             final String explicitPrincipal = context.getProperty(kerberosProperties.getKerberosPrincipal()).evaluateAttributeExpressions().getValue();
             final String explicitKeytab = context.getProperty(kerberosProperties.getKerberosKeytab()).evaluateAttributeExpressions().getValue();
+            final String explicitPassword = context.getProperty(kerberosProperties.getKerberosPassword()).getValue();
             final KerberosCredentialsService credentialsService = context.getProperty(KERBEROS_CREDENTIALS_SERVICE).asControllerService(KerberosCredentialsService.class);
 
             final String resolvedPrincipal;
@@ -458,16 +467,26 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
                 resolvedKeytab = credentialsService.getKeytab();
             }
 
-            log.info("Hive Security Enabled, logging in as principal {} with keytab {}", new Object[] {resolvedPrincipal, resolvedKeytab});
+            if (resolvedKeytab != null) {
+                kerberosUserReference.set(new KerberosKeytabUser(resolvedPrincipal, resolvedKeytab));
+                log.info("Hive Security Enabled, logging in as principal {} with keytab {}", new Object[] {resolvedPrincipal, resolvedKeytab});
+            } else if (explicitPassword != null) {
+                kerberosUserReference.set(new KerberosPasswordUser(resolvedPrincipal, explicitPassword));
+                log.info("Hive Security Enabled, logging in as principal {} with password", new Object[] {resolvedPrincipal});
+            } else {
+                throw new ProcessException("Unable to authenticate with Kerberos, no keytab or password was provided");
+            }
+
             try {
-                ugi = hiveConfigurator.authenticate(hiveConfig, resolvedPrincipal, resolvedKeytab);
+                ugi = hiveConfigurator.authenticate(hiveConfig, kerberosUserReference.get());
             } catch (AuthenticationFailedException ae) {
                 throw new ProcessException("Kerberos authentication failed for Hive Streaming", ae);
             }
 
-            log.info("Successfully logged in as principal {} with keytab {}", new Object[] {resolvedPrincipal, resolvedKeytab});
+            log.info("Successfully logged in as principal " + resolvedPrincipal);
         } else {
             ugi = null;
+            kerberosUserReference.set(null);
         }
 
         callTimeout = context.getProperty(CALL_TIMEOUT).evaluateAttributeExpressions().asInteger() * 1000; // milliseconds
@@ -967,6 +986,7 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
         }
 
         ugi = null;
+        kerberosUserReference.set(null);
     }
 
     private void setupHeartBeatTimer(int heartbeatInterval) {
@@ -1048,7 +1068,7 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
             HiveWriter writer = writers.get(endPoint);
             if (writer == null) {
                 log.debug("Creating Writer to Hive end point : " + endPoint);
-                writer = makeHiveWriter(endPoint, callTimeoutPool, ugi, options);
+                writer = makeHiveWriter(endPoint, callTimeoutPool, getUgi(), options);
                 if (writers.size() > (options.getMaxOpenConnections() - 1)) {
                     log.info("cached HiveEndPoint size {} exceeded maxOpenConnections {} ", new Object[]{writers.size(), options.getMaxOpenConnections()});
                     int retired = retireIdleWriters(writers, options.getIdleTimeout());
@@ -1142,6 +1162,31 @@ public class PutHiveStreaming extends AbstractSessionFactoryProcessor {
 
     protected KerberosProperties getKerberosProperties() {
         return kerberosProperties;
+    }
+
+    UserGroupInformation getUgi() {
+        getLogger().trace("getting UGI instance");
+        if (kerberosUserReference.get() != null) {
+            // if there's a KerberosUser associated with this UGI, check the TGT and relogin if it is close to expiring
+            KerberosUser kerberosUser = kerberosUserReference.get();
+            getLogger().debug("kerberosUser is " + kerberosUser);
+            try {
+                getLogger().debug("checking TGT on kerberosUser [{}]", new Object[] {kerberosUser});
+                kerberosUser.checkTGTAndRelogin();
+            } catch (LoginException e) {
+                throw new ProcessException("Unable to relogin with kerberos credentials for " + kerberosUser.getPrincipal(), e);
+            }
+        } else {
+            getLogger().debug("kerberosUser was null, will not refresh TGT with KerberosUser");
+        }
+        return ugi;
+    }
+
+    /*
+     * Overridable by subclasses in the same package, mainly intended for testing purposes to allow verification without having to set environment variables.
+     */
+    boolean isAllowExplicitKeytab() {
+        return Boolean.parseBoolean(System.getenv(ALLOW_EXPLICIT_KEYTAB));
     }
 
     protected class HiveStreamingRecord {

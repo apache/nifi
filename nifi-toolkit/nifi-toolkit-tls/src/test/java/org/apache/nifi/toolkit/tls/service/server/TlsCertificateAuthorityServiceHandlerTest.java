@@ -17,27 +17,16 @@
 
 package org.apache.nifi.toolkit.tls.service.server;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.nifi.security.util.CertificateUtils;
-import org.apache.nifi.toolkit.tls.configuration.TlsConfig;
-import org.apache.nifi.toolkit.tls.service.dto.TlsCertificateAuthorityRequest;
-import org.apache.nifi.toolkit.tls.service.dto.TlsCertificateAuthorityResponse;
-import org.apache.nifi.toolkit.tls.util.TlsHelper;
-import org.bouncycastle.asn1.x500.X500Name;
-import org.bouncycastle.cert.crmf.CRMFException;
-import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequest;
-import org.eclipse.jetty.server.Request;
-import org.eclipse.jetty.server.Response;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -47,16 +36,37 @@ import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.security.InvalidKeyException;
 import java.security.KeyPair;
+import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.cert.X509Certificate;
-
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import java.util.Arrays;
+import java.util.List;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import org.apache.nifi.security.util.CertificateUtils;
+import org.apache.nifi.toolkit.tls.configuration.TlsConfig;
+import org.apache.nifi.toolkit.tls.service.dto.TlsCertificateAuthorityRequest;
+import org.apache.nifi.toolkit.tls.service.dto.TlsCertificateAuthorityResponse;
+import org.apache.nifi.toolkit.tls.util.TlsHelper;
+import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers;
+import org.bouncycastle.asn1.x500.X500Name;
+import org.bouncycastle.asn1.x509.Extension;
+import org.bouncycastle.asn1.x509.Extensions;
+import org.bouncycastle.cert.crmf.CRMFException;
+import org.bouncycastle.operator.OperatorCreationException;
+import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
+import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequest;
+import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder;
+import org.eclipse.jetty.server.Request;
+import org.eclipse.jetty.server.Response;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class TlsCertificateAuthorityServiceHandlerTest {
@@ -94,6 +104,9 @@ public class TlsCertificateAuthorityServiceHandlerTest {
     private byte[] testHmac;
     private String requestedDn;
     private KeyPair certificateKeyPair;
+
+    private static final String SUBJECT_DN = "CN=NiFi Test Server,OU=Security,O=Apache,ST=CA,C=US";
+    private static final List<String> SUBJECT_ALT_NAMES = Arrays.asList("127.0.0.1", "nifi.nifi.apache.org");
 
     @Before
     public void setup() throws Exception {
@@ -164,6 +177,35 @@ public class TlsCertificateAuthorityServiceHandlerTest {
     @Test(expected = ServletException.class)
     public void testServletException() throws IOException, ServletException {
         tlsCertificateAuthorityServiceHandler.handle(null, baseRequest, httpServletRequest, httpServletResponse);
+    }
+
+    @Test
+    public void testSANAgainUsingCertificationRequestMethod() throws GeneralSecurityException, IOException, OperatorCreationException {
+        // Arrange
+        KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA");
+        KeyPair keyPair = generator.generateKeyPair();
+        Extensions exts = TlsHelper.createDomainAlternativeNamesExtensions(SUBJECT_ALT_NAMES, SUBJECT_DN);
+        String token = "someTokenData16B";
+
+        JcaPKCS10CertificationRequestBuilder jcaPKCS10CertificationRequestBuilder = new JcaPKCS10CertificationRequestBuilder(new X500Name(SUBJECT_DN), keyPair.getPublic());
+        jcaPKCS10CertificationRequestBuilder.addAttribute(PKCSObjectIdentifiers.pkcs_9_at_extensionRequest, exts);
+        JcaContentSignerBuilder jcaContentSignerBuilder = new JcaContentSignerBuilder("SHA256WITHRSA");
+        JcaPKCS10CertificationRequest jcaPKCS10CertificationRequest = new JcaPKCS10CertificationRequest(
+                jcaPKCS10CertificationRequestBuilder.build(jcaContentSignerBuilder.build(keyPair.getPrivate())));
+        TlsCertificateAuthorityRequest tlsCertificateAuthorityRequest = new TlsCertificateAuthorityRequest(
+                TlsHelper.calculateHMac(token, jcaPKCS10CertificationRequest.getPublicKey()), TlsHelper.pemEncodeJcaObject(jcaPKCS10CertificationRequest));
+
+        JcaPKCS10CertificationRequest jcaPKCS10CertificationDecoded = TlsHelper.parseCsr(tlsCertificateAuthorityRequest.getCsr());
+
+        // Act
+        Extensions extensions = CertificateUtils.getExtensionsFromCSR(jcaPKCS10CertificationDecoded);
+        // Satisfy @After requirement
+        baseRequest.setHandled(true);
+
+        // Assert
+        assertNotNull("The extensions parsed from the CSR were found to be null when they should have been present.", extensions);
+        assertNotNull("The Subject Alternate Name parsed from the CSR was found to be null when it should have been present.", extensions.getExtension(Extension.subjectAlternativeName));
+        assertTrue(extensions.equivalent(exts));
     }
 
     @After

@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.atlas.provenance;
 
-import org.apache.atlas.typesystem.Referenceable;
+import org.apache.atlas.v1.model.instance.Referenceable;
 import org.apache.nifi.provenance.ProvenanceEventType;
 
 import java.net.MalformedURLException;

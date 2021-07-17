@@ -24,19 +24,24 @@ import io.swagger.annotations.ApiResponses;
 import io.swagger.annotations.Authorization;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.Authorizer;
+import org.apache.nifi.authorization.ProcessGroupAuthorizable;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.OperationAuthorizable;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
+import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.web.NiFiServiceFacade;
 import org.apache.nifi.web.Revision;
+import org.apache.nifi.web.api.dto.ComponentStateDTO;
 import org.apache.nifi.web.api.dto.PositionDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupDTO;
 import org.apache.nifi.web.api.dto.RemoteProcessGroupPortDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
+import org.apache.nifi.web.api.entity.ComponentStateEntity;
 import org.apache.nifi.web.api.entity.RemotePortRunStatusEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupEntity;
 import org.apache.nifi.web.api.entity.RemoteProcessGroupPortEntity;
+import org.apache.nifi.web.api.entity.RemoteProcessGroupsEntity;
 import org.apache.nifi.web.api.request.ClientIdParameter;
 import org.apache.nifi.web.api.request.LongParameter;
 
@@ -56,6 +61,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.net.URI;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * RESTful endpoint for managing a Remote group.
@@ -825,6 +831,159 @@ public class RemoteProcessGroupResource extends ApplicationResource {
                     return generateOkResponse(entity).build();
                 }
         );
+    }
+
+    /**
+     * Updates the operational status for all remote process groups in the specified process group with the specified value.
+     *
+     * @param httpServletRequest                request
+     * @param processGroupId                    The id of the process group in which all remote process groups to update.
+     * @param requestRemotePortRunStatusEntity  A remotePortRunStatusEntity that holds the desired run status
+     * @return A response with an array of RemoteProcessGroupEntity objects.
+     */
+    @PUT
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("process-group/{id}/run-status")
+    @ApiOperation(
+            value = "Updates run status of all remote process groups in a process group (recursively)",
+            response = RemoteProcessGroupEntity.class,
+            authorizations = {
+                    @Authorization(value = "Write - /remote-process-groups/{uuid} or /operation/remote-process-groups/{uuid}")
+            }
+    )
+    @ApiResponses(
+            value = {
+                    @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+                    @ApiResponse(code = 401, message = "Client could not be authenticated."),
+                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+                    @ApiResponse(code = 404, message = "The specified resource could not be found."),
+                    @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+            }
+    )
+    public Response updateRemoteProcessGroupRunStatuses(
+            @Context HttpServletRequest httpServletRequest,
+            @ApiParam(
+                    value = "The process group id.",
+                    required = true
+            )
+            @PathParam("id") String processGroupId,
+            @ApiParam(
+                    value = "The remote process groups run status.",
+                    required = true
+            ) final RemotePortRunStatusEntity requestRemotePortRunStatusEntity
+    ) {
+        if (requestRemotePortRunStatusEntity == null) {
+            throw new IllegalArgumentException("Remote process group run status must be specified.");
+        }
+
+        requestRemotePortRunStatusEntity.validateState();
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.PUT, requestRemotePortRunStatusEntity);
+        } else if (isDisconnectedFromCluster()) {
+            verifyDisconnectedNodeModification(requestRemotePortRunStatusEntity.isDisconnectedNodeAcknowledged());
+        }
+
+        // handle expects request (usually from the cluster manager)
+        final Set<Revision> revisions = serviceFacade.getRevisionsFromGroup(
+            processGroupId,
+            group -> group.findAllRemoteProcessGroups().stream()
+                .filter(remoteProcessGroup ->
+                    requestRemotePortRunStatusEntity.getState().equals("TRANSMITTING") && !remoteProcessGroup.isTransmitting()
+                    || requestRemotePortRunStatusEntity.getState().equals("STOPPED") && remoteProcessGroup.isTransmitting()
+                )
+                .filter(remoteProcessGroup -> OperationAuthorizable.isOperationAuthorized(remoteProcessGroup, authorizer, NiFiUserUtils.getNiFiUser()))
+                .map(RemoteProcessGroup::getIdentifier)
+                .collect(Collectors.toSet())
+        );
+        return withWriteLock(
+            serviceFacade,
+            requestRemotePortRunStatusEntity,
+            revisions,
+            lookup -> {
+                final ProcessGroupAuthorizable processGroup = lookup.getProcessGroup(processGroupId);
+
+                authorizeProcessGroup(processGroup, authorizer, lookup, RequestAction.READ, false, false, false, false, false);
+
+                Set<Authorizable> remoteProcessGroups = processGroup.getEncapsulatedRemoteProcessGroups();
+                for (Authorizable remoteProcessGroup : remoteProcessGroups) {
+                    OperationAuthorizable.authorizeOperation(remoteProcessGroup, authorizer, NiFiUserUtils.getNiFiUser());
+                }
+            },
+            () -> serviceFacade.verifyUpdateRemoteProcessGroups(processGroupId, shouldTransmit(requestRemotePortRunStatusEntity)),
+            (_revisions, remotePortRunStatusEntity) -> {
+                Set<RemoteProcessGroupEntity> remoteProcessGroupEntities = _revisions.stream()
+                    .map(revision -> {
+                        final RemoteProcessGroupEntity entity = serviceFacade.updateRemoteProcessGroup(revision, createDTOWithDesiredRunStatus(revision.getComponentId(), remotePortRunStatusEntity));
+                        populateRemainingRemoteProcessGroupEntityContent(entity);
+
+                        return entity;
+                    })
+                    .collect(Collectors.toSet());
+
+                RemoteProcessGroupsEntity remoteProcessGroupsEntity = new RemoteProcessGroupsEntity();
+
+                Response response = generateOkResponse(remoteProcessGroupsEntity).build();
+
+                return response;
+            }
+        );
+    }
+
+    /**
+     * Gets the state for a RemoteProcessGroup.
+     *
+     * @param id The id of the RemoteProcessGroup
+     * @return a componentStateEntity
+     * @throws InterruptedException if interrupted
+     */
+    @GET
+    @Consumes(MediaType.WILDCARD)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/{id}/state")
+    @ApiOperation(
+        value = "Gets the state for a RemoteProcessGroup",
+        response = ComponentStateEntity.class,
+        authorizations = {
+            @Authorization(value = "Write - /remote-process-groups/{uuid}")
+        }
+    )
+    @ApiResponses(
+        value = {
+            @ApiResponse(code = 400, message = "NiFi was unable to complete the request because it was invalid. The request should not be retried without modification."),
+            @ApiResponse(code = 401, message = "Client could not be authenticated."),
+            @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
+            @ApiResponse(code = 404, message = "The specified resource could not be found."),
+            @ApiResponse(code = 409, message = "The request was valid but NiFi was not in the appropriate state to process it. Retrying the same request later may be successful.")
+        }
+    )
+    public Response getState(
+        @ApiParam(
+            value = "The processor id.",
+            required = true
+        )
+        @PathParam("id") final String id) throws InterruptedException {
+
+        if (isReplicateRequest()) {
+            return replicate(HttpMethod.GET);
+        }
+
+        // authorize access
+        serviceFacade.authorizeAccess(lookup -> {
+            final Authorizable authorizable = lookup.getRemoteProcessGroup(id);
+            authorizable.authorize(authorizer, RequestAction.WRITE, NiFiUserUtils.getNiFiUser());
+        });
+
+        // get the component state
+        final ComponentStateDTO state = serviceFacade.getRemoteProcessGroupState(id);
+
+        // generate the response entity
+        final ComponentStateEntity entity = new ComponentStateEntity();
+        entity.setComponentState(state);
+
+        // generate the response
+        return generateOkResponse(entity).build();
     }
 
     private RemoteProcessGroupDTO createDTOWithDesiredRunStatus(final String id, final RemotePortRunStatusEntity entity) {

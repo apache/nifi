@@ -25,117 +25,109 @@ public interface NiFiClient extends Closeable {
 
     // ----- ControllerClient -----
 
-    /**
-     * @return a ControllerClient
-     */
     ControllerClient getControllerClient();
 
-    /**
-     * Obtains a ControllerClient for the given proxied entities. Each operation made from this client
-     * will add the appropriate X-ProxiedEntitiesChain header to each request.
-     *
-     * @param proxiedEntity one or more identities to proxy
-     * @return a ControllerClient
-     */
-    ControllerClient getControllerClientForProxiedEntities(String ... proxiedEntity);
-
-    /**
-     * Obtains a ControllerClient that will submit the given token in the Authorization Bearer header
-     * with each request.
-     *
-     * @param token a token to authentication with
-     * @return a ControllerClient
-     */
-    ControllerClient getControllerClientForToken(String token);
+    ControllerClient getControllerClient(RequestConfig requestConfig);
 
     // ----- ControllerServicesClient -----
 
-    /**
-     * @return a ControllerServicesClient
-     */
     ControllerServicesClient getControllerServicesClient();
 
-    /**
-     * Obtains a ControllerServicesClient for the given proxied entities. Each operation made from this client
-     * will add the appropriate X-ProxiedEntitiesChain header to each request.
-     *
-     * @param proxiedEntity one or more identities to proxy
-     * @return a ControllerServicesClient
-     */
-    ControllerServicesClient getControllerServicesClientForProxiedEntities(String ... proxiedEntity);
-
-    /**
-     * Obtains a ControllerServicesClient that will submit the given token in the Authorization Bearer header
-     * with each request.
-     *
-     * @param token a token to authentication with
-     * @return a ControllerServicesClient
-     */
-    ControllerServicesClient getControllerServicesClientForToken(String token);
+    ControllerServicesClient getControllerServicesClient(RequestConfig requestConfig);
 
     // ----- FlowClient -----
 
     FlowClient getFlowClient();
 
-    FlowClient getFlowClientForProxiedEntities(String ... proxiedEntity);
-
-    FlowClient getFlowClientForToken(String token);
+    FlowClient getFlowClient(RequestConfig requestConfig);
 
     // ----- ProcessGroupClient -----
 
     ProcessGroupClient getProcessGroupClient();
 
-    ProcessGroupClient getProcessGroupClientForProxiedEntities(String ... proxiedEntity);
+    ProcessGroupClient getProcessGroupClient(RequestConfig requestConfig);
 
-    ProcessGroupClient getProcessGroupClientForToken(String token);
+    // ----- VersionsClient -----
+
+    ProcessorClient getProcessorClient();
+
+    ProcessorClient getProcessorClient(RequestConfig requestConfig);
 
     // ----- VersionsClient -----
 
     VersionsClient getVersionsClient();
 
-    VersionsClient getVersionsClientForProxiedEntities(String ... proxiedEntity);
-
-    VersionsClient getVersionsClientForToken(String token);
+    VersionsClient getVersionsClient(RequestConfig requestConfig);
 
     // ----- TenantsClient -----
 
     TenantsClient getTenantsClient();
 
-    TenantsClient getTenantsClientForProxiedEntities(String ... proxiedEntity);
-
-    TenantsClient getTenantsClientForToken(String token);
+    TenantsClient getTenantsClient(RequestConfig requestConfig);
 
     // ----- PoliciesClient -----
 
     PoliciesClient getPoliciesClient();
 
-    PoliciesClient getPoliciesClientForProxiedEntities(String ... proxiedEntity);
-
-    PoliciesClient getPoliciesClientForToken(String token);
+    PoliciesClient getPoliciesClient(RequestConfig requestConfig);
 
     // ----- TemplatesClient -----
 
     TemplatesClient getTemplatesClient();
 
-    TemplatesClient getTemplatesClientForProxiedEntities(String ... proxiedEntity);
-
-    TemplatesClient getTemplatesClientForToken(String token);
+    TemplatesClient getTemplatesClient(RequestConfig requestConfig);
 
     // ----- ReportingTasksClient -----
 
     ReportingTasksClient getReportingTasksClient();
 
-    ReportingTasksClient getReportingTasksClientForProxiedEntities(String ... proxiedEntity);
-
-    ReportingTasksClient getReportingTasksClientForToken(String token);
+    ReportingTasksClient getReportingTasksClient(RequestConfig requestConfig);
 
     // ----- ParamContextClient -----
 
     ParamContextClient getParamContextClient();
 
-    ParamContextClient getParamContextClientForProxiedEntities(String ... proxiedEntity);
+    ParamContextClient getParamContextClient(RequestConfig requestConfig);
 
-    ParamContextClient getParamContextClientForToken(String token);
+    // ----- ParamContextClient -----
+
+    CountersClient getCountersClient();
+
+    CountersClient getCountersClient(RequestConfig requestConfig);
+
+    // ----- ConnectionClient -----
+
+    ConnectionClient getConnectionClient();
+
+    ConnectionClient getConnectionClient(RequestConfig requestConfig);
+
+    // ----- RemoteProcessGroupClient -----
+
+    RemoteProcessGroupClient getRemoteProcessGroupClient();
+
+    RemoteProcessGroupClient getRemoteProcessGroupClient(RequestConfig requestConfig);
+
+    // ----- InputPortClient -----
+
+    InputPortClient getInputPortClient();
+
+    InputPortClient getInputPortClient(RequestConfig requestConfig);
+
+    // ----- OutputPortClient -----
+
+    OutputPortClient getOutputPortClient();
+
+    OutputPortClient getOutputPortClient(RequestConfig requestConfig);
+
+    // ----- ProvenanceClient -----
+
+    ProvenanceClient getProvenanceClient();
+
+    ProvenanceClient getProvenanceClient(RequestConfig requestConfig);
+
+    // ----- AccessClient -----
+
+    AccessClient getAccessClient();
 
     /**
      * The builder interface that implementations should provide for obtaining the client.

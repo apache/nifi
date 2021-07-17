@@ -157,7 +157,7 @@ public class TestLoadBalanceSession {
         expectedDos.writeLong(flowFile1.getLineageStartDate()); // lineage start date
         expectedDos.writeLong(flowFile1.getEntryDate()); // entry date
         expectedDos.write(LoadBalanceProtocolConstants.DATA_FRAME_FOLLOWS);
-        expectedDos.writeShort(5);
+        expectedDos.writeInt(5);
         expectedDos.write("hello".getBytes());
         expectedDos.write(LoadBalanceProtocolConstants.NO_DATA_FRAME);
 
@@ -171,7 +171,7 @@ public class TestLoadBalanceSession {
         expectedDos.writeLong(flowFile2.getLineageStartDate()); // lineage start date
         expectedDos.writeLong(flowFile2.getEntryDate()); // entry date
         expectedDos.write(LoadBalanceProtocolConstants.DATA_FRAME_FOLLOWS);
-        expectedDos.writeShort(8);
+        expectedDos.writeInt(8);
         expectedDos.write("good-bye".getBytes());
         expectedDos.write(LoadBalanceProtocolConstants.NO_DATA_FRAME);
 
@@ -246,12 +246,12 @@ public class TestLoadBalanceSession {
 
         // first data frame
         expectedDos.write(LoadBalanceProtocolConstants.DATA_FRAME_FOLLOWS);
-        expectedDos.writeShort(LoadBalanceSession.MAX_DATA_FRAME_SIZE);
+        expectedDos.writeInt(LoadBalanceSession.MAX_DATA_FRAME_SIZE);
         expectedDos.write(Arrays.copyOfRange(content, 0, LoadBalanceSession.MAX_DATA_FRAME_SIZE));
 
         // second data frame
         expectedDos.write(LoadBalanceProtocolConstants.DATA_FRAME_FOLLOWS);
-        expectedDos.writeShort(content.length - LoadBalanceSession.MAX_DATA_FRAME_SIZE);
+        expectedDos.writeInt(content.length - LoadBalanceSession.MAX_DATA_FRAME_SIZE);
         expectedDos.write(Arrays.copyOfRange(content, LoadBalanceSession.MAX_DATA_FRAME_SIZE, content.length));
         expectedDos.write(LoadBalanceProtocolConstants.NO_DATA_FRAME);
 

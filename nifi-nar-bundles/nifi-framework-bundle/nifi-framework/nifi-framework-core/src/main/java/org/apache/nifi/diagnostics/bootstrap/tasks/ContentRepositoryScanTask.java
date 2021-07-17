@@ -86,6 +86,19 @@ public class ContentRepositoryScanTask implements DiagnosticTask {
             }
         }
 
+        details.add(""); // Insert empty detail lines to make output more readable.
+
+        final Set<ResourceClaim> orphanedResourceClaims = flowFileRepository.findOrphanedResourceClaims();
+        if (orphanedResourceClaims == null || orphanedResourceClaims.isEmpty()) {
+            details.add("No Resource Claims were referenced by orphaned FlowFiles.");
+        } else {
+            details.add("The following Resource Claims were referenced by orphaned FlowFiles (FlowFiles that exist in the FlowFile Repository but for which the FlowFile's connection/queue" +
+                " did not exist when NiFi started):");
+
+            for (final ResourceClaim claim : orphanedResourceClaims) {
+                details.add(claim.toString());
+            }
+        }
 
         return new StandardDiagnosticsDumpElement("Content Repository Scan", details);
     }

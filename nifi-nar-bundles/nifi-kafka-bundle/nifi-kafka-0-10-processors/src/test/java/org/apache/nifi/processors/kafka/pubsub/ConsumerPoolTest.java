@@ -16,13 +16,6 @@
  */
 package org.apache.nifi.processors.kafka.pubsub;
 
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -31,14 +24,22 @@ import org.apache.kafka.common.TopicPartition;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.provenance.ProvenanceReporter;
 import org.apache.nifi.processors.kafka.pubsub.ConsumerPool.PoolStats;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import org.apache.nifi.provenance.ProvenanceReporter;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -136,7 +137,7 @@ public class ConsumerPoolTest {
         }
         testPool.close();
         verify(mockSession, times(3)).create();
-        verify(mockSession, times(1)).commit();
+        verify(mockSession, times(1)).commitAsync(Mockito.any(Runnable.class));
         final PoolStats stats = testPool.getPoolStats();
         assertEquals(1, stats.consumerCreatedCount);
         assertEquals(1, stats.consumerClosedCount);
@@ -178,7 +179,7 @@ public class ConsumerPoolTest {
         }
         testDemarcatedPool.close();
         verify(mockSession, times(1)).create();
-        verify(mockSession, times(1)).commit();
+        verify(mockSession, times(1)).commitAsync(Mockito.any(Runnable.class));
         final PoolStats stats = testDemarcatedPool.getPoolStats();
         assertEquals(1, stats.consumerCreatedCount);
         assertEquals(1, stats.consumerClosedCount);

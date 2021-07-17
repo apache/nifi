@@ -29,8 +29,8 @@ import java.util.stream.Stream;
 
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
-import org.apache.nifi.controller.status.history.ComponentStatusRepository;
 import org.apache.nifi.controller.status.history.StatusHistory;
+import org.apache.nifi.controller.status.history.StatusHistoryRepository;
 import org.apache.nifi.controller.status.history.StatusSnapshot;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.util.Tuple;
@@ -47,18 +47,19 @@ public abstract class TestStatusAnalyticsEngine {
     static final String DEFAULT_SCORE_NAME = "rSquared";
     static final double DEFAULT_SCORE_THRESHOLD = .9;
 
-    protected ComponentStatusRepository statusRepository;
+    protected StatusHistoryRepository statusRepository;
     protected FlowManager flowManager;
     protected FlowFileEventRepository flowFileEventRepository;
-    protected Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> modelMap;
+    protected  StatusAnalyticsModelMapFactory statusAnalyticsModelMapFactory;
 
     @Before
     public void setup() {
 
-        statusRepository = Mockito.mock(ComponentStatusRepository.class);
+        statusRepository = Mockito.mock(StatusHistoryRepository.class);
         flowManager = Mockito.mock(FlowManager.class);
-        modelMap = new HashMap<>();
+        statusAnalyticsModelMapFactory = Mockito.mock(StatusAnalyticsModelMapFactory.class);
 
+        Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> modelMap = new HashMap<>();
         StatusAnalyticsModel countModel = Mockito.mock(StatusAnalyticsModel.class);
         StatusAnalyticsModel byteModel = Mockito.mock(StatusAnalyticsModel.class);
         StatusMetricExtractFunction extractFunction = Mockito.mock(StatusMetricExtractFunction.class);
@@ -75,6 +76,8 @@ public abstract class TestStatusAnalyticsEngine {
         StatusHistory statusHistory = Mockito.mock(StatusHistory.class);
         StatusSnapshot statusSnapshot = Mockito.mock(StatusSnapshot.class);
 
+        when(statusAnalyticsModelMapFactory.getConnectionStatusModelMap()).thenReturn(modelMap);
+
         when(extractFunction.extractMetric(anyString(),any(StatusHistory.class))).then(new Answer<Tuple<Stream<Double[]>,Stream<Double>>>() {
             @Override
             public Tuple<Stream<Double[]>, Stream<Double>> answer(InvocationOnMock invocationOnMock) throws Throwable {
@@ -89,14 +92,14 @@ public abstract class TestStatusAnalyticsEngine {
 
     @Test
     public void testGetStatusAnalytics() {
-        StatusAnalyticsEngine statusAnalyticsEngine = getStatusAnalyticsEngine(flowManager,flowFileEventRepository, statusRepository, modelMap, DEFAULT_PREDICT_INTERVAL_MILLIS,
+        StatusAnalyticsEngine statusAnalyticsEngine = getStatusAnalyticsEngine(flowManager, statusRepository, statusAnalyticsModelMapFactory, DEFAULT_PREDICT_INTERVAL_MILLIS,
                                                                                 DEFAULT_QUERY_INTERVAL_MILLIS, DEFAULT_SCORE_NAME, DEFAULT_SCORE_THRESHOLD);
         StatusAnalytics statusAnalytics = statusAnalyticsEngine.getStatusAnalytics("1");
         assertNotNull(statusAnalytics);
     }
 
-    public abstract StatusAnalyticsEngine getStatusAnalyticsEngine(FlowManager flowManager, FlowFileEventRepository flowFileEventRepository,
-                                                                   ComponentStatusRepository componentStatusRepository, Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>>  modelMap,
+    public abstract StatusAnalyticsEngine getStatusAnalyticsEngine(FlowManager flowManager,
+                                                                   StatusHistoryRepository componentStatusRepository, StatusAnalyticsModelMapFactory statusAnalyticsModelMapFactory,
                                                                     long predictIntervalMillis, long queryIntervalMillis, String scoreName, double scoreThreshold);
 
 }

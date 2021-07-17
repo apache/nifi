@@ -61,6 +61,7 @@ org.apache.nifi.processors.standard.IdentifyMimeType
 org.apache.nifi.processors.standard.InvokeHTTP
 org.apache.nifi.processors.standard.JoltTransformJSON
 org.apache.nifi.processors.standard.ListDatabaseTables
+org.apache.nifi.processors.standard.ListenFTP
 org.apache.nifi.processors.standard.ListenHTTP
 org.apache.nifi.processors.standard.ListenRELP
 org.apache.nifi.processors.standard.ListenSyslog
@@ -91,6 +92,7 @@ org.apache.nifi.processors.standard.PutEmail
 org.apache.nifi.processors.standard.PutFile
 org.apache.nifi.processors.standard.PutFTP
 org.apache.nifi.processors.standard.PutJMS
+org.apache.nifi.processors.standard.PutRecord
 org.apache.nifi.processors.standard.PutSFTP
 org.apache.nifi.processors.standard.PutSQL
 org.apache.nifi.processors.standard.PutSyslog
@@ -105,6 +107,7 @@ org.apache.nifi.processors.standard.RetryFlowFile
 org.apache.nifi.processors.standard.RouteOnAttribute
 org.apache.nifi.processors.standard.RouteOnContent
 org.apache.nifi.processors.standard.RouteText
+org.apache.nifi.processors.standard.SampleRecord
 org.apache.nifi.processors.standard.ScanAttribute
 org.apache.nifi.processors.standard.ScanContent
 org.apache.nifi.processors.standard.SegmentContent

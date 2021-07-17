@@ -142,6 +142,7 @@ UNESCAPE_HTML4 : 'unescapeHtml4';
 BASE64_ENCODE : 'base64Encode';
 BASE64_DECODE : 'base64Decode';
 GET_STATE_VALUE: 'getStateValue';
+EVALUATE_EL_STRING: 'evaluateELString';
 
 // 1 arg functions
 SUBSTRING_AFTER	: 'substringAfter';
@@ -181,6 +182,10 @@ JOIN : 'join';
 TO_LITERAL : 'literal';
 JSON_PATH : 'jsonPath';
 JSON_PATH_DELETE : 'jsonPathDelete';
+REPEAT : 'repeat';
+UUID3 : 'UUID3';
+UUID5 : 'UUID5';
+HASH : 'hash';
 
 // 2 arg functions
 SUBSTRING	: 'substring';

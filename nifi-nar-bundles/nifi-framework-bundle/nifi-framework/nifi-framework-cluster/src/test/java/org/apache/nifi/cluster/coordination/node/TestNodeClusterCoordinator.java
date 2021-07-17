@@ -37,6 +37,7 @@ import org.apache.nifi.services.FlowService;
 import org.apache.nifi.state.MockStateMap;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.revision.RevisionManager;
+import org.apache.nifi.web.revision.RevisionSnapshot;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -58,7 +59,6 @@ import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -71,6 +71,7 @@ public class TestNodeClusterCoordinator {
     private ClusterCoordinationProtocolSenderListener senderListener;
     private List<NodeConnectionStatus> nodeStatuses;
     private StateManagerProvider stateManagerProvider;
+    private final RevisionSnapshot emptyRevisionSnapshot = new RevisionSnapshot(Collections.emptyList(), 0L);
 
     private NiFiProperties createProperties() {
         final Map<String,String> addProps = new HashMap<>();
@@ -93,7 +94,7 @@ public class TestNodeClusterCoordinator {
 
         final EventReporter eventReporter = Mockito.mock(EventReporter.class);
         final RevisionManager revisionManager = Mockito.mock(RevisionManager.class);
-        when(revisionManager.getAllRevisions()).thenReturn(Collections.emptyList());
+        when(revisionManager.getAllRevisions()).thenReturn(emptyRevisionSnapshot);
 
         coordinator = new NodeClusterCoordinator(senderListener, eventReporter, null, new FirstVoteWinsFlowElection(), null, revisionManager, createProperties(), null, stateManagerProvider) {
             @Override
@@ -148,7 +149,7 @@ public class TestNodeClusterCoordinator {
         final ClusterCoordinationProtocolSenderListener senderListener = Mockito.mock(ClusterCoordinationProtocolSenderListener.class);
         final EventReporter eventReporter = Mockito.mock(EventReporter.class);
         final RevisionManager revisionManager = Mockito.mock(RevisionManager.class);
-        when(revisionManager.getAllRevisions()).thenReturn(Collections.emptyList());
+        when(revisionManager.getAllRevisions()).thenReturn(emptyRevisionSnapshot);
 
         final NodeClusterCoordinator coordinator = new NodeClusterCoordinator(senderListener, eventReporter, null, new FirstVoteWinsFlowElection(),
                 null, revisionManager, createProperties(), null, stateManagerProvider) {
@@ -189,7 +190,7 @@ public class TestNodeClusterCoordinator {
 
         final EventReporter eventReporter = Mockito.mock(EventReporter.class);
         final RevisionManager revisionManager = Mockito.mock(RevisionManager.class);
-        when(revisionManager.getAllRevisions()).thenReturn(Collections.emptyList());
+        when(revisionManager.getAllRevisions()).thenReturn(emptyRevisionSnapshot);
 
         final NodeClusterCoordinator coordinator = new NodeClusterCoordinator(senderListener, eventReporter, null, new FirstVoteWinsFlowElection(),
                 null, revisionManager, createProperties(), null, stateManagerProvider) {
@@ -246,7 +247,7 @@ public class TestNodeClusterCoordinator {
     @Test(timeout = 5000)
     public void testStatusChangesReplicated() throws InterruptedException, IOException {
         final RevisionManager revisionManager = Mockito.mock(RevisionManager.class);
-        when(revisionManager.getAllRevisions()).thenReturn(Collections.emptyList());
+        when(revisionManager.getAllRevisions()).thenReturn(emptyRevisionSnapshot);
 
         // Create a connection request message and send to the coordinator
         final NodeIdentifier requestedNodeId = createNodeId(1);
@@ -443,7 +444,7 @@ public class TestNodeClusterCoordinator {
         assertTrue(conflictingResponse instanceof ConnectionResponseMessage);
         final ConnectionResponseMessage conflictingResponseMessage = (ConnectionResponseMessage) conflictingResponse;
         final NodeIdentifier conflictingNodeId = conflictingResponseMessage.getConnectionResponse().getNodeIdentifier();
-        assertNotSame(id1.getId(), conflictingNodeId.getId());
+        assertEquals(id1.getId(), conflictingNodeId.getId());
         assertEquals(conflictingId.getApiAddress(), conflictingNodeId.getApiAddress());
         assertEquals(conflictingId.getApiPort(), conflictingNodeId.getApiPort());
         assertEquals(conflictingId.getSiteToSiteAddress(), conflictingNodeId.getSiteToSiteAddress());

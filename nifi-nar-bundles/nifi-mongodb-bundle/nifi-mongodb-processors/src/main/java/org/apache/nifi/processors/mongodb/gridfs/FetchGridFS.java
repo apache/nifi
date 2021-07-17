@@ -167,7 +167,7 @@ public class FetchGridFS extends AbstractGridFSProcessor implements QueryHelper 
                 handleFile(bucket, session, context, parent, gridFSFile, queryPtr);
 
                 if (operatingMode.equals(MODE_MANY_COMMITS.getValue())) {
-                    session.commit();
+                    session.commitAsync();
                 }
             }
 

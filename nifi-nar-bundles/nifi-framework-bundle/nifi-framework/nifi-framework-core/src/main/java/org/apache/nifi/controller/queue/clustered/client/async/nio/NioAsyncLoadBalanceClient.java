@@ -17,6 +17,9 @@
 
 package org.apache.nifi.controller.queue.clustered.client.async.nio;
 
+import org.apache.nifi.cluster.coordination.ClusterCoordinator;
+import org.apache.nifi.cluster.coordination.node.NodeConnectionState;
+import org.apache.nifi.cluster.coordination.node.NodeConnectionStatus;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.controller.queue.LoadBalanceCompression;
 import org.apache.nifi.controller.queue.clustered.FlowFileContentAccess;
@@ -66,6 +69,7 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
     private final FlowFileContentAccess flowFileContentAccess;
     private final LoadBalanceFlowFileCodec flowFileCodec;
     private final EventReporter eventReporter;
+    private final ClusterCoordinator clusterCoordinator;
 
     private volatile boolean running = false;
     private final AtomicLong penalizationEnd = new AtomicLong(0L);
@@ -88,13 +92,14 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
 
 
     public NioAsyncLoadBalanceClient(final NodeIdentifier nodeIdentifier, final SSLContext sslContext, final int timeoutMillis, final FlowFileContentAccess flowFileContentAccess,
-                                     final LoadBalanceFlowFileCodec flowFileCodec, final EventReporter eventReporter) {
+                                     final LoadBalanceFlowFileCodec flowFileCodec, final EventReporter eventReporter, final ClusterCoordinator clusterCoordinator) {
         this.nodeIdentifier = nodeIdentifier;
         this.sslContext = sslContext;
         this.timeoutMillis = timeoutMillis;
         this.flowFileContentAccess = flowFileContentAccess;
         this.flowFileCodec = flowFileCodec;
         this.eventReporter = eventReporter;
+        this.clusterCoordinator = clusterCoordinator;
     }
 
     @Override
@@ -116,7 +121,24 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
     }
 
     public synchronized void unregister(final String connectionId) {
-        registeredPartitions.remove(connectionId);
+        final RegisteredPartition removedPartition = registeredPartitions.remove(connectionId);
+
+        if (removedPartition == null) {
+            logger.debug("{} Unregistered Connection with ID {} but there were no Registered Partitions", this, connectionId);
+            return;
+        }
+
+        logger.debug("{} Unregistered Connection with ID {}. Will fail any in-flight FlowFiles for Registered Partition {}", this, connectionId, removedPartition);
+        if (loadBalanceSession != null && !loadBalanceSession.isComplete()) {
+            // Attempt to cancel the session. If successful, trigger the failure callback for the partition.
+            // If not successful, it indicates that another thread has completed the session and is responsible or the transaction success/failure
+            if (loadBalanceSession.cancel()) {
+                final List<FlowFileRecord> flowFilesSent = loadBalanceSession.getFlowFilesSent();
+
+                logger.debug("{} Triggering failure callback for {} FlowFiles for Registered Partition {} because partition was unregistered", this, flowFilesSent.size(), removedPartition);
+                removedPartition.getFailureCallback().onTransactionFailed(flowFilesSent, TransactionFailureCallback.TransactionPhase.SENDING);
+            }
+        }
     }
 
     public synchronized int getRegisteredConnectionCount() {
@@ -255,7 +277,7 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
                 anySuccess = anySuccess || success;
             } while (success);
 
-            if (loadBalanceSession.isComplete()) {
+            if (loadBalanceSession.isComplete() && !loadBalanceSession.isCanceled()) {
                 loadBalanceSession.getPartition().getSuccessCallback().onTransactionComplete(loadBalanceSession.getFlowFilesSent(), nodeIdentifier);
             }
 
@@ -301,31 +323,35 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
             }
 
             // Obtain a partition that needs to be rebalanced on failure
-            final RegisteredPartition readyPartition = getReadyPartition(partition -> partition.getFailureCallback().isRebalanceOnFailure());
+            final RegisteredPartition readyPartition = getReadyPartition(false, partition -> partition.getFailureCallback().isRebalanceOnFailure());
             if (readyPartition == null) {
                 return;
             }
 
             partitionQueue.offer(readyPartition); // allow partition to be obtained again
-            final TransactionThreshold threshold = newTransactionThreshold();
-
-            final List<FlowFileRecord> flowFiles = new ArrayList<>();
-            while (!threshold.isThresholdMet()) {
-                final FlowFileRecord flowFile = readyPartition.getFlowFileRecordSupplier().get();
-                if (flowFile == null) {
-                    break;
-                }
-
-                flowFiles.add(flowFile);
-                threshold.adjust(1, flowFile.getSize());
-            }
-
-            logger.debug("Node {} not connected so failing {} FlowFiles for Load Balancing", nodeIdentifier, flowFiles.size());
-            readyPartition.getFailureCallback().onTransactionFailed(flowFiles, TransactionFailureCallback.TransactionPhase.SENDING);
+            failFlowFiles(readyPartition);
             penalize(); // Don't just transfer FlowFiles out of queue's partition as fast as possible, because the node may only be disconnected for a short time.
         } finally {
             loadBalanceSessionLock.unlock();
         }
+    }
+
+    private void failFlowFiles(final RegisteredPartition partition) {
+        final TransactionThreshold threshold = newTransactionThreshold();
+
+        final List<FlowFileRecord> flowFiles = new ArrayList<>();
+        while (!threshold.isThresholdMet()) {
+            final FlowFileRecord flowFile = partition.getFlowFileRecordSupplier().get();
+            if (flowFile == null) {
+                break;
+            }
+
+            flowFiles.add(flowFile);
+            threshold.adjust(1, flowFile.getSize());
+        }
+
+        logger.debug("Node {} not connected so failing {} FlowFiles for Load Balancing", nodeIdentifier, flowFiles.size());
+        partition.getFailureCallback().onTransactionFailed(flowFiles, TransactionFailureCallback.TransactionPhase.SENDING);
     }
 
     private synchronized LoadBalanceSession getFailoverSession() {
@@ -338,16 +364,16 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
 
 
     private RegisteredPartition getReadyPartition() {
-        return getReadyPartition(partition -> true);
+        return getReadyPartition(true, partition -> true);
     }
 
-    private synchronized RegisteredPartition getReadyPartition(final Predicate<RegisteredPartition> filter) {
+    private synchronized RegisteredPartition getReadyPartition(final boolean requireNodeConnected, final Predicate<RegisteredPartition> filter) {
         final List<RegisteredPartition> polledPartitions = new ArrayList<>();
 
         try {
             RegisteredPartition partition;
             while ((partition = partitionQueue.poll()) != null) {
-                if (partition.isEmpty() || partition.isPenalized() || !filter.test(partition)) {
+                if (partition.isEmpty() || partition.isPenalized() || (requireNodeConnected && !checkNodeConnected(partition)) || !filter.test(partition)) {
                     polledPartitions.add(partition);
                     continue;
                 }
@@ -357,8 +383,21 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
 
             return null;
         } finally {
-            polledPartitions.forEach(partitionQueue::offer);
+            partitionQueue.addAll(polledPartitions);
         }
+    }
+
+    private synchronized boolean checkNodeConnected(final RegisteredPartition partition) {
+        final NodeConnectionStatus status = clusterCoordinator.getConnectionStatus(nodeIdentifier);
+        final boolean connected = status != null && status.getState() == NodeConnectionState.CONNECTED;
+
+        // If not connected but the last known state is connected, we know that the node has just transitioned to disconnected.
+        // In this case we need to call #nodeDisconnected in order to allow for failover to take place
+        if (!connected) {
+            failFlowFiles(partition);
+        }
+
+        return connected;
     }
 
     private synchronized LoadBalanceSession getActiveTransaction(final RegisteredPartition proposedPartition) {
@@ -385,38 +424,37 @@ public class NioAsyncLoadBalanceClient implements AsyncLoadBalanceClient {
         return selector != null && channel != null && channel.isConnected();
     }
 
-    private synchronized void establishConnection() throws IOException {
+    private void establishConnection() throws IOException {
         SocketChannel socketChannel = null;
 
         try {
-            selector = Selector.open();
-            socketChannel = createChannel();
+            final PeerChannel peerChannel;
+            synchronized (this) {
+                if (isConnectionEstablished()) {
+                    return;
+                }
 
-            socketChannel.configureBlocking(true);
+                selector = Selector.open();
+                socketChannel = createChannel();
+                socketChannel.configureBlocking(true);
 
-            channel = createPeerChannel(socketChannel, nodeIdentifier.toString());
-            channel.performHandshake();
+                peerChannel = createPeerChannel(socketChannel, nodeIdentifier.toString());
+                channel = peerChannel;
+            }
 
-            socketChannel.configureBlocking(false);
-            selectionKey = socketChannel.register(selector, SelectionKey.OP_WRITE | SelectionKey.OP_READ);
+            // Perform handshake outside of the synchronized block. We do this because if the server-side is not very responsive,
+            // the handshake may take some time. We don't want to block any other threads from interacting with this Client in
+            // the meantime, especially web threads that may be calling #register or #unregister.
+            peerChannel.performHandshake();
+
+            synchronized (this) {
+                socketChannel.configureBlocking(false);
+                selectionKey = socketChannel.register(selector, SelectionKey.OP_WRITE | SelectionKey.OP_READ);
+            }
         } catch (Exception e) {
             logger.error("Unable to connect to {} for load balancing", nodeIdentifier, e);
 
-            if (selector != null) {
-                try {
-                    selector.close();
-                } catch (final Exception e1) {
-                    e.addSuppressed(e1);
-                }
-            }
-
-            if (channel != null) {
-                try {
-                    channel.close();
-                } catch (final Exception e1) {
-                    e.addSuppressed(e1);
-                }
-            }
+            close();
 
             if (socketChannel != null) {
                 try {

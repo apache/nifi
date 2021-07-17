@@ -16,6 +16,14 @@
  */
 package org.apache.nifi.processors.groovyx;
 
+import org.apache.commons.lang3.SystemUtils;
+import org.apache.nifi.serialization.RecordSetWriterFactory;
+import org.apache.nifi.serialization.SimpleRecordSchema;
+import org.apache.nifi.serialization.record.MockRecordParser;
+import org.apache.nifi.serialization.record.MockRecordWriter;
+import org.apache.nifi.serialization.record.RecordField;
+import org.apache.nifi.serialization.record.RecordFieldType;
+import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.MockProcessorInitializationContext;
@@ -27,17 +35,21 @@ import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.processor.exception.ProcessException;
 
 import org.junit.AfterClass;
+import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.FixMethodOrder;
 import org.junit.runners.MethodSorters;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 
+import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.HashMap;
 
@@ -45,6 +57,7 @@ import java.sql.DriverManager;
 import java.sql.Connection;
 import java.sql.Statement;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 import org.apache.nifi.controller.AbstractControllerService;
@@ -61,6 +74,9 @@ public class ExecuteGroovyScriptTest {
 
     protected TestRunner runner;
     protected static DBCPService dbcp = null;  //to make single initialization
+    protected MockRecordParser recordParser = null;
+    protected RecordSetWriterFactory recordWriter = null;
+    protected RecordSchema recordSchema = null;
     protected ExecuteGroovyScript proc;
     public final String TEST_RESOURCE_LOCATION = "target/test/resources/groovy/";
     private final String TEST_CSV_DATA = "gender,title,first,last\n"
@@ -86,6 +102,7 @@ public class ExecuteGroovyScriptTest {
      */
     @BeforeClass
     public static void setupBeforeClass() throws Exception {
+        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
         FileUtils.copyDirectory(new File("src/test/resources"), new File("target/test/resources"));
         //prepare database connection
         System.setProperty("derby.stream.error.file", "target/derby.log");
@@ -121,6 +138,21 @@ public class ExecuteGroovyScriptTest {
         runner = TestRunners.newTestRunner(proc);
         runner.addControllerService("dbcp", dbcp, new HashMap<>());
         runner.enableControllerService(dbcp);
+
+        List<RecordField> recordFields = Arrays.asList(
+                new RecordField("id", RecordFieldType.INT.getDataType()),
+                new RecordField("name", RecordFieldType.STRING.getDataType()),
+                new RecordField("code", RecordFieldType.INT.getDataType()));
+        recordSchema = new SimpleRecordSchema(recordFields);
+
+        recordParser = new MockRecordParser();
+        recordFields.forEach((r) -> recordParser.addSchemaField(r));
+        runner.addControllerService("myreader", recordParser, new HashMap<>());
+        runner.enableControllerService(recordParser);
+
+        recordWriter = new MockRecordWriter();
+        runner.addControllerService("mywriter", recordWriter, new HashMap<>());
+        runner.enableControllerService(recordWriter);
     }
 
     /**
@@ -225,6 +257,7 @@ public class ExecuteGroovyScriptTest {
         runner.setProperty(proc.SCRIPT_BODY, " { { ");
         runner.assertNotValid();
     }
+
     //---------------------------------------------------------
     @Test
     public void test_ctl_01_access() throws Exception {
@@ -307,6 +340,23 @@ public class ExecuteGroovyScriptTest {
         List<String> lines = ResourceGroovyMethods.readLines(new File(TEST_RESOURCE_LOCATION + "test_sql_04_insert_and_json.json"), "UTF-8");
         //pass through to&from json before compare
         resultFile.assertContentEquals(JsonOutput.toJson(new JsonSlurper().parseText(lines.get(1))), "UTF-8");
+    }
+
+    @Test
+    public void test_record_reader_writer_access() throws Exception {
+        runner.setProperty(ExecuteGroovyScript.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "test_record_reader_writer.groovy");
+        runner.setProperty("RecordReader.myreader", "myreader"); //pass myreader as a service to script
+        runner.setProperty("RecordWriter.mywriter", "mywriter"); //pass mywriter as a service to script
+        runner.assertValid();
+
+        recordParser.addRecord(1, "A", "XYZ");
+        runner.enqueue("");
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ExecuteGroovyScript.REL_SUCCESS.getName(), 1);
+        final List<MockFlowFile> result = runner.getFlowFilesForRelationship(ExecuteGroovyScript.REL_SUCCESS.getName());
+        MockFlowFile resultFile = result.get(0);
+        resultFile.assertContentEquals("\"1\",\"A\",\"XYZ\"\n", "UTF-8");
     }
 
     @Test
@@ -425,6 +475,39 @@ public class ExecuteGroovyScriptTest {
         runner.assertAllFlowFilesTransferred(ExecuteGroovyScript.REL_SUCCESS.getName(), 1);
         MockFlowFile flowFile = runner.getFlowFilesForRelationship(ExecuteGroovyScript.REL_SUCCESS).get(0);
         flowFile.assertContentEquals("5678".getBytes(StandardCharsets.UTF_16LE));
+    }
+
+    @Test
+    public void test_onStart_onStop() throws Exception {
+        runner.setProperty(ExecuteGroovyScript.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "test_onStart_onStop.groovy");
+        runner.assertValid();
+        runner.enqueue("");
+        final PrintStream originalOut = System.out;
+        final ByteArrayOutputStream outContent = new ByteArrayOutputStream();
+        System.setOut(new PrintStream(outContent));
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ExecuteGroovyScript.REL_SUCCESS.getName(), 1);
+        final List<MockFlowFile> result = runner.getFlowFilesForRelationship(ExecuteGroovyScript.REL_SUCCESS.getName());
+        MockFlowFile resultFile = result.get(0);
+        resultFile.assertAttributeExists("a");
+        resultFile.assertAttributeEquals("a", "A");
+        System.setOut(originalOut);
+        assertEquals("onStop invoked successfully\n", outContent.toString());
+
+        // Inspect the output visually for onStop, no way to pass back values
+    }
+
+    @Test
+    public void test_onUnscheduled() throws Exception {
+        runner.setProperty(ExecuteGroovyScript.SCRIPT_FILE, TEST_RESOURCE_LOCATION + "test_onUnscheduled.groovy");
+        runner.assertValid();
+        final PrintStream originalOut = System.out;
+        final ByteArrayOutputStream outContent = new ByteArrayOutputStream();
+        System.setOut(new PrintStream(outContent));
+        runner.run();
+        System.setOut(originalOut);
+        assertEquals("onUnscheduled invoked successfully\n", outContent.toString());
     }
 
 

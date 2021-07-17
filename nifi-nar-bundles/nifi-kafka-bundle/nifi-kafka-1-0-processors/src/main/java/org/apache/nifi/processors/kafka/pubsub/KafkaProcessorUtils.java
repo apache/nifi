@@ -16,6 +16,30 @@
  */
 package org.apache.nifi.processors.kafka.pubsub;
 
+import org.apache.commons.lang3.StringUtils;
+import org.apache.kafka.clients.CommonClientConfigs;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.common.config.SaslConfigs;
+import org.apache.kafka.common.config.SslConfigs;
+import org.apache.kafka.common.serialization.ByteArrayDeserializer;
+import org.apache.kafka.common.serialization.ByteArraySerializer;
+import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.Validator;
+import org.apache.nifi.components.resource.ResourceCardinality;
+import org.apache.nifi.components.resource.ResourceType;
+import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.kerberos.KerberosCredentialsService;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.ssl.SSLContextService;
+import org.apache.nifi.util.FormatUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
@@ -30,29 +54,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
-import org.apache.commons.lang3.StringUtils;
-import org.apache.kafka.clients.CommonClientConfigs;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.clients.producer.ProducerConfig;
-import org.apache.kafka.common.config.SaslConfigs;
-import org.apache.kafka.common.config.SslConfigs;
-import org.apache.kafka.common.serialization.ByteArrayDeserializer;
-import org.apache.kafka.common.serialization.ByteArraySerializer;
-import org.apache.nifi.components.AllowableValue;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.components.Validator;
-import org.apache.nifi.expression.ExpressionLanguageScope;
-import org.apache.nifi.kerberos.KerberosCredentialsService;
-import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.ssl.SSLContextService;
-import org.apache.nifi.util.FormatUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-final class KafkaProcessorUtils {
+public final class KafkaProcessorUtils {
     private static final String ALLOW_EXPLICIT_KEYTAB = "NIFI_ALLOW_EXPLICIT_KEYTAB";
 
     final Logger logger = LoggerFactory.getLogger(this.getClass());
@@ -69,12 +71,12 @@ final class KafkaProcessorUtils {
     static final String KAFKA_OFFSET = "kafka.offset";
     static final String KAFKA_TIMESTAMP = "kafka.timestamp";
     static final String KAFKA_COUNT = "kafka.count";
-    static final AllowableValue SEC_PLAINTEXT = new AllowableValue("PLAINTEXT", "PLAINTEXT", "PLAINTEXT");
-    static final AllowableValue SEC_SSL = new AllowableValue("SSL", "SSL", "SSL");
-    static final AllowableValue SEC_SASL_PLAINTEXT = new AllowableValue("SASL_PLAINTEXT", "SASL_PLAINTEXT", "SASL_PLAINTEXT");
-    static final AllowableValue SEC_SASL_SSL = new AllowableValue("SASL_SSL", "SASL_SSL", "SASL_SSL");
+    public static final AllowableValue SEC_PLAINTEXT = new AllowableValue("PLAINTEXT", "PLAINTEXT", "PLAINTEXT");
+    public static final AllowableValue SEC_SSL = new AllowableValue("SSL", "SSL", "SSL");
+    public static final AllowableValue SEC_SASL_PLAINTEXT = new AllowableValue("SASL_PLAINTEXT", "SASL_PLAINTEXT", "SASL_PLAINTEXT");
+    public static final AllowableValue SEC_SASL_SSL = new AllowableValue("SASL_SSL", "SASL_SSL", "SASL_SSL");
 
-    static final PropertyDescriptor BOOTSTRAP_SERVERS = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor BOOTSTRAP_SERVERS = new PropertyDescriptor.Builder()
             .name(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG)
             .displayName("Kafka Brokers")
             .description("A comma-separated list of known Kafka Brokers in the format <host>:<port>")
@@ -83,7 +85,7 @@ final class KafkaProcessorUtils {
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .defaultValue("localhost:9092")
             .build();
-    static final PropertyDescriptor SECURITY_PROTOCOL = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor SECURITY_PROTOCOL = new PropertyDescriptor.Builder()
             .name("security.protocol")
             .displayName("Security Protocol")
             .description("Protocol used to communicate with brokers. Corresponds to Kafka's 'security.protocol' property.")
@@ -92,7 +94,7 @@ final class KafkaProcessorUtils {
             .allowableValues(SEC_PLAINTEXT, SEC_SSL, SEC_SASL_PLAINTEXT, SEC_SASL_SSL)
             .defaultValue(SEC_PLAINTEXT.getValue())
             .build();
-    static final PropertyDescriptor JAAS_SERVICE_NAME = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor JAAS_SERVICE_NAME = new PropertyDescriptor.Builder()
             .name("sasl.kerberos.service.name")
             .displayName("Kerberos Service Name")
             .description("The service name that matches the primary name of the Kafka server configured in the broker JAAS file."
@@ -118,17 +120,17 @@ final class KafkaProcessorUtils {
             .description("The Kerberos keytab that will be used to connect to brokers. If not set, it is expected to set a JAAS configuration file "
                     + "in the JVM properties defined in the bootstrap.conf file. This principal will be set into 'sasl.jaas.config' Kafka's property.")
             .required(false)
-            .addValidator(StandardValidators.FILE_EXISTS_VALIDATOR)
+            .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
-    static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
             .name("ssl.context.service")
             .displayName("SSL Context Service")
             .description("Specifies the SSL Context Service to use for communicating with Kafka.")
             .required(false)
             .identifiesControllerService(SSLContextService.class)
             .build();
-    static final PropertyDescriptor KERBEROS_CREDENTIALS_SERVICE = new PropertyDescriptor.Builder()
+    public static final PropertyDescriptor KERBEROS_CREDENTIALS_SERVICE = new PropertyDescriptor.Builder()
         .name("kerberos-credentials-service")
         .displayName("Kerberos Credentials Service")
         .description("Specifies the Kerberos Credentials Controller Service that should be used for authenticating with Kerberos")
@@ -148,7 +150,7 @@ final class KafkaProcessorUtils {
         );
     }
 
-    static Collection<ValidationResult> validateCommonProperties(final ValidationContext validationContext) {
+    public static Collection<ValidationResult> validateCommonProperties(final ValidationContext validationContext) {
         List<ValidationResult> results = new ArrayList<>();
 
         String securityProtocol = validationContext.getProperty(SECURITY_PROTOCOL).getValue();
@@ -259,7 +261,7 @@ final class KafkaProcessorUtils {
         return results;
     }
 
-    static final class KafkaConfigValidator implements Validator {
+    public static final class KafkaConfigValidator implements Validator {
 
         final Class<?> classType;
 
@@ -339,7 +341,7 @@ final class KafkaProcessorUtils {
      * @param prefix String transactional id prefix, can be null
      * @return A Supplier that generates transactional id
      */
-    static Supplier<String> getTransactionalIdSupplier(String prefix) {
+    public static Supplier<String> getTransactionalIdSupplier(String prefix) {
         return () -> (prefix == null ? "" : prefix)  + UUID.randomUUID().toString();
     }
 
@@ -356,8 +358,8 @@ final class KafkaProcessorUtils {
      * @param context Context
      */
     private static void setJaasConfig(Map<String, Object> mapToPopulate, ProcessContext context) {
-        String keytab = context.getProperty(USER_KEYTAB).evaluateAttributeExpressions().getValue();
-        String principal = context.getProperty(USER_PRINCIPAL).evaluateAttributeExpressions().getValue();
+        String keytab = context.getProperty(USER_KEYTAB) == null ? null : context.getProperty(USER_KEYTAB).evaluateAttributeExpressions().getValue();
+        String principal = context.getProperty(USER_PRINCIPAL) == null ? null : context.getProperty(USER_PRINCIPAL).evaluateAttributeExpressions().getValue();
 
         // If the Kerberos Credentials Service is specified, we need to use its configuration, not the explicit properties for principal/keytab.
         // The customValidate method ensures that only one can be set, so we know that the principal & keytab above are null.
@@ -380,7 +382,7 @@ final class KafkaProcessorUtils {
         }
     }
 
-    private static boolean isStaticStringFieldNamePresent(final String name, final Class<?>... classes) {
+    public static boolean isStaticStringFieldNamePresent(final String name, final Class<?>... classes) {
         return KafkaProcessorUtils.getPublicStaticStringFieldValues(classes).contains(name);
     }
 

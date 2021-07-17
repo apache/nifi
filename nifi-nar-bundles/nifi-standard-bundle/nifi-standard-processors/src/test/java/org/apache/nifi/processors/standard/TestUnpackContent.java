@@ -20,15 +20,23 @@ import static org.apache.nifi.processors.standard.SplitContent.FRAGMENT_COUNT;
 import static org.apache.nifi.processors.standard.SplitContent.FRAGMENT_ID;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
+import net.lingala.zip4j.io.outputstream.ZipOutputStream;
+import net.lingala.zip4j.model.ZipParameters;
+import net.lingala.zip4j.model.enums.EncryptionMethod;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
@@ -37,6 +45,8 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.Test;
 
 public class TestUnpackContent {
+
+    private static final String FIRST_FRAGMENT_INDEX = "1";
 
     private static final Path dataPath = Paths.get("src/test/resources/TestUnpackContent");
 
@@ -70,10 +80,26 @@ public class TestUnpackContent {
         autoUnpackRunner.assertTransferCount(UnpackContent.REL_FAILURE, 0);
 
         final List<MockFlowFile> unpacked = unpackRunner.getFlowFilesForRelationship(UnpackContent.REL_SUCCESS);
+
         for (final MockFlowFile flowFile : unpacked) {
             final String filename = flowFile.getAttribute(CoreAttributes.FILENAME.key());
             final String folder = flowFile.getAttribute(CoreAttributes.PATH.key());
             final Path path = dataPath.resolve(folder).resolve(filename);
+            assertEquals("rw-r--r--", flowFile.getAttribute("file.permissions"));
+            assertEquals("jmcarey", flowFile.getAttribute("file.owner"));
+            assertEquals("mkpasswd", flowFile.getAttribute("file.group"));
+            String modifiedTimeAsString = flowFile.getAttribute("file.lastModifiedTime");
+            try {
+                DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssZ").parse(modifiedTimeAsString);
+            } catch (DateTimeParseException e) {
+                fail();
+            }
+            String creationTimeAsString = flowFile.getAttribute("file.creationTime");
+            try {
+                DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssZ").parse(creationTimeAsString);
+            } catch (DateTimeParseException e) {
+                fail();
+            }
             assertTrue(Files.exists(path));
 
             flowFile.assertContentEquals(path.toFile());
@@ -200,6 +226,32 @@ public class TestUnpackContent {
 
             flowFile.assertContentEquals(path.toFile());
         }
+    }
+
+    @Test
+    public void testZipEncryptionZipStandard() throws IOException {
+        runZipEncryptionMethod(EncryptionMethod.ZIP_STANDARD);
+    }
+
+    @Test
+    public void testZipEncryptionAes() throws IOException {
+        runZipEncryptionMethod(EncryptionMethod.AES);
+    }
+
+    @Test
+    public void testZipEncryptionNoPasswordConfigured() throws IOException {
+        final TestRunner runner = TestRunners.newTestRunner(new UnpackContent());
+        runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT.toString());
+
+        final String password = String.class.getSimpleName();
+        final char[] streamPassword = password.toCharArray();
+        final String contents = TestRunner.class.getCanonicalName();
+
+        final byte[] zipEncrypted = createZipEncrypted(EncryptionMethod.AES, streamPassword, contents);
+        runner.enqueue(zipEncrypted);
+        runner.run();
+
+        runner.assertTransferCount(UnpackContent.REL_FAILURE, 1);
     }
 
     @Test
@@ -430,5 +482,49 @@ public class TestUnpackContent {
         runner.run(numThreads);
 
         runner.assertTransferCount(UnpackContent.REL_SUCCESS, numThreads*2);
+    }
+
+    private void runZipEncryptionMethod(final EncryptionMethod encryptionMethod) throws IOException {
+        final TestRunner runner = TestRunners.newTestRunner(new UnpackContent());
+        runner.setProperty(UnpackContent.PACKAGING_FORMAT, UnpackContent.PackageFormat.ZIP_FORMAT.toString());
+
+        final String password = String.class.getSimpleName();
+        runner.setProperty(UnpackContent.PASSWORD, password);
+
+        final char[] streamPassword = password.toCharArray();
+        final String contents = TestRunner.class.getCanonicalName();
+
+        final byte[] zipEncrypted = createZipEncrypted(encryptionMethod, streamPassword, contents);
+        runner.enqueue(zipEncrypted);
+        runner.run();
+
+        runner.assertTransferCount(UnpackContent.REL_SUCCESS, 1);
+        runner.assertTransferCount(UnpackContent.REL_ORIGINAL, 1);
+
+        final MockFlowFile unpacked = runner.getFlowFilesForRelationship(UnpackContent.REL_SUCCESS).iterator().next();
+        unpacked.assertAttributeEquals(UnpackContent.FILE_ENCRYPTION_METHOD_ATTRIBUTE, encryptionMethod.toString());
+        unpacked.assertAttributeEquals(UnpackContent.FRAGMENT_INDEX, FIRST_FRAGMENT_INDEX);
+
+        final byte[] unpackedBytes = runner.getContentAsByteArray(unpacked);
+        final String unpackedContents = new String(unpackedBytes);
+        assertEquals("Unpacked Contents not matched", contents, unpackedContents);
+    }
+
+    private byte[] createZipEncrypted(final EncryptionMethod encryptionMethod, final char[] password, final String contents) throws IOException {
+        final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        final ZipOutputStream zipOutputStream = new ZipOutputStream(outputStream, password);
+
+        final String name = UUID.randomUUID().toString();
+
+        final ZipParameters zipParameters = new ZipParameters();
+        zipParameters.setEncryptionMethod(encryptionMethod);
+        zipParameters.setEncryptFiles(true);
+        zipParameters.setFileNameInZip(name);
+        zipOutputStream.putNextEntry(zipParameters);
+        zipOutputStream.write(contents.getBytes());
+        zipOutputStream.closeEntry();
+        zipOutputStream.close();
+
+        return outputStream.toByteArray();
     }
 }

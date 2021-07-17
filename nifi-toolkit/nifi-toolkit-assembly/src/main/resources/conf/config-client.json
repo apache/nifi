@@ -3,11 +3,11 @@
   "keyStoreType" : "jks",
   "token" : "myTestTokenUseSomethingStronger",
   "dn" : "CN=otherHostname,OU=NIFI",
-  "port" : 8443,
+  "port" : 9443,
   "caHostname" : "localhost",
   "trustStore" : "clientTrustStore",
   "trustStoreType" : "jks",
-  "days" : 1095,
+  "days" : 825,
   "keySize" : 2048,
   "keyPairAlgorithm" : "RSA",
   "signingAlgorithm" : "SHA256WITHRSA"

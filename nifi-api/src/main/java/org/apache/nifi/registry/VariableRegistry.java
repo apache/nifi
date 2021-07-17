@@ -56,7 +56,6 @@ public interface VariableRegistry {
                         .build();
                 map.put(desc, entry.getValue().toString());
             });
-
         }
 
         @Override

@@ -41,7 +41,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import static org.apache.nifi.processors.standard.util.JdbcProperties.USE_AVRO_LOGICAL_TYPES;
+import static org.apache.nifi.util.db.JdbcProperties.DEFAULT_PRECISION;
+import static org.apache.nifi.util.db.JdbcProperties.DEFAULT_SCALE;
+import static org.apache.nifi.util.db.JdbcProperties.USE_AVRO_LOGICAL_TYPES;
 
 
 @EventDriven
@@ -92,6 +94,8 @@ import static org.apache.nifi.processors.standard.util.JdbcProperties.USE_AVRO_L
                 + "outgoing FlowFiles that were all derived from the same result set FlowFile. This can be "
                 + "used in conjunction with the fragment.identifier attribute to know which FlowFiles originated from the same query result set and in what order  "
                 + "FlowFiles were produced"),
+        @WritesAttribute(attribute = "input.flowfile.uuid", description = "If the processor has an incoming connection, outgoing FlowFiles will have this attribute "
+                + "set to the value of the input FlowFile's UUID. If there is no incoming connection, the attribute will not be added."),
         @WritesAttribute(attribute = "mime.type", description = "Sets the mime.type attribute to the MIME Type specified by the Record Writer."),
         @WritesAttribute(attribute = "record.count", description = "The number of records output by the Record Writer.")
 })
@@ -131,19 +135,26 @@ public class ExecuteSQLRecord extends AbstractExecuteSQL {
         pds.add(RECORD_WRITER_FACTORY);
         pds.add(NORMALIZE_NAMES);
         pds.add(USE_AVRO_LOGICAL_TYPES);
+        pds.add(DEFAULT_PRECISION);
+        pds.add(DEFAULT_SCALE);
         pds.add(MAX_ROWS_PER_FLOW_FILE);
         pds.add(OUTPUT_BATCH_SIZE);
+        pds.add(FETCH_SIZE);
         propDescriptors = Collections.unmodifiableList(pds);
     }
 
     @Override
     protected SqlWriter configureSqlWriter(ProcessSession session, ProcessContext context, FlowFile fileToProcess) {
-        final Integer maxRowsPerFlowFile = context.getProperty(MAX_ROWS_PER_FLOW_FILE).evaluateAttributeExpressions().asInteger();
+        final Integer maxRowsPerFlowFile = context.getProperty(MAX_ROWS_PER_FLOW_FILE).evaluateAttributeExpressions(fileToProcess).asInteger();
         final boolean convertNamesForAvro = context.getProperty(NORMALIZE_NAMES).asBoolean();
         final Boolean useAvroLogicalTypes = context.getProperty(USE_AVRO_LOGICAL_TYPES).asBoolean();
+        final Integer defaultPrecision = context.getProperty(DEFAULT_PRECISION).evaluateAttributeExpressions(fileToProcess).asInteger();
+        final Integer defaultScale = context.getProperty(DEFAULT_SCALE).evaluateAttributeExpressions(fileToProcess).asInteger();
         final JdbcCommon.AvroConversionOptions options = JdbcCommon.AvroConversionOptions.builder()
                 .convertNames(convertNamesForAvro)
                 .useLogicalTypes(useAvroLogicalTypes)
+                .defaultPrecision(defaultPrecision)
+                .defaultScale(defaultScale)
                 .build();
         final RecordSetWriterFactory recordSetWriterFactory = context.getProperty(RECORD_WRITER_FACTORY).asControllerService(RecordSetWriterFactory.class);
 

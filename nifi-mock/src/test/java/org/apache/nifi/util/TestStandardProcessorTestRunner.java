@@ -381,4 +381,23 @@ public class TestStandardProcessorTestRunner {
             return Arrays.asList(namePropertyDescriptor);
         }
     }
+
+    @Test
+    public void testErrorLogMessageArguments() {
+
+        String compName = "name of component";
+        final MockComponentLog logger = new MockComponentLog("first id",compName);
+
+        Throwable t = new ArithmeticException();
+        logger.error("expected test error",t);
+
+        String expected_throwable = "java.lang.ArithmeticException";
+
+        List<LogMessage>  log = logger.getErrorMessages();
+        LogMessage msg = log.get(0);
+        // checking if the error messages are recorded in the correct throwable argument.
+        assertEquals(expected_throwable,msg.getThrowable().toString());
+        assertEquals("{} expected test error",msg.getMsg());
+
+    }
 }

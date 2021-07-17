@@ -25,6 +25,8 @@ import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processors.standard.db.impl.DerbyDatabaseAdapter;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.MockFlowFile;
+import org.apache.nifi.util.MockProcessSession;
+import org.apache.nifi.util.MockSessionFactory;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.util.file.FileUtils;
@@ -46,6 +48,7 @@ import java.sql.Types;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.apache.nifi.processors.standard.AbstractDatabaseFetchProcessor.DB_TYPE;
 import static org.apache.nifi.processors.standard.AbstractDatabaseFetchProcessor.FRAGMENT_COUNT;
@@ -141,6 +144,15 @@ public class TestGenerateTableFetch {
         runner.setProperty(GenerateTableFetch.MAX_VALUE_COLUMN_NAMES, "ID");
 
         runner.run();
+
+        // Assert all the sessions were committed
+        MockSessionFactory runnerSessionFactory = (MockSessionFactory) runner.getProcessSessionFactory();
+        Set<MockProcessSession> sessions = runnerSessionFactory.getCreatedSessions();
+        for (MockProcessSession session : sessions) {
+            session.assertCommitted();
+        }
+
+        // Verify the expected FlowFile
         runner.assertAllFlowFilesTransferred(REL_SUCCESS, 1);
         MockFlowFile flowFile = runner.getFlowFilesForRelationship(REL_SUCCESS).get(0);
         String query = new String(flowFile.toByteArray());

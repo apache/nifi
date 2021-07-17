@@ -16,15 +16,10 @@
  */
 package org.apache.nifi.amqp.processors;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
+import com.rabbitmq.client.AMQP.BasicProperties;
+import com.rabbitmq.client.Connection;
+import com.rabbitmq.client.Envelope;
+import com.rabbitmq.client.GetResponse;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -40,9 +35,14 @@ import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
 
-import com.rabbitmq.client.AMQP.BasicProperties;
-import com.rabbitmq.client.Connection;
-import com.rabbitmq.client.GetResponse;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 @Tags({"amqp", "rabbit", "get", "message", "receive", "consume"})
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
@@ -63,6 +63,8 @@ import com.rabbitmq.client.GetResponse;
     @WritesAttribute(attribute = "amqp$type", description = "The type of message"),
     @WritesAttribute(attribute = "amqp$userId", description = "The ID of the user"),
     @WritesAttribute(attribute = "amqp$clusterId", description = "The ID of the AMQP Cluster"),
+    @WritesAttribute(attribute = "amqp$routingKey", description = "The routingKey of the AMQP Message"),
+    @WritesAttribute(attribute = "amqp$exchange", description = "The exchange from which AMQP Message was received")
 })
 public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
     private static final String ATTRIBUTES_PREFIX = "amqp$";
@@ -75,9 +77,12 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
         .build();
     static final PropertyDescriptor AUTO_ACKNOWLEDGE = new PropertyDescriptor.Builder()
         .name("auto.acknowledge")
-        .displayName("Auto-Acknowledge messages")
-        .description("If true, messages that are received will be auto-acknowledged by the AMQP Broker. "
-            + "This generally will provide better throughput but could result in messages being lost upon restart of NiFi")
+        .displayName("Auto-Acknowledge Messages")
+        .description(" If false (Non-Auto-Acknowledge), the messages will be acknowledged by the processor after transferring the FlowFiles to success and committing "
+            + "the NiFi session. Non-Auto-Acknowledge mode provides 'at-least-once' delivery semantics. "
+            + "If true (Auto-Acknowledge), messages that are delivered to the AMQP Client will be auto-acknowledged by the AMQP Broker just after sending them out. "
+            + "This generally will provide better throughput but will also result in messages being lost upon restart/crash of the AMQP Broker, NiFi or the processor. "
+            + "Auto-Acknowledge mode provides 'at-most-once' delivery semantics and it is recommended only if loosing messages is acceptable.")
         .allowableValues("true", "false")
         .defaultValue("false")
         .required(true)
@@ -85,8 +90,8 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
     static final PropertyDescriptor BATCH_SIZE = new PropertyDescriptor.Builder()
         .name("batch.size")
         .displayName("Batch Size")
-        .description("The maximum number of messages that should be pulled in a single session. Once this many messages have been received (or once no more messages are readily available), "
-            + "the messages received will be transferred to the 'success' relationship and the messages will be acknowledged with the AMQP Broker. Setting this value to a larger number "
+        .description("The maximum number of messages that should be processed in a single session. Once this many messages have been received (or once no more messages are readily available), "
+            + "the messages received will be transferred to the 'success' relationship and the messages will be acknowledged to the AMQP Broker. Setting this value to a larger number "
             + "could result in better performance, particularly for very small messages, but can also result in more messages being duplicated upon sudden restart of NiFi.")
         .addValidator(StandardValidators.POSITIVE_INTEGER_VALIDATOR)
         .expressionLanguageSupported(ExpressionLanguageScope.NONE)
@@ -124,6 +129,10 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
     protected void processResource(final Connection connection, final AMQPConsumer consumer, final ProcessContext context, final ProcessSession session) {
         GetResponse lastReceived = null;
 
+        if (!connection.isOpen() || !consumer.getChannel().isOpen()) {
+            throw new AMQPException("AMQP client has lost connection.");
+        }
+
         for (int i = 0; i < context.getProperty(BATCH_SIZE).asInteger(); i++) {
             final GetResponse response = consumer.consume();
             if (response == null) {
@@ -139,7 +148,8 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
             flowFile = session.write(flowFile, out -> out.write(response.getBody()));
 
             final BasicProperties amqpProperties = response.getProps();
-            final Map<String, String> attributes = buildAttributes(amqpProperties);
+            final Envelope envelope = response.getEnvelope();
+            final Map<String, String> attributes = buildAttributes(amqpProperties, envelope);
             flowFile = session.putAllAttributes(flowFile, attributes);
 
             session.getProvenanceReporter().receive(flowFile, connection.toString() + "/" + context.getProperty(QUEUE).getValue());
@@ -147,18 +157,13 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
             lastReceived = response;
         }
 
-        session.commit();
-
         if (lastReceived != null) {
-            try {
-                consumer.acknowledge(lastReceived);
-            } catch (IOException e) {
-                throw new ProcessException("Failed to acknowledge message", e);
-            }
+            final GetResponse finalGetResponse = lastReceived;
+            session.commitAsync(() -> consumer.acknowledge(finalGetResponse), null);
         }
     }
 
-    private Map<String, String> buildAttributes(final BasicProperties properties) {
+    private Map<String, String> buildAttributes(final BasicProperties properties, final Envelope envelope) {
         final Map<String, String> attributes = new HashMap<>();
         addAttribute(attributes, ATTRIBUTES_PREFIX + "appId", properties.getAppId());
         addAttribute(attributes, ATTRIBUTES_PREFIX + "contentEncoding", properties.getContentEncoding());
@@ -174,6 +179,8 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
         addAttribute(attributes, ATTRIBUTES_PREFIX + "type", properties.getType());
         addAttribute(attributes, ATTRIBUTES_PREFIX + "userId", properties.getUserId());
         addAttribute(attributes, ATTRIBUTES_PREFIX + "clusterId", properties.getClusterId());
+        addAttribute(attributes, ATTRIBUTES_PREFIX + "routingKey",  envelope.getRoutingKey());
+        addAttribute(attributes, ATTRIBUTES_PREFIX + "exchange",  envelope.getExchange());
         return attributes;
     }
 
@@ -190,7 +197,7 @@ public class ConsumeAMQP extends AbstractAMQPProcessor<AMQPConsumer> {
         try {
             final String queueName = context.getProperty(QUEUE).getValue();
             final boolean autoAcknowledge = context.getProperty(AUTO_ACKNOWLEDGE).asBoolean();
-            final AMQPConsumer amqpConsumer = new AMQPConsumer(connection, queueName, autoAcknowledge);
+            final AMQPConsumer amqpConsumer = new AMQPConsumer(connection, queueName, autoAcknowledge, getLogger());
 
             return amqpConsumer;
         } catch (final IOException ioe) {

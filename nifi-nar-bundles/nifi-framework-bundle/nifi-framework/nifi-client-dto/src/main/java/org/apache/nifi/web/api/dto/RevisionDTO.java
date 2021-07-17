@@ -71,7 +71,7 @@ public class RevisionDTO {
      */
     @ApiModelProperty(
             value = "The user that last modified the flow.",
-            readOnly = true
+            accessMode = ApiModelProperty.AccessMode.READ_ONLY
     )
     public String getLastModifier() {
         return lastModifier;

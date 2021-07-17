@@ -17,6 +17,7 @@
 
 package org.apache.nifi.processors.kafka.pubsub;
 
+import org.apache.kafka.common.errors.ProducerFencedException;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.util.MockFlowFile;
@@ -24,6 +25,8 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -40,6 +43,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.nullable;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -79,7 +84,7 @@ public class TestPublishKafka_2_0 {
         runner.run();
         runner.assertAllFlowFilesTransferred(PublishKafka_2_0.REL_SUCCESS, 1);
 
-        verify(mockLease, times(1)).publish(any(FlowFile.class), any(InputStream.class), eq(null), eq(null), eq(TOPIC_NAME));
+        verify(mockLease, times(1)).publish(any(FlowFile.class), any(InputStream.class), eq(null), eq(null), eq(TOPIC_NAME), nullable(Integer.class));
         verify(mockLease, times(1)).complete();
         verify(mockLease, times(0)).poison();
         verify(mockLease, times(1)).close();
@@ -92,15 +97,33 @@ public class TestPublishKafka_2_0 {
         flowFiles.add(runner.enqueue("hello world"));
         flowFiles.add(runner.enqueue("hello world"));
 
-
         when(mockLease.complete()).thenReturn(createAllSuccessPublishResult(flowFiles, 1));
 
         runner.run();
         runner.assertAllFlowFilesTransferred(PublishKafka_2_0.REL_SUCCESS, 3);
 
-        verify(mockLease, times(3)).publish(any(FlowFile.class), any(InputStream.class), eq(null), eq(null), eq(TOPIC_NAME));
+        verify(mockLease, times(3)).publish(any(FlowFile.class), any(InputStream.class), eq(null), eq(null), eq(TOPIC_NAME), nullable(Integer.class));
         verify(mockLease, times(1)).complete();
         verify(mockLease, times(0)).poison();
+        verify(mockLease, times(1)).close();
+    }
+
+    @Test
+    public void testPublisherPoisonedIfFencedDuringTransactionCreation() {
+        runner.enqueue("hello world");
+        runner.enqueue("Hello World");
+
+        doAnswer(new Answer<Object>() {
+            @Override
+            public Object answer(final InvocationOnMock invocationOnMock) {
+                throw new ProducerFencedException("Intentional ProducedFencedException for unit test");
+            }
+        }).when(mockLease).beginTransaction();
+
+        runner.run();
+        runner.assertAllFlowFilesTransferred(PublishKafka_2_0.REL_FAILURE, 2);
+
+        verify(mockLease, times(1)).poison();
         verify(mockLease, times(1)).close();
     }
 
@@ -113,9 +136,25 @@ public class TestPublishKafka_2_0 {
         runner.run();
         runner.assertAllFlowFilesTransferred(PublishKafka_2_0.REL_FAILURE, 1);
 
-        verify(mockLease, times(1)).publish(any(FlowFile.class), any(InputStream.class), eq(null), eq(null), eq(TOPIC_NAME));
+        verify(mockLease, times(1)).publish(any(FlowFile.class), any(InputStream.class), eq(null), eq(null), eq(TOPIC_NAME), nullable(Integer.class));
         verify(mockLease, times(1)).complete();
         verify(mockLease, times(1)).close();
+    }
+
+    @Test
+    public void testSingleFailureWithRollback() throws IOException {
+        runner.setProperty(KafkaProcessorUtils.FAILURE_STRATEGY, KafkaProcessorUtils.FAILURE_STRATEGY_ROLLBACK);
+        final MockFlowFile flowFile = runner.enqueue("hello world");
+
+        when(mockLease.complete()).thenReturn(createFailurePublishResult(flowFile));
+
+        runner.run();
+        runner.assertAllFlowFilesTransferred(PublishKafka_2_0.REL_FAILURE, 0);
+
+        verify(mockLease, times(1)).publish(any(FlowFile.class), any(InputStream.class), eq(null), eq(null), eq(TOPIC_NAME), nullable(Integer.class));
+        verify(mockLease, times(1)).close();
+
+        assertEquals(1, runner.getQueueSize().getObjectCount());
     }
 
     @Test
@@ -130,9 +169,29 @@ public class TestPublishKafka_2_0 {
         runner.run();
         runner.assertAllFlowFilesTransferred(PublishKafka_2_0.REL_FAILURE, 3);
 
-        verify(mockLease, times(3)).publish(any(FlowFile.class), any(InputStream.class), eq(null), eq(null), eq(TOPIC_NAME));
+        verify(mockLease, times(3)).publish(any(FlowFile.class), any(InputStream.class), eq(null), eq(null), eq(TOPIC_NAME), nullable(Integer.class));
         verify(mockLease, times(1)).complete();
         verify(mockLease, times(1)).close();
+    }
+
+    @Test
+    public void testMultipleFailuresWithRollback() throws IOException {
+        runner.setProperty(KafkaProcessorUtils.FAILURE_STRATEGY, KafkaProcessorUtils.FAILURE_STRATEGY_ROLLBACK);
+
+        final Set<FlowFile> flowFiles = new HashSet<>();
+        flowFiles.add(runner.enqueue("hello world"));
+        flowFiles.add(runner.enqueue("hello world"));
+        flowFiles.add(runner.enqueue("hello world"));
+
+        when(mockLease.complete()).thenReturn(createFailurePublishResult(flowFiles));
+
+        runner.run();
+        runner.assertAllFlowFilesTransferred(PublishKafka_2_0.REL_FAILURE, 0);
+
+        verify(mockLease, times(3)).publish(any(FlowFile.class), any(InputStream.class), eq(null), eq(null), eq(TOPIC_NAME), nullable(Integer.class));
+        verify(mockLease, times(1)).close();
+
+        assertEquals(3, runner.getQueueSize().getObjectCount());
     }
 
     @Test
@@ -152,7 +211,7 @@ public class TestPublishKafka_2_0 {
         runner.run();
         runner.assertAllFlowFilesTransferred(PublishKafka_2_0.REL_SUCCESS, 2);
 
-        verify(mockLease, times(2)).publish(any(FlowFile.class), any(InputStream.class), eq(null), eq(null), eq(TOPIC_NAME));
+        verify(mockLease, times(2)).publish(any(FlowFile.class), any(InputStream.class), eq(null), eq(null), eq(TOPIC_NAME), nullable(Integer.class));
         verify(mockLease, times(1)).complete();
         verify(mockLease, times(0)).poison();
         verify(mockLease, times(1)).close();
@@ -191,7 +250,7 @@ public class TestPublishKafka_2_0 {
         runner.assertTransferCount(PublishKafka_2_0.REL_SUCCESS, 0);
         runner.assertTransferCount(PublishKafka_2_0.REL_FAILURE, 4);
 
-        verify(mockLease, times(4)).publish(any(FlowFile.class), any(InputStream.class), eq(null), eq(null), eq(TOPIC_NAME));
+        verify(mockLease, times(4)).publish(any(FlowFile.class), any(InputStream.class), eq(null), eq(null), eq(TOPIC_NAME), nullable(Integer.class));
         verify(mockLease, times(1)).complete();
         verify(mockLease, times(1)).close();
 

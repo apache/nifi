@@ -80,6 +80,20 @@ public class TestScrollElasticsearchHttp {
     }
 
     @Test
+    public void testScrollElasticsearchOnTrigger_sourceIncludes() throws IOException {
+        ScrollElasticsearchHttpTestProcessor p = new ScrollElasticsearchHttpTestProcessor();
+        p.setExpectedParam("_source=test");
+        runner = TestRunners.newTestRunner(p);
+        runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
+
+        runner.setProperty(ScrollElasticsearchHttp.INDEX, "doc");
+        runner.setProperty(ScrollElasticsearchHttp.TYPE, "status");
+        runner.setProperty(ScrollElasticsearchHttp.QUERY, "source:Twitter");
+        runner.setProperty(ScrollElasticsearchHttp.FIELDS, "test");
+        runAndVerifySuccess();
+    }
+
+    @Test
     public void testScrollElasticsearchOnTrigger_withNoInput_EL() throws IOException {
         runner = TestRunners.newTestRunner(new ScrollElasticsearchHttpTestProcessor());
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "${es.url}");
@@ -133,9 +147,17 @@ public class TestScrollElasticsearchHttp {
 
         runner.setProperty(ScrollElasticsearchHttp.INDEX, "doc");
         runner.assertNotValid();
-        runner.setProperty(ScrollElasticsearchHttp.TYPE, "status");
-        runner.assertNotValid();
         runner.setProperty(ScrollElasticsearchHttp.QUERY, "${doc_id}");
+        runner.assertValid();
+        runner.removeProperty(ScrollElasticsearchHttp.TYPE);
+        runner.assertValid();
+        runner.setProperty(ScrollElasticsearchHttp.TYPE, "status");
+        runner.assertValid();
+        runner.setProperty(ScrollElasticsearchHttp.TYPE, "${type}");
+        runner.assertValid();
+        runner.setProperty(ScrollElasticsearchHttp.TYPE, "");
+        runner.assertNotValid();
+        runner.setProperty(ScrollElasticsearchHttp.TYPE, "_doc");
         runner.assertValid();
         runner.setProperty(ScrollElasticsearchHttp.FIELDS, "id,, userinfo.location");
         runner.assertValid();
@@ -247,6 +269,7 @@ public class TestScrollElasticsearchHttp {
         runner.setProperty(ScrollElasticsearchHttp.PROP_SSL_CONTEXT_SERVICE, "ssl-context");
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
         runner.setProperty(ScrollElasticsearchHttp.INDEX, "doc");
+        runner.removeProperty(ScrollElasticsearchHttp.TYPE);
         runner.setProperty(ScrollElasticsearchHttp.QUERY, "${doc_id}");
         runner.setIncomingConnection(false);
 
@@ -408,7 +431,9 @@ public class TestScrollElasticsearchHttp {
                 @Override
                 public Call answer(InvocationOnMock invocationOnMock) throws Throwable {
                     Request realRequest = (Request) invocationOnMock.getArguments()[0];
-                    assertTrue((expectedParam == null) || (realRequest.url().toString().endsWith(expectedParam)));
+                    if (realRequest.method().equals("GET")) {
+                        assertTrue((expectedParam == null) || (realRequest.url().toString().contains(expectedParam)));
+                    }
                     Response mockResponse = new Response.Builder()
                             .request(realRequest)
                             .protocol(Protocol.HTTP_1_1)

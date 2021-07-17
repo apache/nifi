@@ -35,6 +35,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -49,7 +50,10 @@ import java.util.concurrent.TimeUnit;
 public class StandardIndexManager implements IndexManager {
     private static final Logger logger = LoggerFactory.getLogger(StandardIndexManager.class);
 
-    private final Map<File, IndexWriterCount> writerCounts = new HashMap<>(); // guarded by synchronizing on map itself
+    private final Object countMutex = new Object();
+    private final Map<File, IndexWriterCount> writerCounts = new HashMap<>(); // guarded by synchronizing on countMutex
+    private final Map<File, Integer> searcherCounts = new HashMap<>();  // guarded by synchronizing on countMutex
+
     private final ExecutorService searchExecutor;
     private final RepositoryConfiguration repoConfig;
 
@@ -72,7 +76,7 @@ public class StandardIndexManager implements IndexManager {
             searchExecutor.shutdownNow();
         }
 
-        synchronized (writerCounts) {
+        synchronized (countMutex) {
             final Set<File> closed = new HashSet<>();
 
             for (final Map.Entry<File, IndexWriterCount> entry : writerCounts.entrySet()) {
@@ -92,18 +96,33 @@ public class StandardIndexManager implements IndexManager {
         final File absoluteFile = indexDir.getAbsoluteFile();
 
         final IndexWriterCount writerCount;
-        synchronized (writerCounts) {
+        synchronized (countMutex) {
             writerCount = writerCounts.remove(absoluteFile);
 
-            if (writerCount != null) {
-                // Increment writer count and create an Index Searcher based on the writer
+            // If there is an Index Writer already, increment writer count and create an Index Searcher based on the writer. This gives our searcher
+            // access to events that have been written by that writer and not necessarily yet committed to the index. Otherwise, we can just create
+            // an index searcher but must increment the number of Index Searchers we have active in order to avoid allowing the directory to be
+            // deleted while the Index Searcher is active.
+            if (writerCount == null) {
+                final Integer searcherCount = searcherCounts.remove(absoluteFile);
+                final int updatedSearcherCount = (searcherCount == null) ? 1 : searcherCount + 1;
+                searcherCounts.put(absoluteFile, updatedSearcherCount);
+                logger.debug("Index Searcher being borrowed for {}. No Active Writer so incrementing Searcher Count to {}", absoluteFile, updatedSearcherCount);
+            } else {
+                final int updatedWriterCount = writerCount.getCount() + 1;
                 writerCounts.put(absoluteFile, new IndexWriterCount(writerCount.getWriter(), writerCount.getAnalyzer(),
-                    writerCount.getDirectory(), writerCount.getCount() + 1, writerCount.isCloseableWhenUnused()));
+                    writerCount.getDirectory(), updatedWriterCount, writerCount.isCloseableWhenUnused()));
+                logger.debug("Index Searcher being borrowed for {}. An Active Writer exists so incrementing Writer Count to {}", absoluteFile, updatedWriterCount);
             }
         }
 
         final DirectoryReader directoryReader;
         if (writerCount == null) {
+            final boolean directoryExists = indexDir.exists();
+            if (!directoryExists) {
+                throw new FileNotFoundException("Cannot search Provenance Index Directory " + indexDir.getAbsolutePath() + " because the directory does not exist");
+            }
+
             logger.trace("Creating index searcher for {}", indexDir);
             final Directory directory = FSDirectory.open(indexDir.toPath());
             directoryReader = DirectoryReader.open(directory);
@@ -127,11 +146,20 @@ public class StandardIndexManager implements IndexManager {
 
         final IndexWriterCount count;
         boolean closeWriter = false;
-        synchronized (writerCounts) {
+        synchronized (countMutex) {
             final File absoluteFile = searcher.getIndexDirectory().getAbsoluteFile();
             count = writerCounts.get(absoluteFile);
             if (count == null) {
-                logger.debug("Returning EventIndexSearcher for {}; there is no active writer for this searcher so will not decrement writerCounts", absoluteFile);
+                final Integer searcherCount = searcherCounts.remove(absoluteFile);
+                final int updatedSearcherCount = (searcherCount == null) ? 0 : searcherCount - 1;
+                if (updatedSearcherCount <= 0) {
+                    searcherCounts.remove(absoluteFile);
+                } else {
+                    searcherCounts.put(absoluteFile, updatedSearcherCount);
+                }
+
+                logger.debug("Returning EventIndexSearcher for {}; there is no active writer for this searcher so will not decrement writerCounts. Decrementing Searcher Count to {}",
+                    absoluteFile, updatedSearcherCount);
                 return;
             }
 
@@ -168,7 +196,13 @@ public class StandardIndexManager implements IndexManager {
         logger.debug("Attempting to remove index {} from SimpleIndexManager", absoluteFile);
 
         IndexWriterCount writerCount;
-        synchronized (writerCounts) {
+        synchronized (countMutex) {
+            final Integer numSearchers = searcherCounts.get(absoluteFile);
+            if (numSearchers != null && numSearchers > 0) {
+                logger.debug("Not allowing removal of index {} because the active searcher count for this directory is {}", absoluteFile, numSearchers);
+                return false;
+            }
+
             writerCount = writerCounts.remove(absoluteFile);
             if (writerCount == null) {
                 logger.debug("Allowing removal of index {} because there is no IndexWriterCount for this directory", absoluteFile);
@@ -183,17 +217,17 @@ public class StandardIndexManager implements IndexManager {
         }
 
         try {
+            // A WriterCount exists and has a count of 0.
             logger.debug("Removing index {} from SimpleIndexManager and closing the writer", absoluteFile);
 
             close(writerCount);
         } catch (final Exception e) {
             logger.error("Failed to close Index Writer for {} while removing Index from the repository;"
-                + "this directory may need to be cleaned up manually.", e);
+                + "this directory may need to be cleaned up manually.", absoluteFile, e);
         }
 
         return true;
     }
-
 
     private IndexWriterCount createWriter(final File indexDirectory) throws IOException {
         final List<Closeable> closeables = new ArrayList<>();
@@ -236,7 +270,7 @@ public class StandardIndexManager implements IndexManager {
         logger.trace("Borrowing index writer for {}", indexDirectory);
 
         IndexWriterCount writerCount;
-        synchronized (writerCounts) {
+        synchronized (countMutex) {
             writerCount = writerCounts.get(absoluteFile);
 
             if (writerCount == null) {
@@ -272,7 +306,7 @@ public class StandardIndexManager implements IndexManager {
         IndexWriterCount count;
         boolean close = isCloseable;
         try {
-            synchronized (writerCounts) {
+            synchronized (countMutex) {
                 count = writerCounts.get(absoluteFile);
                 if (count != null && count.isCloseableWhenUnused()) {
                     close = true;
@@ -340,8 +374,14 @@ public class StandardIndexManager implements IndexManager {
     }
 
     protected int getWriterCount() {
-        synchronized (writerCounts) {
+        synchronized (countMutex) {
             return writerCounts.size();
+        }
+    }
+
+    protected int getSearcherCount() {
+        synchronized (countMutex) {
+            return searcherCounts.size();
         }
     }
 

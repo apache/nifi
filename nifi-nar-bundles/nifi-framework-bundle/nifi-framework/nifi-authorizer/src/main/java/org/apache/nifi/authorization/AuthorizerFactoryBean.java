@@ -25,11 +25,9 @@ import org.apache.nifi.authorization.generated.Authorizers;
 import org.apache.nifi.authorization.generated.Property;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.nar.ExtensionManager;
-import org.apache.nifi.properties.AESSensitivePropertyProviderFactory;
-import org.apache.nifi.properties.NiFiPropertiesLoader;
+import org.apache.nifi.properties.PropertyProtectionScheme;
 import org.apache.nifi.properties.SensitivePropertyProtectionException;
-import org.apache.nifi.properties.SensitivePropertyProvider;
-import org.apache.nifi.properties.SensitivePropertyProviderFactory;
+import org.apache.nifi.properties.SensitivePropertyProviderFactoryAware;
 import org.apache.nifi.security.xml.XmlUtils;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.file.classloader.ClassLoaderUtils;
@@ -50,7 +48,6 @@ import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.Schema;
 import javax.xml.validation.SchemaFactory;
 import java.io.File;
-import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -66,15 +63,15 @@ import java.util.stream.Collectors;
 /**
  * Factory bean for loading the configured authorizer.
  */
-public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, UserGroupProviderLookup, AccessPolicyProviderLookup, AuthorizerLookup {
+public class AuthorizerFactoryBean extends SensitivePropertyProviderFactoryAware
+        implements FactoryBean, DisposableBean, UserGroupProviderLookup, AccessPolicyProviderLookup, AuthorizerLookup {
 
     private static final Logger logger = LoggerFactory.getLogger(AuthorizerFactoryBean.class);
     private static final String AUTHORIZERS_XSD = "/authorizers.xsd";
     private static final String JAXB_GENERATED_PATH = "org.apache.nifi.authorization.generated";
     private static final JAXBContext JAXB_CONTEXT = initializeJaxbContext();
 
-    private static SensitivePropertyProviderFactory SENSITIVE_PROPERTY_PROVIDER_FACTORY;
-    private static SensitivePropertyProvider SENSITIVE_PROPERTY_PROVIDER;
+    private NiFiProperties properties;
 
     /**
      * Load the JAXBContext.
@@ -88,11 +85,14 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, UserG
     }
 
     private Authorizer authorizer;
-    private NiFiProperties properties;
     private ExtensionManager extensionManager;
     private final Map<String, UserGroupProvider> userGroupProviders = new HashMap<>();
     private final Map<String, AccessPolicyProvider> accessPolicyProviders = new HashMap<>();
     private final Map<String, Authorizer> authorizers = new HashMap<>();
+
+    public void setProperties(final NiFiProperties properties) {
+        this.properties = properties;
+    }
 
     @Override
     public UserGroupProvider getUserGroupProvider(String identifier) {
@@ -158,11 +158,14 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, UserG
                         if (authorizers.containsKey(authorizer.getIdentifier())) {
                             throw new Exception("Duplicate Authorizer identifier in Authorizers configuration: " + authorizer.getIdentifier());
                         }
-                        authorizers.put(authorizer.getIdentifier(), createAuthorizer(authorizer.getIdentifier(), authorizer.getClazz(),authorizer.getClasspath()));
+                        authorizers.put(authorizer.getIdentifier(), createAuthorizer(authorizer.getIdentifier(), authorizer.getClazz(), authorizer.getClasspath()));
                     }
 
-                    // configure each authorizer
+                    // configure each authorizer, except the authorizer that is selected in nifi.properties
                     for (final org.apache.nifi.authorization.generated.Authorizer provider : authorizerConfiguration.getAuthorizer()) {
+                        if (provider.getIdentifier().equals(authorizerIdentifier)) {
+                            continue;
+                        }
                         final Authorizer instance = authorizers.get(provider.getIdentifier());
                         instance.onConfigured(loadAuthorizerConfiguration(provider.getIdentifier(), provider.getProperty()));
                     }
@@ -174,7 +177,23 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, UserG
                     if (authorizer == null) {
                         throw new Exception(String.format("The specified authorizer '%s' could not be found.", authorizerIdentifier));
                     } else {
+                        // install integrity checks
                         authorizer = AuthorizerFactory.installIntegrityChecks(authorizer);
+
+                        // configure authorizer after integrity checks are installed
+                        AuthorizerConfigurationContext authorizerConfigurationContext = null;
+                        for (final org.apache.nifi.authorization.generated.Authorizer provider : authorizerConfiguration.getAuthorizer()) {
+                            if (provider.getIdentifier().equals(authorizerIdentifier)) {
+                                authorizerConfigurationContext = loadAuthorizerConfiguration(provider.getIdentifier(), provider.getProperty());
+                                break;
+                            }
+                        }
+
+                        if (authorizerConfigurationContext == null) {
+                            throw new IllegalStateException("Unable to load configuration for authorizer with id: " + authorizerIdentifier);
+                        }
+
+                        authorizer.onConfigured(authorizerConfigurationContext);
                     }
                 }
             }
@@ -315,8 +334,16 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, UserG
             throw new Exception(String.format("Multiple bundles found for the specified authorizer class '%s', only one is allowed.", authorizerClassName));
         }
 
+        // start with ClassLoad from authorizer's bundle
         final Bundle authorizerBundle = authorizerBundles.get(0);
         ClassLoader authorizerClassLoader = authorizerBundle.getClassLoader();
+
+        // if additional classpath resources were specified, replace with a new ClassLoader that wraps the original one
+        if (StringUtils.isNotEmpty(classpathResources)) {
+            logger.info(String.format("Replacing Authorizer ClassLoader for '%s' to include additional resources: %s", identifier, classpathResources));
+            URL[] urls = ClassLoaderUtils.getURLsForClasspath(classpathResources, null, true);
+            authorizerClassLoader = new URLClassLoader(urls, authorizerClassLoader);
+        }
 
         // get the current context classloader
         final ClassLoader currentClassLoader = Thread.currentThread().getContextClassLoader();
@@ -346,11 +373,6 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, UserG
             if (currentClassLoader != null) {
                 Thread.currentThread().setContextClassLoader(currentClassLoader);
             }
-        }
-
-        if (StringUtils.isNotEmpty(classpathResources)) {
-            URL[] urls = ClassLoaderUtils.getURLsForClasspath(classpathResources, null, true);
-            authorizerClassLoader = new URLClassLoader(urls, authorizerClassLoader);
         }
 
         return AuthorizerFactory.withNarLoader(instance, authorizerClassLoader);
@@ -459,26 +481,8 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, UserG
         };
     }
 
-    private String decryptValue(String cipherText, String encryptionScheme) throws SensitivePropertyProtectionException {
-        initializeSensitivePropertyProvider(encryptionScheme);
-        return SENSITIVE_PROPERTY_PROVIDER.unprotect(cipherText);
-    }
-
-    private static void initializeSensitivePropertyProvider(String encryptionScheme) throws SensitivePropertyProtectionException {
-        if (SENSITIVE_PROPERTY_PROVIDER == null || !SENSITIVE_PROPERTY_PROVIDER.getIdentifierKey().equalsIgnoreCase(encryptionScheme)) {
-            try {
-                String keyHex = getMasterKey();
-                SENSITIVE_PROPERTY_PROVIDER_FACTORY = new AESSensitivePropertyProviderFactory(keyHex);
-                SENSITIVE_PROPERTY_PROVIDER = SENSITIVE_PROPERTY_PROVIDER_FACTORY.getProvider();
-            } catch (IOException e) {
-                logger.error("Error extracting master key from bootstrap.conf for login identity provider decryption", e);
-                throw new SensitivePropertyProtectionException("Could not read master key from bootstrap.conf");
-            }
-        }
-    }
-
-    private static String getMasterKey() throws IOException {
-        return NiFiPropertiesLoader.extractKeyFromBootstrapFile();
+    private String decryptValue(final String cipherText, final String protectionScheme) throws SensitivePropertyProtectionException {
+        return getSensitivePropertyProviderFactory().getProvider(PropertyProtectionScheme.fromIdentifier(protectionScheme)).unprotect(cipherText);
     }
 
     @Override
@@ -532,10 +536,6 @@ public class AuthorizerFactoryBean implements FactoryBean, DisposableBean, UserG
             List<String> errorMessages = errors.stream().map(Throwable::toString).collect(Collectors.toList());
             throw new AuthorizerDestructionException("One or more providers encountered a pre-destruction error: " + StringUtils.join(errorMessages, "; "), errors.get(0));
         }
-    }
-
-    public void setProperties(NiFiProperties properties) {
-        this.properties = properties;
     }
 
     public void setExtensionManager(ExtensionManager extensionManager) {

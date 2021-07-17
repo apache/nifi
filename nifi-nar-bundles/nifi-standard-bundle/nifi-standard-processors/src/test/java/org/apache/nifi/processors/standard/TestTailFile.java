@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.processors.standard;
 
+import org.apache.commons.lang3.SystemUtils;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.processors.standard.TailFile.TailFileState;
@@ -25,6 +26,7 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.After;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -36,6 +38,7 @@ import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.RandomAccessFile;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -127,6 +130,123 @@ public class TestTailFile {
         }
     }
 
+    @Test
+    public void testNULContentWithReReadOnNulFalseLeaveNul() throws Exception {
+        // GIVEN
+        runner.setProperty(TailFile.REREAD_ON_NUL, "false");
+
+        // WHEN
+        // THEN
+        testNULContentWithReReadOnNulDefault();
+    }
+
+    @Test
+    public void testNULContentWithReReadOnNulDefault() throws Exception {
+        // GIVEN
+        String content1 = "first_line_with_nul\0\n";
+        Integer reposition = null;
+        String content2 = "second_line\n";
+
+        List<String> expected = Arrays.asList("first_line_with_nul\0\n", "second_line\n");
+
+        // WHEN
+        // THEN
+        testNULContent(content1, reposition, content2, expected);
+    }
+
+    @Test
+    public void testNULContentWithReReadOnNulFalseOverwriteNul() throws Exception {
+        // GIVEN
+        runner.setProperty(TailFile.REREAD_ON_NUL, "false");
+
+        String content1 = "first_line_with_nul\0\n";
+        Integer reposition = "first_line_with_nul".length();
+        String content2 = "!!overwrite_nul_and_continue_first_line_but_end_up_in_second_line_anyway\n";
+
+        List<String> expected = Arrays.asList("first_line_with_nul\0\n", "overwrite_nul_and_continue_first_line_but_end_up_in_second_line_anyway\n");
+
+        // WHEN
+        // THEN
+        testNULContent(content1, reposition, content2, expected);
+    }
+
+    @Test
+    public void testNULContentWithReReadOnNulTrue() throws Exception {
+        // GIVEN
+        runner.setProperty(TailFile.REREAD_ON_NUL, "true");
+
+        String content1 = "first_line_with_nul\0\n";
+        Integer reposition = "first_line_with_nul".length();
+        String content2 = " overwrite_nul_and_continue_first_line\n";
+
+        List<String> expected = Arrays.asList("first_line_with_nul overwrite_nul_and_continue_first_line\n");
+
+        // WHEN
+        // THEN
+        testNULContent(content1, reposition, content2, expected);
+    }
+
+    private void testNULContent(String content1, Integer reposition, String content2, List<String> expected) throws IOException {
+        // GIVEN
+        runner.setProperty(TailFile.START_POSITION, TailFile.START_CURRENT_FILE.getValue());
+        raf.write(content1.getBytes());
+
+        // WHEN
+        runner.run(1, false, true);
+        if (reposition != null) {
+            raf.seek(reposition);
+        }
+        raf.write(content2.getBytes());
+        runner.run(1, true, false);
+
+        // THEN
+        runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, expected.size());
+
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS);
+        List<String> lines = flowFiles.stream().map(MockFlowFile::toByteArray).map(String::new).collect(Collectors.toList());
+        assertEquals(expected, lines);
+    }
+
+    @Test
+    public void testNULContentWhenRolledOver() throws IOException {
+        runner.setProperty(TailFile.ROLLING_FILENAME_PATTERN, "log.txt*");
+        runner.setProperty(TailFile.START_POSITION, TailFile.START_CURRENT_FILE.getValue());
+        runner.setProperty(TailFile.REREAD_ON_NUL, "true");
+
+
+        // first line fully written, second partially
+        raf.write("a\nb".getBytes());
+        // read the first line
+        runner.run(1, false, true);
+
+        // zero bytes and rollover occurs between two runs
+        raf.write(new byte[] { 0, 0 });
+        final long originalLastMod = file.lastModified();
+        final File rolledOverFile = rollover(0);
+        // this should not pick up the zeros, still one file in the success relationship
+        runner.run(1, false, false);
+        runner.assertTransferCount(TailFile.REL_SUCCESS, 1);
+
+        // nuls replaced
+        try (final RandomAccessFile rolledOverRAF = new RandomAccessFile(rolledOverFile, "rw")) {
+            rolledOverRAF.seek(3);
+            rolledOverRAF.write("c\n".getBytes());
+        }
+        // lastmod reset to the TailFile not to consider this as an updated file (as NFS "nul-replacement" doesn't touch the lastmod timestamp)
+        rolledOverFile.setLastModified(originalLastMod);
+        runner.run(1, false, false);
+
+        raf.write("d\n".getBytes());
+
+        runner.run(1, true, false);
+
+        runner.assertTransferCount(TailFile.REL_SUCCESS, 3);
+        List<MockFlowFile> flowFiles = runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS);
+        List<String> lines = flowFiles.stream().map(MockFlowFile::toByteArray).map(String::new).collect(Collectors.toList());
+        assertEquals(Arrays.asList("a\n", "bc\n", "d\n"), lines);
+    }
+
+
 
     @Test
     public void testRotateMultipleBeforeConsuming() throws IOException {
@@ -184,10 +304,107 @@ public class TestTailFile {
         out.assertContentEquals("6\n");
     }
 
-    private void rollover(final int index) throws IOException {
+    private File rollover(final int index) throws IOException {
         raf.close();
-        file.renameTo(new File(file.getParentFile(), file.getName() + "." + index + ".log"));
+        final File rolledOverFile = new File(file.getParentFile(), file.getName() + "." + index + ".log");
+        file.renameTo(rolledOverFile);
         raf = new RandomAccessFile(file, "rw");
+        return rolledOverFile;
+    }
+
+
+    @Test
+    public void testFileWrittenToAfterRollover() throws IOException, InterruptedException {
+        Assume.assumeTrue("Test requires renaming a file while a file handle is still open to it, so it won't run on Windows", !SystemUtils.IS_OS_WINDOWS);
+
+        runner.setProperty(TailFile.ROLLING_FILENAME_PATTERN, "log.*");
+        runner.setProperty(TailFile.START_POSITION, TailFile.START_BEGINNING_OF_TIME.getValue());
+        runner.setProperty(TailFile.REREAD_ON_NUL, "true");
+        runner.setProperty(TailFile.POST_ROLLOVER_TAIL_PERIOD, "10 mins");
+
+        raf.write("a\nb\n".getBytes());
+        runner.run(1, false, true);
+        runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 1);
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0).assertContentEquals("a\nb\n");
+        runner.clearTransferState();
+
+        raf.write("c\n".getBytes());
+        runner.run(1, false, false);
+        runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 1);
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0).assertContentEquals("c\n");
+        runner.clearTransferState();
+
+        // Write additional data to file, then roll file over
+        raf.write("d\n".getBytes());
+
+        final File rolledFile = new File("target/log.1");
+        final boolean renamed = file.renameTo(rolledFile);
+        assertTrue(renamed);
+        raf.getChannel().force(true);
+
+        System.out.println("Wrote d\\n and rolled file");
+
+        // Create the new file
+        final RandomAccessFile newFile = new RandomAccessFile(new File("target/log.txt"), "rw");
+        newFile.write("new file\n".getBytes()); // This should not get consumed until the old file's last modified date indicates it's complete
+        newFile.close();
+
+        // Trigger processor and verify data is consumed properly
+        runner.run(1, false, false);
+        runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 1);
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0).assertContentEquals("d\n");
+        runner.clearTransferState();
+
+        // Write to the file and trigger again.
+        raf.write("e\nf".getBytes());
+        System.out.println("Wrote e\\nf");
+        runner.run(1, false, false);
+
+        runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 1);
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0).assertContentEquals("e\n");
+        runner.clearTransferState();
+
+        // Write out some more characters and then write NUL characters. This should result in the processor not consuming the data.
+        raf.write("\n".getBytes());
+        raf.write(0);
+        raf.write(0);
+        raf.write(0);
+        System.out.println("Wrote \\n\\0\\0\\0");
+
+        runner.run(1, false, false);
+        runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 1);
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0).assertContentEquals("f\n");
+        runner.clearTransferState();
+
+        // Truncate the NUL bytes and replace with additional data, ending with a new line. This should ingest the entire line of text.
+        raf.setLength(raf.length() - 3);
+        raf.write("g\nh".getBytes());
+        System.out.println("Truncated the NUL bytes and replaced with g\\nh");
+
+        runner.run(1, false, false);
+        runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 1);
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0).assertContentEquals("g\n");
+        runner.clearTransferState();
+
+        // Ensure that no data comes in for a bit, since the last modified date on the rolled over file isn't old enough.
+        for (int i=0; i < 100; i++) {
+            runner.run(1, false, false);
+            runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 0);
+            Thread.sleep(1L);
+        }
+
+        // Set last modified time so that processor believes file to have not been modified in a very long time, then run again.
+        assertTrue(rolledFile.setLastModified(500L));
+        System.out.println("Set lastModified on " + rolledFile + " to 500");
+        runner.run(1, false, false);
+
+        // Verify results
+        runner.assertAllFlowFilesTransferred(TailFile.REL_SUCCESS, 2);
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(0).assertContentEquals("h");
+        runner.getFlowFilesForRelationship(TailFile.REL_SUCCESS).get(1).assertContentEquals("new file\n");
+        runner.clearTransferState();
+
+        raf.close();
     }
 
 

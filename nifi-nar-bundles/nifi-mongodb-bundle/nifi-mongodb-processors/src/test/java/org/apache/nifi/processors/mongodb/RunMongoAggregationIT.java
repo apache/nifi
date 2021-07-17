@@ -37,6 +37,7 @@ import org.junit.Test;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -235,5 +236,63 @@ public class RunMongoAggregationIT {
         runner.enqueue("{}");
         runner.run();
         runner.assertTransferCount(RunMongoAggregation.REL_RESULTS, 9);
+    }
+
+    @Test
+    public void testExtendedJsonSupport() throws Exception {
+        String pattern = "yyyy-MM-dd'T'HH:mm:ss'Z'";
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat(pattern);
+        //Let's put this a week from now to make sure that we're not getting too close to
+        //the creation date
+        Date nowish = new Date(now.getTime().getTime() + (7 * 24 * 60 * 60 * 1000));
+
+        final String queryInput = "[\n" +
+            "  {\n" +
+            "    \"$match\": {\n" +
+            "      \"date\": { \"$gte\": { \"$date\": \"2019-01-01T00:00:00Z\" }, \"$lte\": { \"$date\": \"" + simpleDateFormat.format(nowish) + "\" } }\n" +
+            "    }\n" +
+            "  },\n" +
+            "  {\n" +
+            "    \"$group\": {\n" +
+            "      \"_id\": \"$val\",\n" +
+            "      \"doc_count\": {\n" +
+            "        \"$sum\": 1\n" +
+            "      }\n" +
+            "    }\n" +
+            "  }\n" +
+            "]\n";
+
+        runner.setProperty(RunMongoAggregation.QUERY, queryInput);
+        runner.enqueue("test");
+        runner.run(1, true, true);
+
+        runner.assertTransferCount(RunMongoAggregation.REL_RESULTS, mappings.size());
+    }
+
+    @Test
+    public void testEmptyResponse() throws Exception {
+        final String queryInput = "[\n" +
+                "  {\n" +
+                "    \"$match\": {\n" +
+                "      \"val\": \"no_exists\"\n" +
+                "    }\n" +
+                "  },\n" +
+                "  {\n" +
+                "    \"$group\": {\n" +
+                "      \"_id\": \"null\",\n" +
+                "      \"doc_count\": {\n" +
+                "        \"$sum\": 1\n" +
+                "      }\n" +
+                "    }\n" +
+                "  }\n" +
+                "]";
+
+        runner.setProperty(RunMongoAggregation.QUERY, queryInput);
+        runner.enqueue("test");
+        runner.run(1, true, true);
+
+        runner.assertTransferCount(RunMongoAggregation.REL_ORIGINAL, 1);
+        runner.assertTransferCount(RunMongoAggregation.REL_FAILURE, 0);
+        runner.assertTransferCount(RunMongoAggregation.REL_RESULTS, 1);
     }
 }

@@ -21,6 +21,7 @@ import org.apache.nifi.web.api.dto.AffectedComponentDTO;
 import org.apache.nifi.web.api.dto.ProcessGroupNameDTO;
 
 import javax.xml.bind.annotation.XmlRootElement;
+import java.util.Objects;
 
 /**
  * A serialized representation of this class can be placed in the entity body of a response to the API.
@@ -70,5 +71,22 @@ public class AffectedComponentEntity extends ComponentEntity implements Permissi
     @Override
     public String toString() {
         return component == null ? "AffectedComponent[No Component]" : component.toString();
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(getId());
+    }
+
+    @Override
+    public boolean equals(final Object obj) {
+        if (obj == this) {
+            return true;
+        }
+        if (!(obj instanceof AffectedComponentEntity)) {
+            return false;
+        }
+
+        return Objects.equals(getId(), ((AffectedComponentEntity) obj).getId());
     }
 }

@@ -704,7 +704,7 @@
         if (!dataContext.permissions.canRead) {
             return '<span class="blank">' + nfCommon.escapeHtml(dataContext.id) + '</span>';
         }
-        
+
         return nfCommon.escapeHtml(dataContext.component.name);
     };
 
@@ -854,7 +854,7 @@
 
     /**
      * Initializes the controller services tab.
-     * 
+     *
      * @param {jQuery} serviceTable
      * @param {function} showSettings
      */
@@ -1037,8 +1037,8 @@
                 resizable: false,
                 formatter: controllerServiceActionFormatter,
                 sortable: false,
-                width: 90,
-                maxWidth: 90
+                width: 115,
+                maxWidth: 115
             });
 
         // initialize the dataview
@@ -1096,21 +1096,21 @@
                     $('#shell-close-button').click();
                 } else if (target.hasClass('go-to-controller-service')) {
                     // load the parent group of the selected service
-                    nfProcessGroup.enterGroup(controllerServiceEntity.parentGroupId);
-
-                    // open/select the specific service
-                    $.Deferred(function (deferred) {
-                        if ($('#process-group-configuration').is(':visible')) {
-                            nfProcessGroupConfiguration.loadConfiguration(controllerServiceEntity.parentGroupId).done(function () {
-                                deferred.resolve();
-                            });
-                        } else {
-                            nfProcessGroupConfiguration.showConfiguration(controllerServiceEntity.parentGroupId).done(function () {
-                                deferred.resolve();
-                            });
-                        }
-                    }).done(function () {
-                        nfProcessGroupConfiguration.selectControllerService(controllerServiceEntity.id);
+                    nfProcessGroup.enterGroup(controllerServiceEntity.parentGroupId).done(function () {
+                        // open/select the specific service
+                        $.Deferred(function (deferred) {
+                            if ($('#process-group-configuration').is(':visible')) {
+                                nfProcessGroupConfiguration.loadConfiguration(controllerServiceEntity.parentGroupId).done(function () {
+                                    deferred.resolve();
+                                });
+                            } else {
+                                nfProcessGroupConfiguration.showConfiguration(controllerServiceEntity.parentGroupId).done(function () {
+                                    deferred.resolve();
+                                });
+                            }
+                        }).done(function () {
+                            nfProcessGroupConfiguration.selectControllerService(controllerServiceEntity.id);
+                        });
                     });
                 }
             } else if (controllerServicesGrid.getColumns()[args.cell].id === 'moreDetails') {
@@ -1379,7 +1379,7 @@
 
         /**
          * Update the size of the grid based on its container's current size.
-         * 
+         *
          * @param {jQuery} serviceTable
          */
         resetTableSize: function (serviceTable) {

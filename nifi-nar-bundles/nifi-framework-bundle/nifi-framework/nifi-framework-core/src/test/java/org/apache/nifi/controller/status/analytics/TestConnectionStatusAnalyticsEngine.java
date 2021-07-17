@@ -16,20 +16,16 @@
  */
 package org.apache.nifi.controller.status.analytics;
 
-import java.util.Map;
-
 import org.apache.nifi.controller.flow.FlowManager;
-import org.apache.nifi.controller.repository.FlowFileEventRepository;
-import org.apache.nifi.controller.status.history.ComponentStatusRepository;
-import org.apache.nifi.util.Tuple;
+import org.apache.nifi.controller.status.history.StatusHistoryRepository;
 
 public class TestConnectionStatusAnalyticsEngine extends TestStatusAnalyticsEngine {
 
     @Override
-    public StatusAnalyticsEngine getStatusAnalyticsEngine(FlowManager flowManager, FlowFileEventRepository flowFileEventRepository,
-                                                          ComponentStatusRepository statusRepository, Map<String, Tuple<StatusAnalyticsModel, StatusMetricExtractFunction>> modelMap,
-                                                            long predictIntervalMillis, long queryIntervalMillis, String scoreName, double scoreThreshold) {
-        return new ConnectionStatusAnalyticsEngine(flowManager, statusRepository, flowFileEventRepository,modelMap,
+    public StatusAnalyticsEngine getStatusAnalyticsEngine(FlowManager flowManager, StatusHistoryRepository statusRepository,
+                                                          StatusAnalyticsModelMapFactory statusAnalyticsModelMapFactory,
+                                                          long predictIntervalMillis, long queryIntervalMillis, String scoreName, double scoreThreshold) {
+        return new ConnectionStatusAnalyticsEngine(flowManager, statusRepository, statusAnalyticsModelMapFactory,
                                                    DEFAULT_PREDICT_INTERVAL_MILLIS, DEFAULT_QUERY_INTERVAL_MILLIS, scoreName, scoreThreshold);
     }
 

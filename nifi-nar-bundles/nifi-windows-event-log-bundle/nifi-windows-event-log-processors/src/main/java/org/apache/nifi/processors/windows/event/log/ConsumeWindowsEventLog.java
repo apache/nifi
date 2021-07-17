@@ -20,21 +20,6 @@ package org.apache.nifi.processors.windows.event.log;
 import com.sun.jna.platform.win32.Kernel32;
 import com.sun.jna.platform.win32.Kernel32Util;
 import com.sun.jna.platform.win32.WinNT;
-
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.TimeUnit;
-
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
@@ -59,6 +44,20 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.windows.event.log.jna.ErrorLookup;
 import org.apache.nifi.processors.windows.event.log.jna.EventSubscribeXmlRenderingCallback;
 import org.apache.nifi.processors.windows.event.log.jna.WEvtApi;
+
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 
 @InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
@@ -239,8 +238,12 @@ public class ConsumeWindowsEventLog extends AbstractSessionFactoryProcessor {
         return null;
     }
 
+    private boolean isSubscriptionHandleOpen(){
+        return subscriptionHandle != null && subscriptionHandle.getPointer() != null;
+    }
+
     private boolean isSubscribed() {
-        final boolean subscribed = subscriptionHandle != null && subscriptionHandle.getPointer() != null;
+        final boolean subscribed = isSubscriptionHandleOpen();
         final boolean subscriptionFailed = evtSubscribeCallback != null
             && ((EventSubscribeXmlRenderingCallback) evtSubscribeCallback).isSubscriptionFailed();
         final boolean subscribing = subscribed && !subscriptionFailed;
@@ -287,7 +290,7 @@ public class ConsumeWindowsEventLog extends AbstractSessionFactoryProcessor {
     }
 
     private void unsubscribe() {
-        if (isSubscribed()) {
+        if (isSubscriptionHandleOpen()) {
             wEvtApi.EvtClose(subscriptionHandle);
         }
         subscriptionHandle = null;
@@ -326,28 +329,31 @@ public class ConsumeWindowsEventLog extends AbstractSessionFactoryProcessor {
      * @return the number of created FlowFiles
      */
     private int processQueue(ProcessSession session) {
-        String xml;
-        int flowFileCount = 0;
+        final List<String> xmlMessages = new ArrayList<>();
+        renderedXMLs.drainTo(xmlMessages);
 
-        while ((xml = renderedXMLs.peek()) != null) {
-            FlowFile flowFile = session.create();
-            byte[] xmlBytes = xml.getBytes(StandardCharsets.UTF_8);
-            flowFile = session.write(flowFile, out -> out.write(xmlBytes));
-            flowFile = session.putAttribute(flowFile, CoreAttributes.MIME_TYPE.key(), APPLICATION_XML);
-            session.getProvenanceReporter().receive(flowFile, provenanceUri);
-            session.transfer(flowFile, REL_SUCCESS);
-            session.commit();
-            flowFileCount++;
-            if (!renderedXMLs.remove(xml) && getLogger().isWarnEnabled()) {
-                getLogger().warn(new StringBuilder("Event ")
-                        .append(xml)
-                        .append(" had already been removed from queue, FlowFile ")
-                        .append(flowFile.getAttribute(CoreAttributes.UUID.key()))
-                        .append(" possible duplication of data")
-                        .toString());
+        try {
+            for (final String xmlMessage : xmlMessages) {
+                FlowFile flowFile = session.create();
+                byte[] xmlBytes = xmlMessage.getBytes(StandardCharsets.UTF_8);
+                flowFile = session.write(flowFile, out -> out.write(xmlBytes));
+                flowFile = session.putAttribute(flowFile, CoreAttributes.MIME_TYPE.key(), APPLICATION_XML);
+                session.getProvenanceReporter().receive(flowFile, provenanceUri);
+                session.transfer(flowFile, REL_SUCCESS);
             }
+        } catch (final Throwable t) {
+            getLogger().error("Failed to create FlowFile for XML message", t);
+            renderedXMLs.addAll(xmlMessages);
+            session.rollback();
+            throw t;
         }
-        return flowFileCount;
+
+        // Commit the session. If successful, we're done. But if we encounter a failure, re-queue the messages.
+        session.commitAsync(() -> {}, t -> {
+            renderedXMLs.addAll(xmlMessages);
+        });
+
+        return xmlMessages.size();
     }
 
     @Override

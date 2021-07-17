@@ -124,7 +124,7 @@ public class ControllerServiceReferencingComponentDTO {
      */
     @ApiModelProperty(
             value = "The type of reference this is.",
-            allowableValues = "Processor, ControllerService, or ReportingTask"
+            allowableValues = "Processor, ControllerService, ReportingTask"
     )
     public String getReferenceType() {
         return referenceType;

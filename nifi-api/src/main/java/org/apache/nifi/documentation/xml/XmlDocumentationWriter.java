@@ -29,8 +29,11 @@ import org.apache.nifi.annotation.documentation.DeprecationNotice;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.ConfigurableComponent;
+import org.apache.nifi.components.PropertyDependency;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.RequiredPermission;
+import org.apache.nifi.components.resource.ResourceDefinition;
+import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.documentation.AbstractDocumentationWriter;
 import org.apache.nifi.documentation.ExtensionType;
 import org.apache.nifi.documentation.ServiceAPI;
@@ -177,8 +180,23 @@ public class XmlDocumentationWriter extends AbstractDocumentationWriter {
         writeTextElement("expressionLanguageScope", property.getExpressionLanguageScope() == null ? null : property.getExpressionLanguageScope().name());
         writeBooleanElement("dynamicallyModifiesClasspath", property.isDynamicClasspathModifier());
         writeBooleanElement("dynamic", property.isDynamic());
+        writeResourceDefinition(property.getResourceDefinition());
+        writeDependencies(property);
 
         writeEndElement();
+    }
+
+    private void writeResourceDefinition(final ResourceDefinition resourceDefinition) throws IOException {
+        writeStartElement("resourceDefinition");
+        if (resourceDefinition != null) {
+            writeTextElement("cardinality", resourceDefinition.getCardinality().name());
+            writeArray("resourceTypes", resourceDefinition.getResourceTypes(), this::writeResourceType);
+        }
+        writeEndElement();
+    }
+
+    private void writeResourceType(final ResourceType resourceType) throws IOException {
+        writeTextElement("resourceType", resourceType.name());
     }
 
     private void writeAllowableValue(final AllowableValue allowableValue) throws IOException {
@@ -186,6 +204,34 @@ public class XmlDocumentationWriter extends AbstractDocumentationWriter {
         writeTextElement("displayName", allowableValue.getDisplayName());
         writeTextElement("value", allowableValue.getValue());
         writeTextElement("description", allowableValue.getDescription());
+        writeEndElement();
+    }
+
+    private void writeDependencies(final PropertyDescriptor propertyDescriptor) throws IOException {
+        final Set<PropertyDependency> dependencies = propertyDescriptor.getDependencies();
+        if (dependencies == null || dependencies.isEmpty()) {
+            return;
+        }
+
+        writeStartElement("dependencies");
+
+        for (final PropertyDependency dependency : dependencies) {
+            writeStartElement("dependency");
+            writeTextElement("propertyName", dependency.getPropertyName());
+            writeTextElement("propertyDisplayName", dependency.getPropertyDisplayName());
+
+            final Set<String> dependentValues = dependency.getDependentValues();
+            if (dependentValues != null) {
+                writeStartElement("dependentValues");
+                for (final String dependentValue : dependentValues) {
+                    writeTextElement("dependentValue", dependentValue);
+                }
+                writeEndElement();
+            }
+
+            writeEndElement();
+        }
+
         writeEndElement();
     }
 
@@ -423,7 +469,7 @@ public class XmlDocumentationWriter extends AbstractDocumentationWriter {
 
     private void writeEndElement() throws IOException {
         try {
-            writer.writeEndElement();;
+            writer.writeEndElement();
         } catch (final XMLStreamException e) {
             throw new IOException(e);
         }

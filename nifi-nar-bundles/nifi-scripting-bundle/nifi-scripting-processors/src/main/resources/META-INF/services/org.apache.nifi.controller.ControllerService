@@ -13,7 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+org.apache.nifi.rules.handlers.script.ScriptedActionHandler
 org.apache.nifi.record.script.ScriptedReader
 org.apache.nifi.record.script.ScriptedRecordSetWriter
+org.apache.nifi.record.sink.script.ScriptedRecordSink
+org.apache.nifi.rules.engine.script.ScriptedRulesEngine
 org.apache.nifi.lookup.script.ScriptedLookupService
 org.apache.nifi.lookup.script.SimpleScriptedLookupService

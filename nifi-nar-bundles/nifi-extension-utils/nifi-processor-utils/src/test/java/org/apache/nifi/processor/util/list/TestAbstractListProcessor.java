@@ -20,6 +20,7 @@ package org.apache.nifi.processor.util.list;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.Validator;
 import org.apache.nifi.components.state.Scope;
+import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.distributed.cache.client.Deserializer;
@@ -28,8 +29,18 @@ import org.apache.nifi.distributed.cache.client.Serializer;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.serialization.RecordSetWriterFactory;
+import org.apache.nifi.serialization.SimpleRecordSchema;
+import org.apache.nifi.serialization.record.MapRecord;
+import org.apache.nifi.serialization.record.MockRecordWriter;
+import org.apache.nifi.serialization.record.Record;
+import org.apache.nifi.serialization.record.RecordField;
+import org.apache.nifi.serialization.record.RecordFieldType;
+import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.state.MockStateManager;
+import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Assert;
@@ -70,8 +81,6 @@ public class TestAbstractListProcessor {
     private static long getSleepMillis(final TimeUnit targetPrecision) {
         return AbstractListProcessor.LISTING_LAG_MILLIS.get(targetPrecision) * 2;
     }
-
-    private static final long DEFAULT_SLEEP_MILLIS = getSleepMillis(TimeUnit.MILLISECONDS);
 
     private ConcreteListProcessor proc;
     private TestRunner runner;
@@ -172,6 +181,85 @@ public class TestAbstractListProcessor {
         runner.run();
 
         assertEquals(1, cache.fetchCount);
+    }
+
+    @Test
+    public void testWriteRecords() throws InitializationException {
+        final RecordSetWriterFactory writerFactory = new MockRecordWriter("id,name,timestamp,size", false);
+        runner.addControllerService("record-writer", writerFactory);
+        runner.enableControllerService(writerFactory);
+
+        runner.setProperty(AbstractListProcessor.RECORD_WRITER, "record-writer");
+
+        runner.run();
+
+        assertEquals(0, runner.getFlowFilesForRelationship(AbstractListProcessor.REL_SUCCESS).size());
+        proc.addEntity("name", "identifier", 4L);
+        proc.addEntity("name2", "identifier2", 8L);
+
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(AbstractListProcessor.REL_SUCCESS, 1);
+
+        final MockFlowFile flowfile = runner.getFlowFilesForRelationship(AbstractListProcessor.REL_SUCCESS).get(0);
+        flowfile.assertAttributeEquals("record.count", "2");
+        flowfile.assertContentEquals("id,name,timestamp,size\nidentifier,name,4,0\nidentifier2,name2,8,0\n");
+
+        runner.clearTransferState();
+        runner.run();
+        runner.assertAllFlowFilesTransferred(AbstractListProcessor.REL_SUCCESS, 0);
+    }
+
+    @Test
+    public void testNoTrackingEntityStrategy() throws IOException {
+
+        // Firstly, choose Timestamp Strategy lists 2 entities and set state.
+        // After that choose No Tracking Strategy to test if this strategy remove the state.
+        ProcessSession session = runner.getProcessSessionFactory().createSession();
+        ProcessContext context = runner.getProcessContext();
+
+        runner.setProperty(AbstractListProcessor.LISTING_STRATEGY, AbstractListProcessor.BY_TIMESTAMPS);
+
+        // two entities listed
+        proc.addEntity("one","firstFile",1585344381476L);
+        proc.addEntity("two","secondFile",1585344381475L);
+
+        runner.run();
+        assertEquals(2, runner.getFlowFilesForRelationship(AbstractListProcessor.REL_SUCCESS).size());
+        assertEquals(2, proc.entities.size());
+
+        final MockStateManager stateManager = runner.getStateManager();
+        final Map<String, String> expectedState = new HashMap<>();
+        final Map<String, String> realState = new HashMap<>();
+
+        realState.put(AbstractListProcessor.LATEST_LISTED_ENTRY_TIMESTAMP_KEY, String.valueOf(proc.entities.get("firstFile").getTimestamp()));
+        realState.put(AbstractListProcessor.LAST_PROCESSED_LATEST_ENTRY_TIMESTAMP_KEY, String.valueOf(proc.entities.get("secondFile").getTimestamp()));
+        realState.put(AbstractListProcessor.IDENTIFIER_PREFIX + ".0", proc.entities.get("firstFile").getIdentifier());
+        realState.put(AbstractListProcessor.IDENTIFIER_PREFIX + ".1", proc.entities.get("secondFile").getIdentifier());
+
+        stateManager.setState(realState, Scope.CLUSTER);
+
+        // Ensure timestamp and identifies are migrated
+        expectedState.put(AbstractListProcessor.LATEST_LISTED_ENTRY_TIMESTAMP_KEY, String.valueOf(proc.entities.get("firstFile").getTimestamp()));
+        expectedState.put(AbstractListProcessor.LAST_PROCESSED_LATEST_ENTRY_TIMESTAMP_KEY, String.valueOf(proc.entities.get("secondFile").getTimestamp()));
+        expectedState.put(AbstractListProcessor.IDENTIFIER_PREFIX + ".0", proc.entities.get("firstFile").getIdentifier());
+        expectedState.put(AbstractListProcessor.IDENTIFIER_PREFIX + ".1", proc.entities.get("secondFile").getIdentifier());
+
+        runner.getStateManager().assertStateEquals(expectedState, Scope.CLUSTER);
+
+        // Change listing strategy
+        runner.setProperty(AbstractListProcessor.LISTING_STRATEGY, AbstractListProcessor.NO_TRACKING);
+
+        // Clear any listed entities after choose No Tracking Strategy
+        proc.entities.clear();
+
+        // Add new entity
+        proc.addEntity("one","firstFile",1585344381476L);
+        proc.listByNoTracking(context, session);
+
+        // Test if state cleared or not
+        runner.getStateManager().assertStateNotEquals(expectedState, Scope.CLUSTER);
+        assertEquals(1, proc.entities.size());
     }
 
     @Test
@@ -351,13 +439,14 @@ public class TestAbstractListProcessor {
 
         @Override
         protected ListedEntityTracker<ListableEntity> createListedEntityTracker() {
-            return new ListedEntityTracker<>(getIdentifier(), getLogger(), () -> currentTimestamp.get());
+            return new ListedEntityTracker<>(getIdentifier(), getLogger(), currentTimestamp::get, null);
         }
 
         @Override
         protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
             final List<PropertyDescriptor> properties = new ArrayList<>();
             properties.add(LISTING_STRATEGY);
+            properties.add(RECORD_WRITER);
             properties.add(DISTRIBUTED_CACHE_SERVICE);
             properties.add(TARGET_SYSTEM_TIMESTAMP_PRECISION);
             properties.add(ListedEntityTracker.TRACKING_STATE_CACHE);
@@ -397,6 +486,16 @@ public class TestAbstractListProcessor {
                 public long getSize() {
                     return size;
                 }
+
+                @Override
+                public Record toRecord() {
+                    final Map<String, Object> values = new HashMap<>(4);
+                    values.put("id", identifier);
+                    values.put("name", name);
+                    values.put("timestamp", timestamp);
+                    values.put("size", size);
+                    return new MapRecord(getRecordSchema(), values);
+                }
             };
 
             entities.put(entity.getIdentifier(), entity);
@@ -431,6 +530,29 @@ public class TestAbstractListProcessor {
         @Override
         protected Scope getStateScope(final PropertyContext context) {
             return Scope.CLUSTER;
+        }
+
+        @Override
+        protected RecordSchema getRecordSchema() {
+            final List<RecordField> fields = new ArrayList<>();
+            fields.add(new RecordField("id", RecordFieldType.STRING.getDataType()));
+            fields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
+            fields.add(new RecordField("timestamp", RecordFieldType.TIMESTAMP.getDataType()));
+            fields.add(new RecordField("size", RecordFieldType.LONG.getDataType()));
+            return new SimpleRecordSchema(fields);
+        }
+
+        private void persist(final long latestListedEntryTimestampThisCycleMillis,
+                             final long lastProcessedLatestEntryTimestampMillis,
+                             final List<String> processedIdentifiesWithLatestTimestamp,
+                             final StateManager stateManager, final Scope scope) throws IOException {
+            final Map<String, String> updatedState = new HashMap<>(processedIdentifiesWithLatestTimestamp.size() + 2);
+            updatedState.put(LATEST_LISTED_ENTRY_TIMESTAMP_KEY, String.valueOf(latestListedEntryTimestampThisCycleMillis));
+            updatedState.put(LAST_PROCESSED_LATEST_ENTRY_TIMESTAMP_KEY, String.valueOf(lastProcessedLatestEntryTimestampMillis));
+            for (int i = 0; i < processedIdentifiesWithLatestTimestamp.size(); i++) {
+                updatedState.put(IDENTIFIER_PREFIX + "." + i, processedIdentifiesWithLatestTimestamp.get(i));
+            }
+            stateManager.setState(updatedState, scope);
         }
     }
 }

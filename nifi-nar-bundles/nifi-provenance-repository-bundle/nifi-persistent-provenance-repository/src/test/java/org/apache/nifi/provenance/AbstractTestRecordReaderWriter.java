@@ -17,21 +17,6 @@
 
 package org.apache.nifi.provenance;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
 import org.apache.nifi.provenance.serialization.RecordReader;
 import org.apache.nifi.provenance.serialization.RecordWriter;
 import org.apache.nifi.provenance.toc.StandardTocReader;
@@ -42,6 +27,23 @@ import org.apache.nifi.provenance.toc.TocWriter;
 import org.apache.nifi.util.file.FileUtils;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 
 public abstract class AbstractTestRecordReaderWriter {
@@ -62,7 +64,7 @@ public abstract class AbstractTestRecordReaderWriter {
         final RecordWriter writer = createWriter(journalFile, tocWriter, false, 1024 * 1024);
 
         writer.writeHeader(1L);
-        writer.writeRecord(createEvent());
+        writer.writeRecords(Collections.singletonList(createEvent()));
         writer.close();
 
         final TocReader tocReader = new StandardTocReader(tocFile);
@@ -96,7 +98,7 @@ public abstract class AbstractTestRecordReaderWriter {
         final RecordWriter writer = createWriter(journalFile, tocWriter, true, 8192);
 
         writer.writeHeader(1L);
-        writer.writeRecord(createEvent());
+        writer.writeRecords(Collections.singletonList(createEvent()));
         writer.close();
 
         final TocReader tocReader = new StandardTocReader(tocFile);
@@ -117,7 +119,7 @@ public abstract class AbstractTestRecordReaderWriter {
 
         writer.writeHeader(1L);
         for (int i = 0; i < 10; i++) {
-            writer.writeRecord(createEvent());
+            writer.writeRecords(Collections.singletonList(createEvent()));
         }
         writer.close();
 
@@ -156,7 +158,7 @@ public abstract class AbstractTestRecordReaderWriter {
 
         writer.writeHeader(1L);
         for (int i = 0; i < 10; i++) {
-            writer.writeRecord(createEvent());
+            writer.writeRecords(Collections.singletonList(createEvent()));
         }
         writer.close();
 
@@ -198,7 +200,7 @@ public abstract class AbstractTestRecordReaderWriter {
         for (int i = 0; i < numEvents; i++) {
             final ProvenanceEventRecord event = createEvent();
             events.add(event);
-            writer.writeRecord(event);
+            writer.writeRecords(Collections.singletonList(event));
         }
         writer.close();
 
@@ -208,6 +210,8 @@ public abstract class AbstractTestRecordReaderWriter {
             final RecordReader reader = createReader(fis, journalFile.getName(), tocReader, 2048)) {
 
             for (int i = 0; i < numEvents; i++) {
+                System.out.println(i);
+
                 final Optional<ProvenanceEventRecord> eventOption = reader.skipToEvent(i);
                 assertTrue(eventOption.isPresent());
                 assertEquals(i, eventOption.get().getEventId());

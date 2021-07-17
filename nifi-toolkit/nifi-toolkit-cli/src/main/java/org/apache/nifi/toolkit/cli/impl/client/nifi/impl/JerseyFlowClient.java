@@ -20,12 +20,14 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.FlowClient;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.NiFiClientException;
 import org.apache.nifi.toolkit.cli.impl.client.nifi.ProcessGroupBox;
+import org.apache.nifi.toolkit.cli.impl.client.nifi.RequestConfig;
 import org.apache.nifi.web.api.dto.PositionDTO;
 import org.apache.nifi.web.api.dto.flow.FlowDTO;
 import org.apache.nifi.web.api.dto.flow.ProcessGroupFlowDTO;
 import org.apache.nifi.web.api.entity.ActivateControllerServicesEntity;
 import org.apache.nifi.web.api.entity.ClusteSummaryEntity;
 import org.apache.nifi.web.api.entity.ComponentEntity;
+import org.apache.nifi.web.api.entity.ConnectionStatusEntity;
 import org.apache.nifi.web.api.entity.ControllerServicesEntity;
 import org.apache.nifi.web.api.entity.CurrentUserEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
@@ -39,9 +41,7 @@ import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -56,11 +56,11 @@ public class JerseyFlowClient extends AbstractJerseyClient implements FlowClient
     private final WebTarget flowTarget;
 
     public JerseyFlowClient(final WebTarget baseTarget) {
-        this(baseTarget, Collections.emptyMap());
+        this(baseTarget, null);
     }
 
-    public JerseyFlowClient(final WebTarget baseTarget, final Map<String,String> headers) {
-        super(headers);
+    public JerseyFlowClient(final WebTarget baseTarget, final RequestConfig requestConfig) {
+        super(requestConfig);
         this.flowTarget = baseTarget.path("/flow");
     }
 
@@ -250,6 +250,17 @@ public class JerseyFlowClient extends AbstractJerseyClient implements FlowClient
         return executeAction("Error retrieving templates", () -> {
             final WebTarget target = flowTarget.path("templates");
             return getRequestBuilder(target).get(TemplatesEntity.class);
+        });
+    }
+
+    @Override
+    public ConnectionStatusEntity getConnectionStatus(final String connectionId, final boolean nodewise) throws NiFiClientException, IOException {
+        return executeAction("Error retrieving Connection status", () -> {
+            final WebTarget target = flowTarget.path("/connections/{connectionId}/status")
+                .resolveTemplate("connectionId", connectionId)
+                .queryParam("nodewise", nodewise);
+
+            return getRequestBuilder(target).get(ConnectionStatusEntity.class);
         });
     }
 }

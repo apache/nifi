@@ -64,6 +64,7 @@
                                 <li class="component-item"><a class="document-link record-path-guide" href="html/record-path-guide.html" target="component-usage">RecordPath Guide</a></li>
                                 <li class="component-item"><a class="document-link admin-guide" href="html/administration-guide.html" target="component-usage">Admin Guide</a></li>
                                 <li class="component-item"><a class="document-link toolkit-guide" href="html/toolkit-guide.html" target="component-usage">Toolkit Guide</a></li>
+                                <li class="component-item"><a class="document-link walkthroughs" href="html/walkthroughs.html" target="component-usage">Walkthroughs</a></li>
                             </ul>
                             <span class="no-matching no-components hidden">No matching guides</span>
                         </div>

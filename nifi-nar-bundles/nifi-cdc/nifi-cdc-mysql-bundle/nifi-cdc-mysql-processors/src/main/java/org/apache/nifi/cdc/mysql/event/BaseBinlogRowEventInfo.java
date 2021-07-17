@@ -37,6 +37,12 @@ public class BaseBinlogRowEventInfo<RowEventDataType> extends BaseBinlogTableEve
         this.delegate = new BaseRowEventInfo<>(tableInfo, type, timestamp, rows);
     }
 
+    public BaseBinlogRowEventInfo(TableInfo tableInfo, String type, Long timestamp, String binlogGtidSet, BitSet includedColumns, List<RowEventDataType> rows) {
+        super(tableInfo, type, timestamp, binlogGtidSet);
+        this.includedColumns = includedColumns;
+        this.delegate = new BaseRowEventInfo<>(tableInfo, type, timestamp, rows);
+    }
+
     public BitSet getIncludedColumns() {
         return includedColumns;
     }

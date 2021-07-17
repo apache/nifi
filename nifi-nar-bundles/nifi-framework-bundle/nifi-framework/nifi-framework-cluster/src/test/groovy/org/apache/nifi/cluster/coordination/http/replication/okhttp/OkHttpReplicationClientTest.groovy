@@ -18,7 +18,7 @@
 
 package org.apache.nifi.cluster.coordination.http.replication.okhttp
 
-import org.apache.nifi.properties.StandardNiFiProperties
+
 import org.apache.nifi.util.NiFiProperties
 import org.junit.BeforeClass
 import org.junit.Test
@@ -38,13 +38,13 @@ class OkHttpReplicationClientTest extends GroovyTestCase {
         }
     }
 
-    private static StandardNiFiProperties mockNiFiProperties() {
+    private static NiFiProperties mockNiFiProperties() {
         [getClusterNodeConnectionTimeout: { -> "10 ms" },
          getClusterNodeReadTimeout      : { -> "10 ms" },
          getProperty                    : { String prop ->
              logger.mock("Requested getProperty(${prop}) -> \"\"")
              ""
-         }] as StandardNiFiProperties
+         }] as NiFiProperties
     }
 
     @Test
@@ -134,5 +134,142 @@ class OkHttpReplicationClientTest extends GroovyTestCase {
             assert headers.size() == 2
             assert headers."Content-Length" == "123"
         }
+    }
+
+    @Test
+    void testShouldUseKeystorePasswordIfKeyPasswordIsBlank() {
+        // Arrange
+        Map propsMap = [
+                (NiFiProperties.SECURITY_TRUSTSTORE)       : "./src/test/resources/conf/truststore.jks",
+                (NiFiProperties.SECURITY_TRUSTSTORE_TYPE)  : "JKS",
+                (NiFiProperties.SECURITY_TRUSTSTORE_PASSWD): "passwordpassword",
+                (NiFiProperties.SECURITY_KEYSTORE)         : "./src/test/resources/conf/keystore.jks",
+                (NiFiProperties.SECURITY_KEYSTORE_TYPE)    : "JKS",
+                (NiFiProperties.SECURITY_KEYSTORE_PASSWD)  : "passwordpassword",
+                (NiFiProperties.SECURITY_KEY_PASSWD)       : "",
+                (NiFiProperties.WEB_HTTPS_HOST)            : "localhost",
+                (NiFiProperties.WEB_HTTPS_PORT)            : "51552",
+        ]
+        NiFiProperties mockNiFiProperties = new NiFiProperties(new Properties(propsMap))
+
+        // Act
+        OkHttpReplicationClient client = new OkHttpReplicationClient(mockNiFiProperties)
+        logger.info("Created secure HTTPS client with TLS configured: ${client.isTLSConfigured()}")
+
+        // Assert
+        assert client.isTLSConfigured()
+    }
+
+    @Test
+    void testShouldUseKeystorePasswordIfKeyPasswordIsNull() {
+        // Arrange
+        Map flowfileEncryptionProps = [
+                (NiFiProperties.SECURITY_TRUSTSTORE)       : "./src/test/resources/conf/truststore.jks",
+                (NiFiProperties.SECURITY_TRUSTSTORE_TYPE)  : "JKS",
+                (NiFiProperties.SECURITY_TRUSTSTORE_PASSWD): "passwordpassword",
+                (NiFiProperties.SECURITY_KEYSTORE)         : "./src/test/resources/conf/keystore.jks",
+                (NiFiProperties.SECURITY_KEYSTORE_TYPE)    : "JKS",
+                (NiFiProperties.SECURITY_KEYSTORE_PASSWD)  : "passwordpassword",
+                (NiFiProperties.WEB_HTTPS_HOST)            : "localhost",
+                (NiFiProperties.WEB_HTTPS_PORT)            : "51552",
+        ]
+        NiFiProperties mockNiFiProperties = new NiFiProperties(new Properties(flowfileEncryptionProps))
+
+        // Act
+        OkHttpReplicationClient client = new OkHttpReplicationClient(mockNiFiProperties)
+        logger.info("Created secure HTTPS client with TLS configured: ${client.isTLSConfigured()}")
+
+        // Assert
+        assert client.isTLSConfigured()
+    }
+
+    @Test
+    void testShouldFailIfKeyPasswordIsSetButKeystorePasswordIsBlank() {
+        // Arrange
+        Map propsMap = [
+                (NiFiProperties.SECURITY_TRUSTSTORE)       : "./src/test/resources/conf/truststore.jks",
+                (NiFiProperties.SECURITY_TRUSTSTORE_TYPE)  : "JKS",
+                (NiFiProperties.SECURITY_TRUSTSTORE_PASSWD): "passwordpassword",
+                (NiFiProperties.SECURITY_KEYSTORE)         : "./src/test/resources/conf/keystore.jks",
+                (NiFiProperties.SECURITY_KEYSTORE_TYPE)    : "JKS",
+                (NiFiProperties.SECURITY_KEYSTORE_PASSWD)  : "",
+                (NiFiProperties.SECURITY_KEY_PASSWD)       : "passwordpassword",
+                (NiFiProperties.WEB_HTTPS_HOST)            : "localhost",
+                (NiFiProperties.WEB_HTTPS_PORT)            : "51552",
+        ]
+        NiFiProperties mockNiFiProperties = new NiFiProperties(new Properties(propsMap))
+
+        // Act
+        OkHttpReplicationClient client = new OkHttpReplicationClient(mockNiFiProperties)
+        logger.info("Created (invalid) secure HTTPS client with TLS configured: ${client.isTLSConfigured()}")
+
+        // Assert
+        assert !client.isTLSConfigured()
+    }
+
+    @Test
+    void testShouldFailIfKeyPasswordAndKeystorePasswordAreBlank() {
+        // Arrange
+        Map propsMap = [
+                (NiFiProperties.SECURITY_TRUSTSTORE)       : "./src/test/resources/conf/truststore.jks",
+                (NiFiProperties.SECURITY_TRUSTSTORE_TYPE)  : "JKS",
+                (NiFiProperties.SECURITY_TRUSTSTORE_PASSWD): "passwordpassword",
+                (NiFiProperties.SECURITY_KEYSTORE)         : "./src/test/resources/conf/keystore.jks",
+                (NiFiProperties.SECURITY_KEYSTORE_TYPE)    : "JKS",
+                (NiFiProperties.SECURITY_KEYSTORE_PASSWD)  : "",
+                (NiFiProperties.SECURITY_KEY_PASSWD)       : "",
+                (NiFiProperties.WEB_HTTPS_HOST)            : "localhost",
+                (NiFiProperties.WEB_HTTPS_PORT)            : "51552",
+        ]
+        NiFiProperties mockNiFiProperties = new NiFiProperties(new Properties(propsMap))
+
+        // Act
+        OkHttpReplicationClient client = new OkHttpReplicationClient(mockNiFiProperties)
+        logger.info("Created (invalid) secure HTTPS client with TLS configured: ${client.isTLSConfigured()}")
+
+        // Assert
+        assert !client.isTLSConfigured()
+    }
+
+    @Test
+    void testShouldDetermineIfTLSConfigured() {
+        // Arrange
+        Map propsMap = [(NiFiProperties.WEB_HTTPS_HOST): "localhost",
+                        (NiFiProperties.WEB_HTTPS_PORT): "51552",]
+
+        Map tlsPropsMap = [
+                (NiFiProperties.SECURITY_KEYSTORE)         : "./src/test/resources/conf/keystore.jks",
+                (NiFiProperties.SECURITY_KEYSTORE_PASSWD)  : "passwordpassword",
+                (NiFiProperties.SECURITY_KEY_PASSWD)       : "",
+                (NiFiProperties.SECURITY_KEYSTORE_TYPE)    : "JKS",
+                (NiFiProperties.SECURITY_TRUSTSTORE)       : "./src/test/resources/conf/truststore.jks",
+                (NiFiProperties.SECURITY_TRUSTSTORE_PASSWD): "passwordpassword",
+                (NiFiProperties.SECURITY_TRUSTSTORE_TYPE)  : "JKS",
+        ] + propsMap
+
+
+        NiFiProperties mockNiFiProperties = new NiFiProperties(new Properties(propsMap))
+        NiFiProperties mockTLSNiFiProperties = new NiFiProperties(new Properties(tlsPropsMap))
+
+        // Remove the keystore password to create an invalid configuration
+        Map invalidTlsPropsMap = tlsPropsMap
+        invalidTlsPropsMap.remove(NiFiProperties.SECURITY_KEYSTORE_PASSWD)
+        NiFiProperties mockInvalidTLSNiFiProperties = new NiFiProperties(new Properties(invalidTlsPropsMap))
+
+        // Act
+        OkHttpReplicationClient client = new OkHttpReplicationClient(mockNiFiProperties)
+        logger.info("Created plaintext HTTP client with TLS configured: ${client.isTLSConfigured()}")
+
+        OkHttpReplicationClient invalidTlsClient = new OkHttpReplicationClient(mockInvalidTLSNiFiProperties)
+        logger.info("Created (invalid) secure HTTPS client with TLS configured: ${invalidTlsClient.isTLSConfigured()}")
+
+        OkHttpReplicationClient tlsClient = new OkHttpReplicationClient(mockTLSNiFiProperties)
+        logger.info("Created secure HTTPS client with TLS configured: ${tlsClient.isTLSConfigured()}")
+
+
+        // Assert
+        assert !client.isTLSConfigured()
+        assert !invalidTlsClient.isTLSConfigured()
+        assert tlsClient.isTLSConfigured()
     }
 }

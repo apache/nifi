@@ -76,6 +76,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
+import java.util.stream.Collectors;
 
 import static java.lang.String.format;
 import static org.apache.nifi.processor.util.pattern.ExceptionHandler.createOnError;
@@ -141,7 +142,8 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
     static final PropertyDescriptor AUTO_COMMIT = new PropertyDescriptor.Builder()
             .name("database-session-autocommit")
             .displayName("Database Session AutoCommit")
-            .description("The autocommit mode to set on the database connection being used.")
+            .description("The autocommit mode to set on the database connection being used. If set to false, the operation(s) will be explicitly committed or rolled back "
+                    + "(based on success or failure respectively), if set to true the driver/database handles the commit/rollback.")
             .allowableValues("true", "false")
             .defaultValue("false")
             .build();
@@ -151,7 +153,10 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
             .description("If true, when a FlowFile is consumed by this Processor, the Processor will first check the fragment.identifier and fragment.count attributes of that FlowFile. "
                     + "If the fragment.count value is greater than 1, the Processor will not process any FlowFile with that fragment.identifier until all are available; "
                     + "at that point, it will process all FlowFiles with that fragment.identifier as a single transaction, in the order specified by the FlowFiles' fragment.index attributes. "
-                    + "This Provides atomicity of those SQL statements. If this value is false, these attributes will be ignored and the updates will occur independent of one another.")
+                    + "This Provides atomicity of those SQL statements. Once any statement of this transaction throws exception when executing, this transaction will be rolled back. When "
+                    + "transaction rollback happened, none of these FlowFiles would be routed to 'success'. If the <Rollback On Failure> is set true, these FlowFiles will stay in the input "
+                    + "relationship. When the <Rollback On Failure> is set false,, if any of these FlowFiles will be routed to 'retry', all of these FlowFiles will be routed to 'retry'.Otherwise, "
+                    + "they will be routed to 'failure'. If this value is false, these attributes will be ignored and the updates will occur independent of one another.")
             .allowableValues("true", "false")
             .defaultValue("true")
             .build();
@@ -275,9 +280,9 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
         return poll.getFlowFiles();
     };
 
-    private final PartialFunctions.InitConnection<FunctionContext, Connection> initConnection = (c, s, fc, ff) -> {
+    private final PartialFunctions.InitConnection<FunctionContext, Connection> initConnection = (c, s, fc, ffs) -> {
         final Connection connection = c.getProperty(CONNECTION_POOL).asControllerService(DBCPService.class)
-                .getConnection(ff == null ? Collections.emptyMap() : ff.getAttributes());
+                .getConnection(ffs == null || ffs.isEmpty() ? Collections.emptyMap() : ffs.get(0).getAttributes());
         try {
             fc.originalAutoCommit = connection.getAutoCommit();
             final boolean autocommit = c.getProperty(AUTO_COMMIT).asBoolean();
@@ -296,13 +301,14 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
         void apply(final ProcessContext context, final ProcessSession session, final FunctionContext fc,
                    final Connection conn, final List<FlowFile> flowFiles,
                    final List<StatementFlowFileEnclosure> groups,
-                   final Map<String, StatementFlowFileEnclosure> sqlToEnclosure,
                    final RoutingResult result);
     }
 
-    private GroupingFunction groupFragmentedTransaction = (context, session, fc, conn, flowFiles, groups, sqlToEnclosure, result) -> {
+    private final GroupingFunction groupFragmentedTransaction = (context, session, fc, conn, flowFiles, groups, result) -> {
         final FragmentedEnclosure fragmentedEnclosure = new FragmentedEnclosure();
         groups.add(fragmentedEnclosure);
+
+        final Map<String, StatementFlowFileEnclosure> sqlToEnclosure = new HashMap<>();
 
         for (final FlowFile flowFile : flowFiles) {
             final String sql = context.getProperty(PutSQL.SQL_STATEMENT).isSet()
@@ -316,19 +322,22 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
         }
     };
 
-    private final GroupingFunction groupFlowFilesBySQLBatch = (context, session, fc, conn, flowFiles, groups, sqlToEnclosure, result) -> {
+    private final GroupingFunction groupFlowFilesBySQLBatch = (context, session, fc, conn, flowFiles, groups, result) -> {
         for (final FlowFile flowFile : flowFiles) {
             final String sql = context.getProperty(PutSQL.SQL_STATEMENT).isSet()
                     ? context.getProperty(PutSQL.SQL_STATEMENT).evaluateAttributeExpressions(flowFile).getValue()
                     : getSQL(session, flowFile);
 
-            // Get or create the appropriate PreparedStatement to use.
-            final StatementFlowFileEnclosure enclosure = sqlToEnclosure
-                    .computeIfAbsent(sql, k -> {
-                        final StatementFlowFileEnclosure newEnclosure = new StatementFlowFileEnclosure(sql);
-                        groups.add(newEnclosure);
-                        return newEnclosure;
-                    });
+            // Create a new PreparedStatement or reuse the one from the last group if that is the same.
+            final StatementFlowFileEnclosure enclosure;
+            final StatementFlowFileEnclosure lastEnclosure = groups.isEmpty() ? null : groups.get(groups.size() - 1);
+
+            if (lastEnclosure == null || !lastEnclosure.getSql().equals(sql)) {
+                enclosure = new StatementFlowFileEnclosure(sql);
+                groups.add(enclosure);
+            } else {
+                enclosure = lastEnclosure;
+            }
 
             if(!exceptionHandler.execute(fc, flowFile, input -> {
                 final PreparedStatement stmt = enclosure.getCachedStatement(conn);
@@ -342,26 +351,28 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
         }
     };
 
-    private GroupingFunction groupFlowFilesBySQL = (context, session, fc, conn, flowFiles, groups, sqlToEnclosure, result) -> {
+    private final GroupingFunction groupFlowFilesBySQL = (context, session, fc, conn, flowFiles, groups, result) -> {
         for (final FlowFile flowFile : flowFiles) {
             final String sql = context.getProperty(PutSQL.SQL_STATEMENT).isSet()
                     ? context.getProperty(PutSQL.SQL_STATEMENT).evaluateAttributeExpressions(flowFile).getValue()
                     : getSQL(session, flowFile);
 
-            // Get or create the appropriate PreparedStatement to use.
-            final StatementFlowFileEnclosure enclosure = sqlToEnclosure
-                    .computeIfAbsent(sql, k -> {
-                        final StatementFlowFileEnclosure newEnclosure = new StatementFlowFileEnclosure(sql);
-                        groups.add(newEnclosure);
-                        return newEnclosure;
-                    });
+            // Create a new PreparedStatement or reuse the one from the last group if that is the same.
+            final StatementFlowFileEnclosure enclosure;
+            final StatementFlowFileEnclosure lastEnclosure = groups.isEmpty() ? null : groups.get(groups.size() - 1);
+
+            if (lastEnclosure == null || !lastEnclosure.getSql().equals(sql)) {
+                enclosure = new StatementFlowFileEnclosure(sql);
+                groups.add(enclosure);
+            } else {
+                enclosure = lastEnclosure;
+            }
 
             enclosure.addFlowFile(flowFile);
         }
     };
 
     final PutGroup.GroupFlowFiles<FunctionContext, Connection, StatementFlowFileEnclosure> groupFlowFiles = (context, session, fc, conn, flowFiles, result) -> {
-        final Map<String, StatementFlowFileEnclosure> sqlToEnclosure = new HashMap<>();
         final List<StatementFlowFileEnclosure> groups = new ArrayList<>();
 
         // There are three patterns:
@@ -369,17 +380,19 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
         // 2. Obtain keys: An enclosure has multiple FlowFiles, and each FlowFile is executed separately
         // 3. Fragmented transaction: One FlowFile per Enclosure?
         if (fc.obtainKeys) {
-            groupFlowFilesBySQL.apply(context, session, fc, conn, flowFiles, groups, sqlToEnclosure, result);
+            groupFlowFilesBySQL.apply(context, session, fc, conn, flowFiles, groups, result);
         } else if (fc.fragmentedTransaction) {
-            groupFragmentedTransaction.apply(context, session, fc, conn, flowFiles, groups, sqlToEnclosure, result);
+            groupFragmentedTransaction.apply(context, session, fc, conn, flowFiles, groups, result);
         } else {
-            groupFlowFilesBySQLBatch.apply(context, session, fc, conn, flowFiles, groups, sqlToEnclosure, result);
+            groupFlowFilesBySQLBatch.apply(context, session, fc, conn, flowFiles, groups, result);
         }
 
         return groups;
     };
 
     final PutGroup.PutFlowFiles<FunctionContext, Connection, StatementFlowFileEnclosure> putFlowFiles = (context, session, fc, conn, enclosure, result) -> {
+
+        final List<FlowFile> sentFlowFiles = new ArrayList<>();
 
         if (fc.isSupportBatching()) {
 
@@ -388,6 +401,7 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
             exceptionHandler.execute(fc, enclosure, input -> {
                 try (final PreparedStatement stmt = enclosure.getCachedStatement(conn)) {
                     stmt.executeBatch();
+                    sentFlowFiles.addAll(enclosure.getFlowFiles());
                     result.routeTo(enclosure.getFlowFiles(), REL_SUCCESS);
                 }
             }, onBatchUpdateError(context, session, result));
@@ -418,6 +432,7 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
                             sentFlowFile = session.putAttribute(sentFlowFile, "sql.generated.key", generatedKey);
                         }
 
+                        sentFlowFiles.add(sentFlowFile);
                         result.routeTo(sentFlowFile, REL_SUCCESS);
 
                     }
@@ -425,7 +440,7 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
             }
         }
 
-        if (result.contains(REL_SUCCESS)) {
+        if (!sentFlowFiles.isEmpty()) {
             // Determine the database URL
             String url = "jdbc://unknown-host";
             try {
@@ -435,7 +450,7 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
 
             // Emit a Provenance SEND event
             final long transmissionMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - fc.startNanos);
-            for (final FlowFile flowFile : result.getRoutedFlowFiles().get(REL_SUCCESS)) {
+            for (final FlowFile flowFile : sentFlowFiles) {
                 session.getProvenanceReporter().send(flowFile, url, transmissionMillis, true);
             }
         }
@@ -549,7 +564,10 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
 
         process.onCompleted((c, s, fc, conn) -> {
             try {
-                conn.commit();
+                // Only call commit() if auto-commit is false, per the JDBC spec (see java.sql.Connection)
+                if (!conn.getAutoCommit()) {
+                    conn.commit();
+                }
             } catch (SQLException e) {
                 // Throw ProcessException to rollback process session.
                 throw new ProcessException("Failed to commit database connection due to " + e, e);
@@ -558,7 +576,10 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
 
         process.onFailed((c, s, fc, conn, e) -> {
             try {
-                conn.rollback();
+                // Only call rollback() if auto-commit is false, per the JDBC spec (see java.sql.Connection)
+                if (!conn.getAutoCommit()) {
+                    conn.rollback();
+                }
             } catch (SQLException re) {
                 // Just log the fact that rollback failed.
                 // ProcessSession will be rollback by the thrown Exception so don't have to do anything here.
@@ -576,6 +597,20 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
                     getLogger().warn("Failed to reset autocommit due to {}", new Object[]{se});
                 }
             }
+        });
+
+        process.adjustFailed((c, r) -> {
+            if (c.getProperty(SUPPORT_TRANSACTIONS).asBoolean()){
+                if (r.contains(REL_RETRY) || r.contains(REL_FAILURE)) {
+                    final List<FlowFile> transferredFlowFiles = r.getRoutedFlowFiles().values().stream()
+                            .flatMap(List::stream).collect(Collectors.toList());
+                    Relationship rerouteShip = r.contains(REL_RETRY) ? REL_RETRY : REL_FAILURE;
+                    r.getRoutedFlowFiles().clear();
+                    r.routeTo(transferredFlowFiles, rerouteShip);
+                    return true;
+                }
+            }
+            return false;
         });
 
         exceptionHandler = new ExceptionHandler<>();
@@ -621,13 +656,18 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
         boolean fragmentedTransaction = false;
 
         final int batchSize = context.getProperty(BATCH_SIZE).asInteger();
+        final FlowFileFilter dbcpServiceFlowFileFilter = context.getProperty(CONNECTION_POOL).asControllerService(DBCPService.class).getFlowFileFilter(batchSize);
         List<FlowFile> flowFiles;
         if (useTransactions) {
-            final TransactionalFlowFileFilter filter = new TransactionalFlowFileFilter();
+            final TransactionalFlowFileFilter filter = new TransactionalFlowFileFilter(dbcpServiceFlowFileFilter);
             flowFiles = session.get(filter);
             fragmentedTransaction = filter.isFragmentedTransaction();
         } else {
-            flowFiles = session.get(batchSize);
+            if (dbcpServiceFlowFileFilter == null) {
+                flowFiles = session.get(batchSize);
+            } else {
+                flowFiles = session.get(dbcpServiceFlowFileFilter);
+            }
         }
 
         if (flowFiles.isEmpty()) {
@@ -804,12 +844,26 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
      * across multiple FlowFiles) or that none of the FlowFiles belongs to a fragmented transaction
      */
     static class TransactionalFlowFileFilter implements FlowFileFilter {
+        private final FlowFileFilter nonFragmentedTransactionFilter;
         private String selectedId = null;
         private int numSelected = 0;
         private boolean ignoreFragmentIdentifiers = false;
 
+        public TransactionalFlowFileFilter(FlowFileFilter nonFragmentedTransactionFilter) {
+            this.nonFragmentedTransactionFilter = nonFragmentedTransactionFilter;
+        }
+
         public boolean isFragmentedTransaction() {
             return !ignoreFragmentIdentifiers;
+        }
+
+        private FlowFileFilterResult filterNonFragmentedTransaction(final FlowFile flowFile) {
+            if (nonFragmentedTransactionFilter == null) {
+                return FlowFileFilterResult.ACCEPT_AND_CONTINUE;
+            } else {
+                // Use non-fragmented tx filter for further filtering.
+                return nonFragmentedTransactionFilter.filter(flowFile);
+            }
         }
 
         @Override
@@ -821,7 +875,7 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
             // we accept any FlowFile that is also not part of a fragmented transaction.
             if (ignoreFragmentIdentifiers) {
                 if (fragmentId == null || "1".equals(fragCount)) {
-                    return FlowFileFilterResult.ACCEPT_AND_CONTINUE;
+                    return filterNonFragmentedTransaction(flowFile);
                 } else {
                     return FlowFileFilterResult.REJECT_AND_CONTINUE;
                 }
@@ -831,7 +885,7 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
                 if (selectedId == null) {
                     // Only one FlowFile in the transaction.
                     ignoreFragmentIdentifiers = true;
-                    return FlowFileFilterResult.ACCEPT_AND_CONTINUE;
+                    return filterNonFragmentedTransaction(flowFile);
                 } else {
                     // we've already selected 1 FlowFile, and this one doesn't match.
                     return FlowFileFilterResult.REJECT_AND_CONTINUE;
@@ -924,6 +978,10 @@ public class PutSQL extends AbstractSessionFactoryProcessor {
 
         public StatementFlowFileEnclosure(String sql) {
             this.sql = sql;
+        }
+
+        public String getSql() {
+            return sql;
         }
 
         public PreparedStatement getNewStatement(final Connection conn, final boolean obtainKeys) throws SQLException {

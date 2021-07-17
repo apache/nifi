@@ -17,7 +17,7 @@
 package org.apache.nifi.atlas.provenance.analyzer;
 
 import org.apache.nifi.atlas.provenance.AbstractNiFiProvenanceEventAnalyzer;
-import org.apache.nifi.atlas.resolver.ClusterResolver;
+import org.apache.nifi.atlas.resolver.NamespaceResolver;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,7 +32,7 @@ public abstract class NiFiS2S extends AbstractNiFiProvenanceEventAnalyzer {
     private static final Pattern RAW_URL_REGEX = Pattern.compile("nifi://([^:/]+):\\d+/([0-9a-zA-Z\\-]+)");
     private static final Pattern HTTP_URL_REGEX = Pattern.compile(".*/nifi-api/data-transfer/(in|out)put-ports/([[0-9a-zA-Z\\-]]+)/transactions/.*");
 
-    protected S2SPort analyzeS2SPort(ProvenanceEventRecord event, ClusterResolver clusterResolver) {
+    protected S2SPort analyzeS2SPort(ProvenanceEventRecord event, NamespaceResolver namespaceResolver) {
         final String transitUri = event.getTransitUri();
         final int protocolIndex = transitUri.indexOf(':');
         final String protocol = transitUri.substring(0, protocolIndex).toLowerCase();
@@ -61,8 +61,8 @@ public abstract class NiFiS2S extends AbstractNiFiProvenanceEventAnalyzer {
 
         }
 
-        final String clusterName = clusterResolver.fromHostNames(targetHostname);
-        return new S2SPort(clusterName, targetPortId);
+        final String namespace = namespaceResolver.fromHostNames(targetHostname);
+        return new S2SPort(namespace, targetPortId);
     }
 
     abstract protected String getRawProtocolPortId(ProvenanceEventRecord event);
@@ -76,11 +76,11 @@ public abstract class NiFiS2S extends AbstractNiFiProvenanceEventAnalyzer {
     }
 
     protected static class S2SPort {
-        final String clusterName;
+        final String namespace;
         final String targetPortId;
 
-        public S2SPort(String clusterName, String targetPortId) {
-            this.clusterName = clusterName;
+        public S2SPort(String namespace, String targetPortId) {
+            this.namespace = namespace;
             this.targetPortId = targetPortId;
         }
     }

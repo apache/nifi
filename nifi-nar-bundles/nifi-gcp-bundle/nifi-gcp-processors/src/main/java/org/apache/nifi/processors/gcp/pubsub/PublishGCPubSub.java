@@ -28,6 +28,8 @@ import com.google.pubsub.v1.ProjectTopicName;
 import com.google.pubsub.v1.PubsubMessage;
 import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.SystemResource;
+import org.apache.nifi.annotation.behavior.SystemResourceConsideration;
 import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
@@ -75,6 +77,8 @@ import static org.apache.nifi.processors.gcp.pubsub.PubSubAttributes.TOPIC_NAME_
         @WritesAttribute(attribute = MESSAGE_ID_ATTRIBUTE, description = MESSAGE_ID_DESCRIPTION),
         @WritesAttribute(attribute = TOPIC_NAME_ATTRIBUTE, description = TOPIC_NAME_DESCRIPTION)
 })
+@SystemResourceConsideration(resource = SystemResource.MEMORY, description = "The entirety of the FlowFile's content "
+        + "will be read into memory to be sent as a PubSub message.")
 public class PublishGCPubSub extends AbstractGCPubSubProcessor{
 
     public static final PropertyDescriptor TOPIC_NAME = new PropertyDescriptor.Builder()
@@ -121,6 +125,7 @@ public class PublishGCPubSub extends AbstractGCPubSubProcessor{
         );
     }
 
+    @Override
     @OnScheduled
     public void onScheduled(ProcessContext context) {
         try {
@@ -153,7 +158,7 @@ public class PublishGCPubSub extends AbstractGCPubSubProcessor{
                 try {
                     final ByteArrayOutputStream baos = new ByteArrayOutputStream();
                     session.exportTo(flowFile, baos);
-                    final ByteString flowFileContent = ByteString.copyFromUtf8(baos.toString());
+                    final ByteString flowFileContent = ByteString.copyFrom(baos.toByteArray());
 
                     PubsubMessage message = PubsubMessage.newBuilder().setData(flowFileContent)
                             .setPublishTime(Timestamp.newBuilder().build())
@@ -162,14 +167,8 @@ public class PublishGCPubSub extends AbstractGCPubSubProcessor{
 
                     ApiFuture<String> messageIdFuture = publisher.publish(message);
 
-                    while (messageIdFuture.isDone()) {
-                        Thread.sleep(500L);
-                    }
-
-                    final String messageId = messageIdFuture.get();
                     final Map<String, String> attributes = new HashMap<>();
-
-                    attributes.put(MESSAGE_ID_ATTRIBUTE, messageId);
+                    attributes.put(MESSAGE_ID_ATTRIBUTE, messageIdFuture.get());
                     attributes.put(TOPIC_NAME_ATTRIBUTE, topicName);
 
                     flowFile = session.putAllAttributes(flowFile, attributes);
@@ -180,11 +179,10 @@ public class PublishGCPubSub extends AbstractGCPubSubProcessor{
                                         "so routing to retry", new Object[]{topicName, e.getLocalizedMessage()}, e);
                         session.transfer(flowFile, REL_RETRY);
                     } else {
-                        getLogger().error("Failed to publish the message to Google Cloud PubSub topic '{}' due to {}",
-                                new Object[]{topicName, e});
+                        getLogger().error("Failed to publish the message to Google Cloud PubSub topic '{}' due to {}", new Object[]{topicName, e});
                         session.transfer(flowFile, REL_FAILURE);
-                        context.yield();
                     }
+                    context.yield();
                 }
             }
         } finally {
@@ -215,7 +213,7 @@ public class PublishGCPubSub extends AbstractGCPubSubProcessor{
 
     private ProjectTopicName getTopicName(ProcessContext context) {
         final String topic = context.getProperty(TOPIC_NAME).evaluateAttributeExpressions().getValue();
-        final String projectId = context.getProperty(PROJECT_ID).getValue();
+        final String projectId = context.getProperty(PROJECT_ID).evaluateAttributeExpressions().getValue();
 
         if (topic.contains("/")) {
             return ProjectTopicName.parse(topic);

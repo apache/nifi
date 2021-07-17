@@ -65,4 +65,8 @@ public class CSVRecordSource implements RecordSource<CSVRecordAndFieldNames> {
 
         return null;
     }
+
+    public List<String> getFieldNames() {
+        return fieldNames;
+    }
 }

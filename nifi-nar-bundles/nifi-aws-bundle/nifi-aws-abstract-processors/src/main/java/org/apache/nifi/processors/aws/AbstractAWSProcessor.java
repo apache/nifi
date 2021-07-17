@@ -20,12 +20,35 @@ import com.amazonaws.AmazonWebServiceClient;
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.Protocol;
 import com.amazonaws.auth.AWSCredentials;
+import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.AnonymousAWSCredentials;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.auth.PropertiesCredentials;
 import com.amazonaws.http.conn.ssl.SdkTLSSocketFactory;
 import com.amazonaws.regions.Region;
 import com.amazonaws.regions.Regions;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.http.conn.ssl.DefaultHostnameVerifier;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.annotation.lifecycle.OnShutdown;
+import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.processor.AbstractSessionFactoryProcessor;
+import org.apache.nifi.processor.ProcessContext;
+import org.apache.nifi.processor.ProcessSession;
+import org.apache.nifi.processor.ProcessSessionFactory;
+import org.apache.nifi.processor.Relationship;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors;
+import org.apache.nifi.proxy.ProxyConfiguration;
+import org.apache.nifi.proxy.ProxySpec;
+import org.apache.nifi.ssl.SSLContextService;
+
+import javax.net.ssl.SSLContext;
 import java.io.File;
 import java.io.IOException;
 import java.net.Proxy;
@@ -39,25 +62,6 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import javax.net.ssl.SSLContext;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.http.conn.ssl.DefaultHostnameVerifier;
-import org.apache.nifi.annotation.lifecycle.OnScheduled;
-import org.apache.nifi.annotation.lifecycle.OnShutdown;
-import org.apache.nifi.components.AllowableValue;
-import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.components.ValidationContext;
-import org.apache.nifi.components.ValidationResult;
-import org.apache.nifi.expression.ExpressionLanguageScope;
-import org.apache.nifi.processor.AbstractProcessor;
-import org.apache.nifi.processor.ProcessContext;
-import org.apache.nifi.processor.Relationship;
-import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.util.StandardValidators;
-import org.apache.nifi.processors.aws.credentials.provider.factory.CredentialPropertyDescriptors;
-import org.apache.nifi.proxy.ProxyConfiguration;
-import org.apache.nifi.proxy.ProxySpec;
-import org.apache.nifi.ssl.SSLContextService;
 
 /**
  * Abstract base class for aws processors.  This class uses aws credentials for creating aws clients
@@ -67,7 +71,7 @@ import org.apache.nifi.ssl.SSLContextService;
  *
  */
 @Deprecated
-public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceClient> extends AbstractProcessor {
+public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceClient> extends AbstractSessionFactoryProcessor {
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder().name("success")
             .description("FlowFiles are routed to success relationship").build();
@@ -150,6 +154,9 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
     protected volatile ClientType client;
     protected volatile Region region;
 
+    private static final String VPCE_ENDPOINT_SUFFIX = ".vpce.amazonaws.com";
+    private static final Pattern VPCE_ENDPOINT_PATTERN = Pattern.compile("^(?:.+[vpce-][a-z0-9-]+\\.)?([a-z0-9-]+)$");
+
     // If protocol is changed to be a property, ensure other uses are also changed
     protected static final Protocol DEFAULT_PROTOCOL = Protocol.HTTPS;
     protected static final String DEFAULT_USER_AGENT = "NiFi";
@@ -166,7 +173,7 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
         for (final Regions region : Regions.values()) {
             values.add(createAllowableValue(region));
         }
-        return values.toArray(new AllowableValue[values.size()]);
+        return values.toArray(new AllowableValue[0]);
     }
 
     @Override
@@ -225,7 +232,7 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
         if(this.getSupportedPropertyDescriptors().contains(SSL_CONTEXT_SERVICE)) {
             final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
             if (sslContextService != null) {
-                final SSLContext sslContext = sslContextService.createSSLContext(SSLContextService.ClientAuth.NONE);
+                final SSLContext sslContext = sslContextService.createContext();
                 // NIFI-3788: Changed hostnameVerifier from null to DHV (BrowserCompatibleHostnameVerifier is deprecated)
                 SdkTLSSocketFactory sdkTLSSocketFactory = new SdkTLSSocketFactory(sslContext, new DefaultHostnameVerifier());
                 config.getApacheHttpClientConfig().setSslSocketFactory(sdkTLSSocketFactory);
@@ -264,10 +271,31 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
 
     @OnScheduled
     public void onScheduled(final ProcessContext context) {
-        final ClientType awsClient = createClient(context, getCredentials(context), createConfiguration(context));
-        this.client = awsClient;
+        this.client = createClient(context, getCredentials(context), createConfiguration(context));
         initializeRegionAndEndpoint(context);
     }
+
+    /*
+     * Allow optional override of onTrigger with the ProcessSessionFactory where required for AWS processors (e.g. ConsumeKinesisStream)
+     *
+     * @see AbstractProcessor
+     */
+    @Override
+    public void onTrigger(final ProcessContext context, final ProcessSessionFactory sessionFactory) throws ProcessException {
+        final ProcessSession session = sessionFactory.createSession();
+        try {
+            onTrigger(context, session);
+            session.commitAsync();
+        } catch (final Throwable t) {
+            session.rollback(true);
+            throw t;
+        }
+    }
+
+    /*
+     * Default to requiring the "standard" onTrigger with a single ProcessSession
+     */
+    public abstract void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException;
 
     protected void initializeRegionAndEndpoint(ProcessContext context) {
         // if the processor supports REGION, get the configured region.
@@ -275,7 +303,9 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
             final String region = context.getProperty(REGION).getValue();
             if (region != null) {
                 this.region = Region.getRegion(Regions.fromName(region));
-                client.setRegion(this.region);
+                if (client != null) {
+                    client.setRegion(this.region);
+                }
             } else {
                 this.region = null;
             }
@@ -283,16 +313,21 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
 
         // if the endpoint override has been configured, set the endpoint.
         // (per Amazon docs this should only be configured at client creation)
-        if (getSupportedPropertyDescriptors().contains(ENDPOINT_OVERRIDE)) {
+        if (client != null && getSupportedPropertyDescriptors().contains(ENDPOINT_OVERRIDE)) {
             final String urlstr = StringUtils.trimToEmpty(context.getProperty(ENDPOINT_OVERRIDE).evaluateAttributeExpressions().getValue());
 
             if (!urlstr.isEmpty()) {
-                getLogger().info("Overriding endpoint with {}", new Object[]{urlstr});
+                getLogger().info("Overriding endpoint with {}", urlstr);
 
-                if (urlstr.endsWith(".vpce.amazonaws.com")) {
-                    String region = parseRegionForVPCE(urlstr);
+                if (urlstr.endsWith(VPCE_ENDPOINT_SUFFIX)) {
+                    // handling vpce endpoints
+                    // falling back to the configured region if the parse fails
+                    // e.g. in case of https://vpce-***-***.sqs.{region}.vpce.amazonaws.com
+                    String region = parseRegionForVPCE(urlstr, this.region.getName());
                     this.client.setEndpoint(urlstr, this.client.getServiceName(), region);
                 } else {
+                    // handling non-vpce custom endpoints where the AWS library can parse the region out
+                    // e.g. https://sqs.{region}.***.***.***.gov
                     this.client.setEndpoint(urlstr);
                 }
             }
@@ -306,19 +341,18 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
         is an AWS PrivateLink so this method does the job of parsing the region name and
         returning it.
 
-        Refer NIFI-5456 & NIFI-5893
+        Refer NIFI-5456, NIFI-5893 & NIFI-8662
      */
-    private String parseRegionForVPCE(String url) {
-        int index = url.length() - ".vpce.amazonaws.com".length();
+    private String parseRegionForVPCE(String url, String configuredRegion) {
+        int index = url.length() - VPCE_ENDPOINT_SUFFIX.length();
 
-        Pattern VPCE_ENDPOINT_PATTERN = Pattern.compile("^(?:.+[vpce-][a-z0-9-]+\\.)?([a-z0-9-]+)$");
         Matcher matcher = VPCE_ENDPOINT_PATTERN.matcher(url.substring(0, index));
 
         if (matcher.matches()) {
             return matcher.group(1);
         } else {
-            getLogger().warn("Unable to get a match with the VPCE endpoint pattern; defaulting the region to us-east-1...");
-            return "us-east-1";
+            getLogger().info("Unable to get a match with the VPCE endpoint pattern; using the configured region: " + configuredRegion);
+            return configuredRegion;
         }
     }
 
@@ -361,7 +395,6 @@ public abstract class AbstractAWSProcessor<ClientType extends AmazonWebServiceCl
         }
 
         return new AnonymousAWSCredentials();
-
     }
 
     @OnShutdown

@@ -63,6 +63,13 @@ public interface ExtensionManager {
     InstanceClassLoader removeInstanceClassLoader(String instanceIdentifier);
 
     /**
+     * Registers the given instance class loader so that it can be later retrieved via {@link #getInstanceClassLoader(String)}
+     * @param instanceIdentifier the instance identifier
+     * @param instanceClassLoader the class loader
+     */
+    void registerInstanceClassLoader(String instanceIdentifier, InstanceClassLoader instanceClassLoader);
+
+    /**
      * Closes the given ClassLoader if it is an instance of URLClassLoader.
      *
      * @param instanceIdentifier the instance id the class loader corresponds to
@@ -90,9 +97,16 @@ public interface ExtensionManager {
      * Retrieves the extension classes that were loaded from the bundle with the given coordinate.
      *
      * @param bundleCoordinate the coordinate
-     * @return the classes from the bundle with that coordinate
+     * @return the definitions of the extensions from the bundle with that coordinate
      */
-    Set<Class> getTypes(BundleCoordinate bundleCoordinate);
+    Set<ExtensionDefinition> getTypes(BundleCoordinate bundleCoordinate);
+
+    /**
+     * Returns the Class that is described by the given definition
+     * @param extensionDefinition the extension definition
+     * @return the extension's class
+     */
+    Class<?> getClass(ExtensionDefinition extensionDefinition);
 
     /**
      * Retrieves the bundle for the given class loader.
@@ -108,9 +122,9 @@ public interface ExtensionManager {
      * (i.e getExtensions(Processor.class)
      *
      * @param definition the extension definition, such as Processor.class
-     * @return the set of extensions implementing the defintion
+     * @return the set of extension definitions that describe the the extensions implementing the defintion
      */
-    Set<Class> getExtensions(Class<?> definition);
+    Set<ExtensionDefinition> getExtensions(Class<?> definition);
 
     /**
      * Gets the temp component with the given type from the given bundle.
@@ -126,4 +140,8 @@ public interface ExtensionManager {
      */
     void logClassLoaderMapping();
 
+    /**
+     * Logs details about the files loaded by the class loaders
+     */
+    void logClassLoaderDetails();
 }

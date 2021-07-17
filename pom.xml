@@ -8,24 +8,24 @@
     by applicable law or agreed to in writing, software distributed under the
     License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS
     OF ANY KIND, either express or implied. See the License for the specific
-    language governing permissions and limitations under the License. -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    language governing permissions and limitations under the License. --><project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>org.apache</groupId>
         <artifactId>apache</artifactId>
-        <version>19</version>
+        <version>23</version>
         <relativePath />
     </parent>
     <groupId>org.apache.nifi</groupId>
     <artifactId>nifi</artifactId>
-    <version>1.10.0-SNAPSHOT</version>
+    <version>1.15.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <description>Apache NiFi is an easy to use, powerful, and reliable system to process and distribute data.</description>
     <modules>
         <module>nifi-commons</module>
         <module>nifi-api</module>
         <module>nifi-framework-api</module>
+        <module>nifi-server-api</module>
         <module>nifi-bootstrap</module>
         <module>nifi-mock</module>
         <module>nifi-nar-bundles</module>
@@ -33,9 +33,12 @@
         <module>nifi-docs</module>
         <module>nifi-maven-archetypes</module>
         <module>nifi-external</module>
-        <module>nifi-toolkit</module>
-        <module>nifi-stateless</module>
         <module>nifi-docker</module>
+        <module>nifi-system-tests</module>
+        <module>minifi</module>
+        <module>nifi-stateless</module>
+        <module>nifi-registry</module>
+        <module>nifi-toolkit</module>
     </modules>
     <url>https://nifi.apache.org</url>
     <organization>
@@ -71,9 +74,6 @@
             <archive>https://mail-archives.apache.org/mod_mbox/nifi-commits</archive>
         </mailingList>
     </mailingLists>
-    <prerequisites>
-        <maven>${maven.min-version}</maven>
-    </prerequisites>
     <scm>
         <connection>scm:git:git://git.apache.org/nifi.git</connection>
         <developerConnection>scm:git:https://git-wip-us.apache.org/repos/asf/nifi.git</developerConnection>
@@ -87,18 +87,25 @@
     <properties>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
-        <maven.min-version>3.1.1</maven.min-version>
         <maven.surefire.arguments />
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <inceptionYear>2014</inceptionYear>
-        <org.slf4j.version>1.7.26</org.slf4j.version>
-        <ranger.version>1.0.0</ranger.version>
-        <jetty.version>9.4.19.v20190610</jetty.version>
-        <jackson.version>2.9.9</jackson.version>
-        <nifi.registry.version>0.5.0</nifi.registry.version>
-        <nifi.groovy.version>2.5.4</nifi.groovy.version>
-        <surefire.version>2.22.0</surefire.version>
+        <okhttp.version>4.9.1</okhttp.version>
+        <org.bouncycastle.version>1.69</org.bouncycastle.version>
+        <org.slf4j.version>1.7.31</org.slf4j.version>
+        <ranger.version>2.1.0</ranger.version>
+        <jetty.version>9.4.42.v20210604</jetty.version>
+        <jackson.version>2.12.3</jackson.version>
+        <nifi.groovy.version>2.5.6</nifi.groovy.version>
+        <surefire.version>2.22.2</surefire.version>
+        <!-- The Hadoop version used by nifi-hadoop-libraries-nar and any NARs that depend on it, other NARs that need
+            a specific version should override this property, or use a more specific property like abc.hadoop.version -->
+        <hadoop.version>3.3.0</hadoop.version>
+        <ozone.version>1.0.0</ozone.version>
+        <gcs.version>2.1.5</gcs.version>
+        <aspectj.version>1.9.6</aspectj.version>
+        <jersey.version>2.33</jersey.version>
     </properties>
 
     <repositories>
@@ -136,19 +143,46 @@
                 <enabled>true</enabled>
             </releases>
         </repository>
+        <repository>
+            <id>Shibboleth</id>
+            <name>Shibboleth</name>
+            <url>https://build.shibboleth.net/nexus/content/repositories/releases/</url>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+        </repository>
     </repositories>
 
     <pluginRepositories>
         <pluginRepository>
-            <id>bintray</id>
-            <name>Groovy Bintray</name>
-            <url>https://dl.bintray.com/groovy/maven</url>
+            <id>gcs-maven-central-mirror</id>
+            <!--
+              Google Mirror of Maven Central, placed first so that it's used instead of flaky Maven Central.
+              See https://storage-download.googleapis.com/maven-central/index.html
+            -->
+            <name>GCS Maven Central mirror</name>
+            <url>https://maven-central.storage-download.googleapis.com/repos/central/data/</url>
             <releases>
-                <updatePolicy>never</updatePolicy>
+                <enabled>true</enabled>
             </releases>
             <snapshots>
                 <enabled>false</enabled>
             </snapshots>
+        </pluginRepository>
+        <pluginRepository>
+            <id>central</id>
+            <name>Central Repository</name>
+            <url>https://repo.maven.apache.org/maven2</url>
+            <layout>default</layout>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+            <releases>
+                <updatePolicy>never</updatePolicy>
+            </releases>
         </pluginRepository>
     </pluginRepositories>
 
@@ -179,18 +213,6 @@
                 <artifactId>logback-classic</artifactId>
                 <version>1.2.3</version>
                 <scope>provided</scope>
-            </dependency>
-            <dependency>
-                <groupId>ch.qos.logback</groupId>
-                <artifactId>jcl-over-slf4j</artifactId>
-                <version>1.2.3</version>
-                <scope>provided</scope>
-                <exclusions>
-                    <exclusion>
-                        <groupId>org.slf4j</groupId>
-                        <artifactId>slf4j-api</artifactId>
-                    </exclusion>
-                </exclusions>
             </dependency>
             <dependency>
                 <groupId>org.slf4j</groupId>
@@ -226,12 +248,27 @@
                 <artifactId>slf4j-log4j12</artifactId>
                 <version>${org.slf4j.version}</version>
             </dependency>
+            <dependency>
+                <groupId>org.bouncycastle</groupId>
+                <artifactId>bcprov-jdk15on</artifactId>
+                <version>${org.bouncycastle.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.bouncycastle</groupId>
+                <artifactId>bcpkix-jdk15on</artifactId>
+                <version>${org.bouncycastle.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.bouncycastle</groupId>
+                <artifactId>bcpg-jdk15on</artifactId>
+                <version>${org.bouncycastle.version}</version>
+            </dependency>
 
             <!-- These junit/mockito/groovy/spock/hamcrest dependencies are here to encourage consistent unit test library usage -->
             <dependency>
                 <groupId>junit</groupId>
                 <artifactId>junit</artifactId>
-                <version>4.12</version>
+                <version>4.13.2</version>
             </dependency>
             <dependency>
                 <groupId>org.mockito</groupId>
@@ -326,6 +363,16 @@
                 <version>${jetty.version}</version>
                 <scope>provided</scope>
             </dependency>
+            <dependency>
+                <groupId>org.aspectj</groupId>
+                <artifactId>aspectjrt</artifactId>
+                <version>${aspectj.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.aspectj</groupId>
+                <artifactId>aspectjweaver</artifactId>
+                <version>${aspectj.version}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -395,7 +442,9 @@
                         <redirectTestOutputToFile>true</redirectTestOutputToFile>
                         <argLine combine.children="append">-Xmx1G
                             -Djava.net.preferIPv4Stack=true
-                            ${maven.surefire.arguments}
+                            -Duser.language=${user.language}
+                            -Duser.country=${user.country}
+                            -Duser.timezone=${user.timezone}
                             -Dfile.encoding=UTF-8</argLine>
                     </configuration>
                     <dependencies>
@@ -479,12 +528,12 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-checkstyle-plugin</artifactId>
-                    <version>3.0.0</version>
+                    <version>3.1.0</version>
                     <dependencies>
                         <dependency>
                             <groupId>com.puppycrawl.tools</groupId>
                             <artifactId>checkstyle</artifactId>
-                            <version>8.21</version>
+                            <version>8.29</version>
                         </dependency>
                     </dependencies>
                 </plugin>
@@ -547,6 +596,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-enforcer-plugin</artifactId>
+                <version>3.0.0-M3</version>
                 <executions>
                     <execution>
                         <id>enforce-maven</id>
@@ -563,9 +613,55 @@
                                     </plugins>
                                 </requireSameVersions>
                                 <requireMavenVersion>
-                                    <version>${maven.min-version}</version>
+                                    <!-- We do not test this value so we should probably make it something fairly recent -->
+                                    <version>3.6.0</version>
                                 </requireMavenVersion>
                             </rules>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>enforce-no-snapshots</id>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <requireReleaseDeps>
+                                    <message>Other than org apache nifi components themselves no snapshot dependencies are allowed</message>
+                                    <!-- If we want to only enforce this for nifi release itself we should add 'onlyWhenRelease' and remove 'failWhenParentIsSnapshot' element -->
+                                    <failWhenParentIsSnapshot>false</failWhenParentIsSnapshot>
+                                    <excludes>
+                                        <exclude>org.apache.nifi:*</exclude>
+                                        <exclude>org.apache.nifi.minifi:*</exclude>
+                                        <exclude>org.apache.nifi.registry:*</exclude>
+                                    </excludes>
+                                </requireReleaseDeps>
+                            </rules>
+                            <fail>true</fail>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>enforce-banned-dependencies</id>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <bannedDependencies>
+                                    <excludes>
+                                        <!-- Cat-X Deps -->
+                                        <exclude>org.json:json:*:*:compile</exclude>
+                                        <exclude>c3p0:c3p0:*:*:compile</exclude>
+                                        <!-- Versions of JSR305 before 3.0.1 are not allowed https://github.com/findbugsproject/findbugs/issues/128 -->
+                                        <exclude>com.google.code.findbugs:jsr305:*:*:compile</exclude>
+                                    </excludes>
+                                    <includes>
+                                        <!-- Versions of JSR305 after 3.0.1 are allowed https://github.com/findbugsproject/findbugs/issues/128 -->
+                                        <include>com.google.code.findbugs:jsr305:[3.0.0,)</include>
+                                    </includes>
+                                </bannedDependencies>
+                            </rules>
+                            <fail>true</fail>
                         </configuration>
                     </execution>
                 </executions>
@@ -578,11 +674,16 @@
                         <module name="Checker">
                             <property name="charset" value="UTF-8" />
                             <property name="severity" value="warning" />
-                            <property name="cacheFile" value="target/checkstyleCache"/>
                             <!-- Checks for whitespace -->
                             <!-- See http://checkstyle.sf.net/config_whitespace.html -->
                             <module name="FileTabCharacter">
                                 <property name="eachLine" value="true" />
+                            </module>
+                            <module name="LineLength">
+                                <!-- needs extra, because Eclipse formatter
+                                    ignores the ending left brace -->
+                                <property name="max" value="200" />
+                                <property name="ignorePattern" value="^package.*|^import.*|a href|href|http://|https://|ftp://" />
                             </module>
                             <module name="TreeWalker">
                                 <module name="RegexpSinglelineJava">
@@ -594,12 +695,6 @@
                                     <property name="message" value="Javadoc @see does not need @link: pick one or the other." />
                                 </module>
                                 <module name="OuterTypeFilename" />
-                                <module name="LineLength">
-                                    <!-- needs extra, because Eclipse formatter
-                                        ignores the ending left brace -->
-                                    <property name="max" value="200" />
-                                    <property name="ignorePattern" value="^package.*|^import.*|a href|href|http://|https://|ftp://" />
-                                </module>
                                 <module name="AvoidStarImport" />
                                 <module name="UnusedImports">
                                     <property name="processJavadoc" value="true" />
@@ -639,13 +734,9 @@
                                 </module>
                                 <module name="NonEmptyAtclauseDescription" />
                                 <module name="JavadocMethod">
-                                    <property name="allowUndeclaredRTE" value="true" />
-                                    <property name="allowMissingJavadoc" value="true" />
                                     <property name="allowMissingParamTags" value="true" />
-                                    <property name="allowMissingThrowsTags" value="true" />
                                     <property name="allowMissingReturnTag" value="true" />
                                     <property name="allowedAnnotations" value="Override,Test,BeforeClass,AfterClass,Before,After" />
-                                    <property name="allowThrowsTagsForSubclasses" value="true" />
                                 </module>
                                 <module name="SingleLineJavadoc" />
                             </module>
@@ -665,8 +756,6 @@
                         <exclude>nb-configuration.xml</exclude> <!-- courtesy excludes for netbeans users -->
                         <exclude>nbactions.xml</exclude> <!-- courtesy excludes for netbeans users -->
                         <exclude>DEPENDENCIES</exclude> <!-- auto generated file by apache's maven config while building sources.zip -->
-                        <exclude>.github/PULL_REQUEST_TEMPLATE.md</exclude> <!-- PR Template for GitHub that does not have a mechanism of including comments -->
-                        <exclude>.travis-output-filters</exclude> <!-- grep patterns to exclude from travis output -->
                     </excludes>
                 </configuration>
             </plugin>
@@ -912,6 +1001,34 @@
                 <!-- Vendor-specific version number included here as default,
                     should be overridden on the command-line <hadoop.version>2.6.0-cdh5.8.1</hadoop.version> -->
             </properties>
+        </profile>
+        <profile>
+            <!-- Run "mvn clean verify -P owasp" to generate dependency-check-report.html in the target directory -->
+            <!-- Report results require detailed analysis to determine whether the vulnerability impacts the application -->
+            <id>owasp</id>
+            <properties>
+                <skipTests>true</skipTests>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.owasp</groupId>
+                        <artifactId>dependency-check-maven</artifactId>
+                        <version>6.1.5</version>
+                        <executions>
+                            <execution>
+                                <inherited>false</inherited>
+                                <goals>
+                                    <goal>aggregate</goal>
+                                </goals>
+                                <configuration>
+                                    <suppressionFiles>nifi-dependency-check-maven/suppressions.xml</suppressionFiles>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
         </profile>
     </profiles>
 </project>

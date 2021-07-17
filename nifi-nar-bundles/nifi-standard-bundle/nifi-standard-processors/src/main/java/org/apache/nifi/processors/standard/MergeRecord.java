@@ -350,12 +350,13 @@ public class MergeRecord extends AbstractSessionFactoryProcessor {
                 }
             }
         } finally {
-            session.commit();
+            session.commitAsync();
         }
 
-        // If there is no more data queued up, complete any bin that meets our minimum threshold
+        // If there is no more data queued up, or strategy is defragment, complete any bin that meets our minimum threshold
+        // Otherwise, run one more cycle to process queued FlowFiles to add more fragment into available bins.
         int completedBins = 0;
-        if (flowFiles.isEmpty()) {
+        if (flowFiles.isEmpty() || MERGE_STRATEGY_DEFRAGMENT.getValue().equals(mergeStrategy)) {
             try {
                 completedBins += manager.completeFullEnoughBins();
             } catch (final Exception e) {
@@ -418,4 +419,5 @@ public class MergeRecord extends AbstractSessionFactoryProcessor {
     int getBinCount() {
         return binManager.get().getBinCount();
     }
+
 }

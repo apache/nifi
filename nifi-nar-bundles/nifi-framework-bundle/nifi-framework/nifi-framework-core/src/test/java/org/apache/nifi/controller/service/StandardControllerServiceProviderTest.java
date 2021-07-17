@@ -22,11 +22,12 @@ import org.apache.nifi.components.state.StateManagerProvider;
 import org.apache.nifi.components.validation.ValidationTrigger;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ExtensionBuilder;
-import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.NodeTypeProvider;
 import org.apache.nifi.controller.ProcessScheduler;
 import org.apache.nifi.controller.ReloadComponent;
+import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.nar.ExtensionDiscoveringManager;
+import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.StandardExtensionDiscoveringManager;
 import org.apache.nifi.nar.SystemBundle;
 import org.apache.nifi.registry.VariableRegistry;
@@ -47,15 +48,12 @@ public class StandardControllerServiceProviderTest {
     private ControllerService proxied;
     private ControllerService implementation;
     private static VariableRegistry variableRegistry;
-    private static NiFiProperties nifiProperties;
     private static ExtensionDiscoveringManager extensionManager;
     private static Bundle systemBundle;
-    private static FlowController flowController;
 
     @BeforeClass
     public static void setupSuite() {
-        System.setProperty(NiFiProperties.PROPERTIES_FILE_PATH, StandardControllerServiceProviderTest.class.getResource("/conf/nifi.properties").getFile());
-        nifiProperties = NiFiProperties.createBasicNiFiProperties(null, null);
+        final NiFiProperties nifiProperties = NiFiProperties.createBasicNiFiProperties(StandardControllerServiceProviderTest.class.getResource("/conf/nifi.properties").getFile());
 
         // load the system bundle
         systemBundle = SystemBundle.create(nifiProperties);
@@ -63,17 +61,13 @@ public class StandardControllerServiceProviderTest {
         extensionManager.discoverExtensions(systemBundle, Collections.emptySet());
 
         variableRegistry = new FileBasedVariableRegistry(nifiProperties.getVariableRegistryPropertiesPaths());
-
-        flowController = Mockito.mock(FlowController.class);
-        Mockito.when(flowController.getExtensionManager()).thenReturn(extensionManager);
     }
-
 
     @Before
     public void setup() throws Exception {
         String id = "id";
         String clazz = "org.apache.nifi.controller.service.util.TestControllerService";
-        ControllerServiceProvider provider = new StandardControllerServiceProvider(Mockito.mock(FlowController.class), null, null);
+        ControllerServiceProvider provider = new StandardControllerServiceProvider(null, null, Mockito.mock(FlowManager.class), Mockito.mock(ExtensionManager.class));
         ControllerServiceNode node = createControllerService(clazz, id, systemBundle.getBundleDetails().getCoordinate(), provider);
         proxied = node.getProxiedControllerService();
         implementation = node.getControllerServiceImplementation();

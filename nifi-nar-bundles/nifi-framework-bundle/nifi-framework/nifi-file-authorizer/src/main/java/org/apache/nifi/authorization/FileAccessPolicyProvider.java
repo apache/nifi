@@ -16,6 +16,40 @@
  */
 package org.apache.nifi.authorization;
 
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.StringWriter;
+import java.nio.charset.StandardCharsets;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import javax.xml.XMLConstants;
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBElement;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Marshaller;
+import javax.xml.bind.Unmarshaller;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.stream.XMLOutputFactory;
+import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLStreamReader;
+import javax.xml.stream.XMLStreamWriter;
+import javax.xml.transform.stream.StreamSource;
+import javax.xml.validation.Schema;
+import javax.xml.validation.SchemaFactory;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authorization.annotation.AuthorizerContext;
 import org.apache.nifi.authorization.exception.AuthorizationAccessException;
@@ -32,6 +66,8 @@ import org.apache.nifi.authorization.util.IdentityMappingUtil;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.security.xml.XmlUtils;
 import org.apache.nifi.user.generated.Users;
+import org.apache.nifi.util.FlowInfo;
+import org.apache.nifi.util.FlowParser;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.file.FileUtils;
 import org.apache.nifi.web.api.dto.PortDTO;
@@ -42,40 +78,6 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
-
-import javax.xml.XMLConstants;
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBElement;
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Marshaller;
-import javax.xml.bind.Unmarshaller;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.stream.XMLOutputFactory;
-import javax.xml.stream.XMLStreamException;
-import javax.xml.stream.XMLStreamReader;
-import javax.xml.stream.XMLStreamWriter;
-import javax.xml.transform.stream.StreamSource;
-import javax.xml.validation.Schema;
-import javax.xml.validation.SchemaFactory;
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.IOException;
-import java.io.StringWriter;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvider {
 
@@ -101,7 +103,6 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
         }
     }
 
-    private static final DocumentBuilderFactory DOCUMENT_BUILDER_FACTORY = DocumentBuilderFactory.newInstance();
     private static final XMLOutputFactory XML_OUTPUT_FACTORY = XMLOutputFactory.newInstance();
 
     private static final String POLICY_ELEMENT = "policy";
@@ -277,21 +278,52 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
 
     @Override
     public synchronized AccessPolicy addAccessPolicy(AccessPolicy accessPolicy) throws AuthorizationAccessException {
-        if (accessPolicy == null) {
-            throw new IllegalArgumentException("AccessPolicy cannot be null");
+        addAccessPolicies(Collections.singletonList(accessPolicy));
+        return authorizationsHolder.get().getPoliciesById().get(accessPolicy.getIdentifier());
+    }
+
+    private synchronized void addAccessPolicies(final List<AccessPolicy> accessPolicies) throws AuthorizationAccessException {
+        if (accessPolicies == null) {
+            throw new IllegalArgumentException("AccessPolicies cannot be null");
         }
 
-        // create the new JAXB Policy
-        final Policy policy = createJAXBPolicy(accessPolicy);
-
-        // add the new Policy to the top-level list of policies
         final AuthorizationsHolder holder = authorizationsHolder.get();
         final Authorizations authorizations = holder.getAuthorizations();
-        authorizations.getPolicies().getPolicy().add(policy);
+        final List<Policy> policyList = authorizations.getPolicies().getPolicy();
+
+        for (final AccessPolicy accessPolicy : accessPolicies) {
+            // create the new JAXB Policy
+            final Policy policy = createJAXBPolicy(accessPolicy);
+
+            // add the new Policy to the top-level list of policies
+            policyList.add(policy);
+        }
 
         saveAndRefreshHolder(authorizations);
+    }
 
-        return authorizationsHolder.get().getPoliciesById().get(accessPolicy.getIdentifier());
+    public synchronized void purgePolicies(final boolean save) {
+        final AuthorizationsHolder holder = authorizationsHolder.get();
+        final Authorizations authorizations = holder.getAuthorizations();
+        final List<Policy> policyList = authorizations.getPolicies().getPolicy();
+
+        policyList.clear();
+
+        if (save) {
+            saveAndRefreshHolder(authorizations);
+        }
+    }
+
+    public void backupPolicies() throws JAXBException {
+        final AuthorizationsHolder holder = authorizationsHolder.get();
+        final Authorizations authorizations = holder.getAuthorizations();
+
+        final DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss");
+        final String timestamp = dateFormat.format(new Date());
+
+        final File backupFile = new File(authorizationsFile.getParentFile(), authorizationsFile.getName() + "." + timestamp);
+        logger.info("Writing backup of Policies to {}", backupFile.getAbsolutePath());
+        saveAuthorizations(authorizations, backupFile);
     }
 
     @Override
@@ -380,22 +412,53 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
 
     @Override
     public synchronized void inheritFingerprint(String fingerprint) throws AuthorizationAccessException {
-        parsePolicies(fingerprint).forEach(policy -> addAccessPolicy(policy));
+        final List<AccessPolicy> accessPolicies = parsePolicies(fingerprint);
+        inheritAccessPolicies(accessPolicies);
+    }
+
+    private synchronized void inheritAccessPolicies(final List<AccessPolicy> accessPolicies) {
+        addAccessPolicies(accessPolicies);
+    }
+
+    @Override
+    public synchronized void forciblyInheritFingerprint(final String fingerprint) throws AuthorizationAccessException {
+        final List<AccessPolicy> accessPolicies = parsePolicies(fingerprint);
+
+        if (isInheritable(accessPolicies)) {
+            logger.debug("Inheriting cluster's Access Policies");
+            inheritAccessPolicies(accessPolicies);
+        } else {
+            logger.info("Cannot directly inherit cluster's Access Policies. Will create backup of existing policies and replace with proposed policies");
+
+            try {
+                backupPolicies();
+            } catch (final JAXBException jaxb) {
+                throw new AuthorizationAccessException("Failed to backup existing policies so will not inherit any policies", jaxb);
+            }
+
+            purgePolicies(false);
+            addAccessPolicies(accessPolicies);
+        }
     }
 
     @Override
     public void checkInheritability(String proposedFingerprint) throws AuthorizationAccessException, UninheritableAuthorizationsException {
+        final List<AccessPolicy> accessPolicies;
         try {
             // ensure we can understand the proposed fingerprint
-            parsePolicies(proposedFingerprint);
+            accessPolicies = parsePolicies(proposedFingerprint);
         } catch (final AuthorizationAccessException e) {
             throw new UninheritableAuthorizationsException("Unable to parse the proposed fingerprint: " + e);
         }
 
         // ensure we are in a proper state to inherit the fingerprint
-        if (!getAccessPolicies().isEmpty()) {
+        if (!isInheritable(accessPolicies)) {
             throw new UninheritableAuthorizationsException("Proposed fingerprint is not inheritable because the current access policies is not empty.");
         }
+    }
+
+    private boolean isInheritable(final List<AccessPolicy> accessPolicies) {
+        return getAccessPolicies().isEmpty();
     }
 
     @Override
@@ -437,7 +500,7 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
 
         final byte[] fingerprintBytes = fingerprint.getBytes(StandardCharsets.UTF_8);
         try (final ByteArrayInputStream in = new ByteArrayInputStream(fingerprintBytes)) {
-            final DocumentBuilder docBuilder = DOCUMENT_BUILDER_FACTORY.newDocumentBuilder();
+            final DocumentBuilder docBuilder = XmlUtils.createSafeDocumentBuilder(false);
             final Document document = docBuilder.parse(in);
             final Element rootElement = document.getDocumentElement();
 
@@ -555,10 +618,14 @@ public class FileAccessPolicyProvider implements ConfigurableAccessPolicyProvide
     }
 
     private void saveAuthorizations(final Authorizations authorizations) throws JAXBException {
+        saveAuthorizations(authorizations, authorizationsFile);
+    }
+
+    private void saveAuthorizations(final Authorizations authorizations, final File destinationFile) throws JAXBException {
         final Marshaller marshaller = JAXB_AUTHORIZATIONS_CONTEXT.createMarshaller();
         marshaller.setSchema(authorizationsSchema);
         marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
-        marshaller.marshal(authorizations, authorizationsFile);
+        marshaller.marshal(authorizations, destinationFile);
     }
 
     private Authorizations unmarshallAuthorizations() throws JAXBException {

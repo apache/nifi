@@ -102,6 +102,9 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static org.apache.nifi.util.db.JdbcProperties.DEFAULT_PRECISION;
+import static org.apache.nifi.util.db.JdbcProperties.DEFAULT_SCALE;
+
 @EventDriven
 @SideEffectFree
 @SupportsBatching
@@ -199,6 +202,8 @@ public class QueryRecord extends AbstractProcessor {
         properties.add(RECORD_WRITER_FACTORY);
         properties.add(INCLUDE_ZERO_RECORD_FLOWFILES);
         properties.add(CACHE_SCHEMA);
+        properties.add(DEFAULT_PRECISION);
+        properties.add(DEFAULT_SCALE);
         this.properties = Collections.unmodifiableList(properties);
 
         relationships.add(REL_FAILURE);
@@ -277,6 +282,8 @@ public class QueryRecord extends AbstractProcessor {
 
         final RecordSetWriterFactory recordSetWriterFactory = context.getProperty(RECORD_WRITER_FACTORY).asControllerService(RecordSetWriterFactory.class);
         final RecordReaderFactory recordReaderFactory = context.getProperty(RECORD_READER_FACTORY).asControllerService(RecordReaderFactory.class);
+        final Integer defaultPrecision = context.getProperty(DEFAULT_PRECISION).evaluateAttributeExpressions(original).asInteger();
+        final Integer defaultScale = context.getProperty(DEFAULT_SCALE).evaluateAttributeExpressions(original).asInteger();
 
         final Map<FlowFile, Relationship> transformedFlowFiles = new HashMap<>();
         final Set<FlowFile> createdFlowFiles = new HashSet<>();
@@ -329,7 +336,7 @@ public class QueryRecord extends AbstractProcessor {
                                 final RecordSchema writeSchema;
 
                                 try {
-                                    recordSet = new ResultSetRecordSet(rs, writerSchema);
+                                    recordSet = new ResultSetRecordSet(rs, writerSchema, defaultPrecision, defaultScale);
                                     final RecordSchema resultSetSchema = recordSet.getSchema();
                                     writeSchema = recordSetWriterFactory.getSchema(originalAttributes, resultSetSchema);
                                 } catch (final SQLException | SchemaNotFoundException e) {
@@ -610,14 +617,15 @@ public class QueryRecord extends AbstractProcessor {
             if (record == null) {
                 return null;
             }
-
             if (record instanceof Record) {
                 return eval((Record) record, recordPath);
             }
             if (record instanceof Record[]) {
                 return eval((Record[]) record, recordPath);
             }
-
+            if (record instanceof Iterable) {
+                return eval((Iterable<Record>) record, recordPath);
+            }
             if (record instanceof Map) {
                 return eval((Map<?, ?>) record, recordPath);
             }
@@ -642,6 +650,18 @@ public class QueryRecord extends AbstractProcessor {
             final RecordPathResult result = compiled.evaluate(record);
 
             final List<FieldValue> selectedFields = result.getSelectedFields().collect(Collectors.toList());
+            return evalResults(selectedFields);
+        }
+
+        private Object eval(final Iterable<Record> records, final String recordPath) {
+            final RecordPath compiled = RECORD_PATH_CACHE.getCompiled(recordPath);
+
+            final List<FieldValue> selectedFields = new ArrayList<>();
+            for (final Record record : records) {
+                final RecordPathResult result = compiled.evaluate(record);
+                result.getSelectedFields().forEach(selectedFields::add);
+            }
+
             return evalResults(selectedFields);
         }
 
@@ -771,12 +791,6 @@ public class QueryRecord extends AbstractProcessor {
         }
     }
 
-    public static class RecordRecordPath extends RecordPathFunction {
-        public Record eval(Object record, String recordPath) {
-            return eval(record, recordPath, Record.class::cast);
-        }
-    }
-
 
     public static class RecordPathFunction {
         private static final RecordField ROOT_RECORD_FIELD = new RecordField("root", RecordFieldType.MAP.getMapDataType(RecordFieldType.STRING.getDataType()));
@@ -790,12 +804,18 @@ public class QueryRecord extends AbstractProcessor {
                 return null;
             }
 
-            if (record instanceof Record) {
-                return eval((Record) record, recordPath, transform);
-            } else if (record instanceof Record[]) {
-                return eval((Record[]) record, recordPath, transform);
-            } else if (record instanceof Map) {
-                return eval((Map<?, ?>) record, recordPath, transform);
+            try {
+                if (record instanceof Record) {
+                    return eval((Record) record, recordPath, transform);
+                } else if (record instanceof Record[]) {
+                    return eval((Record[]) record, recordPath, transform);
+                } else if (record instanceof Iterable) {
+                    return eval((Iterable<Record>) record, recordPath, transform);
+                } else if (record instanceof Map) {
+                    return eval((Map<?, ?>) record, recordPath, transform);
+                }
+            } catch (IllegalArgumentException e) {
+                throw new RuntimeException("Cannot evaluate RecordPath " + recordPath + " against " + record, e);
             }
 
             throw new RuntimeException("Cannot evaluate RecordPath " + recordPath + " against given argument because the argument is of type " + record.getClass() + " instead of Record");
@@ -836,6 +856,23 @@ public class QueryRecord extends AbstractProcessor {
 
             return evalResults(selectedFields.stream(), transform, () -> "RecordPath " + recordPath + " resulted in more than one return value. The RecordPath must be further constrained.");
         }
+
+        private <T> T  eval(final Iterable<Record> records, final String recordPath, final Function<Object, T> transform) {
+            final RecordPath compiled = RECORD_PATH_CACHE.getCompiled(recordPath);
+
+            final List<FieldValue> selectedFields = new ArrayList<>();
+            for (final Record record : records) {
+                final RecordPathResult result = compiled.evaluate(record);
+                result.getSelectedFields().forEach(selectedFields::add);
+            }
+
+            if (selectedFields.isEmpty()) {
+                return null;
+            }
+
+            return evalResults(selectedFields.stream(), transform, () -> "RecordPath " + recordPath + " resulted in more than one return value. The RecordPath must be further constrained.");
+        }
+
 
         private <T> T evalResults(final Stream<FieldValue> fields, final Function<Object, T> transform, final Supplier<String> multipleReturnValueErrorSupplier) {
             return fields.map(FieldValue::getValue)

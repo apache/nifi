@@ -61,6 +61,7 @@ import org.apache.nifi.cluster.event.NodeEvent;
 import org.apache.nifi.cluster.manager.StatusMerger;
 import org.apache.nifi.cluster.protocol.NodeIdentifier;
 import org.apache.nifi.components.AllowableValue;
+import org.apache.nifi.components.PropertyDependency;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.components.state.Scope;
@@ -82,6 +83,7 @@ import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.Snippet;
 import org.apache.nifi.controller.Template;
+import org.apache.nifi.controller.ThreadDetails;
 import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.label.Label;
 import org.apache.nifi.controller.queue.DropFlowFileState;
@@ -121,6 +123,7 @@ import org.apache.nifi.groups.ProcessGroupCounts;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.groups.RemoteProcessGroupCounts;
 import org.apache.nifi.history.History;
+import org.apache.nifi.nar.ExtensionDefinition;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarClassLoadersHolder;
 import org.apache.nifi.parameter.Parameter;
@@ -1283,6 +1286,32 @@ public final class DtoFactory {
         return dto;
     }
 
+    public ProcessorRunStatusDetailsDTO createProcessorRunStatusDetailsDto(final ProcessorNode processor, final ProcessorStatus processorStatus) {
+        final ProcessorRunStatusDetailsDTO dto = new ProcessorRunStatusDetailsDTO();
+        dto.setId(processor.getIdentifier());
+        dto.setName(processor.getName());
+        dto.setActiveThreadCount(processorStatus.getActiveThreadCount());
+        dto.setRunStatus(processorStatus.getRunStatus().name());
+        dto.setValidationErrors(convertValidationErrors(processor.getValidationErrors()));
+        return dto;
+    }
+
+    private Set<String> convertValidationErrors(final Collection<ValidationResult> validationErrors) {
+        if (validationErrors == null) {
+            return null;
+        }
+        if (validationErrors.isEmpty()) {
+            return Collections.emptySet();
+        }
+
+        final Set<String> errors = new HashSet<>(validationErrors.size());
+        for (final ValidationResult result : validationErrors) {
+            errors.add(result.toString());
+        }
+
+        return errors;
+    }
+
     /**
      * Creates a PortStatusDTO for the specified PortStatus.
      *
@@ -1528,8 +1557,8 @@ public final class DtoFactory {
         orderedProperties.putAll(sortedProperties);
 
         // build the descriptor and property dtos
-        dto.setDescriptors(new LinkedHashMap<String, PropertyDescriptorDTO>());
-        dto.setProperties(new LinkedHashMap<String, String>());
+        dto.setDescriptors(new LinkedHashMap<>());
+        dto.setProperties(new LinkedHashMap<>());
         for (final Map.Entry<PropertyDescriptor, String> entry : orderedProperties.entrySet()) {
             final PropertyDescriptor descriptor = entry.getKey();
 
@@ -1540,6 +1569,8 @@ public final class DtoFactory {
             String propertyValue = entry.getValue();
             if (propertyValue != null && descriptor.isSensitive()) {
                 propertyValue = SENSITIVE_VALUE_MASK;
+            } else if (propertyValue == null && descriptor.getDefaultValue() != null) {
+                propertyValue = descriptor.getDefaultValue();
             }
 
             // set the property value
@@ -1608,8 +1639,8 @@ public final class DtoFactory {
         orderedProperties.putAll(sortedProperties);
 
         // build the descriptor and property dtos
-        dto.setDescriptors(new LinkedHashMap<String, PropertyDescriptorDTO>());
-        dto.setProperties(new LinkedHashMap<String, String>());
+        dto.setDescriptors(new LinkedHashMap<>());
+        dto.setProperties(new LinkedHashMap<>());
         for (final Map.Entry<PropertyDescriptor, String> entry : orderedProperties.entrySet()) {
             final PropertyDescriptor descriptor = entry.getKey();
 
@@ -1621,6 +1652,8 @@ public final class DtoFactory {
             String propertyValue = entry.getValue();
             if (propertyValue != null && descriptor.isSensitive()) {
                 propertyValue = SENSITIVE_VALUE_MASK;
+            } else if (propertyValue == null && descriptor.getDefaultValue() != null) {
+                propertyValue = descriptor.getDefaultValue();
             }
 
             // set the property value
@@ -2477,6 +2510,11 @@ public final class DtoFactory {
         dto.setName(group.getName());
         dto.setVersionedComponentId(group.getVersionedComponentId().orElse(null));
         dto.setVersionControlInformation(createVersionControlInformationDto(group));
+        dto.setFlowfileConcurrency(group.getFlowFileConcurrency().name());
+        dto.setFlowfileOutboundPolicy(group.getFlowFileOutboundPolicy().name());
+        dto.setDefaultFlowFileExpiration(group.getDefaultFlowFileExpiration());
+        dto.setDefaultBackPressureObjectThreshold(group.getDefaultBackPressureObjectThreshold());
+        dto.setDefaultBackPressureDataSizeThreshold(group.getDefaultBackPressureDataSizeThreshold());
 
         final ParameterContext parameterContext = group.getParameterContext();
         if (parameterContext != null) {
@@ -2822,7 +2860,13 @@ public final class DtoFactory {
             }
         }
 
-        return entityFactory.createAffectedComponentEntity(affectedComponent, revision, permissions, groupNameDto);
+        final List<BulletinDTO> bulletins = createBulletins(componentNode);
+        return entityFactory.createAffectedComponentEntity(affectedComponent, revision, permissions, groupNameDto, bulletins);
+    }
+
+    private List<BulletinDTO> createBulletins(final ComponentNode componentNode) {
+        final List<BulletinDTO> bulletins = createBulletinDtos(bulletinRepository.findBulletinsForSource(componentNode.getIdentifier()));
+        return bulletins;
     }
 
     public VariableRegistryDTO createVariableRegistryDto(final ProcessGroup processGroup, final RevisionManager revisionManager) {
@@ -3066,23 +3110,23 @@ public final class DtoFactory {
     /**
      * Gets the DocumentedTypeDTOs from the specified classes.
      *
-     * @param classes classes
+     * @param extensionDefinitions extensionDefinitions
      * @param bundleGroupFilter if specified, must be member of bundle group
      * @param bundleArtifactFilter if specified, must be member of bundle artifact
      * @param typeFilter if specified, type must match
      * @return dtos
      */
-    public Set<DocumentedTypeDTO> fromDocumentedTypes(final Set<Class> classes, final String bundleGroupFilter, final String bundleArtifactFilter, final String typeFilter) {
+    public Set<DocumentedTypeDTO> fromDocumentedTypes(final Set<ExtensionDefinition> extensionDefinitions, final String bundleGroupFilter, final String bundleArtifactFilter, final String typeFilter) {
         final Map<Class, Bundle> classBundles = new HashMap<>();
-        for (final Class cls : classes) {
-            classBundles.put(cls, extensionManager.getBundle(cls.getClassLoader()));
+        for (final ExtensionDefinition extensionDefinition : extensionDefinitions) {
+            final Class cls = extensionManager.getClass(extensionDefinition);
+            classBundles.put(cls, extensionDefinition.getBundle());
         }
         return fromDocumentedTypes(classBundles, bundleGroupFilter, bundleArtifactFilter, typeFilter);
     }
 
     /**
      * Creates a ProcessorDTO from the specified ProcessorNode.
-     *
      * @param node node
      * @return dto
      */
@@ -3127,7 +3171,7 @@ public final class DtoFactory {
         }
 
         // sort the relationships
-        Collections.sort(relationships, new Comparator<RelationshipDTO>() {
+        relationships.sort(new Comparator<RelationshipDTO>() {
             @Override
             public int compare(final RelationshipDTO r1, final RelationshipDTO r2) {
                 return Collator.getInstance(Locale.US).compare(r1.getName(), r2.getName());
@@ -3141,9 +3185,10 @@ public final class DtoFactory {
         dto.setSupportsParallelProcessing(!node.isTriggeredSerially());
         dto.setSupportsEventDriven(node.isEventDrivenSupported());
         dto.setSupportsBatching(node.isSessionBatchingSupported());
+
         dto.setConfig(createProcessorConfigDto(node));
 
-        final ValidationStatus validationStatus = node.getValidationStatus(1, TimeUnit.MILLISECONDS);
+        final ValidationStatus validationStatus = node.getValidationStatus();
         dto.setValidationStatus(validationStatus.name());
 
         final Collection<ValidationResult> validationErrors = node.getValidationErrors();
@@ -3871,7 +3916,7 @@ public final class DtoFactory {
     private List<ThreadDumpDTO> createThreadDumpDtos(final ProcessorNode procNode) {
         final List<ThreadDumpDTO> threadDumps = new ArrayList<>();
 
-        final List<ActiveThreadInfo> activeThreads = procNode.getActiveThreads();
+        final List<ActiveThreadInfo> activeThreads = procNode.getActiveThreads(ThreadDetails.capture());
         for (final ActiveThreadInfo threadInfo : activeThreads) {
             final ThreadDumpDTO dto = new ThreadDumpDTO();
             dto.setStackTrace(threadInfo.getStackTrace());
@@ -4036,6 +4081,20 @@ public final class DtoFactory {
             dto.setAllowableValues(allowableValues);
         }
 
+        // Add any dependencies
+        final Set<PropertyDependency> dependencies = propertyDescriptor.getDependencies();
+        final List<PropertyDependencyDTO> dependencyDtos = dependencies.stream()
+            .map(this::createPropertyDependencyDto)
+            .collect(Collectors.toList());
+        dto.setDependencies(dependencyDtos);
+
+        return dto;
+    }
+
+    private PropertyDependencyDTO createPropertyDependencyDto(final PropertyDependency dependency) {
+        final PropertyDependencyDTO dto = new PropertyDependencyDTO();
+        dto.setPropertyName(dependency.getPropertyName());
+        dto.setDependentValues(dependency.getDependentValues());
         return dto;
     }
 
@@ -4284,6 +4343,11 @@ public final class DtoFactory {
         copy.setOutputPortCount(original.getOutputPortCount());
         copy.setParentGroupId(original.getParentGroupId());
         copy.setVersionedComponentId(original.getVersionedComponentId());
+        copy.setFlowfileConcurrency(original.getFlowfileConcurrency());
+        copy.setFlowfileOutboundPolicy(original.getFlowfileOutboundPolicy());
+        copy.setDefaultFlowFileExpiration(original.getDefaultFlowFileExpiration());
+        copy.setDefaultBackPressureObjectThreshold(original.getDefaultBackPressureObjectThreshold());
+        copy.setDefaultBackPressureDataSizeThreshold(original.getDefaultBackPressureDataSizeThreshold());
 
         copy.setRunningCount(original.getRunningCount());
         copy.setStoppedCount(original.getStoppedCount());

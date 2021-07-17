@@ -123,7 +123,7 @@ public class RemoteProcessGroupStatusDTO {
 
     @ApiModelProperty(value = "Indicates whether the component is valid, invalid, or still in the process of validating" +
             " (i.e., it is unknown whether or not the component is valid)",
-            readOnly = true,
+            accessMode = ApiModelProperty.AccessMode.READ_ONLY,
             allowableValues = "VALID, INVALID, VALIDATING")
     public String getValidationStatus() {
         return validationStatus;

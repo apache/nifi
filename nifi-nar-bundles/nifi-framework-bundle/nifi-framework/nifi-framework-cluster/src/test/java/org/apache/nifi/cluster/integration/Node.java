@@ -46,7 +46,7 @@ import org.apache.nifi.controller.StandardFlowService;
 import org.apache.nifi.controller.leader.election.CuratorLeaderElectionManager;
 import org.apache.nifi.controller.leader.election.LeaderElectionManager;
 import org.apache.nifi.controller.repository.FlowFileEventRepository;
-import org.apache.nifi.encrypt.StringEncryptor;
+import org.apache.nifi.encrypt.PropertyEncryptorFactory;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.io.socket.ServerSocketConfiguration;
@@ -60,6 +60,7 @@ import org.apache.nifi.reporting.BulletinRepository;
 import org.apache.nifi.reporting.Severity;
 import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.web.revision.RevisionManager;
+import org.apache.nifi.web.revision.RevisionSnapshot;
 import org.junit.Assert;
 import org.mockito.Mockito;
 
@@ -131,7 +132,8 @@ public class Node {
         this.extensionManager = extensionManager;
 
         revisionManager = Mockito.mock(RevisionManager.class);
-        Mockito.when(revisionManager.getAllRevisions()).thenReturn(Collections.emptyList());
+        RevisionSnapshot revisionSnapshot = new RevisionSnapshot(Collections.emptyList(), 0L);
+        Mockito.when(revisionManager.getAllRevisions()).thenReturn(revisionSnapshot);
 
         electionManager = new CuratorLeaderElectionManager(4, nodeProperties);
         this.flowElection = flowElection;
@@ -140,19 +142,6 @@ public class Node {
 
     private static NodeIdentifier createNodeId() {
         return new NodeIdentifier(UUID.randomUUID().toString(), "localhost", createPort(), "localhost", createPort(), "localhost", createPort(), "localhost", null, null, false, null);
-    }
-
-    /**
-     * Utility method which accepts {@link NiFiProperties} object but calls {@link StringEncryptor#createEncryptor(String, String, String)} with extracted properties.
-     *
-     * @param nifiProperties the NiFiProperties object
-     * @return the StringEncryptor
-     */
-    private StringEncryptor createEncryptorFromProperties(NiFiProperties nifiProperties) {
-        final String algorithm = nifiProperties.getProperty(NiFiProperties.SENSITIVE_PROPS_ALGORITHM);
-        final String provider = nifiProperties.getProperty(NiFiProperties.SENSITIVE_PROPS_PROVIDER);
-        final String password = nifiProperties.getProperty(NiFiProperties.SENSITIVE_PROPS_KEY);
-        return StringEncryptor.createEncryptor(algorithm, provider, password);
     }
 
     public synchronized void start() {
@@ -165,8 +154,9 @@ public class Node {
 
         final HeartbeatMonitor heartbeatMonitor = createHeartbeatMonitor();
         flowController = FlowController.createClusteredInstance(Mockito.mock(FlowFileEventRepository.class), nodeProperties,
-            null, null, createEncryptorFromProperties(nodeProperties), protocolSender, Mockito.mock(BulletinRepository.class), clusterCoordinator,
-            heartbeatMonitor, electionManager, VariableRegistry.EMPTY_REGISTRY, Mockito.mock(FlowRegistryClient.class), extensionManager);
+            null, null, PropertyEncryptorFactory.getPropertyEncryptor(nodeProperties), protocolSender, Mockito.mock(BulletinRepository.class), clusterCoordinator,
+            heartbeatMonitor, electionManager, VariableRegistry.EMPTY_REGISTRY, Mockito.mock(FlowRegistryClient.class), extensionManager,
+            revisionManager);
 
         try {
             flowController.initializeFlow();
@@ -179,7 +169,7 @@ public class Node {
             flowController.getStateManagerProvider().getStateManager("Cluster Node Configuration").setState(Collections.singletonMap("Node UUID", nodeId.getId()), Scope.LOCAL);
 
             flowService = StandardFlowService.createClusteredInstance(flowController, nodeProperties, senderListener, clusterCoordinator,
-                createEncryptorFromProperties(nodeProperties), revisionManager, Mockito.mock(Authorizer.class));
+                PropertyEncryptorFactory.getPropertyEncryptor(nodeProperties), revisionManager, Mockito.mock(Authorizer.class));
 
             flowService.start();
 

@@ -31,10 +31,10 @@ import javax.ws.rs.core.Response
 class NiFiClientUtilSpec extends Specification{
 
     @Rule
-    public final ExpectedSystemExit exit = ExpectedSystemExit.none()
+    public ExpectedSystemExit exit = ExpectedSystemExit.none()
 
     @Rule
-    public final SystemOutRule systemOutRule = new SystemOutRule().enableLog()
+    public SystemOutRule systemOutRule = new SystemOutRule().enableLog()
 
     def "build unsecure url successfully"(){
 
@@ -47,8 +47,9 @@ class NiFiClientUtilSpec extends Specification{
 
         then:
 
-        3 * niFiProperties.getProperty(_)
-        url == "http://localhost:8080/nifi-api/controller/cluster/nodes/1"
+        2 * niFiProperties.getProperty(_) 
+        niFiProperties.getProperty(NiFiProperties.WEB_HTTP_PORT) >> "8000"
+        url == "http://localhost:8000/nifi-api/controller/cluster/nodes/1"
     }
 
 

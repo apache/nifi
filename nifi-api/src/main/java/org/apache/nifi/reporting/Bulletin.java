@@ -33,6 +33,7 @@ public abstract class Bulletin implements Comparable<Bulletin> {
 
     private String groupId;
     private String groupName;
+    private String groupPath;
     private String sourceId;
     private String sourceName;
     private ComponentType sourceType;
@@ -96,6 +97,14 @@ public abstract class Bulletin implements Comparable<Bulletin> {
 
     public void setGroupName(String groupName) {
         this.groupName = groupName;
+    }
+
+    public String getGroupPath() {
+        return groupPath;
+    }
+
+    public void setGroupPath(String groupPath) {
+        this.groupPath = groupPath;
     }
 
     public String getSourceId() {

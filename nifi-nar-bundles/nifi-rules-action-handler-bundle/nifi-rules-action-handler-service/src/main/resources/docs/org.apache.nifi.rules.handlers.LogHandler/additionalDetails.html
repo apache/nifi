@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<head>
+    <meta charset="utf-8" />
+    <title>LogHandler</title>
+    <!--link rel="stylesheet" href="../../css/component-usage.css" type="text/css" /-->
+    <link rel="stylesheet" href="/nifi-docs/css/component-usage.css" type="text/css" />
+</head>
+
+<body>
+<h2>Summary</h2>
+<p>
+    The LogHandler is used to execute actions that dictate to log a message and/or metrics.  LogHandler can be invoked with any Action object.
+    Action objects can include attributes to configure the LogHandler or rely on the handler's default settings.  Possible attribute values are listed below.
+</p>
+<h3>LogHandler Service Attributes</h3>
+<table title="LogHandler Attributes" border="1" width="500">
+    <tr><th>Attribute</th><th>Description</th></tr>
+    <tr><td>logLevel</td><td>Log Level for logged message.  Possible values are trace, debug, info, warn, error.</td></tr>
+    <tr><td>message</td><td>Message for log.</td></tr>
+</table>
+<br/>
+</body>
+</html>

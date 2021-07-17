@@ -326,4 +326,23 @@ public interface FlowManager {
     ParameterContext createParameterContext(String id, String name, Map<String, Parameter> parameters);
 
     ParameterContextManager getParameterContextManager();
+
+    /**
+     * @return the number of each type of component (Processor, Controller Service, Process Group, Funnel, Input Port, Output Port, Reporting Task, Remote Process Group)
+     */
+    Map<String, Integer> getComponentCounts();
+
+    /**
+     * Purges all components from the flow, including:
+     *
+     * Process Groups (and all components within it)
+     * Controller Services
+     * Templates
+     * Reporting Tasks
+     * Parameter Contexts
+     * Flow Registries
+     *
+     * @throws IllegalStateException if any of the components is not in a state that it can be deleted.
+     */
+    void purge();
 }

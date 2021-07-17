@@ -17,14 +17,14 @@
 
 package org.apache.nifi.controller.queue;
 
+import org.apache.nifi.controller.repository.FlowFileRecord;
+import org.apache.nifi.controller.repository.claim.ContentClaim;
+import org.apache.nifi.flowfile.FlowFilePrioritizer;
+
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-
-import org.apache.nifi.controller.repository.FlowFileRecord;
-import org.apache.nifi.controller.repository.claim.ContentClaim;
-import org.apache.nifi.flowfile.FlowFilePrioritizer;
 
 public class QueuePrioritizer implements Comparator<FlowFileRecord>, Serializable {
     private static final long serialVersionUID = 1L;
@@ -67,6 +67,7 @@ public class QueuePrioritizer implements Comparator<FlowFileRecord>, Serializabl
 
         final ContentClaim claim1 = f1.getContentClaim();
         final ContentClaim claim2 = f2.getContentClaim();
+
 
         // put the one without a claim first
         if (claim1 == null && claim2 != null) {

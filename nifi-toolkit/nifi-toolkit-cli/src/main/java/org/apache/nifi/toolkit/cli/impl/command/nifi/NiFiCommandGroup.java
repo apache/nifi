@@ -18,6 +18,9 @@ package org.apache.nifi.toolkit.cli.impl.command.nifi;
 
 import org.apache.nifi.toolkit.cli.api.Command;
 import org.apache.nifi.toolkit.cli.impl.command.AbstractCommandGroup;
+import org.apache.nifi.toolkit.cli.impl.command.nifi.access.GetAccessToken;
+import org.apache.nifi.toolkit.cli.impl.command.nifi.access.GetAccessTokenSpnego;
+import org.apache.nifi.toolkit.cli.impl.command.nifi.access.LogoutAccessToken;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.cs.DisableControllerServices;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.cs.EnableControllerServices;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.flow.ClusterSummary;
@@ -56,11 +59,13 @@ import org.apache.nifi.toolkit.cli.impl.command.nifi.pg.PGGetVars;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.pg.PGGetVersion;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.pg.PGImport;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.pg.PGList;
+import org.apache.nifi.toolkit.cli.impl.command.nifi.pg.PGReplace;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.pg.PGSetParamContext;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.pg.PGSetVar;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.pg.PGStart;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.pg.PGStatus;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.pg.PGStop;
+import org.apache.nifi.toolkit.cli.impl.command.nifi.pg.PGCreate;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.policies.GetAccessPolicy;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.policies.UpdateAccessPolicy;
 import org.apache.nifi.toolkit.cli.impl.command.nifi.registry.CreateRegistryClient;
@@ -110,6 +115,7 @@ public class NiFiCommandGroup extends AbstractCommandGroup {
         commands.add(new PGImport());
         commands.add(new PGStart());
         commands.add(new PGStop());
+        commands.add(new PGCreate());
         commands.add(new PGGetVars());
         commands.add(new PGSetVar());
         commands.add(new PGGetVersion());
@@ -123,6 +129,7 @@ public class NiFiCommandGroup extends AbstractCommandGroup {
         commands.add(new PGDisableControllerServices());
         commands.add(new PGGetParamContext());
         commands.add(new PGSetParamContext());
+        commands.add(new PGReplace());
         commands.add(new GetControllerServices());
         commands.add(new GetControllerService());
         commands.add(new CreateControllerService());
@@ -152,6 +159,9 @@ public class NiFiCommandGroup extends AbstractCommandGroup {
         commands.add(new ExportParamContext());
         commands.add(new ImportParamContext());
         commands.add(new MergeParamContext());
+        commands.add(new GetAccessToken());
+        commands.add(new GetAccessTokenSpnego());
+        commands.add(new LogoutAccessToken());
         return new ArrayList<>(commands);
     }
 }

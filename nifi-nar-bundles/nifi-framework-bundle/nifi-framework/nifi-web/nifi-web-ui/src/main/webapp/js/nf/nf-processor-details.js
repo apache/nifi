@@ -174,14 +174,18 @@
             }
 
             // initialize the properties
-            $('#read-only-processor-properties').propertytable({
-                supportsGoTo: config.supportsGoTo,
-                readOnly: true,
-                getParameterContext: function (groupId) {
-                    // processors being configured must be in the current group
-                    return nfCanvasUtils.getParameterContext();
-                }
-            });
+
+            $('#read-only-processor-properties').propertytable(Object.assign({
+                    supportsGoTo: config.supportsGoTo,
+                    readOnly: true
+                },
+                //incase of summary window, nfCanvasUtils module wont be loaded
+                nfCanvasUtils && {
+                    getParameterContext: function (groupId) {
+                        // processors being configured must be in the current group
+                        return nfCanvasUtils.getParameterContext();
+                    }
+                }));
         },
 
         /**
@@ -285,7 +289,9 @@
                 var selection;
 
                 // load the properties
-                $('#read-only-processor-properties').propertytable('loadProperties', processor.config.properties, processor.config.descriptors, history.propertyHistory);
+                $('#read-only-processor-properties')
+                    .propertytable('setGroupId', processor.parentGroupId)
+                    .propertytable('loadProperties', processor.config.properties, processor.config.descriptors, history.propertyHistory);
 
                 var buttons = [{
                     buttonText: 'Ok',

@@ -16,50 +16,49 @@
  */
 package org.apache.nifi.security.kms;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.CharBuffer;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
-import java.security.KeyManagementException;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.Arrays;
-import java.util.Base64;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.regex.Pattern;
-import javax.crypto.BadPaddingException;
-import javax.crypto.Cipher;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.security.util.EncryptionMethod;
-import org.apache.nifi.security.util.crypto.AESKeyedCipherProvider;
-import org.apache.nifi.util.NiFiProperties;
+import org.apache.nifi.security.repository.config.RepositoryEncryptionConfiguration;
+import org.apache.nifi.util.NiFiBootstrapUtils;
+import org.bouncycastle.util.encoders.DecoderException;
 import org.bouncycastle.util.encoders.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.crypto.Cipher;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.security.KeyManagementException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.regex.Pattern;
+
 public class CryptoUtils {
-    private static final Logger logger = LoggerFactory.getLogger(StaticKeyProvider.class);
-    private static final String STATIC_KEY_PROVIDER_CLASS_NAME = "org.apache.nifi.security.kms.StaticKeyProvider";
-    private static final String FILE_BASED_KEY_PROVIDER_CLASS_NAME = "org.apache.nifi.security.kms.FileBasedKeyProvider";
+    private static final Logger logger = LoggerFactory.getLogger(CryptoUtils.class);
+    public static final String STATIC_KEY_PROVIDER_CLASS_NAME = "org.apache.nifi.security.kms.StaticKeyProvider";
+    public static final String FILE_BASED_KEY_PROVIDER_CLASS_NAME = "org.apache.nifi.security.kms.FileBasedKeyProvider";
+    public static final String KEY_STORE_KEY_PROVIDER_CLASS_NAME = "org.apache.nifi.security.kms.KeyStoreKeyProvider";
 
-    private static final String LEGACY_SKP_FQCN = "org.apache.nifi.provenance.StaticKeyProvider";
-    private static final String LEGACY_FBKP_FQCN = "org.apache.nifi.provenance.FileBasedKeyProvider";
+    // TODO: Move to RepositoryEncryptionUtils in NIFI-6617
+    public static final String LEGACY_SKP_FQCN = "org.apache.nifi.provenance.StaticKeyProvider";
+    public static final String LEGACY_FBKP_FQCN = "org.apache.nifi.provenance.FileBasedKeyProvider";
 
-
+    // TODO: Enforce even length
     private static final Pattern HEX_PATTERN = Pattern.compile("(?i)^[0-9a-f]+$");
 
     private static final List<Integer> UNLIMITED_KEY_LENGTHS = Arrays.asList(32, 48, 64);
 
-    public static final int IV_LENGTH = 16;
+    public static final String ENCRYPTED_FSR_CLASS_NAME = "org.apache.nifi.controller.repository.crypto.EncryptedFileSystemRepository";
+    public static final String EWAFFR_CLASS_NAME = "org.apache.nifi.controller.repository.crypto.EncryptedWriteAheadFlowFileRepository";
 
     public static boolean isUnlimitedStrengthCryptoAvailable() {
         try {
@@ -85,9 +84,8 @@ public class CryptoUtils {
      *
      * @param arrays the component byte[] in order
      * @return a concatenated byte[]
-     * @throws IOException this should never be thrown
      */
-    public static byte[] concatByteArrays(byte[]... arrays) throws IOException {
+    public static byte[] concatByteArrays(byte[]... arrays) {
         int totalByteLength = 0;
         for (byte[] bytes : arrays) {
             totalByteLength += bytes.length;
@@ -102,6 +100,18 @@ public class CryptoUtils {
     }
 
     /**
+     * Returns true if the provided configuration values are valid (shallow evaluation only; does not validate the keys
+     * contained in a {@link FileBasedKeyProvider}).
+     *
+     * @param rec the configuration to validate
+     * @return true if the config is valid
+     */
+    public static boolean isValidRepositoryEncryptionConfiguration(RepositoryEncryptionConfiguration rec) {
+        return isValidKeyProvider(rec.getKeyProviderImplementation(), rec.getKeyProviderLocation(), rec.getEncryptionKeyId(), rec.getEncryptionKeys());
+
+    }
+
+    /**
      * Returns true if the provided configuration values successfully define the specified {@link KeyProvider}.
      *
      * @param keyProviderImplementation the FQ class name of the {@link KeyProvider} implementation
@@ -110,45 +120,29 @@ public class CryptoUtils {
      * @param encryptionKeys            a map of key IDs to key material in hex format
      * @return true if the provided configuration is valid
      */
-    public static boolean isValidKeyProvider(String keyProviderImplementation, String keyProviderLocation, String keyId, Map<String, String> encryptionKeys) {
-        logger.debug("Attempting to validate the key provider: keyProviderImplementation = "
-                + keyProviderImplementation + " , keyProviderLocation = "
-                + keyProviderLocation + " , keyId = "
-                + keyId + " , encryptionKeys = "
-                + ((encryptionKeys == null) ? "0" : encryptionKeys.size()));
-
+    public static boolean isValidKeyProvider(String keyProviderImplementation, final String keyProviderLocation, final String keyId, final Map<String, String> encryptionKeys) {
         try {
             keyProviderImplementation = handleLegacyPackages(keyProviderImplementation);
-        } catch (KeyManagementException e) {
-            logger.error("The attempt to validate the key provider failed keyProviderImplementation = "
-                    + keyProviderImplementation + " , keyProviderLocation = "
-                    + keyProviderLocation + " , keyId = "
-                    + keyId + " , encryptionKeys = "
-                    + ((encryptionKeys == null) ? "0" : encryptionKeys.size()));
-
+        } catch (final KeyManagementException e) {
+            logger.warn("Key Provider [{}] Validation Failed: {}", keyProviderImplementation, e.getMessage());
             return false;
         }
 
-        if (STATIC_KEY_PROVIDER_CLASS_NAME.equals(keyProviderImplementation)) {
-            // Ensure the keyId and key(s) are valid
-            if (encryptionKeys == null) {
+        switch (keyProviderImplementation) {
+            case STATIC_KEY_PROVIDER_CLASS_NAME:
+                if (encryptionKeys == null) {
+                    return false;
+                } else {
+                    boolean everyKeyValid = encryptionKeys.values().stream().allMatch(CryptoUtils::keyIsValid);
+                    return everyKeyValid && StringUtils.isNotEmpty(keyId);
+                }
+            case FILE_BASED_KEY_PROVIDER_CLASS_NAME:
+            case KEY_STORE_KEY_PROVIDER_CLASS_NAME:
+                final Path keyProviderPath = Paths.get(keyProviderLocation);
+                return Files.isReadable(keyProviderPath) && StringUtils.isNotEmpty(keyId);
+            default:
+                logger.warn("Validation Failed: Key Provider [{}] Location [{}] Key ID [{}]", keyProviderImplementation, keyProviderLocation, keyId);
                 return false;
-            } else {
-                boolean everyKeyValid = encryptionKeys.values().stream().allMatch(CryptoUtils::keyIsValid);
-                return everyKeyValid && StringUtils.isNotEmpty(keyId);
-            }
-        } else if (FILE_BASED_KEY_PROVIDER_CLASS_NAME.equals(keyProviderImplementation)) {
-            // Ensure the file can be read and the keyId is populated (does not read file to validate)
-            final File kpf = new File(keyProviderLocation);
-            return kpf.exists() && kpf.canRead() && StringUtils.isNotEmpty(keyId);
-        } else {
-            logger.error("The attempt to validate the key provider failed keyProviderImplementation = "
-                    + keyProviderImplementation + " , keyProviderLocation = "
-                    + keyProviderLocation + " , keyId = "
-                    + keyId + " , encryptionKeys = "
-                    + ((encryptionKeys == null) ? "0" : encryptionKeys.size()));
-
-            return false;
         }
     }
 
@@ -189,106 +183,20 @@ public class CryptoUtils {
     }
 
     /**
-     * Returns a {@link SecretKey} formed from the hexadecimal key bytes (validity is checked).
+     * Returns the root key from the {@code bootstrap.conf} file used to encrypt various sensitive properties and data encryption keys.
      *
-     * @param keyHex the key in hex form
-     * @return the SecretKey
+     * @return the root key
+     * @throws KeyManagementException if the key cannot be read
      */
-    public static SecretKey formKeyFromHex(String keyHex) throws KeyManagementException {
-        if (keyIsValid(keyHex)) {
-            return new SecretKeySpec(Hex.decode(keyHex), "AES");
-        } else {
-            throw new KeyManagementException("The provided key material is not valid");
+    public static SecretKey getRootKey() throws KeyManagementException {
+        try {
+            // Get the root encryption key from bootstrap.conf
+            String rootKeyHex = NiFiBootstrapUtils.extractKeyFromBootstrapFile();
+            return new SecretKeySpec(Hex.decode(rootKeyHex), "AES");
+        } catch (IOException | DecoderException e) {
+            logger.error("Encountered an error: ", e);
+            throw new KeyManagementException(e);
         }
-    }
-
-    /**
-     * Returns a map containing the key IDs and the parsed key from a key provider definition file.
-     * The values in the file are decrypted using the master key provided. If the file is missing or empty,
-     * cannot be read, or if no valid keys are read, a {@link KeyManagementException} will be thrown.
-     *
-     * @param filepath  the key definition file path
-     * @param masterKey the master key used to decrypt each key definition
-     * @return a Map of key IDs to SecretKeys
-     * @throws KeyManagementException if the file is missing or invalid
-     */
-    public static Map<String, SecretKey> readKeys(String filepath, SecretKey masterKey) throws KeyManagementException {
-        Map<String, SecretKey> keys = new HashMap<>();
-
-        if (StringUtils.isBlank(filepath)) {
-            throw new KeyManagementException("The key provider file is not present and readable");
-        }
-        if (masterKey == null) {
-            throw new KeyManagementException("The master key must be provided to decrypt the individual keys");
-        }
-
-        File file = new File(filepath);
-        if (!file.exists() || !file.canRead()) {
-            throw new KeyManagementException("The key provider file is not present and readable");
-        }
-
-        try (BufferedReader br = new BufferedReader(new FileReader(file))) {
-            AESKeyedCipherProvider masterCipherProvider = new AESKeyedCipherProvider();
-
-            String line;
-            int l = 1;
-            while ((line = br.readLine()) != null) {
-                String[] components = line.split("=", 2);
-                if (components.length != 2 || StringUtils.isAnyEmpty(components)) {
-                    logger.warn("Line " + l + " is not properly formatted -- keyId=Base64EncodedKey...");
-                }
-                String keyId = components[0];
-                if (StringUtils.isNotEmpty(keyId)) {
-                    try {
-                        byte[] base64Bytes = Base64.getDecoder().decode(components[1]);
-                        byte[] ivBytes = Arrays.copyOfRange(base64Bytes, 0, IV_LENGTH);
-
-                        Cipher masterCipher = null;
-                        try {
-                            masterCipher = masterCipherProvider.getCipher(EncryptionMethod.AES_GCM, masterKey, ivBytes, false);
-                        } catch (Exception e) {
-                            throw new KeyManagementException("Error building cipher to decrypt FileBaseKeyProvider definition at " + filepath, e);
-                        }
-                        byte[] individualKeyBytes = masterCipher.doFinal(Arrays.copyOfRange(base64Bytes, IV_LENGTH, base64Bytes.length));
-
-                        SecretKey key = new SecretKeySpec(individualKeyBytes, "AES");
-                        logger.debug("Read and decrypted key for " + keyId);
-                        if (keys.containsKey(keyId)) {
-                            logger.warn("Multiple key values defined for " + keyId + " -- using most recent value");
-                        }
-                        keys.put(keyId, key);
-                    } catch (IllegalArgumentException e) {
-                        logger.error("Encountered an error decoding Base64 for " + keyId + ": " + e.getLocalizedMessage());
-                    } catch (BadPaddingException | IllegalBlockSizeException e) {
-                        logger.error("Encountered an error decrypting key for " + keyId + ": " + e.getLocalizedMessage());
-                    }
-                }
-                l++;
-            }
-
-            if (keys.isEmpty()) {
-                throw new KeyManagementException("The provided file contained no valid keys");
-            }
-
-            logger.info("Read " + keys.size() + " keys from FileBasedKeyProvider " + filepath);
-            return keys;
-        } catch (IOException e) {
-            throw new KeyManagementException("Error reading FileBasedKeyProvider definition at " + filepath, e);
-        }
-
-    }
-
-    public static boolean isProvenanceRepositoryEncryptionConfigured(NiFiProperties niFiProperties) {
-        final String implementationClassName = niFiProperties.getProperty(NiFiProperties.PROVENANCE_REPO_IMPLEMENTATION_CLASS);
-        // Referencing EWAPR.class.getName() would require a dependency on the module
-        boolean encryptedRepo = "org.apache.nifi.provenance.EncryptedWriteAheadProvenanceRepository".equals(implementationClassName);
-        boolean keyProviderConfigured = isValidKeyProvider(
-                niFiProperties.getProperty(NiFiProperties.PROVENANCE_REPO_ENCRYPTION_KEY_PROVIDER_IMPLEMENTATION_CLASS),
-                niFiProperties.getProperty(NiFiProperties.PROVENANCE_REPO_ENCRYPTION_KEY_PROVIDER_LOCATION),
-                niFiProperties.getProvenanceRepoEncryptionKeyId(),
-                niFiProperties.getProvenanceRepoEncryptionKeys());
-
-        return encryptedRepo && keyProviderConfigured;
     }
 
     /**
@@ -346,7 +254,7 @@ public class CryptoUtils {
      */
     private static byte[] convertCharsToBytes(char[] chars) {
         CharBuffer charBuffer = CharBuffer.wrap(chars);
-        ByteBuffer byteBuffer = Charset.forName("UTF-8").encode(charBuffer);
+        ByteBuffer byteBuffer = StandardCharsets.UTF_8.encode(charBuffer);
         return Arrays.copyOfRange(byteBuffer.array(),
                 byteBuffer.position(), byteBuffer.limit());
     }

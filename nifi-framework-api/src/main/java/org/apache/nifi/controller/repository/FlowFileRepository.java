@@ -23,6 +23,7 @@ import org.apache.nifi.controller.repository.claim.ResourceClaimManager;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -86,6 +87,13 @@ public interface FlowFileRepository extends Closeable {
      * @throws IOException if load fails
      */
     long loadFlowFiles(QueueProvider queueProvider) throws IOException;
+
+    /**
+     * Searches through the repository to find the ID's of all FlowFile Queues that currently have data queued
+     * @return the set of all FlowFileQueue identifiers for which a FlowFile is queued
+     * @throws IOException if unable to read from the FlowFile Repository
+     */
+    Set<String> findQueuesWithFlowFiles(FlowFileSwapManager flowFileSwapManager) throws IOException;
 
     /**
      * @return <code>true</code> if the Repository is volatile (i.e., its data
@@ -167,7 +175,17 @@ public interface FlowFileRepository extends Closeable {
      * @return a Mapping of Resource Claim to a representation of the FlowFiles/Swap Files that reference those Resource Claims
      * @throws IOException if an IO failure occurs when attempting to find references
      */
-    default Map<ResourceClaim, Set<ResourceClaimReference>> findResourceClaimReferences(Set<ResourceClaim> resourceClaims, FlowFileSwapManager swapManager) throws IOException {
+    default Map<ResourceClaim, Set<ResourceClaimReference>> findResourceClaimReferences(Set<ResourceClaim> resourceClaims, FlowFileSwapManager swapManager)
+        throws IOException {
         return null;
+    }
+
+    /**
+     * Returns the set of Resource Claims that are referenced by FlowFiles that have been "orphaned" because they belong to FlowFile Queues/Connections
+     * that did not exist in the flow when NiFi started
+     * @return the set of orphaned Resource Claims
+     */
+    default Set<ResourceClaim> findOrphanedResourceClaims() {
+        return Collections.emptySet();
     }
 }

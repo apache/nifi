@@ -32,16 +32,16 @@ import org.apache.nifi.web.api.ApplicationResource.ReplicationTarget;
 import org.apache.nifi.web.api.dto.AffectedComponentDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.DtoFactory;
-import org.apache.nifi.web.api.dto.ProcessorDTO;
+import org.apache.nifi.web.api.dto.ProcessorRunStatusDetailsDTO;
 import org.apache.nifi.web.api.dto.RevisionDTO;
-import org.apache.nifi.web.api.dto.status.ProcessorStatusDTO;
 import org.apache.nifi.web.api.entity.ActivateControllerServicesEntity;
 import org.apache.nifi.web.api.entity.AffectedComponentEntity;
 import org.apache.nifi.web.api.entity.ComponentEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ControllerServicesEntity;
-import org.apache.nifi.web.api.entity.ProcessorEntity;
-import org.apache.nifi.web.api.entity.ProcessorsEntity;
+import org.apache.nifi.web.api.entity.ProcessorsRunStatusDetailsEntity;
+import org.apache.nifi.web.api.entity.RunStatusDetailsRequestEntity;
+import org.apache.nifi.web.api.entity.ProcessorRunStatusDetailsEntity;
 import org.apache.nifi.web.api.entity.ScheduleComponentsEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,6 +53,7 @@ import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response.Status;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -100,6 +101,16 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
         headers.put("content-type", MediaType.APPLICATION_JSON);
 
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
+
+        // If attempting to run the processors, validation must complete first
+        if (desiredState == ScheduledState.RUNNING) {
+            try {
+                waitForProcessorValidation(user, exampleUri, groupId, componentMap, pause);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new LifecycleManagementException("Interrupted while waiting for processors to complete validation");
+            }
+        }
 
         // Determine whether we should replicate only to the cluster coordinator, or if we should replicate directly to the cluster nodes themselves.
         try {
@@ -156,6 +167,71 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
         return processorRevisions.stream().collect(Collectors.toMap(Revision::getComponentId, Function.identity()));
     }
 
+    private boolean waitForProcessorValidation(final NiFiUser user, final URI originalUri, final String groupId,
+                                               final Map<String, AffectedComponentEntity> processors, final Pause pause) throws InterruptedException {
+        URI groupUri;
+        try {
+            groupUri = new URI(originalUri.getScheme(), originalUri.getUserInfo(), originalUri.getHost(),
+                    originalUri.getPort(), "/nifi-api/processors/run-status-details/queries", null, originalUri.getFragment());
+        } catch (URISyntaxException e) {
+            throw new RuntimeException(e);
+        }
+
+        final Map<String, String> headers = new HashMap<>();
+        final RunStatusDetailsRequestEntity requestEntity = new RunStatusDetailsRequestEntity();
+        final Set<String> processorIds = processors.values().stream()
+            .map(AffectedComponentEntity::getId)
+            .collect(Collectors.toSet());
+        requestEntity.setProcessorIds(processorIds);
+
+        boolean continuePolling = true;
+        while (continuePolling) {
+
+            // Determine whether we should replicate only to the cluster coordinator, or if we should replicate directly to the cluster nodes themselves.
+            final NodeResponse clusterResponse;
+            if (getReplicationTarget() == ReplicationTarget.CLUSTER_NODES) {
+                clusterResponse = getRequestReplicator().replicate(user, HttpMethod.POST, groupUri, requestEntity, headers).awaitMergedResponse();
+            } else {
+                clusterResponse = getRequestReplicator().forwardToCoordinator(
+                        getClusterCoordinatorNode(), user, HttpMethod.POST, groupUri, requestEntity, headers).awaitMergedResponse();
+            }
+
+            if (clusterResponse.getStatus() != Status.OK.getStatusCode()) {
+                return false;
+            }
+
+            final ProcessorsRunStatusDetailsEntity runStatusDetailsEntity = getResponseEntity(clusterResponse, ProcessorsRunStatusDetailsEntity.class);
+
+            if (isProcessorValidationComplete(runStatusDetailsEntity, processors)) {
+                logger.debug("All {} processors of interest now have been validated: {}", processors.size(), processorIds);
+                return true;
+            }
+
+            // Not all of the processors are done validating. Pause for a bit and poll again.
+            continuePolling = pause.pause();
+        }
+
+        return false;
+    }
+
+    private boolean isProcessorValidationComplete(final ProcessorsRunStatusDetailsEntity runStatusDetailsEntity, final Map<String, AffectedComponentEntity> affectedComponents) {
+        updateAffectedProcessors(runStatusDetailsEntity.getRunStatusDetails(), affectedComponents);
+
+        for (final ProcessorRunStatusDetailsEntity statusDetailsEntity : runStatusDetailsEntity.getRunStatusDetails()) {
+            final ProcessorRunStatusDetailsDTO runStatusDetails = statusDetailsEntity.getRunStatusDetails();
+
+            logger.debug("Processor {} now has Run Status of {}", runStatusDetails.getId(), runStatusDetails.getRunStatus());
+            if (!affectedComponents.containsKey(runStatusDetails.getId())) {
+                continue;
+            }
+
+            if (ProcessorRunStatusDetailsDTO.VALIDATING.equals(runStatusDetails.getRunStatus())) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     /**
      * Periodically polls the process group with the given ID, waiting for all processors whose ID's are given to have the given Scheduled State.
      *
@@ -173,14 +249,20 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
 
         URI groupUri;
         try {
-            groupUri = new URI(originalUri.getScheme(), originalUri.getUserInfo(), originalUri.getHost(),
-                originalUri.getPort(), "/nifi-api/process-groups/" + groupId + "/processors", "includeDescendantGroups=true", originalUri.getFragment());
+            groupUri = new URI(originalUri.getScheme(), originalUri.getUserInfo(), originalUri.getHost(), originalUri.getPort(),
+                "/nifi-api/processors/run-status-details/queries", null, originalUri.getFragment());
         } catch (URISyntaxException e) {
             throw new RuntimeException(e);
         }
 
         final Map<String, String> headers = new HashMap<>();
-        final MultivaluedMap<String, String> requestEntity = new MultivaluedHashMap<>();
+
+        final Set<String> processorIds = processors.values().stream()
+            .map(AffectedComponentEntity::getId)
+            .collect(Collectors.toSet());
+
+        final RunStatusDetailsRequestEntity requestEntity = new RunStatusDetailsRequestEntity();
+        requestEntity.setProcessorIds(processorIds);
 
         boolean continuePolling = true;
         while (continuePolling) {
@@ -188,20 +270,18 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
             // Determine whether we should replicate only to the cluster coordinator, or if we should replicate directly to the cluster nodes themselves.
             final NodeResponse clusterResponse;
             if (getReplicationTarget() == ReplicationTarget.CLUSTER_NODES) {
-                clusterResponse = getRequestReplicator().replicate(user, HttpMethod.GET, groupUri, requestEntity, headers).awaitMergedResponse();
+                clusterResponse = getRequestReplicator().replicate(user, HttpMethod.POST, groupUri, requestEntity, headers).awaitMergedResponse();
             } else {
                 clusterResponse = getRequestReplicator().forwardToCoordinator(
-                    getClusterCoordinatorNode(), user, HttpMethod.GET, groupUri, requestEntity, headers).awaitMergedResponse();
+                    getClusterCoordinatorNode(), user, HttpMethod.POST, groupUri, requestEntity, headers).awaitMergedResponse();
             }
 
             if (clusterResponse.getStatus() != Status.OK.getStatusCode()) {
                 return false;
             }
 
-            final ProcessorsEntity processorsEntity = getResponseEntity(clusterResponse, ProcessorsEntity.class);
-            final Set<ProcessorEntity> processorEntities = processorsEntity.getProcessors();
-
-            if (isProcessorActionComplete(processorEntities, processors, desiredState, invalidComponentAction)) {
+            final ProcessorsRunStatusDetailsEntity runStatusDetailsEntity = getResponseEntity(clusterResponse, ProcessorsRunStatusDetailsEntity.class);
+            if (isProcessorActionComplete(runStatusDetailsEntity, processors, desiredState, invalidComponentAction)) {
                 logger.debug("All {} processors of interest now have the desired state of {}", processors.size(), desiredState);
                 return true;
             }
@@ -231,63 +311,93 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
     }
 
 
-    private boolean isProcessorActionComplete(final Set<ProcessorEntity> processorEntities, final Map<String, AffectedComponentEntity> affectedComponents, final ScheduledState desiredState,
-                                              final InvalidComponentAction invalidComponentAction) throws LifecycleManagementException {
-
-        final String desiredStateName = desiredState.name();
-
+    private void updateAffectedProcessors(final Collection<ProcessorRunStatusDetailsEntity> runStatusDetailsEntities, final Map<String, AffectedComponentEntity> affectedComponents) {
         // update the affected processors
-        processorEntities.stream()
-            .filter(entity -> affectedComponents.containsKey(entity.getId()))
+        runStatusDetailsEntities.stream()
+            .filter(entity -> affectedComponents.containsKey(entity.getRunStatusDetails().getId()))
             .forEach(entity -> {
-                final AffectedComponentEntity affectedComponentEntity = affectedComponents.get(entity.getId());
+                final AffectedComponentEntity affectedComponentEntity = affectedComponents.get(entity.getRunStatusDetails().getId());
                 affectedComponentEntity.setRevision(entity.getRevision());
+
+                final ProcessorRunStatusDetailsDTO runStatusDetailsDto = entity.getRunStatusDetails();
 
                 // only consider update this component if the user had permissions to it
                 if (Boolean.TRUE.equals(affectedComponentEntity.getPermissions().getCanRead())) {
                     final AffectedComponentDTO affectedComponent = affectedComponentEntity.getComponent();
-                    affectedComponent.setState(entity.getStatus().getAggregateSnapshot().getRunStatus());
-                    affectedComponent.setActiveThreadCount(entity.getStatus().getAggregateSnapshot().getActiveThreadCount());
+                    affectedComponent.setState(runStatusDetailsDto.getRunStatus());
+                    affectedComponent.setActiveThreadCount(runStatusDetailsDto.getActiveThreadCount());
 
                     if (Boolean.TRUE.equals(entity.getPermissions().getCanRead())) {
-                        affectedComponent.setValidationErrors(entity.getComponent().getValidationErrors());
+                        affectedComponent.setValidationErrors(runStatusDetailsDto.getValidationErrors());
                     }
                 }
             });
+    }
 
-        for (final ProcessorEntity entity : processorEntities) {
-            if (!affectedComponents.containsKey(entity.getId())) {
+
+    private boolean isProcessorActionComplete(final ProcessorsRunStatusDetailsEntity runStatusDetailsEntity, final Map<String, AffectedComponentEntity> affectedComponents,
+                                              final ScheduledState desiredState, final InvalidComponentAction invalidComponentAction) throws LifecycleManagementException {
+
+        updateAffectedProcessors(runStatusDetailsEntity.getRunStatusDetails(), affectedComponents);
+
+        boolean allReachedDesiredState = true;
+        for (final ProcessorRunStatusDetailsEntity entity : runStatusDetailsEntity.getRunStatusDetails()) {
+            final ProcessorRunStatusDetailsDTO runStatusDetailsDto = entity.getRunStatusDetails();
+            if (!affectedComponents.containsKey(runStatusDetailsDto.getId())) {
                 continue;
             }
 
-            final ProcessorStatusDTO status = entity.getStatus();
+            final boolean desiredStateReached = isDesiredProcessorStateReached(runStatusDetailsDto, desiredState);
+            logger.debug("Processor[id={}, name={}] now has a state of {} with {} Active Threads, Validation Errors: {}; desired state = {}; invalid component action: {}; desired state reached = {}",
+                runStatusDetailsDto.getId(), runStatusDetailsDto.getName(), runStatusDetailsDto.getRunStatus(), runStatusDetailsDto.getActiveThreadCount(), runStatusDetailsDto.getValidationErrors(),
+                desiredState, invalidComponentAction, desiredStateReached);
 
-            if (ProcessorDTO.INVALID.equals(entity.getComponent().getValidationStatus())) {
+            if (desiredStateReached) {
+                continue;
+            }
+
+            // If the desired state is stopped and there are active threads, return false. We don't consider the validation status in this case.
+            if (desiredState == ScheduledState.STOPPED && runStatusDetailsDto.getActiveThreadCount() != 0) {
+                return false;
+            }
+
+            if (ProcessorRunStatusDetailsDTO.INVALID.equalsIgnoreCase(runStatusDetailsDto.getRunStatus())) {
                 switch (invalidComponentAction) {
                     case WAIT:
-                        return false;
+                        break;
                     case SKIP:
                         continue;
                     case FAIL:
                         final String action = desiredState == ScheduledState.RUNNING ? "start" : "stop";
-                        throw new LifecycleManagementException("Could not " + action + " " + entity.getComponent().getName() + " because it is invalid");
+                        throw new LifecycleManagementException("Could not " + action + " " + runStatusDetailsDto.getName() + " because it is invalid");
                 }
             }
 
-            final String runStatus = status.getAggregateSnapshot().getRunStatus();
-            final boolean stateMatches = desiredStateName.equalsIgnoreCase(runStatus);
-            if (!stateMatches) {
-                return false;
-            }
+            allReachedDesiredState = false;
+        }
 
-            if (desiredState == ScheduledState.STOPPED && status.getAggregateSnapshot().getActiveThreadCount() != 0) {
-                return false;
-            }
+        if (allReachedDesiredState) {
+            logger.debug("All {} Processors of interest now have the desired state of {}", runStatusDetailsEntity.getRunStatusDetails().size(), desiredState);
+            return true;
+        }
+
+        return false;
+    }
+
+    private boolean isDesiredProcessorStateReached(final ProcessorRunStatusDetailsDTO runStatusDetailsDto, final ScheduledState desiredState) {
+        final String runStatus = runStatusDetailsDto.getRunStatus();
+        final boolean stateMatches = desiredState.name().equalsIgnoreCase(runStatus);
+
+        if (!stateMatches) {
+            return false;
+        }
+
+        if (desiredState == ScheduledState.STOPPED && runStatusDetailsDto.getActiveThreadCount() != 0) {
+            return false;
         }
 
         return true;
     }
-
 
 
     @Override
@@ -320,6 +430,16 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
 
         final NiFiUser user = NiFiUserUtils.getNiFiUser();
 
+        // If enabling services, validation must complete first
+        if (desiredState == ControllerServiceState.ENABLED) {
+            try {
+                waitForControllerServiceValidation(user, originalUri, groupId, affectedServiceIds, pause);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new LifecycleManagementException("Interrupted while waiting for Controller Services to complete validation");
+            }
+        }
+
         // Determine whether we should replicate only to the cluster coordinator, or if we should replicate directly to the cluster nodes themselves.
         try {
             final NodeResponse clusterResponse;
@@ -350,6 +470,68 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
             .map(componentEntity -> serviceFacade.getControllerService(componentEntity.getId()))
             .map(dtoFactory::createAffectedComponentEntity)
             .collect(Collectors.toSet());
+    }
+
+    private boolean waitForControllerServiceValidation(final NiFiUser user, final URI originalUri, final String groupId,
+                                                       final Set<String> serviceIds, final Pause pause)
+            throws InterruptedException {
+
+        URI groupUri;
+        try {
+            groupUri = new URI(originalUri.getScheme(), originalUri.getUserInfo(), originalUri.getHost(),
+                    originalUri.getPort(), "/nifi-api/flow/process-groups/" + groupId + "/controller-services", "includeAncestorGroups=false&includeDescendantGroups=true", originalUri.getFragment());
+        } catch (URISyntaxException e) {
+            throw new RuntimeException(e);
+        }
+
+        final Map<String, String> headers = new HashMap<>();
+        final MultivaluedMap<String, String> requestEntity = new MultivaluedHashMap<>();
+
+        boolean continuePolling = true;
+        while (continuePolling) {
+
+            // Determine whether we should replicate only to the cluster coordinator, or if we should replicate directly to the cluster nodes themselves.
+            final NodeResponse clusterResponse;
+            if (getReplicationTarget() == ReplicationTarget.CLUSTER_NODES) {
+                clusterResponse = getRequestReplicator().replicate(user, HttpMethod.GET, groupUri, requestEntity, headers).awaitMergedResponse();
+            } else {
+                clusterResponse = getRequestReplicator().forwardToCoordinator(
+                        getClusterCoordinatorNode(), user, HttpMethod.GET, groupUri, requestEntity, headers).awaitMergedResponse();
+            }
+
+            if (clusterResponse.getStatus() != Status.OK.getStatusCode()) {
+                return false;
+            }
+
+            final ControllerServicesEntity controllerServicesEntity = getResponseEntity(clusterResponse, ControllerServicesEntity.class);
+            final Set<ControllerServiceEntity> serviceEntities = controllerServicesEntity.getControllerServices();
+
+            final Map<String, AffectedComponentEntity> affectedServices = serviceEntities.stream()
+                    .filter(s -> serviceIds.contains(s.getId()))
+                    .collect(Collectors.toMap(ControllerServiceEntity::getId, dtoFactory::createAffectedComponentEntity));
+
+            if (isControllerServiceValidationComplete(serviceEntities, affectedServices)) {
+                logger.debug("All {} controller services of interest have completed validation", affectedServices.size());
+                return true;
+            }
+            continuePolling = pause.pause();
+        }
+
+        return false;
+    }
+
+    private boolean isControllerServiceValidationComplete(final Set<ControllerServiceEntity> controllerServiceEntities, final Map<String, AffectedComponentEntity> affectedComponents) {
+        updateAffectedControllerServices(controllerServiceEntities, affectedComponents);
+        for (final ControllerServiceEntity entity : controllerServiceEntities) {
+            if (!affectedComponents.containsKey(entity.getId())) {
+                continue;
+            }
+
+            if (ControllerServiceDTO.VALIDATING.equals(entity.getComponent().getValidationStatus())) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /**
@@ -415,10 +597,19 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
                 }
 
                 final String validationStatus = serviceDto.getValidationStatus();
-                if (ControllerServiceDTO.INVALID.equals(validationStatus)) {
+                final boolean desiredStateReached = desiredStateName.equals(serviceDto.getState());
+
+                logger.debug("ControllerService[id={}, name={}] now has a state of {} with a Validation Status of {}; desired state = {}; invalid component action is {}; desired state reached = {}",
+                    serviceDto.getId(), serviceDto.getName(), serviceDto.getState(), validationStatus, desiredState, invalidComponentAction, desiredStateReached);
+
+                if (desiredStateReached) {
+                    continue;
+                }
+
+                // The desired state for this component has not yet been reached. Check how we should handle this based on the validation status.
+                if (ControllerServiceDTO.INVALID.equalsIgnoreCase(validationStatus)) {
                     switch (invalidComponentAction) {
                         case WAIT:
-                            allReachedDesiredState = false;
                             break;
                         case SKIP:
                             continue;
@@ -428,10 +619,7 @@ public class ClusterReplicationComponentLifecycle implements ComponentLifecycle 
                     }
                 }
 
-                if (!desiredStateName.equalsIgnoreCase(serviceDto.getState())) {
-                    allReachedDesiredState = false;
-                    break;
-                }
+                allReachedDesiredState = false;
             }
 
             if (allReachedDesiredState) {

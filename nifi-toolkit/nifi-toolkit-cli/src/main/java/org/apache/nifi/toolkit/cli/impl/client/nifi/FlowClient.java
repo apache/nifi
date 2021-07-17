@@ -18,6 +18,7 @@ package org.apache.nifi.toolkit.cli.impl.client.nifi;
 
 import org.apache.nifi.web.api.entity.ActivateControllerServicesEntity;
 import org.apache.nifi.web.api.entity.ClusteSummaryEntity;
+import org.apache.nifi.web.api.entity.ConnectionStatusEntity;
 import org.apache.nifi.web.api.entity.ControllerServicesEntity;
 import org.apache.nifi.web.api.entity.CurrentUserEntity;
 import org.apache.nifi.web.api.entity.ProcessGroupFlowEntity;
@@ -127,4 +128,11 @@ public interface FlowClient {
      */
     TemplatesEntity getTemplates() throws NiFiClientException, IOException;
 
+    /**
+     * Retrives the status for the connection with the given ID
+     * @param connectionId the id of the connection
+     * @param nodewise whether or not node-wise information should be returned
+     * @return the status for the connection
+     */
+    ConnectionStatusEntity getConnectionStatus(String connectionId, boolean nodewise) throws NiFiClientException, IOException;
 }

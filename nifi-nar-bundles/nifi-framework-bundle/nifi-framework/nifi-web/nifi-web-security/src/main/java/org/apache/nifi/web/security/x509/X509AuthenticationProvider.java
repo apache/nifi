@@ -22,7 +22,6 @@ import org.apache.nifi.authorization.AccessDeniedException;
 import org.apache.nifi.authorization.Authorizer;
 import org.apache.nifi.authorization.RequestAction;
 import org.apache.nifi.authorization.Resource;
-import org.apache.nifi.authorization.UserContextKeys;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.user.NiFiUser;
@@ -35,20 +34,23 @@ import org.apache.nifi.web.security.NiFiAuthenticationProvider;
 import org.apache.nifi.web.security.ProxiedEntitiesUtils;
 import org.apache.nifi.web.security.UntrustedProxyException;
 import org.apache.nifi.web.security.token.NiFiAuthenticationToken;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.List;
 import java.util.ListIterator;
-import java.util.Map;
 import java.util.Set;
 
 /**
  *
  */
 public class X509AuthenticationProvider extends NiFiAuthenticationProvider {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(X509AuthenticationProvider.class);
 
     private static final Authorizable PROXY_AUTHORIZABLE = new Authorizable() {
         @Override
@@ -64,11 +66,13 @@ public class X509AuthenticationProvider extends NiFiAuthenticationProvider {
 
     private X509IdentityProvider certificateIdentityProvider;
     private Authorizer authorizer;
+    final NiFiProperties properties;
 
     public X509AuthenticationProvider(final X509IdentityProvider certificateIdentityProvider, final Authorizer authorizer, final NiFiProperties nifiProperties) {
         super(nifiProperties, authorizer);
         this.certificateIdentityProvider = certificateIdentityProvider;
         this.authorizer = authorizer;
+        this.properties = nifiProperties;
     }
 
     @Override
@@ -87,6 +91,9 @@ public class X509AuthenticationProvider extends NiFiAuthenticationProvider {
             final String mappedIdentity = mapIdentity(authenticationResponse.getIdentity());
             return new NiFiAuthenticationToken(new NiFiUserDetails(new Builder().identity(mappedIdentity).groups(getUserGroups(mappedIdentity)).clientAddress(request.getClientAddress()).build()));
         } else {
+            // get the idp groups for the end-user that were sent over in the X-ProxiedEntityGroups header
+            final Set<String> endUserIdpGroups = ProxiedEntitiesUtils.tokenizeProxiedEntityGroups(request.getProxiedEntityGroups());
+
             // build the entire proxy chain if applicable - <end-user><proxy1><proxy2>
             final List<String> proxyChain = new ArrayList<>(ProxiedEntitiesUtils.tokenizeProxiedEntitiesChain(request.getProxiedEntitiesChain()));
             proxyChain.add(authenticationResponse.getIdentity());
@@ -99,16 +106,25 @@ public class X509AuthenticationProvider extends NiFiAuthenticationProvider {
                 // determine if the user is anonymous
                 final boolean isAnonymous = StringUtils.isBlank(identity);
                 if (isAnonymous) {
+                    // prevent anonymous users unless it's been explicitly configured
+                    if (!properties.isAnonymousAuthenticationAllowed()) {
+                        throw new InvalidAuthenticationException("Anonymous authentication has not been configured.");
+                    }
+
                     identity = StandardNiFiUser.ANONYMOUS_IDENTITY;
                 } else {
                     identity = mapIdentity(identity);
                 }
 
+                // get the groups from any configured UserGroupProviders
                 final Set<String> groups = getUserGroups(identity);
+
+                // only the end-user can have these groups so any other entity in the chain gets an empty set
+                final Set<String> idpGroups = chainIter.hasPrevious() ? Collections.emptySet() : endUserIdpGroups;
 
                 // Only set the client address for client making the request because we don't know the clientAddress of the proxied entities
                 String clientAddress = (proxy == null) ? request.getClientAddress() : null;
-                proxy = createUser(identity, groups, proxy, clientAddress, isAnonymous);
+                proxy = createUser(identity, groups, idpGroups, proxy, clientAddress, isAnonymous);
 
                 if (chainIter.hasPrevious()) {
                     try {
@@ -119,8 +135,26 @@ public class X509AuthenticationProvider extends NiFiAuthenticationProvider {
                 }
             }
 
+            if (LOGGER.isTraceEnabled()) {
+                logProxyChain(proxy);
+            }
+
             return new NiFiAuthenticationToken(new NiFiUserDetails(proxy));
         }
+    }
+
+    private void logProxyChain(final NiFiUser chain) {
+        final StringBuilder builder = new StringBuilder("\n== Proxy Entity Chain ==");
+        NiFiUser user = chain;
+        while (user != null) {
+            builder.append("\nIdentity: ")
+                    .append(user.getIdentity())
+                    .append(" , IDP Groups: ")
+                    .append(StringUtils.join(user.getIdentityProviderGroups()));
+            user = user.getChain();
+        }
+        builder.append("\n============");
+        LOGGER.trace(builder.toString());
     }
 
     /**
@@ -132,23 +166,12 @@ public class X509AuthenticationProvider extends NiFiAuthenticationProvider {
      * @param isAnonymous   if true, an anonymous user will be returned (identity will be ignored)
      * @return the populated user
      */
-    protected static NiFiUser createUser(String identity, Set<String> groups, NiFiUser chain, String clientAddress, boolean isAnonymous) {
+    protected static NiFiUser createUser(String identity, Set<String> groups, Set<String> idpGroups, NiFiUser chain, String clientAddress, boolean isAnonymous) {
         if (isAnonymous) {
             return StandardNiFiUser.populateAnonymousUser(chain, clientAddress);
         } else {
-            return new Builder().identity(identity).groups(groups).chain(chain).clientAddress(clientAddress).build();
+            return new Builder().identity(identity).groups(groups).identityProviderGroups(idpGroups).chain(chain).clientAddress(clientAddress).build();
         }
-    }
-
-    private Map<String, String> getUserContext(final X509AuthenticationRequestToken request) {
-        final Map<String, String> userContext;
-        if (!StringUtils.isBlank(request.getClientAddress())) {
-            userContext = new HashMap<>();
-            userContext.put(UserContextKeys.CLIENT_ADDRESS.name(), request.getClientAddress());
-        } else {
-            userContext = null;
-        }
-        return userContext;
     }
 
     @Override

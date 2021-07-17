@@ -71,6 +71,8 @@ public class StandardCommsSession implements CommsSession {
     @Override
     public void close() throws IOException {
         socketChannel.close();
+        bufferedIn.close();
+        bufferedOut.close();
     }
 
     @Override

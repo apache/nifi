@@ -1,5 +1,5 @@
-Apache NiFi Stateless
-Copyright 2015-2019 The Apache Software Foundation
+nifi-stateless-assembly
+Copyright 2014-2021 The Apache Software Foundation
 
 This product includes software developed at
 The Apache Software Foundation (http://www.apache.org/).
@@ -10,19 +10,62 @@ Apache Software License v2
 
 The following binary components are provided under the Apache Software License v2
 
-  (ASLv2) Jetty
+  (ASLv2) Apache Commons Codec
     The following NOTICE information applies:
-       Jetty Web Container
-       Copyright 1995-2017 Mort Bay Consulting Pty Ltd.
+      Apache Commons Codec
+      Copyright 2002-2014 The Apache Software Foundation
 
-  (ASLv2) Google GSON
+      src/test/org/apache/commons/codec/language/DoubleMetaphoneTest.java
+      contains test data from http://aspell.net/test/orig/batch0.tab.
+      Copyright (C) 2002 Kevin Atkinson (kevina@gnu.org)
+
+      ===============================================================================
+
+      The content of package org.apache.commons.codec.language.bm has been translated
+      from the original php source code available at http://stevemorse.org/phoneticinfo.htm
+      with permission from the original authors.
+      Original source copyright:
+      Copyright (c) 2008 Alexander Beider & Stephen P. Morse.
+
+  (ASLv2) Apache Commons Configuration
     The following NOTICE information applies:
-      Copyright 2008 Google Inc.
+      Apache Commons Configuration
+      Copyright 2001-2017 The Apache Software Foundation
+
+      This product includes software developed at
+      The Apache Software Foundation (http://www.apache.org/).
+
+  (ASLv2) Apache Commons Logging
+    The following NOTICE information applies:
+      Apache Commons Logging
+      Copyright 2003-2013 The Apache Software Foundation
+
+  (ASLv2) Apache Commons Lang
+    The following NOTICE information applies:
+      Apache Commons Lang
+      Copyright 2001-2015 The Apache Software Foundation
+
+      This product includes software from the Spring Framework,
+      under the Apache License 2.0 (see: StringUtils.containsWhitespace())
 
   (ASLv2) Apache Commons Text
     The following NOTICE information applies:
       Apache Commons Text
       Copyright 2001-2018 The Apache Software Foundation
+
+  (ASLv2) Apache HttpComponents
+    The following NOTICE information applies:
+      Apache HttpClient
+      Copyright 1999-2015 The Apache Software Foundation
+
+      Apache HttpCore
+      Copyright 2005-2015 The Apache Software Foundation
+
+      Apache HttpMime
+      Copyright 1999-2013 The Apache Software Foundation
+
+      This project contains annotations derived from JCIP-ANNOTATIONS
+      Copyright (c) 2005 Brian Goetz and Tim Peierls. See http://www.jcip.net
 
   (ASLv2) Jackson JSON processor
     The following NOTICE information applies:
@@ -47,67 +90,33 @@ The following binary components are provided under the Apache Software License v
       in some artifacts (usually source distributions); but is always available
       from the source code management (SCM) system project uses.
 
-  (ASLv2) Apache Commons Codec
+  (ASLv2) JSON-SMART
     The following NOTICE information applies:
-      Apache Commons Codec
-      Copyright 2002-2014 The Apache Software Foundation
+      Copyright 2011 JSON-SMART authors
 
-      src/test/org/apache/commons/codec/language/DoubleMetaphoneTest.java
-      contains test data from http://aspell.net/test/orig/batch0.tab.
-      Copyright (C) 2002 Kevin Atkinson (kevina@gnu.org)
-
-      ===============================================================================
-
-      The content of package org.apache.commons.codec.language.bm has been translated
-      from the original php source code available at http://stevemorse.org/phoneticinfo.htm
-      with permission from the original authors.
-      Original source copyright:
-      Copyright (c) 2008 Alexander Beider & Stephen P. Morse.
-
-  (ASLv2) Apache Commons Lang
+  (ASLv2) JsonPath
     The following NOTICE information applies:
-      Apache Commons Lang
-      Copyright 2001-2017 The Apache Software Foundation
-
-      This product includes software from the Spring Framework,
-      under the Apache License 2.0 (see: StringUtils.containsWhitespace())
-
-  (ASLv2) Quartz
-      The following NOTICE information applies:
-        Copyright Declaration:
-        Copyright © 2003-2016 Software AG, Darmstadt, Germany and/or Software AG USA Inc., Reston, VA, USA, and/or its subsidiaries and/or its affiliates and/or their licensors.
-
-        Trademark and Patent declaration
-        The name Software AG and all Software AG product names are either trademarks or registered trademarks of Software AG and/or Software AG USA Inc. and/or its subsidiaries and/or its affiliates
-        and/or their licensors. Other company and product names mentioned herein may be trademarks of their respective owners.
-
-        Detailed information on trademarks and patents owned by Software AG and/or its subsidiaries is located at http://softwareag.com/licenses.
-
-        Third Party declaration
-        This software may include portions of third-party products. For third-party copyright notices, license terms, additional rights or restrictions, please refer to "License Texts, Copyright
-        Notices and Disclaimers of Third Party Products". For certain specific third-party license restrictions, please refer to section E of the Legal Notices available under "License Terms and
-        Conditions for Use of Software AG Products / Copyright and Trademark Notices of Software AG Products". These documents are part of the product documentation, located at
-        http://softwareag.com/licenses and/or in the root installation directory of the licensed product(s).
-
-        Confidentiality Disclaimer:
-        Use, reproduction, transfer, publication or disclosure is prohibited except as specifically provided for in your License Agreement with Software AG.
-        Contact GitHub API Training Shop Blog About
-
-  (ASLv2) Spring Framework
-    The following NOTICE information applies:
-      Spring Framework 4.x,5.x.RELEASE
-      Copyright (c) 2002-2015 Pivotal, Inc.
+      Copyright 2011 JsonPath authors
 
   (ASLv2) Spring Security
     The following NOTICE information applies:
-          Spring Framework 4.0.3.RELEASE
-          Copyright (c) 2002-2015 Pivotal, Inc.
+          Spring Security 5
+          Copyright (c) 2002-2021 Pivotal, Inc.
 
-  (ASLv2) Ehcache 2.x
+  (ASLv2) ASM Based Accessors Helper Used By JSON Smart (net.minidev:accessors-smart:jar:1.2 - http://www.minidev.net/)
     The following NOTICE information applies:
-      Copyright 2003-2010 Terracotta, Inc.
+      ASM Based Accessors Helper Used By JSON Smart 1.2
+      Copyright 2017, Uriel Chemouni
 
+  (ASLv2) BCrypt Password Hashing Function (at.favre.lib:bcrypt:jar:0.9.0 - https://github.com/patrickfav/bcrypt)
+      The following NOTICE information applies:
+        BCrypt Password Hashing Function 0.9.0
+        Copyright 2018 Patrick Favre-Bulle
 
+  (ASLv2) Bytes Utility Library (at.favre.lib:bytes:jar:1.3.0 - https://github.com/patrickfav/bytes-java)
+      The following NOTICE information applies:
+        Bytes Utility Library 1.3.0
+        Copyright 2017 Patrick Favre-Bulle
 
 
 
@@ -117,12 +126,21 @@ Common Development and Distribution License 1.1
 
 The following binary components are provided under the Common Development and Distribution License 1.1. See project link for details.
 
-    (CDDL 1.1) (GPL2 w/ CPE) Java Servlet API  (javax.servlet:javax.servlet-api:jar:3.1.0 - http://servlet-spec.java.net)
+    (CDDL 1.1) (GPL2 w/ CPE) aopalliance-repackaged (org.glassfish.hk2.external:aopalliance-repackaged:jar:2.5.0-b42 - https://javaee.github.io/glassfish/)
+    (CDDL 1.1) (GPL2 w/ CPE) hk2-api (org.glassfish.hk2:hk2-api:jar:2.5.0-b42 - https://javaee.github.io/glassfish/)
+    (CDDL 1.1) (GPL2 w/ CPE) hk2-utils (org.glassfish.hk2:hk2-utils:jar:2.5.0-b42 - https://javaee.github.io/glassfish/)
+    (CDDL 1.1) (GPL2 w/ CPE) hk2-locator (org.glassfish.hk2:hk2-locator:jar:2.5.0-b42 - https://javaee.github.io/glassfish/)
+    (CDDL 1.1) (GPL2 w/ CPE) javax.annotation API (javax.annotation:javax.annotation-api:jar:1.2 - http://jcp.org/en/jsr/detail?id=250)
+    (CDDL 1.1) (GPL2 w/ CPE) javax.inject:1 as OSGi bundle (org.glassfish.hk2.external:javax.inject:jar:2.4.0-b25 - https://hk2.java.net/external/javax.inject)
     (CDDL 1.1) (GPL2 w/ CPE) javax.ws.rs-api (javax.ws.rs:javax.ws.rs-api:jar:2.1 - http://jax-rs-spec.java.net)
     (CDDL 1.1) (GPL2 w/ CPE) jersey-client (org.glassfish.jersey.core:jersey-client:jar:2.26 - https://jersey.github.io/)
     (CDDL 1.1) (GPL2 w/ CPE) jersey-common (org.glassfish.jersey.core:jersey-common:jar:2.26 - https://jersey.github.io/)
+    (CDDL 1.1) (GPL2 w/ CPE) jersey-entity-filtering (org.glassfish.jersey.ext:jersey-entity-filtering:jar:2.26 - https://jersey.github.io/)
     (CDDL 1.1) (GPL2 w/ CPE) jersey-hk2 (org.glassfish.jersey.inject:jersey-hk2:jar:2.26 - https://jersey.github.io/)
     (CDDL 1.1) (GPL2 w/ CPE) jersey-media-json-jackson (org.glassfish.jersey.media:jersey-media-json-jackson:jar:2.26 - https://jersey.github.io/)
+    (CDDL 1.1) (GPL2 w/ CPE) jersey-media-multipart (org.glassfish.jersey.media:jersey-media-multipart:jar:2.26 - https://jersey.github.io/)
+    (CDDL 1.1) (GPL2 w/ CPE) MIME Streaming Extension (org.jvnet.mimepull:mimepull:jar:1.9.3 - http://mimepull.java.net)
+    (CDDL 1.1) (GPL2 w/ CPE) OSGi resource locator bundle (org.glassfish.hk2:osgi-resource-locator:jar:1.0.1 - http://glassfish.org/osgi-resource-locator)
 
 
 ************************
@@ -131,14 +149,4 @@ Eclipse Public License 1.0
 
 The following binary components are provided under the Eclipse Public License 1.0.  See project link for details.
 
-    (EPL 1.0)(LGPL 2.1) Logback Classic (ch.qos.logback:logback-classic:jar:1.2.3 - http://logback.qos.ch/)
-    (EPL 1.0) AspectJ Weaver (org.aspectj:aspectjweaver:jar:1.8.5 - http://www.eclipse.org/aspectj/)
-    (EPL 1.0) AspectJ Runtime (org.aspectj:aspectjrt:jar:1.8.0 - http://www.eclipse.org/aspectj/)
-
-*****************
-Public Domain
-*****************
-
-The following binary components are provided to the 'Public Domain'.  See project link for details.
-
-    (Public Domain) AOP Alliance 1.0 (http://aopalliance.sourceforge.net/)
+    (EPL 1.0)(LGPL 2.1) c3p0 (com.mchange:c3p0:jar:0.9.5.4 - https://github.com/swaldman/c3p0)

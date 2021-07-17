@@ -40,6 +40,9 @@ class GroovyProcessor implements Processor {
     void onScheduled(ProcessContext context) {
         // Set the attribute value for use in onTrigger
         setAttributeFromThisInOnScheduled = 'test content'
+
+        // Try to parse a date here, will fail after Groovy 2.5.0 if groovy-dateutil is not included
+        Date.parse('yyyyMMdd', '20190630')
     }
 
     void onStopped(ProcessContext context) {
@@ -54,14 +57,14 @@ class GroovyProcessor implements Processor {
     @Override
     void onTrigger(ProcessContext context, ProcessSessionFactory sessionFactory) throws ProcessException {
         def session = sessionFactory.createSession()
-        def flowFile = session.get();
+        def flowFile = session.get()
         if (flowFile == null) {
-            return;
+            return
         }
         flowFile = session.putAttribute(flowFile, 'from-content', setAttributeFromThisInOnScheduled)
         // transfer
         session.transfer(flowFile, REL_TEST)
-        session.commit()
+        session.commitAsync()
     }
 
     @Override
@@ -91,4 +94,4 @@ class GroovyProcessor implements Processor {
     }
 }
 
-processor = new GroovyProcessor();
+processor = new GroovyProcessor()

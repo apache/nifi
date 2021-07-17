@@ -44,7 +44,7 @@ import static org.apache.nifi.processors.websocket.WebSocketProcessorAttributes.
 import static org.apache.nifi.processors.websocket.WebSocketProcessorAttributes.ATTR_WS_SESSION_ID;
 
 @Tags({"subscribe", "WebSocket", "consume", "listen"})
-@InputRequirement(InputRequirement.Requirement.INPUT_FORBIDDEN)
+@InputRequirement(InputRequirement.Requirement.INPUT_ALLOWED)
 @TriggerSerially
 @CapabilityDescription("Acts as a WebSocket client endpoint to interact with a remote WebSocket server." +
         " FlowFiles are transferred to downstream relationships according to received message types" +
@@ -80,7 +80,7 @@ public class ConnectWebSocket extends AbstractWebSocketGatewayProcessor {
     private static final List<PropertyDescriptor> descriptors;
     private static final Set<Relationship> relationships;
 
-    static{
+    static {
         final List<PropertyDescriptor> innerDescriptorsList = new ArrayList<>();
         innerDescriptorsList.add(PROP_WEBSOCKET_CLIENT_SERVICE);
         innerDescriptorsList.add(PROP_WEBSOCKET_CLIENT_ID);
@@ -113,6 +113,6 @@ public class ConnectWebSocket extends AbstractWebSocketGatewayProcessor {
 
     @Override
     protected String getTransitUri(final WebSocketSessionInfo sessionInfo) {
-        return ((WebSocketClientService)webSocketService).getTargetUri();
+        return ((WebSocketClientService) webSocketService).getTargetUri();
     }
 }

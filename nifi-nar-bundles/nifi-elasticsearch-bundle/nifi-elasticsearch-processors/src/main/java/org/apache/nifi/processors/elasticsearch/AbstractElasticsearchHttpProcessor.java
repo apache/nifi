@@ -18,6 +18,16 @@ package org.apache.nifi.processors.elasticsearch;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.Proxy;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import okhttp3.Authenticator;
 import okhttp3.Credentials;
 import okhttp3.OkHttpClient;
@@ -40,23 +50,13 @@ import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.StringUtils;
 
 import javax.net.ssl.SSLContext;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.Proxy;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
+import javax.net.ssl.X509TrustManager;
 
 /**
  * A base class for Elasticsearch processors that use the HTTP API
  */
 public abstract class AbstractElasticsearchHttpProcessor extends AbstractElasticsearchProcessor {
-
-    static final String FIELD_INCLUDE_QUERY_PARAM = "_source_include";
+    static final String SOURCE_QUERY_PARAM = "_source";
     static final String QUERY_QUERY_PARAM = "q";
     static final String SORT_QUERY_PARAM = "sort";
     static final String SIZE_QUERY_PARAM = "size";
@@ -189,11 +189,11 @@ public abstract class AbstractElasticsearchHttpProcessor extends AbstractElastic
             final Proxy proxy = proxyConfig.createProxy();
             okHttpClient.proxy(proxy);
 
-            if (proxyConfig.hasCredential()){
+            if (proxyConfig.hasCredential()) {
                 okHttpClient.proxyAuthenticator(new Authenticator() {
                     @Override
                     public Request authenticate(Route route, Response response) throws IOException {
-                        final String credential=Credentials.basic(proxyConfig.getProxyUserName(), proxyConfig.getProxyUserPassword());
+                        final String credential = Credentials.basic(proxyConfig.getProxyUserName(), proxyConfig.getProxyUserPassword());
                         return response.request().newBuilder()
                                 .header("Proxy-Authorization", credential)
                                 .build();
@@ -202,17 +202,16 @@ public abstract class AbstractElasticsearchHttpProcessor extends AbstractElastic
             }
         }
 
-
         // Set timeouts
         okHttpClient.connectTimeout((context.getProperty(CONNECT_TIMEOUT).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS).intValue()), TimeUnit.MILLISECONDS);
         okHttpClient.readTimeout(context.getProperty(RESPONSE_TIMEOUT).evaluateAttributeExpressions().asTimePeriod(TimeUnit.MILLISECONDS).intValue(), TimeUnit.MILLISECONDS);
 
+        // Apply the TLS configuration if present
         final SSLContextService sslService = context.getProperty(PROP_SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
-        final SSLContext sslContext = sslService == null ? null : sslService.createSSLContext(SSLContextService.ClientAuth.NONE);
-
-        // check if the ssl context is set and add the factory if so
-        if (sslContext != null) {
-            okHttpClient.sslSocketFactory(sslContext.getSocketFactory());
+        if (sslService != null) {
+            final SSLContext sslContext = sslService.createContext();
+            final X509TrustManager trustManager = sslService.createTrustManager();
+            okHttpClient.sslSocketFactory(sslContext.getSocketFactory(), trustManager);
         }
 
         okHttpClientAtomicReference.set(okHttpClient.build());
@@ -221,7 +220,7 @@ public abstract class AbstractElasticsearchHttpProcessor extends AbstractElastic
     @Override
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
         List<ValidationResult> results = new ArrayList<>(super.customValidate(validationContext));
-        if(validationContext.getProperty(PROXY_HOST).isSet() != validationContext.getProperty(PROXY_PORT).isSet()) {
+        if (validationContext.getProperty(PROXY_HOST).isSet() != validationContext.getProperty(PROXY_PORT).isSet()) {
             results.add(new ValidationResult.Builder()
                     .valid(false)
                     .explanation("Proxy Host and Proxy Port must be both set or empty")
@@ -257,7 +256,7 @@ public abstract class AbstractElasticsearchHttpProcessor extends AbstractElastic
             throw new IllegalArgumentException("Elasticsearch REST API verb not supported by this processor: " + verb);
         }
 
-        if(!StringUtils.isEmpty(username) && !StringUtils.isEmpty(password)) {
+        if (!StringUtils.isEmpty(username) && !StringUtils.isEmpty(password)) {
             String credential = Credentials.basic(username, password);
             requestBuilder = requestBuilder.header("Authorization", credential);
         }
@@ -284,13 +283,18 @@ public abstract class AbstractElasticsearchHttpProcessor extends AbstractElastic
     }
 
     protected void buildBulkCommand(StringBuilder sb, String index, String docType, String indexOp, String id, String jsonString) {
-        if (indexOp.equalsIgnoreCase("index")) {
-            sb.append("{\"index\": { \"_index\": \"");
+        if (indexOp.equalsIgnoreCase("index") || indexOp.equalsIgnoreCase("create")) {
+            sb.append("{\"");
+            sb.append(indexOp.toLowerCase());
+            sb.append("\": { \"_index\": \"");
             sb.append(StringEscapeUtils.escapeJson(index));
-            sb.append("\", \"_type\": \"");
-            sb.append(StringEscapeUtils.escapeJson(docType));
             sb.append("\"");
-            if (!StringUtils.isEmpty(id)) {
+            if (StringUtils.isNotBlank(docType)) {
+                sb.append(", \"_type\": \"");
+                sb.append(StringEscapeUtils.escapeJson(docType));
+                sb.append("\"");
+            }
+            if (StringUtils.isNotBlank(id)) {
                 sb.append(", \"_id\": \"");
                 sb.append(StringEscapeUtils.escapeJson(id));
                 sb.append("\"");
@@ -301,11 +305,15 @@ public abstract class AbstractElasticsearchHttpProcessor extends AbstractElastic
         } else if (indexOp.equalsIgnoreCase("upsert") || indexOp.equalsIgnoreCase("update")) {
             sb.append("{\"update\": { \"_index\": \"");
             sb.append(StringEscapeUtils.escapeJson(index));
-            sb.append("\", \"_type\": \"");
-            sb.append(StringEscapeUtils.escapeJson(docType));
-            sb.append("\", \"_id\": \"");
+            sb.append("\"");
+            if (StringUtils.isNotBlank(docType)) {
+                sb.append(", \"_type\": \"");
+                sb.append(StringEscapeUtils.escapeJson(docType));
+                sb.append("\"");
+            }
+            sb.append(", \"_id\": \"");
             sb.append(StringEscapeUtils.escapeJson(id));
-            sb.append("\" }\n");
+            sb.append("\" } }\n");
             sb.append("{\"doc\": ");
             sb.append(jsonString);
             sb.append(", \"doc_as_upsert\": ");
@@ -314,11 +322,15 @@ public abstract class AbstractElasticsearchHttpProcessor extends AbstractElastic
         } else if (indexOp.equalsIgnoreCase("delete")) {
             sb.append("{\"delete\": { \"_index\": \"");
             sb.append(StringEscapeUtils.escapeJson(index));
-            sb.append("\", \"_type\": \"");
-            sb.append(StringEscapeUtils.escapeJson(docType));
-            sb.append("\", \"_id\": \"");
+            sb.append("\"");
+            if (StringUtils.isNotBlank(docType)) {
+                sb.append(", \"_type\": \"");
+                sb.append(StringEscapeUtils.escapeJson(docType));
+                sb.append("\"");
+            }
+            sb.append(", \"_id\": \"");
             sb.append(StringEscapeUtils.escapeJson(id));
-            sb.append("\" }\n");
+            sb.append("\" } }\n");
         }
     }
 }

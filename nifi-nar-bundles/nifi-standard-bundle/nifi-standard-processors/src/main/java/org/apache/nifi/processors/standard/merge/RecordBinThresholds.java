@@ -27,6 +27,7 @@ public class RecordBinThresholds {
     private final long maxBinMillis;
     private final String maxBinAge;
     private final Optional<String> fragmentCountAttribute;
+    private Integer fragmentCount;
 
     public RecordBinThresholds(final int minRecords, final int maxRecords, final long minBytes, final long maxBytes, final long maxBinMillis,
         final String maxBinAge, final String fragmentCountAttribute) {
@@ -65,5 +66,13 @@ public class RecordBinThresholds {
 
     public Optional<String> getFragmentCountAttribute() {
         return fragmentCountAttribute;
+    }
+
+    public Integer getFragmentCount() {
+        return fragmentCount;
+    }
+
+    public void setFragmentCount(Integer fragmentCount) {
+        this.fragmentCount = fragmentCount;
     }
 }

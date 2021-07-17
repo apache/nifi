@@ -470,7 +470,6 @@ public class GetFile extends AbstractProcessor {
                     }
                 }
             }
-            session.commit();
         } catch (final Exception e) {
             logger.error("Failed to retrieve files due to {}", e);
 

@@ -32,7 +32,7 @@ public class PartialFunctions {
 
     @FunctionalInterface
     public interface InitConnection<FC, C> {
-        C apply(ProcessContext context, ProcessSession session, FC functionContext, FlowFile flowFile) throws ProcessException;
+        C apply(ProcessContext context, ProcessSession session, FC functionContext, List<FlowFile> flowFiles) throws ProcessException;
     }
 
     @FunctionalInterface
@@ -97,6 +97,12 @@ public class PartialFunctions {
         void rollback(ProcessSession session, Throwable t);
     }
 
+    @FunctionalInterface
+    public interface AdjustFailed {
+        boolean apply(ProcessContext context, RoutingResult result);
+    }
+
+
     /**
      * <p>This method is identical to what {@link org.apache.nifi.processor.AbstractProcessor#onTrigger(ProcessContext, ProcessSession)} does.</p>
      * <p>Create a session from ProcessSessionFactory and execute specified onTrigger function, and commit the session if onTrigger finishes successfully.</p>
@@ -112,7 +118,7 @@ public class PartialFunctions {
         final ProcessSession session = sessionFactory.createSession();
         try {
             onTrigger.execute(session);
-            session.commit();
+            session.commitAsync();
         } catch (final Throwable t) {
             logger.error("{} failed to process due to {}; rolling back session", new Object[]{onTrigger, t});
             rollbackSession.rollback(session, t);

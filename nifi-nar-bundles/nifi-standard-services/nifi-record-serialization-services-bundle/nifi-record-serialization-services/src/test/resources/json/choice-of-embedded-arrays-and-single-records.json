@@ -1,0 +1,35 @@
+{
+  "dataCollection":[
+    {
+      "record": {
+        "integer": 1
+      }
+    },
+    {
+      "record": [{
+        "integer": 21,
+        "boolean": true
+      },
+      {
+        "integer": 22,
+        "boolean": false
+      }]
+    },
+    {
+      "record": {
+        "integer": 3,
+        "string": "stringValue3"
+      }
+    },
+    {
+      "record": [{
+        "integer": 41,
+        "string": "stringValue41"
+      },
+      {
+        "integer": 42,
+        "string": "stringValue42"
+      }]
+    }
+  ]
+}

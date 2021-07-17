@@ -1,5 +1,5 @@
 Apache NiFi
-Copyright 2014-2019 The Apache Software Foundation
+Copyright 2014-2021 The Apache Software Foundation
 
 This product includes software developed at
 The Apache Software Foundation (http://www.apache.org/).
@@ -57,18 +57,18 @@ This includes derived works from Maxmind GeoIP2 Java available under Apache Soft
   Copyright (c) 2013 by MaxMind, Inc.
   Are used in unit tests found in nifi/nifi-nar-bundles/nifi-enrich-bundle/nifi-enrich-processors/src/test/java/org/apache/nifi/processors/TestGeoEnrichIP.java
 
-This includes derived works from Apache Calcite available under Apache Software License V2.  Portions of code found in 
+This includes derived works from Apache Calcite available under Apache Software License V2.  Portions of code found in
   https://github.com/apache/calcite/blob/master/example/csv/src/main/java/org/apache/calcite/adapter/csv/CsvProjectTableScanRule.java
-  and 
+  and
   https://github.com/apache/calcite/blob/master/example/csv/src/main/java/org/apache/calcite/adapter/csv/CsvTableScan.java
   Copyright 2012-2017 The Apache Software Foundation
   The code can be found in nifi-nar-bundles/nifi-standard-nar/nifi-standard-processors/../FlowFileProjectTableScanRule
   and nifi-nar-bundles/nifi-standard-nar/nifi-standard-processors/../FlowFileTableScan
 
 This includes derived works from Apache Solr available under Apache Software License V2. Portions of the code found in
-  https://github.com/apache/lucene-solr/blob/branch_6x/solr/solrj/src/java/org/apache/solr/client/solrj/impl/Krb5HttpClientConfigurer.java
-  Copyright 2006-2018 The Apache Software Foundation
-  The code can be found nifi-nar-bundles/nifi-solr-bundle/nifi-solr-processors/src/main/java/org/apache/nifi/processors/solr/kerberos/KerberosHttpClientConfigurer.java
+  https://github.com/apache/lucene-solr/blob/branch_7x/solr/solrj/src/java/org/apache/solr/client/solrj/impl/Krb5HttpClientBuilder.java
+  Copyright 2006-2020 The Apache Software Foundation
+  The code can be found nifi-nar-bundles/nifi-solr-bundle/nifi-solr-processors/src/main/java/org/apache/nifi/processors/solr/kerberos/KerberosHttpClientBuilder.java
 
 This includes derived works from Apache Hadoop available under Apache Software License V2. Portions of the code found in
   https://github.com/apache/hadoop/blob/release-2.7.3-RC2/hadoop-common-project/hadoop-common/src/main/java/org/apache/hadoop/security/UserGroupInformation.java
@@ -112,3 +112,17 @@ This includes derived works from Dropwizard Metrics available under Apache Softw
   and can be found in
     nifi-commons/nifi-metrics/src/main/java/org/apache/nifi/metrics/jvm/JvmMetrics.java
     nifi-commons/nifi-metrics/src/main/java/org/apache/nifi/metrics/jvm/JmxJvmMetrics.java
+
+This product includes derived works from Apache Commons Id (ASLv2 licensed)
+  Copyright 2003-2006 The Apache Software Foundation
+  The derived work is adapted from
+    http://svn.apache.org/repos/asf/commons/sandbox/id/trunk/src/java/org/apache/commons/id/uuid/UUID.java
+  and can be found in
+    nifi-commons/nifi-expression-language/src/main/java/org/apache/nifi/attribute/expression/language/evaluation/functions/Uuid3Evaluator.java
+  and
+    nifi-commons/nifi-uuid5/src/main/java/org/apache/nifi/uuid5/Uuid5Util.java
+
+This includes derived works from Cloudera Schema Registry available under Apache Software License V2 (https://github.com/hortonworks/registry)
+  Cloudera Schema Registry
+  Copyright 2016-2019 Cloudera, Inc.
+  The code can be found in nifi-nar-bundles/nifi-standard-services/nifi-hwx-schema-registry-bundle/nifi-hwx-schema-registry-service/src/main/java/com/hortonworks/registries/schemaregistry/client/SchemaRegistryClient.java

@@ -31,19 +31,15 @@ import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
-import org.apache.nifi.processor.io.OutputStreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.standard.util.FileTransfer;
 import org.apache.nifi.processors.standard.util.PermissionDeniedException;
-import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.StopWatch;
 import org.apache.nifi.util.Tuple;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -261,20 +257,8 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
         boolean closeConnection = false;
         try {
             // Pull data from remote system.
-            final InputStream in;
             try {
-                in = transfer.getInputStream(filename, flowFile);
-
-                flowFile = session.write(flowFile, new OutputStreamCallback() {
-                    @Override
-                    public void process(final OutputStream out) throws IOException {
-                        StreamUtils.copy(in, out);
-                    }
-                });
-
-                if (!transfer.flush(flowFile)) {
-                    throw new IOException("completePendingCommand returned false, file transfer failed");
-                }
+                flowFile = transfer.getRemoteFile(filename, flowFile, session);
 
             } catch (final FileNotFoundException e) {
                 closeConnection = false;
@@ -322,50 +306,67 @@ public abstract class FetchFileTransfer extends AbstractProcessor {
             // it is critical that we commit the session before moving/deleting the remote file. Otherwise, we could have a situation where
             // we ingest the data, delete/move the remote file, and then NiFi dies/is shut down before the session is committed. This would
             // result in data loss! If we commit the session first, we are safe.
-            session.commit();
+            final boolean close = closeConnection;
+            final BlockingQueue<FileTransferIdleWrapper> queue = transferQueue;
+            final Runnable cleanupTask = () -> cleanupTransfer(transfer, close, queue, host, port);
 
-            final String completionStrategy = context.getProperty(COMPLETION_STRATEGY).getValue();
-            if (COMPLETION_DELETE.getValue().equalsIgnoreCase(completionStrategy)) {
-                try {
-                    transfer.deleteFile(flowFile, null, filename);
-                } catch (final FileNotFoundException e) {
-                    // file doesn't exist -- effectively the same as removing it. Move on.
-                } catch (final IOException ioe) {
-                    getLogger().warn("Successfully fetched the content for {} from {}:{}{} but failed to remove the remote file due to {}",
-                            new Object[]{flowFile, host, port, filename, ioe}, ioe);
-                }
-            } else if (COMPLETION_MOVE.getValue().equalsIgnoreCase(completionStrategy)) {
-                final String targetDir = context.getProperty(MOVE_DESTINATION_DIR).evaluateAttributeExpressions(flowFile).getValue();
-                final String simpleFilename = StringUtils.substringAfterLast(filename, "/");
-
-                try {
-                    final String absoluteTargetDirPath = transfer.getAbsolutePath(flowFile, targetDir);
-                    final File targetFile = new File(absoluteTargetDirPath, simpleFilename);
-                    if (context.getProperty(MOVE_CREATE_DIRECTORY).asBoolean()) {
-                        // Create the target directory if necessary.
-                        transfer.ensureDirectoryExists(flowFile, targetFile.getParentFile());
-                    }
-
-                    transfer.rename(flowFile, filename, targetFile.getAbsolutePath());
-
-                } catch (final IOException ioe) {
-                    getLogger().warn("Successfully fetched the content for {} from {}:{}{} but failed to rename the remote file due to {}",
-                            new Object[]{flowFile, host, port, filename, ioe}, ioe);
-                }
-            }
-        } finally {
+            final FlowFile flowFileReceived = flowFile;
+            session.commitAsync(() -> {
+                performCompletionStrategy(transfer, context, flowFileReceived, filename, host, port);
+                cleanupTask.run();
+            }, t -> {
+                cleanupTask.run();
+            });
+        } catch (final Throwable t) {
+            getLogger().error("Failed to fetch file", t);
             if (transfer != null) {
-                if (closeConnection) {
-                    getLogger().debug("Closing FileTransfer...");
-                    try {
-                        transfer.close();
-                    } catch (final IOException e) {
-                        getLogger().warn("Failed to close connection to {}:{} due to {}", new Object[]{host, port, e.getMessage()}, e);
-                    }
-                } else {
-                    getLogger().debug("Returning FileTransfer to pool...");
-                    transferQueue.offer(new FileTransferIdleWrapper(transfer, System.nanoTime()));
+                cleanupTransfer(transfer, closeConnection, transferQueue, host, port);
+            }
+        }
+    }
+
+    private void cleanupTransfer(final FileTransfer transfer, final boolean closeConnection, final BlockingQueue<FileTransferIdleWrapper> transferQueue, final String host, final int port) {
+        if (closeConnection) {
+            getLogger().debug("Closing FileTransfer...");
+            try {
+                transfer.close();
+            } catch (final IOException e) {
+                getLogger().warn("Failed to close connection to {}:{} due to {}", new Object[]{host, port, e.getMessage()}, e);
+            }
+        } else {
+            getLogger().debug("Returning FileTransfer to pool...");
+            transferQueue.offer(new FileTransferIdleWrapper(transfer, System.nanoTime()));
+        }
+    }
+
+    private void performCompletionStrategy(final FileTransfer transfer, final ProcessContext context, final FlowFile flowFile, final String filename, final String host, final int port) {
+        final String completionStrategy = context.getProperty(COMPLETION_STRATEGY).getValue();
+        if (COMPLETION_DELETE.getValue().equalsIgnoreCase(completionStrategy)) {
+            try {
+                transfer.deleteFile(flowFile, null, filename);
+            } catch (final FileNotFoundException e) {
+                // file doesn't exist -- effectively the same as removing it. Move on.
+            } catch (final IOException ioe) {
+                getLogger().warn("Successfully fetched the content for {} from {}:{}{} but failed to remove the remote file due to {}",
+                    new Object[]{flowFile, host, port, filename, ioe}, ioe);
+            }
+        } else if (COMPLETION_MOVE.getValue().equalsIgnoreCase(completionStrategy)) {
+            final String targetDir = context.getProperty(MOVE_DESTINATION_DIR).evaluateAttributeExpressions(flowFile).getValue();
+            final String simpleFilename = StringUtils.substringAfterLast(filename, "/");
+
+            try {
+                final String absoluteTargetDirPath = transfer.getAbsolutePath(flowFile, targetDir);
+                final File targetFile = new File(absoluteTargetDirPath, simpleFilename);
+                if (context.getProperty(MOVE_CREATE_DIRECTORY).asBoolean()) {
+                    // Create the target directory if necessary.
+                    transfer.ensureDirectoryExists(flowFile, targetFile.getParentFile());
                 }
+
+                transfer.rename(flowFile, filename, targetFile.getAbsolutePath());
+
+            } catch (final IOException ioe) {
+                getLogger().warn("Successfully fetched the content for {} from {}:{}{} but failed to rename the remote file due to {}",
+                    new Object[]{flowFile, host, port, filename, ioe}, ioe);
             }
         }
     }

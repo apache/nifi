@@ -304,6 +304,7 @@ div.local-changes-message {
 }
 
 #variable-registry-table {
+    position: relative;
     height: 400px;
 }
 
@@ -317,6 +318,10 @@ div.local-changes-message {
 li.affected-component-container {
     margin-bottom: 3px;
     height: 16px;
+}
+
+span.affected-component-setting-width {
+    max-width: 90%;
 }
 
 div.slick-cell div.overridden {
@@ -380,7 +385,7 @@ div.variable-step {
     margin-bottom: 2px;
 }
 
-div.parameter-context-step {
+div.parameter-context-step, div.referencing-components-loading {
     min-width: 16px;
     width: 16px;
     height: 16px;

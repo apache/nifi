@@ -28,10 +28,13 @@ import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
+import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.RequiredPermission;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.resource.ResourceCardinality;
+import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.expression.ExpressionLanguageScope;
@@ -45,7 +48,8 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processors.groovyx.flow.GroovyProcessSessionWrap;
 import org.apache.nifi.processors.groovyx.sql.OSql;
 import org.apache.nifi.processors.groovyx.util.Files;
-import org.apache.nifi.processors.groovyx.util.Validators;
+import org.apache.nifi.serialization.RecordReaderFactory;
+import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.codehaus.groovy.control.CompilerConfiguration;
 import org.codehaus.groovy.runtime.ResourceGroovyMethods;
 import org.codehaus.groovy.runtime.StackTraceUtils;
@@ -80,8 +84,9 @@ import java.util.Set;
 @DynamicProperty(name = "A script engine property to update",
         value = "The value to set it to",
         expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES,
-        description = "Updates a script engine property specified by the Dynamic Property's key with the value "
-                + "specified by the Dynamic Property's value. Use `CTL.` to access any controller services.")
+        description = "Updates a script engine property specified by the Dynamic Property's key with the value specified by the Dynamic Property's value. "
+                + "Use `CTL.` to access any controller services, `SQL.` to access any DBCPServices, `RecordReader.` to access RecordReaderFactory instances, or "
+                + "`RecordWriter.` to access any RecordSetWriterFactory instances.")
 public class ExecuteGroovyScript extends AbstractProcessor {
     public static final String GROOVY_CLASSPATH = "${groovy.classes.path}";
 
@@ -94,7 +99,7 @@ public class ExecuteGroovyScript extends AbstractProcessor {
             .displayName("Script File")
             .required(false)
             .description("Path to script file to execute. Only one of Script File or Script Body may be used")
-            .addValidator(Validators.createFileExistsAndReadableValidator())
+            .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
@@ -233,7 +238,10 @@ public class ExecuteGroovyScript extends AbstractProcessor {
      */
     @Override
     public void onPropertyModified(final PropertyDescriptor descriptor, final String oldValue, final String newValue) {
-        this.shell = null;
+        // Only re-create the shell if necessary, this helps if loading native libraries
+        if (ExecuteGroovyScript.ADD_CLASSPATH.equals(descriptor)) {
+            this.shell = null;
+        }
         this.compiled = null;
         this.scriptLastModified = 0;
     }
@@ -262,6 +270,14 @@ public class ExecuteGroovyScript extends AbstractProcessor {
         } catch (Throwable t) {
             getLogger().error("onStart failed: " + t);
             throw new ProcessException("onStart failed: " + t, t);
+        }
+    }
+    @OnUnscheduled
+    public void onUnscheduled(final ProcessContext context) {
+        try {
+            callScriptStatic("onUnscheduled", context);
+        } catch (Throwable t) {
+            throw new ProcessException("onUnscheduled failed: " + t, t);
         }
     }
 
@@ -332,9 +348,8 @@ public class ExecuteGroovyScript extends AbstractProcessor {
     /**
      * init SQL variables from DBCP services
      */
-    @SuppressWarnings("unchecked")
-    private void onInitSQL(HashMap SQL) throws SQLException {
-        for (Map.Entry e : (Set<Map.Entry>) SQL.entrySet()) {
+    private void onInitSQL(Map<String, Object> SQL) throws SQLException {
+        for (Map.Entry<String, Object> e : SQL.entrySet()) {
             DBCPService s = (DBCPService) e.getValue();
             OSql sql = new OSql(s.getConnection(Collections.emptyMap()));
             //try to set autocommit to false
@@ -352,9 +367,8 @@ public class ExecuteGroovyScript extends AbstractProcessor {
     /**
      * before commit SQL services
      */
-    @SuppressWarnings("unchecked")
-    private void onCommitSQL(HashMap SQL) throws SQLException {
-        for (Map.Entry e : (Set<Map.Entry>) SQL.entrySet()) {
+    private void onCommitSQL(Map<String, Object> SQL) throws SQLException {
+        for (Map.Entry<String, Object> e : SQL.entrySet()) {
             OSql sql = (OSql) e.getValue();
             if (!sql.getConnection().getAutoCommit()) {
                 sql.commit();
@@ -365,9 +379,8 @@ public class ExecuteGroovyScript extends AbstractProcessor {
     /**
      * finalize SQL services. no exceptions should be thrown.
      */
-    @SuppressWarnings("unchecked")
-    private void onFinitSQL(HashMap SQL) {
-        for (Map.Entry e : (Set<Map.Entry>) SQL.entrySet()) {
+    private void onFinitSQL(Map<String, Object> SQL) {
+        for (Map.Entry<String, Object> e : SQL.entrySet()) {
             OSql sql = (OSql) e.getValue();
             try {
                 if (!sql.getConnection().getAutoCommit()) {
@@ -388,9 +401,8 @@ public class ExecuteGroovyScript extends AbstractProcessor {
     /**
      * exception SQL services
      */
-    @SuppressWarnings("unchecked")
-    private void onFailSQL(HashMap SQL) {
-        for (Map.Entry e : (Set<Map.Entry>) SQL.entrySet()) {
+    private void onFailSQL(Map<String, Object> SQL) {
+        for (Map.Entry<String, Object> e : SQL.entrySet()) {
             OSql sql = (OSql) e.getValue();
             try {
                 if (!sql.getConnection().getAutoCommit()) {
@@ -409,8 +421,10 @@ public class ExecuteGroovyScript extends AbstractProcessor {
         //so transfer original input to failure will be possible
         GroovyProcessSessionWrap session = new GroovyProcessSessionWrap(_session, toFailureOnError);
 
-        HashMap CTL = new AccessMap("CTL");
-        HashMap SQL = new AccessMap("SQL");
+        Map<String, Object> CTL = new AccessMap("CTL");
+        Map<String, Object> SQL = new AccessMap("SQL");
+        Map<String, Object> RECORD_READER = new AccessMap("RecordReader");
+        Map<String, Object> RECORD_SET_WRITER = new AccessMap("RecordSetWriter");
 
         try {
             Script script = getGroovyScript(); //compilation must be moved to validation
@@ -428,6 +442,14 @@ public class ExecuteGroovyScript extends AbstractProcessor {
                     } else if (property.getKey().getName().startsWith("SQL.")) {
                         DBCPService dbcp = context.getProperty(property.getKey()).asControllerService(DBCPService.class);
                         SQL.put(property.getKey().getName().substring(4), dbcp);
+                    } else if (property.getKey().getName().startsWith("RecordReader.")) {
+                        // Get RecordReaderFactory controller service
+                        RecordReaderFactory recordReader = context.getProperty(property.getKey()).asControllerService(RecordReaderFactory.class);
+                        RECORD_READER.put(property.getKey().getName().substring(13), recordReader);
+                    } else if (property.getKey().getName().startsWith("RecordWriter.")) {
+                        // Get RecordWriterFactory controller service
+                        RecordSetWriterFactory recordWriter = context.getProperty(property.getKey()).asControllerService(RecordSetWriterFactory.class);
+                        RECORD_SET_WRITER.put(property.getKey().getName().substring(13), recordWriter);
                     } else {
                         // Add the dynamic property bound to its full PropertyValue to the script engine
                         if (property.getValue() != null) {
@@ -445,12 +467,14 @@ public class ExecuteGroovyScript extends AbstractProcessor {
             bindings.put("REL_FAILURE", REL_FAILURE);
             bindings.put("CTL", CTL);
             bindings.put("SQL", SQL);
+            bindings.put("RecordReader", RECORD_READER);
+            bindings.put("RecordWriter", RECORD_SET_WRITER);
 
             script.run();
             bindings.clear();
 
             onCommitSQL(SQL);
-            session.commit();
+            session.commitAsync();
         } catch (Throwable t) {
             getLogger().error(t.toString(), t);
             onFailSQL(SQL);
@@ -493,6 +517,26 @@ public class ExecuteGroovyScript extends AbstractProcessor {
                     .identifiesControllerService(DBCPService.class)
                     .build();
         }
+        if (propertyDescriptorName.startsWith("RecordReader.")) {
+            return new PropertyDescriptor.Builder()
+                    .name(propertyDescriptorName)
+                    .displayName(propertyDescriptorName)
+                    .required(false)
+                    .description("RecordReaderFactory controller service accessible from code as `" + propertyDescriptorName + "`")
+                    .dynamic(true)
+                    .identifiesControllerService(RecordReaderFactory.class)
+                    .build();
+        }
+        if (propertyDescriptorName.startsWith("RecordWriter.")) {
+            return new PropertyDescriptor.Builder()
+                    .name(propertyDescriptorName)
+                    .displayName(propertyDescriptorName)
+                    .required(false)
+                    .description("RecordSetWriterFactory controller service accessible from code as `" + propertyDescriptorName + "`")
+                    .dynamic(true)
+                    .identifiesControllerService(RecordSetWriterFactory.class)
+                    .build();
+        }
         return new PropertyDescriptor.Builder()
                 .name(propertyDescriptorName)
                 .required(false)
@@ -503,7 +547,7 @@ public class ExecuteGroovyScript extends AbstractProcessor {
     }
 
     /** simple HashMap with exception on access of non-existent key */
-    private class AccessMap extends HashMap {
+    private static class AccessMap extends HashMap<String,Object> {
         private String parentKey;
         AccessMap(String parentKey){
             this.parentKey=parentKey;

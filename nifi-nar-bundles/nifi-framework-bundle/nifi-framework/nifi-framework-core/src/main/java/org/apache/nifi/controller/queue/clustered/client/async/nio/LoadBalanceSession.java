@@ -76,6 +76,7 @@ public class LoadBalanceSession {
     private final String peerDescription;
     private final String connectionId;
     private final TransactionThreshold transactionThreshold;
+    private volatile boolean canceled = false;
 
     final VersionNegotiator negotiator = new StandardVersionNegotiator(1);
     private int protocolVersion = 1;
@@ -170,6 +171,19 @@ public class LoadBalanceSession {
         }
     }
 
+    public synchronized boolean cancel() {
+        if (complete) {
+            return false;
+        }
+
+        complete = true;
+        canceled = true;
+        return true;
+    }
+
+    public boolean isCanceled() {
+        return canceled;
+    }
 
     private boolean confirmTransactionComplete() throws IOException {
         logger.debug("Confirming Transaction Complete for Peer {}", peerDescription);
@@ -319,16 +333,15 @@ public class LoadBalanceSession {
                 final byte[] compressed = compressDataFrame(byteBuffer, bytesRead);
                 final int compressedMaxLen = compressed.length;
 
-                buffer = ByteBuffer.allocate(3 + compressedMaxLen);
+                buffer = ByteBuffer.allocate(5 + compressedMaxLen);
                 buffer.put((byte) LoadBalanceProtocolConstants.DATA_FRAME_FOLLOWS);
-                buffer.putShort((short) compressedMaxLen);
+                buffer.putInt(compressedMaxLen);
 
                 buffer.put(compressed, 0, compressedMaxLen);
-
             } else {
-                buffer = ByteBuffer.allocate(3 + bytesRead);
+                buffer = ByteBuffer.allocate(5 + bytesRead);
                 buffer.put((byte) LoadBalanceProtocolConstants.DATA_FRAME_FOLLOWS);
-                buffer.putShort((short) bytesRead);
+                buffer.putInt(bytesRead);
 
                 buffer.put(byteBuffer, 0, bytesRead);
             }

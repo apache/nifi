@@ -57,7 +57,6 @@ import org.apache.nifi.remote.client.KeystoreType;
 import org.apache.nifi.remote.client.SiteToSiteClient;
 import org.apache.nifi.remote.codec.StandardFlowFileCodec;
 import org.apache.nifi.remote.exception.HandshakeException;
-import org.apache.nifi.remote.exception.NoValidPeerException;
 import org.apache.nifi.remote.io.CompressionInputStream;
 import org.apache.nifi.remote.io.CompressionOutputStream;
 import org.apache.nifi.remote.protocol.DataPacket;
@@ -66,6 +65,7 @@ import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.remote.protocol.http.HttpHeaders;
 import org.apache.nifi.remote.protocol.http.HttpProxy;
 import org.apache.nifi.remote.util.StandardDataPacket;
+import org.apache.nifi.security.util.TlsConfiguration;
 import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.web.api.dto.ControllerDTO;
 import org.apache.nifi.web.api.dto.PortDTO;
@@ -100,7 +100,7 @@ import org.slf4j.LoggerFactory;
 
 public class TestHttpClient {
 
-    private static Logger logger = LoggerFactory.getLogger(TestHttpClient.class);
+    private static final Logger logger = LoggerFactory.getLogger(TestHttpClient.class);
 
     private static Server server;
     private static ServerConnector httpConnector;
@@ -194,21 +194,6 @@ public class TestHttpClient {
             setCommonResponseHeaders(resp, reqProtocolVersion);
 
             respondWithJson(resp, entity, HttpServletResponse.SC_CREATED);
-        }
-
-    }
-
-    public static class EmptyPortTransactionsServlet extends PortTransactionsServlet {
-
-        @Override
-        protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-
-            final int reqProtocolVersion = getReqProtocolVersion(req);
-            if (reqProtocolVersion == 1) {
-                super.doPost(req, resp);
-            } else {
-                respondWithText(resp, "No flowfiles available", 204);
-            }
         }
 
     }
@@ -468,10 +453,12 @@ public class TestHttpClient {
         final ServletHandler wrongPathServletHandler = new ServletHandler();
         wrongPathContextHandler.insertHandler(wrongPathServletHandler);
 
-        final SslContextFactory sslContextFactory = new SslContextFactory();
+        final SslContextFactory sslContextFactory = new SslContextFactory.Server();
         sslContextFactory.setKeyStorePath("src/test/resources/certs/keystore.jks");
         sslContextFactory.setKeyStorePassword("passwordpassword");
         sslContextFactory.setKeyStoreType("JKS");
+        sslContextFactory.setProtocol(TlsConfiguration.getHighestCurrentSupportedTlsProtocolVersion());
+        sslContextFactory.setExcludeProtocols("TLS", "TLSv1", "TLSv1.1");
 
         httpConnector = new ServerConnector(server);
 
@@ -480,6 +467,7 @@ public class TestHttpClient {
         sslConnector = new ServerConnector(server,
                 new SslConnectionFactory(sslContextFactory, "http/1.1"),
                 new HttpConnectionFactory(https));
+        logger.info("SSL Connector: " + sslConnector.dump());
 
         server.setConnectors(new Connector[] { httpConnector, sslConnector });
 
@@ -512,8 +500,6 @@ public class TestHttpClient {
         servletHandler.addServletWithMapping(PortTransactionsServlet.class, "/data-transfer/output-ports/output-timeout-data-ex-id/transactions");
         servletHandler.addServletWithMapping(OutputPortTransactionServlet.class, "/data-transfer/output-ports/output-timeout-data-ex-id/transactions/transaction-id");
         servletHandler.addServletWithMapping(FlowFilesTimeoutAfterDataExchangeServlet.class, "/data-transfer/output-ports/output-timeout-data-ex-id/transactions/transaction-id/flow-files");
-
-        servletHandler.addServletWithMapping(EmptyPortTransactionsServlet.class,"/data-transfer/output-ports/empty-output-running-id/transactions");
 
         server.start();
 
@@ -674,13 +660,6 @@ public class TestHttpClient {
         runningOutputPort.setState(ScheduledState.RUNNING.name());
         outputPorts.add(runningOutputPort);
 
-        final PortDTO emptyRunningOutputPort = new PortDTO();
-        emptyRunningOutputPort.setName("empty-output-running");
-        emptyRunningOutputPort.setId("empty-output-running-id");
-        emptyRunningOutputPort.setType("OUTPUT_PORT");
-        emptyRunningOutputPort.setState(ScheduledState.RUNNING.name());
-        outputPorts.add(emptyRunningOutputPort);
-
         final PortDTO timeoutOutputPort = new PortDTO();
         timeoutOutputPort.setName("output-timeout");
         timeoutOutputPort.setId("output-timeout-id");
@@ -743,10 +722,9 @@ public class TestHttpClient {
                 .build()
         ) {
             final Transaction transaction = client.createTransaction(TransferDirection.SEND);
-            fail();
 
-        } catch (final NoValidPeerException e) {
-            assertNotNull(e.getMessage());
+            assertNull(transaction);
+
         }
 
     }
@@ -763,10 +741,9 @@ public class TestHttpClient {
                 .build()
         ) {
             final Transaction transaction = client.createTransaction(TransferDirection.SEND);
-            fail();
 
-        } catch (final NoValidPeerException e) {
-            assertNotNull(e.getMessage());
+            assertNull(transaction);
+
         }
 
     }
@@ -782,11 +759,11 @@ public class TestHttpClient {
                 .build()
         ) {
             final Transaction transaction = client.createTransaction(TransferDirection.SEND);
-            fail();
 
-        } catch (final NoValidPeerException e) {
-            assertNotNull(e.getMessage());
+            assertNull(transaction);
+
         }
+
     }
 
     @Test
@@ -881,10 +858,7 @@ public class TestHttpClient {
                         .build()
         ) {
             final Transaction transaction = client.createTransaction(TransferDirection.SEND);
-            fail();
-
-        } catch (final NoValidPeerException e) {
-            assertNotNull("createTransaction should fail at peer selection and return null.", e.getMessage());
+            assertNull("createTransaction should fail at peer selection and return null.", transaction);
         }
 
     }
@@ -1254,23 +1228,6 @@ public class TestHttpClient {
         }
     }
 
-    @Test
-    public void testReceiveEmptyPort() throws Exception {
-
-        try (
-                SiteToSiteClient client = getDefaultBuilder()
-                        .portName("empty-output-running")
-                        .build()
-        ) {
-            try {
-                final Transaction transaction = client.createTransaction(TransferDirection.RECEIVE);
-                assertNull(transaction);
-            } catch (IOException e) {
-                fail();
-            }
-        }
-    }
-
     private void testReceive(SiteToSiteClient client) throws IOException {
         final Transaction transaction = client.createTransaction(TransferDirection.RECEIVE);
 
@@ -1419,7 +1376,7 @@ public class TestHttpClient {
 
         try (
                 SiteToSiteClient client = getDefaultBuilder()
-                        .timeout(1, TimeUnit.SECONDS)
+                        .timeout(5, TimeUnit.SECONDS)
                         .portName("output-timeout-data-ex")
                         .build()
         ) {

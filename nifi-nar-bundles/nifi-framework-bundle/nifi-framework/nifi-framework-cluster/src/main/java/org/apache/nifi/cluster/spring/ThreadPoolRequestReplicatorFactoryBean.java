@@ -24,11 +24,12 @@ import org.apache.nifi.cluster.coordination.http.replication.okhttp.OkHttpReplic
 import org.apache.nifi.events.EventReporter;
 import org.apache.nifi.util.NiFiProperties;
 import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 
-public class ThreadPoolRequestReplicatorFactoryBean implements FactoryBean<ThreadPoolRequestReplicator>, ApplicationContextAware {
+public class ThreadPoolRequestReplicatorFactoryBean implements FactoryBean<ThreadPoolRequestReplicator>, DisposableBean, ApplicationContextAware {
     private ApplicationContext applicationContext;
     private NiFiProperties nifiProperties;
 
@@ -73,4 +74,10 @@ public class ThreadPoolRequestReplicatorFactoryBean implements FactoryBean<Threa
         this.nifiProperties = properties;
     }
 
+    @Override
+    public void destroy() {
+        if (replicator != null) {
+            replicator.shutdown();
+        }
+    }
 }

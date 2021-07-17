@@ -1,0 +1,263 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+name: ci-workflow
+
+on: [push, pull_request]
+
+jobs:
+  ubuntu-build-en:
+    timeout-minutes: 120
+    runs-on: ubuntu-latest
+    name: Ubuntu Zulu JDK11 EN
+    steps:
+      - name: Disk Before Code and Cache
+        run: |
+          sudo swapoff -a
+          sudo rm -f /swapfile
+          sudo apt clean
+          docker rmi $(docker image ls -aq)
+          df -h
+      - name: Checkout Code
+        uses: actions/checkout@v2
+      - name: Check NPM Cache
+        uses: actions/cache@v2
+        with:
+          path: ~/.npm
+          key: npm-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            npm-
+      - name: Check Maven Com Cache
+        uses: actions/cache@v2
+        with:
+          path: ~/.m2/repository/com
+          key: mvn-com-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            mvn-com-
+      - name: Check Maven Org Cache
+        uses: actions/cache@v2
+        with:
+          path: ~/.m2/repository/org
+          key: mvn-org-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            mvn-org-
+      - name: Check Maven Net Cache
+        uses: actions/cache@v2
+        with:
+          path: ~/.m2/repository/net
+          key: mvn-net-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            mvn-net-
+      - name: Check Maven IO Cache
+        uses: actions/cache@v2
+        with:
+          path: ~/.m2/repository/io
+          key: mvn-io-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            mvn-io-
+      - name: Check Maven BIZ Cache
+        uses: actions/cache@v2
+        with:
+          path: ~/.m2/repository/biz
+          key: mvn-biz-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            mvn-biz-
+      - name: Check Maven IT Cache
+        uses: actions/cache@v2
+        with:
+          path: ~/.m2/repository/it
+          key: mvn-it-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            mvn-it-
+      - name: Set up JDK 11 EN
+        uses: actions/setup-java@v2
+        with:
+          distribution: 'zulu'
+          java-version: '11'
+      - name: Disk After Cache
+        run: |
+          df -h
+      - name: Build with Maven
+        env:
+          MAVEN_OPTS: -Xmx2g -XX:ReservedCodeCacheSize=1g -XX:+UseG1GC -Dorg.slf4j.simpleLogger.defaultLogLevel=WARN -Duser.language=en -Duser.country=AU -Duser.region=AU -Duser.timezone=Australia/Melbourne -Dhttp.keepAlive=false -Dmaven.wagon.http.pool=false
+        run: |
+          mvn -V -T 0.7C package verify -B -Pcontrib-check,include-grpc,nifi-registry-no-integration-tests -Ddir-only -ntp -ff -pl -nifi-assembly,-nifi-toolkit/nifi-toolkit-assembly,-nifi-system-tests -nsu
+      - name: Upload JUnit Results
+        uses: actions/upload-artifact@v2
+        if: always()
+        with:
+          name: surefire-reports-en
+          path: "**/surefire-reports/TEST-*.xml"
+          retention-days: 1
+      - name: Disk After Build
+        run: |
+          df -h
+
+  osx-build-jp:
+    timeout-minutes: 120
+    runs-on: macos-latest
+    name: MacOS Adopt JDK8 JP
+    steps:
+      - name: Disk Before Code and Cache
+        run: |
+          df -h
+      - name: Checkout Code
+        uses: actions/checkout@v2
+      - name: Check NPM Cache
+        uses: actions/cache@v2
+        with:
+          path: ~/.npm
+          key: npm-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            npm-
+      - name: Check Maven Com Cache
+        uses: actions/cache@v2
+        with:
+          path: ~/.m2/repository/com
+          key: mvn-com-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            mvn-com-
+      - name: Check Maven Org Cache
+        uses: actions/cache@v2
+        with:
+          path: ~/.m2/repository/org
+          key: mvn-org-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            mvn-org-
+      - name: Check Maven Net Cache
+        uses: actions/cache@v2
+        with:
+          path: ~/.m2/repository/net
+          key: mvn-net-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            mvn-net-
+      - name: Check Maven IO Cache
+        uses: actions/cache@v2
+        with:
+          path: ~/.m2/repository/io
+          key: mvn-io-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            mvn-io-
+      - name: Check Maven BIZ Cache
+        uses: actions/cache@v2
+        with:
+          path: ~/.m2/repository/biz
+          key: mvn-biz-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            mvn-biz-
+      - name: Check Maven IT Cache
+        uses: actions/cache@v2
+        with:
+          path: ~/.m2/repository/it
+          key: mvn-it-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            mvn-it-
+      - name: Set up JDK 1.8 JP
+        uses: actions/setup-java@v2
+        with:
+          distribution: 'adopt'
+          java-version: '8'
+      - name: Disk After Cache
+        run: |
+          df -h
+      - name: Build with Maven
+        env:
+          MAVEN_OPTS: -Xmx2g -XX:ReservedCodeCacheSize=1g -XX:+UseG1GC -Dorg.slf4j.simpleLogger.defaultLogLevel=WARN -Duser.language=ja -Duser.country=JP -Duser.region=JP -Duser.timezone=Asia/Tokyo -Dhttp.keepAlive=false -Dmaven.wagon.http.pool=false
+        run: |
+          mvn -V -T 0.7C package verify -B -Pcontrib-check,include-grpc,nifi-registry-no-integration-tests -Ddir-only -ntp -ff -pl -nifi-assembly,-nifi-toolkit/nifi-toolkit-assembly,-nifi-system-tests -nsu
+      - name: Upload JUnit Results
+        uses: actions/upload-artifact@v2
+        if: always()
+        with:
+          name: surefire-reports-ja
+          path: "**/surefire-reports/TEST-*.xml"
+          retention-days: 1
+      - name: Disk After Build
+        run: |
+          df -h
+
+  windows-build:
+    timeout-minutes: 120
+    runs-on: windows-latest
+    name: Windows Zulu JDK8 FR
+    steps:
+      - name: Setup Git
+        run:  |
+          git config --global core.autocrlf false
+          git config --global core.longpaths true
+      - name: Checkout Code
+        uses: actions/checkout@v2
+      - name: Check Maven Com Cache
+        uses: actions/cache@v2
+        with:
+          path: ~\.m2\repository\com
+          key: win-mvn-com-${{ hashFiles('**\pom.xml') }}
+          restore-keys: |
+            win-mvn-com-
+      - name: Check Maven Org Cache
+        uses: actions/cache@v2
+        with:
+          path: ~\.m2\repository\org
+          key: win-mvn-org-${{ hashFiles('**\pom.xml') }}
+          restore-keys: |
+            win-mvn-org-
+      - name: Check Maven Net Cache
+        uses: actions/cache@v2
+        with:
+          path: ~\.m2\repository\net
+          key: win-mvn-net-${{ hashFiles('**\pom.xml') }}
+          restore-keys: |
+            win-mvn-net-
+      - name: Check Maven IO Cache
+        uses: actions/cache@v2
+        with:
+          path: ~\.m2\repository\io
+          key: win-mvn-io-${{ hashFiles('**\pom.xml') }}
+          restore-keys: |
+            win-mvn-io-
+      - name: Check Maven BIZ Cache
+        uses: actions/cache@v2
+        with:
+          path: ~\.m2\repository\biz
+          key: win-mvn-biz-${{ hashFiles('**\pom.xml') }}
+          restore-keys: |
+            win-mvn-biz-
+      - name: Check Maven IT Cache
+        uses: actions/cache@v2
+        with:
+          path: ~\.m2\repository\it
+          key: win-mvn-it-${{ hashFiles('**\pom.xml') }}
+          restore-keys: |
+            win-mvn-it-
+      - name: Set up JDK 1.8
+        uses: actions/setup-java@v2
+        with:
+          distribution: 'zulu'
+          java-version: '8'
+      - name: Build with Maven
+        env:
+          MAVEN_OPTS: -Xmx2g -Dorg.slf4j.simpleLogger.defaultLogLevel=WARN -Duser.language=fr -Duser.country=FR -Duser.region=FR -Duser.timezone=Europe/Paris -Dhttp.keepAlive=false -Dmaven.wagon.http.pool=false
+        run: |
+          mvn -V -T 0.7C package -B -Pnifi-registry-no-integration-tests -Ddir-only -ntp -ff -pl -nifi-assembly -pl -nifi-system-tests -nsu
+      - name: Upload JUnit Results
+        uses: actions/upload-artifact@v2
+        if: ${{ false }}
+        with:
+          name: surefire-reports-fr
+          path: |
+            '**/surefire-reports/TEST-*.xml'
+            '!**/node_modules/**'
+            '!**/nifi-nar-bundles/nifi-standard-bundle/nifi-jolt-transform-json-ui/**'
+          retention-days: 1

@@ -265,7 +265,11 @@
                             $('input.searchable-component-id').val(initialComponentId);
 
                             // build the search criteria
-                            searchTerms['ProcessorID'] = initialComponentId;
+                            var provenanceSearchValue = {};
+                            provenanceSearchValue['value'] = initialComponentId;
+                            provenanceSearchValue['inverse'] = false;
+                            
+                            searchTerms['ProcessorID'] = provenanceSearchValue;
                         }
 
                         // look for a flowfile uuid in the query search
@@ -275,7 +279,11 @@
                             $('input.searchable-flowfile-uuid').val(initialFlowFileUuid);
 
                             // build the search criteria
-                            searchTerms['FlowFileUUID'] = initialFlowFileUuid;
+                            var provenanceSearchValue = {};
+                            provenanceSearchValue['value'] = initialFlowFileUuid;
+                            provenanceSearchValue['inverse'] = false;
+
+                            searchTerms['FlowFileUUID'] = provenanceSearchValue;
                         }
 
                         // load the provenance table

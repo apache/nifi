@@ -32,6 +32,7 @@ import org.junit.Test;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.sql.Date;
@@ -50,6 +51,43 @@ import static org.junit.Assert.assertEquals;
 
 
 public class TestWriteCSVResult {
+
+    @Test
+    public void testNumbersNotQuoted() throws IOException {
+        final Map<String, Object> values = new HashMap<>();
+        values.put("name", "John Doe");
+        values.put("age", 30);
+
+        final List<RecordField> schemaFields = new ArrayList<>();
+        schemaFields.add(new RecordField("name", RecordFieldType.STRING.getDataType()));
+        schemaFields.add(new RecordField("age", RecordFieldType.INT.getDataType()));
+
+        final RecordSchema schema = new SimpleRecordSchema(schemaFields);
+        final Record record = new MapRecord(schema, values);
+
+        // Test with Non-Numeric Quote Mode
+        final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        CSVFormat csvFormat = CSVFormat.DEFAULT.withQuoteMode(QuoteMode.NON_NUMERIC).withRecordSeparator("\n");
+        try (final WriteCSVResult result = new WriteCSVResult(csvFormat, schema, new SchemaNameAsAttribute(), baos,
+            RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), true, "UTF-8")) {
+            result.writeRecord(record);
+        }
+
+        String output = baos.toString();
+        assertEquals("\"name\",\"age\"\n\"John Doe\",30\n", output);
+
+        baos.reset();
+
+        // Test with MINIMAL Quote Mode
+        csvFormat = CSVFormat.DEFAULT.withQuoteMode(QuoteMode.MINIMAL).withRecordSeparator("\n");
+        try (final WriteCSVResult result = new WriteCSVResult(csvFormat, schema, new SchemaNameAsAttribute(), baos,
+            RecordFieldType.DATE.getDefaultFormat(), RecordFieldType.TIME.getDefaultFormat(), RecordFieldType.TIMESTAMP.getDefaultFormat(), true, "UTF-8")) {
+            result.writeRecord(record);
+        }
+
+        output = baos.toString();
+        assertEquals("name,age\nJohn Doe,30\n", output);
+    }
 
     @Test
     public void testDataTypes() throws IOException {
@@ -89,12 +127,14 @@ public class TestWriteCSVResult {
             valueMap.put("long", 8L);
             valueMap.put("float", 8.0F);
             valueMap.put("double", 8.0D);
+            valueMap.put("decimal", BigDecimal.valueOf(8.1D));
             valueMap.put("date", new Date(now));
             valueMap.put("time", new Time(now));
             valueMap.put("timestamp", new Timestamp(now));
             valueMap.put("record", null);
             valueMap.put("choice", 48L);
             valueMap.put("array", null);
+            valueMap.put("enum", null);
 
             final Record record = new MapRecord(schema, valueMap);
             final RecordSet rs = RecordSet.of(schema, record);
@@ -117,7 +157,7 @@ public class TestWriteCSVResult {
 
         final String values = splits[1];
         final StringBuilder expectedBuilder = new StringBuilder();
-        expectedBuilder.append("\"true\",\"1\",\"8\",\"9\",\"8\",\"8\",\"8.0\",\"8.0\",\"" + timestampValue + "\",\"" + dateValue + "\",\"" + timeValue + "\",\"c\",\"a孟bc李12儒3\",,\"48\",,");
+        expectedBuilder.append("\"true\",\"1\",\"8\",\"9\",\"8\",\"8\",\"8.0\",\"8.0\",\"8.1\",\"" + timestampValue + "\",\"" + dateValue + "\",\"" + timeValue + "\",\"c\",,\"a孟bc李12儒3\",,\"48\",,");
 
         final String expectedValues = expectedBuilder.toString();
 

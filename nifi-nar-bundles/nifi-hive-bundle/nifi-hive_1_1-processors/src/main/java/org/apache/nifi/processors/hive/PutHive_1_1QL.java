@@ -204,9 +204,9 @@ public class PutHive_1_1QL extends AbstractHive_1_1QLProcessor {
         }
     }
 
-    private InitConnection<FunctionContext, Connection> initConnection = (context, session, fc, ff) -> {
+    private InitConnection<FunctionContext, Connection> initConnection = (context, session, fc, ffs) -> {
         final Hive_1_1DBCPService dbcpService = context.getProperty(HIVE_DBCP_SERVICE).asControllerService(Hive_1_1DBCPService.class);
-        final Connection connection = dbcpService.getConnection(ff == null ? Collections.emptyMap() : ff.getAttributes());
+        final Connection connection = dbcpService.getConnection(ffs == null || ffs.isEmpty() ? Collections.emptyMap() : ffs.get(0).getAttributes());
         fc.connectionUrl = dbcpService.getConnectionURL();
         return connection;
     };

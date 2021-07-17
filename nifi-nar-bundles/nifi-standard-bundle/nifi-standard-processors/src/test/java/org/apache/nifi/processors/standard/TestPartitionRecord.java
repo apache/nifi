@@ -17,13 +17,6 @@
 
 package org.apache.nifi.processors.standard;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
-import java.io.IOException;
-import java.util.List;
-import java.util.stream.IntStream;
-
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.serialization.record.MockRecordParser;
 import org.apache.nifi.serialization.record.MockRecordWriter;
@@ -33,6 +26,13 @@ import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.stream.IntStream;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class TestPartitionRecord {
 
@@ -90,6 +90,63 @@ public class TestPartitionRecord {
         for (final String name : new String[] {"John", "Jake", "Mark", "Jane"}) {
             assertEquals(1L, out.stream().filter(ff -> ff.getAttribute("person-name").equals(name)).count());
         }
+    }
+
+    @Test
+    public void groupByIsEmpty() {
+        runner.setProperty("unknown-age", "isEmpty( /age )");
+        runner.setProperty("another-unknown", "isEmpty( /nonExistentField )");
+
+        readerService.addRecord("John", 28, null);
+        readerService.addRecord("Jake", 49, null);
+        readerService.addRecord("Mark", null, null);
+        readerService.addRecord("Jane", 20, null);
+        readerService.addRecord("Jake", 14, null);
+
+        runner.enqueue(new byte[0]);
+
+        runner.run();
+
+        runner.assertTransferCount(PartitionRecord.REL_ORIGINAL, 1);
+        runner.assertTransferCount(PartitionRecord.REL_FAILURE, 0);
+        runner.assertTransferCount(PartitionRecord.REL_SUCCESS, 2);
+
+        final List<MockFlowFile> out = runner.getFlowFilesForRelationship(PartitionRecord.REL_SUCCESS);
+
+        assertEquals(1L, out.stream().filter(ff -> ff.getAttribute("record.count").equals("1")).count());
+        assertEquals(1L, out.stream().filter(ff -> ff.getAttribute("record.count").equals("4")).count());
+
+        assertEquals(1L, out.stream().filter(ff -> ff.getAttribute("unknown-age").equals("true")).count());
+        assertEquals(1L, out.stream().filter(ff -> ff.getAttribute("unknown-age").equals("false")).count());
+
+        out.forEach(ff -> ff.assertAttributeEquals("another-unknown", "true"));
+    }
+
+    @Test
+    public void testExpressionAsPath() {
+        runner.setProperty("adult", "/age >= 18");
+
+        readerService.addRecord("John", 28, null);
+        readerService.addRecord("Jake", 49, null);
+        readerService.addRecord("Mark", null, null);
+        readerService.addRecord("Jane", 20, null);
+        readerService.addRecord("Jake", 14, null);
+
+        runner.enqueue(new byte[0]);
+
+        runner.run();
+
+        runner.assertTransferCount(PartitionRecord.REL_ORIGINAL, 1);
+        runner.assertTransferCount(PartitionRecord.REL_FAILURE, 0);
+        runner.assertTransferCount(PartitionRecord.REL_SUCCESS, 2);
+
+        final List<MockFlowFile> out = runner.getFlowFilesForRelationship(PartitionRecord.REL_SUCCESS);
+
+        assertEquals(1L, out.stream().filter(ff -> ff.getAttribute("record.count").equals("2")).count());
+        assertEquals(1L, out.stream().filter(ff -> ff.getAttribute("record.count").equals("3")).count());
+
+        assertEquals(1L, out.stream().filter(ff -> ff.getAttribute("adult").equals("true")).count());
+        assertEquals(1L, out.stream().filter(ff -> ff.getAttribute("adult").equals("false")).count());
     }
 
     @Test

@@ -46,7 +46,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 @Tags({ "redis", "distributed", "cache", "map" })
@@ -159,8 +161,9 @@ public class RedisDistributedMapCacheClientService extends AbstractControllerSer
                 final List<Object> results = redisConnection.exec();
 
                 // if the results list was empty, then the transaction failed (i.e. key was modified after we started watching), so keep looping to retry
+                // if the results list was null, then the transaction failed
                 // if the results list has results, then the transaction succeeded and it should have the result of the setNX operation
-                if (results.size() > 0) {
+                if (results != null && results.size() > 0) {
                     final Object firstResult = results.get(0);
                     if (firstResult instanceof Boolean) {
                         final Boolean absent = (Boolean) firstResult;
@@ -195,11 +198,34 @@ public class RedisDistributedMapCacheClientService extends AbstractControllerSer
     }
 
     @Override
+    public <K, V> void putAll(Map<K, V> keysAndValues, Serializer<K> keySerializer, Serializer<V> valueSerializer) throws IOException {
+        withConnection(redisConnection -> {
+            Map<byte[], byte[]> values = new HashMap<>();
+            for (Map.Entry<K, V> entry : keysAndValues.entrySet()) {
+                final Tuple<byte[],byte[]> kv = serialize(entry.getKey(), entry.getValue(), keySerializer, valueSerializer);
+                values.put(kv.getKey(), kv.getValue());
+            }
+
+            if (getLogger().isDebugEnabled()) {
+                getLogger().debug(String.format("Queued up %d tuples to mset on Redis connection.", values.size()));
+            }
+
+            if (!values.isEmpty()) {
+                redisConnection.mSet(values);
+                if (ttl != -1L) {
+                    values.keySet().forEach(k -> redisConnection.expire(k, ttl));
+                }
+            }
+            return null;
+        });
+    }
+
+    @Override
     public <K, V> V get(final K key, final Serializer<K> keySerializer, final Deserializer<V> valueDeserializer) throws IOException {
         return withConnection(redisConnection -> {
             final byte[] k = serialize(key, keySerializer);
             final byte[] v = redisConnection.get(k);
-            return valueDeserializer.deserialize(v);
+            return v == null ? null : valueDeserializer.deserialize(v);
         });
     }
 
@@ -301,13 +327,18 @@ public class RedisDistributedMapCacheClientService extends AbstractControllerSer
                 // if we use set(k, newVal) then the results list will always have size == 0 b/c when convertPipelineAndTxResults is set to true,
                 // status responses like "OK" are skipped over, so by using getSet we can rely on the results list to know if the transaction succeeded
                 redisConnection.getSet(k, newVal);
+
+                // set the TTL if specified
+                if (ttl != -1L) {
+                    redisConnection.expire(k, ttl);
+                }
             }
 
             // execute the transaction
             final List<Object> results = redisConnection.exec();
 
             // if we have a result then the replace succeeded
-            if (results.size() > 0) {
+            if (results != null && results.size() > 0) {
                 replaced = true;
             }
 

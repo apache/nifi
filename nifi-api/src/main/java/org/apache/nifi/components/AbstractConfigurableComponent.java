@@ -20,7 +20,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
+import java.util.Set;
 
 public abstract class AbstractConfigurableComponent implements ConfigurableComponent {
 
@@ -57,15 +57,10 @@ public abstract class AbstractConfigurableComponent implements ConfigurableCompo
     }
 
     private PropertyDescriptor getPropertyDescriptor(final PropertyDescriptor specDescriptor) {
-        PropertyDescriptor descriptor = null;
         //check if property supported
-        final List<PropertyDescriptor> supportedDescriptors = getSupportedPropertyDescriptors();
-        if (supportedDescriptors != null) {
-            for (final PropertyDescriptor desc : supportedDescriptors) { //find actual descriptor
-                if (specDescriptor.equals(desc)) {
-                    return desc;
-                }
-            }
+        PropertyDescriptor descriptor = getSupportedPropertyDescriptor(specDescriptor);
+        if (descriptor != null) {
+            return descriptor;
         }
 
         descriptor = getSupportedDynamicPropertyDescriptor(specDescriptor.getName());
@@ -79,46 +74,53 @@ public abstract class AbstractConfigurableComponent implements ConfigurableCompo
         return descriptor;
     }
 
-    @Override
-    public final Collection<ValidationResult> validate(final ValidationContext context) {
-        // goes through supported properties
-        final Collection<ValidationResult> results = new ArrayList<>();
+    private PropertyDescriptor getSupportedPropertyDescriptor(final PropertyDescriptor specDescriptor) {
         final List<PropertyDescriptor> supportedDescriptors = getSupportedPropertyDescriptors();
-
-        if (null != supportedDescriptors) {
-            for (final PropertyDescriptor descriptor : supportedDescriptors) {
-                String value = context.getProperty(descriptor).getValue();
-                if (value == null) {
-                    value = descriptor.getDefaultValue();
-                }
-
-                if (value == null && descriptor.isRequired()) {
-                    String displayName = descriptor.getDisplayName();
-                    ValidationResult.Builder builder = new ValidationResult.Builder().valid(false).input(null).subject(displayName != null ? displayName : descriptor.getName());
-                    builder = (displayName != null) ? builder.explanation(displayName + " is required") : builder.explanation(descriptor.getName() + " is required");
-                    results.add(builder.build());
-                    continue;
-                } else if (value == null) {
-                    continue;
-                }
-
-                final ValidationResult result = descriptor.validate(value, context);
-                if (!result.isValid()) {
-                    results.add(result);
+        if (supportedDescriptors != null) {
+            for (final PropertyDescriptor desc : supportedDescriptors) { //find actual descriptor
+                if (specDescriptor.equals(desc)) {
+                    return desc;
                 }
             }
         }
 
-        // validate any dynamic properties
-        for (final Map.Entry<PropertyDescriptor, String> entry : context.getProperties().entrySet()) {
-            final PropertyDescriptor descriptor = entry.getKey();
-            final String value = entry.getValue();
+        return null;
+    }
 
-            if (supportedDescriptors != null && !supportedDescriptors.contains(descriptor)) {
-                final ValidationResult result = descriptor.validate(value, context);
-                if (!result.isValid()) {
-                    results.add(result);
-                }
+    @Override
+    public final Collection<ValidationResult> validate(final ValidationContext context) {
+        // goes through context properties, should match supported properties + supported dynamic properties
+        final Collection<ValidationResult> results = new ArrayList<>();
+        final Set<PropertyDescriptor> contextDescriptors = context.getProperties().keySet();
+
+        for (final PropertyDescriptor descriptor : contextDescriptors) {
+            // If the property descriptor's dependency is not satisfied, the property does not need to be considered, as it's not relevant to the
+            // component's functionality.
+            final boolean dependencySatisfied = context.isDependencySatisfied(descriptor, this::getPropertyDescriptor);
+            if (!dependencySatisfied) {
+                continue;
+            }
+
+            validateDependencies(descriptor, context, results);
+
+            String value = context.getProperty(descriptor).getValue();
+            if (value == null) {
+                value = descriptor.getDefaultValue();
+            }
+
+            if (value == null && descriptor.isRequired()) {
+                String displayName = descriptor.getDisplayName();
+                ValidationResult.Builder builder = new ValidationResult.Builder().valid(false).input(null).subject(displayName != null ? displayName : descriptor.getName());
+                builder = (displayName != null) ? builder.explanation(displayName + " is required") : builder.explanation(descriptor.getName() + " is required");
+                results.add(builder.build());
+                continue;
+            } else if (value == null) {
+                continue;
+            }
+
+            final ValidationResult result = descriptor.validate(value, context);
+            if (!result.isValid()) {
+                results.add(result);
             }
         }
 
@@ -136,6 +138,41 @@ public abstract class AbstractConfigurableComponent implements ConfigurableCompo
         }
 
         return results;
+    }
+
+    private void validateDependencies(final PropertyDescriptor descriptor, final ValidationContext context, final Collection<ValidationResult> results) {
+        // Ensure that we don't have any dependencies on non-existent properties.
+        final Set<PropertyDependency> dependencies = descriptor.getDependencies();
+        for (final PropertyDependency dependency : dependencies) {
+            final String dependentPropertyName = dependency.getPropertyName();
+
+            // If there's a supported property descriptor then all is okay.
+            final PropertyDescriptor specDescriptor = new PropertyDescriptor.Builder().name(dependentPropertyName).build();
+            final PropertyDescriptor supportedDescriptor = getSupportedPropertyDescriptor(specDescriptor);
+            if (supportedDescriptor != null) {
+                continue;
+            }
+
+            final PropertyDescriptor dynamicPropertyDescriptor = getSupportedDynamicPropertyDescriptor(dependentPropertyName);
+            if (dynamicPropertyDescriptor == null) {
+                results.add(new ValidationResult.Builder()
+                    .subject(descriptor.getDisplayName())
+                    .valid(false)
+                    .explanation("Property depends on property " + dependentPropertyName + ", which is not a known property")
+                    .build());
+            }
+
+            // Dependent property is supported as a dynamic property. This is okay as long as there is a value set.
+            final PropertyValue value = context.getProperty(dynamicPropertyDescriptor);
+            if (value == null || !value.isSet()) {
+                results.add(new ValidationResult.Builder()
+                    .subject(descriptor.getDisplayName())
+                    .valid(false)
+                    .explanation("Property depends on property " + dependentPropertyName + ", which is not a known property")
+                    .build());
+            }
+        }
+
     }
 
     /**
@@ -185,15 +222,14 @@ public abstract class AbstractConfigurableComponent implements ConfigurableCompo
      *
      * @return PropertyDescriptor objects this processor currently supports
      */
-    @SuppressWarnings("unchecked")
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
-        return Collections.EMPTY_LIST;
+        return Collections.emptyList();
     }
 
     @Override
     public final List<PropertyDescriptor> getPropertyDescriptors() {
         final List<PropertyDescriptor> supported = getSupportedPropertyDescriptors();
-        return supported == null ? Collections.<PropertyDescriptor>emptyList() : new ArrayList<>(supported);
+        return supported == null ? Collections.emptyList() : new ArrayList<>(supported);
     }
 
     @Override

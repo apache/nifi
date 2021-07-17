@@ -19,9 +19,20 @@ package org.apache.nifi.hadoop;
 import org.apache.commons.lang3.Validate;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.processor.exception.ProcessException;
+import org.apache.nifi.security.krb.KerberosUser;
 
+import javax.security.auth.Subject;
+import javax.security.auth.kerberos.KerberosPrincipal;
+import javax.security.auth.login.LoginException;
 import java.io.IOException;
+import java.security.AccessControlContext;
+import java.security.AccessController;
+import java.security.PrivilegedActionException;
+import java.security.PrivilegedExceptionAction;
 import java.util.Random;
+import java.util.stream.Collectors;
 
 /**
  * Provides synchronized access to UserGroupInformation to avoid multiple processors/services from
@@ -70,6 +81,43 @@ public class SecurityUtil {
     }
 
     /**
+     * Authenticates a {@link KerberosUser} and acquires a {@link UserGroupInformation} instance using {@link UserGroupInformation#getUGIFromSubject(Subject)}.
+     * The {@link UserGroupInformation} will use the given {@link Configuration}.
+     *
+     * @param config The Configuration to apply to the acquired UserGroupInformation instance
+     * @param kerberosUser The KerberosUser to authenticate
+     * @return A UserGroupInformation instance created using the Subject of the given KerberosUser
+     * @throws IOException if authentication fails
+     */
+    public static synchronized UserGroupInformation getUgiForKerberosUser(final Configuration config, final KerberosUser kerberosUser) throws IOException {
+        UserGroupInformation.setConfiguration(config);
+        try {
+            if (kerberosUser.isLoggedIn()) {
+                kerberosUser.checkTGTAndRelogin();
+            } else {
+                kerberosUser.login();
+            }
+            return kerberosUser.doAs((PrivilegedExceptionAction<UserGroupInformation>) () -> {
+                AccessControlContext context = AccessController.getContext();
+                Subject subject = Subject.getSubject(context);
+                Validate.notEmpty(
+                        subject.getPrincipals(KerberosPrincipal.class).stream().filter(p -> p.getName().startsWith(kerberosUser.getPrincipal())).collect(Collectors.toSet()),
+                        "No Subject was found matching the given principal");
+
+                // getUGIFromSubject does not set the static logged in user inside UGI and some Hadoop client code
+                // depends on this so we have to make sure to set it ourselves
+                final UserGroupInformation ugi = UserGroupInformation.getUGIFromSubject(subject);
+                UserGroupInformation.setLoginUser(ugi);
+                return ugi;
+            });
+        } catch (PrivilegedActionException e) {
+            throw new IOException("Unable to acquire UGI for KerberosUser: " + e.getException().getLocalizedMessage(), e.getException());
+        } catch (LoginException e) {
+            throw new IOException("Unable to acquire UGI for KerberosUser: " + e.getLocalizedMessage(), e);
+        }
+    }
+
+    /**
      * Initializes UserGroupInformation with the given Configuration and returns UserGroupInformation.getLoginUser().
      * All logins should happen through this class to ensure other threads are not concurrently modifying
      * UserGroupInformation.
@@ -99,5 +147,43 @@ public class SecurityUtil {
     public static boolean isSecurityEnabled(final Configuration config) {
         Validate.notNull(config);
         return KERBEROS.equalsIgnoreCase(config.get(HADOOP_SECURITY_AUTHENTICATION));
+    }
+
+    public static <T> T callWithUgi(UserGroupInformation ugi, PrivilegedExceptionAction<T> action) throws IOException {
+        try {
+            T result;
+            if (ugi == null) {
+                try {
+                    result = action.run();
+                } catch (IOException ioe) {
+                    throw ioe;
+                } catch (RuntimeException re) {
+                    throw re;
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            }  else {
+                result = ugi.doAs(action);
+            }
+            return result;
+        } catch (InterruptedException e) {
+            throw new IOException(e);
+        }
+    }
+
+    public static void checkTGTAndRelogin(ComponentLog log, KerberosUser kerberosUser) {
+        log.trace("getting UGI instance");
+        if (kerberosUser != null) {
+            // if there's a KerberosUser associated with this UGI, check the TGT and relogin if it is close to expiring
+            log.debug("kerberosUser is " + kerberosUser);
+            try {
+                log.debug("checking TGT on kerberosUser " + kerberosUser);
+                kerberosUser.checkTGTAndRelogin();
+            } catch (LoginException e) {
+                throw new ProcessException("Unable to relogin with kerberos credentials for " + kerberosUser.getPrincipal(), e);
+            }
+        } else {
+            log.debug("kerberosUser was null, will not refresh TGT with KerberosUser");
+        }
     }
 }

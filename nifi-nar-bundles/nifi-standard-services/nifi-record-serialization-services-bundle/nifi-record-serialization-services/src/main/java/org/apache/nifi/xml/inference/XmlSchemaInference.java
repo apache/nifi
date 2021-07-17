@@ -48,7 +48,7 @@ public class XmlSchemaInference extends HierarchicalSchemaInference<XmlNode> {
         return inferTextualDataType(text);
     }
 
-    private DataType inferTextualDataType(final String text) {
+    public DataType inferTextualDataType(final String text) {
         if (text == null || text.isEmpty()) {
             return null;
         }
@@ -57,6 +57,11 @@ public class XmlSchemaInference extends HierarchicalSchemaInference<XmlNode> {
             if (text.contains(".")) {
                 try {
                     final double doubleValue = Double.parseDouble(text);
+
+                    if (doubleValue == Double.POSITIVE_INFINITY || doubleValue == Double.NEGATIVE_INFINITY) {
+                        return RecordFieldType.DECIMAL.getDecimalDataType(text.length() - 1, text.length() - 1 - text.indexOf("."));
+                    }
+
                     if (doubleValue > Float.MAX_VALUE || doubleValue < Float.MIN_VALUE) {
                         return RecordFieldType.DOUBLE.getDataType();
                     }

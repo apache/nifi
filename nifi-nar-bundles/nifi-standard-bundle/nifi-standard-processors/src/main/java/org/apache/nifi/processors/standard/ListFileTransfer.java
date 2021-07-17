@@ -30,6 +30,8 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.processor.util.list.AbstractListProcessor;
 import org.apache.nifi.processors.standard.util.FileInfo;
 import org.apache.nifi.processors.standard.util.FileTransfer;
+import org.apache.nifi.serialization.record.RecordSchema;
+
 import java.util.Map;
 import java.util.HashMap;
 import java.util.List;
@@ -67,7 +69,10 @@ public abstract class ListFileTransfer extends AbstractListProcessor<FileInfo> {
         .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
         .defaultValue(".")
         .build();
-
+    public static final PropertyDescriptor FILE_TRANSFER_LISTING_STRATEGY = new PropertyDescriptor.Builder()
+        .fromPropertyDescriptor(LISTING_STRATEGY)
+        .allowableValues(BY_TIMESTAMPS, BY_ENTITIES, NO_TRACKING, BY_TIME_WINDOW)
+        .build();
 
     @Override
     protected Map<String, String> createAttributes(final FileInfo fileInfo, final ProcessContext context) {
@@ -121,6 +126,11 @@ public abstract class ListFileTransfer extends AbstractListProcessor<FileInfo> {
         }
 
         return listing;
+    }
+
+    @Override
+    protected RecordSchema getRecordSchema() {
+        return FileInfo.getRecordSchema();
     }
 
     @Override

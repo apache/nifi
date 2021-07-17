@@ -285,6 +285,46 @@ public class TestMergeRecord {
 
     }
 
+    @Test
+    public void testDefragmentWithMultipleRecordsOverMultipleCalls() {
+        runner.setProperty(MergeRecord.MERGE_STRATEGY, MergeRecord.MERGE_STRATEGY_DEFRAGMENT);
+
+        final Map<String, String> attr1 = new HashMap<>();
+        attr1.put(MergeRecord.FRAGMENT_COUNT_ATTRIBUTE, "2");
+        attr1.put(MergeRecord.FRAGMENT_ID_ATTRIBUTE, "1");
+        attr1.put(MergeRecord.FRAGMENT_INDEX_ATTRIBUTE, "0");
+        attr1.put("record.count", "2");
+
+        final Map<String, String> attr2 = new HashMap<>();
+        attr2.put(MergeRecord.FRAGMENT_COUNT_ATTRIBUTE, "2");
+        attr2.put(MergeRecord.FRAGMENT_ID_ATTRIBUTE, "1");
+        attr2.put(MergeRecord.FRAGMENT_INDEX_ATTRIBUTE, "1");
+        attr2.put("record.count", "2");
+
+        runner.enqueue("Name, Age\nJohn, 35\nJane, 34", attr1);
+
+        runner.run(2);
+
+        assertEquals("Fragment id=1 should remain in the incoming connection", 1, runner.getQueueSize().getObjectCount());
+        runner.assertTransferCount(MergeRecord.REL_MERGED, 0);
+        runner.assertTransferCount(MergeRecord.REL_ORIGINAL, 0);
+
+        runner.enqueue("Name, Age\nJake, 3\nJan, 2", attr2);
+
+        runner.run(1);
+
+        assertEquals("Fragment id=1 should be merged", 0, runner.getQueueSize().getObjectCount());
+        runner.assertTransferCount(MergeRecord.REL_MERGED, 1);
+        runner.assertTransferCount(MergeRecord.REL_ORIGINAL, 2);
+
+        final List<MockFlowFile> mffs = runner.getFlowFilesForRelationship(MergeRecord.REL_MERGED);
+        assertEquals(1L, mffs.stream()
+            .filter(ff -> "4".equals(ff.getAttribute("record.count")))
+            .filter(ff -> "header\nJohn,35\nJane,34\nJake,3\nJan,2\n".equals(new String(ff.toByteArray())))
+            .count());
+
+    }
+
 
     @Test
     public void testMinSize() {

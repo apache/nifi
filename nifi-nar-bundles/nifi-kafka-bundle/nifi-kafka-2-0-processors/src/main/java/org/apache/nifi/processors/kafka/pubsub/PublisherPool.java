@@ -17,6 +17,10 @@
 
 package org.apache.nifi.processors.kafka.pubsub;
 
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.Producer;
+import org.apache.nifi.logging.ComponentLog;
+
 import java.io.Closeable;
 import java.nio.charset.Charset;
 import java.util.HashMap;
@@ -25,10 +29,6 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
-
-import org.apache.kafka.clients.producer.KafkaProducer;
-import org.apache.kafka.clients.producer.Producer;
-import org.apache.nifi.logging.ComponentLog;
 
 public class PublisherPool implements Closeable {
     private final ComponentLog logger;
@@ -77,7 +77,6 @@ public class PublisherPool implements Closeable {
         }
 
         final Producer<byte[], byte[]> producer = new KafkaProducer<>(properties);
-
         final PublisherLease lease = new PublisherLease(producer, maxMessageSize, maxAckWaitMillis, logger, useTransactions, attributeNameRegex, headerCharacterSet) {
             @Override
             public void close() {

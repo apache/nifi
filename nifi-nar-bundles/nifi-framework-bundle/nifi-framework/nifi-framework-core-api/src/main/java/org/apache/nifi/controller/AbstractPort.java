@@ -242,11 +242,12 @@ public abstract class AbstractPort implements Port {
 
         try {
             onTrigger(context, session);
-            session.commit();
         } catch (final Throwable t) {
             session.rollback();
             throw t;
         }
+
+        session.commitAsync();
     }
 
     public abstract void onTrigger(final ProcessContext context, final ProcessSession session) throws ProcessException;
@@ -423,6 +424,7 @@ public abstract class AbstractPort implements Port {
         scheduledState.set(ScheduledState.RUNNING);
     }
 
+    @Override
     public void disable() {
         final boolean updated = scheduledState.compareAndSet(ScheduledState.STOPPED, ScheduledState.DISABLED);
         if (!updated) {

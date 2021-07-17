@@ -36,6 +36,7 @@ import org.junit.After;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -109,6 +110,7 @@ public class SocketProtocolListenerTest {
         assertEquals(msg.getType(), handler.getMessages().get(0).getType());
     }
 
+    @Ignore("this test is unreliable on slow build environments")
     @Test
     public void testDelayedRequest() throws Exception {
         ProtocolMessage msg = new PingMessage();

@@ -18,7 +18,6 @@ package org.apache.nifi.provenance;
 
 import java.util.List;
 import java.util.Map;
-
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;

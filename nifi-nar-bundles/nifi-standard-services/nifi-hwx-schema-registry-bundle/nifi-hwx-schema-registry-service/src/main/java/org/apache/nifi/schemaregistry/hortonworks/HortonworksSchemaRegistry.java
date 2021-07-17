@@ -16,6 +16,8 @@
  */
 package org.apache.nifi.schemaregistry.hortonworks;
 
+import com.google.common.collect.ImmutableMap;
+import com.hortonworks.registries.schemaregistry.SchemaIdVersion;
 import com.hortonworks.registries.schemaregistry.SchemaMetadata;
 import com.hortonworks.registries.schemaregistry.SchemaMetadataInfo;
 import com.hortonworks.registries.schemaregistry.SchemaVersionInfo;
@@ -30,19 +32,24 @@ import org.apache.nifi.annotation.lifecycle.OnDisabled;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
 import org.apache.nifi.avro.AvroTypeUtil;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
+import org.apache.nifi.components.ValidationResult;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.kerberos.KerberosCredentialsService;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.schema.access.SchemaField;
 import org.apache.nifi.schemaregistry.services.SchemaRegistry;
 import org.apache.nifi.serialization.record.RecordSchema;
 import org.apache.nifi.serialization.record.SchemaIdentifier;
+import org.apache.nifi.ssl.SSLContextService;
 import org.apache.nifi.util.Tuple;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
@@ -58,8 +65,15 @@ import java.util.concurrent.TimeUnit;
 @Tags({"schema", "registry", "avro", "hortonworks", "hwx"})
 @CapabilityDescription("Provides a Schema Registry Service that interacts with a Hortonworks Schema Registry, available at https://github.com/hortonworks/registry")
 public class HortonworksSchemaRegistry extends AbstractControllerService implements SchemaRegistry {
-    private static final Set<SchemaField> schemaFields = EnumSet.of(SchemaField.SCHEMA_NAME, SchemaField.SCHEMA_BRANCH_NAME, SchemaField.SCHEMA_TEXT,
-        SchemaField.SCHEMA_TEXT_FORMAT, SchemaField.SCHEMA_IDENTIFIER, SchemaField.SCHEMA_VERSION);
+    private static final Set<SchemaField> schemaFields = EnumSet.of(SchemaField.SCHEMA_NAME,
+            SchemaField.SCHEMA_BRANCH_NAME,
+            SchemaField.SCHEMA_TEXT,
+            SchemaField.SCHEMA_TEXT_FORMAT,
+            SchemaField.SCHEMA_IDENTIFIER,
+            SchemaField.SCHEMA_VERSION,
+            SchemaField.SCHEMA_VERSION_ID);
+
+    private static final String CLIENT_SSL_PROPERTY_PREFIX = "schema.registry.client.ssl";
 
     private final ConcurrentMap<Tuple<SchemaIdentifier, String>, RecordSchema> schemaNameToSchemaMap = new ConcurrentHashMap<>();
     private final ConcurrentMap<Tuple<String,String>, Tuple<SchemaVersionInfo, Long>> schemaVersionByNameCache = new ConcurrentHashMap<>();
@@ -96,10 +110,82 @@ public class HortonworksSchemaRegistry extends AbstractControllerService impleme
         .required(true)
         .build();
 
+    static final PropertyDescriptor SSL_CONTEXT_SERVICE = new PropertyDescriptor.Builder()
+        .name("ssl-context-service")
+        .displayName("SSL Context Service")
+        .description("Specifies the SSL Context Service to use for communicating with Schema Registry.")
+        .required(false)
+        .identifiesControllerService(SSLContextService.class)
+        .build();
+
+    static final PropertyDescriptor KERBEROS_CREDENTIALS_SERVICE = new PropertyDescriptor.Builder()
+        .name("kerberos-credentials-service")
+        .displayName("Kerberos Credentials Service")
+        .description("Specifies the Kerberos Credentials Controller Service that should be used for authenticating with Kerberos")
+        .identifiesControllerService(KerberosCredentialsService.class)
+        .required(false)
+        .build();
+
+    static final PropertyDescriptor KERBEROS_PRINCIPAL = new PropertyDescriptor.Builder()
+            .name("kerberos-principal")
+            .displayName("Kerberos Principal")
+            .description("The kerberos principal to authenticate with when not using the kerberos credentials service")
+            .defaultValue(null)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
+            .build();
+
+    static final PropertyDescriptor KERBEROS_PASSWORD = new PropertyDescriptor.Builder()
+            .name("kerberos-password")
+            .displayName("Kerberos Password")
+            .description("The password for the kerberos principal when not using the kerberos credentials service")
+            .defaultValue(null)
+            .required(false)
+            .sensitive(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
+    private volatile boolean usingKerberosWithPassword = false;
     private volatile SchemaRegistryClient schemaRegistryClient;
     private volatile boolean initialized;
     private volatile Map<String, Object> schemaRegistryConfig;
 
+    @Override
+    protected Collection<ValidationResult> customValidate(final ValidationContext validationContext) {
+        final List<ValidationResult> results = new ArrayList<>();
+
+        final String kerberosPrincipal = validationContext.getProperty(KERBEROS_PRINCIPAL).evaluateAttributeExpressions().getValue();
+        final String kerberosPassword = validationContext.getProperty(KERBEROS_PASSWORD).getValue();
+
+        final KerberosCredentialsService kerberosCredentialsService = validationContext.getProperty(KERBEROS_CREDENTIALS_SERVICE)
+                .asControllerService(KerberosCredentialsService.class);
+
+        if (kerberosCredentialsService != null && !StringUtils.isBlank(kerberosPrincipal) && !StringUtils.isBlank(kerberosPassword)) {
+            results.add(new ValidationResult.Builder()
+                    .subject(KERBEROS_CREDENTIALS_SERVICE.getDisplayName())
+                    .valid(false)
+                    .explanation("kerberos principal/password and kerberos credential service cannot be configured at the same time")
+                    .build());
+        }
+
+        if (!StringUtils.isBlank(kerberosPrincipal) && StringUtils.isBlank(kerberosPassword)) {
+            results.add(new ValidationResult.Builder()
+                    .subject(KERBEROS_PASSWORD.getDisplayName())
+                    .valid(false)
+                    .explanation("kerberos password is required when specifying a kerberos principal")
+                    .build());
+        }
+
+        if (StringUtils.isBlank(kerberosPrincipal) && !StringUtils.isBlank(kerberosPassword)) {
+            results.add(new ValidationResult.Builder()
+                    .subject(KERBEROS_PRINCIPAL.getDisplayName())
+                    .valid(false)
+                    .explanation("kerberos principal is required when specifying a kerberos password")
+                    .build());
+        }
+
+        return results;
+    }
 
     @OnEnabled
     public void enable(final ConfigurationContext context) throws InitializationException {
@@ -116,13 +202,65 @@ public class HortonworksSchemaRegistry extends AbstractControllerService impleme
         }
 
         schemaRegistryConfig.put(SchemaRegistryClient.Configuration.SCHEMA_REGISTRY_URL.name(), urlValue);
-        schemaRegistryConfig.put(SchemaRegistryClient.Configuration.CLASSLOADER_CACHE_SIZE.name(), 10L);
-        schemaRegistryConfig.put(SchemaRegistryClient.Configuration.CLASSLOADER_CACHE_EXPIRY_INTERVAL_SECS.name(), context.getProperty(CACHE_EXPIRATION).asTimePeriod(TimeUnit.SECONDS));
+        schemaRegistryConfig.put(SchemaRegistryClient.Configuration.CLASSLOADER_CACHE_SIZE.name(), 10);
+        schemaRegistryConfig.put(SchemaRegistryClient.Configuration.CLASSLOADER_CACHE_EXPIRY_INTERVAL_SECS.name(), context.getProperty(CACHE_EXPIRATION).asTimePeriod(TimeUnit.SECONDS).intValue());
         schemaRegistryConfig.put(SchemaRegistryClient.Configuration.SCHEMA_VERSION_CACHE_SIZE.name(), context.getProperty(CACHE_SIZE).asInteger());
-        schemaRegistryConfig.put(SchemaRegistryClient.Configuration.SCHEMA_VERSION_CACHE_EXPIRY_INTERVAL_SECS.name(), context.getProperty(CACHE_EXPIRATION).asTimePeriod(TimeUnit.SECONDS));
+        schemaRegistryConfig.put(SchemaRegistryClient.Configuration.SCHEMA_VERSION_CACHE_EXPIRY_INTERVAL_SECS.name(), context.getProperty(CACHE_EXPIRATION).asTimePeriod(TimeUnit.SECONDS).intValue());
+        Map<String, String> sslProperties = buildSslProperties(context);
+        if (!sslProperties.isEmpty()) {
+            schemaRegistryConfig.put(CLIENT_SSL_PROPERTY_PREFIX, sslProperties);
+        }
+
+        final String kerberosPrincipal = context.getProperty(KERBEROS_PRINCIPAL).evaluateAttributeExpressions().getValue();
+        final String kerberosPassword = context.getProperty(KERBEROS_PASSWORD).getValue();
+
+        final KerberosCredentialsService kerberosCredentialsService = context.getProperty(KERBEROS_CREDENTIALS_SERVICE)
+                .asControllerService(KerberosCredentialsService.class);
+
+        if (kerberosCredentialsService != null) {
+            final String principal = kerberosCredentialsService.getPrincipal();
+            final String keytab = kerberosCredentialsService.getKeytab();
+            final String jaasConfigString = getKeytabJaasConfig(principal, keytab);
+            schemaRegistryConfig.put(SchemaRegistryClient.Configuration.SASL_JAAS_CONFIG.name(), jaasConfigString);
+            usingKerberosWithPassword = false;
+        } else if (!StringUtils.isBlank(kerberosPrincipal) && !StringUtils.isBlank(kerberosPassword)) {
+            schemaRegistryConfig.put(SchemaRegistryClientWithKerberosPassword.SCHEMA_REGISTRY_CLIENT_KERBEROS_PRINCIPAL, kerberosPrincipal);
+            schemaRegistryConfig.put(SchemaRegistryClientWithKerberosPassword.SCHEMA_REGISTRY_CLIENT_KERBEROS_PASSWORD, kerberosPassword);
+            schemaRegistryConfig.put(SchemaRegistryClientWithKerberosPassword.SCHEMA_REGISTRY_CLIENT_NIFI_COMP_LOGGER, getLogger());
+            usingKerberosWithPassword = true;
+        }
     }
 
+    private String getKeytabJaasConfig(final String principal, final String keytab) {
+        return "com.sun.security.auth.module.Krb5LoginModule required "
+                + "useTicketCache=false "
+                + "renewTicket=true "
+                + "useKeyTab=true "
+                + "keyTab=\"" + keytab + "\" "
+                + "principal=\"" + principal + "\";";
+    }
 
+    private Map<String, String> buildSslProperties(final ConfigurationContext context) {
+        final SSLContextService sslContextService = context.getProperty(SSL_CONTEXT_SERVICE).asControllerService(SSLContextService.class);
+        ImmutableMap.Builder<String, String> propertiesBuilder = ImmutableMap.builder();
+        if (sslContextService != null) {
+            propertiesBuilder.put("protocol", sslContextService.getSslAlgorithm());
+            if (sslContextService.isKeyStoreConfigured()) {
+                propertiesBuilder.put("keyStorePath", sslContextService.getKeyStoreFile());
+                propertiesBuilder.put("keyStorePassword", sslContextService.getKeyStorePassword());
+                propertiesBuilder.put("keyStoreType", sslContextService.getKeyStoreType());
+                if (sslContextService.getKeyPassword() != null) {
+                    propertiesBuilder.put("keyPassword", sslContextService.getKeyPassword());
+                }
+            }
+            if (sslContextService.isTrustStoreConfigured()) {
+                propertiesBuilder.put("trustStorePath", sslContextService.getTrustStoreFile());
+                propertiesBuilder.put("trustStorePassword", sslContextService.getTrustStorePassword());
+                propertiesBuilder.put("trustStoreType", sslContextService.getTrustStoreType());
+            }
+        }
+      return propertiesBuilder.build();
+    }
 
     @OnDisabled
     public void close() {
@@ -131,6 +269,7 @@ public class HortonworksSchemaRegistry extends AbstractControllerService impleme
         }
 
         initialized = false;
+        usingKerberosWithPassword = false;
     }
 
 
@@ -140,19 +279,26 @@ public class HortonworksSchemaRegistry extends AbstractControllerService impleme
         properties.add(URL);
         properties.add(CACHE_SIZE);
         properties.add(CACHE_EXPIRATION);
+        properties.add(SSL_CONTEXT_SERVICE);
+        properties.add(KERBEROS_CREDENTIALS_SERVICE);
+        properties.add(KERBEROS_PRINCIPAL);
+        properties.add(KERBEROS_PASSWORD);
         return properties;
     }
 
 
     protected synchronized SchemaRegistryClient getClient() {
         if (!initialized) {
-            schemaRegistryClient = new SchemaRegistryClient(schemaRegistryConfig);
+            if (usingKerberosWithPassword) {
+                schemaRegistryClient = new SchemaRegistryClientWithKerberosPassword(schemaRegistryConfig);
+            } else {
+                schemaRegistryClient = new SchemaRegistryClient(schemaRegistryConfig);
+            }
             initialized = true;
         }
 
         return schemaRegistryClient;
     }
-
 
     private SchemaVersionInfo getLatestSchemaVersionInfo(final SchemaRegistryClient client, final String schemaName, final String branchName)
             throws org.apache.nifi.schema.access.SchemaNotFoundException {
@@ -282,6 +428,7 @@ public class HortonworksSchemaRegistry extends AbstractControllerService impleme
                 .name(schemaName.get())
                 .branch(schemaBranchName.orElse(null))
                 .version(versionInfo.getVersion())
+                .schemaVersionId(versionInfo.getId())
                 .build();
 
         final Tuple<SchemaIdentifier, String> tuple = new Tuple<>(resultSchemaIdentifier, schemaText);
@@ -332,6 +479,7 @@ public class HortonworksSchemaRegistry extends AbstractControllerService impleme
                 .name(schemaName)
                 .id(schemaId.getAsLong())
                 .version(version.getAsInt())
+                .schemaVersionId(versionInfo.getId())
                 .build();
 
         final Tuple<SchemaIdentifier, String> tuple = new Tuple<>(resultSchemaIdentifier, schemaText);
@@ -343,11 +491,46 @@ public class HortonworksSchemaRegistry extends AbstractControllerService impleme
 
     @Override
     public RecordSchema retrieveSchema(final SchemaIdentifier schemaIdentifier) throws IOException, org.apache.nifi.schema.access.SchemaNotFoundException {
-        if (schemaIdentifier.getIdentifier().isPresent()) {
+        if (schemaIdentifier.getSchemaVersionId().isPresent()) {
+            return retrieveSchemaBySchemaVersionId(schemaIdentifier);
+        } else if (schemaIdentifier.getIdentifier().isPresent()) {
             return retrieveSchemaByIdAndVersion(schemaIdentifier);
         } else {
             return retrieveSchemaByName(schemaIdentifier);
         }
+    }
+
+    private RecordSchema retrieveSchemaBySchemaVersionId(final SchemaIdentifier schemaIdentifier) throws IOException, org.apache.nifi.schema.access.SchemaNotFoundException {
+        final SchemaRegistryClient client = getClient();
+        final OptionalLong schemaVersionId = schemaIdentifier.getSchemaVersionId();
+
+        final SchemaIdVersion svi = new SchemaIdVersion(schemaVersionId.getAsLong());
+
+        final String schemaName;
+        final SchemaVersionInfo versionInfo;
+
+        try {
+            versionInfo = client.getSchemaVersionInfo(svi);
+            schemaName = versionInfo.getName();
+        } catch (final Exception e) {
+            handleException("Failed to retrieve schema with Schema Version ID '" + schemaVersionId.getAsLong() + "'", e);
+            return null;
+        }
+
+        final String schemaText = versionInfo.getSchemaText();
+
+        final SchemaIdentifier resultSchemaIdentifier = SchemaIdentifier.builder()
+                .name(schemaName)
+                .id(versionInfo.getSchemaMetadataId())
+                .version(versionInfo.getVersion())
+                .schemaVersionId(schemaVersionId.getAsLong())
+                .build();
+
+        final Tuple<SchemaIdentifier, String> tuple = new Tuple<>(resultSchemaIdentifier, schemaText);
+        return schemaNameToSchemaMap.computeIfAbsent(tuple, t -> {
+            final Schema schema = new Schema.Parser().parse(schemaText);
+            return AvroTypeUtil.createSchema(schema, schemaText, resultSchemaIdentifier);
+        });
     }
 
     private String createErrorMessage(final String baseMessage, final Optional<String> schemaName, final Optional<String> branchName, final OptionalInt version) {

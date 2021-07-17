@@ -68,6 +68,7 @@ public class AbstractDatabaseLookupService extends AbstractControllerService {
                     + "Setting this property to zero means no caching will be done and the table will be queried for each lookup value in each record. If the lookup "
                     + "table changes often or the most recent data must be retrieved, do not use the cache.")
             .addValidator(StandardValidators.NON_NEGATIVE_INTEGER_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .defaultValue("0")
             .required(true)
             .build();

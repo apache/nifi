@@ -16,7 +16,9 @@
  */
 package org.apache.nifi.security.util.crypto
 
+import org.apache.commons.codec.binary.Hex
 import org.apache.nifi.security.util.EncryptionMethod
+import org.apache.nifi.security.util.KeyDerivationFunction
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.junit.After
 import org.junit.Before
@@ -38,7 +40,7 @@ class CipherUtilityGroovyTest extends GroovyTestCase {
     private static final List<String> SYMMETRIC_ALGORITHMS = EncryptionMethod.values().findAll { it.algorithm.startsWith("PBE") || it.algorithm.startsWith("AES") }*.algorithm
     private static final Map<String, List<String>> ALGORITHMS_MAPPED_BY_CIPHER = SYMMETRIC_ALGORITHMS.groupBy { String algorithm -> CIPHERS.find { algorithm.contains(it) } }
 
-    // Manually mapped as of 01/19/16 0.5.0
+    // Manually mapped as of 03/21/21 1.13.0
     private static final Map<Integer, List<String>> ALGORITHMS_MAPPED_BY_KEY_LENGTH = [
             (40) : ["PBEWITHSHAAND40BITRC2-CBC",
                     "PBEWITHSHAAND40BITRC4"],
@@ -54,18 +56,21 @@ class CipherUtilityGroovyTest extends GroovyTestCase {
                     "PBEWITHSHAAND128BITRC2-CBC",
                     "PBEWITHSHAAND128BITRC4",
                     "PBEWITHSHAANDTWOFISH-CBC",
+                    "AES/CBC/NoPadding",
                     "AES/CBC/PKCS7Padding",
                     "AES/CTR/NoPadding",
                     "AES/GCM/NoPadding"],
             (192): ["PBEWITHMD5AND192BITAES-CBC-OPENSSL",
                     "PBEWITHSHA256AND192BITAES-CBC-BC",
                     "PBEWITHSHAAND192BITAES-CBC-BC",
+                    "AES/CBC/NoPadding",
                     "AES/CBC/PKCS7Padding",
                     "AES/CTR/NoPadding",
                     "AES/GCM/NoPadding"],
             (256): ["PBEWITHMD5AND256BITAES-CBC-OPENSSL",
                     "PBEWITHSHA256AND256BITAES-CBC-BC",
                     "PBEWITHSHAAND256BITAES-CBC-BC",
+                    "AES/CBC/NoPadding",
                     "AES/CBC/PKCS7Padding",
                     "AES/CTR/NoPadding",
                     "AES/GCM/NoPadding"]
@@ -73,7 +78,7 @@ class CipherUtilityGroovyTest extends GroovyTestCase {
 
     @BeforeClass
     static void setUpOnce() {
-        Security.addProvider(new BouncyCastleProvider());
+        Security.addProvider(new BouncyCastleProvider())
 
         // Fix because TRIPLEDES -> DESede
         def tripleDESAlgorithms = ALGORITHMS_MAPPED_BY_CIPHER.remove("TRIPLEDES")
@@ -247,5 +252,64 @@ class CipherUtilityGroovyTest extends GroovyTestCase {
             // Assert
             assert validKeySizes == EXPECTED_KEY_SIZES
         }
+    }
+
+    @Test
+    void testShouldFindSequence() {
+        // Arrange
+        byte[] license = """Licensed to the Apache Software Foundation (ASF) under one or more
+contributor license agreements.  See the NOTICE file distributed with
+this work for additional information regarding copyright ownership.
+The ASF licenses this file to You under the Apache License, Version 2.0
+(the "License"); you may not use this file except in compliance with
+the License.  You may obtain a copy of the License at
+""".bytes
+
+        byte[] apache = "Apache".bytes
+        byte[] software = "Software".bytes
+        byte[] asf = "ASF".bytes
+        byte[] kafka = "Kafka".bytes
+
+        // Act
+        int apacheIndex = CipherUtility.findSequence(license, apache)
+        logger.info("Looking for ${Hex.encodeHexString(apache)}; found at ${apacheIndex}")
+
+        int softwareIndex = CipherUtility.findSequence(license, software)
+        logger.info("Looking for ${Hex.encodeHexString(software)}; found at ${softwareIndex}")
+
+        int asfIndex = CipherUtility.findSequence(license, asf)
+        logger.info("Looking for ${Hex.encodeHexString(asf)}; found at ${asfIndex}")
+
+        int kafkaIndex = CipherUtility.findSequence(license, kafka)
+        logger.info("Looking for ${Hex.encodeHexString(kafka)}; found at ${kafkaIndex}")
+
+        // Assert
+        assert apacheIndex == 16
+        assert softwareIndex == 23
+        assert asfIndex == 44
+        assert kafkaIndex == -1
+    }
+
+    @Test
+    void testShouldExtractRawSalt() {
+        // Arrange
+        byte[] PLAIN_SALT = [0xab] * 16
+
+        String ARGON2_SALT = Argon2CipherProvider.formSalt(PLAIN_SALT, 8, 1, 1)
+        String BCRYPT_SALT = BcryptCipherProvider.formatSaltForBcrypt(PLAIN_SALT, 10)
+        String SCRYPT_SALT = ScryptCipherProvider.formatSaltForScrypt(PLAIN_SALT, 10, 1, 1)
+
+        // Act
+        def results = KeyDerivationFunction.values().findAll { !it.isStrongKDF() }.collectEntries { KeyDerivationFunction weakKdf ->
+            [weakKdf, CipherUtility.extractRawSalt(PLAIN_SALT, weakKdf)]
+        }
+
+        results.put(KeyDerivationFunction.ARGON2, CipherUtility.extractRawSalt(ARGON2_SALT.bytes, KeyDerivationFunction.ARGON2))
+        results.put(KeyDerivationFunction.BCRYPT, CipherUtility.extractRawSalt(BCRYPT_SALT.bytes, KeyDerivationFunction.BCRYPT))
+        results.put(KeyDerivationFunction.SCRYPT, CipherUtility.extractRawSalt(SCRYPT_SALT.bytes, KeyDerivationFunction.SCRYPT))
+        results.put(KeyDerivationFunction.PBKDF2, CipherUtility.extractRawSalt(PLAIN_SALT, KeyDerivationFunction.PBKDF2))
+
+        // Assert
+        assert results.every { k, v -> v == PLAIN_SALT }
     }
 }

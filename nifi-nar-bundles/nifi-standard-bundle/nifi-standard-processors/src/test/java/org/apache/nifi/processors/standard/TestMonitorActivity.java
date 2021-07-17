@@ -17,9 +17,11 @@
 package org.apache.nifi.processors.standard;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 import org.apache.nifi.components.state.Scope;
@@ -32,6 +34,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -39,7 +42,7 @@ import static org.junit.Assert.assertTrue;
 public class TestMonitorActivity {
 
     @Test
-    public void testFirstMessage() throws InterruptedException, IOException {
+    public void testFirstMessage() throws InterruptedException {
         final TestRunner runner = TestRunners.newTestRunner(new TestableProcessor(1000L));
         runner.setProperty(MonitorActivity.CONTINUALLY_SEND_MESSAGES, "false");
         runner.setProperty(MonitorActivity.THRESHOLD, "100 millis");
@@ -108,9 +111,203 @@ public class TestMonitorActivity {
         restoredFlowFile.assertAttributeNotExists("key1");
     }
 
+    @Test
+    public void testReconcileAfterFirstStartWhenLastSuccessIsAlreadySet() throws Exception {
+        // given
+        final String lastSuccessInCluster = String.valueOf(System.currentTimeMillis() - TimeUnit.MINUTES.toMillis(5));
+        final TestRunner runner = TestRunners.newTestRunner(new TestableProcessor(0));
+        runner.setIsConfiguredForClustering(true);
+        runner.setPrimaryNode(true);
+        runner.setProperty(MonitorActivity.MONITORING_SCOPE, MonitorActivity.SCOPE_CLUSTER);
+        runner.setProperty(MonitorActivity.REPORTING_NODE, MonitorActivity.REPORT_NODE_PRIMARY);
+        runner.setProperty(MonitorActivity.CONTINUALLY_SEND_MESSAGES, "false");
+        runner.setProperty(MonitorActivity.THRESHOLD, "5 secs");
+        runner.getStateManager().setState(Collections.singletonMap(MonitorActivity.STATE_KEY_LATEST_SUCCESS_TRANSFER, lastSuccessInCluster), Scope.CLUSTER);
+
+        // when
+        runner.enqueue("lorem ipsum");
+        runner.run(1, false);
+
+        // then
+        runner.assertAllFlowFilesTransferred(MonitorActivity.REL_SUCCESS);
+        final StateMap updatedState = runner.getStateManager().getState(Scope.CLUSTER);
+        assertNotEquals(lastSuccessInCluster, updatedState.get(MonitorActivity.STATE_KEY_LATEST_SUCCESS_TRANSFER));
+    }
+
+    @Test
+    public void testReconcileWhenSharedStateIsNotYetSet() throws Exception {
+        // given
+        final TestableProcessor processor = new TestableProcessor(0);
+        final TestRunner runner = TestRunners.newTestRunner(processor);
+        runner.setIsConfiguredForClustering(true);
+        runner.setPrimaryNode(true);
+        runner.setProperty(MonitorActivity.MONITORING_SCOPE, MonitorActivity.SCOPE_CLUSTER);
+        runner.setProperty(MonitorActivity.REPORTING_NODE, MonitorActivity.REPORT_NODE_PRIMARY);
+        runner.setProperty(MonitorActivity.CONTINUALLY_SEND_MESSAGES, "false");
+        runner.setProperty(MonitorActivity.THRESHOLD, "5 secs");
+
+        // when
+        runner.setConnected(false);
+        runner.enqueue("lorem ipsum");
+        runner.run(1, false, false);
+
+        // then
+        runner.assertAllFlowFilesTransferred(MonitorActivity.REL_SUCCESS);
+
+        // when
+        runner.setConnected(true);
+        runner.run(1, false, false);
+
+        // then
+        final long tLocal = processor.getLatestSuccessTransfer();
+        final long tCluster = getLastSuccessFromCluster(runner);
+        assertEquals(tLocal, tCluster);
+    }
+
+    @Test
+    public void testReconcileAfterReconnectWhenPrimary() throws Exception {
+        // given
+        final TestableProcessor processor = new TestableProcessor(0);
+        final TestRunner runner = givenRunnerIsSetUpForReconcile(processor, true);
+
+        // when - First trigger will write last success transfer into cluster.
+        Thread.sleep(8);
+        runner.enqueue("lorem ipsum");
+        runNext(runner);
+        final long t1Local = processor.getLatestSuccessTransfer();
+        final long t1Cluster = getLastSuccessFromCluster(runner);
+
+        // then
+        Assert.assertEquals(t1Local, t1Cluster);
+        thenTransfersAre(runner, 1, 0, 0);
+
+        // when - At second trigger it's not connected, new last success transfer stored only locally.
+        Thread.sleep(20);
+        runner.setConnected(false);
+        runner.enqueue("lorem ipsum");
+        runNext(runner);
+        final long t2Local = processor.getLatestSuccessTransfer();
+        final long t2Cluster = getLastSuccessFromCluster(runner);
+
+        // then
+        Assert.assertNotEquals(t1Local, t2Local);
+        Assert.assertEquals(t1Local, t2Cluster);
+        thenTransfersAre(runner, 2, 0, 0);
+
+        // when - The third trigger is without flow file, but reconcile is triggered and value is written ot cluster.
+        Thread.sleep(20);
+        runner.setConnected(true);
+        runNext(runner);
+        final long t3Local = processor.getLatestSuccessTransfer();
+        final long t3Cluster = getLastSuccessFromCluster(runner);
+
+        // then
+        Assert.assertEquals(t3Local, t2Local);
+        Assert.assertEquals(t3Cluster, t2Local);
+        // Inactive message is being sent after the connection is back.
+        thenTransfersAre(runner,2, 1, 0);
+    }
+
+    @Test
+    public void testReconcileAfterReconnectWhenNotPrimary() throws Exception {
+        // given
+        final TestableProcessor processor = new TestableProcessor(0);
+        final TestRunner runner = givenRunnerIsSetUpForReconcile(processor, false);
+
+        // when - First trigger will write last success transfer into cluster.
+        Thread.sleep(8);
+        runner.enqueue("lorem ipsum");
+        runNext(runner);
+        final long t1Local = processor.getLatestSuccessTransfer();
+        final long t1Cluster = getLastSuccessFromCluster(runner);
+
+        // then
+        Assert.assertEquals(t1Local, t1Cluster);
+        thenTransfersAre(runner, 1, 0, 0);
+
+        // when - At second trigger it's not connected, new last success transfer stored only locally.
+        Thread.sleep(20);
+        runner.setConnected(false);
+        runner.enqueue("lorem ipsum");
+        runNext(runner);
+        final long t2Local = processor.getLatestSuccessTransfer();
+        final long t2Cluster = getLastSuccessFromCluster(runner);
+
+        // then
+        Assert.assertNotEquals(t1Local, t2Local);
+        Assert.assertEquals(t1Local, t2Cluster);
+        thenTransfersAre(runner, 2, 0, 0);
+
+        // when - The third trigger is without flow file, but reconcile is triggered and value is written ot cluster.
+        Thread.sleep(20);
+        runner.setConnected(true);
+        runNext(runner);
+        final long t3Local = processor.getLatestSuccessTransfer();
+        final long t3Cluster = getLastSuccessFromCluster(runner);
+
+        // then
+        Assert.assertEquals(t3Local, t2Local);
+        Assert.assertEquals(t3Cluster, t2Local);
+        // No inactive message because of the node is not primary
+        thenTransfersAre(runner, 2, 0, 0);
+    }
+
     private void runNext(TestRunner runner) {
         // Don't initialize, otherwise @OnScheduled is called and state gets reset
         runner.run(1, false, false);
+    }
+
+    private TestRunner givenRunnerIsSetUpForReconcile(final TestableProcessor processor, final boolean isPrimary) {
+        final TestRunner runner = TestRunners.newTestRunner(processor);
+        runner.setIsConfiguredForClustering(true);
+        runner.setPrimaryNode(isPrimary);
+        runner.setProperty(MonitorActivity.MONITORING_SCOPE, MonitorActivity.SCOPE_CLUSTER);
+        runner.setProperty(MonitorActivity.REPORTING_NODE, MonitorActivity.REPORT_NODE_PRIMARY);
+        runner.setProperty(MonitorActivity.CONTINUALLY_SEND_MESSAGES, "false");
+        runner.setProperty(MonitorActivity.THRESHOLD, "10 millis");
+        return runner;
+    }
+
+    private Long getLastSuccessFromCluster(final TestRunner runner) throws IOException {
+        return Long.valueOf(runner.getStateManager().getState(Scope.CLUSTER).get(MonitorActivity.STATE_KEY_LATEST_SUCCESS_TRANSFER));
+    }
+
+    private void thenTransfersAre(TestRunner runner, final int success, final int inactive, final int restored) {
+        if (success > 0 && inactive == 0 & restored == 0) {
+            runner.assertAllFlowFilesTransferred(MonitorActivity.REL_SUCCESS);
+        }
+        runner.assertTransferCount(MonitorActivity.REL_SUCCESS, success);
+        runner.assertTransferCount(MonitorActivity.REL_INACTIVE, inactive);
+        runner.assertTransferCount(MonitorActivity.REL_ACTIVITY_RESTORED, restored);
+    }
+
+    @Test
+    public void testNoReportingWhenDisconnected() {
+        // given
+        final TestRunner runner = TestRunners.newTestRunner(new TestableProcessor(TimeUnit.MINUTES.toMillis(5)));
+
+        runner.setIsConfiguredForClustering(true);
+        runner.setPrimaryNode(true);
+        runner.setProperty(MonitorActivity.MONITORING_SCOPE, MonitorActivity.SCOPE_CLUSTER);
+        runner.setProperty(MonitorActivity.REPORTING_NODE, MonitorActivity.REPORT_NODE_PRIMARY);
+        runner.setProperty(MonitorActivity.CONTINUALLY_SEND_MESSAGES, "false");
+        runner.setProperty(MonitorActivity.THRESHOLD, "3 minutes");
+
+        // when
+        runner.setConnected(false);
+        runner.run(1, false);
+
+        // then
+        runner.assertTransferCount(MonitorActivity.REL_SUCCESS, 0);
+        runner.assertTransferCount(MonitorActivity.REL_INACTIVE, 0);
+
+        // when
+        runner.setConnected(true);
+        runner.run(1, false);
+
+        // then
+        runner.assertTransferCount(MonitorActivity.REL_SUCCESS, 0);
+        runner.assertTransferCount(MonitorActivity.REL_INACTIVE, 1);
     }
 
     @Test
@@ -255,9 +452,9 @@ public class TestMonitorActivity {
 
     @Test
     public void testClusterMonitorInvalidReportingNode() throws Exception {
-        final TestRunner runner = TestRunners.newTestRunner(new TestableProcessor(100));
+        final TestRunner runner = TestRunners.newTestRunner(new TestableProcessor(TimeUnit.MINUTES.toMillis(120)));
 
-        runner.setClustered(true);
+        runner.setIsConfiguredForClustering(true);
         runner.setPrimaryNode(false);
         runner.setProperty(MonitorActivity.MONITORING_SCOPE, MonitorActivity.SCOPE_NODE);
         runner.setProperty(MonitorActivity.REPORTING_NODE, MonitorActivity.REPORT_NODE_PRIMARY);
@@ -267,8 +464,8 @@ public class TestMonitorActivity {
 
     @Test
     public void testClusterMonitorActive() throws Exception {
-        final TestRunner runner = TestRunners.newTestRunner(new TestableProcessor(100));
-        runner.setClustered(true);
+        final TestRunner runner = TestRunners.newTestRunner(new TestableProcessor(TimeUnit.MINUTES.toMillis(120)));
+        runner.setIsConfiguredForClustering(true);
         runner.setPrimaryNode(false);
         runner.setProperty(MonitorActivity.MONITORING_SCOPE, MonitorActivity.SCOPE_CLUSTER);
         // This has to be very small threshold, otherwise, MonitorActivity skip persisting state.
@@ -289,8 +486,8 @@ public class TestMonitorActivity {
 
     @Test
     public void testClusterMonitorActiveFallbackToNodeScope() throws Exception {
-        final TestRunner runner = TestRunners.newTestRunner(new TestableProcessor(100));
-        runner.setClustered(false);
+        final TestRunner runner = TestRunners.newTestRunner(new TestableProcessor(TimeUnit.MINUTES.toMillis(120)));
+        runner.setIsConfiguredForClustering(false);
         runner.setPrimaryNode(false);
         runner.setProperty(MonitorActivity.MONITORING_SCOPE, MonitorActivity.SCOPE_CLUSTER);
         // This has to be very small threshold, otherwise, MonitorActivity skip persisting state.
@@ -309,8 +506,8 @@ public class TestMonitorActivity {
 
     @Test
     public void testClusterMonitorActiveWithLatestTimestamp() throws Exception {
-        final TestRunner runner = TestRunners.newTestRunner(new TestableProcessor(100));
-        runner.setClustered(true);
+        final TestRunner runner = TestRunners.newTestRunner(new TestableProcessor(TimeUnit.MINUTES.toMillis(120)));
+        runner.setIsConfiguredForClustering(true);
         runner.setPrimaryNode(false);
         runner.setProperty(MonitorActivity.MONITORING_SCOPE, MonitorActivity.SCOPE_CLUSTER);
         // This has to be very small threshold, otherwise, MonitorActivity skip persisting state.
@@ -343,8 +540,8 @@ public class TestMonitorActivity {
 
     @Test
     public void testClusterMonitorActiveMoreRecentTimestampExisted() throws Exception {
-        final TestRunner runner = TestRunners.newTestRunner(new TestableProcessor(100));
-        runner.setClustered(true);
+        final TestRunner runner = TestRunners.newTestRunner(new TestableProcessor(TimeUnit.MINUTES.toMillis(120)));
+        runner.setIsConfiguredForClustering(true);
         runner.setPrimaryNode(false);
         runner.setProperty(MonitorActivity.MONITORING_SCOPE, MonitorActivity.SCOPE_CLUSTER);
         // This has to be very small threshold, otherwise, MonitorActivity skip persisting state.
@@ -377,8 +574,8 @@ public class TestMonitorActivity {
 
     @Test
     public void testClusterMonitorActiveCopyAttribute() throws Exception {
-        final TestRunner runner = TestRunners.newTestRunner(new TestableProcessor(100));
-        runner.setClustered(true);
+        final TestRunner runner = TestRunners.newTestRunner(new TestableProcessor(TimeUnit.MINUTES.toMillis(120)));
+        runner.setIsConfiguredForClustering(true);
         runner.setPrimaryNode(false);
         runner.setProperty(MonitorActivity.MONITORING_SCOPE, MonitorActivity.SCOPE_CLUSTER);
         // This has to be very small threshold, otherwise, MonitorActivity skip persisting state.
@@ -402,11 +599,11 @@ public class TestMonitorActivity {
 
     @Test
     public void testClusterMonitorInactivity() throws Exception {
-        final TestRunner runner = TestRunners.newTestRunner(new TestableProcessor(10000));
-        runner.setClustered(true);
+        final TestRunner runner = TestRunners.newTestRunner(new TestableProcessor(TimeUnit.MINUTES.toMillis(120)));
+        runner.setIsConfiguredForClustering(true);
         runner.setPrimaryNode(false);
         runner.setProperty(MonitorActivity.MONITORING_SCOPE, MonitorActivity.SCOPE_CLUSTER);
-        runner.setProperty(MonitorActivity.THRESHOLD, "100 ms");
+        runner.setProperty(MonitorActivity.THRESHOLD, "3 mins");
         runner.setProperty(MonitorActivity.COPY_ATTRIBUTES, "true");
 
         // Becomes inactive
@@ -425,11 +622,11 @@ public class TestMonitorActivity {
 
     @Test
     public void testClusterMonitorInactivityFallbackToNodeScope() throws Exception {
-        final TestRunner runner = TestRunners.newTestRunner(new TestableProcessor(10000));
-        runner.setClustered(false);
+        final TestRunner runner = TestRunners.newTestRunner(new TestableProcessor(TimeUnit.MINUTES.toMillis(120)));
+        runner.setIsConfiguredForClustering(false);
         runner.setPrimaryNode(false);
         runner.setProperty(MonitorActivity.MONITORING_SCOPE, MonitorActivity.SCOPE_CLUSTER);
-        runner.setProperty(MonitorActivity.THRESHOLD, "100 ms");
+        runner.setProperty(MonitorActivity.THRESHOLD, "3 mins");
         runner.setProperty(MonitorActivity.COPY_ATTRIBUTES, "true");
 
         // Becomes inactive
@@ -448,14 +645,14 @@ public class TestMonitorActivity {
 
     @Test
     public void testClusterMonitorInactivityOnPrimaryNode() throws Exception {
-        final TestableProcessor processor = new TestableProcessor(10000);
+        final TestableProcessor processor = new TestableProcessor(TimeUnit.MINUTES.toMillis(120));
 
         final TestRunner runner = TestRunners.newTestRunner(processor);
-        runner.setClustered(true);
+        runner.setIsConfiguredForClustering(true);
         runner.setPrimaryNode(true);
         runner.setProperty(MonitorActivity.MONITORING_SCOPE, MonitorActivity.SCOPE_CLUSTER);
         runner.setProperty(MonitorActivity.REPORTING_NODE, MonitorActivity.REPORT_NODE_PRIMARY);
-        runner.setProperty(MonitorActivity.THRESHOLD, "100 ms");
+        runner.setProperty(MonitorActivity.THRESHOLD, "3 mins");
         runner.setProperty(MonitorActivity.COPY_ATTRIBUTES, "true");
 
         // Becomes inactive
@@ -474,12 +671,12 @@ public class TestMonitorActivity {
 
     @Test
     public void testClusterMonitorInactivityOnNode() throws Exception {
-        final TestRunner runner = TestRunners.newTestRunner(new TestableProcessor(10000));
-        runner.setClustered(true);
+        final TestRunner runner = TestRunners.newTestRunner(new TestableProcessor(TimeUnit.MINUTES.toMillis(120)));
+        runner.setIsConfiguredForClustering(true);
         runner.setPrimaryNode(false);
         runner.setProperty(MonitorActivity.MONITORING_SCOPE, MonitorActivity.SCOPE_CLUSTER);
         runner.setProperty(MonitorActivity.REPORTING_NODE, MonitorActivity.REPORT_NODE_PRIMARY);
-        runner.setProperty(MonitorActivity.THRESHOLD, "100 ms");
+        runner.setProperty(MonitorActivity.THRESHOLD, "3 mins");
         runner.setProperty(MonitorActivity.COPY_ATTRIBUTES, "true");
 
         // Becomes inactive, but this not shouldn't send flow file
@@ -493,11 +690,12 @@ public class TestMonitorActivity {
 
     @Test
     public void testClusterMonitorActivityRestoredBySelf() throws Exception {
-        final TestRunner runner = TestRunners.newTestRunner(new TestableProcessor(10000));
-        runner.setClustered(true);
+        final TestRunner runner = TestRunners.newTestRunner(new TestableProcessor(TimeUnit.MINUTES.toMillis(120)));
+        runner.setIsConfiguredForClustering(true);
+
         runner.setPrimaryNode(false);
         runner.setProperty(MonitorActivity.MONITORING_SCOPE, MonitorActivity.SCOPE_CLUSTER);
-        runner.setProperty(MonitorActivity.THRESHOLD, "100 ms");
+        runner.setProperty(MonitorActivity.THRESHOLD, "3 mins");
         runner.setProperty(MonitorActivity.COPY_ATTRIBUTES, "true");
 
         // Becomes inactive
@@ -529,12 +727,12 @@ public class TestMonitorActivity {
 
     @Test
     public void testClusterMonitorActivityRestoredBySelfOnNode() throws Exception {
-        final TestRunner runner = TestRunners.newTestRunner(new TestableProcessor(10000));
-        runner.setClustered(true);
+        final TestRunner runner = TestRunners.newTestRunner(new TestableProcessor(TimeUnit.MINUTES.toMillis(120)));
+        runner.setIsConfiguredForClustering(true);
         runner.setPrimaryNode(false);
         runner.setProperty(MonitorActivity.MONITORING_SCOPE, MonitorActivity.SCOPE_CLUSTER);
         runner.setProperty(MonitorActivity.REPORTING_NODE, MonitorActivity.REPORT_NODE_PRIMARY);
-        runner.setProperty(MonitorActivity.THRESHOLD, "100 ms");
+        runner.setProperty(MonitorActivity.THRESHOLD, "3 mins");
         runner.setProperty(MonitorActivity.COPY_ATTRIBUTES, "true");
 
         // Becomes inactive
@@ -563,14 +761,14 @@ public class TestMonitorActivity {
 
     @Test
     public void testClusterMonitorActivityRestoredBySelfOnPrimaryNode() throws Exception {
-        final TestableProcessor processor = new TestableProcessor(10000);
+        final TestableProcessor processor = new TestableProcessor(TimeUnit.MINUTES.toMillis(120));
 
         final TestRunner runner = TestRunners.newTestRunner(processor);
-        runner.setClustered(true);
+        runner.setIsConfiguredForClustering(true);
         runner.setPrimaryNode(true);
         runner.setProperty(MonitorActivity.MONITORING_SCOPE, MonitorActivity.SCOPE_CLUSTER);
         runner.setProperty(MonitorActivity.REPORTING_NODE, MonitorActivity.REPORT_NODE_PRIMARY);
-        runner.setProperty(MonitorActivity.THRESHOLD, "100 ms");
+        runner.setProperty(MonitorActivity.THRESHOLD, "3 mins");
         runner.setProperty(MonitorActivity.COPY_ATTRIBUTES, "true");
 
         // Becomes inactive
@@ -602,14 +800,14 @@ public class TestMonitorActivity {
 
     @Test
     public void testClusterMonitorActivityRestoredBySelfOnPrimaryNodeFallbackToNodeScope() throws Exception {
-        final TestableProcessor processor = new TestableProcessor(10000);
+        final TestableProcessor processor = new TestableProcessor(TimeUnit.MINUTES.toMillis(120));
 
         final TestRunner runner = TestRunners.newTestRunner(processor);
-        runner.setClustered(false);
+        runner.setIsConfiguredForClustering(false);
         runner.setPrimaryNode(false);
         runner.setProperty(MonitorActivity.MONITORING_SCOPE, MonitorActivity.SCOPE_CLUSTER);
         runner.setProperty(MonitorActivity.REPORTING_NODE, MonitorActivity.REPORT_NODE_PRIMARY);
-        runner.setProperty(MonitorActivity.THRESHOLD, "100 ms");
+        runner.setProperty(MonitorActivity.THRESHOLD, "3 mins");
         runner.setProperty(MonitorActivity.COPY_ATTRIBUTES, "true");
 
         // Becomes inactive
@@ -640,11 +838,11 @@ public class TestMonitorActivity {
     @Test
     public void testClusterMonitorActivityRestoredByOtherNode() throws Exception {
 
-        final TestRunner runner = TestRunners.newTestRunner(new TestableProcessor(10000));
-        runner.setClustered(true);
+        final TestRunner runner = TestRunners.newTestRunner(new TestableProcessor(TimeUnit.MINUTES.toMillis(120)));
+        runner.setIsConfiguredForClustering(true);
         runner.setPrimaryNode(false);
         runner.setProperty(MonitorActivity.MONITORING_SCOPE, MonitorActivity.SCOPE_CLUSTER);
-        runner.setProperty(MonitorActivity.THRESHOLD, "100 ms");
+        runner.setProperty(MonitorActivity.THRESHOLD, "3 mins");
         runner.setProperty(MonitorActivity.COPY_ATTRIBUTES, "true");
 
         // Becomes inactive
@@ -674,14 +872,14 @@ public class TestMonitorActivity {
     @Test
     public void testClusterMonitorActivityRestoredByOtherNodeOnPrimary() throws Exception {
 
-        final TestableProcessor processor = new TestableProcessor(10000);
+        final TestableProcessor processor = new TestableProcessor(TimeUnit.MINUTES.toMillis(120));
 
         final TestRunner runner = TestRunners.newTestRunner(processor);
-        runner.setClustered(true);
+        runner.setIsConfiguredForClustering(true);
         runner.setPrimaryNode(true);
         runner.setProperty(MonitorActivity.MONITORING_SCOPE, MonitorActivity.SCOPE_CLUSTER);
         runner.setProperty(MonitorActivity.REPORTING_NODE, MonitorActivity.REPORT_NODE_PRIMARY);
-        runner.setProperty(MonitorActivity.THRESHOLD, "100 ms");
+        runner.setProperty(MonitorActivity.THRESHOLD, "1 hour");
         runner.setProperty(MonitorActivity.COPY_ATTRIBUTES, "true");
 
         // Becomes inactive
@@ -705,18 +903,16 @@ public class TestMonitorActivity {
         assertEquals("value1", activityRestoredFiles.get(0).getAttribute("key1"));
         assertEquals("value2", activityRestoredFiles.get(0).getAttribute("key2"));
         runner.clearTransferState();
-
     }
 
     @Test
     public void testClusterMonitorActivityRestoredByOtherNodeOnNode() throws Exception {
-
-        final TestRunner runner = TestRunners.newTestRunner(new TestableProcessor(10000));
-        runner.setClustered(true);
+        final TestRunner runner = TestRunners.newTestRunner(new TestableProcessor(TimeUnit.MINUTES.toMillis(120)));
+        runner.setIsConfiguredForClustering(true);
         runner.setPrimaryNode(false);
         runner.setProperty(MonitorActivity.MONITORING_SCOPE, MonitorActivity.SCOPE_CLUSTER);
         runner.setProperty(MonitorActivity.REPORTING_NODE, MonitorActivity.REPORT_NODE_PRIMARY);
-        runner.setProperty(MonitorActivity.THRESHOLD, "100 ms");
+        runner.setProperty(MonitorActivity.THRESHOLD, "3 mins");
         runner.setProperty(MonitorActivity.COPY_ATTRIBUTES, "true");
 
         // Becomes inactive

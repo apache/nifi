@@ -27,6 +27,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang3.SystemUtils;
 import org.apache.nifi.csv.CSVUtils;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.util.LogMessage;
@@ -36,10 +37,17 @@ import org.apache.nifi.util.TestRunners;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.Assume;
+import org.junit.BeforeClass;
 
 public class ConvertExcelToCSVProcessorTest {
 
     private TestRunner testRunner;
+
+    @BeforeClass
+    public static void setupClass() {
+        Assume.assumeTrue("Test only runs on *nix", !SystemUtils.IS_OS_WINDOWS);
+    }
 
     @Before
     public void init() {
@@ -129,7 +137,7 @@ public class ConvertExcelToCSVProcessorTest {
         DecimalFormatSymbols decimalFormatSymbols = DecimalFormatSymbols.getInstance();
         char decimalSeparator = decimalFormatSymbols.getDecimalSeparator();
         char groupingSeparator = decimalFormatSymbols.getGroupingSeparator();
-        ff.assertContentEquals("Numbers,Timestamps,Money\n" +
+        ff.assertContentEquals(("Numbers,Timestamps,Money\n" +
                 addQuotingIfNeeded(String.format("1234%1$s456", decimalSeparator)) + "," + DateTimeFormatter.ofPattern("d/M/yy").format(localDt) + "," +
                     addQuotingIfNeeded(String.format("$   123%1$s45", decimalSeparator)) + "\n" +
                 addQuotingIfNeeded(String.format("1234%1$s46", decimalSeparator)) + "," + DateTimeFormatter.ofPattern("hh:mm:ss a").format(localDt) + "," +
@@ -143,7 +151,15 @@ public class ConvertExcelToCSVProcessorTest {
                 addQuotingIfNeeded(String.format("9%1$s88E+08", decimalSeparator)) + "," + DateTimeFormatter.ofPattern("yyyy/MM/dd/ HH:mm").format(localDt) + "," +
                     addQuotingIfNeeded(String.format("¥   1%2$s023%1$s45", decimalSeparator, groupingSeparator)) + "\n" +
                 addQuotingIfNeeded(String.format("9%1$s877E+08", decimalSeparator)) + ",,\n" +
-                addQuotingIfNeeded(String.format("9%1$s8765E+08", decimalSeparator)) + ",,\n");
+                addQuotingIfNeeded(String.format("9%1$s8765E+08", decimalSeparator)) + ",,\n").replace("E+", getExponentSeparator(decimalFormatSymbols)));
+    }
+
+    /**
+     * Workaround for interaction between {@link DecimalFormatSymbols} and use of custom {@link java.util.Locale}.
+     */
+    private static String getExponentSeparator(final DecimalFormatSymbols decimalFormatSymbols) {
+        final String exponentSeparator = decimalFormatSymbols.getExponentSeparator();
+        return (exponentSeparator.equals("e") ? "e" : exponentSeparator + "+");
     }
 
     @Test
@@ -173,7 +189,7 @@ public class ConvertExcelToCSVProcessorTest {
                 "1%2$s234%1$s4560," + DateTimeFormatter.ofPattern("hh:mm a").format(localDt) + ",£   1%2$s023%1$s45\n" +
                 "9%1$s88E+08," + DateTimeFormatter.ofPattern("yyyy/MM/dd/ HH:mm").format(localDt) + ",¥   1%2$s023%1$s45\n" +
                 "9%1$s877E+08,,\n" +
-                "9%1$s8765E+08,,\n", decimalSeparator, groupingSeparator));
+                "9%1$s8765E+08,,\n", decimalSeparator, groupingSeparator).replace("E+", getExponentSeparator(decimalFormatSymbols)));
     }
 
     @Test
@@ -205,7 +221,7 @@ public class ConvertExcelToCSVProcessorTest {
                 "1%2$s234%1$s4560," + DateTimeFormatter.ofPattern("hh:mm a").format(localDt) + ",£   1%2$s023%1$s45\n" +
                 "9%1$s88E+08," + DateTimeFormatter.ofPattern("yyyy/MM/dd/ HH:mm").format(localDt) + ",¥   1%2$s023%1$s45\n" +
                 "9%1$s877E+08,,\n" +
-                "9%1$s8765E+08,,\n", decimalSeparator, groupingSeparator));
+                "9%1$s8765E+08,,\n", decimalSeparator, groupingSeparator).replace("E+", getExponentSeparator(decimalFormatSymbols)));
     }
 
     @Test
@@ -236,7 +252,7 @@ public class ConvertExcelToCSVProcessorTest {
                 "1%2$s234%1$s4560,£   1%2$s023%1$s45\n" +
                 "9%1$s88E+08,¥   1%2$s023%1$s45\n" +
                 "9%1$s877E+08,\n" +
-                "9%1$s8765E+08,\n", decimalSeparator, groupingSeparator));
+                "9%1$s8765E+08,\n", decimalSeparator, groupingSeparator).replace("E+", getExponentSeparator(decimalFormatSymbols)));
     }
 
     @Test
@@ -269,7 +285,7 @@ public class ConvertExcelToCSVProcessorTest {
                 "1%2$s234%1$s4560,£   1%2$s023%1$s45\n" +
                 "9%1$s88E+08,¥   1%2$s023%1$s45\n" +
                 "9%1$s877E+08,\n" +
-                "9%1$s8765E+08,\n", decimalSeparator, groupingSeparator));
+                "9%1$s8765E+08,\n", decimalSeparator, groupingSeparator).replace("E+", getExponentSeparator(decimalFormatSymbols)));
     }
 
     @Test
@@ -305,7 +321,7 @@ public class ConvertExcelToCSVProcessorTest {
                 "1%2$s234%1$s4560|" + DateTimeFormatter.ofPattern("hh:mm a").format(localDt) + "|£   1%2$s023%1$s45\r\n" +
                 "9%1$s88E+08|" + DateTimeFormatter.ofPattern("yyyy/MM/dd/ HH:mm").format(localDt) + "|¥   1%2$s023%1$s45\r\n" +
                 "9%1$s877E+08||\r\n" +
-                "9%1$s8765E+08||\r\n", decimalSeparator, groupingSeparator));
+                "9%1$s8765E+08||\r\n", decimalSeparator, groupingSeparator).replace("E+", getExponentSeparator(decimalFormatSymbols)));
     }
 
     @Test
@@ -342,7 +358,7 @@ public class ConvertExcelToCSVProcessorTest {
                 "1%2$s234%1$s4560|" + DateTimeFormatter.ofPattern("hh:mm a").format(localDt) + "|£   1%2$s023%1$s45\n" +
                 "9%1$s88E+08|" + DateTimeFormatter.ofPattern("yyyy/MM/dd/ HH:mm").format(localDt) + "|¥   1%2$s023%1$s45\n" +
                 "9%1$s877E+08||\n" +
-                "9%1$s8765E+08||\n", decimalSeparator, groupingSeparator));
+                "9%1$s8765E+08||\n", decimalSeparator, groupingSeparator).replace("E+", getExponentSeparator(decimalFormatSymbols)));
     }
 
     @Test
@@ -370,7 +386,7 @@ public class ConvertExcelToCSVProcessorTest {
         DecimalFormatSymbols decimalFormatSymbols = DecimalFormatSymbols.getInstance();
         char decimalSeparator = decimalFormatSymbols.getDecimalSeparator();
         char groupingSeparator = decimalFormatSymbols.getGroupingSeparator();
-        ff.assertContentEquals("'Numbers','Timestamps','Money'\n" +
+        ff.assertContentEquals(("'Numbers','Timestamps','Money'\n" +
                 addQuotingIfNeeded(String.format("1234%1$s456", decimalSeparator), ",", quoteCharValue, true) + "," + quoteCharValue +
                     DateTimeFormatter.ofPattern("d/M/yy").format(localDt) + quoteCharValue + "," +
                     addQuotingIfNeeded(String.format("$   123%1$s45", decimalSeparator), ",", quoteCharValue, true) + "\n" +
@@ -390,7 +406,7 @@ public class ConvertExcelToCSVProcessorTest {
                     DateTimeFormatter.ofPattern("yyyy/MM/dd/ HH:mm").format(localDt) + quoteCharValue + "," +
                     addQuotingIfNeeded(String.format("¥   1%2$s023%1$s45", decimalSeparator, groupingSeparator), ",", quoteCharValue, true) + "\n" +
                 addQuotingIfNeeded(String.format("9%1$s877E+08", decimalSeparator), ",", quoteCharValue, true) + ",,\n" +
-                addQuotingIfNeeded(String.format("9%1$s8765E+08", decimalSeparator), ",", quoteCharValue, true) + ",,\n");
+                addQuotingIfNeeded(String.format("9%1$s8765E+08", decimalSeparator), ",", quoteCharValue, true) + ",,\n").replace("E+", getExponentSeparator(decimalFormatSymbols)));
     }
 
     @Test
@@ -427,7 +443,7 @@ public class ConvertExcelToCSVProcessorTest {
                 "1%2$s234%1$s4560," + DateTimeFormatter.ofPattern("hh:mm a").format(localDt) + ",£   1%2$s023%1$s45\n" +
                 "9%1$s88E+08," + DateTimeFormatter.ofPattern("yyyy/MM/dd/ HH:mm").format(localDt) + ",¥   1%2$s023%1$s45\n" +
                 "9%1$s877E+08,,\n" +
-                "9%1$s8765E+08,,\n", decimalSeparator, groupingSeparator));
+                "9%1$s8765E+08,,\n", decimalSeparator, groupingSeparator).replace("E+", getExponentSeparator(decimalFormatSymbols)));
     }
 
     /**
@@ -448,7 +464,7 @@ public class ConvertExcelToCSVProcessorTest {
 
         MockFlowFile ff = testRunner.getFlowFilesForRelationship(ConvertExcelToCSVProcessor.SUCCESS).get(0);
         Long l = new Long(ff.getAttribute(ConvertExcelToCSVProcessor.ROW_NUM));
-        assertTrue(l == 7805l);
+        assertTrue(l == 10l);
 
         testRunner.clearProvenanceEvents();
         testRunner.clearTransferState();
@@ -488,7 +504,7 @@ public class ConvertExcelToCSVProcessorTest {
 
         MockFlowFile ff = testRunner.getFlowFilesForRelationship(ConvertExcelToCSVProcessor.SUCCESS).get(0);
         Long l = new Long(ff.getAttribute(ConvertExcelToCSVProcessor.ROW_NUM));
-        assertTrue(l == 7805l);
+        assertTrue(l == 10l);
     }
 
     /**

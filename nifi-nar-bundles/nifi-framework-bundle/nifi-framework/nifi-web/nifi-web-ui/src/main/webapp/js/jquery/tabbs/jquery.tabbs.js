@@ -52,7 +52,7 @@
             var tabPane = $(this);
 
             // create the unorder list
-            var tabList = $('<ul/>').addClass('tab-pane');
+            var tabList = $('<ul />').addClass('tab-pane');
             var shownTab = false;
 
             // create each tab
@@ -65,7 +65,7 @@
                 $('#' + tabDefinition.tabContentId).addClass(tabContentStyle).hide();
 
                 // prep the tab itself
-                var tab = $('<li></li>').text(tabDefinition.name).addClass(options.tabStyle).click(function () {
+                var tab = $('<li></li>').addClass(options.tabStyle).append('<button>' + tabDefinition.name + '</button>').click(function () {
                     // hide all tab content
                     $('.' + tabContentStyle).hide();
 

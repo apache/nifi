@@ -27,9 +27,11 @@
                 'nf.ClusterSummary',
                 'nf.ErrorHandler',
                 'nf.Settings',
-                'nf.ParameterContexts'],
-            function ($, nfCommon, nfDialog, nfCanvasUtils, nfContextMenu, nfClusterSummary, nfErrorHandler, nfSettings, nfParameterContexts) {
-                return (nf.ng.Canvas.FlowStatusCtrl = factory($, nfCommon, nfDialog, nfCanvasUtils, nfContextMenu, nfClusterSummary, nfErrorHandler, nfSettings, nfParameterContexts));
+                'nf.ParameterContexts',
+                'nf.ProcessGroup',
+                'nf.ProcessGroupConfiguration'],
+            function ($, nfCommon, nfDialog, nfCanvasUtils, nfContextMenu, nfClusterSummary, nfErrorHandler, nfSettings, nfParameterContexts, nfProcessGroup, nfProcessGroupConfiguration) {
+                return (nf.ng.Canvas.FlowStatusCtrl = factory($, nfCommon, nfDialog, nfCanvasUtils, nfContextMenu, nfClusterSummary, nfErrorHandler, nfSettings, nfParameterContexts, nfProcessGroup, nfProcessGroupConfiguration));
             });
     } else if (typeof exports === 'object' && typeof module === 'object') {
         module.exports = (nf.ng.Canvas.FlowStatusCtrl =
@@ -41,7 +43,9 @@
                 require('nf.ClusterSummary'),
                 require('nf.ErrorHandler'),
                 require('nf.Settings'),
-                require('nf.ParameterContexts')));
+                require('nf.ParameterContexts'),
+                require('nf.ProcessGroup'),
+                require('nf.ProcessGroupConfiguration')));
     } else {
         nf.ng.Canvas.FlowStatusCtrl = factory(root.$,
             root.nf.Common,
@@ -51,9 +55,11 @@
             root.nf.ClusterSummary,
             root.nf.ErrorHandler,
             root.nf.Settings,
-            root.nf.ParameterContexts);
+            root.nf.ParameterContexts,
+            root.nf.ProcessGroup,
+            root.nf.ProcessGroupConfiguration);
     }
-}(this, function ($, nfCommon, nfDialog, nfCanvasUtils, nfContextMenu, nfClusterSummary, nfErrorHandler, nfSettings, nfParameterContexts) {
+}(this, function ($, nfCommon, nfDialog, nfCanvasUtils, nfContextMenu, nfClusterSummary, nfErrorHandler, nfSettings, nfParameterContexts, nfProcessGroup, nfProcessGroupConfiguration) {
     'use strict';
 
     return function (serviceProvider) {
@@ -200,6 +206,22 @@
                                 });
                             }
 
+                            // show all labels
+                            if (!nfCommon.isEmpty(searchResults.labelResults)) {
+                                ul.append('<li class="search-header"><div class="search-result-icon icon icon-label"></div>Labels</li>');
+                                $.each(searchResults.labelResults, function (i, labelMatch) {
+                                    nfSearchAutocomplete._renderItem(ul, $.extend({}, labelMatch, { type: 'label' }));
+                                });
+                            }
+
+                            // show all controller services
+                            if (!nfCommon.isEmpty(searchResults.controllerServiceNodeResults)) {
+                                ul.append('<li class="search-header"><div class="search-result-icon icon"></div>Controller Services</li>');
+                                $.each(searchResults.controllerServiceNodeResults, function (i, controllerServiceMatch) {
+                                    nfSearchAutocomplete._renderItem(ul, $.extend({}, controllerServiceMatch, { type: 'controller service' }));
+                                });
+                            }
+
                             // show all parameter contexts and parameters
                             if (!nfCommon.isEmpty(searchResults.parameterContextResults)) {
                                 ul.append('<li class="search-header"><div class="search-result-icon icon"></div>Parameter Contexts</li>');
@@ -275,7 +297,8 @@
                             $.ajax({
                                 type: 'GET',
                                 data: {
-                                    q: request.term
+                                    q: request.term,
+                                    a: nfCanvasUtils.getGroupId()
                                 },
                                 dataType: 'json',
                                 url: config.urls.search
@@ -293,6 +316,14 @@
                                 case 'parameter':
                                     var paramContext = item.parentGroup;
                                     nfParameterContexts.showParameterContext(paramContext.id, null, item.name);
+                                    break;
+                                case 'controller service':
+                                    var group = item.parentGroup;
+                                    nfProcessGroup.enterGroup(group.id).done(function () {
+                                        nfProcessGroupConfiguration.showConfiguration(group.id).done(function () {
+                                            nfProcessGroupConfiguration.selectControllerService(item.id);
+                                        });
+                                    });
                                     break;
                                 default:
                                     var group = item.parentGroup;

@@ -145,7 +145,7 @@ public class CouchbaseMapCacheClient extends AbstractControllerService implement
 
     @Override
     public <K, V> boolean replace(AtomicCacheEntry<K, V, Long> entry, Serializer<K> keySerializer, Serializer<V> valueSerializer) throws IOException {
-        final Long revision = entry.getRevision().orElse(0L);
+        final Long revision = entry.getRevision().orElse(-1L);
         final String docId = toDocumentId(entry.getKey(), keySerializer);
         final Document doc = toDocument(docId, entry.getValue(), valueSerializer, revision);
         try {

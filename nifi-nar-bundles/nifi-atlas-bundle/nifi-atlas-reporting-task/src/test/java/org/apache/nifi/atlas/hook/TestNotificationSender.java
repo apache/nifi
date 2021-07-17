@@ -19,8 +19,10 @@ package org.apache.nifi.atlas.hook;
 import org.apache.atlas.AtlasServiceException;
 import org.apache.atlas.model.instance.AtlasEntity;
 import org.apache.atlas.model.instance.AtlasObjectId;
-import org.apache.atlas.notification.hook.HookNotification;
-import org.apache.atlas.typesystem.Referenceable;
+import org.apache.atlas.model.notification.HookNotification;
+import org.apache.atlas.v1.model.instance.Referenceable;
+import org.apache.atlas.v1.model.notification.HookNotificationV1;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.nifi.atlas.AtlasUtils;
 import org.apache.nifi.atlas.NiFiAtlasClient;
 import org.junit.Test;
@@ -34,7 +36,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
 import static java.util.Arrays.asList;
@@ -60,10 +62,10 @@ public class TestNotificationSender {
 
     private static final Logger logger = LoggerFactory.getLogger(TestNotificationSender.class);
 
-    private static class Notifier implements Consumer<List<HookNotification.HookNotificationMessage>> {
-        private final List<List<HookNotification.HookNotificationMessage>> notifications = new ArrayList<>();
+    private static class Notifier implements BiConsumer<List<HookNotification>, UserGroupInformation> {
+        private final List<List<HookNotification>> notifications = new ArrayList<>();
         @Override
-        public void accept(List<HookNotification.HookNotificationMessage> messages) {
+        public void accept(List<HookNotification> messages, UserGroupInformation ugi) {
             logger.info("notified at {}, {}", notifications.size(), messages);
             notifications.add(messages);
         }
@@ -72,7 +74,7 @@ public class TestNotificationSender {
     @Test
     public void testZeroMessage() {
         final NotificationSender sender = new NotificationSender();
-        final List<HookNotification.HookNotificationMessage> messages = Collections.emptyList();
+        final List<HookNotification> messages = Collections.emptyList();
         final Notifier notifier = new Notifier();
         sender.send(messages, notifier);
         assertEquals(0, notifier.notifications.get(0).size());
@@ -88,9 +90,9 @@ public class TestNotificationSender {
     @SuppressWarnings("unchecked")
     private void assertCreateMessage(Notifier notifier, int notificationIndex, Referenceable ... expects) {
         assertTrue(notifier.notifications.size() > notificationIndex);
-        final List<HookNotification.HookNotificationMessage> messages = notifier.notifications.get(notificationIndex);
+        final List<HookNotification> messages = notifier.notifications.get(notificationIndex);
         assertEquals(1, messages.size());
-        final HookNotification.EntityCreateRequest message = (HookNotification.EntityCreateRequest) messages.get(0);
+        final HookNotificationV1.EntityCreateRequest message = (HookNotificationV1.EntityCreateRequest) messages.get(0);
         assertEquals(expects.length, message.getEntities().size());
 
         // The use of 'flatMap' at NotificationSender does not preserve actual entities order.
@@ -135,11 +137,11 @@ public class TestNotificationSender {
     @SuppressWarnings("unchecked")
     private void assertUpdateFlowPathMessage(Notifier notifier, int notificationIndex, Referenceable ... expects) {
         assertTrue(notifier.notifications.size() > notificationIndex);
-        final List<HookNotification.HookNotificationMessage> messages = notifier.notifications.get(notificationIndex);
+        final List<HookNotification> messages = notifier.notifications.get(notificationIndex);
         assertEquals(expects.length, messages.size());
         for (int i = 0; i < expects.length; i++) {
             final Referenceable expect = expects[i];
-            final HookNotification.EntityPartialUpdateRequest actual = (HookNotification.EntityPartialUpdateRequest) messages.get(i);
+            final HookNotificationV1.EntityPartialUpdateRequest actual = (HookNotificationV1.EntityPartialUpdateRequest) messages.get(i);
             assertEquals(expect.getTypeName(), actual.getTypeName());
             assertEquals(ATTR_QUALIFIED_NAME, actual.getAttribute());
             assertEquals(expect.get(ATTR_QUALIFIED_NAME), actual.getAttributeValue());
@@ -155,8 +157,8 @@ public class TestNotificationSender {
     public void testOneCreateDataSetMessage() {
         final NotificationSender sender = new NotificationSender();
         final Referenceable queue1 = createRef(TYPE_NIFI_QUEUE, "queue1@test");
-        final List<HookNotification.HookNotificationMessage> messages = Collections.singletonList(
-                new HookNotification.EntityCreateRequest(NIFI_USER, queue1));
+        final List<HookNotification> messages = Collections.singletonList(
+                new HookNotificationV1.EntityCreateRequest(NIFI_USER, queue1));
         final Notifier notifier = new Notifier();
         sender.send(messages, notifier);
 
@@ -275,46 +277,46 @@ public class TestNotificationSender {
         ff4_pathB22.set(ATTR_OUTPUTS, singleton(ff4_data22));
 
 
-        final List<HookNotification.HookNotificationMessage> messages = asList(
-                new HookNotification.EntityCreateRequest(NIFI_USER, ff1_data1),
-                new HookNotification.EntityCreateRequest(NIFI_USER, ff1_data11),
-                new HookNotification.EntityCreateRequest(NIFI_USER, ff1_data12),
-                new HookNotification.EntityCreateRequest(NIFI_USER, ff1_pathA11),
-                new HookNotification.EntityCreateRequest(NIFI_USER, ff1_pathA12),
-                new HookNotification.EntityCreateRequest(NIFI_USER, ff1_fork11),
-                new HookNotification.EntityCreateRequest(NIFI_USER, ff1_fork12),
-                new HookNotification.EntityCreateRequest(NIFI_USER, ff1_pathB11),
-                new HookNotification.EntityCreateRequest(NIFI_USER, ff1_pathB12),
+        final List<HookNotification> messages = asList(
+                new HookNotificationV1.EntityCreateRequest(NIFI_USER, ff1_data1),
+                new HookNotificationV1.EntityCreateRequest(NIFI_USER, ff1_data11),
+                new HookNotificationV1.EntityCreateRequest(NIFI_USER, ff1_data12),
+                new HookNotificationV1.EntityCreateRequest(NIFI_USER, ff1_pathA11),
+                new HookNotificationV1.EntityCreateRequest(NIFI_USER, ff1_pathA12),
+                new HookNotificationV1.EntityCreateRequest(NIFI_USER, ff1_fork11),
+                new HookNotificationV1.EntityCreateRequest(NIFI_USER, ff1_fork12),
+                new HookNotificationV1.EntityCreateRequest(NIFI_USER, ff1_pathB11),
+                new HookNotificationV1.EntityCreateRequest(NIFI_USER, ff1_pathB12),
 
-                new HookNotification.EntityCreateRequest(NIFI_USER, ff2_data2),
-                new HookNotification.EntityCreateRequest(NIFI_USER, ff2_data21),
-                new HookNotification.EntityCreateRequest(NIFI_USER, ff2_data22),
-                new HookNotification.EntityCreateRequest(NIFI_USER, ff2_pathA21),
-                new HookNotification.EntityCreateRequest(NIFI_USER, ff2_pathA22),
-                new HookNotification.EntityCreateRequest(NIFI_USER, ff2_fork21),
-                new HookNotification.EntityCreateRequest(NIFI_USER, ff2_fork22),
-                new HookNotification.EntityCreateRequest(NIFI_USER, ff2_pathB21),
-                new HookNotification.EntityCreateRequest(NIFI_USER, ff2_pathB22),
+                new HookNotificationV1.EntityCreateRequest(NIFI_USER, ff2_data2),
+                new HookNotificationV1.EntityCreateRequest(NIFI_USER, ff2_data21),
+                new HookNotificationV1.EntityCreateRequest(NIFI_USER, ff2_data22),
+                new HookNotificationV1.EntityCreateRequest(NIFI_USER, ff2_pathA21),
+                new HookNotificationV1.EntityCreateRequest(NIFI_USER, ff2_pathA22),
+                new HookNotificationV1.EntityCreateRequest(NIFI_USER, ff2_fork21),
+                new HookNotificationV1.EntityCreateRequest(NIFI_USER, ff2_fork22),
+                new HookNotificationV1.EntityCreateRequest(NIFI_USER, ff2_pathB21),
+                new HookNotificationV1.EntityCreateRequest(NIFI_USER, ff2_pathB22),
 
-                new HookNotification.EntityCreateRequest(NIFI_USER, ff3_data1),
-                new HookNotification.EntityCreateRequest(NIFI_USER, ff3_data11),
-                new HookNotification.EntityCreateRequest(NIFI_USER, ff3_data12),
-                new HookNotification.EntityCreateRequest(NIFI_USER, ff3_pathA11),
-                new HookNotification.EntityCreateRequest(NIFI_USER, ff3_pathA12),
-                new HookNotification.EntityCreateRequest(NIFI_USER, ff3_fork11),
-                new HookNotification.EntityCreateRequest(NIFI_USER, ff3_fork12),
-                new HookNotification.EntityCreateRequest(NIFI_USER, ff3_pathB11),
-                new HookNotification.EntityCreateRequest(NIFI_USER, ff3_pathB12),
+                new HookNotificationV1.EntityCreateRequest(NIFI_USER, ff3_data1),
+                new HookNotificationV1.EntityCreateRequest(NIFI_USER, ff3_data11),
+                new HookNotificationV1.EntityCreateRequest(NIFI_USER, ff3_data12),
+                new HookNotificationV1.EntityCreateRequest(NIFI_USER, ff3_pathA11),
+                new HookNotificationV1.EntityCreateRequest(NIFI_USER, ff3_pathA12),
+                new HookNotificationV1.EntityCreateRequest(NIFI_USER, ff3_fork11),
+                new HookNotificationV1.EntityCreateRequest(NIFI_USER, ff3_fork12),
+                new HookNotificationV1.EntityCreateRequest(NIFI_USER, ff3_pathB11),
+                new HookNotificationV1.EntityCreateRequest(NIFI_USER, ff3_pathB12),
 
-                new HookNotification.EntityCreateRequest(NIFI_USER, ff4_data2),
-                new HookNotification.EntityCreateRequest(NIFI_USER, ff4_data21),
-                new HookNotification.EntityCreateRequest(NIFI_USER, ff4_data22),
-                new HookNotification.EntityCreateRequest(NIFI_USER, ff4_pathA21),
-                new HookNotification.EntityCreateRequest(NIFI_USER, ff4_pathA22),
-                new HookNotification.EntityCreateRequest(NIFI_USER, ff4_fork21),
-                new HookNotification.EntityCreateRequest(NIFI_USER, ff4_fork22),
-                new HookNotification.EntityCreateRequest(NIFI_USER, ff4_pathB21),
-                new HookNotification.EntityCreateRequest(NIFI_USER, ff4_pathB22)
+                new HookNotificationV1.EntityCreateRequest(NIFI_USER, ff4_data2),
+                new HookNotificationV1.EntityCreateRequest(NIFI_USER, ff4_data21),
+                new HookNotificationV1.EntityCreateRequest(NIFI_USER, ff4_data22),
+                new HookNotificationV1.EntityCreateRequest(NIFI_USER, ff4_pathA21),
+                new HookNotificationV1.EntityCreateRequest(NIFI_USER, ff4_pathA22),
+                new HookNotificationV1.EntityCreateRequest(NIFI_USER, ff4_fork21),
+                new HookNotificationV1.EntityCreateRequest(NIFI_USER, ff4_fork22),
+                new HookNotificationV1.EntityCreateRequest(NIFI_USER, ff4_pathB21),
+                new HookNotificationV1.EntityCreateRequest(NIFI_USER, ff4_pathB22)
         );
 
         final Notifier notifier = new Notifier();
@@ -376,10 +378,10 @@ public class TestNotificationSender {
         newPath1Lineage.set(ATTR_INPUTS, singleton(fileC));
         newPath1Lineage.set(ATTR_OUTPUTS, singleton(fileD));
 
-        final List<HookNotification.HookNotificationMessage> messages = asList(
-                new HookNotification.EntityCreateRequest(NIFI_USER, fileC),
-                new HookNotification.EntityCreateRequest(NIFI_USER, fileD),
-                new HookNotification.EntityPartialUpdateRequest(NIFI_USER, TYPE_NIFI_FLOW_PATH, ATTR_QUALIFIED_NAME, "path1@test", newPath1Lineage)
+        final List<HookNotification> messages = asList(
+                new HookNotificationV1.EntityCreateRequest(NIFI_USER, fileC),
+                new HookNotificationV1.EntityCreateRequest(NIFI_USER, fileD),
+                new HookNotificationV1.EntityPartialUpdateRequest(NIFI_USER, TYPE_NIFI_FLOW_PATH, ATTR_QUALIFIED_NAME, "path1@test", newPath1Lineage)
         );
 
         final NiFiAtlasClient atlasClient = mock(NiFiAtlasClient.class);

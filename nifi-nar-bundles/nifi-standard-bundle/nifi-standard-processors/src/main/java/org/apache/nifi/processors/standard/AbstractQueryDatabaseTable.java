@@ -22,7 +22,6 @@ import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.Scope;
-import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateMap;
 import org.apache.nifi.dbcp.DBCPService;
 import org.apache.nifi.expression.AttributeExpression;
@@ -206,17 +205,16 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
 
         SqlWriter sqlWriter = configureSqlWriter(session, context);
 
-        final StateManager stateManager = context.getStateManager();
         final StateMap stateMap;
-
         try {
-            stateMap = stateManager.getState(Scope.CLUSTER);
+            stateMap = session.getState(Scope.CLUSTER);
         } catch (final IOException ioe) {
             getLogger().error("Failed to retrieve observed maximum values from the State Manager. Will not perform "
                     + "query until this is accomplished.", ioe);
             context.yield();
             return;
         }
+
         // Make a mutable copy of the current state property map. This will be updated by the result row callback, and eventually
         // set as the current state map (after the session has been committed)
         final Map<String, String> statePropertyMap = new HashMap<>(stateMap.toMap());
@@ -316,7 +314,7 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
                         fileToProcess = session.putAllAttributes(fileToProcess, attributesToAdd);
                         sqlWriter.updateCounters(session);
 
-                        logger.info("{} contains {} records; transferring to 'success'",
+                        logger.debug("{} contains {} records; transferring to 'success'",
                                 new Object[]{fileToProcess, nrOfRows.get()});
 
                         session.getProvenanceReporter().receive(fileToProcess, jdbcURL, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
@@ -324,7 +322,7 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
                         // If we've reached the batch size, send out the flow files
                         if (outputBatchSize > 0 && resultSetFlowFiles.size() >= outputBatchSize) {
                             session.transfer(resultSetFlowFiles, REL_SUCCESS);
-                            session.commit();
+                            session.commitAsync();
                             resultSetFlowFiles.clear();
                         }
                     } else {
@@ -387,13 +385,14 @@ public abstract class AbstractQueryDatabaseTable extends AbstractDatabaseFetchPr
             }
             context.yield();
         } finally {
-            session.commit();
             try {
                 // Update the state
-                stateManager.setState(statePropertyMap, Scope.CLUSTER);
+                session.setState(statePropertyMap, Scope.CLUSTER);
             } catch (IOException ioe) {
                 getLogger().error("{} failed to update State Manager, maximum observed values will not be recorded", new Object[]{this, ioe});
             }
+
+            session.commitAsync();
         }
     }
 

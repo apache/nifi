@@ -32,7 +32,7 @@ import static org.mockito.Mockito.when;
 public class TestHortonworksAttributeSchemaReferenceStrategy extends AbstractSchemaAccessStrategyTest {
 
     @Test
-    public void testGetSchemaWithValidAttributes() throws IOException, SchemaNotFoundException {
+    public void testGetSchemaWithValidSchemaIdVersionAndProtocol() throws IOException, SchemaNotFoundException {
         final long schemaId = 123456;
         final int version = 2;
         final int protocol = 1;
@@ -56,9 +56,115 @@ public class TestHortonworksAttributeSchemaReferenceStrategy extends AbstractSch
         assertNotNull(retrievedSchema);
     }
 
+    @Test
+    public void testGetSchemaWithValidSchemaVersionIdAndProtocol() throws IOException, SchemaNotFoundException {
+        final long schemaVersionId = 9999;
+        final int protocol = 2;
+
+        final Map<String,String> attributes = new HashMap<>();
+        attributes.put(HortonworksAttributeSchemaReferenceStrategy.SCHEMA_VERSION_ID_ATTRIBUTE, String.valueOf(schemaVersionId));
+        attributes.put(HortonworksAttributeSchemaReferenceStrategy.SCHEMA_PROTOCOL_VERSION_ATTRIBUTE, String.valueOf(protocol));
+
+        final SchemaAccessStrategy schemaAccessStrategy = new HortonworksAttributeSchemaReferenceStrategy(schemaRegistry);
+
+        final SchemaIdentifier expectedSchemaIdentifier = SchemaIdentifier.builder()
+                .schemaVersionId(schemaVersionId)
+                .build();
+
+        when(schemaRegistry.retrieveSchema(argThat(new SchemaIdentifierMatcher(expectedSchemaIdentifier))))
+                .thenReturn(recordSchema);
+
+        final RecordSchema retrievedSchema = schemaAccessStrategy.getSchema(attributes, null, recordSchema);
+        assertNotNull(retrievedSchema);
+    }
+
+    @Test
+    public void testGetSchemaWithAllAttributes() throws IOException, SchemaNotFoundException {
+        final long schemaId = 123456;
+        final int version = 2;
+        final long schemaVersionId = 9999;
+        final int protocol = 2;
+
+        final Map<String,String> attributes = new HashMap<>();
+        attributes.put(HortonworksAttributeSchemaReferenceStrategy.SCHEMA_ID_ATTRIBUTE, String.valueOf(schemaId));
+        attributes.put(HortonworksAttributeSchemaReferenceStrategy.SCHEMA_VERSION_ATTRIBUTE, String.valueOf(version));
+        attributes.put(HortonworksAttributeSchemaReferenceStrategy.SCHEMA_VERSION_ID_ATTRIBUTE, String.valueOf(schemaVersionId));
+        attributes.put(HortonworksAttributeSchemaReferenceStrategy.SCHEMA_PROTOCOL_VERSION_ATTRIBUTE, String.valueOf(protocol));
+
+        final SchemaAccessStrategy schemaAccessStrategy = new HortonworksAttributeSchemaReferenceStrategy(schemaRegistry);
+
+        // The schema version id should take precedence
+        final SchemaIdentifier expectedSchemaIdentifier = SchemaIdentifier.builder()
+                .schemaVersionId(schemaVersionId)
+                .build();
+
+        when(schemaRegistry.retrieveSchema(argThat(new SchemaIdentifierMatcher(expectedSchemaIdentifier))))
+                .thenReturn(recordSchema);
+
+        final RecordSchema retrievedSchema = schemaAccessStrategy.getSchema(attributes, null, recordSchema);
+        assertNotNull(retrievedSchema);
+    }
+
     @Test(expected = SchemaNotFoundException.class)
-    public void testGetSchemaMissingAttributes() throws IOException, SchemaNotFoundException {
+    public void testGetSchemaMissingAllAttributes() throws IOException, SchemaNotFoundException {
         final SchemaAccessStrategy schemaAccessStrategy = new HortonworksAttributeSchemaReferenceStrategy(schemaRegistry);
         schemaAccessStrategy.getSchema(Collections.emptyMap(), null, recordSchema);
+    }
+
+    @Test(expected = SchemaNotFoundException.class)
+    public void testGetSchemaMissingProtocol() throws IOException, SchemaNotFoundException {
+        final long schemaId = 123456;
+        final int version = 2;
+        final long schemaVersionId = 9999;
+
+        final Map<String,String> attributes = new HashMap<>();
+        attributes.put(HortonworksAttributeSchemaReferenceStrategy.SCHEMA_ID_ATTRIBUTE, String.valueOf(schemaId));
+        attributes.put(HortonworksAttributeSchemaReferenceStrategy.SCHEMA_VERSION_ATTRIBUTE, String.valueOf(version));
+        attributes.put(HortonworksAttributeSchemaReferenceStrategy.SCHEMA_VERSION_ID_ATTRIBUTE, String.valueOf(schemaVersionId));
+
+        final SchemaAccessStrategy schemaAccessStrategy = new HortonworksAttributeSchemaReferenceStrategy(schemaRegistry);
+        schemaAccessStrategy.getSchema(attributes, null, recordSchema);
+    }
+
+    @Test(expected = SchemaNotFoundException.class)
+    public void testGetSchemaWithInvalidProtocol() throws IOException, SchemaNotFoundException {
+        final long schemaId = 123456;
+        final int version = 2;
+        final long schemaVersionId = 9999;
+
+        final Map<String,String> attributes = new HashMap<>();
+        attributes.put(HortonworksAttributeSchemaReferenceStrategy.SCHEMA_ID_ATTRIBUTE, String.valueOf(schemaId));
+        attributes.put(HortonworksAttributeSchemaReferenceStrategy.SCHEMA_VERSION_ATTRIBUTE, String.valueOf(version));
+        attributes.put(HortonworksAttributeSchemaReferenceStrategy.SCHEMA_VERSION_ID_ATTRIBUTE, String.valueOf(schemaVersionId));
+        attributes.put(HortonworksAttributeSchemaReferenceStrategy.SCHEMA_PROTOCOL_VERSION_ATTRIBUTE, "INVALID_PROTOCOL");
+
+        final SchemaAccessStrategy schemaAccessStrategy = new HortonworksAttributeSchemaReferenceStrategy(schemaRegistry);
+        schemaAccessStrategy.getSchema(attributes, null, recordSchema);
+    }
+
+    @Test(expected = SchemaNotFoundException.class)
+    public void testGetSchemaNotFound() throws IOException, SchemaNotFoundException {
+        final long schemaId = 123456;
+        final int version = 2;
+        final long schemaVersionId = 9999;
+        final int protocol = 2;
+
+        final Map<String,String> attributes = new HashMap<>();
+        attributes.put(HortonworksAttributeSchemaReferenceStrategy.SCHEMA_ID_ATTRIBUTE, String.valueOf(schemaId));
+        attributes.put(HortonworksAttributeSchemaReferenceStrategy.SCHEMA_VERSION_ATTRIBUTE, String.valueOf(version));
+        attributes.put(HortonworksAttributeSchemaReferenceStrategy.SCHEMA_VERSION_ID_ATTRIBUTE, String.valueOf(schemaVersionId));
+        attributes.put(HortonworksAttributeSchemaReferenceStrategy.SCHEMA_PROTOCOL_VERSION_ATTRIBUTE, String.valueOf(protocol));
+
+        final SchemaAccessStrategy schemaAccessStrategy = new HortonworksAttributeSchemaReferenceStrategy(schemaRegistry);
+
+        // The schema version id should take precedence
+        final SchemaIdentifier expectedSchemaIdentifier = SchemaIdentifier.builder()
+                .schemaVersionId(schemaVersionId)
+                .build();
+
+        when(schemaRegistry.retrieveSchema(argThat(new SchemaIdentifierMatcher(expectedSchemaIdentifier))))
+                .thenReturn(null);
+
+        schemaAccessStrategy.getSchema(attributes, null, recordSchema);
     }
 }

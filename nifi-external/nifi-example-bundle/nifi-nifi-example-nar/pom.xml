@@ -19,10 +19,10 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-example-bundle</artifactId>
-        <version>1.10.0-SNAPSHOT</version>
+        <version>1.15.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>nifi-example-nar</artifactId>
+    <artifactId>nifi-nifi-example-nar</artifactId>
     <packaging>nar</packaging>
     <properties>
         <maven.javadoc.skip>true</maven.javadoc.skip>

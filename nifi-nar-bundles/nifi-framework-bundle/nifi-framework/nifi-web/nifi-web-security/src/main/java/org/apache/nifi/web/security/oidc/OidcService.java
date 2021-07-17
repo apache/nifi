@@ -21,14 +21,12 @@ import com.google.common.cache.CacheBuilder;
 import com.nimbusds.oauth2.sdk.AuthorizationGrant;
 import com.nimbusds.oauth2.sdk.Scope;
 import com.nimbusds.oauth2.sdk.id.State;
+import org.apache.nifi.web.security.token.LoginAuthenticationToken;
 import org.apache.nifi.web.security.util.CacheKey;
+import org.apache.nifi.web.security.util.IdentityProviderUtils;
 
 import java.io.IOException;
-import java.math.BigInteger;
 import java.net.URI;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.SecureRandom;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
@@ -66,6 +64,7 @@ public class OidcService {
             throw new RuntimeException("The OidcIdentityProvider must be specified.");
         }
 
+        identityProvider.initializeProvider();
         this.identityProvider = identityProvider;
         this.stateLookupForPendingRequests = CacheBuilder.newBuilder().expireAfterWrite(duration, units).build();
         this.jwtLookupForCompletedRequests = CacheBuilder.newBuilder().expireAfterWrite(duration, units).build();
@@ -99,6 +98,15 @@ public class OidcService {
     }
 
     /**
+     * Returns the OpenId Connect revocation endpoint.
+     *
+     * @return the revocation endpoint
+     */
+    public URI getRevocationEndpoint() {
+        return identityProvider.getRevocationEndpoint();
+    }
+
+    /**
      * Returns the OpenId Connect scope.
      *
      * @return scope
@@ -128,12 +136,12 @@ public class OidcService {
         }
 
         final CacheKey oidcRequestIdentifierKey = new CacheKey(oidcRequestIdentifier);
-        final State state = new State(generateStateValue());
+        final State state = new State(IdentityProviderUtils.generateStateValue());
 
         try {
             synchronized (stateLookupForPendingRequests) {
                 final State cachedState = stateLookupForPendingRequests.get(oidcRequestIdentifierKey, () -> state);
-                if (!timeConstantEqualityCheck(state.getValue(), cachedState.getValue())) {
+                if (!IdentityProviderUtils.timeConstantEqualityCheck(state.getValue(), cachedState.getValue())) {
                     throw new IllegalStateException("An existing login request is already in progress.");
                 }
             }
@@ -142,18 +150,6 @@ public class OidcService {
         }
 
         return state;
-    }
-
-    /**
-     * Generates a value to use as State in the OpenId Connect login sequence. 128 bits is considered cryptographically strong
-     * with current hardware/software, but a Base32 digit needs 5 bits to be fully encoded, so 128 is rounded up to 130. Base32
-     * is chosen because it encodes data with a single case and without including confusing or URI-incompatible characters,
-     * unlike Base64, but is approximately 20% more compact than Base16/hexadecimal
-     *
-     * @return the state value
-     */
-    private String generateStateValue() {
-        return new BigInteger(130, new SecureRandom()).toString(32);
     }
 
     /**
@@ -181,30 +177,71 @@ public class OidcService {
                 stateLookupForPendingRequests.invalidate(oidcRequestIdentifierKey);
             }
 
-            return state != null && timeConstantEqualityCheck(state.getValue(), proposedState.getValue());
+            return state != null && IdentityProviderUtils.timeConstantEqualityCheck(state.getValue(), proposedState.getValue());
         }
     }
 
     /**
-     * Exchanges the specified authorization grant for an ID token for the given request identifier.
+     * Exchanges the specified authorization grant for an ID token.
      *
-     * @param oidcRequestIdentifier request identifier
      * @param authorizationGrant authorization grant
+     * @return a Login Authentication Token
      * @throws IOException exceptional case for communication error with the OpenId Connect provider
      */
-    public void exchangeAuthorizationCode(final String oidcRequestIdentifier, final AuthorizationGrant authorizationGrant) throws IOException {
+    public LoginAuthenticationToken exchangeAuthorizationCodeForLoginAuthenticationToken(final AuthorizationGrant authorizationGrant) throws IOException {
         if (!isOidcEnabled()) {
             throw new IllegalStateException(OPEN_ID_CONNECT_SUPPORT_IS_NOT_CONFIGURED);
         }
 
-        final CacheKey oidcRequestIdentifierKey = new CacheKey(oidcRequestIdentifier);
-        final String nifiJwt = identityProvider.exchangeAuthorizationCode(authorizationGrant);
+        // Retrieve Login Authentication Token
+        return identityProvider.exchangeAuthorizationCodeforLoginAuthenticationToken(authorizationGrant);
+    }
 
+    /**
+     * Exchanges the specified authorization grant for an access token.
+     *
+     * @param authorizationGrant authorization grant
+     * @return an Access Token string
+     * @throws IOException exceptional case for communication error with the OpenId Connect provider
+     */
+    public String exchangeAuthorizationCodeForAccessToken(final AuthorizationGrant authorizationGrant) throws Exception {
+        if (!isOidcEnabled()) {
+            throw new IllegalStateException(OPEN_ID_CONNECT_SUPPORT_IS_NOT_CONFIGURED);
+        }
+
+        // Retrieve access token
+        return identityProvider.exchangeAuthorizationCodeForAccessToken(authorizationGrant);
+    }
+
+    /**
+     * Exchanges the specified authorization grant for an ID Token.
+     *
+     * @param authorizationGrant authorization grant
+     * @return an ID Token string
+     * @throws IOException exceptional case for communication error with the OpenId Connect provider
+     */
+    public String exchangeAuthorizationCodeForIdToken(final AuthorizationGrant authorizationGrant) throws IOException {
+        if (!isOidcEnabled()) {
+            throw new IllegalStateException(OPEN_ID_CONNECT_SUPPORT_IS_NOT_CONFIGURED);
+        }
+
+        // Retrieve ID token
+        return identityProvider.exchangeAuthorizationCodeForIdToken(authorizationGrant);
+    }
+
+    /**
+     * Stores the NiFi Jwt.
+     *
+     * @param oidcRequestIdentifier request identifier
+     * @param jwt NiFi JWT
+     */
+    public void storeJwt(final String oidcRequestIdentifier, final String jwt) {
+        final CacheKey oidcRequestIdentifierKey = new CacheKey(oidcRequestIdentifier);
         try {
-            // cache the jwt for later retrieval
+            // Cache the jwt for later retrieval
             synchronized (jwtLookupForCompletedRequests) {
-                final String cachedJwt = jwtLookupForCompletedRequests.get(oidcRequestIdentifierKey, () -> nifiJwt);
-                if (!timeConstantEqualityCheck(nifiJwt, cachedJwt)) {
+                final String cachedJwt = jwtLookupForCompletedRequests.get(oidcRequestIdentifierKey, () -> jwt);
+                if (!IdentityProviderUtils.timeConstantEqualityCheck(jwt, cachedJwt)) {
                     throw new IllegalStateException("An existing login request is already in progress.");
                 }
             }
@@ -238,18 +275,4 @@ public class OidcService {
         }
     }
 
-    /**
-     * Implements a time constant equality check. If either value is null, false is returned.
-     *
-     * @param value1 value1
-     * @param value2 value2
-     * @return if value1 equals value2
-     */
-    private boolean timeConstantEqualityCheck(final String value1, final String value2) {
-        if (value1 == null || value2 == null) {
-            return false;
-        }
-
-        return MessageDigest.isEqual(value1.getBytes(StandardCharsets.UTF_8), value2.getBytes(StandardCharsets.UTF_8));
-    }
 }

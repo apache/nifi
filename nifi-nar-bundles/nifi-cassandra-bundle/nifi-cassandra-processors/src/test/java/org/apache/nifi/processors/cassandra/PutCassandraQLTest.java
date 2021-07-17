@@ -25,6 +25,7 @@ import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Session;
+import com.datastax.driver.core.SniEndPoint;
 import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.exceptions.InvalidQueryException;
 import com.datastax.driver.core.exceptions.NoHostAvailableException;
@@ -219,7 +220,7 @@ public class PutCassandraQLTest {
     public void testProcessorBadTimestamp() {
         setUpStandardTestConfig();
         processor.setExceptionToThrow(
-                new InvalidQueryException(new InetSocketAddress("localhost", 9042), "invalid timestamp"));
+                new InvalidQueryException(new SniEndPoint(new InetSocketAddress("localhost", 9042), ""), "invalid timestamp"));
         testRunner.enqueue("INSERT INTO users (user_id, first_name, last_name, properties, bits, scaleset, largenum, scale, byteobject, ts) VALUES ?, ?, ?, ?, ?, ?, ?, ?, ?, ?",
                 new HashMap<String, String>() {
                     {
@@ -253,12 +254,84 @@ public class PutCassandraQLTest {
     }
 
     @Test
+    public void testProcessorUuid() {
+        setUpStandardTestConfig();
+
+        testRunner.enqueue("INSERT INTO users (user_id, first_name, last_name, properties, bits, scaleset, largenum, scale, byteobject, ts) VALUES ?, ?, ?, ?, ?, ?, ?, ?, ?, ?",
+                new HashMap<String, String>() {
+                    {
+                        put("cql.args.1.type", "int");
+                        put("cql.args.1.value", "1");
+                        put("cql.args.2.type", "text");
+                        put("cql.args.2.value", "Joe");
+                        put("cql.args.3.type", "text");
+                        // No value for arg 3 to test setNull
+                        put("cql.args.4.type", "map<text,text>");
+                        put("cql.args.4.value", "{'a':'Hello', 'b':'World'}");
+                        put("cql.args.5.type", "list<boolean>");
+                        put("cql.args.5.value", "[true,false,true]");
+                        put("cql.args.6.type", "set<double>");
+                        put("cql.args.6.value", "{1.0, 2.0}");
+                        put("cql.args.7.type", "bigint");
+                        put("cql.args.7.value", "20000000");
+                        put("cql.args.8.type", "float");
+                        put("cql.args.8.value", "1.0");
+                        put("cql.args.9.type", "blob");
+                        put("cql.args.9.value", "0xDEADBEEF");
+                        put("cql.args.10.type", "uuid");
+                        put("cql.args.10.value", "5442b1f6-4c16-11ea-87f5-45a32dbc5199");
+
+                    }
+                });
+
+        testRunner.run(1, true, true);
+        testRunner.assertAllFlowFilesTransferred(PutCassandraQL.REL_SUCCESS, 1);
+        testRunner.clearTransferState();
+    }
+
+    @Test
+    public void testProcessorBadUuid() {
+        setUpStandardTestConfig();
+
+        testRunner.enqueue("INSERT INTO users (user_id, first_name, last_name, properties, bits, scaleset, largenum, scale, byteobject, ts) VALUES ?, ?, ?, ?, ?, ?, ?, ?, ?, ?",
+                new HashMap<String, String>() {
+                    {
+                        put("cql.args.1.type", "int");
+                        put("cql.args.1.value", "1");
+                        put("cql.args.2.type", "text");
+                        put("cql.args.2.value", "Joe");
+                        put("cql.args.3.type", "text");
+                        // No value for arg 3 to test setNull
+                        put("cql.args.4.type", "map<text,text>");
+                        put("cql.args.4.value", "{'a':'Hello', 'b':'World'}");
+                        put("cql.args.5.type", "list<boolean>");
+                        put("cql.args.5.value", "[true,false,true]");
+                        put("cql.args.6.type", "set<double>");
+                        put("cql.args.6.value", "{1.0, 2.0}");
+                        put("cql.args.7.type", "bigint");
+                        put("cql.args.7.value", "20000000");
+                        put("cql.args.8.type", "float");
+                        put("cql.args.8.value", "1.0");
+                        put("cql.args.9.type", "blob");
+                        put("cql.args.9.value", "0xDEADBEEF");
+                        put("cql.args.10.type", "uuid");
+                        put("cql.args.10.value", "bad-uuid");
+
+                    }
+                });
+
+        testRunner.run(1, true, true);
+        testRunner.assertAllFlowFilesTransferred(PutCassandraQL.REL_FAILURE, 1);
+        testRunner.clearTransferState();
+    }
+
+    @Test
     public void testProcessorInvalidQueryException() {
         setUpStandardTestConfig();
 
         // Test exceptions
         processor.setExceptionToThrow(
-                new InvalidQueryException(new InetSocketAddress("localhost", 9042), "invalid query"));
+                new InvalidQueryException(new SniEndPoint(new InetSocketAddress("localhost", 9042), ""), "invalid query"));
         testRunner.enqueue("UPDATE users SET cities = [ 'New York', 'Los Angeles' ] WHERE user_id = 'coast2coast';");
         testRunner.run(1, true, true);
         testRunner.assertAllFlowFilesTransferred(PutCassandraQL.REL_FAILURE, 1);
@@ -270,7 +343,7 @@ public class PutCassandraQLTest {
         setUpStandardTestConfig();
 
         processor.setExceptionToThrow(
-                new UnavailableException(new InetSocketAddress("localhost", 9042), ConsistencyLevel.ALL, 5, 2));
+                new UnavailableException(new SniEndPoint(new InetSocketAddress("localhost", 9042), ""), ConsistencyLevel.ALL, 5, 2));
         testRunner.enqueue("UPDATE users SET cities = [ 'New York', 'Los Angeles' ] WHERE user_id = 'coast2coast';");
         testRunner.run(1, true, true);
         testRunner.assertAllFlowFilesTransferred(PutCassandraQL.REL_RETRY, 1);

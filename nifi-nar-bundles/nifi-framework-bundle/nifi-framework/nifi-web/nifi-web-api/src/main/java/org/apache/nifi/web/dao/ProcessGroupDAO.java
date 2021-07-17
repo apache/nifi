@@ -17,6 +17,7 @@
 package org.apache.nifi.web.dao;
 
 import org.apache.nifi.controller.ScheduledState;
+import org.apache.nifi.controller.queue.DropFlowFileStatus;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.registry.flow.VersionedFlowSnapshot;
@@ -27,7 +28,6 @@ import org.apache.nifi.web.api.dto.VersionControlInformationDTO;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.Future;
 
 public interface ProcessGroupDAO {
 
@@ -95,10 +95,8 @@ public interface ProcessGroupDAO {
      * @param groupId id
      * @param state scheduled state
      * @param componentIds components
-     *
-     * @return a Future that can be used to wait for the services to finish starting or stopping
      */
-    Future<Void> scheduleComponents(String groupId, ScheduledState state, Set<String> componentIds);
+    void scheduleComponents(String groupId, ScheduledState state, Set<String> componentIds);
 
     /**
      * Enables or disabled the components in the specified process group.
@@ -116,7 +114,7 @@ public interface ProcessGroupDAO {
      * @param state the desired state
      * @param serviceIds the ID's of the services to enable or disable
      */
-    Future<Void> activateControllerServices(String groupId, ControllerServiceState state, Collection<String> serviceIds);
+    void activateControllerServices(String groupId, ControllerServiceState state, Collection<String> serviceIds);
 
     /**
      * Updates the specified process group.
@@ -186,6 +184,32 @@ public interface ProcessGroupDAO {
      * @param registryId registry id
      */
     void verifyDeleteFlowRegistry(String registryId);
+
+    /**
+     * Creates a request to drop flowfiles in all connections (recursively).
+     *
+     * @param processGroupId process group id
+     * @param dropRequestId drop request id
+     * @return The drop request status
+     */
+    DropFlowFileStatus createDropAllFlowFilesRequest(String processGroupId, String dropRequestId);
+
+    /**
+     * Gets the specified request for dropping all flowfiles in all connections (recursively).
+     * @param processGroupId The id of the process group
+     * @param dropRequestId The drop request id
+     * @return The drop request status
+     */
+    DropFlowFileStatus getDropAllFlowFilesRequest(String processGroupId, String dropRequestId);
+
+    /**
+     * Deletes the specified request for dropping all flowfiles in all connections (recursively).
+     *
+     * @param processGroupId The id of the process group
+     * @param dropRequestId The drop request id
+     * @return The drop request status
+     */
+    DropFlowFileStatus deleteDropAllFlowFilesRequest(String processGroupId, String dropRequestId);
 
     /**
      * Deletes the specified process group.

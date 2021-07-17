@@ -108,10 +108,9 @@ If any of these special characters is present in an attribute is quoted by using
 The Expression Language allows single quotes and double quotes to be used interchangeably. For example, the following
 can be used to escape an attribute named `my attribute`: `${"my attribute"}` or `${'my attribute'}`.
 
-In this example, the value to be returned is the value of the "my attribute" value, if it exists. If that attribute
-does not exist, the Expression Language will then look for a System Environment Variable named "my attribute." If
-unable to find this, it will look for a JVM System Property named "my attribute." Finally, if none of these exists,
-the Expression Language will return a `null` value.
+In this example, the value to be returned is the value of the "my attribute" attribute, if it exists. The Expression
+Language will search through a hierarchy for a matching property. See <<expression-language-hierarchy>>
+for a description of the hierarchy.
 
 There also exist some functions that expect to have no subject. These functions are invoked simply
 by calling the function at the beginning of the Expression, such as `${hostname()}`. These functions
@@ -131,7 +130,20 @@ the Expression Language between delimiters. Therefore, we can use the Expression
 mean the same thing. We cannot, however, use `${file name:equals(${uuid})}`, because this results
 in `file` and `name` being interpreted as different tokens, rather than a single token, `filename`.
 
+[[expression-language-hierarchy]]
+=== Expression Language Hierarchy
+When using Expression Language to reference a property by name there is a defined hierarchy within which NiFi
+will search for the value.
 
+The current hierarchy in NiFi is as follows:
+
+1. Search FlowFile for attribute/key
+2. Search Process Group Variables for attribute/key
+3. Search File Registry file for attribute/key
+4. Search NiFi JVM Properties for attribute/key
+5. Search System Environment Variables for attribute/key
+
+NiFi will search for, and return, the first occurrence of a matching property. If no matching property is found, `null` is returned.
 
 [[usage]]
 == Expression Language in the Application
@@ -640,7 +652,7 @@ Each of the following functions manipulates a String in some way.
 [.description]#If the _starting index_ is larger than the _ending index_, this function call will result in an error.#
 
 [.description]#If the _starting index_ or the _ending index_ is greater than the length of the Subject or has a value
-	less than 0, this function call will result in an error.#
+	less than 0, this function call will return an empty string.#
 
 
 *Subject Type*: [.subject]#String#
@@ -980,7 +992,7 @@ Expressions will provide the following results:
 [.function]
 === padLeft
 
-*Description*: [.description]#The `padLeft` function prepends the given padding string (or `'_'`, if nothing is provided) to the argument `String` until the passed desired length is reached.
+*Description*: [.description]#The `padLeft` function prepends the given padding string (or `'_'`, if nothing is provided) to the argument `String` until the passed desired length is reached.#
 
 It returns the argument as is if its length is already equal or higher than the desired length, if the padding string is `null`, and if the desired length is either negative or greater than `Integer.MAX_VALUE`.
 It returns `null` if the argument string is not a valid attribute.
@@ -1015,7 +1027,7 @@ Expressions will provide the following results:
 [.function]
 === padRight
 
-*Description*: [.description]#The `padRight` function appends the given padding string (or `'_'`, if nothing is provided) to the argument `String` until the passed desired length is reached.
+*Description*: [.description]#The `padRight` function appends the given padding string (or `'_'`, if nothing is provided) to the argument `String` until the passed desired length is reached.#
 
 It returns the argument as is if its length is already equal or higher than the desired length, if the padding string is `null`, and if the desired length is either negative or greater than `Integer.MAX_VALUE`.
 It returns `null` if the argument string is not a valid attribute.
@@ -1105,6 +1117,64 @@ Expressions will provide the following results:
 *Examples*: If the attribute "filename" has a value of "a brand new filename.txt" and the attribute
 	"hello" does not exist, then the Expression `${filename:length()}` will return 24. `${hello:length()}`
 	will return 0.
+
+
+[.function]
+=== evaluateELString
+
+*Description*: [.description]#This function evaluates the Expression Language inside the variable value.#
+
+*Subject Type*: [.subject]#String#
+
+*Arguments*: No arguments
+
+*Return Type*: [.returnType]#String#
+
+*Examples*: If one of the registry variable named "query" has value "SELECT * FROM TABLE WHERE ID = ${id}"
+	and the value of the "id" field, we are getting from the flowfile attributes (i.e. id=20)
+	then the Expression `${query:evaluateELString()}` will return SELECT * FROM TABLE WHERE ID = 20
+
+
+
+
+[.function]
+=== repeat
+
+*Description*:
+[.description]#Returns a string that is the Subject repeated a random number of times between _min repeats_ and
+_max repeats_. If _max repeats_ is not supplied, it will return the Subject repeated exactly _min repeats_ times.#
+
+[.description]#The _min repeats_ and _max repeats_ must be positive numbers, with _max repeats_ greater than or equal
+to _min repeats_#
+
+[.description]#If either _min repeats_ or _max repeats_ is not a number, this function call will result
+in an error.#
+
+
+*Subject Type*: [.subject]#String#
+
+*Arguments*:
+
+- [.argName]#_min repeats_# : [.argDesc]#The minimum number (inclusive) of times to repeat the subject, or the exact number
+of times to repeat the subject if _max repeats_ is not supplied.#
+- [.argName]#_max repeats_# : [.argDesc]#The maximum number (inclusive) of times to repeat the subject.#
+
+*Return Type*: [.returnType]#String#
+
+*Examples*:
+
+If we have an attribute named "str" with the value "abc",
+then the following Expressions will result in the following values:
+
+.Repeat Examples
+|================================================================
+| Expression | Value
+| `${str:repeat(1)}` | `abc`
+| `${str:repeat(2)}` | `abcabc`
+| `${str:repeat(1,2)}` | `abc` or `abcabc` (at random)
+| `${str:repeat( ${str:length()} )}` | `abc` or `abcabc` or `abcabcabc` (at random)
+|================================================================
+
 
 
 [[encode]]
@@ -1310,7 +1380,7 @@ Each of the following functions will encode a string according the rules of the 
 
 *Examples*: We can URL-Encode an attribute named "url" by using the Expression `${url:urlEncode()}`. If
 	the value of the "url" attribute is "https://nifi.apache.org/some value with spaces", this
-	Expression will then return "https://nifi.apache.org/some%20value%20with%20spaces".
+	Expression will then return "https%3A%2F%2Fnifi.apache.org%2Fsome+value+with+spaces".
 
 
 
@@ -1327,7 +1397,7 @@ Each of the following functions will encode a string according the rules of the 
 *Return Type*: [.returnType]#String#
 
 *Examples*: If we have a URL-Encoded attribute named "url" with the value
-	"https://nifi.apache.org/some%20value%20with%20spaces", then the Expression
+	"https://nifi.apache.org/some%20value%20with%20spaces" or "https%3A%2F%2Fnifi.apache.org%2Fsome+value+with+spaces", then the Expression
 	`${url:urlDecode()}` will return "https://nifi.apache.org/some value with spaces".
 
 
@@ -1365,6 +1435,68 @@ Each of the following functions will encode a string according the rules of the 
 *Examples*: If we have a Base64-Encoded attribute named "payload" with the value
 	"YWRtaW46YWRtaW4=", then the Expression
 	`${payload:base64Decode()}` will return "admin:admin".
+
+
+
+[.function]
+=== UUID3
+
+*Description*: [.description]#Returns a type 3 (MD5 hashed) namespace name-based UUID. The argument must be a valid UUID.#
+
+*Subject Type*: [.subject]#String#
+
+*Arguments*:
+
+	- [.argName]#_namespace_# : [.argDesc]#The namespace UUID identifier#
+
+*Return Type*: [.returnType]#String#
+
+*Examples*: If we have an attribute named "attr" with a value of "string value", then the Expression `${attr:UUID3('b9e81de3-7047-4b5e-a822-8fff5b49f808')}` will return "bf0ea246-a177-3300-bd7e-d4c9e973dc6f".
+
+An empty argument or an argument value with an invalid UUID results in an exception bulletin.
+
+*See Also*: [.seeAlso]#<<uuid,UUID()>>#
+
+
+
+[.function]
+=== UUID5
+
+*Description*: [.description]#Returns a type 5 (SHA-1 hashed) namespace name-based UUID. The argument must be a valid UUID.#
+
+*Subject Type*: [.subject]#String#
+
+*Arguments*:
+
+	- [.argName]#_namespace_# : [.argDesc]#The namespace UUID identifier#
+
+*Return Type*: [.returnType]#String#
+
+*Examples*: If we have an attribute named "attr" with a value of "string value", then the Expression `${attr:UUID5('245b55a8-397d-4480-a41e-16603c8cf9ad')}` will return "4d111477-5100-5f2d-ae79-b38bbe15aa78".
+
+An empty argument or an argument value with an invalid UUID results in an exception bulletin.
+
+*See Also*: [.seeAlso]#<<uuid,UUID()>>#
+
+
+
+[.function]
+=== hash
+
+*Description*: [.description]#Returns a hex encoded string using the hash algorithm provided. This can be used to generate unique keys.#
+
+*Subject Type*: [.subject]#String#
+
+*Arguments*:
+
+- [.argName]#_algorithm_# : [.argDesc]#An algorithm to hash value.
+		    Supports one of [SHA-384, SHA-224, SHA-256, MD2, SHA, SHA-512, MD5]. Warning: MD2, MD5, and SHA (SHA-1) should not be considered cryptographically secure (link:https://csrc.nist.gov/projects/hash-functions/nist-policy-on-hash-functions[https://csrc.nist.gov/projects/hash-functions/nist-policy-on-hash-functions^]).#
+
+*Return Type*: [.returnType]#String#
+
+*Examples*: We can hash an attribute named "payload" by using the Expression
+		   `${payload:hash('SHA-256')}` If the attribute payload had a value of "string value"
+		    then the Expression `${payload:hash('SHA-256')}` will return "9b6a1a9167a5caf3f5948413faa89e0ec0de89e12bef55327442e60dcc0e8c9b".
 
 
 
@@ -1871,7 +2003,7 @@ Divide. This is to preserve backwards compatibility and to not force rounding er
 === plus
 
 *Description*: [.description]#Adds a numeric value to the Subject. If either the argument or the Subject cannot be
-	coerced into a Number, returns `null`.#
+	coerced into a Number, returns `null`. Does not provide handling for overflow.#
 
 *Subject Type*: [.subject]#Number or Decimal#
 
@@ -1891,7 +2023,7 @@ Divide. This is to preserve backwards compatibility and to not force rounding er
 [.function]
 === minus
 
-*Description*: [.description]#Subtracts a numeric value from the Subject.#
+*Description*: [.description]#Subtracts a numeric value from the Subject. Does not provide handling for overflow.#
 
 *Subject Type*: [.subject]#Number or Decimal#
 
@@ -1911,7 +2043,7 @@ Divide. This is to preserve backwards compatibility and to not force rounding er
 [.function]
 === multiply
 
-*Description*: [.description]#Multiplies a numeric value by the Subject and returns the product.#
+*Description*: [.description]#Multiplies a numeric value by the Subject and returns the product.# Does not provide handling for overflow.
 
 *Subject Type*: [.subject]#Number or Decimal#
 
@@ -2272,7 +2404,7 @@ an error when validating the function.
 [.function]
 === UUID
 
-*Description*: [.description]#Returns a randomly generated UUID.#
+*Description*: [.description]#Returns a randomly generated type 4 UUID.#
 
 *Subject Type*: [.subjectless]#No Subject#
 
@@ -2280,9 +2412,9 @@ an error when validating the function.
 
 *Return Type*: [.returnType]#String#
 
-*Examples*: ${UUID()} returns a value similar to de305d54-75b4-431b-adb2-eb6b9e546013
+*Examples*: `${UUID()}` returns a value similar to "de305d54-75b4-431b-adb2-eb6b9e546013"
 
-
+*See Also*: [.seeAlso]#<<uuid3,UUID3()>>, <<uuid5,UUID5()>>#
 
 
 

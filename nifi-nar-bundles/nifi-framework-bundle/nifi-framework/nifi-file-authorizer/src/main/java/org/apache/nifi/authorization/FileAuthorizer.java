@@ -23,6 +23,7 @@ import org.apache.nifi.util.NiFiProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.xml.bind.JAXBException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -155,6 +156,11 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
     }
 
     @Override
+    public Group getGroupByName(String name) throws AuthorizationAccessException {
+        return userGroupProvider.getGroupByName(name);
+    }
+
+    @Override
     public synchronized Group doUpdateGroup(Group group) throws AuthorizationAccessException {
         return userGroupProvider.updateGroup(group);
     }
@@ -228,6 +234,22 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
         return accessPolicyProvider.getAccessPolicies();
     }
 
+    @Override
+    public void purgePoliciesUsersAndGroups() {
+        accessPolicyProvider.purgePolicies(true);
+        userGroupProvider.purgeUsersAndGroups();
+    }
+
+    @Override
+    public void backupPoliciesUsersAndGroups() {
+        try {
+            accessPolicyProvider.backupPolicies();
+            userGroupProvider.backupUsersAndGroups();
+        } catch (final JAXBException jaxb) {
+            throw new AuthorizationAccessException("Failed to backup policies", jaxb);
+        }
+    }
+
     @AuthorizerContext
     public void setNiFiProperties(NiFiProperties properties) {
         userGroupProvider.setNiFiProperties(properties);
@@ -256,5 +278,4 @@ public class FileAuthorizer extends AbstractPolicyBasedAuthorizer {
             }
         };
     }
-
 }

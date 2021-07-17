@@ -18,3 +18,4 @@ org.apache.nifi.processors.standard.db.impl.Oracle12DatabaseAdapter
 org.apache.nifi.processors.standard.db.impl.MSSQLDatabaseAdapter
 org.apache.nifi.processors.standard.db.impl.MSSQL2008DatabaseAdapter
 org.apache.nifi.processors.standard.db.impl.MySQLDatabaseAdapter
+org.apache.nifi.processors.standard.db.impl.PostgreSQLDatabaseAdapter

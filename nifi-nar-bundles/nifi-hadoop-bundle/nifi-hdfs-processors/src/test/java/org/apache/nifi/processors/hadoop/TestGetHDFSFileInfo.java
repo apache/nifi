@@ -27,10 +27,15 @@ import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -39,6 +44,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.util.Progressable;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.hadoop.KerberosProperties;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.reporting.InitializationException;
@@ -51,6 +57,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class TestGetHDFSFileInfo {
+    private static final Pattern SINGLE_JSON_PATTERN = Pattern.compile("^\\{[^\\}]*\\}$");
 
     private TestRunner runner;
     private GetHDFSFileInfoWithMockedFileSystem proc;
@@ -67,6 +74,69 @@ public class TestGetHDFSFileInfo {
         runner = TestRunners.newTestRunner(proc);
 
         runner.setProperty(GetHDFSFileInfo.HADOOP_CONFIGURATION_RESOURCES, "src/test/resources/core-site.xml");
+    }
+
+    @Test
+    public void testInvalidBatchSizeWhenDestinationAndGroupingDoesntAllowBatchSize() throws Exception {
+        Arrays.asList("1", "2", "100").forEach(
+            validBatchSize -> {
+                testValidateBatchSize(GetHDFSFileInfo.DESTINATION_ATTRIBUTES, GetHDFSFileInfo.GROUP_ALL, validBatchSize, false);
+                testValidateBatchSize(GetHDFSFileInfo.DESTINATION_ATTRIBUTES, GetHDFSFileInfo.GROUP_PARENT_DIR, validBatchSize, false);
+                testValidateBatchSize(GetHDFSFileInfo.DESTINATION_ATTRIBUTES, GetHDFSFileInfo.GROUP_NONE, validBatchSize, false);
+                testValidateBatchSize(GetHDFSFileInfo.DESTINATION_CONTENT, GetHDFSFileInfo.GROUP_ALL, validBatchSize, false);
+                testValidateBatchSize(GetHDFSFileInfo.DESTINATION_CONTENT, GetHDFSFileInfo.GROUP_PARENT_DIR, validBatchSize, false);
+            }
+        );
+    }
+
+    @Test
+    public void testInvalidBatchSizeWhenValueIsInvalid() throws Exception {
+        Arrays.asList("-1", "0", "someString").forEach(
+            inValidBatchSize -> {
+                testValidateBatchSize(GetHDFSFileInfo.DESTINATION_CONTENT, GetHDFSFileInfo.GROUP_NONE, inValidBatchSize, false);
+            }
+        );
+    }
+
+    @Test
+    public void testValidBatchSize() throws Exception {
+        Arrays.asList("1", "2", "100").forEach(
+            validBatchSize -> {
+                testValidateBatchSize(GetHDFSFileInfo.DESTINATION_CONTENT, GetHDFSFileInfo.GROUP_NONE, validBatchSize, true);
+            }
+        );
+
+        Arrays.asList((String)null).forEach(
+            nullBatchSize -> {
+                testValidateBatchSize(GetHDFSFileInfo.DESTINATION_ATTRIBUTES, GetHDFSFileInfo.GROUP_ALL, nullBatchSize, true);
+                testValidateBatchSize(GetHDFSFileInfo.DESTINATION_ATTRIBUTES, GetHDFSFileInfo.GROUP_PARENT_DIR, nullBatchSize, true);
+                testValidateBatchSize(GetHDFSFileInfo.DESTINATION_ATTRIBUTES, GetHDFSFileInfo.GROUP_NONE, nullBatchSize, true);
+                testValidateBatchSize(GetHDFSFileInfo.DESTINATION_CONTENT, GetHDFSFileInfo.GROUP_ALL, nullBatchSize, true);
+                testValidateBatchSize(GetHDFSFileInfo.DESTINATION_CONTENT, GetHDFSFileInfo.GROUP_PARENT_DIR, nullBatchSize, true);
+                testValidateBatchSize(GetHDFSFileInfo.DESTINATION_CONTENT, GetHDFSFileInfo.GROUP_NONE, nullBatchSize, true);
+            }
+        );
+    }
+
+    private void testValidateBatchSize(AllowableValue destination, AllowableValue grouping, String batchSize, boolean expectedValid) {
+        runner.clearProperties();
+
+        runner.setIncomingConnection(false);
+        runner.setProperty(GetHDFSFileInfo.FULL_PATH, "/some/home/mydir");
+        runner.setProperty(GetHDFSFileInfo.RECURSE_SUBDIRS, "true");
+        runner.setProperty(GetHDFSFileInfo.IGNORE_DOTTED_DIRS, "true");
+        runner.setProperty(GetHDFSFileInfo.IGNORE_DOTTED_FILES, "true");
+        runner.setProperty(GetHDFSFileInfo.DESTINATION, destination);
+        runner.setProperty(GetHDFSFileInfo.GROUPING, grouping);
+        if (batchSize != null) {
+            runner.setProperty(GetHDFSFileInfo.BATCH_SIZE, "" + batchSize);
+        }
+
+        if (expectedValid) {
+            runner.assertValid();
+        } else {
+            runner.assertNotValid();
+        }
     }
 
     @Test
@@ -561,6 +631,105 @@ public class TestGetHDFSFileInfo {
             }
         }
         Assert.assertEquals(matchCount, 5);
+    }
+
+    @Test
+    public void testBatchSizeWithDestAttributesGroupAllBatchSizeNull() throws Exception {
+        testBatchSize(null, GetHDFSFileInfo.DESTINATION_ATTRIBUTES, GetHDFSFileInfo.GROUP_ALL, 1);
+    }
+
+    @Test
+    public void testBatchSizeWithDestAttributesGroupDirBatchSizeNull() throws Exception {
+        testBatchSize(null, GetHDFSFileInfo.DESTINATION_ATTRIBUTES, GetHDFSFileInfo.GROUP_PARENT_DIR, 5);
+    }
+
+    @Test
+    public void testBatchSizeWithDestAttributesGroupNoneBatchSizeNull() throws Exception {
+        testBatchSize(null, GetHDFSFileInfo.DESTINATION_ATTRIBUTES, GetHDFSFileInfo.GROUP_NONE, 9);
+    }
+
+    @Test
+    public void testBatchSizeWithDestContentGroupAllBatchSizeNull() throws Exception {
+        testBatchSize(null, GetHDFSFileInfo.DESTINATION_CONTENT, GetHDFSFileInfo.GROUP_ALL, 1);
+    }
+
+    @Test
+    public void testBatchSizeWithDestContentGroupDirBatchSizeNull() throws Exception {
+        testBatchSize(null, GetHDFSFileInfo.DESTINATION_CONTENT, GetHDFSFileInfo.GROUP_PARENT_DIR, 5);
+    }
+
+    @Test
+    public void testBatchSizeWithDestContentGroupNoneBatchSizeNull() throws Exception {
+        testBatchSize(null, GetHDFSFileInfo.DESTINATION_CONTENT, GetHDFSFileInfo.GROUP_NONE, 9);
+
+        checkContentSizes(Arrays.asList(1, 1, 1, 1, 1, 1, 1, 1, 1));
+    }
+    @Test
+    public void testBatchSizeWithDestContentGroupNoneBatchSize1() throws Exception {
+        testBatchSize("1", GetHDFSFileInfo.DESTINATION_CONTENT, GetHDFSFileInfo.GROUP_NONE, 9);
+        checkContentSizes(Arrays.asList(1, 1, 1, 1, 1, 1, 1, 1, 1));
+    }
+    @Test
+    public void testBatchSizeWithDestContentGroupNoneBatchSize3() throws Exception {
+        testBatchSize("3", GetHDFSFileInfo.DESTINATION_CONTENT, GetHDFSFileInfo.GROUP_NONE, 3);
+        checkContentSizes(Arrays.asList(3, 3, 3));
+    }
+    @Test
+    public void testBatchSizeWithDestContentGroupNoneBatchSize4() throws Exception {
+        testBatchSize("4", GetHDFSFileInfo.DESTINATION_CONTENT, GetHDFSFileInfo.GROUP_NONE, 3);
+        checkContentSizes(Arrays.asList(4, 4, 1));
+    }
+    @Test
+    public void testBatchSizeWithDestContentGroupNoneBatchSize5() throws Exception {
+        testBatchSize("5", GetHDFSFileInfo.DESTINATION_CONTENT, GetHDFSFileInfo.GROUP_NONE, 2);
+        checkContentSizes(Arrays.asList(5, 4));
+    }
+    @Test
+    public void testBatchSizeWithDestContentGroupNoneBatchSize9() throws Exception {
+        testBatchSize("9", GetHDFSFileInfo.DESTINATION_CONTENT, GetHDFSFileInfo.GROUP_NONE, 1);
+        checkContentSizes(Arrays.asList(9));
+    }
+    @Test
+    public void testBatchSizeWithDestContentGroupNoneBatchSize100() throws Exception {
+        testBatchSize("100", GetHDFSFileInfo.DESTINATION_CONTENT, GetHDFSFileInfo.GROUP_NONE, 1);
+        checkContentSizes(Arrays.asList(9));
+    }
+
+    private void testBatchSize(String batchSize, AllowableValue destination, AllowableValue grouping, int expectedNrTransferredToSuccess) {
+        setFileSystemBasicTree(proc.fileSystem);
+
+        runner.setIncomingConnection(false);
+        runner.setProperty(GetHDFSFileInfo.FULL_PATH, "/some/home/mydir");
+        runner.setProperty(GetHDFSFileInfo.RECURSE_SUBDIRS, "true");
+        runner.setProperty(GetHDFSFileInfo.IGNORE_DOTTED_DIRS, "true");
+        runner.setProperty(GetHDFSFileInfo.IGNORE_DOTTED_FILES, "true");
+        runner.setProperty(GetHDFSFileInfo.DESTINATION, destination);
+        runner.setProperty(GetHDFSFileInfo.GROUPING, grouping);
+        if (batchSize != null) {
+            runner.setProperty(GetHDFSFileInfo.BATCH_SIZE, batchSize);
+        }
+
+        runner.run();
+
+        runner.assertTransferCount(GetHDFSFileInfo.REL_ORIGINAL, 0);
+        runner.assertTransferCount(GetHDFSFileInfo.REL_SUCCESS, expectedNrTransferredToSuccess);
+        runner.assertTransferCount(GetHDFSFileInfo.REL_FAILURE, 0);
+        runner.assertTransferCount(GetHDFSFileInfo.REL_NOT_FOUND, 0);
+    }
+
+    private void checkContentSizes(List<Integer> expectedNumberOfRecords) {
+        List<Integer> actualNumberOfRecords = runner.getFlowFilesForRelationship(GetHDFSFileInfo.REL_SUCCESS).stream()
+            .map(MockFlowFile::toByteArray)
+            .map(String::new)
+            .map(
+                content -> Arrays.stream(content.split("\n"))
+                    .filter(line -> SINGLE_JSON_PATTERN.matcher(line).matches())
+                    .count()
+            )
+            .map(Long::intValue)
+            .collect(Collectors.toList());
+
+        assertEquals(expectedNumberOfRecords, actualNumberOfRecords);
     }
 
     /*

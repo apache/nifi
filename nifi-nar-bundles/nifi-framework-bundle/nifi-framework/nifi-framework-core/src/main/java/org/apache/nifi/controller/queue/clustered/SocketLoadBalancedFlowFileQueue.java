@@ -28,6 +28,7 @@ import org.apache.nifi.controller.queue.ConnectionEventListener;
 import org.apache.nifi.controller.queue.DropFlowFileRequest;
 import org.apache.nifi.controller.queue.DropFlowFileState;
 import org.apache.nifi.controller.queue.FlowFileQueueContents;
+import org.apache.nifi.controller.queue.IllegalClusterStateException;
 import org.apache.nifi.controller.queue.LoadBalanceStrategy;
 import org.apache.nifi.controller.queue.LoadBalancedFlowFileQueue;
 import org.apache.nifi.controller.queue.LocalQueuePartitionDiagnostics;
@@ -144,19 +145,29 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
         sortedNodeIdentifiers.sort(Comparator.comparing(NodeIdentifier::getApiAddress));
 
         if (sortedNodeIdentifiers.isEmpty()) {
+            // No Node Identifiers are known yet. Just create the partitions using the local partition.
             queuePartitions = new QueuePartition[] { localPartition };
         } else {
-            queuePartitions = new QueuePartition[sortedNodeIdentifiers.size()];
+            // The node identifiers are known. Create the partitions using the local partition and 1 Remote Partition for each node
+            // that is not the local node identifier. If the Local Node Identifier is not yet known, that's okay. When it becomes known,
+            // the queuePartitions array will be recreated with the appropriate partitions.
+            final List<QueuePartition> partitionList = new ArrayList<>();
 
-            for (int i = 0; i < sortedNodeIdentifiers.size(); i++) {
-                final NodeIdentifier nodeId = sortedNodeIdentifiers.get(i);
-                if (nodeId.equals(clusterCoordinator.getLocalNodeIdentifier())) {
-                    queuePartitions[i] = localPartition;
+            final NodeIdentifier localNodeId = clusterCoordinator.getLocalNodeIdentifier();
+            for (final NodeIdentifier nodeId : sortedNodeIdentifiers) {
+                if (nodeId.equals(localNodeId)) {
+                    partitionList.add(localPartition);
                 } else {
-                    queuePartitions[i] = createRemotePartition(nodeId);
+                    partitionList.add(createRemotePartition(nodeId));
                 }
             }
 
+            // Ensure that our list of queue partitions always contains the local partition.
+            if (!partitionList.contains(localPartition)) {
+                partitionList.add(localPartition);
+            }
+
+            queuePartitions = partitionList.toArray(new QueuePartition[0]);
         }
 
         partitioner = new LocalPartitionPartitioner();
@@ -471,6 +482,8 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
             Long maxId = null;
             QueueSize totalQueueSize = new QueueSize(0, 0L);
             final List<ResourceClaim> resourceClaims = new ArrayList<>();
+            Long minLastQueueDate = null;
+            long totalLastQueueDate = 0L;
 
             for (final SwapSummary summary : summaries) {
                 Long summaryMaxId = summary.getMaxFlowFileId();
@@ -483,11 +496,21 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
 
                 final List<ResourceClaim> summaryResourceClaims = summary.getResourceClaims();
                 resourceClaims.addAll(summaryResourceClaims);
+
+                if(minLastQueueDate == null) {
+                    minLastQueueDate = summary.getMinLastQueueDate();
+                } else {
+                    if(summary.getMinLastQueueDate() != null) {
+                        minLastQueueDate = Long.min(minLastQueueDate, summary.getMinLastQueueDate());
+                    }
+                }
+
+                totalLastQueueDate += summary.getTotalLastQueueDate();
             }
 
             adjustSize(totalQueueSize.getObjectCount(), totalQueueSize.getByteCount());
 
-            return new StandardSwapSummary(totalQueueSize, maxId, resourceClaims);
+            return new StandardSwapSummary(totalQueueSize, maxId, resourceClaims, minLastQueueDate, totalLastQueueDate);
         } finally {
             partitionReadLock.unlock();
         }
@@ -501,6 +524,25 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
     @Override
     public QueueSize size() {
         return totalSize.get();
+    }
+
+    @Override
+    public long getTotalQueuedDuration(long fromTimestamp) {
+        long sum = 0L;
+        for (QueuePartition queuePartition : queuePartitions) {
+            long totalActiveQueuedDuration = queuePartition.getTotalActiveQueuedDuration(fromTimestamp);
+            sum += totalActiveQueuedDuration;
+        }
+        return sum;
+    }
+
+    @Override
+    public long getMinLastQueueDate() {
+        long min = 0;
+        for (QueuePartition queuePartition : queuePartitions) {
+            min = min == 0 ? queuePartition.getMinLastQueueDate() : Long.min(min, queuePartition.getMinLastQueueDate());
+        }
+        return min;
     }
 
     @Override
@@ -743,9 +785,16 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
         return partition;
     }
 
-    public void receiveFromPeer(final Collection<FlowFileRecord> flowFiles) {
+    public void receiveFromPeer(final Collection<FlowFileRecord> flowFiles) throws IllegalClusterStateException {
         partitionReadLock.lock();
         try {
+            if (offloaded) {
+                throw new IllegalClusterStateException("Node cannot accept data from load-balanced connection because it is in the process of offloading");
+            }
+            if (!clusterCoordinator.isConnected()) {
+                throw new IllegalClusterStateException("Node cannot accept data from load-balanced connection because it is not connected to cluster");
+            }
+
             if (partitioner.isRebalanceOnClusterResize()) {
                 logger.debug("Received the following FlowFiles from Peer: {}. Will re-partition FlowFiles to ensure proper balancing across the cluster.", flowFiles);
                 putAll(flowFiles);
@@ -1120,22 +1169,29 @@ public class SocketLoadBalancedFlowFileQueue extends AbstractFlowFileQueue imple
             partitionWriteLock.lock();
             try {
                 if (!offloaded) {
-                    return;
-                }
-
-                switch (newState) {
-                    case CONNECTED:
-                        if (nodeId != null && nodeId.equals(clusterCoordinator.getLocalNodeIdentifier())) {
-                            // the node with this queue was connected to the cluster, make sure the queue is not offloaded
-                            resetOffloadedQueue();
-                        }
-                        break;
-                    case OFFLOADED:
-                    case OFFLOADING:
-                    case DISCONNECTED:
-                    case DISCONNECTING:
-                        onNodeRemoved(nodeId);
-                        break;
+                    switch (newState) {
+                        case OFFLOADING:
+                            onNodeRemoved(nodeId);
+                            break;
+                        case CONNECTED:
+                            onNodeAdded(nodeId);
+                            break;
+                    }
+                } else {
+                    switch (newState) {
+                        case CONNECTED:
+                            if (nodeId != null && nodeId.equals(clusterCoordinator.getLocalNodeIdentifier())) {
+                                // the node with this queue was connected to the cluster, make sure the queue is not offloaded
+                                resetOffloadedQueue();
+                            }
+                            break;
+                        case OFFLOADED:
+                        case OFFLOADING:
+                        case DISCONNECTED:
+                        case DISCONNECTING:
+                            onNodeRemoved(nodeId);
+                            break;
+                    }
                 }
             } finally {
                 partitionWriteLock.unlock();

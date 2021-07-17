@@ -18,16 +18,16 @@
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-standard-services</artifactId>
-        <version>1.10.0-SNAPSHOT</version>
+        <version>1.15.0-SNAPSHOT</version>
     </parent>
 
     <groupId>org.apache.nifi</groupId>
     <artifactId>nifi-hbase_2-client-service-bundle</artifactId>
-    <version>1.10.0-SNAPSHOT</version>
+    <version>1.15.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <properties>
-        <hbase.version>2.1.1</hbase.version>
+        <hbase.version>2.2.2</hbase.version>
     </properties>
 
     <modules>
@@ -57,6 +57,12 @@
                 <groupId>io.netty</groupId>
                 <artifactId>netty</artifactId>
                 <version>3.6.9.Final</version>
+            </dependency>
+            <!-- Override commons-io:2.4 from hbase-client -->
+            <dependency>
+                <groupId>commons-io</groupId>
+                <artifactId>commons-io</artifactId>
+                <version>2.10.0</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

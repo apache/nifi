@@ -27,7 +27,7 @@ import org.apache.nifi.web.api.dto.AffectedComponentDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 import org.apache.nifi.web.api.dto.DtoFactory;
 import org.apache.nifi.web.api.dto.ProcessorDTO;
-import org.apache.nifi.web.api.dto.status.ProcessorStatusDTO;
+import org.apache.nifi.web.api.dto.ProcessorRunStatusDetailsDTO;
 import org.apache.nifi.web.api.entity.AffectedComponentEntity;
 import org.apache.nifi.web.api.entity.ControllerServiceEntity;
 import org.apache.nifi.web.api.entity.ProcessorEntity;
@@ -105,6 +105,9 @@ public class LocalComponentLifecycle implements ComponentLifecycle {
 
         logger.debug("Starting components with ID's {} from Process Group {}", componentRevisions.keySet(), processGroupId);
 
+        // Wait for all affected processors to be either VALID or INVALID
+        waitForProcessorValidation(processGroupId, affectedComponents, pause);
+
         serviceFacade.verifyScheduleComponents(processGroupId, ScheduledState.RUNNING, componentRevisions.keySet());
         serviceFacade.scheduleComponents(processGroupId, ScheduledState.RUNNING, componentRevisions);
 
@@ -128,6 +131,42 @@ public class LocalComponentLifecycle implements ComponentLifecycle {
         // wait for all of the Processors to reach the desired state. We don't have to wait for other components because
         // Local and Remote Ports as well as funnels stop immediately.
         waitForProcessorState(processGroupId, affectedComponents, ScheduledState.STOPPED, pause, invalidComponentAction);
+    }
+
+
+    /**
+     * Waits for all given Processors to complete validation
+     *
+     * @return <code>true</code> if all processors have completed validation, <code>false</code> if the given {@link Pause}
+     *         indicated to give up before all of the processors have completed validation
+     */
+    private boolean waitForProcessorValidation(final String groupId, final Map<String, AffectedComponentEntity> affectedComponents, final Pause pause) {
+
+        logger.debug("Waiting for {} processors to complete validation", affectedComponents.size());
+        boolean continuePolling = true;
+        while (continuePolling) {
+            final Set<ProcessorEntity> processorEntities = serviceFacade.getProcessors(groupId, true);
+            if (isProcessorValidationComplete(processorEntities, affectedComponents)) {
+                logger.debug("All {} processors of interest have completed validation", affectedComponents.size());
+                return true;
+            }
+            continuePolling = pause.pause();
+        }
+        return false;
+    }
+
+    private boolean isProcessorValidationComplete(final Set<ProcessorEntity> processorEntities, final Map<String, AffectedComponentEntity> affectedComponents) {
+        updateAffectedProcessors(processorEntities, affectedComponents);
+        for (final ProcessorEntity entity : processorEntities) {
+            if (!affectedComponents.containsKey(entity.getId())) {
+                continue;
+            }
+
+            if (ProcessorDTO.VALIDATING.equals(entity.getComponent().getValidationStatus())) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /**
@@ -157,42 +196,59 @@ public class LocalComponentLifecycle implements ComponentLifecycle {
         return false;
     }
 
+    private void updateAffectedProcessors(final Set<ProcessorEntity> processorEntities, final Map<String, AffectedComponentEntity> affectedComponents) {
+        // update the affected processors
+        processorEntities.stream()
+                .filter(entity -> affectedComponents.containsKey(entity.getId()))
+                .forEach(entity -> {
+                    final AffectedComponentEntity affectedComponentEntity = affectedComponents.get(entity.getId());
+                    affectedComponentEntity.setRevision(entity.getRevision());
+
+                    // only consider updating this component if the user has permissions to it
+                    if (Boolean.TRUE.equals(affectedComponentEntity.getPermissions().getCanRead())) {
+                        final AffectedComponentDTO affectedComponent = affectedComponentEntity.getComponent();
+                        affectedComponent.setState(entity.getStatus().getAggregateSnapshot().getRunStatus());
+                        affectedComponent.setActiveThreadCount(entity.getStatus().getAggregateSnapshot().getActiveThreadCount());
+
+                        if (Boolean.TRUE.equals(entity.getPermissions().getCanRead())) {
+                            affectedComponent.setValidationErrors(entity.getComponent().getValidationErrors());
+                        }
+                    }
+                });
+    }
+
+
     private boolean isProcessorActionComplete(final Set<ProcessorEntity> processorEntities, final Map<String, AffectedComponentEntity> affectedComponents, final ScheduledState desiredState,
                                               final InvalidComponentAction invalidComponentAction) throws LifecycleManagementException {
 
-        final String desiredStateName = desiredState.name();
-
-        // update the affected processors
-        processorEntities.stream()
-            .filter(entity -> affectedComponents.containsKey(entity.getId()))
-            .forEach(entity -> {
-                final AffectedComponentEntity affectedComponentEntity = affectedComponents.get(entity.getId());
-                affectedComponentEntity.setRevision(entity.getRevision());
-
-                // only consider updating this component if the user has permissions to it
-                if (Boolean.TRUE.equals(affectedComponentEntity.getPermissions().getCanRead())) {
-                    final AffectedComponentDTO affectedComponent = affectedComponentEntity.getComponent();
-                    affectedComponent.setState(entity.getStatus().getAggregateSnapshot().getRunStatus());
-                    affectedComponent.setActiveThreadCount(entity.getStatus().getAggregateSnapshot().getActiveThreadCount());
-
-                    if (Boolean.TRUE.equals(entity.getPermissions().getCanRead())) {
-                        affectedComponent.setValidationErrors(entity.getComponent().getValidationErrors());
-                    }
-                }
-            });
+        updateAffectedProcessors(processorEntities, affectedComponents);
 
         for (final ProcessorEntity entity : processorEntities) {
             if (!affectedComponents.containsKey(entity.getId())) {
                 continue;
             }
 
-            final ProcessorStatusDTO status = entity.getStatus();
+            final boolean desiredStateReached = isDesiredProcessorStateReached(entity, desiredState);
+            logger.debug("Processor[id={}, name={}] now has a state of {} with {} Active Threads, Validation Errors: {}; desired state = {}; invalid component action: {}; desired state reached = {}",
+                entity.getId(), entity.getComponent().getName(),  entity.getStatus().getRunStatus(), entity.getStatus().getAggregateSnapshot().getActiveThreadCount(),
+                entity.getComponent().getValidationErrors(), desiredState, invalidComponentAction, desiredStateReached);
 
-            if (ProcessorDTO.INVALID.equals(entity.getComponent().getValidationStatus())) {
+            if (desiredStateReached) {
+                continue;
+            }
+
+            // If the desired state is stopped and there are active threads, return false. We don't consider the validation status in this case.
+            if (desiredState == ScheduledState.STOPPED && entity.getStatus().getAggregateSnapshot().getActiveThreadCount() != 0) {
+                return false;
+            }
+
+            if (ProcessorRunStatusDetailsDTO.INVALID.equalsIgnoreCase(entity.getComponent().getValidationStatus())) {
                 switch (invalidComponentAction) {
                     case WAIT:
-                        return false;
+                        break;
                     case SKIP:
+                        logger.debug("Processor[id={}, name={}] is invalid. Skipping over this processor when looking for Desired State of {} because Invalid Component Action = SKIP",
+                            entity.getId(), entity.getComponent().getName(), desiredState);
                         continue;
                     case FAIL:
                         final String action = desiredState == ScheduledState.RUNNING ? "start" : "stop";
@@ -200,20 +256,27 @@ public class LocalComponentLifecycle implements ComponentLifecycle {
                 }
             }
 
-            final String runStatus = status.getAggregateSnapshot().getRunStatus();
-            final boolean stateMatches = desiredStateName.equalsIgnoreCase(runStatus);
-            if (!stateMatches) {
-                return false;
-            }
-
-            if (desiredState == ScheduledState.STOPPED && status.getAggregateSnapshot().getActiveThreadCount() != 0) {
-                return false;
-            }
+            return false;
         }
 
         return true;
     }
 
+    private boolean isDesiredProcessorStateReached(final ProcessorEntity processorEntity, final ScheduledState desiredState) {
+        final String runStatus = processorEntity.getStatus().getRunStatus();
+        final boolean stateMatches = desiredState.name().equalsIgnoreCase(runStatus);
+
+        if (!stateMatches) {
+            return false;
+        }
+
+        final Integer activeThreadCount = processorEntity.getStatus().getAggregateSnapshot().getActiveThreadCount();
+        if (desiredState == ScheduledState.STOPPED && activeThreadCount != 0) {
+            return false;
+        }
+
+        return true;
+    }
 
     private void enableControllerServices(final String processGroupId, final Map<String, Revision> serviceRevisions, final Map<String, AffectedComponentEntity> affectedServices, final Pause pause,
                                           final InvalidComponentAction invalidComponentAction) throws LifecycleManagementException {
@@ -223,6 +286,8 @@ public class LocalComponentLifecycle implements ComponentLifecycle {
         }
 
         logger.debug("Enabling Controller Services with ID's {} from Process Group {}", serviceRevisions.keySet(), processGroupId);
+
+        waitForControllerServiceValidation(processGroupId, affectedServices, pause);
 
         serviceFacade.verifyActivateControllerServices(processGroupId, ControllerServiceState.ENABLED, affectedServices.keySet());
         serviceFacade.activateControllerServices(processGroupId, ControllerServiceState.ENABLED, serviceRevisions);
@@ -282,6 +347,39 @@ public class LocalComponentLifecycle implements ComponentLifecycle {
         }
     }
 
+    /**
+     * Waits for all given Controller Services to complete validation
+     *
+     * @return <code>true</code> if all processors have completed validation, <code>false</code> if the given {@link Pause}
+     *         indicated to give up before all of the controller services have completed validation
+     */
+    private boolean waitForControllerServiceValidation(final String groupId, final Map<String, AffectedComponentEntity> affectedComponents, final Pause pause) {
+        logger.debug("Waiting for {} controller services to complete validation", affectedComponents.size());
+        boolean continuePolling = true;
+        while (continuePolling) {
+            final Set<ControllerServiceEntity> serviceEntities = serviceFacade.getControllerServices(groupId, false, true);
+            if (isControllerServiceValidationComplete(serviceEntities, affectedComponents)) {
+                logger.debug("All {} controller services of interest have completed validation", affectedComponents.size());
+                return true;
+            }
+            continuePolling = pause.pause();
+        }
+        return false;
+    }
+
+    private boolean isControllerServiceValidationComplete(final Set<ControllerServiceEntity> controllerServiceEntities, final Map<String, AffectedComponentEntity> affectedComponents) {
+        updateAffectedControllerServices(controllerServiceEntities, affectedComponents);
+        for (final ControllerServiceEntity entity : controllerServiceEntities) {
+            if (!affectedComponents.containsKey(entity.getId())) {
+                continue;
+            }
+
+            if (ControllerServiceDTO.VALIDATING.equals(entity.getComponent().getValidationStatus())) {
+                return false;
+            }
+        }
+        return true;
+    }
 
     /**
      * Periodically polls the process group with the given ID, waiting for all controller services whose ID's are given to have the given Controller Service State.
@@ -308,16 +406,25 @@ public class LocalComponentLifecycle implements ComponentLifecycle {
 
             boolean allReachedDesiredState = true;
             for (final ControllerServiceEntity serviceEntity : serviceEntities) {
-                final ControllerServiceDTO serviceDto = serviceEntity.getComponent();
-                if (!affectedServices.containsKey(serviceDto.getId())) {
+                if (!affectedServices.containsKey(serviceEntity.getId())) {
                     continue;
                 }
 
+                final ControllerServiceDTO serviceDto = serviceEntity.getComponent();
+                final boolean desiredStateReached = desiredStateName.equals(serviceDto.getState());
+
                 final String validationStatus = serviceDto.getValidationStatus();
-                if (ControllerServiceDTO.INVALID.equals(validationStatus)) {
+                logger.debug("ControllerService[id={}, name={}] now has a state of {} with a Validation Status of {}; desired state = {}; invalid component action is {}; desired state reached = {}",
+                    serviceDto.getId(), serviceDto.getName(), serviceDto.getState(), validationStatus, desiredState, invalidComponentAction, desiredStateReached);
+
+                if (desiredStateReached) {
+                    continue;
+                }
+
+                // The desired state for this component has not yet been reached. Check how we should handle this based on the validation status.
+                if (ControllerServiceDTO.INVALID.equalsIgnoreCase(validationStatus)) {
                     switch (invalidComponentAction) {
                         case WAIT:
-                            allReachedDesiredState = false;
                             break;
                         case SKIP:
                             continue;
@@ -327,10 +434,7 @@ public class LocalComponentLifecycle implements ComponentLifecycle {
                     }
                 }
 
-                if (!desiredStateName.equals(serviceDto.getState())) {
-                    allReachedDesiredState = false;
-                    break;
-                }
+                allReachedDesiredState = false;
             }
 
             if (allReachedDesiredState) {

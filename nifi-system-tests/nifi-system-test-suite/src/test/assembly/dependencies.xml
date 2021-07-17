@@ -1,0 +1,85 @@
+<?xml version="1.0"?>
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<assembly>
+    <id>assembly</id>
+    <includeBaseDirectory>true</includeBaseDirectory>
+    <baseDirectory>./</baseDirectory>
+
+
+    <dependencySets>
+        <!-- Write out the bootstrap lib component to its own dir -->
+        <dependencySet>
+            <scope>runtime</scope>
+            <useProjectArtifact>false</useProjectArtifact>
+            <outputDirectory>lib/bootstrap</outputDirectory>
+            <directoryMode>0770</directoryMode>
+            <fileMode>0664</fileMode>
+            <useTransitiveFiltering>true</useTransitiveFiltering>
+            <includes>
+                <include>nifi-bootstrap-utils</include>
+                <include>nifi-bootstrap</include>
+                <include>bcprov-jdk15on</include>
+                <include>commons-lang3</include>
+                <include>slf4j-api</include>
+                <include>nifi-api</include>
+            </includes>
+        </dependencySet>
+
+        <!-- Write out the bootstrap libs for java11 to its own dir -->
+        <!-- TODO: remove this dependency set once minimum Java version is 11 -->
+        <dependencySet>
+            <scope>runtime</scope>
+            <useProjectArtifact>false</useProjectArtifact>
+            <outputDirectory>lib/java11</outputDirectory>
+            <directoryMode>0770</directoryMode>
+            <fileMode>0664</fileMode>
+            <useTransitiveFiltering>true</useTransitiveFiltering>
+            <includes>
+                <include>javax.xml.bind:jaxb-api</include>
+                <include>com.sun.xml.bind:jaxb-impl</include>
+                <include>com.sun.xml.bind:jaxb-core</include>
+                <include>javax.activation:javax.activation-api</include>
+                <include>javax.annotation:javax.annotation-api</include>
+            </includes>
+        </dependencySet>
+
+        <!-- Write out all dependency artifacts to lib directory -->
+        <dependencySet>
+            <scope>runtime</scope>
+            <useProjectArtifact>false</useProjectArtifact>
+            <outputDirectory>lib</outputDirectory>
+            <directoryMode>0770</directoryMode>
+            <fileMode>0664</fileMode>
+            <useTransitiveFiltering>true</useTransitiveFiltering>
+            <excludes>
+                <exclude>nifi-bootstrap-utils</exclude>
+                <exclude>nifi-bootstrap</exclude>
+                <exclude>nifi-resources</exclude>
+                <exclude>nifi-docs</exclude>
+                <exclude>nifi-toolkit-cli</exclude>
+
+                <!-- exclude jaxb/activation/annotation libs from lib, they'll be included in the java11 subdir -->
+                <!-- TODO: remove these once minimum Java version is 11 -->
+                <exclude>javax.xml.bind:jaxb-api</exclude>
+                <exclude>com.sun.xml.bind:jaxb-impl</exclude>
+                <exclude>com.sun.xml.bind:jaxb-core</exclude>
+                <exclude>javax.activation:javax.activation-api</exclude>
+                <exclude>javax.annotation:javax.annotation-api</exclude>
+            </excludes>
+        </dependencySet>
+    </dependencySets>
+
+</assembly>

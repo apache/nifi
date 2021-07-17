@@ -17,6 +17,7 @@
 package org.apache.nifi.controller.scheduling;
 
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
+import org.apache.nifi.annotation.lifecycle.OnShutdown;
 import org.apache.nifi.annotation.lifecycle.OnStopped;
 import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.components.state.StateManager;
@@ -35,9 +36,11 @@ import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.SchedulingAgentCallback;
 import org.apache.nifi.controller.StandardProcessorNode;
 import org.apache.nifi.controller.exception.ProcessorInstantiationException;
+import org.apache.nifi.controller.repository.scheduling.ConnectableProcessContext;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
-import org.apache.nifi.encrypt.StringEncryptor;
+import org.apache.nifi.controller.service.StandardConfigurationContext;
+import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.engine.FlowEngine;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.nar.NarCloseable;
@@ -88,9 +91,9 @@ public final class StandardProcessScheduler implements ProcessScheduler {
     private final ScheduledExecutorService componentLifeCycleThreadPool;
     private final ScheduledExecutorService componentMonitoringThreadPool = new FlowEngine(2, "Monitor Processor Lifecycle", true);
 
-    private final StringEncryptor encryptor;
+    private final PropertyEncryptor encryptor;
 
-    public StandardProcessScheduler(final FlowEngine componentLifecycleThreadPool, final FlowController flowController, final StringEncryptor encryptor,
+    public StandardProcessScheduler(final FlowEngine componentLifecycleThreadPool, final FlowController flowController, final PropertyEncryptor encryptor,
         final StateManagerProvider stateManagerProvider, final NiFiProperties nifiProperties) {
         this.componentLifeCycleThreadPool = componentLifecycleThreadPool;
         this.flowController = flowController;
@@ -177,6 +180,23 @@ public final class StandardProcessScheduler implements ProcessScheduler {
     }
 
     @Override
+    public void shutdownReportingTask(final ReportingTaskNode reportingTask) {
+        final ConfigurationContext configContext = reportingTask.getConfigurationContext();
+        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(flowController.getExtensionManager(), reportingTask.getReportingTask().getClass(), reportingTask.getIdentifier())) {
+            ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnShutdown.class, reportingTask.getReportingTask(), configContext);
+        }
+    }
+
+    @Override
+    public void shutdownControllerService(final ControllerServiceNode serviceNode, final ControllerServiceProvider controllerServiceProvider) {
+        final Class<?> serviceImplClass = serviceNode.getControllerServiceImplementation().getClass();
+        try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(flowController.getExtensionManager(), serviceImplClass, serviceNode.getIdentifier())) {
+            final ConfigurationContext configContext = new StandardConfigurationContext(serviceNode, controllerServiceProvider, null, flowController.getVariableRegistry());
+            ReflectionUtils.quietlyInvokeMethodsWithAnnotation(OnShutdown.class, serviceNode.getControllerServiceImplementation(), configContext);
+        }
+    }
+
+    @Override
     public void schedule(final ReportingTaskNode taskNode) {
         final LifecycleState lifecycleState = getLifecycleState(requireNonNull(taskNode), true);
         if (lifecycleState.isScheduled()) {
@@ -231,7 +251,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
 
                     LOG.error("Failed to invoke the On-Scheduled Lifecycle methods of {} due to {}; administratively yielding this "
                             + "ReportingTask and will attempt to schedule it again after {}",
-                            new Object[]{reportingTask, e.toString(), administrativeYieldDuration}, e);
+                            reportingTask, e.toString(), administrativeYieldDuration, e);
 
 
                     try (final NarCloseable x = NarCloseable.withComponentNarLoader(flowController.getExtensionManager(), reportingTask.getClass(), reportingTask.getIdentifier())) {
@@ -304,7 +324,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
         final LifecycleState lifecycleState = getLifecycleState(requireNonNull(procNode), true);
 
         final Supplier<ProcessContext> processContextFactory = () -> new StandardProcessContext(procNode, getControllerServiceProvider(),
-            this.encryptor, getStateManager(procNode.getIdentifier()), lifecycleState::isTerminated);
+            this.encryptor, getStateManager(procNode.getIdentifier()), lifecycleState::isTerminated, flowController);
 
         final CompletableFuture<Void> future = new CompletableFuture<>();
         final SchedulingAgentCallback callback = new SchedulingAgentCallback() {
@@ -333,6 +353,47 @@ public final class StandardProcessScheduler implements ProcessScheduler {
     }
 
     /**
+     * Runs the given {@link Processor} once by invoking its
+     * {@link ProcessorNode#runOnce(ScheduledExecutorService, long, long, Supplier, SchedulingAgentCallback)}
+     * method.
+     *
+     * @see ProcessorNode#runOnce(ScheduledExecutorService, long, long, Supplier, SchedulingAgentCallback)
+     */
+    @Override
+    public Future<Void> runProcessorOnce(ProcessorNode procNode, final Callable<Future<Void>> stopCallback) {
+        final LifecycleState lifecycleState = getLifecycleState(requireNonNull(procNode), true);
+
+        final Supplier<ProcessContext> processContextFactory = () -> new StandardProcessContext(procNode, getControllerServiceProvider(),
+            this.encryptor, getStateManager(procNode.getIdentifier()), lifecycleState::isTerminated, flowController);
+
+        final CompletableFuture<Void> future = new CompletableFuture<>();
+        final SchedulingAgentCallback callback = new SchedulingAgentCallback() {
+            @Override
+            public void trigger() {
+                lifecycleState.clearTerminationFlag();
+                getSchedulingAgent(procNode).scheduleOnce(procNode, lifecycleState, stopCallback);
+                future.complete(null);
+            }
+
+            @Override
+            public Future<?> scheduleTask(final Callable<?> task) {
+                lifecycleState.incrementActiveThreadCount(null);
+                return componentLifeCycleThreadPool.submit(task);
+            }
+
+            @Override
+            public void onTaskComplete() {
+                lifecycleState.decrementActiveThreadCount(null);
+            }
+        };
+
+        LOG.info("Running once {}", procNode);
+        procNode.runOnce(componentMonitoringThreadPool, administrativeYieldMillis, processorStartTimeoutMillis, processContextFactory, callback);
+
+        return future;
+    }
+
+    /**
      * Stops the given {@link Processor} by invoking its
      * {@link ProcessorNode#stop(ProcessScheduler, ScheduledExecutorService, ProcessContext, SchedulingAgent, LifecycleState)}
      * method.
@@ -344,7 +405,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
         final LifecycleState lifecycleState = getLifecycleState(procNode, false);
 
         StandardProcessContext processContext = new StandardProcessContext(procNode, getControllerServiceProvider(),
-            this.encryptor, getStateManager(procNode.getIdentifier()), lifecycleState::isTerminated);
+            this.encryptor, getStateManager(procNode.getIdentifier()), lifecycleState::isTerminated, flowController);
 
         LOG.info("Stopping {}", procNode);
         return procNode.stop(this, this.componentLifeCycleThreadPool, processContext, getSchedulingAgent(procNode), lifecycleState);
@@ -352,7 +413,7 @@ public final class StandardProcessScheduler implements ProcessScheduler {
 
     @Override
     public synchronized void terminateProcessor(final ProcessorNode procNode) {
-        if (procNode.getScheduledState() != ScheduledState.STOPPED) {
+        if (procNode.getScheduledState() != ScheduledState.STOPPED && procNode.getScheduledState() != ScheduledState.RUN_ONCE) {
             throw new IllegalStateException("Cannot terminate " + procNode + " because it is not currently stopped");
         }
 

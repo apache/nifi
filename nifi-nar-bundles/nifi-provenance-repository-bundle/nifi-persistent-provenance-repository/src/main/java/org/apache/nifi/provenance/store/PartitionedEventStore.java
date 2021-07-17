@@ -62,7 +62,8 @@ public abstract class PartitionedEventStore implements EventStore {
     @Override
     public void initialize() throws IOException {
         maintenanceExecutor = Executors.newScheduledThreadPool(1, new NamedThreadFactory("Provenance Repository Maintenance"));
-        maintenanceExecutor.scheduleWithFixedDelay(() -> performMaintenance(), 1, 1, TimeUnit.MINUTES);
+        final long maintenanceMillis = repoConfig.getMaintenanceFrequency(TimeUnit.MILLISECONDS);
+        maintenanceExecutor.scheduleWithFixedDelay(this::performMaintenance, maintenanceMillis, maintenanceMillis, TimeUnit.MILLISECONDS);
 
         for (final EventStorePartition partition : getPartitions()) {
             partition.initialize();

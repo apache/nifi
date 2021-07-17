@@ -32,7 +32,6 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.lang.Thread.UncaughtExceptionHandler;
-import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.MalformedURLException;
@@ -44,8 +43,8 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Set;
 import java.util.Random;
+import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.Executors;
@@ -56,7 +55,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
-public class NiFi {
+public class NiFi implements NiFiEntryPoint {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(NiFi.class);
     private static final String KEY_FILE_FLAG = "-K";
@@ -123,7 +122,7 @@ public class NiFi {
         // redirect JUL log events
         initLogging();
 
-        final Bundle systemBundle = SystemBundle.create(properties);
+        final Bundle systemBundle = SystemBundle.create(properties, rootClassLoader);
 
         // expand the nars
         final ExtensionMapping extensionMapping = NarUnpacker.unpackNars(properties, systemBundle);
@@ -142,15 +141,17 @@ public class NiFi {
 
         final Set<Bundle> narBundles = narClassLoaders.getBundles();
 
-        // load the server from the framework classloader
-        Thread.currentThread().setContextClassLoader(frameworkClassLoader);
-        Class<?> jettyServer = Class.forName("org.apache.nifi.web.server.JettyServer", true, frameworkClassLoader);
-        Constructor<?> jettyConstructor = jettyServer.getConstructor(NiFiProperties.class, Set.class);
-
         final long startTime = System.nanoTime();
-        nifiServer = (NiFiServer) jettyConstructor.newInstance(properties, narBundles);
-        nifiServer.setExtensionMapping(extensionMapping);
-        nifiServer.setBundles(systemBundle, narBundles);
+        nifiServer = narClassLoaders.getServer();
+        if (nifiServer == null) {
+            throw new IllegalStateException("Unable to find a NiFiServer implementation.");
+        }
+        Thread.currentThread().setContextClassLoader(nifiServer.getClass().getClassLoader());
+        // Filter out the framework NAR from being loaded by the NiFiServer
+        nifiServer.initialize(properties,
+                systemBundle,
+                narBundles,
+                extensionMapping);
 
         if (shutdown) {
             LOGGER.info("NiFi has been shutdown via NiFi Bootstrap. Will not start Controller");
@@ -158,6 +159,7 @@ public class NiFi {
             nifiServer.start();
 
             if (bootstrapListener != null) {
+                bootstrapListener.setNiFiLoaded(true);
                 bootstrapListener.sendStartedStatus(true);
             }
 
@@ -167,7 +169,7 @@ public class NiFi {
         }
     }
 
-    NiFiServer getServer() {
+    public NiFiServer getServer() {
         return nifiServer;
     }
 
@@ -186,7 +188,7 @@ public class NiFi {
             @Override
             public void run() {
                 // shutdown the jetty server
-                shutdownHook();
+                shutdownHook(false);
             }
         }));
     }
@@ -214,7 +216,7 @@ public class NiFi {
         return new URLClassLoader(urls.toArray(new URL[0]), Thread.currentThread().getContextClassLoader());
     }
 
-    protected void shutdownHook() {
+    public void shutdownHook(boolean isReload) {
         try {
             shutdown();
         } catch (final Throwable t) {
@@ -305,8 +307,11 @@ public class NiFi {
     }
 
     protected static NiFiProperties convertArgumentsToValidatedNiFiProperties(String[] args) {
-        final ClassLoader bootstrap = createBootstrapClassLoader();
-        NiFiProperties properties = initializeProperties(args, bootstrap);
+        return convertArgumentsToValidatedNiFiProperties(args, createBootstrapClassLoader());
+    }
+
+    protected static NiFiProperties convertArgumentsToValidatedNiFiProperties(String[] args, final ClassLoader bootstrapClassLoader) {
+        NiFiProperties properties = initializeProperties(args, bootstrapClassLoader);
         properties.validate();
         return properties;
     }

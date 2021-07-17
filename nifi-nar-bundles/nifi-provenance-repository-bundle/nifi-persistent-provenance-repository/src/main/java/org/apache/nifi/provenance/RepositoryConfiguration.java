@@ -39,6 +39,7 @@ public class RepositoryConfiguration {
 
     public static final String CONCURRENT_MERGE_THREADS = "nifi.provenance.repository.concurrent.merge.threads";
     public static final String WARM_CACHE_FREQUENCY = "nifi.provenance.repository.warm.cache.frequency";
+    public static final String MAINTENACE_FREQUENCY = "nifi.provenance.repository.maintenance.frequency";
 
     private final Map<String, File> storageDirectories = new LinkedHashMap<>();
     private long recordLifeMillis = TimeUnit.MILLISECONDS.convert(24, TimeUnit.HOURS);
@@ -51,11 +52,14 @@ public class RepositoryConfiguration {
     private int compressionBlockBytes = 1024 * 1024;
     private int maxAttributeChars = 65536;
     private int debugFrequency = 1_000_000;
+    private long maintenanceFrequencyMillis = TimeUnit.MINUTES.toMillis(1L);
 
+    // TODO: Delegaate to RepositoryEncryptionConfiguration in NIFI-6617
     private Map<String, String> encryptionKeys;
     private String keyId;
     private String keyProviderImplementation;
     private String keyProviderLocation;
+    private String keyProviderPassword;
 
     private List<SearchableField> searchableFields = new ArrayList<>();
     private List<SearchableField> searchableAttributes = new ArrayList<>();
@@ -406,6 +410,13 @@ public class RepositoryConfiguration {
         this.keyProviderLocation = keyProviderLocation;
     }
 
+    public String getKeyProviderPassword() {
+        return keyProviderPassword;
+    }
+
+    public void setKeyProviderPassword(final String keyProviderPassword) {
+        this.keyProviderPassword = keyProviderPassword;
+    }
 
     public int getDebugFrequency() {
         return debugFrequency;
@@ -413,6 +424,14 @@ public class RepositoryConfiguration {
 
     public void setDebugFrequency(int debugFrequency) {
         this.debugFrequency = debugFrequency;
+    }
+
+    public long getMaintenanceFrequency(final TimeUnit timeUnit) {
+        return timeUnit.convert(maintenanceFrequencyMillis, TimeUnit.MILLISECONDS);
+    }
+
+    public void setMaintenanceFrequency(final long period, final TimeUnit timeUnit) {
+        this.maintenanceFrequencyMillis = timeUnit.toMillis(period);
     }
 
 
@@ -425,13 +444,14 @@ public class RepositoryConfiguration {
         final String storageSize = nifiProperties.getProperty(NiFiProperties.PROVENANCE_MAX_STORAGE_SIZE, "1 GB");
         final String rolloverTime = nifiProperties.getProperty(NiFiProperties.PROVENANCE_ROLLOVER_TIME, "5 mins");
         final String rolloverSize = nifiProperties.getProperty(NiFiProperties.PROVENANCE_ROLLOVER_SIZE, "100 MB");
+        final int rolloverEventCount = nifiProperties.getIntegerProperty(NiFiProperties.PROVENANCE_ROLLOVER_EVENT_COUNT, Integer.MAX_VALUE);
         final String shardSize = nifiProperties.getProperty(NiFiProperties.PROVENANCE_INDEX_SHARD_SIZE, "500 MB");
         final int queryThreads = nifiProperties.getIntegerProperty(NiFiProperties.PROVENANCE_QUERY_THREAD_POOL_SIZE, 2);
         final int indexThreads = nifiProperties.getIntegerProperty(NiFiProperties.PROVENANCE_INDEX_THREAD_POOL_SIZE, 2);
         final int journalCount = nifiProperties.getIntegerProperty(NiFiProperties.PROVENANCE_JOURNAL_COUNT, 16);
         final int concurrentMergeThreads = nifiProperties.getIntegerProperty(CONCURRENT_MERGE_THREADS, 2);
         final String warmCacheFrequency = nifiProperties.getProperty(WARM_CACHE_FREQUENCY);
-
+        final String maintenanceFrequency = nifiProperties.getProperty(MAINTENACE_FREQUENCY);
         final long storageMillis = FormatUtils.getTimeDuration(storageTime, TimeUnit.MILLISECONDS);
         final long maxStorageBytes = DataUnit.parseDataSize(storageSize, DataUnit.B).longValue();
         final long rolloverMillis = FormatUtils.getTimeDuration(rolloverTime, TimeUnit.MILLISECONDS);
@@ -474,6 +494,7 @@ public class RepositoryConfiguration {
         config.setSearchableFields(searchableFields);
         config.setSearchableAttributes(searchableAttributes);
         config.setMaxEventFileCapacity(rolloverBytes);
+        config.setMaxEventFileCount(rolloverEventCount);
         config.setMaxEventFileLife(rolloverMillis, TimeUnit.MILLISECONDS);
         config.setMaxRecordLife(storageMillis, TimeUnit.MILLISECONDS);
         config.setMaxStorageCapacity(maxStorageBytes);
@@ -489,11 +510,16 @@ public class RepositoryConfiguration {
         if (shardSize != null) {
             config.setDesiredIndexSize(DataUnit.parseDataSize(shardSize, DataUnit.B).longValue());
         }
+        if (maintenanceFrequency != null && !maintenanceFrequency.trim().equals("")) {
+            final long millis = FormatUtils.getTimeDuration(maintenanceFrequency.trim(), TimeUnit.MILLISECONDS);
+            config.setMaintenanceFrequency(millis, TimeUnit.MILLISECONDS);
+        }
 
         config.setAlwaysSync(alwaysSync);
 
         config.setDebugFrequency(nifiProperties.getIntegerProperty(NiFiProperties.PROVENANCE_REPO_DEBUG_FREQUENCY, config.getDebugFrequency()));
 
+        // TODO: Check for multiple key loading (NIFI-6617)
         // Encryption values may not be present but are only required for EncryptedWriteAheadProvenanceRepository
         final String implementationClassName = nifiProperties.getProperty(NiFiProperties.PROVENANCE_REPO_IMPLEMENTATION_CLASS);
         if (EncryptedWriteAheadProvenanceRepository.class.getName().equals(implementationClassName)) {
@@ -501,6 +527,7 @@ public class RepositoryConfiguration {
             config.setKeyId(nifiProperties.getProperty(NiFiProperties.PROVENANCE_REPO_ENCRYPTION_KEY_ID));
             config.setKeyProviderImplementation(nifiProperties.getProperty(NiFiProperties.PROVENANCE_REPO_ENCRYPTION_KEY_PROVIDER_IMPLEMENTATION_CLASS));
             config.setKeyProviderLocation(nifiProperties.getProperty(NiFiProperties.PROVENANCE_REPO_ENCRYPTION_KEY_PROVIDER_LOCATION));
+            config.setKeyProviderPassword(nifiProperties.getProperty(NiFiProperties.PROVENANCE_REPO_ENCRYPTION_KEY_PROVIDER_PASSWORD));
         }
 
         return config;

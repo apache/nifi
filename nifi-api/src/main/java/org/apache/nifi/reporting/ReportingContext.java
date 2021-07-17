@@ -16,12 +16,11 @@
  */
 package org.apache.nifi.reporting;
 
+import java.util.Map;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.controller.ControllerServiceLookup;
-
-import java.util.Map;
 
 /**
  * This interface provides a bridge between the NiFi Framework and a
@@ -98,4 +97,11 @@ public interface ReportingContext extends PropertyContext {
      *         has not yet been established
      */
     String getClusterNodeIdentifier();
+
+    /**
+     * @return true if reporting analytics (connection status predictions, e.g.) are enabled, false otherwise
+     */
+    default boolean isAnalyticsEnabled() {
+        return false;
+    }
 }

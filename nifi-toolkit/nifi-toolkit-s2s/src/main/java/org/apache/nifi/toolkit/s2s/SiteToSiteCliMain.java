@@ -30,7 +30,6 @@ import org.apache.commons.cli.ParseException;
 import org.apache.nifi.remote.TransferDirection;
 import org.apache.nifi.remote.client.KeystoreType;
 import org.apache.nifi.remote.client.SiteToSiteClient;
-import org.apache.nifi.remote.exception.NoContentException;
 import org.apache.nifi.remote.protocol.SiteToSiteTransportProtocol;
 import org.apache.nifi.remote.protocol.http.HttpProxy;
 import org.apache.nifi.util.FormatUtils;
@@ -242,8 +241,6 @@ public class SiteToSiteCliMain {
                 } else {
                     new SiteToSiteReceiver(siteToSiteClient, output).receiveFiles();
                 }
-            } catch (final NoContentException e) {
-                System.out.println("Remote port has no flowfiles");
             }
         } catch (Exception e) {
             printUsage(e.getMessage(), options);

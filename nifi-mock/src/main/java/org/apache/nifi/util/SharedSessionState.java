@@ -18,14 +18,11 @@ package org.apache.nifi.util;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
-
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceReporter;
@@ -38,7 +35,8 @@ public class SharedSessionState {
     private final Processor processor;
     private final AtomicLong flowFileIdGenerator;
     private final ConcurrentMap<String, AtomicLong> counterMap = new ConcurrentHashMap<>();
-    private final Set<ProvenanceEventRecord> events = new LinkedHashSet<>();
+    // list of provenance events as they were in the provenance repository (events emitted with force=true or committed with the session)
+    private final List<ProvenanceEventRecord> events = new ArrayList<>();
 
     public SharedSessionState(final Processor processor, final AtomicLong flowFileIdGenerator) {
         flowFileQueue = new MockFlowFileQueue();

@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+      http://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+
+<xliff version="1.2" xmlns="urn:oasis:names:tc:xliff:document:1.2">
+  <file source-language="es" datatype="plaintext" original="ng2.template">
+    <body>
+      <trans-unit id="nf-admin-general-tab-title" datatype="html">
+         <source>general</source>
+         <target state="new">general</target>
+        <note priority="1" from="description">A description of the type of administration options available.</note>
+        <note priority="1" from="meaning">General administration tab</note>
+       </trans-unit>
+      <trans-unit id="nf-admin-users-tab-title" datatype="html">
+         <source>users</source>
+         <target state="new">Usuarios</target>
+        <note priority="1" from="description">A description of the type of administration options available.</note>
+        <note priority="1" from="meaning">Users administration tab</note>
+       </trans-unit>
+      <trans-unit id="nf-admin-workflow-tab-title" datatype="html">
+         <source>Workflow</source>
+         <target state="new">Flujo de trabajo</target>
+        <note priority="1" from="description">A description of the type of administration options available.</note>
+        <note priority="1" from="meaning">Workflow administration tab</note>
+       </trans-unit>
+      <trans-unit id="nf-admin-user-management-sidenav-membership-tab-title" datatype="html">
+         <source>Membership</source>
+         <target state="new">afiliación</target>
+        <note priority="1" from="description">View the groups to which this user belongs.</note>
+        <note priority="1" from="meaning">Group membership tab, user management sidenav</note>
+       </trans-unit>
+      <trans-unit id="nf-admin-group-management-sidenav-membership-tab-title" datatype="html">
+         <source>Membership</source>
+         <target state="new">afiliación</target>
+        <note priority="1" from="description">View the users that belong to this group.</note>
+        <note priority="1" from="meaning">User membership tab, group management sidenav</note>
+       </trans-unit>
+      <trans-unit id="nf-admin-user-management-sidenav-policies-tab-title" datatype="html">
+         <source>Policies</source>
+         <target state="new">Políticas</target>
+        <note priority="1" from="description">View the policies grated this user.</note>
+        <note priority="1" from="meaning">User policy tab, user management sidenav</note>
+       </trans-unit>
+      <trans-unit id="nf-admin-workflow-add-user-button" datatype="html">
+         <source>Add</source>
+         <target state="new">añadir</target>
+        <note priority="1" from="description">A button for adding a new user in the registry.</note>
+        <note priority="1" from="meaning">Add new user button</note>
+       </trans-unit>
+      <trans-unit id="nf-admin-workflow-cancel-add-user-button" datatype="html">
+         <source>Cancel</source>
+         <target state="new">Cancelar</target>
+        <note priority="1" from="description">A button for cancelling the creation of a new user in the registry.</note>
+        <note priority="1" from="meaning">Cancel creation of new user</note>
+       </trans-unit>
+      <trans-unit id="nf-admin-workflow-cancel-create-bucket-button" datatype="html">
+         <source>Cancel</source>
+         <target state="new">Cancelar</target>
+        <note priority="1" from="description">A button for cancelling the creation of a new bucket in the registry.</note>
+        <note priority="1" from="meaning">Cancel creation of new bucket</note>
+       </trans-unit>
+      <trans-unit id="nf-admin-workflow-cancel-bucket-policy-creation-button" datatype="html">
+         <source>Cancel</source>
+         <target state="new">Cancelar</target>
+        <note priority="1" from="description">A button for cancelling the creation of a new bucket policy in the registry.</note>
+        <note priority="1" from="meaning">Cancel creation of new bucket policy</note>
+       </trans-unit>
+      <trans-unit id="nf-clear-user-login-button" datatype="html">
+         <source>Clear</source>
+         <target state="new">Claro</target>
+        <note priority="1" from="description">A button for clearing the login form.</note>
+        <note priority="1" from="meaning">Clear log in form</note>
+       </trans-unit>
+      <trans-unit id="nf-user-login-button" datatype="html">
+         <source>Log In</source>
+         <target state="new">Iniciar sesión</target>
+        <note priority="1" from="description">A button for attempting to authenticate with the registry.</note>
+        <note priority="1" from="meaning">Log in form</note>
+       </trans-unit>
+      <trans-unit id="nf-cancel-user-login-button" datatype="html">
+         <source>Cancel</source>
+         <target state="new">Cancelar</target>
+        <note priority="1" from="description">A button for cancelling authentication with the registry.</note>
+        <note priority="1" from="meaning">Cancel Log in form</note>
+       </trans-unit>
+      <trans-unit id="nf-admin-workflow-create-new-group-button" datatype="html">
+         <source>Create</source>
+         <target state="new">Crear</target>
+        <note priority="1" from="description">A button for creating a new group in the registry.</note>
+        <note priority="1" from="meaning">Create new group button</note>
+       </trans-unit>
+      <trans-unit id="nf-admin-workflow-create-bucket-button" datatype="html">
+         <source>Create</source>
+         <target state="new">Crear</target>
+        <note priority="1" from="description">A button for creating a new bucket in the registry.</note>
+        <note priority="1" from="meaning">Create new bucket button</note>
+       </trans-unit>
+      <trans-unit id="nf-admin-workflow-apply-policy-to-bucket-button" datatype="html">
+         <source>Apply</source>
+         <target state="new">Aplicar</target>
+        <note priority="1" from="description">A button for applying a new bucket policy in the registry.</note>
+        <note priority="1" from="meaning">Apply new bucket policy button</note>
+       </trans-unit>
+      <trans-unit id="nf-admin-workflow-cancel-create-new-group-button" datatype="html">
+         <source>Cancel</source>
+         <target state="new">Cancelar</target>
+        <note priority="1" from="description">A button for cancelling the creation of a new group in the registry.</note>
+        <note priority="1" from="meaning">Cancel creation of new group</note>
+       </trans-unit>
+      <trans-unit id="nf-admin-workflow-add-selected-users-to-group-button" datatype="html">
+         <source>Add</source>
+         <target state="new">añadir</target>
+        <note priority="1" from="description">A button for adding users to an existing group in the registry.</note>
+        <note priority="1" from="meaning">Add selected users to group button</note>
+       </trans-unit>
+      <trans-unit id="nf-admin-workflow-cancel-add-selected-users-to-group-button" datatype="html">
+         <source>Cancel</source>
+         <target state="new">Cancelar</target>
+        <note priority="1" from="description">A button for cancelling the addition of selected users to a group in the registry.</note>
+        <note priority="1" from="meaning">Cancel addition of selected users to group</note>
+       </trans-unit>
+    </body>
+  </file>
+</xliff>

@@ -20,9 +20,10 @@ import java.io.File;
 import java.io.FileFilter;
 import java.io.IOException;
 import java.net.URL;
-import java.net.URLClassLoader;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,11 +53,16 @@ import org.slf4j.LoggerFactory;
  *
  * <pre>
  *   +META-INF/
- *   +-- bundled-dependencies/
+ *   +-- bundled-dependencies/[native]
  *   +-- &lt;JAR files&gt;
  *   +-- MANIFEST.MF
  * </pre>
  * </p>
+ *
+ * The optional "native" subdirectory under "bundled-dependencies" may contain native
+ * libraries. Directories defined via the java.library.path system property are also scanned.
+ * After a library is found an OS-handled temporary copy is created and cached before loading
+ * it to maintain consistency and classloader isolation.
  *
  * <p>
  * The MANIFEST.MF file contains the same information as a typical JAR file but
@@ -116,7 +122,7 @@ import org.slf4j.LoggerFactory;
  * Maven NAR plugin will fail to build the NAR.
  * </p>
  */
-public class NarClassLoader extends URLClassLoader {
+public class NarClassLoader extends AbstractNativeLibHandlingClassLoader {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(NarClassLoader.class);
 
@@ -144,7 +150,7 @@ public class NarClassLoader extends URLClassLoader {
      * @throws IOException if an error occurs while loading the NAR.
      */
     public NarClassLoader(final File narWorkingDirectory) throws ClassNotFoundException, IOException {
-        super(new URL[0]);
+        super(new URL[0], initNativeLibDirList(narWorkingDirectory), narWorkingDirectory.getName());
         this.narWorkingDirectory = narWorkingDirectory;
 
         // process the classpath
@@ -163,7 +169,7 @@ public class NarClassLoader extends URLClassLoader {
      * @throws IOException if an error occurs while loading the NAR.
      */
     public NarClassLoader(final File narWorkingDirectory, final ClassLoader parentClassLoader) throws ClassNotFoundException, IOException {
-        super(new URL[0], parentClassLoader);
+        super(new URL[0], parentClassLoader, initNativeLibDirList(narWorkingDirectory), narWorkingDirectory.getName());
         this.narWorkingDirectory = narWorkingDirectory;
 
         // process the classpath
@@ -204,27 +210,25 @@ public class NarClassLoader extends URLClassLoader {
         }
     }
 
-    @Override
-    protected String findLibrary(final String libname) {
+    public File getNARNativeLibDir() {
+        return getNARNativeLibDir(narWorkingDirectory);
+    }
+
+    private static List<File> initNativeLibDirList(File narWorkingDirectory) {
+        ArrayList<File> nativeLibDirList = new ArrayList<>();
+
+        nativeLibDirList.add(getNARNativeLibDir(narWorkingDirectory));
+
+        return nativeLibDirList;
+    }
+
+    private static File getNARNativeLibDir(File narWorkingDirectory) {
         File dependencies = new File(narWorkingDirectory, "NAR-INF/bundled-dependencies");
         if (!dependencies.isDirectory()) {
             LOGGER.warn(narWorkingDirectory + " does not contain NAR-INF/bundled-dependencies!");
         }
 
-        final File nativeDir = new File(dependencies, "native");
-        final File libsoFile = new File(nativeDir, "lib" + libname + ".so");
-        final File dllFile = new File(nativeDir, libname + ".dll");
-        final File soFile = new File(nativeDir, libname + ".so");
-        if (libsoFile.exists()) {
-            return libsoFile.getAbsolutePath();
-        } else if (dllFile.exists()) {
-            return dllFile.getAbsolutePath();
-        } else if (soFile.exists()) {
-            return soFile.getAbsolutePath();
-        }
-
-        // not found in the nar. try system native dir
-        return null;
+        return new File(dependencies, "native");
     }
 
     @Override

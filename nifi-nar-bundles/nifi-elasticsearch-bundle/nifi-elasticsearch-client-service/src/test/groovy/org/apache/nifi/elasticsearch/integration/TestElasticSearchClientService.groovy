@@ -33,37 +33,42 @@ class TestElasticSearchClientService extends AbstractControllerService implement
     ]
 
     @Override
-    IndexOperationResponse add(IndexOperationRequest operation) throws IOException {
+    IndexOperationResponse add(IndexOperationRequest operation) {
         return null
     }
 
     @Override
-    IndexOperationResponse add(List<IndexOperationRequest> operations) throws IOException {
+    IndexOperationResponse bulk(List<IndexOperationRequest> operations) {
         return null
     }
 
     @Override
-    DeleteOperationResponse deleteById(String index, String type, String id) throws IOException {
+    Long count(String query, String index, String type) {
         return null
     }
 
     @Override
-    DeleteOperationResponse deleteById(String index, String type, List<String> ids) throws IOException {
+    DeleteOperationResponse deleteById(String index, String type, String id) {
         return null
     }
 
     @Override
-    DeleteOperationResponse deleteByQuery(String query, String index, String type) throws IOException {
+    DeleteOperationResponse deleteById(String index, String type, List<String> ids) {
         return null
     }
 
     @Override
-    Map<String, Object> get(String index, String type, String id) throws IOException {
+    DeleteOperationResponse deleteByQuery(String query, String index, String type) {
+        return null
+    }
+
+    @Override
+    Map<String, Object> get(String index, String type, String id) {
         return data
     }
 
     @Override
-    SearchResponse search(String query, String index, String type) throws IOException {
+    SearchResponse search(String query, String index, String type) {
         List hits = [[
             "_source": data
         ]]

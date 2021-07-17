@@ -34,6 +34,11 @@ public class ProcessGroupDTO extends ComponentDTO {
     private Map<String, String> variables;
     private VersionControlInformationDTO versionControlInformation;
     private ParameterContextReferenceEntity parameterContext;
+    private String flowfileConcurrency;
+    private String flowfileOutboundPolicy;
+    private String defaultFlowFileExpiration;
+    private Long defaultBackPressureObjectThreshold;
+    private String defaultBackPressureDataSizeThreshold;
 
     private Integer runningCount;
     private Integer stoppedCount;
@@ -109,7 +114,7 @@ public class ProcessGroupDTO extends ComponentDTO {
      */
     @ApiModelProperty(
             value = "The number of input ports in the process group.",
-            readOnly = true
+            accessMode = ApiModelProperty.AccessMode.READ_ONLY
     )
     public Integer getInputPortCount() {
         return NumberUtil.sumNullableIntegers(localInputPortCount, publicInputPortCount);
@@ -169,7 +174,7 @@ public class ProcessGroupDTO extends ComponentDTO {
      */
     @ApiModelProperty(
             value = "The number of output ports in the process group.",
-            readOnly = true
+            accessMode = ApiModelProperty.AccessMode.READ_ONLY
     )
     public Integer getOutputPortCount() {
         return NumberUtil.sumNullableIntegers(localOutputPortCount, publicOutputPortCount);
@@ -325,7 +330,7 @@ public class ProcessGroupDTO extends ComponentDTO {
     @ApiModelProperty(value = "The variables that are configured for the Process Group. Note that this map contains only "
         + "those variables that are defined on this Process Group and not any variables that are defined in the parent "
         + "Process Group, etc. I.e., this Map will not contain all variables that are accessible by components in this "
-        + "Process Group by rather only the variables that are defined for this Process Group itself.", readOnly = true)
+        + "Process Group by rather only the variables that are defined for this Process Group itself.", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
     public Map<String, String> getVariables() {
         return variables;
     }
@@ -351,5 +356,51 @@ public class ProcessGroupDTO extends ComponentDTO {
 
     public void setParameterContext(final ParameterContextReferenceEntity parameterContext) {
         this.parameterContext = parameterContext;
+    }
+
+    @ApiModelProperty(value = "The FlowFile Concurrency for this Process Group.", allowableValues = "UNBOUNDED, SINGLE_FLOWFILE_PER_NODE")
+    public String getFlowfileConcurrency() {
+        return flowfileConcurrency;
+    }
+
+    public void setFlowfileConcurrency(final String flowfileConcurrency) {
+        this.flowfileConcurrency = flowfileConcurrency;
+    }
+
+    @ApiModelProperty(value = "The Outbound Policy that is used for determining how FlowFiles should be transferred out of the Process Group.",
+        allowableValues = "STREAM_WHEN_AVAILABLE, BATCH_OUTPUT")
+    public String getFlowfileOutboundPolicy() {
+        return flowfileOutboundPolicy;
+    }
+
+    public void setFlowfileOutboundPolicy(final String flowfileOutboundPolicy) {
+        this.flowfileOutboundPolicy = flowfileOutboundPolicy;
+    }
+
+    @ApiModelProperty(value = "The default FlowFile Expiration for this Process Group.")
+    public String getDefaultFlowFileExpiration() {
+        return defaultFlowFileExpiration;
+    }
+
+    public void setDefaultFlowFileExpiration(String defaultFlowFileExpiration) {
+        this.defaultFlowFileExpiration = defaultFlowFileExpiration;
+    }
+
+    @ApiModelProperty(value = "Default value used in this Process Group for the maximum number of objects that can be queued before back pressure is applied.")
+    public Long getDefaultBackPressureObjectThreshold() {
+        return defaultBackPressureObjectThreshold;
+    }
+
+    public void setDefaultBackPressureObjectThreshold(final Long defaultBackPressureObjectThreshold) {
+        this.defaultBackPressureObjectThreshold = defaultBackPressureObjectThreshold;
+    }
+
+    @ApiModelProperty(value = "Default value used in this Process Group for the maximum data size of objects that can be queued before back pressure is applied.")
+    public String getDefaultBackPressureDataSizeThreshold() {
+        return defaultBackPressureDataSizeThreshold;
+    }
+
+    public void setDefaultBackPressureDataSizeThreshold(final String defaultBackPressureDataSizeThreshold) {
+        this.defaultBackPressureDataSizeThreshold = defaultBackPressureDataSizeThreshold;
     }
 }

@@ -16,11 +16,10 @@
  */
 package org.apache.nifi.documentation.init;
 
+import java.util.Map;
 import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.components.state.StateManager;
 import org.apache.nifi.components.state.StateMap;
-
-import java.util.Map;
 
 public class NopStateManager implements StateManager {
     @Override

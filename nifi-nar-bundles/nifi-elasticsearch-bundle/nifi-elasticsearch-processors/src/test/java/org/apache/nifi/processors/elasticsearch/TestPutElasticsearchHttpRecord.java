@@ -25,11 +25,14 @@ import okhttp3.Request;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
 import okio.Buffer;
+import org.apache.nifi.json.JsonTreeReader;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.reporting.InitializationException;
+import org.apache.nifi.schema.access.SchemaAccessUtils;
+import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.record.MockRecordParser;
 import org.apache.nifi.serialization.record.MockRecordWriter;
 import org.apache.nifi.serialization.record.RecordFieldType;
@@ -41,6 +44,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.net.ConnectException;
 import java.sql.Date;
 import java.sql.Time;
@@ -130,6 +134,93 @@ public class TestPutElasticsearchHttpRecord {
     }
 
     @Test
+    public void testPutElasticSearchOnTriggerCreate() throws IOException {
+        runner = TestRunners.newTestRunner(new PutElasticsearchHttpRecordTestProcessor(false)); // no failures
+        generateTestData();
+        runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
+
+        runner.setProperty(PutElasticsearchHttpRecord.INDEX, "doc");
+        runner.setProperty(PutElasticsearchHttpRecord.TYPE, "status");
+        runner.setProperty(PutElasticsearchHttpRecord.INDEX_OP, "create");
+
+        runner.enqueue(new byte[0], new HashMap<String, String>() {{
+            put("doc_id", "28039652140");
+        }});
+        runner.run(1, true, true);
+
+        runner.assertAllFlowFilesTransferred(PutElasticsearchHttpRecord.REL_SUCCESS, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(PutElasticsearchHttpRecord.REL_SUCCESS).get(0);
+        assertNotNull(out);
+        out.assertAttributeEquals("doc_id", "28039652140");
+        out.assertAttributeEquals("record.count", "4");
+        List<ProvenanceEventRecord> provEvents = runner.getProvenanceEvents();
+        assertNotNull(provEvents);
+        assertEquals(1, provEvents.size());
+        assertEquals(ProvenanceEventType.SEND, provEvents.get(0).getEventType());
+    }
+
+    @Test
+    public void testPutElasticSearchOnTriggerIndex_withoutType() throws IOException {
+        PutElasticsearchHttpRecordTestProcessor processor = new PutElasticsearchHttpRecordTestProcessor(false);
+        DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("h:m a");
+        DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("d/M/YYYY h:m a");
+        processor.setRecordChecks(record -> {
+            assertEquals(1, record.get("id"));
+            assertEquals("reç1", record.get("name"));
+            assertEquals(101, record.get("code"));
+            assertEquals("20/12/2018", record.get("date"));
+            assertEquals(LocalTime.of(18, 55).format(timeFormatter), record.get("time"));
+            assertEquals(LocalDateTime.of(2018, 12, 20, 18, 55).format(dateTimeFormatter), record.get("ts"));
+        }, record -> {
+            assertEquals(2, record.get("id"));
+            assertEquals("reç2", record.get("name"));
+            assertEquals(102, record.get("code"));
+            assertEquals("20/12/2018", record.get("date"));
+            assertEquals(LocalTime.of(18, 55).format(timeFormatter), record.get("time"));
+            assertEquals(LocalDateTime.of(2018, 12, 20, 18, 55).format(dateTimeFormatter), record.get("ts"));
+        }, record -> {
+            assertEquals(3, record.get("id"));
+            assertEquals("reç3", record.get("name"));
+            assertEquals(103, record.get("code"));
+            assertEquals("20/12/2018", record.get("date"));
+            assertEquals(LocalTime.of(18, 55).format(timeFormatter), record.get("time"));
+            assertEquals(LocalDateTime.of(2018, 12, 20, 18, 55).format(dateTimeFormatter), record.get("ts"));
+        }, record -> {
+            assertEquals(4, record.get("id"));
+            assertEquals("reç4", record.get("name"));
+            assertEquals(104, record.get("code"));
+            assertEquals("20/12/2018", record.get("date"));
+            assertEquals(LocalTime.of(18, 55).format(timeFormatter), record.get("time"));
+            assertEquals(LocalDateTime.of(2018, 12, 20, 18, 55).format(dateTimeFormatter), record.get("ts"));
+        });
+        runner = TestRunners.newTestRunner(processor); // no failures
+        generateTestData();
+        runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
+
+        runner.setProperty(PutElasticsearchHttpRecord.INDEX, "doc");
+        runner.removeProperty(PutElasticsearchHttpRecord.TYPE);
+        runner.setProperty(PutElasticsearchHttpRecord.ID_RECORD_PATH, "/id");
+        runner.setProperty(PutElasticsearchHttpRecord.DATE_FORMAT, "d/M/yyyy");
+        runner.setProperty(PutElasticsearchHttpRecord.TIME_FORMAT, "h:m a");
+        runner.setProperty(PutElasticsearchHttpRecord.TIMESTAMP_FORMAT, "d/M/yyyy h:m a");
+
+        runner.enqueue(new byte[0], new HashMap<String, String>() {{
+            put("doc_id", "28039652140");
+        }});
+        runner.run(1, true, true);
+
+        runner.assertAllFlowFilesTransferred(PutElasticsearchHttpRecord.REL_SUCCESS, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(PutElasticsearchHttpRecord.REL_SUCCESS).get(0);
+        assertNotNull(out);
+        out.assertAttributeEquals("doc_id", "28039652140");
+        out.assertAttributeEquals("record.count", "4");
+        List<ProvenanceEventRecord> provEvents = runner.getProvenanceEvents();
+        assertNotNull(provEvents);
+        assertEquals(1, provEvents.size());
+        assertEquals(ProvenanceEventType.SEND, provEvents.get(0).getEventType());
+    }
+
+    @Test
     public void testPutElasticSearchOnTriggerUpdate() throws IOException {
         runner = TestRunners.newTestRunner(new PutElasticsearchHttpRecordTestProcessor(false)); // no failures
         generateTestData();
@@ -151,6 +242,27 @@ public class TestPutElasticsearchHttpRecord {
     }
 
     @Test
+    public void testPutElasticSearchOnTriggerUpdate_withoutType() throws IOException {
+        runner = TestRunners.newTestRunner(new PutElasticsearchHttpRecordTestProcessor(false)); // no failures
+        generateTestData();
+        runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
+
+        runner.setProperty(PutElasticsearchHttpRecord.INDEX, "doc");
+        runner.removeProperty(PutElasticsearchHttpRecord.TYPE);
+        runner.setProperty(PutElasticsearchHttpRecord.ID_RECORD_PATH, "/id");
+        runner.setProperty(PutElasticsearchHttpRecord.INDEX_OP, "Update");
+        runner.enqueue(new byte[0], new HashMap<String, String>() {{
+            put("doc_id", "28039652140");
+        }});
+        runner.run(1, true, true);
+
+        runner.assertAllFlowFilesTransferred(PutElasticsearchHttpRecord.REL_SUCCESS, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(PutElasticsearchHttpRecord.REL_SUCCESS).get(0);
+        assertNotNull(out);
+        out.assertAttributeEquals("doc_id", "28039652140");
+    }
+
+    @Test
     public void testPutElasticSearchOnTriggerDelete() throws IOException {
         runner = TestRunners.newTestRunner(new PutElasticsearchHttpRecordTestProcessor(false)); // no failures
         generateTestData();
@@ -158,6 +270,27 @@ public class TestPutElasticsearchHttpRecord {
 
         runner.setProperty(PutElasticsearchHttpRecord.INDEX, "doc");
         runner.setProperty(PutElasticsearchHttpRecord.TYPE, "status");
+        runner.setProperty(PutElasticsearchHttpRecord.ID_RECORD_PATH, "/id");
+        runner.setProperty(PutElasticsearchHttpRecord.INDEX_OP, "DELETE");
+        runner.enqueue(new byte[0], new HashMap<String, String>() {{
+            put("doc_id", "28039652140");
+        }});
+        runner.run(1, true, true);
+
+        runner.assertAllFlowFilesTransferred(PutElasticsearchHttpRecord.REL_SUCCESS, 1);
+        final MockFlowFile out = runner.getFlowFilesForRelationship(PutElasticsearchHttpRecord.REL_SUCCESS).get(0);
+        assertNotNull(out);
+        out.assertAttributeEquals("doc_id", "28039652140");
+    }
+
+    @Test
+    public void testPutElasticSearchOnTriggerDelete_withoutType() throws IOException {
+        runner = TestRunners.newTestRunner(new PutElasticsearchHttpRecordTestProcessor(false)); // no failures
+        generateTestData();
+        runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
+
+        runner.setProperty(PutElasticsearchHttpRecord.INDEX, "doc");
+        runner.removeProperty(PutElasticsearchHttpRecord.TYPE);
         runner.setProperty(PutElasticsearchHttpRecord.ID_RECORD_PATH, "/id");
         runner.setProperty(PutElasticsearchHttpRecord.INDEX_OP, "DELETE");
         runner.enqueue(new byte[0], new HashMap<String, String>() {{
@@ -224,13 +357,15 @@ public class TestPutElasticsearchHttpRecord {
         generateTestData();
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
 
-        runner.setProperty(PutElasticsearchHttpRecord.INDEX, "doc");
         runner.assertNotValid();
+        runner.setProperty(PutElasticsearchHttpRecord.INDEX, "doc");
         runner.setProperty(PutElasticsearchHttpRecord.TYPE, "status");
         runner.assertValid();
         runner.setProperty(PutElasticsearchHttpRecord.INDEX_OP, "");
         runner.assertNotValid();
         runner.setProperty(PutElasticsearchHttpRecord.INDEX_OP, "index");
+        runner.assertValid();
+        runner.setProperty(PutElasticsearchHttpRecord.INDEX_OP, "create");
         runner.assertValid();
         runner.setProperty(PutElasticsearchHttpRecord.INDEX_OP, "upsert");
         runner.assertNotValid();
@@ -353,11 +488,15 @@ public class TestPutElasticsearchHttpRecord {
         generateTestData();
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
 
-        runner.setProperty(PutElasticsearchHttpRecord.INDEX, "doc");
         runner.assertNotValid();
+        runner.setProperty(PutElasticsearchHttpRecord.INDEX, "doc");
         runner.setProperty(PutElasticsearchHttpRecord.TYPE, "status");
         runner.assertValid();
         runner.setProperty(PutElasticsearchHttpRecord.ID_RECORD_PATH, "/id");
+        runner.assertValid();
+        runner.setProperty(PutElasticsearchHttpRecord.INDEX_OP, "index");
+        runner.assertValid();
+        runner.setProperty(PutElasticsearchHttpRecord.INDEX_OP, "create");
         runner.assertValid();
 
         runner.setProperty(PutElasticsearchHttpRecord.INDEX_OP, "index_fail");
@@ -578,20 +717,24 @@ public class TestPutElasticsearchHttpRecord {
      */
     @Test
     @Ignore("Comment this out if you want to run against local or test ES")
-    public void testPutElasticSearchBasic() {
+    public void testPutElasticSearchBasic() throws InitializationException {
         System.out.println("Starting test " + new Object() {
         }.getClass().getEnclosingMethod().getName());
         final TestRunner runner = TestRunners.newTestRunner(new PutElasticsearchHttpRecord());
 
+        final RecordReaderFactory reader = new JsonTreeReader();
+        runner.addControllerService("reader", reader);
+        runner.setProperty(reader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, "infer-schema");
+        runner.enableControllerService(reader);
+        runner.setProperty(PutElasticsearchHttpRecord.RECORD_READER, "reader");
+
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
         runner.setProperty(PutElasticsearchHttpRecord.INDEX, "doc");
-        runner.setProperty(PutElasticsearchHttpRecord.TYPE, "status");
+        runner.setProperty(PutElasticsearchHttpRecord.TYPE, "_doc");
         runner.setProperty(PutElasticsearchHttpRecord.ID_RECORD_PATH, "/id");
         runner.assertValid();
 
-        runner.enqueue(new byte[0], new HashMap<String, String>() {{
-            put("doc_id", "28039652140");
-        }});
+        runner.enqueue("{\"id\": 28039652140}");
 
         runner.enqueue(new byte[0]);
         runner.run(1, true, true);
@@ -604,26 +747,34 @@ public class TestPutElasticsearchHttpRecord {
 
     @Test
     @Ignore("Comment this out if you want to run against local or test ES")
-    public void testPutElasticSearchBatch() throws IOException {
+    public void testPutElasticSearchBatch() throws InitializationException {
         System.out.println("Starting test " + new Object() {
         }.getClass().getEnclosingMethod().getName());
         final TestRunner runner = TestRunners.newTestRunner(new PutElasticsearchHttpRecord());
 
+        final RecordReaderFactory reader = new JsonTreeReader();
+        runner.addControllerService("reader", reader);
+        runner.setProperty(reader, SchemaAccessUtils.SCHEMA_ACCESS_STRATEGY, "infer-schema");
+        runner.enableControllerService(reader);
+        runner.setProperty(PutElasticsearchHttpRecord.RECORD_READER, "reader");
+
         runner.setProperty(AbstractElasticsearchHttpProcessor.ES_URL, "http://127.0.0.1:9200");
         runner.setProperty(PutElasticsearchHttpRecord.INDEX, "doc");
-        runner.setProperty(PutElasticsearchHttpRecord.TYPE, "status");
+        runner.setProperty(PutElasticsearchHttpRecord.TYPE, "_doc");
         runner.setProperty(PutElasticsearchHttpRecord.ID_RECORD_PATH, "/id");
         runner.assertValid();
 
+        final StringBuilder sb = new StringBuilder();
         for (int i = 0; i < 100; i++) {
             long newId = 28039652140L + i;
             final String newStrId = Long.toString(newId);
-            runner.enqueue(new byte[0], new HashMap<String, String>() {{
-                put("doc_id", newStrId);
-            }});
+            sb.append("{\"id\": ").append(newStrId).append("}\n");
         }
+        runner.enqueue(sb.toString().getBytes());
         runner.run();
-        runner.assertAllFlowFilesTransferred(PutElasticsearchHttpRecord.REL_SUCCESS, 100);
+        runner.assertAllFlowFilesTransferred(PutElasticsearchHttpRecord.REL_SUCCESS, 1);
+        final String content = runner.getFlowFilesForRelationship(PutElasticsearchHttpRecord.REL_SUCCESS).get(0).getContent();
+        assertEquals(sb.toString(), content);
     }
 
     @Test(expected = AssertionError.class)
@@ -664,9 +815,10 @@ public class TestPutElasticsearchHttpRecord {
         parser.addSchemaField("date", RecordFieldType.DATE);
         parser.addSchemaField("time", RecordFieldType.TIME);
         parser.addSchemaField("ts", RecordFieldType.TIMESTAMP);
+        parser.addSchemaField("amount", RecordFieldType.DECIMAL);
 
         for(int i=1; i<=numRecords; i++) {
-            parser.addRecord(i, "reç" + i, 100 + i, new Date(1545282000000L), new Time(68150000), new Timestamp(1545332150000L));
+            parser.addRecord(i, "reç" + i, 100 + i, Date.valueOf("2018-12-20"), new Time(68150000), new Timestamp(1545332150000L), new BigDecimal(Double.MAX_VALUE).multiply(BigDecimal.TEN));
         }
     }
 

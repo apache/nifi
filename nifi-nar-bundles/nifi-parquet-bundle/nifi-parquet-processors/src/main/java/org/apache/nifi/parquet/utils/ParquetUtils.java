@@ -168,9 +168,11 @@ public class ParquetUtils {
         final ParquetFileWriter.Mode mode = overwrite ? ParquetFileWriter.Mode.OVERWRITE : ParquetFileWriter.Mode.CREATE;
         parquetConfig.setWriterMode(mode);
 
-        final String compressionTypeValue = context.getProperty(ParquetUtils.COMPRESSION_TYPE).getValue();
-        final CompressionCodecName codecName = CompressionCodecName.valueOf(compressionTypeValue);
-        parquetConfig.setCompressionCodec(codecName);
+        if(context.getProperty(ParquetUtils.COMPRESSION_TYPE).isSet()) {
+            final String compressionTypeValue = context.getProperty(ParquetUtils.COMPRESSION_TYPE).getValue();
+            final CompressionCodecName codecName = CompressionCodecName.valueOf(compressionTypeValue);
+            parquetConfig.setCompressionCodec(codecName);
+        }
 
         // Optional properties
 
@@ -307,6 +309,11 @@ public class ParquetUtils {
         if (parquetConfig.getAvroWriteOldListStructure() != null) {
             conf.setBoolean(AvroWriteSupport.WRITE_OLD_LIST_STRUCTURE,
                     parquetConfig.getAvroWriteOldListStructure().booleanValue());
+        }
+        conf.setBoolean(AvroReadSupport.READ_INT96_AS_FIXED, true);
+        if (parquetConfig.getInt96Fields() != null) {
+            conf.setStrings("parquet.avro.writeFixedAsInt96",
+                parquetConfig.getInt96Fields());
         }
     }
 }

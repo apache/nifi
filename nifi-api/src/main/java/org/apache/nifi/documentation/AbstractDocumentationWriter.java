@@ -96,7 +96,7 @@ public abstract class AbstractDocumentationWriter implements ExtensionDocumentat
 
     @Override
     public final void write(final ConfigurableComponent component) throws IOException {
-        write(component, null, null);
+        write(component, Collections.emptyList(), Collections.emptyMap());
     }
 
     @Override

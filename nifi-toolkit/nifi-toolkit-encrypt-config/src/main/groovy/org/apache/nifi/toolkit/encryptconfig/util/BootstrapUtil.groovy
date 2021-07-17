@@ -21,12 +21,12 @@ import org.slf4j.LoggerFactory
 
 class BootstrapUtil {
 
-    static final String NIFI_BOOTSTRAP_KEY_PROPERTY = "nifi.bootstrap.sensitive.key";
-    static final String REGISTRY_BOOTSTRAP_KEY_PROPERTY = "nifi.registry.bootstrap.sensitive.key";
+    static final String NIFI_BOOTSTRAP_KEY_PROPERTY = "nifi.bootstrap.sensitive.key"
+    static final String REGISTRY_BOOTSTRAP_KEY_PROPERTY = "nifi.registry.bootstrap.sensitive.key"
 
     private static final Logger logger = LoggerFactory.getLogger(BootstrapUtil.class)
 
-    private static final String BOOTSTRAP_KEY_COMMENT = "# Master key in hexadecimal format for encrypted sensitive configuration values"
+    private static final String BOOTSTRAP_KEY_COMMENT = "# Root key in hexadecimal format for encrypted sensitive configuration values"
 
     /**
      * Tries to load keyHex from input bootstrap.conf
@@ -58,11 +58,11 @@ class BootstrapUtil {
 
 
         } catch (IOException e) {
-            logger.error("Encountered an exception reading the master key from the input bootstrap.conf file: ${e.getMessage()}")
+            logger.error("Encountered an exception reading the root key from the input bootstrap.conf file: ${e.getMessage()}")
             throw e
         }
 
-        return keyValue;
+        return keyValue
 
     }
 
@@ -91,7 +91,7 @@ class BootstrapUtil {
             // Write the updated values to the output file
             outputBootstrapConfFile.text = lines.join("\n")
         } catch (IOException e) {
-            logger.error("Encountered an exception reading the master key from the input bootstrap.conf file: ${e.getMessage()}")
+            logger.error("Encountered an exception reading the root key from the input bootstrap.conf file: ${e.getMessage()}")
             throw e
         }
     }

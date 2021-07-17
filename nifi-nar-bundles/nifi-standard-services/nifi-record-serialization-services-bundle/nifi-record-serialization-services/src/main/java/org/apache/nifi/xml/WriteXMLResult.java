@@ -41,6 +41,7 @@ import javax.xml.stream.XMLStreamWriter;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Map;
@@ -60,6 +61,7 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
     private final SchemaAccessWriter schemaAccess;
     private final XMLStreamWriter writer;
     private final NullSuppression nullSuppression;
+    private final boolean omitDeclaration;
     private final ArrayWrapping arrayWrapping;
     private final String arrayTagName;
     private final String recordTagName;
@@ -71,7 +73,7 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
     private final Supplier<DateFormat> LAZY_TIME_FORMAT;
     private final Supplier<DateFormat> LAZY_TIMESTAMP_FORMAT;
 
-    public WriteXMLResult(final RecordSchema recordSchema, final SchemaAccessWriter schemaAccess, final OutputStream out, final boolean prettyPrint,
+    public WriteXMLResult(final RecordSchema recordSchema, final SchemaAccessWriter schemaAccess, final OutputStream out, final boolean prettyPrint, final boolean omitDeclaration,
                           final NullSuppression nullSuppression, final ArrayWrapping arrayWrapping, final String arrayTagName, final String rootTagName, final String recordTagName,
                           final String charSet, final String dateFormat, final String timeFormat, final String timestampFormat) throws IOException {
 
@@ -80,6 +82,8 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
         this.recordSchema = recordSchema;
         this.schemaAccess = schemaAccess;
         this.nullSuppression = nullSuppression;
+
+        this.omitDeclaration = omitDeclaration;
 
         this.arrayWrapping = arrayWrapping;
         this.arrayTagName = arrayTagName;
@@ -102,7 +106,8 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
         this.allowWritingMultipleRecords = !(this.rootTagName == null);
         hasWrittenRecord = false;
 
-        final DateFormat df = dateFormat == null ? null : DataTypeUtils.getDateFormat(dateFormat);
+        // Use DateFormat with default TimeZone to avoid unexpected conversion of year-month-day
+        final DateFormat df = dateFormat == null ? null : new SimpleDateFormat(dateFormat);
         final DateFormat tf = timeFormat == null ? null : DataTypeUtils.getDateFormat(timeFormat);
         final DateFormat tsf = timestampFormat == null ? null : DataTypeUtils.getDateFormat(timestampFormat);
 
@@ -131,7 +136,9 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
         schemaAccess.writeHeader(recordSchema, out);
 
         try {
-            writer.writeStartDocument();
+            if (!omitDeclaration) {
+                writer.writeStartDocument();
+            }
 
             if (allowWritingMultipleRecords) {
                 writer.writeStartElement(rootTagName);
@@ -250,6 +257,7 @@ public class WriteXMLResult extends AbstractRecordSetWriter implements RecordSet
             case BOOLEAN:
             case BYTE:
             case CHAR:
+            case DECIMAL:
             case DOUBLE:
             case FLOAT:
             case INT:

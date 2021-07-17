@@ -29,7 +29,6 @@ import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.commons.io.IOUtils;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
@@ -45,7 +44,6 @@ import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.remote.StandardVersionNegotiator;
 import org.apache.nifi.remote.VersionNegotiator;
 import org.apache.nifi.ssl.SSLContextService;
-import org.apache.nifi.ssl.SSLContextService.ClientAuth;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -409,7 +407,7 @@ public class DistributedMapCacheClientService extends AbstractControllerService 
         if (sslContextService == null) {
             commsSession = new StandardCommsSession(hostname, port, timeoutMillis);
         } else {
-            commsSession = new SSLCommsSession(sslContextService.createSSLContext(ClientAuth.REQUIRED), hostname, port, timeoutMillis);
+            commsSession = new SSLCommsSession(sslContextService.createContext(), hostname, port, timeoutMillis);
         }
 
         commsSession.setTimeout(timeoutMillis, TimeUnit.MILLISECONDS);
@@ -503,7 +501,7 @@ public class DistributedMapCacheClientService extends AbstractControllerService 
         }
     }
 
-    private static interface CommsAction<T> {
+    private interface CommsAction<T> {
 
         T execute(CommsSession commsSession) throws IOException;
     }

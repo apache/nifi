@@ -25,7 +25,7 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnScheduled;
-import org.apache.nifi.annotation.lifecycle.OnStopped;
+import org.apache.nifi.annotation.lifecycle.OnUnscheduled;
 import org.apache.nifi.annotation.notification.OnPrimaryNodeStateChange;
 import org.apache.nifi.annotation.notification.PrimaryNodeState;
 import org.apache.nifi.components.AllowableValue;
@@ -60,6 +60,7 @@ import com.google.common.base.Optional;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 
+import javax.net.ssl.SSLContext;
 import javax.servlet.AsyncContext;
 import javax.servlet.DispatcherType;
 import javax.servlet.MultipartConfigElement;
@@ -89,12 +90,14 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
 
 @InputRequirement(Requirement.INPUT_FORBIDDEN)
 @Tags({"http", "https", "request", "listen", "ingress", "web service"})
 @CapabilityDescription("Starts an HTTP Server and listens for HTTP Requests. For each request, creates a FlowFile and transfers to 'success'. "
-        + "This Processor is designed to be used in conjunction with the HandleHttpResponse Processor in order to create a Web Service")
+        + "This Processor is designed to be used in conjunction with the HandleHttpResponse Processor in order to create a Web Service. In case "
+        + " of a multipart request, one FlowFile is generated for each part.")
 @WritesAttributes({
     @WritesAttribute(attribute = HTTPUtils.HTTP_CONTEXT_ID, description = "An identifier that allows the HandleHttpRequest and HandleHttpResponse "
             + "to coordinate which FlowFile belongs to which HTTP Request/Response."),
@@ -112,6 +115,10 @@ import java.util.regex.Pattern;
     @WritesAttribute(attribute = HTTPUtils.HTTP_REQUEST_URI, description = "The full Request URL"),
     @WritesAttribute(attribute = "http.auth.type", description = "The type of HTTP Authorization used"),
     @WritesAttribute(attribute = "http.principal.name", description = "The name of the authenticated user making the request"),
+    @WritesAttribute(attribute = "http.query.param.XXX", description = "Each of query parameters in the request will be added as an attribute, "
+            + "prefixed with \"http.query.param.\""),
+    @WritesAttribute(attribute = "http.param.XXX", description = "Form parameters in the request that are configured by \"Parameters to Attributes List\" will be added as an attribute, "
+        + "prefixed with \"http.param.\". Putting form parameters of large size is not recommended."),
     @WritesAttribute(attribute = HTTPUtils.HTTP_SSL_CERT, description = "The Distinguished Name of the requestor. This value will not be populated "
             + "unless the Processor is configured to use an SSLContext Service"),
     @WritesAttribute(attribute = "http.issuer.dn", description = "The Distinguished Name of the entity that issued the Subject's certificate. "
@@ -119,7 +126,7 @@ import java.util.regex.Pattern;
     @WritesAttribute(attribute = "http.headers.XXX", description = "Each of the HTTP Headers that is received in the request will be added as an "
             + "attribute, prefixed with \"http.headers.\" For example, if the request contains an HTTP Header named \"x-my-header\", then the value "
             + "will be added to an attribute named \"http.headers.x-my-header\""),
-    @WritesAttribute(attribute = "http.headers.multipart.XXX", description = "Each of the HTTP Headers that is received in the mulipart request will be added as an "
+    @WritesAttribute(attribute = "http.headers.multipart.XXX", description = "Each of the HTTP Headers that is received in the multipart request will be added as an "
         + "attribute, prefixed with \"http.headers.multipart.\" For example, if the multipart request contains an HTTP Header named \"content-disposition\", then the value "
         + "will be added to an attribute named \"http.headers.multipart.content-disposition\""),
     @WritesAttribute(attribute = "http.multipart.size",
@@ -129,7 +136,8 @@ import java.util.regex.Pattern;
     @WritesAttribute(attribute = "http.multipart.name",
         description = "For requests with Content-Type \"multipart/form-data\", the part's name is recorded into this attribute"),
     @WritesAttribute(attribute = "http.multipart.filename",
-        description = "For requests with Content-Type \"multipart/form-data\", when the part contains an uploaded file, the name of the file is recorded into this attribute"),
+        description = "For requests with Content-Type \"multipart/form-data\", when the part contains an uploaded file, the name of the file is recorded into this attribute. "
+                    + "Files are stored temporarily at the default temporary-file directory specified in \"java.io.File\" Java Docs)"),
     @WritesAttribute(attribute = "http.multipart.fragments.sequence.number",
         description = "For requests with Content-Type \"multipart/form-data\", the part's index is recorded into this attribute. The index starts with 1."),
     @WritesAttribute(attribute = "http.multipart.fragments.total.number",
@@ -243,6 +251,14 @@ public class HandleHttpRequest extends AbstractProcessor {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
+    public static final PropertyDescriptor PARAMETERS_TO_ATTRIBUTES = new PropertyDescriptor.Builder()
+            .name("parameters-to-attributes")
+            .displayName("Parameters to Attributes List")
+            .description("A comma-separated list of HTTP parameters or form data to output as attributes")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+            .build();
     public static final PropertyDescriptor CLIENT_AUTH = new PropertyDescriptor.Builder()
             .name("Client Authentication")
             .description("Specifies whether or not the Processor should authenticate clients. This value is ignored if the <SSL Context Service> "
@@ -300,13 +316,16 @@ public class HandleHttpRequest extends AbstractProcessor {
         descriptors.add(CONTAINER_QUEUE_SIZE);
         descriptors.add(MULTIPART_REQUEST_MAX_SIZE);
         descriptors.add(MULTIPART_READ_BUFFER_SIZE);
+        descriptors.add(PARAMETERS_TO_ATTRIBUTES);
         propertyDescriptors = Collections.unmodifiableList(descriptors);
     }
 
     private volatile Server server;
+    private volatile boolean ready;
     private AtomicBoolean initialized = new AtomicBoolean(false);
     private volatile BlockingQueue<HttpRequestContainer> containerQueue;
     private AtomicBoolean runOnPrimary = new AtomicBoolean(false);
+    private AtomicReference<Set<String>> parameterToAttributesReference = new AtomicReference<>(null);
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -323,7 +342,7 @@ public class HandleHttpRequest extends AbstractProcessor {
         initialized.set(false);
     }
 
-    private synchronized void initializeServer(final ProcessContext context) throws Exception {
+    synchronized void initializeServer(final ProcessContext context) throws Exception {
         if(initialized.get()){
             return;
         }
@@ -422,6 +441,18 @@ public class HandleHttpRequest extends AbstractProcessor {
             }
         }
 
+        final Set<String> parametersToMakeAttributes = new HashSet<>();
+        final String parametersToAttributesPropertyValue = context.getProperty(PARAMETERS_TO_ATTRIBUTES).getValue();
+        if (parametersToAttributesPropertyValue != null) {
+            for (final String paremeterName : parametersToAttributesPropertyValue.split(",")) {
+                final String trimmed = paremeterName.trim();
+                if (!trimmed.isEmpty()) {
+                    parametersToMakeAttributes.add(trimmed);
+                }
+            }
+            parameterToAttributesReference.set(parametersToMakeAttributes);
+        }
+
         final String pathRegex = context.getProperty(PATH_REGEX).getValue();
         final Pattern pathPattern = (pathRegex == null) ? null : Pattern.compile(pathRegex);
 
@@ -461,6 +492,12 @@ public class HandleHttpRequest extends AbstractProcessor {
 
                     response.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE, "Processor queue is full");
                     return;
+                } else if (!ready) {
+                    getLogger().warn("Request from {} cannot be processed, processor is being shut down; responding with SERVICE_UNAVAILABLE",
+                        new Object[]{request.getRemoteAddr()});
+
+                    response.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE, "Processor is shutting down");
+                    return;
                 }
 
                 // Right now, that information, though, is only in the ProcessSession, not the ProcessContext,
@@ -491,6 +528,7 @@ public class HandleHttpRequest extends AbstractProcessor {
         getLogger().info("Server started and listening on port " + getPort());
 
         initialized.set(true);
+        ready = true;
     }
 
     protected int getPort() {
@@ -507,44 +545,60 @@ public class HandleHttpRequest extends AbstractProcessor {
         return containerQueue.size();
     }
 
-    private SslContextFactory createSslFactory(final SSLContextService sslService, final boolean needClientAuth, final boolean wantClientAuth) {
-        final SslContextFactory sslFactory = new SslContextFactory();
+    private SslContextFactory createSslFactory(final SSLContextService sslContextService, final boolean needClientAuth, final boolean wantClientAuth) {
+        final SslContextFactory.Server sslFactory = new SslContextFactory.Server();
 
         sslFactory.setNeedClientAuth(needClientAuth);
         sslFactory.setWantClientAuth(wantClientAuth);
 
-        sslFactory.setProtocol(sslService.getSslAlgorithm());
-
-        // Need to set SslContextFactory's endpointIdentificationAlgorithm to null; this is a server,
-        // not a client.  Server does not need to perform hostname verification on the client.
-        // Previous to Jetty 9.4.15.v20190215, this defaulted to null.
-        sslFactory.setEndpointIdentificationAlgorithm(null);
-
-        if (sslService.isKeyStoreConfigured()) {
-            sslFactory.setKeyStorePath(sslService.getKeyStoreFile());
-            sslFactory.setKeyStorePassword(sslService.getKeyStorePassword());
-            sslFactory.setKeyStoreType(sslService.getKeyStoreType());
-        }
-
-        if (sslService.isTrustStoreConfigured()) {
-            sslFactory.setTrustStorePath(sslService.getTrustStoreFile());
-            sslFactory.setTrustStorePassword(sslService.getTrustStorePassword());
-            sslFactory.setTrustStoreType(sslService.getTrustStoreType());
-        }
+        final SSLContext sslContext = sslContextService.createContext();
+        sslFactory.setSslContext(sslContext);
 
         return sslFactory;
     }
 
-    @OnStopped
+    @OnUnscheduled
     public void shutdown() throws Exception {
+        ready = false;
+
         if (server != null) {
             getLogger().debug("Shutting down server");
+            rejectPendingRequests();
             server.stop();
             server.destroy();
             server.join();
             clearInit();
             getLogger().info("Shut down {}", new Object[]{server});
         }
+    }
+
+    void rejectPendingRequests() {
+        HttpRequestContainer container;
+        while ((container = getNextContainer()) != null) {
+            try {
+                getLogger().warn("Rejecting request from {} during cleanup after processor shutdown; responding with SERVICE_UNAVAILABLE",
+                    new Object[]{container.getRequest().getRemoteAddr()});
+
+                HttpServletResponse response = container.getResponse();
+                response.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE, "Processor is shutting down");
+                container.getContext().complete();
+            } catch (final IOException e) {
+                getLogger().warn("Failed to send HTTP response to {} due to {}",
+                    new Object[]{container.getRequest().getRemoteAddr(), e});
+            }
+        }
+    }
+
+    private HttpRequestContainer getNextContainer() {
+        HttpRequestContainer container;
+        try {
+            container = containerQueue.poll(2, TimeUnit.SECONDS);
+        } catch (final InterruptedException e) {
+            getLogger().warn("Interrupted while polling for " + HttpRequestContainer.class.getSimpleName() + " during cleanup.");
+            container = null;
+        }
+
+        return container;
     }
 
     @OnPrimaryNodeStateChange
@@ -597,9 +651,10 @@ public class HandleHttpRequest extends AbstractProcessor {
           final long requestMaxSize = context.getProperty(MULTIPART_REQUEST_MAX_SIZE).asDataSize(DataUnit.B).longValue();
           final int readBufferSize = context.getProperty(MULTIPART_READ_BUFFER_SIZE).asDataSize(DataUnit.B).intValue();
           String tempDir = System.getProperty("java.io.tmpdir");
-          request.setAttribute(Request.__MULTIPART_CONFIG_ELEMENT, new MultipartConfigElement(tempDir, requestMaxSize, requestMaxSize, readBufferSize));
+          request.setAttribute(Request.MULTIPART_CONFIG_ELEMENT, new MultipartConfigElement(tempDir, requestMaxSize, requestMaxSize, readBufferSize));
+          List<Part> parts = null;
           try {
-            List<Part> parts = ImmutableList.copyOf(request.getParts());
+            parts = ImmutableList.copyOf(request.getParts());
             int allPartsCount = parts.size();
             final String contextIdentifier = UUID.randomUUID().toString();
             for (int i = 0; i < allPartsCount; i++) {
@@ -624,6 +679,16 @@ public class HandleHttpRequest extends AbstractProcessor {
           } catch (IOException | ServletException | IllegalStateException e) {
             handleFlowContentStreamingError(session, container, request, Optional.absent(), e);
             return;
+          } finally {
+            if (parts != null) {
+              for (Part part : parts) {
+                try {
+                  part.delete();
+                } catch (Exception e) {
+                  getLogger().error("Couldn't delete underlying storage for {}", new Object[]{part}, e);
+                }
+              }
+            }
           }
         } else {
           FlowFile flowFile = session.create();
@@ -690,11 +755,15 @@ public class HandleHttpRequest extends AbstractProcessor {
           putAttribute(attributes, "http.server.name", request.getServerName());
           putAttribute(attributes, HTTPUtils.HTTP_PORT, request.getServerPort());
 
-          final Enumeration<String> paramEnumeration = request.getParameterNames();
-          while (paramEnumeration.hasMoreElements()) {
-              final String paramName = paramEnumeration.nextElement();
-              final String value = request.getParameter(paramName);
-              attributes.put("http.param." + paramName, value);
+          Set<String> parametersToAttributes = parameterToAttributesReference.get();
+          if (parametersToAttributes != null && !parametersToAttributes.isEmpty()){
+              final Enumeration<String> paramEnumeration = request.getParameterNames();
+              while (paramEnumeration.hasMoreElements()) {
+                  final String paramName = paramEnumeration.nextElement();
+                  if (parametersToAttributes.contains(paramName)){
+                    attributes.put("http.param." + paramName, request.getParameter(paramName));
+                }
+              }
           }
 
           final Cookie[] cookies = request.getCookies();

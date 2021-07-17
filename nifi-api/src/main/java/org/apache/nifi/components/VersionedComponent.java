@@ -23,7 +23,8 @@ public interface VersionedComponent {
 
     /**
      * @return the unique identifier that maps this component to a component that is versioned
-     *         in a Flow Registry, or <code>Optional.empty</code> if this component has not been saved to a Flow Registry.
+     *         in a Flow Registry or has been imported, or <code>Optional.empty</code> if this component has not
+     *         been saved to a Flow Registry or imported.
      */
     Optional<String> getVersionedComponentId();
 

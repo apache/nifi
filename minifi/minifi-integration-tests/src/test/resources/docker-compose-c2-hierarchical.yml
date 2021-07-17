@@ -1,0 +1,141 @@
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the \"License\"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an \"AS IS\" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+version: "2"
+
+services:
+  c2-authoritative:
+    build:
+      context: ./
+      dockerfile: Dockerfile.minific2.test
+    image: apacheminific2-test
+    ports:
+      - "10443"
+    hostname: c2-authoritative
+    volumes:
+      - ./c2/hierarchical/c2-authoritative/files:/opt/minifi-c2/minifi-c2-${minifi.c2.version}/files
+      - ./c2/hierarchical/c2-authoritative/conf/minifi-c2-context.xml:/opt/minifi-c2/minifi-c2-${minifi.c2.version}/conf/minifi-c2-context.xml
+
+      - ./c2/hierarchical/c2-authoritative/conf/c2.properties:/opt/minifi-c2/minifi-c2-${minifi.c2.version}/conf/c2.properties
+      - ./c2/hierarchical/c2-authoritative/conf/authorities.yaml:/opt/minifi-c2/minifi-c2-${minifi.c2.version}/conf/authorities.yaml
+      - ./c2/hierarchical/c2-authoritative/conf/authorizations.yaml:/opt/minifi-c2/minifi-c2-${minifi.c2.version}/conf/authorizations.yaml
+
+      - ./certificates-c2-hierarchical/c2-authoritative/keystore.jks:/opt/minifi-c2/minifi-c2-${minifi.c2.version}/conf/keystore.jks
+      - ./certificates-c2-hierarchical/c2-authoritative/truststore.jks:/opt/minifi-c2/minifi-c2-${minifi.c2.version}/conf/truststore.jks
+    networks:
+      - cluster
+      - edge1
+
+  minifi-edge1:
+    build:
+      context: ./
+      dockerfile: ./Dockerfile.minifi.test
+    image: apacheminifi-test
+    ports:
+      - "8000"
+    volumes:
+      - ./tailFileServer.py:/home/minifi/tailFileServer.py
+
+      - ./c2/hierarchical/minifi-edge1/bootstrap.conf:/opt/minifi/minifi-${minifi.version}/conf/bootstrap.conf
+      - ./logback.xml:/opt/minifi/minifi-${minifi.version}/conf/logback.xml
+
+      - ./certificates-c2-hierarchical/minifi-edge1/keystore.jks:/opt/minifi/minifi-${minifi.version}/conf/keystore.jks
+      - ./certificates-c2-hierarchical/minifi-edge1/truststore.jks:/opt/minifi/minifi-${minifi.version}/conf/truststore.jks
+    entrypoint:
+      - sh
+      - -c
+      - /opt/minifi/minifi-${minifi.version}/bin/minifi.sh start && python /home/minifi/tailFileServer.py --file /opt/minifi/minifi-${minifi.version}/logs/minifi-app.log --file /opt/minifi/minifi-${minifi.version}/logs/minifi-bootstrap.log
+    networks:
+      - edge1
+
+  c2-edge2:
+    build:
+      context: ./
+      dockerfile: Dockerfile.minific2.test
+    image: apacheminific2-test
+    ports:
+      - "10080"
+    hostname: c2-edge2
+    volumes:
+      - ./c2/hierarchical/c2-edge2/conf/c2.properties:/opt/minifi-c2/minifi-c2-${minifi.c2.version}/conf/c2.properties
+      - ./c2/hierarchical/c2-edge2/conf/minifi-c2-context.xml:/opt/minifi-c2/minifi-c2-${minifi.c2.version}/conf/minifi-c2-context.xml
+
+      - ./certificates-c2-hierarchical/c2-edge2/keystore.jks:/opt/minifi-c2/minifi-c2-${minifi.c2.version}/conf/keystore.jks
+      - ./certificates-c2-hierarchical/c2-edge2/truststore.jks:/opt/minifi-c2/minifi-c2-${minifi.c2.version}/conf/truststore.jks
+    networks:
+      - cluster
+      - edge2
+
+  minifi-edge2:
+    build:
+      context: ./
+      dockerfile: Dockerfile.minifi.test
+    image: apacheminifi-test
+    ports:
+      - "8000"
+    volumes:
+      - ./tailFileServer.py:/home/minifi/tailFileServer.py
+
+      - ./c2/hierarchical/minifi-edge2/bootstrap.conf:/opt/minifi/minifi-${minifi.version}/conf/bootstrap.conf
+      - ./logback.xml:/opt/minifi/minifi-${minifi.version}/conf/logback.xml
+    entrypoint:
+      - sh
+      - -c
+      - /opt/minifi/minifi-${minifi.version}/bin/minifi.sh start && python /home/minifi/tailFileServer.py --file /opt/minifi/minifi-${minifi.version}/logs/minifi-app.log --file /opt/minifi/minifi-${minifi.version}/logs/minifi-bootstrap.log
+    networks:
+      - edge2
+
+  squid-edge3:
+    image: chrisdaish/squid
+    ports:
+      - "3128"
+    hostname: squid-edge3
+    volumes:
+      - ./squid/squid.conf:/etc/squid/squid.conf
+    networks:
+      - cluster
+      - edge3
+
+  minifi-edge3:
+    build:
+      context: ./
+      dockerfile: Dockerfile.minifi.test
+    image: apacheminifi-test
+    ports:
+      - "8000"
+    volumes:
+      - ./tailFileServer.py:/home/minifi/tailFileServer.py
+
+      - ./c2/hierarchical/minifi-edge3/bootstrap.conf:/opt/minifi/minifi-${minifi.version}/conf/bootstrap.conf
+      - ./logback.xml:/opt/minifi/minifi-${minifi.version}/conf/logback.xml
+
+      - ./certificates-c2-hierarchical/minifi-edge3/keystore.jks:/opt/minifi/minifi-${minifi.version}/conf/keystore.jks
+      - ./certificates-c2-hierarchical/minifi-edge3/truststore.jks:/opt/minifi/minifi-${minifi.version}/conf/truststore.jks
+    entrypoint:
+      - sh
+      - -c
+      - /opt/minifi/minifi-${minifi.version}/bin/minifi.sh start && python /home/minifi/tailFileServer.py --file /opt/minifi/minifi-${minifi.version}/logs/minifi-app.log --file /opt/minifi/minifi-${minifi.version}/logs/minifi-bootstrap.log
+    networks:
+      - edge3
+
+networks:
+  cluster:
+    driver: bridge
+  edge1:
+    driver: bridge
+  edge2:
+    driver: bridge
+  edge3:
+    driver: bridge

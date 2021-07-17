@@ -330,7 +330,17 @@ public class MapRecord implements Record {
 
     @Override
     public void setValue(final String fieldName, final Object value) {
-        setValueAndGetField(fieldName, value);
+        final Optional<RecordField> existingField = setValueAndGetField(fieldName, value);
+
+        if (!existingField.isPresent()) {
+            if (inactiveFields == null) {
+                inactiveFields = new LinkedHashSet<>();
+            }
+
+            final DataType inferredDataType = DataTypeUtils.inferDataType(value, RecordFieldType.STRING.getDataType());
+            final RecordField field = new RecordField(fieldName, inferredDataType);
+            inactiveFields.add(field);
+        }
     }
 
     private Optional<RecordField> setValueAndGetField(final String fieldName, final Object value) {
@@ -443,8 +453,18 @@ public class MapRecord implements Record {
     public void incorporateInactiveFields() {
         final List<RecordField> updatedFields = new ArrayList<>();
 
+        boolean fieldUpdated = false;
         for (final RecordField field : schema.getFields()) {
-            updatedFields.add(getUpdatedRecordField(field));
+            final RecordField updated = getUpdatedRecordField(field);
+            if (!updated.equals(field)) {
+                fieldUpdated = true;
+            }
+
+            updatedFields.add(updated);
+        }
+
+        if (!fieldUpdated && (inactiveFields == null || inactiveFields.isEmpty())) {
+            return;
         }
 
         if (inactiveFields != null) {

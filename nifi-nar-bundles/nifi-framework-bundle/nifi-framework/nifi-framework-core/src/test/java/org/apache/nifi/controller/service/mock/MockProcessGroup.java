@@ -26,16 +26,24 @@ import org.apache.nifi.connectable.Port;
 import org.apache.nifi.connectable.Position;
 import org.apache.nifi.connectable.Positionable;
 import org.apache.nifi.controller.ComponentNode;
-import org.apache.nifi.controller.FlowController;
 import org.apache.nifi.controller.ProcessorNode;
 import org.apache.nifi.controller.Snippet;
 import org.apache.nifi.controller.Template;
+import org.apache.nifi.controller.flow.FlowManager;
 import org.apache.nifi.controller.label.Label;
+import org.apache.nifi.controller.queue.DropFlowFileStatus;
 import org.apache.nifi.controller.service.ControllerServiceNode;
+import org.apache.nifi.groups.BatchCounts;
+import org.apache.nifi.groups.DataValve;
+import org.apache.nifi.groups.FlowFileConcurrency;
+import org.apache.nifi.groups.FlowFileGate;
+import org.apache.nifi.groups.FlowFileOutboundPolicy;
+import org.apache.nifi.groups.NoOpBatchCounts;
 import org.apache.nifi.groups.ProcessGroup;
 import org.apache.nifi.groups.ProcessGroupCounts;
 import org.apache.nifi.groups.RemoteProcessGroup;
 import org.apache.nifi.parameter.ParameterContext;
+import org.apache.nifi.parameter.ParameterUpdate;
 import org.apache.nifi.registry.VariableRegistry;
 import org.apache.nifi.registry.flow.FlowRegistryClient;
 import org.apache.nifi.registry.flow.VersionControlInformation;
@@ -51,19 +59,24 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
 import java.util.function.Predicate;
 
 public class MockProcessGroup implements ProcessGroup {
     private final Map<String, ControllerServiceNode> serviceMap = new HashMap<>();
     private final Map<String, ProcessorNode> processorMap = new HashMap<>();
-    private final FlowController flowController;
+    private final FlowManager flowManager;
     private final MutableVariableRegistry variableRegistry = new MutableVariableRegistry(VariableRegistry.ENVIRONMENT_SYSTEM_REGISTRY);
     private VersionControlInformation versionControlInfo;
     private ParameterContext parameterContext;
+    private String defaultFlowfileExpiration;
+    private long defaultBackPressureObjectThreshold;
+    private String defaultBackPressureDataSizeThreshold;
 
-    public MockProcessGroup(final FlowController flowController) {
-        this.flowController = flowController;
+    public MockProcessGroup(final FlowManager flowManager) {
+        this.flowManager = flowManager;
     }
 
     @Override
@@ -157,7 +170,17 @@ public class MockProcessGroup implements ProcessGroup {
     }
 
     @Override
+    public void enableAllControllerServices() {
+
+    }
+
+    @Override
     public CompletableFuture<Void> startProcessor(final ProcessorNode processor, final boolean failIfStopping) {
+        return CompletableFuture.completedFuture(null);
+    }
+
+    @Override
+    public Future<Void> runProcessorOnce(ProcessorNode processor, Callable<Future<Void>> stopCallback) {
         return CompletableFuture.completedFuture(null);
     }
 
@@ -280,16 +303,16 @@ public class MockProcessGroup implements ProcessGroup {
     public void addProcessor(final ProcessorNode processor) {
         processor.setProcessGroup(this);
         processorMap.put(processor.getIdentifier(), processor);
-        if (flowController.getFlowManager() != null) {
-            flowController.getFlowManager().onProcessorAdded(processor);
+        if (flowManager != null) {
+            flowManager.onProcessorAdded(processor);
         }
     }
 
     @Override
     public void removeProcessor(final ProcessorNode processor) {
         processorMap.remove(processor.getIdentifier());
-        if (flowController.getFlowManager() != null) {
-            flowController.getFlowManager().onProcessorRemoved(processor);
+        if (flowManager != null) {
+            flowManager.onProcessorRemoved(processor);
         }
     }
 
@@ -349,7 +372,27 @@ public class MockProcessGroup implements ProcessGroup {
     }
 
     @Override
+    public DropFlowFileStatus dropAllFlowFiles(String requestIdentifier, String requestor) {
+        return null;
+    }
+
+    @Override
+    public DropFlowFileStatus getDropAllFlowFilesStatus(String requestIdentifier) {
+        return null;
+    }
+
+    @Override
+    public DropFlowFileStatus cancelDropAllFlowFiles(String requestIdentifier) {
+        return null;
+    }
+
+    @Override
     public Funnel findFunnel(final String id) {
+        return null;
+    }
+
+    @Override
+    public Set<String> getAncestorServiceIds() {
         return null;
     }
 
@@ -560,6 +603,11 @@ public class MockProcessGroup implements ProcessGroup {
     }
 
     @Override
+    public void verifyCanDelete(final boolean ignorePortConnections, final boolean ignoreTemplates) {
+
+    }
+
+    @Override
     public void verifyCanStart() {
 
     }
@@ -705,7 +753,93 @@ public class MockProcessGroup implements ProcessGroup {
     }
 
     @Override
-    public void onParameterContextUpdated() {
+    public void onParameterContextUpdated(final Map<String, ParameterUpdate> updatedParameters) {
+    }
+
+    @Override
+    public FlowFileGate getFlowFileGate() {
+        return new FlowFileGate() {
+            @Override
+            public boolean tryClaim(Port port) {
+                return true;
+            }
+
+            @Override
+            public void releaseClaim(Port port) {
+            }
+        };
+    }
+
+    @Override
+    public FlowFileConcurrency getFlowFileConcurrency() {
+        return FlowFileConcurrency.UNBOUNDED;
+    }
+
+    @Override
+    public void setFlowFileConcurrency(final FlowFileConcurrency flowFileConcurrency) {
+    }
+
+    @Override
+    public FlowFileOutboundPolicy getFlowFileOutboundPolicy() {
+        return FlowFileOutboundPolicy.STREAM_WHEN_AVAILABLE;
+    }
+
+    @Override
+    public void setFlowFileOutboundPolicy(final FlowFileOutboundPolicy outboundPolicy) {
+    }
+
+    @Override
+    public boolean isDataQueued() {
+        return false;
+    }
+
+    @Override
+    public boolean isDataQueuedForProcessing() {
+        return false;
+    }
+
+    @Override
+    public BatchCounts getBatchCounts() {
+        return new NoOpBatchCounts();
+    }
+
+    public DataValve getDataValve(Port port) {
+        return null;
+    }
+
+    @Override
+    public DataValve getDataValve() {
+        return null;
+    }
+
+    @Override
+    public String getDefaultFlowFileExpiration() {
+        return defaultFlowfileExpiration;
+    }
+
+    @Override
+    public void setDefaultFlowFileExpiration(String defaultFlowFileExpiration) {
+        this.defaultFlowfileExpiration = defaultFlowFileExpiration;
+    }
+
+    @Override
+    public Long getDefaultBackPressureObjectThreshold() {
+        return defaultBackPressureObjectThreshold;
+    }
+
+    @Override
+    public void setDefaultBackPressureObjectThreshold(Long defaultBackPressureObjectThreshold) {
+        this.defaultBackPressureObjectThreshold = defaultBackPressureObjectThreshold;
+    }
+
+    @Override
+    public String getDefaultBackPressureDataSizeThreshold() {
+        return defaultBackPressureDataSizeThreshold;
+    }
+
+    @Override
+    public void setDefaultBackPressureDataSizeThreshold(String defaultBackPressureDataSizeThreshold) {
+        this.defaultBackPressureDataSizeThreshold = defaultBackPressureDataSizeThreshold;
     }
 
     @Override

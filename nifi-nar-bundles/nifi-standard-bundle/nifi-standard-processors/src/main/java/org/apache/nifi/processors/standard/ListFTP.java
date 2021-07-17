@@ -17,13 +17,10 @@
 
 package org.apache.nifi.processors.standard;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
 import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.PrimaryNodeOnly;
 import org.apache.nifi.annotation.behavior.Stateful;
-import org.apache.nifi.annotation.behavior.InputRequirement.Requirement;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
@@ -37,8 +34,12 @@ import org.apache.nifi.components.state.Scope;
 import org.apache.nifi.context.PropertyContext;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.util.list.ListedEntityTracker;
-import org.apache.nifi.processors.standard.util.FileTransfer;
 import org.apache.nifi.processors.standard.util.FTPTransfer;
+import org.apache.nifi.processors.standard.util.FileTransfer;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 
 @PrimaryNodeOnly
 @TriggerSerially
@@ -57,8 +58,8 @@ import org.apache.nifi.processors.standard.util.FTPTransfer;
     @WritesAttribute(attribute = ListFile.FILE_SIZE_ATTRIBUTE, description = "The number of bytes in the source file"),
     @WritesAttribute(attribute = ListFile.FILE_LAST_MODIFY_TIME_ATTRIBUTE, description = "The timestamp of when the file in the filesystem was" +
             "last modified as 'yyyy-MM-dd'T'HH:mm:ssZ'"),
-    @WritesAttribute(attribute = "filename", description = "The name of the file on the SFTP Server"),
-    @WritesAttribute(attribute = "path", description = "The fully qualified name of the directory on the SFTP Server from which the file was pulled"),
+    @WritesAttribute(attribute = "filename", description = "The name of the file on the FTP Server"),
+    @WritesAttribute(attribute = "path", description = "The fully qualified name of the directory on the FTP Server from which the file was pulled"),
 })
 @Stateful(scopes = {Scope.CLUSTER}, description = "After performing a listing of files, the timestamp of the newest file is stored. "
     + "This allows the Processor to list only files that have been added or modified after "
@@ -71,12 +72,13 @@ public class ListFTP extends ListFileTransfer {
         final PropertyDescriptor port = new PropertyDescriptor.Builder().fromPropertyDescriptor(UNDEFAULTED_PORT).defaultValue("21").build();
 
         final List<PropertyDescriptor> properties = new ArrayList<>();
-        properties.add(LISTING_STRATEGY);
+        properties.add(FILE_TRANSFER_LISTING_STRATEGY);
         properties.add(HOSTNAME);
         properties.add(port);
         properties.add(USERNAME);
         properties.add(FTPTransfer.PASSWORD);
         properties.add(REMOTE_PATH);
+        properties.add(RECORD_WRITER);
         properties.add(DISTRIBUTED_CACHE_SERVICE);
         properties.add(FTPTransfer.RECURSIVE_SEARCH);
         properties.add(FTPTransfer.FOLLOW_SYMLINK);
@@ -99,6 +101,7 @@ public class ListFTP extends ListFileTransfer {
         properties.add(ListedEntityTracker.TRACKING_STATE_CACHE);
         properties.add(ListedEntityTracker.TRACKING_TIME_WINDOW);
         properties.add(ListedEntityTracker.INITIAL_LISTING_TARGET);
+        properties.add(FTPTransfer.UTF8_ENCODING);
         return properties;
     }
 

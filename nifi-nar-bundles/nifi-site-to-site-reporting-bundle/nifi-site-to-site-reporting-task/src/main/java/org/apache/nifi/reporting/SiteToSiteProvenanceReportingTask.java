@@ -65,6 +65,7 @@ import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
 import org.apache.nifi.remote.Transaction;
 import org.apache.nifi.remote.TransferDirection;
+import org.apache.nifi.reporting.s2s.SiteToSiteUtils;
 import org.apache.nifi.reporting.util.provenance.ProvenanceEventConsumer;
 
 @Tags({"provenance", "lineage", "tracking", "site", "site to site"})
@@ -83,16 +84,6 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
             "Start reading provenance Events from the beginning of the stream (the oldest event first)");
     static final AllowableValue END_OF_STREAM = new AllowableValue("end-of-stream", "End of Stream",
             "Start reading provenance Events from the end of the stream, ignoring old events");
-
-    static final PropertyDescriptor PLATFORM = new PropertyDescriptor.Builder()
-            .name("Platform")
-            .displayName("Platform")
-            .description("The value to use for the platform field in each provenance event.")
-            .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .defaultValue("nifi")
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .build();
 
     static final PropertyDescriptor FILTER_EVENT_TYPE = new PropertyDescriptor.Builder()
             .name("s2s-prov-task-event-filter")
@@ -200,7 +191,7 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
     public void onScheduled(final ConfigurationContext context) throws IOException {
         consumer = new ProvenanceEventConsumer();
         consumer.setStartPositionValue(context.getProperty(START_POSITION).getValue());
-        consumer.setBatchSize(context.getProperty(BATCH_SIZE).asInteger());
+        consumer.setBatchSize(context.getProperty(SiteToSiteUtils.BATCH_SIZE).asInteger());
         consumer.setLogger(getLogger());
 
         // initialize component type filtering
@@ -255,7 +246,7 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         final List<PropertyDescriptor> properties = new ArrayList<>(super.getSupportedPropertyDescriptors());
-        properties.add(PLATFORM);
+        properties.add(SiteToSiteUtils.PLATFORM);
         properties.add(FILTER_EVENT_TYPE);
         properties.add(FILTER_EVENT_TYPE_EXCLUDE);
         properties.add(FILTER_COMPONENT_TYPE);
@@ -280,7 +271,7 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
 
         final ProcessGroupStatus procGroupStatus = context.getEventAccess().getControllerStatus();
         final String rootGroupName = procGroupStatus == null ? null : procGroupStatus.getName();
-        final String nifiUrl = context.getProperty(INSTANCE_URL).evaluateAttributeExpressions().getValue();
+        final String nifiUrl = context.getProperty(SiteToSiteUtils.INSTANCE_URL).evaluateAttributeExpressions().getValue();
         URL url;
         try {
             url = new URL(nifiUrl);
@@ -290,7 +281,7 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
         }
 
         final String hostname = url.getHost();
-        final String platform = context.getProperty(PLATFORM).evaluateAttributeExpressions().getValue();
+        final String platform = context.getProperty(SiteToSiteUtils.PLATFORM).evaluateAttributeExpressions().getValue();
         final Boolean allowNullValues = context.getProperty(ALLOW_NULL_VALUES).asBoolean();
 
         final Map<String, ?> config = Collections.emptyMap();
@@ -313,8 +304,12 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
             final JsonArray jsonArray = arrayBuilder.build();
 
             // Send the JSON document for the current batch
+            Transaction transaction = null;
             try {
-                final Transaction transaction = getClient().createTransaction(TransferDirection.SEND);
+                // Lazily create SiteToSiteClient to provide a StateManager
+                setup(context);
+
+                transaction = getClient().createTransaction(TransferDirection.SEND);
                 if (transaction == null) {
                     // Throw an exception to avoid provenance event id will not proceed so that those can be consumed again.
                     throw new ProcessException("All destination nodes are penalized; will attempt to send data later");
@@ -335,8 +330,15 @@ public class SiteToSiteProvenanceReportingTask extends AbstractSiteToSiteReporti
                 final long transferMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
                 getLogger().info("Successfully sent {} Provenance Events to destination in {} ms; Transaction ID = {}; First Event ID = {}",
                         new Object[] {events.size(), transferMillis, transactionId, events.get(0).getEventId()});
-            } catch (final IOException e) {
-                throw new ProcessException("Failed to send Provenance Events to destination due to IOException:" + e.getMessage(), e);
+            } catch (final Exception e) {
+                if (transaction != null) {
+                    transaction.error();
+                }
+                if (e instanceof ProcessException) {
+                    throw (ProcessException) e;
+                } else {
+                    throw new ProcessException("Failed to send Provenance Events to destination due to IOException:" + e.getMessage(), e);
+                }
             }
         });
 

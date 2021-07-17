@@ -23,15 +23,28 @@ import org.apache.nifi.serialization.record.RecordFieldType;
 import java.util.Objects;
 
 public class MapDataType extends DataType {
+
+    public static final boolean DEFAULT_NULLABLE = false;
+
     private final DataType valueType;
+    private final boolean valuesNullable;
 
     public MapDataType(final DataType elementType) {
+        this(elementType, DEFAULT_NULLABLE);
+    }
+
+    public MapDataType(final DataType elementType, boolean valuesNullable) {
         super(RecordFieldType.MAP, null);
         this.valueType = elementType;
+        this.valuesNullable = valuesNullable;
     }
 
     public DataType getValueType() {
         return valueType;
+    }
+
+    public boolean isValuesNullable() {
+        return valuesNullable;
     }
 
     @Override
@@ -40,24 +53,18 @@ public class MapDataType extends DataType {
     }
 
     @Override
-    public int hashCode() {
-        return 31 + 41 * getFieldType().hashCode() + 41 * (valueType == null ? 0 : valueType.hashCode());
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof MapDataType)) return false;
+        if (!super.equals(o)) return false;
+        MapDataType that = (MapDataType) o;
+        return valuesNullable == that.valuesNullable
+                && Objects.equals(getValueType(), that.getValueType());
     }
 
     @Override
-    public boolean equals(final Object obj) {
-        if (obj == this) {
-            return true;
-        }
-        if (obj == null) {
-            return false;
-        }
-        if (!(obj instanceof MapDataType)) {
-            return false;
-        }
-
-        final MapDataType other = (MapDataType) obj;
-        return Objects.equals(valueType, other.valueType);
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), getValueType(), valuesNullable);
     }
 
     @Override

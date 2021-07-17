@@ -22,10 +22,11 @@ import org.apache.atlas.model.instance.AtlasEntityHeader;
 import org.apache.atlas.model.instance.EntityMutationResponse;
 import org.apache.atlas.model.typedef.AtlasEntityDef;
 import org.apache.atlas.model.typedef.AtlasTypesDef;
-import org.apache.atlas.notification.hook.HookNotification;
-import org.apache.atlas.typesystem.Referenceable;
+import org.apache.atlas.v1.model.instance.Referenceable;
+import org.apache.atlas.v1.model.notification.HookNotificationV1;
 import org.apache.nifi.atlas.AtlasUtils;
 import org.apache.nifi.atlas.NiFiTypes;
+import org.codehaus.jackson.map.DeserializationConfig;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.eclipse.jetty.server.Connector;
 import org.eclipse.jetty.server.Handler;
@@ -94,19 +95,19 @@ public class AtlasAPIV2ServerEmulator {
         server.start();
         logger.info("Starting {} on port {}", AtlasAPIV2ServerEmulator.class.getSimpleName(), httpConnector.getLocalPort());
 
-        embeddedKafka = new EmbeddedKafka(false);
+        embeddedKafka = new EmbeddedKafka();
         embeddedKafka.start();
 
         notificationServerEmulator.consume(m -> {
-            if (m instanceof HookNotification.EntityCreateRequest) {
-                HookNotification.EntityCreateRequest em = (HookNotification.EntityCreateRequest) m;
+            if (m instanceof HookNotificationV1.EntityCreateRequest) {
+                HookNotificationV1.EntityCreateRequest em = (HookNotificationV1.EntityCreateRequest) m;
                 for (Referenceable ref : em.getEntities()) {
                     final AtlasEntity entity = toEntity(ref);
                     createEntityByNotification(entity);
                 }
-            } else if (m instanceof HookNotification.EntityPartialUpdateRequest) {
-                HookNotification.EntityPartialUpdateRequest em
-                        = (HookNotification.EntityPartialUpdateRequest) m;
+            } else if (m instanceof HookNotificationV1.EntityPartialUpdateRequest) {
+                HookNotificationV1.EntityPartialUpdateRequest em
+                        = (HookNotificationV1.EntityPartialUpdateRequest) m;
                 final AtlasEntity entity = toEntity(em.getEntity());
                 entity.setAttribute(em.getAttribute(), em.getAttributeValue());
                 updateEntityByNotification(entity);
@@ -241,7 +242,11 @@ public class AtlasAPIV2ServerEmulator {
     }
 
     private static <T> T readInputJSON(HttpServletRequest req, Class<? extends T> clazz) throws IOException {
-        return new ObjectMapper().reader().withType(clazz).readValue(req.getInputStream());
+        return new ObjectMapper()
+                .configure(DeserializationConfig.Feature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+                .reader()
+                .withType(clazz)
+                .readValue(req.getInputStream());
     }
 
     private static final AtlasTypesDef atlasTypesDef = new AtlasTypesDef();

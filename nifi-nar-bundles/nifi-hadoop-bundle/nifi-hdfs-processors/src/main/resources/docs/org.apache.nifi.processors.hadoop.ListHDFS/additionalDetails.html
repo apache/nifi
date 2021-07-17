@@ -17,7 +17,7 @@
 
 <head>
     <meta charset="utf-8"/>
-    <title>PutHDFS</title>
+    <title>ListHDFS</title>
     <link rel="stylesheet" href="../../../../../css/component-usage.css" type="text/css"/>
 </head>
 
@@ -28,11 +28,16 @@
 There are three filter modes available for ListHDFS that determine how the regular expression in the <b><code>File Filter</code></b> property will be applied to listings in HDFS.
 <ul>
     <li><b><code>Directories and Files</code></b></li>
-Filtering will be applied to the names of directories and files.  If <b><code>Recurse Subdirectories</code></b> is set to true, only subdirectories with a matching name will be searched for files that match the regular expression defined in <b><code>File Filter</code></b>.
+    Filtering will be applied to the names of directories and files.  If <b><code>Recurse Subdirectories</code></b> is set to true, only subdirectories with a matching name will be searched for files that match the regular expression defined in <b><code>File Filter</code></b>.
     <li><b><code>Files Only</code></b></li>
-Filtering will only be applied to the names of files.  If <b><code>Recurse Subdirectories</code></b> is set to true, the entire subdirectory tree will be searched for files that match the regular expression defined in <b><code>File Filter</code></b>.
+    Filtering will only be applied to the names of files.  If <b><code>Recurse Subdirectories</code></b> is set to true, the entire subdirectory tree will be searched for files that match the regular expression defined in <b><code>File Filter</code></b>.
     <li><b><code>Full Path</code></b></li>
-Filtering will be applied to the full path of files.  If <b><code>Recurse Subdirectories</code></b> is set to true, the entire subdirectory tree will be searched for files in which the full path of the file matches the regular expression defined in <b><code>File Filter</code></b>.
+    Filtering will be applied to the full path of files.  If <b><code>Recurse Subdirectories</code></b> is set to true, the entire subdirectory tree will be searched for files in which the full path of the file matches the regular expression defined in <b><code>File Filter</code></b>.<br>
+    Regarding <code>scheme</code> and <code>authority</code>, if a given file has a full path of <code>hdfs://hdfscluster:8020/data/txt/1.txt</code>, the filter will evaluate the regular expression defined in <b><code>File Filter</code></b> against two cases, matching if either is true:<br>
+    <ul>
+        <li>the full path including the scheme (<code>hdfs</code>), authority (<code>hdfscluster:8020</code>), and the remaining path components (<code>/data/txt/1.txt</code>)</li>
+        <li>only the path components (<code>/data/txt/1.txt</code>)</li>
+    </ul>
 </ul>
 <p>
 <h2>Examples:</h2>
@@ -100,5 +105,92 @@ ListHDFS configuration:
     <li>/data/csv/2.csv</li>
     <li>/data/csv/3.csv</li>
 </ul>
+
+
+<h1>Streaming Versus Batch Processing</h1>
+
+<p>
+    ListHDFS performs a listing of all files that it encounters in the configured HDFS directory.
+    There are two common, broadly defined use cases.
+</p>
+
+<h3>Streaming Use Case</h3>
+
+<p>
+    By default, the Processor will create a separate FlowFile for each file in the directory and add attributes for filename, path, etc.
+    A common use case is to connect ListHDFS to the FetchHDFS processor. These two processors used in conjunction with one another provide the ability to
+    easily monitor a directory and fetch the contents of any new file as it lands in HDFS in an efficient streaming fashion.
+</p>
+
+<h3>Batch Use Case</h3>
+<p>
+    Another common use case is the desire to process all newly arriving files in a given directory, and to then perform some action
+    only when all files have completed their processing. The above approach of streaming the data makes this difficult, because NiFi is inherently
+    a streaming platform in that there is no "job" that has a beginning and an end. Data is simply picked up as it becomes available.
+</p>
+
+<p>
+    To solve this, the ListHDFS Processor can optionally be configured with a Record Writer. When a Record Writer is configured, a single
+    FlowFile will be created that will contain a Record for each file in the directory, instead of a separate FlowFile per file.
+    See the documentation for ListFile for an example of how to build a dataflow that allows for processing all of the files before proceeding
+    with any other step.
+</p>
+
+<p>
+    One important difference between the data produced by ListFile and ListHDFS, though, is the structure of the Records that are emitted. The Records
+    emitted by ListFile have a different schema than those emitted by ListHDFS. ListHDFS emits records that follow the following schema (in Avro format):
+</p>
+
+<code>
+    <pre>
+{
+  "type": "record",
+  "name": "nifiRecord",
+  "namespace": "org.apache.nifi",
+  "fields": [{
+    "name": "filename",
+    "type": "string"
+  }, {
+    "name": "path",
+    "type": "string"
+  }, {
+    "name": "directory",
+    "type": "boolean"
+  }, {
+    "name": "size",
+    "type": "long"
+  }, {
+    "name": "lastModified",
+    "type": {
+      "type": "long",
+      "logicalType": "timestamp-millis"
+    }
+  }, {
+    "name": "permissions",
+    "type": ["null", "string"]
+  }, {
+    "name": "owner",
+    "type": ["null", "string"]
+  }, {
+    "name": "group",
+    "type": ["null", "string"]
+  }, {
+    "name": "replication",
+    "type": ["null", "int"]
+  }, {
+    "name": "symLink",
+    "type": ["null", "boolean"]
+  }, {
+    "name": "encrypted",
+    "type": ["null", "boolean"]
+  }, {
+    "name": "erasureCoded",
+    "type": ["null", "boolean"]
+  }]
+}
+    </pre>
+</code>
+
+
 </body>
 </html>

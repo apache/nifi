@@ -35,6 +35,8 @@ import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.resource.ResourceCardinality;
+import org.apache.nifi.components.resource.ResourceType;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
@@ -59,6 +61,7 @@ import org.apache.nifi.util.StopWatch;
 import org.apache.nifi.util.StringUtils;
 
 import java.io.FilenameFilter;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
@@ -158,7 +161,7 @@ public class JoltTransformRecord extends AbstractProcessor {
             .description("Comma-separated list of paths to files and/or directories which contain modules containing custom transformations (that are not included on NiFi's classpath).")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .identifiesExternalResource(ResourceCardinality.MULTIPLE, ResourceType.FILE, ResourceType.DIRECTORY)
             .dynamicallyModifiesClasspath(true)
             .build();
 
@@ -296,42 +299,48 @@ public class JoltTransformRecord extends AbstractProcessor {
         final RecordSetWriterFactory writerFactory = context.getProperty(RECORD_WRITER).asControllerService(RecordSetWriterFactory.class);
 
         final RecordSchema schema;
+        FlowFile transformed = null;
+
         try (final InputStream in = session.read(original);
              final RecordReader reader = readerFactory.createRecordReader(original, in, getLogger())) {
             schema = writerFactory.getSchema(original.getAttributes(), reader.getSchema());
 
-            FlowFile transformed = session.create(original);
             final Map<String, String> attributes = new HashMap<>();
             final WriteResult writeResult;
+            transformed = session.create(original);
 
-            try {
-                // We want to transform the first record before creating the Record Writer. We do this because the Record will likely end up with a different structure
-                // and therefore a difference Schema after being transformed. As a result, we want to transform the Record and then provide the transformed schema to the
-                // Record Writer so that if the Record Writer chooses to inherit the Record Schema from the Record itself, it will inherit the transformed schema, not the
-                // schema determined by the Record Reader.
-                final Record firstRecord = reader.nextRecord();
-                if (firstRecord == null) {
-                    try (final OutputStream out = session.write(transformed);
-                         final RecordSetWriter writer = writerFactory.createWriter(getLogger(), schema, out, transformed)) {
+            // We want to transform the first record before creating the Record Writer. We do this because the Record will likely end up with a different structure
+            // and therefore a difference Schema after being transformed. As a result, we want to transform the Record and then provide the transformed schema to the
+            // Record Writer so that if the Record Writer chooses to inherit the Record Schema from the Record itself, it will inherit the transformed schema, not the
+            // schema determined by the Record Reader.
+            final Record firstRecord = reader.nextRecord();
+            if (firstRecord == null) {
+                try (final OutputStream out = session.write(transformed);
+                     final RecordSetWriter writer = writerFactory.createWriter(getLogger(), schema, out, transformed)) {
 
-                        writer.beginRecordSet();
-                        writeResult = writer.finishRecordSet();
+                    writer.beginRecordSet();
+                    writeResult = writer.finishRecordSet();
 
-                        attributes.put("record.count", String.valueOf(writeResult.getRecordCount()));
-                        attributes.put(CoreAttributes.MIME_TYPE.key(), writer.getMimeType());
-                        attributes.putAll(writeResult.getAttributes());
-                    }
-
-                    transformed = session.putAllAttributes(transformed, attributes);
-                    session.transfer(transformed, REL_SUCCESS);
-                    session.transfer(original, REL_ORIGINAL);
-                    logger.info("{} had no Records to transform", new Object[]{original});
-                    return;
+                    attributes.put("record.count", String.valueOf(writeResult.getRecordCount()));
+                    attributes.put(CoreAttributes.MIME_TYPE.key(), writer.getMimeType());
+                    attributes.putAll(writeResult.getAttributes());
                 }
 
-                final JoltTransform transform = getTransform(context, original);
-                final Record transformedFirstRecord = transform(firstRecord, transform);
+                transformed = session.putAllAttributes(transformed, attributes);
+                logger.info("{} had no Records to transform", new Object[]{original});
+            } else {
 
+                final JoltTransform transform = getTransform(context, original);
+                final List<Record >transformedFirstRecords = transform(firstRecord, transform);
+
+                if (transformedFirstRecords.isEmpty()) {
+                    throw new ProcessException("Error transforming the first record");
+                }
+
+                final Record transformedFirstRecord = transformedFirstRecords.get(0);
+                if (transformedFirstRecord == null) {
+                    throw new ProcessException("Error transforming the first record");
+                }
                 final RecordSchema writeSchema = writerFactory.getSchema(original.getAttributes(), transformedFirstRecord.getSchema());
 
                 // TODO: Is it possible that two Records with the same input schema could have different schemas after transformation?
@@ -344,39 +353,59 @@ public class JoltTransformRecord extends AbstractProcessor {
                     writer.beginRecordSet();
 
                     writer.write(transformedFirstRecord);
-
                     Record record;
+                    // If multiple output records were generated, write them out
+                    for (int i = 1; i < transformedFirstRecords.size(); i++) {
+                        record = transformedFirstRecords.get(i);
+                        if (record == null) {
+                            throw new ProcessException("Error transforming the first record");
+                        }
+                        writer.write(record);
+                    }
+
                     while ((record = reader.nextRecord()) != null) {
-                        final Record transformedRecord = transform(record, transform);
-                        writer.write(transformedRecord);
+                        final List<Record> transformedRecords = transform(record, transform);
+                        if (transformedRecords == null) {
+                            throw new ProcessException("Error transforming the record");
+                        }
+                        for (Record transformedRecord : transformedRecords) {
+                            writer.write(transformedRecord);
+                        }
                     }
 
                     writeResult = writer.finishRecordSet();
+
+                    try {
+                        writer.close();
+                    } catch (final IOException ioe) {
+                        getLogger().warn("Failed to close Writer for {}", new Object[]{transformed});
+                    }
 
                     attributes.put("record.count", String.valueOf(writeResult.getRecordCount()));
                     attributes.put(CoreAttributes.MIME_TYPE.key(), writer.getMimeType());
                     attributes.putAll(writeResult.getAttributes());
                 }
-            } catch (Exception e) {
-                logger.error("Unable to write transformed records {} due to {}", new Object[]{original, e.toString(), e});
-                session.remove(transformed);
-                session.transfer(original, REL_FAILURE);
-                return;
-            }
 
-            final String transformType = context.getProperty(JOLT_TRANSFORM).getValue();
-            transformed = session.putAllAttributes(transformed, attributes);
-            session.transfer(transformed, REL_SUCCESS);
-            session.getProvenanceReporter().modifyContent(transformed, "Modified With " + transformType, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
-            session.transfer(original, REL_ORIGINAL);
-            logger.debug("Transformed {}", new Object[]{original});
+                final String transformType = context.getProperty(JOLT_TRANSFORM).getValue();
+                transformed = session.putAllAttributes(transformed, attributes);
+                session.getProvenanceReporter().modifyContent(transformed, "Modified With " + transformType, stopWatch.getElapsed(TimeUnit.MILLISECONDS));
+                logger.debug("Transformed {}", new Object[]{original});
+            }
         } catch (final Exception ex) {
             logger.error("Unable to transform {} due to {}", new Object[]{original, ex.toString(), ex});
             session.transfer(original, REL_FAILURE);
+            if (transformed != null) {
+                session.remove(transformed);
+            }
+            return;
         }
+        if (transformed != null) {
+            session.transfer(transformed, REL_SUCCESS);
+        }
+        session.transfer(original, REL_ORIGINAL);
     }
 
-    private Record transform(final Record record, final JoltTransform transform) {
+    private List<Record> transform(final Record record, final JoltTransform transform) {
         Map<String, Object> recordMap = (Map<String, Object>) DataTypeUtils.convertRecordFieldtoObject(record, RecordFieldType.RECORD.getRecordDataType(record.getSchema()));
 
         // JOLT expects arrays to be of type List where our Record code uses Object[].
@@ -387,8 +416,23 @@ public class JoltTransformRecord extends AbstractProcessor {
         // JOLT expects arrays to be of type List where our Record code uses Object[].
         // Make another pass of the transformed objects to change List to Object[].
         final Object normalizedRecordValues = normalizeRecordObjects(transformedObject);
-        final Record updatedRecord = DataTypeUtils.toRecord(normalizedRecordValues, "r");
-        return updatedRecord;
+        final List<Record> recordList = new ArrayList<>();
+
+        if (normalizedRecordValues == null) {
+            return recordList;
+        }
+
+        // If the top-level object is an array, return a list of the records inside. Otherwise return a singleton list with the single transformed record
+        if (normalizedRecordValues instanceof Object[]) {
+            for (Object o : (Object[]) normalizedRecordValues) {
+                if (o != null) {
+                    recordList.add(DataTypeUtils.toRecord(o, "r"));
+                }
+            }
+        } else {
+            recordList.add(DataTypeUtils.toRecord(normalizedRecordValues, "r"));
+        }
+        return recordList;
     }
 
     private JoltTransform getTransform(final ProcessContext context, final FlowFile flowFile) {
@@ -448,7 +492,7 @@ public class JoltTransformRecord extends AbstractProcessor {
         } else if (o instanceof Object[]) {
             return Arrays.stream(((Object[]) o)).map(JoltTransformRecord::normalizeJoltObjects).collect(Collectors.toList());
         } else if (o instanceof Collection) {
-            Collection c = (Collection) o;
+            Collection<?> c = (Collection<?>) o;
             return c.stream().map(JoltTransformRecord::normalizeJoltObjects).collect(Collectors.toList());
         } else {
             return o;
@@ -462,13 +506,21 @@ public class JoltTransformRecord extends AbstractProcessor {
             m.forEach((k, v) -> m.put(k, normalizeRecordObjects(v)));
             return m;
         } else if (o instanceof List) {
-            return ((List<Object>) o).stream().map(JoltTransformRecord::normalizeRecordObjects).toArray(Object[]::new);
+            final List<Object> objectList = (List<Object>) o;
+            final Object[] objectArray = new Object[objectList.size()];
+            for (int i = 0; i < objectArray.length; i++) {
+                objectArray[i] = normalizeRecordObjects(objectList.get(i));
+            }
+            return objectArray;
         } else if (o instanceof Collection) {
-            Collection c = (Collection) o;
-            return c.stream().map(JoltTransformRecord::normalizeRecordObjects).collect(Collectors.toList());
+            Collection<?> c = (Collection<?>) o;
+            final List<Object> objectList = new ArrayList<>();
+            for (Object obj : c) {
+                objectList.add(normalizeRecordObjects(obj));
+            }
+            return objectList;
         } else {
             return o;
         }
     }
-
 }

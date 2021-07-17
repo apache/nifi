@@ -18,10 +18,8 @@ package org.apache.nifi.documentation.html;
 
 import java.io.IOException;
 import java.io.StringReader;
-
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
-
 import org.junit.Assert;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
@@ -33,6 +31,14 @@ import org.xml.sax.SAXException;
  */
 public class XmlValidator {
 
+    /**
+     * Asserts a failure if the provided XML is not valid. <strong>This method does
+     * not use the "safe" {@link DocumentBuilderFactory} from
+     * {@code XmlUtils#createSafeDocumentBuilder(Schema, boolean)} because it checks
+     * generated documentation which contains a doctype. </strong>
+     *
+     * @param xml the XML to validate
+     */
     public static void assertXmlValid(String xml) {
         try {
             final DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();

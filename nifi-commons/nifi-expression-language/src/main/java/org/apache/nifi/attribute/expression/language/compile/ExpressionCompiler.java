@@ -57,6 +57,7 @@ import org.apache.nifi.attribute.expression.language.evaluation.functions.GetDel
 import org.apache.nifi.attribute.expression.language.evaluation.functions.GetStateVariableEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.GreaterThanEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.GreaterThanOrEqualEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.functions.HashEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.HostnameEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.IPEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.IfElseEvaluator;
@@ -89,6 +90,7 @@ import org.apache.nifi.attribute.expression.language.evaluation.functions.PadRig
 import org.apache.nifi.attribute.expression.language.evaluation.functions.PlusEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.PrependEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.RandomNumberGeneratorEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.functions.RepeatEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.ReplaceAllEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.ReplaceEmptyEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.ReplaceEvaluator;
@@ -106,10 +108,13 @@ import org.apache.nifi.attribute.expression.language.evaluation.functions.ToLowe
 import org.apache.nifi.attribute.expression.language.evaluation.functions.ToRadixEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.ToStringEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.ToUpperEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.functions.EvaluateELStringEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.TrimEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.UrlDecodeEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.UrlEncodeEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.functions.UuidEvaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.functions.Uuid3Evaluator;
+import org.apache.nifi.attribute.expression.language.evaluation.functions.Uuid5Evaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.literals.BooleanLiteralEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.literals.DecimalLiteralEvaluator;
 import org.apache.nifi.attribute.expression.language.evaluation.literals.StringLiteralEvaluator;
@@ -173,6 +178,7 @@ import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpre
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.GET_STATE_VALUE;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.GREATER_THAN;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.GREATER_THAN_OR_EQUAL;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.HASH;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.HOSTNAME;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.IF_ELSE;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.IN;
@@ -207,6 +213,7 @@ import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpre
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.PLUS;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.PREPEND;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.RANDOM;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.REPEAT;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.REPLACE;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.REPLACE_ALL;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.REPLACE_EMPTY;
@@ -238,7 +245,10 @@ import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpre
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.URL_DECODE;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.URL_ENCODE;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.UUID;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.UUID3;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.UUID5;
 import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.WHOLE_NUMBER;
+import static org.apache.nifi.attribute.expression.language.antlr.AttributeExpressionParser.EVALUATE_EL_STRING;
 
 public class ExpressionCompiler {
     private final Set<Evaluator<?>> evaluators = new HashSet<>();
@@ -567,6 +577,10 @@ public class ExpressionCompiler {
                 verifyArgCount(argEvaluators, 0, "toUpper");
                 return addToken(new ToUpperEvaluator(toStringEvaluator(subjectEvaluator)), "toUpper");
             }
+            case EVALUATE_EL_STRING: {
+                verifyArgCount(argEvaluators, 0, "evaluateELString");
+                return addToken(new EvaluateELStringEvaluator(toStringEvaluator(subjectEvaluator)), "evaluateELString");
+            }
             case URL_ENCODE: {
                 verifyArgCount(argEvaluators, 0, "urlEncode");
                 return addToken(new UrlEncodeEvaluator(toStringEvaluator(subjectEvaluator)), "urlEncode");
@@ -585,15 +599,15 @@ public class ExpressionCompiler {
             }
             case ESCAPE_CSV: {
                 verifyArgCount(argEvaluators, 0, "escapeCsv");
-                return addToken(CharSequenceTranslatorEvaluator.csvEscapeEvaluator(toStringEvaluator(subjectEvaluator)), "escapeJson");
+                return addToken(CharSequenceTranslatorEvaluator.csvEscapeEvaluator(toStringEvaluator(subjectEvaluator)), "escapeCsv");
             }
             case ESCAPE_HTML3: {
                 verifyArgCount(argEvaluators, 0, "escapeHtml3");
-                return addToken(CharSequenceTranslatorEvaluator.html3EscapeEvaluator(toStringEvaluator(subjectEvaluator)), "escapeJson");
+                return addToken(CharSequenceTranslatorEvaluator.html3EscapeEvaluator(toStringEvaluator(subjectEvaluator)), "escapeHtml3");
             }
             case ESCAPE_HTML4: {
                 verifyArgCount(argEvaluators, 0, "escapeHtml4");
-                return addToken(CharSequenceTranslatorEvaluator.html4EscapeEvaluator(toStringEvaluator(subjectEvaluator)), "escapeJson");
+                return addToken(CharSequenceTranslatorEvaluator.html4EscapeEvaluator(toStringEvaluator(subjectEvaluator)), "escapeHtml4");
             }
             case ESCAPE_JSON: {
                 verifyArgCount(argEvaluators, 0, "escapeJson");
@@ -601,27 +615,27 @@ public class ExpressionCompiler {
             }
             case ESCAPE_XML: {
                 verifyArgCount(argEvaluators, 0, "escapeXml");
-                return addToken(CharSequenceTranslatorEvaluator.xmlEscapeEvaluator(toStringEvaluator(subjectEvaluator)), "escapeJson");
+                return addToken(CharSequenceTranslatorEvaluator.xmlEscapeEvaluator(toStringEvaluator(subjectEvaluator)), "escapeXml");
             }
             case UNESCAPE_CSV: {
                 verifyArgCount(argEvaluators, 0, "unescapeCsv");
-                return addToken(CharSequenceTranslatorEvaluator.csvUnescapeEvaluator(toStringEvaluator(subjectEvaluator)), "escapeJson");
+                return addToken(CharSequenceTranslatorEvaluator.csvUnescapeEvaluator(toStringEvaluator(subjectEvaluator)), "unescapeCsv");
             }
             case UNESCAPE_HTML3: {
                 verifyArgCount(argEvaluators, 0, "unescapeHtml3");
-                return addToken(CharSequenceTranslatorEvaluator.html3UnescapeEvaluator(toStringEvaluator(subjectEvaluator)), "escapeJson");
+                return addToken(CharSequenceTranslatorEvaluator.html3UnescapeEvaluator(toStringEvaluator(subjectEvaluator)), "unescapeHtml3");
             }
             case UNESCAPE_HTML4: {
                 verifyArgCount(argEvaluators, 0, "unescapeHtml4");
-                return addToken(CharSequenceTranslatorEvaluator.html4UnescapeEvaluator(toStringEvaluator(subjectEvaluator)), "escapeJson");
+                return addToken(CharSequenceTranslatorEvaluator.html4UnescapeEvaluator(toStringEvaluator(subjectEvaluator)), "unescapeHtml4");
             }
             case UNESCAPE_JSON: {
                 verifyArgCount(argEvaluators, 0, "unescapeJson");
-                return addToken(CharSequenceTranslatorEvaluator.jsonUnescapeEvaluator(toStringEvaluator(subjectEvaluator)), "escapeJson");
+                return addToken(CharSequenceTranslatorEvaluator.jsonUnescapeEvaluator(toStringEvaluator(subjectEvaluator)), "unescapeJson");
             }
             case UNESCAPE_XML: {
                 verifyArgCount(argEvaluators, 0, "unescapeXml");
-                return addToken(CharSequenceTranslatorEvaluator.xmlUnescapeEvaluator(toStringEvaluator(subjectEvaluator)), "escapeJson");
+                return addToken(CharSequenceTranslatorEvaluator.xmlUnescapeEvaluator(toStringEvaluator(subjectEvaluator)), "unescapeXml");
             }
             case SUBSTRING_BEFORE: {
                 verifyArgCount(argEvaluators, 1, "substringBefore");
@@ -670,6 +684,11 @@ public class ExpressionCompiler {
                     toStringEvaluator(argEvaluators.get(0), "first argument to replaceAll"),
                     toStringEvaluator(argEvaluators.get(1), "second argument to replaceAll")), "replaceAll");
             }
+            case HASH: {
+                verifyArgCount(argEvaluators, 1, "hash");
+                return addToken(new HashEvaluator(toStringEvaluator(subjectEvaluator),
+                        toStringEvaluator(argEvaluators.get(0), "first argument to hash")), "hash");
+            }
             case PAD_LEFT: {
                 if (argEvaluators.size() == 1) {
                     return addToken(new PadLeftEvaluator(toStringEvaluator(subjectEvaluator),
@@ -713,6 +732,19 @@ public class ExpressionCompiler {
                         toWholeNumberEvaluator(argEvaluators.get(1), "second argument to substring")), "substring");
                 } else {
                     throw new AttributeExpressionLanguageParsingException("substring() function can take either 1 or 2 arguments but cannot take " + numArgs + " arguments");
+                }
+            }
+            case REPEAT: {
+                final int numArgs = argEvaluators.size();
+                if (numArgs == 1) {
+                    return addToken(new RepeatEvaluator(toStringEvaluator(subjectEvaluator),
+                            toWholeNumberEvaluator(argEvaluators.get(0), "first argument to repeat")), "repeat");
+                } else if (numArgs == 2) {
+                    return addToken(new RepeatEvaluator(toStringEvaluator(subjectEvaluator),
+                            toWholeNumberEvaluator(argEvaluators.get(0), "first argument to repeat"),
+                            toWholeNumberEvaluator(argEvaluators.get(1), "second argument to repeat")), "repeat");
+                } else {
+                    throw new AttributeExpressionLanguageParsingException("repeat() function can take either 1 or 2 arguments but cannot take " + numArgs + " arguments");
                 }
             }
             case JOIN: {
@@ -980,11 +1012,20 @@ public class ExpressionCompiler {
                 Evaluator<?> argKeyEvaluator = argEvaluators.get(2);
                 String keyLocation = "third argument to jsonPathPut";
                 Evaluator<?> keyEvaluator = getJsonPathUpdateEvaluator(argKeyEvaluator, keyLocation);
-
                 return addToken(new JsonPathPutEvaluator(toStringEvaluator(subjectEvaluator),
                         toStringEvaluator(argEvaluators.get(0), "first argument to jsonPathPut"),
                         toStringEvaluator(keyEvaluator, keyLocation),
                         valueEvaluator), "jsonPathPut");
+            }
+            case UUID3: {
+                verifyArgCount(argEvaluators, 1, "UUID3");
+                return addToken(new Uuid3Evaluator(toStringEvaluator(subjectEvaluator),
+                    toStringEvaluator(argEvaluators.get(0), "first argument to UUID3")), "UUID3");
+            }
+            case UUID5: {
+                verifyArgCount(argEvaluators, 1, "UUID5");
+                return addToken(new Uuid5Evaluator(toStringEvaluator(subjectEvaluator),
+                    toStringEvaluator(argEvaluators.get(0), "first argument to UUID5")), "UUID5");
             }
             case IF_ELSE: {
                 verifyArgCount(argEvaluators, 2, "ifElse");

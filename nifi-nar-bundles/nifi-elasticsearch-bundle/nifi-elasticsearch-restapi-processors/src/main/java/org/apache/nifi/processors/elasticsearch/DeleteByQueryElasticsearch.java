@@ -43,14 +43,14 @@ import java.util.Map;
 import java.util.Set;
 
 @InputRequirement(InputRequirement.Requirement.INPUT_ALLOWED)
-@CapabilityDescription("Delete from an ElasticSearch index using a query. The query can be loaded from a flowfile body " +
+@CapabilityDescription("Delete from an Elasticsearch index using a query. The query can be loaded from a flowfile body " +
         "or from the Query parameter.")
 @Tags({ "elastic", "elasticsearch", "delete", "query"})
 @WritesAttributes({
     @WritesAttribute(attribute = "elasticsearch.delete.took", description = "The amount of time that it took to complete the delete operation in ms."),
-    @WritesAttribute(attribute = "elasticsearch.delete.error", description = "The error message provided by ElasticSearch if there is an error running the delete.")
+    @WritesAttribute(attribute = "elasticsearch.delete.error", description = "The error message provided by Elasticsearch if there is an error running the delete.")
 })
-public class DeleteByQueryElasticsearch extends AbstractProcessor implements ElasticSearchRestProcessor {
+public class DeleteByQueryElasticsearch extends AbstractProcessor implements ElasticsearchRestProcessor {
     public static final Relationship REL_FAILURE = new Relationship.Builder().name("failure")
         .description("If the delete by query fails, and a flowfile was read, it will be sent to this relationship.").build();
 

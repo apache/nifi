@@ -98,8 +98,13 @@
 
         // handle logout
         $('#user-logout').on('click', function () {
-            nfStorage.removeItem('jwt');
-            window.location = '../nifi/logout';
+            $.ajax({
+                type: 'DELETE',
+                url: '../nifi-api/access/logout',
+            }).done(function () {
+                nfStorage.removeItem("jwt");
+                window.location = '../nifi/logout';
+            }).fail(nfErrorHandler.handleAjaxError);
         });
 
         // handle home
@@ -847,11 +852,11 @@
         /**
          * Shows the logout link if appropriate.
          */
-        showLogoutLink: function () {
-            if (nfStorage.getItem('jwt') === null) {
-                $('#user-logout-container').css('display', 'none');
-            } else {
+        updateLogoutLink: function () {
+            if (nfStorage.getItem('jwt') !== null) {
                 $('#user-logout-container').css('display', 'block');
+            } else {
+                $('#user-logout-container').css('display', 'none');
             }
         },
 
@@ -929,6 +934,9 @@
                 }
                 if (!nfCommon.isBlank(propertyDescriptor.supportsEl)) {
                     tipContent.push('<b>Expression language scope:</b> ' + nfCommon.escapeHtml(propertyDescriptor.expressionLanguageScope));
+                }
+                if (!nfCommon.isBlank(propertyDescriptor.sensitive)) {
+                    tipContent.push('<b>Sensitive property:</b> ' + nfCommon.escapeHtml(propertyDescriptor.sensitive));
                 }
                 if (!nfCommon.isBlank(propertyDescriptor.identifiesControllerService)) {
                     var formattedType = nfCommon.formatType({
@@ -1233,7 +1241,8 @@
             }, {
                 text: 'Round robin',
                 value: 'ROUND_ROBIN',
-                description: 'FlowFiles will be distributed to nodes in the cluster in a Round-Robin fashion.'
+                description: 'FlowFiles will be distributed to nodes in the cluster in a Round-Robin fashion. However, if a node in the cluster is not able to receive data as fast as other nodes,'
+                                + ' that node may be skipped in one or more iterations in order to maximize throughput of data distribution across the cluster.'
             }, {
                 text: 'Single node',
                 value: 'SINGLE_NODE',
@@ -1709,13 +1718,25 @@
             return formattedGarbageCollections;
         },
 
+        /**
+         * Returns whether the specified resource is for a global policy.
+         *
+         * @param resource
+         */
+        isGlobalPolicy: function (value) {
+            return nfCommon.getPolicyTypeListing(value) !== null;
+        },
+
+        /**
+         * Gets the policy type for the specified resource.
+         *
+         * @param value
+         * @returns {*}
+         */
         getPolicyTypeListing: function (value) {
-            var nest = d3.nest()
-                .key(function (d) {
-                    return d.value;
-                })
-                .map(policyTypeListing, d3.map);
-            return nest.get(value)[0];
+            return policyTypeListing.find(function (policy) {
+                return value === policy.value;
+            });
         },
 
         /**

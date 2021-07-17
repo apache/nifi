@@ -20,7 +20,7 @@ import org.apache.nifi.connectable.Size;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.service.ControllerServiceState;
 import org.apache.nifi.encrypt.EncryptionException;
-import org.apache.nifi.encrypt.StringEncryptor;
+import org.apache.nifi.encrypt.PropertyEncryptor;
 import org.apache.nifi.groups.RemoteProcessGroupPortDescriptor;
 import org.apache.nifi.parameter.ExpressionLanguageAwareParameterParser;
 import org.apache.nifi.parameter.ParameterParser;
@@ -108,7 +108,7 @@ public class FlowFromDOMFactory {
         return styles;
     }
 
-    public static ControllerServiceDTO getControllerService(final Element element, final StringEncryptor encryptor, final FlowEncodingVersion flowEncodingVersion) {
+    public static ControllerServiceDTO getControllerService(final Element element, final PropertyEncryptor encryptor, final FlowEncodingVersion flowEncodingVersion) {
         final ControllerServiceDTO dto = new ControllerServiceDTO();
 
         dto.setId(getString(element, "id"));
@@ -127,7 +127,7 @@ public class FlowFromDOMFactory {
         return dto;
     }
 
-    public static ReportingTaskDTO getReportingTask(final Element element, final StringEncryptor encryptor, final FlowEncodingVersion flowEncodingVersion) {
+    public static ReportingTaskDTO getReportingTask(final Element element, final PropertyEncryptor encryptor, final FlowEncodingVersion flowEncodingVersion) {
         final ReportingTaskDTO dto = new ReportingTaskDTO();
 
         dto.setId(getString(element, "id"));
@@ -145,7 +145,7 @@ public class FlowFromDOMFactory {
         return dto;
     }
 
-    public static ParameterContextDTO getParameterContext(final Element element, final StringEncryptor encryptor) {
+    public static ParameterContextDTO getParameterContext(final Element element, final PropertyEncryptor encryptor) {
         final ParameterContextDTO dto = new ParameterContextDTO();
 
         dto.setId(getString(element, "id"));
@@ -174,7 +174,7 @@ public class FlowFromDOMFactory {
         return dto;
     }
 
-    public static ProcessGroupDTO getProcessGroup(final String parentId, final Element element, final StringEncryptor encryptor, final FlowEncodingVersion encodingVersion) {
+    public static ProcessGroupDTO getProcessGroup(final String parentId, final Element element, final PropertyEncryptor encryptor, final FlowEncodingVersion encodingVersion) {
         final ProcessGroupDTO dto = new ProcessGroupDTO();
         final String groupId = getString(element, "id");
         dto.setId(groupId);
@@ -183,6 +183,11 @@ public class FlowFromDOMFactory {
         dto.setName(getString(element, "name"));
         dto.setPosition(getPosition(DomUtils.getChild(element, "position")));
         dto.setComments(getString(element, "comment"));
+        dto.setFlowfileConcurrency(getString(element, "flowfileConcurrency"));
+        dto.setFlowfileOutboundPolicy(getString(element, "flowfileOutboundPolicy"));
+        dto.setDefaultFlowFileExpiration(getString(element, "defaultFlowFileExpiration"));
+        dto.setDefaultBackPressureObjectThreshold(getLong(element, "defaultBackPressureObjectThreshold"));
+        dto.setDefaultBackPressureDataSizeThreshold(getString(element, "defaultBackPressureDataSizeThreshold"));
 
         final Map<String, String> variables = new HashMap<>();
         final NodeList variableList = DomUtils.getChildNodesByTagName(element, "variable");
@@ -210,6 +215,7 @@ public class FlowFromDOMFactory {
         final Set<LabelDTO> labels = new HashSet<>();
         final Set<ProcessGroupDTO> processGroups = new HashSet<>();
         final Set<RemoteProcessGroupDTO> remoteProcessGroups = new HashSet<>();
+        final Set<ControllerServiceDTO> controllerServices = new HashSet<>();
 
         NodeList nodeList = DomUtils.getChildNodesByTagName(element, "processor");
         for (int i = 0; i < nodeList.getLength(); i++) {
@@ -251,6 +257,11 @@ public class FlowFromDOMFactory {
             connections.add(getConnection((Element) nodeList.item(i)));
         }
 
+        nodeList = DomUtils.getChildNodesByTagName(element, "controllerService");
+        for (int i=0; i < nodeList.getLength(); i++) {
+            controllerServices.add(getControllerService((Element) nodeList.item(i), encryptor, encodingVersion));
+        }
+
         final FlowSnippetDTO groupContents = new FlowSnippetDTO();
         groupContents.setConnections(connections);
         groupContents.setFunnels(funnels);
@@ -260,6 +271,7 @@ public class FlowFromDOMFactory {
         groupContents.setProcessGroups(processGroups);
         groupContents.setProcessors(processors);
         groupContents.setRemoteProcessGroups(remoteProcessGroups);
+        groupContents.setControllerServices(controllerServices);
 
         dto.setContents(groupContents);
         return dto;
@@ -345,7 +357,7 @@ public class FlowFromDOMFactory {
         return dto;
     }
 
-    public static RemoteProcessGroupDTO getRemoteProcessGroup(final Element element, final StringEncryptor encryptor) {
+    public static RemoteProcessGroupDTO getRemoteProcessGroup(final Element element, final PropertyEncryptor encryptor) {
         final RemoteProcessGroupDTO dto = new RemoteProcessGroupDTO();
         dto.setId(getString(element, "id"));
         dto.setVersionedComponentId(getString(element, "versionedComponentId"));
@@ -458,7 +470,7 @@ public class FlowFromDOMFactory {
         return descriptor;
     }
 
-    public static ProcessorDTO getProcessor(final Element element, final StringEncryptor encryptor, final FlowEncodingVersion flowEncodingVersion) {
+    public static ProcessorDTO getProcessor(final Element element, final PropertyEncryptor encryptor, final FlowEncodingVersion flowEncodingVersion) {
         final ProcessorDTO dto = new ProcessorDTO();
 
         dto.setId(getString(element, "id"));
@@ -516,7 +528,7 @@ public class FlowFromDOMFactory {
         return dto;
     }
 
-    private static LinkedHashMap<String, String> getProperties(final Element element, final StringEncryptor encryptor, final FlowEncodingVersion flowEncodingVersion) {
+    private static LinkedHashMap<String, String> getProperties(final Element element, final PropertyEncryptor encryptor, final FlowEncodingVersion flowEncodingVersion) {
         final LinkedHashMap<String, String> properties = new LinkedHashMap<>();
         final List<Element> propertyNodeList = getChildrenByTagName(element, "property");
 
@@ -581,8 +593,10 @@ public class FlowFromDOMFactory {
         return Integer.parseInt(getString(element, childElementName));
     }
 
-    private static long getLong(final Element element, final String childElementName) {
-        return Long.parseLong(getString(element, childElementName));
+    private static Long getLong(final Element element, final String childElementName) {
+        // missing element must be handled gracefully, e.g. flow definition from a previous version without this element
+        String longString = getString(element, childElementName);
+        return longString == null ? null : Long.parseLong(longString);
     }
 
     private static boolean getBoolean(final Element element, final String childElementName) {
@@ -597,7 +611,7 @@ public class FlowFromDOMFactory {
         return DomUtils.getChildElementsByTagName(element, childElementName);
     }
 
-    private static String decrypt(final String value, final StringEncryptor encryptor) {
+    private static String decrypt(final String value, final PropertyEncryptor encryptor) {
         if (value != null && value.startsWith(FlowSerializer.ENC_PREFIX) && value.endsWith(FlowSerializer.ENC_SUFFIX)) {
             try {
                 return encryptor.decrypt(value.substring(FlowSerializer.ENC_PREFIX.length(), value.length() - FlowSerializer.ENC_SUFFIX.length()));

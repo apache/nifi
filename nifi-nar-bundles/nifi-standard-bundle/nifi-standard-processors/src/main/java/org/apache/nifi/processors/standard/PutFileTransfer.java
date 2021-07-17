@@ -16,15 +16,6 @@
  */
 package org.apache.nifi.processors.standard;
 
-import java.io.BufferedInputStream;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
@@ -39,6 +30,17 @@ import org.apache.nifi.processors.standard.util.FileInfo;
 import org.apache.nifi.processors.standard.util.FileTransfer;
 import org.apache.nifi.processors.standard.util.SFTPTransfer;
 import org.apache.nifi.util.StopWatch;
+import org.apache.nifi.util.StringUtils;
+
+import java.io.BufferedInputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Base class for PutFTP & PutSFTP
@@ -94,16 +96,20 @@ public abstract class PutFileTransfer<T extends FileTransfer> extends AbstractPr
         }
 
         final ComponentLog logger = getLogger();
-        final String hostname = context.getProperty(FileTransfer.HOSTNAME).evaluateAttributeExpressions(flowFile).getValue();
+        String hostname = context.getProperty(FileTransfer.HOSTNAME).evaluateAttributeExpressions(flowFile).getValue();
 
         final int maxNumberOfFiles = context.getProperty(FileTransfer.BATCH_SIZE).asInteger();
         int fileCount = 0;
         try (final T transfer = getFileTransfer(context)) {
             do {
+                //check if hostname is regular expression requiring evaluation
+                if(context.getProperty(FileTransfer.HOSTNAME).isExpressionLanguagePresent()) {
+                    hostname = context.getProperty(FileTransfer.HOSTNAME).evaluateAttributeExpressions(flowFile).getValue();
+                }
                 final String rootPath = context.getProperty(FileTransfer.REMOTE_PATH).evaluateAttributeExpressions(flowFile).getValue();
                 final String workingDirPath;
-                if (rootPath == null) {
-                    workingDirPath = null;
+                if (StringUtils.isBlank(rootPath)) {
+                    workingDirPath = transfer.getHomeDirectory(flowFile);
                 } else {
                     workingDirPath = transfer.getAbsolutePath(flowFile, rootPath);
                 }
@@ -152,7 +158,7 @@ public abstract class PutFileTransfer<T extends FileTransfer> extends AbstractPr
                 }
 
                 session.transfer(flowFile, conflictResult.getRelationship());
-                session.commit();
+                session.commitAsync();
             } while (isScheduled()
                     && (getRelationships().size() == context.getAvailableRelationships().size())
                     && (++fileCount < maxNumberOfFiles)

@@ -17,6 +17,56 @@
 
 package org.apache.nifi.record.path.paths;
 
+import org.antlr.runtime.tree.Tree;
+import org.apache.nifi.record.path.NumericRange;
+import org.apache.nifi.record.path.exception.RecordPathException;
+import org.apache.nifi.record.path.filter.Contains;
+import org.apache.nifi.record.path.filter.ContainsRegex;
+import org.apache.nifi.record.path.filter.EndsWith;
+import org.apache.nifi.record.path.filter.EqualsFilter;
+import org.apache.nifi.record.path.filter.GreaterThanFilter;
+import org.apache.nifi.record.path.filter.GreaterThanOrEqualFilter;
+import org.apache.nifi.record.path.filter.IsBlank;
+import org.apache.nifi.record.path.filter.IsEmpty;
+import org.apache.nifi.record.path.filter.LessThanFilter;
+import org.apache.nifi.record.path.filter.LessThanOrEqualFilter;
+import org.apache.nifi.record.path.filter.MatchesRegex;
+import org.apache.nifi.record.path.filter.NotEqualsFilter;
+import org.apache.nifi.record.path.filter.NotFilter;
+import org.apache.nifi.record.path.filter.RecordPathFilter;
+import org.apache.nifi.record.path.filter.StartsWith;
+import org.apache.nifi.record.path.functions.Base64Decode;
+import org.apache.nifi.record.path.functions.Base64Encode;
+import org.apache.nifi.record.path.functions.Coalesce;
+import org.apache.nifi.record.path.functions.Concat;
+import org.apache.nifi.record.path.functions.EscapeJson;
+import org.apache.nifi.record.path.functions.FieldName;
+import org.apache.nifi.record.path.functions.FilterFunction;
+import org.apache.nifi.record.path.functions.Format;
+import org.apache.nifi.record.path.functions.Hash;
+import org.apache.nifi.record.path.functions.PadLeft;
+import org.apache.nifi.record.path.functions.PadRight;
+import org.apache.nifi.record.path.functions.Replace;
+import org.apache.nifi.record.path.functions.ReplaceNull;
+import org.apache.nifi.record.path.functions.ReplaceRegex;
+import org.apache.nifi.record.path.functions.Substring;
+import org.apache.nifi.record.path.functions.SubstringAfter;
+import org.apache.nifi.record.path.functions.SubstringAfterLast;
+import org.apache.nifi.record.path.functions.SubstringBefore;
+import org.apache.nifi.record.path.functions.SubstringBeforeLast;
+import org.apache.nifi.record.path.functions.ToBytes;
+import org.apache.nifi.record.path.functions.ToDate;
+import org.apache.nifi.record.path.functions.ToLowerCase;
+import org.apache.nifi.record.path.functions.ToString;
+import org.apache.nifi.record.path.functions.ToUpperCase;
+import org.apache.nifi.record.path.functions.TrimString;
+import org.apache.nifi.record.path.functions.UUID5;
+import org.apache.nifi.record.path.functions.UnescapeJson;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.BiFunction;
+
 import static org.apache.nifi.record.path.RecordPathParser.ARRAY_INDEX;
 import static org.apache.nifi.record.path.RecordPathParser.CHILD_REFERENCE;
 import static org.apache.nifi.record.path.RecordPathParser.CURRENT_FIELD;
@@ -42,50 +92,6 @@ import static org.apache.nifi.record.path.RecordPathParser.STRING_LIST;
 import static org.apache.nifi.record.path.RecordPathParser.STRING_LITERAL;
 import static org.apache.nifi.record.path.RecordPathParser.WILDCARD;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.function.BiFunction;
-
-import org.antlr.runtime.tree.Tree;
-import org.apache.nifi.record.path.NumericRange;
-import org.apache.nifi.record.path.exception.RecordPathException;
-import org.apache.nifi.record.path.filter.Contains;
-import org.apache.nifi.record.path.filter.ContainsRegex;
-import org.apache.nifi.record.path.filter.EndsWith;
-import org.apache.nifi.record.path.filter.EqualsFilter;
-import org.apache.nifi.record.path.filter.GreaterThanFilter;
-import org.apache.nifi.record.path.filter.GreaterThanOrEqualFilter;
-import org.apache.nifi.record.path.filter.IsBlank;
-import org.apache.nifi.record.path.filter.IsEmpty;
-import org.apache.nifi.record.path.filter.LessThanFilter;
-import org.apache.nifi.record.path.filter.LessThanOrEqualFilter;
-import org.apache.nifi.record.path.filter.MatchesRegex;
-import org.apache.nifi.record.path.filter.NotEqualsFilter;
-import org.apache.nifi.record.path.filter.NotFilter;
-import org.apache.nifi.record.path.filter.RecordPathFilter;
-import org.apache.nifi.record.path.filter.StartsWith;
-import org.apache.nifi.record.path.functions.Base64Decode;
-import org.apache.nifi.record.path.functions.Base64Encode;
-import org.apache.nifi.record.path.functions.Concat;
-import org.apache.nifi.record.path.functions.Format;
-import org.apache.nifi.record.path.functions.FieldName;
-import org.apache.nifi.record.path.functions.PadLeft;
-import org.apache.nifi.record.path.functions.PadRight;
-import org.apache.nifi.record.path.functions.Replace;
-import org.apache.nifi.record.path.functions.ReplaceNull;
-import org.apache.nifi.record.path.functions.ReplaceRegex;
-import org.apache.nifi.record.path.functions.Substring;
-import org.apache.nifi.record.path.functions.SubstringAfter;
-import org.apache.nifi.record.path.functions.SubstringAfterLast;
-import org.apache.nifi.record.path.functions.SubstringBefore;
-import org.apache.nifi.record.path.functions.SubstringBeforeLast;
-import org.apache.nifi.record.path.functions.ToBytes;
-import org.apache.nifi.record.path.functions.ToDate;
-import org.apache.nifi.record.path.functions.ToLowerCase;
-import org.apache.nifi.record.path.functions.ToString;
-import org.apache.nifi.record.path.functions.ToUpperCase;
-import org.apache.nifi.record.path.functions.TrimString;
-
 public class RecordPathCompiler {
 
     public static RecordPathSegment compile(final Tree pathTree, final RecordPathSegment root, final boolean absolute) {
@@ -97,6 +103,18 @@ public class RecordPathCompiler {
         for (int i = 0; i < pathTree.getChildCount(); i++) {
             final Tree child = pathTree.getChild(i);
             parent = RecordPathCompiler.buildPath(child, parent, absolute);
+        }
+
+        // If the given path tree is an operator, create a Filter Function that will be responsible for returning true/false based on the provided operation
+        switch (pathTree.getType()) {
+            case EQUAL:
+            case NOT_EQUAL:
+            case LESS_THAN:
+            case LESS_THAN_EQUAL:
+            case GREATER_THAN:
+            case GREATER_THAN_EQUAL:
+                final RecordPathFilter filter = createFilter(pathTree, null, absolute);
+                return new FilterFunction(pathTree.getText(), filter, absolute);
         }
 
         return parent;
@@ -305,6 +323,18 @@ public class RecordPathCompiler {
                         final RecordPathSegment[] args = getArgPaths(argumentListTree, 1, functionName, absolute);
                         return new Base64Decode(args[0], absolute);
                     }
+                    case "escapeJson": {
+                        final RecordPathSegment[] args = getArgPaths(argumentListTree, 1, functionName, absolute);
+                        return new EscapeJson(args[0], absolute);
+                    }
+                    case "unescapeJson": {
+                        final RecordPathSegment[] args = getArgPaths(argumentListTree, 1, functionName, absolute);
+                        return new UnescapeJson(args[0], absolute);
+                    }
+                    case "hash":{
+                        final RecordPathSegment[] args = getArgPaths(argumentListTree, 2, functionName, absolute);
+                        return new Hash(args[0], args[1], absolute);
+                    }
                     case "padLeft": {
                         final int numArgs = argumentListTree.getChildCount();
 
@@ -326,6 +356,37 @@ public class RecordPathCompiler {
                             final RecordPathSegment[] args = getArgPaths(argumentListTree, 3, functionName, absolute);
                             return new PadRight(args[0], args[1], args[2], absolute);
                         }
+                    }
+                    case "uuid5": {
+                        final int numArgs = argumentListTree.getChildCount();
+                        if (numArgs == 2) {
+                            final RecordPathSegment[] args = getArgPaths(argumentListTree, 2, functionName, absolute);
+                            return new UUID5(args[0], args[1], absolute);
+                        } else {
+                            final RecordPathSegment[] args = getArgPaths(argumentListTree, 1, functionName, absolute);
+                            return new UUID5(args[0], null, absolute);
+                        }
+                    }
+                    case "coalesce": {
+                        final int numArgs = argumentListTree.getChildCount();
+
+                        final RecordPathSegment[] argPaths = new RecordPathSegment[numArgs];
+                        for (int i = 0; i < numArgs; i++) {
+                            argPaths[i] = buildPath(argumentListTree.getChild(i), null, absolute);
+                        }
+
+                        return new Coalesce(argPaths, absolute);
+                    }
+                    case "not":
+                    case "contains":
+                    case "containsRegex":
+                    case "endsWith":
+                    case "startsWith":
+                    case "isBlank":
+                    case "isEmpty":
+                    case "matchesRegex": {
+                        final RecordPathFilter filter = createFilter(tree, null, absolute);
+                        return new FilterFunction(functionName, filter, absolute);
                     }
                     default: {
                         throw new RecordPathException("Invalid function call: The '" + functionName + "' function does not exist or can only "

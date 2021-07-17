@@ -51,6 +51,8 @@
 	{ "name" : "componentType", "type" : "string"},
 	{ "name" : "componentName", "type" : "string"},
 	{ "name" : "parentId", "type" : ["string", "null"]},
+	{ "name" : "parentName", "type" : ["string", "null"]},
+	{ "name" : "parentPath", "type" : ["string", "null"]},
 	{ "name" : "platform", "type" : "string"},
 	{ "name" : "application", "type" : "string"},
 	{ "name" : "componentId", "type" : "string"},
@@ -83,7 +85,7 @@
 	{ "name" : "inputContentSize", "type" : ["long", "null"]},
 	{ "name" : "outputContentSize", "type" : ["long", "null"]},
 	{ "name" : "queuedContentSize", "type" : ["long", "null"]},
-	{ "name" : "versionedFlowStatus", "type" : ["string", "null"]},
+	{ "name" : "versionedFlowState", "type" : ["string", "null"]},
 	
 	// fields for remote process groups
 	{ "name" : "activeRemotePortCount", "type" : ["long", "null"]},
@@ -123,7 +125,7 @@
 	{ "name" : "invocations", "type" : ["long", "null"]},
 	{ "name" : "processingNanos", "type" : ["long", "null"]},
 	{ "name" : "executionNode", "type" : ["string", "null"]},
-	{ "name" : "counters", "type": { "type": "map", "values": "string" }}
+	{ "name" : "counters", "type": ["null", { "type": "map", "values": "string" }]}
   ]
 }
 			</code>

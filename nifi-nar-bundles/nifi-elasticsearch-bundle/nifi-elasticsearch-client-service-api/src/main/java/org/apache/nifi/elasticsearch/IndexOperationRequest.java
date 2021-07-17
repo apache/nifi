@@ -17,19 +17,26 @@
 
 package org.apache.nifi.elasticsearch;
 
+import java.util.Arrays;
 import java.util.Map;
 
+/**
+ * A POJO that represents an "operation on an index." It should not be confused with just indexing documents, as it
+ * covers all CRUD-related operations that can be executed against an Elasticsearch index with documents.
+ */
 public class IndexOperationRequest {
     private String index;
     private String type;
     private String id;
     private Map<String, Object> fields;
+    private Operation operation;
 
-    public IndexOperationRequest(String index, String type, String id, Map<String, Object> fields) {
+    public IndexOperationRequest(String index, String type, String id, Map<String, Object> fields, Operation operation) {
         this.index = index;
         this.type = type;
         this.id = id;
         this.fields = fields;
+        this.operation = operation;
     }
 
     public String getIndex() {
@@ -46,5 +53,32 @@ public class IndexOperationRequest {
 
     public Map<String, Object> getFields() {
         return fields;
+    }
+
+    public Operation getOperation() {
+        return operation;
+    }
+
+    public enum Operation {
+        Create("create"),
+        Delete("delete"),
+        Index("index"),
+        Update("update"),
+        Upsert("upsert");
+        String value;
+
+        Operation(String value) {
+            this.value = value;
+        }
+
+        public String getValue() {
+            return value;
+        }
+
+        public static Operation forValue(final String value) {
+            return Arrays.stream(Operation.values())
+                    .filter(o -> o.getValue().equalsIgnoreCase(value)).findFirst()
+                    .orElseThrow(() -> new IllegalArgumentException(String.format("Unknown Index Operation %s", value)));
+        }
     }
 }

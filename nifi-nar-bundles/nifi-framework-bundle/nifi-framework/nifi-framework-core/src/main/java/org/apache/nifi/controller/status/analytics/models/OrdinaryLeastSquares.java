@@ -16,16 +16,16 @@
  */
 package org.apache.nifi.controller.status.analytics.models;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
 import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.math3.linear.SingularMatrixException;
 import org.apache.commons.math3.stat.regression.OLSMultipleLinearRegression;
 import org.apache.nifi.controller.status.analytics.StatusAnalyticsModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.stream.Stream;
 
 /**
  * <p>
@@ -46,9 +46,14 @@ public class OrdinaryLeastSquares implements StatusAnalyticsModel {
     @Override
     public void learn(Stream<Double[]> features, Stream<Double> labels) {
         double[] labelArray = ArrayUtils.toPrimitive(labels.toArray(Double[]::new));
-        double[][] featuresMatrix = features.map(feature -> ArrayUtils.toPrimitive(feature)).toArray(double[][]::new);
+        double[][] featuresMatrix = features.map(ArrayUtils::toPrimitive).toArray(double[][]::new);
         this.olsModel.newSampleData(labelArray, featuresMatrix);
-        this.coefficients = olsModel.estimateRegressionParameters();
+        try {
+            this.coefficients = olsModel.estimateRegressionParameters();
+        } catch (SingularMatrixException sme) {
+            LOG.debug("The OLSMultipleLinearRegression model's matrix has no inverse (i.e. it is singular) so regression parameters can not be estimated at this time.");
+
+        }
     }
 
     @Override
@@ -76,8 +81,7 @@ public class OrdinaryLeastSquares implements StatusAnalyticsModel {
             double sumX = 0;
             if (knownVariablesWithIndex.size() > 0) {
                 sumX = knownVariablesWithIndex.entrySet().stream().map(featureTuple -> coefficients[olsModel.isNoIntercept()
-                        ? featureTuple.getKey() : featureTuple.getKey() + 1] * featureTuple.getValue())
-                        .collect(Collectors.summingDouble(Double::doubleValue));
+                        ? featureTuple.getKey() : featureTuple.getKey() + 1] * featureTuple.getValue()).mapToDouble(Double::doubleValue).sum();
             }
             return (label - intercept - sumX) / predictorCoeff;
         }
@@ -89,10 +93,13 @@ public class OrdinaryLeastSquares implements StatusAnalyticsModel {
             return null;
         } else {
             Map<String, Double> scores = new HashMap<>();
-            scores.put("rSquared", olsModel.calculateRSquared());
-            scores.put("totalSumOfSquares", olsModel.calculateTotalSumOfSquares());
+            try {
+                scores.put("rSquared", olsModel.calculateRSquared());
+                scores.put("totalSumOfSquares", olsModel.calculateTotalSumOfSquares());
+            } catch (SingularMatrixException sme) {
+                LOG.debug("The OLSMultipleLinearRegression model's matrix has no inverse (i.e. it is singular) so no scores can be calculated at this time.");
+            }
             return scores;
-
         }
     }
 

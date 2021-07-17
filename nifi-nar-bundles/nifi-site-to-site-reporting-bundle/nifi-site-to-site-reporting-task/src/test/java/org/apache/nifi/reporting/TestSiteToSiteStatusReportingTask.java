@@ -22,6 +22,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -55,6 +57,7 @@ import org.apache.nifi.registry.flow.VersionedFlowState;
 import org.apache.nifi.remote.Transaction;
 import org.apache.nifi.remote.TransferDirection;
 import org.apache.nifi.remote.client.SiteToSiteClient;
+import org.apache.nifi.reporting.s2s.SiteToSiteUtils;
 import org.apache.nifi.state.MockStateManager;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockPropertyValue;
@@ -106,7 +109,7 @@ public class TestSiteToSiteStatusReportingTask {
         final ProcessGroupStatus pgStatus = generateProcessGroupStatus("root", "Awesome", 1, 0);
 
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
-        properties.put(SiteToSiteStatusReportingTask.BATCH_SIZE, "4");
+        properties.put(SiteToSiteUtils.BATCH_SIZE, "4");
         properties.put(SiteToSiteStatusReportingTask.COMPONENT_NAME_FILTER_REGEX, "Awesome.*");
         properties.put(SiteToSiteStatusReportingTask.COMPONENT_TYPE_FILTER_REGEX, ".*");
 
@@ -130,7 +133,7 @@ public class TestSiteToSiteStatusReportingTask {
         final ProcessGroupStatus pgStatus = generateProcessGroupStatus("root", "Awesome", 1, 0);
 
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
-        properties.put(SiteToSiteStatusReportingTask.BATCH_SIZE, "4");
+        properties.put(SiteToSiteUtils.BATCH_SIZE, "4");
         properties.put(SiteToSiteStatusReportingTask.COMPONENT_NAME_FILTER_REGEX, "Awesome.*");
         properties.put(SiteToSiteStatusReportingTask.COMPONENT_TYPE_FILTER_REGEX, "(ProcessGroup|RootProcessGroup)");
 
@@ -149,7 +152,7 @@ public class TestSiteToSiteStatusReportingTask {
         final ProcessGroupStatus pgStatus = generateProcessGroupStatus("root", "Awesome", 1, 0);
 
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
-        properties.put(SiteToSiteStatusReportingTask.BATCH_SIZE, "4");
+        properties.put(SiteToSiteUtils.BATCH_SIZE, "4");
         properties.put(SiteToSiteStatusReportingTask.COMPONENT_NAME_FILTER_REGEX, "Awesome.*");
         properties.put(SiteToSiteStatusReportingTask.COMPONENT_TYPE_FILTER_REGEX, "(Connection)");
 
@@ -175,7 +178,7 @@ public class TestSiteToSiteStatusReportingTask {
         final ProcessGroupStatus pgStatus = generateProcessGroupStatus("root", "Awesome", 1, 0);
 
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
-        properties.put(SiteToSiteStatusReportingTask.BATCH_SIZE, "4");
+        properties.put(SiteToSiteUtils.BATCH_SIZE, "4");
         properties.put(SiteToSiteStatusReportingTask.COMPONENT_NAME_FILTER_REGEX, "Awesome.*");
         properties.put(SiteToSiteStatusReportingTask.COMPONENT_TYPE_FILTER_REGEX, "(Connection)");
         properties.put(SiteToSiteStatusReportingTask.ALLOW_NULL_VALUES,"true");
@@ -196,7 +199,7 @@ public class TestSiteToSiteStatusReportingTask {
         final ProcessGroupStatus pgStatus = generateProcessGroupStatus("root", "Awesome", 1, 0);
 
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
-        properties.put(SiteToSiteStatusReportingTask.BATCH_SIZE, "4");
+        properties.put(SiteToSiteUtils.BATCH_SIZE, "4");
         properties.put(SiteToSiteStatusReportingTask.COMPONENT_NAME_FILTER_REGEX, "Awesome.*processor.*");
         properties.put(SiteToSiteStatusReportingTask.COMPONENT_TYPE_FILTER_REGEX, ".*");
 
@@ -215,7 +218,7 @@ public class TestSiteToSiteStatusReportingTask {
         final ProcessGroupStatus pgStatus = generateProcessGroupStatus("root", "Awesome", 2, 0);
 
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
-        properties.put(SiteToSiteStatusReportingTask.BATCH_SIZE, "4");
+        properties.put(SiteToSiteUtils.BATCH_SIZE, "4");
         properties.put(SiteToSiteStatusReportingTask.COMPONENT_NAME_FILTER_REGEX, "Awesome.*processor.*");
         properties.put(SiteToSiteStatusReportingTask.COMPONENT_TYPE_FILTER_REGEX, ".*");
 
@@ -234,7 +237,7 @@ public class TestSiteToSiteStatusReportingTask {
         ProcessGroupStatus pgStatus = generateProcessGroupStatus("root", "Awesome", 1, 0);
 
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
-        properties.put(SiteToSiteStatusReportingTask.BATCH_SIZE, "4");
+        properties.put(SiteToSiteUtils.BATCH_SIZE, "4");
         properties.put(SiteToSiteStatusReportingTask.COMPONENT_NAME_FILTER_REGEX, "Awesome.*");
         properties.put(SiteToSiteStatusReportingTask.COMPONENT_TYPE_FILTER_REGEX, "(InputPort)");
         properties.put(SiteToSiteStatusReportingTask.ALLOW_NULL_VALUES,"false");
@@ -259,7 +262,7 @@ public class TestSiteToSiteStatusReportingTask {
         ProcessGroupStatus pgStatus = generateProcessGroupStatus("root", "Awesome", 1, 0);
 
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
-        properties.put(SiteToSiteStatusReportingTask.BATCH_SIZE, "4");
+        properties.put(SiteToSiteUtils.BATCH_SIZE, "4");
         properties.put(SiteToSiteStatusReportingTask.COMPONENT_NAME_FILTER_REGEX, "Awesome.*");
         properties.put(SiteToSiteStatusReportingTask.COMPONENT_TYPE_FILTER_REGEX, "(InputPort)");
         properties.put(SiteToSiteStatusReportingTask.ALLOW_NULL_VALUES,"true");
@@ -278,7 +281,7 @@ public class TestSiteToSiteStatusReportingTask {
         final ProcessGroupStatus pgStatus = generateProcessGroupStatus("root", "Awesome", 1, 0);
 
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
-        properties.put(SiteToSiteStatusReportingTask.BATCH_SIZE, "4");
+        properties.put(SiteToSiteUtils.BATCH_SIZE, "4");
         properties.put(SiteToSiteStatusReportingTask.COMPONENT_NAME_FILTER_REGEX, "Awesome.*");
         properties.put(SiteToSiteStatusReportingTask.COMPONENT_TYPE_FILTER_REGEX, "(RemoteProcessGroup)");
 
@@ -300,7 +303,7 @@ public class TestSiteToSiteStatusReportingTask {
         final ProcessGroupStatus pgStatus = generateProcessGroupStatus("root", "Awesome", 1, 0);
 
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
-        properties.put(SiteToSiteStatusReportingTask.BATCH_SIZE, "4");
+        properties.put(SiteToSiteUtils.BATCH_SIZE, "4");
         properties.put(SiteToSiteStatusReportingTask.COMPONENT_NAME_FILTER_REGEX, "Awesome.*");
         properties.put(SiteToSiteStatusReportingTask.COMPONENT_TYPE_FILTER_REGEX, "(RemoteProcessGroup)");
         properties.put(SiteToSiteStatusReportingTask.ALLOW_NULL_VALUES,"true");
@@ -321,7 +324,7 @@ public class TestSiteToSiteStatusReportingTask {
         final ProcessGroupStatus pgStatus = generateProcessGroupStatus("root", "Awesome", 1, 0);
 
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
-        properties.put(SiteToSiteStatusReportingTask.BATCH_SIZE, "4");
+        properties.put(SiteToSiteUtils.BATCH_SIZE, "4");
         properties.put(SiteToSiteStatusReportingTask.COMPONENT_NAME_FILTER_REGEX, "Awesome.*");
         properties.put(SiteToSiteStatusReportingTask.COMPONENT_TYPE_FILTER_REGEX, "(Processor)");
 
@@ -331,6 +334,10 @@ public class TestSiteToSiteStatusReportingTask {
         final String msg = new String(task.dataSent.get(0), StandardCharsets.UTF_8);
         JsonReader jsonReader = Json.createReader(new ByteArrayInputStream(msg.getBytes()));
         JsonObject object = jsonReader.readArray().getJsonObject(0);
+        JsonString parentName = object.getJsonString("parentName");
+        assertTrue(parentName.getString().startsWith("Awesome.1-"));
+        JsonString parentPath = object.getJsonString("parentPath");
+        assertTrue(parentPath.getString().startsWith("NiFi Flow / Awesome.1"));
         JsonString runStatus = object.getJsonString("runStatus");
         assertEquals(RunStatus.Running.name(), runStatus.getString());
         JsonNumber inputBytes = object.getJsonNumber("inputBytes");
@@ -347,7 +354,7 @@ public class TestSiteToSiteStatusReportingTask {
         final ProcessGroupStatus pgStatus = generateProcessGroupStatus("root", "Awesome", 1, 0);
 
         final Map<PropertyDescriptor, String> properties = new HashMap<>();
-        properties.put(SiteToSiteStatusReportingTask.BATCH_SIZE, "4");
+        properties.put(SiteToSiteUtils.BATCH_SIZE, "4");
         properties.put(SiteToSiteStatusReportingTask.COMPONENT_NAME_FILTER_REGEX, "Awesome.*");
         properties.put(SiteToSiteStatusReportingTask.COMPONENT_TYPE_FILTER_REGEX, "(Processor)");
         properties.put(SiteToSiteStatusReportingTask.ALLOW_NULL_VALUES,"true");
@@ -531,27 +538,25 @@ public class TestSiteToSiteStatusReportingTask {
         final List<byte[]> dataSent = new ArrayList<>();
 
         @Override
-        protected SiteToSiteClient getClient() {
-            final SiteToSiteClient client = Mockito.mock(SiteToSiteClient.class);
-            final Transaction transaction = Mockito.mock(Transaction.class);
+        public void setup(ReportingContext reportContext) throws IOException {
+            if(siteToSiteClient == null) {
+                final SiteToSiteClient client = Mockito.mock(SiteToSiteClient.class);
+                final Transaction transaction = Mockito.mock(Transaction.class);
 
-            try {
-                Mockito.doAnswer(new Answer<Object>() {
-                    @Override
-                    public Object answer(final InvocationOnMock invocation) throws Throwable {
+                try {
+                    Mockito.doAnswer((Answer<Object>) invocation -> {
                         final byte[] data = invocation.getArgument(0, byte[].class);
                         dataSent.add(data);
                         return null;
-                    }
-                }).when(transaction).send(Mockito.any(byte[].class), Mockito.any(Map.class));
+                    }).when(transaction).send(Mockito.any(byte[].class), Mockito.any(Map.class));
 
-                Mockito.when(client.createTransaction(Mockito.any(TransferDirection.class))).thenReturn(transaction);
-            } catch (final Exception e) {
-                e.printStackTrace();
-                Assert.fail(e.toString());
+                    when(client.createTransaction(Mockito.any(TransferDirection.class))).thenReturn(transaction);
+                } catch (final Exception e) {
+                    e.printStackTrace();
+                    Assert.fail(e.toString());
+                }
+                siteToSiteClient = client;
             }
-
-            return client;
         }
 
         public List<byte[]> getDataSent() {

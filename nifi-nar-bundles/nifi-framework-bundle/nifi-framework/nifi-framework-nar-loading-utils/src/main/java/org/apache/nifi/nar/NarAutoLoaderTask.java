@@ -128,8 +128,8 @@ public class NarAutoLoaderTask implements Runnable {
                     narLoader.load(readyNars);
                 }
 
-            } catch (final Exception e) {
-                LOGGER.error("Error loading NARs due to: " + e.getMessage(), e);
+            } catch (final Throwable t) {
+                LOGGER.error("Error loading NARs due to: " + t.getMessage(), t);
             }
         }
     }
@@ -172,7 +172,6 @@ public class NarAutoLoaderTask implements Runnable {
         public NarAutoLoaderTask build() {
             return new NarAutoLoaderTask(this);
         }
-
     }
 
 }

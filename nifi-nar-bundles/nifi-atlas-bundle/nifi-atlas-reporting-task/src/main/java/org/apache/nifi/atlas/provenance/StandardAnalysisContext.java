@@ -17,7 +17,7 @@
 package org.apache.nifi.atlas.provenance;
 
 import org.apache.nifi.atlas.NiFiFlow;
-import org.apache.nifi.atlas.resolver.ClusterResolver;
+import org.apache.nifi.atlas.resolver.NamespaceResolver;
 import org.apache.nifi.controller.status.ConnectionStatus;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceRepository;
@@ -34,14 +34,18 @@ public class StandardAnalysisContext implements AnalysisContext {
 
     private final Logger logger = LoggerFactory.getLogger(StandardAnalysisContext.class);
     private final NiFiFlow nifiFlow;
-    private final ClusterResolver clusterResolver;
+    private final NamespaceResolver namespaceResolver;
     private final ProvenanceRepository provenanceRepository;
+    private final String awsS3ModelVersion;
+    private final FilesystemPathsLevel filesystemPathsLevel;
 
-    public StandardAnalysisContext(NiFiFlow nifiFlow, ClusterResolver clusterResolver,
-                                   ProvenanceRepository provenanceRepository) {
+    public StandardAnalysisContext(NiFiFlow nifiFlow, NamespaceResolver namespaceResolver,
+                                   ProvenanceRepository provenanceRepository, String awsS3ModelVersion, FilesystemPathsLevel filesystemPathsLevel) {
         this.nifiFlow = nifiFlow;
-        this.clusterResolver = clusterResolver;
+        this.namespaceResolver = namespaceResolver;
         this.provenanceRepository = provenanceRepository;
+        this.awsS3ModelVersion = awsS3ModelVersion;
+        this.filesystemPathsLevel = filesystemPathsLevel;
     }
 
     @Override
@@ -55,13 +59,13 @@ public class StandardAnalysisContext implements AnalysisContext {
     }
 
     @Override
-    public String getNiFiClusterName() {
-        return nifiFlow.getClusterName();
+    public String getNiFiNamespace() {
+        return nifiFlow.getNamespace();
     }
 
     @Override
-    public ClusterResolver getClusterResolver() {
-        return clusterResolver;
+    public NamespaceResolver getNamespaceResolver() {
+        return namespaceResolver;
     }
 
     private ComputeLineageResult getLineageResult(long eventId, ComputeLineageSubmission submission) {
@@ -101,4 +105,13 @@ public class StandardAnalysisContext implements AnalysisContext {
         }
     }
 
+    @Override
+    public String getAwsS3ModelVersion() {
+        return awsS3ModelVersion;
+    }
+
+    @Override
+    public FilesystemPathsLevel getFilesystemPathsLevel() {
+        return filesystemPathsLevel;
+    }
 }

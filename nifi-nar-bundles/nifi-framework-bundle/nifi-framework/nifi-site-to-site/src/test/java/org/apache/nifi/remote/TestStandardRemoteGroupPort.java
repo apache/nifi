@@ -39,6 +39,7 @@ import org.apache.nifi.remote.util.StandardDataPacket;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.MockProcessContext;
 import org.apache.nifi.util.MockProcessSession;
+import org.apache.nifi.util.NiFiProperties;
 import org.apache.nifi.util.SharedSessionState;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -50,12 +51,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.IntStream;
-
-import org.apache.nifi.util.NiFiProperties;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
@@ -120,8 +119,7 @@ public class TestStandardRemoteGroupPort {
                 break;
         }
 
-        port = spy(new StandardRemoteGroupPort(ID, ID, NAME,
-                remoteGroup, direction, connectableType, null, scheduler, NiFiProperties.createBasicNiFiProperties(null, null)));
+        port = spy(new StandardRemoteGroupPort(ID, ID, NAME, remoteGroup, direction, connectableType, null, scheduler));
 
         doReturn(true).when(remoteGroup).isTransmitting();
         doReturn(protocol).when(remoteGroup).getTransportProtocol();

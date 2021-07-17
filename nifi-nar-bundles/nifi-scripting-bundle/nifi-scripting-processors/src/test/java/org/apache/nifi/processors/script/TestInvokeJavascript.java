@@ -52,7 +52,6 @@ public class TestInvokeJavascript extends BaseScriptTest {
      */
     @Test
     public void testReadFlowFileContentAndStoreInFlowFileAttribute() throws Exception {
-        runner.setValidateExpressionUsage(false);
         runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "ECMAScript");
         runner.setProperty(ScriptingComponentUtils.SCRIPT_FILE, "target/test/resources/javascript/test_reader.js");
         runner.setProperty(ScriptingComponentUtils.MODULES, "target/test/resources/javascript");
@@ -146,7 +145,6 @@ public class TestInvokeJavascript extends BaseScriptTest {
     @Test(expected = AssertionError.class)
     public void testInvokeScriptCausesException() throws Exception {
         final TestRunner runner = TestRunners.newTestRunner(new InvokeScriptedProcessor());
-        runner.setValidateExpressionUsage(false);
         runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "ECMAScript");
         runner.setProperty(ScriptingComponentUtils.SCRIPT_BODY, getFileContentsAsString(
                 TEST_RESOURCE_LOCATION + "javascript/testInvokeScriptCausesException.js")
@@ -164,7 +162,6 @@ public class TestInvokeJavascript extends BaseScriptTest {
      */
     @Test
     public void testScriptRoutesToFailure() throws Exception {
-        runner.setValidateExpressionUsage(false);
         runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "ECMAScript");
         runner.setProperty(ScriptingComponentUtils.SCRIPT_BODY, getFileContentsAsString(
                 TEST_RESOURCE_LOCATION + "javascript/testScriptRoutesToFailure.js")
@@ -176,5 +173,17 @@ public class TestInvokeJavascript extends BaseScriptTest {
         runner.assertAllFlowFilesTransferred("FAILURE", 1);
         final List<MockFlowFile> result = runner.getFlowFilesForRelationship("FAILURE");
         assertFalse(result.isEmpty());
+    }
+
+    /**
+     * Tests an empty script with Nashorn (which throws an NPE if it is loaded), this test verifies an empty script is not attempted to be loaded.
+     *
+     * @throws Exception Any error encountered while testing
+     */
+    @Test
+    public void testEmptyScript() throws Exception {
+        runner.setProperty(scriptingComponent.getScriptingComponentHelper().SCRIPT_ENGINE, "ECMAScript");
+        runner.setProperty(ScriptingComponentUtils.SCRIPT_BODY, "");
+        runner.assertNotValid();
     }
 }

@@ -40,9 +40,11 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.Queue;
 import java.util.Set;
@@ -82,6 +84,11 @@ public class SwappablePriorityQueue {
     private PriorityQueue<FlowFileRecord> activeQueue;
     private ArrayList<FlowFileRecord> swapQueue;
     private boolean swapMode = false;
+
+    // The following members are used to keep metrics in memory for reporting purposes so that we don't have to constantly
+    // read these values from swap files on disk.
+    private final Map<String, Long> minQueueDateInSwapLocation = new HashMap<>();
+    private final Map<String, Long> totalQueueDateInSwapLocation = new HashMap<>();
 
     public SwappablePriorityQueue(final FlowFileSwapManager swapManager, final int swapThreshold, final EventReporter eventReporter, final FlowFileQueue flowFileQueue,
         final DropFlowFileAction dropAction, final String swapPartitionName) {
@@ -162,6 +169,9 @@ public class SwappablePriorityQueue {
         }
 
         migrateSwapToActive();
+        if (swapQueue.size() < SWAP_RECORD_POLL_SIZE) {
+            return;
+        }
 
         final int numSwapFiles = swapQueue.size() / SWAP_RECORD_POLL_SIZE;
 
@@ -171,10 +181,11 @@ public class SwappablePriorityQueue {
             originalSwapQueueBytes += flowFile.getSize();
         }
 
-        // Create a new Priority queue with the prioritizers that are set, but reverse the
-        // prioritizers because we want to pull the lowest-priority FlowFiles to swap out
-        final PriorityQueue<FlowFileRecord> tempQueue = new PriorityQueue<>(activeQueue.size() + swapQueue.size(), Collections.reverseOrder(new QueuePrioritizer(getPriorities())));
-        tempQueue.addAll(activeQueue);
+        // Create a new Priority queue with the same prioritizers that are set for this queue. We want to swap out the highest priority data first, because
+        // whatever data we don't write out to a swap file (because there isn't enough to fill a swap file) will be added back to the swap queue.
+        // Since the swap queue cannot be processed until all swap files, we want to ensure that only the lowest priority data goes back onto it. Which means
+        // that we must swap out the highest priority data that is currently on the swap queue.
+        final PriorityQueue<FlowFileRecord> tempQueue = new PriorityQueue<>(swapQueue.size(), new QueuePrioritizer(getPriorities()));
         tempQueue.addAll(swapQueue);
 
         long bytesSwappedOut = 0L;
@@ -182,6 +193,8 @@ public class SwappablePriorityQueue {
         final List<String> swapLocations = new ArrayList<>(numSwapFiles);
         for (int i = 0; i < numSwapFiles; i++) {
             long bytesSwappedThisIteration = 0L;
+            long totalSwapQueueDatesThisIteration = 0L;
+            long minQueueDateThisIteration = Long.MAX_VALUE;
 
             // Create a new swap file for the next SWAP_RECORD_POLL_SIZE records
             final List<FlowFileRecord> toSwap = new ArrayList<>(SWAP_RECORD_POLL_SIZE);
@@ -189,6 +202,8 @@ public class SwappablePriorityQueue {
                 final FlowFileRecord flowFile = tempQueue.poll();
                 toSwap.add(flowFile);
                 bytesSwappedThisIteration += flowFile.getSize();
+                totalSwapQueueDatesThisIteration += flowFile.getLastQueueDate();
+                minQueueDateThisIteration = minQueueDateThisIteration < flowFile.getLastQueueDate() ? minQueueDateThisIteration : flowFile.getLastQueueDate();
             }
 
             try {
@@ -200,6 +215,8 @@ public class SwappablePriorityQueue {
 
                 bytesSwappedOut += bytesSwappedThisIteration;
                 flowFilesSwappedOut += toSwap.size();
+                minQueueDateInSwapLocation.put(swapLocation, minQueueDateThisIteration);
+                totalQueueDateInSwapLocation.put(swapLocation, totalSwapQueueDatesThisIteration);
             } catch (final IOException ioe) {
                 tempQueue.addAll(toSwap); // if we failed, we must add the FlowFiles back to the queue.
 
@@ -221,22 +238,13 @@ public class SwappablePriorityQueue {
         // swap queue. Then add the records back to the active queue.
         swapQueue.clear();
         long updatedSwapQueueBytes = 0L;
-        while (tempQueue.size() > swapThreshold) {
-            final FlowFileRecord record = tempQueue.poll();
+        FlowFileRecord record;
+        while ((record = tempQueue.poll()) != null) {
             swapQueue.add(record);
             updatedSwapQueueBytes += record.getSize();
         }
 
         Collections.reverse(swapQueue); // currently ordered in reverse priority order based on the ordering of the temp queue
-
-        // replace the contents of the active queue, since we've merged it with the swap queue.
-        activeQueue.clear();
-        FlowFileRecord toRequeue;
-        long activeQueueBytes = 0L;
-        while ((toRequeue = tempQueue.poll()) != null) {
-            activeQueue.offer(toRequeue);
-            activeQueueBytes += toRequeue.getSize();
-        }
 
         boolean updated = false;
         while (!updated) {
@@ -245,13 +253,13 @@ public class SwappablePriorityQueue {
             final int addedSwapRecords = swapQueue.size() - originalSwapQueueCount;
             final long addedSwapBytes = updatedSwapQueueBytes - originalSwapQueueBytes;
 
-            final FlowFileQueueSize newSize = new FlowFileQueueSize(activeQueue.size(), activeQueueBytes,
+            final FlowFileQueueSize newSize = new FlowFileQueueSize(originalSize.getActiveCount(), originalSize.getActiveBytes(),
                 originalSize.getSwappedCount() + addedSwapRecords + flowFilesSwappedOut,
                 originalSize.getSwappedBytes() + addedSwapBytes + bytesSwappedOut,
                 originalSize.getSwapFileCount() + numSwapFiles,
                 originalSize.getUnacknowledgedCount(), originalSize.getUnacknowledgedBytes());
-            updated = updateSize(originalSize, newSize);
 
+            updated = updateSize(originalSize, newSize);
             if (updated) {
                 logIfNegative(originalSize, newSize, "swap");
             }
@@ -286,9 +294,7 @@ public class SwappablePriorityQueue {
         // Calling this method when records are polled prevents this condition by migrating FlowFiles from the
         // Swap Queue to the Active Queue. However, we don't do this if there are FlowFiles already swapped out
         // to disk, because we want them to be swapped back in in the same order that they were swapped out.
-
-        final int activeQueueSize = activeQueue.size();
-        if (activeQueueSize > 0 && activeQueueSize > swapThreshold - SWAP_RECORD_POLL_SIZE) {
+        if (!activeQueue.isEmpty()) {
             return;
         }
 
@@ -315,20 +321,33 @@ public class SwappablePriorityQueue {
             return;
         }
 
+        // Swap Queue is not currently ordered. We want to migrate the highest priority FlowFiles to the Active Queue, then re-queue the lowest priority items.
+        final PriorityQueue<FlowFileRecord> tempQueue = new PriorityQueue<>(swapQueue.size(), new QueuePrioritizer(getPriorities()));
+        tempQueue.addAll(swapQueue);
+
         int recordsMigrated = 0;
         long bytesMigrated = 0L;
-        final Iterator<FlowFileRecord> swapItr = swapQueue.iterator();
-        while (activeQueue.size() < swapThreshold && swapItr.hasNext()) {
-            final FlowFileRecord toMigrate = swapItr.next();
+        while (activeQueue.size() < swapThreshold) {
+            final FlowFileRecord toMigrate = tempQueue.poll();
+            if (toMigrate == null) {
+                break;
+            }
+
             activeQueue.add(toMigrate);
             bytesMigrated += toMigrate.getSize();
             recordsMigrated++;
-            swapItr.remove();
+        }
+
+        swapQueue.clear();
+        FlowFileRecord toRequeue;
+        while ((toRequeue = tempQueue.poll()) != null) {
+            swapQueue.add(toRequeue);
         }
 
         if (recordsMigrated > 0) {
             incrementActiveQueueSize(recordsMigrated, bytesMigrated);
             incrementSwapQueueSize(-recordsMigrated, -bytesMigrated, 0);
+            logger.debug("Migrated {} FlowFiles from swap queue to active queue for {}", recordsMigrated, this);
         }
 
         if (size.getSwappedCount() == 0) {
@@ -344,12 +363,16 @@ public class SwappablePriorityQueue {
             logger.debug("Attempting to swap in {}; all swap locations = {}", swapLocation, swapLocations);
             swapContents = swapManager.swapIn(swapLocation, flowFileQueue);
             swapLocations.remove(0);
+            minQueueDateInSwapLocation.remove(swapLocation);
+            totalQueueDateInSwapLocation.remove(swapLocation);
         } catch (final IncompleteSwapFileException isfe) {
             logger.error("Failed to swap in all FlowFiles from Swap File {}; Swap File ended prematurely. The records that were present will still be swapped in", swapLocation);
             logger.error("", isfe);
             swapContents = isfe.getPartialContents();
             partialContents = true;
             swapLocations.remove(0);
+            minQueueDateInSwapLocation.remove(swapLocation);
+            totalQueueDateInSwapLocation.remove(swapLocation);
         } catch (final FileNotFoundException fnfe) {
             logger.error("Failed to swap in FlowFiles from Swap File {} because the Swap File can no longer be found", swapLocation);
             if (eventReporter != null) {
@@ -357,6 +380,8 @@ public class SwappablePriorityQueue {
             }
 
             swapLocations.remove(0);
+            minQueueDateInSwapLocation.remove(swapLocation);
+            totalQueueDateInSwapLocation.remove(swapLocation);
             return;
         } catch (final IOException ioe) {
             logger.error("Failed to swap in FlowFiles from Swap File {}; Swap File appears to be corrupt!", swapLocation);
@@ -408,6 +433,33 @@ public class SwappablePriorityQueue {
 
     public boolean isEmpty() {
         return getFlowFileQueueSize().isEmpty();
+    }
+
+    public boolean isFlowFileAvailable() {
+        if (isEmpty()) {
+            return false;
+        }
+
+        readLock.lock();
+        try {
+            // If we have data in the active or swap queue that is penalized, then we know that all FlowFiles
+            // are penalized. As a result, we can say that no FlowFile is available.
+            FlowFileRecord firstRecord = activeQueue.peek();
+            if (firstRecord == null && !swapQueue.isEmpty()) {
+                firstRecord = swapQueue.get(0);
+            }
+
+            if (firstRecord == null) {
+                // If the queue is not empty, then all data is swapped out. We don't actually know whether or not the swapped out data is penalized, so we assume
+                // that it is not penalized and is therefore available.
+                return !isEmpty();
+            }
+
+            // We do have a FlowFile that was retrieved from the active or swap queue. It is available if it is not penalized.
+            return !firstRecord.isPenalized();
+        } finally {
+            readLock.unlock("isFlowFileAvailable");
+        }
     }
 
     public boolean isActiveQueueEmpty() {
@@ -796,6 +848,8 @@ public class SwappablePriorityQueue {
 
                     dropRequest.setCurrentSize(size());
                     swapLocationItr.remove();
+                    minQueueDateInSwapLocation.remove(swapLocation);
+                    totalQueueDateInSwapLocation.remove(swapLocation);
                     logger.debug("For DropFlowFileRequest {}, dropped {} for Swap File {}", requestIdentifier, droppedSize, swapLocation);
                 }
 
@@ -818,6 +872,8 @@ public class SwappablePriorityQueue {
     public SwapSummary recoverSwappedFlowFiles() {
         int swapFlowFileCount = 0;
         long swapByteCount = 0L;
+        long totalSwappedQueueDate = 0L;
+        Long minSwappedQueueDate = null;
         Long maxId = null;
         List<ResourceClaim> resourceClaims = new ArrayList<>();
         final long startNanos = System.nanoTime();
@@ -860,6 +916,20 @@ public class SwappablePriorityQueue {
                     swapFlowFileCount += queueSize.getObjectCount();
                     swapByteCount += queueSize.getByteCount();
                     resourceClaims.addAll(summary.getResourceClaims());
+
+                    // Update class member metrics
+                    minQueueDateInSwapLocation.put(swapLocation, summary.getMinLastQueueDate());
+                    totalQueueDateInSwapLocation.put(swapLocation, summary.getTotalLastQueueDate());
+
+                    // Update metrics for this method's return value
+                    if(minSwappedQueueDate == null) {
+                        minSwappedQueueDate = summary.getMinLastQueueDate();
+                    } else {
+                        if(summary.getMinLastQueueDate() != null) {
+                            minSwappedQueueDate = Long.min(minSwappedQueueDate, summary.getMinLastQueueDate());
+                        }
+                    }
+                    totalSwappedQueueDate += summary.getTotalLastQueueDate();
                 } catch (final IOException ioe) {
                     failures++;
                     logger.error("Failed to recover FlowFiles from Swap File {}; the file appears to be corrupt", swapLocation);
@@ -884,10 +954,63 @@ public class SwappablePriorityQueue {
             logger.info("Recovered {} swap files for {} in {} millis", swapLocations.size() - failures, this, millis);
         }
 
-        return new StandardSwapSummary(new QueueSize(swapFlowFileCount, swapByteCount), maxId, resourceClaims);
+        // minSwappedQueueDate and totalSwappedQueueDate within this particular StandardSwapSummary are not ultimately used by the FlowController. However,
+        // it can't hurt to set them here accurately in case they ever are.
+        return new StandardSwapSummary(new QueueSize(swapFlowFileCount, swapByteCount), maxId, resourceClaims, minSwappedQueueDate, totalSwappedQueueDate);
     }
 
+    public long getMinLastQueueDate() {
+        readLock.lock();
+        try {
+            // We want the oldest timestamp, which will be the min
+            long min = getMinLastQueueDate(activeQueue, 0L);
+            min = Long.min(min, getMinLastQueueDate(swapQueue, min));
 
+            for(Long minSwapQueueDate: minQueueDateInSwapLocation.values()) {
+                min = min == 0 ? minSwapQueueDate : Long.min(min, minSwapQueueDate);
+            }
+
+            return min;
+        } finally {
+            readLock.unlock("Get Min Last Queue Date");
+        }
+    }
+
+    private long getMinLastQueueDate(Iterable<FlowFileRecord> iterable, long defaultMin) {
+        long min = 0;
+
+        for (FlowFileRecord flowFileRecord : iterable) {
+            min = min == 0 ? flowFileRecord.getLastQueueDate() : Long.min(flowFileRecord.getLastQueueDate(), min);
+        }
+
+        return min == 0 ? defaultMin : min;
+    }
+
+    public long getTotalQueuedDuration(long fromTimestamp) {
+        readLock.lock();
+        try {
+            long sum = 0L;
+            for (FlowFileRecord flowFileRecord : activeQueue) {
+                sum += (fromTimestamp - flowFileRecord.getLastQueueDate());
+            }
+
+            for (FlowFileRecord flowFileRecord : swapQueue) {
+                sum += (fromTimestamp - flowFileRecord.getLastQueueDate());
+            }
+
+            long totalSwappedQueueDate = 0L;
+            for(Long totalQueueDate: totalQueueDateInSwapLocation.values()) {
+                totalSwappedQueueDate += totalQueueDate;
+            }
+
+            // We are only considering FlowFiles that have been swapped to disk in this calculation since we took care of the
+            // in-memory swapQueue previously.
+            sum += ((getFlowFileQueueSize().getSwappedCount() - swapQueue.size()) * fromTimestamp) - totalSwappedQueueDate;
+            return sum;
+        } finally {
+            readLock.unlock("Get Total Queued Duration");
+        }
+    }
 
     protected void incrementActiveQueueSize(final int count, final long bytes) {
         boolean updated = false;

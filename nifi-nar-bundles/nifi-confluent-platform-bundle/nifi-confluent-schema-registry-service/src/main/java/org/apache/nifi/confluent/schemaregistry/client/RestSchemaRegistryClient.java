@@ -19,6 +19,7 @@ package org.apache.nifi.confluent.schemaregistry.client;
 
 import org.apache.avro.Schema;
 import org.apache.avro.SchemaParseException;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.avro.AvroTypeUtil;
 import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
@@ -30,6 +31,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 
 import org.glassfish.jersey.client.ClientConfig;
 import org.glassfish.jersey.client.ClientProperties;
+import org.glassfish.jersey.client.authentication.HttpAuthenticationFeature;
 
 import javax.net.ssl.SSLContext;
 import javax.ws.rs.client.Client;
@@ -68,13 +70,22 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
     private static final String SCHEMA_REGISTRY_CONTENT_TYPE = "application/vnd.schemaregistry.v1+json";
 
 
-    public RestSchemaRegistryClient(final List<String> baseUrls, final int timeoutMillis, final SSLContext sslContext, final ComponentLog logger) {
+    public RestSchemaRegistryClient(final List<String> baseUrls,
+                                    final int timeoutMillis,
+                                    final SSLContext sslContext,
+                                    final String username,
+                                    final String password,
+                                    final ComponentLog logger) {
         this.baseUrls = new ArrayList<>(baseUrls);
 
         final ClientConfig clientConfig = new ClientConfig();
         clientConfig.property(ClientProperties.CONNECT_TIMEOUT, timeoutMillis);
         clientConfig.property(ClientProperties.READ_TIMEOUT, timeoutMillis);
         client = WebUtils.createClient(clientConfig, sslContext);
+
+        if (StringUtils.isNoneBlank(username, password)) {
+            client.register(HttpAuthenticationFeature.basic(username, password));
+        }
 
         this.logger = logger;
     }
@@ -98,7 +109,7 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
 
     @Override
     public RecordSchema getSchema(final int schemaId) throws IOException, SchemaNotFoundException {
-        // The Confluent Schema Registry's REST API does not provide us with the 'subject' (name) of a Schema given the ID.
+        // The Confluent Schema Registry's version below 5.3.1 REST API does not provide us with the 'subject' (name) of a Schema given the ID.
         // It will provide us only the text of the Schema itself. Therefore, in order to determine the name (which is required for
         // a SchemaIdentifier), we must obtain a list of all Schema names, and then request each and every one of the schemas to determine
         // if the ID requested matches the Schema's ID.
@@ -108,19 +119,37 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
 
         final String schemaPath = getSchemaPath(schemaId);
         final JsonNode responseJson = fetchJsonResponse(schemaPath, "id " + schemaId);
-        final JsonNode subjectsJson = fetchJsonResponse("/subjects", "subjects array");
-        final ArrayNode subjectsList = (ArrayNode) subjectsJson;
-
+        //Get subject name by id, works only with v5.3.1+ Confluent Schema Registry
+        JsonNode subjectsJson = null;
+        try {
+            subjectsJson = fetchJsonResponse(schemaPath + "/subjects", "schema name");
+        } catch (SchemaNotFoundException e) {
+            logger.debug("Could not find schema name in registry by id in: + " + schemaPath);
+        }
         JsonNode completeSchema = null;
-        for (JsonNode subject: subjectsList) {
-            try {
-                final String subjectName = subject.asText();
-                completeSchema = postJsonResponse("/subjects/" + subjectName, responseJson, "schema id: " + schemaId);
-                break;
-            } catch (SchemaNotFoundException e) {
-                continue;
+        if(subjectsJson == null) {
+            final JsonNode subjectsAllJson = fetchJsonResponse("/subjects", "subjects array");
+            final ArrayNode subjectsAllList = (ArrayNode) subjectsAllJson;
+            for (JsonNode subject: subjectsAllList) {
+                try {
+                    final String searchName = subject.asText();
+                    completeSchema = postJsonResponse("/subjects/" + searchName, responseJson, "schema id: " + schemaId);
+                    break;
+                } catch (SchemaNotFoundException e) {
+                    continue;
+                }
             }
-
+        } else {
+            final ArrayNode subjectsList = (ArrayNode) subjectsJson;
+            for (JsonNode subject: subjectsList) {
+                try {
+                    final String searchName = subject.asText();
+                    completeSchema = postJsonResponse("/subjects/" + searchName, responseJson, "schema id: " + schemaId);
+                    break;
+                } catch (SchemaNotFoundException e) {
+                    continue;
+                }
+            }
         }
 
         if(completeSchema == null) {
@@ -143,7 +172,7 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
             return AvroTypeUtil.createSchema(avroSchema, schemaText, schemaId);
         } catch (final SchemaParseException spe) {
             throw new SchemaNotFoundException("Obtained Schema with id " + id + " and name " + subject
-                + " from Confluent Schema Registry but the Schema Text that was returned is not a valid Avro Schema");
+                    + " from Confluent Schema Registry but the Schema Text that was returned is not a valid Avro Schema");
         }
     }
 

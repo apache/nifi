@@ -16,25 +16,6 @@
  */
 package org.apache.nifi.remote;
 
-import org.apache.nifi.groups.ProcessGroup;
-import org.apache.nifi.remote.cluster.ClusterNodeInformation;
-import org.apache.nifi.remote.cluster.NodeInformant;
-import org.apache.nifi.remote.cluster.NodeInformation;
-import org.apache.nifi.remote.exception.BadRequestException;
-import org.apache.nifi.remote.exception.HandshakeException;
-import org.apache.nifi.remote.exception.NotAuthorizedException;
-import org.apache.nifi.remote.exception.RequestExpiredException;
-import org.apache.nifi.remote.io.socket.SocketCommunicationsSession;
-import org.apache.nifi.remote.protocol.CommunicationsSession;
-import org.apache.nifi.remote.protocol.RequestType;
-import org.apache.nifi.remote.protocol.ServerProtocol;
-import org.apache.nifi.security.util.CertificateUtils;
-import org.apache.nifi.util.NiFiProperties;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLServerSocket;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.EOFException;
@@ -51,6 +32,25 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLServerSocket;
+import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.remote.cluster.ClusterNodeInformation;
+import org.apache.nifi.remote.cluster.NodeInformant;
+import org.apache.nifi.remote.cluster.NodeInformation;
+import org.apache.nifi.remote.exception.BadRequestException;
+import org.apache.nifi.remote.exception.HandshakeException;
+import org.apache.nifi.remote.exception.NotAuthorizedException;
+import org.apache.nifi.remote.exception.RequestExpiredException;
+import org.apache.nifi.remote.io.socket.SocketCommunicationsSession;
+import org.apache.nifi.remote.protocol.CommunicationsSession;
+import org.apache.nifi.remote.protocol.RequestType;
+import org.apache.nifi.remote.protocol.ServerProtocol;
+import org.apache.nifi.security.util.CertificateUtils;
+import org.apache.nifi.security.util.TlsConfiguration;
+import org.apache.nifi.util.NiFiProperties;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SocketRemoteSiteListener implements RemoteSiteListener {
 
@@ -60,6 +60,9 @@ public class SocketRemoteSiteListener implements RemoteSiteListener {
     private final AtomicReference<ProcessGroup> rootGroup = new AtomicReference<>();
     private final NiFiProperties nifiProperties;
     private final PeerDescriptionModifier peerDescriptionModifier;
+
+    private static final int EXCEPTION_THRESHOLD_MILLIS = 10_000;
+    private volatile long tlsErrorLastSeen = -1;
 
     private final AtomicBoolean stopped = new AtomicBoolean(false);
 
@@ -168,9 +171,22 @@ public class SocketRemoteSiteListener implements RemoteSiteListener {
                                 dn = null;
                             }
                         } catch (final Exception e) {
-                            LOG.error("RemoteSiteListener Unable to accept connection from {} due to {}", socket, e.toString());
-                            if (LOG.isDebugEnabled()) {
-                                LOG.error("", e);
+                            // TODO: Add SocketProtocolListener#handleTlsError logic here
+                            String msg = String.format("RemoteSiteListener Unable to accept connection from {} due to {}", socket, e.getLocalizedMessage());
+                            // Suppress repeated TLS errors
+                            if (CertificateUtils.isTlsError(e)) {
+                                boolean printedAsWarning = handleTlsError(msg);
+
+                                // TODO: Move into handleTlsError and refactor shared behavior
+                                // If the error was printed as a warning, reset the last seen timer
+                                if (printedAsWarning) {
+                                    tlsErrorLastSeen = System.currentTimeMillis();
+                                }
+                            } else {
+                                LOG.error(msg);
+                                if (LOG.isDebugEnabled()) {
+                                    LOG.error("", e);
+                                }
                             }
                             return;
                         }
@@ -304,10 +320,34 @@ public class SocketRemoteSiteListener implements RemoteSiteListener {
         listenerThread.start();
     }
 
+    private boolean handleTlsError(String msg) {
+        if (tlsErrorRecentlySeen()) {
+            LOG.debug(msg);
+            return false;
+        } else {
+            LOG.error(msg);
+            return true;
+        }
+    }
+
+    /**
+     * Returns {@code true} if any related exception (determined by {@link CertificateUtils#isTlsError(Throwable)}) has occurred within the last
+     * {@link #EXCEPTION_THRESHOLD_MILLIS} milliseconds. Does not evaluate the error locally,
+     * simply checks the last time the timestamp was updated.
+     *
+     * @return true if the time since the last similar exception occurred is below the threshold
+     */
+    private boolean tlsErrorRecentlySeen() {
+        long now = System.currentTimeMillis();
+        return now - tlsErrorLastSeen < EXCEPTION_THRESHOLD_MILLIS;
+    }
+
     private ServerSocket createServerSocket() throws IOException {
         if (sslContext != null) {
-            final ServerSocket serverSocket = sslContext.getServerSocketFactory().createServerSocket(socketPort);
-            ((SSLServerSocket) serverSocket).setNeedClientAuth(true);
+            final SSLServerSocket serverSocket = (SSLServerSocket) sslContext.getServerSocketFactory().createServerSocket(socketPort);
+            serverSocket.setNeedClientAuth(true);
+            // Enforce custom protocols on socket
+            serverSocket.setEnabledProtocols(TlsConfiguration.getCurrentSupportedTlsProtocolVersions());
             return serverSocket;
         } else {
             return new ServerSocket(socketPort);

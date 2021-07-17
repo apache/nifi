@@ -16,12 +16,15 @@
  */
 package org.apache.nifi.util;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 import org.junit.Test;
 
 public class StringUtilsTest {
@@ -105,5 +108,18 @@ public class StringUtilsTest {
 
     collection.add(null);
     assertEquals("test1,test2,null", StringUtils.join(collection, ","));
+  }
+
+  @Test
+  public void testShouldTitleCaseStrings() {
+    // Arrange
+    List<String> inputs = Arrays.asList(null, "", "  leading space", "trailing space  ", "multiple   spaces", "this is a sentence", "allOneWord", "PREVIOUSLY UPPERCASE");
+    List<String> expected = Arrays.asList("", "", "Leading Space", "Trailing Space", "Multiple Spaces", "This Is A Sentence", "Alloneword", "Previously Uppercase");
+
+    // Act
+    List<String> titleCased = inputs.stream().map(StringUtils::toTitleCase).collect(Collectors.toList());
+
+    // Assert
+    assertEquals(titleCased, expected);
   }
 }

@@ -16,63 +16,123 @@
  */
 package org.apache.nifi.processors.azure.storage;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URISyntaxException;
-import java.security.InvalidKeyException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-
+import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processors.azure.AbstractAzureBlobProcessor;
-import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 import org.apache.nifi.util.MockFlowFile;
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
+import org.junit.Before;
 import org.junit.Test;
 
-import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.blob.CloudBlob;
-import com.microsoft.azure.storage.blob.CloudBlobContainer;
+import java.util.List;
 
-public class ITFetchAzureBlobStorage {
+public class ITFetchAzureBlobStorage extends AbstractAzureBlobStorageIT {
+
+    @Override
+    protected Class<? extends Processor> getProcessorClass() {
+        return FetchAzureBlobStorage.class;
+    }
+
+    @Before
+    public void setUp() throws Exception {
+        runner.setProperty(FetchAzureBlobStorage.BLOB, TEST_BLOB_NAME);
+
+        uploadTestBlob();
+    }
 
     @Test
-    public void testFetchingBlob() throws InvalidKeyException, URISyntaxException, StorageException, IOException {
-        String containerName = String.format("%s-%s", AzureTestUtil.TEST_CONTAINER_NAME_PREFIX, UUID.randomUUID());
-        CloudBlobContainer container = AzureTestUtil.getContainer(containerName);
-        container.createIfNotExists();
+    public void testFetchBlob() throws Exception {
+        runner.assertValid();
+        runner.enqueue(new byte[0]);
+        runner.run();
 
-        CloudBlob blob = container.getBlockBlobReference(AzureTestUtil.TEST_BLOB_NAME);
-        byte[] buf = "0123456789".getBytes();
-        InputStream in = new ByteArrayInputStream(buf);
-        blob.upload(in, 10);
+        assertResult();
+    }
 
-        final TestRunner runner = TestRunners.newTestRunner(new FetchAzureBlobStorage());
+    @Test
+    public void testFetchBlobWithRangeZeroOne() throws Exception {
+        runner.setProperty(FetchAzureBlobStorage.RANGE_START, "0B");
+        runner.setProperty(FetchAzureBlobStorage.RANGE_LENGTH, "1B");
+        runner.assertValid();
+        runner.enqueue(new byte[0]);
+        runner.run();
 
-        try {
-            runner.setProperty(AzureStorageUtils.ACCOUNT_NAME, AzureTestUtil.getAccountName());
-            runner.setProperty(AzureStorageUtils.ACCOUNT_KEY, AzureTestUtil.getAccountKey());
-            runner.setProperty(AzureStorageUtils.CONTAINER, containerName);
-            runner.setProperty(FetchAzureBlobStorage.BLOB, "${azure.blobname}");
+        assertResult(TEST_FILE_CONTENT.substring(0, 1));
+    }
 
-            final Map<String, String> attributes = new HashMap<>();
-            attributes.put("azure.primaryUri", "https://" + AzureTestUtil.getAccountName() + ".blob.core.windows.net/" + containerName + "/" + AzureTestUtil.TEST_BLOB_NAME);
-            attributes.put("azure.blobname", AzureTestUtil.TEST_BLOB_NAME);
-            attributes.put("azure.blobtype", AzureStorageUtils.BLOCK);
-            runner.enqueue(new byte[0], attributes);
-            runner.run();
+    @Test
+    public void testFetchBlobWithRangeOneOne() throws Exception {
+        runner.setProperty(FetchAzureBlobStorage.RANGE_START, "1B");
+        runner.setProperty(FetchAzureBlobStorage.RANGE_LENGTH, "1B");
+        runner.assertValid();
+        runner.enqueue(new byte[0]);
+        runner.run();
 
-            runner.assertAllFlowFilesTransferred(AbstractAzureBlobProcessor.REL_SUCCESS, 1);
-            List<MockFlowFile> flowFilesForRelationship = runner.getFlowFilesForRelationship(FetchAzureBlobStorage.REL_SUCCESS);
-            for (MockFlowFile flowFile : flowFilesForRelationship) {
-                flowFile.assertContentEquals("0123456789".getBytes());
-                flowFile.assertAttributeEquals("azure.length", "10");
-            }
-        } finally {
-            container.deleteIfExists();
+        assertResult(TEST_FILE_CONTENT.substring(1, 2));
+    }
+
+    @Test
+    public void testFetchBlobWithRangeTwentyThreeTwentySix() throws Exception {
+        runner.setProperty(FetchAzureBlobStorage.RANGE_START, "23B");
+        runner.setProperty(FetchAzureBlobStorage.RANGE_LENGTH, "3B");
+        runner.assertValid();
+        runner.enqueue(new byte[0]);
+        runner.run();
+
+        assertResult(TEST_FILE_CONTENT.substring(23, 26));
+    }
+
+    @Test
+    public void testFetchBlobWithRangeLengthGreater() throws Exception {
+        runner.setProperty(FetchAzureBlobStorage.RANGE_START, "0B");
+        runner.setProperty(FetchAzureBlobStorage.RANGE_LENGTH, "1KB");
+        runner.assertValid();
+        runner.enqueue(new byte[0]);
+        runner.run();
+
+        assertResult(TEST_FILE_CONTENT);
+    }
+
+    @Test
+    public void testFetchBlobWithRangeLengthUnset() throws Exception {
+        runner.setProperty(FetchAzureBlobStorage.RANGE_START, "0B");
+        runner.assertValid();
+        runner.enqueue(new byte[0]);
+        runner.run();
+
+        assertResult(TEST_FILE_CONTENT);
+    }
+
+    @Test
+    public void testFetchBlobWithRangeStartOutOfRange() throws Exception {
+        runner.setProperty(FetchAzureBlobStorage.RANGE_START, String.format("%sB", TEST_FILE_CONTENT.length() + 1));
+        runner.setProperty(FetchAzureBlobStorage.RANGE_LENGTH, "1B");
+        runner.assertValid();
+        runner.enqueue(new byte[0]);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(AbstractAzureBlobProcessor.REL_FAILURE, 1);
+    }
+
+    @Test
+    public void testFetchBlobUsingCredentialService() throws Exception {
+        configureCredentialsService();
+
+        runner.assertValid();
+        runner.enqueue(new byte[0]);
+        runner.run();
+
+        assertResult();
+    }
+
+    private void assertResult() throws Exception {
+        assertResult(TEST_FILE_CONTENT);
+    }
+
+    private void assertResult(final String expectedContent) throws Exception {
+        runner.assertAllFlowFilesTransferred(AbstractAzureBlobProcessor.REL_SUCCESS, 1);
+        List<MockFlowFile> flowFilesForRelationship = runner.getFlowFilesForRelationship(FetchAzureBlobStorage.REL_SUCCESS);
+        for (MockFlowFile flowFile : flowFilesForRelationship) {
+            flowFile.assertContentEquals(expectedContent);
+            flowFile.assertAttributeEquals("azure.length", String.valueOf(TEST_FILE_CONTENT.length()));
         }
     }
 }

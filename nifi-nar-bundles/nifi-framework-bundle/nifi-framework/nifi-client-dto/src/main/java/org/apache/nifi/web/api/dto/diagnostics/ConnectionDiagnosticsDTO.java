@@ -28,7 +28,7 @@ public class ConnectionDiagnosticsDTO {
     private ConnectionDiagnosticsSnapshotDTO aggregateSnapshot;
     private List<ConnectionDiagnosticsSnapshotDTO> nodeSnapshots;
 
-    @ApiModelProperty(value = "Details about the connection", readOnly = true)
+    @ApiModelProperty(value = "Details about the connection", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
     public ConnectionDTO getConnection() {
         return connection;
     }
@@ -37,7 +37,8 @@ public class ConnectionDiagnosticsDTO {
         this.connection = connection;
     }
 
-    @ApiModelProperty(value = "Aggregate values for all nodes in the cluster, or for this instance if not clustered", readOnly = true)
+    @ApiModelProperty(value = "Aggregate values for all nodes in the cluster, or for this instance if not clustered",
+            accessMode = ApiModelProperty.AccessMode.READ_ONLY)
     public ConnectionDiagnosticsSnapshotDTO getAggregateSnapshot() {
         return aggregateSnapshot;
     }
@@ -46,7 +47,7 @@ public class ConnectionDiagnosticsDTO {
         this.aggregateSnapshot = aggregateSnapshot;
     }
 
-    @ApiModelProperty(value = "A list of values for each node in the cluster, if clustered.", readOnly = true)
+    @ApiModelProperty(value = "A list of values for each node in the cluster, if clustered.", accessMode = ApiModelProperty.AccessMode.READ_ONLY)
     public List<ConnectionDiagnosticsSnapshotDTO> getNodeSnapshots() {
         return nodeSnapshots;
     }
