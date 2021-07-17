@@ -53,6 +53,19 @@ public class PutBigQueryBatchIT extends AbstractBigQueryIT {
             "    \"mode\": \"NULLABLE\",\n" +
             "    \"name\": \"field_3\",\n" +
             "    \"type\": \"STRING\"\n" +
+            "  },\n" +
+            "  {\n" +
+            "    \"description\": \"record\",\n" +
+            "    \"mode\": \"REPEATED\",\n" +
+            "    \"name\": \"record\",\n" +
+            "    \"type\": \"RECORD\",\n" +
+            "    \"fields\": [\n" +
+            "        {\n" +
+            "            \"name\": \"status\",\n" +
+            "            \"type\": \"STRING\",\n" +
+            "            \"mode\": \"NULLABLE\"\n" +
+            "        }\n" +
+            "      ]\n" +
             "  }\n" +
             "]";
 
@@ -73,6 +86,26 @@ public class PutBigQueryBatchIT extends AbstractBigQueryIT {
         runner.setProperty(BigQueryAttributes.TABLE_SCHEMA_ATTR, TABLE_SCHEMA_STRING);
 
         String str = "{\"field_1\":\"Daniel is great\",\"field_2\":\"Daniel is great\"}\r\n";
+
+        runner.enqueue(new ByteArrayInputStream(str.getBytes(StandardCharsets.UTF_8)));
+        runner.run(1);
+        for (MockFlowFile flowFile : runner.getFlowFilesForRelationship(AbstractBigQueryProcessor.REL_SUCCESS)) {
+            validateNoServiceExceptionAttribute(flowFile);
+        }
+        runner.assertAllFlowFilesTransferred(AbstractBigQueryProcessor.REL_SUCCESS, 1);
+    }
+
+    @Test
+    public void PutBigQueryBatchWithRecord() throws Exception {
+        String methodName = Thread.currentThread().getStackTrace()[1].getMethodName();
+        runner = setCredentialsControllerService(runner);
+        runner.setProperty(AbstractGCPProcessor.GCP_CREDENTIALS_PROVIDER_SERVICE, CONTROLLER_SERVICE);
+        runner.setProperty(BigQueryAttributes.DATASET_ATTR, dataset.getDatasetId().getDataset());
+        runner.setProperty(BigQueryAttributes.TABLE_NAME_ATTR, methodName);
+        runner.setProperty(BigQueryAttributes.SOURCE_TYPE_ATTR, FormatOptions.json().getType());
+        runner.setProperty(BigQueryAttributes.TABLE_SCHEMA_ATTR, TABLE_SCHEMA_STRING);
+
+        String str = "{\"field_1\":\"Daniel is great\",\"field_2\":\"Daniel is great\", \"record\": { \"status\": \"all good\" }}\r\n";
 
         runner.enqueue(new ByteArrayInputStream(str.getBytes(StandardCharsets.UTF_8)));
         runner.run(1);

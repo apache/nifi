@@ -27,7 +27,9 @@
     <packaging>pom</packaging>
 
     <properties>
-        <google.cloud.sdk.version>0.125.0</google.cloud.sdk.version>
+        <google.cloud.sdk.version>0.157.0</google.cloud.sdk.version>
+        <google.cloud.core.version>1.95.4</google.cloud.core.version>
+        <google.oauth2.http.version>0.27.0</google.oauth2.http.version>
     </properties>
 
     <dependencyManagement>
@@ -37,6 +39,14 @@
                 <groupId>com.google.cloud</groupId>
                 <artifactId>google-cloud-bom</artifactId>
                 <version>${google.cloud.sdk.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+            	<!-- https://github.com/googleapis/java-core -->
+                <groupId>com.google.cloud</groupId>
+                <artifactId>google-cloud-core-bom</artifactId>
+                <version>${google.cloud.core.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>

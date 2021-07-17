@@ -90,7 +90,7 @@ public class BigQueryUtils {
             break;
         default:
             throw new BadTypeNameException(String.format("You used invalid BigQuery type \"%s\" in declaration of\n%s\n"
-                    + "Supported types are \"BOOLEAN, STRING, BYTES, INTEGER, FLOAT, RECORD, TIMESTAMP, DATE, TIME, DATETIME\"", 
+                    + "Supported types are \"BOOLEAN, STRING, BYTES, INTEGER, FLOAT, RECORD, TIMESTAMP, DATE, TIME, DATETIME\"",
                     typeStr, fMap));
         }
 

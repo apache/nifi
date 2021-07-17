@@ -126,6 +126,10 @@
                         <exclude>src/test/resources/mock-gcp-application-default-credentials.json</exclude>
                         <exclude>src/test/resources/bigquery/streaming-bad-data.json</exclude>
                         <exclude>src/test/resources/bigquery/streaming-correct-data.json</exclude>
+                        <exclude>src/test/resources/schemas/simple_boolean_schema.json</exclude>
+                        <exclude>src/test/resources/schemas/simple_record_schema_with_bad_type_case.json</exclude>
+                        <exclude>src/test/resources/schemas/simple_record_schema.json</exclude>
+                        <exclude>src/test/resources/schemas/nested_record_schema.json</exclude>
                     </excludes>
                 </configuration>
             </plugin>
