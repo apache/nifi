@@ -416,7 +416,7 @@
                 <plugin>
                     <groupId>org.codehaus.groovy</groupId>
                     <artifactId>groovy-eclipse-compiler</artifactId>
-                    <version>3.4.0-01</version>
+                    <version>3.7.0</version>
                     <extensions>true</extensions>
                 </plugin>
                 <plugin>
