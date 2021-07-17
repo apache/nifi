@@ -67,7 +67,8 @@ import com.google.common.collect.ImmutableList;
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"google", "google cloud", "bq", "bigquery"})
 @CapabilityDescription("Batch loads flow files content to a Google BigQuery table.")
-@SeeAlso({PutGCSObject.class, DeleteGCSObject.class}) @WritesAttributes({
+@SeeAlso({PutGCSObject.class, DeleteGCSObject.class})
+@WritesAttributes({
     @WritesAttribute(attribute = BigQueryAttributes.JOB_CREATE_TIME_ATTR, description = BigQueryAttributes.JOB_CREATE_TIME_DESC),
     @WritesAttribute(attribute = BigQueryAttributes.JOB_END_TIME_ATTR, description = BigQueryAttributes.JOB_END_TIME_DESC),
     @WritesAttribute(attribute = BigQueryAttributes.JOB_START_TIME_ATTR, description = BigQueryAttributes.JOB_START_TIME_DESC),
@@ -75,13 +76,14 @@ import com.google.common.collect.ImmutableList;
     @WritesAttribute(attribute = BigQueryAttributes.JOB_ERROR_MSG_ATTR, description = BigQueryAttributes.JOB_ERROR_MSG_DESC),
     @WritesAttribute(attribute = BigQueryAttributes.JOB_ERROR_REASON_ATTR, description = BigQueryAttributes.JOB_ERROR_REASON_DESC),
     @WritesAttribute(attribute = BigQueryAttributes.JOB_ERROR_LOCATION_ATTR, description = BigQueryAttributes.JOB_ERROR_LOCATION_DESC),
-    @WritesAttribute(attribute = BigQueryAttributes.JOB_NB_RECORDS_ATTR, description = BigQueryAttributes.JOB_NB_RECORDS_DESC)})
+    @WritesAttribute(attribute = BigQueryAttributes.JOB_NB_RECORDS_ATTR, description = BigQueryAttributes.JOB_NB_RECORDS_DESC)
+})
 public class PutBigQueryBatch extends AbstractBigQueryProcessor {
 
     private static final List<String> TYPES = Arrays
-        .asList(FormatOptions.json().getType(), FormatOptions.csv().getType(),
-            FormatOptions.avro().getType(), FormatOptions.parquet().getType(),
-            FormatOptions.datastoreBackup().getType(), FormatOptions.orc().getType());
+        .asList(FormatOptions.json().getType(), FormatOptions.csv().getType(), FormatOptions.avro().getType(),
+                FormatOptions.parquet().getType(),
+                FormatOptions.datastoreBackup().getType(), FormatOptions.orc().getType());
 
     private static final Validator FORMAT_VALIDATOR = new Validator() {
         @Override public ValidationResult validate(final String subject, final String input,
@@ -203,7 +205,9 @@ public class PutBigQueryBatch extends AbstractBigQueryProcessor {
             .add(AVRO_USE_LOGICAL_TYPES).build();
     }
 
-    @Override @OnScheduled public void onScheduled(ProcessContext context) {
+     @OnScheduled
+     @Override
+     public void onScheduled(ProcessContext context) {
         super.onScheduled(context);
     }
 
