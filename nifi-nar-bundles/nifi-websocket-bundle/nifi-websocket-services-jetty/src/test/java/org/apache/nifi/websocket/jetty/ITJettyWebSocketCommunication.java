@@ -30,6 +30,7 @@ import org.mockito.invocation.InvocationOnMock;
 
 import java.net.ServerSocket;
 import java.nio.ByteBuffer;
+import java.util.Collections;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -234,7 +235,7 @@ public class ITJettyWebSocketCommunication {
 
         clientService.registerProcessor(clientId, clientProcessor);
 
-        clientService.connect(clientId);
+        clientService.connect(clientId, Collections.emptyMap());
 
         assertTrue("WebSocket client should be able to fire connected event.", clientConnectedServer.await(5, TimeUnit.SECONDS));
         assertTrue("WebSocket server should be able to fire connected event.", serverIsConnectedByClient.await(5, TimeUnit.SECONDS));
