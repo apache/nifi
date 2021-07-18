@@ -21,7 +21,6 @@ import org.apache.commons.configuration2.PropertiesConfiguration
 import org.apache.commons.configuration2.PropertiesConfigurationLayout
 import org.apache.commons.configuration2.builder.fluent.Configurations
 import org.apache.nifi.properties.ProtectedPropertyContext
-import org.apache.nifi.properties.ProtectedPropertyContext.PropertyLocation
 import org.apache.nifi.properties.SensitivePropertyProvider
 import org.apache.nifi.util.StringUtils
 import org.slf4j.Logger
@@ -76,7 +75,7 @@ class PropertiesEncryptor {
 
     }
 
-    Properties decrypt(final Properties properties, final PropertyLocation propertyLocation) {
+    Properties decrypt(final Properties properties) {
 
         Set<String> propertiesToSkip = getProtectionIdPropertyKeys(properties)
         Map<String, String> propertiesToDecrypt = getProtectedPropertyKeys(properties)
@@ -109,7 +108,7 @@ class PropertiesEncryptor {
                 continue
             }
             if (propertiesToDecrypt.keySet().contains(propertyName)) {
-                String decryptedPropertyValue = decryptionProvider.unprotect(propertyValue, propertyLocation.contextFor(propertyName))
+                String decryptedPropertyValue = decryptionProvider.unprotect(propertyValue, ProtectedPropertyContext.defaultContext(propertyName))
                 unprotectedProperties.setProperty(propertyName, decryptedPropertyValue)
             } else {
                 unprotectedProperties.setProperty(propertyName, propertyValue)
@@ -119,11 +118,11 @@ class PropertiesEncryptor {
         return unprotectedProperties
     }
 
-    Properties encrypt(Properties properties, final PropertyLocation propertyLocation) {
-        return encrypt(properties, properties.stringPropertyNames(), propertyLocation)
+    Properties encrypt(Properties properties) {
+        return encrypt(properties, properties.stringPropertyNames())
     }
 
-    Properties encrypt(final Properties properties, final Set<String> propertiesToEncrypt, final PropertyLocation propertyLocation) {
+    Properties encrypt(final Properties properties, final Set<String> propertiesToEncrypt) {
 
         if (encryptionProvider == null) {
             throw new IllegalStateException("Input properties is encrypted, but decryption capability is not enabled. " +
@@ -137,7 +136,7 @@ class PropertiesEncryptor {
             String propertyValue = properties.getProperty(propertyName)
             // empty properties are not encrypted
             if (!StringUtils.isEmpty(propertyValue) && propertiesToEncrypt.contains(propertyName)) {
-                String encryptedPropertyValue = encryptionProvider.protect(propertyValue, propertyLocation.contextFor(propertyName))
+                String encryptedPropertyValue = encryptionProvider.protect(propertyValue, ProtectedPropertyContext.defaultContext(propertyName))
                 protectedProperties.setProperty(propertyName, encryptedPropertyValue)
                 protectedProperties.setProperty(protectionPropertyForProperty(propertyName), encryptionProvider.getIdentifierKey())
             } else {

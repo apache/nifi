@@ -16,9 +16,8 @@
  */
 package org.apache.nifi.registry.security.crypto;
 
-import org.apache.nifi.properties.PropertyProtectionScheme;
 import org.apache.nifi.properties.SensitivePropertyProtectionException;
-import org.apache.nifi.properties.SensitivePropertyProvider;
+import org.apache.nifi.properties.SensitivePropertyProviderFactory;
 import org.apache.nifi.properties.StandardSensitivePropertyProviderFactory;
 import org.apache.nifi.registry.properties.util.NiFiRegistryBootstrapUtils;
 import org.slf4j.Logger;
@@ -30,10 +29,8 @@ import org.springframework.context.annotation.Configuration;
 import java.io.IOException;
 
 @Configuration
-public class SensitivePropertyProviderConfiguration {
-    private static final Logger logger = LoggerFactory.getLogger(SensitivePropertyProviderConfiguration.class);
-
-    private static final PropertyProtectionScheme DEFAULT_SCHEME = PropertyProtectionScheme.AES_GCM;
+public class SensitivePropertyProviderFactoryConfiguration {
+    private static final Logger logger = LoggerFactory.getLogger(SensitivePropertyProviderFactoryConfiguration.class);
 
     @Autowired(required = false)
     private CryptoKeyProvider masterKeyProvider;
@@ -43,7 +40,7 @@ public class SensitivePropertyProviderConfiguration {
      *         or null if the master key is not present.
      */
     @Bean
-    public SensitivePropertyProvider getProvider() {
+    public SensitivePropertyProviderFactory getProvider() {
         if (masterKeyProvider == null || masterKeyProvider.isEmpty()) {
             // This NiFi Registry was not configured with a master key, so the assumption is
             // the optional Spring bean normally provided by this method will never be needed
@@ -62,8 +59,7 @@ public class SensitivePropertyProviderConfiguration {
                         } catch (IOException e) {
                             throw new SensitivePropertyProtectionException("Error creating Sensitive Property Provider", e);
                         }
-                    })
-                    .getProvider(DEFAULT_SCHEME);
+                    });
         } catch (final MissingCryptoKeyException e) {
             logger.warn("Error creating Sensitive Property Provider", e);
             throw new SensitivePropertyProtectionException("Error creating Sensitive Property Provider", e);

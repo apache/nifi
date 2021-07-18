@@ -17,8 +17,8 @@
 package org.apache.nifi.toolkit.encryptconfig.util
 
 import groovy.xml.XmlUtil
-import org.apache.nifi.properties.ProtectedPropertyContext
 import org.apache.nifi.properties.SensitivePropertyProvider
+import org.apache.nifi.properties.SensitivePropertyProviderFactory
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.xml.sax.SAXException
@@ -43,16 +43,9 @@ class NiFiRegistryAuthorizersXmlEncryptor extends XmlEncryptor {
      *   .*?</userGroupProvider>          -> find everything as needed up until and including occurrence of '</userGroupProvider>'
      */
 
-    NiFiRegistryAuthorizersXmlEncryptor(final SensitivePropertyProvider encryptionProvider, final SensitivePropertyProvider decryptionProvider) {
-        super(encryptionProvider, decryptionProvider)
-    }
-
-    String decrypt(final String encryptedXmlContent) {
-        super.decrypt(encryptedXmlContent, ProtectedPropertyContext.PropertyLocation.AUTHORIZERS)
-    }
-
-    String encrypt(final String plainXmlContent) {
-        this.encrypt(plainXmlContent, ProtectedPropertyContext.PropertyLocation.AUTHORIZERS)
+    NiFiRegistryAuthorizersXmlEncryptor(final SensitivePropertyProvider encryptionProvider, final SensitivePropertyProvider decryptionProvider,
+            final SensitivePropertyProviderFactory providerFactory) {
+        super(encryptionProvider, decryptionProvider, providerFactory)
     }
 
     /**
@@ -68,7 +61,7 @@ class NiFiRegistryAuthorizersXmlEncryptor extends XmlEncryptor {
      * @return the comment with sensitive values encrypted and marked with the cipher.
      */
     @Override
-    String encrypt(final String plainXmlContent, final ProtectedPropertyContext.PropertyLocation propertyLocation) {
+    String encrypt(final String plainXmlContent) {
         // First, mark the XML nodes to encrypt that are specific to authorizers.xml by adding an attribute encryption="none"
         String markedXmlContent = markXmlNodesForEncryption(plainXmlContent, "userGroupProvider", {
             it.find {
@@ -80,7 +73,7 @@ class NiFiRegistryAuthorizersXmlEncryptor extends XmlEncryptor {
         })
 
         // Now, return the results of the base implementation, which encrypts any node with an encryption="none" attribute
-        return super.encrypt(markedXmlContent, propertyLocation)
+        return super.encrypt(markedXmlContent)
     }
 
     List<String> serializeXmlContentAndPreserveFormat(String updatedXmlContent, String originalXmlContent) {

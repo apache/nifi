@@ -18,8 +18,8 @@ package org.apache.nifi.toolkit.encryptconfig.util
 
 import groovy.util.slurpersupport.GPathResult
 import groovy.xml.XmlUtil
-import org.apache.nifi.properties.ProtectedPropertyContext.PropertyLocation
 import org.apache.nifi.properties.SensitivePropertyProvider
+import org.apache.nifi.properties.SensitivePropertyProviderFactory
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -31,12 +31,15 @@ abstract class XmlEncryptor {
 
     private static final Logger logger = LoggerFactory.getLogger(XmlEncryptor.class)
 
-    protected SensitivePropertyProvider decryptionProvider
-    protected SensitivePropertyProvider encryptionProvider
+    protected final SensitivePropertyProvider decryptionProvider
+    protected final SensitivePropertyProvider encryptionProvider
+    protected final SensitivePropertyProviderFactory providerFactory
 
-    XmlEncryptor(SensitivePropertyProvider encryptionProvider, SensitivePropertyProvider decryptionProvider) {
+    XmlEncryptor(final SensitivePropertyProvider encryptionProvider, final SensitivePropertyProvider decryptionProvider,
+            final SensitivePropertyProviderFactory providerFactory) {
         this.decryptionProvider = decryptionProvider
         this.encryptionProvider = encryptionProvider
+        this.providerFactory = providerFactory
     }
 
     static boolean supportsFile(String filePath) {
@@ -64,7 +67,7 @@ abstract class XmlEncryptor {
         }
     }
 
-    String decrypt(final String encryptedXmlContent, final PropertyLocation propertyLocation) {
+    String decrypt(final String encryptedXmlContent) {
         try {
 
             def doc = new XmlSlurper().parseText(encryptedXmlContent)
@@ -91,7 +94,9 @@ abstract class XmlEncryptor {
                             "This tool supports ${supportedDecryptionScheme}, but this xml file contains " +
                             "${node.toString()} protected by ${node.@encryption}")
                 }
-                String decryptedValue = decryptionProvider.unprotect(node.text().trim(), propertyLocation.contextFor((String) node.@name))
+                String groupIdentifier = (String) node.parent().identifier
+                String propertyName = (String) node.@name
+                String decryptedValue = decryptionProvider.unprotect(node.text().trim(), providerFactory.getPropertyContext(groupIdentifier, propertyName))
                 node.@encryption = ENCRYPTION_NONE
                 node.replaceBody(decryptedValue)
             }
@@ -106,7 +111,7 @@ abstract class XmlEncryptor {
         }
     }
 
-    String encrypt(final String plainXmlContent, final PropertyLocation propertyLocation) {
+    String encrypt(final String plainXmlContent) {
         try {
             def doc = new XmlSlurper().parseText(plainXmlContent)
 
@@ -121,7 +126,9 @@ abstract class XmlEncryptor {
             }
 
             nodesToEncrypt.each { node ->
-                String encryptedValue = this.encryptionProvider.protect(node.text().trim(), propertyLocation.contextFor((String) node.@name))
+                String groupIdentifier = (String) node.parent().identifier
+                String propertyName = (String) node.@name
+                String encryptedValue = this.encryptionProvider.protect(node.text().trim(), providerFactory.getPropertyContext(groupIdentifier, propertyName))
                 node.@encryption = this.encryptionProvider.getIdentifierKey()
                 node.replaceBody(encryptedValue)
             }

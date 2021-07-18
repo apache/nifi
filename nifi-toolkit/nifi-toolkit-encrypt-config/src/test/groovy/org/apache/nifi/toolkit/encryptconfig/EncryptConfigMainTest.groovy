@@ -222,8 +222,7 @@ class EncryptConfigMainTest extends GroovyTestCase {
                     it.@name =~ "Password" && it.@encryption =~ "aes/gcm/\\d{3}"
                 }
                 lipEncryptedValues.each {
-                    assert spp.unprotect((String) it.text(), (ProtectedPropertyContext) ProtectedPropertyContext.PropertyLocation.LOGIN_IDENTITY_PROVIDERS
-                            .contextFor((String) it.@name)) == TestUtil.PASSWORD
+                    assert spp.unprotect((String) it.text(), ProtectedPropertyContext.defaultContext((String) it.@name)) == TestUtil.PASSWORD
                 }
                 // Check that the comments are still there
                 def lipTrimmedLines = inputLIPFile.readLines().collect { it.trim() }.findAll { it }
@@ -247,8 +246,7 @@ class EncryptConfigMainTest extends GroovyTestCase {
                     it.@name =~ "Password" && it.@encryption =~ "aes/gcm/\\d{3}"
                 }
                 authorizersEncryptedValues.each {
-                    assert spp.unprotect((String) it.text(), (ProtectedPropertyContext) ProtectedPropertyContext.PropertyLocation.AUTHORIZERS
-                            .contextFor((String) it.@name)) == TestUtil.PASSWORD
+                    assert spp.unprotect((String) it.text(), (ProtectedPropertyContext) ProtectedPropertyContext.defaultContext((String) it.@name)) == TestUtil.PASSWORD
                 }
                 // Check that the comments are still there
                 def authorizersTrimmedLines = inputAuthorizersFile.readLines().collect { it.trim() }.findAll { it }

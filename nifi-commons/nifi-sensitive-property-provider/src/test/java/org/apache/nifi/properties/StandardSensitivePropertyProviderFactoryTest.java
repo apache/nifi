@@ -17,7 +17,6 @@
 package org.apache.nifi.properties;
 
 import org.apache.commons.io.FilenameUtils;
-import org.apache.nifi.properties.ProtectedPropertyContext.PropertyLocation;
 import org.apache.nifi.util.NiFiProperties;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.junit.AfterClass;
@@ -138,19 +137,20 @@ public class StandardSensitivePropertyProviderFactoryTest {
     }
 
     @Test
-    public void testGetCustomPropertyContextLocationUnconfigured() {
+    public void testGetPropertyContextUnconfigured() {
         configureDefaultFactory();
-        assertFalse(factory.getCustomPropertyContextLocation("ldap-provider").isPresent());
+        assertEquals("default/prop", factory.getPropertyContext("ldap-provider", "prop").getContextKey());
+
     }
 
     @Test
-    public void testGetCustomPropertyContextLocation() throws IOException {
+    public void testGetPropertyContext() throws IOException {
         configureDefaultFactory();
         writeBootstrapConf(defaultBootstrapContents + "\n" +
-                "nifi.bootstrap.protection.xml.context.location.mapping.ldap=ldap-.*");
+                "nifi.bootstrap.protection.context.mapping.ldap=ldap-.*");
         try {
-            assertEquals("ldap", factory.getCustomPropertyContextLocation("ldap-provider").get());
-            assertEquals("ldap", factory.getCustomPropertyContextLocation("ldap-user-group-provider").get());
+            assertEquals("ldap/prop", factory.getPropertyContext("ldap-provider", "prop").getContextKey());
+            assertEquals("ldap/prop", factory.getPropertyContext("ldap-user-group-provider", "prop").getContextKey());
         } finally {
             writeDefaultBootstrapConf();
         }
@@ -203,7 +203,7 @@ public class StandardSensitivePropertyProviderFactoryTest {
     @Test
     public void testAES_GCM() throws IOException {
         configureDefaultFactory();
-        final ProtectedPropertyContext context = PropertyLocation.NIFI_PROPERTIES.contextFor("propertyName");
+        final ProtectedPropertyContext context = ProtectedPropertyContext.defaultContext("propertyName");
 
         final SensitivePropertyProvider spp = factory.getProvider(PropertyProtectionScheme.AES_GCM);
         assertNotNull(spp);

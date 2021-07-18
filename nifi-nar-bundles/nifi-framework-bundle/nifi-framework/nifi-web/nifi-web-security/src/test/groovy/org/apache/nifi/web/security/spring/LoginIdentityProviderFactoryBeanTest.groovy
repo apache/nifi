@@ -18,7 +18,6 @@ package org.apache.nifi.web.security.spring
 
 import org.apache.nifi.authentication.generated.Property
 import org.apache.nifi.authentication.generated.Provider
-import org.apache.nifi.properties.ProtectedPropertyContext
 import org.bouncycastle.jce.provider.BouncyCastleProvider
 import org.junit.Before
 import org.junit.BeforeClass
@@ -79,7 +78,7 @@ class LoginIdentityProviderFactoryBeanTest extends GroovyTestCase {
         logger.info("Cipher text: ${CIPHER_TEXT}")
 
         // Act
-        String decrypted = bean.decryptValue(CIPHER_TEXT, ENCRYPTION_SCHEME, "propertyName", "ldap-provider", ProtectedPropertyContext.PropertyLocation.LOGIN_IDENTITY_PROVIDERS)
+        String decrypted = bean.decryptValue(CIPHER_TEXT, ENCRYPTION_SCHEME, "propertyName", "ldap-provider")
         logger.info("Decrypted ${CIPHER_TEXT} -> ${decrypted}")
 
         // Assert

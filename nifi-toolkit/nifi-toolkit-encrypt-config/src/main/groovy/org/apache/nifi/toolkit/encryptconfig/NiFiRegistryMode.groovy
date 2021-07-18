@@ -26,6 +26,7 @@ import org.apache.nifi.properties.PropertyProtectionScheme
 import org.apache.nifi.properties.ProtectedPropertyContext
 import org.apache.nifi.properties.SensitivePropertyProtectionException
 import org.apache.nifi.properties.SensitivePropertyProvider
+import org.apache.nifi.properties.SensitivePropertyProviderFactory
 import org.apache.nifi.properties.StandardSensitivePropertyProviderFactory
 import org.apache.nifi.registry.properties.util.NiFiRegistryBootstrapUtils
 import org.apache.nifi.toolkit.encryptconfig.util.BootstrapUtil
@@ -285,6 +286,7 @@ class NiFiRegistryMode implements ToolMode {
 
         SensitivePropertyProvider encryptionProvider
         SensitivePropertyProvider decryptionProvider
+        SensitivePropertyProviderFactory providerFactory
 
         boolean writingKeyToBootstrap = false
         String inputBootstrapPath
@@ -336,13 +338,11 @@ class NiFiRegistryMode implements ToolMode {
             if (!encryptionKey) {
                 throw new RuntimeException("Failed to configure tool, could not determine encryption key. Must provide -p, -k, or -b. If using -b, bootstrap.conf argument must already contain root key.")
             }
-            encryptionProvider = StandardSensitivePropertyProviderFactory
+            providerFactory = StandardSensitivePropertyProviderFactory
                     .withKeyAndBootstrapSupplier(encryptionKey, getBootstrapSupplier(inputBootstrapPath))
-                    .getProvider(protectionScheme)
+            encryptionProvider = providerFactory.getProvider(protectionScheme)
 
-            decryptionProvider = decryptionKey ? StandardSensitivePropertyProviderFactory
-                    .withKeyAndBootstrapSupplier(decryptionKey, getBootstrapSupplier(inputBootstrapPath))
-                    .getProvider(oldProtectionScheme) : null
+            decryptionProvider = decryptionKey ? providerFactory.getProvider(oldProtectionScheme) : null
 
             if (handlingNiFiRegistryProperties) {
                 propertiesEncryptor = new NiFiRegistryPropertiesEncryptor(encryptionProvider, decryptionProvider)
@@ -357,14 +357,14 @@ class NiFiRegistryMode implements ToolMode {
             if (handlingIdentityProviders) {
                 inputIdentityProvidersPath = rawOptions.i
                 outputIdentityProvidersPath = rawOptions.I ?: inputIdentityProvidersPath
-                identityProvidersXmlEncryptor = new NiFiRegistryIdentityProvidersXmlEncryptor(encryptionProvider, decryptionProvider)
+                identityProvidersXmlEncryptor = new NiFiRegistryIdentityProvidersXmlEncryptor(encryptionProvider, decryptionProvider, providerFactory)
             }
 
             handlingAuthorizers = rawOptions.a
             if (handlingAuthorizers) {
                 inputAuthorizersPath = rawOptions.a
                 outputAuthorizersPath = rawOptions.A ?: inputAuthorizersPath
-                authorizersXmlEncryptor = new NiFiRegistryAuthorizersXmlEncryptor(encryptionProvider, decryptionProvider)
+                authorizersXmlEncryptor = new NiFiRegistryAuthorizersXmlEncryptor(encryptionProvider, decryptionProvider, providerFactory)
             }
 
         }

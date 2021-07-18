@@ -31,7 +31,6 @@ import org.apache.nifi.encrypt.PropertyEncryptor
 import org.apache.nifi.encrypt.PropertyEncryptorFactory
 import org.apache.nifi.flow.encryptor.FlowEncryptor
 import org.apache.nifi.flow.encryptor.StandardFlowEncryptor
-import org.apache.nifi.properties.ProtectedPropertyContext.PropertyLocation
 import org.apache.nifi.toolkit.tls.commandLine.CommandLineParseException
 import org.apache.nifi.toolkit.tls.commandLine.ExitCode
 import org.apache.nifi.util.NiFiBootstrapUtils
@@ -787,7 +786,7 @@ class ConfigEncryptionTool {
                 if (isVerbose) {
                     logger.info("Attempting to decrypt ${password.text()} using protection scheme ${password.@encryption}")
                 }
-                final ProtectedPropertyContext context = getContext(providerFactory, (String) password.@name, groupIdentifier, ProtectedPropertyContext.PropertyLocation.LOGIN_IDENTITY_PROVIDERS)
+                final ProtectedPropertyContext context = getContext(providerFactory, (String) password.@name, groupIdentifier)
                 String decryptedValue = sensitivePropertyProvider.unprotect((String) password.text().trim(), context)
                 password.replaceNode {
                     property(name: password.@name, encryption: "none", decryptedValue)
@@ -832,7 +831,7 @@ class ConfigEncryptionTool {
                 }
                 final SensitivePropertyProvider sensitivePropertyProvider = providerFactory
                         .getProvider(PropertyProtectionScheme.fromIdentifier((String) password.@encryption))
-                final ProtectedPropertyContext context = getContext(providerFactory, (String) password.@name, groupIdentifier, ProtectedPropertyContext.PropertyLocation.AUTHORIZERS)
+                final ProtectedPropertyContext context = getContext(providerFactory, (String) password.@name, groupIdentifier)
                 String decryptedValue = sensitivePropertyProvider.unprotect((String) password.text().trim(), context)
                 password.replaceNode {
                     property(name: password.@name, encryption: "none", decryptedValue)
@@ -850,13 +849,8 @@ class ConfigEncryptionTool {
         }
     }
 
-    ProtectedPropertyContext getContext(final SensitivePropertyProviderFactory providerFactory, final String propertyName, final String groupIdentifier, 
-                                        final PropertyLocation defaultLocation) {
-        final Optional<String> matchingContextLocation = providerFactory.getCustomPropertyContextLocation(groupIdentifier);
-        final ProtectedPropertyContext context = matchingContextLocation.isPresent()
-                ? PropertyLocation.contextFor(propertyName, matchingContextLocation.get())
-                : defaultLocation.contextFor(propertyName);
-        context
+    ProtectedPropertyContext getContext(final SensitivePropertyProviderFactory providerFactory, final String propertyName, final String groupIdentifier) {
+        providerFactory.getPropertyContext(groupIdentifier, propertyName);
     }
 
     String encryptLoginIdentityProviders(final String plainXml, final String newKeyHex = keyHex, final PropertyProtectionScheme newProtectionScheme = protectionScheme) {
@@ -884,7 +878,7 @@ class ConfigEncryptionTool {
                 if (isVerbose) {
                     logger.info("Attempting to encrypt ${password.name()} using protection scheme ${sensitivePropertyProvider.identifierKey}")
                 }
-                final ProtectedPropertyContext context = getContext(providerFactory, (String) password.@name, groupIdentifier, ProtectedPropertyContext.PropertyLocation.LOGIN_IDENTITY_PROVIDERS)
+                final ProtectedPropertyContext context = getContext(providerFactory, (String) password.@name, groupIdentifier)
                 String encryptedValue = sensitivePropertyProvider.protect((String) password.text().trim(), context)
                 password.replaceNode {
                     property(name: password.@name, encryption: sensitivePropertyProvider.identifierKey, encryptedValue)
@@ -932,7 +926,7 @@ class ConfigEncryptionTool {
                 if (isVerbose) {
                     logger.info("Attempting to encrypt ${password.name()} using protection scheme ${sensitivePropertyProvider.identifierKey}")
                 }
-                final ProtectedPropertyContext context = getContext(providerFactory, (String) password.@name, groupIdentifier, ProtectedPropertyContext.PropertyLocation.AUTHORIZERS)
+                final ProtectedPropertyContext context = getContext(providerFactory, (String) password.@name, groupIdentifier)
                 String encryptedValue = sensitivePropertyProvider.protect((String) password.text().trim(), context)
                 password.replaceNode {
                     property(name: password.@name, encryption: sensitivePropertyProvider.identifierKey, encryptedValue)
@@ -986,7 +980,7 @@ class ConfigEncryptionTool {
             if (!plainProperties.getProperty(key)) {
                 logger.debug("Skipping encryption of ${key} because it is empty")
             } else {
-                String protectedValue = spp.protect(plainProperties.getProperty(key), PropertyLocation.NIFI_PROPERTIES.contextFor(key))
+                String protectedValue = spp.protect(plainProperties.getProperty(key), ProtectedPropertyContext.defaultContext(key))
 
                 // Add the encrypted value
                 encryptedProperties.setProperty(key, protectedValue)
@@ -1552,7 +1546,7 @@ class ConfigEncryptionTool {
             if (handlingNiFiProperties || existingNiFiPropertiesAreEncrypted) {
                 final SensitivePropertyProviderFactory sensitivePropertyProviderFactory = getSensitivePropertyProviderFactory(keyHex)
                 SensitivePropertyProvider spp = sensitivePropertyProviderFactory.getProvider(protectionScheme)
-                String encryptedSPK = spp.protect(newFlowPassword, PropertyLocation.NIFI_PROPERTIES.contextFor(NiFiProperties.SENSITIVE_PROPS_KEY))
+                String encryptedSPK = spp.protect(newFlowPassword, ProtectedPropertyContext.defaultContext(NiFiProperties.SENSITIVE_PROPS_KEY))
                 rawProperties.put(NiFiProperties.SENSITIVE_PROPS_KEY, encryptedSPK)
                 // Manually update the protection scheme or it will be lost
                 rawProperties.put(ApplicationPropertiesProtector.getProtectionKey(NiFiProperties.SENSITIVE_PROPS_KEY), spp.getIdentifierKey())

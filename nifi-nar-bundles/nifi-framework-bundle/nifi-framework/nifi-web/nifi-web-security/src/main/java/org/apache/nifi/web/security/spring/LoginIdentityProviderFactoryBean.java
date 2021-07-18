@@ -32,7 +32,6 @@ import org.apache.nifi.authentication.generated.Provider;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.nar.NarCloseable;
-import org.apache.nifi.properties.ProtectedPropertyContext.PropertyLocation;
 import org.apache.nifi.properties.SensitivePropertyProviderFactoryAware;
 import org.apache.nifi.security.xml.XmlUtils;
 import org.apache.nifi.util.NiFiProperties;
@@ -209,7 +208,7 @@ public class LoginIdentityProviderFactoryBean extends SensitivePropertyProviderF
         for (final Property property : provider.getProperty()) {
             if (!StringUtils.isBlank(property.getEncryption())) {
                 String decryptedValue = decryptValue(property.getValue(), property.getEncryption(), property.getName(), provider
-                        .getIdentifier(), PropertyLocation.LOGIN_IDENTITY_PROVIDERS);
+                        .getIdentifier());
                 providerProperties.put(property.getName(), decryptedValue);
             } else {
                 providerProperties.put(property.getName(), property.getValue());

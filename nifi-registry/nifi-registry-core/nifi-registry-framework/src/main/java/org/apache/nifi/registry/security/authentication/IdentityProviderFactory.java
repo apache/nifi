@@ -17,9 +17,10 @@
 package org.apache.nifi.registry.security.authentication;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.nifi.properties.ProtectedPropertyContext.PropertyLocation;
+import org.apache.nifi.properties.PropertyProtectionScheme;
 import org.apache.nifi.properties.SensitivePropertyProtectionException;
 import org.apache.nifi.properties.SensitivePropertyProvider;
+import org.apache.nifi.properties.SensitivePropertyProviderFactory;
 import org.apache.nifi.registry.extension.ExtensionManager;
 import org.apache.nifi.registry.properties.NiFiRegistryProperties;
 import org.apache.nifi.registry.security.authentication.annotation.IdentityProviderContext;
@@ -72,7 +73,7 @@ public class IdentityProviderFactory implements IdentityProviderLookup, Disposab
 
     private NiFiRegistryProperties properties;
     private ExtensionManager extensionManager;
-    private SensitivePropertyProvider sensitivePropertyProvider;
+    private SensitivePropertyProviderFactory sensitivePropertyProviderFactory;
     private IdentityProvider identityProvider;
     private final Map<String, IdentityProvider> identityProviders = new HashMap<>();
 
@@ -80,10 +81,10 @@ public class IdentityProviderFactory implements IdentityProviderLookup, Disposab
     public IdentityProviderFactory(
             final NiFiRegistryProperties properties,
             final ExtensionManager extensionManager,
-            @Nullable final SensitivePropertyProvider sensitivePropertyProvider) {
+            @Nullable final SensitivePropertyProviderFactory sensitivePropertyProviderFactory) {
         this.properties = properties;
         this.extensionManager = extensionManager;
-        this.sensitivePropertyProvider = sensitivePropertyProvider;
+        this.sensitivePropertyProviderFactory = sensitivePropertyProviderFactory;
 
         if (this.properties == null) {
             throw new IllegalStateException("NiFiRegistryProperties cannot be null");
@@ -195,7 +196,7 @@ public class IdentityProviderFactory implements IdentityProviderLookup, Disposab
 
         for (final Property property : provider.getProperty()) {
             if (!StringUtils.isBlank(property.getEncryption())) {
-                String decryptedValue = decryptValue(property.getValue(), property.getEncryption(), property.getName());
+                String decryptedValue = decryptValue(property.getValue(), property.getEncryption(), property.getName(), provider.getIdentifier());
                 providerProperties.put(property.getName(), decryptedValue);
             } else {
                 providerProperties.put(property.getName(), property.getValue());
@@ -271,22 +272,19 @@ public class IdentityProviderFactory implements IdentityProviderLookup, Disposab
         }
     }
 
-    private String decryptValue(final String cipherText, final String encryptionScheme, final String propertyName) throws SensitivePropertyProtectionException {
-        if (sensitivePropertyProvider == null) {
-            throw new SensitivePropertyProtectionException("Sensitive Property Provider dependency was never wired, so protected " +
+    private String decryptValue(final String cipherText, final String encryptionScheme, final String propertyName, final String groupIdentifier) throws SensitivePropertyProtectionException {
+        if (sensitivePropertyProviderFactory == null) {
+            throw new SensitivePropertyProtectionException("Sensitive Property Provider Factory dependency was never wired, so protected " +
                     "properties cannot be decrypted. This usually indicates that a master key for this NiFi Registry was not " +
                     "detected and configured during the bootstrap startup sequence. Contact the system administrator.");
         }
-
-        if (!sensitivePropertyProvider.getIdentifierKey().equalsIgnoreCase(encryptionScheme)) {
-            throw new SensitivePropertyProtectionException("Identity Provider configuration XML was protected using " +
-                    encryptionScheme +
-                    ", but the configured Sensitive Property Provider supports " +
-                    sensitivePropertyProvider.getIdentifierKey() +
-                    ". Cannot configure this Identity Provider due to failing to decrypt protected configuration properties.");
+        try {
+            final SensitivePropertyProvider sensitivePropertyProvider = sensitivePropertyProviderFactory.getProvider(PropertyProtectionScheme.fromIdentifier(encryptionScheme));
+            return sensitivePropertyProvider.unprotect(cipherText, sensitivePropertyProviderFactory.getPropertyContext(groupIdentifier, propertyName));
+        } catch (final IllegalArgumentException e) {
+            throw new SensitivePropertyProtectionException(String.format("Identity Provider configuration XML was protected using %s, which is not supported. " +
+                    "Cannot configure this Identity Provider due to failing to decrypt protected configuration properties.", encryptionScheme));
         }
-
-        return sensitivePropertyProvider.unprotect(cipherText, PropertyLocation.LOGIN_IDENTITY_PROVIDERS.contextFor(propertyName));
     }
 
 }

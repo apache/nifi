@@ -17,7 +17,6 @@
 package org.apache.nifi.toolkit.encryptconfig.util
 
 import org.apache.nifi.properties.ProtectedNiFiProperties
-import org.apache.nifi.properties.ProtectedPropertyContext
 import org.apache.nifi.properties.SensitivePropertyProvider
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -40,7 +39,7 @@ class NiFiPropertiesEncryptor extends PropertiesEncryptor {
         propertiesToEncrypt.addAll(DEFAULT_SENSITIVE_PROPERTIES)
         propertiesToEncrypt.addAll(getAdditionalSensitivePropertyKeys(properties))
 
-        encrypt(properties, propertiesToEncrypt, ProtectedPropertyContext.PropertyLocation.NIFI_PROPERTIES)
+        encrypt(properties, propertiesToEncrypt)
     }
 
     private static String[] getAdditionalSensitivePropertyKeys(Properties properties) {

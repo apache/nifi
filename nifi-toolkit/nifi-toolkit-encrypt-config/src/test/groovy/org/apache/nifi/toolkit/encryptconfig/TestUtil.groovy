@@ -18,7 +18,6 @@ package org.apache.nifi.toolkit.encryptconfig
 
 import org.apache.commons.lang3.SystemUtils
 import org.apache.nifi.properties.PropertyProtectionScheme
-import org.apache.nifi.properties.ProtectedPropertyContext.PropertyLocation
 import org.apache.nifi.properties.SensitivePropertyProvider
 import org.apache.nifi.toolkit.encryptconfig.util.NiFiRegistryAuthorizersXmlEncryptor
 import org.apache.nifi.toolkit.encryptconfig.util.NiFiRegistryIdentityProvidersXmlEncryptor
@@ -217,7 +216,6 @@ class TestUtil {
                 pathToProtectedXmlToVerify,
                 expectedProtectionScheme,
                 expectedKey,
-                PropertyLocation.AUTHORIZERS,
                 { rootNode ->
                     try {
                         rootNode.userGroupProvider.find {
@@ -255,7 +253,6 @@ class TestUtil {
                 pathToProtectedXmlToVerify,
                 expectedProtectionScheme,
                 expectedKey,
-                PropertyLocation.LOGIN_IDENTITY_PROVIDERS,
                 { rootNode ->
                     try {
                         rootNode.provider.find {
@@ -289,7 +286,6 @@ class TestUtil {
             String pathToProtectedXmlToVerify,
             String expectedProtectionScheme = PROTECTION_SCHEME,
             String expectedKey = KEY_HEX,
-            PropertyLocation propertyLocation,
             callbackToGetNodesToVerify) {
 
         String originalUnprotectedXml = new File(pathToOriginalUnprotectedXml).text
@@ -323,7 +319,7 @@ class TestUtil {
             String propertyValue = value
             assert it.@encryption == expectedProtectionScheme
             assert !plaintextValues.contains(propertyValue)
-            assert plaintextValues.contains(spp.unprotect(propertyValue, propertyLocation.contextFor((String) it.@name)))
+            assert plaintextValues.contains(spp.unprotect(propertyValue, org.apache.nifi.properties.ProtectedPropertyContext.defaultContext((String) it.@name)))
         }
 
         return true

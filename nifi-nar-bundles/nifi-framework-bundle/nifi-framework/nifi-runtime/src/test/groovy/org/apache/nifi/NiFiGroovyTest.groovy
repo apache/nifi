@@ -217,7 +217,7 @@ class NiFiGroovyTest extends GroovyTestCase {
                 .getProvider(PropertyProtectionScheme.AES_GCM)
         def map = encryptedProperties.getPropertyKeys().collectEntries { String key ->
             if (encryptedProperties.getProperty(key + ApplicationPropertiesProtector.PROTECTED_KEY_SUFFIX) == spp.getIdentifierKey()) {
-                [(key): spp.unprotect(encryptedProperties.getProperty(key), ProtectedPropertyContext.PropertyLocation.NIFI_PROPERTIES.contextFor(key))]
+                [(key): spp.unprotect(encryptedProperties.getProperty(key), ProtectedPropertyContext.defaultContext(key))]
             } else if (!key.endsWith(ApplicationPropertiesProtector.PROTECTED_KEY_SUFFIX)) {
                 [(key): encryptedProperties.getProperty(key)]
             }

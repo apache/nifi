@@ -451,7 +451,7 @@ class ProtectedNiFiPropertiesGroovyTest extends GroovyTestCase {
                 .findAll { String key, String scheme -> scheme == spp.identifierKey }
                 .keySet().collect { String key ->
             try {
-                String rawValue = spp.unprotect(properties.getProperty(key), ProtectedPropertyContext.PropertyLocation.NIFI_PROPERTIES.contextFor(key))
+                String rawValue = spp.unprotect(properties.getProperty(key), ProtectedPropertyContext.defaultContext(key))
                 return
             } catch (SensitivePropertyProtectionException e) {
                 logger.expected("Caught a malformed value for ${key}")

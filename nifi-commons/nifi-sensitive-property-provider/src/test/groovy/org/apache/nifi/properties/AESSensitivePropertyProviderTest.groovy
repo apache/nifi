@@ -47,7 +47,7 @@ class AESSensitivePropertyProviderTest extends GroovyTestCase {
 
     private static final SecureRandom secureRandom = new SecureRandom()
 
-    private static final ProtectedPropertyContext PROPERTY_CONTEXT = ProtectedPropertyContext.PropertyLocation.NIFI_PROPERTIES.contextFor("propertyName")
+    private static final ProtectedPropertyContext PROPERTY_CONTEXT = ProtectedPropertyContext.defaultContext("propertyName")
 
     private static final Base64.Encoder encoder = Base64.encoder
     private static final Base64.Decoder decoder = Base64.decoder

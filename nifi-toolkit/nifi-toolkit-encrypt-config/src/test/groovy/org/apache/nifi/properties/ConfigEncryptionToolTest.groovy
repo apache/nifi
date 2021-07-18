@@ -1730,7 +1730,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         String cipherText = "q4r7WIgN0MaxdAKM||SGgdCTPGSFEcuH4RraMYEdeyVbOx93abdWTVSWvh1w+klA"
         String EXPECTED_PASSWORD = "thisIsABadPassword"
         final SensitivePropertyProvider spp = StandardSensitivePropertyProviderFactory.withKey(KEY_HEX_128).getProvider(tool.protectionScheme)
-        assert spp.unprotect(cipherText, loginIdentityProvidersContext(propertyName)) == EXPECTED_PASSWORD
+        assert spp.unprotect(cipherText, ldapPropertyContext(propertyName)) == EXPECTED_PASSWORD
 
         tool.keyHex = KEY_HEX_128
 
@@ -1841,16 +1841,12 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         assert decryptedLines == lines
     }
 
-    private static ProtectedPropertyContext loginIdentityProvidersContext(final String propertyName) {
-        ProtectedPropertyContext.PropertyLocation.LOGIN_IDENTITY_PROVIDERS.contextFor(propertyName)
-    }
-
-    private static ProtectedPropertyContext authorizersContext(final String propertyName) {
-        ProtectedPropertyContext.PropertyLocation.AUTHORIZERS.contextFor(propertyName)
+    private static ProtectedPropertyContext ldapPropertyContext(final String propertyName) {
+        ProtectedPropertyContext.contextFor("ldap", propertyName)
     }
 
     private static ProtectedPropertyContext nifiPropertiesContext(final String propertyName) {
-        ProtectedPropertyContext.PropertyLocation.NIFI_PROPERTIES.contextFor(propertyName)
+        ProtectedPropertyContext.defaultContext(propertyName)
     }
 
     @Test
@@ -1888,7 +1884,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
             String ct = (it =~ ">(.*)</property>")[0][1]
             String propertyName = (it =~ 'name="(.*)"')[0][1]
             logger.info("Cipher text: ${ct}")
-            assert spp.unprotect(ct, loginIdentityProvidersContext(propertyName)) == PASSWORD
+            assert spp.unprotect(ct, ldapPropertyContext(propertyName)) == PASSWORD
         }
     }
 
@@ -1928,7 +1924,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
             String ct = (it =~ ">(.*)</property>")[0][1]
             String propertyName = (it =~ 'name="(.*)"')[0][1]
             logger.info("Cipher text: ${ct}")
-            assert spp.unprotect(ct, loginIdentityProvidersContext(propertyName)) == PASSWORD
+            assert spp.unprotect(ct, ldapPropertyContext(propertyName)) == PASSWORD
         }
     }
 
@@ -1967,7 +1963,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
             String ct = (it =~ ">(.*)</property>")[0][1]
             String propertyName = (it =~ 'name="(.*)"')[0][1]
             logger.info("Cipher text: ${ct}")
-            assert spp.unprotect(ct, loginIdentityProvidersContext(propertyName)) == PASSWORD
+            assert spp.unprotect(ct, ldapPropertyContext(propertyName)) == PASSWORD
         }
     }
 
@@ -2006,7 +2002,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
             String ct = (it =~ ">(.*)</property>")[0][1]
             String propertyName = (it =~ 'name="(.*)"')[0][1]
             logger.info("Cipher text: ${ct}")
-            assert spp.unprotect(ct, loginIdentityProvidersContext(propertyName)) == PASSWORD
+            assert spp.unprotect(ct, ldapPropertyContext(propertyName)) == PASSWORD
         }
     }
 
@@ -2047,7 +2043,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
             String ct = (it =~ ">(.*)</property>")[0][1]
             String propertyName = (it =~ 'name="(.*)"')[0][1]
             logger.info("Cipher text: ${ct}")
-            assert spp.unprotect(ct, loginIdentityProvidersContext(propertyName)) == PASSWORD
+            assert spp.unprotect(ct, ldapPropertyContext(propertyName)) == PASSWORD
         }
     }
 
@@ -2382,7 +2378,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
                 }
 
                 encryptedValues.each {
-                    assert spp.unprotect((String) it.text(), (ProtectedPropertyContext) loginIdentityProvidersContext((String) it.@name)) == PASSWORD
+                    assert spp.unprotect((String) it.text(), (ProtectedPropertyContext) ldapPropertyContext((String) it.@name)) == PASSWORD
                 }
 
                 // Check that the key was persisted to the bootstrap.conf
@@ -2464,7 +2460,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
                 }
 
                 encryptedValues.each {
-                    assert spp.unprotect((String) it.text(), (ProtectedPropertyContext) loginIdentityProvidersContext((String) it.@name)) == PASSWORD
+                    assert spp.unprotect((String) it.text(), (ProtectedPropertyContext) ldapPropertyContext((String) it.@name)) == PASSWORD
                 }
 
                 // Check that the key was persisted to the bootstrap.conf
@@ -2511,7 +2507,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
         String cipherText = "q4r7WIgN0MaxdAKM||SGgdCTPGSFEcuH4RraMYEdeyVbOx93abdWTVSWvh1w+klA"
         String EXPECTED_PASSWORD = "thisIsABadPassword"
         final SensitivePropertyProvider spp = StandardSensitivePropertyProviderFactory.withKey(KEY_HEX_128).getProvider(tool.protectionScheme)
-        assert spp.unprotect(cipherText, authorizersContext(propertyName)) == EXPECTED_PASSWORD
+        assert spp.unprotect(cipherText, ldapPropertyContext(propertyName)) == EXPECTED_PASSWORD
 
         tool.keyHex = KEY_HEX_128
 
@@ -2657,7 +2653,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
             String ct = (it =~ ">(.*)</property>")[0][1]
             String propertyName = (it =~ 'name="(.*)"')[0][1]
             logger.info("Cipher text: ${ct}")
-            assert spp.unprotect(ct, authorizersContext(propertyName)) == PASSWORD
+            assert spp.unprotect(ct, ldapPropertyContext(propertyName)) == PASSWORD
         }
     }
 
@@ -2697,7 +2693,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
             String ct = (it =~ ">(.*)</property>")[0][1]
             String propertyName = (it =~ 'name="(.*)"')[0][1]
             logger.info("Cipher text: ${ct}")
-            assert spp.unprotect(ct, authorizersContext(propertyName)) == PASSWORD
+            assert spp.unprotect(ct, ldapPropertyContext(propertyName)) == PASSWORD
         }
     }
 
@@ -2736,7 +2732,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
             String ct = (it =~ ">(.*)</property>")[0][1]
             String propertyName = (it =~ 'name="(.*)"')[0][1]
             logger.info("Cipher text: ${ct}")
-            assert spp.unprotect(ct, authorizersContext(propertyName)) == PASSWORD
+            assert spp.unprotect(ct, ldapPropertyContext(propertyName)) == PASSWORD
         }
     }
 
@@ -2775,7 +2771,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
             String ct = (it =~ ">(.*)</property>")[0][1]
             String propertyName = (it =~ 'name="(.*)"')[0][1]
             logger.info("Cipher text: ${ct}")
-            assert spp.unprotect(ct, authorizersContext(propertyName)) == PASSWORD
+            assert spp.unprotect(ct, ldapPropertyContext(propertyName)) == PASSWORD
         }
     }
 
@@ -2816,7 +2812,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
             String ct = (it =~ ">(.*)</property>")[0][1]
             String propertyName = (it =~ 'name="(.*)"')[0][1]
             logger.info("Cipher text: ${ct}")
-            assert spp.unprotect(ct, authorizersContext(propertyName)) == PASSWORD
+            assert spp.unprotect(ct, ldapPropertyContext(propertyName)) == PASSWORD
         }
     }
 
@@ -3115,7 +3111,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
                 }
 
                 encryptedValues.each {
-                    assert spp.unprotect((String) it.text(), (ProtectedPropertyContext) authorizersContext((String) it.@name)) == PASSWORD
+                    assert spp.unprotect((String) it.text(), (ProtectedPropertyContext) ldapPropertyContext((String) it.@name)) == PASSWORD
                 }
 
                 // Check that the key was persisted to the bootstrap.conf
@@ -3196,7 +3192,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
                 }
 
                 encryptedValues.each {
-                    assert spp.unprotect((String) it.text(), (ProtectedPropertyContext) authorizersContext((String) it.@name)) == PASSWORD
+                    assert spp.unprotect((String) it.text(), (ProtectedPropertyContext) ldapPropertyContext((String) it.@name)) == PASSWORD
                 }
 
                 // Check that the key was persisted to the bootstrap.conf
@@ -3277,7 +3273,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
                 }
 
                 encryptedValues.each {
-                    assert spp.unprotect((String) it.text(), (ProtectedPropertyContext) authorizersContext((String) it.@name)) == PASSWORD
+                    assert spp.unprotect((String) it.text(), (ProtectedPropertyContext) ldapPropertyContext((String) it.@name)) == PASSWORD
                 }
 
                 // Check that the key was persisted to the bootstrap.conf
@@ -3405,7 +3401,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
                     it.@name =~ "Password" && it.@encryption =~ "aes/gcm/\\d{3}"
                 }
                 lipEncryptedValues.each {
-                    assert spp.unprotect((String) it.text(), (ProtectedPropertyContext) authorizersContext((String) it.@name)) == PASSWORD
+                    assert spp.unprotect((String) it.text(), (ProtectedPropertyContext) ldapPropertyContext((String) it.@name)) == PASSWORD
                 }
                 // Check that the comments are still there
                 def lipTrimmedLines = inputLIPFile.readLines().collect { it.trim() }.findAll { it }
@@ -3431,7 +3427,7 @@ class ConfigEncryptionToolTest extends GroovyTestCase {
                     it.@name =~ "Password" && it.@encryption =~ "aes/gcm/\\d{3}"
                 }
                 authorizersEncryptedValues.each {
-                    assert spp.unprotect((String) it.text(), (ProtectedPropertyContext) authorizersContext((String) it.@name)) == PASSWORD
+                    assert spp.unprotect((String) it.text(), (ProtectedPropertyContext) ldapPropertyContext((String) it.@name)) == PASSWORD
                 }
                 // Check that the comments are still there
                 def authorizersTrimmedLines = inputAuthorizersFile.readLines().collect { it.trim() }.findAll { it }

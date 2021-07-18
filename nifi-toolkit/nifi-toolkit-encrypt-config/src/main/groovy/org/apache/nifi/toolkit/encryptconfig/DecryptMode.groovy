@@ -21,8 +21,8 @@ import groovy.cli.commons.OptionAccessor
 import org.apache.commons.cli.HelpFormatter
 import org.apache.nifi.properties.ConfigEncryptionTool
 import org.apache.nifi.properties.PropertyProtectionScheme
-import org.apache.nifi.properties.ProtectedPropertyContext
 import org.apache.nifi.properties.SensitivePropertyProvider
+import org.apache.nifi.properties.SensitivePropertyProviderFactory
 import org.apache.nifi.properties.StandardSensitivePropertyProviderFactory
 import org.apache.nifi.toolkit.encryptconfig.util.BootstrapUtil
 import org.apache.nifi.toolkit.encryptconfig.util.PropertiesEncryptor
@@ -121,12 +121,12 @@ class DecryptMode implements ToolMode {
             case FileType.properties:
                 PropertiesEncryptor propertiesEncryptor = new PropertiesEncryptor(null, config.decryptionProvider)
                 Properties properties = propertiesEncryptor.loadFile(config.inputFilePath)
-                properties = propertiesEncryptor.decrypt(properties, ProtectedPropertyContext.PropertyLocation.fromFilename(config.inputFilePath))
+                properties = propertiesEncryptor.decrypt(properties)
                 decryptedSerializedContent = propertiesEncryptor.serializePropertiesAndPreserveFormatIfPossible(properties, config.inputFilePath)
                 break
 
             case FileType.xml:
-                XmlEncryptor xmlEncryptor = new XmlEncryptor(null, config.decryptionProvider) {
+                XmlEncryptor xmlEncryptor = new XmlEncryptor(null, config.decryptionProvider, config.providerFactory) {
                     @Override
                     List<String> serializeXmlContentAndPreserveFormat(String updatedXmlContent, String originalXmlContent) {
                         // For decrypting unknown, generic XML, this tool will not support preserving the format
@@ -135,7 +135,7 @@ class DecryptMode implements ToolMode {
                 }
 
                 String xmlContent = xmlEncryptor.loadXmlFile(config.inputFilePath)
-                xmlContent = xmlEncryptor.decrypt(xmlContent, ProtectedPropertyContext.PropertyLocation.fromFilename(config.inputFilePath))
+                xmlContent = xmlEncryptor.decrypt(xmlContent)
                 decryptedSerializedContent = xmlEncryptor.serializeXmlContentAndPreserveFormatIfPossible(xmlContent, config.inputFilePath)
                 break
 
@@ -214,6 +214,7 @@ class DecryptMode implements ToolMode {
         PropertyProtectionScheme protectionScheme = ConfigEncryptionTool.DEFAULT_PROTECTION_SCHEME
         String key
         SensitivePropertyProvider decryptionProvider
+        SensitivePropertyProviderFactory providerFactory
         String inputBootstrapPath
 
         FileType fileType
@@ -240,9 +241,9 @@ class DecryptMode implements ToolMode {
                     throw new RuntimeException("Failed to configure tool, could not determine key.")
                 }
             }
-            decryptionProvider = StandardSensitivePropertyProviderFactory
+            providerFactory = StandardSensitivePropertyProviderFactory
                     .withKeyAndBootstrapSupplier(key, ConfigEncryptionTool.getBootstrapSupplier(inputBootstrapPath))
-                    .getProvider(protectionScheme)
+            decryptionProvider = providerFactory.getProvider(protectionScheme)
 
             if (rawOptions.t) {
                 fileType = FileType.valueOf(rawOptions.t)

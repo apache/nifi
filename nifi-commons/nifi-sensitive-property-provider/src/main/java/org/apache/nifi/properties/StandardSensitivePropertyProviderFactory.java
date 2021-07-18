@@ -83,7 +83,7 @@ public class StandardSensitivePropertyProviderFactory implements SensitiveProper
     private void populateCustomPropertyContextLocationMap() {
         final BootstrapProperties bootstrapProperties = getBootstrapProperties();
         customPropertyContextLocationMap = new HashMap<>();
-        final String xmlContextLocationMappingKeyPrefix = BootstrapPropertyKey.XML_CONTEXT_LOCATION_MAPPING.getKey();
+        final String xmlContextLocationMappingKeyPrefix = BootstrapPropertyKey.CONTEXT_LOCATION_MAPPING.getKey();
         bootstrapProperties.getPropertyKeys().stream()
                 .filter(k -> k.contains(xmlContextLocationMappingKeyPrefix))
                 .forEach(k -> {
@@ -138,14 +138,16 @@ public class StandardSensitivePropertyProviderFactory implements SensitiveProper
     }
 
     @Override
-    public Optional<String> getCustomPropertyContextLocation(final String groupIdentifier) {
+    public ProtectedPropertyContext getPropertyContext(final String groupIdentifier, final String propertyName) {
         if (customPropertyContextLocationMap == null) {
             populateCustomPropertyContextLocationMap();
         }
-        return customPropertyContextLocationMap.entrySet().stream()
+        final String contextName = customPropertyContextLocationMap.entrySet().stream()
                 .filter(entry -> entry.getValue().matcher(groupIdentifier).find())
                 .map(Map.Entry::getKey)
-                .findFirst();
+                .findFirst()
+                .orElse(null);
+        return ProtectedPropertyContext.contextFor(propertyName, contextName);
     }
 
 }

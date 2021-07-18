@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.properties;
 
-import org.apache.nifi.properties.ProtectedPropertyContext.PropertyLocation;
-
 import java.util.Map;
 import java.util.Properties;
 
@@ -32,10 +30,4 @@ public abstract class ApplicationProperties extends StandardReadableProperties {
     public ApplicationProperties(Map<String, String> properties) {
         super(properties);
     }
-
-    /**
-     * Should return a PropertyLocation representing the location of these ApplicationProperties.
-     * @return The relevant PropertyLocation
-     */
-    public abstract PropertyLocation getPropertyLocation();
 }
