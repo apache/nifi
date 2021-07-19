@@ -126,6 +126,9 @@
                         <exclude>src/test/resources/mock-gcp-application-default-credentials.json</exclude>
                         <exclude>src/test/resources/bigquery/streaming-bad-data.json</exclude>
                         <exclude>src/test/resources/bigquery/streaming-correct-data.json</exclude>
+                        <exclude>src/test/resources/bigquery/schema-correct-data-with-date.avsc</exclude>
+                        <exclude>src/test/resources/bigquery/streaming-correct-data-with-date.json</exclude>
+                        <exclude>src/test/resources/bigquery/streaming-correct-data-with-date-formatted.json</exclude>
                     </excludes>
                 </configuration>
             </plugin>
