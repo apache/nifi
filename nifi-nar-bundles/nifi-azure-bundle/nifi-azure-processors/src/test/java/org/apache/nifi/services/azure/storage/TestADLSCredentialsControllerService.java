@@ -307,6 +307,28 @@ public class TestADLSCredentialsControllerService {
     }
 
     @Test
+    public void testGetCredentialsDetailsWithAccountKeyUsingEL() throws Exception {
+        // GIVEN
+        configureAccountNameUsingEL();
+        configureAccountKeyUsingEL();
+
+        runner.enableControllerService(credentialsService);
+
+        // WHEN
+        ADLSCredentialsDetails actual = credentialsService.getCredentialsDetails(new HashMap<>());
+
+        // THEN
+        assertEquals(ACCOUNT_NAME_VALUE, actual.getAccountName());
+        assertEquals(ACCOUNT_KEY_VALUE, actual.getAccountKey());
+        assertNull(actual.getSasToken());
+        assertFalse(actual.getUseManagedIdentity());
+        assertNotNull(actual.getEndpointSuffix());
+        assertNull(actual.getServicePrincipalTenantId());
+        assertNull(actual.getServicePrincipalClientId());
+        assertNull(actual.getServicePrincipalClientSecret());
+    }
+
+    @Test
     public void testGetCredentialsDetailsWithSasToken() throws Exception {
         // GIVEN
         configureAccountName();
@@ -428,8 +450,16 @@ public class TestADLSCredentialsControllerService {
         runner.setProperty(credentialsService, ADLSCredentialsControllerService.ACCOUNT_NAME, ACCOUNT_NAME_VALUE);
     }
 
+    private void configureAccountNameUsingEL() {
+        configurePropertyUsingEL(ADLSCredentialsControllerService.ACCOUNT_NAME, "account.name", ACCOUNT_NAME_VALUE);
+    }
+
     private void configureAccountKey() {
         runner.setProperty(credentialsService, AzureStorageUtils.ACCOUNT_KEY, ACCOUNT_KEY_VALUE);
+    }
+
+    private void configureAccountKeyUsingEL() {
+        configurePropertyUsingEL(AzureStorageUtils.ACCOUNT_KEY, "account.key", ACCOUNT_KEY_VALUE);
     }
 
     private void configureSasToken() {
