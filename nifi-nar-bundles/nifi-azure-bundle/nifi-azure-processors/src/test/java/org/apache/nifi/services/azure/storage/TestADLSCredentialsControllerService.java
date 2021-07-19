@@ -17,6 +17,7 @@
 package org.apache.nifi.services.azure.storage;
 
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.processors.azure.storage.utils.AzureStorageUtils;
 import org.apache.nifi.reporting.InitializationException;
 import org.apache.nifi.util.NoOpProcessor;
 import org.apache.nifi.util.TestRunner;
@@ -428,16 +429,16 @@ public class TestADLSCredentialsControllerService {
     }
 
     private void configureAccountKey() {
-        runner.setProperty(credentialsService, ADLSCredentialsControllerService.ACCOUNT_KEY, ACCOUNT_KEY_VALUE);
+        runner.setProperty(credentialsService, AzureStorageUtils.ACCOUNT_KEY, ACCOUNT_KEY_VALUE);
     }
 
     private void configureSasToken() {
-        runner.setProperty(credentialsService, ADLSCredentialsControllerService.SAS_TOKEN, SAS_TOKEN_VALUE);
+        runner.setProperty(credentialsService, AzureStorageUtils.PROP_SAS_TOKEN, SAS_TOKEN_VALUE);
     }
 
     private void configureSasTokenUsingEL() {
         String variableName = "sas.token";
-        configurePropertyUsingEL(ADLSCredentialsControllerService.SAS_TOKEN, variableName, SAS_TOKEN_VALUE);
+        configurePropertyUsingEL(AzureStorageUtils.PROP_SAS_TOKEN, variableName, SAS_TOKEN_VALUE);
     }
 
     private void configureUseManagedIdentity() {

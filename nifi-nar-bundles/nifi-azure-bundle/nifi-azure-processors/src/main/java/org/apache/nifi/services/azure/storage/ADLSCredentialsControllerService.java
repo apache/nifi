@@ -64,10 +64,6 @@ public class ADLSCredentialsControllerService extends AbstractControllerService 
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
-    public static final PropertyDescriptor ACCOUNT_KEY = AzureStorageUtils.ACCOUNT_KEY;
-
-    public static final PropertyDescriptor SAS_TOKEN = AzureStorageUtils.PROP_SAS_TOKEN;
-
     public static final PropertyDescriptor USE_MANAGED_IDENTITY = new PropertyDescriptor.Builder()
             .name("storage-use-managed-identity")
             .displayName("Use Azure Managed Identity")
@@ -111,8 +107,8 @@ public class ADLSCredentialsControllerService extends AbstractControllerService 
     private static final List<PropertyDescriptor> PROPERTIES = Collections.unmodifiableList(Arrays.asList(
             ACCOUNT_NAME,
             ENDPOINT_SUFFIX,
-            ACCOUNT_KEY,
-            SAS_TOKEN,
+            AzureStorageUtils.ACCOUNT_KEY,
+            AzureStorageUtils.PROP_SAS_TOKEN,
             USE_MANAGED_IDENTITY,
             SERVICE_PRINCIPAL_TENANT_ID,
             SERVICE_PRINCIPAL_CLIENT_ID,
@@ -130,8 +126,8 @@ public class ADLSCredentialsControllerService extends AbstractControllerService 
     protected Collection<ValidationResult> customValidate(ValidationContext validationContext) {
         final List<ValidationResult> results = new ArrayList<>();
 
-        boolean accountKeySet = StringUtils.isNotBlank(validationContext.getProperty(ACCOUNT_KEY).getValue());
-        boolean sasTokenSet = StringUtils.isNotBlank(validationContext.getProperty(SAS_TOKEN).getValue());
+        boolean accountKeySet = StringUtils.isNotBlank(validationContext.getProperty(AzureStorageUtils.ACCOUNT_KEY).getValue());
+        boolean sasTokenSet = StringUtils.isNotBlank(validationContext.getProperty(AzureStorageUtils.PROP_SAS_TOKEN).getValue());
         boolean useManagedIdentitySet = validationContext.getProperty(USE_MANAGED_IDENTITY).asBoolean();
 
         boolean servicePrincipalTenantIdSet = StringUtils.isNotBlank(validationContext.getProperty(SERVICE_PRINCIPAL_TENANT_ID).getValue());
@@ -188,8 +184,8 @@ public class ADLSCredentialsControllerService extends AbstractControllerService 
         ADLSCredentialsDetails.Builder credentialsBuilder = ADLSCredentialsDetails.Builder.newBuilder();
 
         setValue(credentialsBuilder, ACCOUNT_NAME, PropertyValue::getValue, ADLSCredentialsDetails.Builder::setAccountName, attributes);
-        setValue(credentialsBuilder, ACCOUNT_KEY, PropertyValue::getValue, ADLSCredentialsDetails.Builder::setAccountKey, attributes);
-        setValue(credentialsBuilder, SAS_TOKEN, PropertyValue::getValue, ADLSCredentialsDetails.Builder::setSasToken, attributes);
+        setValue(credentialsBuilder, AzureStorageUtils.ACCOUNT_KEY, PropertyValue::getValue, ADLSCredentialsDetails.Builder::setAccountKey, attributes);
+        setValue(credentialsBuilder, AzureStorageUtils.PROP_SAS_TOKEN, PropertyValue::getValue, ADLSCredentialsDetails.Builder::setSasToken, attributes);
         setValue(credentialsBuilder, ENDPOINT_SUFFIX, PropertyValue::getValue, ADLSCredentialsDetails.Builder::setEndpointSuffix, attributes);
         setValue(credentialsBuilder, USE_MANAGED_IDENTITY, PropertyValue::asBoolean, ADLSCredentialsDetails.Builder::setUseManagedIdentity, attributes);
         setValue(credentialsBuilder, SERVICE_PRINCIPAL_TENANT_ID, PropertyValue::getValue, ADLSCredentialsDetails.Builder::setServicePrincipalTenantId, attributes);
