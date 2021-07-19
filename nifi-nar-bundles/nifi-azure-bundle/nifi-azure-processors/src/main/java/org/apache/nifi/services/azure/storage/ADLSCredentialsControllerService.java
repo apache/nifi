@@ -50,9 +50,8 @@ public class ADLSCredentialsControllerService extends AbstractControllerService 
 
     public static final PropertyDescriptor ACCOUNT_NAME = new PropertyDescriptor.Builder()
             .fromPropertyDescriptor(AzureStorageUtils.ACCOUNT_NAME)
-            .description(AzureStorageUtils.ACCOUNT_NAME_BASE_DESCRIPTION)
+            .description(AzureStorageUtils.ACCOUNT_NAME_BASE_DESCRIPTION + AzureStorageUtils.ACCOUNT_NAME_SECURITY_DESCRIPTION)
             .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .build();
 
     public static final PropertyDescriptor ENDPOINT_SUFFIX = new PropertyDescriptor.Builder()
@@ -65,16 +64,9 @@ public class ADLSCredentialsControllerService extends AbstractControllerService 
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
 
-    public static final PropertyDescriptor ACCOUNT_KEY = new PropertyDescriptor.Builder()
-            .fromPropertyDescriptor(AzureStorageUtils.ACCOUNT_KEY)
-            .description(AzureStorageUtils.ACCOUNT_KEY_BASE_DESCRIPTION)
-            .expressionLanguageSupported(ExpressionLanguageScope.NONE)
-            .build();
+    public static final PropertyDescriptor ACCOUNT_KEY = AzureStorageUtils.ACCOUNT_KEY;
 
-    public static final PropertyDescriptor SAS_TOKEN = new PropertyDescriptor.Builder()
-            .fromPropertyDescriptor(AzureStorageUtils.PROP_SAS_TOKEN)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .build();
+    public static final PropertyDescriptor SAS_TOKEN = AzureStorageUtils.PROP_SAS_TOKEN;
 
     public static final PropertyDescriptor USE_MANAGED_IDENTITY = new PropertyDescriptor.Builder()
             .name("storage-use-managed-identity")
