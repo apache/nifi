@@ -18,10 +18,14 @@
 package org.apache.nifi.processors.gcp.bigquery;
 
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.sql.Date;
+import java.sql.Time;
+import java.sql.Timestamp;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
 
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.SystemResource;
@@ -191,6 +195,16 @@ public class PutBigQueryStreaming extends AbstractBigQueryProcessor {
                     lmapr.add(convertMapRecord(((MapRecord) mapr).toMap()));
                 }
                 result.put(key, lmapr);
+            } else if (obj instanceof Timestamp) {
+                LocalDateTime dateTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(((Timestamp) obj).getTime()), ZoneOffset.UTC);
+                DateTimeFormatter timestampFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSSSSS");
+                result.put(key, dateTime.format(timestampFormatter));
+            } else if (obj instanceof Time) {
+                LocalDateTime dateTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(((Time) obj).getTime()), ZoneOffset.UTC);
+                DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss.SSSSSS");
+                result.put(key, dateTime.format(timeFormatter) );
+            } else if (obj instanceof Date) {
+                result.put(key, obj.toString());
             } else {
                 result.put(key, obj);
             }
