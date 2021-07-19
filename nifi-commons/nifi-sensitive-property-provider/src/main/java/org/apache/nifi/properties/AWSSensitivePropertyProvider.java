@@ -19,13 +19,8 @@ package org.apache.nifi.properties;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.properties.BootstrapProperties.BootstrapPropertyKey;
 
-import org.bouncycastle.util.encoders.Base64;
-import org.bouncycastle.util.encoders.DecoderException;
-import org.bouncycastle.util.encoders.EncoderException;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
@@ -42,6 +37,7 @@ import software.amazon.awssdk.services.kms.model.EncryptResponse;
 import software.amazon.awssdk.services.kms.model.KeyMetadata;
 import software.amazon.awssdk.services.kms.model.KmsException;
 
+import java.util.Base64;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -297,8 +293,8 @@ public class AWSSensitivePropertyProvider extends AbstractSensitivePropertyProvi
         try {
             final byte[] plainBytes = unprotectedValue.getBytes(PROPERTY_CHARSET);
             final byte[] cipherBytes = encrypt(plainBytes);
-            return Base64.toBase64String(cipherBytes);
-        } catch (final SdkClientException | KmsException | EncoderException e) {
+            return Base64.getEncoder().encodeToString(cipherBytes);
+        } catch (final SdkClientException | KmsException e) {
             throw new SensitivePropertyProtectionException("Encrypt failed", e);
         }
     }
@@ -319,10 +315,10 @@ public class AWSSensitivePropertyProvider extends AbstractSensitivePropertyProvi
         checkAndInitializeClient();
 
         try {
-            final byte[] cipherBytes = Base64.decode(protectedValue);
+            final byte[] cipherBytes = Base64.getDecoder().decode(protectedValue);
             final byte[] plainBytes = decrypt(cipherBytes);
             return new String(plainBytes, PROPERTY_CHARSET);
-        } catch (final SdkClientException | KmsException | DecoderException e) {
+        } catch (final SdkClientException | KmsException e) {
             throw new SensitivePropertyProtectionException("Decrypt failed", e);
         }
     }

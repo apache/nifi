@@ -133,7 +133,5 @@ public abstract class AbstractHashiCorpVaultSensitivePropertyProvider extends Ab
      * No cleanup necessary
      */
     @Override
-    public void cleanUp() {
-        return;
-    }
+    public void cleanUp() { }
 }
