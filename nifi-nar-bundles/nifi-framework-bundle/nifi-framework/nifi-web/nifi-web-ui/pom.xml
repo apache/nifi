@@ -41,10 +41,6 @@
         <frontend.dependency.configs>${basedir}/src/main/frontend</frontend.dependency.configs>
         <frontend.working.dir>${project.build.directory}/frontend-working-directory</frontend.working.dir>
         <frontend.assets>${project.build.directory}/${project.build.finalName}/assets</frontend.assets>
-        <!--
-            This property can be set on the command line and allows any bower cli options to be set.
-        -->
-        <bower.options />
     </properties>
     <build>
         <!--
