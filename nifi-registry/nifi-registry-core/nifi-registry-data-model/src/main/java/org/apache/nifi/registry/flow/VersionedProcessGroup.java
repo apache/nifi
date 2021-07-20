@@ -200,7 +200,7 @@ public class VersionedProcessGroup extends VersionedComponent {
 
     @ApiModelProperty(value = "Default value used in this Process Group for the maximum data size of objects that can be queued before back pressure is applied.")
     public String getDefaultBackPressureDataSizeThreshold() {
-        return defaultBackPressureDataSizeThreshold == null ? "" : defaultBackPressureDataSizeThreshold;
+        return defaultBackPressureDataSizeThreshold;
     }
 
     public void setDefaultBackPressureDataSizeThreshold(final String defaultBackPressureDataSizeThreshold) {
