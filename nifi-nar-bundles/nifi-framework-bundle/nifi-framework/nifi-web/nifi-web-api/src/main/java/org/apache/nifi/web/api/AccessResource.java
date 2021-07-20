@@ -51,10 +51,8 @@ import org.apache.nifi.web.security.kerberos.KerberosService;
 import org.apache.nifi.web.security.knox.KnoxService;
 import org.apache.nifi.web.security.logout.LogoutRequest;
 import org.apache.nifi.web.security.logout.LogoutRequestManager;
-import org.apache.nifi.web.security.otp.OtpService;
 import org.apache.nifi.web.security.token.LoginAuthenticationToken;
 import org.apache.nifi.web.security.token.NiFiAuthenticationToken;
-import org.apache.nifi.web.security.token.OtpAuthenticationToken;
 import org.apache.nifi.web.security.x509.X509AuthenticationProvider;
 import org.apache.nifi.web.security.x509.X509AuthenticationRequestToken;
 import org.apache.nifi.web.security.x509.X509CertificateExtractor;
@@ -106,7 +104,6 @@ public class AccessResource extends ApplicationResource {
     private LoginIdentityProvider loginIdentityProvider;
     private JwtAuthenticationProvider jwtAuthenticationProvider;
     private JwtService jwtService;
-    private OtpService otpService;
     private KnoxService knoxService;
     private KerberosService kerberosService;
     protected LogoutRequestManager logoutRequestManager;
@@ -308,96 +305,6 @@ public class AccessResource extends ApplicationResource {
         entity.setAccessStatus(accessStatus);
 
         return generateOkResponse(entity).build();
-    }
-
-    /**
-     * Creates a single use access token for downloading FlowFile content.
-     *
-     * @param httpServletRequest the servlet request
-     * @return A token (string)
-     */
-    @POST
-    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
-    @Produces(MediaType.TEXT_PLAIN)
-    @Path("/download-token")
-    @ApiOperation(
-            value = "Creates a single use access token for downloading FlowFile content.",
-            notes = "The token returned is a base64 encoded string. It is valid for a single request up to five minutes from being issued. " +
-                    "It is used as a query parameter name 'access_token'.",
-            response = String.class
-    )
-    @ApiResponses(
-            value = {
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 409, message = "Unable to create the download token because NiFi is not in the appropriate state. " +
-                            "(i.e. may not have any tokens to grant or be configured to support username/password login)"),
-                    @ApiResponse(code = 500, message = "Unable to create download token because an unexpected error occurred.")
-            }
-    )
-    public Response createDownloadToken(@Context HttpServletRequest httpServletRequest) {
-        // only support access tokens when communicating over HTTPS
-        if (!httpServletRequest.isSecure()) {
-            throw new IllegalStateException("Download tokens are only issued over HTTPS.");
-        }
-
-        final NiFiUser user = NiFiUserUtils.getNiFiUser();
-        if (user == null) {
-            throw new AccessDeniedException("No user authenticated in the request.");
-        }
-
-        final OtpAuthenticationToken authenticationToken = new OtpAuthenticationToken(user.getIdentity());
-
-        // generate otp for response
-        final String token = otpService.generateDownloadToken(authenticationToken);
-
-        // build the response
-        final URI uri = URI.create(generateResourceUri("access", "download-token"));
-        return generateCreatedResponse(uri, token).build();
-    }
-
-    /**
-     * Creates a single use access token for accessing a NiFi UI extension.
-     *
-     * @param httpServletRequest the servlet request
-     * @return A token (string)
-     */
-    @POST
-    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
-    @Produces(MediaType.TEXT_PLAIN)
-    @Path("/ui-extension-token")
-    @ApiOperation(
-            value = "Creates a single use access token for accessing a NiFi UI extension.",
-            notes = "The token returned is a base64 encoded string. It is valid for a single request up to five minutes from being issued. " +
-                    "It is used as a query parameter name 'access_token'.",
-            response = String.class
-    )
-    @ApiResponses(
-            value = {
-                    @ApiResponse(code = 403, message = "Client is not authorized to make this request."),
-                    @ApiResponse(code = 409, message = "Unable to create the download token because NiFi is not in the appropriate state. " +
-                            "(i.e. may not have any tokens to grant or be configured to support username/password login)"),
-                    @ApiResponse(code = 500, message = "Unable to create download token because an unexpected error occurred.")
-            }
-    )
-    public Response createUiExtensionToken(@Context HttpServletRequest httpServletRequest) {
-        // only support access tokens when communicating over HTTPS
-        if (!httpServletRequest.isSecure()) {
-            throw new AuthenticationNotSupportedException("UI extension access tokens are only issued over HTTPS.");
-        }
-
-        final NiFiUser user = NiFiUserUtils.getNiFiUser();
-        if (user == null) {
-            throw new AccessDeniedException("No user authenticated in the request.");
-        }
-
-        final OtpAuthenticationToken authenticationToken = new OtpAuthenticationToken(user.getIdentity());
-
-        // generate otp for response
-        final String token = otpService.generateUiExtensionToken(authenticationToken);
-
-        // build the response
-        final URI uri = URI.create(generateResourceUri("access", "ui-extension-token"));
-        return generateCreatedResponse(uri, token).build();
     }
 
     /**
@@ -703,10 +610,6 @@ public class AccessResource extends ApplicationResource {
 
     public void setCertificateExtractor(X509CertificateExtractor certificateExtractor) {
         this.certificateExtractor = certificateExtractor;
-    }
-
-    public void setOtpService(OtpService otpService) {
-        this.otpService = otpService;
     }
 
     public void setKnoxService(KnoxService knoxService) {

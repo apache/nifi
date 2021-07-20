@@ -39,7 +39,7 @@
         <property name="certificateValidator" ref="certificateValidator"/>
     </bean>
 
-    <!-- otp authentication provider -->
+    <!-- x509 authentication provider -->
     <bean id="x509AuthenticationProvider" class="org.apache.nifi.web.security.x509.X509AuthenticationProvider">
         <constructor-arg ref="certificateIdentityProvider" index="0"/>
         <constructor-arg ref="authorizer" index="1"/>
@@ -54,17 +54,6 @@
     <!-- jwt authentication provider -->
     <bean id="jwtAuthenticationProvider" class="org.apache.nifi.web.security.jwt.JwtAuthenticationProvider">
         <constructor-arg ref="jwtService" index="0"/>
-        <constructor-arg ref="nifiProperties" index="1"/>
-        <constructor-arg ref="authorizer" index="2"/>
-        <constructor-arg ref="idpUserGroupService" index="3"/>
-    </bean>
-
-    <!-- otp service -->
-    <bean id="otpService" class="org.apache.nifi.web.security.otp.OtpService"/>
-
-    <!-- otp authentication provider -->
-    <bean id="otpAuthenticationProvider" class="org.apache.nifi.web.security.otp.OtpAuthenticationProvider">
-        <constructor-arg ref="otpService" index="0"/>
         <constructor-arg ref="nifiProperties" index="1"/>
         <constructor-arg ref="authorizer" index="2"/>
         <constructor-arg ref="idpUserGroupService" index="3"/>
