@@ -583,7 +583,6 @@
         <property name="principalExtractor" ref="principalExtractor"/>
         <property name="jwtAuthenticationProvider" ref="jwtAuthenticationProvider"/>
         <property name="jwtService" ref="jwtService"/>
-        <property name="otpService" ref="otpService"/>
         <property name="kerberosService" ref="kerberosService"/>
         <property name="properties" ref="nifiProperties"/>
         <property name="clusterCoordinator" ref="clusterCoordinator"/>

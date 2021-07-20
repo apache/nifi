@@ -1196,29 +1196,6 @@
         },
 
         /**
-         * Gets an access token from the specified url.
-         *
-         * @param accessTokenUrl    The access token
-         * @returns the access token as a deferred
-         */
-        getAccessToken: function (accessTokenUrl) {
-            return $.Deferred(function (deferred) {
-                if (nfStorage.hasItem('jwt')) {
-                    $.ajax({
-                        type: 'POST',
-                        url: accessTokenUrl
-                    }).done(function (token) {
-                        deferred.resolve(token);
-                    }).fail(function () {
-                        deferred.reject();
-                    })
-                } else {
-                    deferred.resolve('');
-                }
-            }).promise();
-        },
-
-        /**
          * Constants for time duration formatting.
          */
         MILLIS_PER_DAY: 86400000,
