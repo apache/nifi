@@ -100,6 +100,9 @@ public class PutBigQueryStreaming extends AbstractBigQueryProcessor {
             .defaultValue("false")
             .build();
 
+    private static final DateTimeFormatter timestampFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSSSSS");
+    private static final DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss.SSSSSS");
+
     @Override
     public List<PropertyDescriptor> getSupportedPropertyDescriptors() {
         return ImmutableList.<PropertyDescriptor> builder()
@@ -199,12 +202,14 @@ public class PutBigQueryStreaming extends AbstractBigQueryProcessor {
                 }
                 result.put(key, lmapr);
             } else if (obj instanceof Timestamp) {
+                // ZoneOffset.UTC time zone is necessary due to implicit time zone conversion in Record Readers from
+                // the local system time zone to the GMT time zone
                 LocalDateTime dateTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(((Timestamp) obj).getTime()), ZoneOffset.UTC);
-                DateTimeFormatter timestampFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSSSSS");
                 result.put(key, dateTime.format(timestampFormatter));
             } else if (obj instanceof Time) {
+                // ZoneOffset.UTC time zone is necessary due to implicit time zone conversion in Record Readers from
+                // the local system time zone to the GMT time zone
                 LocalDateTime dateTime = LocalDateTime.ofInstant(Instant.ofEpochMilli(((Time) obj).getTime()), ZoneOffset.UTC);
-                DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss.SSSSSS");
                 result.put(key, dateTime.format(timeFormatter) );
             } else if (obj instanceof Date) {
                 result.put(key, obj.toString());
