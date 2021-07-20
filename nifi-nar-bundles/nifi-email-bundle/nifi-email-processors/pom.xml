@@ -100,14 +100,9 @@
             </exclusions>
         </dependency>
         <dependency>
-            <groupId>commons-logging</groupId>
-            <artifactId>commons-logging</artifactId>
-            <version>1.2</version>
-        </dependency>
-        <dependency>
             <groupId>org.apache.poi</groupId>
             <artifactId>poi-scratchpad</artifactId>
-            <version>4.0.1</version>
+            <version>5.0.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.nifi</groupId>
