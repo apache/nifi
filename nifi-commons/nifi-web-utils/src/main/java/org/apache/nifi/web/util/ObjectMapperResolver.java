@@ -18,6 +18,7 @@ package org.apache.nifi.web.util;
 
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonInclude.Value;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.module.jaxb.JaxbAnnotationIntrospector;
 
@@ -29,10 +30,11 @@ public class ObjectMapperResolver implements ContextResolver<ObjectMapper> {
 
     private final ObjectMapper mapper;
 
-    public ObjectMapperResolver() throws Exception {
+    public ObjectMapperResolver() {
         mapper = new ObjectMapper();
         mapper.setDefaultPropertyInclusion(Value.construct(Include.NON_NULL, Include.ALWAYS));
         mapper.setAnnotationIntrospector(new JaxbAnnotationIntrospector(mapper.getTypeFactory()));
+        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     }
 
     @Override
