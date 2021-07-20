@@ -506,7 +506,7 @@ public abstract class AbstractListProcessor<T extends ListableEntity> extends Ab
             context.yield();
             return;
         }
-        
+
         final boolean writerSet = context.getProperty(RECORD_WRITER).isSet();
         if (writerSet) {
             try {
