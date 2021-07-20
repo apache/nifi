@@ -47,4 +47,34 @@ public abstract class AbstractSensitivePropertyProvider implements SensitiveProp
     public String getIdentifierKey() {
         return getProtectionScheme().getIdentifier();
     }
+
+    @Override
+    public String protect(final String unprotectedValue, final ProtectedPropertyContext context) throws SensitivePropertyProtectionException {
+        return protect(unprotectedValue);
+    }
+
+    @Override
+    public String unprotect(final String protectedValue, final ProtectedPropertyContext context) throws SensitivePropertyProtectionException {
+        return unprotect(protectedValue);
+    }
+
+    /**
+     * Allows implementing classes to provide an implementation that does not require a context.
+     * @param unprotectedValue The unprotected value
+     * @return The protected value
+     * @throws SensitivePropertyProtectionException If there was a problem protecting the value
+     */
+    protected String protect(final String unprotectedValue) throws SensitivePropertyProtectionException {
+        return null;
+    }
+
+    /**
+     * Allows implementing classes to provide an implementation that does not require a context.
+     * @param protectedValue The protected value
+     * @return The unprotected value
+     * @throws SensitivePropertyProtectionException If there was a problem unprotecting the value
+     */
+    protected String unprotect(final String protectedValue) throws SensitivePropertyProtectionException {
+        return null;
+    }
 }
