@@ -95,7 +95,7 @@
         <org.bouncycastle.version>1.69</org.bouncycastle.version>
         <org.slf4j.version>1.7.31</org.slf4j.version>
         <ranger.version>2.1.0</ranger.version>
-        <jetty.version>9.4.42.v20210604</jetty.version>
+        <jetty.version>9.4.43.v20210629</jetty.version>
         <jackson.version>2.12.3</jackson.version>
         <nifi.groovy.version>2.5.6</nifi.groovy.version>
         <surefire.version>2.22.2</surefire.version>
