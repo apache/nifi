@@ -81,4 +81,24 @@ public class ConfluentSchemaRegistryTest {
         runner.assertValid(registry);
         runner.enableControllerService(registry);
     }
+
+    @Test
+    public void testValidateAndEnableDynamicHttpHeaderProperties() {
+        runner.setProperty(registry, "request.header.User", "kafkaUser");
+        runner.setProperty(registry, "request.header.Test", "testValue");
+        runner.assertValid(registry);
+        runner.enableControllerService(registry);
+    }
+
+    @Test
+    public void testValidateDynamicHttpHeaderPropertiesMissingTrailingValue() {
+        runner.setProperty(registry, "request.header.", "NotValid");
+        runner.assertNotValid(registry);
+    }
+
+    @Test
+    public void testValidateDynamicHttpHeaderPropertiesInvalidSubject() {
+        runner.setProperty(registry, "not.valid.subject", "NotValid");
+        runner.assertNotValid(registry);
+    }
 }

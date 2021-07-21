@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.Set;
@@ -32,6 +33,7 @@ import java.util.stream.Stream;
 import javax.net.ssl.SSLContext;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.annotation.behavior.DynamicProperty;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.annotation.lifecycle.OnEnabled;
@@ -39,6 +41,7 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.Validator;
 import org.apache.nifi.confluent.schemaregistry.client.AuthenticationType;
 import org.apache.nifi.confluent.schemaregistry.client.CachingSchemaRegistryClient;
 import org.apache.nifi.confluent.schemaregistry.client.RestSchemaRegistryClient;
@@ -59,10 +62,14 @@ import org.apache.nifi.ssl.SSLContextService;
 @CapabilityDescription("Provides a Schema Registry that interacts with the Confluent Schema Registry so that those Schemas that are stored in the Confluent Schema "
     + "Registry can be used in NiFi. The Confluent Schema Registry has a notion of a \"subject\" for schemas, which is their terminology for a schema name. When a Schema "
     + "is looked up by name by this registry, it will find a Schema in the Confluent Schema Registry with that subject.")
+@DynamicProperty(name = "request.header.*", value = "String literal, may not be empty", description = "Properties that begin with 'request.header.' " +
+        "are populated into a map and passed as http headers in REST requests to the Confluent Schema Registry")
 public class ConfluentSchemaRegistry extends AbstractControllerService implements SchemaRegistry {
 
     private static final Set<SchemaField> schemaFields = EnumSet.of(SchemaField.SCHEMA_NAME, SchemaField.SCHEMA_TEXT,
         SchemaField.SCHEMA_TEXT_FORMAT, SchemaField.SCHEMA_IDENTIFIER, SchemaField.SCHEMA_VERSION);
+
+    private static final String REQUEST_HEADER_PREFIX = "request.header.";
 
 
     static final PropertyDescriptor SCHEMA_REGISTRY_URLS = new PropertyDescriptor.Builder()
@@ -158,6 +165,28 @@ public class ConfluentSchemaRegistry extends AbstractControllerService implement
         return properties;
     }
 
+    private static final Validator REQUEST_HEADER_VALIDATOR = new Validator() {
+        @Override
+        public ValidationResult validate(final String subject, final String value, final ValidationContext context) {
+            return new ValidationResult.Builder()
+                    .subject(subject)
+                    .input(value)
+                    .valid(subject.startsWith(REQUEST_HEADER_PREFIX)
+                            && subject.length() > REQUEST_HEADER_PREFIX.length())
+                    .explanation("Dynamic property names must be of format 'request.header.*'")
+                    .build();
+        }
+    };
+
+    @Override
+    protected PropertyDescriptor getSupportedDynamicPropertyDescriptor(String propertyDescriptionName) {
+        return new PropertyDescriptor.Builder()
+                .name(propertyDescriptionName)
+                .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+                .addValidator(REQUEST_HEADER_VALIDATOR)
+                .build();
+    }
+
     @OnEnabled
     public void onEnabled(final ConfigurationContext context) {
         final List<String> baseUrls = getBaseURLs(context);
@@ -173,7 +202,20 @@ public class ConfluentSchemaRegistry extends AbstractControllerService implement
 
         final String username = context.getProperty(USERNAME).getValue();
         final String password = context.getProperty(PASSWORD).getValue();
-        final SchemaRegistryClient restClient = new RestSchemaRegistryClient(baseUrls, timeoutMillis, sslContext, username, password, getLogger());
+
+        // generate a map of http headers where the key is the remainder of the property name after
+        // the request header prefix
+        final Map<String, String> httpHeaders =
+                context.getProperties().entrySet()
+                        .stream()
+                        .filter(e -> e.getKey().getName().startsWith(REQUEST_HEADER_PREFIX))
+                        .collect(Collectors.toMap(
+                                map -> map.getKey().getName().substring(REQUEST_HEADER_PREFIX.length()),
+                                Map.Entry::getValue)
+                        );
+
+        final SchemaRegistryClient restClient = new RestSchemaRegistryClient(baseUrls, timeoutMillis,
+                sslContext, username, password, getLogger(), httpHeaders);
 
         final int cacheSize = context.getProperty(CACHE_SIZE).asInteger();
         final long cacheExpiration = context.getProperty(CACHE_EXPIRATION).asTimePeriod(TimeUnit.NANOSECONDS).longValue();

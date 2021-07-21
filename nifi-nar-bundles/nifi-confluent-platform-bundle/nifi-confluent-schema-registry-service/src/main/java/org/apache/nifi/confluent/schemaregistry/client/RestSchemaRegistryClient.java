@@ -36,6 +36,7 @@ import org.glassfish.jersey.client.authentication.HttpAuthenticationFeature;
 import javax.net.ssl.SSLContext;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.Entity;
+import javax.ws.rs.client.Invocation;
 import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -44,6 +45,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 
 /**
@@ -61,6 +63,7 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
     private final List<String> baseUrls;
     private final Client client;
     private final ComponentLog logger;
+    private final Map<String, String> httpHeaders;
 
     private static final String SUBJECT_FIELD_NAME = "subject";
     private static final String VERSION_FIELD_NAME = "version";
@@ -75,8 +78,10 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
                                     final SSLContext sslContext,
                                     final String username,
                                     final String password,
-                                    final ComponentLog logger) {
+                                    final ComponentLog logger,
+                                    final Map<String, String> httpHeaders) {
         this.baseUrls = new ArrayList<>(baseUrls);
+        this.httpHeaders = httpHeaders;
 
         final ClientConfig clientConfig = new ClientConfig();
         clientConfig.property(ClientProperties.CONNECT_TIMEOUT, timeoutMillis);
@@ -191,8 +196,12 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
             final String path = getPath(pathSuffix);
             final String trimmedBase = getTrimmedBase(baseUrl);
             final String url = trimmedBase + path;
-            final WebTarget builder = client.target(url);
-            final Response response = builder.request().accept(MediaType.APPLICATION_JSON).header(CONTENT_TYPE_HEADER, SCHEMA_REGISTRY_CONTENT_TYPE).post(Entity.json(schema.toString()));
+            final WebTarget webTarget = client.target(url);
+            Invocation.Builder builder = webTarget.request().accept(MediaType.APPLICATION_JSON).header(CONTENT_TYPE_HEADER, SCHEMA_REGISTRY_CONTENT_TYPE);
+            for (Map.Entry<String, String> header : httpHeaders.entrySet()) {
+                builder = builder.header(header.getKey(), header.getValue());
+            }
+            final Response response = builder.post(Entity.json(schema.toString()));
             final int responseCode = response.getStatus();
 
             if (responseCode == Response.Status.NOT_FOUND.getStatusCode()) {
@@ -216,7 +225,11 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
             final String url = trimmedBase + path;
 
             final WebTarget webTarget = client.target(url);
-            final Response response = webTarget.request().accept(MediaType.APPLICATION_JSON).get();
+            Invocation.Builder builder = webTarget.request().accept(MediaType.APPLICATION_JSON);
+            for (Map.Entry<String, String> header : httpHeaders.entrySet()) {
+                builder = builder.header(header.getKey(), header.getValue());
+            }
+            final Response response = builder.get();
             final int responseCode = response.getStatus();
 
             if (responseCode == Response.Status.OK.getStatusCode()) {
