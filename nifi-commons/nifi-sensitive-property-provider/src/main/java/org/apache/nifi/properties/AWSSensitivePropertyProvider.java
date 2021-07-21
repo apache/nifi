@@ -49,7 +49,7 @@ public class AWSSensitivePropertyProvider extends AbstractSensitivePropertyProvi
 
     private static final String AWS_PREFIX = "aws";
     private static final String ACCESS_KEY_PROPS_NAME = "aws.access.key.id";
-    private static final String SECRET_KEY_PROPS_NAME = "aws.secret.key.id";
+    private static final String SECRET_KEY_PROPS_NAME = "aws.secret.access.key";
     private static final String REGION_KEY_PROPS_NAME = "aws.region";
     private static final String KMS_KEY_PROPS_NAME = "aws.kms.key.id";
 
@@ -79,14 +79,14 @@ public class AWSSensitivePropertyProvider extends AbstractSensitivePropertyProvi
             logger.warn("AWS Bootstrap Properties are required for KMS Client initialization");
             return;
         }
-        final String accessKeyId = awsBootstrapProperties.getProperty(ACCESS_KEY_PROPS_NAME);
-        final String secretKeyId = awsBootstrapProperties.getProperty(SECRET_KEY_PROPS_NAME);
+        final String accessKey = awsBootstrapProperties.getProperty(ACCESS_KEY_PROPS_NAME);
+        final String secretKey = awsBootstrapProperties.getProperty(SECRET_KEY_PROPS_NAME);
         final String region = awsBootstrapProperties.getProperty(REGION_KEY_PROPS_NAME);
 
-        if (StringUtils.isNoneBlank(accessKeyId, secretKeyId, region)) {
+        if (StringUtils.isNoneBlank(accessKey, secretKey, region)) {
             logger.debug("Using AWS credentials from bootstrap properties");
             try {
-                final AwsBasicCredentials credentials = AwsBasicCredentials.create(accessKeyId, secretKeyId);
+                final AwsBasicCredentials credentials = AwsBasicCredentials.create(accessKey, secretKey);
                 client = KmsClient.builder()
                         .region(Region.of(region))
                         .credentialsProvider(StaticCredentialsProvider.create(credentials))

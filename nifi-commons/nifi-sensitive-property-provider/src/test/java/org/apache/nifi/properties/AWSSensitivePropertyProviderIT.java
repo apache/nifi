@@ -44,7 +44,7 @@ import java.util.Properties;
  * The following settings are optional. If you have a default AWS configuration and credentials in ~/.aws then
  * it will take that. Otherwise you can set all of the following:
  * set the system property -Daws.access.key.id to the access key id
- * set the system property -Daws.secret.key.id to the secret key id
+ * set the system property -Daws.secret.access.key to the secret access key
  * set the system property -Daws.region to the region
  *
  * After you are satisfied with the test, and you don't need the key, you may schedule key deletion with:
@@ -55,7 +55,7 @@ import java.util.Properties;
 public class AWSSensitivePropertyProviderIT {
     private static final String SAMPLE_PLAINTEXT = "AWSSensitivePropertyProviderIT SAMPLE-PLAINTEXT";
     private static final String ACCESS_KEY_PROPS_NAME = "aws.access.key.id";
-    private static final String SECRET_KEY_PROPS_NAME = "aws.secret.key.id";
+    private static final String SECRET_KEY_PROPS_NAME = "aws.secret.access.key";
     private static final String REGION_KEY_PROPS_NAME = "aws.region";
     private static final String KMS_KEY_PROPS_NAME = "aws.kms.key.id";
 

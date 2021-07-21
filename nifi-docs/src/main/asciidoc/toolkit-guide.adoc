@@ -521,7 +521,7 @@ This protection scheme uses AWS Key Management Service (https://aws.amazon.com/k
 |Property Name|Description|Default
 |`aws.region`|The AWS region used to configure the AWS KMS Client.|_none_
 |`aws.access.key.id`|The access key ID credential used to access AWS KMS.|_none_
-|`aws.secret.key.id`|The secret key ID credential used to access AWS KMS.|_none_
+|`aws.secret.access.key`|The secret access key used to access AWS KMS.|_none_
 |===
 
 === Examples
@@ -748,7 +748,7 @@ This command migrates nifi.properties back from AWS_KMS to AES_GCM protection sc
 -n conf/nifi.properties \
 -S AES_GCM \
 -k 0123456789ABCDEFFEDCBA98765432100123456789ABCDEFFEDCBA9876543210 \
--H AES_GCM \
+-H AWS_KMS \
 -m \
 -v
 ----
