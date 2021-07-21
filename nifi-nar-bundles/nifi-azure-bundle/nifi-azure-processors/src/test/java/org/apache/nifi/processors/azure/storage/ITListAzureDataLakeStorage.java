@@ -60,7 +60,7 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
         uploadFile(testFile2);
         testFiles.put(testFile2.getFilePath(), testFile2);
 
-        TestFile testTempFile1 = new TestFile("", "temp_file1");
+        TestFile testTempFile1 = new TestFile("", "nifitemp_file1");
         uploadFile(testTempFile1);
         testFiles.put(testTempFile1.getFilePath(), testTempFile1);
 
@@ -72,7 +72,7 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
         uploadFile(testFile12);
         testFiles.put(testFile12.getFilePath(), testFile12);
 
-        TestFile testTempFile11 = new TestFile("dir1", "temp_file11");
+        TestFile testTempFile11 = new TestFile("dir1", "nifitemp_file11");
         uploadFile(testTempFile11);
         testFiles.put(testTempFile11.getFilePath(), testTempFile11);
 
@@ -80,7 +80,7 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
         createDirectoryAndUploadFile(testFile111);
         testFiles.put(testFile111.getFilePath(), testFile111);
 
-        TestFile testTempFile111 = new TestFile("dir1/dir11", "temp_file111");
+        TestFile testTempFile111 = new TestFile("dir1/dir11", "nifitemp_file111");
         uploadFile(testTempFile111);
         testFiles.put(testTempFile111.getFilePath(), testTempFile111);
 
@@ -88,7 +88,7 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
         createDirectoryAndUploadFile(testFile21);
         testFiles.put(testFile21.getFilePath(), testFile21);
 
-        TestFile testTempFile21 = new TestFile("dir 2", "temp_file 21");
+        TestFile testTempFile21 = new TestFile("dir 2", "nifitemp_file 21");
         uploadFile(testTempFile21);
         testFiles.put(testTempFile21.getFilePath(), testTempFile21);
 
@@ -96,18 +96,8 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     }
 
     @Test
-    public void testListRootRecursive() throws Exception {
+    public void testListRootRecursive() {
         runner.setProperty(AbstractAzureDataLakeStorageProcessor.DIRECTORY, "");
-
-        runProcessor();
-
-        assertSuccess("file1", "file2", "temp_file1", "dir1/file11", "dir1/file12", "dir1/temp_file11", "dir1/dir11/file111", "dir1/dir11/temp_file111", "dir 2/file 21", "dir 2/temp_file 21");
-    }
-
-    @Test
-    public void testListRootRecursiveWithTempPrefix() throws Exception {
-        runner.setProperty(AbstractAzureDataLakeStorageProcessor.DIRECTORY, "");
-        setTempFilePrefixVariable();
 
         runProcessor();
 
@@ -115,20 +105,21 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     }
 
     @Test
-    public void testListRootNonRecursive() throws Exception {
+    public void testListRootRecursiveWithTempPrefix() {
         runner.setProperty(AbstractAzureDataLakeStorageProcessor.DIRECTORY, "");
-        runner.setProperty(ListAzureDataLakeStorage.RECURSE_SUBDIRECTORIES, "false");
+        runner.setProperty(ListAzureDataLakeStorage.INCLUDE_TEMP_FILES, "true");
 
         runProcessor();
 
-        assertSuccess("file1", "file2", "temp_file1");
+        assertSuccess("file1", "file2", "nifitemp_file1",
+                "dir1/file11", "dir1/file12", "dir1/nifitemp_file11", "dir1/dir11/file111", "dir1/dir11/nifitemp_file111",
+                "dir 2/file 21", "dir 2/nifitemp_file 21");
     }
 
     @Test
-    public void testListRootNonRecursiveWithTempPrefix() throws Exception {
+    public void testListRootNonRecursive() {
         runner.setProperty(AbstractAzureDataLakeStorageProcessor.DIRECTORY, "");
         runner.setProperty(ListAzureDataLakeStorage.RECURSE_SUBDIRECTORIES, "false");
-        setTempFilePrefixVariable();
 
         runProcessor();
 
@@ -136,18 +127,19 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     }
 
     @Test
-    public void testListSubdirectoryRecursive() throws Exception {
-        runner.setProperty(AbstractAzureDataLakeStorageProcessor.DIRECTORY, "dir1");
+    public void testListRootNonRecursiveWithTempPrefix() {
+        runner.setProperty(AbstractAzureDataLakeStorageProcessor.DIRECTORY, "");
+        runner.setProperty(ListAzureDataLakeStorage.RECURSE_SUBDIRECTORIES, "false");
+        runner.setProperty(ListAzureDataLakeStorage.INCLUDE_TEMP_FILES, "true");
 
         runProcessor();
 
-        assertSuccess("dir1/file11", "dir1/file12", "dir1/temp_file11", "dir1/dir11/file111", "dir1/dir11/temp_file111");
+        assertSuccess("file1", "file2", "nifitemp_file1");
     }
 
     @Test
-    public void testListSubdirectoryRecursiveWithTempPrefix() throws Exception {
+    public void testListSubdirectoryRecursive() {
         runner.setProperty(AbstractAzureDataLakeStorageProcessor.DIRECTORY, "dir1");
-        setTempFilePrefixVariable();
 
         runProcessor();
 
@@ -155,20 +147,19 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     }
 
     @Test
-    public void testListSubdirectoryNonRecursive() throws Exception {
+    public void testListSubdirectoryRecursiveWithTempPrefix() {
         runner.setProperty(AbstractAzureDataLakeStorageProcessor.DIRECTORY, "dir1");
-        runner.setProperty(ListAzureDataLakeStorage.RECURSE_SUBDIRECTORIES, "false");
+        runner.setProperty(ListAzureDataLakeStorage.INCLUDE_TEMP_FILES, "true");
 
         runProcessor();
 
-        assertSuccess("dir1/file11", "dir1/file12", "dir1/temp_file11");
+        assertSuccess("dir1/file11", "dir1/file12", "dir1/nifitemp_file11", "dir1/dir11/file111", "dir1/dir11/nifitemp_file111");
     }
 
     @Test
-    public void testListSubdirectoryNonRecursiveWithTempPrefix() throws Exception {
+    public void testListSubdirectoryNonRecursive() {
         runner.setProperty(AbstractAzureDataLakeStorageProcessor.DIRECTORY, "dir1");
         runner.setProperty(ListAzureDataLakeStorage.RECURSE_SUBDIRECTORIES, "false");
-        setTempFilePrefixVariable();
 
         runProcessor();
 
@@ -176,7 +167,18 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     }
 
     @Test
-    public void testListWithFileFilter() throws Exception {
+    public void testListSubdirectoryNonRecursiveWithTempPrefix() {
+        runner.setProperty(AbstractAzureDataLakeStorageProcessor.DIRECTORY, "dir1");
+        runner.setProperty(ListAzureDataLakeStorage.RECURSE_SUBDIRECTORIES, "false");
+        runner.setProperty(ListAzureDataLakeStorage.INCLUDE_TEMP_FILES, "true");
+
+        runProcessor();
+
+        assertSuccess("dir1/file11", "dir1/file12", "dir1/nifitemp_file11");
+    }
+
+    @Test
+    public void testListWithFileFilter() {
         runner.setProperty(AbstractAzureDataLakeStorageProcessor.DIRECTORY, "");
         runner.setProperty(ListAzureDataLakeStorage.FILE_FILTER, "^file1.*$");
 
@@ -186,10 +188,10 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     }
 
     @Test
-    public void testListWithFileFilterAndTempPrefix() throws Exception {
+    public void testListWithFileFilterAndTempPrefix() {
         runner.setProperty(AbstractAzureDataLakeStorageProcessor.DIRECTORY, "");
         runner.setProperty(ListAzureDataLakeStorage.FILE_FILTER, "^file1.*$");
-        setTempFilePrefixVariable();
+        runner.setProperty(ListAzureDataLakeStorage.INCLUDE_TEMP_FILES, "true");
 
         runProcessor();
 
@@ -197,7 +199,7 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     }
 
     @Test
-    public void testListWithFileFilterWithEL() throws Exception {
+    public void testListWithFileFilterWithEL() {
         runner.setProperty(AbstractAzureDataLakeStorageProcessor.DIRECTORY, "");
         runner.setProperty(ListAzureDataLakeStorage.FILE_FILTER, "^file${suffix}$");
         runner.setVariable("suffix", "1.*");
@@ -208,11 +210,11 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     }
 
     @Test
-    public void testListWithFileFilterWithELAndTempPrefix() throws Exception {
+    public void testListWithFileFilterWithELAndTempPrefix() {
         runner.setProperty(AbstractAzureDataLakeStorageProcessor.DIRECTORY, "");
         runner.setProperty(ListAzureDataLakeStorage.FILE_FILTER, "^file${suffix}$");
         runner.setVariable("suffix", "1.*");
-        setTempFilePrefixVariable();
+        runner.setProperty(ListAzureDataLakeStorage.INCLUDE_TEMP_FILES, "true");
 
         runProcessor();
 
@@ -220,20 +222,9 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     }
 
     @Test
-    public void testListRootWithPathFilter() throws Exception {
+    public void testListRootWithPathFilter() {
         runner.setProperty(AbstractAzureDataLakeStorageProcessor.DIRECTORY, "");
         runner.setProperty(ListAzureDataLakeStorage.PATH_FILTER, "^dir1.*$");
-
-        runProcessor();
-
-        assertSuccess("dir1/file11", "dir1/file12", "dir1/temp_file11", "dir1/dir11/file111", "dir1/dir11/temp_file111");
-    }
-
-    @Test
-    public void testListRootWithPathFilterAndTempPrefix() throws Exception {
-        runner.setProperty(AbstractAzureDataLakeStorageProcessor.DIRECTORY, "");
-        runner.setProperty(ListAzureDataLakeStorage.PATH_FILTER, "^dir1.*$");
-        setTempFilePrefixVariable();
 
         runProcessor();
 
@@ -241,24 +232,22 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     }
 
     @Test
-    public void testListRootWithPathFilterWithEL() throws Exception {
+    public void testListRootWithPathFilterAndTempPrefix() {
         runner.setProperty(AbstractAzureDataLakeStorageProcessor.DIRECTORY, "");
-        runner.setProperty(ListAzureDataLakeStorage.PATH_FILTER, "${prefix}${suffix}");
-        runner.setVariable("prefix", "^dir");
-        runner.setVariable("suffix", "1.*$");
+        runner.setProperty(ListAzureDataLakeStorage.PATH_FILTER, "^dir1.*$");
+        runner.setProperty(ListAzureDataLakeStorage.INCLUDE_TEMP_FILES, "true");
 
         runProcessor();
 
-        assertSuccess("dir1/file11", "dir1/file12", "dir1/temp_file11", "dir1/dir11/file111", "dir1/dir11/temp_file111");
+        assertSuccess("dir1/file11", "dir1/file12", "dir1/nifitemp_file11", "dir1/dir11/file111", "dir1/dir11/nifitemp_file111");
     }
 
     @Test
-    public void testListRootWithPathFilterWithELAndTempPrefix() throws Exception {
+    public void testListRootWithPathFilterWithEL() {
         runner.setProperty(AbstractAzureDataLakeStorageProcessor.DIRECTORY, "");
         runner.setProperty(ListAzureDataLakeStorage.PATH_FILTER, "${prefix}${suffix}");
         runner.setVariable("prefix", "^dir");
         runner.setVariable("suffix", "1.*$");
-        setTempFilePrefixVariable();
 
         runProcessor();
 
@@ -266,20 +255,22 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     }
 
     @Test
-    public void testListSubdirectoryWithPathFilter() throws Exception {
-        runner.setProperty(AbstractAzureDataLakeStorageProcessor.DIRECTORY, "dir1");
-        runner.setProperty(ListAzureDataLakeStorage.PATH_FILTER, "dir1.*");
+    public void testListRootWithPathFilterWithELAndTempPrefix() {
+        runner.setProperty(AbstractAzureDataLakeStorageProcessor.DIRECTORY, "");
+        runner.setProperty(ListAzureDataLakeStorage.PATH_FILTER, "${prefix}${suffix}");
+        runner.setVariable("prefix", "^dir");
+        runner.setVariable("suffix", "1.*$");
+        runner.setProperty(ListAzureDataLakeStorage.INCLUDE_TEMP_FILES, "true");
 
         runProcessor();
 
-        assertSuccess("dir1/dir11/file111", "dir1/dir11/temp_file111");
+        assertSuccess("dir1/file11", "dir1/file12", "dir1/nifitemp_file11", "dir1/dir11/file111", "dir1/dir11/nifitemp_file111");
     }
 
     @Test
-    public void testListSubdirectoryWithPathFilterAndTempPrefix() throws Exception {
+    public void testListSubdirectoryWithPathFilter() {
         runner.setProperty(AbstractAzureDataLakeStorageProcessor.DIRECTORY, "dir1");
         runner.setProperty(ListAzureDataLakeStorage.PATH_FILTER, "dir1.*");
-        setTempFilePrefixVariable();
 
         runProcessor();
 
@@ -287,22 +278,21 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     }
 
     @Test
-    public void testListRootWithFileAndPathFilter() throws Exception {
-        runner.setProperty(AbstractAzureDataLakeStorageProcessor.DIRECTORY, "");
-        runner.setProperty(ListAzureDataLakeStorage.FILE_FILTER, ".*11");
+    public void testListSubdirectoryWithPathFilterAndTempPrefix() {
+        runner.setProperty(AbstractAzureDataLakeStorageProcessor.DIRECTORY, "dir1");
         runner.setProperty(ListAzureDataLakeStorage.PATH_FILTER, "dir1.*");
+        runner.setProperty(ListAzureDataLakeStorage.INCLUDE_TEMP_FILES, "true");
 
         runProcessor();
 
-        assertSuccess("dir1/file11", "dir1/temp_file11", "dir1/dir11/file111", "dir1/dir11/temp_file111");
+        assertSuccess("dir1/dir11/file111", "dir1/dir11/nifitemp_file111");
     }
 
     @Test
-    public void testListRootWithFileAndPathFilterAndTempPrefix() throws Exception {
+    public void testListRootWithFileAndPathFilter() {
         runner.setProperty(AbstractAzureDataLakeStorageProcessor.DIRECTORY, "");
         runner.setProperty(ListAzureDataLakeStorage.FILE_FILTER, ".*11");
         runner.setProperty(ListAzureDataLakeStorage.PATH_FILTER, "dir1.*");
-        setTempFilePrefixVariable();
 
         runProcessor();
 
@@ -310,7 +300,19 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     }
 
     @Test
-    public void testListEmptyDirectory() throws Exception {
+    public void testListRootWithFileAndPathFilterAndTempPrefix() {
+        runner.setProperty(AbstractAzureDataLakeStorageProcessor.DIRECTORY, "");
+        runner.setProperty(ListAzureDataLakeStorage.FILE_FILTER, ".*11");
+        runner.setProperty(ListAzureDataLakeStorage.PATH_FILTER, "dir1.*");
+        runner.setProperty(ListAzureDataLakeStorage.INCLUDE_TEMP_FILES, "true");
+
+        runProcessor();
+
+        assertSuccess("dir1/file11", "dir1/nifitemp_file11", "dir1/dir11/file111", "dir1/dir11/nifitemp_file111");
+    }
+
+    @Test
+    public void testListEmptyDirectory() {
         runner.setProperty(AbstractAzureDataLakeStorageProcessor.DIRECTORY, "dir3");
 
         runProcessor();
@@ -319,9 +321,9 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     }
 
     @Test
-    public void testListEmptyDirectoryWithTempPrefix() throws Exception {
+    public void testListEmptyDirectoryWithTempPrefix() {
         runner.setProperty(AbstractAzureDataLakeStorageProcessor.DIRECTORY, "dir3");
-        setTempFilePrefixVariable();
+        runner.setProperty(ListAzureDataLakeStorage.INCLUDE_TEMP_FILES, "true");
 
         runProcessor();
 
@@ -340,7 +342,7 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     @Test
     public void testListNonExistingDirectoryWithTempPrefix() {
         runner.setProperty(AbstractAzureDataLakeStorageProcessor.DIRECTORY, "dummy");
-        setTempFilePrefixVariable();
+        runner.setProperty(ListAzureDataLakeStorage.INCLUDE_TEMP_FILES, "true");
 
         runProcessor();
 
@@ -361,7 +363,7 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     public void testListWithNonExistingFileSystemWithTempPrefix() {
         runner.setProperty(AbstractAzureDataLakeStorageProcessor.FILESYSTEM, "dummy");
         runner.setProperty(AbstractAzureDataLakeStorageProcessor.DIRECTORY, "");
-        setTempFilePrefixVariable();
+        runner.setProperty(ListAzureDataLakeStorage.INCLUDE_TEMP_FILES, "true");
 
         runProcessor();
 
@@ -381,13 +383,13 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
 
         runner.assertAllFlowFilesTransferred(ListAzureDataLakeStorage.REL_SUCCESS, 1);
         MockFlowFile flowFile = runner.getFlowFilesForRelationship(ListAzureDataLakeStorage.REL_SUCCESS).get(0);
-        flowFile.assertAttributeEquals("record.count", "5");
+        flowFile.assertAttributeEquals("record.count", "3");
     }
 
     @Test
     public void testListWithRecordsAndTempPrefix() throws InitializationException {
         runner.setProperty(AbstractAzureDataLakeStorageProcessor.DIRECTORY, "dir1");
-        setTempFilePrefixVariable();
+        runner.setProperty(ListAzureDataLakeStorage.INCLUDE_TEMP_FILES, "true");
 
         MockRecordWriter recordWriter = new MockRecordWriter(null, false);
         runner.addControllerService("record-writer", recordWriter);
@@ -398,22 +400,7 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
 
         runner.assertAllFlowFilesTransferred(ListAzureDataLakeStorage.REL_SUCCESS, 1);
         MockFlowFile flowFile = runner.getFlowFilesForRelationship(ListAzureDataLakeStorage.REL_SUCCESS).get(0);
-        flowFile.assertAttributeEquals("record.count", "3");
-    }
-
-    @Test
-    public void testListWithTempFilePrefixWithELWithoutVariable() throws Exception {
-        runner.setProperty(AbstractAzureDataLakeStorageProcessor.DIRECTORY, "");
-        runner.setProperty(ListAzureDataLakeStorage.TEMP_FILE_PREFIX, "${azure.temp.file.prefix}");
-
-        runProcessor();
-
-        assertSuccess("file1", "file2", "temp_file1", "dir1/file11", "dir1/file12", "dir1/temp_file11",  "dir1/dir11/file111", "dir1/dir11/temp_file111", "dir 2/file 21", "dir 2/temp_file 21");
-    }
-
-    private void setTempFilePrefixVariable() {
-        runner.setProperty(ListAzureDataLakeStorage.TEMP_FILE_PREFIX, "${azure.temp.file.prefix}");
-        runner.setVariable("azure.temp.file.prefix", "temp_");
+        flowFile.assertAttributeEquals("record.count", "5");
     }
 
     private void runProcessor() {
@@ -421,7 +408,7 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
         runner.run();
     }
 
-    private void assertSuccess(String... testFilePaths) throws Exception {
+    private void assertSuccess(String... testFilePaths) {
         runner.assertTransferCount(ListAzureDataLakeStorage.REL_SUCCESS, testFilePaths.length);
 
         Map<String, TestFile> expectedFiles = new HashMap<>(testFiles);
@@ -437,7 +424,7 @@ public class ITListAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
         }
     }
 
-    private void assertFlowFile(TestFile testFile, MockFlowFile flowFile) throws Exception {
+    private void assertFlowFile(TestFile testFile, MockFlowFile flowFile) {
         flowFile.assertAttributeEquals(ATTR_NAME_FILESYSTEM, fileSystemName);
         flowFile.assertAttributeEquals(ATTR_NAME_FILE_PATH, testFile.getFilePath());
         flowFile.assertAttributeEquals(ATTR_NAME_DIRECTORY, testFile.getDirectory());

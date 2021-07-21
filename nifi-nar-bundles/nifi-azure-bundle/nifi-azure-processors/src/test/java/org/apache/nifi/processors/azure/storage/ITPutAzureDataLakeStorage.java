@@ -16,19 +16,24 @@
  */
 package org.apache.nifi.processors.azure.storage;
 
+import com.azure.core.http.rest.Response;
 import com.azure.storage.file.datalake.DataLakeDirectoryClient;
 import com.azure.storage.file.datalake.DataLakeFileClient;
-import com.azure.storage.file.datalake.models.ListPathsOptions;
+import com.azure.storage.file.datalake.models.DataLakeRequestConditions;
+import com.azure.storage.file.datalake.models.DataLakeStorageException;
 import com.google.common.collect.Sets;
 import com.google.common.net.UrlEscapers;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.flowfile.FlowFile;
+import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Processor;
+import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.provenance.ProvenanceEventRecord;
 import org.apache.nifi.provenance.ProvenanceEventType;
+import org.apache.nifi.util.MockComponentLog;
 import org.apache.nifi.util.MockFlowFile;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.InputStream;
@@ -38,7 +43,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Random;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -49,13 +53,16 @@ import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_LENGTH;
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_NAME_PRIMARY_URI;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class ITPutAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
 
@@ -88,34 +95,10 @@ public class ITPutAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     }
 
     @Test
-    public void testPutFileToExistingDirectoryWithTempPrefix() throws Exception {
-        fileSystemClient.createDirectory(DIRECTORY);
-
-        setTempFilePrefixVariable();
-
-        runProcessor(FILE_DATA);
-
-        assertSuccess(DIRECTORY, FILE_NAME, FILE_DATA);
-    }
-
-    @Test
     public void testPutFileToExistingDirectoryWithReplaceResolution() throws Exception {
         fileSystemClient.createDirectory(DIRECTORY);
 
         runner.setProperty(PutAzureDataLakeStorage.CONFLICT_RESOLUTION, PutAzureDataLakeStorage.REPLACE_RESOLUTION);
-        setTempFilePrefixVariable();
-
-        runProcessor(FILE_DATA);
-
-        assertSuccess(DIRECTORY, FILE_NAME, FILE_DATA);
-    }
-
-    @Test
-    public void testPutFileToExistingDirectoryWithReplaceResolutionAndTempPrefix() throws Exception {
-        fileSystemClient.createDirectory(DIRECTORY);
-
-        runner.setProperty(PutAzureDataLakeStorage.CONFLICT_RESOLUTION, PutAzureDataLakeStorage.REPLACE_RESOLUTION);
-        setTempFilePrefixVariable();
 
         runProcessor(FILE_DATA);
 
@@ -134,28 +117,7 @@ public class ITPutAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     }
 
     @Test
-    public void testPutFileToExistingDirectoryWithIgnoreResolutionAndTempPrefix() throws Exception {
-        fileSystemClient.createDirectory(DIRECTORY);
-
-        runner.setProperty(PutAzureDataLakeStorage.CONFLICT_RESOLUTION, PutAzureDataLakeStorage.IGNORE_RESOLUTION);
-        setTempFilePrefixVariable();
-
-        runProcessor(FILE_DATA);
-
-        assertSuccess(DIRECTORY, FILE_NAME, FILE_DATA);
-    }
-
-    @Test
     public void testPutFileToNonExistingDirectory() throws Exception {
-        runProcessor(FILE_DATA);
-
-        assertSuccess(DIRECTORY, FILE_NAME, FILE_DATA);
-    }
-
-    @Test
-    public void testPutFileToNonExistingDirectoryWithTempPrefix() throws Exception {
-        setTempFilePrefixVariable();
-
         runProcessor(FILE_DATA);
 
         assertSuccess(DIRECTORY, FILE_NAME, FILE_DATA);
@@ -174,33 +136,9 @@ public class ITPutAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     }
 
     @Test
-    public void testPutFileToDeepDirectoryWithTempPrefix() throws Exception {
-        String baseDirectory = "dir1/dir2";
-        String fullDirectory = baseDirectory + "/dir3/dir4";
-        fileSystemClient.createDirectory(baseDirectory);
-        runner.setProperty(PutAzureDataLakeStorage.DIRECTORY, fullDirectory);
-        setTempFilePrefixVariable();
-
-        runProcessor(FILE_DATA);
-
-        assertSuccess(fullDirectory, FILE_NAME, FILE_DATA);
-    }
-
-    @Test
     public void testPutFileToRootDirectory() throws Exception {
         String rootDirectory = "";
         runner.setProperty(PutAzureDataLakeStorage.DIRECTORY, rootDirectory);
-
-        runProcessor(FILE_DATA);
-
-        assertSuccess(rootDirectory, FILE_NAME, FILE_DATA);
-    }
-
-    @Test
-    public void testPutFileToRootDirectoryWithTempPrefix() throws Exception {
-        String rootDirectory = "";
-        runner.setProperty(PutAzureDataLakeStorage.DIRECTORY, rootDirectory);
-        setTempFilePrefixVariable();
 
         runProcessor(FILE_DATA);
 
@@ -217,35 +155,7 @@ public class ITPutAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     }
 
     @Test
-    public void testPutEmptyFileWithTempPrefix() throws Exception {
-        setTempFilePrefixVariable();
-
-        byte[] fileData = new byte[0];
-
-        runProcessor(fileData);
-
-        assertSuccess(DIRECTORY, FILE_NAME, fileData);
-    }
-
-    @Ignore
-    // ignore excessive test with larger file size
-    @Test
     public void testPutBigFile() throws Exception {
-        Random random = new Random();
-        byte[] fileData = new byte[120_000_000];
-        random.nextBytes(fileData);
-
-        runProcessor(fileData);
-
-        assertSuccess(DIRECTORY, FILE_NAME, fileData);
-    }
-
-    @Ignore
-    // ignore excessive test with larger file size
-    @Test
-    public void testPutBigFileWithTempPrefix() throws Exception {
-        setTempFilePrefixVariable();
-
         Random random = new Random();
         byte[] fileData = new byte[120_000_000];
         random.nextBytes(fileData);
@@ -265,28 +175,8 @@ public class ITPutAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     }
 
     @Test
-    public void testPutFileWithTempPrefixAndNonExistingFileSystem() {
-        runner.setProperty(PutAzureDataLakeStorage.FILESYSTEM, "dummy");
-        setTempFilePrefixVariable();
-
-        runProcessor(FILE_DATA);
-
-        assertFailure();
-    }
-
-    @Test
     public void testPutFileWithInvalidFileName() {
         runner.setProperty(PutAzureDataLakeStorage.FILE, "/file1");
-
-        runProcessor(FILE_DATA);
-
-        assertFailure();
-    }
-
-    @Test
-    public void testPutFileWithTempPrefixAndInvalidFileName() {
-        runner.setProperty(PutAzureDataLakeStorage.FILE, "/file1");
-        setTempFilePrefixVariable();
 
         runProcessor(FILE_DATA);
 
@@ -306,31 +196,8 @@ public class ITPutAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     }
 
     @Test
-    public void testPutFileWithTempPrefixAndSpacesInDirectoryAndFileName() throws Exception {
-        String directory = "dir 1";
-        String fileName = "file 1";
-        runner.setProperty(PutAzureDataLakeStorage.DIRECTORY, directory);
-        runner.setProperty(PutAzureDataLakeStorage.FILE, fileName);
-        setTempFilePrefixVariable();
-
-        runProcessor(FILE_DATA);
-
-        assertSuccess(directory, fileName, FILE_DATA);
-    }
-
-    @Test
     public void testPutFileToExistingFileWithFailResolution() {
         fileSystemClient.createFile(String.format("%s/%s", DIRECTORY, FILE_NAME));
-
-        runProcessor(FILE_DATA);
-
-        assertFailure();
-    }
-
-    @Test
-    public void testPutFileToExistingFileWithFailResolutionAndTempPrefix() {
-        fileSystemClient.createFile(String.format("%s/%s", DIRECTORY, FILE_NAME));
-        setTempFilePrefixVariable();
 
         runProcessor(FILE_DATA);
 
@@ -342,18 +209,6 @@ public class ITPutAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
         fileSystemClient.createFile(String.format("%s/%s", DIRECTORY, FILE_NAME));
 
         runner.setProperty(PutAzureDataLakeStorage.CONFLICT_RESOLUTION, PutAzureDataLakeStorage.REPLACE_RESOLUTION);
-
-        runProcessor(FILE_DATA);
-
-        assertSuccess(DIRECTORY, FILE_NAME, FILE_DATA);
-    }
-
-    @Test
-    public void testPutFileToExistingFileWithReplaceResolutionAndTempPrefix() throws Exception {
-        fileSystemClient.createFile(String.format("%s/%s", DIRECTORY, FILE_NAME));
-
-        runner.setProperty(PutAzureDataLakeStorage.CONFLICT_RESOLUTION, PutAzureDataLakeStorage.REPLACE_RESOLUTION);
-        setTempFilePrefixVariable();
 
         runProcessor(FILE_DATA);
 
@@ -373,19 +228,6 @@ public class ITPutAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     }
 
     @Test
-    public void testPutFileToExistingFileWithIgnoreResolutionAndTempPrefix() throws Exception {
-        String azureFileContent = "AzureFileContent";
-        createDirectoryAndUploadFile(DIRECTORY, FILE_NAME, azureFileContent);
-
-        runner.setProperty(PutAzureDataLakeStorage.CONFLICT_RESOLUTION, PutAzureDataLakeStorage.IGNORE_RESOLUTION);
-        setTempFilePrefixVariable();
-
-        runProcessor(FILE_DATA);
-
-        assertSuccessWithIgnoreResolution(DIRECTORY, FILE_NAME, FILE_DATA, azureFileContent.getBytes());
-    }
-
-    @Test
     public void testPutFileWithEL() throws Exception {
         Map<String, String> attributes = createAttributesMap();
         setELProperties();
@@ -396,32 +238,7 @@ public class ITPutAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     }
 
     @Test
-    public void testPutFileWithELAndTempPrefix() throws Exception {
-        setTempFilePrefixVariable();
-
-        Map<String, String> attributes = createAttributesMap();
-        setELProperties();
-
-        runProcessor(FILE_DATA, attributes);
-
-        assertSuccess(DIRECTORY, FILE_NAME, FILE_DATA);
-    }
-
-    @Test
     public void testPutFileWithELButFilesystemIsNotSpecified() {
-        Map<String, String> attributes = createAttributesMap();
-        attributes.remove(EL_FILESYSTEM);
-        setELProperties();
-
-        runProcessor(FILE_DATA, attributes);
-
-        assertFailure();
-    }
-
-    @Test
-    public void testPutFileWithELAndTempPrefixButFilesystemIsNotSpecified() {
-        setTempFilePrefixVariable();
-
         Map<String, String> attributes = createAttributesMap();
         attributes.remove(EL_FILESYSTEM);
         setELProperties();
@@ -443,44 +260,38 @@ public class ITPutAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
     }
 
     @Test
-    public void testPutFileWithELAndTempPrefixButFileNameIsNotSpecified() {
-        setTempFilePrefixVariable();
-
-        Map<String, String> attributes = createAttributesMap();
-        attributes.remove(EL_FILE_NAME);
-        setELProperties();
-
-        runProcessor(FILE_DATA, attributes);
-
-        assertFailure();
-    }
-
-    @Test(expected = NullPointerException.class)
     public void testPutFileButFailedToAppend() {
-        DataLakeFileClient fileClient = mock(DataLakeFileClient.class);
-        InputStream stream = mock(InputStream.class);
-        doThrow(NullPointerException.class).when(fileClient).append(any(InputStream.class), anyLong(), anyLong());
+        final PutAzureDataLakeStorage processor = new PutAzureDataLakeStorage();
+        final DataLakeFileClient fileClient = mock(DataLakeFileClient.class);
+        final ProcessSession session = mock(ProcessSession.class);
+        final FlowFile flowFile = mock(FlowFile.class);
 
-        PutAzureDataLakeStorage.uploadContent(fileClient, stream, FILE_DATA.length);
+        when(flowFile.getSize()).thenReturn(1L);
+        doThrow(IllegalArgumentException.class).when(fileClient).append(any(InputStream.class), anyLong(), anyLong());
 
+        assertThrows(IllegalArgumentException.class, () -> processor.appendContent(flowFile, fileClient, session));
         verify(fileClient).delete();
     }
 
     @Test
     public void testPutFileButFailedToRename() {
-        fileSystemClient.createFile(String.format("%s/%s", DIRECTORY, FILE_NAME));
+        final PutAzureDataLakeStorage processor = new PutAzureDataLakeStorage();
+        final ProcessorInitializationContext initContext = mock(ProcessorInitializationContext.class);
+        final String componentId = "componentId";
+        final DataLakeFileClient fileClient = mock(DataLakeFileClient.class);
+        final Response<DataLakeFileClient> response = mock(Response.class);
+        //Mock logger
+        when(initContext.getIdentifier()).thenReturn(componentId);
+        MockComponentLog componentLog = new MockComponentLog(componentId, processor);
+        when(initContext.getLogger()).thenReturn(componentLog);
+        processor.initialize(initContext);
+        //Mock renameWithResponse Azure method
+        when(fileClient.renameWithResponse(isNull(), anyString(), isNull(), any(DataLakeRequestConditions.class), isNull(), isNull())).thenReturn(response);
+        when(response.getValue()).thenThrow(DataLakeStorageException.class);
+        when(fileClient.getFileName()).thenReturn(FILE_NAME);
 
-        runner.setProperty(PutAzureDataLakeStorage.CONFLICT_RESOLUTION, PutAzureDataLakeStorage.FAIL_RESOLUTION);
-        setTempFilePrefixVariable();
-
-        runProcessor(FILE_DATA);
-
-        assertTempFileDeleted(DIRECTORY, "temp_", FILE_NAME);
-    }
-
-    private void setTempFilePrefixVariable() {
-        runner.setProperty(PutAzureDataLakeStorage.TEMP_FILE_PREFIX, "${azure.temp.file.prefix}");
-        runner.setVariable("azure.temp.file.prefix", "temp_");
+        assertThrows(DataLakeStorageException.class, () -> processor.renameFile(FILE_NAME, "", fileClient, false));
+        verify(fileClient).delete();
     }
 
     private Map<String, String> createAttributesMap() {
@@ -582,13 +393,5 @@ public class ITPutAzureDataLakeStorage extends AbstractAzureDataLakeStorageIT {
 
         Assert.assertEquals("Expected uri to be " + decodedExpectedValue + " but instead it was " + decodedResult,
                 decodedExpectedValue, decodedResult);
-    }
-
-    private void assertTempFileDeleted(String baseDirectory, String prefix, String filename) {
-        ListPathsOptions options = new ListPathsOptions();
-        options.setPath(baseDirectory);
-        options.setRecursive(true);
-
-        assertFalse(fileSystemClient.listPaths(options, null).stream().anyMatch(e-> Objects.equals(e.getName(), prefix + filename)));
     }
 }

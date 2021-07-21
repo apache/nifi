@@ -32,14 +32,12 @@ import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.SeeAlso;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processors.azure.AbstractAzureDataLakeStorageProcessor;
-import org.apache.nifi.processors.azure.storage.utils.AzureTempFilePrefixValidator;
 import org.apache.nifi.util.StringUtils;
 
 import java.io.BufferedInputStream;
@@ -52,6 +50,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import static org.apache.commons.lang3.StringUtils.defaultIfBlank;
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_DESCRIPTION_DIRECTORY;
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_DESCRIPTION_FILENAME;
 import static org.apache.nifi.processors.azure.storage.utils.ADLSAttributes.ATTR_DESCRIPTION_FILESYSTEM;
@@ -77,6 +76,7 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
     public static final String FAIL_RESOLUTION = "fail";
     public static final String REPLACE_RESOLUTION = "replace";
     public static final String IGNORE_RESOLUTION = "ignore";
+    public static final String TEMP_FILE_PREFIX = "nifitemp_";
 
     public static long MAX_CHUNK_SIZE = 100 * 1024 * 1024; // current chunk limit is 100 MiB on Azure
 
@@ -89,24 +89,12 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
             .allowableValues(FAIL_RESOLUTION, REPLACE_RESOLUTION, IGNORE_RESOLUTION)
             .build();
 
-    public static final PropertyDescriptor TEMP_FILE_PREFIX = new PropertyDescriptor.Builder()
-            .name("azure-temp-file-prefix")
-            .displayName("Temp File Prefix for Azure")
-            .description("Optional and should be used together with ListAzureDataLakeStorage processor temp file prefix. " +
-                    "When provided temporary file names created for upload will start with this prefix.")
-            .required(false)
-            .defaultValue("${azure.temp.file.prefix}")
-            .addValidator(new AzureTempFilePrefixValidator())
-            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
-            .build();
-
     private List<PropertyDescriptor> properties;
 
     @Override
     protected void init(final ProcessorInitializationContext context) {
         final List<PropertyDescriptor> props = new ArrayList<>(super.getSupportedPropertyDescriptors());
         props.add(CONFLICT_RESOLUTION);
-        props.add(TEMP_FILE_PREFIX);
         properties = Collections.unmodifiableList(props);
     }
 
@@ -135,17 +123,12 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
 
             final String conflictResolution = context.getProperty(CONFLICT_RESOLUTION).getValue();
             boolean overwrite = conflictResolution.equals(REPLACE_RESOLUTION);
-            final String tempFilePrefix = context.getProperty(TEMP_FILE_PREFIX).evaluateAttributeExpressions().getValue();
+            final String tempFilePrefix = defaultIfBlank(System.getProperty("tempFilePrefix"), TEMP_FILE_PREFIX);
 
             try {
-                if (tempFilePrefix.isEmpty()) {
-                    fileClient = directoryClient.createFile(fileName, overwrite);
-                    appendContent(flowFile, fileClient, session);
-                } else {
-                    fileClient = directoryClient.createFile(tempFilePrefix + fileName);
-                    appendContent(flowFile, fileClient, session);
-                    fileClient = renameFile(fileName, directoryClient.getDirectoryPath(), fileClient, overwrite);
-                }
+                fileClient = directoryClient.createFile(tempFilePrefix + fileName, true);
+                appendContent(flowFile, fileClient, session);
+                fileClient = renameFile(fileName, directoryClient.getDirectoryPath(), fileClient, overwrite);
 
                 final Map<String, String> attributes = new HashMap<>();
                 attributes.put(ATTR_NAME_FILESYSTEM, fileSystem);
@@ -180,7 +163,8 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
         }
     }
 
-    private void appendContent(FlowFile flowFile, DataLakeFileClient fileClient, ProcessSession session) throws IOException {
+    @VisibleForTesting
+    void appendContent(FlowFile flowFile, DataLakeFileClient fileClient, ProcessSession session) throws IOException {
         final long length = flowFile.getSize();
         if (length > 0) {
             try (final InputStream rawIn = session.read(flowFile); final BufferedInputStream bufferedIn = new BufferedInputStream(rawIn)) {
@@ -212,28 +196,29 @@ public class PutAzureDataLakeStorage extends AbstractAzureDataLakeStorageProcess
         fileClient.flush(length);
     }
 
-    private DataLakeFileClient renameFile(String fileName, String directoryPath, DataLakeFileClient fileClient, boolean overwrite) {
+    @VisibleForTesting
+    DataLakeFileClient renameFile(final String fileName, final String directoryPath, final DataLakeFileClient fileClient, final boolean overwrite) {
         try {
             final DataLakeRequestConditions destinationCondition = new DataLakeRequestConditions();
             if (!overwrite) {
                 destinationCondition.setIfNoneMatch("*");
             }
-            String destinationPath = StringUtils.isNotEmpty(directoryPath)
+            final String destinationPath = StringUtils.isNotBlank(directoryPath)
                     ? directoryPath + "/" + fileName
                     : fileName;
             return fileClient.renameWithResponse(null, destinationPath, null, destinationCondition, null, null).getValue();
         } catch (DataLakeStorageException dataLakeStorageException) {
-            getLogger().error("Error while renaming temp file on Azure Data Lake Storage", dataLakeStorageException);
+            getLogger().error("Error while renaming temp file " + fileClient.getFileName() + " on Azure Data Lake Storage", dataLakeStorageException);
             removeTempFile(fileClient);
             throw dataLakeStorageException;
         }
     }
 
-    private void removeTempFile(DataLakeFileClient fileClient) {
+    private void removeTempFile(final DataLakeFileClient fileClient) {
         try {
             fileClient.delete();
         } catch (Exception e) {
-            getLogger().error("Error while removing temp file on Azure Data Lake Storage", e);
+            getLogger().error("Error while removing temp file " + fileClient.getFileName() + " on Azure Data Lake Storage", e);
         }
     }
 }
