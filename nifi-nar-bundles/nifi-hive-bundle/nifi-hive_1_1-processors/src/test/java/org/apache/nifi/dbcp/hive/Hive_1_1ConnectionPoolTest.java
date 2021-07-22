@@ -32,7 +32,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-import org.apache.commons.dbcp.BasicDataSource;
+import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
@@ -113,6 +113,7 @@ public class Hive_1_1ConnectionPoolTest {
         final String USER = "user";
         final String PASS = "pass";
         final int MAX_CONN = 7;
+        final String MAX_CONN_LIFETIME = "1 sec";
         final String MAX_WAIT = "10 sec"; // 10000 milliseconds
         final String CONF = "/path/to/hive-site.xml";
         hiveConnectionPool = new Hive_1_1ConnectionPool();
@@ -122,6 +123,7 @@ public class Hive_1_1ConnectionPoolTest {
             put(Hive_1_1ConnectionPool.DB_USER, "${username}");
             put(Hive_1_1ConnectionPool.DB_PASSWORD, "${password}");
             put(Hive_1_1ConnectionPool.MAX_TOTAL_CONNECTIONS, "${maxconn}");
+            put(Hive_1_1ConnectionPool.MAX_CONN_LIFETIME, "${maxconnlifetime}");
             put(Hive_1_1ConnectionPool.MAX_WAIT_TIME, "${maxwait}");
             put(Hive_1_1ConnectionPool.HIVE_CONFIGURATION_RESOURCES, "${hiveconf}");
         }};
@@ -131,6 +133,7 @@ public class Hive_1_1ConnectionPoolTest {
         registry.setVariable(new VariableDescriptor("username"), USER);
         registry.setVariable(new VariableDescriptor("password"), PASS);
         registry.setVariable(new VariableDescriptor("maxconn"), Integer.toString(MAX_CONN));
+        registry.setVariable(new VariableDescriptor("maxconnlifetime"), MAX_CONN_LIFETIME);
         registry.setVariable(new VariableDescriptor("maxwait"), MAX_WAIT);
         registry.setVariable(new VariableDescriptor("hiveconf"), CONF);
 
@@ -144,8 +147,9 @@ public class Hive_1_1ConnectionPoolTest {
         assertEquals(URL, basicDataSource.getUrl());
         assertEquals(USER, basicDataSource.getUsername());
         assertEquals(PASS, basicDataSource.getPassword());
-        assertEquals(MAX_CONN, basicDataSource.getMaxActive());
-        assertEquals(10000L, basicDataSource.getMaxWait());
+        assertEquals(MAX_CONN, basicDataSource.getMaxTotal());
+        assertEquals(1000L, basicDataSource.getMaxConnLifetimeMillis());
+        assertEquals(10000L, basicDataSource.getMaxWaitMillis());
         assertEquals(URL, hiveConnectionPool.getConnectionURL());
     }
 
