@@ -435,7 +435,7 @@ The following are available options when targeting NiFi:
 * `-f`,`--flowXml <file>`                       The _flow.xml.gz_ file currently protected with old password (will be overwritten unless `-g` is specified)
 * `-g`,`--outputFlowXml <file>`                 The destination _flow.xml.gz_ file containing protected config values (will not modify input _flow.xml.gz_)
 * `-b`,`--bootstrapConf <file>`                 The bootstrap.conf file to persist root key and to optionally provide any configuration for the protection scheme.
-* `-S`,`--protectionScheme <protectionScheme>`  Selects the protection scheme for encrypted properties.  Valid values are: [<<AES_GCM>>, <<HASHICORP_VAULT_TRANSIT>>, <<HASHICORP_VAULT_KV>>, <<AWS_KMS>>, <<AZURE_KEYVAULT_KEY>>] (default is AES_GCM)
+* `-S`,`--protectionScheme <protectionScheme>`  Selects the protection scheme for encrypted properties.  Valid values are: [<<AES_GCM>>, <<HASHICORP_VAULT_TRANSIT>>, <<HASHICORP_VAULT_KV>>, <<AWS_KMS>>, <<AZURE_KEYVAULT_KEY>>, <<GCP_KMS>>] (default is AES_GCM)
 * `-k`,`--key <keyhex>`                         The raw hexadecimal key to use to encrypt the sensitive properties
 * `-e`,`--oldKey <keyhex>`                      The old raw hexadecimal key to use during key migration
 * `-H`,`--oldProtectionScheme <protectionScheme>` The old protection scheme to use during encryption migration (see --protectionScheme for possible values).  Default is AES_GCM
@@ -456,7 +456,7 @@ The following are available options when targeting NiFi Registry using the `--ni
 * `-v`,`--verbose`                              Sets verbose mode (default false)
 * `-p`,`--password <password>`                  Protect the files using a password-derived key. If an argument is not provided to this flag, interactive mode will be triggered to prompt the user to enter the password.
 * `-k`,`--key <keyhex>`                         Protect the files using a raw hexadecimal key. If an argument is not provided to this flag, interactive mode will be triggered to prompt the user to enter the key.
-* `-S`,`--protectionScheme <protectionScheme>`  Selects the protection scheme for encrypted properties.  Valid values are: [<<AES_GCM>>, <<HASHICORP_VAULT_TRANSIT>>, <<HASHICORP_VAULT_KV>>, <<AWS_KMS>>, <<AZURE_KEYVAULT_KEY>>]  (default is AES_GCM)
+* `-S`,`--protectionScheme <protectionScheme>`  Selects the protection scheme for encrypted properties.  Valid values are: [<<AES_GCM>>, <<HASHICORP_VAULT_TRANSIT>>, <<HASHICORP_VAULT_KV>>, <<AWS_KMS>>, <<AZURE_KEYVAULT_KEY>>, <<GCP_KMS>>]  (default is AES_GCM)
 * `--oldPassword <password>`                    If the input files are already protected using a password-derived key, this specifies the old password so that the files can be unprotected before re-protecting.
 * `--oldKey <keyhex>`                           If the input files are already protected using a key, this specifies the raw hexadecimal key so that the files can be unprotected before re-protecting.
 * `-H`,`--oldProtectionScheme <protectionScheme>`The old protection scheme to use during encryption migration (see --protectionScheme for possible values).  Default is AES_GCM.
@@ -487,6 +487,9 @@ This protection scheme uses https://aws.amazon.com/kms/[AWS Key Management] Serv
 
 ==== AZURE_KEYVAULT_KEY [[AZURE_KEYVAULT_KEY]]
 This protection scheme uses keys managed by https://docs.microsoft.com/en-us/azure/key-vault/keys/about-keys[Azure Key Vault Keys] for encryption and decryption. Azure Key Vault configuration properties can be stored in the `bootstrap-azure.conf` file, as referenced in the `bootstrap.conf` of NiFi or NiFi Registry. The provider will utilize the Azure default credentials provider chain as described in the https://docs.microsoft.com/en-us/java/api/overview/azure/security-keyvault-keys-readme?view=azure-java-stable[Azure Key Vault Key client library for Java] documentation. Therefore, when using the AZURE_KEYVAULT_KEY protection scheme, the `nifi(.registry)?.bootstrap.protection.azure.keyvault.conf` property in the `bootstrap.conf` specified using the `-b` flag must be available to the Encrypt Configuration Tool and must be configured as described in the <<administration-guide.adoc#_azure_key_vault_key_provider, Azure Key Vault Key provider>> section in the link:administration-guide.html[NiFi Administration Guide].
+
+==== GCP_KMS [[GCP_KMS]]
+This protection scheme uses Google Cloud Key Management Service (https://cloud.google.com/security-key-management[Google Cloud Key Management Service]) for encryption and decryption. Google Cloud KMS configuration properties are to be stored in the `bootstrap-gcp.conf` file, as referenced in the `bootstrap.conf` of NiFi or NiFi Registry. Credentials must be configured as per the following documentation: https://cloud.google.com/kms/docs/reference/libraries[Google Cloud KMS documentation]. Therefore, when using the GCP_KMS protection scheme, the `nifi(.registry)?.bootstrap.protection.gcp.kms.conf` property in the `bootstrap.conf` specified using the `-b` flag must be available to the Encrypt Configuration Tool and must be configured as described in the <<administration-guide.adoc#_google_cloud_kms_provider,Google Cloud KMS provider>> section in the link:administration-guide.html[NiFi Administration Guide].
 
 === Examples
 
@@ -1120,21 +1123,21 @@ In some enterprise scenarios, a security/IT team may provide a signing certifica
 🔓 0s @ 18:07:58 $ tree -L 2
 .
 ├── hardcoded
-│   ├── CN=myusername.hardcoded_OU=NiFi.p12
-│   ├── CN=myusername.hardcoded_OU=NiFi.password
-│   ├── nifi-cert.pem
-│   ├── nifi-key.key
-│   ├── node1.nifi.apache.org
-│   ├── node2.nifi.apache.org
-│   └── node3.nifi.apache.org
+│   ├── CN=myusername.hardcoded_OU=NiFi.p12
+│   ├── CN=myusername.hardcoded_OU=NiFi.password
+│   ├── nifi-cert.pem
+│   ├── nifi-key.key
+│   ├── node1.nifi.apache.org
+│   ├── node2.nifi.apache.org
+│   └── node3.nifi.apache.org
 └── toolkit
-    ├── LICENSE
-    ├── NOTICE
-    ├── README
-    ├── bin
-    ├── conf
-    ├── docs
-    └── lib
+    ├── LICENSE
+    ├── NOTICE
+    ├── README
+    ├── bin
+    ├── conf
+    ├── docs
+    └── lib
 ----
 
 The `nifi-cert.pem` and `nifi-key.key` files should be ASCII-armored (Base64-encoded ASCII) files containing the CA public certificate and private key respectively. Here are sample files of each to show the expected format:
