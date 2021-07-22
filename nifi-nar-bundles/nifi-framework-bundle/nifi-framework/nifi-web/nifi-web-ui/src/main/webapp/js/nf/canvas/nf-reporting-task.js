@@ -459,7 +459,10 @@
 
                 // populate the reporting task settings
                 nfCommon.populateField('reporting-task-id', reportingTask['id']);
+
                 nfCommon.populateField('reporting-task-type', nfCommon.formatType(reportingTask));
+                $('#reporting-task-configuration').modal('setSubtitle', nfCommon.formatType(reportingTask));
+
                 nfCommon.populateField('reporting-task-bundle', nfCommon.formatBundle(reportingTask['bundle']));
                 $('#reporting-task-name').val(reportingTask['name']);
                 $('#reporting-task-enabled').removeClass('checkbox-unchecked checkbox-checked').addClass(reportingTaskEnableStyle);
