@@ -1939,7 +1939,10 @@
 
                 // populate the controller service settings
                 nfCommon.populateField('controller-service-id', controllerService['id']);
+
                 nfCommon.populateField('controller-service-type', nfCommon.formatType(controllerService));
+                $('#controller-service-configuration').modal('setSubtitle', nfCommon.formatType(controllerService));
+
                 nfCommon.populateField('controller-service-bundle', nfCommon.formatBundle(controllerService['bundle']));
                 $('#controller-service-name').val(controllerService['name']);
                 $('#controller-service-comments').val(controllerService['comments']);
