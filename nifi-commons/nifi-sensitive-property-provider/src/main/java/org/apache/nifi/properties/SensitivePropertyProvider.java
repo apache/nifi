@@ -54,7 +54,7 @@ public interface SensitivePropertyProvider {
      * An encryption-based provider would decrypt a cipher text and return the plaintext, while a remote-lookup provider could retrieve the secured value.
      *
      * @param protectedValue the protected value read from the {@code nifi.properties} file
-     * @param context The context of the value.  This will be in the format: [filename]||[propertyName]
+     * @param context The context of the value
      * @return the raw value to be used by the application
      */
     String unprotect(String protectedValue, ProtectedPropertyContext context) throws SensitivePropertyProtectionException;
