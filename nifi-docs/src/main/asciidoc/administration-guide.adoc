@@ -1869,6 +1869,19 @@ This protection scheme uses keys managed by https://docs.microsoft.com/en-us/azu
 |`azure.keyvault.encryption.algorithm`|The encryption algorithm that the Azure Key Vault client uses for encryption and decryption.|_none_
 |===
 
+=== Google Cloud KMS provider
+This protection scheme uses Google Cloud Key Management Service (https://cloud.google.com/security-key-management[Google Cloud Key Management Service]) for encryption and decryption. Google Cloud KMS configuration properties are to be stored in the `bootstrap-gcp.conf` file, as referenced in the `bootstrap.conf` of NiFi or NiFi Registry. Credentials must be configured as per the following documentation: https://cloud.google.com/kms/docs/reference/libraries[Google Cloud KMS documentation]
+
+==== Required properties
+[options="header,footer"]
+|===
+|Property Name|Description|Default
+|`gcp.kms.project`|The project containing the key that the Google Cloud KMS client uses for encryption and decryption.|_none_
+|`gcp.kms.location`|The geographic region of the project containing the key that the Google Cloud KMS client uses for encryption and decryption.|_none_
+|`gcp.kms.keyring`|The keyring containing the key that the Google Cloud KMS client uses for encryption and decryption.|_none_
+|`gcp.kms.key`|The key identifier that the Google Cloud KMS client uses for encryption and decryption.|_none_
+|===
+
 === Property Context Mapping
 Some encryption providers store protected values in an external service instead of persisting the encrypted values directly in the configuration file.  To support this use case, a property context is defined for each protected property in NiFi's configuration files, in the format: `{context-name}/{property-name}`
 

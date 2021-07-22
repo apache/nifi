@@ -277,7 +277,7 @@ public class AWSKMSSensitivePropertyProvider extends AbstractSensitivePropertyPr
 
     /**
      * Returns the "protected" form of this value. This is a form which can safely be persisted in the {@code nifi.properties} file without compromising the value.
-     * An encryption-based provider would return a cipher text, while a remote-lookup provider could return a unique ID to retrieve the secured value.
+     * Encrypts a sensitive value using a key managed by AWS Key Management Service.
      *
      * @param unprotectedValue the sensitive value.
      * @param context The context of the value (ignored in this implementation)
@@ -302,7 +302,7 @@ public class AWSKMSSensitivePropertyProvider extends AbstractSensitivePropertyPr
 
     /**
      * Returns the "unprotected" form of this value. This is the raw sensitive value which is used by the application logic.
-     * An encryption-based provider would decrypt a cipher text and return the plaintext, while a remote-lookup provider could retrieve the secured value.
+     * Decrypts a secured value from a ciphertext using a key managed by AWS Key Management Service.
      *
      * @param protectedValue the protected value read from the {@code nifi.properties} file.
      * @param context The context of the value (ignored in this implementation)
