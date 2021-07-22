@@ -18,7 +18,7 @@ package org.apache.nifi.bootstrap;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.bootstrap.notification.NotificationType;
-import org.apache.nifi.bootstrap.util.DiagnosticProperties;
+import org.apache.nifi.bootstrap.util.DiagnosticContext;
 import org.apache.nifi.bootstrap.util.OSUtils;
 import org.apache.nifi.bootstrap.util.SecureNiFiConfigUtil;
 import org.apache.nifi.util.file.FileUtils;
@@ -286,17 +286,17 @@ public class RunNiFi {
     }
 
     private void runDiagnostics() throws IOException {
-        final DiagnosticProperties diagnosticProperties = new DiagnosticProperties();
-        if (diagnosticProperties.isAllowed()) {
-            if (diagnosticProperties.isFileCountExceeded()) {
-                final Path oldestFile = diagnosticProperties.getOldestFile();
+        final DiagnosticContext diagnosticContext = new DiagnosticContext();
+        if (diagnosticContext.isAllowed()) {
+            if (diagnosticContext.isFileCountExceeded()) {
+                final Path oldestFile = diagnosticContext.getOldestFile();
                 Files.delete(oldestFile);
             }
-            diagnostics(new File(diagnosticProperties.getDirPath() + "/diagnostic-" + LocalDateTime.now() + ".log"),
-                    diagnosticProperties.isVerbose());
+            diagnostics(new File(diagnosticContext.getDirPath() + "/diagnostic-" + LocalDateTime.now() + ".log"),
+                    diagnosticContext.isVerbose());
 
-            while (diagnosticProperties.isSizeExceeded()) {
-                final Path oldestFile = diagnosticProperties.getOldestFile();
+            while (diagnosticContext.isSizeExceeded()) {
+                final Path oldestFile = diagnosticContext.getOldestFile();
                 Files.delete(oldestFile);
             }
         }

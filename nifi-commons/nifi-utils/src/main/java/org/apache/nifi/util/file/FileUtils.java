@@ -606,11 +606,11 @@ public class FileUtils {
     }
 
     private static ToLongFunction<Path> getFileSizeByPathFunction(Logger logger) {
-        return p -> {
+        return path -> {
             try {
-                return Files.size(p);
+                return Files.size(path);
             } catch (IOException e) {
-                logger.error("Failed to get size of directory {}", p, e);
+                logger.error("Failed to get size of directory {}", path, e);
                 return 0L;
             }
         };
