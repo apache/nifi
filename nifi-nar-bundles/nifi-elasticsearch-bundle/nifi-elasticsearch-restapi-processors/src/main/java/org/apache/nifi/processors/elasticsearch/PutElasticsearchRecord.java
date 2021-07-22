@@ -95,6 +95,7 @@ public class PutElasticsearchRecord extends AbstractProcessor implements Elastic
             .addValidator(StandardValidators.NON_EMPTY_EL_VALIDATOR)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .defaultValue(IndexOperationRequest.Operation.Index.getValue())
+            .required(true)
             .build();
 
     static final PropertyDescriptor INDEX_OP_RECORD_PATH = new PropertyDescriptor.Builder()
@@ -180,11 +181,11 @@ public class PutElasticsearchRecord extends AbstractProcessor implements Elastic
     }
 
     static final List<String> ALLOWED_INDEX_OPERATIONS = Collections.unmodifiableList(Arrays.asList(
-            IndexOperationRequest.Operation.Create.getValue(),
-            IndexOperationRequest.Operation.Delete.getValue(),
-            IndexOperationRequest.Operation.Index.getValue(),
-            IndexOperationRequest.Operation.Update.getValue(),
-            IndexOperationRequest.Operation.Upsert.getValue()
+            IndexOperationRequest.Operation.Create.getValue().toLowerCase(),
+            IndexOperationRequest.Operation.Delete.getValue().toLowerCase(),
+            IndexOperationRequest.Operation.Index.getValue().toLowerCase(),
+            IndexOperationRequest.Operation.Update.getValue().toLowerCase(),
+            IndexOperationRequest.Operation.Upsert.getValue().toLowerCase()
     ));
 
     @Override
@@ -192,17 +193,22 @@ public class PutElasticsearchRecord extends AbstractProcessor implements Elastic
         final List<ValidationResult> validationResults = new ArrayList<>();
 
         final PropertyValue indexOp = validationContext.getProperty(INDEX_OP);
-        if (indexOp.isSet() && !indexOp.isExpressionLanguagePresent()) {
+        final ValidationResult.Builder indexOpValidationResult = new ValidationResult.Builder().subject(INDEX_OP.getName());
+        if (!indexOp.isExpressionLanguagePresent()) {
             final String indexOpValue = indexOp.evaluateAttributeExpressions().getValue();
-            if (!ALLOWED_INDEX_OPERATIONS.contains(indexOpValue)) {
-                validationResults.add(new ValidationResult.Builder()
-                        .valid(false).subject(INDEX_OP.getName()).input(indexOpValue)
+            indexOpValidationResult.input(indexOpValue);
+            if (!ALLOWED_INDEX_OPERATIONS.contains(indexOpValue.toLowerCase())) {
+                indexOpValidationResult.valid(false)
                         .explanation(String.format("%s must be Expression Language or one of %s",
                                 INDEX_OP.getDisplayName(), ALLOWED_INDEX_OPERATIONS)
-                        ).build()
-                );
+                        );
+            } else {
+                indexOpValidationResult.valid(true);
             }
+        } else {
+            indexOpValidationResult.valid(true).input(indexOp.getValue()).explanation("Expression Language present");
         }
+        validationResults.add(indexOpValidationResult.build());
 
         return validationResults;
     }
@@ -328,7 +334,7 @@ public class PutElasticsearchRecord extends AbstractProcessor implements Elastic
                     for (int index = 0; index < response.getItems().size(); index++) {
                         Map<String, Object> current = response.getItems().get(index);
                         if (!current.isEmpty()) {
-                            String key = current.keySet().stream().findFirst().get();
+                            String key = current.keySet().iterator().next();
                             @SuppressWarnings("unchecked")
                             Map<String, Object> inner = (Map<String, Object>) current.get(key);
                             if (inner.containsKey("error")) {
