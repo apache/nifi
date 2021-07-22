@@ -32,49 +32,42 @@ import java.util.Properties;
 
 /**
  * To run this test, make sure to first configure sensitive credential information as in the following link
- * https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html
+ * https://cloud.google.com/kms/docs/reference/libraries#cloud-console
  *
- * If you don't have a key then run:
- * aws kms create-key
+ * Create a project, keyring and key in the web console.
  *
- * Take note of the key id or arn.
+ * Take note of the project name, location, keyring name and key name.
  *
- * Then, set the system property -Daws.kms.key.id to the either key id value or arn value
- *
- * The following settings are optional. If you have a default AWS configuration and credentials in ~/.aws then
- * it will take that. Otherwise you can set all of the following:
- * set the system property -Daws.access.key.id to the access key id
- * set the system property -Daws.secret.access.key to the secret access key
- * set the system property -Daws.region to the region
- *
- * After you are satisfied with the test, and you don't need the key, you may schedule key deletion with:
- * aws kms schedule-key-deletion --key-id "key id" --pending-window-in-days "number of days"
- *
+ * Then, set the system properties as follows:
+ * -Dgcp.kms.project="project"
+ * -Dgcp.kms.location="location"
+ * -Dgcp.kms.keyring="key ring name"
+ * -Dgcp.kms.key="key name"
+ * when running the integration tests
  */
 
-public class AWSKMSSensitivePropertyProviderIT {
-    private static final String SAMPLE_PLAINTEXT = "AWSKMSSensitivePropertyProviderIT SAMPLE-PLAINTEXT";
-    private static final String ACCESS_KEY_PROPS_NAME = "aws.access.key.id";
-    private static final String SECRET_KEY_PROPS_NAME = "aws.secret.access.key";
-    private static final String REGION_KEY_PROPS_NAME = "aws.region";
-    private static final String KMS_KEY_PROPS_NAME = "aws.kms.key.id";
-
-    private static final String BOOTSTRAP_AWS_FILE_PROPS_NAME = "nifi.bootstrap.protection.aws.kms.conf";
+public class GCPKMSSensitivePropertyProviderIT {
+    private static final String SAMPLE_PLAINTEXT = "GCPKMSSensitivePropertyProviderIT SAMPLE-PLAINTEXT";
+    private static final String PROJECT_ID_PROPS_NAME = "gcp.kms.project";
+    private static final String LOCATION_ID_PROPS_NAME = "gcp.kms.location";
+    private static final String KEYRING_ID_PROPS_NAME = "gcp.kms.keyring";
+    private static final String KEY_ID_PROPS_NAME = "gcp.kms.key";
+    private static final String BOOTSTRAP_GCP_FILE_PROPS_NAME = "nifi.bootstrap.protection.gcp.kms.conf";
 
     private static final String EMPTY_PROPERTY = "";
 
-    private static AWSKMSSensitivePropertyProvider spp;
+    private static GCPKMSSensitivePropertyProvider spp;
 
     private static BootstrapProperties props;
 
-    private static Path mockBootstrapConf, mockAWSBootstrapConf;
+    private static Path mockBootstrapConf, mockGCPBootstrapConf;
 
-    private static final Logger logger = LoggerFactory.getLogger(AWSKMSSensitivePropertyProviderIT.class);
+    private static final Logger logger = LoggerFactory.getLogger(GCPKMSSensitivePropertyProviderIT.class);
 
     private static void initializeBootstrapProperties() throws IOException{
         mockBootstrapConf = Files.createTempFile("bootstrap", ".conf").toAbsolutePath();
-        mockAWSBootstrapConf = Files.createTempFile("bootstrap-aws", ".conf").toAbsolutePath();
-        IOUtil.writeText(BOOTSTRAP_AWS_FILE_PROPS_NAME + "=" + mockAWSBootstrapConf.toAbsolutePath(), mockBootstrapConf.toFile());
+        mockGCPBootstrapConf = Files.createTempFile("bootstrap-gcp", ".conf").toAbsolutePath();
+        IOUtil.writeText(BOOTSTRAP_GCP_FILE_PROPS_NAME + "=" + mockGCPBootstrapConf.toAbsolutePath(), mockBootstrapConf.toFile());
 
         final Properties bootstrapProperties = new Properties();
         try (final InputStream inputStream = Files.newInputStream(mockBootstrapConf)) {
@@ -82,42 +75,41 @@ public class AWSKMSSensitivePropertyProviderIT {
             props = new BootstrapProperties("nifi", bootstrapProperties, mockBootstrapConf);
         }
 
-        String accessKey = System.getProperty(ACCESS_KEY_PROPS_NAME, EMPTY_PROPERTY);
-        String secretKey = System.getProperty(SECRET_KEY_PROPS_NAME, EMPTY_PROPERTY);
-        String region = System.getProperty(REGION_KEY_PROPS_NAME, EMPTY_PROPERTY);
-        String keyId = System.getProperty(KMS_KEY_PROPS_NAME, EMPTY_PROPERTY);
+        String projectId = System.getProperty(PROJECT_ID_PROPS_NAME, EMPTY_PROPERTY);
+        String locationId = System.getProperty(LOCATION_ID_PROPS_NAME, EMPTY_PROPERTY);
+        String keyringId = System.getProperty(KEYRING_ID_PROPS_NAME, EMPTY_PROPERTY);
+        String keyId = System.getProperty(KEY_ID_PROPS_NAME, EMPTY_PROPERTY);
 
         StringBuilder bootstrapConfText = new StringBuilder();
         String lineSeparator = System.getProperty("line.separator");
-        bootstrapConfText.append(ACCESS_KEY_PROPS_NAME + "=" + accessKey);
-        bootstrapConfText.append(lineSeparator + SECRET_KEY_PROPS_NAME + "=" + secretKey);
-        bootstrapConfText.append(lineSeparator + REGION_KEY_PROPS_NAME + "=" + region);
-        bootstrapConfText.append(lineSeparator + KMS_KEY_PROPS_NAME + "=" + keyId);
-
-        IOUtil.writeText(bootstrapConfText.toString(), mockAWSBootstrapConf.toFile());
+        bootstrapConfText.append(PROJECT_ID_PROPS_NAME + "=" + projectId);
+        bootstrapConfText.append(lineSeparator + LOCATION_ID_PROPS_NAME + "=" + locationId);
+        bootstrapConfText.append(lineSeparator + KEYRING_ID_PROPS_NAME + "=" + keyringId);
+        bootstrapConfText.append(lineSeparator + KEY_ID_PROPS_NAME + "=" + keyId);
+        IOUtil.writeText(bootstrapConfText.toString(), mockGCPBootstrapConf.toFile());
     }
 
     @BeforeClass
     public static void initOnce() throws IOException {
         initializeBootstrapProperties();
         Assert.assertNotNull(props);
-        spp = new AWSKMSSensitivePropertyProvider(props);
+        spp = new GCPKMSSensitivePropertyProvider(props);
         Assert.assertNotNull(spp);
     }
 
     @AfterClass
     public static void tearDownOnce() throws IOException {
         Files.deleteIfExists(mockBootstrapConf);
-        Files.deleteIfExists(mockAWSBootstrapConf);
+        Files.deleteIfExists(mockGCPBootstrapConf);
 
         spp.cleanUp();
     }
 
     @Test
     public void testEncryptDecrypt() {
-        logger.info("Running testEncryptDecrypt of AWS KMS SPP integration test");
+        logger.info("Running testEncryptDecrypt of GCP KMS SPP integration test");
         runEncryptDecryptTest();
-        logger.info("testEncryptDecrypt of AWS KMS SPP integration test completed");
+        logger.info("testEncryptDecrypt of GCP KMS SPP integration test completed");
     }
 
     private static void runEncryptDecryptTest() {
