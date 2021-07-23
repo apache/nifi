@@ -36,7 +36,7 @@ public final class AzureCosmosDBUtils {
             + " from Azure Portal (Overview->URI)")
         .required(false)
         .addValidator(StandardValidators.URI_VALIDATOR)
-        .sensitive(true)
+        .sensitive(false)
         .build();
 
     public static final PropertyDescriptor DB_ACCESS_KEY = new PropertyDescriptor.Builder()
