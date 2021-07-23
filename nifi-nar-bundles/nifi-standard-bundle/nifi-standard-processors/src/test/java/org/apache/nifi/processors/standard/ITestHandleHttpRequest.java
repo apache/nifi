@@ -598,7 +598,7 @@ public class ITestHandleHttpRequest {
     public void testOnPrimaryNodeChangePrimaryNodeRevoked() throws Exception {
         processor = new HandleHttpRequest();
         final TestRunner runner = TestRunners.newTestRunner(processor);
-        final int port = NetworkUtils.getAvailableTcpPort();
+        final int port = NetworkUtils.availablePort();
         runner.setProperty(HandleHttpRequest.PORT, Integer.toString(port));
 
         final MockHttpContextMap contextMap = new MockHttpContextMap();
