@@ -20,7 +20,7 @@ package org.apache.nifi.elasticsearch;
 public class DeleteOperationResponse {
     private final long took;
 
-    public DeleteOperationResponse(long took) {
+    public DeleteOperationResponse(final long took) {
         this.took = took;
     }
 

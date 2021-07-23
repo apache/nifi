@@ -31,7 +31,7 @@ public class IndexOperationRequest {
     private final Map<String, Object> fields;
     private final Operation operation;
 
-    public IndexOperationRequest(String index, String type, String id, Map<String, Object> fields, Operation operation) {
+    public IndexOperationRequest(final String index, final String type, final String id, final Map<String, Object> fields, final Operation operation) {
         this.index = index;
         this.type = type;
         this.id = id;

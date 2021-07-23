@@ -28,7 +28,7 @@ public class IndexOperationResponse {
     private boolean hasErrors;
     private List<Map<String, Object>> items;
 
-    public IndexOperationResponse(long took) {
+    public IndexOperationResponse(final long took) {
         this.took = took;
     }
 
@@ -41,7 +41,7 @@ public class IndexOperationResponse {
     }
 
     @SuppressWarnings("unchecked")
-    public static IndexOperationResponse fromJsonResponse(String response) throws IOException {
+    public static IndexOperationResponse fromJsonResponse(final String response) throws IOException {
         ObjectMapper mapper = new ObjectMapper();
         Map<String, Object> parsedResponse = mapper.readValue(response, Map.class);
         int took = (int) parsedResponse.get("took");

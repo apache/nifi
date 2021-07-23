@@ -21,17 +21,17 @@ import java.util.List;
 import java.util.Map;
 
 public class SearchResponse {
-    private List<Map<String, Object>> hits;
-    private Map<String, Object> aggregations;
-    private long numberOfHits;
-    private int took;
-    private boolean timedOut;
-    private String pitId;
-    private String scrollId;
-    private String searchAfter;
+    private final List<Map<String, Object>> hits;
+    private final Map<String, Object> aggregations;
+    private final long numberOfHits;
+    private final int took;
+    private final boolean timedOut;
+    private final String pitId;
+    private final String scrollId;
+    private final String searchAfter;
 
-    public SearchResponse(List<Map<String, Object>> hits, Map<String, Object> aggregations,
-                          String pitId, String scrollId, String searchAfter, int numberOfHits, int took, boolean timedOut) {
+    public SearchResponse(final List<Map<String, Object>> hits, final Map<String, Object> aggregations, final String pitId,
+                          final String scrollId, final String searchAfter, final int numberOfHits, final int took, final boolean timedOut) {
         this.hits = hits;
         this.aggregations = aggregations;
         this.pitId = pitId;

@@ -199,7 +199,7 @@ public interface ElasticSearchClientService extends ControllerService {
     /**
      * Retrieve next page of results from a Scroll.
      *
-     * @param scroll Scroll body containing scrollId and optional scroll (keep alive) retention period.
+     * @param scroll A JSON string containing scrollId and optional scroll (keep alive) retention period.
      * @return A SearchResponse object if successful.
      */
     SearchResponse scroll(String scroll);
