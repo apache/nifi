@@ -53,6 +53,10 @@ button.nf-registry-change-log-refresh.mat-icon-button {
     max-height: 316px;
     overflow: auto;
     margin-bottom: 0;
+    user-select: text !important;
+    -moz-user-select: text !important;
+    -webkit-user-select: text !important;
+    -ms-user-select: text !important;
 }
 
 #import-new-flow-disabled-message {
