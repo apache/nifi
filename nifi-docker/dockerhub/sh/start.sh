@@ -98,7 +98,9 @@ prop_replace 'nifi.analytics.connection.model.implementation'   "${NIFI_ANALYTIC
 prop_replace 'nifi.analytics.connection.model.score.name'       "${NIFI_ANALYTICS_MODEL_SCORE_NAME:-rSquared}"
 prop_replace 'nifi.analytics.connection.model.score.threshold'  "${NIFI_ANALYTICS_MODEL_SCORE_THRESHOLD:-.90}"
 
-prop_replace 'nifi.sensitive.props.key'   "${NIFI_SENSITIVE_PROPS_KEY:-}"
+if [ -n "${NIFI_SENSITIVE_PROPS_KEY}" ]; then
+    prop_replace 'nifi.sensitive.props.key' "${NIFI_SENSITIVE_PROPS_KEY}"
+fi
 
 if [ -n "${SINGLE_USER_CREDENTIALS_USERNAME}" ] && [ -n "${SINGLE_USER_CREDENTIALS_PASSWORD}" ]; then
     ${NIFI_HOME}/bin/nifi.sh set-single-user-credentials "${SINGLE_USER_CREDENTIALS_USERNAME}" "${SINGLE_USER_CREDENTIALS_PASSWORD}"
