@@ -444,12 +444,23 @@ public class ParameterContextIT extends NiFiSystemIT {
 
     @Test
     public void testParamChangeWhileReferencingControllerServiceDisabling() throws NiFiClientException, IOException, InterruptedException {
+        testParamChangeWhileReferencingControllerServiceDisabling(true);
+    }
+
+    @Test
+    public void testParamChangeWhileReferencingControllerServiceEnabled() throws NiFiClientException, IOException, InterruptedException {
+        testParamChangeWhileReferencingControllerServiceDisabling(false);
+    }
+
+    private void testParamChangeWhileReferencingControllerServiceDisabling(final boolean disableServiceBeforeUpdate) throws NiFiClientException, IOException, InterruptedException {
         final ParameterContextEntity createdContextEntity = createParameterContext("sleep", "7 sec");
 
         // Set the Parameter Context on the root Process Group
-        setParameterContext("root", createdContextEntity);
+        final ProcessGroupEntity childGroup = getClientUtil().createProcessGroup("child", "root");
+        setParameterContext(childGroup.getId(), createdContextEntity);
 
-        final ControllerServiceEntity serviceEntity = createControllerService(TEST_CS_PACKAGE + ".StandardSleepService", "root", NIFI_GROUP_ID, TEST_EXTENSIONS_ARTIFACT_ID, getNiFiVersion());
+        final ControllerServiceEntity serviceEntity = createControllerService(TEST_CS_PACKAGE + ".StandardSleepService", childGroup.getId(),
+            NIFI_GROUP_ID, TEST_EXTENSIONS_ARTIFACT_ID, getNiFiVersion());
 
         // Set service's sleep time to the parameter.
         serviceEntity.getComponent().setProperties(Collections.singletonMap("@OnDisabled Sleep Time", "#{sleep}"));
@@ -461,13 +472,15 @@ public class ParameterContextIT extends NiFiSystemIT {
         // Wait for the service to reach of state of ENABLED.
         getClientUtil().waitForControllerServiceState(serviceEntity.getParentGroupId(), "ENABLED", Collections.emptyList());
 
-        // Disable the service.
-        getClientUtil().disableControllerService(serviceEntity);
+        if (disableServiceBeforeUpdate) {
+            // Disable the service.
+            getClientUtil().disableControllerService(serviceEntity);
 
-        // Wait for service to reach state of DISABLING but not DISABLED. We want to change the parameter that it references while it's disabling.
-        getClientUtil().waitForControllerServiceState(serviceEntity.getParentGroupId(), "DISABLING", Collections.emptyList());
+            // Wait for service to reach state of DISABLING but not DISABLED. We want to change the parameter that it references while it's disabling.
+            getClientUtil().waitForControllerServiceState(serviceEntity.getParentGroupId(), "DISABLING", Collections.emptyList());
+        }
 
-        // While the service is enabling, change the parameter
+        // Change the parameter
         final ParameterContextUpdateRequestEntity paramUpdateRequestEntity = updateParameterContext(createdContextEntity, "sleep", "1 sec");
 
         // Wait for the update to complete
