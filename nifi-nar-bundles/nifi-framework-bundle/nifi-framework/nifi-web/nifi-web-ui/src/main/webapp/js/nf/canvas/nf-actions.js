@@ -846,6 +846,116 @@
         },
 
         /**
+         * Enable all controllers in the specified ProcessGroup.
+         *
+         * @argument {selection} selection      The selection
+         * @argument {cb} callback              The function to call when request is processed
+         */
+         enableAllControllers: function (selection,cb) {
+            if (selection.empty()) {
+                // build the entity
+                var entity = {
+                    'id': nfCanvasUtils.getGroupId(),
+                    'state': 'ENABLED'
+                };
+                updateResource(config.urls.api + '/flow/process-groups/' + encodeURIComponent(nfCanvasUtils.getGroupId()) + '/controller-services', entity).done(updateProcessGroup);
+            } else {
+                var componentsToStart = selection.filter(function (d) {
+                    return nfCanvasUtils.isProcessGroup(d3.select(this));
+                });
+
+                // ensure there are some component to start
+                if (!componentsToStart.empty()) {
+                    var startRequests = [];
+
+                    // start each selected component
+                    componentsToStart.each(function (d) {
+                        var selected = d3.select(this);
+
+                        // prepare the request
+                        var uri, entity;
+                        uri = config.urls.api + '/flow/process-groups/' + encodeURIComponent(d.id) + '/controller-services';
+                        entity = {
+                            'id': d.id,
+                            'state': 'ENABLED'
+                        };
+
+                        startRequests.push(updateResource(uri, entity).done(function (response) {
+                            nfCanvasUtils.getComponentByType('ProcessGroup').reload(d.id);
+                        }));
+                    });
+
+                    // inform Angular app once the updates have completed
+                    if (startRequests.length > 0) {
+                        $.when.apply(window, startRequests).always(function () {
+                            nfNgBridge.digest();
+                            if(typeof cb == 'function'){
+                                cb();
+                            }
+                        });
+                    } else if(typeof cb == 'function'){
+                         cb();
+                    }
+                }
+            }
+        },
+
+        /**
+         * Disable all controllers in the specified ProcessGroup.
+         *
+         * @argument {selection} selection      The selection
+         * @argument {cb} callback              The function to call when request is processed
+         */
+         disableAllControllers: function (selection,cb) {
+            if (selection.empty()) {
+                // build the entity
+                var entity = {
+                    'id': nfCanvasUtils.getGroupId(),
+                    'state': 'DISABLED'
+                };
+                updateResource(config.urls.api + '/flow/process-groups/' + encodeURIComponent(nfCanvasUtils.getGroupId()) + '/controller-services', entity).done(updateProcessGroup);
+            } else {
+                var componentsToStop = selection.filter(function (d) {
+                    return nfCanvasUtils.isProcessGroup(d3.select(this));
+                });
+
+                // ensure there are some component to stop
+                if (!componentsToStop.empty()) {
+                    var stopRequests = [];
+
+                    // stop each selected component
+                    componentsToStop.each(function (d) {
+                        var selected = d3.select(this);
+
+                        // prepare the request
+                        var uri, entity;
+                        uri = config.urls.api + '/flow/process-groups/' + encodeURIComponent(d.id) + '/controller-services';
+                        entity = {
+                            'id': d.id,
+                            'state': 'DISABLED'
+                        };
+
+                        stopRequests.push(updateResource(uri, entity).done(function (response) {
+                            nfCanvasUtils.getComponentByType('ProcessGroup').reload(d.id);
+                        }));
+                    });
+
+                    // inform Angular app once the updates have completed
+                    if (stopRequests.length > 0) {
+                        $.when.apply(window, stopRequests).always(function () {
+                            nfNgBridge.digest();
+                            if(typeof cb == 'function'){
+                                cb();
+                            }
+                        });
+                    } else if(typeof cb == 'function'){
+                         cb();
+                    }
+                }
+            }
+        },
+
+        /**
          * Stops the component and displays the processor configuration dialog
          *
          * @param {selection} selection      The selection
