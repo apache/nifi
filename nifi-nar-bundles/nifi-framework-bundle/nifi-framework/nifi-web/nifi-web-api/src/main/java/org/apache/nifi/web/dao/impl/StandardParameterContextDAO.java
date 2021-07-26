@@ -166,9 +166,13 @@ public class StandardParameterContextDAO implements ParameterContextDAO {
                 verifyParameterUpdate(parameterDto, processor, currentContext.getName(), verifyComponentStates, processor.isRunning(), "Processor that is running");
             }
 
-            for (final ControllerServiceNode serviceNode : referenceManager.getControllerServicesReferencing(currentContext, parameterName)) {
-                verifyParameterUpdate(parameterDto, serviceNode, currentContext.getName(), verifyComponentStates,
-                    serviceNode.getState() != ControllerServiceState.DISABLED, "Controller Service that is enabled");
+            final Set<ControllerServiceNode> referencingServices = referenceManager.getControllerServicesReferencing(currentContext, parameterName);
+            for (final ControllerServiceNode serviceNode : referencingServices) {
+                final ControllerServiceState serviceState = serviceNode.getState();
+                final boolean serviceActive = serviceState != ControllerServiceState.DISABLED;
+
+                verifyParameterUpdate(parameterDto, serviceNode, currentContext.getName(), verifyComponentStates, serviceActive,
+                    "Controller Service [id=" + serviceNode.getIdentifier() + "] with a state of " + serviceState + " (state expected to be DISABLED)");
             }
         }
     }
