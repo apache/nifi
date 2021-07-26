@@ -27,7 +27,7 @@
         <module>nifi-ldap-iaa-providers-nar</module>
     </modules>
     <properties>
-        <spring.version>5.3.8</spring.version>
+        <spring.version>5.3.9</spring.version>
     </properties>
     <dependencyManagement>
         <dependencies>

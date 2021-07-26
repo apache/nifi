@@ -23,8 +23,8 @@
     <packaging>pom</packaging>
     <description>NiFi: Framework Bundle</description>
     <properties>
-        <spring.version>5.3.8</spring.version>
-        <spring.security.version>5.4.6</spring.security.version>
+        <spring.version>5.3.9</spring.version>
+        <spring.security.version>5.5.1</spring.security.version>
     </properties>
     <modules>
         <module>nifi-framework</module>

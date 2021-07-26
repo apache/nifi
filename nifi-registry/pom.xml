@@ -37,9 +37,9 @@
     </modules>
     <properties>
         <jax.rs.api.version>2.1</jax.rs.api.version>
-        <spring.boot.version>2.5.1</spring.boot.version>
-        <spring.version>5.3.8</spring.version>
-        <spring.security.version>5.4.6</spring.security.version>
+        <spring.boot.version>2.5.2</spring.boot.version>
+        <spring.version>5.3.9</spring.version>
+        <spring.security.version>5.5.1</spring.security.version>
         <flyway.version>6.5.7</flyway.version>
         <flyway.tests.version>6.4.0</flyway.tests.version>
         <swagger.ui.version>3.12.0</swagger.ui.version>
