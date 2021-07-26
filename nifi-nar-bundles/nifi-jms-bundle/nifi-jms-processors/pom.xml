@@ -18,7 +18,7 @@
     <artifactId>nifi-jms-processors</artifactId>
     <packaging>jar</packaging>
     <properties>
-        <spring.version>5.3.8</spring.version>
+        <spring.version>5.3.9</spring.version>
     </properties>
     <dependencies>
         <dependency>
