@@ -1196,6 +1196,52 @@
     };
 
     /**
+     * Terminates the threads of referencing processors.
+     *
+     * @param {object} controllerServiceEntity
+     */
+    var terminateReferencingProcessors = function (controllerServiceEntity) {
+        if (controllerServiceEntity.permissions.canRead === false) {
+            return;
+        }
+
+        var referencingComponents = controllerServiceEntity.component.referencingComponents;
+        if (nfCommon.isEmpty(referencingComponents)) {
+            return;
+        }
+
+        $.each(referencingComponents, function (_, referencingComponentEntity) {
+            // check the access policy for this referencing component
+            if (referencingComponentEntity.permissions.canRead === false) {
+                return;
+            } else {
+                var referencingComponent = referencingComponentEntity.component;
+
+                if (referencingComponent.referenceType === 'Processor') {
+                    if (referencingComponent.state.toLowerCase() === 'stopped'
+                            && nfCommon.isDefinedAndNotNull(referencingComponent.activeThreadCount)
+                            && referencingComponent.activeThreadCount > 0) {
+                        $.ajax({
+                            type: 'DELETE',
+                            url: '../nifi-api/processors/' + referencingComponent.id + '/threads'
+                        }).fail(nfErrorHandler.handleAjaxError);
+                    }
+                } else if (referencingComponent.referenceType === 'ControllerService') {
+                    if (referencingComponent.referenceCycle === false) {
+                        var controllerServiceGrid = serviceTable.data('gridInstance');
+                        var controllerServiceData = controllerServiceGrid.getData();
+
+                        // get the controller service and expand its referencing services
+                        getControllerService(referencingComponent.id, controllerServiceData).done(function (controllerServiceEntity) {
+                            terminateReferencingProcessors(controllerServiceEntity);
+                        });
+                    }
+                }
+            }
+        });
+    };
+
+    /**
      * Used to handle closing a modal dialog
      */
     var closeModal = function () {
@@ -1211,8 +1257,45 @@
         var disableDialog = $('#disable-controller-service-dialog');
         var canceled = false;
 
-        // only provide a cancel option
+        // get the controller service
+        var controllerServiceId = $('#disable-controller-service-id').text();
+        var controllerServiceGrid = serviceTable.data('gridInstance');
+        var controllerServiceData = controllerServiceGrid.getData();
+        var controllerServiceEntity = controllerServiceData.getItemById(controllerServiceId);
+        var controllerService = controllerServiceEntity.component;
+
         disableDialog.modal('setButtonModel', [{
+            buttonText: 'Terminate',
+            color: {
+                base: '#728E9B',
+                hover: '#004849',
+                text: '#ffffff'
+            },
+            disabled: function () {
+                if ($('#disable-referencing-schedulable').hasClass('ajax-complete')) {
+                    return true;
+                } else {
+                    return false;
+                }
+            },
+            handler: {
+                click: function () {
+                    nfDialog.showYesNoDialog({
+                        headerText: 'Terminate Processors',
+                        dialogContent: 'Are you sure you want to terminate the processors immediately?',
+                        noText: 'Cancel',
+                        yesText: 'Terminate',
+                        yesHandler: function () {
+                            terminateReferencingProcessors(controllerServiceEntity).done(function () {
+                                deferred.resolve();
+                            }).fail(function () {
+                                deferred.reject();
+                            });
+                        }
+                    })
+                }
+            }
+        }, {
             buttonText: 'Cancel',
             color: {
                 base: '#E3E8EB',
@@ -1231,13 +1314,6 @@
         // show the progress
         $('#disable-controller-service-scope-container').hide();
         $('#disable-controller-service-progress-container').show();
-
-        // get the controller service
-        var controllerServiceId = $('#disable-controller-service-id').text();
-        var controllerServiceGrid = serviceTable.data('gridInstance');
-        var controllerServiceData = controllerServiceGrid.getData();
-        var controllerServiceEntity = controllerServiceData.getItemById(controllerServiceId);
-        var controllerService = controllerServiceEntity.component;
 
         // whether or not to continue polling
         var continuePolling = function () {
