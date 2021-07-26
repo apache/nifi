@@ -119,7 +119,7 @@ public abstract class NiFiSystemIT {
 
     protected void destroyFlow() throws NiFiClientException, IOException {
         getClientUtil().stopProcessGroupComponents("root");
-        getClientUtil().disableControllerServices("root");
+        getClientUtil().disableControllerServices("root", true);
         getClientUtil().stopTransmitting("root");
         getClientUtil().deleteAll("root");
     }

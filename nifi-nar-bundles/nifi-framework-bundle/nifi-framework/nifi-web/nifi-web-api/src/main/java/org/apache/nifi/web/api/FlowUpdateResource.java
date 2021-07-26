@@ -330,16 +330,27 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
         }
         asyncRequest.markStepComplete();
 
-        // Steps 7-8. Disable enabled controller services that are affected
-        final Set<AffectedComponentEntity> enabledServices = affectedComponents.stream()
-                .filter(dto -> AffectedComponentDTO.COMPONENT_TYPE_CONTROLLER_SERVICE.equals(dto.getComponent().getReferenceType()))
-                .filter(dto -> "Enabled".equalsIgnoreCase(dto.getComponent().getState()))
-                .collect(Collectors.toSet());
+        // Steps 7-8. Disable enabled controller services that are affected.
+        // We don't want to disable services that are already disabling. But we need to wait for their state to transition from Disabling to Disabled.
+        final Set<AffectedComponentEntity> servicesToWaitFor = affectedComponents.stream()
+            .filter(dto -> AffectedComponentDTO.COMPONENT_TYPE_CONTROLLER_SERVICE.equals(dto.getComponent().getReferenceType()))
+            .filter(dto -> {
+                final String state = dto.getComponent().getState();
+                return "Enabled".equalsIgnoreCase(state) || "Enabling".equalsIgnoreCase(state) || "Disabling".equalsIgnoreCase(state);
+            })
+            .collect(Collectors.toSet());
+
+        final Set<AffectedComponentEntity> enabledServices = servicesToWaitFor.stream()
+            .filter(dto -> {
+                final String state = dto.getComponent().getState();
+                return "Enabling".equalsIgnoreCase(state) || "Enabled".equalsIgnoreCase(state);
+            })
+            .collect(Collectors.toSet());
 
         logger.info("Disabling {} Controller Services", enabledServices.size());
         final CancellableTimedPause disableServicesPause = new CancellableTimedPause(250, Long.MAX_VALUE, TimeUnit.MILLISECONDS);
         asyncRequest.setCancelCallback(disableServicesPause::cancel);
-        componentLifecycle.activateControllerServices(requestUri, groupId, enabledServices, ControllerServiceState.DISABLED, disableServicesPause, InvalidComponentAction.SKIP);
+        componentLifecycle.activateControllerServices(requestUri, groupId, enabledServices, servicesToWaitFor, ControllerServiceState.DISABLED, disableServicesPause, InvalidComponentAction.SKIP);
 
         if (asyncRequest.isCancelled()) {
             return;
@@ -413,7 +424,8 @@ public abstract class FlowUpdateResource<T extends ProcessGroupDescriptorEntity,
                 logger.info("Successfully updated flow; re-enabling {} Controller Services", servicesToEnable.size());
 
                 try {
-                    componentLifecycle.activateControllerServices(requestUri, groupId, servicesToEnable, ControllerServiceState.ENABLED, enableServicesPause, InvalidComponentAction.SKIP);
+                    componentLifecycle.activateControllerServices(requestUri, groupId, servicesToEnable, servicesToEnable,
+                        ControllerServiceState.ENABLED, enableServicesPause, InvalidComponentAction.SKIP);
                 } catch (final IllegalStateException ise) {
                     // Component Lifecycle will re-enable the Controller Services only if they are valid. If IllegalStateException gets thrown, we need to provide
                     // a more intelligent error message as to exactly what happened, rather than indicate that the flow could not be updated.

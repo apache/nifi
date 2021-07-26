@@ -851,10 +851,13 @@ public class ParameterContextResource extends ApplicationResource {
             .filter(component -> "Running".equalsIgnoreCase(component.getComponent().getState()))
             .collect(Collectors.toSet());
 
-        final Set<AffectedComponentEntity> enabledControllerServices = affectedComponents.stream()
+        final Set<AffectedComponentEntity> servicesRequiringDisabledState = affectedComponents.stream()
             .filter(entity -> entity.getComponent() != null)
             .filter(dto -> AffectedComponentDTO.COMPONENT_TYPE_CONTROLLER_SERVICE.equals(dto.getComponent().getReferenceType()))
-            .filter(dto -> "Enabling".equalsIgnoreCase(dto.getComponent().getState()) || "Enabled".equalsIgnoreCase(dto.getComponent().getState()))
+            .filter(dto -> {
+                final String state = dto.getComponent().getState();
+                return "Enabling".equalsIgnoreCase(state) || "Enabled".equalsIgnoreCase(state) || "Disabling".equalsIgnoreCase(state);
+            })
             .collect(Collectors.toSet());
 
         stopProcessors(runningProcessors, asyncRequest, componentLifecycle, uri);
@@ -862,7 +865,16 @@ public class ParameterContextResource extends ApplicationResource {
             return null;
         }
 
-        disableControllerServices(enabledControllerServices, asyncRequest, componentLifecycle, uri);
+        // We want to disable only those Controller Services that are currently enabled or enabling, but we need to wait for
+        // services that are currently Disabling to become disabled before we are able to consider this step complete.
+        final Set<AffectedComponentEntity> enabledControllerServices = servicesRequiringDisabledState.stream()
+            .filter(dto -> {
+                final String state = dto.getComponent().getState();
+                return "Enabling".equalsIgnoreCase(state) || "Enabled".equalsIgnoreCase(state);
+            })
+            .collect(Collectors.toSet());
+
+        disableControllerServices(enabledControllerServices, servicesRequiringDisabledState, asyncRequest, componentLifecycle, uri);
         if (asyncRequest.isCancelled()) {
             return null;
         }
@@ -878,7 +890,7 @@ public class ParameterContextResource extends ApplicationResource {
         } finally {
             // TODO: can almost certainly be refactored so that the same code is shared between VersionsResource and ParameterContextResource.
             if (!asyncRequest.isCancelled()) {
-                enableControllerServices(enabledControllerServices, asyncRequest, componentLifecycle, uri);
+                enableControllerServices(enabledControllerServices, enabledControllerServices, asyncRequest, componentLifecycle, uri);
             }
 
             if (!asyncRequest.isCancelled()) {
@@ -993,17 +1005,19 @@ public class ParameterContextResource extends ApplicationResource {
         }
     }
 
-    private void disableControllerServices(final Set<AffectedComponentEntity> controllerServices, final AsynchronousWebRequest<?, ?> asyncRequest, final ComponentLifecycle componentLifecycle,
-                                           final URI uri) throws LifecycleManagementException {
+    private void disableControllerServices(final Set<AffectedComponentEntity> enabledControllerServices, final Set<AffectedComponentEntity> controllerServicesRequiringDisabledState,
+                                           final AsynchronousWebRequest<?, ?> asyncRequest, final ComponentLifecycle componentLifecycle, final URI uri) throws LifecycleManagementException {
 
         asyncRequest.markStepComplete();
-        logger.info("Disabling {} Controller Services in order to update Parameter Context", controllerServices.size());
+        logger.info("Disabling {} Controller Services in order to update Parameter Context", enabledControllerServices.size());
         final CancellableTimedPause disableServicesPause = new CancellableTimedPause(250, Long.MAX_VALUE, TimeUnit.MILLISECONDS);
         asyncRequest.setCancelCallback(disableServicesPause::cancel);
-        componentLifecycle.activateControllerServices(uri, "root", controllerServices, ControllerServiceState.DISABLED, disableServicesPause, InvalidComponentAction.WAIT);
+        componentLifecycle.activateControllerServices(uri, "root", enabledControllerServices, controllerServicesRequiringDisabledState, ControllerServiceState.DISABLED, disableServicesPause,
+            InvalidComponentAction.WAIT);
     }
 
-    private void enableControllerServices(final Set<AffectedComponentEntity> controllerServices, final AsynchronousWebRequest<?, ?> asyncRequest, final ComponentLifecycle componentLifecycle,
+    private void enableControllerServices(final Set<AffectedComponentEntity> controllerServices, final Set<AffectedComponentEntity> controllerServicesRequiringDisabledState,
+                                          final AsynchronousWebRequest<?, ?> asyncRequest, final ComponentLifecycle componentLifecycle,
                                           final URI uri) throws LifecycleManagementException, ResumeFlowException {
         if (logger.isDebugEnabled()) {
             logger.debug("Re-Enabling {} Controller Services: {}", controllerServices.size(), controllerServices);
@@ -1017,7 +1031,8 @@ public class ParameterContextResource extends ApplicationResource {
         final Set<AffectedComponentEntity> servicesToEnable = getUpdatedEntities(controllerServices);
 
         try {
-            componentLifecycle.activateControllerServices(uri, "root", servicesToEnable, ControllerServiceState.ENABLED, enableServicesPause, InvalidComponentAction.SKIP);
+            componentLifecycle.activateControllerServices(uri, "root", servicesToEnable, controllerServicesRequiringDisabledState,
+                ControllerServiceState.ENABLED, enableServicesPause, InvalidComponentAction.SKIP);
             asyncRequest.markStepComplete();
         } catch (final IllegalStateException ise) {
             // Component Lifecycle will re-enable the Controller Services only if they are valid. If IllegalStateException gets thrown, we need to provide
