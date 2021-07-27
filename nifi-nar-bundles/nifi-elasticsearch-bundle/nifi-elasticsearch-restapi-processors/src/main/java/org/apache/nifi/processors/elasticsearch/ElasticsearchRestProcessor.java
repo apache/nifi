@@ -30,7 +30,6 @@ import org.apache.nifi.processor.util.StandardValidators;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 
 public interface ElasticsearchRestProcessor {
     String ATTR_RECORD_COUNT = "record.count";
