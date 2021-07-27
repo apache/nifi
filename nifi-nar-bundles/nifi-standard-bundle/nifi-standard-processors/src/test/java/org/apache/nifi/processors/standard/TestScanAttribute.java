@@ -63,6 +63,90 @@ public class TestScanAttribute {
     }
 
     @Test
+    public void testSingleMatchWithDelimiters() {
+        final TestRunner runner = TestRunners.newTestRunner(new ScanAttribute());
+        runner.setVariable("dictionary", "src/test/resources/ScanAttribute/dictionary1");
+        runner.setProperty(ScanAttribute.DICTIONARY_FILE, "${dictionary}");
+        runner.setProperty(ScanAttribute.ATTRIBUTE_DELIMITER, ",");
+        runner.setProperty(ScanAttribute.DELIMITER_MATCHING_CRITERIA, ScanAttribute.MATCH_CRITERIA_ANY);
+        runner.setProperty(ScanAttribute.MATCHING_CRITERIA, ScanAttribute.MATCH_CRITERIA_ANY);
+
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("abc", "world");
+
+        runner.enqueue(new byte[0], attributes);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ScanAttribute.REL_MATCHED, 1);
+        runner.clearTransferState();
+
+        attributes.remove("abc");
+        runner.enqueue(new byte[0], attributes);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ScanAttribute.REL_UNMATCHED, 1);
+        runner.clearTransferState();
+
+        attributes.put("abc", "world1,hello");
+        runner.setProperty(ScanAttribute.ATTRIBUTE_PATTERN, "a.*");
+        runner.enqueue(new byte[0], attributes);
+        runner.run();
+        runner.assertAllFlowFilesTransferred(ScanAttribute.REL_MATCHED, 1);
+        runner.clearTransferState();
+
+        runner.setProperty(ScanAttribute.ATTRIBUTE_PATTERN, "c.*");
+        runner.enqueue(new byte[0], attributes);
+        runner.run();
+        runner.assertAllFlowFilesTransferred(ScanAttribute.REL_UNMATCHED, 1);
+        runner.clearTransferState();
+
+        runner.setProperty(ScanAttribute.DELIMITER_MATCHING_CRITERIA,ScanAttribute.MATCH_CRITERIA_ALL);
+        attributes.put("abc", "world1,hello");
+        runner.setProperty(ScanAttribute.ATTRIBUTE_PATTERN, "a.*");
+        runner.enqueue(new byte[0], attributes);
+        runner.run();
+        runner.assertAllFlowFilesTransferred(ScanAttribute.REL_UNMATCHED, 1);
+        runner.clearTransferState();
+
+        runner.setProperty(ScanAttribute.DELIMITER_MATCHING_CRITERIA,ScanAttribute.MATCH_CRITERIA_ALL);
+        attributes.put("abc", "world,hello");
+        runner.setProperty(ScanAttribute.ATTRIBUTE_PATTERN, "a.*");
+        runner.enqueue(new byte[0], attributes);
+        runner.run();
+        runner.assertAllFlowFilesTransferred(ScanAttribute.REL_MATCHED, 1);
+        runner.clearTransferState();
+
+        runner.setProperty(ScanAttribute.DELIMITER_MATCHING_CRITERIA,ScanAttribute.MATCH_CRITERIA_ANY);
+        attributes.put("abc", "world1,123,hello1");
+        runner.setProperty(ScanAttribute.ATTRIBUTE_PATTERN, "a.*");
+        runner.enqueue(new byte[0], attributes);
+        runner.run();
+        runner.assertAllFlowFilesTransferred(ScanAttribute.REL_MATCHED, 1);
+        runner.clearTransferState();
+
+        runner.setProperty(ScanAttribute.DELIMITER_MATCHING_CRITERIA,ScanAttribute.MATCH_CRITERIA_ANY);
+        attributes.put("abc", "world1,1234,hello1");
+        runner.setProperty(ScanAttribute.ATTRIBUTE_PATTERN, "a.*");
+        runner.enqueue(new byte[0], attributes);
+        runner.run();
+        runner.assertAllFlowFilesTransferred(ScanAttribute.REL_UNMATCHED, 1);
+        runner.clearTransferState();
+
+        //Test for "space' delimited text, delimiter set to ' '.
+        runner.setProperty(ScanAttribute.DELIMITER_MATCHING_CRITERIA,ScanAttribute.MATCH_CRITERIA_ALL);
+        runner.setProperty(ScanAttribute.ATTRIBUTE_DELIMITER, " ");
+
+        attributes.put("abc", "world 123 hello");
+        runner.setProperty(ScanAttribute.ATTRIBUTE_PATTERN, "a.*");
+        runner.enqueue(new byte[0], attributes);
+        runner.run();
+        runner.assertAllFlowFilesTransferred(ScanAttribute.REL_MATCHED, 1);
+        runner.clearTransferState();
+
+    }
+
+
+    @Test
     public void testAllMatch() {
         final TestRunner runner = TestRunners.newTestRunner(new ScanAttribute());
         runner.setProperty(ScanAttribute.DICTIONARY_FILE, "src/test/resources/ScanAttribute/dictionary1");
@@ -96,6 +180,119 @@ public class TestScanAttribute {
         attributes.put("a world", "hello");
         runner.enqueue(new byte[0], attributes);
         runner.run();
+        runner.assertAllFlowFilesTransferred(ScanAttribute.REL_MATCHED, 1);
+    }
+
+    @Test
+    public void testAllMatchDelimited() {
+        final TestRunner runner = TestRunners.newTestRunner(new ScanAttribute());
+        runner.setProperty(ScanAttribute.DICTIONARY_FILE, "src/test/resources/ScanAttribute/dictionary1");
+        runner.setProperty(ScanAttribute.MATCHING_CRITERIA, ScanAttribute.MATCH_CRITERIA_ALL);
+        runner.setProperty(ScanAttribute.ATTRIBUTE_PATTERN, "a.*");
+        runner.setProperty(ScanAttribute.ATTRIBUTE_DELIMITER, ",");
+        runner.setProperty(ScanAttribute.DELIMITER_MATCHING_CRITERIA, ScanAttribute.MATCH_CRITERIA_ALL);
+
+        final Map<String, String> attributes = new HashMap<>();
+        //Test match 1 attribute to key on
+        attributes.put("abc", "world");
+
+        runner.enqueue(new byte[0], attributes);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ScanAttribute.REL_MATCHED, 1);
+        runner.clearTransferState();
+
+        //Test No attribute to match on delimiter matching all
+        attributes.remove("abc");
+        runner.enqueue(new byte[0], attributes);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ScanAttribute.REL_MATCHED, 1);
+        runner.clearTransferState();
+
+        //Test No attribute to match on delimiter matching any
+        runner.setProperty(ScanAttribute.DELIMITER_MATCHING_CRITERIA, ScanAttribute.MATCH_CRITERIA_ANY);
+        attributes.remove("abc");
+        runner.enqueue(new byte[0], attributes);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ScanAttribute.REL_MATCHED, 1);
+        runner.clearTransferState();
+
+        //Test all delimited values in attribute must match
+        runner.setProperty(ScanAttribute.DELIMITER_MATCHING_CRITERIA, ScanAttribute.MATCH_CRITERIA_ALL);
+        attributes.put("abc", "world,apart");
+        runner.enqueue(new byte[0], attributes);
+        runner.run();
+        runner.assertAllFlowFilesTransferred(ScanAttribute.REL_UNMATCHED, 1);
+        runner.clearTransferState();
+
+        //Test any delimited attribute value must match
+        runner.setProperty(ScanAttribute.DELIMITER_MATCHING_CRITERIA, ScanAttribute.MATCH_CRITERIA_ANY);
+
+        runner.enqueue(new byte[0], attributes);
+        runner.run();
+        runner.assertAllFlowFilesTransferred(ScanAttribute.REL_MATCHED, 1);
+
+        runner.clearTransferState();
+
+        //Test match any at end
+        runner.setProperty(ScanAttribute.DELIMITER_MATCHING_CRITERIA, ScanAttribute.MATCH_CRITERIA_ANY);
+        attributes.put("abc", "world,hello1");
+        attributes.put("a world", "hello1,1234,456");
+        runner.enqueue(new byte[0], attributes);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ScanAttribute.REL_MATCHED, 1);
+
+        runner.clearTransferState();
+
+        //Test match on middle attribute
+        runner.setProperty(ScanAttribute.DELIMITER_MATCHING_CRITERIA, ScanAttribute.MATCH_CRITERIA_ANY);
+        attributes.put("abc", "world,hello1");
+        attributes.put("a world", "hello1,123,458");
+        runner.enqueue(new byte[0], attributes);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ScanAttribute.REL_MATCHED, 1);
+
+        runner.clearTransferState();
+
+        //Test Multiple any delimited and All Attributes no match
+        attributes.put("abc", "world1,hello1");
+        attributes.put("a world", "hello,123,456");
+        runner.enqueue(new byte[0], attributes);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ScanAttribute.REL_UNMATCHED, 1);
+        runner.clearTransferState();
+
+        //Test Multiple All Delimited and All Attributes
+        runner.setProperty(ScanAttribute.DELIMITER_MATCHING_CRITERIA, ScanAttribute.MATCH_CRITERIA_ALL);
+
+        attributes.put("abc", "world,hello1");
+        attributes.put("a world", "hello,123,456");
+        runner.enqueue(new byte[0], attributes);
+        runner.run();
+
+        runner.assertAllFlowFilesTransferred(ScanAttribute.REL_UNMATCHED, 1);
+        runner.clearTransferState();
+
+        attributes.remove("abc");
+        attributes.remove("a world");
+        attributes.put("abc", "world,hello1");
+        attributes.put("a world", "hello,123,458");
+        runner.enqueue(new byte[0], attributes);
+        runner.run();
+        runner.assertAllFlowFilesTransferred(ScanAttribute.REL_UNMATCHED, 1);
+
+        runner.clearTransferState();
+
+        attributes.put("abc", "world,hello");
+        attributes.put("a world", "hello,123,456");
+        runner.enqueue(new byte[0], attributes);
+        runner.run();
+
         runner.assertAllFlowFilesTransferred(ScanAttribute.REL_MATCHED, 1);
     }
 

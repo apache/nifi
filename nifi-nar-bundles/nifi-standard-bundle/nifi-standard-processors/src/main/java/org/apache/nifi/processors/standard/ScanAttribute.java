@@ -37,6 +37,7 @@ import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.util.StringUtils;
 import org.apache.nifi.util.file.monitor.LastModifiedMonitor;
 import org.apache.nifi.util.file.monitor.SynchronousFileWatcher;
 
@@ -67,6 +68,7 @@ public class ScanAttribute extends AbstractProcessor {
     public static final String MATCH_CRITERIA_ANY = "At Least 1 Must Match";
 
     public static final PropertyDescriptor MATCHING_CRITERIA = new PropertyDescriptor.Builder()
+            .displayName("Match Criteria")
             .name("Match Criteria")
             .description("If set to All Must Match, then FlowFiles will be routed to 'matched' only if all specified "
                     + "attributes' values are found in the dictionary. If set to At Least 1 Must Match, FlowFiles will "
@@ -75,14 +77,36 @@ public class ScanAttribute extends AbstractProcessor {
             .allowableValues(MATCH_CRITERIA_ANY, MATCH_CRITERIA_ALL)
             .defaultValue(MATCH_CRITERIA_ANY)
             .build();
+
+    public static final PropertyDescriptor DELIMITER_MATCHING_CRITERIA = new PropertyDescriptor.Builder()
+            .displayName("Delimited Attribute Match Criteria")
+            .name("Delimited Attribute Match Criteria")
+            .description("If set to All Must Match, then all delimited attribute values must match values in dictionary to consider as an attribute match "
+                    + "If set to At Least 1 Must Match, then attribute match if at least one attribute delimited value is found in dictionary. ")
+            .required(false)
+            .allowableValues(MATCH_CRITERIA_ANY, MATCH_CRITERIA_ALL)
+            .defaultValue(MATCH_CRITERIA_ANY)
+            .build();
+
+    public static final PropertyDescriptor ATTRIBUTE_DELIMITER = new PropertyDescriptor.Builder()
+            .displayName("Attribute Delimiter")
+            .name("Attribute Delimiter")
+            .description("Defines delimiter to use for attributes that contain a list of values. May be one or more chars, including '  '.")
+            .required(false)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+
     public static final PropertyDescriptor ATTRIBUTE_PATTERN = new PropertyDescriptor.Builder()
+            .displayName("Attribute Pattern")
             .name("Attribute Pattern")
             .description("Regular Expression that specifies the names of attributes whose values will be matched against the terms in the dictionary")
             .required(true)
             .addValidator(StandardValidators.REGULAR_EXPRESSION_VALIDATOR)
             .defaultValue(".*")
             .build();
+
     public static final PropertyDescriptor DICTIONARY_FILE = new PropertyDescriptor.Builder()
+            .displayName("Dictionary File")
             .name("Dictionary File")
             .description("A new-line-delimited text file that includes the terms that should trigger a match. Empty lines are ignored.  The contents of "
                     + "the text file are loaded into memory when the processor is scheduled and reloaded when the contents are modified.")
@@ -90,7 +114,9 @@ public class ScanAttribute extends AbstractProcessor {
             .identifiesExternalResource(ResourceCardinality.SINGLE, ResourceType.FILE)
             .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .build();
+
     public static final PropertyDescriptor DICTIONARY_FILTER = new PropertyDescriptor.Builder()
+            .displayName("Dictionary Filter Pattern")
             .name("Dictionary Filter Pattern")
             .description("A Regular Expression that will be applied to each line in the dictionary file. If the regular expression does not "
                     + "match the line, the line will not be included in the list of terms to search for. If a Matching Group is specified, only the "
@@ -124,6 +150,8 @@ public class ScanAttribute extends AbstractProcessor {
         properties.add(DICTIONARY_FILE);
         properties.add(ATTRIBUTE_PATTERN);
         properties.add(MATCHING_CRITERIA);
+        properties.add(DELIMITER_MATCHING_CRITERIA);
+        properties.add(ATTRIBUTE_DELIMITER);
         properties.add(DICTIONARY_FILTER);
         this.properties = Collections.unmodifiableList(properties);
 
@@ -207,20 +235,26 @@ public class ScanAttribute extends AbstractProcessor {
         }
 
         final boolean matchAll = context.getProperty(MATCHING_CRITERIA).getValue().equals(MATCH_CRITERIA_ALL);
+        final boolean matchAllDelimitedValues = context.getProperty(DELIMITER_MATCHING_CRITERIA).getValue().equals(MATCH_CRITERIA_ALL);
 
         for (final FlowFile flowFile : flowFiles) {
-            final boolean matched = matchAll ? allMatch(flowFile, attributePattern, dictionaryTerms) : anyMatch(flowFile, attributePattern, dictionaryTerms);
+            final boolean matched = matchAll ? allMatch(flowFile, attributePattern, context.getProperty(ATTRIBUTE_DELIMITER).getValue(),matchAllDelimitedValues, dictionaryTerms)
+                    : anyMatch(flowFile, attributePattern, context.getProperty(ATTRIBUTE_DELIMITER).getValue(), matchAllDelimitedValues,dictionaryTerms);
             final Relationship relationship = matched ? REL_MATCHED : REL_UNMATCHED;
             session.getProvenanceReporter().route(flowFile, relationship);
             session.transfer(flowFile, relationship);
-            logger.info("Transferred {} to {}", new Object[]{flowFile, relationship});
+            logger.info("Transferred {} to {}", flowFile, relationship);
         }
     }
 
-    private boolean allMatch(final FlowFile flowFile, final Pattern attributePattern, final Set<String> dictionary) {
-        for (final Map.Entry<String, String> entry : flowFile.getAttributes().entrySet()) {
+    private boolean allMatch(final Map.Entry<String, String> entry, final String attributeDelimiter, final Set<String> dictionary) {
+
+        if (StringUtils.isEmpty(attributeDelimiter)) {
+            return dictionary.contains(entry.getValue());
+        }
+        for(final String valueToMatch:entry.getValue().split(attributeDelimiter)) {
             if (attributePattern == null || attributePattern.matcher(entry.getKey()).matches()) {
-                if (!dictionary.contains(entry.getValue())) {
+                if (!dictionary.contains(valueToMatch)) {
                     return false;
                 }
             }
@@ -229,15 +263,52 @@ public class ScanAttribute extends AbstractProcessor {
         return true;
     }
 
-    private boolean anyMatch(final FlowFile flowFile, final Pattern attributePattern, final Set<String> dictionary) {
+    private boolean anyMatch(final Map.Entry<String, String> entry, final String attributeDelimiter, final Set<String> dictionary) {
+
+        if (StringUtils.isEmpty(attributeDelimiter)) {
+            return dictionary.contains(entry.getValue());
+        }
+        for(final String valueToMatch:entry.getValue().split(attributeDelimiter)) {
+            if (dictionary.contains(valueToMatch)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean allMatch(final FlowFile flowFile, final Pattern attributePattern, final String attributeDelimiter, boolean allDelimitersMustMatch, final Set<String> dictionary) {
         for (final Map.Entry<String, String> entry : flowFile.getAttributes().entrySet()) {
             if (attributePattern == null || attributePattern.matcher(entry.getKey()).matches()) {
-                if (dictionary.contains(entry.getValue())) {
-                    return true;
+                if (allDelimitersMustMatch) {
+                    if (!allMatch(entry, attributeDelimiter, dictionary)) {
+                        return false;
+                    }
+                } else {
+                    if (!anyMatch(entry, attributeDelimiter, dictionary)) {
+                        return false;
+                    }
                 }
             }
         }
+        return true;
 
+    }
+
+    private boolean anyMatch(final FlowFile flowFile, final Pattern attributePattern, final String attributeDelimiter, boolean allDelimitersMustMatch, final Set<String> dictionary) {
+        for (final Map.Entry<String, String> entry : flowFile.getAttributes().entrySet()) {
+            if (attributePattern == null || attributePattern.matcher(entry.getKey()).matches()) {
+                if( allDelimitersMustMatch) {
+                    if (allMatch(entry, attributeDelimiter, dictionary)) {
+                        return true;
+                    }
+                } else {
+                    if (anyMatch(entry, attributeDelimiter, dictionary)) {
+                        return true;
+                    }
+
+                }
+            }
+        }
         return false;
     }
 }
