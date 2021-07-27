@@ -23,4 +23,16 @@ public class DataflowAbortedException extends ProcessException {
     public DataflowAbortedException() {
         super();
     }
+
+    public DataflowAbortedException(final String message) {
+        super(message);
+    }
+
+    public DataflowAbortedException(final String message, final Throwable cause) {
+        super(message, cause);
+    }
+
+    public DataflowAbortedException(final Throwable cause) {
+        super(cause);
+    }
 }

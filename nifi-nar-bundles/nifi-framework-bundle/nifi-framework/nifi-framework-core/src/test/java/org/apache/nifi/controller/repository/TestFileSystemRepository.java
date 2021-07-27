@@ -128,7 +128,6 @@ public class TestFileSystemRepository {
                 + NumberFormat.getNumberInstance(Locale.US).format(bytesToWrite) + " bytes) for a write rate of " + mbps + " MB/s");
     }
 
-
     @Test
     public void testContentNotFoundExceptionThrownIfResourceClaimTooShort() throws IOException {
         final File contentFile = new File("target/content_repository/0/0.bin");

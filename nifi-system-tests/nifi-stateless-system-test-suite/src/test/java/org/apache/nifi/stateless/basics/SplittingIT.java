@@ -73,7 +73,6 @@ public class SplittingIT extends StatelessSystemIT {
         final DataflowTrigger trigger = dataflow.trigger();
         final TriggerResult result = trigger.getResult();
         assertTrue(result.isSuccessful());
-        result.acknowledge();
 
         final List<FlowFile> flowFiles = result.getOutputFlowFiles("Out");
         assertEquals(4, flowFiles.size());
@@ -86,5 +85,7 @@ public class SplittingIT extends StatelessSystemIT {
             final String outputContent = new String(result.readContent(flowFile));
             assertEquals(expected, outputContent);
         }
+
+        result.acknowledge();
     }
 }

@@ -58,4 +58,8 @@ public class CanceledTriggerResult implements TriggerResult {
     @Override
     public void acknowledge() {
     }
+
+    @Override
+    public void abort(final Throwable cause) {
+    }
 }

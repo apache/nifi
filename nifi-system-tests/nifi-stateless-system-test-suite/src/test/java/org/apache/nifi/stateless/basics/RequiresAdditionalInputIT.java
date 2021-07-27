@@ -80,7 +80,6 @@ public class RequiresAdditionalInputIT extends StatelessSystemIT {
         final DataflowTrigger trigger = dataflow.trigger();
         final TriggerResult result = trigger.getResult();
         assertTrue(result.isSuccessful());
-        result.acknowledge();
 
         final List<FlowFile> mergedFlowFiles = result.getOutputFlowFiles().get("merged");
         assertEquals(1, mergedFlowFiles.size());
@@ -96,6 +95,8 @@ public class RequiresAdditionalInputIT extends StatelessSystemIT {
 
         final String expectedText = expectedTextBuilder.toString();
         assertEquals(expectedText, outputText);
+
+        result.acknowledge();
     }
 
     @Test
@@ -144,7 +145,6 @@ public class RequiresAdditionalInputIT extends StatelessSystemIT {
         final DataflowTrigger trigger = dataflow.trigger();
         final TriggerResult result = trigger.getResult();
         assertTrue(result.isSuccessful());
-        result.acknowledge();
 
         final List<FlowFile> mergedFlowFiles = result.getOutputFlowFiles().get("out");
         assertEquals(1, mergedFlowFiles.size());
@@ -157,6 +157,8 @@ public class RequiresAdditionalInputIT extends StatelessSystemIT {
 
         final String expectedText = expectedTextBuilder.toString();
         assertEquals(expectedText, outputText);
+
+        result.acknowledge();
     }
 
     private TransactionThresholds createTransactionThresholds(final int maxFlowFiles) {

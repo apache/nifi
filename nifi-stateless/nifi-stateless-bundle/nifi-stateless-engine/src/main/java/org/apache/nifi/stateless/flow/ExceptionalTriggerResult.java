@@ -65,4 +65,9 @@ public class ExceptionalTriggerResult implements TriggerResult {
     @Override
     public void acknowledge() {
     }
+
+    @Override
+    public void abort(final Throwable cause) {
+        failureCause.addSuppressed(cause);
+    }
 }

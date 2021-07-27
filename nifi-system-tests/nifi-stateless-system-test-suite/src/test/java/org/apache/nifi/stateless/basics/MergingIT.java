@@ -67,7 +67,6 @@ public class MergingIT extends StatelessSystemIT {
         final DataflowTrigger trigger = dataflow.trigger();
         final TriggerResult result = trigger.getResult();
         assertTrue(result.isSuccessful());
-        result.acknowledge();
 
         final List<FlowFile> flowFiles = result.getOutputFlowFiles("Out");
         assertEquals(1, flowFiles.size());
@@ -75,5 +74,7 @@ public class MergingIT extends StatelessSystemIT {
         final FlowFile first = flowFiles.get(0);
         final String outputContent = new String(result.readContent(first));
         assertEquals("abc123xyz321abc123xyz321abc123xyz321", outputContent);
+
+        result.acknowledge();
     }
 }
