@@ -21,6 +21,7 @@ import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.RecordedRequest;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
+import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processors.standard.http.FlowFileNamingStrategy;
 import org.apache.nifi.reporting.InitializationException;
@@ -34,6 +35,7 @@ import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
 import org.apache.nifi.web.util.ssl.SslContextUtils;
+import org.mockito.Answers;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
@@ -772,6 +774,99 @@ public class InvokeHTTPTest {
             Arguments.of(OPTIONS_METHOD, "", FLOW_FILE_INITIAL_FILENAME),
             Arguments.of(OPTIONS_METHOD, "has/path", FLOW_FILE_INITIAL_FILENAME)
         );
+    }
+
+    @Test
+    public void testValidWhenOAuth2Set() throws Exception {
+        // GIVEN
+        String oauth2AccessTokenProviderId = "oauth2AccessTokenProviderId";
+
+        OAuth2AccessTokenProvider oauth2AccessTokenProvider = mock(OAuth2AccessTokenProvider.class, Answers.RETURNS_DEEP_STUBS);
+        when(oauth2AccessTokenProvider.getIdentifier()).thenReturn(oauth2AccessTokenProviderId);
+
+        runner.addControllerService(oauth2AccessTokenProviderId, oauth2AccessTokenProvider);
+        runner.enableControllerService(oauth2AccessTokenProvider);
+
+        setUrlProperty();
+
+        // WHEN
+        runner.setProperty(InvokeHTTP.OAUTH2_ACCESS_TOKEN_PROVIDER, oauth2AccessTokenProviderId);
+
+        // THEN
+        runner.assertValid();
+    }
+
+    @Test
+    public void testInvalidWhenOAuth2AndUserNameSet() throws Exception {
+        // GIVEN
+        String oauth2AccessTokenProviderId = "oauth2AccessTokenProviderId";
+
+        OAuth2AccessTokenProvider oauth2AccessTokenProvider = mock(OAuth2AccessTokenProvider.class, Answers.RETURNS_DEEP_STUBS);
+        when(oauth2AccessTokenProvider.getIdentifier()).thenReturn(oauth2AccessTokenProviderId);
+
+        runner.addControllerService(oauth2AccessTokenProviderId, oauth2AccessTokenProvider);
+        runner.enableControllerService(oauth2AccessTokenProvider);
+
+        setUrlProperty();
+
+        // WHEN
+        runner.setProperty(InvokeHTTP.OAUTH2_ACCESS_TOKEN_PROVIDER, oauth2AccessTokenProviderId);
+        runner.setProperty(InvokeHTTP.PROP_BASIC_AUTH_USERNAME, "userName");
+
+        // THEN
+        runner.assertNotValid();
+    }
+
+    @Test
+    public void testInvalidWhenOAuth2AndPasswordSet() throws Exception {
+        // GIVEN
+        String oauth2AccessTokenProviderId = "oauth2AccessTokenProviderId";
+
+        OAuth2AccessTokenProvider oauth2AccessTokenProvider = mock(OAuth2AccessTokenProvider.class, Answers.RETURNS_DEEP_STUBS);
+        when(oauth2AccessTokenProvider.getIdentifier()).thenReturn(oauth2AccessTokenProviderId);
+
+        runner.addControllerService(oauth2AccessTokenProviderId, oauth2AccessTokenProvider);
+        runner.enableControllerService(oauth2AccessTokenProvider);
+
+        setUrlProperty();
+
+        // WHEN
+        runner.setProperty(InvokeHTTP.OAUTH2_ACCESS_TOKEN_PROVIDER, oauth2AccessTokenProviderId);
+        runner.setProperty(InvokeHTTP.PROP_BASIC_AUTH_PASSWORD, "password");
+
+        // THEN
+        runner.assertNotValid();
+    }
+
+    @Test
+    public void testOAuth2AuthorizationHeader() throws Exception {
+        // GIVEN
+        String accessToken = "access_token";
+
+        String oauth2AccessTokenProviderId = "oauth2AccessTokenProviderId";
+
+        OAuth2AccessTokenProvider oauth2AccessTokenProvider = mock(OAuth2AccessTokenProvider.class, Answers.RETURNS_DEEP_STUBS);
+        when(oauth2AccessTokenProvider.getIdentifier()).thenReturn(oauth2AccessTokenProviderId);
+        when(oauth2AccessTokenProvider.getAccessDetails().getAccessToken()).thenReturn(accessToken);
+
+        runner.addControllerService(oauth2AccessTokenProviderId, oauth2AccessTokenProvider);
+        runner.enableControllerService(oauth2AccessTokenProvider);
+
+        setUrlProperty();
+
+        mockWebServer.enqueue(new MockResponse());
+
+        // WHEN
+        runner.setProperty(InvokeHTTP.OAUTH2_ACCESS_TOKEN_PROVIDER, oauth2AccessTokenProviderId);
+        runner.enqueue("unimportant");
+        runner.run();
+
+        // THEN
+        RecordedRequest recordedRequest = mockWebServer.takeRequest();
+
+        String actualAuthorizationHeader = recordedRequest.getHeader("Authorization");
+        assertEquals("Bearer " + accessToken, actualAuthorizationHeader);
+
     }
 
     private void setUrlProperty() {

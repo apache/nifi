@@ -42,6 +42,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -90,6 +91,7 @@ import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
 import org.apache.nifi.flowfile.attributes.CoreAttributes;
 import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.oauth2.OAuth2AccessTokenProvider;
 import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.DataUnit;
 import org.apache.nifi.processor.ProcessContext;
@@ -494,6 +496,13 @@ public class InvokeHTTP extends AbstractProcessor {
             .allowableValues("True", "False")
             .build();
 
+    public static final PropertyDescriptor OAUTH2_ACCESS_TOKEN_PROVIDER = new PropertyDescriptor.Builder()
+            .name("oauth2-access-token-provider")
+            .displayName("OAuth2 Access Token provider")
+            .identifiesControllerService(OAuth2AccessTokenProvider.class)
+            .required(false)
+            .build();
+
     public static final PropertyDescriptor FLOW_FILE_NAMING_STRATEGY = new PropertyDescriptor.Builder()
             .name("flow-file-naming-strategy")
             .description("Determines the strategy used for setting the filename attribute of the FlowFile.")
@@ -527,6 +536,7 @@ public class InvokeHTTP extends AbstractProcessor {
             PROP_USERAGENT,
             PROP_BASIC_AUTH_USERNAME,
             PROP_BASIC_AUTH_PASSWORD,
+            OAUTH2_ACCESS_TOKEN_PROVIDER,
             PROXY_CONFIGURATION_SERVICE,
             PROP_PROXY_HOST,
             PROP_PROXY_PORT,
@@ -594,6 +604,8 @@ public class InvokeHTTP extends AbstractProcessor {
     private volatile Pattern regexAttributesToSend = null;
 
     private volatile boolean useChunked = false;
+
+    private volatile Optional<OAuth2AccessTokenProvider> oauth2AccessTokenProviderOptional;
 
     private final AtomicReference<OkHttpClient> okHttpClientAtomicReference = new AtomicReference<>();
 
@@ -728,6 +740,19 @@ public class InvokeHTTP extends AbstractProcessor {
                     .build());
         }
 
+        boolean usingUserNamePasswordAuthorization = validationContext.getProperty(PROP_BASIC_AUTH_USERNAME).isSet()
+            || validationContext.getProperty(PROP_BASIC_AUTH_PASSWORD).isSet();
+
+        boolean usingOAuth2Authorization = validationContext.getProperty(OAUTH2_ACCESS_TOKEN_PROVIDER).isSet();
+
+        if (usingUserNamePasswordAuthorization && usingOAuth2Authorization) {
+            results.add(new ValidationResult.Builder()
+                .subject("Authorization properties")
+                .valid(false)
+                .explanation("OAuth2 Authorization cannot be configured together with Username and Password properties")
+                .build());
+        }
+
         return results;
     }
 
@@ -804,6 +829,19 @@ public class InvokeHTTP extends AbstractProcessor {
         useChunked = context.getProperty(PROP_USE_CHUNKED_ENCODING).asBoolean();
 
         okHttpClientAtomicReference.set(okHttpClientBuilder.build());
+    }
+
+    @OnScheduled
+    public void initOauth2AccessTokenProvider(final ProcessContext context) {
+        if (context.getProperty(OAUTH2_ACCESS_TOKEN_PROVIDER).isSet()) {
+            OAuth2AccessTokenProvider oauth2AccessTokenProvider = context.getProperty(OAUTH2_ACCESS_TOKEN_PROVIDER).asControllerService(OAuth2AccessTokenProvider.class);
+
+            oauth2AccessTokenProvider.getAccessDetails();
+
+            oauth2AccessTokenProviderOptional = Optional.of(oauth2AccessTokenProvider);
+        } else {
+            oauth2AccessTokenProviderOptional = Optional.empty();
+        }
     }
 
     private void setAuthenticator(OkHttpClient.Builder okHttpClientBuilder, ProcessContext context) {
@@ -1034,11 +1072,17 @@ public class InvokeHTTP extends AbstractProcessor {
         final String authUser = trimToEmpty(context.getProperty(PROP_BASIC_AUTH_USERNAME).getValue());
 
         // If the username/password properties are set then check if digest auth is being used
-        if (!authUser.isEmpty() && "false".equalsIgnoreCase(context.getProperty(PROP_DIGEST_AUTH).getValue())) {
-            final String authPass = trimToEmpty(context.getProperty(PROP_BASIC_AUTH_PASSWORD).getValue());
+        if ("false".equalsIgnoreCase(context.getProperty(PROP_DIGEST_AUTH).getValue())) {
+            if (!authUser.isEmpty()) {
+                final String authPass = trimToEmpty(context.getProperty(PROP_BASIC_AUTH_PASSWORD).getValue());
 
-            String credential = Credentials.basic(authUser, authPass);
-            requestBuilder.header("Authorization", credential);
+                String credential = Credentials.basic(authUser, authPass);
+                requestBuilder.header("Authorization", credential);
+            } else {
+                oauth2AccessTokenProviderOptional.ifPresent(oauth2AccessTokenProvider ->
+                    requestBuilder.addHeader("Authorization", "Bearer " + oauth2AccessTokenProvider.getAccessDetails().getAccessToken())
+                );
+            }
         }
 
         // set the request method
