@@ -39,7 +39,7 @@ public class StandardSensitivePropertyProviderFactory implements SensitiveProper
     private final Optional<String> keyHex;
     private final Supplier<BootstrapProperties> bootstrapPropertiesSupplier;
     private final Map<PropertyProtectionScheme, SensitivePropertyProvider> providerMap;
-    private Map<String, Pattern> customPropertyContextLocationMap;
+    private Map<String, Pattern> customPropertyContextMap;
 
     /**
      * Creates a StandardSensitivePropertyProviderFactory using the default bootstrap.conf location and
@@ -77,17 +77,17 @@ public class StandardSensitivePropertyProviderFactory implements SensitiveProper
         this.keyHex = Optional.ofNullable(keyHex);
         this.bootstrapPropertiesSupplier = bootstrapPropertiesSupplier == null ? () -> null : bootstrapPropertiesSupplier;
         this.providerMap = new HashMap<>();
-        this.customPropertyContextLocationMap = null;
+        this.customPropertyContextMap = null;
     }
 
-    private void populateCustomPropertyContextLocationMap() {
+    private void populateCustomPropertyContextMap() {
         final BootstrapProperties bootstrapProperties = getBootstrapProperties();
-        customPropertyContextLocationMap = new HashMap<>();
-        final String xmlContextLocationMappingKeyPrefix = BootstrapPropertyKey.CONTEXT_LOCATION_MAPPING.getKey();
+        customPropertyContextMap = new HashMap<>();
+        final String contextMappingKeyPrefix = BootstrapPropertyKey.CONTEXT_MAPPING_PREFIX.getKey();
         bootstrapProperties.getPropertyKeys().stream()
-                .filter(k -> k.contains(xmlContextLocationMappingKeyPrefix))
+                .filter(k -> k.contains(contextMappingKeyPrefix))
                 .forEach(k -> {
-                    customPropertyContextLocationMap.put(StringUtils.substringAfter(k, xmlContextLocationMappingKeyPrefix), Pattern.compile(bootstrapProperties.getProperty(k)));
+                    customPropertyContextMap.put(StringUtils.substringAfter(k, contextMappingKeyPrefix), Pattern.compile(bootstrapProperties.getProperty(k)));
                 });
     }
 
@@ -139,10 +139,10 @@ public class StandardSensitivePropertyProviderFactory implements SensitiveProper
 
     @Override
     public ProtectedPropertyContext getPropertyContext(final String groupIdentifier, final String propertyName) {
-        if (customPropertyContextLocationMap == null) {
-            populateCustomPropertyContextLocationMap();
+        if (customPropertyContextMap == null) {
+            populateCustomPropertyContextMap();
         }
-        final String contextName = customPropertyContextLocationMap.entrySet().stream()
+        final String contextName = customPropertyContextMap.entrySet().stream()
                 .filter(entry -> entry.getValue().matcher(groupIdentifier).find())
                 .map(Map.Entry::getKey)
                 .findFirst()
