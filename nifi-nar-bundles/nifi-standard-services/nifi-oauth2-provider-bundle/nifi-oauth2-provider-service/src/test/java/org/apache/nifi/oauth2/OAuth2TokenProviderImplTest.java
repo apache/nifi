@@ -107,7 +107,7 @@ public class OAuth2TokenProviderImplTest {
     private void assertAccessTokenFound(final AccessToken accessToken) {
         assertNotNull(accessToken);
         assertEquals("access token", accessToken.getAccessToken());
-        assertEquals(300, accessToken.getExpires().intValue());
+        assertEquals(5300, accessToken.getExpiresIn());
         assertEquals("BEARER", accessToken.getTokenType());
         assertFalse(accessToken.isExpired());
     }
@@ -117,7 +117,7 @@ public class OAuth2TokenProviderImplTest {
         token.put("access_token", "access token");
         token.put("refresh_token", "refresh token");
         token.put("token_type", "BEARER");
-        token.put("expires_in", 300);
+        token.put("expires_in", 5300);
         token.put("scope", "test scope");
         final String accessToken = new ObjectMapper().writeValueAsString(token);
         mockWebServer.enqueue(new MockResponse().setResponseCode(200).addHeader("Content-Type", "application/json").setBody(accessToken));

@@ -29,7 +29,10 @@ import java.util.List;
 
 /**
  * Interface for defining a credential-providing controller service for oauth2 processes.
+ *
+ * @deprecated use {@link OAuth2AccessTokenProvider} instead
  */
+@Deprecated
 public interface OAuth2TokenProvider extends ControllerService {
     PropertyDescriptor SSL_CONTEXT = new PropertyDescriptor.Builder()
             .name("oauth2-ssl-context")
