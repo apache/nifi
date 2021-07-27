@@ -38,6 +38,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -123,15 +124,20 @@ public class AsyncCommitCallbackIT extends StatelessSystemIT {
         builder.createConnection(ingestFile, replace, "success");
         builder.createConnection(replace, outputPort, "success");
 
-        final TriggerResult result = testAsyncCallbackCalledAtFinish(builder.getFlowSnapshot(), inputFile, replacementFile);
+        testAsyncCallbackCalledAtFinish(builder.getFlowSnapshot(), inputFile, replacementFile, result -> {
+            final List<FlowFile> flowFilesOut = result.getOutputFlowFiles("Out");
+            assertEquals(1, flowFilesOut.size());
+            final FlowFile out = flowFilesOut.get(0);
+            assertEquals(replacementFile.getName(), out.getAttribute("filename"));
 
-        final List<FlowFile> flowFilesOut = result.getOutputFlowFiles("Out");
-        assertEquals(1, flowFilesOut.size());
-        final FlowFile out = flowFilesOut.get(0);
-        assertEquals(replacementFile.getName(), out.getAttribute("filename"));
-
-        final byte[] outputContents = result.readContent(out);
-        assertEquals("Good-bye World", new String(outputContents));
+            final byte[] outputContents;
+            try {
+                outputContents = result.readContentAsByteArray(out);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            assertEquals("Good-bye World", new String(outputContents));
+        });
     }
 
     @Test
@@ -160,10 +166,10 @@ public class AsyncCommitCallbackIT extends StatelessSystemIT {
         builder.createConnection(ingestFile, replace, "success");
         builder.createConnection(replace, terminate, "success");
 
-        testAsyncCallbackCalledAtFinish(builder.getFlowSnapshot(), inputFile, replacementFile);
+        testAsyncCallbackCalledAtFinish(builder.getFlowSnapshot(), inputFile, replacementFile, (result) -> {});
     }
 
-    private TriggerResult testAsyncCallbackCalledAtFinish(final VersionedFlowSnapshot flowSnapshot, final File inputFile, final File replacementFile)
+    private TriggerResult testAsyncCallbackCalledAtFinish(final VersionedFlowSnapshot flowSnapshot, final File inputFile, final File replacementFile, final Consumer<TriggerResult> resultConsumer)
                 throws IOException, InterruptedException, StatelessConfigurationException {
         final StatelessDataflow dataflow = loadDataflow(flowSnapshot);
         final DataflowTrigger trigger = dataflow.trigger();
@@ -179,6 +185,9 @@ public class AsyncCommitCallbackIT extends StatelessSystemIT {
         assertTrue(inputFile.exists());
 
         assertTrue(result.isSuccessful());
+
+        resultConsumer.accept(result);
+
         result.acknowledge();
 
         // When acknowledge() is called, we do not block until the synchronous commits have been "unwound".

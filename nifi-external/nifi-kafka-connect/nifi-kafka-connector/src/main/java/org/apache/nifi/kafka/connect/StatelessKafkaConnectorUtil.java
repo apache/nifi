@@ -42,6 +42,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.jar.JarFile;
@@ -275,6 +276,11 @@ public class StatelessKafkaConnectorUtil {
             @Override
             public File getKrb5File() {
                 return new File(properties.getOrDefault(KRB5_FILE, DEFAULT_KRB5_FILE));
+            }
+
+            @Override
+            public Optional<File> getContentRepositoryDirectory() {
+                return Optional.empty();
             }
 
             @Override

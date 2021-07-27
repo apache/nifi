@@ -80,7 +80,6 @@ public class RequiresAdditionalInputIT extends StatelessSystemIT {
         final DataflowTrigger trigger = dataflow.trigger();
         final TriggerResult result = trigger.getResult();
         assertTrue(result.isSuccessful());
-        result.acknowledge();
 
         final List<FlowFile> mergedFlowFiles = result.getOutputFlowFiles().get("merged");
         assertEquals(1, mergedFlowFiles.size());
@@ -88,7 +87,7 @@ public class RequiresAdditionalInputIT extends StatelessSystemIT {
         final List<FlowFile> originalFlowFiles = result.getOutputFlowFiles().get("original");
         assertEquals(flowFileCount, originalFlowFiles.size());
 
-        final String outputText = new String(result.readContent(mergedFlowFiles.get(0)));
+        final String outputText = new String(result.readContentAsByteArray(mergedFlowFiles.get(0)));
         final StringBuilder expectedTextBuilder = new StringBuilder();
         for (int i=0; i < flowFileCount; i++) {
             expectedTextBuilder.append("abc");
@@ -96,6 +95,8 @@ public class RequiresAdditionalInputIT extends StatelessSystemIT {
 
         final String expectedText = expectedTextBuilder.toString();
         assertEquals(expectedText, outputText);
+
+        result.acknowledge();
     }
 
     @Test
@@ -144,12 +145,11 @@ public class RequiresAdditionalInputIT extends StatelessSystemIT {
         final DataflowTrigger trigger = dataflow.trigger();
         final TriggerResult result = trigger.getResult();
         assertTrue(result.isSuccessful());
-        result.acknowledge();
 
         final List<FlowFile> mergedFlowFiles = result.getOutputFlowFiles().get("out");
         assertEquals(1, mergedFlowFiles.size());
 
-        final String outputText = new String(result.readContent(mergedFlowFiles.get(0)));
+        final String outputText = new String(result.readContentAsByteArray(mergedFlowFiles.get(0)));
         final StringBuilder expectedTextBuilder = new StringBuilder();
         for (int i=0; i < 36; i++) {
             expectedTextBuilder.append("abc");
@@ -157,6 +157,8 @@ public class RequiresAdditionalInputIT extends StatelessSystemIT {
 
         final String expectedText = expectedTextBuilder.toString();
         assertEquals(expectedText, outputText);
+
+        result.acknowledge();
     }
 
     private TransactionThresholds createTransactionThresholds(final int maxFlowFiles) {

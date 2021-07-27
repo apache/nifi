@@ -44,6 +44,7 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -91,6 +92,14 @@ public class StatelessSystemIT {
             @Override
             public File getKrb5File() {
                 return new File("/etc/krb5.conf");
+            }
+
+            @Override
+            public Optional<File> getContentRepositoryDirectory() {
+                return Optional.empty();
+
+                // Can be used to enable file-based content repository.
+//                return Optional.of(new File("target/nifi-stateless-content-repo"));
             }
 
             @Override
