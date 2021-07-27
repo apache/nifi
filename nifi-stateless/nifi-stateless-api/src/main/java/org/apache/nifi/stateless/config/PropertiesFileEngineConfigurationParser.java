@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -41,6 +42,7 @@ public class PropertiesFileEngineConfigurationParser {
     private static final String NAR_DIRECTORY = PREFIX + "nar.directory";
     private static final String EXTENSIONS_DIRECTORY = PREFIX + "extensions.directory";
     private static final String WORKING_DIRECTORY = PREFIX + "working.directory";
+    private static final String CONTENT_REPO_DIRECTORY = PREFIX + "content.repository.directory";
 
     private static final String TRUSTSTORE_FILE = PREFIX + "security.truststore";
     private static final String TRUSTSTORE_TYPE = PREFIX + "security.truststoreType";
@@ -85,6 +87,9 @@ public class PropertiesFileEngineConfigurationParser {
             throw new StatelessConfigurationException("Extensions Directory " + narDirectory.getAbsolutePath() + " specified in properties file does not exist and could not be created");
         }
 
+        final String contentRepoDirectoryFilename = properties.getProperty(CONTENT_REPO_DIRECTORY, "");
+        final File contentRepoDirectory = contentRepoDirectoryFilename.isEmpty() ? null : new File(contentRepoDirectoryFilename);
+
         final String krb5Filename = properties.getProperty(KRB5_FILE, DEFAULT_KRB5_FILENAME);
         final File krb5File = new File(krb5Filename);
 
@@ -112,6 +117,11 @@ public class PropertiesFileEngineConfigurationParser {
             @Override
             public File getKrb5File() {
                 return krb5File;
+            }
+
+            @Override
+            public Optional<File> getContentRepositoryDirectory() {
+                return Optional.ofNullable(contentRepoDirectory);
             }
 
             @Override

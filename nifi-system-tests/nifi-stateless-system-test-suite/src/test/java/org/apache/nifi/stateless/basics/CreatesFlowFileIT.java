@@ -54,7 +54,7 @@ public class CreatesFlowFileIT extends StatelessSystemIT {
         final FlowFile flowFile = flowFiles.get(0);
         assertEquals("hello", flowFile.getAttribute("greeting"));
 
-        final byte[] bytes = result.readContent(flowFile);
+        final byte[] bytes = result.readContentAsByteArray(flowFile);
         assertEquals("Hello", new String(bytes, StandardCharsets.UTF_8));
     }
 

@@ -19,6 +19,8 @@ package org.apache.nifi.stateless.flow;
 
 import org.apache.nifi.flowfile.FlowFile;
 
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -51,11 +53,20 @@ public class CanceledTriggerResult implements TriggerResult {
     }
 
     @Override
-    public byte[] readContent(final FlowFile flowFile) {
+    public InputStream readContent(final FlowFile flowFile) {
+        return new ByteArrayInputStream(new byte[0]);
+    }
+
+    @Override
+    public byte[] readContentAsByteArray(final FlowFile flowFile) {
         return new byte[0];
     }
 
     @Override
     public void acknowledge() {
+    }
+
+    @Override
+    public void abort(final Throwable cause) {
     }
 }

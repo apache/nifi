@@ -69,6 +69,7 @@ import org.apache.nifi.stateless.engine.StatelessProcessContextFactory;
 import org.apache.nifi.stateless.engine.StatelessProvenanceAuthorizableFactory;
 import org.apache.nifi.stateless.repository.ByteArrayContentRepository;
 import org.apache.nifi.stateless.repository.RepositoryContextFactory;
+import org.apache.nifi.stateless.repository.StatelessFileSystemContentRepository;
 import org.apache.nifi.stateless.repository.StatelessFlowFileRepository;
 import org.apache.nifi.stateless.repository.StatelessProvenanceRepository;
 import org.apache.nifi.stateless.repository.StatelessRepositoryContextFactory;
@@ -85,6 +86,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 public class StandardStatelessDataflowFactory implements StatelessDataflowFactory<VersionedFlowSnapshot> {
     private static final Logger logger = LoggerFactory.getLogger(StandardStatelessDataflowFactory.class);
@@ -197,7 +199,7 @@ public class StandardStatelessDataflowFactory implements StatelessDataflowFactor
 
             final ProcessContextFactory rawProcessContextFactory = new StatelessProcessContextFactory(controllerServiceProvider, lazyInitializedEncryptor, stateManagerProvider);
             final ProcessContextFactory processContextFactory = new CachingProcessContextFactory(rawProcessContextFactory);
-            contentRepo = new ByteArrayContentRepository();
+            contentRepo = createContentRepository(engineConfiguration);
             flowFileRepo = new StatelessFlowFileRepository();
 
             final RepositoryContextFactory repositoryContextFactory = new StatelessRepositoryContextFactory(contentRepo, flowFileRepo, flowFileEventRepo,
@@ -259,6 +261,15 @@ public class StandardStatelessDataflowFactory implements StatelessDataflowFactor
             }
 
             throw e;
+        }
+    }
+
+    private ContentRepository createContentRepository(final StatelessEngineConfiguration engineConfiguration) {
+        final Optional<File> contentRepoStorageDirectory = engineConfiguration.getContentRepositoryDirectory();
+        if (contentRepoStorageDirectory.isPresent()) {
+            return new StatelessFileSystemContentRepository(contentRepoStorageDirectory.get());
+        } else {
+            return new ByteArrayContentRepository();
         }
     }
 

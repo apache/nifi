@@ -19,6 +19,8 @@ package org.apache.nifi.stateless.flow;
 
 import org.apache.nifi.flowfile.FlowFile;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -57,11 +59,27 @@ public interface TriggerResult {
      * Provides the contents of a FlowFile that was obtained by calling {@link #getOutputFlowFiles()}.
      * @param flowFile the FlowFile whose contents are to be read
      * @return the contents of the FlowFile
+     * @throws IOException if unable to read the contents of the FlowFile
      */
-    byte[] readContent(FlowFile flowFile);
+    InputStream readContent(FlowFile flowFile) throws IOException;
+
+    /**
+     * Provides the contents of a FlowFile that was obtained by calling {@link #getOutputFlowFiles()} as a byte array
+     *
+     * @param flowFile the FlowFile whose contents are to be read
+     * @return the contents of the FlowFile
+     * @throws IOException if unable to read the contents of the FlowFile
+     */
+    byte[] readContentAsByteArray(FlowFile flowFile) throws IOException;
 
     /**
      * Acknowledges the output of the dataflow and allows the session to be successfully committed.
      */
     void acknowledge();
+
+    /**
+     * Aborts the dataflow
+     * @param cause the cause for aborting the dataflow, or <code>null</code> if no cause is to be specified
+     */
+    void abort(Throwable cause);
 }

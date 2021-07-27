@@ -22,6 +22,7 @@ import org.apache.nifi.stateless.config.SslContextDefinition;
 
 import java.io.File;
 import java.util.List;
+import java.util.Optional;
 
 public interface StatelessEngineConfiguration {
     File getWorkingDirectory();
@@ -31,6 +32,11 @@ public interface StatelessEngineConfiguration {
     File getExtensionsDirectory();
 
     File getKrb5File();
+
+    /**
+     * @return the directory to use for storing FlowFile Content, or an empty optional if content is to be stored in memory
+     */
+    Optional<File> getContentRepositoryDirectory();
 
     SslContextDefinition getSslContext();
 

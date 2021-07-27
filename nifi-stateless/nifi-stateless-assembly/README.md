@@ -194,6 +194,7 @@ descriptions, and example values:
 |---------------|-------------|---------------|
 | nifi.stateless.nar.directory | The location of a directory containing all NiFi Archives (NARs) that are necessary for running the dataflow | /var/lib/nifi/lib |
 | nifi.stateless.working.directory | The location of a directory where Stateless should store its expanded NAR files and use for temporary storage | /var/lib/nifi/work/stateless |
+| nifi.stateless.content.repository.directory | The location of a directory where Stateless should store the contents of FlowFiles. If not specified, Stateless will store FlowFile contents only in memory. However, specifying a directory for storing data can allow Stateless NiFi to process data that is larger than is able to be fit into memory. It is important to note that this does not result in persisting state across restarts. The data in the content repository is cleared each time that a dataflow is triggered. | /var/lib/nifi/content 
 
 
 The following properties may be used for configuring security parameters:

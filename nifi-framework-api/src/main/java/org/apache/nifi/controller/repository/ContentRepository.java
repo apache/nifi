@@ -161,6 +161,7 @@ public interface ContentRepository {
      * @throws IllegalArgumentException if the given destination is included in
      * the given claims
      */
+    @Deprecated
     long merge(Collection<ContentClaim> claims, ContentClaim destination, byte[] header, byte[] footer, byte[] demarcator) throws IOException;
 
     /**
