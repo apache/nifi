@@ -117,7 +117,7 @@ public interface ElasticsearchRestProcessor {
             session.exportTo(input, out);
             out.close();
 
-            retVal = out.toString(StandardCharsets.UTF_8);
+            retVal = out.toString();
         }
 
         return retVal;
