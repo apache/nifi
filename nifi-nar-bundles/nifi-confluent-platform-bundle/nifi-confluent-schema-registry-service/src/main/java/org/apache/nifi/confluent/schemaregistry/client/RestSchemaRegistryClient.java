@@ -258,8 +258,8 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
                 case OK:
                     JsonNode jsonResponse =  response.readEntity(JsonNode.class);
 
-                    if(logger.isDebugEnabled()) {
-                        logger.debug("Response: " + jsonResponse.toString());
+                    if (logger.isDebugEnabled()) {
+                        logger.debug("JSON Response: {}", jsonResponse);
                     }
 
                     return jsonResponse;
