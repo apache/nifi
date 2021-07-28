@@ -152,5 +152,10 @@
             <artifactId>groovy-dateutil</artifactId>
             <version>${scripting.groovy.version}</version>
         </dependency>
+        <dependency>
+            <groupId>org.apache.nifi</groupId>
+            <artifactId>nifi-schema-registry-service-api</artifactId>
+            <scope>provided</scope>
+        </dependency>
     </dependencies>
 </project>

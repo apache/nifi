@@ -42,6 +42,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.schema.access.SchemaNotFoundException;
+import org.apache.nifi.schemaregistry.services.SchemaRegistry;
 import org.apache.nifi.script.ScriptingComponentHelper;
 import org.apache.nifi.script.ScriptingComponentUtils;
 import org.apache.nifi.search.SearchContext;
@@ -53,8 +54,10 @@ import org.apache.nifi.serialization.RecordReaderFactory;
 import org.apache.nifi.serialization.RecordSetWriter;
 import org.apache.nifi.serialization.RecordSetWriterFactory;
 import org.apache.nifi.serialization.WriteResult;
+import org.apache.nifi.serialization.record.MapRecord;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordSchema;
+import org.apache.nifi.serialization.record.SchemaIdentifier;
 
 import javax.script.Bindings;
 import javax.script.Compilable;
@@ -115,6 +118,13 @@ public class ScriptedTransformRecord extends AbstractProcessor implements Search
         .required(true)
         .identifiesControllerService(RecordSetWriterFactory.class)
         .build();
+    static final PropertyDescriptor REGISTRY = new Builder()
+        .name("Schema Registry")
+        .description("An optional schema registry that can be used in scripts to create new records with different schemas.")
+        .displayName("Schema Registry")
+        .required(false)
+        .identifiesControllerService(SchemaRegistry.class)
+        .build();
     static final PropertyDescriptor LANGUAGE = new Builder()
         .name("Script Engine")
         .displayName("Script Language")
@@ -136,11 +146,13 @@ public class ScriptedTransformRecord extends AbstractProcessor implements Search
 
 
     private volatile String scriptToRun = null;
+    private SchemaRegistry schemaRegistry;
     private final AtomicReference<CompiledScript> compiledScriptRef = new AtomicReference<>();
     private final ScriptingComponentHelper scriptingComponentHelper = new ScriptingComponentHelper();
     private final List<PropertyDescriptor> descriptors = Arrays.asList(
         RECORD_READER,
         RECORD_WRITER,
+        REGISTRY,
         LANGUAGE,
         ScriptingComponentUtils.SCRIPT_BODY,
         ScriptingComponentUtils.SCRIPT_FILE,
@@ -186,6 +198,10 @@ public class ScriptedTransformRecord extends AbstractProcessor implements Search
 
         // Always compile when first run
         compiledScriptRef.set(null);
+
+        if (context.getProperty(REGISTRY).isSet()) {
+            schemaRegistry = context.getProperty(REGISTRY).asControllerService(SchemaRegistry.class);
+        }
     }
 
 
@@ -376,10 +392,10 @@ public class ScriptedTransformRecord extends AbstractProcessor implements Search
     private ScriptEvaluator createEvaluator(final ScriptEngine scriptEngine, final FlowFile flowFile) throws ScriptException {
         if (PYTHON_SCRIPT_LANGUAGE.equalsIgnoreCase(scriptEngine.getFactory().getLanguageName())) {
             final CompiledScript compiledScript = getOrCompileScript((Compilable) scriptEngine, scriptToRun);
-            return new PythonScriptEvaluator(scriptEngine, compiledScript, flowFile);
+            return new PythonScriptEvaluator(scriptEngine, schemaRegistry, compiledScript, flowFile);
         }
 
-        return new InterpretedScriptEvaluator(scriptEngine, scriptToRun, flowFile);
+        return new InterpretedScriptEvaluator(scriptEngine, schemaRegistry, scriptToRun, flowFile);
     }
 
     private CompiledScript getOrCompileScript(final Compilable scriptEngine, final String scriptToRun) throws ScriptException {
@@ -420,15 +436,17 @@ public class ScriptedTransformRecord extends AbstractProcessor implements Search
 
 
     private class PythonScriptEvaluator implements ScriptEvaluator {
+        private final SchemaRegistry schemaRegistry;
         private final ScriptEngine scriptEngine;
         private final CompiledScript compiledScript;
         private final Bindings bindings;
 
-        public PythonScriptEvaluator(final ScriptEngine scriptEngine, final CompiledScript compiledScript, final FlowFile flowFile) {
+        public PythonScriptEvaluator(final ScriptEngine scriptEngine, final SchemaRegistry schemaRegistry, final CompiledScript compiledScript, final FlowFile flowFile) {
             // By pre-compiling the script here, we get significant performance gains. A quick 5-minute benchmark
             // shows gains of about 100x better performance. But even with the compiled script, performance pales
             // in comparison with Groovy.
             this.compiledScript = compiledScript;
+            this.schemaRegistry = schemaRegistry;
             this.scriptEngine = scriptEngine;
             this.bindings = setupBindings(scriptEngine);
 
@@ -448,17 +466,20 @@ public class ScriptedTransformRecord extends AbstractProcessor implements Search
 
 
     private class InterpretedScriptEvaluator implements ScriptEvaluator {
+        private final SchemaRegistry schemaRegistry;
         private final ScriptEngine scriptEngine;
         private final String scriptToRun;
         private final Bindings bindings;
 
-        public InterpretedScriptEvaluator(final ScriptEngine scriptEngine, final String scriptToRun, final FlowFile flowFile) {
+        public InterpretedScriptEvaluator(final ScriptEngine scriptEngine, final SchemaRegistry schemaRegistry, final String scriptToRun, final FlowFile flowFile) {
             this.scriptEngine = scriptEngine;
+            this.schemaRegistry = schemaRegistry;
             this.scriptToRun = scriptToRun;
             this.bindings = setupBindings(scriptEngine);
 
             bindings.put("attributes", flowFile.getAttributes());
             bindings.put("log", getLogger());
+            bindings.put("registryHelper", new SchemaRegistryScriptHelper(schemaRegistry));
         }
 
         @Override
@@ -494,5 +515,55 @@ public class ScriptedTransformRecord extends AbstractProcessor implements Search
 
     private interface RecordWriteAction {
         void write(Record record) throws IOException;
+    }
+
+    public static final class SchemaRegistryScriptHelper {
+        private final SchemaRegistry registry;
+
+        public SchemaRegistryScriptHelper(final SchemaRegistry registry) {
+            this.registry = registry;
+        }
+
+        private void nullCheck() {
+            if (registry == null) {
+                throw new ProcessException("No schema registry was configured in this processor.");
+            }
+        }
+
+        private RecordSchema fetchSchema(SchemaIdentifier identifier) {
+            try {
+                return registry.retrieveSchema(identifier);
+            } catch (IOException | SchemaNotFoundException e) {
+                throw new ProcessException(e);
+            }
+        }
+
+        public RecordSchema getSchemaByName(String name) {
+            nullCheck();
+            SchemaIdentifier identifier = SchemaIdentifier.builder().name(name).build();
+            return fetchSchema(identifier);
+        }
+
+        public RecordSchema getSchemaByNameAndVersion(String name, Long version) {
+            nullCheck();
+            SchemaIdentifier identifier = SchemaIdentifier.builder().name(name).schemaVersionId(version).build();
+            return fetchSchema(identifier);
+        }
+
+        public RecordSchema getSchemaByBranch(String branch) {
+            nullCheck();
+            SchemaIdentifier identifier = SchemaIdentifier.builder().branch(branch).build();
+            return fetchSchema(identifier);
+        }
+
+        public RecordSchema getSchemaById(Long id) {
+            nullCheck();
+            SchemaIdentifier identifier = SchemaIdentifier.builder().id(id).build();
+            return fetchSchema(identifier);
+        }
+
+        public Record newRecord(RecordSchema schema, Map<String, Object> properties) {
+            return new MapRecord(schema, properties);
+        }
     }
 }

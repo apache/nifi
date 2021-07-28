@@ -23,6 +23,7 @@ import org.apache.nifi.serialization.SimpleRecordSchema;
 import org.apache.nifi.serialization.record.ArrayListRecordReader;
 import org.apache.nifi.serialization.record.ArrayListRecordWriter;
 import org.apache.nifi.serialization.record.MapRecord;
+import org.apache.nifi.serialization.record.MockSchemaRegistry;
 import org.apache.nifi.serialization.record.Record;
 import org.apache.nifi.serialization.record.RecordField;
 import org.apache.nifi.serialization.record.RecordFieldType;
@@ -40,6 +41,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
@@ -470,6 +472,56 @@ public class TestScriptedTransformRecord {
         for (int i = 0; i < 3; i++) {
             assertEquals(5, recordsWritten.get(i).getAsInt("num").intValue());
         }
+    }
+
+    @Test
+    public void testSchemaRegistryIsSet() throws Exception {
+        MockSchemaRegistry registry = new MockSchemaRegistry();
+        final List<RecordField> nameFields = new ArrayList<>();
+        nameFields.add(new RecordField("firstName", RecordFieldType.STRING.getDataType()));
+        nameFields.add(new RecordField("lastName", RecordFieldType.STRING.getDataType()));
+        final RecordSchema nameSchema = new SimpleRecordSchema(nameFields);
+        final List<RecordField> singleField = new ArrayList<>();
+        singleField.add(new RecordField("fullName", RecordFieldType.STRING.getDataType()));
+        final RecordSchema fullNameSchema = new SimpleRecordSchema(singleField);
+        registry.addSchema("TwoNames", nameSchema);
+        registry.addSchema("FullName", fullNameSchema);
+
+        Map<String, Object> recordMap = new HashMap<>();
+        recordMap.put("firstName", "John");
+        recordMap.put("lastName", "Smith");
+        Record record = new MapRecord(nameSchema, recordMap);
+
+        recordReader = new ArrayListRecordReader(nameSchema);
+        recordWriter = new ArrayListRecordWriter(fullNameSchema);
+
+        testRunner = TestRunners.newTestRunner(ScriptedTransformRecord.class);
+        testRunner.setProperty(ScriptedTransformRecord.RECORD_READER, "record-reader");
+        testRunner.setProperty(ScriptedTransformRecord.RECORD_WRITER, "record-writer");
+        testRunner.setProperty(ScriptedTransformRecord.REGISTRY, "registry");
+
+        testRunner.addControllerService("record-reader", recordReader);
+        testRunner.addControllerService("record-writer", recordWriter);
+        testRunner.addControllerService("registry", registry);
+
+        testRunner.setProperty(ScriptingComponentUtils.SCRIPT_BODY, "record"); // return the input
+        testRunner.setProperty(ScriptedTransformRecord.LANGUAGE, "Groovy");
+        testRunner.enableControllerService(recordReader);
+        testRunner.enableControllerService(recordWriter);
+        testRunner.enableControllerService(registry);
+
+        recordReader.addRecord(record);
+        testRunner.setProperty(ScriptingComponentUtils.SCRIPT_BODY, "def map = [ fullName: record.getValue(\"firstName\") + \" \" + record.getValue(\"lastName\") ]\n" +
+                "def rec = registryHelper.newRecord(registryHelper.getSchemaByName('FullName'), map)\n" +
+                "rec");
+        testRunner.enqueue("");
+        testRunner.run();
+        testRunner.assertAllFlowFilesTransferred(ScriptedTransformRecord.REL_SUCCESS, 1);
+        List<Record> records = recordWriter.getRecordsWritten();
+        assertNotNull(records);
+        assertEquals(1, records.size());
+        assertNotNull(records.get(0));
+        assertEquals("John Smith", records.get(0).getValue("fullName"));
     }
 
     private Record createBook(final String author, final String date, final RecordSchema bookSchema, final RecordSchema outerSchema) {

@@ -497,6 +497,99 @@ return [record, derived]
     </code>
 </pre>
 
+<h3>Creating New Records with the Schema Registry Option</h3>
+
+<p>
+    This processor has the ability to be configured to use a schema registry in order to access other schemas and dynamically
+    create new records. The process exposes a variable called <em>registryHelper</em> that has several methods for finding a
+    schema:
+</p>
+
+<table>
+    <thead>
+        <tr>
+            <th>
+                Method
+            </th>
+            <th>
+                Parameters
+            </th>
+            <th>
+                Purpose
+            </th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>
+                getSchemaByName
+            </td>
+            <td>
+                name: String
+            </td>
+            <td>
+                Retrieve a schema by name. In registries that support versioning, this will attempt to retrieve the
+                most recent version by name.
+            </td>
+        </tr>
+        <tr>
+            <td>
+                getSchemaByNameAndVersion
+            </td>
+            <td>
+                name: String, version: Long
+            </td>
+            <td>
+                Attempt to retrieve a schema by both name and a revision version.
+            </td>
+        </tr>
+        <tr>
+            <td>
+                getSchemaByBranch
+            </td>
+            <td>
+                branch: String
+            </td>
+            <td>
+                Retrieve a schema by branch.
+            </td>
+        </tr>
+        <tr>
+            <td>
+                getSchemaById
+            </td>
+            <td>
+                id: Long
+            </td>
+            <td>
+                Retrieve a schema by its ID number.
+            </td>
+        </tr>
+        <tr>
+            <td>
+                newRecord
+            </td>
+            <td>
+                schema: RecordSchema,
+                properties: Map&lt;String, Object&gt;
+            </td>
+            <td>
+                Create a new record using a retrieved record schema and a Map containing property key/value pairs.
+            </td>
+        </tr>
+    </tbody>
+</table>
+
+<p>
+    The following is an example of a script that would transform a record with two fields, firstName:string and lastName:string,
+    into a new record type with a single field of fullName:string.
+</p>
+
+<pre>
+def map = [ fullName: record.getValue("firstName") + " " + record.getValue("lastName") ]
+def rec = registryHelper.newRecord(registryHelper.getSchemaByName('FullName'), map)
+rec
+</pre>
 
 </body>
 </html>
