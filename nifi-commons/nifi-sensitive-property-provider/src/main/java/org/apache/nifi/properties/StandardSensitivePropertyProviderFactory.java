@@ -124,6 +124,8 @@ public class StandardSensitivePropertyProviderFactory implements SensitiveProper
                 return providerMap.computeIfAbsent(protectionScheme, s -> new AWSSensitivePropertyProvider(getBootstrapProperties()));
             case HASHICORP_VAULT_TRANSIT:
                 return providerMap.computeIfAbsent(protectionScheme, s -> new HashiCorpVaultTransitSensitivePropertyProvider(getBootstrapProperties()));
+            case HASHICORP_VAULT_KV:
+                return providerMap.computeIfAbsent(protectionScheme, s -> new HashiCorpVaultKeyValueSensitivePropertyProvider(getBootstrapProperties()));
             default:
                 throw new SensitivePropertyProtectionException("Unsupported protection scheme " + protectionScheme);
         }

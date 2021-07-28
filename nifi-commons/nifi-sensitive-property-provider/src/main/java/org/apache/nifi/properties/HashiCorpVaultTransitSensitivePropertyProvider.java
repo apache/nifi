@@ -53,11 +53,6 @@ public class HashiCorpVaultTransitSensitivePropertyProvider extends AbstractHash
         return PropertyProtectionScheme.HASHICORP_VAULT_TRANSIT;
     }
 
-    @Override
-    protected boolean hasRequiredSecretsEngineProperties(final BootstrapProperties vaultBootstrapProperties) {
-        return getSecretsEnginePath(vaultBootstrapProperties) != null;
-    }
-
     /**
      * Returns the encrypted cipher text.
      *

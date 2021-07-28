@@ -116,7 +116,9 @@ public abstract class AbstractHashiCorpVaultSensitivePropertyProvider extends Ab
      * @param vaultBootstrapProperties The Vault-specific bootstrap properties
      * @return true if the relevant Secrets Engine-specific properties are configured
      */
-    protected abstract boolean hasRequiredSecretsEngineProperties(final BootstrapProperties vaultBootstrapProperties);
+    protected boolean hasRequiredSecretsEngineProperties(final BootstrapProperties vaultBootstrapProperties) {
+        return getSecretsEnginePath(vaultBootstrapProperties) != null;
+    }
 
     /**
      * Returns the key used to identify the provider implementation in {@code nifi.properties},

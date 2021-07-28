@@ -477,52 +477,13 @@ The protection scheme can be selected during encryption using the `--protectionS
 The default protection scheme, `AES-G/CM` simply encrypts sensitive properties and marks their protection as either `aes/gcm/256` or `aes/gcm/256` as appropriate.  This protection is all done within NiFi itself.
 
 ==== HASHICORP_VAULT_TRANSIT
-This protection scheme uses HashiCorp Vault's Transit Secrets Engine (https://www.vaultproject.io/docs/secrets/transit) to outsource encryption to a configured Vault server. All HashiCorp Vault configuration is stored in the `bootstrap-hashicorp-vault.conf` file, as referenced in the `bootstrap.conf` of a NiFi or NiFi Registry instance.  Therefore, when using the HASHICORP_VAULT_TRANSIT protection scheme, the `nifi(.registry)?.bootstrap.protection.hashicorp.vault.conf` property in the `bootstrap.conf` specified using the `-b` flag must be available to the Encrypt Configuration Tool and must be configured as follows:
+This protection scheme uses HashiCorp Vault's Transit Secrets Engine (https://www.vaultproject.io/docs/secrets/transit) to outsource encryption to a configured Vault server. All HashiCorp Vault configuration is stored in the `bootstrap-hashicorp-vault.conf` file, as referenced in the `bootstrap.conf` of a NiFi or NiFi Registry instance.  Therefore, when using the HASHICORP_VAULT_TRANSIT protection scheme, the `nifi(.registry)?.bootstrap.protection.hashicorp.vault.conf` property in the `bootstrap.conf` specified using the `-b` flag must be available to the Encrypt Configuration Tool and must be configured as described in the <<administration-guide.adoc#_hashicorp_vault_providers,HashiCorp Vault providers>> section in the link:administration-guide.html[NiFi Administration Guide].
 
-===== Required properties
-[options="header,footer"]
-|===
-|Property Name|Description|Default
-|`vault.uri`|The HashiCorp Vault URI (e.g., `https://vault-server:8200`).  If not set, this provider will be disabled.|_none_
-|`vault.authentication.properties.file`|Filename of a properties file containing Vault authentication properties.  See the `Authentication-specific property keys` section of https://docs.spring.io/spring-vault/docs/2.3.x/reference/html/#vault.core.environment-vault-configuration for all authentication property keys. If not set, all Spring Vault authentication properties must be configured directly in bootstrap-hashicorp-vault.conf.|_none_
-|`vault.transit.path`|The HashiCorp Vault `path` specifying the Transit Secrets Engine (e.g., `nifi-transit`).  Valid characters include alphanumeric, dash, and underscore.  If not set, this provider will be disabled.|_none_
-|===
-
-===== Optional properties
-[options="header,footer"]
-|===
-|Property Name|Description|Default
-|`vault.connection.timeout`|The connection timeout of the Vault client|`5 secs`
-|`vault.read.timeout`|The read timeout of the Vault client|`15 secs`
-|`vault.ssl.enabledCipherSuites`|A comma-separated list of the enabled TLS cipher suites|_none_
-|`vault.ssl.enabledProtocols`|A comma-separated list of the enabled TLS protocols|_none_
-|`vault.ssl.key-store`|Path to a keystore.  Required if the Vault server is TLS-enabled|_none_
-|`vault.ssl.key-store-type`|Keystore type (JKS, BCFKS or PKCS12).  Required if the Vault server is TLS-enabled|_none_
-|`vault.ssl.key-store-password`|Keystore password.  Required if the Vault server is TLS-enabled|_none_
-|`vault.ssl.trust-store`|Path to a truststore.  Required if the Vault server is TLS-enabled|_none_
-|`vault.ssl.trust-store-type`|Truststore type (JKS, BCFKS or PKCS12).  Required if the Vault server is TLS-enabled|_none_
-|`vault.ssl.trust-store-password`|Truststore password.  Required if the Vault server is TLS-enabled|_none_
-|===
+==== HASHICORP_VAULT_KV
+This protection scheme uses HashiCorp Vault's Transit unversioned Key/Value Engine (https://www.vaultproject.io/docs/secrets/kv/kv-v1) to store sensitive values as Vault Secrets. All HashiCorp Vault configuration is stored in the `bootstrap-hashicorp-vault.conf` file, as referenced in the `bootstrap.conf` of a NiFi or NiFi Registry instance.  Therefore, when using the HASHICORP_VAULT_KV protection scheme, the `nifi(.registry)?.bootstrap.protection.hashicorp.vault.conf` property in the `bootstrap.conf` specified using the `-b` flag must be available to the Encrypt Configuration Tool and must be configured as described in the <<administration-guide.adoc#_hashicorp_vault_providers,HashiCorp Vault providers>> section in the link:administration-guide.html[NiFi Administration Guide].
 
 ==== AWS_KMS
-This protection scheme uses AWS Key Management Service (https://aws.amazon.com/kms/) for encryption and decryption. AWS KMS configuration properties can be stored in the `bootstrap-aws.conf` file, as referenced in the `bootstrap.conf` of NiFi or NiFi Registry. If the configuration properties are not specified in `bootstrap-aws.conf`, then the provider will attempt to use the AWS default credentials provider, which checks standard environment variables and system properties.
-
-===== Required properties
-[options="header,footer"]
-|===
-|Property Name|Description|Default
-|`aws.kms.key.id`|The identifier or ARN that the AWS KMS client uses for encryption and decryption.|_none_
-|===
-
-===== Optional properties
-====== All of the following must be configured, or will be ignored entirely.
-[options="header,footer"]
-|===
-|Property Name|Description|Default
-|`aws.region`|The AWS region used to configure the AWS KMS Client.|_none_
-|`aws.access.key.id`|The access key ID credential used to access AWS KMS.|_none_
-|`aws.secret.access.key`|The secret access key used to access AWS KMS.|_none_
-|===
+This protection scheme uses AWS Key Management Service (https://aws.amazon.com/kms/) for encryption and decryption. AWS KMS configuration properties can be stored in the `bootstrap-aws.conf` file, as referenced in the `bootstrap.conf` of NiFi or NiFi Registry. If the configuration properties are not specified in `bootstrap-aws.conf`, then the provider will attempt to use the AWS default credentials provider, which checks standard environment variables and system properties.  Therefore, when using the AWS_KMS protection scheme, the `nifi(.registry)?.bootstrap.protection.hashicorp.vault.conf` property in the `bootstrap.conf` specified using the `-b` flag must be available to the Encrypt Configuration Tool and must be configured as described in the <<administration-guide.adoc#_hashicorp_vault_providers,HashiCorp Vault providers>> section in the link:administration-guide.html[NiFi Administration Guide].
 
 === Examples
 
