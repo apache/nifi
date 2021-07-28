@@ -39,8 +39,8 @@ import org.apache.http.message.BasicNameValuePair;
 import org.apache.nifi.authentication.exception.AuthenticationNotSupportedException;
 import org.apache.nifi.authorization.user.NiFiUserUtils;
 import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.security.jwt.JwtService;
-import org.apache.nifi.web.security.jwt.NiFiBearerTokenResolver;
+import org.apache.nifi.web.security.http.SecurityCookieName;
+import org.apache.nifi.web.security.jwt.provider.BearerTokenProvider;
 import org.apache.nifi.web.security.oidc.OIDCEndpoints;
 import org.apache.nifi.web.security.oidc.OidcService;
 import org.apache.nifi.web.security.token.LoginAuthenticationToken;
@@ -90,8 +90,8 @@ public class OIDCAccessResource extends AccessResource {
     private static final boolean LOGGING_IN = true;
 
     private OidcService oidcService;
-    private JwtService jwtService;
-    private CloseableHttpClient httpClient;
+    private BearerTokenProvider bearerTokenProvider;
+    private final CloseableHttpClient httpClient;
 
     public OIDCAccessResource() {
         RequestConfig config = RequestConfig.custom()
@@ -161,10 +161,10 @@ public class OIDCAccessResource extends AccessResource {
                 LoginAuthenticationToken oidcToken = oidcService.exchangeAuthorizationCodeForLoginAuthenticationToken(authorizationGrant);
 
                 // exchange the oidc token for the NiFi token
-                String nifiJwt = jwtService.generateSignedToken(oidcToken);
+                final String bearerToken = bearerTokenProvider.getBearerToken(oidcToken);
 
                 // store the NiFi token
-                oidcService.storeJwt(oidcRequestIdentifier, nifiJwt);
+                oidcService.storeJwt(oidcRequestIdentifier, bearerToken);
             } catch (final Exception e) {
                 logger.error(OIDC_ID_TOKEN_AUTHN_ERROR + e.getMessage(), e);
 
@@ -247,7 +247,7 @@ public class OIDCAccessResource extends AccessResource {
         }
 
         final String mappedUserIdentity = NiFiUserUtils.getNiFiUserIdentity();
-        removeCookie(httpServletResponse, NiFiBearerTokenResolver.JWT_COOKIE_NAME);
+        removeCookie(httpServletResponse, SecurityCookieName.AUTHORIZATION_BEARER.getName());
         logger.debug("Invalidated JWT for user [{}]", mappedUserIdentity);
 
         // Get the oidc discovery url
@@ -559,8 +559,8 @@ public class OIDCAccessResource extends AccessResource {
         this.oidcService = oidcService;
     }
 
-    public void setJwtService(JwtService jwtService) {
-        this.jwtService = jwtService;
+    public void setBearerTokenProvider(final BearerTokenProvider bearerTokenProvider) {
+        this.bearerTokenProvider = bearerTokenProvider;
     }
 
     public void setProperties(final NiFiProperties properties) {

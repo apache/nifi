@@ -16,7 +16,7 @@
  */
 package org.apache.nifi.web.security.saml.impl;
 
-import org.apache.nifi.web.security.jwt.JwtService;
+import org.apache.nifi.web.security.jwt.provider.BearerTokenProvider;
 import org.apache.nifi.web.security.saml.SAMLStateManager;
 import org.apache.nifi.web.security.token.LoginAuthenticationToken;
 import org.junit.Before;
@@ -32,13 +32,13 @@ import static org.mockito.Mockito.when;
 
 public class TestStandardSAMLStateManager {
 
-    private JwtService jwtService;
+    private BearerTokenProvider bearerTokenProvider;
     private SAMLStateManager stateManager;
 
     @Before
     public void setup() {
-        jwtService = mock(JwtService.class);
-        stateManager = new StandardSAMLStateManager(jwtService);
+        bearerTokenProvider = mock(BearerTokenProvider.class);
+        stateManager = new StandardSAMLStateManager(bearerTokenProvider);
     }
 
     @Test
@@ -76,7 +76,7 @@ public class TestStandardSAMLStateManager {
 
         // create the jwt and cache it
         final String fakeJwt = "fake-jwt";
-        when(jwtService.generateSignedToken(token)).thenReturn(fakeJwt);
+        when(bearerTokenProvider.getBearerToken(token)).thenReturn(fakeJwt);
         stateManager.createJwt(requestId, token);
 
         // should return the jwt above

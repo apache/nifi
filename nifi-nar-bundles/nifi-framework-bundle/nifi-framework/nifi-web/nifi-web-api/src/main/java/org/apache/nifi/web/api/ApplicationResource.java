@@ -55,7 +55,7 @@ import org.apache.nifi.web.api.entity.ComponentEntity;
 import org.apache.nifi.web.api.entity.Entity;
 import org.apache.nifi.web.api.entity.TransactionResultEntity;
 import org.apache.nifi.web.security.ProxiedEntitiesUtils;
-import org.apache.nifi.web.security.jwt.NiFiBearerTokenResolver;
+import org.apache.nifi.web.security.http.SecurityCookieName;
 import org.apache.nifi.web.security.util.CacheKey;
 import org.apache.nifi.web.util.WebUtils;
 import org.eclipse.jetty.http.HttpCookie;
@@ -1285,7 +1285,7 @@ public abstract class ApplicationResource {
 
     protected Response generateTokenResponse(ResponseBuilder builder, String token) {
         // currently there is no way to use javax.servlet-api to set SameSite=Strict, so we do this using Jetty
-        HttpCookie jwtCookie = new HttpCookie(NiFiBearerTokenResolver.JWT_COOKIE_NAME, token, null, "/", VALID_FOR_SESSION_ONLY, true, true, null, 0, HttpCookie.SameSite.STRICT);
+        HttpCookie jwtCookie = new HttpCookie(SecurityCookieName.AUTHORIZATION_BEARER.getName(), token, null, "/", VALID_FOR_SESSION_ONLY, true, true, null, 0, HttpCookie.SameSite.STRICT);
         return builder.header(HttpHeader.SET_COOKIE.asString(), jwtCookie.getRFC6265SetCookie()).build();
     }
 

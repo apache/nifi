@@ -68,7 +68,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.nifi.authentication.exception.IdentityAccessException;
 import org.apache.nifi.util.FormatUtils;
 import org.apache.nifi.util.NiFiProperties;
-import org.apache.nifi.web.security.jwt.JwtService;
 import org.apache.nifi.web.security.token.LoginAuthenticationToken;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -82,8 +81,7 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
     private static final Logger logger = LoggerFactory.getLogger(StandardOidcIdentityProvider.class);
     private final String EMAIL_CLAIM = "email";
 
-    private NiFiProperties properties;
-    private JwtService jwtService;
+    private final NiFiProperties properties;
     private OIDCProviderMetadata oidcProviderMetadata;
     private int oidcConnectTimeout;
     private int oidcReadTimeout;
@@ -94,12 +92,10 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
     /**
      * Creates a new StandardOidcIdentityProvider.
      *
-     * @param jwtService jwt service
      * @param properties properties
      */
-    public StandardOidcIdentityProvider(final JwtService jwtService, final NiFiProperties properties) {
+    public StandardOidcIdentityProvider(final NiFiProperties properties) {
         this.properties = properties;
-        this.jwtService = jwtService;
     }
 
     /**
@@ -457,10 +453,8 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
         final Date expiration = claimsSet.getExpirationTime();
         final long expiresIn = expiration.getTime() - now.getTimeInMillis();
 
-        // Convert into a NiFi JWT for retrieval later
-        final LoginAuthenticationToken loginToken = new LoginAuthenticationToken(
+        return new LoginAuthenticationToken(
                 identity, identity, expiresIn, claimsSet.getIssuer().getValue());
-        return loginToken;
     }
 
     private OIDCTokens getOidcTokens(OIDCTokenResponse response) {
@@ -510,14 +504,13 @@ public class StandardOidcIdentityProvider implements OidcIdentityProvider {
 
     private static List<String> getAvailableClaims(JWTClaimsSet claimSet) {
         // Get the claims available in the ID token response
-        List<String> presentClaims = claimSet.getClaims().entrySet().stream()
+        return claimSet.getClaims().entrySet().stream()
                 // Check claim values are not empty
-                .filter(e -> StringUtils.isNotBlank(e.getValue().toString()))
+                .filter(e -> e.getValue() != null && StringUtils.isNotBlank(e.getValue().toString()))
                 // If not empty, put claim name in a map
                 .map(Map.Entry::getKey)
                 .sorted()
                 .collect(Collectors.toList());
-        return presentClaims;
     }
 
     private void validateAccessToken(OIDCTokens oidcTokens) throws Exception {
