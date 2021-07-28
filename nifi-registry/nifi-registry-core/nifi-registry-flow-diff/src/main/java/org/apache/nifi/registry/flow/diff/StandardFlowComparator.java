@@ -338,6 +338,10 @@ public class StandardFlowComparator implements FlowComparator {
         addIfDifferent(differences, DifferenceType.FLOWFILE_OUTBOUND_POLICY_CHANGED, groupA, groupB, VersionedProcessGroup::getFlowFileOutboundPolicy,
             true, DEFAULT_OUTBOUND_FLOW_FILE_POLICY);
 
+        addIfDifferent(differences, DifferenceType.DEFAULT_BACKPRESSURE_DATA_SIZE_CHANGED, groupA, groupB, VersionedProcessGroup::getDefaultBackPressureDataSizeThreshold, true, "1 GB");
+        addIfDifferent(differences, DifferenceType.DEFAULT_BACKPRESSURE_OBJECT_COUNT_CHANGED, groupA, groupB, VersionedProcessGroup::getDefaultBackPressureObjectThreshold, true, 10_000L);
+        addIfDifferent(differences, DifferenceType.DEFAULT_FLOWFILE_EXPIRATION_CHANGED, groupA, groupB, VersionedProcessGroup::getDefaultFlowFileExpiration, true, "0 sec");
+
         final VersionedFlowCoordinates groupACoordinates = groupA.getVersionedFlowCoordinates();
         final VersionedFlowCoordinates groupBCoordinates = groupB.getVersionedFlowCoordinates();
 
