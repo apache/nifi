@@ -21,7 +21,7 @@ import org.apache.commons.lang3.StringUtils;
 import java.util.Objects;
 
 /**
- * Uses the HashiCorp Vault Transit Secrets Engine to encrypt sensitive values at rest.
+ * Uses the HashiCorp Vault Key/Value (unversioned) Secrets Engine to store sensitive values.
  */
 public class HashiCorpVaultKeyValueSensitivePropertyProvider extends AbstractHashiCorpVaultSensitivePropertyProvider {
 
@@ -63,8 +63,9 @@ public class HashiCorpVaultKeyValueSensitivePropertyProvider extends AbstractHas
     @Override
     public String protect(final String unprotectedValue, final ProtectedPropertyContext context) throws SensitivePropertyProtectionException {
         if (StringUtils.isBlank(unprotectedValue)) {
-            throw new IllegalArgumentException("Cannot encrypt an empty value");
+            throw new IllegalArgumentException("Cannot protect an empty value");
         }
+        Objects.requireNonNull(context, "Context is required to protect a value");
 
         getVaultCommunicationService().writeKeyValueSecret(getPath(), context.getContextKey(), unprotectedValue);
         return String.format("Protected by [%s] at [%s/%s]", getName(), getPath(), context.getContextKey());
