@@ -18,17 +18,16 @@ package org.apache.nifi.properties;
 
 import org.apache.commons.lang3.StringUtils;
 
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
+import java.util.Objects;
 
 /**
  * Uses the HashiCorp Vault Transit Secrets Engine to encrypt sensitive values at rest.
  */
-public class HashiCorpVaultTransitSensitivePropertyProvider extends AbstractHashiCorpVaultSensitivePropertyProvider {
-    private static final Charset PROPERTY_CHARSET = StandardCharsets.UTF_8;
-    private static final String TRANSIT_PATH = "vault.transit.path";
+public class HashiCorpVaultKeyValueSensitivePropertyProvider extends AbstractHashiCorpVaultSensitivePropertyProvider {
 
-    HashiCorpVaultTransitSensitivePropertyProvider(final BootstrapProperties bootstrapProperties) {
+    private static final String KEY_VALUE_PATH = "vault.kv.path";
+
+    HashiCorpVaultKeyValueSensitivePropertyProvider(final BootstrapProperties bootstrapProperties) {
         super(bootstrapProperties);
     }
 
@@ -37,29 +36,29 @@ public class HashiCorpVaultTransitSensitivePropertyProvider extends AbstractHash
         if (vaultBootstrapProperties == null) {
             return null;
         }
-        final String transitPath = vaultBootstrapProperties.getProperty(TRANSIT_PATH);
+        final String kvPath = vaultBootstrapProperties.getProperty(KEY_VALUE_PATH);
         // Validate transit path
         try {
-            PropertyProtectionScheme.fromIdentifier(getProtectionScheme().getIdentifier(transitPath));
+            PropertyProtectionScheme.fromIdentifier(getProtectionScheme().getIdentifier(kvPath));
         } catch (IllegalArgumentException e) {
-            throw new SensitivePropertyProtectionException(String.format("%s [%s] contains unsupported characters", TRANSIT_PATH, transitPath), e);
+            throw new SensitivePropertyProtectionException(String.format("%s [%s] contains unsupported characters", KEY_VALUE_PATH, kvPath), e);
         }
 
-        return transitPath;
+        return kvPath;
     }
 
     @Override
     protected PropertyProtectionScheme getProtectionScheme() {
-        return PropertyProtectionScheme.HASHICORP_VAULT_TRANSIT;
+        return PropertyProtectionScheme.HASHICORP_VAULT_KV;
     }
 
     /**
-     * Returns the encrypted cipher text.
+     * Stores the sensitive value in Vault and returns a description of the secret.
      *
      * @param unprotectedValue the sensitive value
      * @param context The property context, unused in this provider
      * @return the value to persist in the {@code nifi.properties} file
-     * @throws SensitivePropertyProtectionException if there is an exception encrypting the value
+     * @throws SensitivePropertyProtectionException if there is an exception writing the secret
      */
     @Override
     public String protect(final String unprotectedValue, final ProtectedPropertyContext context) throws SensitivePropertyProtectionException {
@@ -67,23 +66,24 @@ public class HashiCorpVaultTransitSensitivePropertyProvider extends AbstractHash
             throw new IllegalArgumentException("Cannot encrypt an empty value");
         }
 
-        return getVaultCommunicationService().encrypt(getPath(), unprotectedValue.getBytes(PROPERTY_CHARSET));
+        getVaultCommunicationService().writeKeyValueSecret(getPath(), context.getContextKey(), unprotectedValue);
+        return String.format("Protected by [%s] at [%s/%s]", getName(), getPath(), context.getContextKey());
     }
 
     /**
-     * Returns the decrypted plaintext.
+     * Returns the secret value, as read from Vault.
      *
-     * @param protectedValue the cipher text read from the {@code nifi.properties} file
-     * @param context The property context, unused in this provider
+     * @param protectedValue The value read from {@code nifi.properties} file.  Ignored in this provider.
+     * @param context The property context, from which the Vault secret name is pulled
      * @return the raw value to be used by the application
-     * @throws SensitivePropertyProtectionException if there is an error decrypting the cipher text
+     * @throws SensitivePropertyProtectionException if there is an error retrieving the scret
      */
     @Override
     public String unprotect(final String protectedValue, final ProtectedPropertyContext context) throws SensitivePropertyProtectionException {
-        if (StringUtils.isBlank(protectedValue)) {
-            throw new IllegalArgumentException("Cannot decrypt an empty value");
-        }
+        Objects.requireNonNull(context, "Context is required to unprotect a value");
 
-        return new String(getVaultCommunicationService().decrypt(getPath(), protectedValue), PROPERTY_CHARSET);
+        return getVaultCommunicationService().readKeyValueSecret(getPath(), context.getContextKey())
+                .orElseThrow(() -> new SensitivePropertyProtectionException(String
+                        .format("Secret [%s] not found in Vault Key/Value engine at [%s]", context.getContextKey(), getPath())));
     }
 }
