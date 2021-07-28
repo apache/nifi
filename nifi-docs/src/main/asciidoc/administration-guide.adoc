@@ -489,6 +489,28 @@ To enable authentication via Apache Knox the following properties must be config
 this listing. The audience that is populated in the token can be configured in Knox.
 |==================================================================================================================================================
 
+[[json_web_token]]
+=== JSON Web Tokens
+
+NiFi uses JSON Web Tokens to provide authenticated access after the initial login process. Generated JSON Web Tokens include the authenticated user identity
+as well as the issuer and expiration from the configured Login Identity Provider.
+
+NiFi uses generated RSA Key Pairs with a key size of 4096 bits to support the `PS512` algorithm for JSON Web Signatures. The system stores RSA
+Public Keys using the configured local State Provider and retains the RSA Private Key in memory. This approach supports signature verification
+for the expiration configured in the Login Identity Provider without persisting the private key.
+
+JSON Web Token support includes revocation on logout using JSON Web Token Identifiers. The system denies access for expired tokens based on the
+Login Identity Provider configuration, but revocation invalidates the token prior to expiration. The system stores revoked identifiers using the
+configured local State Provider and runs a scheduled command to delete revoked identifiers after the associated expiration.
+
+The following settings can be configured in _nifi.properties_ to control JSON Web Token signing.
+
+[options="header"]
+|==================================================================================================================================================
+| Property Name | Description
+|`nifi.security.user.jws.key.rotation.period` | JSON Web Signature Key Rotation Period defines how often the system generates a new RSA Key Pair, expressed as an ISO 8601 duration. The default is one hour: `PT1H`
+|==================================================================================================================================================
+
 [[multi-tenant-authorization]]
 == Multi-Tenant Authorization
 

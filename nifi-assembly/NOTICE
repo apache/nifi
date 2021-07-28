@@ -1904,10 +1904,10 @@ The following binary components are provided under the Apache Software License v
       Converter: Jackson 2.5.0
       Copyright 2018, Jake Wharton
 
-  (ASLv2) Nimbus JOSE+JWT (com.nimbusds:nimbus-jose-jwt:jar:6.0.1 - https://bitbucket.org/connect2id/nimbus-jose-jwt)
+  (ASLv2) Nimbus JOSE+JWT (com.nimbusds:nimbus-jose-jwt - https://connect2id.com/products/nimbus-jose-jwt)
     The following NOTICE information applies:
-      Nimbus JOSE+JWT 6.0.1
-      Copyright 2018, Connect2id Ltd.
+      Nimbus JOSE+JWT
+      Copyright 2021, Connect2id Ltd.
 
   (ASLv2) OkHttp Logging Interceptor (com.squareup.okhttp3:logging-interceptor:jar:3.12.2)
     The following NOTICE information applies:

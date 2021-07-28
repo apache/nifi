@@ -582,7 +582,9 @@
         <property name="certificateExtractor" ref="certificateExtractor"/>
         <property name="principalExtractor" ref="principalExtractor"/>
         <property name="jwtAuthenticationProvider" ref="jwtAuthenticationProvider"/>
-        <property name="jwtService" ref="jwtService"/>
+        <property name="jwtLogoutListener" ref="jwtLogoutListener"/>
+        <property name="bearerTokenProvider" ref="bearerTokenProvider"/>
+        <property name="bearerTokenResolver" ref="bearerTokenResolver"/>
         <property name="kerberosService" ref="kerberosService"/>
         <property name="properties" ref="nifiProperties"/>
         <property name="clusterCoordinator" ref="clusterCoordinator"/>
@@ -598,9 +600,9 @@
         <property name="properties" ref="nifiProperties"/>
     </bean>
     <bean id="oidcResource" class="org.apache.nifi.web.api.OIDCAccessResource" scope="singleton">
-        <property name="jwtService" ref="jwtService"/>
         <property name="oidcService" ref="oidcService"/>
         <property name="properties" ref="nifiProperties"/>
+        <property name="bearerTokenProvider" ref="bearerTokenProvider"/>
     </bean>
     <bean id="accessPolicyResource" class="org.apache.nifi.web.api.AccessPolicyResource" scope="singleton">
         <constructor-arg ref="serviceFacade"/>
