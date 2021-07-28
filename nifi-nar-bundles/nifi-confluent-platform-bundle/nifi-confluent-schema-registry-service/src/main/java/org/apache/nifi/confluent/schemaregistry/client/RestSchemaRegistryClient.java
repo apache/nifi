@@ -307,8 +307,7 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
                     return jsonResponse;
 
                 case NOT_FOUND:
-                    logger.debug("Could not find Schema with " + schemaDescription
-                            + " from the Confluent Schema Registry located at " + baseUrl);
+                    logger.debug("Could not find Schema {} from Registry {}", schemaDescription, baseUrl);
                     continue;
 
                 default:
