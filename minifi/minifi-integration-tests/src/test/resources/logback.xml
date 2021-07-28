@@ -33,8 +33,8 @@
         <file>${org.apache.nifi.minifi.bootstrap.config.log.dir}/minifi-bootstrap.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
             <!--
-              For daily rollover, use 'user_%d.log'.
-              For hourly rollover, use 'user_%d{yyyy-MM-dd_HH}.log'.
+              For daily rollover, use 'bootstrap_%d.log'.
+              For hourly rollover, use 'bootstrap_%d{yyyy-MM-dd_HH}.log'.
               To GZIP rolled files, replace '.log' with '.log.gz'.
               To ZIP rolled files, replace '.log' with '.log.zip'.
             -->
