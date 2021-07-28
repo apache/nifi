@@ -244,9 +244,7 @@ public class RestSchemaRegistryClient implements SchemaRegistryClient {
             final String trimmedBase = getTrimmedBase(baseUrl);
             final String url = trimmedBase + path;
 
-            if(logger.isDebugEnabled()) {
-                logger.debug("POST JSON response from " + url);
-            }
+            logger.debug("POST JSON response URL {}", url);
 
             final WebTarget webTarget = client.target(url);
             Invocation.Builder builder = webTarget.request().accept(MediaType.APPLICATION_JSON).header(CONTENT_TYPE_HEADER, SCHEMA_REGISTRY_CONTENT_TYPE);
