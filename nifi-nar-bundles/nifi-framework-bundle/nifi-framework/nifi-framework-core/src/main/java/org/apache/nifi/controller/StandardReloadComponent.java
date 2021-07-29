@@ -106,13 +106,6 @@ public class StandardReloadComponent implements ReloadComponent {
         flowController.getValidationTrigger().trigger(existingNode);
     }
 
-    private static Map<String, String> getPropertiesForSetting(final Map<PropertyDescriptor, PropertyConfiguration> propertyMap) {
-        final Map<String, String> propertiesForSetting = new HashMap<>();
-        propertyMap.entrySet().stream()
-                .forEach(entry -> propertiesForSetting.put(entry.getKey().getName(), entry.getValue() != null ? entry.getValue().getRawValue() : null));
-        return propertiesForSetting;
-    }
-
     @Override
     public void reload(final ControllerServiceNode existingNode, final String newType, final BundleCoordinate bundleCoordinate, final Set<URL> additionalUrls)
         throws ControllerServiceInstantiationException {
@@ -216,6 +209,13 @@ public class StandardReloadComponent implements ReloadComponent {
 
         logger.debug("Triggering async validation of {} due to reporting task reload", existingNode);
         flowController.getValidationTrigger().triggerAsync(existingNode);
+    }
+
+    private static Map<String, String> getPropertiesForSetting(final Map<PropertyDescriptor, PropertyConfiguration> propertyMap) {
+        final Map<String, String> propertiesForSetting = new HashMap<>();
+        propertyMap.entrySet().stream()
+                .forEach(entry -> propertiesForSetting.put(entry.getKey().getName(), entry.getValue() != null ? entry.getValue().getRawValue() : null));
+        return propertiesForSetting;
     }
 
 }
