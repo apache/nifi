@@ -23,7 +23,10 @@
     <body>
         <p>
         	The CSVReader allows for interpreting input data as delimited Records. By default, a comma is used as the field separator,
-			but this is configurable. It is common, for instance, to use a tab in order to read tab-separated values, or TSV.
+			but this is configurable. It is common, for instance, to use a tab in order to read tab-separated values, or TSV.<br>
+			There are pre-defined CSV formats in the reader like EXCEL. Further information regarding their settings can be found here:
+			<a href="https://commons.apache.org/proper/commons-csv/apidocs/org/apache/commons/csv/CSVFormat.html">
+				https://commons.apache.org/proper/commons-csv/apidocs/org/apache/commons/csv/CSVFormat.html</a><br>
 			The reader allows for customization of the CSV Format, such as which character should be used
         	to separate CSV fields, which character should be used for quoting and when to quote fields, which character should denote
         	a comment, etc. The names of the fields may be specified either by having a "header line" as the first line in the CSV
