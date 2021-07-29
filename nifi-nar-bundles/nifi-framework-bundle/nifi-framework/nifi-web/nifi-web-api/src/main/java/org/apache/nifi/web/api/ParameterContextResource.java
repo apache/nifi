@@ -311,7 +311,7 @@ public class ParameterContextResource extends ApplicationResource {
         value = "Initiate the Update Request of a Parameter Context",
         response = ParameterContextUpdateRequestEntity.class,
         notes = "This will initiate the process of updating a Parameter Context. Changing the value of a Parameter may require that one or more components be stopped and " +
-            "restarted, so this acttion may take significantly more time than many other REST API actions. As a result, this endpoint will immediately return a ParameterContextUpdateRequestEntity, " +
+            "restarted, so this action may take significantly more time than many other REST API actions. As a result, this endpoint will immediately return a ParameterContextUpdateRequestEntity, " +
             "and the process of updating the necessary components will occur asynchronously in the background. The client may then periodically poll the status of the request by " +
             "issuing a GET request to /parameter-contexts/update-requests/{requestId}. Once the request is completed, the client is expected to issue a DELETE request to " +
             "/parameter-contexts/update-requests/{requestId}.",

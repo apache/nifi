@@ -19,11 +19,16 @@ package org.apache.nifi.controller.service;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.VersionedComponent;
 import org.apache.nifi.controller.ComponentNode;
+import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.LoggableComponent;
 import org.apache.nifi.groups.ProcessGroup;
+import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.components.ConfigVerificationResult;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
@@ -190,6 +195,25 @@ public interface ControllerServiceNode extends ComponentNode, VersionedComponent
      * @throws InterruptedException if interrupted while waiting for the service complete its enabling
      */
     boolean awaitEnabled(long timePeriod, TimeUnit timeUnit) throws InterruptedException;
+
+    /**
+     * Verifies that the Controller Service is in a state in which it can verify a configuration by calling
+     * {@link #verifyConfiguration(ConfigurationContext, ComponentLog, Map, ExtensionManager)}.
+     *
+     * @throws IllegalStateException if not in a state in which configuration can be verified
+     */
+    void verifyCanPerformVerification();
+
+    /**
+     * Verifies that the given configuration is valid for the Controller Service
+     *
+     * @param context the configuration to verify
+     * @param logger a logger that can be used when performing verification
+     * @param variables variables that can be used to resolve property values via Expression Language
+     * @param extensionManager extension manager that is used for obtaining appropriate NAR ClassLoaders
+     * @return a list of results indicating whether or not the given configuration is valid
+     */
+    List<ConfigVerificationResult> verifyConfiguration(ConfigurationContext context, ComponentLog logger, Map<String, String> variables, ExtensionManager extensionManager);
 
     /**
      * Sets a new proxy and implementation for this node.

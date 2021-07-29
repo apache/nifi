@@ -18,8 +18,13 @@ package org.apache.nifi.controller.reporting;
 
 import org.apache.nifi.annotation.configuration.DefaultSchedule;
 import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.components.ConfigVerificationResult;
+import org.apache.nifi.components.ConfigVerificationResult.Outcome;
 import org.apache.nifi.components.ConfigurableComponent;
+import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
+import org.apache.nifi.components.validation.ValidationState;
 import org.apache.nifi.components.validation.ValidationStatus;
 import org.apache.nifi.components.validation.ValidationTrigger;
 import org.apache.nifi.controller.AbstractComponentNode;
@@ -27,6 +32,7 @@ import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.controller.LoggableComponent;
 import org.apache.nifi.controller.ProcessScheduler;
+import org.apache.nifi.controller.PropertyConfiguration;
 import org.apache.nifi.controller.ReloadComponent;
 import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.ScheduledState;
@@ -35,10 +41,13 @@ import org.apache.nifi.controller.ValidationContextFactory;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.controller.service.StandardConfigurationContext;
+import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.reporting.ReportingTask;
+import org.apache.nifi.reporting.VerifiableReportingTask;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 import org.apache.nifi.util.CharacterFilterUtils;
 import org.apache.nifi.util.FormatUtils;
@@ -47,7 +56,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -314,5 +328,101 @@ public abstract class AbstractReportingTaskNode extends AbstractComponentNode im
     @Override
     public ParameterLookup getParameterLookup() {
         return ParameterLookup.EMPTY;
+    }
+
+    @Override
+    public void verifyCanPerformVerification() {
+        if (isRunning()) {
+            throw new IllegalStateException("Cannot perform verification because Reporting Task is not fully stopped");
+        }
+    }
+
+    @Override
+    public List<ConfigVerificationResult> verifyConfiguration(final ConfigurationContext context, final ComponentLog logger, final ExtensionManager extensionManager) {
+        final List<ConfigVerificationResult> results = new ArrayList<>();
+
+        try {
+            verifyCanPerformVerification();
+
+            final long startNanos = System.nanoTime();
+
+            final Map<PropertyDescriptor, PropertyConfiguration> descriptorToConfigMap = new LinkedHashMap<>();
+            for (final Map.Entry<PropertyDescriptor, String> entry : context.getProperties().entrySet()) {
+                final PropertyDescriptor descriptor = entry.getKey();
+                final String rawValue = entry.getValue();
+                final String propertyValue = rawValue == null ? descriptor.getDefaultValue() : rawValue;
+
+                final PropertyConfiguration propertyConfiguration = new PropertyConfiguration(propertyValue, null, Collections.emptyList());
+                descriptorToConfigMap.put(descriptor, propertyConfiguration);
+            }
+
+            final ValidationContext validationContext = getValidationContextFactory().newValidationContext(descriptorToConfigMap, context.getAnnotationData(),
+                getProcessGroupIdentifier(), getIdentifier(), null, false);
+
+            final ValidationState validationState = performValidation(validationContext);
+            final ValidationStatus validationStatus = validationState.getStatus();
+
+            if (validationStatus == ValidationStatus.INVALID) {
+                for (final ValidationResult result : validationState.getValidationErrors()) {
+                    if (result.isValid()) {
+                        continue;
+                    }
+
+                    results.add(new ConfigVerificationResult.Builder()
+                        .outcome(Outcome.FAILED)
+                        .explanation("Reporting Task is invalid: " + result.toString())
+                        .verificationStepName("Perform Validation")
+                        .build());
+                }
+
+                if (results.isEmpty()) {
+                    results.add(new ConfigVerificationResult.Builder()
+                        .outcome(Outcome.FAILED)
+                        .explanation("Reporting Task is invalid but provided no Validation Results to indicate why")
+                        .verificationStepName("Perform Validation")
+                        .build());
+                }
+
+                logger.debug("{} is not valid with the given configuration. Will not attempt to perform any additional verification of configuration. Validation took {}. Reason not valid: {}",
+                    this, results, FormatUtils.formatNanos(System.nanoTime() - startNanos, false));
+                return results;
+            }
+
+            final long validationComplete = System.nanoTime();
+
+            results.add(new ConfigVerificationResult.Builder()
+                .outcome(Outcome.SUCCESSFUL)
+                .verificationStepName("Perform Validation")
+                .explanation("Reporting Task Validation passed")
+                .build());
+
+            final ReportingTask reportingTask = getReportingTask();
+            if (reportingTask instanceof VerifiableReportingTask) {
+                logger.debug("{} is a VerifiableReportingTask. Will perform full verification of configuration.", this);
+
+                try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, reportingTask.getClass(), getIdentifier())) {
+                    final VerifiableReportingTask verifiable = (VerifiableReportingTask) reportingTask;
+                    results.addAll(verifiable.verify(context, logger));
+                }
+
+                final long validationNanos = validationComplete - startNanos;
+                final long verificationNanos = System.nanoTime() - validationComplete;
+                logger.debug("{} completed full configuration validation in {} plus {} for validation",
+                    this, FormatUtils.formatNanos(verificationNanos, false), FormatUtils.formatNanos(validationNanos, false));
+            } else {
+                logger.debug("{} is not a VerifiableReportingTask, so will not perform full verification of configuration. Validation took {}", this,
+                    FormatUtils.formatNanos(validationComplete - startNanos, false));
+            }
+        } catch (final Throwable t) {
+            logger.error("Failed to perform verification of Reporting Task's configuration for {}", this, t);
+
+            results.add(new ConfigVerificationResult.Builder()
+                .outcome(Outcome.FAILED)
+                .verificationStepName("Perform Verification")
+                .explanation("Encountered unexpected failure when attempting to perform verification: " + t)
+                .build());
+        }
+
+        return results;
     }
 }

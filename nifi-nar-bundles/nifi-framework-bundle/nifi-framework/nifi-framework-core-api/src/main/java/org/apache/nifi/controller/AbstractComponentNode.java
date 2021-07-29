@@ -17,6 +17,7 @@
 package org.apache.nifi.controller;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.attribute.expression.language.Query;
 import org.apache.nifi.attribute.expression.language.StandardPropertyValue;
 import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
@@ -60,6 +61,7 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -195,10 +197,8 @@ public abstract class AbstractComponentNode implements ComponentNode {
         try {
             verifyCanUpdateProperties(properties);
 
-            // Keep track of counts of each parameter reference. This way, when we complete the updates to property values, we can
-            // update our counts easily.
-            final ParameterParser elAgnosticParameterParser = new ExpressionLanguageAgnosticParameterParser();
-            final ParameterParser elAwareParameterParser = new ExpressionLanguageAwareParameterParser();
+            final PropertyConfigurationMapper configurationMapper = new PropertyConfigurationMapper();
+            final Map<String, PropertyConfiguration> configurationMap = configurationMapper.mapRawPropertyValuesToPropertyConfiguration(this, properties);
 
             try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, getComponent().getClass(), id)) {
                 boolean classpathChanged = false;
@@ -219,25 +219,15 @@ public abstract class AbstractComponentNode implements ComponentNode {
                     if (entry.getKey() != null && entry.getValue() == null) {
                         removeProperty(entry.getKey(), allowRemovalOfRequiredProperties);
                     } else if (entry.getKey() != null) {
-                        final String updatedValue = CharacterFilterUtils.filterInvalidXmlCharacters(entry.getValue());
-
                         // Use the EL-Agnostic Parameter Parser to gather the list of referenced Parameters. We do this because we want to to keep track of which parameters
                         // are referenced, regardless of whether or not they are referenced from within an EL Expression. However, we also will need to derive a different ParameterTokenList
                         // that we can provide to the PropertyConfiguration, so that when compiling the Expression Language Expressions, we are able to keep the Parameter Reference within
                         // the Expression's text.
-                        final ParameterTokenList updatedValueReferences = elAgnosticParameterParser.parseTokens(updatedValue);
-                        final List<ParameterReference> parameterReferences = updatedValueReferences.toReferenceList();
+                        final PropertyConfiguration propertyConfiguration = configurationMap.get(entry.getKey());
+                        final List<ParameterReference> parameterReferences = propertyConfiguration.getParameterReferences();
                         for (final ParameterReference reference : parameterReferences) {
                             // increment count in map for this parameter
                             parameterReferenceCounts.merge(reference.getParameterName(), 1, (a, b) -> a == -1 ? null : a + b);
-                        }
-
-                        final PropertyConfiguration propertyConfiguration;
-                        final boolean supportsEL = getPropertyDescriptor(entry.getKey()).isExpressionLanguageSupported();
-                        if (supportsEL) {
-                            propertyConfiguration = new PropertyConfiguration(updatedValue, elAwareParameterParser.parseTokens(updatedValue), parameterReferences);
-                        } else {
-                            propertyConfiguration = new PropertyConfiguration(updatedValue, updatedValueReferences, parameterReferences);
                         }
 
                         setProperty(entry.getKey(), propertyConfiguration, this.properties::get);
@@ -332,6 +322,19 @@ public abstract class AbstractComponentNode implements ComponentNode {
     @Override
     public boolean isReferencingParameter() {
         return !parameterReferenceCounts.isEmpty();
+    }
+
+    @Override
+    public Set<String> getReferencedAttributeNames() {
+        final Set<String> referencedAttributes = new HashSet<>();
+
+        for (final PropertyDescriptor descriptor : getPropertyDescriptors()) {
+            final String effectiveValue = getEffectivePropertyValue(descriptor);
+            final Set<String> attributes = Query.prepareWithParametersPreEvaluated(effectiveValue).getExplicitlyReferencedAttributes();
+            referencedAttributes.addAll(attributes);
+        }
+
+        return referencedAttributes;
     }
 
     // Keep setProperty/removeProperty private so that all calls go through setProperties
@@ -563,7 +566,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
 
     @Override
     public ValidationState performValidation(final Map<PropertyDescriptor, PropertyConfiguration> properties, final String annotationData, final ParameterContext parameterContext) {
-        final ValidationContext validationContext = validationContextFactory.newValidationContext(properties, annotationData, getProcessGroupIdentifier(), getIdentifier(), parameterContext);
+        final ValidationContext validationContext = validationContextFactory.newValidationContext(properties, annotationData, getProcessGroupIdentifier(), getIdentifier(), parameterContext, true);
         return performValidation(validationContext);
     }
 
@@ -1090,7 +1093,7 @@ public abstract class AbstractComponentNode implements ComponentNode {
                 return context;
             }
 
-            context = getValidationContextFactory().newValidationContext(getProperties(), getAnnotationData(), getProcessGroupIdentifier(), getIdentifier(), getParameterContext());
+            context = getValidationContextFactory().newValidationContext(getProperties(), getAnnotationData(), getProcessGroupIdentifier(), getIdentifier(), getParameterContext(), true);
 
             this.validationContext = context;
             logger.debug("Updating validation context to {}", context);

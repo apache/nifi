@@ -18,7 +18,6 @@ package org.apache.nifi.controller.reporting;
 
 import org.apache.nifi.annotation.behavior.Restricted;
 import org.apache.nifi.annotation.documentation.DeprecationNotice;
-import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.ResourceFactory;
@@ -32,12 +31,16 @@ import org.apache.nifi.controller.ReportingTaskNode;
 import org.apache.nifi.controller.ValidationContextFactory;
 import org.apache.nifi.nar.ExtensionManager;
 import org.apache.nifi.parameter.ParameterContext;
+import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.reporting.ReportingContext;
 import org.apache.nifi.reporting.ReportingTask;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class StandardReportingTaskNode extends AbstractReportingTaskNode implements ReportingTaskNode {
 
+    private static final Logger logger = LoggerFactory.getLogger(StandardReportingTaskNode.class);
     private final FlowController flowController;
 
     public StandardReportingTaskNode(final LoggableComponent<ReportingTask> reportingTask, final String id, final FlowController controller,

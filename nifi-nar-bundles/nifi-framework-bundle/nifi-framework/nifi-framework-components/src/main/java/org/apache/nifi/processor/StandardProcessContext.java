@@ -31,9 +31,12 @@ import org.apache.nifi.controller.ControllerService;
 import org.apache.nifi.controller.ControllerServiceLookup;
 import org.apache.nifi.controller.NodeTypeProvider;
 import org.apache.nifi.controller.ProcessorNode;
+import org.apache.nifi.controller.PropertyConfiguration;
+import org.apache.nifi.controller.PropertyConfigurationMapper;
 import org.apache.nifi.controller.lifecycle.TaskTermination;
 import org.apache.nifi.controller.service.ControllerServiceProvider;
 import org.apache.nifi.encrypt.PropertyEncryptor;
+import org.apache.nifi.parameter.ParameterLookup;
 import org.apache.nifi.processor.exception.TerminatedTaskException;
 import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.util.Connectables;
@@ -57,6 +60,7 @@ public class StandardProcessContext implements ProcessContext, ControllerService
     private final TaskTermination taskTermination;
     private final NodeTypeProvider nodeTypeProvider;
     private final Map<PropertyDescriptor, String> properties;
+    private final String annotationData;
 
 
     public StandardProcessContext(final ProcessorNode processorNode, final ControllerServiceProvider controllerServiceProvider, final PropertyEncryptor propertyEncryptor,
@@ -67,6 +71,7 @@ public class StandardProcessContext implements ProcessContext, ControllerService
         this.stateManager = stateManager;
         this.taskTermination = taskTermination;
         this.nodeTypeProvider = nodeTypeProvider;
+        this.annotationData = processorNode.getAnnotationData();
 
         properties = Collections.unmodifiableMap(processorNode.getEffectivePropertyValues());
 
@@ -84,6 +89,51 @@ public class StandardProcessContext implements ProcessContext, ControllerService
             }
         }
     }
+
+    public StandardProcessContext(final ProcessorNode processorNode, final Map<String, String> propertiesOverride, final String annotationDataOverride, final ParameterLookup parameterLookup,
+                                  final ControllerServiceProvider controllerServiceProvider, final PropertyEncryptor propertyEncryptor,
+                                  final StateManager stateManager, final TaskTermination taskTermination, final NodeTypeProvider nodeTypeProvider) {
+        this.procNode = processorNode;
+        this.controllerServiceProvider = controllerServiceProvider;
+        this.propertyEncryptor = propertyEncryptor;
+        this.stateManager = stateManager;
+        this.taskTermination = taskTermination;
+        this.nodeTypeProvider = nodeTypeProvider;
+        this.annotationData = annotationDataOverride;
+
+        final PropertyConfigurationMapper configurationMapper = new PropertyConfigurationMapper();
+        final Map<PropertyDescriptor, String> resolvedProperties = new LinkedHashMap<>(processorNode.getEffectivePropertyValues());
+
+        for (final Map.Entry<String, String> entry : propertiesOverride.entrySet()) {
+            final String propertyName = entry.getKey();
+            final String propertyValue = entry.getValue();
+            final PropertyDescriptor propertyDescriptor = processorNode.getPropertyDescriptor(propertyName);
+            if (propertyValue == null) {
+                resolvedProperties.remove(propertyDescriptor);
+            } else {
+                final PropertyConfiguration configuration = configurationMapper.mapRawPropertyValuesToPropertyConfiguration(propertyDescriptor, propertyValue);
+                final String effectiveValue = configuration.getEffectiveValue(parameterLookup);
+                resolvedProperties.put(propertyDescriptor, effectiveValue);
+            }
+        }
+
+        properties = Collections.unmodifiableMap(resolvedProperties);
+
+        preparedQueries = new HashMap<>();
+        for (final Map.Entry<PropertyDescriptor, String> entry : properties.entrySet()) {
+            final PropertyDescriptor desc = entry.getKey();
+            String value = entry.getValue();
+            if (value == null) {
+                value = desc.getDefaultValue();
+            }
+
+            if (value != null) {
+                final PreparedQuery pq = Query.prepareWithParametersPreEvaluated(value);
+                preparedQueries.put(desc, pq);
+            }
+        }
+    }
+
 
     private void verifyTaskActive() {
         if (taskTermination.isTerminated()) {
@@ -163,7 +213,7 @@ public class StandardProcessContext implements ProcessContext, ControllerService
     @Override
     public String getAnnotationData() {
         verifyTaskActive();
-        return procNode.getAnnotationData();
+        return annotationData;
     }
 
     @Override

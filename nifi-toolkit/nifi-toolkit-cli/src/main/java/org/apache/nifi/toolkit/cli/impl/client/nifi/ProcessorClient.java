@@ -17,6 +17,7 @@
 package org.apache.nifi.toolkit.cli.impl.client.nifi;
 
 import org.apache.nifi.web.api.entity.ProcessorEntity;
+import org.apache.nifi.web.api.entity.VerifyProcessorConfigRequestEntity;
 
 import java.io.IOException;
 
@@ -46,4 +47,11 @@ public interface ProcessorClient {
     ProcessorEntity deleteProcessor(String processorId, String clientId, long version) throws NiFiClientException, IOException;
 
     ProcessorEntity deleteProcessor(ProcessorEntity processorEntity) throws NiFiClientException, IOException;
+
+    VerifyProcessorConfigRequestEntity submitConfigVerificationRequest(VerifyProcessorConfigRequestEntity configRequestEntity) throws NiFiClientException, IOException;
+
+    VerifyProcessorConfigRequestEntity getConfigVerificationRequest(String processorId, String verificationRequestId) throws NiFiClientException, IOException;
+
+    VerifyProcessorConfigRequestEntity deleteConfigVerificationRequest(String processorId, String verificationRequestId) throws NiFiClientException, IOException;
+
 }
