@@ -33,7 +33,10 @@ import org.apache.nifi.authorization.Resource;
 import org.apache.nifi.authorization.resource.Authorizable;
 import org.apache.nifi.authorization.resource.ResourceFactory;
 import org.apache.nifi.authorization.resource.ResourceType;
+import org.apache.nifi.bundle.Bundle;
 import org.apache.nifi.bundle.BundleCoordinate;
+import org.apache.nifi.components.ConfigVerificationResult;
+import org.apache.nifi.components.ConfigVerificationResult.Outcome;
 import org.apache.nifi.components.ConfigurableComponent;
 import org.apache.nifi.components.ValidationContext;
 import org.apache.nifi.components.ValidationResult;
@@ -55,6 +58,7 @@ import org.apache.nifi.logging.ComponentLog;
 import org.apache.nifi.logging.LogLevel;
 import org.apache.nifi.logging.LogRepositoryFactory;
 import org.apache.nifi.nar.ExtensionManager;
+import org.apache.nifi.nar.InstanceClassLoader;
 import org.apache.nifi.nar.NarCloseable;
 import org.apache.nifi.parameter.ParameterContext;
 import org.apache.nifi.parameter.ParameterLookup;
@@ -63,6 +67,7 @@ import org.apache.nifi.processor.ProcessSessionFactory;
 import org.apache.nifi.processor.Processor;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.SimpleProcessLogger;
+import org.apache.nifi.processor.VerifiableProcessor;
 import org.apache.nifi.registry.ComponentVariableRegistry;
 import org.apache.nifi.scheduling.ExecutionNode;
 import org.apache.nifi.scheduling.SchedulingStrategy;
@@ -1062,6 +1067,71 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
         return nonLoopConnections;
     }
 
+    @Override
+    public List<ConfigVerificationResult> verifyConfiguration(final ProcessContext context, final ComponentLog logger, final Map<String, String> attributes, final ExtensionManager extensionManager) {
+        final List<ConfigVerificationResult> results = new ArrayList<>();
+
+        try {
+            verifyCanPerformVerification();
+
+            final long startNanos = System.nanoTime();
+            // Call super's verifyConfig, which will perform component validation
+            results.addAll(super.verifyConfig(context.getProperties(), context.getAnnotationData(), getProcessGroup().getParameterContext()));
+            final long validationComplete = System.nanoTime();
+
+            // If any invalid outcomes from validation, we do not want to perform additional verification, because we only run additional verification when the component is valid.
+            // This is done in order to make it much simpler to develop these verifications, since the developer doesn't have to worry about whether or not the given values are valid.
+            if (!results.isEmpty() && results.stream().anyMatch(result -> result.getOutcome() == Outcome.FAILED)) {
+                return results;
+            }
+
+            final Processor processor = getProcessor();
+            if (processor instanceof VerifiableProcessor) {
+                LOG.debug("{} is a VerifiableProcessor. Will perform full verification of configuration.", this);
+                final VerifiableProcessor verifiable = (VerifiableProcessor) getProcessor();
+
+                // Check if the given configuration requires a different classloader than the current configuration
+                final boolean classpathDifferent = isClasspathDifferent(context.getProperties());
+
+                if (classpathDifferent) {
+                    // Create a classloader for the given configuration and use that to verify the component's configuration
+                    final Bundle bundle = extensionManager.getBundle(getBundleCoordinate());
+                    final Set<URL> classpathUrls = getAdditionalClasspathResources(context.getProperties().keySet(), descriptor -> context.getProperty(descriptor).getValue());
+
+                    final ClassLoader currentClassLoader = Thread.currentThread().getContextClassLoader();
+                    try (final InstanceClassLoader detectedClassLoader = extensionManager.createInstanceClassLoader(getComponentType(), getIdentifier(), bundle, classpathUrls, false)) {
+                        Thread.currentThread().setContextClassLoader(detectedClassLoader);
+                        results.addAll(verifiable.verify(context, logger, attributes));
+                    } finally {
+                        Thread.currentThread().setContextClassLoader(currentClassLoader);
+                    }
+                } else {
+                    // Verify the configuration, using the component's classloader
+                    try (final NarCloseable narCloseable = NarCloseable.withComponentNarLoader(extensionManager, processor.getClass(), getIdentifier())) {
+                        results.addAll(verifiable.verify(context, logger, attributes));
+                    }
+                }
+
+                final long validationNanos = validationComplete - startNanos;
+                final long verificationNanos = System.nanoTime() - validationComplete;
+                LOG.debug("{} completed full configuration validation in {} plus {} for validation",
+                    this, FormatUtils.formatNanos(verificationNanos, false), FormatUtils.formatNanos(validationNanos, false));
+            } else {
+                LOG.debug("{} is not a VerifiableProcessor, so will not perform full verification of configuration. Validation took {}", this,
+                    FormatUtils.formatNanos(validationComplete - startNanos, false));
+            }
+        } catch (final Throwable t) {
+            LOG.error("Failed to perform verification of processor's configuration for {}", this, t);
+
+            results.add(new ConfigVerificationResult.Builder()
+                .outcome(Outcome.FAILED)
+                .verificationStepName("Perform Verification")
+                .explanation("Encountered unexpected failure when attempting to perform verification: " + t)
+                .build());
+        }
+
+        return results;
+    }
 
     @Override
     public Collection<ValidationResult> getValidationErrors() {
@@ -1080,36 +1150,38 @@ public class StandardProcessorNode extends ProcessorNode implements Connectable 
                 .forEach(results::add);
 
             // Ensure that any relationships that don't have a connection defined are auto-terminated
-            for (final Relationship relationship : getUndefinedRelationships()) {
-                if (!isAutoTerminated(relationship)) {
-                    final ValidationResult error = new ValidationResult.Builder()
-                        .explanation("Relationship '" + relationship.getName()
-                            + "' is not connected to any component and is not auto-terminated")
-                        .subject("Relationship " + relationship.getName()).valid(false).build();
-                    results.add(error);
+            if (validationContext.isValidateConnections()) {
+                for (final Relationship relationship : getUndefinedRelationships()) {
+                    if (!isAutoTerminated(relationship)) {
+                        final ValidationResult error = new ValidationResult.Builder()
+                            .explanation("Relationship '" + relationship.getName()
+                                + "' is not connected to any component and is not auto-terminated")
+                            .subject("Relationship " + relationship.getName()).valid(false).build();
+                        results.add(error);
+                    }
                 }
-            }
 
-            // Ensure that the requirements of the InputRequirement are met.
-            switch (getInputRequirement()) {
-                case INPUT_ALLOWED:
-                    break;
-                case INPUT_FORBIDDEN: {
-                    final int incomingConnCount = getIncomingNonLoopConnections().size();
-                    if (incomingConnCount != 0) {
-                        results.add(new ValidationResult.Builder().explanation(
-                            "Processor does not allow upstream connections but currently has " + incomingConnCount)
-                            .subject("Upstream Connections").valid(false).build());
+                // Ensure that the requirements of the InputRequirement are met.
+                switch (getInputRequirement()) {
+                    case INPUT_ALLOWED:
+                        break;
+                    case INPUT_FORBIDDEN: {
+                        final int incomingConnCount = getIncomingNonLoopConnections().size();
+                        if (incomingConnCount != 0) {
+                            results.add(new ValidationResult.Builder().explanation(
+                                "Processor does not allow upstream connections but currently has " + incomingConnCount)
+                                .subject("Upstream Connections").valid(false).build());
+                        }
+                        break;
                     }
-                    break;
-                }
-                case INPUT_REQUIRED: {
-                    if (getIncomingNonLoopConnections().isEmpty()) {
-                        results.add(new ValidationResult.Builder()
-                            .explanation("Processor requires an upstream connection but currently has none")
-                            .subject("Upstream Connections").valid(false).build());
+                    case INPUT_REQUIRED: {
+                        if (getIncomingNonLoopConnections().isEmpty()) {
+                            results.add(new ValidationResult.Builder()
+                                .explanation("Processor requires an upstream connection but currently has none")
+                                .subject("Upstream Connections").valid(false).build());
+                        }
+                        break;
                     }
-                    break;
                 }
             }
 

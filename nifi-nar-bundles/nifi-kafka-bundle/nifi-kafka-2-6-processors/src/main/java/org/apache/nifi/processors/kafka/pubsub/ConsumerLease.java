@@ -500,7 +500,7 @@ public abstract class ConsumerLease implements Closeable, ConsumerRebalanceListe
         session.adjustCounter("Parse Failures", 1, false);
     }
 
-    private Map<String, String> getAttributes(final ConsumerRecord<?, ?> consumerRecord) {
+    protected Map<String, String> getAttributes(final ConsumerRecord<?, ?> consumerRecord) {
         final Map<String, String> attributes = new HashMap<>();
         if (headerNamePattern == null) {
             return attributes;

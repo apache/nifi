@@ -26,9 +26,20 @@ import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.controller.AbstractControllerService;
 import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.expression.ExpressionLanguageScope;
+import org.apache.nifi.logging.ComponentLog;
+import org.apache.nifi.components.ConfigVerificationResult;
+import org.apache.nifi.components.ConfigVerificationResult.Outcome;
+import org.apache.nifi.controller.VerifiableControllerService;
 
+import javax.jms.Connection;
 import javax.jms.ConnectionFactory;
+import javax.jms.ExceptionListener;
+import javax.jms.JMSSecurityException;
+import javax.jms.Session;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Provides a factory service that creates and initializes
@@ -50,7 +61,9 @@ import java.util.List;
                 + "property and 'com.ibm.mq.jms.MQConnectionFactory.setTransportType(int)' would imply 'transportType' property.",
                 expressionLanguageScope = ExpressionLanguageScope.VARIABLE_REGISTRY)
 @SeeAlso(classNames = {"org.apache.nifi.jms.processors.ConsumeJMS", "org.apache.nifi.jms.processors.PublishJMS"})
-public class JMSConnectionFactoryProvider extends AbstractControllerService implements JMSConnectionFactoryProviderDefinition {
+public class JMSConnectionFactoryProvider extends AbstractControllerService implements JMSConnectionFactoryProviderDefinition, VerifiableControllerService {
+    private static final String ESTABLISH_CONNECTION = "Establish Connection";
+    private static final String VERIFY_JMS_INTERACTION = "Verify JMS Interaction";
 
     protected volatile JMSConnectionFactoryHandler delegate;
 
@@ -84,4 +97,91 @@ public class JMSConnectionFactoryProvider extends AbstractControllerService impl
         delegate.resetConnectionFactory(cachedFactory);
     }
 
+    @Override
+    public List<ConfigVerificationResult> verify(final ConfigurationContext context, final ComponentLog verificationLogger, final Map<String, String> variables) {
+        final List<ConfigVerificationResult> results = new ArrayList<>();
+        final JMSConnectionFactoryHandler handler = new JMSConnectionFactoryHandler(context, verificationLogger);
+
+        final AtomicReference<Exception> failureReason = new AtomicReference<>();
+        final ExceptionListener listener = failureReason::set;
+
+        final Connection connection = createConnection(handler.getConnectionFactory(), results, listener, verificationLogger);
+        if (connection != null) {
+            try {
+                createSession(connection, results, failureReason.get(), verificationLogger);
+            } finally {
+                try {
+                    connection.close();
+                } catch (final Exception ignored) {
+                }
+            }
+        }
+
+        return results;
+    }
+
+    private Connection createConnection(final ConnectionFactory connectionFactory, final List<ConfigVerificationResult> results, final ExceptionListener exceptionListener, final ComponentLog logger) {
+        try {
+            final Connection connection = connectionFactory.createConnection();
+            connection.setExceptionListener(exceptionListener);
+
+            results.add(new ConfigVerificationResult.Builder()
+                .verificationStepName(ESTABLISH_CONNECTION)
+                .outcome(Outcome.SUCCESSFUL)
+                .explanation("Successfully established a JMS Connection")
+                .build());
+
+            return connection;
+        } catch (final JMSSecurityException se) {
+            // If we encounter a JMS Security Exception, the documentation states that it is because of an invalid username or password.
+            // There is no username or password configured for the Controller Service itself, however. Those are configured in processors, etc.
+            // As a result, if this is encountered, we will skip verification.
+            logger.debug("Failed to establish a connection to the JMS Server in order to verify configuration because encountered JMS Security Exception", se);
+
+            results.add(new ConfigVerificationResult.Builder()
+                .verificationStepName(ESTABLISH_CONNECTION)
+                .outcome(Outcome.SKIPPED)
+                .explanation("Could not establish a Connection because doing so requires that a username and password be provided")
+                .build());
+        } catch (final Exception e) {
+            logger.warn("Failed to establish a connection to the JMS Server in order to verify configuration", e);
+
+            results.add(new ConfigVerificationResult.Builder()
+                .verificationStepName(ESTABLISH_CONNECTION)
+                .outcome(Outcome.FAILED)
+                .explanation("Was not able to establish a connection to the JMS Server: " + e.toString())
+                .build());
+        }
+
+        return null;
+    }
+
+    private void createSession(final Connection connection, final List<ConfigVerificationResult> results, final Exception capturedException, final ComponentLog logger) {
+        try {
+            final Session session = connection.createSession(false, Session.CLIENT_ACKNOWLEDGE);
+            session.close();
+
+            results.add(new ConfigVerificationResult.Builder()
+                .verificationStepName(VERIFY_JMS_INTERACTION)
+                .outcome(Outcome.SUCCESSFUL)
+                .explanation("Established a JMS Session with server and successfully terminated it")
+                .build());
+        } catch (final Exception e) {
+            final Exception failure;
+            if (capturedException == null) {
+                failure = e;
+            } else {
+                failure = capturedException;
+                failure.addSuppressed(e);
+            }
+
+            logger.warn("Failed to create a JMS Session in order to verify configuration", failure);
+
+            results.add(new ConfigVerificationResult.Builder()
+                .verificationStepName(VERIFY_JMS_INTERACTION)
+                .outcome(Outcome.FAILED)
+                .explanation("Was not able to create a JMS Session: " + failure.toString())
+                .build());
+        }
+    }
 }

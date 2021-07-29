@@ -37,8 +37,12 @@ public class SimpleProcessLogger implements ComponentLog {
     private final Object component;
 
     public SimpleProcessLogger(final String componentId, final Object component) {
+        this(component, LogRepositoryFactory.getRepository(componentId));
+    }
+
+    public SimpleProcessLogger(final Object component, final LogRepository logRepository) {
         this.logger = LoggerFactory.getLogger(component.getClass());
-        this.logRepository = LogRepositoryFactory.getRepository(componentId);
+        this.logRepository = logRepository;
         this.component = component;
     }
 

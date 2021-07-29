@@ -22,8 +22,11 @@ import org.apache.nifi.controller.ComponentNode;
 import org.apache.nifi.controller.ScheduledState;
 import org.apache.nifi.controller.service.ControllerServiceNode;
 import org.apache.nifi.controller.service.ControllerServiceState;
+import org.apache.nifi.web.api.dto.ConfigVerificationResultDTO;
 import org.apache.nifi.web.api.dto.ControllerServiceDTO;
 
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 public interface ControllerServiceDAO {
@@ -127,6 +130,21 @@ public interface ControllerServiceDAO {
      * @param controllerServiceId controller service id
      */
     void verifyClearState(String controllerServiceId);
+
+    /**
+     * Verifies the controller service is in a state in which its configuration can be verified
+     * @param controllerServiceId the id of the Controller Service
+     */
+    void verifyConfigVerification(String controllerServiceId);
+
+    /**
+     * Performs verification of the Configuration for the Controller Service with the given ID
+     * @param controllerServiceId the id of the controller service
+     * @param controllerService the configuration to verify
+     * @param variables a map of values that can be used for resolving FlowFile attributes for Expression Language
+     * @return verification results
+     */
+    List<ConfigVerificationResultDTO> verifyConfiguration(String controllerServiceId, ControllerServiceDTO controllerService, Map<String, String> variables);
 
     /**
      * Clears the state of the specified controller service.
