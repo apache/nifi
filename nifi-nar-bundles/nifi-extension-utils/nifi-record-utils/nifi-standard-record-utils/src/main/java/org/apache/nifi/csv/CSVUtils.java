@@ -59,6 +59,7 @@ public class CSVUtils {
                 "but the expression gets evaluated to an invalid Value Separator at runtime, then it will be skipped and the default Value Separator will be used.")
         .addValidator(CSVValidators.UNESCAPED_SINGLE_CHAR_VALIDATOR)
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+        .dependsOn(CSV_FORMAT, CUSTOM)
         .defaultValue(",")
         .required(true)
         .build();
@@ -68,6 +69,7 @@ public class CSVUtils {
                 "but the expression gets evaluated to an invalid Quote Character at runtime, then it will be skipped and the default Quote Character will be used.")
         .addValidator(new CSVValidators.SingleCharacterValidator())
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+        .dependsOn(CSV_FORMAT, CUSTOM)
         .defaultValue("\"")
         .required(true)
         .build();
@@ -101,6 +103,7 @@ public class CSVUtils {
         .description("The character that is used to denote the start of a comment. Any line that begins with this comment will be ignored.")
         .addValidator(new CSVValidators.SingleCharacterValidator())
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+        .dependsOn(CSV_FORMAT, CUSTOM)
         .required(false)
         .build();
     public static final PropertyDescriptor ESCAPE_CHAR = new PropertyDescriptor.Builder()
@@ -109,6 +112,7 @@ public class CSVUtils {
                 "but the expression gets evaluated to an invalid Escape Character at runtime, then it will be skipped and the default Escape Character will be used.")
         .addValidator(new CSVValidators.SingleCharacterValidator())
         .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+        .dependsOn(CSV_FORMAT, CUSTOM)
         .defaultValue("\\")
         .required(true)
         .build();
@@ -117,6 +121,7 @@ public class CSVUtils {
         .description("Specifies a String that, if present as a value in the CSV, should be considered a null field instead of using the literal value.")
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .expressionLanguageSupported(ExpressionLanguageScope.NONE)
+        .dependsOn(CSV_FORMAT, CUSTOM)
         .required(false)
         .build();
     public static final PropertyDescriptor TRIM_FIELDS = new PropertyDescriptor.Builder()
@@ -125,6 +130,7 @@ public class CSVUtils {
         .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .allowableValues("true", "false")
         .defaultValue("true")
+        .dependsOn(CSV_FORMAT, CUSTOM)
         .required(true)
         .build();
     public static final PropertyDescriptor CHARSET = new PropertyDescriptor.Builder()
@@ -147,6 +153,7 @@ public class CSVUtils {
                 "duplicate CSV column")
         .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .allowableValues("true", "false")
+        .dependsOn(CSV_FORMAT, CUSTOM)
         .defaultValue("true")
         .required(false)
         .build();
@@ -165,6 +172,7 @@ public class CSVUtils {
         .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .allowableValues(QUOTE_ALL, QUOTE_MINIMAL, QUOTE_NON_NUMERIC, QUOTE_NONE)
         .defaultValue(QUOTE_MINIMAL.getValue())
+        .dependsOn(CSV_FORMAT, CUSTOM)
         .required(true)
         .build();
     public static final PropertyDescriptor TRAILING_DELIMITER = new PropertyDescriptor.Builder()
@@ -173,6 +181,7 @@ public class CSVUtils {
         .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .allowableValues("true", "false")
         .defaultValue("false")
+        .dependsOn(CSV_FORMAT, CUSTOM)
         .required(true)
         .build();
     public static final PropertyDescriptor RECORD_SEPARATOR = new PropertyDescriptor.Builder()
@@ -181,6 +190,7 @@ public class CSVUtils {
         .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
         .expressionLanguageSupported(ExpressionLanguageScope.NONE)
         .defaultValue("\\n")
+        .dependsOn(CSV_FORMAT, CUSTOM)
         .required(true)
         .build();
     public static final PropertyDescriptor INCLUDE_HEADER_LINE = new PropertyDescriptor.Builder()
