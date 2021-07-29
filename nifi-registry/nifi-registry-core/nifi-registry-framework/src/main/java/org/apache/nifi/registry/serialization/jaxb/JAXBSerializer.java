@@ -20,9 +20,13 @@ import org.apache.nifi.registry.serialization.SerializationException;
 import org.apache.nifi.registry.serialization.VersionedSerializer;
 
 import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
+import javax.xml.namespace.QName;
+import javax.xml.stream.XMLInputFactory;
+import javax.xml.stream.XMLStreamReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -37,12 +41,14 @@ public class JAXBSerializer<T> implements VersionedSerializer<T> {
     private static final String MAGIC_HEADER = "Flows";
     private static final byte[] MAGIC_HEADER_BYTES = MAGIC_HEADER.getBytes(StandardCharsets.UTF_8);
 
+    private final Class<T> clazz;
     private final JAXBContext jaxbContext;
 
     /**
      * Load the JAXBContext.
      */
     public JAXBSerializer(final Class<T> clazz) {
+        this.clazz = clazz;
         try {
             this.jaxbContext = JAXBContext.newInstance(clazz);
         } catch (JAXBException e) {
@@ -73,8 +79,12 @@ public class JAXBSerializer<T> implements VersionedSerializer<T> {
         try {
             final Marshaller marshaller = jaxbContext.createMarshaller();
             marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
-            marshaller.marshal(t, out);
-        } catch (JAXBException e) {
+
+            String className = clazz.getSimpleName();
+            String tagName = Character.toLowerCase(className.charAt(0)) + className.substring(1);
+
+            marshaller.marshal(new JAXBElement<>(new QName(tagName), clazz, t), out);
+        } catch (Exception e) {
             throw new SerializationException("Unable to serialize object", e);
         }
     }
@@ -88,9 +98,15 @@ public class JAXBSerializer<T> implements VersionedSerializer<T> {
         try {
             // Consume the header bytes.
             readDataModelVersion(input);
+
+            XMLStreamReader streamReader = XMLInputFactory.newInstance().createXMLStreamReader(input);
+
             final Unmarshaller unmarshaller = jaxbContext.createUnmarshaller();
-            return (T) unmarshaller.unmarshal(input);
-        } catch (JAXBException e) {
+            JAXBElement<T> jaxbElement = unmarshaller.unmarshal(streamReader, clazz);
+            T deserializedObject = jaxbElement.getValue();
+
+            return deserializedObject;
+        } catch (Exception e) {
             throw new SerializationException("Unable to deserialize object", e);
         }
     }
